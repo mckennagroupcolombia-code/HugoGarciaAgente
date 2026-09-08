@@ -70,7 +70,7 @@ export function construirCodigo12(
 }
 
 /** Tamaños habituales; en SKUs compuestos (SHA70550mL) se toma el del final. */
-const PRESENTACIONES_CONOCIDAS = [
+export const PRESENTACIONES_CONOCIDAS = [
   1000, 500, 400, 250, 150, 125, 120, 100, 60, 50, 40, 30, 20, 15, 10, 5,
 ] as const;
 

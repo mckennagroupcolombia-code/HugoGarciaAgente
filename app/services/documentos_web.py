@@ -21,6 +21,7 @@ from app.services.ficha_tecnica import (
     nombre_archivo_desde_titulo,
     ruta_archivo_biblioteca_segura,
     _coa_diligenciado,
+    _con_firma_default,
     _contexto_coa,
     _contexto_html,
     _contexto_sds,
@@ -154,6 +155,7 @@ def _contexto_publico(datos: dict) -> dict | None:
     coa = _contexto_coa(datos.get("_coa") or {})
     if not coa or not _coa_diligenciado(coa):
         return None
+    coa = _con_firma_default(coa)
     sds = _contexto_sds(datos.get("_sds") or {})
     if not sds or not _sds_diligenciado(sds):
         return None

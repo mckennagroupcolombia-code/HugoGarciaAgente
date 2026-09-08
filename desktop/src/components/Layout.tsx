@@ -101,8 +101,8 @@ export default function Layout({
                 type="button"
                 onClick={onBackToMobileHub}
                 className="mck-press shrink-0 rounded-full p-1.5 text-muted transition-colors hover:bg-surface-hover hover:text-ink lg:hidden"
-                aria-label="Volver al inicio móvil"
-                title="Inicio móvil"
+                aria-label="Volver a la agenda móvil"
+                title="Agenda móvil"
               >
                 <Icon name="caretDown" size={22} weight="bold" className="rotate-90" />
               </button>
@@ -113,30 +113,39 @@ export default function Layout({
                   type="button"
                   onClick={() => navegarPanel("hugo")}
                   className="mck-press flex shrink-0 items-center gap-1 rounded-full border border-border px-2.5 py-1.5 text-[12px] font-bold text-muted transition hover:border-accent/40 hover:text-ink"
-                  title="Volver a Inicio"
+                  title="Volver a Agenda"
                 >
                   <Icon name="caretDown" size={14} weight="bold" className="rotate-90" />
-                  Inicio
+                  Agenda
                 </button>
               )}
-              {isHub && sectionId ? (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                  <Icon name={HUB_SECTION_ICON[sectionId]} size={22} weight="duotone" />
-                </span>
-              ) : panel === "perfil" || panel === "settings" ? (
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                  <Icon name={panel === "perfil" ? "user" : "wrench"} size={22} weight="duotone" />
-                </span>
-              ) : null}
-              <div className="min-w-0">
-                <h1 className="mck-title truncate text-[26px] font-bold leading-tight tracking-tight">
-                  {headerTitle}
-                </h1>
-              </div>
-              {sectionId === "inicio" && (
-                <div className="hidden shrink-0 border-l border-border/60 pl-2 sm:flex">
-                  <EquipoConectadoBar />
-                </div>
+              {/* Agenda: pestañas a la izquierda (sin título duplicado "Agenda"). */}
+              {sectionId === "inicio" ? (
+                <>
+                  <div className="min-w-0 shrink">
+                    <InicioNavTabs />
+                  </div>
+                  <div className="hidden shrink-0 border-l border-border/60 pl-2 sm:flex">
+                    <EquipoConectadoBar />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {isHub && sectionId ? (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <Icon name={HUB_SECTION_ICON[sectionId]} size={22} weight="duotone" />
+                    </span>
+                  ) : panel === "perfil" || panel === "settings" ? (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                      <Icon name={panel === "perfil" ? "user" : "wrench"} size={22} weight="duotone" />
+                    </span>
+                  ) : null}
+                  <div className="min-w-0">
+                    <h1 className="mck-title truncate text-[26px] font-bold leading-tight tracking-tight">
+                      {headerTitle}
+                    </h1>
+                  </div>
+                </>
               )}
               <div className="min-w-0 flex-1" />
             </div>
@@ -164,15 +173,10 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
-              {/* Diseño / Inicio: pestañas inline solo con ancho suficiente (≥ xl) */}
+              {/* Diseño: pestañas inline solo con ancho suficiente (≥ xl) */}
               {sectionId === "diseno" && (
                 <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5 xl:block">
                   <DisenoNavTabs />
-                </div>
-              )}
-              {sectionId === "inicio" && (
-                <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,48rem)] border-r border-border/80 pr-1.5 xl:block">
-                  <InicioNavTabs />
                 </div>
               )}
               <TemasHeaderButton />
@@ -181,18 +185,17 @@ export default function Layout({
             </div>
           </div>
 
-          {showHubTabs && (
+          {/* Agenda ya lleva pestañas en la fila del cabezote (izquierda). */}
+          {showHubTabs && sectionId !== "inicio" && (
             <div
               className={`mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5 ${
-                sectionId === "diseno" || sectionId === "inicio" ? "xl:hidden" : ""
+                sectionId === "diseno" ? "xl:hidden" : ""
               }`}
             >
               {sectionId === "contabilidad" ? (
                 <ContabilidadNavTabs />
               ) : sectionId === "diseno" ? (
                 <DisenoNavTabs />
-              ) : sectionId === "inicio" ? (
-                <InicioNavTabs />
               ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}

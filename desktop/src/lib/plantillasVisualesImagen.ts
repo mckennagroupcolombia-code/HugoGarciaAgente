@@ -3,6 +3,14 @@ import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 
 const blobCache = new Map<string, string>();
+/** Fetches en vuelo por URL: la galería de Studio Visual (300+ plantillas)
+ *  puede montar decenas de miniaturas que comparten el mismo logo — sin
+ *  esto, cada una dispara su propio fetch autenticado en paralelo antes de
+ *  que la primera termine y llene `blobCache`, y esa ráfaga duplicada
+ *  (visto: 76 fetches simultáneos por un solo logo) basta para chocar con
+ *  el rate limit global (300 req/min, `agente_pro.py`) — los 429 resultantes
+ *  son la causa real de "no se ven los logos", no un logo roto. */
+const pendingFetches = new Map<string, Promise<string>>();
 
 export function panelBearerToken(): string | null {
   const tickets = useTicketsAuth.getState();
@@ -18,19 +26,7 @@ export function esSrcImagenApi(src: string): boolean {
   );
 }
 
-/** Resuelve URL de imagen del lienzo (blob/data para rutas API con auth). */
-export async function resolverUrlImagenCanvas(src: string): Promise<string> {
-  const raw = (src || "").trim();
-  if (!raw) return raw;
-  if (raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
-
-  if (!esSrcImagenApi(raw)) {
-    return resolvePanelApiUrl(raw);
-  }
-
-  const cached = blobCache.get(raw);
-  if (cached) return cached;
-
+async function fetchImagenComoBlobUrl(raw: string): Promise<string> {
   const token = panelBearerToken();
   const url = resolvePanelApiUrl(raw);
   const res = await fetch(url, {
@@ -45,6 +41,29 @@ export async function resolverUrlImagenCanvas(src: string): Promise<string> {
   const objectUrl = URL.createObjectURL(blob);
   blobCache.set(raw, objectUrl);
   return objectUrl;
+}
+
+/** Resuelve URL de imagen del lienzo (blob/data para rutas API con auth). */
+export async function resolverUrlImagenCanvas(src: string): Promise<string> {
+  const raw = (src || "").trim();
+  if (!raw) return raw;
+  if (raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
+
+  if (!esSrcImagenApi(raw)) {
+    return resolvePanelApiUrl(raw);
+  }
+
+  const cached = blobCache.get(raw);
+  if (cached) return cached;
+
+  const enVuelo = pendingFetches.get(raw);
+  if (enVuelo) return enVuelo;
+
+  const promesa = fetchImagenComoBlobUrl(raw).finally(() => {
+    pendingFetches.delete(raw);
+  });
+  pendingFetches.set(raw, promesa);
+  return promesa;
 }
 
 export function obtenerDimensionesImagen(url: string): Promise<{ width: number; height: number }> {

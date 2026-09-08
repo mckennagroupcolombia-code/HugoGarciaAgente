@@ -3,19 +3,20 @@
 <head>
 <meta charset="utf-8">
 <style>
-:root { --accent: {{ color_acento|default('#069DC2') }}; }
+:root {
+  --ink: #1c1b19;
+  --ink-muted: #29858E;
+  --rule: #9FCCD1;
+  --graphite: #0C6069;
+  --tint: #E8F1F2;
+  --radius: 4px;
+}
 
 @font-face {
   font-family: 'Montserrat';
   font-weight: 400;
   font-style: normal;
   src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Regular.ttf') format('truetype');
-}
-@font-face {
-  font-family: 'Montserrat';
-  font-weight: 400;
-  font-style: italic;
-  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Italic.ttf') format('truetype');
 }
 @font-face {
   font-family: 'Montserrat';
@@ -29,16 +30,30 @@
   font-style: normal;
   src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Bold.ttf') format('truetype');
 }
+@font-face {
+  font-family: 'Montserrat';
+  font-weight: 800;
+  font-style: normal;
+  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-ExtraBold.ttf') format('truetype');
+}
 
 @page {
   size: A4;
-  margin: 1.8cm 1.8cm 2cm 2cm;
-  @bottom-center {
-    content: "Esta información está basada en la documentación expedida por el proveedor.";
-    font-family: 'Montserrat', sans-serif;
-    font-size: 7pt;
-    color: #888;
-    border-top: 0.5pt solid #ccc;
+  margin: 1.7cm 1.7cm 2cm 1.7cm;
+  @bottom-left {
+    content: "McKenna Group S.A.S. · NIT 901316016-3 · Bogotá, Colombia";
+    font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+    font-size: 6.7pt;
+    color: var(--ink-muted);
+    border-top: 0.5pt solid var(--rule);
+    padding-top: 4px;
+  }
+  @bottom-right {
+    content: "Página " counter(page) " de " counter(pages);
+    font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+    font-size: 6.7pt;
+    color: var(--ink-muted);
+    border-top: 0.5pt solid var(--rule);
     padding-top: 4px;
   }
 }
@@ -46,417 +61,319 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 11pt;
-  color: #212121;
-  line-height: 1.45;
-  text-align: justify;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 10.3pt;
+  color: var(--ink);
+  line-height: 1.48;
 }
 
-/* ── Encabezado de producto ─── */
-.hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1cm;
-  padding-bottom: 0.35cm;
-  border-bottom: 0.75pt solid var(--accent);
-  margin-bottom: 0.45cm;
-}
-.hdr-left { flex: 1; }
-.hdr-pretitulo { font-size: 8pt; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-.hdr-titulo { font-size: 16pt; font-weight: bold; color: var(--accent); text-transform: uppercase; line-height: 1.2; }
-.hdr-sinonimos { font-size: 7.5pt; color: #666; margin-top: 2px; font-style: italic; }
-.hdr-logo {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  max-width: 5.6cm;
-  max-height: 2.6cm;
-  object-fit: contain;
-  object-position: right center;
-  flex-shrink: 0;
-}
-
-/* ── Banner de sección ─── */
-.section-banner {
-  background: transparent;
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 12pt;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  padding: 4px 0;
-  margin-bottom: 0.5cm;
-  margin-top: 0;
-  border-bottom: 1.5px solid var(--accent);
-}
+.mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; }
+.titlefont { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; }
 
 /* ── Inicio de sección (nueva página) ─── */
 .doc-section { page-break-before: always; }
 .doc-section:first-child { page-break-before: auto; }
 
-/* ── Secciones internas ─── */
-.sec { margin-top: 0.35cm; break-inside: avoid; }
-.sec-title {
-  color: var(--accent);
-  font-weight: bold;
-  font-size: 10pt;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 2px 0;
-  border-top: 0.75pt solid var(--accent);
-  border-bottom: 0.75pt solid var(--accent);
-  margin-bottom: 0;
-}
-.sec-body { padding: 5px 0 2px 0; font-size: 11pt; }
-.desc-text { text-align: justify; padding: 5px 2px; font-size: 11pt; line-height: 1.5; }
-
-/* ── Tablas ─── */
-table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
-td { border: 0.75pt solid var(--accent); padding: 3px 7px; vertical-align: top; }
-.td-key { font-weight: 600; color: var(--accent); width: 36%; white-space: nowrap; }
-.td-key-dark { color: var(--accent); font-weight: bold; font-size: 10.5pt; border: 0.75pt solid var(--accent); }
-
-/* ── Listas ─── */
-ul.apps, ul.beneficios { margin: 4px 0 2px 16px; padding: 0; }
-ul.apps li, ul.beneficios li { margin-bottom: 3px; font-size: 11pt; }
-.beneficio-label { font-weight: 600; }
-
-/* ── Meta strip ─── */
-.meta-strip { display: flex; gap: 1.5cm; font-size: 10pt; color: #555; margin-bottom: 0.3cm; }
-.meta-strip span b { color: var(--accent); }
-
-
-
-/* ── GHS ─── */
-.ghs-sec { margin-top: 0.5cm; }
-.ghs-title { margin-bottom: 4px; }
-.ghs-body { border: 0.75pt solid var(--accent); padding: 6px 8px; }
-.ghs-fila { display: flex; gap: 8px; padding: 3px 0; border-bottom: 0.4pt solid #c8d6e5; font-size: 10.5pt; line-height: 1.4; }
-.ghs-fila:last-child { border-bottom: none; }
-.ghs-cat { font-weight: 700; color: var(--accent); min-width: 5cm; flex-shrink: 0; }
-.ghs-val { flex: 1; }
-
-/* ── COA: info-grid ─── */
-.ident-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 0.4cm; }
-.ident-cell { border: 0.75pt solid var(--accent); padding: 3px 8px; }
-.ident-cell .lbl { font-size: 7.5pt; font-weight: 600; color: var(--accent); text-transform: uppercase; }
-.ident-cell .val { font-size: 11pt; }
-
-/* ── SDS: primeros auxilios, propiedades ─── */
-.two-col-fila { display: flex; gap: 8px; padding: 3px 0; border-bottom: 0.4pt solid #c8d6e5; font-size: 10.5pt; }
-.two-col-fila:last-child { border-bottom: none; }
-.two-col-key { font-weight: 600; color: var(--accent); min-width: 4.5cm; flex-shrink: 0; }
-.two-col-val { flex: 1; }
-.framed-body { border: 0.75pt solid var(--accent); padding: 6px 8px; }
-
-/* ── Signatura COA ─── */
-.coa-firma {
-  margin-top: 1.1cm;
-  display: flex;
-  justify-content: flex-start;
-  page-break-inside: avoid;
-}
-.coa-firma-box {
-  min-width: 7.5cm;
-  max-width: 9cm;
-}
-.coa-firma-lbl {
-  font-size: 8pt;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 0.15cm;
-}
-.coa-firma-espacio {
-  height: 2.4cm;
-  margin-bottom: 0.1cm;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-start;
-}
-.coa-firma-img {
-  max-width: 6.5cm;
-  max-height: 2.3cm;
-  object-fit: contain;
-  object-position: left bottom;
-}
-.coa-firma-linea {
-  border-top: 0.75pt solid #333;
-  width: 6.5cm;
-  margin-bottom: 0.18cm;
-}
-.coa-firma-nombre {
-  font-size: 10pt;
-  font-weight: 700;
-  color: #212121;
-  line-height: 1.25;
-}
-.coa-firma-cargo,
-.coa-firma-org {
-  font-size: 8.5pt;
-  color: #555;
-  line-height: 1.3;
-}
-
-.cod-verif { margin-top: 0.8cm; font-size: 8.5pt; color: #555; }
-.cod-verif b { color: var(--accent); }
-sub { font-size: 0.72em; vertical-align: sub; }
-
-/* ── Estética protocolo de calidad ───────────────────── */
-@page {
-  margin: 1.15cm 1.1cm 1.65cm;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 9pt;
-  line-height: 1.25;
-  color: #111;
-}
-
+/* ── Banner de sección ─── */
 .section-banner {
-  margin: 0;
-  padding: 5px 8px;
-  border: 1.2pt solid var(--accent);
-  background: none;
-  color: var(--accent);
-  font-size: 15pt;
-  line-height: 1.1;
-  letter-spacing: 0;
-  text-align: center;
-  text-transform: none;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-weight: 800;
+  font-size: 12.5pt;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--graphite);
+  padding: 5px 0 6px;
+  margin-bottom: 0.4cm;
+  border-bottom: 2pt solid var(--graphite);
 }
 
+/* ── Encabezado de producto ─── */
 .hdr {
   display: table;
   width: 100%;
-  table-layout: auto;
-  min-height: 2.2cm;
-  gap: 0;
-  margin: 0 0 0.22cm;
-  padding: 0;
-  border: 1.2pt solid var(--accent);
-  border-top: 0;
-  overflow: visible;
+  border-bottom: 1pt solid var(--graphite);
+  margin-bottom: 0.3cm;
+  padding-bottom: 0.25cm;
 }
-
-.hdr-left {
-  display: table-cell;
-  vertical-align: middle;
-  padding: 5px 8px;
+.hdr-left { display: table-cell; vertical-align: middle; }
+.hdr-pretitulo {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 7.5pt; font-weight: 700; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 1.4px; margin-bottom: 2px;
 }
-
-.hdr-logo-cell {
-  display: table-cell;
-  vertical-align: middle;
-  width: 5.8cm;
-  text-align: right;
-  padding: 4px 8px;
-  overflow: visible;
-}
-
 .hdr-titulo {
-  color: var(--accent);
-  font-size: 13pt;
-  line-height: 1.15;
-  letter-spacing: 0;
-  text-align: center;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 16.5pt; font-weight: 800; color: var(--graphite);
+  text-transform: uppercase; line-height: 1.15;
 }
+.hdr-sinonimos { font-size: 8pt; color: var(--ink-muted); margin-top: 3px; font-style: italic; }
+.hdr-logo-cell { display: table-cell; vertical-align: middle; width: 5.6cm; text-align: right; }
+.hdr-logo { max-width: 5.4cm; max-height: 2.4cm; object-fit: contain; object-position: right center; }
 
-.hdr-sinonimos {
-  color: #333;
-  font-size: 8pt;
-  text-align: center;
+/* ── Franja de control documental ─── */
+.doccontrol {
+  display: table; width: 100%; table-layout: fixed;
+  border: 0.75pt solid var(--graphite);
+  border-radius: var(--radius); overflow: hidden;
+  margin-bottom: 0.35cm; font-size: 7.6pt;
 }
-
-.hdr-logo {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  max-width: 5.6cm;
-  max-height: 2.6cm;
-  margin: 0;
-  object-fit: contain;
-  object-position: right center;
+.doccontrol .cell {
+  display: table-cell; padding: 4px 8px; border-right: 0.5pt solid var(--rule);
+  vertical-align: top;
 }
-
-.meta-table {
-  margin: 0 0 0.22cm;
-  color: #111;
-  font-size: 8.5pt;
-  table-layout: fixed;
+.doccontrol .cell:last-child { border-right: none; }
+.doccontrol .lbl {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--ink-muted); font-size: 6.6pt; display: block; margin-bottom: 1px;
 }
+.doccontrol .val { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8pt; }
 
-.meta-table td {
-  width: 50%;
-  min-height: 0.62cm;
-  padding: 4px 6px;
+/* ── Meta strip (identificación rápida) ─── */
+.meta-table { width: 100%; margin-bottom: 0.3cm; font-size: 9.3pt; border-collapse: collapse; }
+.meta-table td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+.meta-table b.mono-lbl {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 7.6pt;
+  text-transform: uppercase; letter-spacing: 0.4px; color: var(--ink-muted);
 }
+.meta-table .mono-val { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9pt; }
 
-.meta-table b,
-.td-key,
-.td-key-dark,
-.ghs-cat,
-.two-col-key,
-.coa-firma-lbl,
-.cod-verif b {
-  color: var(--accent);
-  background: none;
-}
-
-.sec {
-  margin-top: 0.22cm;
-}
-
+/* ── Secciones internas ─── */
+.sec { margin-top: 0.3cm; break-inside: avoid; }
 .sec-title {
-  margin: 0;
-  padding: 3px 5px;
-  border: 1pt solid var(--accent);
-  background: none;
-  color: var(--accent);
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  color: var(--graphite);
+  font-weight: 700;
   font-size: 9pt;
-  line-height: 1.15;
-  letter-spacing: 0;
-  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 3px 0;
+  border-bottom: 1pt solid var(--graphite);
+  margin-bottom: 4px;
+  display: table; width: 100%;
+}
+.sec-title .n {
+  display: table-cell; width: 1.6em;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
+  background: var(--graphite); color: #fff; text-align: center;
+  border-radius: var(--radius); font-size: 8.6pt; padding: 1px 0;
+}
+.sec-title .t { display: table-cell; padding-left: 8px; vertical-align: middle; }
+.sec-subtitle {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 8.4pt;
+  text-transform: uppercase; letter-spacing: 0.3px; color: var(--ink-muted);
+  margin: 6px 0 3px;
+}
+.sec-body { padding: 2px 0; font-size: 10.1pt; }
+.desc-text { text-align: justify; text-justify: inter-word; padding: 2px 0; font-size: 10.1pt; line-height: 1.55; }
+
+/* ── Marco normativo ─── */
+.reglist { margin: 2px 0 2px; }
+.reglist .item {
+  display: table; width: 100%; background: var(--tint);
+  border-left: 2.5pt solid var(--graphite); border-radius: var(--radius);
+  margin-bottom: 4px; padding: 4px 8px;
+}
+.reglist .code {
+  display: table-cell; width: 4.6cm; vertical-align: top;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 8.4pt;
+}
+.reglist .desc { display: table-cell; vertical-align: top; font-size: 9pt; }
+
+/* ── Tablas de datos ─── */
+.tablewrap {
+  border: 0.75pt solid var(--rule); border-radius: var(--radius); overflow: hidden;
+  margin-bottom: 6px;
+}
+table.datatab { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 0; }
+table.datatab th {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 7.4pt;
+  text-transform: uppercase; letter-spacing: 0.3px; text-align: left;
+  background: var(--graphite); color: #fff; padding: 4px 6px;
+}
+table.datatab td {
+  border-bottom: 0.5pt solid var(--rule); padding: 3.5px 6px; vertical-align: top;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.6pt;
+}
+table.datatab tr:last-child td { border-bottom: none; }
+table.datatab tr:nth-child(even) td { background: var(--tint); }
+table.datatab td.mono { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.6pt; }
+table.datatab td.prose {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.4pt; text-align: justify;
 }
 
-.desc-text,
-.sec-body {
-  padding: 6px;
-  border: 1pt solid var(--accent);
-  border-top: 0;
-  font-size: 9pt;
-  line-height: 1.3;
+/* ── Pares clave/valor (identificación, lote, etc.) ─── */
+.kv-grid { display: table; width: 100%; }
+.kv-row { display: table-row; }
+.kv-key, .kv-val {
+  display: table-cell; padding: 2.5px 6px 2.5px 0; border-bottom: 0.4pt dotted var(--rule);
+  vertical-align: top;
+}
+.kv-key {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 7.6pt;
+  text-transform: uppercase; letter-spacing: 0.3px; color: var(--ink-muted); width: 42%;
+}
+.kv-val { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.6pt; }
+
+/* ── Listas ─── */
+ul.apps, ul.beneficios { margin: 2px 0 2px 16px; padding: 0; }
+ul.apps li, ul.beneficios li { margin-bottom: 3px; font-size: 10.1pt; text-align: justify; }
+.beneficio-label { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-weight: 700; font-size: 9.3pt; }
+
+/* ── Advertencia ─── */
+.warnbox {
+  border: 1pt solid var(--graphite); background: var(--tint); border-radius: var(--radius);
+  padding: 6px 9px; margin: 6px 0 2px; font-size: 9pt;
+}
+.warnbox b {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 7.6pt; letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-table {
-  font-size: 8.5pt;
-}
+/* ── GHS / MSDS 16 secciones ─── */
+.ghs-body { border: 0.75pt solid var(--graphite); border-radius: var(--radius); padding: 5px 8px; }
+.ghs-fila { display: table; width: 100%; padding: 2.5px 0; border-bottom: 0.4pt solid var(--rule); font-size: 9pt; }
+.ghs-fila:last-child { border-bottom: none; }
+.ghs-cat { display: table-cell; width: 4.6cm; font-weight: 700; font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.2pt; }
+.ghs-val { display: table-cell; }
 
-td,
-.td-key-dark {
-  border: 1pt solid var(--accent);
-  padding: 3px 5px;
-}
+.two-col-fila { display: table; width: 100%; padding: 2.5px 0; border-bottom: 0.4pt solid var(--rule); font-size: 9pt; }
+.two-col-fila:last-child { border-bottom: none; }
+.two-col-key { display: table-cell; width: 4.3cm; font-weight: 700; font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.2pt; }
+.two-col-val { display: table-cell; text-align: justify; }
+.framed-body { border: 0.75pt solid var(--graphite); border-radius: var(--radius); padding: 5px 8px; }
 
-.td-key,
-.td-key-dark {
-  background: none;
-  font-size: 8.5pt;
-}
-
-ul.apps,
-ul.beneficios {
-  margin: 0;
-  padding: 6px 8px 5px 22px;
-  border: 1pt solid var(--accent);
-  border-top: 0;
-}
-
-ul.apps li,
-ul.beneficios li {
-  margin-bottom: 2px;
-  font-size: 9pt;
-}
-
-.ghs-title {
-  margin-bottom: 0;
-}
-
-.ghs-body,
-.framed-body {
-  border: 1pt solid var(--accent);
-  border-top: 0;
-  padding: 0 6px;
-}
-
-.ghs-fila,
-.two-col-fila {
-  border-bottom: 0.5pt solid var(--accent);
-  font-size: 8.5pt;
-}
-
-.coa-firma {
-  margin-top: 0.45cm;
-}
-
+/* ── Firma / código de verificación ─── */
+.coa-firma { margin-top: 0.7cm; display: table; page-break-inside: avoid; }
+.coa-firma-box { display: table-cell; min-width: 7.5cm; }
 .coa-firma-lbl {
-  font-size: 8pt;
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 7.6pt; font-weight: 700; color: var(--ink-muted);
+  text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.15cm;
 }
-
-.coa-firma-espacio {
-  height: 1.8cm;
+.coa-firma-espacio { height: 1.9cm; display: table-cell; vertical-align: bottom; }
+.coa-firma-img { max-width: 6.5cm; max-height: 1.9cm; object-fit: contain; object-position: left bottom; }
+.coa-firma-linea { border-top: 0.75pt solid var(--ink); width: 6.5cm; margin: 0.1cm 0 0.15cm; }
+.coa-firma-nombre { font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 9.3pt; font-weight: 700; color: var(--ink); }
+.coa-firma-cargo, .coa-firma-org { font-size: 8pt; color: var(--ink-muted); line-height: 1.3; }
+.dictamen {
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 8.6pt; color: var(--graphite);
+  margin-top: 0.35cm; padding: 5px 8px; border: 0.75pt solid var(--graphite); background: var(--tint);
+  border-radius: var(--radius);
 }
-
+.dictamen b { text-transform: uppercase; }
 .cod-verif {
-  margin-top: 0.35cm;
-  padding: 5px 7px;
-  border: 1pt solid var(--accent);
-  color: #111;
-  font-size: 8pt;
+  margin-top: 0.5cm; font-size: 7.6pt; color: var(--ink-muted);
+  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
 }
+.cod-verif b { color: var(--ink); }
+sub { font-size: 0.72em; vertical-align: sub; }
+
+/* ── Tabla de contenido ─── */
+.toc { border: 0.75pt solid var(--rule); padding: 6px 10px; margin: 4px 0 2px; font-size: 8pt; font-family: 'DejaVu Sans Mono', 'Courier New', monospace; }
+.toc-row { display: table; width: 100%; padding: 1px 0; }
+.toc-row .a { display: table-cell; }
+.toc-row .b { display: table-cell; text-align: right; width: 3.5cm; color: var(--ink-muted); }
 </style>
 </head>
 <body>
 
 {# seccion_sola: 'ft' | 'coa' | 'sds' — omitir para documento completo #}
 {# ═══════════════════════════════════════════════════════
-   SECCIÓN 1 — FICHA TÉCNICA (TDS)
+   SECCIÓN — FICHA TÉCNICA (TDS)
 ═══════════════════════════════════════════════════════ #}
 {% if not seccion_sola or seccion_sola == 'ft' %}
 <div class="doc-section">
-  <div class="section-banner">Ficha Técnica (TDS)</div>
+  <div class="section-banner">Ficha Técnica · Certificado de Análisis · Hoja de Seguridad</div>
 
   <div class="hdr">
     <div class="hdr-left">
+      <div class="hdr-pretitulo">Ficha técnica (TDS)</div>
       <div class="hdr-titulo">{{ ft.titulo }}</div>
       {% if ft.sinonimos %}<div class="hdr-sinonimos">{{ ft.sinonimos }}</div>{% endif %}
     </div>
     {% include "_pdf_hdr_logo.html" %}
   </div>
 
-  {% if ft.cas or ft.fecha_revision or ft.lote or ft.pais_origen or ft.fabricante %}
+  {% if ft.documento_id or ft.version_doc or ft.fecha_revision or ft.referencia %}
+  <div class="doccontrol">
+    {% if ft.documento_id %}<div class="cell"><span class="lbl">Documento N°</span><span class="val">{{ ft.documento_id }}</span></div>{% endif %}
+    {% if ft.version_doc %}<div class="cell"><span class="lbl">Versión</span><span class="val">{{ ft.version_doc }}</span></div>{% endif %}
+    {% if ft.fecha_revision %}<div class="cell"><span class="lbl">Vigencia desde</span><span class="val">{{ ft.fecha_revision }}</span></div>{% endif %}
+    {% if ft.referencia %}<div class="cell"><span class="lbl">Referencia</span><span class="val">{{ ft.referencia }}</span></div>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if ft.cas or ft.pais_origen or ft.fabricante or ft.lote or ft.concentracion or ft.grado or ft.hs_code %}
   <table class="meta-table">
     <tr>
-      <td>{% if ft.cas %}<b>CAS:</b> {{ ft.cas }}{% endif %}</td>
-      <td>{% if ft.fecha_revision %}<b>Revisión:</b> {{ ft.fecha_revision }}{% endif %}</td>
+      <td>{% if ft.cas %}<b class="mono-lbl">N° CAS</b> <span class="mono-val">{{ ft.cas }}</span>{% endif %}</td>
+      <td>{% if ft.grado %}<b class="mono-lbl">Grado</b> <span class="mono-val">{{ ft.grado }}</span>{% endif %}</td>
+      <td>{% if ft.concentracion %}<b class="mono-lbl">Concentración</b> <span class="mono-val">{{ ft.concentracion }}</span>{% endif %}</td>
     </tr>
     <tr>
-      <td>{% if ft.lote %}<b>Lote:</b> {{ ft.lote }}{% endif %}</td>
-      <td>{% if ft.pais_origen %}<b>País de origen:</b> {{ ft.pais_origen }}{% endif %}</td>
+      <td>{% if ft.pais_origen %}<b class="mono-lbl">Origen</b> <span class="mono-val">{{ ft.pais_origen }}</span>{% endif %}</td>
+      <td>{% if ft.hs_code %}<b class="mono-lbl">Cód. arancelario</b> <span class="mono-val">{{ ft.hs_code }}</span>{% endif %}</td>
+      <td>{% if ft.lote %}<b class="mono-lbl">Lote</b> <span class="mono-val">{{ ft.lote }}</span>{% endif %}</td>
     </tr>
     {% if ft.fabricante %}
-    <tr>
-      <td colspan="2"><b>Fabricante:</b> {{ ft.fabricante }}</td>
-    </tr>
+    <tr><td colspan="3"><b class="mono-lbl">Fabricante</b> <span class="mono-val">{{ ft.fabricante }}</span></td></tr>
     {% endif %}
   </table>
   {% endif %}
 
+  {% set nft = namespace(i=0) %}
   {% if ft.descripcion %}
+  {% set nft.i = nft.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Descripción</div>
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Descripción y proceso de obtención</span></div>
     <div class="desc-text">{{ ft.descripcion }}</div>
   </div>
   {% endif %}
 
-  {% if ft.propiedades %}
+  {% if ft.marco_normativo %}
+  {% set nft.i = nft.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Características físico-químicas</div>
-    <table>
-      {% for label, value in ft.propiedades %}
-      <tr><td class="td-key">{{ label }}</td><td>{% if 'órmula' in label|lower %}{{ value | formula_sub | safe }}{% else %}{{ value }}{% endif %}</td></tr>
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Marco normativo aplicable</span></div>
+    <div class="reglist">
+      {% for codigo, desc in ft.marco_normativo %}
+      <div class="item">
+        {% if codigo %}<span class="code">{{ codigo }}</span>{% endif %}
+        <span class="desc">{{ desc }}</span>
+      </div>
       {% endfor %}
-    </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if ft.propiedades %}
+  {% set nft.i = nft.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Especificaciones fisicoquímicas</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Parámetro</th><th>Especificación</th></tr>
+      {% for label, value in ft.propiedades %}
+      <tr><td class="mono">{{ label }}</td><td class="prose">{% if 'órmula' in label|lower %}{{ value | formula_sub | safe }}{% else %}{{ value }}{% endif %}</td></tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endif %}
+
+  {% if ft.composicion %}
+  {% set nft.i = nft.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Composición típica</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Componente</th><th>% / Concentración</th></tr>
+      {% for componente, valor in ft.composicion %}
+      <tr><td class="prose">{{ componente }}</td><td class="mono">{{ valor }}</td></tr>
+      {% endfor %}
+    </table></div>
   </div>
   {% endif %}
 
   {% if ft.propiedades_extra %}
+  {% set nft.i = nft.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Beneficios</div>
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Propiedades funcionales</span></div>
     <ul class="beneficios">
       {% for label, value in ft.propiedades_extra %}
       <li>{% if value %}<span class="beneficio-label">{{ label }}:</span> {{ value }}{% else %}{{ label }}{% endif %}</li>
@@ -466,8 +383,9 @@ ul.beneficios li {
   {% endif %}
 
   {% if ft.aplicaciones %}
+  {% set nft.i = nft.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Aplicaciones</div>
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Aplicaciones</span></div>
     <ul class="apps">
       {% for app in ft.aplicaciones %}
       <li>{{ app }}</li>
@@ -477,24 +395,10 @@ ul.beneficios li {
   {% endif %}
 
   {% if ft.modo_uso %}
+  {% set nft.i = nft.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Modo de uso</div>
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Modo de uso</span></div>
     <div class="desc-text">{{ ft.modo_uso }}</div>
-  </div>
-  {% endif %}
-
-  {% if ft.composicion %}
-  <div class="sec">
-    <div class="sec-title">Composición</div>
-    <table>
-      <tr>
-        <td class="td-key-dark" style="width:55%">Componente</td>
-        <td class="td-key-dark">% / Concentración</td>
-      </tr>
-      {% for componente, valor in ft.composicion %}
-      <tr><td>{{ componente }}</td><td>{{ valor }}</td></tr>
-      {% endfor %}
-    </table>
   </div>
   {% endif %}
 
@@ -502,7 +406,7 @@ ul.beneficios li {
 {% endif %}
 
 {# ═══════════════════════════════════════════════════════
-   SECCIÓN 2 — CERTIFICADO DE ANÁLISIS (COA)
+   SECCIÓN — CERTIFICADO DE ANÁLISIS (COA)
 ═══════════════════════════════════════════════════════ #}
 {% if coa and (not seccion_sola or seccion_sola == 'coa') %}
 <div class="doc-section">
@@ -510,79 +414,115 @@ ul.beneficios li {
 
   <div class="hdr">
     <div class="hdr-left">
+      <div class="hdr-pretitulo">Certificado de análisis</div>
       <div class="hdr-titulo">{{ coa.titulo }}</div>
     </div>
     {% include "_pdf_hdr_logo.html" %}
   </div>
 
-  {# Identificación #}
+  {% set nco = namespace(i=1) %}
   <div class="sec">
-    <div class="sec-title">Identificación del producto</div>
-    <table>
-      {% if coa.nombre_comercial %}<tr><td class="td-key">Nombre comercial</td><td>{{ coa.nombre_comercial }}</td></tr>{% endif %}
-      {% if coa.inci %}<tr><td class="td-key">INCI / Nombre químico</td><td>{{ coa.inci }}</td></tr>{% endif %}
-      {% if coa.cas %}<tr><td class="td-key">N.º CAS</td><td>{{ coa.cas }}</td></tr>{% endif %}
-      {% if coa.formula %}<tr><td class="td-key">Fórmula molecular</td><td>{{ coa.formula | formula_sub | safe }}</td></tr>{% endif %}
-      {% if coa.einces %}<tr><td class="td-key">EINECS</td><td>{{ coa.einces }}</td></tr>{% endif %}
-      {% if coa.concentracion %}<tr><td class="td-key">Concentración</td><td>{{ coa.concentracion }}</td></tr>{% endif %}
-      {% if coa.grado %}<tr><td class="td-key">Grado</td><td>{{ coa.grado }}</td></tr>{% endif %}
-      {% if coa.presentacion %}<tr><td class="td-key">Presentación</td><td>{{ coa.presentacion }}</td></tr>{% endif %}
-      {% if coa.incluye %}<tr><td class="td-key">Incluye</td><td>{{ coa.incluye }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Identificación del producto</span></div>
+    <div class="kv-grid">
+      {% if coa.nombre_comercial %}<div class="kv-row"><div class="kv-key">Nombre comercial</div><div class="kv-val">{{ coa.nombre_comercial }}</div></div>{% endif %}
+      {% if coa.inci %}<div class="kv-row"><div class="kv-key">INCI / Nombre químico</div><div class="kv-val">{{ coa.inci }}</div></div>{% endif %}
+      {% if coa.cas %}<div class="kv-row"><div class="kv-key">N.º CAS</div><div class="kv-val mono">{{ coa.cas }}</div></div>{% endif %}
+      {% if coa.formula %}<div class="kv-row"><div class="kv-key">Fórmula molecular</div><div class="kv-val mono">{{ coa.formula | formula_sub | safe }}</div></div>{% endif %}
+      {% if coa.einces %}<div class="kv-row"><div class="kv-key">EINECS</div><div class="kv-val mono">{{ coa.einces }}</div></div>{% endif %}
+      {% if coa.concentracion %}<div class="kv-row"><div class="kv-key">Concentración</div><div class="kv-val mono">{{ coa.concentracion }}</div></div>{% endif %}
+      {% if coa.grado %}<div class="kv-row"><div class="kv-key">Grado</div><div class="kv-val">{{ coa.grado }}</div></div>{% endif %}
+      {% if coa.presentacion %}<div class="kv-row"><div class="kv-key">Presentación</div><div class="kv-val">{{ coa.presentacion }}</div></div>{% endif %}
+      {% if coa.incluye %}<div class="kv-row"><div class="kv-key">Incluye</div><div class="kv-val">{{ coa.incluye }}</div></div>{% endif %}
+    </div>
   </div>
 
-  {# Información de lote #}
   {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.fabricante %}
+  {% set nco.i = nco.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Información de lote</div>
-    <table>
-      {% if coa.lote_numero %}<tr><td class="td-key">N.º de lote</td><td>{{ coa.lote_numero }}</td></tr>{% endif %}
-      {% if coa.lote_fab %}<tr><td class="td-key">Fecha de fabricación</td><td>{{ coa.lote_fab }}</td></tr>{% endif %}
-      {% if coa.lote_venc %}<tr><td class="td-key">Fecha de vencimiento</td><td>{{ coa.lote_venc }}</td></tr>{% endif %}
-      {% if coa.vida_util %}<tr><td class="td-key">Vida útil</td><td>{{ coa.vida_util }}</td></tr>{% endif %}
-      {% if coa.tamano_lote %}<tr><td class="td-key">Tamaño del lote</td><td>{{ coa.tamano_lote }}</td></tr>{% endif %}
-      {% if coa.pais_origen %}<tr><td class="td-key">País de origen</td><td>{{ coa.pais_origen }}</td></tr>{% endif %}
-      {% if coa.fabricante %}<tr><td class="td-key">Fabricante original</td><td>{{ coa.fabricante }}</td></tr>{% endif %}
-      {% if coa.fecha_analisis %}<tr><td class="td-key">Fecha de análisis</td><td>{{ coa.fecha_analisis }}</td></tr>{% endif %}
-      {% if coa.fecha_emision %}<tr><td class="td-key">Fecha de emisión</td><td>{{ coa.fecha_emision }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Trazabilidad de lote</span></div>
+    <div class="kv-grid">
+      {% if coa.lote_numero %}<div class="kv-row"><div class="kv-key">N.º de lote</div><div class="kv-val mono">{{ coa.lote_numero }}</div></div>{% endif %}
+      {% if coa.lote_fab %}<div class="kv-row"><div class="kv-key">Fecha de fabricación</div><div class="kv-val mono">{{ coa.lote_fab }}</div></div>{% endif %}
+      {% if coa.lote_venc %}<div class="kv-row"><div class="kv-key">Fecha de vencimiento</div><div class="kv-val mono">{{ coa.lote_venc }}</div></div>{% endif %}
+      {% if coa.vida_util %}<div class="kv-row"><div class="kv-key">Vida útil</div><div class="kv-val">{{ coa.vida_util }}</div></div>{% endif %}
+      {% if coa.tamano_lote %}<div class="kv-row"><div class="kv-key">Tamaño del lote</div><div class="kv-val">{{ coa.tamano_lote }}</div></div>{% endif %}
+      {% if coa.pais_origen %}<div class="kv-row"><div class="kv-key">País de origen</div><div class="kv-val">{{ coa.pais_origen }}</div></div>{% endif %}
+      {% if coa.fabricante %}<div class="kv-row"><div class="kv-key">Fabricante original</div><div class="kv-val">{{ coa.fabricante }}</div></div>{% endif %}
+      {% if coa.fecha_analisis %}<div class="kv-row"><div class="kv-key">Fecha de análisis</div><div class="kv-val mono">{{ coa.fecha_analisis }}</div></div>{% endif %}
+      {% if coa.fecha_emision %}<div class="kv-row"><div class="kv-key">Fecha de emisión</div><div class="kv-val mono">{{ coa.fecha_emision }}</div></div>{% endif %}
+    </div>
   </div>
   {% endif %}
 
-  {# Parámetros de análisis #}
   {% if coa.parametros %}
+  {% set nco.i = nco.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Parámetros de análisis</div>
-    <table>
-      <tr>
-        <td class="td-key-dark" style="width:40%">Parámetro</td>
-        <td class="td-key-dark" style="width:30%">Especificación</td>
-        <td class="td-key-dark">Resultado</td>
-      </tr>
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Ensayos fisicoquímicos</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Parámetro</th><th>Especificación</th><th>Resultado</th></tr>
       {% for fila in coa.parametros %}
       <tr>
-        <td>{{ fila[0] if fila|length > 0 }}</td>
-        <td>{{ fila[1] if fila|length > 1 }}</td>
-        <td>{{ fila[2] if fila|length > 2 }}</td>
+        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
+        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
+        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
   </div>
   {% endif %}
 
-  {# Empaque y almacenamiento #}
-  {% if coa.empaque or coa.almacenamiento or coa.precauciones %}
+  {% if coa.metales %}
+  {% set nco.i = nco.i + 1 %}
   <div class="sec">
-    <div class="sec-title">Empaque y almacenamiento</div>
-    <table>
-      {% if coa.empaque %}<tr><td class="td-key">Empaque original</td><td>{{ coa.empaque }}</td></tr>{% endif %}
-      {% if coa.almacenamiento %}<tr><td class="td-key">Almacenamiento</td><td>{{ coa.almacenamiento }}</td></tr>{% endif %}
-      {% if coa.precauciones %}<tr><td class="td-key">Precauciones</td><td>{{ coa.precauciones }}</td></tr>{% endif %}
-      {% if coa.observaciones %}<tr><td class="td-key">Observaciones</td><td>{{ coa.observaciones }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Metales pesados</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Metal</th><th>Límite</th><th>Resultado</th><th>Método</th></tr>
+      {% for fila in coa.metales %}
+      <tr>
+        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
+        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
+        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
+        <td class="mono">{{ fila[3] if fila|length > 3 }}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
   </div>
   {% endif %}
 
+  {% if coa.microbiologia %}
+  {% set nco.i = nco.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Análisis microbiológico</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Ensayo</th><th>Especificación</th><th>Resultado</th><th>Método</th></tr>
+      {% for fila in coa.microbiologia %}
+      <tr>
+        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
+        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
+        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
+        <td class="mono">{{ fila[3] if fila|length > 3 }}</td>
+      </tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% endif %}
+
+  {% if coa.empaque or coa.almacenamiento or coa.precauciones %}
+  {% set nco.i = nco.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Empaque y almacenamiento</span></div>
+    <div class="kv-grid">
+      {% if coa.empaque %}<div class="kv-row"><div class="kv-key">Empaque original</div><div class="kv-val">{{ coa.empaque }}</div></div>{% endif %}
+      {% if coa.almacenamiento %}<div class="kv-row"><div class="kv-key">Almacenamiento</div><div class="kv-val">{{ coa.almacenamiento }}</div></div>{% endif %}
+      {% if coa.precauciones %}<div class="kv-row"><div class="kv-key">Precauciones</div><div class="kv-val">{{ coa.precauciones }}</div></div>{% endif %}
+      {% if coa.observaciones %}<div class="kv-row"><div class="kv-key">Observaciones</div><div class="kv-val">{{ coa.observaciones }}</div></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if coa.dictamen %}
+  <div class="dictamen"><b>Dictamen:</b> {{ coa.dictamen }}</div>
+  {% endif %}
 
   <div class="coa-firma">
     <div class="coa-firma-box">
@@ -606,133 +546,174 @@ ul.beneficios li {
 {% endif %}
 
 {# ═══════════════════════════════════════════════════════
-   SECCIÓN 3 — HOJA DE DATOS DE SEGURIDAD (SDS)
+   SECCIÓN — HOJA DE SEGURIDAD (SDS/MSDS) · 16 SECCIONES GHS
 ═══════════════════════════════════════════════════════ #}
 {% if sds and (not seccion_sola or seccion_sola == 'sds') %}
 <div class="doc-section">
-  <div class="section-banner">Hoja de Datos de Seguridad (SDS/MSDS) — Sistema GHS</div>
+  <div class="section-banner">Hoja de Seguridad (SDS/MSDS) — Sistema Globalmente Armonizado (SGA/GHS)</div>
 
   <div class="hdr">
     <div class="hdr-left">
+      <div class="hdr-pretitulo">Hoja de seguridad · Decreto 1496/2018</div>
       <div class="hdr-titulo">{{ sds.titulo }}</div>
     </div>
     {% include "_pdf_hdr_logo.html" %}
   </div>
 
-  {# Identificación #}
   <div class="sec">
-    <div class="sec-title">Sección 1 — Identificación del producto</div>
-    <table>
-      {% if sds.nombre_comercial %}<tr><td class="td-key">Nombre comercial</td><td>{{ sds.nombre_comercial }}</td></tr>{% endif %}
-      {% if sds.inci %}<tr><td class="td-key">INCI / Nombre químico</td><td>{{ sds.inci }}</td></tr>{% endif %}
-      {% if sds.cas %}<tr><td class="td-key">N.º CAS</td><td>{{ sds.cas }}</td></tr>{% endif %}
-      {% if sds.formula %}<tr><td class="td-key">Fórmula molecular</td><td>{{ sds.formula | formula_sub | safe }}</td></tr>{% endif %}
-      {% if sds.usos %}<tr><td class="td-key">Usos recomendados</td><td>{{ sds.usos }}</td></tr>{% endif %}
-      {% if sds.telefono %}<tr><td class="td-key">Teléfono emergencias</td><td>{{ sds.telefono }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">1</span><span class="t">Identificación de la sustancia y de la sociedad</span></div>
+    <div class="kv-grid">
+      {% if sds.nombre_comercial %}<div class="kv-row"><div class="kv-key">Nombre comercial</div><div class="kv-val">{{ sds.nombre_comercial }}</div></div>{% endif %}
+      {% if sds.inci %}<div class="kv-row"><div class="kv-key">INCI / Nombre químico</div><div class="kv-val">{{ sds.inci }}</div></div>{% endif %}
+      {% if sds.cas %}<div class="kv-row"><div class="kv-key">N.º CAS</div><div class="kv-val mono">{{ sds.cas }}</div></div>{% endif %}
+      {% if sds.formula %}<div class="kv-row"><div class="kv-key">Fórmula molecular</div><div class="kv-val mono">{{ sds.formula | formula_sub | safe }}</div></div>{% endif %}
+      {% if sds.usos %}<div class="kv-row"><div class="kv-key">Usos recomendados</div><div class="kv-val">{{ sds.usos }}</div></div>{% endif %}
+      <div class="kv-row"><div class="kv-key">Proveedor</div><div class="kv-val">McKenna Group S.A.S. · NIT 901316016-3</div></div>
+      {% if sds.telefono %}<div class="kv-row"><div class="kv-key">Teléfono de emergencia</div><div class="kv-val mono">{{ sds.telefono }}</div></div>{% endif %}
+    </div>
   </div>
 
-  {# Peligros #}
   {% if sds.clasificacion or sds.pictogramas %}
   <div class="sec">
-    <div class="sec-title">Sección 2 — Identificación de peligros (GHS)</div>
-    {% if sds.clasificacion %}
-    <div class="desc-text" style="margin-bottom:4px"><b style="color:var(--accent)">Clasificación:</b> {{ sds.clasificacion }}</div>
-    {% endif %}
-    {% if sds.pictogramas %}
-    <div class="desc-text"><b style="color:var(--accent)">Pictogramas / Frases H-P:</b><br>{{ sds.pictogramas }}</div>
-    {% endif %}
+    <div class="sec-title"><span class="n">2</span><span class="t">Identificación de peligros</span></div>
+    {% if sds.clasificacion %}<div class="two-col-fila"><span class="two-col-key">Clasificación GHS:</span><span class="two-col-val">{{ sds.clasificacion }}</span></div>{% endif %}
+    {% if sds.pictogramas %}<div class="two-col-fila"><span class="two-col-key">Pictogramas / frases H-P:</span><span class="two-col-val">{{ sds.pictogramas }}</span></div>{% endif %}
   </div>
   {% endif %}
 
-  {# Composición #}
   {% if sds.composicion %}
   <div class="sec">
-    <div class="sec-title">Sección 3 — Composición / Información sobre componentes</div>
-    <table>
-      <tr>
-        <td class="td-key-dark" style="width:60%">Componente</td>
-        <td class="td-key-dark">Concentración</td>
-      </tr>
+    <div class="sec-title"><span class="n">3</span><span class="t">Composición / información sobre componentes</span></div>
+    <div class="tablewrap"><table class="datatab">
+      <tr><th>Componente</th><th>N° CAS</th><th>Concentración</th></tr>
       {% for fila in sds.composicion %}
       <tr>
-        <td>{{ fila[0] if fila|length > 0 }}</td>
-        <td>{{ fila[1] if fila|length > 1 }}</td>
+        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
+        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
+        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
   </div>
   {% endif %}
 
-  {# Primeros auxilios #}
   {% if sds.primeros_auxilios %}
   <div class="sec">
-    <div class="sec-title">Sección 4 — Primeros auxilios</div>
+    <div class="sec-title"><span class="n">4</span><span class="t">Primeros auxilios</span></div>
     <div class="framed-body">
       {% for caso, instruccion in sds.primeros_auxilios %}
-      <div class="two-col-fila">
-        <span class="two-col-key">{{ caso }}:</span>
-        <span class="two-col-val">{{ instruccion }}</span>
-      </div>
+      <div class="two-col-fila"><span class="two-col-key">{{ caso }}:</span><span class="two-col-val">{{ instruccion }}</span></div>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 
-  {# Manipulación y almacenamiento #}
-  {% if sds.manipulacion or sds.almacenamiento %}
+  {% if sds.incendios %}
   <div class="sec">
-    <div class="sec-title">Sección 7 — Manipulación y almacenamiento</div>
-    <table>
-      {% if sds.manipulacion %}<tr><td class="td-key">Manipulación</td><td>{{ sds.manipulacion }}</td></tr>{% endif %}
-      {% if sds.almacenamiento %}<tr><td class="td-key">Almacenamiento</td><td>{{ sds.almacenamiento }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">5</span><span class="t">Medidas de lucha contra incendios</span></div>
+    <div class="desc-text">{{ sds.incendios }}</div>
   </div>
   {% endif %}
 
-  {# Recomendaciones GHS/SGA #}
+  {% if sds.vertidos %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">6</span><span class="t">Medidas en caso de vertido accidental</span></div>
+    <div class="desc-text">{{ sds.vertidos }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.manipulacion or sds.almacenamiento %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">7</span><span class="t">Manipulación y almacenamiento</span></div>
+    <div class="kv-grid">
+      {% if sds.manipulacion %}<div class="kv-row"><div class="kv-key">Manipulación</div><div class="kv-val">{{ sds.manipulacion }}</div></div>{% endif %}
+      {% if sds.almacenamiento %}<div class="kv-row"><div class="kv-key">Almacenamiento</div><div class="kv-val">{{ sds.almacenamiento }}</div></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if sds.exposicion %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">8</span><span class="t">Controles de exposición / protección personal</span></div>
+    <div class="desc-text">{{ sds.exposicion }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.propiedades %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">9</span><span class="t">Propiedades físicas y químicas</span></div>
+    <div class="framed-body">
+      {% for nombre, valor in sds.propiedades %}
+      <div class="two-col-fila"><span class="two-col-key">{{ nombre }}:</span><span class="two-col-val">{{ valor }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if sds.estabilidad %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">10</span><span class="t">Estabilidad y reactividad</span></div>
+    <div class="desc-text">{{ sds.estabilidad }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.toxicologia %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">11</span><span class="t">Información toxicológica</span></div>
+    <div class="desc-text">{{ sds.toxicologia }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.ecologia %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">12</span><span class="t">Información ecológica</span></div>
+    <div class="desc-text">{{ sds.ecologia }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.eliminacion %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">13</span><span class="t">Consideraciones relativas a la eliminación</span></div>
+    <div class="desc-text">{{ sds.eliminacion }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.transporte %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">14</span><span class="t">Información relativa al transporte</span></div>
+    <div class="desc-text">{{ sds.transporte }}</div>
+  </div>
+  {% endif %}
+
+  {% if sds.normativa or sds.observaciones %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">15</span><span class="t">Información reglamentaria</span></div>
+    <div class="kv-grid">
+      {% if sds.normativa %}<div class="kv-row"><div class="kv-key">Normativa aplicable</div><div class="kv-val">{{ sds.normativa }}</div></div>{% endif %}
+      {% if sds.observaciones %}<div class="kv-row"><div class="kv-key">Observaciones</div><div class="kv-val">{{ sds.observaciones }}</div></div>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
   {% if sds.recomendaciones %}
   <div class="sec ghs-sec">
-    <div class="sec-title ghs-title">&#9888; Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
+    <div class="sec-title"><span class="n">16</span><span class="t">Otra información — recomendaciones GHS/SGA</span></div>
     <div class="ghs-body">
       {% for linea in sds.recomendaciones %}
       {% set partes = linea.split(':', 1) %}
       {% if partes|length == 2 %}
-      <div class="ghs-fila">
-        <span class="ghs-cat">{{ partes[0].strip() }}:</span>
-        <span class="ghs-val">{{ partes[1].strip() }}</span>
-      </div>
+      <div class="ghs-fila"><span class="ghs-cat">{{ partes[0].strip() }}:</span><span class="ghs-val">{{ partes[1].strip() }}</span></div>
       {% else %}
       <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
       {% endif %}
       {% endfor %}
+      {% if sds.otra_info %}<div class="ghs-fila"><span class="ghs-val">{{ sds.otra_info }}</span></div>{% endif %}
     </div>
   </div>
-  {% endif %}
-
-  {# Propiedades fisicoquímicas #}
-  {% if sds.propiedades %}
+  {% elif sds.otra_info %}
   <div class="sec">
-    <div class="sec-title">Sección 9 — Propiedades físicas y químicas</div>
-    <div class="framed-body">
-      {% for nombre, valor in sds.propiedades %}
-      <div class="two-col-fila">
-        <span class="two-col-key">{{ nombre }}:</span>
-        <span class="two-col-val">{{ valor }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
-  {# Regulatorio #}
-  {% if sds.normativa or sds.observaciones %}
-  <div class="sec">
-    <div class="sec-title">Sección 15 — Normativa y regulación</div>
-    <table>
-      {% if sds.normativa %}<tr><td class="td-key">Normativa aplicable</td><td>{{ sds.normativa }}</td></tr>{% endif %}
-      {% if sds.observaciones %}<tr><td class="td-key">Observaciones</td><td>{{ sds.observaciones }}</td></tr>{% endif %}
-    </table>
+    <div class="sec-title"><span class="n">16</span><span class="t">Otra información</span></div>
+    <div class="desc-text">{{ sds.otra_info }}</div>
   </div>
   {% endif %}
 </div>

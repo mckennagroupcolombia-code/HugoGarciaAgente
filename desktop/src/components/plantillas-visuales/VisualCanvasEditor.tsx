@@ -15,6 +15,7 @@ import {
   boundsElemento,
   CANVAS_DPI,
   clonarElementoIndependiente,
+  debeUsarAutofit,
   desagruparElementosPorIds,
   esFuenteMontserrat,
   FUENTE_MONTSERRAT_FAMILY,
@@ -69,12 +70,16 @@ import GaleriaIconosQuimicosModal from "./GaleriaIconosQuimicosModal";
 import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import BarraContenidoTexto from "./BarraContenidoTexto";
+import BarcodeSkuBuscador from "./BarcodeSkuBuscador";
 import FormularioEtiquetaPanel from "./FormularioEtiquetaPanel";
+import FormularioEtiquetaCamposPanel from "./FormularioEtiquetaCamposPanel";
+import { useFormularioEtiqueta } from "./useFormularioEtiqueta";
 import TextoCapaLienzo from "./TextoCapaLienzo";
 import { geometriaArco, alturaCajaTexto, ajustarArcoAZonaSeguraCircular } from "./TextoArcoSvg";
 import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
 import { CAMPOS_TEXTO_FICHA_MP, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
+import { aplicarBarcodeEan, eanDesdeSrcBarcode } from "../../lib/etiquetaFormulario";
 
 interface Props {
   doc: PlantillaVisualDoc;
@@ -185,8 +190,15 @@ export function estiloElementoEnStage(
   };
 }
 
-/** Área clicable de un texto: cubre el glifo completo (sin tope artificial de 8 líneas). */
+/** Área clicable de un texto: cubre el glifo completo (sin tope artificial de 8 líneas).
+ *  Con autofit, el texto real SIEMPRE se encoge para caber en `el.height`
+ *  (ver `TextoCapaLienzo`) — estimar líneas de wrap al tamaño completo aquí
+ *  da un alto absurdo para párrafos largos en cajas chicas, y el marco de
+ *  selección/manijas de resize terminan muy por fuera del lienzo. */
 function tamanoHitTexto(el: ElementoTexto): { w: number; h: number } {
+  if (debeUsarAutofit(el)) {
+    return { w: Math.max(el.width, 16), h: Math.max(el.height, 1) };
+  }
   const lh = el.lineHeight ?? 1.25;
   const raw = el.content ?? "";
   const lineasExplicitas = Math.max(1, raw.split("\n").length);
@@ -527,6 +539,10 @@ export default function VisualCanvasEditor({
   exportando,
   dirty,
 }: Props) {
+  // Estado del Formulario de etiqueta (nombre/logo/peso/barcode en el
+  // sidebar, grids de Ficha/Especificaciones en la barra inferior): una
+  // sola instancia aquí, compartida por ambos paneles.
+  const formularioEtiqueta = useFormularioEtiqueta(doc, onChange, esPlantillaFormularioEtiqueta(doc));
   const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const zoomManualRef = useRef(false);
@@ -578,6 +594,18 @@ export default function VisualCanvasEditor({
   const escalaExport = presetExportActivo?.escala ?? 1;
   const [ghsAbierto, setGhsAbierto] = useState(false);
   const [ean13Abierto, setEan13Abierto] = useState(false);
+  const [barcodeBuscadorAbierto, setBarcodeBuscadorAbierto] = useState(false);
+  // Tamaño real (post-autofit) por elemento — el panel "Tamaño" muestra el
+  // fontSize nominal, que puede ser igual en varios textos aunque se vean
+  // de tamaños distintos porque cada uno encogió diferente según su largo.
+  const [fitSizes, setFitSizes] = useState<Record<string, number>>({});
+  const onFitSizeChange = useCallback((id: string, size: number) => {
+    setFitSizes((m) => (Math.abs((m[id] ?? -1) - size) < 0.05 ? m : { ...m, [id]: size }));
+  }, []);
+  /** Id del ícono (rolCapa "icono") que se está reemplazando desde la
+   *  galería — puede haber varios en una plantilla, a diferencia de
+   *  logo/barcode (uno solo), así que hace falta guardar cuál. */
+  const [iconoCambioId, setIconoCambioId] = useState<string | null>(null);
   // Ancho del panel derecho (ajustable). Capas + textos van en un solo scroll
   // para no dividir la mirada entre dos pantallas.
   const [panelAncho, setPanelAncho] = useState(340);
@@ -633,6 +661,13 @@ export default function VisualCanvasEditor({
   }, [doc.elementos, seleccionIds]);
 
   const seleccionPrincipalId = seleccionIds[seleccionIds.length - 1] ?? null;
+  // Cierra el buscador de SKU / la galería de íconos si la selección cambia
+  // (deselección o clic en otro elemento); si sigue siendo el mismo
+  // elemento, se mantiene abierto mientras se arrastra/redimensiona.
+  useEffect(() => {
+    setBarcodeBuscadorAbierto(false);
+    setIconoCambioId(null);
+  }, [seleccionPrincipalId]);
   // Si está activo, alinear con 2+ elementos seleccionados usa como referencia
   // fija el último que se agregó a la selección (con Shift+clic) en vez del
   // contorno del grupo completo — para alinear varios elementos respecto a
@@ -2470,6 +2505,7 @@ export default function VisualCanvasEditor({
                         }}
                         onCommitEdicion={commitEditInline}
                         onCancelEdicion={cancelEditInline}
+                        onFitSizeChange={onFitSizeChange}
                         chrome={
                           <SeleccionChrome
                             width={el.width}
@@ -2676,6 +2712,36 @@ export default function VisualCanvasEditor({
                           onRotate={(e) => onPointerDownEl(e, el, "rotate")}
                           onResize={(e, corner) => onPointerDownEl(e, el, `resize-${corner}`)}
                         />
+                        {el.rolCapa === "barcode" && sel && esPrincipal && !el.locked && (
+                          <button
+                            type="button"
+                            title="Buscar SKU / EAN (mantiene el tamaño de la caja)"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBarcodeBuscadorAbierto((v) => !v);
+                            }}
+                            className="absolute z-30 flex items-center gap-1 whitespace-nowrap rounded-full border border-[#016d82] bg-[#016d82] px-2 py-1 text-[10px] font-semibold text-white shadow"
+                            style={{ left: 0, top: -30 }}
+                          >
+                            🔍 Buscar SKU
+                          </button>
+                        )}
+                        {el.rolCapa === "icono" && sel && esPrincipal && !el.locked && (
+                          <button
+                            type="button"
+                            title="Cambiar ícono (mantiene el tamaño de la caja)"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIconoCambioId((v) => (v === el.id ? null : el.id));
+                            }}
+                            className="absolute z-30 flex items-center gap-1 whitespace-nowrap rounded-full border border-[#016d82] bg-[#016d82] px-2 py-1 text-[10px] font-semibold text-white shadow"
+                            style={{ left: 0, top: -30 }}
+                          >
+                            🖼️ Cambiar ícono
+                          </button>
+                        )}
                       </div>
                     );
                   }
@@ -2796,62 +2862,87 @@ export default function VisualCanvasEditor({
               />
             </div>
           )}
-
-        {doc.elementos.some((e) => e.type === "text") && (
-          <BarraContenidoTexto
-            elementos={doc.elementos}
-            seleccionado={seleccionado?.type === "text" ? seleccionado : null}
-            seleccionId={seleccionIds.length === 1 ? seleccionIds[0] : null}
-            nombrePlantilla={doc.nombre}
-            textareaRef={contenidoTextareaRef}
-            casAutoEstado={casAutoEstado}
-            onSeleccionar={(id) => setSeleccionIds([id])}
-            onCasAuto={async () => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              const ctx = contextoCapasParaDescripcion(
-                doc.elementos,
-                seleccionado.id,
-                doc.nombre,
-              );
-              if (!ctx.titulo) return;
-              setCasAutoEstado("cargando");
-              try {
-                const cas = await buscarCasPorTitulo(ctx.titulo);
-                if (cas) {
-                  patchElemento(seleccionado.id, { content: `CAS: ${cas}` });
-                  setCasAutoEstado("idle");
-                } else {
-                  setCasAutoEstado("error");
-                }
-              } catch {
-                setCasAutoEstado("error");
-              }
-            }}
-            onPatchRol={(rol) => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              patchElemento(seleccionado.id, { textRole: rol });
-            }}
-            onLiveChange={(valor) => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: false });
-            }}
-            onCommit={(valor) => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: true });
-            }}
-            onEstructuradoChange={(texto) => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              patchElemento(seleccionado.id, {
-                content: autoCorregirTextoContenido(texto),
-              });
-            }}
-            onMagico={(texto) => {
-              if (!seleccionado || seleccionado.type !== "text") return;
-              patchElemento(seleccionado.id, {
-                content: autoCorregirTextoContenido(texto),
-              });
+          {barcodeBuscadorAbierto && seleccionado?.type === "image" && seleccionado.rolCapa === "barcode" && (
+            <div className="absolute bottom-4 left-14 z-40 rounded-lg border border-border bg-surface-panel p-3 shadow-xl">
+              <BarcodeSkuBuscador
+                eanActual={eanDesdeSrcBarcode(seleccionado.src)}
+                onElegir={(codigo) => {
+                  onChange(aplicarBarcodeEan(doc, codigo));
+                  setBarcodeBuscadorAbierto(false);
+                }}
+                onCerrar={() => setBarcodeBuscadorAbierto(false)}
+              />
+            </div>
+          )}
+          <GaleriaIconosQuimicosModal
+            abierta={iconoCambioId !== null}
+            colorTinta="#003C8F"
+            onCerrar={() => setIconoCambioId(null)}
+            onElegir={(svgDataUrl) => {
+              if (iconoCambioId) patchElemento(iconoCambioId, { src: svgDataUrl });
+              setIconoCambioId(null);
             }}
           />
+
+        {formularioEtiqueta.disponible ? (
+          <FormularioEtiquetaCamposPanel formulario={formularioEtiqueta} />
+        ) : (
+          doc.elementos.some((e) => e.type === "text") && (
+            <BarraContenidoTexto
+              elementos={doc.elementos}
+              seleccionado={seleccionado?.type === "text" ? seleccionado : null}
+              seleccionId={seleccionIds.length === 1 ? seleccionIds[0] : null}
+              nombrePlantilla={doc.nombre}
+              textareaRef={contenidoTextareaRef}
+              casAutoEstado={casAutoEstado}
+              onSeleccionar={(id) => setSeleccionIds([id])}
+              onCasAuto={async () => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                const ctx = contextoCapasParaDescripcion(
+                  doc.elementos,
+                  seleccionado.id,
+                  doc.nombre,
+                );
+                if (!ctx.titulo) return;
+                setCasAutoEstado("cargando");
+                try {
+                  const cas = await buscarCasPorTitulo(ctx.titulo);
+                  if (cas) {
+                    patchElemento(seleccionado.id, { content: `CAS: ${cas}` });
+                    setCasAutoEstado("idle");
+                  } else {
+                    setCasAutoEstado("error");
+                  }
+                } catch {
+                  setCasAutoEstado("error");
+                }
+              }}
+              onPatchRol={(rol) => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                patchElemento(seleccionado.id, { textRole: rol });
+              }}
+              onLiveChange={(valor) => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: false });
+              }}
+              onCommit={(valor) => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                actualizarContenidoTexto(seleccionado.id, valor, { autocorregir: true });
+              }}
+              onEstructuradoChange={(texto) => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                patchElemento(seleccionado.id, {
+                  content: autoCorregirTextoContenido(texto),
+                });
+              }}
+              onMagico={(texto) => {
+                if (!seleccionado || seleccionado.type !== "text") return;
+                patchElemento(seleccionado.id, {
+                  content: autoCorregirTextoContenido(texto),
+                });
+              }}
+            />
+          )
         )}
         </div>
 
@@ -2864,8 +2955,8 @@ export default function VisualCanvasEditor({
           />
           <aside className={`flex h-full w-full flex-col overflow-hidden border-l ${studio.panel}`}>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-              {esPlantillaFormularioEtiqueta(doc) && (
-                <FormularioEtiquetaPanel doc={doc} onChange={onChange} />
+              {formularioEtiqueta.disponible && (
+                <FormularioEtiquetaPanel formulario={formularioEtiqueta} />
               )}
               <>
                 {seleccionIds.length > 1 ? (
@@ -3077,6 +3168,14 @@ export default function VisualCanvasEditor({
                     }
                     className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
                   />
+                  {Boolean(seleccionado.autofit) &&
+                    fitSizes[seleccionado.id] != null &&
+                    Math.abs(fitSizes[seleccionado.id] - seleccionado.fontSize) > 0.1 && (
+                      <p className="mt-1 text-[10px] leading-snug text-amber-600">
+                        Autofit lo achicó a {fitSizes[seleccionado.id].toFixed(1)}px para caber
+                        (por eso se ve distinto a otros textos con el mismo tamaño puesto acá).
+                      </p>
+                    )}
                 </label>
                 <label>
                   <span className="text-xs text-muted">Color</span>
@@ -3568,6 +3667,32 @@ export default function VisualCanvasEditor({
 
             {seleccionado.type === "image" && (
               <>
+                <label>
+                  <span className="text-xs text-muted">Identificación</span>
+                  <select
+                    value={seleccionado.rolCapa || ""}
+                    onChange={(e) => {
+                      const v = e.target.value as "" | "logo" | "barcode" | "icono";
+                      patchElemento(seleccionado.id, {
+                        rolCapa: v || undefined,
+                        nombreCapa:
+                          v === "logo"
+                            ? "LOGO"
+                            : v === "barcode"
+                              ? "CÓDIGO DE BARRAS"
+                              : v === "icono"
+                                ? seleccionado.nombreCapa || "Icono"
+                                : seleccionado.nombreCapa,
+                      });
+                    }}
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  >
+                    <option value="">Imagen</option>
+                    <option value="logo">LOGO</option>
+                    <option value="barcode">CÓDIGO DE BARRAS</option>
+                    <option value="icono">Icono</option>
+                  </select>
+                </label>
                 <label>
                   <span className="text-xs text-muted">Ajuste imagen</span>
                   <select

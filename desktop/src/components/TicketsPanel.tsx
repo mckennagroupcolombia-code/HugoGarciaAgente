@@ -6483,8 +6483,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "facturas",      label: "Facturas de compra" },
                     { id: "sync",          label: "Sincronización" },
                     { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
-                    { id: "ingresos-egresos", label: "Tabla Ingresos / Egresos" },
-                    { id: "creditos-adquiridos", label: "Créditos adquiridos" },
+                    { id: "libro-mayor", label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos (permiso propio, no heredado)" },
                     { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
                     { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios" },
                     { id: "rrhh",          label: "RRHH · Compensaciones" },
@@ -21613,9 +21612,9 @@ function SolicitudesView({
                   type="button"
                   onClick={onInicio}
                   className="flex items-center gap-1 rounded-lg border border-border/60 px-2.5 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
-                  title="Volver al inicio"
+                  title="Volver a Agenda"
                 >
-                  <TopicIcon value="🏠" size={13} className="shrink-0" /> Inicio
+                  <TopicIcon value="🏠" size={13} className="shrink-0" /> Agenda
                 </button>
               )}
             </div>
@@ -21628,9 +21627,9 @@ function SolicitudesView({
               type="button"
               onClick={onInicio}
               className="flex items-center gap-1 rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition shrink-0"
-              title="Volver al inicio"
+              title="Volver a Agenda"
             >
-              <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
+              <TopicIcon value="🏠" size={14} className="shrink-0" /> Agenda
             </button>
           )}
           <button
@@ -25966,9 +25965,9 @@ function AccionesView({
                 type="button"
                 onClick={onInicio}
                 className="flex items-center gap-1 rounded-lg border border-border/60 px-2.5 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
-                title="Volver al inicio"
+                title="Volver a Agenda"
               >
-                <TopicIcon value="🏠" size={13} className="shrink-0" /> Inicio
+                <TopicIcon value="🏠" size={13} className="shrink-0" /> Agenda
               </button>
             )}
           </div>
@@ -29427,7 +29426,7 @@ function AgenteMandoView({
         if (cmd === "crear_solicitud") {
           agregarBurbuja("agente", res.respuesta, [
             { label: "📋 Ver mis solicitudes", onTap: onGoSolicitudes },
-            { label: "🏠 Inicio", onTap: onIrInicio },
+            { label: "🏠 Agenda", onTap: onIrInicio },
           ]);
           return;
         }

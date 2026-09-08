@@ -902,3 +902,69 @@ def armar_libro(
     }
     _libro_cache[cache_key] = (time.time(), out)
     return out
+
+
+def movimientos_manuales_como_libro(desde: str, hasta: str | None = None) -> list[dict[str, Any]]:
+    """Asientos manuales del libro de partida doble propio
+    (app/services/contabilidad_core.py) — socios, préstamos, proveedores,
+    ingresos/egresos manuales — en el mismo formato de fila que `armar_libro()`,
+    para que la UI de Ingresos/Egresos y la conciliación bancaria los traten
+    igual sin tocar `armar_libro()` (Fase 3 del plan "Contabilidad unificada").
+
+    Excluye los `tipo_origen` que empiezan con "auto_": esos ya vienen
+    representados por su fila original en `armar_libro()` (ver
+    app/services/contabilidad_autopost.py) — incluirlos aquí los duplicaría.
+
+    `id` es `"cc:<movimiento_id>"` (no el hash de `id_movimiento_ledger`), así
+    que `vincular()`/`candidatos_para_movimiento()`/`sugerencias_auto()` — que
+    ya tratan `movimiento_id` como texto libre — funcionan sin cambios.
+    """
+    desde = _fecha10(desde)
+    hasta = _fecha10(hasta) or datetime.now().strftime("%Y-%m-%d")
+    try:
+        from app.services import contabilidad_core as cc
+
+        cc._ensure()
+        movimientos = cc.listar_movimientos(desde=desde, hasta=hasta, limit=1000)
+        medios = cc.listar_medios_pago(solo_activos=False)
+    except Exception:
+        return []
+
+    cuentas_medio = {m["cuenta_id"] for m in medios}
+    out: list[dict[str, Any]] = []
+    for m in movimientos:
+        tipo_origen = m.get("tipo_origen") or "manual"
+        if tipo_origen.startswith("auto_"):
+            continue
+        pata_banco = next((l for l in (m.get("lineas") or []) if l.get("cuenta_id") in cuentas_medio), None)
+        if not pata_banco:
+            continue  # asiento sin pata de caja/bancos (ej. reclasificación interna) — no aplica a este libro
+        debito = float(pata_banco.get("debito") or 0)
+        credito = float(pata_banco.get("credito") or 0)
+        monto = debito or credito
+        if monto <= 0:
+            continue
+        row = _row(
+            fecha=m.get("fecha") or "",
+            tipo="ingreso" if debito > 0 else "egreso",
+            fuente=tipo_origen,
+            concepto=m.get("concepto") or "",
+            monto=monto,
+            referencia=m.get("referencia") or "",
+            contraparte=((m.get("tercero") or {}) or {}).get("nombre") or "",
+            extra={"cc_movimiento_id": m.get("id")},
+        )
+        row["id"] = f"cc:{m.get('id')}"
+        out.append(row)
+
+    try:
+        from app.services.extracto_bancario import mapa_vinculos_por_movimiento
+
+        vinculos = mapa_vinculos_por_movimiento([r["id"] for r in out])
+        for r in out:
+            r["extracto"] = vinculos.get(r["id"])
+    except Exception:
+        for r in out:
+            r.setdefault("extracto", None)
+
+    return out

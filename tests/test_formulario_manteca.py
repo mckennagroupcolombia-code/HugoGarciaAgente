@@ -34,8 +34,24 @@ def test_manteca_es_formulario_con_cajas_variables():
         "apariencia", "olor", "composicion", "grado", "almacenamiento", "peso", "ghs",
     }
     for el in doc["elementos"]:
-        if el.get("campoProducto"):
+        if el.get("type") == "text" and el.get("campoProducto"):
             assert el.get("autofit") is True
+    nombres = {
+        el.get("nombreCapa")
+        for el in doc["elementos"]
+        if el.get("visible", True) is not False
+    }
+    assert nombres >= {
+        "NOMBRE", "CATEGORÍA", "ORIGEN", "APARIENCIA", "OLOR", "COMPOSICIÓN",
+        "GRADO", "CONSERVACIÓN", "CONTENIDO NETO", "CONCENTRACIÓN", "CAS",
+        "LOGO", "CÓDIGO DE BARRAS",
+    }
+    roles = {
+        el.get("rolCapa")
+        for el in doc["elementos"]
+        if el.get("type") == "image"
+    }
+    assert "logo" in roles and "barcode" in roles
 
 
 def test_exportar_manteca_original_sin_avisos():

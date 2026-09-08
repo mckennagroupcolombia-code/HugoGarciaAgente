@@ -2463,6 +2463,14 @@
       "pregunta": "Quiero saber si encuentro aceite de coco para uso capilar",
       "timestamp": "2026-09-06T21:43:11.810646",
       "respondida": true
+    },
+    {
+      "question_id": "13654256113",
+      "titulo_producto": "Kit Hidratante Ácido Hialurónico",
+      "pregunta": "Fecha de vencimiento?",
+      "timestamp": "2026-09-07T17:52:05.067745",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nNuestro Kit Hidratante Ácido Hialurónico no caduca propiamente, sin embargo, para garantizar sus mejores propiedades, se recomienda consumirlo preferiblemente dentro de los primeros 24 meses a partir de su fecha de fabricación.\n\nAdicionalmente, le recomendamos mantener el envase bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad, para conservar todas sus propiedades hidratantes en óptimas condiciones."
     }
   ]
 }

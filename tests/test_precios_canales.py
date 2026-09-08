@@ -293,3 +293,116 @@ def test_reconciliar_error_en_un_sku_no_detiene_el_resto(monkeypatch):
     assert resultado["aplicados"] == 0
     assert len(resultado["errores"]) == 2
     assert all(e["canal"] == "siigo" for e in resultado["errores"])
+
+
+def _cache_cobros(tmp_path, monkeypatch, items, actualizado_en="2026-09-07T12:00:00"):
+    import json
+
+    cache = tmp_path / "meli_cobros_cache.json"
+    cache.write_text(
+        json.dumps({"actualizado_en": actualizado_en, "items": items}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(P, "_COBROS_MELI_CACHE_PATH", cache)
+    return cache
+
+
+def test_enriquecer_catalogo_cruza_sku_sin_importar_mayusculas(tmp_path, monkeypatch):
+    _cache_cobros(
+        tmp_path,
+        monkeypatch,
+        [
+            {
+                "sku": "c-urea250g",
+                "precio_meli": 25000,
+                "meli_id": "MCO1",
+                "estado_meli": "active",
+            },
+            {
+                "sku": "C-OTRO",
+                "precio_meli": 10000,
+                "meli_id": "MCO2",
+                "estado_meli": "active",
+            },
+        ],
+    )
+    data = {
+        "items": [
+            {"reference": "C-UREA250g", "precio_lista": 25000},
+            {"reference": "C-OTRO", "precio_lista": 8000},
+            {"reference": "GRANEL", "precio_lista": 100},
+        ]
+    }
+    P.enriquecer_catalogo_con_precios_meli(data)
+    assert data["items"][0]["meli_sincronizado"] is True
+    assert data["items"][0]["precio_meli"] == 25000
+    assert data["items"][1]["meli_sincronizado"] is False
+    assert data["items"][1]["meli_sospechoso"] is False
+    assert data["items"][2]["precio_meli"] is None
+    assert data["items"][2]["meli_sincronizado"] is None
+    assert data["meli"]["vinculados"] == 2
+    assert data["meli"]["desincronizados"] == 1
+    assert data["meli"]["sin_publicacion"] == 1
+
+
+def test_enriquecer_marca_ratio_sospechoso(tmp_path, monkeypatch):
+    _cache_cobros(
+        tmp_path,
+        monkeypatch,
+        [{"sku": "AS-19", "precio_meli": 130000, "meli_id": "MCO9", "estado_meli": "active"}],
+    )
+    data = {"items": [{"reference": "AS-19", "precio_lista": 3800}]}
+    P.enriquecer_catalogo_con_precios_meli(data)
+    assert data["items"][0]["meli_sospechoso"] is True
+    assert data["meli"]["sospechosos"] == 1
+
+
+def test_enriquecer_precio_alegra_cero_no_es_sospechoso(tmp_path, monkeypatch):
+    _cache_cobros(
+        tmp_path,
+        monkeypatch,
+        [{"sku": "C-NUEVO", "precio_meli": 19900, "meli_id": "MCO3", "estado_meli": "active"}],
+    )
+    data = {"items": [{"reference": "C-NUEVO", "precio_lista": 0}]}
+    P.enriquecer_catalogo_con_precios_meli(data)
+    assert data["items"][0]["meli_sincronizado"] is False
+    assert data["items"][0]["meli_sospechoso"] is False
+
+
+def test_igualar_precios_alegra_desde_meli(tmp_path, monkeypatch):
+    _cache_cobros(
+        tmp_path,
+        monkeypatch,
+        [
+            {"sku": "C-X", "precio_meli": 19900, "meli_id": "MCO1", "estado_meli": "active"},
+            {"sku": "C-Y", "precio_meli": 10000, "meli_id": "MCO2", "estado_meli": "active"},
+        ],
+    )
+    escritos = []
+
+    def _obtener(codigo):
+        key = codigo.upper()
+        if key == "C-X":
+            return {"reference": "C-X", "precio_lista": 0}
+        if key == "C-Y":
+            return {"reference": "C-Y", "precio_lista": 10000}
+        return None
+
+    monkeypatch.setattr(
+        "app.services.alegra_catalogo_db.obtener_item",
+        _obtener,
+    )
+    monkeypatch.setattr(
+        "app.services.alegra.actualizar_precio_alegra_producto",
+        lambda code, precio: escritos.append((code, precio)) or {"ok": True, "msg": "ok"},
+    )
+    monkeypatch.setattr(
+        "app.services.alegra_catalogo_db.actualizar_campos_locales",
+        lambda *a, **k: {"reference": a[0]},
+    )
+    out = P.igualar_precios_alegra_desde_meli(["C-X", "C-Y", "C-NO", "C-X"])
+    assert out["total_aplicados"] == 1
+    assert escritos == [("C-X", 19900.0)]
+    razones = {o["sku"]: o["razon"] for o in out["omitidos"]}
+    assert razones["C-Y"] == "ya_igual"
+    assert razones["C-NO"] == "sin_publicacion_meli"

@@ -14,6 +14,7 @@ export type NavCategory =
   | "diseno"
   | "docs"
   | "contabilidad"
+  | "negocio"
   | "inventario"
   | "publicaciones"
   | "placas"
@@ -40,7 +41,7 @@ export interface NavSection {
 export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[] })[] = [
   {
     id: "inicio",
-    label: "Inicio",
+    label: "Agenda",
     hub: true,
     items: [
       { panel: "hugo", tier: "core" },
@@ -97,10 +98,25 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     ),
   },
   {
+    // Indicadores de "cómo va el negocio" — sin relación con la partida doble
+    // (antes convivían dentro de Contabilidad solo por historia).
+    id: "negocio",
+    label: "Negocio",
+    hub: true,
+    items: [
+      { panel: "rentabilidad", tier: "standard" },
+      { panel: "publicidad", tier: "standard" },
+      { panel: "salud-negocio", tier: "standard" },
+    ],
+  },
+  {
     id: "inventario",
     label: "Inventario",
     hub: true,
-    items: [{ panel: "control-inventario", tier: "core" }],
+    items: [
+      { panel: "control-inventario", tier: "core" },
+      { panel: "stock", tier: "standard" },
+    ],
   },
   {
     // Individual (como Diseño / Docs): no agrupado en "Tienda y taller".
@@ -159,12 +175,13 @@ export const NAV_PANEL_ORDER: Panel[] = [
 ];
 
 export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
-  inicio: "Inicio",
+  inicio: "Agenda",
   atencion: "Atención",
   canales: "Canales",
   diseno: "Diseño",
   docs: "Docs técnicos",
   contabilidad: "Contabilidad",
+  negocio: "Negocio",
   inventario: "Inventario",
   publicaciones: "Publicaciones",
   placas: "Placas",

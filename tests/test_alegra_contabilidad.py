@@ -263,6 +263,62 @@ def test_actualizar_combo_alegra_ok(monkeypatch):
     assert puts[0]["json"]["name"] == "KIT TEST ACTUALIZADO"
 
 
+def test_liberar_reference_alegra_renombra_inactivo(monkeypatch):
+    from app.services import alegra as ag
+
+    calls = {"get": [], "put": []}
+
+    def _get(url, headers=None, params=None, timeout=None):
+        calls["get"].append(params or {})
+        ref = (params or {}).get("reference") or ""
+        if ref == "C-X":
+            return _Resp(200, [{
+                "id": "42",
+                "reference": "C-X",
+                "name": "Viejo",
+                "type": "product",
+                "status": "inactive",
+            }])
+        # legacy candidate libre
+        return _Resp(200, [])
+
+    def _put(url, headers=None, json=None, timeout=None):
+        calls["put"].append({"url": url, "json": json})
+        return _Resp(200, {"id": "42", **(json or {})})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+    monkeypatch.setattr(ag, "_producto_cache", {})
+
+    out = ag._liberar_reference_alegra_para_recrear(
+        "C-X", headers={"Authorization": "Basic x"}, tipo_deseado="kit",
+    )
+    assert out["liberado"] is True
+    assert out["legacy_reference"].startswith("C-X-LEGACY")
+    assert calls["put"][0]["json"]["status"] == "inactive"
+    assert calls["put"][0]["json"]["reference"].startswith("C-X-LEGACY")
+
+
+def test_liberar_reference_no_toca_kit_activo(monkeypatch):
+    from app.services import alegra as ag
+
+    def _get(url, headers=None, params=None, timeout=None):
+        return _Resp(200, [{
+            "id": "9",
+            "reference": "C-X",
+            "name": "Kit",
+            "type": "kit",
+            "status": "active",
+        }])
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    out = ag._liberar_reference_alegra_para_recrear(
+        "C-X", headers={"Authorization": "Basic x"}, tipo_deseado="kit",
+    )
+    assert out["liberado"] is False
+    assert out["motivo"] == "activo_mismo_tipo"
+
+
 def test_actualizar_combo_alegra_bloqueado_por_movimientos(monkeypatch):
     from app.services import alegra as ag
 

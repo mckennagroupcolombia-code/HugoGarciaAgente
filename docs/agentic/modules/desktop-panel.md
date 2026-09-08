@@ -18,7 +18,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Produccion sirve `desktop/dist` desde Flask.
 - Mutaciones pueden usar `/app/api/...` para evitar proxies que devuelven HTML.
 - GET del panel empieza en `/api` y reintenta `/app/api` si llega HTML: el endpoint Flask debe existir en **ambos** prefijos. El catch-all SPA `/app/<path>` no puede servir `index.html` para `/app/api/*`.
-- Studio visual (Cynthia): «Diligenciar etiqueta» es formulario HTML (no lienzo) **solo** si la plantilla tiene `ficha_mp`. Etiquetas físicas (p. ej. MANTECA 76×66) se marcan con `formulario: true` + `campoProducto`/`autofit` en el lienzo: el formulario lateral edita `content` sin regenerar layout. **Nunca** poner `ficha_mp` en esas stickers (eso reconstruye la plantilla SCI).
+- Studio visual (Cynthia): «Diligenciar etiqueta» es formulario HTML (no lienzo) **solo** si la plantilla tiene `ficha_mp`. Etiquetas físicas (p. ej. MANTECA 76×66) se marcan con `formulario: true` + `campoProducto`/`autofit` en el lienzo: el formulario lateral edita `content` sin regenerar layout. **Nunca** poner `ficha_mp` en esas stickers (eso reconstruye la plantilla SCI). Cada capa tiene `nombreCapa` (ORIGEN, APARIENCIA, LOGO…); las pills del editor no deben decir «Otro». Logo (`rolCapa: logo`) y barcode (`rolCapa: barcode`) se cambian desde el formulario (paleta de línea / EAN-13) sin mover la caja.
 - Auth usa Bearer `CHAT_API_TOKEN`.
 - Preferencias UI (`preferencias_ui.panel`): `mode`, `fontSans`, `accentRgb`, `radius`, `skin` (variantes visibles `matrix` | `sakura` | `barbie`; `clasica`/`atelier` se mapean a Sakura), `fontScale`, `menuScale`, `colors` (menú/títulos/cajas), `customThemes` (hasta 12 temas del usuario).
 - Cambios en endpoint deben reflejarse en hook/tipo UI.
@@ -29,6 +29,7 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Publicaciones → Catálogo pestaña **Sitios**: `GET /api/publicaciones/<sku>?live_meli=1` (`vista_sitios`); `POST /api/publicaciones/<sku>/estado-meli` (`active`\|`paused`). **Agregar fotos** abre la galería (`POST /api/publicaciones/<sku>/imagenes/desde-galeria`). Lista: query `canal`.
 - Inicio (Agenda y Métricas): gadget USD/COP — cifra TRM BanRep (`GET /api/inicio/dolar-hora`) + mini TradingView; clic amplía gráfico horario TV.
 - Logística Internacional → **Proveedores** (`ProveedoresPanel.tsx`, `useProveedores.ts`): `/api/proveedores/*`; pestañas Directorio / ¿Quién vende…? / Catálogos (Gmail, sin LLM) / Oferta web (publica `oferta_proveedores.json` para `/cotizar`) / Cotizaciones. Permiso `logistica-internacional`.
+- Contabilidad → **Catálogo Alegra**: `GET /api/alegra/catalogo` incluye precio MeLi por SKU (`precio_meli`, `meli_sincronizado`); `POST /api/alegra/catalogo/igualar-meli` copia ese precio al lista Alegra.
 - Contabilidad → **Créditos adquiridos**: `GET/POST /api/contabilidad/creditos*`; tasa EA o N.A.M.V., cuota y amortización.
 
 ## Riesgos

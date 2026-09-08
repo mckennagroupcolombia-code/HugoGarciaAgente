@@ -1,5 +1,5 @@
-import { Fragment, useMemo, useRef, useState, type DragEvent } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 
 const EXTRACTO_EXTS = [".csv", ".xlsx", ".xlsm", ".txt", ".tsv", ".pdf"];
@@ -162,7 +162,54 @@ const FUENTE_LABEL: Record<string, string> = {
   operativos_impuestos: "Impuestos",
   operativos_servicios: "Servicios (operativos)",
   creditos_adquiridos: "Créditos adquiridos",
+  // Asientos manuales del Libro Mayor propio (ver movimientos_manuales_como_libro)
+  compra_socio_amazon: "Compra socio (Amazon)",
+  pago_socio: "Giro a socio",
+  compra_proveedor: "Compra a proveedor",
+  ingreso: "Ingreso manual",
+  egreso: "Egreso manual",
+  prestamo_recibido: "Préstamo recibido",
+  abono_prestamo_recibido: "Abono préstamo recibido",
+  prestamo_otorgado: "Préstamo otorgado",
+  abono_prestamo_otorgado: "Abono préstamo otorgado",
 };
+
+/* ─── Bandeja "Pendientes por clasificar" ───────────────────────────────── */
+
+type PendienteLinea = {
+  id: number;
+  extracto_id: number;
+  extracto_nombre: string;
+  fecha: string;
+  descripcion: string;
+  referencia: string;
+  monto: number;
+  tipo: "debito" | "credito";
+  banco?: string;
+  cuenta?: string;
+};
+
+type PlanCuentaMin = { id: number; codigo: string; nombre: string; tipo: string; activa: number };
+type TerceroMin = { id: number; nombre: string; tipo: string; activo: number };
+type MedioPagoMin = { id: number; nombre: string; activo: number };
+
+type ClasifTipo = "prestamo" | "ingreso" | "egreso";
+type ClasifSub = "nuevo" | "abono";
+
+/** Traduce (tipo de línea bancaria, ¿es nuevo o abono?) a la plantilla y
+ * dirección correctas — ver contabilidad_core.py::registrar_prestamo_* /
+ * registrar_abono_prestamo_*. Un crédito bancario (entra dinero) "nuevo" es
+ * que nos prestaron; un crédito "abono" es que nos devolvieron un préstamo
+ * que habíamos otorgado. Simétrico para débito. */
+function resolverPlantillaPrestamo(
+  bancoTipo: "debito" | "credito",
+  sub: ClasifSub,
+): { ruta: string; direccion?: "recibido" | "otorgado" } {
+  if (bancoTipo === "credito") {
+    return sub === "nuevo" ? { ruta: "prestamo-recibido" } : { ruta: "abono-prestamo", direccion: "otorgado" };
+  }
+  return sub === "nuevo" ? { ruta: "prestamo-otorgado" } : { ruta: "abono-prestamo", direccion: "recibido" };
+}
 
 type RowView =
   | { kind: "single"; m: Movimiento; key: string }
@@ -315,7 +362,14 @@ function ExtractoCell({
 /**
  * Tabla contable de ingresos y egresos con fecha + vínculo a extracto bancario.
  */
-export default function IngresosEgresosPanel() {
+export default function IngresosEgresosPanel({
+  abrirPendientesSignal,
+}: {
+  /** Incrementar este número (desde fuera, ej. Libro Mayor → Informes) abre la
+   * bandeja "Pendientes por clasificar" — útil para enlazar directo desde un
+   * informe o atajo externo. */
+  abrirPendientesSignal?: number;
+} = {}) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [desde, setDesde] = useState(() => haceNDias(30));
@@ -352,6 +406,20 @@ export default function IngresosEgresosPanel() {
   const [consultaBusy, setConsultaBusy] = useState(false);
   const [consultaErr, setConsultaErr] = useState<string | null>(null);
   const [consultaRes, setConsultaRes] = useState<ConsultaExtractoResp | null>(null);
+  const [pendientesAbierto, setPendientesAbierto] = useState(false);
+  useEffect(() => {
+    if (abrirPendientesSignal) setPendientesAbierto(true);
+  }, [abrirPendientesSignal]);
+  const [clasificarLinea, setClasificarLinea] = useState<PendienteLinea | null>(null);
+  const [clasificarTipo, setClasificarTipo] = useState<ClasifTipo>("prestamo");
+  const [clasificarSub, setClasificarSub] = useState<ClasifSub>("nuevo");
+  const [clasificarForm, setClasificarForm] = useState({
+    tercero_id: "",
+    cuenta_id: "",
+    medio_pago_id: "",
+    concepto: "",
+  });
+  const [clasificarErr, setClasificarErr] = useState<string | null>(null);
 
   const queryKey = ["ingresos-egresos", desde, hasta, incluirMeli, incluirSiigo] as const;
 
@@ -374,8 +442,99 @@ export default function IngresosEgresosPanel() {
     queryFn: () => api.get("/api/contabilidad/extractos"),
   });
 
+  // Asientos manuales del Libro Mayor propio (socios, préstamos, proveedores,
+  // ingreso/egreso manual) — se fusionan con armar_libro() abajo sin tocarlo.
+  const manualesQ = useQuery<{ movimientos: Movimiento[] }>({
+    queryKey: ["ingresos-egresos-manuales", desde, hasta],
+    queryFn: () => {
+      const params = new URLSearchParams({ desde, hasta });
+      return api.get(`/api/contabilidad/ingresos-egresos/manuales?${params}`, { timeoutMs: 30_000 });
+    },
+  });
+
+  const pendientesQ = useQuery<{ pendientes: PendienteLinea[] }>({
+    queryKey: ["extractos-pendientes", desde, hasta],
+    queryFn: () => {
+      const params = new URLSearchParams({ desde, hasta, limit: "300" });
+      return api.get(`/api/contabilidad/extractos/pendientes?${params}`);
+    },
+    enabled: pendientesAbierto,
+  });
+  const cuentasClasifQ = useQuery<{ cuentas: PlanCuentaMin[] }>({
+    queryKey: ["cc-plan-cuentas-clasificar"],
+    queryFn: () => api.get("/api/contabilidad/cc/plan-cuentas?activas=0"),
+    enabled: pendientesAbierto,
+  });
+  const tercerosClasifQ = useQuery<{ terceros: TerceroMin[] }>({
+    queryKey: ["cc-terceros-clasificar"],
+    queryFn: () => api.get("/api/contabilidad/cc/terceros?activos=0"),
+    enabled: pendientesAbierto,
+  });
+  const mediosClasifQ = useQuery<{ medios_pago: MedioPagoMin[] }>({
+    queryKey: ["cc-medios-pago-clasificar"],
+    queryFn: () => api.get("/api/contabilidad/cc/medios-pago"),
+    enabled: pendientesAbierto,
+  });
+
+  const clasificarMut = useMutation({
+    mutationFn: async () => {
+      const linea = clasificarLinea;
+      if (!linea) throw new Error("Selecciona una línea del banco");
+      if (!clasificarForm.medio_pago_id) throw new Error("Selecciona el medio de pago");
+      const base: Record<string, unknown> = {
+        fecha: linea.fecha,
+        monto: linea.monto,
+        medio_pago_id: Number(clasificarForm.medio_pago_id),
+        referencia: `extracto:${linea.id}`,
+        concepto: clasificarForm.concepto.trim() || linea.descripcion,
+      };
+      let ruta: string;
+      if (clasificarTipo === "prestamo") {
+        if (!clasificarForm.tercero_id) throw new Error("Selecciona el tercero (socio o quien preste/reciba)");
+        base.tercero_id = Number(clasificarForm.tercero_id);
+        const { ruta: r, direccion } = resolverPlantillaPrestamo(linea.tipo, clasificarSub);
+        ruta = r;
+        if (direccion) base.direccion = direccion;
+      } else if (clasificarTipo === "ingreso") {
+        if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
+        base.cuenta_ingreso_id = Number(clasificarForm.cuenta_id);
+        if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        ruta = "ingreso";
+      } else {
+        if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
+        base.cuenta_gasto_id = Number(clasificarForm.cuenta_id);
+        if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        ruta = "egreso";
+      }
+      const r = await api.post<{ ok?: boolean; error?: string; movimiento?: { id: number } }>(
+        `/api/contabilidad/cc/plantillas/${ruta}`,
+        base,
+      );
+      if (r.error || !r.movimiento) throw new Error(r.error || "No se pudo crear el asiento contable");
+      await api.post("/api/contabilidad/extractos/vincular", {
+        extracto_mov_id: linea.id,
+        movimiento_id: `cc:${r.movimiento.id}`,
+      });
+    },
+    onSuccess: () => {
+      setClasificarLinea(null);
+      setClasificarForm({ tercero_id: "", cuenta_id: "", medio_pago_id: "", concepto: "" });
+      setClasificarErr(null);
+      void qc.invalidateQueries({ queryKey: ["extractos-pendientes"] });
+      void qc.invalidateQueries({ queryKey: ["ingresos-egresos-manuales"] });
+      void qc.invalidateQueries({ queryKey: ["ingresos-egresos"] });
+      void qc.invalidateQueries({ queryKey: ["extractos-bancarios"] });
+    },
+    onError: (e: unknown) => setClasificarErr((e as Error).message || "No se pudo clasificar"),
+  });
+
+  const movimientosTodos = useMemo(
+    () => [...(libroQ.data?.movimientos ?? []), ...(manualesQ.data?.movimientos ?? [])],
+    [libroQ.data, manualesQ.data],
+  );
+
   const movimientos = useMemo(() => {
-    let rows = libroQ.data?.movimientos ?? [];
+    let rows = movimientosTodos;
     if (filtroTipo !== "todos") rows = rows.filter((r) => r.tipo === filtroTipo);
     if (filtroFuente !== "todas") rows = rows.filter((r) => r.fuente === filtroFuente);
     if (filtroExtracto === "vinculados") rows = rows.filter((r) => !!r.extracto);
@@ -391,14 +550,14 @@ export default function IngresosEgresosPanel() {
       );
     }
     return rows;
-  }, [libroQ.data, filtroTipo, filtroFuente, filtroExtracto, q]);
+  }, [movimientosTodos, filtroTipo, filtroFuente, filtroExtracto, q]);
 
   const filas = useMemo(() => agruparParaVista(movimientos), [movimientos]);
 
   const fuentes = useMemo(() => {
-    const set = new Set((libroQ.data?.movimientos ?? []).map((m) => m.fuente));
+    const set = new Set(movimientosTodos.map((m) => m.fuente));
     return Array.from(set).sort();
-  }, [libroQ.data]);
+  }, [movimientosTodos]);
 
   const totFiltrado = useMemo(() => {
     const ing = movimientos.filter((m) => m.tipo === "ingreso").reduce((a, m) => a + m.monto, 0);
@@ -406,7 +565,25 @@ export default function IngresosEgresosPanel() {
     return { ing, egr, neto: ing - egr };
   }, [movimientos]);
 
-  const totales = libroQ.data?.totales;
+  // Fusiona los totales de armar_libro() con los de los asientos manuales
+  // (préstamos, socios, proveedores, ingreso/egreso manual) sin tocar el
+  // endpoint de armar_libro.
+  const totales = useMemo(() => {
+    const base = libroQ.data?.totales;
+    const manuales = manualesQ.data?.movimientos ?? [];
+    if (!base && manuales.length === 0) return undefined;
+    const ingManual = manuales.filter((m) => m.tipo === "ingreso").reduce((a, m) => a + m.monto, 0);
+    const egrManual = manuales.filter((m) => m.tipo === "egreso").reduce((a, m) => a + m.monto, 0);
+    const ingresos = (base?.ingresos ?? 0) + ingManual;
+    const egresos = (base?.egresos ?? 0) + egrManual;
+    return {
+      ingresos,
+      egresos,
+      neto: ingresos - egresos,
+      cantidad: (base?.cantidad ?? 0) + manuales.length,
+      vinculados_extracto: (base?.vinculados_extracto ?? 0) + manuales.filter((m) => !!m.extracto).length,
+    };
+  }, [libroQ.data, manualesQ.data]);
 
   const toggle = (key: string) => {
     setAbiertos((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -415,7 +592,9 @@ export default function IngresosEgresosPanel() {
   const refreshAll = async () => {
     await Promise.all([
       qc.invalidateQueries({ queryKey: ["ingresos-egresos"] }),
+      qc.invalidateQueries({ queryKey: ["ingresos-egresos-manuales"] }),
       qc.invalidateQueries({ queryKey: ["extractos-bancarios"] }),
+      qc.invalidateQueries({ queryKey: ["extractos-pendientes"] }),
     ]);
   };
 
@@ -848,6 +1027,22 @@ export default function IngresosEgresosPanel() {
               </span>
               Vincular automáticamente
             </button>
+            <button
+              type="button"
+              onClick={() => setPendientesAbierto((v) => !v)}
+              className="mb-0.5 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-amber-600 bg-amber-600/10 px-2.5 text-[10px] font-bold text-amber-800 hover:bg-amber-600/20"
+              title="Líneas del banco (de cualquier extracto) sin ningún movimiento contable asociado en este rango"
+            >
+              <span aria-hidden className="text-sm leading-none">
+                ⚠️
+              </span>
+              Pendientes por clasificar
+              {(pendientesQ.data?.pendientes?.length ?? 0) > 0 && (
+                <span className="rounded-full bg-amber-600/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-900">
+                  {pendientesQ.data!.pendientes.length}
+                </span>
+              )}
+            </button>
           </div>
           <p className="text-[11px] text-muted">
             El archivo es el que descargaste o generaste tú — se sube al soltarlo o al
@@ -998,7 +1193,60 @@ export default function IngresosEgresosPanel() {
           </div>
         </div>
 
-        {totales && (
+        {pendientesAbierto && (
+        <div className="rounded-xl border border-amber-600/40 bg-amber-500/5 p-4 space-y-3">
+          <div>
+            <h3 className="text-sm font-bold text-ink">Pendientes por clasificar</h3>
+            <p className="text-xs text-muted">
+              Líneas del extracto bancario en este rango que no tienen ningún movimiento contable
+              vinculado — ni en la vista de arriba, ni en el Libro Mayor. Clasifícalas para que quede
+              registrado a qué correspondió el movimiento y con qué cuenta contable.
+            </p>
+          </div>
+          {pendientesQ.isLoading && <p className="text-xs text-muted">Buscando pendientes…</p>}
+          {pendientesQ.isError && (
+            <p className="text-xs text-rose-600">{(pendientesQ.error as Error).message}</p>
+          )}
+          {!pendientesQ.isLoading && (pendientesQ.data?.pendientes?.length ?? 0) === 0 && (
+            <p className="text-xs text-emerald-700">
+              Todo lo que llegó en los extractos de este rango ya está clasificado. ✅
+            </p>
+          )}
+          <ul className="space-y-1.5">
+            {(pendientesQ.data?.pendientes ?? []).map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
+              >
+                <div className="min-w-0 text-xs">
+                  <div className="font-semibold text-ink">
+                    {p.fecha} · {p.tipo === "credito" ? "Entró" : "Salió"} · {formatCop(p.monto)}
+                  </div>
+                  <div className="truncate text-muted" title={p.descripcion}>
+                    {p.descripcion || "(sin descripción)"}
+                    {p.referencia ? ` · ref ${p.referencia}` : ""} · {p.extracto_nombre}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClasificarLinea(p);
+                    setClasificarTipo("prestamo");
+                    setClasificarSub("nuevo");
+                    setClasificarForm({ tercero_id: "", cuenta_id: "", medio_pago_id: "", concepto: "" });
+                    setClasificarErr(null);
+                  }}
+                  className="shrink-0 rounded-lg border-2 border-amber-600 bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white"
+                >
+                  Clasificar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {totales && (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             <div className="rounded-lg border border-border bg-surface px-3 py-2">
               <div className="text-[10px] font-bold uppercase text-muted">Ingresos</div>
@@ -1675,6 +1923,184 @@ export default function IngresosEgresosPanel() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      )}
+
+      {clasificarLinea && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setClasificarLinea(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-xl border border-border bg-surface-panel p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-ink">Clasificar movimiento del banco</h3>
+                <p className="text-xs text-muted">
+                  {clasificarLinea.fecha} · {clasificarLinea.tipo === "credito" ? "Entró" : "Salió"} ·{" "}
+                  {formatCop(clasificarLinea.monto)} · {clasificarLinea.descripcion || "(sin descripción)"}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="text-xs font-bold text-muted hover:text-ink"
+                onClick={() => setClasificarLinea(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex gap-2 rounded-lg bg-surface p-1">
+                {(
+                  [
+                    { id: "prestamo", label: "Préstamo" },
+                    { id: "ingreso", label: "Ingreso" },
+                    { id: "egreso", label: "Egreso" },
+                  ] as { id: ClasifTipo; label: string }[]
+                ).map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setClasificarTipo(t.id)}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-xs font-bold ${
+                      clasificarTipo === t.id ? "bg-accent text-white" : "text-muted"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {clasificarTipo === "prestamo" && (
+                <>
+                  <div className="flex gap-2 rounded-lg bg-surface p-1">
+                    <button
+                      type="button"
+                      onClick={() => setClasificarSub("nuevo")}
+                      className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-bold ${
+                        clasificarSub === "nuevo" ? "bg-accent text-white" : "text-muted"
+                      }`}
+                    >
+                      {clasificarLinea.tipo === "credito" ? "Nos prestaron" : "Le prestamos a alguien"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setClasificarSub("abono")}
+                      className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-bold ${
+                        clasificarSub === "abono" ? "bg-accent text-white" : "text-muted"
+                      }`}
+                    >
+                      {clasificarLinea.tipo === "credito" ? "Nos devolvieron un préstamo" : "Abonamos un préstamo"}
+                    </button>
+                  </div>
+                  <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
+                    Tercero (socio o quien preste/reciba)
+                    <select
+                      value={clasificarForm.tercero_id}
+                      onChange={(e) => setClasificarForm((f) => ({ ...f, tercero_id: e.target.value }))}
+                      className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                    >
+                      <option value="">Selecciona…</option>
+                      {(tercerosClasifQ.data?.terceros ?? [])
+                        .filter((t) => t.activo)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.nombre}
+                            {t.tipo === "socio" ? " (socio)" : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </>
+              )}
+
+              {(clasificarTipo === "ingreso" || clasificarTipo === "egreso") && (
+                <>
+                  <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
+                    Cuenta contable
+                    <select
+                      value={clasificarForm.cuenta_id}
+                      onChange={(e) => setClasificarForm((f) => ({ ...f, cuenta_id: e.target.value }))}
+                      className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                    >
+                      <option value="">Selecciona…</option>
+                      {(cuentasClasifQ.data?.cuentas ?? [])
+                        .filter(
+                          (c) =>
+                            c.activa &&
+                            (clasificarTipo === "ingreso" ? c.tipo === "ingreso" : c.tipo === "gasto" || c.tipo === "costo"),
+                        )
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.codigo} · {c.nombre}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
+                    Tercero (opcional)
+                    <select
+                      value={clasificarForm.tercero_id}
+                      onChange={(e) => setClasificarForm((f) => ({ ...f, tercero_id: e.target.value }))}
+                      className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                    >
+                      <option value="">—</option>
+                      {(tercerosClasifQ.data?.terceros ?? [])
+                        .filter((t) => t.activo)
+                        .map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.nombre}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </>
+              )}
+
+              <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
+                Medio de pago (interno)
+                <select
+                  value={clasificarForm.medio_pago_id}
+                  onChange={(e) => setClasificarForm((f) => ({ ...f, medio_pago_id: e.target.value }))}
+                  className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                >
+                  <option value="">Selecciona…</option>
+                  {(mediosClasifQ.data?.medios_pago ?? [])
+                    .filter((m) => m.activo)
+                    .map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.nombre}
+                      </option>
+                    ))}
+                </select>
+              </label>
+
+              <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
+                Descripción de la operación
+                <textarea
+                  value={clasificarForm.concepto}
+                  onChange={(e) => setClasificarForm((f) => ({ ...f, concepto: e.target.value }))}
+                  rows={2}
+                  placeholder={clasificarLinea.descripcion || "Ej. préstamo de Cynthia para compra courier sin factura fiscal"}
+                  className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                />
+              </label>
+
+              {clasificarErr && <p className="text-xs font-semibold text-rose-600">{clasificarErr}</p>}
+
+              <button
+                type="button"
+                disabled={clasificarMut.isPending}
+                onClick={() => clasificarMut.mutate()}
+                className="w-full rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40"
+              >
+                {clasificarMut.isPending ? "Guardando…" : "Clasificar y vincular"}
+              </button>
+            </div>
           </div>
         </div>
       )}

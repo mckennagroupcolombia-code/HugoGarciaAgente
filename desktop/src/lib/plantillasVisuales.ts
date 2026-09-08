@@ -86,6 +86,17 @@ export interface ElementoTexto extends ElementoBase {
   campoProducto?: string;
 }
 
+/** Único lugar que decide si un texto usa autofit (arco/círculo lo ignoran).
+ *  Debe ser el mismo criterio en todo lado: si el cálculo del área de
+ *  selección/redimensión (VisualCanvasEditor) diverge del que usa el
+ *  render real (TextoCapaLienzo), el marco de selección queda estimando el
+ *  alto por líneas de wrap a tamaño completo — para un texto largo en una
+ *  caja chica eso da un alto absurdo y las manijas de resize aparecen muy
+ *  por fuera del lienzo (y del texto real, ya encogido por autofit). */
+export function debeUsarAutofit(el: ElementoTexto): boolean {
+  return Boolean(el.autofit) && el.forma !== "circulo" && (el.arco ?? 0) === 0;
+}
+
 export interface ElementoRect extends ElementoBase {
   type: "rect";
   fill: string;
@@ -94,10 +105,14 @@ export interface ElementoRect extends ElementoBase {
   borderRadius: number;
 }
 
+export type RolCapaImagen = "logo" | "barcode" | "icono";
+
 export interface ElementoImagen extends ElementoBase {
   type: "image";
   src: string;
   objectFit: "contain" | "cover";
+  /** Logo, código de barras o icono de bloque (ORIGEN, OLOR, …). */
+  rolCapa?: RolCapaImagen;
 }
 
 export interface ElementoLinea extends ElementoBase {
@@ -923,6 +938,24 @@ export function labelCapaElemento(
   const manual = (el.nombreCapa || "").replace(/\s+/g, " ").trim();
   if (manual) return manual.slice(0, 80);
   if (el.type === "text") {
+    const campo = (el as ElementoTexto).campoProducto?.trim();
+    if (campo) {
+      const pretty: Record<string, string> = {
+        nombre: "NOMBRE",
+        tagline: "CATEGORÍA",
+        concentracionValor: "CONCENTRACIÓN",
+        casNumero: "CAS",
+        origen: "ORIGEN",
+        apariencia: "APARIENCIA",
+        olor: "OLOR",
+        composicion: "COMPOSICIÓN",
+        grado: "GRADO",
+        almacenamiento: "CONSERVACIÓN",
+        peso: "CONTENIDO NETO",
+        ghs: "GHS",
+      };
+      return pretty[campo] || campo;
+    }
     const palabras = (el.content || "")
       .replace(/\s+/g, " ")
       .trim()
@@ -931,9 +964,18 @@ export function labelCapaElemento(
     if (palabras.length === 0) {
       return labelRolTextoCapa(inferirRolTextoCapa(el, todos ?? [el]));
     }
+    const etiqueta = palabras.join(" ").replace(/:$/, "").trim();
+    if (etiqueta.length <= 22) return etiqueta.toUpperCase();
     return palabras.slice(0, 2).join(" ");
   }
-  if (el.type === "image") return "Imagen";
+  if (el.type === "image") {
+    const rol = (el as ElementoImagen).rolCapa;
+    if (rol === "logo") return "LOGO";
+    if (rol === "barcode") return "CÓDIGO DE BARRAS";
+    if (rol === "icono") return "Icono";
+    if (/logo/i.test(el.src || "")) return "LOGO";
+    return "Imagen";
+  }
   if (el.type === "rect") {
     return el.borderRadius >= Math.min(el.width, el.height) / 2 ? "Círculo" : "Rectángulo";
   }

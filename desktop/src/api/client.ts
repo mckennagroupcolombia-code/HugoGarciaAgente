@@ -76,6 +76,28 @@ export function ticketsSessionHeaders(): Record<string, string> {
   return tok ? { "X-Tickets-Token": tok } : {};
 }
 
+/** Trae un archivo servido por un endpoint autenticado (comprobantes, soportes,
+ * PDFs) como blob URL, para <a href>/<img src>/window.open — un <a> plano no
+ * lleva el Bearer. Recuerda revocar la URL (`URL.revokeObjectURL`) cuando ya
+ * no se use. Devuelve null si el archivo no existe o la petición falla. */
+export async function fetchAuthBlobUrl(path: string): Promise<string | null> {
+  try {
+    const token = panelBearerToken(path);
+    const url = resolvePanelApiUrl(path, "GET");
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...ticketsSessionHeaders(),
+      },
+    });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return null;
+  }
+}
+
 async function request<T>(
   path: string,
   opts: RequestInit = {},

@@ -120,9 +120,51 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_cc_lineas_movimiento ON cc_movimiento_lineas(movimiento_id);
         CREATE INDEX IF NOT EXISTS idx_cc_lineas_tercero ON cc_movimiento_lineas(tercero_id);
         CREATE INDEX IF NOT EXISTS idx_cc_movimientos_fecha ON cc_movimientos(fecha);
+        CREATE INDEX IF NOT EXISTS idx_cc_movimientos_referencia ON cc_movimientos(referencia);
         """)
     _sembrar_datos_iniciales()
+    _migrar_cuentas_v2()
+    _migrar_columnas_v3()
     _initialized = True
+
+
+def _migrar_columnas_v3() -> None:
+    """Columnas de comprobante adjunto en cc_movimientos (Fase 4).
+
+    SQLite no soporta `ADD COLUMN IF NOT EXISTS` — se revisa `PRAGMA
+    table_info` antes de cada ALTER para que sea idempotente igual que el
+    resto de migraciones de este módulo."""
+    with _conn() as con:
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_movimientos)")}
+        if "soporte_path" not in cols:
+            con.execute("ALTER TABLE cc_movimientos ADD COLUMN soporte_path TEXT NOT NULL DEFAULT ''")
+        if "soporte_nombre" not in cols:
+            con.execute("ALTER TABLE cc_movimientos ADD COLUMN soporte_nombre TEXT NOT NULL DEFAULT ''")
+        if "soporte_mime" not in cols:
+            con.execute("ALTER TABLE cc_movimientos ADD COLUMN soporte_mime TEXT NOT NULL DEFAULT ''")
+
+
+def _migrar_cuentas_v2() -> None:
+    """Cuentas PUC agregadas para el auto-posteo (Fase 1) y préstamos (Fase 2).
+
+    Idempotente vía `INSERT OR IGNORE` por código — se corre siempre desde
+    `init_db()`, tanto en bases nuevas (donde `_sembrar_datos_iniciales` ya
+    corrió) como en bases existentes (donde el sembrado inicial es un no-op).
+    """
+    nuevas = [
+        ("2105", "Obligaciones financieras", "pasivo", "credito"),
+        ("5299", "Comisiones y gastos plataformas de venta", "gasto", "debito"),
+        ("2295", "Préstamos por pagar - terceros", "pasivo", "credito"),
+        ("1290", "Préstamos por cobrar - terceros", "activo", "debito"),
+    ]
+    with _conn() as con:
+        for codigo, nombre, tipo, naturaleza in nuevas:
+            con.execute(
+                """INSERT OR IGNORE INTO cc_plan_cuentas
+                     (codigo, nombre, tipo, naturaleza, es_movimiento, activa)
+                   VALUES (?, ?, ?, ?, 1, 1)""",
+                (codigo, nombre, tipo, naturaleza),
+            )
 
 
 def _ensure() -> None:
@@ -665,6 +707,87 @@ def eliminar_movimiento(movimiento_id: int) -> bool:
         return cur.rowcount > 0
 
 
+# ─── Comprobantes adjuntos ──────────────────────────────────────────────────
+# Sustento de operaciones sin factura fiscal (p.ej. compras courier de un
+# socio) — carpeta a nivel de repo, en .gitignore junto a `comprobantes/`
+# (convención de CLAUDE.md: binarios runtime que el código regenera).
+
+_COMPROBANTES_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "..", "comprobantes", "contabilidad"
+)
+
+
+def guardar_comprobante(movimiento_id: int, contenido: bytes, nombre: str, mime: str) -> dict:
+    """Guarda el archivo de sustento de un asiento y actualiza el movimiento.
+    Sobrescribe el comprobante anterior si ya existía uno (elimina el archivo
+    viejo del disco antes de guardar el nuevo)."""
+    _ensure()
+    actual = obtener_movimiento(movimiento_id)
+    if not actual:
+        raise ValueError("Movimiento no encontrado")
+    if not contenido:
+        raise ValueError("Archivo vacío")
+
+    os.makedirs(_COMPROBANTES_DIR, exist_ok=True)
+    ext = os.path.splitext(nombre or "")[1][:10] or ""
+    archivo = f"mov{movimiento_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+    ruta_abs = os.path.join(_COMPROBANTES_DIR, archivo)
+    with open(ruta_abs, "wb") as f:
+        f.write(contenido)
+
+    anterior = (actual.get("soporte_path") or "").strip()
+    if anterior:
+        try:
+            ruta_anterior = os.path.join(_COMPROBANTES_DIR, os.path.basename(anterior))
+            if os.path.isfile(ruta_anterior):
+                os.remove(ruta_anterior)
+        except OSError:
+            pass
+
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_movimientos SET soporte_path=?, soporte_nombre=?, soporte_mime=? WHERE id=?",
+            (archivo, (nombre or "")[:200], (mime or "")[:100], movimiento_id),
+        )
+    return obtener_movimiento(movimiento_id)
+
+
+def ruta_comprobante(movimiento_id: int) -> tuple[str, str, str] | None:
+    """(ruta_absoluta, mime, nombre_original) del comprobante, o None si no tiene."""
+    _ensure()
+    mov = obtener_movimiento(movimiento_id)
+    if not mov:
+        return None
+    archivo = (mov.get("soporte_path") or "").strip()
+    if not archivo:
+        return None
+    ruta_abs = os.path.join(_COMPROBANTES_DIR, os.path.basename(archivo))
+    if not os.path.isfile(ruta_abs):
+        return None
+    return ruta_abs, mov.get("soporte_mime") or "application/octet-stream", mov.get("soporte_nombre") or archivo
+
+
+def eliminar_comprobante(movimiento_id: int) -> bool:
+    _ensure()
+    mov = obtener_movimiento(movimiento_id)
+    if not mov:
+        raise ValueError("Movimiento no encontrado")
+    archivo = (mov.get("soporte_path") or "").strip()
+    if archivo:
+        try:
+            ruta_abs = os.path.join(_COMPROBANTES_DIR, os.path.basename(archivo))
+            if os.path.isfile(ruta_abs):
+                os.remove(ruta_abs)
+        except OSError:
+            pass
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_movimientos SET soporte_path='', soporte_nombre='', soporte_mime='' WHERE id=?",
+            (movimiento_id,),
+        )
+    return True
+
+
 # ─── Cuentas T / Libro mayor / Balance de comprobación ─────────────────────
 
 def mayor_cuenta(cuenta_id: int, desde: str | None = None, hasta: str | None = None) -> dict:
@@ -821,6 +944,83 @@ def saldo_tercero(tercero_id: int) -> dict:
     return {"tercero": tercero, "cuentas": cuentas, "saldo_por_pagar": round(saldo_por_pagar, 2)}
 
 
+# ─── Informes ───────────────────────────────────────────────────────────────
+# Responde exactamente lo que se pidió en la refactorización del hub Contabilidad:
+# "¿cuántos préstamos hay registrados?" y (vía contabilidad_ledger/extracto_bancario)
+# "¿qué movimientos bancarios faltan por contabilizar?".
+
+_TIPOS_PRESTAMO_RECIBIDO = {"prestamo_recibido", "abono_prestamo_recibido", "pago_socio"}
+_TIPOS_PRESTAMO_OTORGADO = {"prestamo_otorgado", "abono_prestamo_otorgado"}
+_CUENTAS_PRESTAMO_PASIVO = {"2380", "2295"}
+_CUENTAS_PRESTAMO_ACTIVO = {"1355", "1290"}
+
+
+def resumen_prestamos() -> dict:
+    """Saldo vigente de préstamos por tercero, en ambas direcciones. Es un saldo
+    (como `saldo_tercero`), no una cifra de un período — se calcula sobre todo
+    el histórico, igual que hace `PrestamosPanel.tsx` en el frontend."""
+    _ensure()
+    movs = listar_movimientos(limit=2000)
+    recibido: dict[int, float] = {}
+    otorgado: dict[int, float] = {}
+    nombres: dict[int, str] = {}
+    for m in movs:
+        tipo_origen = m.get("tipo_origen") or ""
+        if tipo_origen not in _TIPOS_PRESTAMO_RECIBIDO and tipo_origen not in _TIPOS_PRESTAMO_OTORGADO:
+            continue
+        for l in m.get("lineas") or []:
+            tid = l.get("tercero_id")
+            if not tid:
+                continue
+            if l.get("tercero_nombre"):
+                nombres[tid] = l["tercero_nombre"]
+            codigo = l.get("cuenta_codigo")
+            if codigo in _CUENTAS_PRESTAMO_PASIVO:
+                recibido[tid] = recibido.get(tid, 0) + float(l.get("credito") or 0) - float(l.get("debito") or 0)
+            if codigo in _CUENTAS_PRESTAMO_ACTIVO:
+                otorgado[tid] = otorgado.get(tid, 0) + float(l.get("debito") or 0) - float(l.get("credito") or 0)
+
+    def _armar(saldos: dict[int, float]) -> dict:
+        terceros = [
+            {"tercero_id": tid, "nombre": nombres.get(tid, ""), "saldo": round(saldo, 2)}
+            for tid, saldo in saldos.items()
+            if round(saldo, 2) != 0
+        ]
+        terceros.sort(key=lambda t: -t["saldo"])
+        return {
+            "cantidad": len(terceros),
+            "total": round(sum(t["saldo"] for t in terceros), 2),
+            "terceros": terceros,
+        }
+
+    return {"recibidos": _armar(recibido), "otorgados": _armar(otorgado)}
+
+
+def resumen_informes(desde: str | None = None, hasta: str | None = None) -> dict:
+    """Resumen para el subtab «Informes» de Libro Mayor: préstamos vigentes
+    (saldo, no de período), balance de comprobación del rango, y cuántos
+    movimientos bancarios siguen sin clasificar en el rango."""
+    _ensure()
+    prestamos = resumen_prestamos()
+    balance = balance_comprobacion(desde=desde, hasta=hasta)
+    try:
+        from app.services.extracto_bancario import pendientes_por_clasificar
+
+        pendientes = pendientes_por_clasificar(desde, hasta, limit=1000)
+    except Exception:
+        pendientes = []
+    return {
+        "prestamos": prestamos,
+        "balance": {
+            "cuadra": balance["cuadra"],
+            "total_debito": balance["total_debito"],
+            "total_credito": balance["total_credito"],
+            "cuentas_con_movimiento": len(balance["cuentas"]),
+        },
+        "pendientes_por_clasificar": len(pendientes),
+    }
+
+
 # ─── Plantillas de movimientos frecuentes ──────────────────────────────────
 
 def registrar_compra_socio_amazon(payload: dict, created_by: int | None = None) -> dict:
@@ -905,10 +1105,21 @@ def registrar_compra_socio_amazon(payload: dict, created_by: int | None = None) 
     return mov
 
 
-def registrar_pago_socio(payload: dict, created_by: int | None = None) -> dict:
-    """Gira dinero al socio para saldar (total o parcialmente) su cuenta por pagar
-    acumulada (p.ej. por compras vía Amazon). payload: fecha, tercero_id, monto,
-    medio_pago_id, referencia, concepto (opcional)."""
+def registrar_abono_pasivo_tercero(
+    payload: dict,
+    created_by: int | None = None,
+    *,
+    tipo_origen: str = "abono_pasivo_tercero",
+    verbo: str = "Abono a",
+    cuenta_fallback_codigo: str = "2380",
+) -> dict:
+    """Gira dinero a un tercero para saldar (total o parcialmente) un pasivo
+    acumulado a su favor — compra a crédito, préstamo recibido, etc.
+    payload: fecha, tercero_id, monto, medio_pago_id, referencia, concepto
+    (opcional). Usa `tercero.cuenta_por_pagar_id` si está configurada, si no
+    cae a `cuenta_fallback_codigo`. Base de `registrar_pago_socio` y
+    `registrar_abono_prestamo_recibido` — mismo mecanismo contable, solo
+    cambia el `tipo_origen`/redacción del concepto según el caso de negocio."""
     _ensure()
     fecha = str(payload.get("fecha") or "").strip()
     tercero_id = int(payload.get("tercero_id") or 0)
@@ -927,11 +1138,13 @@ def registrar_pago_socio(payload: dict, created_by: int | None = None) -> dict:
     if not medio:
         raise ValueError("Medio de pago no encontrado")
     with _conn() as con:
-        cuenta_pasivo_id = tercero.get("cuenta_por_pagar_id") or _cuenta_id_por_codigo(con, "2380")
+        cuenta_pasivo_id = tercero.get("cuenta_por_pagar_id") or _cuenta_id_por_codigo(
+            con, cuenta_fallback_codigo
+        )
     if not cuenta_pasivo_id:
         raise ValueError("No hay cuenta de 'cuentas por pagar' configurada para este tercero")
 
-    concepto = f"Giro a {tercero['nombre']}" + (f" — {concepto_extra}" if concepto_extra else "")
+    concepto = f"{verbo} {tercero['nombre']}" + (f" — {concepto_extra}" if concepto_extra else "")
     lineas = [
         {
             "cuenta_id": cuenta_pasivo_id,
@@ -953,7 +1166,216 @@ def registrar_pago_socio(payload: dict, created_by: int | None = None) -> dict:
         lineas=lineas,
         tercero_id=tercero_id,
         referencia=referencia,
-        tipo_origen="pago_socio",
+        tipo_origen=tipo_origen,
+        plantilla_datos=payload,
+        created_by=created_by,
+    )
+
+
+def registrar_pago_socio(payload: dict, created_by: int | None = None) -> dict:
+    """Gira dinero al socio para saldar (total o parcialmente) su cuenta por pagar
+    acumulada (p.ej. por compras vía Amazon). payload: fecha, tercero_id, monto,
+    medio_pago_id, referencia, concepto (opcional)."""
+    return registrar_abono_pasivo_tercero(
+        payload, created_by, tipo_origen="pago_socio", verbo="Giro a"
+    )
+
+
+def _cuenta_pasivo_prestamo_codigo(tercero: dict) -> str:
+    return "2380" if tercero.get("tipo") == "socio" else "2295"
+
+
+def _cuenta_activo_prestamo_codigo(tercero: dict) -> str:
+    return "1355" if tercero.get("tipo") == "socio" else "1290"
+
+
+def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) -> dict:
+    """Un socio o tercero le presta dinero en efectivo a la empresa (préstamo
+    simple, no ligado a una compra — para eso ver `registrar_compra_socio_amazon`).
+    Cuenta de pasivo: `tercero.cuenta_por_pagar_id` si está configurada, si no
+    `2380` (socios) o `2295` (terceros). payload: fecha, tercero_id, monto,
+    medio_pago_id, referencia, concepto (opcional), tasa_interes_pct y
+    plazo_meses (opcionales, quedan guardados en plantilla_datos_json como
+    referencia del acuerdo, sin generar tabla de amortización)."""
+    _ensure()
+    fecha = str(payload.get("fecha") or "").strip()
+    tercero_id = int(payload.get("tercero_id") or 0)
+    monto = round(float(payload.get("monto") or 0), 2)
+    medio_pago_id = int(payload.get("medio_pago_id") or 0)
+    referencia = str(payload.get("referencia") or "").strip()
+    concepto_extra = str(payload.get("concepto") or "").strip()
+
+    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
+        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+
+    tercero = obtener_tercero(tercero_id)
+    if not tercero:
+        raise ValueError("Tercero no encontrado")
+    medio = obtener_medio_pago(medio_pago_id)
+    if not medio:
+        raise ValueError("Medio de pago no encontrado")
+    with _conn() as con:
+        cuenta_pasivo_id = tercero.get("cuenta_por_pagar_id") or _cuenta_id_por_codigo(
+            con, _cuenta_pasivo_prestamo_codigo(tercero)
+        )
+    if not cuenta_pasivo_id:
+        raise ValueError("No hay cuenta de pasivo configurada para registrar este préstamo")
+
+    concepto = f"Préstamo recibido de {tercero['nombre']}" + (
+        f" — {concepto_extra}" if concepto_extra else ""
+    )
+    lineas = [
+        {
+            "cuenta_id": medio["cuenta_id"],
+            "debito": monto,
+            "credito": 0,
+            "descripcion": f"Entrada vía {medio['nombre']}",
+        },
+        {
+            "cuenta_id": cuenta_pasivo_id,
+            "debito": 0,
+            "credito": monto,
+            "tercero_id": tercero_id,
+            "descripcion": f"Préstamo por pagar a {tercero['nombre']}",
+        },
+    ]
+    return crear_movimiento(
+        fecha=fecha,
+        concepto=concepto,
+        lineas=lineas,
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen="prestamo_recibido",
+        plantilla_datos=payload,
+        created_by=created_by,
+    )
+
+
+def registrar_abono_prestamo_recibido(payload: dict, created_by: int | None = None) -> dict:
+    """Abona (total o parcialmente) un préstamo recibido de un socio/tercero,
+    girándole dinero. payload: fecha, tercero_id, monto, medio_pago_id,
+    referencia, concepto (opcional)."""
+    tercero_id = int(payload.get("tercero_id") or 0)
+    tercero = obtener_tercero(tercero_id) if tercero_id else None
+    fallback = _cuenta_pasivo_prestamo_codigo(tercero or {})
+    return registrar_abono_pasivo_tercero(
+        payload,
+        created_by,
+        tipo_origen="abono_prestamo_recibido",
+        verbo="Abono préstamo a",
+        cuenta_fallback_codigo=fallback,
+    )
+
+
+def registrar_prestamo_otorgado(payload: dict, created_by: int | None = None) -> dict:
+    """La empresa le presta dinero en efectivo a un socio o tercero. Cuenta de
+    activo: `1355` (Cuentas/préstamos por cobrar - socios) o `1290` (terceros)
+    según `tercero.tipo`. payload: fecha, tercero_id, monto, medio_pago_id,
+    referencia, concepto (opcional), tasa_interes_pct y plazo_meses
+    (opcionales, quedan guardados en plantilla_datos_json)."""
+    _ensure()
+    fecha = str(payload.get("fecha") or "").strip()
+    tercero_id = int(payload.get("tercero_id") or 0)
+    monto = round(float(payload.get("monto") or 0), 2)
+    medio_pago_id = int(payload.get("medio_pago_id") or 0)
+    referencia = str(payload.get("referencia") or "").strip()
+    concepto_extra = str(payload.get("concepto") or "").strip()
+
+    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
+        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+
+    tercero = obtener_tercero(tercero_id)
+    if not tercero:
+        raise ValueError("Tercero no encontrado")
+    medio = obtener_medio_pago(medio_pago_id)
+    if not medio:
+        raise ValueError("Medio de pago no encontrado")
+    with _conn() as con:
+        cuenta_activo_id = _cuenta_id_por_codigo(con, _cuenta_activo_prestamo_codigo(tercero))
+    if not cuenta_activo_id:
+        raise ValueError("No hay cuenta de préstamos por cobrar configurada")
+
+    concepto = f"Préstamo otorgado a {tercero['nombre']}" + (
+        f" — {concepto_extra}" if concepto_extra else ""
+    )
+    lineas = [
+        {
+            "cuenta_id": cuenta_activo_id,
+            "debito": monto,
+            "credito": 0,
+            "tercero_id": tercero_id,
+            "descripcion": f"Préstamo por cobrar a {tercero['nombre']}",
+        },
+        {
+            "cuenta_id": medio["cuenta_id"],
+            "debito": 0,
+            "credito": monto,
+            "descripcion": f"Salida vía {medio['nombre']}",
+        },
+    ]
+    return crear_movimiento(
+        fecha=fecha,
+        concepto=concepto,
+        lineas=lineas,
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen="prestamo_otorgado",
+        plantilla_datos=payload,
+        created_by=created_by,
+    )
+
+
+def registrar_abono_prestamo_otorgado(payload: dict, created_by: int | None = None) -> dict:
+    """Un socio o tercero devuelve (total o parcialmente) un préstamo que la
+    empresa le otorgó. payload: fecha, tercero_id, monto, medio_pago_id,
+    referencia, concepto (opcional)."""
+    _ensure()
+    fecha = str(payload.get("fecha") or "").strip()
+    tercero_id = int(payload.get("tercero_id") or 0)
+    monto = round(float(payload.get("monto") or 0), 2)
+    medio_pago_id = int(payload.get("medio_pago_id") or 0)
+    referencia = str(payload.get("referencia") or "").strip()
+    concepto_extra = str(payload.get("concepto") or "").strip()
+
+    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
+        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+
+    tercero = obtener_tercero(tercero_id)
+    if not tercero:
+        raise ValueError("Tercero no encontrado")
+    medio = obtener_medio_pago(medio_pago_id)
+    if not medio:
+        raise ValueError("Medio de pago no encontrado")
+    with _conn() as con:
+        cuenta_activo_id = _cuenta_id_por_codigo(con, _cuenta_activo_prestamo_codigo(tercero))
+    if not cuenta_activo_id:
+        raise ValueError("No hay cuenta de préstamos por cobrar configurada")
+
+    concepto = f"Abono recibido de {tercero['nombre']} (préstamo)" + (
+        f" — {concepto_extra}" if concepto_extra else ""
+    )
+    lineas = [
+        {
+            "cuenta_id": medio["cuenta_id"],
+            "debito": monto,
+            "credito": 0,
+            "descripcion": f"Entrada vía {medio['nombre']}",
+        },
+        {
+            "cuenta_id": cuenta_activo_id,
+            "debito": 0,
+            "credito": monto,
+            "tercero_id": tercero_id,
+            "descripcion": f"Abono préstamo por cobrar — {tercero['nombre']}",
+        },
+    ]
+    return crear_movimiento(
+        fecha=fecha,
+        concepto=concepto,
+        lineas=lineas,
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen="abono_prestamo_otorgado",
         plantilla_datos=payload,
         created_by=created_by,
     )

@@ -1,12 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
+import ComprobanteWidget from "./ComprobanteWidget";
 import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { AddIconButton } from "./AddIconButton";
+import { useAppStore } from "../stores/app";
 import "./libroMayor.css";
+
+const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
+const PrestamosPanel = lazy(() => import("./PrestamosPanel"));
+const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -72,6 +78,8 @@ interface Movimiento {
   total_debito: number;
   total_credito: number;
   tercero: Tercero | null;
+  soporte_path?: string;
+  soporte_nombre?: string;
 }
 
 interface MayorLinea {
@@ -200,6 +208,8 @@ function invalidarTodo(qc: ReturnType<typeof useQueryClient>) {
 export default function LibroMayorPanel() {
   const [vista, setVista] = useState<"simple" | "avanzada">(leerVista);
   const skin = usePanelTheme((s) => s.skin);
+  const libroMayorBootTab = useAppStore((s) => s.libroMayorBootTab);
+  const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
 
   function cambiarVista(v: "simple" | "avanzada") {
     setVista(v);
@@ -209,6 +219,10 @@ export default function LibroMayorPanel() {
       /* ignore */
     }
   }
+
+  useEffect(() => {
+    if (libroMayorBootTab) setVista("avanzada");
+  }, [libroMayorBootTab]);
 
   return (
     <div className="lm-root mx-auto space-y-3 px-0.5 pb-3 sm:px-0" data-skin={skin}>
@@ -233,7 +247,11 @@ export default function LibroMayorPanel() {
         </div>
       </div>
 
-      {vista === "simple" ? <VistaSimple /> : <VistaAvanzada />}
+      {vista === "simple" ? (
+        <VistaSimple />
+      ) : (
+        <VistaAvanzada bootSub={libroMayorBootTab} onBootConsumido={() => setLibroMayorBootTab(null)} />
+      )}
     </div>
   );
 }
@@ -379,6 +397,7 @@ function TablaMovimientos({
   onAnular?: (id: number) => void;
   onEliminar?: (id: number) => void;
 }) {
+  const qc = useQueryClient();
   const [expandido, setExpandido] = useState<number | null>(null);
   return (
     <div className="lm-card mck-table-wrap overflow-hidden">
@@ -493,6 +512,14 @@ function TablaMovimientos({
                     {m.referencia && (
                       <p className="mt-1 text-[11px] text-muted">Referencia: {m.referencia}</p>
                     )}
+                    <div className="mt-1">
+                      <ComprobanteWidget
+                        movimientoId={m.id}
+                        soportePath={m.soporte_path}
+                        soporteNombre={m.soporte_nombre}
+                        onUpdated={() => void qc.invalidateQueries({ queryKey: ["cc-movimientos"] })}
+                      />
+                    </div>
                   </td>
                 </tr>
               )}
@@ -971,42 +998,119 @@ function FormCompraProveedor({
 
 /* ─── Vista avanzada ──────────────────────────────────────────────────────── */
 
-type SubvistaAvanzada = "plan-cuentas" | "terceros" | "movimientos" | "cuentas-t" | "balance" | "asiento-manual";
+type SubvistaAvanzada =
+  | "diario"
+  | "plan-cuentas"
+  | "terceros"
+  | "movimientos"
+  | "cuentas-t"
+  | "balance"
+  | "asiento-manual"
+  | "prestamos"
+  | "creditos-adquiridos"
+  | "informes";
 
-const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
+/** El libro mismo: diario, plan de cuentas, terceros, asientos, cuenta en T, balance. */
+const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
+  { id: "diario", label: "Diario y conciliación", icon: "receipt" },
   { id: "plan-cuentas", label: "Plan de cuentas", icon: "book" },
   { id: "terceros", label: "Terceros", icon: "users" },
   { id: "movimientos", label: "Movimientos", icon: "listChecks" },
   { id: "cuentas-t", label: "Cuentas T", icon: "receipt" },
   { id: "balance", label: "Balance de comprobación", icon: "chartBar" },
   { id: "asiento-manual", label: "Asiento manual", icon: "pencil" },
+  { id: "informes", label: "Informes", icon: "chartBar" },
 ];
 
-function VistaAvanzada() {
-  const [sub, setSub] = useState<SubvistaAvanzada>("plan-cuentas");
+/** Sub-libros: alimentan al libro mayor pero capturan datos propios (tasa, plazo, TRM…). */
+const SUBTABS_SUBLIBROS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
+  { id: "prestamos", label: "Préstamos", icon: "handshake" },
+  { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar" },
+];
+
+const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
+  ...SUBTABS_LIBRO,
+  ...SUBTABS_SUBLIBROS,
+];
+
+function SubtabButton({ t, activo, onClick }: { t: (typeof SUBTABS)[number]; activo: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={t.label}
+      aria-label={t.label}
+      onClick={onClick}
+      className={hubTabClass(activo, "mck-hub-tab-etiquetado flex-col")}
+    >
+      <Icon name={t.icon} size={22} weight="bold" />
+      <span className={HUB_TAB_LABEL}>{t.label}</span>
+    </button>
+  );
+}
+
+function VistaAvanzada({
+  bootSub,
+  onBootConsumido,
+}: {
+  bootSub?: SubvistaAvanzada | null;
+  onBootConsumido?: () => void;
+}) {
+  const [sub, setSub] = useState<SubvistaAvanzada>(() => bootSub || "diario");
+  const [pendientesSignal, setPendientesSignal] = useState(0);
+
+  useEffect(() => {
+    if (bootSub) {
+      setSub(bootSub);
+      onBootConsumido?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bootSub]);
+
+  function irAPendientes() {
+    setSub("diario");
+    setPendientesSignal((n) => n + 1);
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-2">
-        {SUBTABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            title={t.label}
-            aria-label={t.label}
-            onClick={() => setSub(t.id)}
-            className={hubTabClass(sub === t.id, "mck-hub-tab-etiquetado flex-col")}
-          >
-            <Icon name={t.icon} size={22} weight="bold" />
-            <span className={HUB_TAB_LABEL}>{t.label}</span>
-          </button>
+      <div className="flex flex-wrap items-center gap-1.5 border-b border-border pb-2">
+        {SUBTABS_LIBRO.map((t) => (
+          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
+        ))}
+        <span
+          className="mx-1 hidden h-8 w-px shrink-0 bg-border sm:block"
+          aria-hidden
+          title="Sub-libros: alimentan al libro mayor con datos propios"
+        />
+        <span className="w-full text-[10px] font-bold uppercase tracking-wide text-muted sm:hidden">
+          Sub-libros
+        </span>
+        {SUBTABS_SUBLIBROS.map((t) => (
+          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
         ))}
       </div>
+      {sub === "diario" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <IngresosEgresosPanel abrirPendientesSignal={pendientesSignal} />
+        </Suspense>
+      )}
       {sub === "plan-cuentas" && <PlanCuentasTab />}
       {sub === "terceros" && <TercerosTab />}
       {sub === "movimientos" && <MovimientosTab />}
       {sub === "cuentas-t" && <CuentasTTab />}
       {sub === "balance" && <BalanceTab />}
       {sub === "asiento-manual" && <AsientoManualTab />}
+      {sub === "informes" && <InformesTab onVerPendientes={irAPendientes} />}
+      {sub === "prestamos" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <PrestamosPanel />
+        </Suspense>
+      )}
+      {sub === "creditos-adquiridos" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <CreditosAdquiridosPanel />
+        </Suspense>
+      )}
     </div>
   );
 }
@@ -1440,6 +1544,125 @@ function BalanceTab() {
               </tfoot>
             </table>
           </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+interface InformesResumen {
+  prestamos: {
+    recibidos: { cantidad: number; total: number; terceros: { tercero_id: number; nombre: string; saldo: number }[] };
+    otorgados: { cantidad: number; total: number; terceros: { tercero_id: number; nombre: string; saldo: number }[] };
+  };
+  balance: { cuadra: boolean; total_debito: number; total_credito: number; cuentas_con_movimiento: number };
+  pendientes_por_clasificar: number;
+}
+
+function InfoKpi({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel px-3 py-3">
+      <p className="text-[10px] font-bold uppercase text-muted">{label}</p>
+      <p
+        className={`mt-1 text-lg font-extrabold tabular-nums ${
+          warn ? "text-danger" : accent ? "text-accent" : "text-ink"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function InformesTab({ onVerPendientes }: { onVerPendientes: () => void }) {
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
+  const params = new URLSearchParams();
+  if (desde) params.set("desde", desde);
+  if (hasta) params.set("hasta", hasta);
+
+  const infQ = useQuery<InformesResumen>({
+    queryKey: ["cc-informes", desde, hasta],
+    queryFn: () => api.get(`/api/contabilidad/cc/informes?${params.toString()}`),
+  });
+  const r = infQ.data;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-muted">
+        Preguntas que responde este libro: cuántos préstamos hay vigentes, si el balance cuadra, y
+        cuántos movimientos del banco todavía no se han contabilizado.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Campo label="Balance desde (opcional)">
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className={inputCls} />
+        </Campo>
+        <Campo label="Balance hasta (opcional)">
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className={inputCls} />
+        </Campo>
+      </div>
+
+      {infQ.isLoading && <p className="text-xs text-muted">Calculando…</p>}
+      {r && (
+        <>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <InfoKpi
+              label="Préstamos recibidos vigentes"
+              value={`${r.prestamos.recibidos.cantidad} · ${formatCop(r.prestamos.recibidos.total)}`}
+            />
+            <InfoKpi
+              label="Préstamos otorgados vigentes"
+              value={`${r.prestamos.otorgados.cantidad} · ${formatCop(r.prestamos.otorgados.total)}`}
+            />
+            <InfoKpi
+              label="Balance de comprobación"
+              value={r.balance.cuadra ? "Cuadra ✓" : "No cuadra ✗"}
+              warn={!r.balance.cuadra}
+              accent={r.balance.cuadra}
+            />
+            <InfoKpi
+              label="Movimientos bancarios sin contabilizar"
+              value={String(r.pendientes_por_clasificar)}
+              warn={r.pendientes_por_clasificar > 0}
+            />
+          </div>
+
+          {r.pendientes_por_clasificar > 0 && (
+            <button
+              type="button"
+              onClick={onVerPendientes}
+              className="rounded-lg border-2 border-amber-600 bg-amber-600/10 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-600/20"
+            >
+              Ir a clasificarlos en Diario y conciliación →
+            </button>
+          )}
+
+          {(r.prestamos.recibidos.terceros.length > 0 || r.prestamos.otorgados.terceros.length > 0) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase text-muted">Le debemos a…</p>
+                <ul className="space-y-1 text-xs">
+                  {r.prestamos.recibidos.terceros.map((t) => (
+                    <li key={t.tercero_id} className="flex justify-between rounded-lg border border-border px-2 py-1.5">
+                      <span className="text-ink">{t.nombre}</span>
+                      <span className="font-bold tabular-nums text-ink">{formatCop(t.saldo)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="mb-1 text-[11px] font-bold uppercase text-muted">Nos deben…</p>
+                <ul className="space-y-1 text-xs">
+                  {r.prestamos.otorgados.terceros.map((t) => (
+                    <li key={t.tercero_id} className="flex justify-between rounded-lg border border-border px-2 py-1.5">
+                      <span className="text-ink">{t.nombre}</span>
+                      <span className="font-bold tabular-nums text-ink">{formatCop(t.saldo)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -26,6 +26,7 @@ interface OrderItem {
   total_price?: number;
   total?: number;
   sku?: string;
+  ref?: string;
 }
 
 interface Billing {
@@ -318,6 +319,344 @@ function ReciboReembolsoCard({
   );
 }
 
+function itemRef(item: OrderItem): string {
+  return (item.ref || item.sku || "").trim();
+}
+
+function itemQty(item: OrderItem): number {
+  const q = item.qty ?? item.quantity ?? 1;
+  const n = Number(q);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function itemPrice(item: OrderItem): number {
+  const p = item.price ?? item.unit_price ?? 0;
+  const n = Number(p);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+interface FacturarFormCliente {
+  nombre: string;
+  nit: string;
+  email: string;
+  telefono: string;
+  direccion: string;
+  ciudad: string;
+}
+
+interface FacturarFormItem {
+  key: string;
+  ref: string;
+  name: string;
+  qty: string;
+  price: string;
+}
+
+function buildFacturarDefaults(order: Order): {
+  cliente: FacturarFormCliente;
+  items: FacturarFormItem[];
+  shipping: string;
+} {
+  const b = order.billing || {};
+  return {
+    cliente: {
+      nombre: (b.name || order.buyer_name || "").trim(),
+      nit: (b.nit || order.buyer_cedula || "").trim(),
+      email: (b.email || order.buyer_email || "").trim(),
+      telefono: (order.buyer_phone || "").trim(),
+      direccion: (b.address || order.buyer_address || "").trim(),
+      ciudad: (b.city || order.buyer_city || "").trim(),
+    },
+    items: (order.items || []).map((it, i) => ({
+      key: `${i}-${itemRef(it) || "item"}`,
+      ref: itemRef(it),
+      name: (it.name || it.title || "").trim(),
+      qty: String(itemQty(it)),
+      price: String(Math.round(itemPrice(it))),
+    })),
+    shipping: String(Math.round(Number(order.shipping_cost || 0))),
+  };
+}
+
+function FacturarVerificarModal({
+  order,
+  busy,
+  error,
+  onClose,
+  onConfirm,
+}: {
+  order: Order;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onConfirm: (payload: {
+    cliente: FacturarFormCliente;
+    items: Array<{ ref: string; name: string; qty: number; price: number }>;
+    shipping: number;
+  }) => void;
+}) {
+  const defaults = buildFacturarDefaults(order);
+  const [cliente, setCliente] = useState(defaults.cliente);
+  const [items, setItems] = useState(defaults.items);
+  const [shipping, setShipping] = useState(defaults.shipping);
+
+  const totalCalc = items.reduce((acc, it) => {
+    const q = Number(it.qty);
+    const p = Number(it.price);
+    if (!Number.isFinite(q) || !Number.isFinite(p)) return acc;
+    return acc + q * p;
+  }, 0) + (Number(shipping) || 0);
+
+  const itemsOk =
+    items.length > 0
+    && items.every((it) => {
+      const ref = it.ref.trim();
+      const q = Number(it.qty);
+      const p = Number(it.price);
+      return ref.length >= 2 && Number.isFinite(q) && q > 0 && Number.isFinite(p) && p >= 0;
+    });
+  const clienteOk = cliente.nombre.trim().length > 0 && cliente.nit.trim().length > 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="facturar-web-titulo"
+      onClick={() => {
+        if (!busy) onClose();
+      }}
+    >
+      <div
+        className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-border px-4 py-3">
+          <h3 id="facturar-web-titulo" className="text-base font-semibold text-ink">
+            Verificar datos antes de facturar
+          </h3>
+          <p className="mt-0.5 font-mono text-xs text-accent">{order.reference}</p>
+          <p className="mt-1 text-[11px] text-muted">
+            Revisá o corregí SKUs y datos del cliente. Al confirmar se guardan en el pedido y se
+            emite la factura en Alegra.
+          </p>
+          {order.siigo_invoice_error ? (
+            <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-800 dark:text-amber-100">
+              Último error: {order.siigo_invoice_error}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3">
+          <section className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Cliente / facturación
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(
+                [
+                  ["nombre", "Nombre / razón social", "text"],
+                  ["nit", "NIT / cédula", "text"],
+                  ["email", "Email", "email"],
+                  ["telefono", "Teléfono", "tel"],
+                  ["ciudad", "Ciudad", "text"],
+                  ["direccion", "Dirección fiscal", "text"],
+                ] as const
+              ).map(([key, label, type]) => (
+                <label
+                  key={key}
+                  className={`block space-y-1 ${key === "direccion" ? "sm:col-span-2" : ""}`}
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                    {label}
+                  </span>
+                  <input
+                    type={type}
+                    value={cliente[key]}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setCliente((prev) => ({ ...prev, [key]: e.target.value }))
+                    }
+                    className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-50"
+                  />
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Productos (SKU Alegra)
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  setItems((prev) => [
+                    ...prev,
+                    {
+                      key: `new-${Date.now()}`,
+                      ref: "",
+                      name: "",
+                      qty: "1",
+                      price: "0",
+                    },
+                  ])
+                }
+                className="text-[11px] font-semibold text-accent hover:underline disabled:opacity-40"
+              >
+                + Línea
+              </button>
+            </div>
+            <ul className="space-y-2">
+              {items.map((it) => (
+                <li
+                  key={it.key}
+                  className="grid grid-cols-[1fr_1fr] gap-1.5 rounded-lg border border-border/70 bg-surface-panel/60 p-2 sm:grid-cols-[7.5rem_1fr_4rem_5.5rem_auto]"
+                >
+                  <label className="block space-y-0.5">
+                    <span className="text-[9px] font-semibold uppercase text-muted">SKU</span>
+                    <input
+                      value={it.ref}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\s/g, "");
+                        setItems((prev) =>
+                          prev.map((x) => (x.key === it.key ? { ...x, ref: v } : x)),
+                        );
+                      }}
+                      className="w-full rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent disabled:opacity-50"
+                      placeholder="C-…"
+                    />
+                  </label>
+                  <label className="block space-y-0.5 sm:col-auto col-span-1">
+                    <span className="text-[9px] font-semibold uppercase text-muted">Nombre</span>
+                    <input
+                      value={it.name}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setItems((prev) =>
+                          prev.map((x) => (x.key === it.key ? { ...x, name: v } : x)),
+                        );
+                      }}
+                      className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent disabled:opacity-50"
+                    />
+                  </label>
+                  <label className="block space-y-0.5">
+                    <span className="text-[9px] font-semibold uppercase text-muted">Cant.</span>
+                    <input
+                      type="number"
+                      min={0.001}
+                      step="any"
+                      value={it.qty}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setItems((prev) =>
+                          prev.map((x) => (x.key === it.key ? { ...x, qty: v } : x)),
+                        );
+                      }}
+                      className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent disabled:opacity-50"
+                    />
+                  </label>
+                  <label className="block space-y-0.5">
+                    <span className="text-[9px] font-semibold uppercase text-muted">Precio</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      value={it.price}
+                      disabled={busy}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setItems((prev) =>
+                          prev.map((x) => (x.key === it.key ? { ...x, price: v } : x)),
+                        );
+                      }}
+                      className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent disabled:opacity-50"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy || items.length <= 1}
+                    onClick={() => setItems((prev) => prev.filter((x) => x.key !== it.key))}
+                    className="self-end rounded px-2 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-500/10 disabled:opacity-30"
+                    title="Quitar línea"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <label className="flex max-w-xs flex-col gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                Envío (COP)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={100}
+                value={shipping}
+                disabled={busy}
+                onChange={(e) => setShipping(e.target.value)}
+                className="rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-50"
+              />
+            </label>
+            <p className="text-xs text-muted">
+              Total estimado:{" "}
+              <span className="font-semibold text-ink">{fmtCOP(totalCalc)}</span>
+              {order.total ? (
+                <span className="text-muted"> · checkout {fmtCOP(order.total)}</span>
+              ) : null}
+            </p>
+          </section>
+
+          {error ? <p className="text-sm text-red-500">{error}</p> : null}
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-muted hover:bg-surface-hover disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={busy || !clienteOk || !itemsOk}
+            onClick={() => {
+              onConfirm({
+                cliente: {
+                  nombre: cliente.nombre.trim(),
+                  nit: cliente.nit.trim(),
+                  email: cliente.email.trim(),
+                  telefono: cliente.telefono.trim(),
+                  direccion: cliente.direccion.trim(),
+                  ciudad: cliente.ciudad.trim(),
+                },
+                items: items.map((it) => ({
+                  ref: it.ref.trim(),
+                  name: it.name.trim() || it.ref.trim(),
+                  qty: Number(it.qty),
+                  price: Number(it.price),
+                })),
+                shipping: Number(shipping) || 0,
+              });
+            }}
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            {busy ? "Facturando…" : "Confirmar y facturar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrderRow({
   order,
   onExpand,
@@ -332,7 +671,7 @@ function OrderRow({
   order: Order;
   onExpand: () => void;
   expanded: boolean;
-  onFacturar: (reference: string) => void;
+  onFacturar: (order: Order) => void;
   facturando: boolean;
   onAnular: (reference: string, force: boolean) => void;
   anulando: boolean;
@@ -416,6 +755,9 @@ function OrderRow({
                       <div key={i} className="flex justify-between gap-2">
                         <span className="text-ink truncate flex-1">
                           {item.name ?? item.title ?? `Ítem ${i + 1}`}
+                          {itemRef(item) ? (
+                            <span className="text-muted font-mono text-[10px]"> ({itemRef(item)})</span>
+                          ) : null}
                           {" "}
                           <span className="text-muted">×{item.quantity ?? item.qty ?? 1}</span>
                         </span>
@@ -556,11 +898,11 @@ function OrderRow({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onFacturar(order.reference);
+                        onFacturar(order);
                       }}
                       disabled={busy}
                       className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
-                      title="Emitir factura electrónica en Alegra"
+                      title="Revisar datos y emitir factura electrónica en Alegra"
                     >
                       {facturando && (
                         <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
@@ -657,6 +999,8 @@ export default function PedidosWebPanel() {
   const [shipFilter, setShipFilter] = useState("");
   const [page, setPage] = useState(1);
   const [expandedRef, setExpandedRef] = useState<string | null>(null);
+  const [facturarPedido, setFacturarPedido] = useState<Order | null>(null);
+  const [facturarModalError, setFacturarModalError] = useState<string | null>(null);
   const [facturarMsg, setFacturarMsg] = useState<{
     type: "ok" | "error";
     text: string;
@@ -685,14 +1029,35 @@ export default function PedidosWebPanel() {
   }, [search, data?.orders]);
 
   const facturar = useMutation({
-    mutationFn: (reference: string) =>
-      api.post<FacturarResponse>("/api/pedidos/web/facturar", { reference }, { timeoutMs: 120_000 }),
-    onMutate: () => setFacturarMsg(null),
+    mutationFn: (payload: {
+      reference: string;
+      cliente: FacturarFormCliente;
+      items: Array<{ ref: string; name: string; qty: number; price: number }>;
+      shipping: number;
+    }) =>
+      api.post<FacturarResponse>(
+        "/api/pedidos/web/facturar",
+        {
+          reference: payload.reference,
+          cliente: payload.cliente,
+          items: payload.items,
+          shipping: payload.shipping,
+          persistir: true,
+        },
+        { timeoutMs: 120_000 },
+      ),
+    onMutate: () => {
+      setFacturarMsg(null);
+      setFacturarModalError(null);
+    },
     onSuccess: (res) => {
+      setFacturarPedido(null);
+      setFacturarModalError(null);
       setFacturarMsg({ type: "ok", text: res.message || "Factura emitida en Alegra." });
       qc.invalidateQueries({ queryKey: ["pedidos-web"] });
     },
     onError: (e: Error) => {
+      setFacturarModalError(e.message || "No se pudo facturar el pedido.");
       setFacturarMsg({ type: "error", text: e.message || "No se pudo facturar el pedido." });
       qc.invalidateQueries({ queryKey: ["pedidos-web"] });
     },
@@ -744,6 +1109,8 @@ export default function PedidosWebPanel() {
     e.preventDefault();
     setPage(1);
   }, []);
+
+  const facturandoRef = facturar.isPending ? facturar.variables?.reference : null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
@@ -846,12 +1213,15 @@ export default function PedidosWebPanel() {
                   key={order.reference}
                   order={order}
                   expanded={expandedRef === order.reference}
-                  facturando={facturar.isPending && facturar.variables === order.reference}
+                  facturando={facturandoRef === order.reference}
                   anulando={anular.isPending && anular.variables?.reference === order.reference}
                   reembolsando={
                     reembolsar.isPending && reembolsar.variables?.reference === order.reference
                   }
-                  onFacturar={(reference) => facturar.mutate(reference)}
+                  onFacturar={(ord) => {
+                    setFacturarModalError(null);
+                    setFacturarPedido(ord);
+                  }}
                   onAnular={(reference, force) => anular.mutate({ reference, force })}
                   onReembolsar={(reference, force) => reembolsar.mutate({ reference, force })}
                   onExpand={() =>
@@ -888,6 +1258,29 @@ export default function PedidosWebPanel() {
           </button>
         </div>
       )}
+
+      {facturarPedido ? (
+        <FacturarVerificarModal
+          key={facturarPedido.reference}
+          order={facturarPedido}
+          busy={facturar.isPending}
+          error={facturarModalError}
+          onClose={() => {
+            if (!facturar.isPending) {
+              setFacturarPedido(null);
+              setFacturarModalError(null);
+            }
+          }}
+          onConfirm={({ cliente, items, shipping }) => {
+            facturar.mutate({
+              reference: facturarPedido.reference,
+              cliente,
+              items,
+              shipping,
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

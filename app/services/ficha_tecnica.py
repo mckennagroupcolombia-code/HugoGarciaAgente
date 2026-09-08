@@ -1325,6 +1325,17 @@ def _filas_tabla_n(raw, n: int = 4) -> list[list[str]]:
     return [f[:n] for f in filas]
 
 
+# Perfil único de firma para el COA (limpieza sep-2026): de aquí en adelante
+# todo documento nuevo usa este firmante salvo que datos_coa.firma traiga
+# explícitamente otro nombre. Sin imagen propia todavía — el bloque de firma
+# queda con nombre/cargo y la línea en blanco para firma física manual.
+FIRMA_PERFIL_UNICO = {
+    "nombre": "Gloria Stella Velandia Cobos",
+    "cargo": "Directora de Calidad",
+    "organizacion": "",
+}
+
+
 def _contexto_coa(datos_coa: dict) -> dict:
     """Aplana los datos del formulario COA para el template HTML combinado."""
     ident = (datos_coa.get("identificacion") or {})
@@ -1391,7 +1402,7 @@ _COA_CAMPOS_EXCLUSIVOS = (
     "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
     "firma_nombre", "firma_cargo", "firma_organizacion", "firma_imagen_src",
-    "codigo_verificacion",
+    "codigo_verificacion", "dictamen",
 )
 
 
@@ -1399,10 +1410,27 @@ def _coa_diligenciado(coa_ctx: dict) -> bool:
     """True si el COA trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((coa_ctx.get(campo) or "").strip() for campo in _COA_CAMPOS_EXCLUSIVOS):
         return True
-    for fila in coa_ctx.get("parametros") or []:
-        if any((celda or "").strip() for celda in fila):
-            return True
+    for clave in ("parametros", "metales", "microbiologia"):
+        for fila in coa_ctx.get(clave) or []:
+            if any((celda or "").strip() for celda in fila):
+                return True
     return False
+
+
+def _con_firma_default(coa_ctx: dict) -> dict:
+    """Aplica el perfil único de firma cuando el COA sí está diligenciado pero
+    no trae firmante propio. Llamar SOLO después de confirmar
+    _coa_diligenciado(coa_ctx) — si se aplica antes, un COA vacío parecería
+    diligenciado solo por el nombre por defecto (regresión detectada y
+    corregida en la limpieza de firmas de sep-2026)."""
+    if not (coa_ctx.get("firma_nombre") or "").strip():
+        coa_ctx = {
+            **coa_ctx,
+            "firma_nombre": FIRMA_PERFIL_UNICO["nombre"],
+            "firma_cargo": FIRMA_PERFIL_UNICO["cargo"],
+            "firma_organizacion": coa_ctx.get("firma_organizacion") or FIRMA_PERFIL_UNICO["organizacion"],
+        }
+    return coa_ctx
 
 
 def _contexto_sds(datos_sds: dict) -> dict:
@@ -1475,6 +1503,17 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "normativa": (reg.get("normativa") or "").strip(),
         "observaciones": (reg.get("observaciones") or "").strip(),
         "recomendaciones": _lineas_recomendaciones_sds(datos_sds),
+        # Secciones 5,6,8,10,11,12,13,14,16 (GHS 16 secciones) — opcionales,
+        # solo se muestran si vienen diligenciadas para ese producto.
+        "incendios": (datos_sds.get("incendios") or "").strip(),
+        "vertidos": (datos_sds.get("vertidos") or "").strip(),
+        "exposicion": (datos_sds.get("exposicion") or "").strip(),
+        "estabilidad": (datos_sds.get("estabilidad") or "").strip(),
+        "toxicologia": (datos_sds.get("toxicologia") or "").strip(),
+        "ecologia": (datos_sds.get("ecologia") or "").strip(),
+        "eliminacion": (datos_sds.get("eliminacion") or "").strip(),
+        "transporte": (datos_sds.get("transporte") or "").strip(),
+        "otra_info": (datos_sds.get("otra_info") or "").strip(),
     }
 
 
@@ -1507,6 +1546,8 @@ def _lineas_recomendaciones_sds(datos_sds: dict) -> list[str]:
 _SDS_CAMPOS_EXCLUSIVOS = (
     "usos", "telefono", "clasificacion", "pictogramas",
     "manipulacion", "almacenamiento", "normativa", "observaciones",
+    "incendios", "vertidos", "exposicion", "estabilidad", "toxicologia",
+    "ecologia", "eliminacion", "transporte", "otra_info",
 )
 
 
@@ -1549,6 +1590,8 @@ def generar_pdf_completo(
     coa_ctx = _contexto_coa(datos_coa) if datos_coa else None
     if coa_ctx and not _coa_diligenciado(coa_ctx):
         coa_ctx = None
+    elif coa_ctx:
+        coa_ctx = _con_firma_default(coa_ctx)
     sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
 
     # GHS/SGA pertenece a SDS: migrar recomendaciones históricas guardadas en FT

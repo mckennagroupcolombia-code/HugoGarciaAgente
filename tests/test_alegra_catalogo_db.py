@@ -59,6 +59,36 @@ def test_upsert_listar_obtener_kit(catalogo_mod):
     assert "FRAS250" in codigos
 
 
+def test_actualizar_campos_locales_reemplaza_componentes(catalogo_mod):
+    cat = catalogo_mod
+    cat.upsert_item(alegra_id="1", reference="A", name="A", tipo="product")
+    cat.upsert_item(alegra_id="2", reference="B", name="B", tipo="product")
+    cat.upsert_item(
+        alegra_id="3",
+        reference="C-X",
+        name="COMBO X",
+        tipo="kit",
+        precio_lista=1000,
+        componentes=[{"codigo": "A", "nombre": "A", "cantidad": 1}],
+    )
+    out = cat.actualizar_campos_locales(
+        "C-X",
+        name="COMBO X NUEVO",
+        precio_lista=2000,
+        componentes=[
+            {"codigo": "A", "nombre": "A", "cantidad": 2},
+            {"codigo": "B", "nombre": "B", "cantidad": 1},
+        ],
+    )
+    assert out is not None
+    assert out["name"] == "COMBO X NUEVO"
+    assert out["precio_lista"] == 2000
+    assert len(out["componentes"]) == 2
+    by_code = {c["codigo"]: c["cantidad"] for c in out["componentes"]}
+    assert by_code["A"] == 2
+    assert by_code["B"] == 1
+
+
 def test_buscar_picker_local_excluye_kits(catalogo_mod):
     cat = catalogo_mod
     cat.upsert_item(alegra_id="1", reference="AJONEGg", name="AJONJOLI NEGRO g", tipo="product")

@@ -1008,6 +1008,168 @@ def _parse_order_items_json(order: dict) -> tuple[dict, str | None]:
     return data, None
 
 
+def _normalizar_overrides_factura_web(overrides: dict | None) -> dict:
+    """Normaliza el body de overrides del panel (cliente + ítems + envío)."""
+    if not overrides or not isinstance(overrides, dict):
+        return {}
+    out: dict = {}
+    cliente_in = overrides.get("cliente") or overrides.get("billing") or {}
+    if isinstance(cliente_in, dict) and cliente_in:
+        cliente: dict[str, str] = {}
+        for src, dst in (
+            ("nombre", "nombre"),
+            ("name", "nombre"),
+            ("nit", "nit"),
+            ("identificacion", "nit"),
+            ("cedula", "nit"),
+            ("email", "email"),
+            ("correo", "email"),
+            ("telefono", "telefono"),
+            ("phone", "telefono"),
+            ("direccion", "direccion"),
+            ("address", "direccion"),
+            ("ciudad", "ciudad"),
+            ("city", "ciudad"),
+        ):
+            if src in cliente_in and cliente_in[src] is not None:
+                val = str(cliente_in[src]).strip()
+                if dst not in cliente or val:
+                    cliente[dst] = val
+        if cliente:
+            out["cliente"] = cliente
+
+    items_in = overrides.get("items") or overrides.get("lineas")
+    if isinstance(items_in, list) and items_in:
+        items_out = []
+        for raw in items_in:
+            if not isinstance(raw, dict):
+                continue
+            code = str(
+                raw.get("ref") or raw.get("sku") or raw.get("codigo") or ""
+            ).strip()
+            name = str(raw.get("name") or raw.get("nombre") or raw.get("title") or "").strip()
+            try:
+                qty = float(raw.get("qty") if raw.get("qty") is not None else raw.get("quantity") or 1)
+            except (TypeError, ValueError):
+                qty = 1.0
+            try:
+                price = float(
+                    raw.get("price")
+                    if raw.get("price") is not None
+                    else raw.get("unit_price")
+                    if raw.get("unit_price") is not None
+                    else raw.get("precio")
+                    or 0
+                )
+            except (TypeError, ValueError):
+                price = 0.0
+            if not code and not name:
+                continue
+            items_out.append({
+                "ref": code,
+                "name": name or code,
+                "qty": qty,
+                "price": price,
+            })
+        if items_out:
+            out["items"] = items_out
+
+    if "shipping" in overrides or "shipping_cost" in overrides:
+        ship_raw = overrides.get("shipping", overrides.get("shipping_cost"))
+        if ship_raw is not None and str(ship_raw).strip() != "":
+            try:
+                out["shipping"] = float(ship_raw)
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
+def _aplicar_overrides_a_pedido_web(
+    order: dict, data: dict, overrides: dict,
+) -> tuple[dict, dict]:
+    """Devuelve copias de order/data con overrides de facturación aplicados."""
+    order_m = dict(order)
+    data_m = dict(data)
+    billing = dict(data_m.get("billing") or {}) if isinstance(data_m.get("billing"), dict) else {}
+
+    cliente = overrides.get("cliente") or {}
+    if cliente:
+        if cliente.get("nombre"):
+            order_m["buyer_name"] = cliente["nombre"]
+            billing["name"] = cliente["nombre"]
+        if cliente.get("nit"):
+            data_m["cedula"] = cliente["nit"]
+            billing["nit"] = cliente["nit"]
+        if cliente.get("email"):
+            order_m["buyer_email"] = cliente["email"]
+            billing["email"] = cliente["email"]
+        if cliente.get("telefono"):
+            order_m["buyer_phone"] = cliente["telefono"]
+        if cliente.get("direccion"):
+            data_m["address"] = cliente["direccion"]
+            billing["address"] = cliente["direccion"]
+        if cliente.get("ciudad"):
+            order_m["buyer_city"] = cliente["ciudad"]
+            billing["city"] = cliente["ciudad"]
+        data_m["billing"] = billing
+
+    if overrides.get("items"):
+        # Conserva campos extra (photo/slug) si el SKU coincide con uno previo.
+        prev_by_ref = {}
+        for old in data_m.get("items") or []:
+            if isinstance(old, dict):
+                key = str(old.get("ref") or "").strip().upper()
+                if key:
+                    prev_by_ref[key] = old
+        merged = []
+        for it in overrides["items"]:
+            row = dict(it)
+            prev = prev_by_ref.get(str(row.get("ref") or "").strip().upper())
+            if prev:
+                for k, v in prev.items():
+                    if k not in ("ref", "name", "qty", "price") and k not in row:
+                        row[k] = v
+            merged.append(row)
+        data_m["items"] = merged
+
+    if "shipping" in overrides:
+        data_m["shipping"] = float(overrides["shipping"] or 0)
+
+    return order_m, data_m
+
+
+def _persistir_overrides_pedido_web(reference: str, order: dict, data: dict) -> None:
+    """Guarda en orders.db los datos corregidos antes de emitir la FE."""
+    ref = (reference or "").strip().upper()
+    if not ref:
+        return
+    items_json = json.dumps(data, ensure_ascii=False)
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    try:
+        con.execute(
+            """
+            UPDATE orders SET
+              items_json = ?,
+              buyer_name = COALESCE(?, buyer_name),
+              buyer_email = COALESCE(?, buyer_email),
+              buyer_phone = COALESCE(?, buyer_phone),
+              buyer_city = COALESCE(?, buyer_city)
+            WHERE upper(reference) = ?
+            """,
+            (
+                items_json,
+                (order.get("buyer_name") or None),
+                (order.get("buyer_email") or None),
+                (order.get("buyer_phone") or None),
+                (order.get("buyer_city") or None),
+                ref,
+            ),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
 def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict], str | None]:
     from app.services.alegra import buscar_producto_alegra_por_referencia
 
@@ -1192,7 +1354,13 @@ def _lock_order_for_siigo_invoice(reference: str, force: bool) -> tuple[dict | N
         con.close()
 
 
-def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> tuple[bool, str]:
+def emitir_factura_siigo_pedido_web(
+    reference: str,
+    *,
+    force: bool = False,
+    overrides: dict | None = None,
+    persistir_overrides: bool = True,
+) -> tuple[bool, str]:
     """Emite/reintenta la factura Alegra de un pedido web aprobado, sin duplicarla.
 
     Datos tomados del checkout (``website.py`` → ``orders.items_json`` / columnas ``orders``):
@@ -1206,6 +1374,8 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
     - **Sincronización:** si ``WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE`` (default 1), se hace
       ``PUT`` del tercero en Alegra antes de facturar para que la FE no use una ficha antigua
       con el mismo documento.
+    - **Overrides (panel):** ``overrides`` puede traer ``cliente``, ``items`` y ``shipping`` para
+      corregir datos justo antes de emitir; con ``persistir_overrides=True`` se guardan en la DB.
     """
     migrate_orders_table()
     ref = (reference or "").strip().upper()
@@ -1238,6 +1408,15 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
         )
         return False, f"❌ *{ref}*: {parse_error}"
 
+    ov = _normalizar_overrides_factura_web(overrides)
+    if ov:
+        order, data = _aplicar_overrides_a_pedido_web(order, data, ov)
+        if persistir_overrides:
+            try:
+                _persistir_overrides_pedido_web(ref, order, data)
+            except Exception as e:
+                log.warning("No se pudieron persistir overrides de factura %s: %s", ref, e)
+
     lines, line_error = _build_siigo_web_invoice_lines(order, data)
     if line_error:
         _update_invoice_state(
@@ -1256,6 +1435,16 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
     # Dirección en Siigo (cliente.address): preferir calle de facturación; si no, envío.
     fiscal_address_line = (billing.get("address") or "").strip() or (address or "").strip()
     total = _money_float(order.get("total"), 0)
+    # Si el operador cambió precios/cantidades, recalcular total de líneas (+ envío).
+    if ov and (ov.get("items") is not None or "shipping" in ov):
+        total_calc = 0.0
+        for ln in lines:
+            try:
+                total_calc += float(ln.get("cantidad") or 0) * float(ln.get("precio_unitario") or 0)
+            except (TypeError, ValueError):
+                pass
+        if total_calc > 0:
+            total = total_calc
     observations = _build_web_order_siigo_observations(order, data, ref)
 
     try:
@@ -1517,7 +1706,12 @@ def registrar_envio_y_notificar(
     return True, "Guía registrada; cliente notificado por correo si hay email y SMTP configurado."
 
 
-def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
+def marcar_solicitud_facturacion(
+    reference: str,
+    *,
+    overrides: dict | None = None,
+    persistir_overrides: bool = True,
+) -> tuple[bool, str]:
     migrate_orders_table()
     ref = reference.strip().upper()
     con = sqlite3.connect(ORDERS_DB)
@@ -1530,7 +1724,12 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
     con.close()
     if not ok:
         return False, f"No encontré el pedido {ref}."
-    return emitir_factura_siigo_pedido_web(ref, force=True)
+    return emitir_factura_siigo_pedido_web(
+        ref,
+        force=True,
+        overrides=overrides,
+        persistir_overrides=persistir_overrides,
+    )
 
 
 def registrar_entrega_y_facturar(reference: str) -> tuple[bool, str]:

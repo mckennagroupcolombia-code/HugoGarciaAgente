@@ -336,9 +336,14 @@ def obtener_dolar_hora(
     valor = float(trm_valor)
     previo_dia = None
     if serie_dia:
-        if serie_dia[-1].get("t") == trm.get("fecha") and len(serie_dia) >= 2:
+        # Comparar por vigencia_desde (no por `fecha`, que es la fecha consultada
+        # hoy): un festivo/fin de semana usa la TRM del viernes con vigencia_desde
+        # distinta de "hoy", y comparar contra `fecha` hacía que previo_dia fuera
+        # el mismo valor actual (cambio 0% siempre en esos días).
+        clave_actual = trm.get("vigencia_desde") or trm.get("fecha")
+        if serie_dia[-1].get("t") == clave_actual and len(serie_dia) >= 2:
             previo_dia = float(serie_dia[-2]["v"])
-        elif serie_dia[-1].get("t") != trm.get("fecha"):
+        elif serie_dia[-1].get("t") != clave_actual:
             previo_dia = float(serie_dia[-1]["v"])
     cambio_abs, cambio_pct = _cambio(valor, previo_dia)
     hora = datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds")

@@ -25,6 +25,9 @@ MELI_COMMISSION = WEB_DESCUENTO_VS_MELI  # alias histórico (panel / docs)
 
 _TARIFAS_PATH = Path(__file__).resolve().parents[1] / "data" / "tarifas_interrapidisimo.json"
 _DESCUENTOS_WEB_SKU_PATH = Path(__file__).resolve().parents[1] / "data" / "descuentos_web_por_sku.json"
+_COBROS_MELI_CACHE_PATH = Path(__file__).resolve().parents[1] / "data" / "meli_cobros_cache.json"
+_UMBRAL_PRECIO_COP = 1.0
+_RATIO_MELI_SOSPECHOSO = 2.0
 
 
 def _descuento_web_para_sku(sku: str) -> float:
@@ -350,6 +353,187 @@ def estado_sincronizacion_precios(buscar: str = "") -> dict:
         "desincronizados_activos": len(desincronizados_activos),
         "actualizado_en": cobros.get("actualizado_en"),
         "cache_hit": cobros.get("cache_hit"),
+    }
+
+
+def mapa_precios_meli_por_sku() -> tuple[dict[str, dict], str | None]:
+    """SKU (mayúsculas) → precio publicado en MeLi, desde la caché de cobros.
+
+    No pega a la API de MeLi: el listado del catálogo Alegra se recarga al
+    buscar y no puede esperar un refresh de ~484 publicaciones. La caché la
+    llena Ganancia / listar_cobros_meli (~1 h).
+    """
+    try:
+        raw = json.loads(_COBROS_MELI_CACHE_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}, None
+    if not isinstance(raw, dict):
+        return {}, None
+    actualizado_en = str(raw.get("actualizado_en") or "") or None
+    out: dict[str, dict] = {}
+    for c in raw.get("items") or []:
+        if not isinstance(c, dict):
+            continue
+        sku = (c.get("sku") or "").strip()
+        if not sku:
+            continue
+        precio = c.get("precio_meli")
+        try:
+            precio_f = float(precio) if precio is not None else None
+        except (TypeError, ValueError):
+            precio_f = None
+        if precio_f is None:
+            continue
+        key = sku.upper()
+        estado = (c.get("estado_meli") or c.get("status") or "").strip()
+        prev = out.get(key)
+        if prev and prev.get("meli_estado") == "active" and estado != "active":
+            continue
+        out[key] = {
+            "sku": sku,
+            "precio_meli": precio_f,
+            "meli_id": (c.get("meli_id") or "").strip() or None,
+            "meli_estado": estado or None,
+        }
+    return out, actualizado_en
+
+
+def _ratio_precios_seguro(a: float, b: float) -> float | None:
+    lo, hi = min(a, b), max(a, b)
+    if lo <= 0:
+        return None
+    return hi / lo
+
+
+def enriquecer_catalogo_con_precios_meli(data: dict) -> dict:
+    """Cruza ítems Alegra (`reference`) con el precio MeLi publicado, por SKU.
+
+    Mutates ``data['items']`` añadiendo ``precio_meli``, ``meli_id``,
+    ``meli_estado``, ``meli_sincronizado``, ``meli_ratio``, ``meli_sospechoso``.
+    Agrega ``data['meli']`` con conteos de la página/listado actual.
+    """
+    meli_map, actualizado_en = mapa_precios_meli_por_sku()
+    vinculados = 0
+    desincronizados = 0
+    sospechosos = 0
+    sin_publicacion = 0
+    for it in data.get("items") or []:
+        if not isinstance(it, dict):
+            continue
+        ref = (it.get("reference") or "").strip().upper()
+        info = meli_map.get(ref) if ref else None
+        if not info:
+            it["precio_meli"] = None
+            it["meli_id"] = None
+            it["meli_estado"] = None
+            it["meli_sincronizado"] = None
+            it["meli_ratio"] = None
+            it["meli_sospechoso"] = False
+            sin_publicacion += 1
+            continue
+        precio = float(info["precio_meli"])
+        try:
+            lista = float(it.get("precio_lista") or 0)
+        except (TypeError, ValueError):
+            lista = 0.0
+        sync = abs(lista - precio) <= _UMBRAL_PRECIO_COP
+        ratio = _ratio_precios_seguro(lista, precio)
+        # $0/$1 en Alegra = aún no hay lista real; copiar MeLi no es un cruce raro.
+        placeholder = lista <= 1
+        sospechoso = (
+            (not sync)
+            and (not placeholder)
+            and (ratio is None or ratio > _RATIO_MELI_SOSPECHOSO)
+        )
+        it["precio_meli"] = precio
+        it["meli_id"] = info.get("meli_id")
+        it["meli_estado"] = info.get("meli_estado")
+        it["meli_sincronizado"] = sync
+        it["meli_ratio"] = round(ratio, 2) if ratio is not None else None
+        it["meli_sospechoso"] = sospechoso
+        vinculados += 1
+        if not sync:
+            desincronizados += 1
+            if sospechoso:
+                sospechosos += 1
+    data["meli"] = {
+        "actualizado_en": actualizado_en,
+        "vinculados": vinculados,
+        "desincronizados": desincronizados,
+        "sospechosos": sospechosos,
+        "sin_publicacion": sin_publicacion,
+        "cache_skus": len(meli_map),
+    }
+    return data
+
+
+def igualar_precios_alegra_desde_meli(codigos: list[str]) -> dict:
+    """Copia el precio publicado en MeLi al precio de lista de Alegra, por SKU.
+
+    Solo toca Alegra + espejo local (el catálogo que el operador está viendo).
+    Requiere lista explícita de códigos — no aplica un barrido automático de
+    ratios enormes (cruces de SKU viejos tipo AS-19).
+    """
+    from app.services.alegra import actualizar_precio_alegra_producto
+    from app.services import alegra_catalogo_db as cat
+
+    meli_map, actualizado_en = mapa_precios_meli_por_sku()
+    vistos: set[str] = set()
+    aplicados: list[dict] = []
+    omitidos: list[dict] = []
+    errores: list[dict] = []
+
+    for raw in codigos or []:
+        codigo = str(raw or "").strip()
+        if not codigo:
+            continue
+        key = codigo.upper()
+        if key in vistos:
+            continue
+        vistos.add(key)
+        info = meli_map.get(key)
+        if not info:
+            omitidos.append({"sku": codigo, "razon": "sin_publicacion_meli"})
+            continue
+        item = cat.obtener_item(codigo)
+        if not item:
+            omitidos.append({"sku": codigo, "razon": "no_en_catalogo_alegra"})
+            continue
+        precio_nuevo = float(info["precio_meli"])
+        try:
+            lista = float(item.get("precio_lista") or 0)
+        except (TypeError, ValueError):
+            lista = 0.0
+        if abs(lista - precio_nuevo) <= _UMBRAL_PRECIO_COP:
+            omitidos.append({
+                "sku": item["reference"],
+                "razon": "ya_igual",
+                "precio_lista": lista,
+                "precio_meli": precio_nuevo,
+            })
+            continue
+        r = actualizar_precio_alegra_producto(item["reference"], precio_nuevo)
+        if not r.get("ok"):
+            errores.append({
+                "sku": item["reference"],
+                "error": r.get("msg") or r.get("error") or "Alegra rechazó el precio",
+            })
+            continue
+        cat.actualizar_campos_locales(item["reference"], precio_lista=precio_nuevo)
+        aplicados.append({
+            "sku": item["reference"],
+            "precio_antes": lista,
+            "precio_meli": precio_nuevo,
+            "meli_id": info.get("meli_id"),
+        })
+
+    return {
+        "ok": not errores,
+        "aplicados": aplicados,
+        "omitidos": omitidos,
+        "errores": errores,
+        "total_aplicados": len(aplicados),
+        "meli_actualizado_en": actualizado_en,
     }
 
 

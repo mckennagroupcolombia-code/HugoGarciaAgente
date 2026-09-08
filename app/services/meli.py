@@ -597,6 +597,8 @@ def _request_meli(
     *,
     headers: dict,
     json: dict | None = None,
+    files: dict | None = None,
+    data: dict | None = None,
     timeout: int = 20,
     intentos: int = 4,
 ):
@@ -605,7 +607,8 @@ def _request_meli(
     for i in range(max(1, intentos)):
         try:
             res = requests.request(
-                method.upper(), url, headers=headers, json=json, timeout=timeout
+                method.upper(), url, headers=headers, json=json,
+                files=files, data=data, timeout=timeout,
             )
             ultimo = res
             if res.status_code in (200, 201):
@@ -626,6 +629,73 @@ def _request_meli(
             print(f"⏳ [MELI-STOCK] red {e} — reintento {i + 2}/{intentos} en {espera:.1f}s")
             time.sleep(espera)
     return ultimo
+
+
+# Sitio único de McKenna Group en MeLi (Colombia). Desde el 2026-06-02
+# site_id es obligatorio en /messages/attachments — ver documentación oficial.
+MELI_SITE_ID = "MCO"
+
+# Límite documentado por MeLi para adjuntos de mensajería (25 MB, 25 archivos/mensaje).
+MELI_ADJUNTO_MAX_BYTES = 25 * 1024 * 1024
+
+
+def subir_adjunto_mensaje_meli(
+    ruta_archivo,
+    *,
+    token: str | None = None,
+    tag: str = "post_sale",
+    content_type: str = "application/pdf",
+) -> dict:
+    """
+    Sube un archivo (ej. PDF de ficha técnica) al endpoint de adjuntos de
+    mensajería de MeLi para poder referenciarlo luego en un mensaje de un pack.
+
+    Devuelve {"ok": True, "filename": "<id devuelto por MeLi>"} o
+    {"ok": False, "error": "..."}. No envía ningún mensaje — solo sube el
+    archivo; el envío real va en `_post_mensaje_pack` (modulo_posventa.py)
+    incluyendo "attachments": [filename] en el payload.
+    """
+    from pathlib import Path
+
+    ruta = Path(ruta_archivo)
+    if not ruta.is_file():
+        return {"ok": False, "error": f"Archivo no encontrado: {ruta}"}
+
+    contenido = ruta.read_bytes()
+    if len(contenido) > MELI_ADJUNTO_MAX_BYTES:
+        return {
+            "ok": False,
+            "error": f"Archivo de {len(contenido)} bytes supera el límite de MeLi ({MELI_ADJUNTO_MAX_BYTES} bytes).",
+        }
+
+    tok = token or refrescar_token_meli()
+    if not tok:
+        return {"ok": False, "error": "No se pudo obtener el token de Mercado Libre."}
+
+    url = f"https://api.mercadolibre.com/messages/attachments?tag={tag}&site_id={MELI_SITE_ID}"
+    headers = {"Authorization": f"Bearer {tok}"}
+    files = {"file": (ruta.name, contenido, content_type)}
+
+    try:
+        res = _request_meli("POST", url, headers=headers, files=files, timeout=30)
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red subiendo adjunto a MeLi: {e}"}
+
+    if res is None or res.status_code not in (200, 201):
+        codigo = res.status_code if res is not None else "sin respuesta"
+        cuerpo = (res.text or "")[:300] if res is not None else ""
+        return {"ok": False, "error": f"MeLi respondió {codigo} al subir adjunto: {cuerpo}"}
+
+    try:
+        cuerpo_json = res.json()
+    except ValueError:
+        return {"ok": False, "error": f"Respuesta no-JSON de MeLi al subir adjunto: {(res.text or '')[:200]}"}
+
+    filename = cuerpo_json.get("filename") or cuerpo_json.get("id")
+    if not filename:
+        return {"ok": False, "error": f"Respuesta de MeLi sin 'filename': {cuerpo_json}"}
+
+    return {"ok": True, "filename": filename}
 
 
 def _reactivar_item_meli_si_pausada(

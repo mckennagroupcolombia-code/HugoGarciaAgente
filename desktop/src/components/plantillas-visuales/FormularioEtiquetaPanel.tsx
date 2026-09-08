@@ -1,91 +1,109 @@
 /**
- * Formulario lateral: edita solo el `content` de las cajas con `campoProducto`.
- * No mueve x/y/width/height. Carga opcional desde fichas técnicas.
+ * Formulario de la etiqueta física: replica el grid visual
+ * (título naranja + valor negro). No mueve cajas; solo `content` / src.
+ *
+ * Solo la parte "corta" (nombre/categoría/logo/peso/código de barras) vive
+ * aquí, en el sidebar angosto. Los grids de Ficha/Especificaciones (varios
+ * campos cortos, se ven mejor con más columnas) van en la barra inferior —
+ * ver `FormularioEtiquetaCamposPanel` — usando el mismo estado compartido
+ * de `useFormularioEtiqueta` para no duplicar edición del mismo campo en
+ * dos sitios.
  */
-import { useEffect, useMemo, useState } from "react";
-import { api } from "../../api/client";
 import {
-  aplicarCamposAPlantilla,
-  camposDesdeFichaTecnica,
-  camposUsadosEnPlantilla,
-  labelCampoEtiqueta,
-  valoresActualesFormulario,
+  CONTENIDOS_NETOS_SUGERIDOS,
+  limitarPalabras,
+  PALETA_LOGO_LINEA,
+  urlLogoRecurso,
+  type BloqueFormularioEtiqueta,
 } from "../../lib/etiquetaFormulario";
-import type { PlantillaVisualDoc } from "../../lib/plantillasVisuales";
+import ImagenCanvasElement from "./ImagenCanvasElement";
+import type { FormularioEtiqueta } from "./useFormularioEtiqueta";
 
-interface FichaItem {
-  id: string;
-  titulo: string;
-  archivo: string;
+function contarPalabras(texto: string): number {
+  return (texto || "").trim().split(/\s+/).filter(Boolean).length;
 }
 
-export default function FormularioEtiquetaPanel({
-  doc,
+/**
+ * Casilla del formulario: marco definido (borde sólido, no solo el de
+ * abajo del input) que llena TODA la altura de su celda de grid — así,
+ * cuando una fila mezcla textarea "largo" con inputs cortos, las cajas
+ * siguen alineadas de borde a borde en vez de dejar espacio suelto.
+ *
+ * `bloque.maxPalabras`, si está definido, recorta lo que se escriba o
+ * pegue (nunca deja superar el tope) y muestra un contador — la casilla
+ * comparte grilla con otras 5 del mismo tamaño, un párrafo largo desborda.
+ */
+export function CampoBloque({
+  bloque,
+  valor,
   onChange,
 }: {
-  doc: PlantillaVisualDoc;
-  onChange: (doc: PlantillaVisualDoc) => void;
+  bloque: BloqueFormularioEtiqueta;
+  valor: string;
+  onChange: (v: string) => void;
 }) {
-  const campos = useMemo(() => camposUsadosEnPlantilla(doc), [doc]);
-  const valores = useMemo(() => valoresActualesFormulario(doc), [doc]);
-  const [fichas, setFichas] = useState<FichaItem[]>([]);
-  const [fichaId, setFichaId] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancel = false;
-    (async () => {
-      try {
-        const res = await api.get<{ items: FichaItem[] }>("/api/fichas/datos");
-        if (!cancel) setFichas(res.items || []);
-      } catch {
-        if (!cancel) setFichas([]);
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, []);
-
-  if (campos.length === 0) return null;
-
-  const patchCampo = (campo: string, valor: string) => {
-    onChange(aplicarCamposAPlantilla(doc, { [campo]: valor }));
-  };
-
-  const cargarFicha = async () => {
-    if (!fichaId) return;
-    setCargando(true);
-    setMsg(null);
-    try {
-      const res = await api.get<{ datos: Record<string, unknown> }>(
-        `/api/fichas/datos/${encodeURIComponent(fichaId)}`,
-      );
-      const mapped = camposDesdeFichaTecnica(res.datos || {});
-      const usados = Object.fromEntries(
-        Object.entries(mapped).filter(([k]) => campos.includes(k as (typeof campos)[number])),
-      );
-      if (!Object.keys(usados).length) {
-        setMsg("Esa ficha no tiene datos mapeables a esta etiqueta.");
-        return;
-      }
-      onChange(aplicarCamposAPlantilla(doc, usados));
-      setMsg(`Cargados ${Object.keys(usados).length} campos. El formato no se movió.`);
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : "No se pudo cargar la ficha");
-    } finally {
-      setCargando(false);
+  const max = bloque.maxPalabras;
+  const aplicarCambio = (v: string) => {
+    if (!max) {
+      onChange(v);
+      return;
     }
+    if (contarPalabras(v) <= max) {
+      onChange(v);
+      return;
+    }
+    // Al tope y escribiendo una tecla a la vez (cambio de largo chico): no
+    // aceptar el caracter en vez de recortar — recortar aquí dejaría el
+    // cursor al final de la última palabra permitida, y las letras
+    // siguientes se pegarían a esa palabra en vez de bloquearse (probado:
+    // "diez" + escribir "once" letra a letra terminaba en "dieznce...").
+    // Un salto grande (pegar un párrafo, cargar una ficha) sí se recorta.
+    if (Math.abs(v.length - valor.length) <= 3) {
+      onChange(valor);
+      return;
+    }
+    onChange(limitarPalabras(v, max));
   };
+
+  return (
+    <label className="flex h-full flex-col rounded-lg border border-[#ffa348]/70 bg-white/90 p-2">
+      <span className="flex items-baseline justify-between gap-1 text-[9px] font-bold uppercase tracking-wide text-[#c86a12]">
+        {bloque.titulo}
+        {max && (
+          <span className="font-normal normal-case text-muted">
+            {contarPalabras(valor)}/{max} palabras
+          </span>
+        )}
+      </span>
+      {bloque.largo ? (
+        <textarea
+          rows={2}
+          value={valor}
+          onChange={(e) => aplicarCambio(e.target.value)}
+          className="mt-0.5 w-full flex-1 resize-none rounded border border-border bg-surface px-2 py-1 text-[11px] font-semibold leading-snug text-ink"
+        />
+      ) : (
+        <input
+          type="text"
+          value={valor}
+          onChange={(e) => aplicarCambio(e.target.value)}
+          className="mt-0.5 w-full flex-1 rounded border border-border bg-surface px-2 py-1 text-[11px] font-semibold text-ink"
+        />
+      )}
+    </label>
+  );
+}
+
+export default function FormularioEtiquetaPanel({ formulario: f }: { formulario: FormularioEtiqueta }) {
+  if (!f.disponible) return null;
+  const usados = new Set(f.campos);
 
   return (
     <div className="space-y-3 rounded-xl border border-accent/30 bg-accent/5 p-3">
       <div>
         <p className="text-xs font-bold uppercase tracking-wide text-accent">Formulario de etiqueta</p>
         <p className="mt-0.5 text-[10px] leading-snug text-muted">
-          Cada caja queda en su sitio. Un texto más largo reduce la fuente (autofit); no se
-          sobrepone.
+          Igual que el sticker: título naranja + dato negro. Las cajas no se mueven.
         </p>
       </div>
 
@@ -93,60 +111,174 @@ export default function FormularioEtiquetaPanel({
         <label className="block text-[10px] font-medium text-muted">Cargar ficha técnica</label>
         <div className="flex gap-1">
           <select
-            value={fichaId}
-            onChange={(e) => setFichaId(e.target.value)}
+            value={f.fichaId}
+            onChange={(e) => f.setFichaId(e.target.value)}
             className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-[11px]"
           >
             <option value="">Elegir ficha…</option>
-            {fichas.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.titulo}
+            {f.fichas.map((ficha) => (
+              <option key={ficha.id} value={ficha.id}>
+                {ficha.titulo}
               </option>
             ))}
           </select>
           <button
             type="button"
-            disabled={!fichaId || cargando}
-            onClick={() => void cargarFicha()}
+            disabled={!f.fichaId || f.cargando}
+            onClick={() => void f.cargarFicha()}
             className="shrink-0 rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent hover:bg-accent/20 disabled:opacity-40"
           >
-            {cargando ? "…" : "Cargar"}
+            {f.cargando ? "…" : "Cargar"}
           </button>
         </div>
-        {fichas.length === 0 && (
-          <p className="text-[10px] text-muted">No hay fichas en Documentos técnicos aún.</p>
-        )}
       </div>
 
-      {msg && <p className="text-[10px] leading-snug text-ink">{msg}</p>}
+      {f.msg && <p className="text-[10px] leading-snug text-ink">{f.msg}</p>}
 
-      <div className="space-y-2">
-        {campos.map((campo) => {
-          const largo = ["apariencia", "composicion", "almacenamiento", "nombre", "tagline"].includes(
-            campo,
-          );
-          return (
-            <label key={campo} className="block">
-              <span className="text-[10px] font-medium text-muted">{labelCampoEtiqueta(campo)}</span>
-              {largo ? (
-                <textarea
-                  rows={campo === "nombre" ? 2 : 3}
-                  value={valores[campo] ?? ""}
-                  onChange={(e) => patchCampo(campo, e.target.value)}
-                  className="mt-0.5 w-full resize-y rounded border border-border bg-surface px-2 py-1 text-[11px] leading-snug"
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={valores[campo] ?? ""}
-                  onChange={(e) => patchCampo(campo, e.target.value)}
-                  className="mt-0.5 w-full rounded border border-border bg-surface px-2 py-1 text-[11px]"
-                />
-              )}
+      {usados.has("nombre") && (
+        <CampoBloque
+          bloque={{ id: "nombre", titulo: "NOMBRE", campo: "nombre", largo: true }}
+          valor={f.valores.nombre ?? ""}
+          onChange={(v) => f.patchCampo("nombre", v)}
+        />
+      )}
+      {usados.has("tagline") && (
+        <CampoBloque
+          bloque={{ id: "tagline", titulo: "CATEGORÍA", campo: "tagline" }}
+          valor={f.valores.tagline ?? ""}
+          onChange={(v) => f.patchCampo("tagline", v)}
+        />
+      )}
+
+      {f.logoEl && (
+        <div className="rounded-lg border border-[#ffa348]/40 bg-white/80 p-2">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[#c86a12]">LOGO</p>
+          <p className="mb-1.5 text-[10px] text-muted">Color de la línea comercial</p>
+          <div className="flex flex-wrap gap-1.5">
+            {PALETA_LOGO_LINEA.map((linea) => {
+              const activa = f.logoActivo?.id === linea.id;
+              return (
+                <button
+                  key={linea.id}
+                  type="button"
+                  title={linea.label}
+                  onClick={() => f.aplicarLogo(linea)}
+                  className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border-2 bg-white ${
+                    activa ? "ring-2 ring-offset-1" : "opacity-80 hover:opacity-100"
+                  }`}
+                  style={{
+                    borderColor: linea.hex,
+                    outlineColor: linea.hex,
+                  }}
+                >
+                  <div className="h-7 w-7">
+                    <ImagenCanvasElement
+                      src={urlLogoRecurso(linea.archivo)}
+                      objectFit="contain"
+                      alt={linea.label}
+                    />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {f.logoActivo && <p className="mt-1 text-[10px] font-medium text-ink">{f.logoActivo.label}</p>}
+        </div>
+      )}
+
+      {(f.fichaGrid.length > 0 || f.specs.length > 0) && (
+        <p className="rounded-lg border border-dashed border-[#ffa348]/40 bg-white/60 px-2.5 py-2 text-[10px] leading-snug text-muted">
+          Ficha y especificaciones se editan en la{" "}
+          <span className="font-semibold text-ink">barra de abajo</span> (hay más espacio para los campos).
+        </p>
+      )}
+
+      {usados.has("peso") && (
+        <div className="space-y-1">
+          <CampoBloque
+            bloque={{ id: "peso", titulo: "CONTENIDO NETO", campo: "peso" }}
+            valor={f.valores.peso ?? ""}
+            onChange={(v) => f.patchCampo("peso", v)}
+          />
+          {f.pesoSugerido && f.pesoSugerido !== (f.valores.peso ?? "").trim() && (
+            <button
+              type="button"
+              onClick={() => f.patchCampo("peso", f.pesoSugerido!)}
+              className="flex w-full items-center justify-between rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] text-accent hover:bg-accent/20"
+            >
+              <span>Según el SKU: {f.pesoSugerido}</span>
+              <span className="font-semibold">Usar</span>
+            </button>
+          )}
+          <label className="block">
+            <span className="text-[10px] text-muted">Contenidos que manejamos</span>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) f.patchCampo("peso", e.target.value);
+              }}
+              className="mt-0.5 w-full rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink"
+            >
+              <option value="">Elegir presentación…</option>
+              <optgroup label="Gramos">
+                {CONTENIDOS_NETOS_SUGERIDOS.filter((c) => c.grupo === "Gramos").map((c) => (
+                  <option key={c.valor} value={c.valor}>
+                    {c.valor}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Mililitros">
+                {CONTENIDOS_NETOS_SUGERIDOS.filter((c) => c.grupo === "Mililitros").map((c) => (
+                  <option key={c.valor} value={c.valor}>
+                    {c.valor}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+        </div>
+      )}
+
+      {f.barcodeEl && (
+        <div className="rounded-lg border border-[#ffa348]/40 bg-white/80 p-2">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-[#c86a12]">
+            CÓDIGO DE BARRAS
+          </p>
+          <p className="mt-0.5 text-[10px] leading-snug text-muted">
+            O clica el código de barras en el lienzo → «🔍 Buscar SKU».
+          </p>
+          <label className="mt-1 block">
+            <span className="text-[10px] text-muted">EAN-13</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={f.eanManual}
+              onChange={(e) => f.aplicarEan(e.target.value)}
+              placeholder="770…"
+              className="mt-0.5 w-full rounded border border-border bg-surface px-2 py-1 font-mono text-[11px] text-ink"
+            />
+          </label>
+          {f.eanSugeridos.length > 0 && (
+            <label className="mt-1.5 block">
+              <span className="text-[10px] text-muted">Según nombre / SKU</span>
+              <select
+                value={f.eanSugeridos.some((c) => c.codigo === f.eanActual) ? f.eanActual : ""}
+                onChange={(e) => {
+                  if (e.target.value) f.aplicarEan(e.target.value);
+                }}
+                className="mt-0.5 w-full rounded border border-border bg-surface px-2 py-1 text-[11px]"
+              >
+                <option value="">Elegir código registrado…</option>
+                {f.eanSugeridos.map((c) => (
+                  <option key={c.id} value={c.codigo}>
+                    {c.codigo} · {c.nombre_producto || c.sku}
+                  </option>
+                ))}
+              </select>
             </label>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

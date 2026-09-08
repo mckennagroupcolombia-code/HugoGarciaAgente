@@ -21,6 +21,7 @@ const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
+const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
 const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
 const WebChatPanel = lazy(() => import("./components/WebChatPanel"));
 const WhatsAppPanel = lazy(() => import("./components/WhatsAppPanel"));
@@ -38,7 +39,7 @@ const ConfigurarProductosPanel = lazy(() =>
 );
 const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"));
 const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
-const InventarioControlPanel = lazy(() => import("./components/InventarioControlPanel"));
+const InventarioPanel = lazy(() => import("./components/InventarioPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
 const VitrinaWebPanel = lazy(() => import("./components/VitrinaWebPanel"));
 const LogisticaInternacionalPanel = lazy(
@@ -113,18 +114,19 @@ function PanelRouterInner() {
       return <VentasEmailPanel />;
     case "costos-productos":
     case "catalogo-alegra":
-    case "rentabilidad":
-    case "publicidad":
-    case "salud-negocio":
     case "compras-exterior":
     case "productos-siigo":
     case "rrhh":
     case "operativos":
     case "ingresos-egresos":
     case "creditos-adquiridos":
+    case "prestamos":
     case "libro-mayor":
-    case "stock":
       return <ContabilidadPanel />;
+    case "rentabilidad":
+    case "publicidad":
+    case "salud-negocio":
+      return <NegocioPanel />;
     case "facturacion":
     case "sync":
     case "facturas":
@@ -145,7 +147,8 @@ function PanelRouterInner() {
     case "contenido":
       return <ContenidoPanel />;
     case "control-inventario":
-      return <InventarioControlPanel />;
+    case "stock":
+      return <InventarioPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "vitrina-web":

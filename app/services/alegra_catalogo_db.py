@@ -274,7 +274,7 @@ def listar_items(
     solo_activos: bool = True,
 ) -> dict[str, Any]:
     cdb._ensure()
-    limit = max(1, min(int(limit or 50), 200))
+    limit = max(1, min(int(limit or 50), 500))
     offset = max(0, int(offset or 0))
     where: list[str] = []
     params: list[Any] = []
@@ -396,8 +396,12 @@ def actualizar_campos_locales(
     precio_lista: float | None = None,
     unit_cost: float | None = None,
     status: str | None = None,
+    componentes: list[dict] | None = None,
 ) -> dict[str, Any] | None:
-    """Actualiza campos del espejo local tras editar en Alegra."""
+    """Actualiza campos del espejo local tras editar en Alegra.
+
+    Si ``componentes`` no es None y el ítem es kit, reemplaza la receta local.
+    """
     cdb._ensure()
     item = obtener_item(reference)
     if not item:
@@ -418,6 +422,46 @@ def actualizar_campos_locales(
             """,
             (new_name, new_precio, new_cost, new_status, now, now, ref),
         )
+        if componentes is not None and item.get("type") == "kit":
+            con.execute(
+                "DELETE FROM alegra_kit_components WHERE kit_reference = ?",
+                (ref,),
+            )
+            for comp in componentes:
+                if not isinstance(comp, dict):
+                    continue
+                cref = str(
+                    comp.get("reference")
+                    or comp.get("codigo")
+                    or comp.get("code")
+                    or ""
+                ).strip()
+                if not cref:
+                    continue
+                try:
+                    qty = float(
+                        comp.get("quantity")
+                        if comp.get("quantity") is not None
+                        else comp.get("cantidad") or 1
+                    )
+                except (TypeError, ValueError):
+                    qty = 1.0
+                if qty <= 0:
+                    continue
+                cname = str(
+                    comp.get("name")
+                    or comp.get("nombre")
+                    or comp.get("component_name")
+                    or ""
+                ).strip()
+                con.execute(
+                    """
+                    INSERT INTO alegra_kit_components (
+                        kit_reference, component_reference, component_name, quantity
+                    ) VALUES (?, ?, ?, ?)
+                    """,
+                    (ref, cref, cname, qty),
+                )
     return obtener_item(ref)
 
 

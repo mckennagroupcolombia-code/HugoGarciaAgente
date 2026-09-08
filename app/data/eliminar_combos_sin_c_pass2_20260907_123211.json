@@ -1,0 +1,100 @@
+{
+  "ts": "2026-09-07T12:32:11",
+  "total": 10,
+  "eliminados": 10,
+  "inactivados": 0,
+  "errores": 0,
+  "restantes_activos": [],
+  "items": [
+    {
+      "reference": "ACERIC250mL",
+      "id": "558",
+      "name": "ACEITE RICINO 250mL",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "ACERIC250mL id=558 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "AGUDES250mL",
+      "id": "539",
+      "name": "AGUA DESTILADA 250mL",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "AGUDES250mL id=539 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "BICSOD500g",
+      "id": "547",
+      "name": "BICARBONATO SODIO 500g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "BICSOD500g id=547 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "CREMON100g",
+      "id": "554",
+      "name": "CREATINA MONOHIDRATO 100g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "CREMON100g id=554 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "CREMON250g",
+      "id": "555",
+      "name": "CREATINA MONOHIDRATO 250g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "CREMON250g id=555 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "DEXKg",
+      "id": "549",
+      "name": "DEXTROSA KG",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "DEXKg id=549 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "EXTTEMATVER100g",
+      "id": "553",
+      "name": "EXTRACTO TE VERDE MATCHA 100g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "EXTTEMATVER100g id=553 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "INU250g",
+      "id": "556",
+      "name": "INULINA 250g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "INU250g id=556 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "MANCACREFKg",
+      "id": "548",
+      "name": "MANTECA CACAO REFINADA KG",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "MANCACREFKg id=548 eliminado",
+      "status_after": "gone"
+    },
+    {
+      "reference": "VITCACIASC100g",
+      "id": "551",
+      "name": "VITAMINA C ACIDO ASCORBICO 100g",
+      "ok": true,
+      "modo": "eliminado",
+      "msg": "VITCACIASC100g id=551 eliminado",
+      "status_after": "gone"
+    }
+  ]
+}

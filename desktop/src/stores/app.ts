@@ -42,6 +42,7 @@ export type Panel =
   | "ingresos-egresos"
   | "creditos-adquiridos"
   | "libro-mayor"
+  | "prestamos"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
@@ -129,6 +130,17 @@ export type AccionesBootTab =
 
 /** Salto desde otro panel (p. ej. Sincronización) hacia una pestaña de Rentabilidad. */
 export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
+/** Subvistas de Libro Mayor → Vista Avanzada a las que se puede abrir directo (ver LibroMayorPanel.tsx). */
+export type LibroMayorBootTab =
+  | "diario"
+  | "plan-cuentas"
+  | "terceros"
+  | "movimientos"
+  | "prestamos"
+  | "creditos-adquiridos"
+  | "cuentas-t"
+  | "balance"
+  | "informes";
 
 interface AppState {
   panel: Panel;
@@ -156,6 +168,9 @@ interface AppState {
   setHugoAccionBoot: (v: { id: number; titulo: string } | null) => void;
   rentabilidadBootTab: RentabilidadBootTab | null;
   setRentabilidadBootTab: (v: RentabilidadBootTab | null) => void;
+  /** Abrir Libro Mayor → Vista Avanzada directo en una subvista (ej. desde un atajo externo). */
+  libroMayorBootTab: LibroMayorBootTab | null;
+  setLibroMayorBootTab: (v: LibroMayorBootTab | null) => void;
   /** Abrir detalle de factura pendiente al entrar al panel Facturas. */
   facturasBootSufijo: string | null;
   setFacturasBootSufijo: (v: string | null) => void;
@@ -244,6 +259,8 @@ export const useAppStore = create<AppState>()(
       setHugoAccionBoot: (hugoAccionBoot) => set({ hugoAccionBoot }),
       rentabilidadBootTab: null,
       setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
+      libroMayorBootTab: null,
+      setLibroMayorBootTab: (libroMayorBootTab) => set({ libroMayorBootTab }),
       facturasBootSufijo: null,
       setFacturasBootSufijo: (facturasBootSufijo) => set({ facturasBootSufijo }),
       facturasBootVista: null,

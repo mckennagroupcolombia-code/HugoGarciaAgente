@@ -4496,3 +4496,288 @@ Detalle en vivo: https://bot.mckennagroup.co/app
  create mode 100644 sqlite3
  create mode 100644 tests/test_alegra_catalogo_db.py
 [2026-09-06 23:00:02] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-06 23:00'
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 526 | Envíos nuevos consultados: 60 | Resueltos: 59 | Sin resolver: 1 | Aún no despachados: 0
+   Total municipios acumulados: 101
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-GLIVEGLt
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 200 exactos, 27 alias, 67 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 232/294 combos SIIGO tienen publicación (se ocultan 62)
+INFO: Catálogo listo: 21 categorías, 178 fichas (33 con varias presentaciones), 232 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+   25 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 15 | Sospechosos (>2×): 10
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   145 órdenes canceladas en la ventana.
+   4221 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3386 packs con factura).
+   🔴 FV-2-71049: Error al crear nota crédito en Siigo: {"Status":400,"Errors":[{"Code":"read_only","Message":"Your Siigo Nube product is in read-only mode.","Params":[],"Detail":"Check the API documentation: https://developer.siigo.com/introduction/codigos-de-error/read_only"}]}
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 1 errores.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Reporte enviado a WhatsApp con éxito.
+[2026-09-07T07:45:01] resumen_costos_llm:
+💸 *Costos IA vía API — resumen semanal*
+Semana 2026-09-01 → 2026-09-07
+Total: *US$3.35* en 258 llamadas (promedio US$0.48/día)
+Día más alto: 2026-09-06 con US$0.72
+*Por canal:*
+  • WhatsApp/Web clientes: US$3.17
+  • Preventa MeLi: US$0.16
+  • plantilla_etiqueta_vision: US$0.02
+  • facturacion_extraccion: US$0.01
+*Por modelo:*
+  • claude-sonnet-4-6: US$2.10
+  • claude-sonnet-5: US$1.23
+  • gemini-2.5-flash: US$0.02
+
+Límites: alerta US$1.00/día, bloqueo US$3.00/día. Detalle diario en el monitor: http://localhost:3000/monitor
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo de sistemas
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[2026-09-07T08:15:52] publicidad_recomendaciones: pausar=30 revisar=70 ok=50 alertas_campanas=115
+✅ Centro de Mando (tickets DB) inicializado
+📢 *Publicidad MeLi — revisión de ACOS*
+Período: últimos 30 días
+🔴 Pausar: *30* productos ($1,907,358 COP)
+🟠 Revisar: *70* productos ($633,840 COP)
+🟢 OK: 50 dentro de objetivo para su rotación
+ℹ️ 21 sin dato de rotación (evaluados conservador)
+
+Top candidatos a pausar:
+• Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro — $690,525 COP, ACOS 51.2%
+• Manteca De Cacao 1 Kg  — $70,685 COP, ACOS 124.7%
+• Retinol 5% 30 Ml Noche — $67,461 COP, ACOS 105.7%
+• Aceite De Jojoba — $29,155 COP, ACOS 116.6%
+• Sharomix 705 Conservante Natural Cosmético 50 Ml — $25,171 COP, ACOS 136.1%
+
+📥 *31* con venta real, falta migrar a una campaña:
+• Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura → Media rotación
+• Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado → Alta rotación
+• Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt → Alta rotación
+• Manteca De Karité Orgánica Amarilla Sin Refinar 250 Gr → Media rotación
+• Ácido Azelaico Polvo 10 G Todo Tipo De Piel → Media rotación
+
+⏸ *17* ya migrados sin ninguna venta — pausar, no reasignar:
+• Cera Carnauba   500gr (Baja rotación)
+• Arcilla Amarilla 250 Gr Todo Tipo De Piel (Baja rotación)
+• Sulfato De Hierro Heptahidratado /sulfato Ferroso 500 Gr Ferroso (Media rotación)
+• Cera Carnauba   250 Gr (Baja rotación)
+• Coco Deshidratado Hilos Puro 500g (Baja rotación)
+
+🔀 *67* cambiaron de rotación, mover de campaña:
+• Creatina Monohidrato 500g N/a — Baja rotación → Alta rotación
+• D-pantenol Vitamina B5 75% — Media rotación → Alta rotación
+• Retinol 5% 30 Ml Noche — Alta rotación → Media rotación
+• Carbón Activado Pellets Filtro Olores 800g — Baja rotación → Alta rotación
+• Cafeina Anhidra 500 Gr  Cafeína — Media rotación → Baja rotación
+
+(Ya había un ticket abierto de esta revisión — no se duplica.)
+Detalle completo: /app → Contabilidad → Publicidad
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado por WhatsApp
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ [MELI] Error listando órdenes 'paid' (offset 450): 429 {"message":"local_rate_limited","status":429}
+
+[2026-09-07T08:21:29] archivar_gasto_ads: 12 semanas revisadas, 2 archivadas en esta corrida, 0 sin dato y por vencerse.
+✅ Todas las semanas dentro de la ventana de 90 días están archivadas.
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Token de Mercado Libre refrescado exitosamente.
+ℹ️ [STOCK] Omitidas 21 publicaciones closed/inactive (ya no operables en MeLi).
+ℹ️ [STOCK] +227 publicaciones activas/pausadas MeLi no listadas en Sheets añadidas al resumen.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+Resumen: agotados=137 criticos=44 bajos=78 divergentes=0
+✅ Reporte enviado a WhatsApp con éxito.
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+Traceback (most recent call last):
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 63, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/mckg/mi-agente/scripts/analisis_competencia_precios_cron.py", line 40, in main
+    analisis = ejecutar_analisis_competencia(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 1415, in ejecutar_analisis_competencia
+    base = nuestros_mas_vendidos(dias=dias, top_n=top_n, consulta=consulta)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/tools/analisis_competencia_precios.py", line 1136, in nuestros_mas_vendidos
+    ventas = obtener_ventas_meli_por_item(dias=dias, refresh=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mckg/mi-agente/app/sync.py", line 1098, in obtener_ventas_meli_por_item
+    raise RuntimeError(
+RuntimeError: MeLi orders/search HTTP 429: {"status":429,"message":"local_rate_limited"}
+
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 7) no es día de pago de nómina (15 o fin de mes).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-07T18:00:01] resumen_actividad_sede_sur: 48 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 17 nuevas · 11 completadas · 13 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 9 nuevas, 4 completadas
+• Victor Garcia: 3 nuevas, 3 completadas
+• Gloria Stella: 2 nuevas, 2 completadas
+• Administrador: 3 nuevas, 0 completadas
+• Cynthia Ruiz: 0 nuevas, 2 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-07) no es el último día del mes.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

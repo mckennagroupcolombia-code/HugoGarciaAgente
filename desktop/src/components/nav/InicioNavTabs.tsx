@@ -18,8 +18,8 @@ function puedeVerTabInicio(
 }
 
 /**
- * Navegación de Inicio en el cabezote, a la izquierda de Temas.
- * Une Agenda / Acciones / Solicitudes (Centro de Mando) + Métricas.
+ * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Métricas.
+ * Sustituye el título "Agenda" para no repetir el texto.
  */
 export default function InicioNavTabs() {
   const panel = useAppStore((s) => s.panel);
@@ -73,7 +73,7 @@ export default function InicioNavTabs() {
   const tabClass = (selected: boolean) => hubTabClass(selected, "mck-hub-tab-etiquetado flex-col");
 
   return (
-    <ScrollableTabList aria-label="Secciones de Inicio" justify="start">
+    <ScrollableTabList aria-label="Secciones de Agenda" justify="start">
       <button
         type="button"
         role="tab"

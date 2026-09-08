@@ -7020,7 +7020,7 @@ def register_routes(app):
                 tipo = None
             q = (request.args.get("q") or "").strip()
             try:
-                limit = min(max(int(request.args.get("limit") or 50), 1), 200)
+                limit = min(max(int(request.args.get("limit") or 50), 1), 500)
             except (TypeError, ValueError):
                 limit = 50
             try:
@@ -7030,6 +7030,9 @@ def register_routes(app):
             data = cat.listar_items(tipo=tipo, q=q, limit=limit, offset=offset)
             data["sync"] = cat.estado_sync()
             data["stale"] = cat.catalogo_stale()
+            from app.services.precios_canales import enriquecer_catalogo_con_precios_meli
+
+            enriquecer_catalogo_con_precios_meli(data)
             return jsonify(data)
         except Exception as e:
             return jsonify({"error": str(e), "items": [], "total": 0}), 500
@@ -7068,6 +7071,40 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/alegra/catalogo/igualar-meli", methods=["POST"])
+    @app.route("/app/api/alegra/catalogo/igualar-meli", methods=["POST"])
+    def api_alegra_catalogo_igualar_meli():
+        """Copia el precio publicado en MeLi al precio de lista Alegra, por SKU."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        raw = body.get("codigos") or body.get("skus") or body.get("sku")
+        if isinstance(raw, str):
+            codigos = [raw]
+        elif isinstance(raw, list):
+            codigos = [str(x) for x in raw if str(x).strip()]
+        else:
+            return jsonify({"ok": False, "error": "Enviá codigos[] con los SKU a igualar"}), 400
+        if not codigos:
+            return jsonify({"ok": False, "error": "Enviá al menos un SKU"}), 400
+        if len(codigos) > 80:
+            return jsonify({"ok": False, "error": "Máximo 80 SKU por tanda"}), 400
+        try:
+            from app.services.precios_canales import igualar_precios_alegra_desde_meli
+            from app.panel_activity import log_line
+
+            log_line(f"▶ catalogo_igualar_meli {len(codigos)} sku")
+            resultado = igualar_precios_alegra_desde_meli(codigos)
+            n = int(resultado.get("total_aplicados") or 0)
+            n_err = len(resultado.get("errores") or [])
+            if n:
+                log_line(f"✔ catalogo_igualar_meli {n} actualizados")
+            if n_err:
+                log_line(f"✖ catalogo_igualar_meli {n_err} errores")
+            return jsonify(resultado)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/alegra/catalogo/<path:codigo>", methods=["GET"])
     @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["GET"])
     def api_alegra_catalogo_detalle(codigo: str):
@@ -7076,18 +7113,25 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         try:
             from app.services import alegra_catalogo_db as cat
+            from app.services.precios_canales import enriquecer_catalogo_con_precios_meli
 
             item = cat.obtener_item(codigo)
             if not item:
                 return jsonify({"ok": False, "error": f"No encontrado: {codigo}"}), 404
-            return jsonify({"ok": True, "item": item})
+            packed = {"items": [item]}
+            enriquecer_catalogo_con_precios_meli(packed)
+            return jsonify({"ok": True, "item": packed["items"][0]})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     def api_alegra_catalogo_editar(codigo: str):
-        """Edita nombre y/o precio lista en Alegra y actualiza el espejo local."""
+        """Edita nombre, precio y/o composición de kit en Alegra + espejo local.
+
+        ``componentes`` solo aplica a combos/kits y solo si Alegra no tiene
+        movimientos asociados (si los hay → 409 + ``bloqueado_movimientos``).
+        """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         body = request.get_json(silent=True) or {}
@@ -7096,10 +7140,23 @@ def register_routes(app):
             return jsonify({"ok": False, "error": "codigo obligatorio"}), 400
         nombre = body.get("nombre")
         precio_raw = body.get("precio_lista", body.get("precio"))
-        if nombre is None and precio_raw is None:
-            return jsonify({"ok": False, "error": "Enviá nombre y/o precio_lista"}), 400
+        componentes = body.get("componentes")
+        if componentes is None:
+            componentes = body.get("components")
+        if nombre is None and precio_raw is None and componentes is None:
+            return jsonify({
+                "ok": False,
+                "error": "Enviá nombre, precio_lista y/o componentes",
+            }), 400
+        if componentes is not None:
+            if not isinstance(componentes, list) or len(componentes) < 1:
+                return jsonify({
+                    "ok": False,
+                    "error": "componentes debe ser una lista con al menos un ítem",
+                }), 400
         try:
             from app.services.alegra import (
+                actualizar_combo_alegra,
                 actualizar_nombre_alegra_producto,
                 actualizar_precio_alegra_producto,
             )
@@ -7107,6 +7164,49 @@ def register_routes(app):
             from app.panel_activity import log_line
 
             cambios: dict = {}
+            comps_guardados = None
+
+            # Composición primero: un solo PUT de kit puede llevar también
+            # nombre/precio; evita dos escrituras si el operador cambia todo.
+            if componentes is not None:
+                log_line(f"▶ catalogo_editar_composicion {codigo}")
+                precio_combo = None
+                if precio_raw is not None:
+                    try:
+                        precio_combo = float(precio_raw)
+                    except (TypeError, ValueError):
+                        return jsonify({"ok": False, "error": "precio_lista inválido"}), 400
+                    if precio_combo < 0:
+                        return jsonify({
+                            "ok": False,
+                            "error": "precio_lista no puede ser negativo",
+                        }), 400
+                r_comp = actualizar_combo_alegra(
+                    codigo,
+                    componentes,
+                    nombre=str(nombre).strip() if nombre is not None else None,
+                    precio_lista=precio_combo,
+                )
+                if not r_comp.get("ok"):
+                    err = r_comp.get("error") or r_comp.get("msg") or "Error composición"
+                    status = 409 if r_comp.get("bloqueado_movimientos") else 400
+                    return jsonify({
+                        "ok": False,
+                        "error": err,
+                        "bloqueado_movimientos": bool(r_comp.get("bloqueado_movimientos")),
+                    }), status
+                if r_comp.get("nombre"):
+                    cambios["nombre"] = r_comp["nombre"]
+                elif nombre is not None:
+                    cambios["nombre"] = str(nombre).strip()
+                if precio_combo is not None:
+                    cambios["precio_lista"] = precio_combo
+                comps_guardados = r_comp.get("componentes") or componentes
+                cambios["componentes"] = comps_guardados
+                # Ya aplicados en el PUT de kit: no repetir nombre/precio abajo
+                nombre = None
+                precio_raw = None
+
             if nombre is not None:
                 nom = str(nombre).strip()
                 if not nom:
@@ -7133,15 +7233,20 @@ def register_routes(app):
                 codigo,
                 name=cambios.get("nombre"),
                 precio_lista=cambios.get("precio_lista"),
+                componentes=comps_guardados,
             )
             if not item:
                 # Si no estaba en el espejo, upsert mínimo
+                tipo = "kit" if (
+                    codigo.upper().startswith("C-") or comps_guardados is not None
+                ) else "product"
                 cat.upsert_item(
                     alegra_id="",
                     reference=codigo,
                     name=cambios.get("nombre") or codigo,
-                    tipo="kit" if codigo.upper().startswith("C-") else "product",
+                    tipo=tipo,
                     precio_lista=float(cambios.get("precio_lista") or 0),
+                    componentes=comps_guardados or [],
                 )
                 item = cat.obtener_item(codigo)
             log_line(f"✔ catalogo_editar {codigo}")
@@ -9117,6 +9222,25 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/ingresos-egresos/manuales", methods=["GET"])
+    @app.route("/app/api/contabilidad/ingresos-egresos/manuales", methods=["GET"])
+    def api_contabilidad_ingresos_egresos_manuales():
+        """Asientos manuales del Libro Mayor propio (socios, préstamos,
+        proveedores, ingreso/egreso manual) en formato de fila de libro, para
+        fusionar con armar_libro() en la tabla de Ingresos/Egresos sin tocarla."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        desde = (request.args.get("desde") or "").strip()
+        hasta = (request.args.get("hasta") or "").strip() or None
+        if not desde:
+            return jsonify({"error": "Parámetro desde requerido (YYYY-MM-DD)"}), 400
+        try:
+            from app.services.contabilidad_ledger import movimientos_manuales_como_libro
+
+            return jsonify({"movimientos": movimientos_manuales_como_libro(desde, hasta)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     # ── Extractos bancarios (vínculo con ingresos/egresos) ─────────────────────
 
     @app.route("/api/contabilidad/extractos", methods=["GET"])
@@ -9328,12 +9452,13 @@ def register_routes(app):
         except ValueError:
             tolerancia = 0.5
         try:
-            from app.services.contabilidad_ledger import armar_libro
+            from app.services.contabilidad_ledger import armar_libro, movimientos_manuales_como_libro
             from app.services.extracto_bancario import sugerencias_auto
 
             libro = armar_libro(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
+            manuales = movimientos_manuales_como_libro(desde, hasta)
             sugerencias = sugerencias_auto(
-                libro["movimientos"], ventana_dias=ventana_dias, tolerancia=tolerancia
+                libro["movimientos"] + manuales, ventana_dias=ventana_dias, tolerancia=tolerancia
             )
             return jsonify({"sugerencias": sugerencias, "avisos": libro.get("avisos") or []})
         except ValueError as e:
@@ -9361,6 +9486,26 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/extractos/pendientes", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/pendientes", methods=["GET"])
+    def api_contabilidad_extractos_pendientes():
+        """Líneas de banco sin ningún vínculo en el rango — bandeja «Pendientes
+        por clasificar» (¿estamos contabilizando todos los movimientos?)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.extracto_bancario import pendientes_por_clasificar
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            try:
+                limit = int(request.args.get("limit") or 200)
+            except ValueError:
+                limit = 200
+            return jsonify({"pendientes": pendientes_por_clasificar(desde, hasta, limit=limit)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/extractos/candidatos", methods=["GET"])
     @app.route("/app/api/contabilidad/extractos/candidatos", methods=["GET"])
     def api_contabilidad_extractos_candidatos():
@@ -9385,6 +9530,438 @@ def register_routes(app):
                     )
                 }
             )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Libro mayor propio (partida doble) — app/services/contabilidad_core.py ─
+    #    PUC, terceros, medios de pago, asientos manuales y plantillas de socios.
+
+    def _cc_uid():
+        u = _panel_tickets_usuario()
+        return int(u["id"]) if u else None
+
+    @app.route("/api/contabilidad/cc/plan-cuentas", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/plan-cuentas", methods=["GET"])
+    def api_cc_plan_cuentas_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import listar_plan_cuentas
+
+            solo_activas = (request.args.get("activas") or "1") != "0"
+            tipo = (request.args.get("tipo") or "").strip() or None
+            return jsonify({"cuentas": listar_plan_cuentas(solo_activas=solo_activas, tipo=tipo)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/plan-cuentas", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/plan-cuentas", methods=["POST"])
+    def api_cc_plan_cuentas_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import crear_cuenta
+
+            return jsonify(crear_cuenta(request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/plan-cuentas/<int:cuenta_id>", methods=["PATCH"])
+    @app.route("/app/api/contabilidad/cc/plan-cuentas/<int:cuenta_id>", methods=["PATCH"])
+    def api_cc_plan_cuentas_actualizar(cuenta_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import actualizar_cuenta
+
+            return jsonify(actualizar_cuenta(cuenta_id, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/terceros", methods=["GET"])
+    def api_cc_terceros_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import listar_terceros
+
+            solo_activos = (request.args.get("activos") or "1") != "0"
+            tipo = (request.args.get("tipo") or "").strip() or None
+            q = (request.args.get("q") or "").strip() or None
+            return jsonify({"terceros": listar_terceros(tipo=tipo, q=q, solo_activos=solo_activos)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/terceros", methods=["POST"])
+    def api_cc_terceros_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import crear_tercero
+
+            return jsonify(crear_tercero(request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tercero_id>", methods=["PATCH"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tercero_id>", methods=["PATCH"])
+    def api_cc_terceros_actualizar(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import actualizar_tercero
+
+            return jsonify(actualizar_tercero(tercero_id, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tercero_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tercero_id>", methods=["DELETE"])
+    def api_cc_terceros_eliminar(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import eliminar_tercero
+
+            return jsonify({"ok": eliminar_tercero(tercero_id)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tercero_id>/saldo", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tercero_id>/saldo", methods=["GET"])
+    def api_cc_terceros_saldo(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import saldo_tercero
+
+            return jsonify(saldo_tercero(tercero_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/medios-pago", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/medios-pago", methods=["GET"])
+    def api_cc_medios_pago_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import listar_medios_pago
+
+            solo_activos = (request.args.get("activos") or "1") != "0"
+            return jsonify({"medios_pago": listar_medios_pago(solo_activos=solo_activos)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/medios-pago", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/medios-pago", methods=["POST"])
+    def api_cc_medios_pago_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import crear_medio_pago
+
+            return jsonify(crear_medio_pago(request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/medios-pago/<int:medio_id>", methods=["PATCH"])
+    @app.route("/app/api/contabilidad/cc/medios-pago/<int:medio_id>", methods=["PATCH"])
+    def api_cc_medios_pago_actualizar(medio_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import actualizar_medio_pago
+
+            return jsonify(actualizar_medio_pago(medio_id, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/movimientos", methods=["GET"])
+    def api_cc_movimientos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import listar_movimientos
+
+            args = request.args
+            try:
+                limit = int(args.get("limit") or 300)
+            except ValueError:
+                limit = 300
+            return jsonify(
+                {
+                    "movimientos": listar_movimientos(
+                        desde=(args.get("desde") or "").strip() or None,
+                        hasta=(args.get("hasta") or "").strip() or None,
+                        tercero_id=int(args["tercero_id"]) if args.get("tercero_id") else None,
+                        cuenta_id=int(args["cuenta_id"]) if args.get("cuenta_id") else None,
+                        tipo_origen=(args.get("tipo_origen") or "").strip() or None,
+                        q=(args.get("q") or "").strip() or None,
+                        incluir_anulados=(args.get("incluir_anulados") or "0") == "1",
+                        limit=limit,
+                    )
+                }
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/movimientos", methods=["POST"])
+    def api_cc_movimientos_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import crear_movimiento
+
+            data = request.get_json(silent=True) or {}
+            mov = crear_movimiento(
+                fecha=data.get("fecha") or "",
+                concepto=data.get("concepto") or "",
+                lineas=data.get("lineas") or [],
+                tercero_id=data.get("tercero_id") or None,
+                referencia=data.get("referencia") or "",
+                tipo_origen=data.get("tipo_origen") or "manual",
+                plantilla_datos=data,
+                created_by=_cc_uid(),
+            )
+            return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>/anular", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>/anular", methods=["POST"])
+    def api_cc_movimientos_anular(movimiento_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import anular_movimiento
+
+            return jsonify(anular_movimiento(movimiento_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>", methods=["DELETE"])
+    def api_cc_movimientos_eliminar(movimiento_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import eliminar_movimiento
+
+            return jsonify({"ok": eliminar_movimiento(movimiento_id)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["POST"])
+    def api_cc_movimientos_comprobante_subir(movimiento_id: int):
+        """Adjunta el sustento de un asiento (foto de transferencia, PDF, etc.)
+        — clave cuando la operación (p.ej. compra courier de un socio) no tiene
+        factura fiscal. Sobrescribe el comprobante anterior si ya había uno."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("archivo") or request.files.get("file")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe el archivo en multipart «archivo»"}), 400
+        contenido = archivo.read()
+        if len(contenido) > 15 * 1024 * 1024:
+            return jsonify({"error": "Archivo demasiado grande (máx 15 MB)"}), 400
+        try:
+            from app.services.contabilidad_core import guardar_comprobante
+
+            mov = guardar_comprobante(
+                movimiento_id, contenido, archivo.filename, archivo.mimetype or ""
+            )
+            return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["GET"])
+    def api_cc_movimientos_comprobante_ver(movimiento_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        try:
+            from app.services.contabilidad_core import ruta_comprobante
+
+            res = ruta_comprobante(movimiento_id)
+            if not res:
+                return jsonify({"error": "Este movimiento no tiene comprobante adjunto"}), 404
+            ruta_abs, mime, nombre = res
+            return send_file(ruta_abs, mimetype=mime, download_name=nombre, as_attachment=False)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["DELETE"])
+    def api_cc_movimientos_comprobante_eliminar(movimiento_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import eliminar_comprobante
+
+            return jsonify({"ok": eliminar_comprobante(movimiento_id)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/cuentas-t/<int:cuenta_id>", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/cuentas-t/<int:cuenta_id>", methods=["GET"])
+    def api_cc_cuenta_t(cuenta_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import mayor_cuenta
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            return jsonify(mayor_cuenta(cuenta_id, desde=desde, hasta=hasta))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/balance-comprobacion", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/balance-comprobacion", methods=["GET"])
+    def api_cc_balance_comprobacion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import balance_comprobacion
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            return jsonify(balance_comprobacion(desde=desde, hasta=hasta))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/informes", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/informes", methods=["GET"])
+    def api_cc_informes():
+        """Resumen para el subtab Informes de Libro Mayor: préstamos vigentes,
+        balance de comprobación del rango y cuántos movimientos bancarios
+        siguen sin clasificar."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import resumen_informes
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            return jsonify(resumen_informes(desde=desde, hasta=hasta))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    _CC_PLANTILLAS = {
+        "compra-socio-amazon": "registrar_compra_socio_amazon",
+        "pago-socio": "registrar_pago_socio",
+        "compra-proveedor": "registrar_compra_proveedor",
+        "ingreso": "registrar_ingreso",
+        "egreso": "registrar_egreso",
+        "prestamo-recibido": "registrar_prestamo_recibido",
+        "prestamo-otorgado": "registrar_prestamo_otorgado",
+    }
+
+    @app.route("/api/contabilidad/cc/plantillas/abono-prestamo", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/plantillas/abono-prestamo", methods=["POST"])
+    def api_cc_plantilla_abono_prestamo():
+        """Abono de un préstamo, en cualquiera de las dos direcciones
+        (payload.direccion = 'recibido' | 'otorgado'). Ruta estática aparte de
+        `_CC_PLANTILLAS` porque despacha a una de dos funciones según el body,
+        no solo por el nombre de la plantilla."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import (
+                registrar_abono_prestamo_otorgado,
+                registrar_abono_prestamo_recibido,
+            )
+
+            payload = request.get_json(silent=True) or {}
+            direccion = str(payload.get("direccion") or "").strip()
+            if direccion == "recibido":
+                fn = registrar_abono_prestamo_recibido
+            elif direccion == "otorgado":
+                fn = registrar_abono_prestamo_otorgado
+            else:
+                return jsonify({"error": "direccion debe ser 'recibido' u 'otorgado'"}), 400
+            mov = fn(payload, created_by=_cc_uid())
+            return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/plantillas/<string:tipo>", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/plantillas/<string:tipo>", methods=["POST"])
+    def api_cc_plantilla(tipo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        fn_nombre = _CC_PLANTILLAS.get(tipo)
+        if not fn_nombre:
+            return jsonify({"error": f"Plantilla desconocida: {tipo}"}), 404
+        try:
+            import app.services.contabilidad_core as cc
+
+            fn = getattr(cc, fn_nombre)
+            payload = request.get_json(silent=True) or {}
+            mov = fn(payload, created_by=_cc_uid())
+            return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/autopost", methods=["POST"])
+    @app.route("/app/api/contabilidad/autopost", methods=["POST"])
+    def api_contabilidad_autopost():
+        """Postea al libro de partida doble lo que armar_libro() trae para el
+        rango pedido (botón «Sincronizar ahora»). Ver app/services/contabilidad_autopost.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        desde = (data.get("desde") or request.args.get("desde") or "").strip()
+        if not desde:
+            return jsonify({"error": "desde requerido (YYYY-MM-DD)"}), 400
+        hasta = (data.get("hasta") or request.args.get("hasta") or "").strip() or None
+        try:
+            from app.services.contabilidad_autopost import auto_postear_periodo
+
+            r = auto_postear_periodo(
+                desde,
+                hasta,
+                incluir_meli=bool(data.get("incluir_meli", True)),
+                incluir_siigo=bool(data.get("incluir_siigo", True)),
+            )
+            return jsonify(r)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -10054,10 +10631,28 @@ def register_routes(app):
         reference = (body.get("reference") or body.get("ref") or "").strip().upper()
         if not reference:
             return jsonify({"ok": False, "message": "Falta la referencia del pedido."}), 400
+        overrides = {}
+        if body.get("cliente") or body.get("billing"):
+            overrides["cliente"] = body.get("cliente") or body.get("billing")
+        if body.get("items") or body.get("lineas"):
+            overrides["items"] = body.get("items") or body.get("lineas")
+        if body.get("shipping") is not None or body.get("shipping_cost") is not None:
+            overrides["shipping"] = (
+                body.get("shipping")
+                if body.get("shipping") is not None
+                else body.get("shipping_cost")
+            )
+        persistir = body.get("persistir")
+        if persistir is None:
+            persistir = body.get("persistir_overrides", True)
         try:
             from app.tools.web_pedidos import marcar_solicitud_facturacion
 
-            ok, message = marcar_solicitud_facturacion(reference)
+            ok, message = marcar_solicitud_facturacion(
+                reference,
+                overrides=overrides or None,
+                persistir_overrides=bool(persistir),
+            )
             payload = {"ok": ok, "message": message, "reference": reference}
             if not ok:
                 payload["error"] = message

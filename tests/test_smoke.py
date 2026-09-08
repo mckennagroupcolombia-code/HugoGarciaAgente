@@ -1000,6 +1000,77 @@ def test_emitir_factura_siigo_pedido_web_success(monkeypatch, tmp_path):
     assert row["siigo_invoice_emitted_at"]
 
 
+def test_emitir_factura_web_con_overrides_cliente_y_sku(monkeypatch, tmp_path):
+    import json
+    import sqlite3
+
+    from app.services import alegra
+    from app.tools import web_pedidos as wp
+
+    db_path = tmp_path / "orders.db"
+    monkeypatch.setattr(wp, "ORDERS_DB", db_path)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_8500", raising=False)
+    _insert_web_order_for_siigo_test(db_path)
+    monkeypatch.setattr(
+        alegra, "buscar_producto_alegra_por_referencia", lambda sku: {"id": sku, "name": sku, "price": 0}
+    )
+    captured = {}
+
+    def fake_crear(**kwargs):
+        captured.update(kwargs)
+        return {
+            "ok": True,
+            "invoice_id": "77",
+            "number": "FE77",
+            "status": "Accepted",
+            "cufe": "CUFE77",
+            "stamp": {"status": "Accepted", "cufe": "CUFE77"},
+            "url": "https://app.alegra.com/invoice/view/id/77",
+            "pdf_path": None,
+        }
+
+    monkeypatch.setattr(alegra, "crear_factura_venta_alegra", fake_crear)
+
+    ok, msg = wp.emitir_factura_siigo_pedido_web(
+        "MCKG-ABC12336E",
+        overrides={
+            "cliente": {
+                "nombre": "Cliente Corregido SAS",
+                "nit": "900123456",
+                "email": "fe@ejemplo.com",
+                "telefono": "3001112233",
+                "direccion": "Calle 1 # 2-3",
+                "ciudad": "Bogotá",
+            },
+            "items": [
+                {"ref": "C-NUEVO100g", "name": "Producto nuevo", "qty": 1, "price": 10000},
+            ],
+            "shipping": 5000,
+        },
+        persistir_overrides=True,
+    )
+
+    assert ok is True
+    assert "FE77" in msg
+    assert captured["nombre_cliente"] == "Cliente Corregido SAS"
+    assert captured["identificacion"] == "900123456"
+    assert captured["email"] == "fe@ejemplo.com"
+    assert [p["codigo"] for p in captured["productos"]] == ["C-NUEVO100g", "WEB-ENVIO-5000"]
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    row = con.execute(
+        "SELECT buyer_name, buyer_email, items_json FROM orders WHERE reference = 'MCKG-ABC12336E'"
+    ).fetchone()
+    con.close()
+    assert row["buyer_name"] == "Cliente Corregido SAS"
+    assert row["buyer_email"] == "fe@ejemplo.com"
+    data = json.loads(row["items_json"])
+    assert data["items"][0]["ref"] == "C-NUEVO100g"
+    assert data["billing"]["nit"] == "900123456"
+    assert float(data["shipping"]) == 5000.0
+
+
 def test_emitir_factura_siigo_pedido_web_no_duplica(monkeypatch, tmp_path):
     import sqlite3
 
@@ -1766,4 +1837,59 @@ def test_wa_metricas_calcular(tmp_path, monkeypatch) -> None:
     assert out["calificacion"]["humano"]["nota"] >= 0
     assert out["ventas"]["embudo"]
     assert out["glosario"]
+
+
+def test_api_alegra_catalogo_cruza_precio_meli(monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok-cat-meli")
+    monkeypatch.setattr(
+        "app.services.alegra_catalogo_db.listar_items",
+        lambda **_kw: {
+            "items": [
+                {
+                    "reference": "C-X",
+                    "name": "X",
+                    "type": "kit",
+                    "precio_lista": 10000,
+                    "unit_cost": 0,
+                    "status": "active",
+                }
+            ],
+            "total": 1,
+            "synced_at": None,
+            "limit": 50,
+            "offset": 0,
+            "conteos": {"product": 0, "kit": 1},
+        },
+    )
+    monkeypatch.setattr("app.services.alegra_catalogo_db.estado_sync", lambda: {})
+    monkeypatch.setattr("app.services.alegra_catalogo_db.catalogo_stale", lambda: False)
+    monkeypatch.setattr(
+        "app.services.precios_canales.mapa_precios_meli_por_sku",
+        lambda: (
+            {
+                "C-X": {
+                    "precio_meli": 12000.0,
+                    "meli_id": "MCO1",
+                    "meli_estado": "active",
+                }
+            },
+            "2026-09-07T12:00:00",
+        ),
+    )
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok-cat-meli"}
+    with app.test_client() as c:
+        assert c.get("/api/alegra/catalogo").status_code == 401
+        for path in ("/api/alegra/catalogo", "/app/api/alegra/catalogo"):
+            r = c.get(path + "?tipo=kit&limit=50", headers=hdr)
+            assert r.status_code == 200, path
+            body = r.get_json()
+            assert body["items"][0]["precio_meli"] == 12000
+            assert body["items"][0]["meli_sincronizado"] is False
+            assert body["meli"]["desincronizados"] == 1
+        assert c.post("/api/alegra/catalogo/igualar-meli", json={"codigos": ["C-X"]}).status_code == 401
 

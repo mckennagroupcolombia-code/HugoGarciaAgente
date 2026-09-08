@@ -116,6 +116,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Acumula día a día en qué municipios reales se despachan pedidos de MercadoLibre (GET /shipments/{id} por envío nuevo), para la sección \"¿A dónde hemos llegado?\" del inicio de la tienda web. No hay backfill retroactivo: solo crece hacia adelante.",
         "script": "scripts/actualizar_cobertura_meli_cron.py",
     },
+    "contabilidad_autopost": {
+        "nombre": "Auto-posteo contable (libro de partida doble)",
+        "descripcion": "Postea al libro mayor propio (Contabilidad → Libro Mayor) las ventas MeLi/web/Siigo, compras, compras al exterior, servicios, impuestos y cuotas de créditos que ya agrega el libro operativo (Contabilidad → Ingresos y Egresos), para que el balance de comprobación refleje todo el negocio. Ventana móvil de los últimos días (default 10); reprocesar no duplica.",
+        "script": "scripts/contabilidad_autopost_cron.py",
+    },
 }
 
 

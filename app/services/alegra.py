@@ -196,9 +196,124 @@ def buscar_producto_alegra_por_referencia(sku: str):
         # relacion_codigos_meli_siigo.py, precios_canales.py) no necesiten reescribirse:
         "sku": sku, "nombre": item.get("name"), "precio": precio, "unidad": unidad,
         "referencia": item.get("reference", sku), "stock_siigo": None,
+        # Metadatos útiles para liberar códigos al recrear combos/productos:
+        "alegra_id": item.get("id"),
+        "type": (item.get("type") or "").strip().lower() or "simple",
+        "status": (item.get("status") or "active").strip().lower() or "active",
     }
     _producto_cache[sku] = out
     return out
+
+
+def _liberar_reference_alegra_para_recrear(
+    codigo: str,
+    *,
+    headers: dict,
+    tipo_deseado: str,
+) -> dict:
+    """Si ``codigo`` está ocupado por un ítem que no sirve para recrear, lo renombra.
+
+    Alegra no deja borrar ítems con documentos ni cambiar `type` (product↔kit).
+    Tras «eliminar» (a menudo solo inactivar) el código sigue ocupado y el alta
+    nueva falla con «ya existe».
+
+    Reglas:
+      - Activo del mismo tipo deseado → no liberar (sigue siendo duplicado real).
+      - Inactivo, u otro tipo (ej. product cuando se quiere kit) → renombrar a
+        ``{codigo}-LEGACY`` (o con prefijo si hace falta) + inactive.
+
+    Retorna ``{liberado: bool, motivo?, legacy_reference?, item_id?}``.
+    """
+    codigo = (codigo or "").strip()
+    if not codigo:
+        return {"liberado": False, "motivo": "codigo vacío"}
+    tipo_deseado = (tipo_deseado or "").strip().lower()
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": codigo, "limit": 5},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"liberado": False, "motivo": f"red: {e}"}
+    if res.status_code != 200:
+        return {"liberado": False, "motivo": f"GET {res.status_code}"}
+    hallados = res.json() or []
+    if not hallados:
+        return {"liberado": False, "motivo": "libre"}
+
+    item = hallados[0]
+    item_id = item.get("id")
+    tipo = (item.get("type") or "").strip().lower() or "simple"
+    status = (item.get("status") or "active").strip().lower() or "active"
+    # Alegra: kit vs simple/product
+    mismo_tipo = (
+        (tipo_deseado == "kit" and tipo == "kit")
+        or (tipo_deseado in ("simple", "product") and tipo in ("simple", "product"))
+    )
+    if status == "active" and mismo_tipo:
+        return {
+            "liberado": False,
+            "motivo": "activo_mismo_tipo",
+            "item_id": item_id,
+            "type": tipo,
+            "status": status,
+        }
+
+    # Generar reference legacy libre
+    base = f"{codigo}-LEGACY"
+    legacy = base[:45]
+    for n in range(0, 20):
+        cand = (base if n == 0 else f"{codigo}-LEGACY{n}")[:45]
+        chk = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": cand, "limit": 1},
+            timeout=12,
+        )
+        if chk.status_code == 200 and not (chk.json() or []):
+            legacy = cand
+            break
+
+    old_name = (item.get("name") or codigo).strip()
+    payload = {
+        "reference": legacy,
+        "status": "inactive",
+        "name": f"{old_name} (LEGACY — NO USAR)"[:150],
+    }
+    try:
+        put = requests.put(
+            f"{_ALEGRA_BASE}/items/{item_id}",
+            headers=headers,
+            json=payload,
+            timeout=25,
+        )
+    except requests.RequestException as e:
+        return {"liberado": False, "motivo": f"PUT red: {e}", "item_id": item_id}
+    if put.status_code != 200:
+        return {
+            "liberado": False,
+            "motivo": f"PUT {put.status_code}: {(put.text or '')[:180]}",
+            "item_id": item_id,
+        }
+
+    _producto_cache.pop(codigo, None)
+    _producto_cache.pop(legacy, None)
+    try:
+        from app.services.alegra_catalogo_db import borrar_item_local
+
+        borrar_item_local(codigo)
+    except Exception:
+        pass
+    return {
+        "liberado": True,
+        "motivo": "renombrado_legacy",
+        "legacy_reference": legacy,
+        "item_id": item_id,
+        "type_anterior": tipo,
+        "status_anterior": status,
+    }
 
 
 def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> float:
@@ -1872,17 +1987,24 @@ def crear_producto_en_alegra(producto: dict) -> dict:
         return {"ok": False, "error": str(e)}
 
     existente = buscar_producto_alegra_por_referencia(codigo)
+    liberacion = None
     if existente:
-        return {
-            "ok": False,
-            "error": f"El código {codigo} ya existe en Alegra",
-            "siigo_producto": {
-                "codigo": existente.get("sku") or codigo,
-                "nombre": existente.get("nombre") or existente.get("name") or "",
-                "unidad": existente.get("unidad") or "",
-                "activo": True,
-            },
-        }
+        # Si está inactivo (o es kit cuando queremos producto), liberar reference.
+        liberacion = _liberar_reference_alegra_para_recrear(
+            codigo, headers=headers, tipo_deseado="simple",
+        )
+        if not liberacion.get("liberado"):
+            return {
+                "ok": False,
+                "error": f"El código {codigo} ya existe en Alegra",
+                "siigo_producto": {
+                    "codigo": existente.get("sku") or codigo,
+                    "nombre": existente.get("nombre") or existente.get("name") or "",
+                    "unidad": existente.get("unidad") or "",
+                    "activo": (existente.get("status") or "active") == "active",
+                },
+            }
+        _producto_cache.pop(codigo, None)
 
     try:
         precio_vu = float(producto.get("precio_unitario") or 0)
@@ -1969,9 +2091,17 @@ def crear_producto_en_alegra(producto: dict) -> dict:
             pass
         return {
             "ok": True,
-            "mensaje": f"Producto {codigo} creado en Alegra",
+            "mensaje": (
+                f"Producto {codigo} creado en Alegra"
+                + (
+                    f" (se liberó {liberacion.get('legacy_reference')} del ítem anterior)"
+                    if liberacion and liberacion.get("liberado")
+                    else ""
+                )
+            ),
             "alegra_id": data.get("id"),
             "siigo_id": data.get("id"),
+            "liberacion": liberacion if liberacion and liberacion.get("liberado") else None,
             "siigo_producto": resumen,
         }
     return {"ok": False, "error": f"Alegra POST error {r.status_code}: {r.text[:300]}"}
@@ -2018,15 +2148,44 @@ def crear_combo_en_alegra(
     except RuntimeError as e:
         return {"ok": False, "error": str(e)}
 
-    # Duplicado del código
-    existente = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": codigo_limpio}, timeout=15)
+    # Duplicado del código — si quedó un product inactivo (o simple activo que
+    # no se pudo borrar por documentos), liberar el reference y permitir el kit.
+    existente = requests.get(
+        f"{_ALEGRA_BASE}/items",
+        headers=headers,
+        params={"reference": codigo_limpio},
+        timeout=15,
+    )
+    liberacion = None
     if existente.status_code == 200 and existente.json():
-        ex = existente.json()[0]
-        return {
-            "ok": False,
-            "error": f"El código {codigo_limpio} ya existe en Alegra",
-            "siigo_producto": {"codigo": ex.get("reference", codigo_limpio), "nombre": ex.get("name", ""), "activo": (ex.get("status") or "active") == "active"},
-        }
+        liberacion = _liberar_reference_alegra_para_recrear(
+            codigo_limpio, headers=headers, tipo_deseado="kit",
+        )
+        if not liberacion.get("liberado"):
+            ex = existente.json()[0]
+            return {
+                "ok": False,
+                "error": (
+                    f"El código {codigo_limpio} ya existe en Alegra"
+                    + (
+                        " (activo como combo)"
+                        if (ex.get("type") or "").lower() == "kit"
+                        else ""
+                    )
+                    + (
+                        f". No se pudo liberar: {liberacion.get('motivo')}"
+                        if liberacion.get("motivo") not in (None, "activo_mismo_tipo", "libre")
+                        else ""
+                    )
+                ),
+                "siigo_producto": {
+                    "codigo": ex.get("reference", codigo_limpio),
+                    "nombre": ex.get("name", ""),
+                    "activo": (ex.get("status") or "active") == "active",
+                    "type": "Combo" if (ex.get("type") or "").lower() == "kit" else "Product",
+                },
+                "bloqueado_existente": True,
+            }
 
     subitems = []
     for c, qty in comps_raw:
@@ -2073,8 +2232,16 @@ def crear_combo_en_alegra(
             pass
         return {
             "ok": True,
-            "mensaje": f"Combo {codigo_limpio} creado en Alegra",
+            "mensaje": (
+                f"Combo {codigo_limpio} creado en Alegra"
+                + (
+                    f" (se liberó {liberacion.get('legacy_reference')} del ítem anterior)"
+                    if liberacion and liberacion.get("liberado")
+                    else ""
+                )
+            ),
             "alegra_id": data.get("id"),
+            "liberacion": liberacion if liberacion and liberacion.get("liberado") else None,
             "siigo_producto": {
                 "codigo": data.get("reference", codigo_limpio),
                 "nombre": data.get("name", nombre_limpio),

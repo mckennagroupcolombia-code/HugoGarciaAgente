@@ -485,6 +485,7 @@ function TablaPeriodos({ buckets, actual }: { buckets: SaludBucket[]; actual: Sa
 
 function EstadoAhoraTiles({ ads, saldo }: { ads: SaludAdsRecomendaciones | null; saldo: SaludBancario | null }) {
   const setPanel = useAppStore((s) => s.setPanel);
+  const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -508,7 +509,10 @@ function EstadoAhoraTiles({ ads, saldo }: { ads: SaludAdsRecomendaciones | null;
       )}
       <button
         type="button"
-        onClick={() => setPanel("ingresos-egresos")}
+        onClick={() => {
+          setLibroMayorBootTab("diario");
+          setPanel("libro-mayor");
+        }}
         className="rounded-lg border border-border bg-surface px-3 py-2.5 text-left hover:border-accent transition"
       >
         <p className="text-[10px] text-muted uppercase tracking-wide">Saldo bancario</p>

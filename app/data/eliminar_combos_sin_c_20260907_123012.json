@@ -1,0 +1,234 @@
+{
+  "ts": "2026-09-07T12:30:12",
+  "criterio": "kits Alegra cuya reference no empieza por C-",
+  "total": 16,
+  "eliminados": 12,
+  "inactivados": 4,
+  "errores": 0,
+  "items": [
+    {
+      "reference": "ACERIC250mL",
+      "id": "558",
+      "name": "ACEITE RICINO 250mL",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "ACERIC250mL no se pudo borrar (tiene documentos); quedó inactivo en Alegra",
+        "codigo": "ACERIC250mL",
+        "modo": "inactivado",
+        "alegra_id": "12"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "ACISAL100g",
+      "id": "550",
+      "name": "ACIDO SALICILICO 100g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "ACISAL100g eliminado de Alegra",
+        "codigo": "ACISAL100g",
+        "modo": "eliminado",
+        "alegra_id": "550"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "AGUDES250mL",
+      "id": "539",
+      "name": "AGUA DESTILADA 250mL",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "AGUDES250mL no se pudo borrar (tiene documentos); quedó inactivo en Alegra",
+        "codigo": "AGUDES250mL",
+        "modo": "inactivado",
+        "alegra_id": "39"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "ALGSODLACCAL50g",
+      "id": "534",
+      "name": "ALGINATO DE SODIO LACTATO DE CALCIO",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "ALGSODLACCAL50g eliminado de Alegra",
+        "codigo": "ALGSODLACCAL50g",
+        "modo": "eliminado",
+        "alegra_id": "534"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "ALMNAL500g",
+      "id": "533",
+      "name": "ALMENDRA NATURAL 500g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "ALMNAL500g eliminado de Alegra",
+        "codigo": "ALMNAL500g",
+        "modo": "eliminado",
+        "alegra_id": "533"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "BICSOD500g",
+      "id": "547",
+      "name": "BICARBONATO SODIO 500g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "BICSOD500g no se pudo borrar (tiene documentos); quedó inactivo en Alegra",
+        "codigo": "BICSOD500g",
+        "modo": "inactivado",
+        "alegra_id": "29"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "CREMON100g",
+      "id": "554",
+      "name": "CREATINA MONOHIDRATO 100g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "CREMON100g eliminado de Alegra",
+        "codigo": "CREMON100g",
+        "modo": "eliminado",
+        "alegra_id": "108"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "CREMON250g",
+      "id": "555",
+      "name": "CREATINA MONOHIDRATO 250g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "CREMON250g eliminado de Alegra",
+        "codigo": "CREMON250g",
+        "modo": "eliminado",
+        "alegra_id": "14"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "DEXKg",
+      "id": "549",
+      "name": "DEXTROSA KG",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "DEXKg eliminado de Alegra",
+        "codigo": "DEXKg",
+        "modo": "eliminado",
+        "alegra_id": "119"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "EXTTEMATVER100g",
+      "id": "553",
+      "name": "EXTRACTO TE VERDE MATCHA 100g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "EXTTEMATVER100g eliminado de Alegra",
+        "codigo": "EXTTEMATVER100g",
+        "modo": "eliminado",
+        "alegra_id": "130"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "INU250g",
+      "id": "556",
+      "name": "INULINA 250g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "INU250g eliminado de Alegra",
+        "codigo": "INU250g",
+        "modo": "eliminado",
+        "alegra_id": "118"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "L-AMIPRO100g",
+      "id": "536",
+      "name": "L AMINOACIDO PROLINA",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "L-AMIPRO100g eliminado de Alegra",
+        "codigo": "L-AMIPRO100g",
+        "modo": "eliminado",
+        "alegra_id": "536"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "LANOLINA40g",
+      "id": "535",
+      "name": "LANOLINA 40g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "LANOLINA40g eliminado de Alegra",
+        "codigo": "LANOLINA40g",
+        "modo": "eliminado",
+        "alegra_id": "535"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "MANCACREF500g",
+      "id": "537",
+      "name": "MANTECA CACAO REFINADA 500g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "MANCACREF500g eliminado de Alegra",
+        "codigo": "MANCACREF500g",
+        "modo": "eliminado",
+        "alegra_id": "537"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "MANCACREFKg",
+      "id": "548",
+      "name": "MANTECA CACAO REFINADA KG",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "MANCACREFKg no se pudo borrar (tiene documentos); quedó inactivo en Alegra",
+        "codigo": "MANCACREFKg",
+        "modo": "inactivado",
+        "alegra_id": "45"
+      },
+      "borrado_local": true
+    },
+    {
+      "reference": "VITCACIASC100g",
+      "id": "551",
+      "name": "VITAMINA C ACIDO ASCORBICO 100g",
+      "status": "active",
+      "resultado": {
+        "ok": true,
+        "msg": "VITCACIASC100g eliminado de Alegra",
+        "codigo": "VITCACIASC100g",
+        "modo": "eliminado",
+        "alegra_id": "107"
+      },
+      "borrado_local": true
+    }
+  ]
+}

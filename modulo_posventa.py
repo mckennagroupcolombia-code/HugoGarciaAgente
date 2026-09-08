@@ -4,7 +4,10 @@ import json
 from app.utils import refrescar_token_meli, obtener_seller_id_meli
 
 
-def _post_mensaje_pack(pack_id, vendedor_id, comprador_id, texto, headers, order_resource_id=None):
+def _post_mensaje_pack(
+    pack_id, vendedor_id, comprador_id, texto, headers, order_resource_id=None,
+    attachments=None,
+):
     url_msg = (
         f"https://api.mercadolibre.com/messages/packs/{pack_id}/"
         f"sellers/{vendedor_id}?tag=post_sale"
@@ -28,6 +31,10 @@ def _post_mensaje_pack(pack_id, vendedor_id, comprador_id, texto, headers, order
             "text": str(texto),
         }
     )
+
+    if attachments:
+        for payload in payloads:
+            payload["attachments"] = list(attachments)
 
     for idx, payload in enumerate(payloads, start=1):
         response = requests.post(url_msg, json=payload, headers=headers, timeout=20)
@@ -63,10 +70,12 @@ def _inferir_comprador_desde_mensajes(pack_id, vendedor_id, headers):
     return None
 
 
-def responder_mensaje_posventa(order_id, texto, comprador_id=None):
+def responder_mensaje_posventa(order_id, texto, comprador_id=None, attachments=None):
     """
     Envía respuesta postventa por MeLi.
     Acepta order_id o pack_id. Si recibe pack_id, usa comprador_id de la cola.
+    `attachments`: lista opcional de "filename" ya subidos vía
+    app.services.meli.subir_adjunto_mensaje_meli (máx. 25 por mensaje, límite de MeLi).
     """
     try:
         # 0. LIMPIEZA CRÍTICA: Convertimos "2000015703413240.0" -> 2000015703413240 -> "2000015703413240"
@@ -98,6 +107,7 @@ def responder_mensaje_posventa(order_id, texto, comprador_id=None):
                 texto,
                 headers,
                 order_resource_id=clean_id,
+                attachments=attachments,
             )
 
         print(
@@ -119,6 +129,7 @@ def responder_mensaje_posventa(order_id, texto, comprador_id=None):
             comprador_id_final,
             texto,
             headers,
+            attachments=attachments,
         )
             
     except Exception as e:

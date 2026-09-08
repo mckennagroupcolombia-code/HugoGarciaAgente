@@ -741,7 +741,7 @@ function PerfilTab({
 // ── BottomNav ──────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
-  { id: "home", label: "Inicio", icon: "home" },
+  { id: "home", label: "Agenda", icon: "home" },
   { id: "chat", label: "Hugo", icon: "chat" },
   { id: "mensajes", label: "Mensajes", icon: "inbox" },
   { id: "acciones", label: "Rápido", icon: "lightning" },

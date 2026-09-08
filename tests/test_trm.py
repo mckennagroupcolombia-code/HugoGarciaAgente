@@ -140,6 +140,38 @@ def test_obtener_dolar_hora_usa_cache():
     assert trm.call_count == 1
 
 
+def test_obtener_dolar_hora_fin_de_semana_no_congela_cambio():
+    """Lunes/festivo: BanRep publica el viernes con vigencia hasta el lunes.
+    `fecha` (consultada) es hoy, pero `vigencia_desde` es el viernes — el cambio
+    debe compararse contra el día anterior real, no quedar en 0% por comparar
+    el valor contra sí mismo (bug: comparaba contra `fecha` en vez de
+    `vigencia_desde`)."""
+    reset_dolar_cache()
+    with (
+        patch(
+            "app.services.trm.obtener_trm",
+            return_value={
+                "valor": 3126.08,
+                "fecha": "2026-09-07",
+                "vigencia_desde": "2026-09-05",
+                "fuente": "banrep",
+            },
+        ),
+        patch(
+            "app.services.trm.obtener_trm_historico",
+            return_value=[
+                {"t": "2026-09-03", "v": 3140.55},
+                {"t": "2026-09-04", "v": 3141.36},
+                {"t": "2026-09-05", "v": 3126.08},
+            ],
+        ),
+    ):
+        out = obtener_dolar_hora(force=True)
+    assert out["valor"] == 3126.08
+    assert out["cambio_abs"] != 0.0
+    assert round(out["cambio_abs"], 2) == round(3126.08 - 3141.36, 2)
+
+
 def test_obtener_dolar_hora_error_sin_trm():
     reset_dolar_cache()
     with (

@@ -250,16 +250,27 @@ Auth: Bearer `CHAT_API_TOKEN` **o** JWT de tickets (operarios con permiso `empaq
 
 Persistencia: `app/data/empaque_evidencia.db` + fotos en `app/data/empaque_uploads/`.
 Panel React: id `empaque` (hub Atención). Permiso `permisos_secciones.empaque`.
+
+## Pedidos tienda web
+
+| Ruta | Método | Entrada | Salida |
+| --- | --- | --- | --- |
+| `/api/pedidos/web` | GET | `q?`, `status?`, `shipping?`, `page?` | `{orders[], total, page, per_page}` |
+| `/api/pedidos/web/facturar` | POST | `reference`, opcional `cliente{nombre,nit,email,telefono,direccion,ciudad}`, `items[{ref,name,qty,price}]`, `shipping?`, `persistir?` (default true) | Emite FE Alegra; overrides se aplican (y se guardan en `orders.db` si `persistir`) antes de facturar. `{ok, message, reference}` |
+
+También `/app/api/pedidos/web*`.
+
 | `/api/panel/logs` | GET/DELETE | query `limit` | `lines` / `ok` |
 | `/api/siigo/productos` | POST | `codigo`, `nombre`, `unidad?`, `precio_costo?`, `precio_venta?`, `iva?` | Crea producto en **Alegra** (ruta `/api/siigo/*` se mantiene por compatibilidad); `{ok, mensaje\|error, siigo_producto?}` |
 | `/api/siigo/productos/buscar` | GET | query `q`, `limit?`, `excluir_combos?` | Búsqueda viva Alegra (o espejo SQLite si sync <24h); `{items[{codigo,nombre,type}], total}` |
 | `/api/siigo/combos` | POST | `codigo`, `nombre`, `componentes[{code,quantity}]`, `precio_lista?`, `iva?` | Crea kit en Alegra; requiere ≥1 componente existente |
 | `/api/siigo/centros-costo` | GET | — | Centros de costo Alegra `{centros[{id,code,name,active}]}` |
-| `/api/alegra/catalogo` | GET | `tipo?` (`product`\|`kit`), `q?`, `limit?`, `offset?` | Espejo local SQLite; `{items, total, synced_at, stale, sync, conteos:{product,kit}}` |
-| `/api/alegra/catalogo/<codigo>` | GET | — | Detalle + `componentes[]` si es kit |
-| `/api/alegra/catalogo/<codigo>` | PUT/PATCH | `{nombre?, precio_lista?}` | Edita en Alegra + espejo local; `{ok, item, cambios}` |
+| `/api/alegra/catalogo` | GET | `tipo?` (`product`\|`kit`), `q?`, `limit?` (máx 500), `offset?` | Espejo local SQLite cruzado por SKU con precio MeLi (caché cobros); `{items` (+`precio_meli`,`meli_id`,`meli_sincronizado`,`meli_sospechoso`), `total`, `synced_at`, `stale`, `sync`, `conteos:{product,kit}`, `meli:{vinculados,desincronizados,sospechosos,sin_publicacion,actualizado_en}`}` |
+| `/api/alegra/catalogo/<codigo>` | GET | — | Detalle + `componentes[]` si es kit + mismos campos MeLi por SKU |
+| `/api/alegra/catalogo/<codigo>` | PUT/PATCH | `{nombre?, precio_lista?, componentes?[{codigo,cantidad}]}` | Edita en Alegra + espejo local. `componentes` solo en kits sin movimientos; si Alegra bloquea → 409 + `bloqueado_movimientos`. `{ok, item, cambios}` |
 | `/api/alegra/catalogo/<codigo>` | DELETE | — | Elimina en Alegra (o inactiva si tiene documentos) y quita del espejo; `{ok, modo, mensaje}` |
 | `/api/alegra/catalogo/sincronizar` | POST | body opcional `{sync:1}` bloqueante | Sync Alegra→SQLite (default en hilo); `{ok, started?, productos?, kits?, sync}` |
+| `/api/alegra/catalogo/igualar-meli` | POST | `{codigos:[sku,…]}` (máx 80) | Copia el precio publicado en MeLi al precio de lista Alegra por SKU; `{ok, aplicados[], omitidos[], errores[], total_aplicados}` |
 
 También existen prefijos `/app/api/siigo/productos`, `/app/api/siigo/combos` y `/app/api/alegra/catalogo*` para el SPA.
 

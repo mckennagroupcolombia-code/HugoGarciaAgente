@@ -527,6 +527,42 @@ Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no ve
 es el puente. Ningún endpoint del módulo llama a un LLM (una extracción de catálogos con Claude sería
 un paso aparte, gateado por `llm_budget`).
 
+### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
+
+Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
+
+```
+app/services/contabilidad_core.py   Libro de partida doble propio: PUC, terceros, medios de
+                                     pago, asientos (débito=crédito validado), cuenta en T,
+                                     balance de comprobación. Plantillas: compra_socio_amazon,
+                                     pago_socio, compra_proveedor, ingreso, egreso,
+                                     prestamo_recibido/otorgado + sus abonos.
+app/services/contabilidad_ledger.py armar_libro() (solo lectura: ventas MeLi/web/Siigo, compras,
+                                     compras exterior, servicios, impuestos, créditos) +
+                                     movimientos_manuales_como_libro() (los asientos manuales de
+                                     arriba, en el mismo formato de fila, para fusionar sin tocar
+                                     armar_libro()).
+app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila de armar_libro()
+                                     a un asiento real (FUENTE_MAPEO fuente→cuenta PUC), dedupe
+                                     por referencia="auto:<hash>". Cron cada 6h
+                                     (scripts/contabilidad_autopost_cron.py, job
+                                     "contabilidad_autopost" en Sistemas → Tareas Programadas) +
+                                     backfill manual (scripts/backfill_contabilidad_autopost.py).
+app/services/extracto_bancario.py   Conciliación bancaria (ya existente): importar extracto,
+                                     vincular/desvincular, sugerencias automáticas,
+                                     pendientes_por_clasificar() (líneas de banco sin vínculo).
+                                     `vincular()` es agnóstica al formato de movimiento_id — un
+                                     hash de armar_libro() o "cc:<id>" de un asiento manual
+                                     funcionan igual.
+```
+
+Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Préstamos**
+(`PrestamosPanel.tsx`, permiso propio no heredado — datos sensibles de socios). Contabilidad →
+**Ingresos y Egresos** fusiona `armar_libro()` con los asientos manuales y agrega la bandeja
+**"Pendientes por clasificar"**: clasificar una línea de banco sin vínculo crea el asiento
+correcto (incl. préstamo) y la vincula en un solo paso. Adjuntar comprobante (`ComprobanteWidget.tsx`,
+compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras courier de un socio.
+
 ---
 
 ## Endpoints Flask
@@ -575,6 +611,11 @@ un paso aparte, gateado por `llm_budget`).
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
+| `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
+| `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
+| `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
+| `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
+| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 
@@ -998,3 +1039,11 @@ WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
 6. **Webhooks asíncronos**: todos los webhooks responden 200 inmediatamente y procesan en hilos daemon.
 
 7. **Deduplicación de preguntas MeLi**: ventana de 5 minutos para evitar procesar la misma pregunta dos veces.
+
+8. **Fuente de verdad contable**: `app/services/contabilidad_core.py` (Libro Mayor propio,
+   partida doble, `balance_comprobacion()`) es la fuente de verdad operativa de la contabilidad
+   de McKenna — ventas, compras, servicios, impuestos y créditos se postean ahí automáticamente
+   (`contabilidad_autopost.py`), y socios/préstamos/proveedores se registran ahí directamente.
+   Alegra sigue recibiendo lo que ya recibía (facturación) y queda como herramienta de
+   consulta/exportación para el contador, no como el sistema donde se lleva el control interno.
+   Ver Flujo J y `docs/agentic/modules/contabilidad.md`.

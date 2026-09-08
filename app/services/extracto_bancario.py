@@ -1253,6 +1253,59 @@ def obtener_extracto(extracto_id: int, *, solo_sin_vincular: bool = False) -> di
     }
 
 
+def pendientes_por_clasificar(
+    desde: str | None = None, hasta: str | None = None, *, limit: int = 200
+) -> list[dict[str, Any]]:
+    """Líneas de banco (de cualquier extracto cargado) sin ningún vínculo, en un
+    rango de fechas — la bandeja "Pendientes por clasificar" de Ingresos/Egresos.
+
+    A diferencia de `obtener_extracto(..., solo_sin_vincular=True)` (un solo
+    extracto), esto cruza todos los extractos del rango — es la vista que
+    responde "¿estamos contabilizando todos los movimientos del banco?"."""
+    ensure_extracto_tables()
+    where = ["v.id IS NULL"]
+    params: list[Any] = []
+    if desde:
+        where.append("m.fecha >= ?")
+        params.append(desde)
+    if hasta:
+        where.append("m.fecha <= ?")
+        params.append(hasta)
+    sql = f"""
+        SELECT m.*, e.banco, e.cuenta, e.nombre AS extracto_nombre, e.archivo_nombre,
+               e.id AS extracto_id
+        FROM extracto_movimientos m
+        JOIN extractos_bancarios e ON e.id = m.extracto_id
+        LEFT JOIN extracto_vinculos v ON v.extracto_mov_id = m.id
+        WHERE {" AND ".join(where)}
+        ORDER BY m.fecha DESC, m.id DESC
+        LIMIT ?
+    """
+    params.append(max(1, min(int(limit), 1000)))
+    with _conn() as con:
+        rows = con.execute(sql, params).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        out.append(
+            {
+                "id": d["id"],
+                "extracto_id": d["extracto_id"],
+                "extracto_nombre": (d.get("extracto_nombre") or "").strip()
+                or (d.get("banco") or "")
+                or (d.get("archivo_nombre") or f"Extracto #{d['extracto_id']}"),
+                "fecha": d["fecha"],
+                "descripcion": d.get("descripcion") or "",
+                "referencia": d.get("referencia") or "",
+                "monto": float(d["monto"] or 0),
+                "tipo": d["tipo"],
+                "banco": d.get("banco") or "",
+                "cuenta": d.get("cuenta") or "",
+            }
+        )
+    return out
+
+
 def eliminar_extracto(extracto_id: int) -> bool:
     ensure_extracto_tables()
     with _conn() as con:

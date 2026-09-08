@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-06T18:00:01"
+    "ultima_ejecucion": "2026-09-07T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -65,6 +65,10 @@
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-07T11:22:27"
+    "ultima_ejecucion": "2026-09-07T22:30:02"
+  },
+  "contabilidad_autopost": {
+    "intervalo_horas": 6,
+    "ultima_ejecucion": null
   }
 }

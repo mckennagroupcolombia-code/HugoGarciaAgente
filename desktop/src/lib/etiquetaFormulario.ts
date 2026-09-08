@@ -8,7 +8,15 @@ import {
   type CampoTextoFichaMp,
   type DatosFichaTecnicaMp,
 } from "./plantillaFichaTecnicaMp";
-import type { ElementoTexto, ElementoVisual, PlantillaVisualDoc } from "./plantillasVisuales";
+import {
+  recolorearElemento,
+  type ElementoImagen,
+  type ElementoTexto,
+  type ElementoVisual,
+  type PlantillaVisualDoc,
+} from "./plantillasVisuales";
+import { generarEAN13, svgToDataUrl } from "./ean13";
+import { PRESENTACIONES_CONOCIDAS } from "./etiquetasCodigosEan";
 
 export const CAMPOS_ETIQUETA_FISICA: readonly CampoTextoFichaMp[] = [
   "nombre",
@@ -26,7 +34,152 @@ export const CAMPOS_ETIQUETA_FISICA: readonly CampoTextoFichaMp[] = [
 ];
 
 export function labelCampoEtiqueta(id: string): string {
-  return CAMPOS_TEXTO_FICHA_MP.find((c) => c.id === id)?.label || id;
+  const cortos: Record<string, string> = {
+    nombre: "NOMBRE",
+    tagline: "CATEGORÍA",
+    concentracionValor: "CONCENTRACIÓN",
+    casNumero: "CAS",
+    origen: "ORIGEN",
+    apariencia: "APARIENCIA",
+    olor: "OLOR",
+    composicion: "COMPOSICIÓN",
+    grado: "GRADO",
+    almacenamiento: "CONSERVACIÓN",
+    peso: "CONTENIDO NETO",
+    ghs: "GHS",
+  };
+  return cortos[id] || CAMPOS_TEXTO_FICHA_MP.find((c) => c.id === id)?.label || id;
+}
+
+/** Recorta a un máximo de palabras (para casillas chicas con tope duro,
+ *  p. ej. "Conservación") — nunca corta a mitad de palabra. */
+export function limitarPalabras(texto: string, maxPalabras: number): string {
+  const palabras = (texto || "").trim().split(/\s+/).filter(Boolean);
+  if (palabras.length <= maxPalabras) return texto;
+  return palabras.slice(0, maxPalabras).join(" ");
+}
+
+/** Bloques del formulario = la etiqueta: título naranja + valor negro. */
+export type BloqueFormularioEtiqueta = {
+  id: string;
+  titulo: string;
+  campo: CampoTextoFichaMp;
+  largo?: boolean;
+  /** Tope duro de palabras (la casilla es chica y comparte grilla con las
+   *  otras 5 — un párrafo largo desborda incluso con autofit). */
+  maxPalabras?: number;
+};
+
+export const BLOQUES_FICHA_GRID: readonly BloqueFormularioEtiqueta[] = [
+  { id: "origen", titulo: "ORIGEN", campo: "origen" },
+  { id: "apariencia", titulo: "APARIENCIA", campo: "apariencia", largo: true },
+  { id: "olor", titulo: "OLOR", campo: "olor" },
+  { id: "composicion", titulo: "COMPOSICIÓN", campo: "composicion", largo: true },
+  { id: "grado", titulo: "GRADO", campo: "grado" },
+  { id: "conservacion", titulo: "CONSERVACIÓN", campo: "almacenamiento", largo: true, maxPalabras: 10 },
+];
+
+export const BLOQUES_SPECS: readonly BloqueFormularioEtiqueta[] = [
+  { id: "concentracion", titulo: "CONCENTRACIÓN", campo: "concentracionValor" },
+  { id: "cas", titulo: "CAS", campo: "casNumero" },
+  { id: "ghs", titulo: "GHS", campo: "ghs" },
+];
+
+/** Tope de palabras por campo (derivado de los bloques) — se aplica también
+ *  al cargar una ficha técnica, no solo al escribir a mano en el formulario. */
+const MAX_PALABRAS_POR_CAMPO: Partial<Record<CampoTextoFichaMp, number>> = Object.fromEntries(
+  [...BLOQUES_FICHA_GRID, ...BLOQUES_SPECS]
+    .filter((b): b is BloqueFormularioEtiqueta & { maxPalabras: number } => Boolean(b.maxPalabras))
+    .map((b) => [b.campo, b.maxPalabras]),
+);
+
+export type LogoLinea = {
+  id: string;
+  label: string;
+  hex: string;
+  archivo: string;
+};
+
+/** Paleta de línea comercial → archivo de logo en Recursos PNG. */
+export const PALETA_LOGO_LINEA: readonly LogoLinea[] = [
+  { id: "aceites-ceras-grasas", label: "Aceites, ceras y grasas", hex: "#FFA500", archivo: "LOGO AMARILLO.png" },
+  { id: "agro", label: "Agro", hex: "#359441", archivo: "logo verde MCKG.png" },
+  { id: "alimentario", label: "Alimentario", hex: "#1F91DC", archivo: "LOGO AZUL.png" },
+  { id: "cosmetica", label: "Cosmética", hex: "#990099", archivo: "LOGO MORADO.png" },
+  { id: "industria", label: "Industria", hex: "#5C6570", archivo: "LOGO GRIS.png" },
+  { id: "laboratorio", label: "Laboratorio", hex: "#865E3C", archivo: "LOGO CAFE.png" },
+];
+
+export function urlLogoRecurso(archivo: string): string {
+  return `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(archivo)}`;
+}
+
+export function logoLineaDesdeSrc(src: string): LogoLinea | undefined {
+  const decoded = decodeURIComponent(src || "");
+  return PALETA_LOGO_LINEA.find((p) => decoded.includes(p.archivo));
+}
+
+export function elementoPorRolCapa(
+  doc: PlantillaVisualDoc,
+  rol: "logo" | "barcode",
+): ElementoImagen | undefined {
+  return doc.elementos.find(
+    (el): el is ElementoImagen => el.type === "image" && el.rolCapa === rol,
+  );
+}
+
+export function eanDesdeSrcBarcode(src: string): string {
+  if (!src || !src.startsWith("data:image/svg+xml")) return "";
+  try {
+    const comma = src.indexOf(",");
+    const meta = src.slice(0, comma);
+    const payload = src.slice(comma + 1);
+    const svg = meta.includes("base64")
+      ? decodeURIComponent(escape(atob(payload)))
+      : decodeURIComponent(payload);
+    const bits = [...svg.matchAll(/>(\d{1,8})</g)].map((m) => m[1]).join("");
+    return bits.replace(/\D/g, "").slice(0, 13);
+  } catch {
+    return "";
+  }
+}
+
+export function srcBarcodeDesdeEan(ean: string): string | null {
+  const r = generarEAN13(ean);
+  return r ? svgToDataUrl(r.svg) : null;
+}
+
+interface CodigoEanBuscable {
+  nombre_producto: string;
+  sku: string;
+  codigo: string;
+}
+
+function normalizarTextoBusqueda(t: string): string {
+  return (t || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/** Filtra códigos EAN por SKU/nombre/código; usado tanto en el formulario
+ *  lateral como en el buscador que se abre al clicar el código de barras
+ *  en el lienzo — una sola definición para no divergir. */
+export function filtrarCodigosEanPorTexto<T extends CodigoEanBuscable>(
+  codigos: T[],
+  query: string,
+  limite = 8,
+): T[] {
+  const t = normalizarTextoBusqueda(query);
+  if (!t) return codigos.slice(0, limite);
+  const partes = t.split(/\s+/).filter(Boolean);
+  return codigos
+    .filter((c) => {
+      const blob = normalizarTextoBusqueda([c.nombre_producto, c.sku, c.codigo].join(" "));
+      return partes.every((p) => blob.includes(p));
+    })
+    .slice(0, limite);
 }
 
 export function textosConCampoProducto(doc: PlantillaVisualDoc): ElementoTexto[] {
@@ -185,11 +338,149 @@ export function aplicarCamposAPlantilla(
   campos: Record<string, string>,
 ): PlantillaVisualDoc {
   const elementos: ElementoVisual[] = doc.elementos.map((el) => {
-    if (el.type !== "text" || !el.campoProducto) return el;
-    if (!(el.campoProducto in campos)) return el;
-    return { ...el, content: campos[el.campoProducto] };
+    if (el.type === "text" && el.campoProducto && el.campoProducto in campos) {
+      const valor = campos[el.campoProducto];
+      const max = MAX_PALABRAS_POR_CAMPO[el.campoProducto as CampoTextoFichaMp];
+      return { ...el, content: max ? limitarPalabras(valor, max) : valor };
+    }
+    return el;
   });
   return { ...doc, elementos };
+}
+
+/** Colores que nunca se tratan como "acento" al detectar el dominante
+ *  (texto de cuerpo en negro/gris, fondos blancos, líneas de contacto…). */
+const NEUTROS_ACENTO = new Set([
+  "",
+  "transparent",
+  "none",
+  "#fff",
+  "#ffffff",
+  "white",
+  "#000",
+  "#000000",
+  "black",
+]);
+
+/**
+ * Color de acento dominante de la plantilla: el más repetido entre
+ * colores de texto/línea/relleno, excluyendo neutros. Sirve como "desde"
+ * al cambiar la línea del logo — en la práctica casi ninguna plantilla usa
+ * el hex exacto de `PALETA_LOGO_LINEA` (todas nacieron con el mismo
+ * naranja de marca fijo, #ffa348, sin importar qué logo llevaban), así que
+ * no basta con comparar contra el hex de la línea actual del logo.
+ */
+function colorAcentoDominante(doc: PlantillaVisualDoc): string | null {
+  const conteo = new Map<string, number>();
+  const sumar = (c?: string) => {
+    const k = (c || "").trim().toLowerCase();
+    if (!k || NEUTROS_ACENTO.has(k)) return;
+    conteo.set(k, (conteo.get(k) ?? 0) + 1);
+  };
+  for (const el of doc.elementos) {
+    if (el.type === "text") sumar(el.color);
+    else if (el.type === "line") sumar(el.stroke);
+    else if (el.type === "rect") {
+      sumar(el.fill);
+      sumar(el.stroke);
+    }
+  }
+  let mejor: string | null = null;
+  let mejorN = 0;
+  for (const [color, n] of conteo) {
+    if (n > mejorN) {
+      mejor = color;
+      mejorN = n;
+    }
+  }
+  return mejor;
+}
+
+/** ¿Aparece este hex en algún texto/línea/relleno de la plantilla? Antes de
+ *  confiar en el hex de la línea "actual" del logo hay que verificar esto:
+ *  si la etiqueta se clonó de una plantilla de otra línea (logo heredado
+ *  "Cosmética" pero acento aún en el naranja de marca universal), el logo
+ *  SÍ mapea a una línea conocida pero ese hex no es el acento real — sin
+ *  esta verificación, `aplicarLogoLinea` cree que ya está en ese color y
+ *  el recambio no encuentra nada que recolorear (se ve el logo cambiar
+ *  pero bordes/títulos se quedan como estaban). */
+function colorUsadoEnElementos(doc: PlantillaVisualDoc, hex: string): boolean {
+  const h = hex.trim().toLowerCase();
+  return doc.elementos.some((el) => {
+    if (el.type === "text") return (el.color || "").trim().toLowerCase() === h;
+    if (el.type === "line") return (el.stroke || "").trim().toLowerCase() === h;
+    if (el.type === "rect") {
+      return (el.fill || "").trim().toLowerCase() === h || (el.stroke || "").trim().toLowerCase() === h;
+    }
+    return false;
+  });
+}
+
+/** Cambia el logo Y recolorea todo lo que usaba el acento anterior (bordes,
+ *  títulos, líneas, franjas…) al hex de la nueva línea comercial — así la
+ *  etiqueta cambia de "vestido" completo, no solo el logo. */
+export function aplicarLogoLinea(doc: PlantillaVisualDoc, linea: LogoLinea): PlantillaVisualDoc {
+  const src = urlLogoRecurso(linea.archivo);
+  const logoActual = doc.elementos.find(
+    (el): el is ElementoImagen => el.type === "image" && el.rolCapa === "logo",
+  );
+  const lineaActual = logoActual ? logoLineaDesdeSrc(logoActual.src) : undefined;
+  const desde =
+    lineaActual && colorUsadoEnElementos(doc, lineaActual.hex)
+      ? lineaActual.hex
+      : colorAcentoDominante(doc);
+  const hacia = linea.hex;
+  const elementos = doc.elementos.map((el) => {
+    if (el.type === "image" && el.rolCapa === "logo") return { ...el, src };
+    if (desde && desde.toLowerCase() !== hacia.toLowerCase()) {
+      return recolorearElemento(el, desde, hacia);
+    }
+    return el;
+  });
+  return { ...doc, elementos };
+}
+
+/** Contenidos netos que McKenna maneja habitualmente (mismos tamaños que
+ *  `PRESENTACIONES_CONOCIDAS` usa para los códigos EAN), en el formato ya
+ *  usado en el texto de la etiqueta (p. ej. "1000g", sin espacio). */
+export const CONTENIDOS_NETOS_SUGERIDOS: readonly { grupo: "Gramos" | "Mililitros"; valor: string }[] = [
+  ...[...PRESENTACIONES_CONOCIDAS].reverse().map((n) => ({ grupo: "Gramos" as const, valor: `${n}g` })),
+  ...[...PRESENTACIONES_CONOCIDAS].reverse().map((n) => ({ grupo: "Mililitros" as const, valor: `${n}mL` })),
+];
+
+/** Extrae el contenido neto (p. ej. "1000g", "500mL") de un SKU o nombre de
+ *  producto tipo "MANTECA DE CACAO REFINADA 1000g" / "SHAROMIX 705 50mL" —
+ *  mismo formato que ya usan las etiquetas (número pegado a la unidad). */
+export function contenidoNetoDesdeTexto(texto: string): string | null {
+  const t = (texto || "").trim();
+  if (!t) return null;
+  const m = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilo?s?|g|gr|ml|mL|lt|l)\b/i);
+  if (m) {
+    const n = parseFloat(m[1].replace(",", "."));
+    if (Number.isFinite(n) && n > 0) {
+      const unidad = m[2].toLowerCase();
+      if (unidad.startsWith("kg") || unidad.startsWith("kilo")) return `${Math.round(n * 1000)}g`;
+      if (unidad === "lt" || unidad === "l") return `${Math.round(n * 1000)}mL`;
+      if (unidad === "ml") return `${Math.round(n)}mL`;
+      return `${Math.round(n)}g`;
+    }
+  }
+  // Sin número explícito (común en el catálogo: "…REFINADA Kg", "BETAINA DE
+  // COCO Lt") — el nombre implica una unidad completa.
+  if (/\bkg\b/i.test(t) || /\bkilos?\b/i.test(t)) return "1000g";
+  if (/\blitros?\b/i.test(t)) return "1000mL";
+  return null;
+}
+
+export function aplicarBarcodeEan(doc: PlantillaVisualDoc, ean: string): PlantillaVisualDoc {
+  const src = srcBarcodeDesdeEan(ean);
+  if (!src) return doc;
+  return {
+    ...doc,
+    elementos: doc.elementos.map((el) =>
+      el.type === "image" && el.rolCapa === "barcode" ? { ...el, src } : el,
+    ),
+  };
 }
 
 export function valoresActualesFormulario(doc: PlantillaVisualDoc): Record<string, string> {

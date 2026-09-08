@@ -29,6 +29,7 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Revision AI | `docs/agentic/modules/guardian-review.md` | `CLAUDE.md`, `docs/agentic/CONTRACTS.md`, workflows QA | modo reporte antes de bloquear |
 | Autoria, sync git y recaps de equipo | `docs/agentic/TEAM_WORKFLOW.md` | `docs/team-recaps.md`, `app/tools/git_history.py`, `app/tools/team_recaps.py`, `ControlVersionesPanel.tsx` | `pytest tests/test_smoke.py`, revisar entrada en `docs/team-recaps.md` |
 | Telemetria (logs/metricas/errores) | `docs/agentic/modules/telemetria.md` | `app/services/telemetria.py`, `app/observability.py`, `bot-mckenna/server.js`, `TelemetriaPanel.tsx` | `pytest tests/test_smoke.py`, prueba manual descrita en la ficha |
+| Contabilidad (libro mayor, prestamos, conciliacion) | `docs/agentic/modules/contabilidad.md` | `app/services/contabilidad_core.py`, `contabilidad_ledger.py`, `contabilidad_autopost.py`, `extracto_bancario.py`, `LibroMayorPanel.tsx`, `PrestamosPanel.tsx` | `pytest tests/test_smoke.py tests/test_extracto_bancario.py`, verificar `balance_comprobacion()["cuadra"]` |
 
 ## Protocolo Corto
 

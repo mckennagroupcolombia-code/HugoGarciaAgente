@@ -61,6 +61,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "5 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_nomina_cron.py >>${LOG} 2>&1"
   echo "# Reintento avisos WhatsApp pedidos web: red de seguridad si el bridge estaba caído al pagarse (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "*/30 * * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reintentar_avisos_pedidos_web_cron.py >>${LOG} 2>&1"
+  echo "# Auto-posteo contable: postea ventas/compras/servicios/créditos del libro operativo al libro de partida doble propio (frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "10 */6 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/contabilidad_autopost_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 

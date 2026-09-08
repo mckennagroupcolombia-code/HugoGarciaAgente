@@ -1,3 +1,62 @@
+### 2026-09-07 14:20 - Catálogo Alegra: precio MeLi por SKU
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - El catálogo de Alegra muestra al lado el precio publicado en MercadoLibre, cruzado por el mismo SKU.
+  - Filtros Desfasados / Sin MeLi; «Usar MeLi» (fila o lote) copia ese precio al lista de Alegra. El lote omite diferencias &gt;2× (posible SKU cruzado), salvo lista $0/$1.
+- **Archivos Modificados:** `precios_canales.py`, `alegra_catalogo_db.py`, `routes.py`, `CatalogoAlegraPanel.tsx`, `panelInfo.ts`, `CONTRACTS.md`, tests, `docs/team-recaps.md`
+
+### 2026-09-07 13:50 - Catálogo Alegra: tabs fijos + botones más chicos
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora / UX
+- **Qué se implementó:**
+  - En Catálogo Alegra, Productos/Combos (y búsqueda/sync) quedan fijos arriba; solo la tabla hace scroll.
+  - Botones ~60% más pequeños (tabs, Sincronizar, Editar/Eliminar, Guardar/Cancelar del modal).
+- **Archivos Modificados:** `CatalogoAlegraPanel.tsx`, `ContabilidadPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-07 13:10 - Alegra: liberar SKU inactivo al recrear combo
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Operación
+- **Qué se implementó:**
+  - `C-ACEESEBER5mL` no se podía recrear como combo porque Alegra dejó el producto **inactivo** (no se puede borrar con documentos ni cambiar type). Se renombró a `P-ACEESEBER5mL-LEGACY` y se creó el kit `C-ACEESEBER5mL` (componente `ACEESEBERmL` ×5).
+  - `crear_combo_en_alegra` / `crear_producto_en_alegra` ahora liberan automáticamente un reference ocupado por ítem inactivo u otro tipo (renombra a `*-LEGACY`) en vez de solo decir «ya existe».
+- **Archivos Modificados:** `app/services/alegra.py`, operación en Alegra id 142→LEGACY + kit 616, `docs/team-recaps.md`
+
+### 2026-09-07 12:53 - Pedidos Web: fix overrides SKU + factura MCKG-55E67969A1
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Corrección / Operación
+- **Qué se implementó:**
+  - Causa del “edito el SKU y sigue el error”: `agente-pro` llevaba corriendo desde el 6-sep sin cargar el PATCH de overrides; el modal enviaba `C-AGUROS250mL` pero el proceso viejo ignoraba el body y seguía con `H2ORS250mL`.
+  - Reinicio de `agente-pro`; factura `MCKG-55E67969A1` emitida como **FE103** con SKU corregido `C-AGUROS250mL` (persistido en el pedido).
+  - Modal: `key` por referencia + muestra el último error de facturación al reabrir.
+- **Archivos Modificados:** `PedidosWebPanel.tsx`, reinicio `agente-pro`, `docs/team-recaps.md`
+
+### 2026-09-07 12:40 - Pedidos Web: emergente para verificar datos antes de facturar
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora / Feature
+- **Qué se implementó:**
+  - En Pedidos Web, «Facturar con Alegra» abre un modal para revisar/editar SKUs, cantidades, precios, envío y datos del cliente (nombre, NIT, email, teléfono, dirección, ciudad) antes de emitir.
+  - `POST /api/pedidos/web/facturar` acepta overrides (`cliente`, `items`, `shipping`); por defecto los persiste en `orders.db` y luego factura en Alegra.
+- **Archivos Modificados:** `PedidosWebPanel.tsx`, `app/tools/web_pedidos.py`, `app/routes.py`, `tests/test_smoke.py`, `panelInfo.ts`, `CONTRACTS.md`, `docs/team-recaps.md`
+
+### 2026-09-07 12:23 - Catálogo Alegra: editar componentes de combo sin movimientos
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora / Feature
+- **Qué se implementó:**
+  - En Contabilidad → Catálogo Alegra, al editar un combo se puede cambiar la receta (agregar/quitar componentes y cantidades) si el kit aún no tiene movimientos en Alegra.
+  - Si Alegra ya tiene movimientos, el modal deja editar nombre/precio y bloquea la composición con aviso claro (409 + `bloqueado_movimientos`).
+  - `PATCH /api/alegra/catalogo/<codigo>` acepta `componentes[]` y actualiza el espejo SQLite de la receta.
+- **Archivos Modificados:** `CatalogoAlegraPanel.tsx`, `app/routes.py`, `alegra_catalogo_db.py`, `panelInfo.ts`, `CONTRACTS.md`, `tests/test_alegra_catalogo_db.py`, `docs/team-recaps.md`
+
+### 2026-09-07 11:15 - Studio: formulario MANTECA con nombres de bloque
+- **Autor:** Cursor Auto
+- **Tipo de Cambio:** Mejora / UX
+- **Qué se implementó:**
+  - Cada caja de la etiqueta 76×66 quedó identificada (nada de «Otro»): NOMBRE, CATEGORÍA, ORIGEN, APARIENCIA, OLOR, COMPOSICIÓN, GRADO, CONSERVACIÓN, CONTENIDO NETO, CONCENTRACIÓN, CAS, GHS, LOGO, CÓDIGO DE BARRAS, más títulos e iconos de cada celda.
+  - El formulario lateral copia el grid visual (título naranja + valor negro). Paleta de logo por línea comercial (Amarillo/Verde/Azul/Morado/Gris/Café) y código de barras EAN-13 (manual o registrado por nombre/SKU) sin mover cajas.
+  - Export PNG de la manteca original sigue idéntico (solo metadatos de capa).
+- **Archivos Modificados:** `FormularioEtiquetaPanel.tsx`, `TextosRapidos.tsx`, `etiquetaFormulario.ts`, `plantillasVisuales.ts`, `VisualCanvasEditor.tsx`, `scripts/marcar_manteca_formulario.py`, `tests/test_formulario_manteca.py`, `docs/team-recaps.md`
+
 ### 2026-09-07 01:25 - Studio: MANTECA 1000g como formulario de etiqueta
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva funcionalidad

@@ -7,15 +7,23 @@ import { esAdminPanel } from "./adminAccess";
  * ella) ya NO es parte de Contabilidad — es su propia sección de nivel
  * superior en el menú "Ir a…" (ver lib/navStructure.ts). Sigue viviendo en
  * este archivo por conveniencia (menos módulos que reorganizar), pero
- * `esPanelContabilidad` ya no la incluye. */
+ * `esPanelContabilidad` ya no la incluye.
+ *
+ * Ingresos/Egresos, Créditos Adquiridos y Préstamos dejaron de ser pestañas
+ * propias: son subvistas de "Vista Avanzada" dentro de Libro Mayor (mismos
+ * componentes, misma lógica — ver LibroMayorPanel.tsx). El libro mayor es el
+ * eje central de este hub; todo lo que es una vista directa de sus mismos
+ * datos vive adentro de él, no como pestaña hermana.
+ *
+ * Stock (→ hub Inventario) y Rentabilidad/Publicidad/Salud del Negocio (→ hub
+ * Negocio) tampoco son parte de Contabilidad — no tienen relación con la
+ * partida doble, solo convivían aquí por historia. Sus funciones de permiso
+ * siguen viviendo en este archivo (`puedeVerModuloContabilidad` sigue siendo
+ * la fuente de verdad de esos permisos, exenta del guard de "es de
+ * contabilidad" — ver `esModuloExternoConPermisoAqui` abajo), pero ya no
+ * cuentan como pestañas del hub. */
 export const CONTABILIDAD_PANELS = [
-  "ingresos-egresos",
-  "creditos-adquiridos",
   "libro-mayor",
-  "stock",
-  "rentabilidad",
-  "publicidad",
-  "salud-negocio",
   "compras-exterior",
   "productos-siigo",
   "costos-productos",
@@ -99,10 +107,6 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
     p.facturas
       || p.sync
       || p.facturacion
-      || p.stock
-      || p.rentabilidad
-      || p.publicidad
-      || p["salud-negocio"]
       || p["compras-exterior"]
       || p["productos-siigo"]
       || p["costos-productos"]
@@ -111,8 +115,6 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.operativos
       || p.impuestos
       || p.servicios
-      || p["ingresos-egresos"]
-      || p["creditos-adquiridos"]
       || p["libro-mayor"],
   );
 }
@@ -127,14 +129,21 @@ export function puedeVerModuloContabilidad(
   seccion: string,
 ): boolean | null {
   if (seccion === CONTABILIDAD_PANEL_OCULTO) return false;
-  // facturacion/sync/facturas/astro-killer ya no son miembros de
-  // CONTABILIDAD_PANELS (viven en su propia sección de nivel superior), pero
-  // esta función sigue siendo la fuente de verdad de sus permisos — la
+  // Estas secciones ya no son miembros de CONTABILIDAD_PANELS (viven en su
+  // propia sección de nivel superior: Facturación, Inventario o Negocio),
+  // pero esta función sigue siendo la fuente de verdad de sus permisos — la
   // exención evita que el guard de "no es de contabilidad" las descarte.
-  const esFacturacionExterna =
+  const esModuloExternoConPermisoAqui =
     seccion === "facturacion" || seccion === "sync" || seccion === "facturas"
-    || seccion === "astro-killer" || seccion === "cotizar-facturar";
-  if (!esPanelContabilidad(seccion) && seccion !== "impuestos" && seccion !== "servicios" && !esFacturacionExterna) {
+    || seccion === "astro-killer" || seccion === "cotizar-facturar"
+    || seccion === "stock" || seccion === "rentabilidad" || seccion === "publicidad"
+    || seccion === "salud-negocio";
+  if (
+    !esPanelContabilidad(seccion)
+    && seccion !== "impuestos"
+    && seccion !== "servicios"
+    && !esModuloExternoConPermisoAqui
+  ) {
     return null;
   }
   if (!user) return false;
@@ -184,24 +193,13 @@ export function puedeVerModuloContabilidad(
   if (seccion === "servicios") {
     return Boolean(p.servicios || p.operativos || p.rentabilidad);
   }
-  if (seccion === "ingresos-egresos") {
-    return Boolean(
-      p["ingresos-egresos"] || p.facturas || p.sync || p.facturacion || p.rentabilidad,
-    );
-  }
-  if (seccion === "creditos-adquiridos") {
-    return Boolean(
-      p["creditos-adquiridos"]
-        || p["ingresos-egresos"]
-        || p.facturas
-        || p.sync
-        || p.facturacion
-        || p.rentabilidad,
-    );
-  }
   if (seccion === "libro-mayor") {
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con
     // socios/proveedores son datos sensibles — no se hereda de facturación/sync.
+    // Cubre TODO lo que vive adentro (Diario/ex Ingresos-Egresos, Préstamos,
+    // Créditos Adquiridos incluidos) — ver Vista Avanzada en LibroMayorPanel.tsx.
+    // El Diario ya expone movimientos de socios/préstamos, así que exigir el
+    // mismo permiso estricto para todo el hub es lo correcto, no solo lo más simple.
     return Boolean(p["libro-mayor"]);
   }
   if (seccion === "catalogo-alegra") {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { nombreMayusculasAlegra } from "../lib/alegraNombreProducto";
@@ -14,12 +14,25 @@ interface CatalogoItem {
   precio_lista: number;
   iva: number;
   synced_at?: string;
+  precio_meli?: number | null;
+  meli_id?: string | null;
+  meli_estado?: string | null;
+  meli_sincronizado?: boolean | null;
+  meli_ratio?: number | null;
+  meli_sospechoso?: boolean;
 }
 
 interface Componente {
   codigo: string;
   nombre: string;
   cantidad: number;
+}
+
+interface CompEdit {
+  key: string;
+  codigo: string;
+  nombre: string;
+  cantidad: string;
 }
 
 interface SyncEstado {
@@ -43,7 +56,17 @@ interface CatalogoResponse {
   limit?: number;
   offset?: number;
   conteos?: { product?: number; kit?: number };
+  meli?: {
+    actualizado_en?: string | null;
+    vinculados?: number;
+    desincronizados?: number;
+    sospechosos?: number;
+    sin_publicacion?: number;
+    cache_skus?: number;
+  };
 }
+
+type FiltroMeli = "todos" | "desfasados" | "sin-meli";
 
 type ClaseCatalogo = "product" | "kit";
 
@@ -68,6 +91,16 @@ function fmtTs(ts?: string | null) {
   }
 }
 
+function nuevaComp(parcial?: Partial<CompEdit>): CompEdit {
+  return {
+    key: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    codigo: "",
+    nombre: "",
+    cantidad: "1",
+    ...parcial,
+  };
+}
+
 function EditarModal({
   item,
   busy,
@@ -79,25 +112,151 @@ function EditarModal({
   busy: boolean;
   error: string | null;
   onClose: () => void;
-  onSave: (nombre: string, precio: number) => void;
+  onSave: (payload: {
+    nombre: string;
+    precio: number;
+    componentes?: Array<{ codigo: string; cantidad: number }>;
+  }) => void;
 }) {
+  const esKit = item.type === "kit";
+  const tituloId = useId();
   const [nombre, setNombre] = useState(item.name);
   const [precio, setPrecio] = useState(String(Math.round(item.precio_lista || 0)));
+  const [comps, setComps] = useState<CompEdit[]>([]);
+  const [cargandoReceta, setCargandoReceta] = useState(esKit);
+  const [editableComposicion, setEditableComposicion] = useState(true);
+  const [avisoMovimientos, setAvisoMovimientos] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [sugerencias, setSugerencias] = useState<
+    Array<{ codigo: string; nombre: string; type?: string }>
+  >([]);
+  const [buscando, setBuscando] = useState(false);
+
+  useEffect(() => {
+    if (!esKit) return;
+    let cancel = false;
+    setCargandoReceta(true);
+    void (async () => {
+      const aplicarComps = (list: Componente[]) => {
+        const limpia = list.filter((c) => (c.codigo || "").trim());
+        setComps(
+          limpia.length
+            ? limpia.map((c) =>
+                nuevaComp({
+                  codigo: c.codigo.trim(),
+                  nombre: c.nombre || "",
+                  cantidad: String(c.cantidad || 1),
+                }),
+              )
+            : [nuevaComp()],
+        );
+      };
+      try {
+        let desdeLive = false;
+        try {
+          const live = await api.get<{
+            ok: boolean;
+            componentes?: Componente[];
+            tiene_movimientos?: boolean | null;
+            editable_composicion?: boolean;
+          }>(`/api/siigo/productos/detalle?codigo=${encodeURIComponent(item.reference)}`);
+          if (cancel) return;
+          if (live.ok) {
+            aplicarComps(live.componentes || []);
+            const bloqueado =
+              live.tiene_movimientos === true || live.editable_composicion === false;
+            setEditableComposicion(!bloqueado);
+            if (bloqueado) {
+              setAvisoMovimientos(
+                "Este combo ya tiene movimientos en Alegra: podés editar nombre/precio, pero no la receta. Para otra composición, duplicá el combo.",
+              );
+            } else {
+              setAvisoMovimientos(null);
+            }
+            desdeLive = true;
+          }
+        } catch {
+          /* espejo local */
+        }
+        if (!desdeLive) {
+          const local = await api.get<{ ok: boolean; item?: { componentes?: Componente[] } }>(
+            `/api/alegra/catalogo/${encodeURIComponent(item.reference)}`,
+          );
+          if (cancel) return;
+          aplicarComps(local.item?.componentes || []);
+          setEditableComposicion(true);
+          setAvisoMovimientos(
+            "No se pudo confirmar movimientos en Alegra en vivo; se muestra la receta local. Si el kit ya tiene ventas, Alegra rechazará el guardado.",
+          );
+        }
+      } catch {
+        if (!cancel) {
+          setComps([nuevaComp()]);
+          setAvisoMovimientos("No se pudo cargar la receta.");
+        }
+      } finally {
+        if (!cancel) setCargandoReceta(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [esKit, item.reference]);
+
+  useEffect(() => {
+    if (!esKit || !editableComposicion) return;
+    const q = busqueda.trim();
+    if (q.length < 1) {
+      setSugerencias([]);
+      return;
+    }
+    let cancel = false;
+    const t = window.setTimeout(() => {
+      setBuscando(true);
+      void api
+        .get<{ items?: Array<{ codigo: string; nombre: string; type?: string }> }>(
+          `/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=12&excluir_combos=1`,
+        )
+        .then((res) => {
+          if (!cancel) setSugerencias(res.items || []);
+        })
+        .catch(() => {
+          if (!cancel) setSugerencias([]);
+        })
+        .finally(() => {
+          if (!cancel) setBuscando(false);
+        });
+    }, 220);
+    return () => {
+      cancel = true;
+      window.clearTimeout(t);
+    };
+  }, [busqueda, esKit, editableComposicion]);
+
+  const compsValidos = comps.filter((c) => c.codigo.trim());
+  const compsOk =
+    !esKit
+    || !editableComposicion
+    || (compsValidos.length >= 1
+      && compsValidos.every((c) => {
+        const n = Number(c.cantidad);
+        return Number.isFinite(n) && n > 0;
+      }));
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="editar-catalogo-titulo"
+      aria-labelledby={tituloId}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-xl"
+        className={`w-full ${esKit ? "max-w-lg" : "max-w-md"} max-h-[90vh] overflow-y-auto rounded-xl border border-border bg-surface p-4 shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="editar-catalogo-titulo" className="text-base font-semibold text-ink">
-          Editar {item.type === "kit" ? "combo" : "producto"}
+        <h3 id={tituloId} className="text-base font-semibold text-ink">
+          Editar {esKit ? "combo" : "producto"}
         </h3>
         <p className="mt-1 font-mono text-xs text-accent">{item.reference}</p>
 
@@ -122,27 +281,232 @@ function EditarModal({
           className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
           disabled={busy}
         />
+        {item.precio_meli != null ? (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <p
+              className={`text-[10px] ${
+                item.meli_sincronizado === false ? "text-amber-700 dark:text-amber-400" : "text-muted"
+              }`}
+            >
+              MeLi {cop(item.precio_meli)}
+              {item.meli_id ? ` · ${item.meli_id}` : ""}
+            </p>
+            {item.meli_sincronizado === false ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setPrecio(String(Math.round(item.precio_meli || 0)))}
+                className="rounded px-1 py-0.5 text-[9px] font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+              >
+                Usar precio MeLi
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="mt-1 text-[10px] text-muted">Sin publicación MeLi con este SKU.</p>
+        )}
+
+        {esKit ? (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Componentes
+              </p>
+              {editableComposicion && !cargandoReceta ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setComps((prev) => [...prev, nuevaComp()])}
+                  className="text-xs font-semibold text-accent hover:underline disabled:opacity-50"
+                >
+                  + Agregar
+                </button>
+              ) : null}
+            </div>
+
+            {avisoMovimientos ? (
+              <p
+                className={`rounded-lg border px-2.5 py-2 text-xs ${
+                  editableComposicion
+                    ? "border-amber-400/50 bg-amber-50 text-amber-950 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-100"
+                    : "border-danger/40 bg-danger/10 text-danger"
+                }`}
+              >
+                {avisoMovimientos}
+              </p>
+            ) : editableComposicion && !cargandoReceta ? (
+              <p className="text-[11px] text-muted">
+                Sin movimientos en Alegra: podés cambiar códigos y cantidades de la receta.
+              </p>
+            ) : null}
+
+            {cargandoReceta ? (
+              <p className="text-xs text-muted">Cargando receta…</p>
+            ) : (
+              <ul className="space-y-2">
+                {comps.map((c) => (
+                  <li
+                    key={c.key}
+                    className="grid grid-cols-[1fr_4.5rem_auto] gap-1.5 rounded-lg border border-border/70 bg-surface-hover/30 p-2"
+                  >
+                    <div className="min-w-0">
+                      <input
+                        type="text"
+                        value={c.codigo}
+                        disabled={busy || !editableComposicion}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\s/g, "");
+                          setComps((prev) =>
+                            prev.map((x) =>
+                              x.key === c.key ? { ...x, codigo: v, nombre: "" } : x,
+                            ),
+                          );
+                        }}
+                        placeholder="SKU componente"
+                        className="w-full rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent disabled:opacity-60"
+                      />
+                      {c.nombre ? (
+                        <p className="mt-0.5 truncate text-[10px] text-muted">{c.nombre}</p>
+                      ) : null}
+                    </div>
+                    <input
+                      type="number"
+                      min={0.001}
+                      step="any"
+                      value={c.cantidad}
+                      disabled={busy || !editableComposicion}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setComps((prev) =>
+                          prev.map((x) => (x.key === c.key ? { ...x, cantidad: v } : x)),
+                        );
+                      }}
+                      className="w-full rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-accent disabled:opacity-60"
+                      aria-label="Cantidad"
+                    />
+                    {editableComposicion ? (
+                      <button
+                        type="button"
+                        disabled={busy || comps.length <= 1}
+                        onClick={() =>
+                          setComps((prev) => prev.filter((x) => x.key !== c.key))
+                        }
+                        className="self-start rounded px-1.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-500/10 disabled:opacity-40"
+                        title="Quitar"
+                      >
+                        ×
+                      </button>
+                    ) : (
+                      <span className="w-6" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {editableComposicion && !cargandoReceta ? (
+              <div className="relative">
+                <label className="block text-[11px] font-semibold text-muted">
+                  Buscar componente para agregar
+                </label>
+                <input
+                  type="search"
+                  value={busqueda}
+                  disabled={busy}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Código o nombre…"
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+                {buscando ? (
+                  <p className="mt-1 text-[10px] text-muted">Buscando…</p>
+                ) : null}
+                {sugerencias.length > 0 ? (
+                  <ul className="absolute left-0 right-0 z-20 mt-1 max-h-40 overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
+                    {sugerencias.map((s) => (
+                      <li key={s.codigo}>
+                        <button
+                          type="button"
+                          className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left hover:bg-accent/10"
+                          onClick={() => {
+                            setComps((prev) => {
+                              const vacia = prev.find((x) => !x.codigo.trim());
+                              if (vacia) {
+                                return prev.map((x) =>
+                                  x.key === vacia.key
+                                    ? {
+                                        ...x,
+                                        codigo: s.codigo,
+                                        nombre: s.nombre || "",
+                                      }
+                                    : x,
+                                );
+                              }
+                              if (prev.some((x) => x.codigo.toUpperCase() === s.codigo.toUpperCase())) {
+                                return prev;
+                              }
+                              return [
+                                ...prev,
+                                nuevaComp({
+                                  codigo: s.codigo,
+                                  nombre: s.nombre || "",
+                                  cantidad: "1",
+                                }),
+                              ];
+                            });
+                            setBusqueda("");
+                            setSugerencias([]);
+                          }}
+                        >
+                          <span className="font-mono text-xs font-bold text-accent">
+                            {s.codigo}
+                          </span>
+                          <span className="line-clamp-1 text-[11px] text-muted">
+                            {s.nombre}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex justify-end gap-1.5">
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-muted hover:bg-surface-hover disabled:opacity-50"
+            className="rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted hover:bg-surface-hover disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
             type="button"
-            disabled={busy || !nombre.trim()}
+            disabled={busy || !nombre.trim() || cargandoReceta || !compsOk}
             onClick={() => {
               const p = Number(precio);
               if (Number.isNaN(p) || p < 0) return;
-              onSave(nombreMayusculasAlegra(nombre, 150), Math.round(p));
+              const payload: {
+                nombre: string;
+                precio: number;
+                componentes?: Array<{ codigo: string; cantidad: number }>;
+              } = {
+                nombre: nombreMayusculasAlegra(nombre, 150),
+                precio: Math.round(p),
+              };
+              if (esKit && editableComposicion) {
+                payload.componentes = compsValidos.map((c) => ({
+                  codigo: c.codigo.trim(),
+                  cantidad: Number(c.cantidad || 1),
+                }));
+              }
+              onSave(payload);
             }}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-50"
           >
             {busy ? "Guardando…" : "Guardar"}
           </button>
@@ -158,6 +522,7 @@ function FilaItem({
   onToggle,
   onEdit,
   onDelete,
+  onUsarMeli,
   componentes,
   loadingDetalle,
   busyRef,
@@ -167,17 +532,27 @@ function FilaItem({
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onUsarMeli: () => void;
   componentes?: Componente[];
   loadingDetalle?: boolean;
   busyRef: string | null;
 }) {
   const esKit = item.type === "kit";
-  const busy = busyRef === item.reference;
+  const busy = busyRef === item.reference || busyRef === "*";
+  const desfasado = item.meli_sincronizado === false;
   return (
     <>
-      <tr className={`transition-colors ${expanded ? "bg-accent/8" : "hover:bg-surface-hover"}`}>
+      <tr
+        className={`transition-colors ${
+          desfasado
+            ? "bg-amber-500/8 hover:bg-amber-500/12"
+            : expanded
+              ? "bg-accent/8"
+              : "hover:bg-surface-hover"
+        }`}
+      >
         <td
-          className={`px-3 py-2.5 font-mono text-xs text-accent whitespace-nowrap ${
+          className={`px-2 py-1.5 font-mono text-[11px] text-accent whitespace-nowrap ${
             esKit ? "cursor-pointer" : ""
           }`}
           onClick={esKit ? onToggle : undefined}
@@ -185,7 +560,7 @@ function FilaItem({
           {item.reference}
         </td>
         <td
-          className={`px-3 py-2.5 text-sm font-semibold text-ink max-w-[280px] ${
+          className={`px-2 py-1.5 text-xs font-semibold text-ink max-w-[280px] ${
             esKit ? "cursor-pointer" : ""
           }`}
           onClick={esKit ? onToggle : undefined}
@@ -194,22 +569,72 @@ function FilaItem({
             {item.name}
           </span>
         </td>
-        <td className="px-3 py-2.5 text-sm font-bold text-ink text-right whitespace-nowrap">
+        <td
+          className={`px-2 py-1.5 text-xs text-right whitespace-nowrap ${
+            desfasado ? "font-bold text-amber-800 dark:text-amber-300" : "font-bold text-ink"
+          }`}
+        >
           {cop(item.precio_lista)}
         </td>
-        <td className="px-3 py-2.5 text-xs text-muted text-right font-mono whitespace-nowrap">
+        <td className="px-2 py-1.5 text-xs text-right whitespace-nowrap">
+          {item.precio_meli != null ? (
+            <div className="flex flex-col items-end leading-tight">
+              <span
+                className={
+                  desfasado
+                    ? "font-semibold text-accent"
+                    : "text-ink"
+                }
+              >
+                {cop(item.precio_meli)}
+              </span>
+              {desfasado ? (
+                <span
+                  className="text-[9px] text-amber-700 dark:text-amber-400"
+                  title={
+                    item.meli_sospechoso
+                      ? "Diferencia grande: revisá que el SKU de MeLi sea el correcto"
+                      : "Alegra y MeLi no coinciden"
+                  }
+                >
+                  {item.meli_sospechoso ? "revisar SKU" : "desfasado"}
+                </span>
+              ) : (
+                <span className="text-[9px] text-muted">igual</span>
+              )}
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted">—</span>
+          )}
+        </td>
+        <td className="px-2 py-1.5 text-[10px] text-muted text-right font-mono whitespace-nowrap">
           {item.unit_cost > 0 ? cop(item.unit_cost) : "—"}
         </td>
-        <td className="px-3 py-2.5 text-xs text-muted text-center">
+        <td className="px-2 py-1.5 text-[10px] text-muted text-center">
           {esKit ? (expanded ? "▾" : "▸") : "—"}
         </td>
-        <td className="px-3 py-2.5 whitespace-nowrap">
-          <div className="flex items-center justify-end gap-1">
+        <td className="px-2 py-1.5 whitespace-nowrap">
+          <div className="flex items-center justify-end gap-0.5">
+            {desfasado ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onUsarMeli}
+                title={
+                  item.meli_sospechoso
+                    ? "La diferencia es grande; confirmá que el SKU vincule el producto correcto"
+                    : "Copiar el precio publicado en MeLi a Alegra"
+                }
+                className="rounded px-1 py-0.5 text-[9px] font-semibold leading-tight text-accent hover:bg-accent/10 disabled:opacity-50"
+              >
+                Usar MeLi
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={busy}
               onClick={onEdit}
-              className="rounded px-2 py-1 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+              className="rounded px-1 py-0.5 text-[9px] font-semibold leading-tight text-accent hover:bg-accent/10 disabled:opacity-50"
             >
               Editar
             </button>
@@ -217,7 +642,7 @@ function FilaItem({
               type="button"
               disabled={busy}
               onClick={onDelete}
-              className="rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-500/10 disabled:opacity-50"
+              className="rounded px-1 py-0.5 text-[9px] font-semibold leading-tight text-red-600 hover:bg-red-500/10 disabled:opacity-50"
             >
               {busy ? "…" : "Eliminar"}
             </button>
@@ -226,7 +651,7 @@ function FilaItem({
       </tr>
       {expanded && esKit ? (
         <tr className="bg-surface-hover/40">
-          <td colSpan={6} className="px-4 py-3">
+          <td colSpan={7} className="px-4 py-3">
             {loadingDetalle ? (
               <p className="text-xs text-muted">Cargando receta…</p>
             ) : !componentes?.length ? (
@@ -267,6 +692,7 @@ export default function CatalogoAlegraPanel() {
   const [editando, setEditando] = useState<CatalogoItem | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [filtroMeli, setFiltroMeli] = useState<FiltroMeli>("todos");
 
   useEffect(() => {
     const t = window.setTimeout(() => setQDebounced(q.trim()), 280);
@@ -275,6 +701,7 @@ export default function CatalogoAlegraPanel() {
 
   useEffect(() => {
     setExpanded(null);
+    setFiltroMeli("todos");
   }, [clase, qDebounced]);
 
   const queryKey = ["alegra-catalogo", clase, qDebounced] as const;
@@ -285,7 +712,7 @@ export default function CatalogoAlegraPanel() {
       const params = new URLSearchParams();
       params.set("tipo", clase);
       if (qDebounced) params.set("q", qDebounced);
-      params.set("limit", "120");
+      params.set("limit", "400");
       return api.get<CatalogoResponse>(`/api/alegra/catalogo?${params}`);
     },
     refetchInterval: (query) =>
@@ -308,19 +735,43 @@ export default function CatalogoAlegraPanel() {
       codigo,
       nombre,
       precio_lista,
+      componentes,
     }: {
       codigo: string;
       nombre: string;
       precio_lista: number;
+      componentes?: Array<{ codigo: string; cantidad: number }>;
     }) =>
-      api.patch<{ ok: boolean; item?: CatalogoItem; error?: string }>(
-        `/api/alegra/catalogo/${encodeURIComponent(codigo)}`,
-        { nombre, precio_lista },
-      ),
-    onSuccess: () => {
+      api.patch<{
+        ok: boolean;
+        item?: CatalogoItem & { componentes?: Componente[] };
+        error?: string;
+        bloqueado_movimientos?: boolean;
+      }>(`/api/alegra/catalogo/${encodeURIComponent(codigo)}`, {
+        nombre,
+        precio_lista,
+        ...(componentes ? { componentes } : {}),
+      }),
+    onSuccess: (res, vars) => {
       setEditando(null);
       setEditError(null);
-      setFlash("Cambios guardados en Alegra");
+      setFlash(
+        vars.componentes
+          ? "Nombre, precio y receta guardados en Alegra"
+          : "Cambios guardados en Alegra",
+      );
+      if (res.item?.componentes) {
+        setDetalleCache((prev) => ({
+          ...prev,
+          [vars.codigo]: res.item!.componentes!,
+        }));
+      } else if (vars.componentes) {
+        setDetalleCache((prev) => {
+          const next = { ...prev };
+          delete next[vars.codigo];
+          return next;
+        });
+      }
       void qc.invalidateQueries({ queryKey: ["alegra-catalogo"] });
     },
     onError: (e: Error) => {
@@ -339,22 +790,77 @@ export default function CatalogoAlegraPanel() {
     },
   });
 
+  const igualarMut = useMutation({
+    mutationFn: (codigos: string[]) =>
+      api.post<{
+        ok: boolean;
+        total_aplicados?: number;
+        aplicados?: Array<{ sku: string; precio_antes: number; precio_meli: number }>;
+        omitidos?: Array<{ sku: string; razon: string }>;
+        errores?: Array<{ sku: string; error: string }>;
+        error?: string;
+      }>("/api/alegra/catalogo/igualar-meli", { codigos }),
+    onSuccess: (res) => {
+      const n = res.total_aplicados ?? res.aplicados?.length ?? 0;
+      const nErr = res.errores?.length ?? 0;
+      setFlash(
+        nErr
+          ? `Alegra actualizado en ${n} SKU · ${nErr} con error`
+          : n
+            ? `Precio MeLi copiado a Alegra en ${n} SKU`
+            : "Nada que actualizar",
+      );
+      void qc.invalidateQueries({ queryKey: ["alegra-catalogo"] });
+    },
+  });
+
   const items = data?.items ?? [];
   const sync = data?.sync;
   const syncing = Boolean(sync?.running || syncMut.isPending);
   const nProductos = data?.conteos?.product ?? sync?.productos ?? 0;
   const nCombos = data?.conteos?.kit ?? sync?.kits ?? 0;
   const totalClase = data?.total ?? items.length;
+  const meli = data?.meli;
+  const nDesfasados = meli?.desincronizados ?? 0;
+  const nSinMeli = meli?.sin_publicacion ?? 0;
+  const nVinculados = meli?.vinculados ?? 0;
+
+  const itemsVisibles = useMemo(() => {
+    if (filtroMeli === "desfasados") {
+      return items.filter((i) => i.meli_sincronizado === false);
+    }
+    if (filtroMeli === "sin-meli") {
+      return items.filter((i) => i.precio_meli == null);
+    }
+    return items;
+  }, [items, filtroMeli]);
+
+  const desfasadosSeguros = useMemo(
+    () => items.filter((i) => i.meli_sincronizado === false && !i.meli_sospechoso),
+    [items],
+  );
+
+  const busySku =
+    deleteMut.isPending
+      ? (deleteMut.variables ?? null)
+      : igualarMut.isPending && (igualarMut.variables?.length ?? 0) === 1
+        ? (igualarMut.variables?.[0] ?? null)
+        : igualarMut.isPending
+          ? "*"
+          : null;
 
   const resumen = useMemo(() => {
     const parts = [
       `${nProductos} producto${nProductos === 1 ? "" : "s"}`,
       `${nCombos} combo${nCombos === 1 ? "" : "s"}`,
     ];
-    if (data?.synced_at) parts.push(`última sync ${fmtTs(data.synced_at)}`);
+    if (nVinculados) parts.push(`${nVinculados} con precio MeLi`);
+    if (nDesfasados) parts.push(`${nDesfasados} desfasado${nDesfasados === 1 ? "" : "s"}`);
+    if (data?.synced_at) parts.push(`Alegra ${fmtTs(data.synced_at)}`);
+    if (meli?.actualizado_en) parts.push(`MeLi ${fmtTs(meli.actualizado_en)}`);
     if (data?.stale) parts.push("desactualizado");
     return parts.join(" · ");
-  }, [nProductos, nCombos, data?.synced_at, data?.stale]);
+  }, [nProductos, nCombos, nVinculados, nDesfasados, data?.synced_at, data?.stale, meli?.actualizado_en]);
 
   async function toggleExpand(ref: string) {
     if (expanded === ref) {
@@ -383,145 +889,221 @@ export default function CatalogoAlegraPanel() {
     deleteMut.mutate(item.reference);
   }
 
+  function pedirUsarMeli(item: CatalogoItem) {
+    if (item.precio_meli == null) return;
+    const aviso = item.meli_sospechoso
+      ? `\n\nOjo: la diferencia es grande (${item.meli_ratio ?? "?"}×). Confirmá que el SKU de MeLi sea este producto.`
+      : "";
+    const ok = window.confirm(
+      `¿Copiar el precio de MeLi a Alegra?\n\n${item.reference}\nAlegra ${cop(item.precio_lista)} → MeLi ${cop(item.precio_meli)}${aviso}`,
+    );
+    if (!ok) return;
+    igualarMut.mutate([item.reference]);
+  }
+
+  function pedirIgualarLote() {
+    const codigos = desfasadosSeguros.map((i) => i.reference);
+    if (!codigos.length) return;
+    const nSospechosos = (meli?.sospechosos ?? 0);
+    const extra = nSospechosos
+      ? `\n\nSe omiten ${nSospechosos} con diferencia >2× (posible SKU cruzado); igualalos uno a uno.`
+      : "";
+    const ok = window.confirm(
+      `¿Copiar el precio publicado en MeLi a Alegra en ${codigos.length} SKU de esta lista?${extra}`,
+    );
+    if (!ok) return;
+    igualarMut.mutate(codigos);
+  }
+
   const esCombos = clase === "kit";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 md:p-5">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-ink">Catálogo Alegra</h2>
-          <p className="text-sm text-muted mt-0.5">
-            Espejo local clasificado en productos y combos. Podés editar o eliminar en Alegra.
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* Zona fija: título, Productos/Combos, búsqueda — no se mueven con el scroll */}
+      <div className="shrink-0 space-y-2 border-b border-border bg-surface px-3 pb-2 pt-3 md:px-4">
+        <header className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold text-ink">Catálogo Alegra</h2>
+            <p className="text-[10px] text-muted mt-0.5 leading-snug">
+              Espejo local de Alegra cruzado con el precio publicado en MeLi (mismo SKU).
+            </p>
+            <p className="text-[10px] text-muted mt-0.5">{resumen}</p>
+            {sync?.mensaje ? (
+              <p className="text-[10px] text-muted mt-0.5">{sync.mensaje}</p>
+            ) : null}
+            {flash ? (
+              <p className="text-[10px] text-emerald-700 dark:text-emerald-400 mt-0.5">{flash}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={() => syncMut.mutate()}
+            className="shrink-0 rounded-md bg-accent px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-50 hover:opacity-90"
+          >
+            {syncing ? "Sincronizando…" : "Sincronizar desde Alegra"}
+          </button>
+        </header>
+
+        <div
+          className="grid grid-cols-2 gap-1.5"
+          role="tablist"
+          aria-label="Clasificación del catálogo"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={clase === "product"}
+            onClick={() => setClase("product")}
+            className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
+              clase === "product"
+                ? "border-accent bg-accent/10"
+                : "border-border bg-surface hover:bg-surface-hover"
+            }`}
+          >
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted leading-none">
+              Productos
+            </p>
+            <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-ink">
+              {nProductos}
+            </p>
+            <p className="text-[9px] text-muted leading-tight">Ítems simples / graneles</p>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={clase === "kit"}
+            onClick={() => setClase("kit")}
+            className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
+              clase === "kit"
+                ? "border-violet-500/60 bg-violet-500/10"
+                : "border-border bg-surface hover:bg-surface-hover"
+            }`}
+          >
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-muted leading-none">
+              Combos
+            </p>
+            <p className="mt-0.5 text-base font-bold tabular-nums leading-tight text-ink">
+              {nCombos}
+            </p>
+            <p className="text-[9px] text-muted leading-tight">Kits con receta</p>
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={
+              esCombos
+                ? "Buscar combo por SKU o nombre…"
+                : "Buscar producto por SKU o nombre…"
+            }
+            className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1 text-xs text-ink outline-none focus:border-accent"
+          />
+          <p className="text-[10px] text-muted whitespace-nowrap sm:px-1">
+            Mostrando {itemsVisibles.length}
+            {filtroMeli !== "todos" ? ` de ${items.length}` : ` / ${totalClase}`}{" "}
+            {esCombos ? "combo" : "producto"}
+            {itemsVisibles.length === 1 ? "" : "s"}
+            {qDebounced ? ` · “${qDebounced}”` : ""}
           </p>
-          <p className="text-xs text-muted mt-1">{resumen}</p>
-          {sync?.mensaje ? (
-            <p className="text-xs text-muted mt-0.5">{sync.mensaje}</p>
-          ) : null}
-          {flash ? (
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">{flash}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1">
+          {(
+            [
+              ["todos", `Todos (${items.length})`],
+              ["desfasados", `Desfasados (${nDesfasados})`],
+              ["sin-meli", `Sin MeLi (${nSinMeli})`],
+            ] as Array<[FiltroMeli, string]>
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setFiltroMeli(id)}
+              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
+                filtroMeli === id
+                  ? "border-accent bg-accent/10 text-ink"
+                  : "border-border text-muted hover:bg-surface-hover"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {desfasadosSeguros.length > 0 ? (
+            <button
+              type="button"
+              disabled={igualarMut.isPending}
+              onClick={pedirIgualarLote}
+              className="rounded-md border border-accent/40 px-1.5 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+            >
+              {igualarMut.isPending
+                ? "Igualando…"
+                : `Igualar ${desfasadosSeguros.length} con MeLi`}
+            </button>
           ) : null}
         </div>
-        <button
-          type="button"
-          disabled={syncing}
-          onClick={() => syncMut.mutate()}
-          className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 hover:opacity-90"
-        >
-          {syncing ? "Sincronizando…" : "Sincronizar desde Alegra"}
-        </button>
-      </header>
 
-      <div
-        className="grid grid-cols-2 gap-2"
-        role="tablist"
-        aria-label="Clasificación del catálogo"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={clase === "product"}
-          onClick={() => setClase("product")}
-          className={`rounded-xl border px-4 py-3 text-left transition-colors ${
-            clase === "product"
-              ? "border-accent bg-accent/10"
-              : "border-border bg-surface hover:bg-surface-hover"
-          }`}
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Productos
+        {error ? (
+          <p className="text-xs text-red-600">
+            {(error as Error).message || "Error al cargar el catálogo"}
           </p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-ink">
-            {nProductos}
+        ) : null}
+        {syncMut.isError ? (
+          <p className="text-xs text-red-600">
+            {(syncMut.error as Error)?.message || "No se pudo iniciar la sincronización."}
           </p>
-          <p className="text-xs text-muted">Ítems simples / graneles</p>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={clase === "kit"}
-          onClick={() => setClase("kit")}
-          className={`rounded-xl border px-4 py-3 text-left transition-colors ${
-            clase === "kit"
-              ? "border-violet-500/60 bg-violet-500/10"
-              : "border-border bg-surface hover:bg-surface-hover"
-          }`}
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-            Combos
+        ) : null}
+        {deleteMut.isError ? (
+          <p className="text-xs text-red-600">
+            {(deleteMut.error as Error)?.message || "No se pudo eliminar."}
           </p>
-          <p className="mt-0.5 text-2xl font-bold tabular-nums text-ink">
-            {nCombos}
+        ) : null}
+        {igualarMut.isError ? (
+          <p className="text-xs text-red-600">
+            {(igualarMut.error as Error)?.message || "No se pudo igualar con MeLi."}
           </p>
-          <p className="text-xs text-muted">Kits con receta de componentes</p>
-        </button>
+        ) : null}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={
-            esCombos
-              ? "Buscar combo por SKU o nombre…"
-              : "Buscar producto por SKU o nombre…"
-          }
-          className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-        />
-        <p className="text-xs text-muted whitespace-nowrap sm:px-1">
-          Mostrando {totalClase} {esCombos ? "combo" : "producto"}
-          {totalClase === 1 ? "" : "s"}
-          {qDebounced ? ` · filtro “${qDebounced}”` : ""}
-        </p>
-      </div>
-
-      {error ? (
-        <p className="text-sm text-red-600">
-          {(error as Error).message || "Error al cargar el catálogo"}
-        </p>
-      ) : null}
-      {syncMut.isError ? (
-        <p className="text-sm text-red-600">
-          {(syncMut.error as Error)?.message || "No se pudo iniciar la sincronización."}
-        </p>
-      ) : null}
-      {deleteMut.isError ? (
-        <p className="text-sm text-red-600">
-          {(deleteMut.error as Error)?.message || "No se pudo eliminar."}
-        </p>
-      ) : null}
-
-      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-border">
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="w-full min-w-[640px] border-collapse text-left">
-          <thead className="sticky top-0 bg-surface z-10 border-b border-border">
-            <tr className="text-[11px] uppercase tracking-wide text-muted">
-              <th className="px-3 py-2 font-semibold">SKU</th>
-              <th className="px-3 py-2 font-semibold">Nombre</th>
-              <th className="px-3 py-2 font-semibold text-right">Precio lista</th>
-              <th className="px-3 py-2 font-semibold text-right">Costo</th>
-              <th className="px-3 py-2 font-semibold text-center">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface">
+            <tr className="text-[10px] uppercase tracking-wide text-muted">
+              <th className="px-2 py-1.5 font-semibold">SKU</th>
+              <th className="px-2 py-1.5 font-semibold">Nombre</th>
+              <th className="px-2 py-1.5 font-semibold text-right">Alegra</th>
+              <th className="px-2 py-1.5 font-semibold text-right">MeLi</th>
+              <th className="px-2 py-1.5 font-semibold text-right">Costo</th>
+              <th className="px-2 py-1.5 font-semibold text-center">
                 {esCombos ? "Receta" : ""}
               </th>
-              <th className="px-3 py-2 font-semibold text-right">Acciones</th>
+              <th className="px-2 py-1.5 font-semibold text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted">
                   Cargando…
                 </td>
               </tr>
-            ) : items.length === 0 ? (
+            ) : itemsVisibles.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-sm text-muted">
-                  {qDebounced
-                    ? `Sin ${esCombos ? "combos" : "productos"} que coincidan.`
-                    : `No hay ${esCombos ? "combos" : "productos"} en el espejo. Pulsa «Sincronizar desde Alegra».`}
+                <td colSpan={7} className="px-3 py-8 text-center text-sm text-muted">
+                  {filtroMeli === "desfasados"
+                    ? "Ningún SKU de esta lista tiene precio distinto al de MeLi."
+                    : filtroMeli === "sin-meli"
+                      ? `Todos los ${esCombos ? "combos" : "productos"} de esta lista tienen publicación MeLi.`
+                      : qDebounced
+                        ? `Sin ${esCombos ? "combos" : "productos"} que coincidan.`
+                        : `No hay ${esCombos ? "combos" : "productos"} en el espejo. Pulsa «Sincronizar desde Alegra».`}
                 </td>
               </tr>
             ) : (
-              items.map((item) => (
+              itemsVisibles.map((item) => (
                 <FilaItem
                   key={item.reference}
                   item={item}
@@ -532,11 +1114,12 @@ export default function CatalogoAlegraPanel() {
                     setEditando(item);
                   }}
                   onDelete={() => pedirEliminar(item)}
+                  onUsarMeli={() => pedirUsarMeli(item)}
                   componentes={detalleCache[item.reference]}
                   loadingDetalle={
                     expanded === item.reference && detalleCache[item.reference] === undefined
                   }
-                  busyRef={deleteMut.isPending ? deleteMut.variables ?? null : null}
+                  busyRef={busySku}
                 />
               ))
             )}
@@ -544,7 +1127,7 @@ export default function CatalogoAlegraPanel() {
         </table>
       </div>
       {isFetching && !isLoading ? (
-        <p className="text-[11px] text-muted">Actualizando…</p>
+        <p className="shrink-0 px-3 py-1 text-[10px] text-muted">Actualizando…</p>
       ) : null}
 
       {editando ? (
@@ -558,9 +1141,14 @@ export default function CatalogoAlegraPanel() {
               setEditError(null);
             }
           }}
-          onSave={(nombre, precio_lista) => {
+          onSave={({ nombre, precio, componentes }) => {
             setEditError(null);
-            editMut.mutate({ codigo: editando.reference, nombre, precio_lista });
+            editMut.mutate({
+              codigo: editando.reference,
+              nombre,
+              precio_lista: precio,
+              componentes,
+            });
           }}
         />
       ) : null}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useUiMode } from "../stores/uiMode";
@@ -15,19 +15,10 @@ import {
 
 const FacturacionPanel = lazy(() => import("./FacturacionPanel"));
 const OperativosPanel = lazy(() => import("./OperativosPanel"));
-const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const LibroMayorPanel = lazy(() => import("./LibroMayorPanel"));
-const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const CatalogoAlegraPanel = lazy(() => import("./CatalogoAlegraPanel"));
-const RentabilidadPanel = lazy(() => import("./RentabilidadPanel"));
-const PublicidadPanel = lazy(() => import("./PublicidadPanel"));
-const SaludNegocioPanel = lazy(() => import("./SaludNegocioPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
-const StockPanel = lazy(() => import("./StockPanel"));
-
-/** Subpaneles que se mantienen montados al cambiar de pestaña (edición paralela). */
-const KEEP_ALIVE: ReadonlySet<ContabilidadPanelId> = new Set(["stock", "rentabilidad"]);
 
 function TabCargando() {
   return (
@@ -44,24 +35,12 @@ function renderSubpanel(id: ContabilidadPanelId) {
     // propia sección de nivel superior (ver FacturacionPanel.tsx).
     case "productos-siigo":
       return <FacturacionPanel />;
-    case "stock":
-      return <StockPanel />;
-    case "rentabilidad":
-      return <RentabilidadPanel />;
-    case "publicidad":
-      return <PublicidadPanel />;
-    case "salud-negocio":
-      return <SaludNegocioPanel />;
     case "compras-exterior":
       return <ComprasExteriorPanel />;
     case "costos-productos":
       return <CostosProductosPanel />;
     case "catalogo-alegra":
       return <CatalogoAlegraPanel />;
-    case "ingresos-egresos":
-      return <IngresosEgresosPanel />;
-    case "creditos-adquiridos":
-      return <CreditosAdquiridosPanel />;
     case "libro-mayor":
       return <LibroMayorPanel />;
     case "operativos":
@@ -72,44 +51,12 @@ function renderSubpanel(id: ContabilidadPanelId) {
   }
 }
 
-function KeepAlivePane({
-  id,
-  active,
-  mounted,
-}: {
-  id: ContabilidadPanelId;
-  active: boolean;
-  mounted: boolean;
-}) {
-  if (!mounted) return null;
-  // Stock y Rentabilidad: el scroll vive dentro del panel (tabla/listas), no en el wrapper.
-  const scroll =
-    id === "rentabilidad" || id === "stock"
-      ? "overflow-hidden"
-      : "overflow-x-hidden overflow-y-auto pb-6";
-  return (
-    <div
-      className={`min-h-0 flex-1 flex-col ${scroll} ${active ? "flex" : "hidden"}`}
-      aria-hidden={!active}
-      // Evitar `inert={false}` (algunos navegadores lo tratan como activo).
-      {...(!active ? { inert: true as const } : {})}
-    >
-      <Suspense fallback={<TabCargando />}>{renderSubpanel(id)}</Suspense>
-    </div>
-  );
-}
-
 export default function ContabilidadPanel() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const { user } = useTicketsAuth();
   const advancedToggle = useUiMode((s) => s.advanced);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
-  /** Una vez visitados, Stock y Rentabilidad no se desmontan. */
-  const [vivos, setVivos] = useState<Set<ContabilidadPanelId>>(() => {
-    const n = normalizarPanelContabilidad(useAppStore.getState().panel);
-    return n && KEEP_ALIVE.has(n) ? new Set<ContabilidadPanelId>([n]) : new Set();
-  });
 
   const tabs = useMemo(() => {
     return CONTABILIDAD_PANELS.filter((id) => {
@@ -144,25 +91,6 @@ export default function ContabilidadPanel() {
   const nActivo = normalizarPanelContabilidad(panel);
   const subpanelId = nActivo && tabs.includes(nActivo) ? nActivo : (tabs[0] ?? CONTABILIDAD_PANELS[0]);
 
-  useEffect(() => {
-    if (!KEEP_ALIVE.has(subpanelId)) return;
-    setVivos((prev) => {
-      if (prev.has(subpanelId)) return prev;
-      const next = new Set(prev);
-      next.add(subpanelId);
-      return next;
-    });
-  }, [subpanelId]);
-
-  // Incluye el subpanel keep-alive activo aunque el useEffect aún no haya corrido
-  // (evita primer frame en blanco donde no hay filtros ni tabla).
-  // Debe ir antes del return por !tabs.length — si no, React #310 al ganar permisos.
-  const vivosEfectivos = useMemo(() => {
-    const s = new Set(vivos);
-    if (KEEP_ALIVE.has(subpanelId)) s.add(subpanelId);
-    return s;
-  }, [vivos, subpanelId]);
-
   if (!tabs.length) {
     if (puedeCrearSiigo) {
       return (
@@ -181,28 +109,15 @@ export default function ContabilidadPanel() {
     );
   }
 
-  const keepAliveIds = (["stock", "rentabilidad"] as const).filter(
-    (id) => tabs.includes(id) && vivosEfectivos.has(id),
-  );
-  const activoEsKeepAlive = KEEP_ALIVE.has(subpanelId);
-
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-      {keepAliveIds.map((id) => (
-        <KeepAlivePane key={id} id={id} active={subpanelId === id} mounted />
-      ))}
-
-      {!activoEsKeepAlive && (
-        <div
-          className={
-            subpanelId === "rentabilidad"
-              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
-              : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6"
-          }
-        >
-          <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
-        </div>
-      )}
+    <div
+      className={
+        subpanelId === "catalogo-alegra"
+          ? "flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+          : "min-h-0 flex-1 overflow-x-hidden overflow-y-auto pb-6"
+      }
+    >
+      <Suspense fallback={<TabCargando />}>{renderSubpanel(subpanelId)}</Suspense>
     </div>
   );
 }

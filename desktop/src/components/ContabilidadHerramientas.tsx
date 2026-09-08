@@ -51,7 +51,9 @@ function ToolBtn({
 /**
  * Iconos de herramientas Contabilidad (cabezote, a la izquierda de Temas).
  * Ventanas flotantes: arrastrables, redimensionables, posición recordada.
- * Stock y Rentabilidad se mantienen vivos vía ContabilidadPanel (keep-alive).
+ * `ModalHerramientasRentabilidad` es una calculadora flotante independiente
+ * de en qué hub vive la pestaña Rentabilidad (hoy: hub Negocio, ver
+ * NegocioPanel.tsx) — no requiere que Rentabilidad esté montada.
  */
 export default function ContabilidadHerramientas({
   puedeCrearSiigo,

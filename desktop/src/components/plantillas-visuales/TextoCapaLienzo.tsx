@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
+  debeUsarAutofit,
   pesoFontWeightCss,
   type ElementoTexto,
 } from "../../lib/plantillasVisuales";
@@ -34,6 +35,10 @@ type Props = {
   onTextoEdicionChange: (v: string) => void;
   onCommitEdicion: () => void;
   onCancelEdicion: () => void;
+  /** Tamaño real tras encoger por autofit (para que el panel lateral no
+   *  muestre el mismo `fontSize` nominal en textos que se ven de tamaños
+   *  muy distintos por tener contenido de largo distinto). */
+  onFitSizeChange?: (id: string, size: number) => void;
   chrome: ReactNode;
 };
 
@@ -57,6 +62,7 @@ export default function TextoCapaLienzo({
   onTextoEdicionChange,
   onCommitEdicion,
   onCancelEdicion,
+  onFitSizeChange,
   chrome,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -65,14 +71,14 @@ export default function TextoCapaLienzo({
     null,
   );
   const taRef = useRef<HTMLTextAreaElement | null>(null);
-  const usarAutofit =
-    Boolean(el.autofit) && el.forma !== "circulo" && (el.arco ?? 0) === 0;
+  const usarAutofit = debeUsarAutofit(el);
   const hitH = usarAutofit ? Math.max(1, el.height) : alturaCajaTexto(el);
   const [fitSize, setFitSize] = useState(el.fontSize);
 
   useLayoutEffect(() => {
     if (!usarAutofit) {
       setFitSize(el.fontSize);
+      onFitSizeChange?.(el.id, el.fontSize);
       return;
     }
     const node = textoRef.current;
@@ -92,7 +98,8 @@ export default function TextoCapaLienzo({
       guard += 1;
     }
     setFitSize(s);
-  }, [usarAutofit, el.content, el.fontSize, el.width, el.height, el.lineHeight, el.minFontSize]);
+    onFitSizeChange?.(el.id, s);
+  }, [usarAutofit, el.id, el.content, el.fontSize, el.width, el.height, el.lineHeight, el.minFontSize, onFitSizeChange]);
 
   useEffect(() => {
     if (!editando) {

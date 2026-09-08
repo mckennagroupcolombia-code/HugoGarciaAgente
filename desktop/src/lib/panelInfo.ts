@@ -109,7 +109,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     description: "Órdenes de compra llegadas por la tienda en línea mckennagroup.co. Puedes facturar, actualizar estado de envío y notificar al cliente.",
     tips: [
       "Cuando llega un pedido, también recibes una alerta en el grupo de WhatsApp.",
-      "El botón 'Facturar' crea la factura en Alegra automáticamente.",
+      "«Facturar con Alegra» abre una emergente para verificar/editar SKUs y datos del cliente antes de emitir.",
       "Actualiza el número de guía para que el cliente pueda rastrear su envío.",
     ],
     tier: "core",
@@ -272,10 +272,13 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   "catalogo-alegra": {
     emoji: "📦",
     label: "Catálogo Alegra",
-    description: "Espejo local de productos y combos de Alegra: búsqueda rápida, receta de kits y sincronización bajo demanda.",
+    description: "Espejo local de productos y combos de Alegra, con el precio publicado en MeLi al lado (mismo SKU).",
     tips: [
       "Pulsa «Sincronizar desde Alegra» la primera vez o cuando el listado esté desactualizado (>24 h).",
+      "La columna MeLi sale de la caché de cobros (~1 h). Desfasado = Alegra ≠ precio publicado.",
+      "«Usar MeLi» copia ese precio al lista de Alegra. El lote omite diferencias >2× (posible SKU cruzado).",
       "Usá Productos / Combos arriba para clasificar; en cada fila podés Editar (nombre/precio) o Eliminar.",
+      "En Combos, Editar también permite cambiar la receta (componentes/cantidades) si el kit aún no tiene movimientos en Alegra; si ya los tiene, solo nombre/precio.",
       "Si Alegra no deja borrar por facturas asociadas, el ítem se inactiva y desaparece del listado activo.",
     ],
     tier: "standard",
@@ -414,6 +417,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Vista Simple: acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor) y saldos pendientes con cada socio.",
       "Vista Avanzada: plan de cuentas, terceros, cuentas T por cuenta y balance de comprobación.",
       "Toda compra de un socio a nombre propio (p.ej. Amazon) se registra como cuenta por pagar al socio, no como gasto directo — el giro posterior salda esa cuenta.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
+  prestamos: {
+    emoji: "🤝",
+    label: "Préstamos",
+    description:
+      "Dinero que un socio o tercero le presta a la empresa, y dinero que la empresa presta a un socio o tercero — separado de compras a nombre de un socio (eso vive en Libro Mayor). Cada préstamo usa su cuenta PUC (2380/2295 por pagar, 1355/1290 por cobrar) y queda visible en el balance de comprobación.",
+    tips: [
+      "«Nos prestan a nosotros» registra un pasivo (cuenta por pagar); «Le prestamos a alguien» registra un activo (cuenta por cobrar).",
+      "Tasa de interés y plazo son solo referencia del acuerdo — no generan tabla de amortización (para eso ver Créditos Adquiridos).",
+      "El saldo mostrado aquí es solo de préstamos; el saldo total del tercero (incluyendo compras a su nombre) está en Libro Mayor.",
     ],
     tier: "standard",
     category: "contabilidad",
