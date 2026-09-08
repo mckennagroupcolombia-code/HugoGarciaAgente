@@ -1,0 +1,1070 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - link "Saltar al contenido" [ref=e5] [cursor=pointer]:
+          - /url: "#root-app"
+        - button "Menú de atajos" [ref=e7] [cursor=pointer]
+        - dialog [aria-hidden] [ref=e9]:
+          - list [ref=e10]:
+            - link [ref=e11] [cursor=pointer]:
+              - /url: "#root-app"
+              - text: Saltar el contenido
+            - link [ref=e12] [cursor=pointer]:
+              - /url: https://www.mercadolibre.com.co/accesibilidad/feedback
+              - text: Comentar sobre accesibilidad
+          - separator [aria-hidden] [ref=e13]
+          - list [ref=e14]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: "#cb1-edit"
+              - generic [ref=e16]: /
+            - link [ref=e18] [cursor=pointer]:
+              - /url: https://myaccount.mercadolibre.com.co/purchases/list
+              - generic [ref=e19]: P
+            - link [ref=e21] [cursor=pointer]:
+              - /url: https://www.mercadolibre.com.co/gz/cart/v2
+              - generic [ref=e22]: C
+            - link [ref=e24] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=e25]: Z
+        - link "Mercado Libre Colombia - Donde comprar y vender de todo" [ref=e27] [cursor=pointer]:
+          - /url: //www.mercadolibre.com.co
+      - search [ref=e29]:
+        - generic [ref=e30]: Ingresa lo que quieras encontrar
+        - combobox "Ingresa lo que quieras encontrar" [ref=e31]
+        - button [ref=e32] [cursor=pointer]:
+          - img "Buscar" [ref=e33]: 
+        - text: Tiendas oficiales
+      - link [ref=e35] [cursor=pointer]:
+        - /url: https://www.mercadolibre.com.co/suscripciones/melimas/planes#origin=bannermenu-acq-cupon-010926_100926&me.audience=all&me.bu=9&me.bu_line=36&me.component_id=banner_menu_web_ml&me.content_id=BM_LYT_ADQ_0109&me.flow=146&me.logic=campaigns&me.position=0
+        - img "CUPÓN EXCLUSIVO PARA SUSCRIPTORES MELI+" [ref=e36]
+      - 'button " Enviar a Cynthia Carrera 102 a #132 d-12" [ref=e39] [cursor=pointer]':
+        - text: 
+        - generic [ref=e40]: Enviar a Cynthia
+        - generic [ref=e41]: "Carrera 102 a #132 d-12"
+      - list [ref=e44]:
+        - listitem [ref=e45]:
+          - button "Categorías" [ref=e46] [cursor=pointer]
+        - listitem [ref=e47]:
+          - link "Ofertas" [ref=e48] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ofertas#nav-header
+        - listitem [ref=e49]:
+          - link "Cupones" [ref=e50] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/cupones?source_page=mperfil#menu-user#nav-header
+        - listitem [ref=e51]:
+          - link "Supermercado Nuevo" [ref=e52] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ofertas/supermercado#nav-header
+            - text: Supermercado
+            - generic [ref=e53]: Nuevo
+        - listitem [ref=e54]:
+          - link "Moda" [ref=e55] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/c/ropa-y-accesorios#nav-header
+        - listitem [ref=e56]:
+          - link "Vender" [ref=e57] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/syi/core/list#nav-header
+        - listitem [ref=e58]:
+          - link "Ayuda / PQR" [ref=e59] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ayuda#nav-header
+      - generic [ref=e60]:
+        - navigation "Menú de usuario" [ref=e61]:
+          - list [ref=e62]:
+            - listitem [ref=e63]:
+              - button "Mckenna ..., menú" [ref=e66] [cursor=pointer]:
+                - generic [ref=e67]: Mckenna ...
+            - listitem [ref=e72]:
+              - link "Mis compras" [ref=e73] [cursor=pointer]:
+                - /url: https://myaccount.mercadolibre.com.co/purchases/list#nav-header
+              - button "Favoritos" [ref=e74] [cursor=pointer]
+              - button "Notificaciones 2 nuevas" [ref=e76] [cursor=pointer]:
+                - generic [ref=e77]: 
+                - generic [ref=e78]: "2"
+            - listitem
+        - link "0 productos en tu carrito" [ref=e79] [cursor=pointer]:
+          - /url: https://www.mercadolibre.com.co/gz/cart/v2
+          - generic [aria-hidden] [ref=e80]: 
+  - main [ref=e82]:
+    - generic [ref=e83]:
+      - heading "Mercado Libre" [level=1] [ref=e84]
+      - generic [ref=e85]:
+        - region "novedades principales" [ref=e87]:
+          - generic [ref=e88]:
+            - button "Anterior" [ref=e89] [cursor=pointer]
+            - generic [ref=e93]:
+              - group "1 de 7" [ref=e94]:
+                - link [ref=e95] [cursor=pointer]:
+                  - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=pQh5K43Tnc5AN3J7bG1DqJJv09cyzEvng9QwDPd7LPOthTLcS-yK6J2MvDevD5_EEyUaPqMXrsXw2xvIssQ8sEcr-CfkQ4mJMCYDvaqLt1um00Zkm4LPs_zPitULpUTIur7SXhBu9YSkhezcstBwIbNfzkypB6h4sDCbz_WPPrSrhWq_8dw8qeWbxPU2qYrXCFlNG5fR-g4HczBZ1TFugKCP_1aOe_VrB6x5n-O3HS9qOnwPRv2vzQFEVqZct0JOQWGON-_RvpTqA_MDtF43_EJ-9uOGSmY9bELiBlnvqqH_wqdqbOFYEyYSPRIHuH0ceCm0ixFYvQxwqcqZlPYPZNhCqpR9d-ULQjIxBY84y39dvO0L8g3Z7Pxq-3OszeOW_6_hmFrMfND-F-II5owMLb_XCSudIVIe5bxYzmr64-uW-1TYLV_F043YfrmPTGhhA-cMRujDm25FVZbJAfoJyChArBsL4zP4WXUL1WuIJmHSqCGx42LCBO9dJyRZCiP4yPAa3B7nj0kWbLM93LsCUVWlvMk4WjRra-7cDkjM-zFsgvHKzgJsanIfT30g6seokXIHNAi9yo0Z0afV1WDRw1HePoZEKDRZ_IvUVqQE_V13HfFi3_C5fn67-y9-N2xsxsMKnKkSj2rBsCWTEwXvq6L04j_kYN52uBGlyIFjdo6UqH-Rw5_19psT4aaTHkrJ-wfazo4h42kN_4pQ_47Mbxs1Il-uns6HkOgcebPUHKi--F1snfaucywDv1UsAc6ltnj6SwOf2JpGy-yy9cySyuRECEIQRoE6xEr1mdb8qZ2gCbOSv4HF0pKd782u_LRT&cipher=v2#c_id=/home/exhibitors-carousel/element&c_campaign=display%2Fclicks%2FMCO%2Fcount&c_element_order=1&c_uid=c6476462-2809-4dea-970d-6f25702f3252
+                  - img "OFERTAS RELÁMPAGO" [ref=e96]
+              - group [aria-hidden] [ref=e97]
+              - group [aria-hidden] [ref=e98]
+              - group [aria-hidden] [ref=e99]
+              - group [aria-hidden] [ref=e100]
+              - group [aria-hidden] [ref=e101]
+              - group [aria-hidden] [ref=e102]
+            - button "Siguiente" [ref=e103] [cursor=pointer]
+          - list [aria-hidden] [ref=e106]:
+            - listitem [ref=e107]:
+              - button [ref=e108]:
+                - generic [ref=e109]: Página 1
+            - listitem [ref=e110]:
+              - button [ref=e111]:
+                - generic [ref=e112]: Página 2
+            - listitem [ref=e113]:
+              - button [ref=e114]:
+                - generic [ref=e115]: Página 3
+            - listitem [ref=e116]:
+              - button [ref=e117]:
+                - generic [ref=e118]: Página 4
+            - listitem [ref=e119]:
+              - button [ref=e120]:
+                - generic [ref=e121]: Página 5
+            - listitem [ref=e122]:
+              - button [ref=e123]:
+                - generic [ref=e124]: Página 6
+            - listitem [ref=e125]:
+              - button [ref=e126]:
+                - generic [ref=e127]: Página 7
+        - region "Tus accesos dinámicos" [ref=e132]:
+          - generic [ref=e133]:
+            - button "Anterior" [disabled] [ref=e134]
+            - generic [ref=e138]:
+              - group "1 de 11" [ref=e139]:
+                - generic [ref=e141] [cursor=pointer]:
+                  - heading "Porque te interesa" [level=2] [ref=e143]
+                  - generic [ref=e146]:
+                    - link "Propionato De Calcio X1k Sin Sabor" [ref=e147]:
+                      - /url: https://www.mercadolibre.com.co/propionato-de-calcio-x1k/up/MCOU3020464460#reco_item_pos=0&reco_backend=item_decorator&reco_backend_type=function&reco_client=home_items-decorator-legacy&reco_id=7d7ae73b-d624-439f-ad5d-4c5603942532&reco_model=&c_id=/home/navigation-trends-recommendations/element&c_uid=d3e0d269-7bb6-4a74-86ca-df32c96a2213&da_id=navigation_trend&da_position=0&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - generic [ref=e148]:
+                      - 'img "Antes: 48000 pesos colombianos" [ref=e149]':
+                        - generic [aria-hidden] [ref=e150]: $
+                        - generic [aria-hidden] [ref=e151]: "48.000"
+                      - generic [ref=e152]:
+                        - 'img "Ahora: 29900 pesos colombianos" [ref=e153]':
+                          - generic [aria-hidden] [ref=e154]: $
+                          - generic [aria-hidden] [ref=e155]: "29.900"
+                        - generic [ref=e156]: 37% OFF
+                    - generic [ref=e157]: Enviado por FULL
+              - group "2 de 11" [ref=e162]:
+                - generic [ref=e164] [cursor=pointer]:
+                  - heading "Lo quieres" [level=2] [ref=e166]
+                  - generic [ref=e169]:
+                    - link "Fertilizante Kieserita Sulfato De Magnesio Granulado X 5kg" [ref=e170]:
+                      - /url: https://www.mercadolibre.com.co/fertilizante-kieserita-sulfato-de-magnesio-granulado-x-5kg/up/MCOU3032851682#reco_item_pos=1&reco_backend=item_decorator&reco_backend_type=function&reco_client=home_items-decorator-legacy&reco_id=7d7ae73b-d624-439f-ad5d-4c5603942532&reco_model=&c_id=/home/second-best-navigation-trend-recommendations/element&c_uid=20f52860-7d6a-49f5-bd32-342ea42dad3d&da_id=second_best_navigation_trend&da_position=1&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - 'img "Ahora: 30000 pesos colombianos" [ref=e173]':
+                      - generic [aria-hidden] [ref=e174]: $
+                      - generic [aria-hidden] [ref=e175]: "30.000"
+              - group "3 de 11" [ref=e176]:
+                - generic [ref=e178] [cursor=pointer]:
+                  - heading "Cómpralo de nuevo" [level=2] [ref=e180]
+                  - generic [ref=e183]:
+                    - link "Bolsas Seguridad Envíos 12x20cm X100 Con Portaguía" [ref=e184]:
+                      - /url: https://articulo.mercadolibre.com.co/MCO-1196980997-bolsas-seguridad-envios-12x20cm-x100-con-portaguia-_JM#reco_item_pos=2&reco_backend=item_decorator&reco_backend_type=function&reco_client=home_items-decorator-legacy&reco_id=7d7ae73b-d624-439f-ad5d-4c5603942532&reco_model=&c_id=/home/buy-again-recurrent-recommendations/element&c_uid=45f91893-fabf-457c-8dca-6ff61db82dec&da_id=buy_again_recurrent&da_position=2&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - generic [ref=e185]:
+                      - 'img "Antes: 24500 pesos colombianos" [ref=e186]':
+                        - generic [aria-hidden] [ref=e187]: $
+                        - generic [aria-hidden] [ref=e188]: "24.500"
+                      - generic [ref=e189]:
+                        - 'img "Ahora: 20825 pesos colombianos" [ref=e190]':
+                          - generic [aria-hidden] [ref=e191]: $
+                          - generic [aria-hidden] [ref=e192]: "20.825"
+                        - generic [ref=e193]: 15% OFF
+                    - generic [ref=e194]: Enviado por FULL
+              - group "4 de 11" [ref=e199]:
+                - link "Sigue viendo" [ref=e206] [cursor=pointer]:
+                  - /url: https://play.mercadolibre.com.co/ver/bob-esponja-la-pelicula/ab04f864858c42b597164490dcbdcfab/player?origin=dynamic_access#c_id=/home/recommendation_keep_watching/element&c_uid=dd175d9d-7034-4e1e-8367-075e7c5bef2e&da_id=recommendation_keep_watching&da_position=3&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+              - group "5 de 11" [ref=e208]:
+                - generic [ref=e211] [cursor=pointer]:
+                  - heading "Medios de pago" [level=2] [ref=e213]
+                  - generic [ref=e216]: Paga tus compras de forma rápida y segura.
+                  - button "Conocer medios de pago Medios de pago" [ref=e219]:
+                    - generic [ref=e220]:
+                      - text: Conocer medios de pago
+                      - generic [ref=e221]: Medios de pago
+              - group [aria-hidden] [ref=e222]:
+                - generic [ref=e225] [cursor=pointer]:
+                  - heading [level=2] [ref=e227]: Menos de $40.000
+                  - generic [ref=e230]: Descubre productos con precios bajos.
+                  - link [ref=e233]:
+                    - /url: https://www.mercadolibre.com.co/ofertas?price=0.0-40000.0&container_id=MCO779366-1&search_mode=collapsed&cart_mode=default&navigationcp_mode=default&bar_left_button_style=back&back_action=close&authentication_mode=optional&webkit-engine=2#da_id=low_price_products&da_position=5&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Mostrar productos
+                    - generic [ref=e234]: Menos de $40.000
+              - group [aria-hidden] [ref=e235]:
+                - generic [ref=e238] [cursor=pointer]:
+                  - heading [level=2] [ref=e240]: Más vendidos
+                  - generic [ref=e243]: Explora los productos que son tendencia.
+                  - link [ref=e246]:
+                    - /url: https://www.mercadolibre.com.co/mas-vendidos#da_id=top_sales&da_position=6&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Ir a Más vendidos
+                    - generic [ref=e247]: Más vendidos
+              - group [aria-hidden] [ref=e248]:
+                - generic [ref=e251] [cursor=pointer]:
+                  - heading [level=2] [ref=e253]: Compra protegida
+                  - generic [ref=e256]: Puedes devolver tu compra gratis.
+                  - link [ref=e259]:
+                    - /url: https://www.mercadolibre.com.co/compra-protegida/#da_id=protected_buy&da_position=7&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Cómo funciona
+                    - generic [ref=e260]: Compra protegida
+              - group [aria-hidden] [ref=e261]:
+                - generic [ref=e264] [cursor=pointer]:
+                  - heading [level=2] [ref=e266]: Tiendas oficiales
+                  - generic [ref=e269]: Encuentra tus marcas preferidas.
+                  - link [ref=e272]:
+                    - /url: https://www.mercadolibre.com.co/tiendas-oficiales#da_id=official_stores&da_position=8&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Mostrar tiendas
+                    - generic [ref=e273]: Tiendas oficiales
+              - group [aria-hidden] [ref=e274]:
+                - generic [ref=e277] [cursor=pointer]:
+                  - heading [level=2] [ref=e279]: Nuestras categorías
+                  - generic [ref=e282]: Encuentra celulares, ropa, inmuebles y más.
+                  - link [ref=e285]:
+                    - /url: https://www.mercadolibre.com.co/categorias#da_id=categories&da_position=9&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Ir a Categorías
+                    - generic [ref=e286]: Nuestras categorías
+              - group [aria-hidden] [ref=e287]:
+                - generic [ref=e290] [cursor=pointer]:
+                  - heading [level=2] [ref=e292]: ¿Necesitas ayuda?
+                  - generic [ref=e295]: Resuelve tus dudas sobre compras o ventas.
+                  - link [ref=e298]:
+                    - /url: https://www.mercadolibre.com.co/ayuda#da_id=help&da_position=10&id_origin=/home/dynamic_access&da_sort_algorithm=ranker
+                    - text: Ir a Ayuda
+                    - generic [ref=e299]: ¿Necesitas ayuda?
+            - button "Siguiente" [ref=e300] [cursor=pointer]
+        - generic [ref=e305]:
+          - link "ADIÓS PIEL APAGADA LUZ AL INSTANTE HASTA 30% OFF Compra ahora" [ref=e306] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=LMpSWwRcRCufAwyXHaW0-12MD9rgTiuS7v6KCnBh39yRpaqqaGG-tzwIF4PnlqveHFYe3drb-rx3MVrAOafLVoLOXHD13W3eKgKI3wYLqpiZVajJ3IzK7T1i-3YU33zAdb8grfK6qPR7depZsq8-Twb3Uiksf9LS4fRODpiB-Qy0zMET0_Xce2qP0vHO1Oasj0bs8Ewsj75X56dXzivW0-igg-WgLKiTpDZmfxir_8pkdoa4_C6-Mpb0ya6pswPXg8Q4Ne3Xnk-2sm-g97l5qPLP00YGSiGEYt7Y_gyivHNYWF13_Er8GsFYVzkhqqevz7AaRU0rVXNM9L4sgbT5UofpfiLpuxXOOU98cXw9Se8zTr_gU8dQI85pOVAxeneN4E_5WWm50C4jDUzfcHj4HMU1FGK43QZgPHDU7FYaAgnfYP9uFNog-aTrAu0RNcWawCU5uGPbWwjL9k9Mt0cEZ1nfFufNhgzlSjdiViGlHGzUJX267NzLczaLPaUzNz46BbEU1L6PzEtpidNdkgtAGKQY19fRLrpHsDquajw34ouJKV8HEguqqEUSej2iR3HGzoPw4fgt0fpAYxC6ar5W1RuTLmwQ-hDwdNQefgM79EgxYp4TZI7aQG5EjSERt9Bf3lN_5IhI12fXCxRCIUSLBVqDCUm5to2ZVIzncTKlFJmfLuB8DyySyyIZoT6rkZjclfRmrLl8gkud4ePl4aJrMN9TNw4HlkByxjDGWVj4mL63rF7y9owfvyqSxez0n8nIB0HpBBGJ8QyxBro3w77dAB25__NSFTuZiOkG5nAioqU&cipher=v2
+            - generic [ref=e312]:
+              - generic [ref=e313]: ADIÓS PIEL APAGADA
+              - generic [ref=e314]:
+                - heading "LUZ AL INSTANTE" [level=2] [ref=e315]
+                - heading "HASTA 30% OFF" [level=2] [ref=e316]
+              - generic [ref=e317]: Compra ahora
+          - link "ESTRENA AHORA ENAMÓRATE DE TU HOGAR Compra ya" [ref=e322] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=O-0xtm184U5MsCUXLyfdABgBtVRxIuRuRh7ZFgi6XVvEV2Yconb_b6xl2gIYN_qJK8pOFdJ_kqeg1jMbLh-J9hqq-zVJs5oCn-x765N16B5iG8UyxYpvky6y8VmQBxmQJX7GenecLxZI_oXvCoHWBhhdGVywzho6f2HzLp8gmdOJV-lbdGSiLb6t3xq50mWFDGjCUrf1b9pKK19yI7hFCrMR48XlNwVY6N0K2NfnMDJ6vu7_7woJgoTilG40C0R9ZOkpyggX1UFFkPYB1DutVRf1evDuXGQjIBaV7CPHS4j5SWRMs26TA0AO5uv3MKr91S6uUT-bU3WJD2nwYcbdJcwr3kxOop2Vk6flQ-BGVIVdbS5F1vxAJ4nSNSTl-rWU4D5w_nbreoe5gUvsS2Eoc-EBGhQaskcSzqiyTGvxsj0o-G38ryw4DJdjALszn8Ux7XvbS6Cjv54-3fGYuqore5ZOKSjNeVDGTTkzO0xrxk1bEodGgIswLhXwrP-uYYNotxhQzdYwW7fUiIbfPj_wdZwP2j8INpUvRoUtfktcteoeC2UR6ldjROsSsIfFoSPy6u-O53t6xgX1Jcwiq2ImdB1IjUn5IVIjGQ5W4ERpNACxxbjgYOYpEkGxpHS8ZnBkcnWmSJD7MH9D3Uv9GNR40-zimmK4g__amdn_eQChUMMH5hdm8KQj1oDT5E0LfxkPaJs4nKN0n9f6C7VVVj2hwBRFkat7WIYHVpKj97gNBOG13_4-y7jGI4jOMqp1Dcng87CPy5BSjTQIEf8YqGifpsx8zC8YscukFjk7vZfZNFMz_5SN2hcvy5ELpY7s2R6T&cipher=v2
+            - generic [ref=e328]:
+              - generic [ref=e329]: ESTRENA AHORA
+              - generic [ref=e330]:
+                - heading "ENAMÓRATE DE" [level=2] [ref=e331]
+                - heading "TU HOGAR" [level=2] [ref=e332]
+              - generic [ref=e333]: Compra ya
+        - generic [ref=e341]:
+          - heading "Inspirado en lo último que viste" [level=2] [ref=e345]
+          - region "Inspirado en lo último que viste" [ref=e346]:
+            - list [aria-hidden] [ref=e347]:
+              - listitem [ref=e348]:
+                - button [ref=e349]:
+                  - generic [ref=e350]: Página 1
+              - listitem [ref=e351]:
+                - button [ref=e352]:
+                  - generic [ref=e353]: Página 2
+              - listitem [ref=e354]:
+                - button [ref=e355]:
+                  - generic [ref=e356]: Página 3
+              - listitem [ref=e357]:
+                - button [ref=e358]:
+                  - generic [ref=e359]: Página 4
+            - generic [ref=e362]:
+              - group "1 de 23" [ref=e363]:
+                - generic [ref=e368]:
+                  - link "Perlas Carbón Activado Eliminador Olores Cat Litter Set X5 !" [ref=e369] [cursor=pointer]:
+                    - /url: https://articulo.mercadolibre.com.co/MCO-1503057315-perlas-carbon-activado-eliminador-olores-cat-litter-set-x5--_JM?searchVariation=182159937376#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=0&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=5caa8d99-bd4f-4da7-a363-e290d688bebe
+                  - generic [ref=e370]:
+                    - 'img "Antes: 68000 pesos colombianos" [ref=e371]':
+                      - generic [aria-hidden] [ref=e372]: $
+                      - generic [aria-hidden] [ref=e373]: "68.000"
+                    - generic [ref=e374]:
+                      - 'img "Ahora: 45600 pesos colombianos" [ref=e375]':
+                        - generic [aria-hidden] [ref=e376]: $
+                        - generic [aria-hidden] [ref=e377]: "45.600"
+                      - generic [ref=e378]: 32% OFF
+                  - generic [ref=e379]:
+                    - text: Llega gratis hoy
+                    - img "Enviado por FULL" [ref=e380]
+              - group "2 de 23" [ref=e382]:
+                - generic [ref=e387]:
+                  - link "Eliminador Olores Nevera Mr. Home Carbón Activado Absorbente" [ref=e388] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/eliminador-olores-nevera-mr-home-carbon-activado-absorbente/p/MCO53709904#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO2174825901&reco_client=home_navigation-recommendations&reco_item_pos=1&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=9fb95eb5-1164-4868-911a-cee0ff422f1f
+                  - img "23679 pesos colombianos" [ref=e391]:
+                    - generic [aria-hidden] [ref=e392]: $
+                    - generic [aria-hidden] [ref=e393]: "23.679"
+              - group "3 de 23" [ref=e394]:
+                - generic [ref=e399]:
+                  - link "X2 Filtro Eliminador De Olores Para Nevera Arm & Hammer" [ref=e400] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/x2-filtro-eliminador-de-olores-para-nevera-arm--hammer/up/MCOU2416784883#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=2&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO1673824576&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=a2b185f1-17ff-4dae-80fa-bcb273685139
+                  - generic [ref=e401]:
+                    - img "42000 pesos colombianos" [ref=e403]:
+                      - generic [aria-hidden] [ref=e404]: $
+                      - generic [aria-hidden] [ref=e405]: "42.000"
+                    - generic [ref=e406]:
+                      - text: 3 cuotas de
+                      - img "14000 pesos colombianos" [ref=e407]:
+                        - generic [ref=e409]: $
+                        - generic [aria-hidden] [ref=e410]: "14.000"
+                      - text: con 0% interés
+              - group "4 de 23" [ref=e411]:
+                - generic [ref=e416]:
+                  - link "Odor-clo2 Eliminador De Olores Con Dióxido De Cloro" [ref=e417] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/odorclo2-eliminador-de-olores-con-dioxido-de-cloro/up/MCOU3767766281#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=3&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO1824588473&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=c51f9ba6-a9ec-426c-a15f-9415ef69486f
+                  - generic [ref=e418]:
+                    - img "149000 pesos colombianos" [ref=e420]:
+                      - generic [aria-hidden] [ref=e421]: $
+                      - generic [aria-hidden] [ref=e422]: "149.000"
+                    - generic [ref=e423]:
+                      - text: 3 cuotas de
+                      - img "49667 pesos colombianos" [ref=e424]:
+                        - generic [ref=e426]: $
+                        - generic [aria-hidden] [ref=e427]: "49.667"
+                      - text: con 0% interés
+                  - generic [ref=e428]: Llega gratis mañana
+              - group "5 de 23" [ref=e429]:
+                - generic [ref=e434]:
+                  - link "Polvo Para Orina De Mascotas Eliminador De Olores Absorin" [ref=e435] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/polvo-para-orina-de-mascotas-eliminador-de-olores-absorin/up/MCOU2411574998#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=4&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO1351489267&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=b3487faf-bd9a-4685-8a2c-ba17df72cd41
+                  - generic [ref=e436]:
+                    - 'img "Antes: 20868 pesos colombianos" [ref=e437]':
+                      - generic [aria-hidden] [ref=e438]: $
+                      - generic [aria-hidden] [ref=e439]: "20.868"
+                    - generic [ref=e440]:
+                      - 'img "Ahora: 18781 pesos colombianos" [ref=e441]':
+                        - generic [aria-hidden] [ref=e442]: $
+                        - generic [aria-hidden] [ref=e443]: "18.781"
+                      - generic [ref=e444]: 10% OFF
+              - group "6 de 23" [ref=e445]:
+                - generic [ref=e450]:
+                  - link "Waatoos Olor Fresco Con Eliminador De Olores N50 Exclusivo ." [ref=e451] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/waatoos-olor-fresco-con-eliminador-de-olores-n50-exclusivo-/up/MCOU3401787966#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=5&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO3093763592&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=a63441f3-cfbf-43de-b051-ea86dc0abb5a
+                  - generic [ref=e452]:
+                    - img "112990 pesos colombianos" [ref=e454]:
+                      - generic [aria-hidden] [ref=e455]: $
+                      - generic [aria-hidden] [ref=e456]: "112.990"
+                    - generic [ref=e457]:
+                      - text: 3 cuotas de
+                      - img "37663 pesos colombianos" [ref=e458]:
+                        - generic [ref=e460]: $
+                        - generic [aria-hidden] [ref=e461]: "37.663"
+                      - text: con 0% interés
+                  - generic [ref=e462]: Envío gratis
+              - group [aria-hidden] [ref=e463]:
+                - generic [ref=e468]:
+                  - link [ref=e469] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/microorganismos-eficientes--eliminador-de-olores/up/MCOU3702642667#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=6&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO1787835007&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=28ecdd43-1842-499d-9b6b-b6403ff5171b
+                    - text: Microorganismos Eficientes - Eliminador De Olores
+                  - generic [ref=e470]:
+                    - img [ref=e472]:
+                      - generic [aria-hidden] [ref=e473]: $
+                      - generic [aria-hidden] [ref=e474]: "195.800"
+                    - generic [ref=e475]:
+                      - text: 6 cuotas de
+                      - img [ref=e476]:
+                        - generic [ref=e478]: $
+                        - generic [aria-hidden] [ref=e479]: "32.633"
+                      - text: con 0% interés
+                  - generic [ref=e480]: Envío gratis
+              - group [aria-hidden] [ref=e481]:
+                - generic [ref=e486]:
+                  - link [ref=e487] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/desodorizador-natural-para-arena-de-gatos-con-carbon/p/MCO2091047282#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO3867472080&reco_client=home_navigation-recommendations&reco_item_pos=7&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=f277474c-66e6-4889-8b43-592ae3241e54
+                    - text: Desodorizador Natural Para Arena De Gatos Con Carbón
+                  - generic [ref=e488]:
+                    - img [ref=e490]:
+                      - generic [aria-hidden] [ref=e491]: $
+                      - generic [aria-hidden] [ref=e492]: "198.300"
+                    - generic [ref=e493]:
+                      - text: 3 cuotas de
+                      - img [ref=e494]:
+                        - generic [ref=e496]: $
+                        - generic [aria-hidden] [ref=e497]: "66.100"
+                      - text: con 0% interés
+                  - generic [ref=e498]: Envío gratis
+              - group [aria-hidden] [ref=e499]:
+                - generic [ref=e504]:
+                  - link [ref=e505] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/saco-de-carbon-activado-de-bambu-200-g-para-casa-y-coche/p/MCO2076984740#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO4271718030&reco_client=home_navigation-recommendations&reco_item_pos=8&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=21a1123c-d162-499c-8edf-efe9e00f7127
+                    - text: Saco De Carbón Activado De Bambú 200 G Para Casa Y Coche
+                  - img [ref=e508]:
+                    - generic [aria-hidden] [ref=e509]: $
+                    - generic [aria-hidden] [ref=e510]: "22.915"
+                  - generic [ref=e514]: Internacional
+              - group [aria-hidden] [ref=e515]:
+                - generic [ref=e520]:
+                  - link [ref=e521] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/sweet-pdz-coop-refrescante-10lb-mineral-eliminador-olores/up/MCOU4054392322#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=9&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4035649894&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=bb6b724a-b834-45b3-856e-7c608185bb53
+                    - text: Sweet Pdz Coop Refrescante 10lb Mineral Eliminador Olores
+                  - generic [ref=e522]:
+                    - img [ref=e524]:
+                      - generic [aria-hidden] [ref=e525]: $
+                      - generic [aria-hidden] [ref=e526]: "189.990"
+                    - generic [ref=e527]:
+                      - text: 3 cuotas de
+                      - img [ref=e528]:
+                        - generic [ref=e530]: $
+                        - generic [aria-hidden] [ref=e531]: "63.330"
+                      - text: con 0% interés
+                  - generic [ref=e532]: Envío gratis
+              - group [aria-hidden] [ref=e533]:
+                - generic [ref=e538]:
+                  - link [ref=e539] [cursor=pointer]:
+                    - /url: https://articulo.mercadolibre.com.co/MCO-2134892977-sweet-pdz-coop-refrescante-10lb-mineral-eliminador-olores-_JM#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=10&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO2134892977&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=b4f1d827-3d14-40e6-a4a9-c1a535356698
+                    - text: Sweet Pdz Coop Refrescante 10lb Mineral Eliminador Olores
+                  - generic [ref=e540]:
+                    - img [ref=e542]:
+                      - generic [aria-hidden] [ref=e543]: $
+                      - generic [aria-hidden] [ref=e544]: "188.108"
+                    - generic [ref=e545]:
+                      - text: 3 cuotas de
+                      - img [ref=e546]:
+                        - generic [ref=e548]: $
+                        - generic [aria-hidden] [ref=e549]: "62.703"
+                      - text: con 0% interés
+                  - generic [ref=e550]: Envío gratis
+              - group [aria-hidden] [ref=e551]:
+                - generic [ref=e556]:
+                  - link [ref=e557] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/activated-charcoal-odor-absorber-natural-charcoal-bags-odor/p/MCO2042824590#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO1813984245&reco_client=home_navigation-recommendations&reco_item_pos=11&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=5ebece72-3add-4b4a-860c-a1c905614a4b
+                    - text: Bolsas Naturales Confiables Que Absorben Olores De Carbón Ac
+                  - img [ref=e560]:
+                    - generic [aria-hidden] [ref=e561]: $
+                    - generic [aria-hidden] [ref=e562]: "12.678"
+                  - generic [ref=e566]: Internacional
+              - group [aria-hidden] [ref=e567]:
+                - generic [ref=e572]:
+                  - link [ref=e573] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/activated-charcoal-odor-absorber-natural-smell-deodorizer-ca/p/MCO2055740737#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO2116878377&reco_client=home_navigation-recommendations&reco_item_pos=12&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=0c1af7e2-d76e-4d8e-98fe-0fecdfd86c7b
+                    - text: Lc Eliminador De Olores De Carbón Activado Para Espacios
+                  - generic [ref=e574]:
+                    - img [ref=e575]:
+                      - generic [aria-hidden] [ref=e576]: $
+                      - generic [aria-hidden] [ref=e577]: "55.943"
+                    - generic [ref=e578]:
+                      - img [ref=e579]:
+                        - generic [aria-hidden] [ref=e580]: $
+                        - generic [aria-hidden] [ref=e581]: "50.089"
+                      - generic [ref=e582]: 10% OFF
+                    - generic [ref=e583]:
+                      - text: 3 cuotas de
+                      - img [ref=e584]:
+                        - generic [ref=e586]: $
+                        - generic [aria-hidden] [ref=e587]: "16.696"
+                      - text: con 0% interés
+                  - generic [ref=e591]: Internacional
+              - group [aria-hidden] [ref=e592]:
+                - generic [ref=e597]:
+                  - link [ref=e598] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/olor-a-olor-a-olor-a-olor/p/MCO63074614#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO3396462108&reco_client=home_navigation-recommendations&reco_item_pos=13&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=20c8b44a-4d0a-4204-be29-0782c28009c2
+                    - text: Olor A Olor A Olor A Olor
+                  - generic [ref=e599]:
+                    - img [ref=e601]:
+                      - generic [aria-hidden] [ref=e602]: $
+                      - generic [aria-hidden] [ref=e603]: "108.476"
+                    - generic [ref=e604]:
+                      - text: 3 cuotas de
+                      - img [ref=e605]:
+                        - generic [ref=e607]: $
+                        - generic [aria-hidden] [ref=e608]: "36.159"
+                      - text: con 0% interés
+                  - generic [ref=e609]: Envío gratis
+              - group [aria-hidden] [ref=e610]:
+                - generic [ref=e615]:
+                  - link [ref=e616] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/bolsas-de-carbon-activado-para-eliminar-olores-purificador/p/MCO2082024381#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&wid=MCO2816815850&reco_client=home_navigation-recommendations&reco_item_pos=14&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=51d3898b-d2b4-46f6-ad63-4cd0a4ffa5e1
+                    - text: Bolsas De Carbón Activado Para Eliminar Olores, Purificador
+                  - generic [ref=e617]:
+                    - img [ref=e619]:
+                      - generic [aria-hidden] [ref=e620]: $
+                      - generic [aria-hidden] [ref=e621]: "195.000"
+                    - generic [ref=e622]:
+                      - text: 3 cuotas de
+                      - img [ref=e623]:
+                        - generic [ref=e625]: $
+                        - generic [aria-hidden] [ref=e626]: "65.000"
+                      - text: con 0% interés
+                  - generic [ref=e627]: Envío gratis
+              - group [aria-hidden] [ref=e628]:
+                - generic [ref=e633]:
+                  - link [ref=e634] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/absorbente-de-olores-de-carbon-activado-para-auto-y-hogar/up/MCOU4089830373#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=15&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4065463124&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=7777c897-00a8-4b9b-a7fe-9f260625adc4
+                    - text: Absorbente De Olores De Carbón Activado Para Auto Y Hogar
+                  - generic [ref=e635]:
+                    - img [ref=e637]:
+                      - generic [aria-hidden] [ref=e638]: $
+                      - generic [aria-hidden] [ref=e639]: "150.200"
+                    - generic [ref=e640]:
+                      - text: 3 cuotas de
+                      - img [ref=e641]:
+                        - generic [ref=e643]: $
+                        - generic [aria-hidden] [ref=e644]: "50.067"
+                      - text: con 0% interés
+                  - generic [ref=e645]: Envío gratis
+              - group [aria-hidden] [ref=e646]:
+                - generic [ref=e651]:
+                  - link [ref=e652] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/bolsa-de-carbon-activado-1000g-eliminador-de-olores/up/MCOU5044988343#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=16&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4403847292&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=d5e2e4f2-e131-41e4-a618-51b4f2c5d874
+                    - text: Bolsa De Carbón Activado 1000g Eliminador De Olores
+                  - generic [ref=e653]:
+                    - img [ref=e655]:
+                      - generic [aria-hidden] [ref=e656]: $
+                      - generic [aria-hidden] [ref=e657]: "174.800"
+                    - generic [ref=e658]:
+                      - text: 3 cuotas de
+                      - img [ref=e659]:
+                        - generic [ref=e661]: $
+                        - generic [aria-hidden] [ref=e662]: "58.267"
+                      - text: con 0% interés
+                  - generic [ref=e663]: Envío gratis
+              - group [aria-hidden] [ref=e664]:
+                - generic [ref=e669]:
+                  - link [ref=e670] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/eliminador-de-olores-de-ozono-para-olores-fuertes/up/MCOU3560339867#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=17&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO3319103198&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=91e5b546-07d8-417c-88f2-25ceee6caeeb
+                    - text: Eliminador De Olores De Ozono Para Olores Fuertes
+                  - generic [ref=e671]:
+                    - img [ref=e673]:
+                      - generic [aria-hidden] [ref=e674]: $
+                      - generic [aria-hidden] [ref=e675]: "194.500"
+                    - generic [ref=e676]:
+                      - text: 3 cuotas de
+                      - img [ref=e677]:
+                        - generic [ref=e679]: $
+                        - generic [aria-hidden] [ref=e680]: "64.833"
+                      - text: con 0% interés
+                  - generic [ref=e681]: Envío gratis
+              - group [aria-hidden] [ref=e682]:
+                - generic [ref=e687]:
+                  - link [ref=e688] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/concentrado-eliminador-de-olores-mascotas-odorcide-16-pzs/up/MCOU4421752435#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=18&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4222327522&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=6f1facd4-6236-4969-bcd8-eb2409b597d0
+                    - text: Concentrado Eliminador De Olores Mascotas Odorcide 16 Pzs
+                  - generic [ref=e689]:
+                    - img [ref=e691]:
+                      - generic [aria-hidden] [ref=e692]: $
+                      - generic [aria-hidden] [ref=e693]: "152.700"
+                    - generic [ref=e694]:
+                      - text: 3 cuotas de
+                      - img [ref=e695]:
+                        - generic [ref=e697]: $
+                        - generic [aria-hidden] [ref=e698]: "50.900"
+                      - text: con 0% interés
+                  - generic [ref=e699]: Envío gratis
+              - group [aria-hidden] [ref=e700]:
+                - generic [ref=e705]:
+                  - link [ref=e706] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/absorbedor-de-olores-de-carbon-activado-gran-paquete/up/MCOU4974033934#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=19&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4377562810&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=d72def4f-9dbf-4f52-bb70-2cf6313d504d
+                    - text: Absorbedor De Olores De Carbón Activado Gran Paquete
+                  - generic [ref=e707]:
+                    - img [ref=e709]:
+                      - generic [aria-hidden] [ref=e710]: $
+                      - generic [aria-hidden] [ref=e711]: "104.600"
+                    - generic [ref=e712]:
+                      - text: 3 cuotas de
+                      - img [ref=e713]:
+                        - generic [ref=e715]: $
+                        - generic [aria-hidden] [ref=e716]: "34.867"
+                      - text: con 0% interés
+                  - generic [ref=e717]: Envío gratis
+              - group [aria-hidden] [ref=e718]:
+                - generic [ref=e723]:
+                  - link [ref=e724] [cursor=pointer]:
+                    - /url: https://articulo.mercadolibre.com.co/MCO-4326231314-eliminador-de-olores-de-ozono-para-mascotas-y-hogar-_JM#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=20&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO4326231314&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=686c553a-0e90-4518-ae70-cbaff0dc24ff
+                    - text: Eliminador De Olores De Ozono Para Mascotas Y Hogar
+                  - generic [ref=e725]:
+                    - img [ref=e727]:
+                      - generic [aria-hidden] [ref=e728]: $
+                      - generic [aria-hidden] [ref=e729]: "108.500"
+                    - generic [ref=e730]:
+                      - text: 3 cuotas de
+                      - img [ref=e731]:
+                        - generic [ref=e733]: $
+                        - generic [aria-hidden] [ref=e734]: "36.167"
+                      - text: con 0% interés
+                  - generic [ref=e735]: Envío gratis
+              - group [aria-hidden] [ref=e736]:
+                - generic [ref=e741]:
+                  - link [ref=e742] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/gotas-eliminador-malos-olores-bano-sanitario-viajes-portatil/up/MCOU3817064712#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=21&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO3602369834&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=23a2f012-092d-43ea-b16f-8fe164ce024d
+                    - text: Gotas Eliminador Malos Olores Baño Sanitario Viajes Portátil
+                  - img [ref=e745]:
+                    - generic [aria-hidden] [ref=e746]: $
+                    - generic [aria-hidden] [ref=e747]: "29.900"
+                  - generic [ref=e748]: Llega hoy
+              - group [aria-hidden] [ref=e749]:
+                - generic [ref=e754]:
+                  - link [ref=e755] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/hanyan-carbon-activado-absorbe-olores-hogar/up/MCOU4522050328#polycard_client=recommendations_home_navigation-recommendations&reco_backend=machinalis-homes-univb-equivalent-offer&reco_client=home_navigation-recommendations&reco_item_pos=22&reco_backend_type=function&reco_id=604e0b07-9af7-4829-a2eb-6f03b3d4cce9&wid=MCO2075612533&sid=recos&c_id=/home/navigation-recommendations/element&c_uid=21816bea-09e4-486e-a57d-292f221cb161
+                    - text: Hanyan Carbón Activado Absorbe Olores Hogar
+                  - generic [ref=e756]:
+                    - img [ref=e758]:
+                      - generic [aria-hidden] [ref=e759]: $
+                      - generic [aria-hidden] [ref=e760]: "115.372"
+                    - generic [ref=e761]:
+                      - text: 3 cuotas de
+                      - img [ref=e762]:
+                        - generic [ref=e764]: $
+                        - generic [aria-hidden] [ref=e765]: "38.457"
+                      - text: con 0% interés
+                  - generic [ref=e766]: Envío gratis
+        - generic [ref=e770]:
+          - generic [ref=e771]:
+            - generic [ref=e772]:
+              - img "Meli+" [ref=e773]
+              - heading "Beneficios exclusivos desde 9900 pesos por mes." [level=2] [ref=e775]:
+                - generic [aria-hidden] [ref=e776]: BENEFICIOS QUE SE PAGAN SOLOS
+            - link "Suscribirme desde $ 9.900" [ref=e779] [cursor=pointer]:
+              - /url: //www.mercadolibre.com.co/suscripciones/melimas/planes#origin=widget_home#c_id=/home/user-loyalty-benefits&c_uid=e3362b13-c0b7-44cf-9cf5-8ed49ecaa7d1
+          - generic [ref=e782]:
+            - generic [ref=e783]:
+              - img "Envíos gratis en productos desde 30000 pesos"
+              - paragraph [ref=e784]:
+                - generic [aria-hidden] [ref=e785]: Envíos gratis en productos desde $ 30.000
+                - generic [ref=e786]: Envíos gratis en productos desde 30000 pesos
+            - generic [ref=e787]:
+              - img "Las mejores plataformas de entretenimiento"
+              - paragraph [ref=e788]:
+                - generic [aria-hidden] [ref=e789]: Las mejores plataformas de entretenimiento
+                - generic [ref=e790]: Las mejores plataformas de entretenimiento
+            - generic [ref=e791]:
+              - img "Hasta 3% de cashback en MercadoLibre"
+              - paragraph [ref=e792]:
+                - generic [ref=e794]: Hasta 3% de cashback en Mercado Libre
+                - generic [ref=e795]: Hasta 3% de cashback en MercadoLibre
+            - generic [ref=e796]:
+              - img "3 cuotas extra sin interés en tus compras"
+              - paragraph [ref=e797]:
+                - generic [aria-hidden] [ref=e798]: 3 cuotas extra sin interés en tus compras
+                - generic [ref=e799]: 3 cuotas extra sin interés en tus compras
+        - generic [ref=e805]:
+          - 'img "Misión: Imposible - Protocolo fantasma" [ref=e806]'
+          - link "Mercado Play ¡Series y películas también en TV! gratis Ir a Mercado Play" [ref=e809]:
+            - generic [ref=e810]:
+              - img "Mercado Play" [ref=e811]
+              - generic [ref=e812]:
+                - generic [ref=e813]: ¡Series y películas
+                - generic [ref=e814]: también en TV!
+                - generic [ref=e815]: gratis
+              - button "Ir a Mercado Play" [ref=e817]
+          - generic [ref=e821]:
+            - 'link "Tráiler de Misión: Imposible - Protocolo fantasma que se reproduce automáticamente" [ref=e822] [cursor=pointer]':
+              - paragraph [ref=e826]: "Misión: Imposible - Protocolo fantasma"
+              - 'img "Misión: Imposible - Protocolo fantasma" [ref=e827]'
+            - button "Reproducir ahora" [ref=e828] [cursor=pointer]
+        - region [ref=e835]:
+          - generic [ref=e836]:
+            - heading "Beneficios en entretenimiento" [level=2] [ref=e839]
+            - list [aria-hidden] [ref=e840]:
+              - listitem [ref=e841]:
+                - button [ref=e842]:
+                  - generic [ref=e843]: Página 1
+              - listitem [ref=e844]:
+                - button [ref=e845]:
+                  - generic [ref=e846]: Página 2
+          - generic [ref=e847]:
+            - button "Anterior" [disabled] [ref=e848]
+            - generic [ref=e852]:
+              - group "1 de 4" [ref=e853]:
+                - link "Plan Estándar con anuncios Disney+ Incluido con Meli+ Total Plan Estándar con anuncios" [ref=e855] [cursor=pointer]:
+                  - /url: //www.mercadolibre.com.co/suscripciones/melimas?origin=ml_home&showModal=true&product=meli_total#origin=ml_home
+                  - img "Plan Estándar con anuncios" [ref=e857]
+                  - generic [ref=e858]:
+                    - img "Disney+" [ref=e859]
+                    - generic [ref=e860]:
+                      - generic [ref=e861]: Incluido con Meli+ Total
+                      - generic [ref=e862]: Plan Estándar con anuncios
+              - group "2 de 4" [ref=e863]:
+                - link "HBO Max HBO Max 15% OFF HBO Max" [ref=e865] [cursor=pointer]:
+                  - /url: //www.mercadolibre.com.co/suscripciones/hbo?origin=ml_home#origin=ml_home
+                  - img "HBO Max" [ref=e867]
+                  - generic [ref=e868]:
+                    - img "HBO Max" [ref=e869]
+                    - generic [ref=e870]:
+                      - generic [ref=e871]: 15% OFF
+                      - generic [ref=e872]: HBO Max
+              - group "3 de 4" [ref=e873]:
+                - link "Universal+ Universal+ 7 DÍAS GRATIS 15% OFF Universal+" [ref=e875] [cursor=pointer]:
+                  - /url: //www.mercadolibre.com.co/suscripciones/universal?origin=ml_home#origin=ml_home
+                  - img "Universal+" [ref=e877]
+                  - generic [ref=e878]:
+                    - img "Universal+" [ref=e879]
+                    - generic [ref=e880]:
+                      - generic [ref=e881]: 7 DÍAS GRATIS
+                      - generic [ref=e882]: 15% OFF
+                      - generic [ref=e883]: Universal+
+              - group [aria-hidden] [ref=e884]:
+                - link [ref=e886] [cursor=pointer]:
+                  - /url: //www.mercadolibre.com.co/suscripciones/vix?origin=ml_home#origin=ml_home
+                  - generic [ref=e891]:
+                    - generic [ref=e892]: 7 DÍAS GRATIS
+                    - generic [ref=e893]: 15% OFF
+                    - generic [ref=e894]: ViX Premium
+            - button "Siguiente" [ref=e895] [cursor=pointer]
+        - generic [ref=e903]:
+          - link "VIVE LA RUTA ACCESORIOS PARA MOTEROS Compra ya" [ref=e904] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=ykLxxFwqDze42vK6NQC3sHauVHzWBpHhAxJ7bs6-D8czqGTI8xIzHMVUroFoCO4-Y9hfM31UvxNJwJNvCiMIjpSxUPzi4rEm4fffy9sde-cj_sspvmPYT0IxOKEPHMZMqebLkGKvrUlEgTKtP5Za5gdAfR-zaiKQIn8CH6rEzx2JK3PsPMwO5dUT-qFqDFnPp33yz9LbW_gpdtbJkukapK_xWZefRdy1ghm4C4EmhFqZLzNFCRYsOn8HEKICgvacMQLfUAiXzPWdZ4yY8c7YDjqtp6_IHooswewqRbK9xegTd2U-30IhED5aaEV4TylBWmaxcFuJs74kGqohtfx_xAbMp75w5FwPzG_ewHuq1OUgD_9fSM-SOB80xglhWpzpTRThlyjVz5NSPaioTegABdzGAFBGSg4zNufywKQRjaG8d_9FRulpVtLem34rfTXDdUVhGqgVuY53abgKmPyRY7elzTnraVbNLjeKeNq7wVJ2hj72_qCswq81gLkH-DFVZ9CreDq1gidbvVwdnoM7WvcKl8l6BgtPPXZ7vWOmbOkvECIYe9M_gTxEYPHPkx9X5zHWvM268JbaipYkxqAKcQg81ZEyJsnr5kcTcDfe2BT904U1nJ6SlQ0CADxc8ZSNVGoJKL_4JWA5N6TISCnASFsAw8CYlNnFVm5kXyNRLsagH7jwJs-cYeKQaHkGJzcq1BdVe2vdi-EY5jsoEVf43umUiXjEYQwOImgiHzKmCpfiq952jpQhgx1nm6I6HuHyaYO92W34wQ0iYbmLsY6H5nydaHEY6IuZe8c0vLa7_Uw&cipher=v2
+            - generic [ref=e905]:
+              - generic [ref=e906]: VIVE LA RUTA
+              - generic [ref=e907]: ACCESORIOS
+              - generic [ref=e908]: PARA MOTEROS
+              - generic [ref=e909]: Compra ya
+          - link "PARA TU BEBÉ HASTA 12 CUOTAS CON 0% INTERÉS Ver ofertas" [ref=e912] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=H2B2gLeT3uEPl06-YShdMJuxBz7EIj8b4SFkuz_pe26viYZ8HPkWQmdQ_6mbpZ41awU3V2wZ6n-wkDinIbMVg4o1HBuwuOQ2T-1JSo2RMbQgNZvdpfcsWa8WfcUh5R1WF2PjFfeXZAKEBVoaroLvjsvC1RXTU-LC3SpOjW4K47Jb4AqQxG1R2jS27lN79Dbfl_mMqCEO3Nx-f5-MnMPwENJt-8IOPLg6g27HBBVGjarNMMKJ1-Xfc7dNUw0uTSUAZf0Oxh5Mqkcw3QlPZ_fnpZ-YMG4d1B3flw8znyUGxk6nRdugfKB7ZBaQtdYyZXHf_njscFfa3zHSpclbInyFTRe3kfRzdXb0T-g9D1Drd69uxnteUxzkCRjSmso_XgJyVzuvndPfEdZlrRVPB8dxii5IJdDZ2mjhcOEDv1Na3xr6N9SDWWcXYS_q5uue2H3WW7sxevX3E2VQs5xxWDXgZXDJwirVSlWTvOpwpXAhMJtey-ICLXM6r9bR9zxGRCjnnZrcmv8kPLlNQwh-CXTEVKHaGFQxVO3hn2927U2Axq_ia_PJhwjlR2jRLFKI4YQfqdIjfsW72zbS_N2onhQwXBT-b-CwUYtggIPm-sjE1T4Q2Mu39R9fZcQzwqhFtXxfqqa1h1cnoctN7dGibGQ-fc2CkxKyFxOr3PoBUzGXb1KMp7saY0WjNaggLUD9pxFZPyp4x4z4zoTtbkahah7l9HuxDaHZTnxZ_8NgDcNYaUj-b1VPMV-sC7FkOfFim465QRHYgkDVWdI9DsKQgKbTU3BXV_7EkmLaoahpWt_VZrM&cipher=v2
+            - generic [ref=e913]:
+              - generic [ref=e914]: PARA TU BEBÉ
+              - generic [ref=e915]: HASTA 12 CUOTAS
+              - generic [ref=e916]: CON 0% INTERÉS
+              - generic [ref=e917]: Ver ofertas
+        - generic [ref=e925]:
+          - link "TU PRÓXIMO AUTO LOS MEJORES TE ESPERAN Ver más" [ref=e926] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=2bDATv0JH-3tYl1KUNI-AGas9urW8SdBk5C-HEPATBM5JG9z-mx_S_xOM_ZXmp7qeQvIA3Tfsb6z35uq1CfG7yuOjjEdp8Z_0A0sOd5D22kD0AA69z2m4b7SVrZtasUwu1e0XMssOHfWGuk7pcql-VBe9rfvp18K8TvF2U61LnZgmxcsD5efroXNR6Nq0AZjFVlsk7EeEZU5dmyql3lq3pjHvs0pvLtOY6kmCB1CNeMg5ROjw1XCznO5AwjjmDJcmT8ygEoyQIpRigVGdARFSfbaCgVSKC9SRMvJ2nAvVq_bBFMbuYGEnhruT2yzAIPiLlKg0tf3p1W2szCqtNChf-yxM1F0O-k0mijgE4-ca_RrEqERokR5S5LwBCe-8St8JSsByXFn1odGAclUHYxG9asYYuCNSMnMukTi5RP-zIrNSWMOELSKDNWn8nLJdZ7EbhMo8h_Yzz4IKsqR8EIv_cr0OA3LBnlipVRHkBfVv5ExW4nsWGlhplMqobSe-GQHMcm4YRoi65n0YVq7liqVwFodb9gaxMVGm6nS8iDxf8uRKlr2kMEjU8xoa3tsJu7qa15g-nwMk3OnCklbvwAgyxT5mW6cAvJ_1tRnc4TfY1f9_UwjwgZEeso_7JjsNqtIY7bz3GyaR5zAyhXpk5uKaT-Q_KH8RSID0-f_1ceTh8gAkY0pbS8iCV2feBzEEQa1BY44wWvYpzNoPUHrD81oIji0kOaMeKcIRxmtOzhD210d791wfHMZYzkh4JGaCP2a&cipher=v2
+            - generic [ref=e927]:
+              - generic [ref=e928]: TU PRÓXIMO AUTO
+              - generic [ref=e929]: LOS MEJORES
+              - generic [ref=e930]: TE ESPERAN
+              - generic [ref=e931]: Ver más
+          - link "CUOTAS 0% DE INTERÉS ENCUENTRA MUEBLES QUE INSPIRAN Ver ofertas" [ref=e934] [cursor=pointer]:
+            - /url: https://click1.mercadolibre.com.co/display/clicks/MCO/count?a=vApTmpoBrUe6mkAptdcg7oOqsTPrc8v6V60eDLhZIsZF0YQwOkhi96e-lzh-rBOK9G6klee6tMukHeEyg1PxcvXhR8JBPL3qOhE5lKFIKOp8X4mj87qnPMK6AbMumsHSjB-iK4D5Batrw1b8f6DM_hC2ZTo9jNyUoDjbNj9bjQhNOaFNkqZugP54SzeOhZm6oTYERTSygMXtGjaVjqdyNBrBq5srs0YMlBj3y-T1JYtfqO-s7a7HlnqXzQP7wrlTfYEooZePYwbA8JLnRTJrYtpH_B6TTdG_YjrwANl2z9YOLbV0FQFU0VNvcQW3ZwUoxAxD5OX6zgKAwxzZmpaxvd9xWFnBNmK3R9m0mx6V_O7tOYcKdSqgo1WURP4ejJ1NX98LUchZhPptyf6IQAjzQOJv2R-d_mhN6WPtAsN6F7H0LjQ4CM2hSCr_-I31dlfy-XjzbLkeKygCyLfdW7ChiNNCVNOFWC76Sdnh5e3V1TG04GhjaddOrAZ0HcGFoqlEnyIcC6RUTvuu-PYYuRkZ2ZJbm0Et-wIrTJGWKUOjPCW4FPlswVlPGzs9pbQ8f00kafReoiaSurbof1EeYIyki2JdPn1KubY5JBVjFTV3UkzkxiqWeamXfigkrUTEFh1puGbjxGe-NioM-gUSK6hdp7oFOoLWakDJDMYZoUH3uY9vQ_Ll_P4qKkFgV1WcAStXl7cl5uIK6i_FwNEFRyKSXJQsosno4uSwge5ULxmI_YPkcx04d1yHkVBDZB96hufqvB_8ahFrsmouzhFEzbNraA&cipher=v2
+            - generic [ref=e935]:
+              - generic [ref=e936]: CUOTAS 0% DE INTERÉS
+              - generic [ref=e937]: ENCUENTRA MUEBLES
+              - generic [ref=e938]: QUE INSPIRAN
+              - generic [ref=e939]: Ver ofertas
+        - generic [ref=e946]:
+          - generic [ref=e947]:
+            - heading "Categorías" [level=2] [ref=e948]
+            - link "Mostrar todas las categorías" [ref=e949] [cursor=pointer]:
+              - /url: https://home.mercadolibre.com.co/categories
+          - generic [ref=e950]:
+            - list [aria-hidden] [ref=e952]:
+              - listitem [ref=e953]:
+                - button [ref=e954]:
+                  - generic [ref=e955]: Página 1
+              - listitem [ref=e956]:
+                - button [ref=e957]:
+                  - generic [ref=e958]: Página 2
+              - listitem [ref=e959]:
+                - button [ref=e960]:
+                  - generic [ref=e961]: Página 3
+            - generic [ref=e962]:
+              - button "Anterior" [disabled] [ref=e963]
+              - generic [ref=e967]:
+                - group "1 de 11" [ref=e968]:
+                  - generic [ref=e969]:
+                    - paragraph [ref=e974]:
+                      - link "Carros, Motos y Otros" [ref=e975] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/carros-motos-y-otros#c_id=/home/categories/element&c_category_id=MCO1743&c_uid=fa43eeb8-8cd4-4904-b9ee-dc7c47ebc73e
+                    - paragraph [ref=e980]:
+                      - link "Accesorios para Vehículos" [ref=e981] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/accesorios-para-vehiculos#c_id=/home/categories/element&c_category_id=MCO1747&c_uid=c51ec185-c13d-4e62-b382-e1089be4a351
+                    - paragraph [ref=e986]:
+                      - link "Hogar y Muebles" [ref=e987] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/hogar-y-muebles#c_id=/home/categories/element&c_category_id=MCO1574&c_uid=b75e045d-6231-403b-a1f2-4f736299c3f4
+                - group "2 de 11" [ref=e988]:
+                  - generic [ref=e989]:
+                    - paragraph [ref=e994]:
+                      - link "Celulares y Teléfonos" [ref=e995] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/celulares-y-telefonos#c_id=/home/categories/element&c_category_id=MCO1051&c_uid=75ecdc7e-7399-4fe5-b879-8d1b1f10bb83
+                    - paragraph [ref=e1000]:
+                      - link "Ropa y Accesorios" [ref=e1001] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/ropa-y-accesorios?gender=female#c_id=/home/categories/element&c_category_id=MCO1430&c_uid=6361b98e-d1c9-435e-91fe-044740d277cb
+                    - paragraph [ref=e1006]:
+                      - link "Computación" [ref=e1007] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/computacion#c_id=/home/categories/element&c_category_id=MCO1648&c_uid=7582d3a6-cc0b-4a71-ba90-58024b480e21
+                - group "3 de 11" [ref=e1008]:
+                  - generic [ref=e1009]:
+                    - paragraph [ref=e1014]:
+                      - link "Electrodomésticos" [ref=e1015] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/electrodomesticos#c_id=/home/categories/element&c_category_id=MCO5726&c_uid=03cead9c-45a0-4beb-9808-81d9867d4585
+                    - paragraph [ref=e1020]:
+                      - link "Deportes y Fitness" [ref=e1021] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/deportes-y-fitness#c_id=/home/categories/element&c_category_id=MCO1276&c_uid=e2ff9fd5-7546-464b-b844-42eef755d762
+                    - paragraph [ref=e1026]:
+                      - link "Inmuebles" [ref=e1027] [cursor=pointer]:
+                        - /url: http://www.mercadolibre.com.co/inmuebles/#c_id=/home/categories/element&c_category_id=MCO1459&c_uid=1c39e228-a999-4d7e-826a-9dae7544e84d
+                - group "4 de 11" [ref=e1028]:
+                  - generic [ref=e1029]:
+                    - paragraph [ref=e1034]:
+                      - link "Herramientas" [ref=e1035] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/herramientas#c_id=/home/categories/element&c_category_id=MCO175794&c_uid=5f94e6e1-b9e9-46fa-bf93-91f5629f28d0
+                    - paragraph [ref=e1040]:
+                      - link "Belleza y Cuidado Personal" [ref=e1041] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/belleza-y-cuidado-personal#c_id=/home/categories/element&c_category_id=MCO1246&c_uid=6ebc37ab-f65a-41a9-b653-b22d67d56c59
+                    - paragraph [ref=e1046]:
+                      - link "Electrónica, Audio y Video" [ref=e1047] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/electronica-audio-y-video#c_id=/home/categories/element&c_category_id=MCO1000&c_uid=2f2921fc-b11e-43ad-b381-7d64ce641f4c
+                - group [aria-hidden] [ref=e1048]:
+                  - generic [ref=e1049]:
+                    - paragraph [ref=e1054]:
+                      - link [ref=e1055] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/agro#c_id=/home/categories/element&c_category_id=MCO441917&c_uid=897b3695-144b-4ef4-b1dc-3c3f4a533ae4
+                        - text: Agro
+                    - paragraph [ref=e1060]:
+                      - link [ref=e1061] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/alimentos-y-bebidas#c_id=/home/categories/element&c_category_id=MCO1403&c_uid=7c0906ee-ee59-4bdb-9983-f08b7109c718
+                        - text: Alimentos y Bebidas
+                    - paragraph [ref=e1066]:
+                      - link [ref=e1067] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/antiguedades-y-colecciones#c_id=/home/categories/element&c_category_id=MCO1367&c_uid=e7706132-8115-4f54-ae49-3e51e885478b
+                        - text: Antigüedades y Colecciones
+                - group [aria-hidden] [ref=e1068]:
+                  - generic [ref=e1069]:
+                    - paragraph [ref=e1074]:
+                      - link [ref=e1075] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/arte-papeleria-y-merceria#c_id=/home/categories/element&c_category_id=MCO1368&c_uid=d614f354-4bf4-4d15-87e5-2d8084ab5a8e
+                        - text: Arte, Papelería y Mercería
+                    - paragraph [ref=e1080]:
+                      - link [ref=e1081] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/bebes#c_id=/home/categories/element&c_category_id=MCO1384&c_uid=f4b57686-04f4-4f0e-8f52-182e42ff32b2
+                        - text: Bebés
+                    - paragraph [ref=e1086]:
+                      - link [ref=e1087] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/boletas-para-espectaculos#c_id=/home/categories/element&c_category_id=MCO40433&c_uid=39d1ddcf-103d-4881-a2d0-520022aaf46d
+                        - text: Boletas para Espectáculos
+                - group [aria-hidden] [ref=e1088]:
+                  - generic [ref=e1089]:
+                    - paragraph [ref=e1094]:
+                      - link [ref=e1095] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/consolas-y-videojuegos#c_id=/home/categories/element&c_category_id=MCO1144&c_uid=74560179-d10f-4d07-b19f-e4d75c7ab75c
+                        - text: Consolas y Videojuegos
+                    - paragraph [ref=e1100]:
+                      - link [ref=e1101] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/construccion#c_id=/home/categories/element&c_category_id=MCO172890&c_uid=0d20b23f-a7ff-4f8c-8dfe-179b2f7e4154
+                        - text: Construcción
+                    - paragraph [ref=e1106]:
+                      - link [ref=e1107] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/camaras-y-accesorios#c_id=/home/categories/element&c_category_id=MCO1039&c_uid=ddf8e0b8-2221-4b2e-8a1c-ef71e34d89d2
+                        - text: Cámaras y Accesorios
+                - group [aria-hidden] [ref=e1108]:
+                  - generic [ref=e1109]:
+                    - paragraph [ref=e1114]:
+                      - link [ref=e1115] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/industrias-y-oficinas#c_id=/home/categories/element&c_category_id=MCO1499&c_uid=082c6d9e-fa84-449c-9e9e-ffac95c84bfe
+                        - text: Industrias y Oficinas
+                    - paragraph [ref=e1120]:
+                      - link [ref=e1121] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/instrumentos-musicales#c_id=/home/categories/element&c_category_id=MCO1182&c_uid=3d82832d-1e88-4846-957a-06d44bd9c039
+                        - text: Instrumentos Musicales
+                    - paragraph [ref=e1126]:
+                      - link [ref=e1127] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/juegos-y-juguetes#c_id=/home/categories/element&c_category_id=MCO1132&c_uid=5209c91a-afac-40e3-b872-8578131d85eb
+                        - text: Juegos y Juguetes
+                - group [aria-hidden] [ref=e1128]:
+                  - generic [ref=e1129]:
+                    - paragraph [ref=e1134]:
+                      - link [ref=e1135] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/libros-revistas-y-comics#c_id=/home/categories/element&c_category_id=MCO3025&c_uid=109c0857-3ce4-4d99-aa5e-d429062642bd
+                        - text: Libros, Revistas y Comics
+                    - paragraph [ref=e1140]:
+                      - link [ref=e1141] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/animales-y-mascotas#c_id=/home/categories/element&c_category_id=MCO1071&c_uid=a2917e0a-fc9e-4366-9e0e-a7c435ed98d2
+                        - text: Mascotas
+                    - paragraph [ref=e1146]:
+                      - link [ref=e1147] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/musica-peliculas-y-series#c_id=/home/categories/element&c_category_id=MCO1168&c_uid=3cdb0cb0-6f2a-45b7-a501-646a733079bb
+                        - text: Música, Películas y Series
+                - group [aria-hidden] [ref=e1148]:
+                  - generic [ref=e1149]:
+                    - paragraph [ref=e1154]:
+                      - link [ref=e1155] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/recuerdos-pinateria-y-fiestas#c_id=/home/categories/element&c_category_id=MCO118204&c_uid=120679b6-ee91-4ea7-8b42-cb7cf5868158
+                        - text: Recuerdos, Piñatería y Fiestas
+                    - paragraph [ref=e1160]:
+                      - link [ref=e1161] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/relojes-y-joyas#c_id=/home/categories/element&c_category_id=MCO3937&c_uid=358273ff-3481-4a51-b013-91c6b04596d9
+                        - text: Relojes y Joyas
+                    - paragraph [ref=e1166]:
+                      - link [ref=e1167] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/salud-y-equipamiento-medico#c_id=/home/categories/element&c_category_id=MCO180800&c_uid=fd39c521-40f0-42b7-9c5d-060bf108277d
+                        - text: Salud y Equipamiento Médico
+                - group [aria-hidden] [ref=e1168]:
+                  - generic [ref=e1169]:
+                    - paragraph [ref=e1174]:
+                      - link [ref=e1175] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/servicios#c_id=/home/categories/element&c_category_id=MCO1540&c_uid=2856ed64-a789-4c1d-9c1e-75cb1b23572d
+                        - text: Servicios
+                    - paragraph [ref=e1180]:
+                      - link [ref=e1181] [cursor=pointer]:
+                        - /url: https://listado.mercadolibre.com.co/televisores#c_id=/home/categories/element&c_category_id=MCO1002&c_uid=361f8425-5885-43cb-97d7-e9b37f40985d
+                        - text: Televisores
+                    - paragraph [ref=e1186]:
+                      - link [ref=e1187] [cursor=pointer]:
+                        - /url: https://www.mercadolibre.com.co/c/otras-categorias#c_id=/home/categories/element&c_category_id=MCO1953&c_uid=f9ac2cde-6355-4a83-a698-b1c7601aa865
+                        - text: Otras categorías
+              - button "Siguiente" [ref=e1188] [cursor=pointer]
+        - generic [ref=e1193]:
+          - generic [ref=e1194]:
+            - heading "Tu historial" [level=2] [ref=e1195]
+            - link "Ir a mi historial de navegación" [ref=e1196] [cursor=pointer]:
+              - /url: https://www.mercadolibre.com.co/gz/home/navigation#c_id=/home/navigation-history&c_uid=1e3ca481-59d1-4241-9599-330fb3476dff
+          - region "Tu historial" [ref=e1197]:
+            - list [aria-hidden] [ref=e1199]:
+              - listitem [ref=e1200]:
+                - button [ref=e1201]:
+                  - generic [ref=e1202]: Página 1
+              - listitem [ref=e1203]:
+                - button [ref=e1204]:
+                  - generic [ref=e1205]: Página 2
+              - listitem [ref=e1206]:
+                - button [ref=e1207]:
+                  - generic [ref=e1208]: Página 3
+              - listitem [ref=e1209]:
+                - button [ref=e1210]:
+                  - generic [ref=e1211]: Página 4
+            - generic [ref=e1212]:
+              - button "Anterior" [disabled] [ref=e1213]
+              - generic [ref=e1217]:
+                - group "1 de 24" [ref=e1218]:
+                  - generic [ref=e1221]:
+                    - img "Cápsulas Gelatina Vacías Blanco Y Verde X1000 Und Talla 0" [ref=e1222]
+                    - link "Cápsulas Gelatina Vacías Blanco Y Verde X1000 Und Talla 0" [ref=e1224] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU4900488443#c_id=/home/navigation-history/element&c_uid=9bc60b72-557b-4361-b246-cbb6fea69e11
+                - group "2 de 24" [ref=e1225]:
+                  - generic [ref=e1228]:
+                    - img "Fertilizante Kieserita Sulfato De Magnesio Granulado X 5kg" [ref=e1229]
+                    - link "Fertilizante Kieserita Sulfato De Magnesio Granulado X 5kg" [ref=e1231] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU3032851682#c_id=/home/navigation-history/element&c_uid=7ce9faf9-4635-430b-b3e2-fb57c41de9cf
+                - group "3 de 24" [ref=e1232]:
+                  - generic [ref=e1235]:
+                    - img "Nuez Del Brasil Partida 250g" [ref=e1236]
+                    - link "Nuez Del Brasil Partida 250g" [ref=e1238] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU4269589425#c_id=/home/navigation-history/element&c_uid=056fc9ab-5add-4355-9a44-d2f25b9978ac
+                - group "4 de 24" [ref=e1239]:
+                  - generic [ref=e1242]:
+                    - img "Arándanos Deshidratados 250g" [ref=e1243]
+                    - link "Arándanos Deshidratados 250g" [ref=e1245] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU4299041432#c_id=/home/navigation-history/element&c_uid=60dd0895-7277-4fb6-882e-2f81de996a65
+                - group "5 de 24" [ref=e1246]:
+                  - generic [ref=e1249]:
+                    - img "Carbón Activado Pellets Filtro Olores 800g" [ref=e1250]
+                    - link "Carbón Activado Pellets Filtro Olores 800g" [ref=e1252] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU3052816314#c_id=/home/navigation-history/element&c_uid=108b7faa-9d00-4cf8-b5ee-f5d17c961095
+                - group "6 de 24" [ref=e1253]:
+                  - generic [ref=e1256]:
+                    - img "Cápsulas De Gelatina Vacías Blanco Y Azul X 1000 Und Talla 0" [ref=e1257]
+                    - link "Cápsulas De Gelatina Vacías Blanco Y Azul X 1000 Und Talla 0" [ref=e1259] [cursor=pointer]:
+                      - /url: https://www.mercadolibre.com.co/up/MCOU4900376067#c_id=/home/navigation-history/element&c_uid=4fd673c0-2121-48ed-8f2c-0e19d221913e
+                - group [aria-hidden] [ref=e1260]:
+                  - link [ref=e1266] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU4900486529#c_id=/home/navigation-history/element&c_uid=4ad9392f-4e19-4487-910b-8bcb697aef59
+                    - text: Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00
+                - group [aria-hidden] [ref=e1267]:
+                  - link [ref=e1273] [cursor=pointer]:
+                    - /url: https://articulo.mercadolibre.com.co/MCO-2344024552-capsulas-de-gelatina-vacias-x-1000-unidades-tamano-0-_JM?variation=182754781369#reco_item_pos=7&reco_backend=item_decorator&reco_backend_type=function&reco_client=home_navigation-history&reco_id=9b815086-0aca-456e-a70d-ae51b47c9d4e&reco_model=&c_id=/home/navigation-history/element&c_uid=c8d6951c-ee5a-4696-9e5e-b0f3a0263f17
+                    - text: Capsulas De Gelatina Vacias X 1000 Unidades Tamaño 0
+                - group [aria-hidden] [ref=e1274]:
+                  - link [ref=e1280] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU4138000042#c_id=/home/navigation-history/element&c_uid=104c25b4-d01f-41a7-a9bb-e17562bd1ff7
+                    - text: Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S
+                - group [aria-hidden] [ref=e1281]:
+                  - link [ref=e1287] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU2431468739#c_id=/home/navigation-history/element&c_uid=afdba328-c972-442c-9a6b-63b7ce0b9005
+                    - text: Creatina Monohidrato 250gr
+                - group [aria-hidden] [ref=e1288]:
+                  - link [ref=e1294] [cursor=pointer]:
+                    - /url: https://articulo.mercadolibre.com.co/MCO-550696818-carbonato-de-magnesio-alimentario-500-grenvio-gratis-_JM#reco_item_pos=10&reco_backend=item_decorator&reco_backend_type=function&reco_client=home_navigation-history&reco_id=9b815086-0aca-456e-a70d-ae51b47c9d4e&reco_model=&c_id=/home/navigation-history/element&c_uid=1126a835-fc21-4959-a10a-cd3d5970fa51
+                    - text: Carbonato De Magnesio Alimentario 500 Gr/envío Gratis
+                - group [aria-hidden] [ref=e1295]:
+                  - link [ref=e1301] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU3175922091#c_id=/home/navigation-history/element&c_uid=81329657-f971-42b7-8d7d-180981b66243
+                    - text: Peces Guppy X Docenas
+                - group [aria-hidden] [ref=e1302]:
+                  - link [ref=e1308] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU2411039863#c_id=/home/navigation-history/element&c_uid=32fcffb1-a421-4932-ae76-4d641b08b2b0
+                    - text: Maní Tostado Natural 500 G
+                - group [aria-hidden] [ref=e1309]:
+                  - link [ref=e1315] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/p/MCO45209388#c_id=/home/navigation-history/element&c_uid=ac4ae739-3b60-4941-9e69-ab17a25a31f1
+                    - text: Grava De Río Ocre Para Acuario, 20 Kg De Carlos Buitrago
+                - group [aria-hidden] [ref=e1316]:
+                  - link [ref=e1322] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU3540984528#c_id=/home/navigation-history/element&c_uid=31e4e180-9a67-4ecb-ae51-fbaec94d4e88
+                    - text: Sulfato De Calcio Anhidrita Kg
+                - group [aria-hidden] [ref=e1323]:
+                  - link [ref=e1329] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/p/MCO2063185061#c_id=/home/navigation-history/element&c_uid=5febce90-aaf9-458a-9d99-4c42dddd134d
+                    - text: Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado
+                - group [aria-hidden] [ref=e1330]:
+                  - link [ref=e1336] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU3872135371#c_id=/home/navigation-history/element&c_uid=5e1f77f7-bcd0-4339-b27b-3d8ea2316522
+                    - text: Edta Tetrasódico Agente Quelante X 1 Kg
+                - group [aria-hidden] [ref=e1337]:
+                  - link [ref=e1343] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU4127786434#c_id=/home/navigation-history/element&c_uid=7bc84caf-78da-4806-a26f-381dd245141d
+                    - text: Azomite Minerales Traza Orgánicos Certificados 5 Libras
+                - group [aria-hidden] [ref=e1344]:
+                  - link [ref=e1350] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/p/MCO2077528480#c_id=/home/navigation-history/element&c_uid=bfdef880-7a59-4c75-8a09-a74171d3d6d0
+                    - text: Cal Dolomita X 50 Kilos
+                - group [aria-hidden] [ref=e1351]:
+                  - link [ref=e1357] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU2434829178#c_id=/home/navigation-history/element&c_uid=a204092e-bab7-41c2-bb9c-b5c77fd6ff78
+                    - text: Cloruro De Calcio X 1 Kg Grado Alimenticio
+                - group [aria-hidden] [ref=e1358]:
+                  - link [ref=e1364] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU2433565133#c_id=/home/navigation-history/element&c_uid=5ee14965-5a69-4b7f-8c68-addcf8401feb
+                    - text: Inositol Polvo X500g Puro Sin Aditivos
+                - group [aria-hidden] [ref=e1365]:
+                  - link [ref=e1371] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/p/MCO2009168174#c_id=/home/navigation-history/element&c_uid=47b090b4-aae4-414f-a81d-dd1d35fe4412
+                    - text: Xiaomi Note 14 Pro 5g Dual Sim 256 Gb Verde Claro 8 Gb Ram - Excelente (Reacondicionado)
+                - group [aria-hidden] [ref=e1372]:
+                  - link [ref=e1378] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU3486940310#c_id=/home/navigation-history/element&c_uid=4aaba241-b9c6-4c1d-b2e0-c0b713bc9fd7
+                    - text: Acetato De Metilo Galon
+                - group [aria-hidden] [ref=e1379]:
+                  - link [ref=e1385] [cursor=pointer]:
+                    - /url: https://www.mercadolibre.com.co/up/MCOU3486938648#c_id=/home/navigation-history/element&c_uid=4c2baf4b-da0c-482b-a7f7-2f6ffd6e788c
+                    - text: Acetato De Metilo 500ml
+              - button "Siguiente" [ref=e1386] [cursor=pointer]
+        - generic [ref=e1391]:
+          - generic:
+            - generic [ref=e1392]:
+              - heading "Paga con tarjeta o en efectivo" [level=2] [ref=e1394]
+              - paragraph [ref=e1395]: Con Mercado Pago, paga en cuotas y aprovecha la comodidad de financiación que te da tu banco, o hazlo con efectivo en puntos de pago. ¡Y siempre es seguro!
+              - link "Cómo pagar con Mercado Pago" [ref=e1396] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/pagar-online-con-mercadopago/
+            - generic [ref=e1397]:
+              - heading "Envío gratis desde $ 60.000" [level=2] [ref=e1399]
+              - paragraph [ref=e1400]: Con solo estar registrado en Mercado Libre, tienes envíos gratis en miles de productos seleccionados.
+            - generic [ref=e1401]:
+              - heading "Seguridad, de principio a fin" [level=2] [ref=e1403]
+              - paragraph [ref=e1404]: ¿No te gusta? ¡Devuélvelo! En Mercado Libre, no hay nada que no puedas hacer, porque estás siempre protegido.
+              - link "Cómo te protegemos" [ref=e1405] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/seguridad
+  - generic:
+    - heading "Más información " [level=2]:
+      - button "Más información " [ref=e1406] [cursor=pointer]:
+        - text: Más información
+        - generic [ref=e1407]: 
+  - contentinfo [ref=e1408]:
+    - generic [ref=e1410]:
+      - generic [ref=e1411]:
+        - generic [ref=e1412]: Copyright © 1999-2026. MercadoLibre Colombia LTDA.
+        - navigation [ref=e1413]:
+          - list [ref=e1414]:
+            - listitem [ref=e1415]:
+              - link "Trabaja con nosotros" [ref=e1416] [cursor=pointer]:
+                - /url: https://careers-meli.mercadolibre.com/?utm_campaign=site-mco&utm_source=mercadolibre&utm_medium=mercadolibre
+            - listitem [ref=e1417]:
+              - link "Términos y condiciones" [ref=e1418] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ayuda/terminos-condiciones-de-uso_1841
+            - listitem [ref=e1419]:
+              - link "Promociones" [ref=e1420] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/l/promociones
+            - listitem [ref=e1421]:
+              - link "Cómo cuidamos tu privacidad" [ref=e1422] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/privacidad
+            - listitem [ref=e1423]:
+              - link "Accesibilidad" [ref=e1424] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/accesibilidad
+            - listitem [ref=e1425]:
+              - link "Ayuda / PQR" [ref=e1426] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ayuda
+            - listitem [ref=e1427]:
+              - link "Navidad" [ref=e1428] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ofertas/navidad
+            - listitem [ref=e1429]:
+              - link "www.sic.gov.co" [ref=e1430] [cursor=pointer]:
+                - /url: https://www.sic.gov.co/
+      - paragraph [ref=e1431]: "Calle 100 #7-33, Torre I, Piso 16, Bogotá D.C., Colombia"
+    - generic [ref=e1432]:
+      - link [ref=e1433] [cursor=pointer]:
+        - /url: https://www.sic.gov.co/
+        - img "SIC - Industria y comercio" [ref=e1434]
+      - link [ref=e1435] [cursor=pointer]:
+        - /url: https://www.sic.gov.co/pare-y-compare
+        - img "Precio por unidad de medida" [ref=e1436]
+    - link "Mercado Libre" [ref=e1437] [cursor=pointer]:
+      - /url: https://hp.mercadolibre.com/?p=ML&s=MCO&d=desktop

@@ -1,0 +1,25 @@
+- generic [active] [ref=f6e1]:
+  - main [ref=f6e4]:
+    - button "Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos (recién) 27 hoy" [ref=f6e6] [cursor=pointer]:
+      - generic [ref=f6e13]:
+        - text: Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos
+        - generic [ref=f6e14]: (recién)
+      - generic [ref=f6e15]: 27 hoy
+    - generic [ref=f6e19]:
+      - generic [ref=f6e20]:
+        - generic [ref=f6e21]:
+          - button "Agenda" [ref=f6e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f6e31]
+        - generic [ref=f6e32]:
+          - button "Temas y estilo visual" [ref=f6e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f6e40] [cursor=pointer]
+          - button "Cuenta" [ref=f6e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f6e45]
+      - tablist "Secciones de Diseño" [ref=f6e49]:
+        - tab "Imprimir" [ref=f6e50] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f6e56] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f6e64] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f6e69] [cursor=pointer]
+    - generic [ref=f6e78]: Cargando panel…
+  - button "Ver solicitudes en proceso" [ref=f6e83] [cursor=pointer]:
+    - generic [ref=f6e84]: "1"

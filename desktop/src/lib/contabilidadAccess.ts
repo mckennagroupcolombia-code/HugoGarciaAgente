@@ -21,8 +21,15 @@ import { esAdminPanel } from "./adminAccess";
  * siguen viviendo en este archivo (`puedeVerModuloContabilidad` sigue siendo
  * la fuente de verdad de esos permisos, exenta del guard de "es de
  * contabilidad" — ver `esModuloExternoConPermisoAqui` abajo), pero ya no
- * cuentan como pestañas del hub. */
+ * cuentan como pestañas del hub.
+ *
+ * "inicio" es la pestaña guiada: un checklist de lo que falta por hacer hoy
+ * en todo el hub (extractos por clasificar, préstamos con saldo pendiente,
+ * revisión de facturación), sin datos propios más allá de lo que ya se ve
+ * en las demás pestañas — va primera a propósito (ver ContabilidadPanel.tsx
+ * / ContabilidadInicioPanel.tsx). */
 export const CONTABILIDAD_PANELS = [
+  "contabilidad-inicio",
   "libro-mayor",
   "compras-exterior",
   "productos-siigo",
@@ -201,6 +208,12 @@ export function puedeVerModuloContabilidad(
     // El Diario ya expone movimientos de socios/préstamos, así que exigir el
     // mismo permiso estricto para todo el hub es lo correcto, no solo lo más simple.
     return Boolean(p["libro-mayor"]);
+  }
+  if (seccion === "contabilidad-inicio") {
+    // El checklist guiado no expone nada que el usuario no pueda ya ver en
+    // alguna otra pestaña del hub — visible con cualquier permiso de
+    // contabilidad, igual criterio que `tienePermisoContabilidad`.
+    return tienePermisoContabilidad(user);
   }
   if (seccion === "catalogo-alegra") {
     return Boolean(

@@ -182,6 +182,42 @@ export function filtrarCodigosEanPorTexto<T extends CodigoEanBuscable>(
     .slice(0, limite);
 }
 
+function palabrasClave(texto: string): Set<string> {
+  const DIACRITICOS = new RegExp("[\\u0300-\\u036f]", "g");
+  return new Set(
+    (texto || "")
+      .normalize("NFD")
+      .replace(DIACRITICOS, "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4),
+  );
+}
+
+/**
+ * ¿El nombre de la ficha que se va a cargar tiene alguna palabra clave en
+ * común con el nombre/título actual de la plantilla? Si no comparten
+ * ninguna, cargar esa ficha aquí probablemente es una prueba de OTRO
+ * producto sobre este formato — y como `cargarFicha` solo cambia el
+ * `content` de los textos (nunca el nombre/id de la plantilla), quien
+ * guarde después sobrescribiría en silencio una plantilla ya publicada con
+ * datos de un producto distinto, sin que el título de la plantilla en la
+ * biblioteca lo refleje. Pasó de verdad: "MANTECA DE CACAO REFINADA 1000g"
+ * terminó con todo el contenido de "ALCOHOL CETÍLICO" adentro — el título
+ * de la plantilla nunca avisó del cambio. Sin info suficiente en algún lado
+ * (nombre muy corto/genérico), no bloquea — mejor un falso negativo que
+ * trabar el flujo normal.
+ */
+export function coincideConNombrePlantilla(nombreFicha: string, nombrePlantilla: string): boolean {
+  const a = palabrasClave(nombreFicha);
+  const b = palabrasClave(nombrePlantilla);
+  if (!a.size || !b.size) return true;
+  for (const w of a) {
+    if (b.has(w)) return true;
+  }
+  return false;
+}
+
 export function textosConCampoProducto(doc: PlantillaVisualDoc): ElementoTexto[] {
   return (doc.elementos || []).filter(
     (el): el is ElementoTexto => el.type === "text" && Boolean(el.campoProducto),
@@ -309,9 +345,13 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   );
   const concentracion = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
   const peso = pick(datos.presentacion, ident.presentacion, lote.tamano_lote);
-  const ghsRaw = pick(datos.ghs, datos.ghsCodigo, ident.ghs);
-  const rec = pick(datos.recomendaciones);
-  const ghs = ghsRaw || (/no\s*ghs/i.test(rec) ? "NO GHS" : rec ? rec.split("\n")[0] : "NO GHS");
+  // El GHS solo puede venir de un campo dedicado a clasificación de peligro
+  // (nunca de "recomendaciones" de uso — antes, a falta de `ghs`, se tomaba
+  // la primera línea de las recomendaciones como si fuera el pictograma,
+  // p. ej. "Combina el colágeno con una dieta saludable…" mostrado como
+  // GHS). Sin campo explícito, el valor seguro por defecto es "NO GHS".
+  const ghsRaw = pick(datos.ghs, datos.ghsCodigo, ident.ghs, coaIdent.ghs);
+  const ghs = ghsRaw || "NO GHS";
   const tagline = pick(
     datos.tagline,
     grado ? `MATERIA PRIMA GRADO ${grado.toUpperCase()}` : "",

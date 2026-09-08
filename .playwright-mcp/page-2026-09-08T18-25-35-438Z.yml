@@ -1,0 +1,103 @@
+- main [ref=f8e4]:
+  - button "Actividad del equipo — Victor Garcia creó una acción TKT-2026-1192 — Procedo a hacer el almuerzo para los empleados (recién) 31 hoy" [ref=f8e6] [cursor=pointer]:
+    - generic [ref=f8e13]:
+      - text: Actividad del equipo — Victor Garcia creó una acción TKT-2026-1192 — Procedo a hacer el almuerzo para los empleados
+      - generic [ref=f8e14]: (recién)
+    - generic [ref=f8e15]: 31 hoy
+  - generic [ref=f8e19]:
+    - generic [ref=f8e20]:
+      - generic [ref=f8e21]:
+        - button "Agenda" [ref=f8e22] [cursor=pointer]
+        - heading "Diseño" [level=1] [ref=f8e31]
+      - generic [ref=f8e32]:
+        - button "Temas y estilo visual" [ref=f8e33] [cursor=pointer]
+        - button "Modo oscuro" [ref=f8e40] [cursor=pointer]
+        - button "Cuenta" [ref=f8e44] [cursor=pointer]:
+          - img "Armando Garcia" [ref=f8e45]
+          - generic [ref=f8e46]: "2"
+    - tablist "Secciones de Diseño" [ref=f8e50]:
+      - tab "Imprimir" [ref=f8e51] [cursor=pointer]
+      - tab "Studio visual" [selected] [ref=f8e57] [cursor=pointer]
+      - tab "Papel y tinta" [ref=f8e65] [cursor=pointer]
+      - tab "Códigos EAN" [ref=f8e70] [cursor=pointer]
+  - generic [ref=f8e84]:
+    - generic [ref=f8e85]:
+      - heading "Studio" [level=1] [ref=f8e86]
+      - textbox "Buscar plantillas e imágenes en todas las carpetas…" [ref=f8e88]
+      - button "Nueva plantilla" [ref=f8e89] [cursor=pointer]
+    - generic [ref=f8e90]:
+      - button "📁 Raíz" [disabled] [ref=f8e91]
+      - button "+ Carpeta" [ref=f8e92] [cursor=pointer]
+    - generic [ref=f8e94]:
+      - generic [ref=f8e95]:
+        - generic [ref=f8e96]: Biblioteca de etiquetas
+        - button "📁 Raíz" [disabled] [ref=f8e97]
+        - button "+ Carpeta" [ref=f8e98] [cursor=pointer]
+      - generic [ref=f8e99]:
+        - generic [ref=f8e100]: 7 imagen(es)
+        - generic [ref=f8e101]:
+          - checkbox "Seleccionar todo" [ref=f8e102]
+          - text: Seleccionar todo
+      - generic [ref=f8e103]:
+        - button "✎ 📁 ETIQUETAS STUDIO" [ref=f8e104] [cursor=pointer]:
+          - button "✎" [ref=f8e105]
+          - generic [ref=f8e106]: 📁
+          - generic [ref=f8e107]: ETIQUETAS STUDIO
+        - generic "Arrastra a una carpeta para mover" [ref=f8e108]:
+          - checkbox [ref=f8e110]
+          - button "?" [ref=f8e111] [cursor=pointer]:
+            - generic "Sin previsualización" [ref=f8e112]: "?"
+          - generic [ref=f8e113]:
+            - paragraph [ref=f8e114]: LOGO MORADO.png
+            - paragraph [ref=f8e115]: 40 KB
+          - button "⬇" [ref=f8e117] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e118]:
+          - checkbox [ref=f8e120]
+          - button "?" [ref=f8e121] [cursor=pointer]:
+            - generic "Sin previsualización" [ref=f8e122]: "?"
+          - generic [ref=f8e123]:
+            - paragraph [ref=f8e124]: LOGO CAFE.png
+            - paragraph [ref=f8e125]: 135 KB
+          - button "⬇" [ref=f8e127] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e128]:
+          - checkbox [ref=f8e130]
+          - button "?" [ref=f8e131] [cursor=pointer]:
+            - generic "Sin previsualización" [ref=f8e132]: "?"
+          - generic [ref=f8e133]:
+            - paragraph [ref=f8e134]: LOGO GRIS.png
+            - paragraph [ref=f8e135]: 5 mL · 2.6×0.87 in
+            - paragraph [ref=f8e136]: 40 KB
+          - button "⬇" [ref=f8e138] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e139]:
+          - checkbox [ref=f8e141]
+          - button "?" [ref=f8e142] [cursor=pointer]:
+            - generic "Sin previsualización" [ref=f8e143]: "?"
+          - generic [ref=f8e144]:
+            - paragraph [ref=f8e145]: LOGO AZUL.png
+            - paragraph [ref=f8e146]: 36 KB
+          - button "⬇" [ref=f8e148] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e149]:
+          - checkbox [ref=f8e151]
+          - button [ref=f8e152] [cursor=pointer]:
+            - img "LOGO AMARILLO.png" [ref=f8e153]
+          - generic [ref=f8e154]:
+            - paragraph [ref=f8e155]: LOGO AMARILLO.png
+            - paragraph [ref=f8e156]: 39 KB
+          - button "⬇" [ref=f8e158] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e159]:
+          - checkbox [ref=f8e161]
+          - button [ref=f8e162] [cursor=pointer]:
+            - img "logo verde MCKG.png" [ref=f8e163]
+          - generic [ref=f8e164]:
+            - paragraph [ref=f8e165]: logo verde MCKG.png
+            - paragraph [ref=f8e166]: 960 KB
+          - button "⬇" [ref=f8e168] [cursor=pointer]
+        - generic "Arrastra a una carpeta para mover" [ref=f8e169]:
+          - checkbox [ref=f8e171]
+          - button [ref=f8e172] [cursor=pointer]:
+            - img "NUEZ_DEL_BRASIL_250g_4x.png" [ref=f8e173]
+          - generic [ref=f8e174]:
+            - paragraph [ref=f8e175]: NUEZ_DEL_BRASIL_250g_4x.png
+            - paragraph [ref=f8e176]: 250 g · 2.99×2.6 in
+            - paragraph [ref=f8e177]: 164 KB
+          - button "⬇" [ref=f8e179] [cursor=pointer]

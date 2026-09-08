@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
+import TerceroSelect from "./TerceroSelect";
 import ComprobanteWidget from "./ComprobanteWidget";
 
 type Tercero = {
@@ -92,10 +93,6 @@ export default function PrestamosPanel() {
   const [abonoForm, setAbonoForm] = useState({ fecha: hoy(), monto: "", medio_pago_id: "", referencia: "" });
   const [verHistorial, setVerHistorial] = useState<number | null>(null);
 
-  const tercerosQ = useQuery<{ terceros: Tercero[] }>({
-    queryKey: ["cc-terceros"],
-    queryFn: () => api.get("/api/contabilidad/cc/terceros?activos=0"),
-  });
   const mediosQ = useQuery<{ medios_pago: MedioPago[] }>({
     queryKey: ["cc-medios-pago"],
     queryFn: () => api.get("/api/contabilidad/cc/medios-pago"),
@@ -105,7 +102,6 @@ export default function PrestamosPanel() {
     queryFn: () => api.get("/api/contabilidad/cc/movimientos?limit=500"),
   });
 
-  const terceros = (tercerosQ.data?.terceros ?? []).filter((t) => t.activo);
   const medios = (mediosQ.data?.medios_pago ?? []).filter((m) => m.activo);
 
   const movsPrestamo = useMemo(
@@ -251,21 +247,11 @@ export default function PrestamosPanel() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label={direccion === "recibido" ? "¿Quién nos presta?" : "¿A quién le prestamos?"}>
-              <select
-                value={form.tercero_id}
-                onChange={(e) => setForm((f) => ({ ...f, tercero_id: e.target.value }))}
-                className={inputCls}
-                required
-              >
-                <option value="">Selecciona…</option>
-                {terceros.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre} {t.tipo === "socio" ? "(socio)" : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <TerceroSelect
+              label={direccion === "recibido" ? "¿Quién nos presta?" : "¿A quién le prestamos?"}
+              value={form.tercero_id}
+              onChange={(id) => setForm((f) => ({ ...f, tercero_id: id }))}
+            />
             <Field label="Fecha">
               <input
                 type="date"
@@ -544,7 +530,9 @@ function SeccionSaldos({
                         <td className="py-1 text-muted">{m.referencia || "—"}</td>
                         <td className="py-1">
                           <ComprobanteWidget
-                            movimientoId={m.id}
+                            uploadUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
+                            viewUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
+                            deleteUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
                             soportePath={m.soporte_path}
                             soporteNombre={m.soporte_nombre}
                             onUpdated={() => void qc.invalidateQueries({ queryKey: ["cc-movimientos-prestamos"] })}

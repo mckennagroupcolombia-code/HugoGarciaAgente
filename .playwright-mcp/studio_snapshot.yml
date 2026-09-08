@@ -1,0 +1,5 @@
+- generic [ref=f1e3925]:
+  - generic [ref=f1e3926]: M
+  - heading "Error inesperado" [level=2] [ref=f1e3927]
+  - paragraph [ref=f1e3928]: "error loading dynamically imported module: https://bot.mckennagroup.co/app/assets/EtiquetasPanel-CGVCWbl4.js"
+  - button "Recargar" [ref=f1e3929] [cursor=pointer]

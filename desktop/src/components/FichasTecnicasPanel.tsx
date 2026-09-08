@@ -16,7 +16,7 @@ import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
-import { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
+import DocumentosCatalogoTab, { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
 import {
   PARAMETROS_COA_FALLBACK,
   parseParamRows,
@@ -28,9 +28,13 @@ import { esperarJobScan } from "../lib/scanJobPoll";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
-type TabDoc = "ft" | "coa" | "sds" | "completo" | "biblioteca";
+type TabDoc = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
 
+/** "revision" va primera a propósito: es la entrada guiada — "esto es lo
+ * que falta por revisar/corregir contra el formato vigente" — antes de que
+ * el usuario tenga que decidir en cuál de las demás pestañas entrar. */
 const TABS: { id: TabDoc; label: string; icon: UiIconName }[] = [
+  { id: "revision", label: "Revisión guiada", icon: "listChecks" },
   { id: "biblioteca", label: "Biblioteca", icon: "books" },
   { id: "completo", label: "Ficha Técnica COA SDS", icon: "file" },
 ];
@@ -2546,6 +2550,14 @@ export default function FichasTecnicasPanel() {
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
       {tab === "completo" && <DocumentoCompletoTabContent producto={null} preload={completoPreload} />}
       {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
+      {tab === "revision" && (
+        <DocumentosCatalogoTab
+          onGenerar={(producto) => {
+            setCompletoPreload({ titulo: producto.nombre, nombre_producto: producto.nombre });
+            setTab("completo");
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -133,7 +133,31 @@ export default function FormularioEtiquetaPanel({ formulario: f }: { formulario:
         </div>
       </div>
 
-      {f.msg && <p className="text-[10px] leading-snug text-ink">{f.msg}</p>}
+      {f.pendiente ? (
+        <div className="space-y-1.5 rounded-lg border border-amber-400 bg-amber-50 p-2 dark:bg-amber-950/40">
+          <p className="text-[10px] font-semibold leading-snug text-amber-800 dark:text-amber-300">
+            ⚠️ {f.msg}
+          </p>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={f.cancelarCargaPendiente}
+              className="flex-1 rounded border border-border bg-surface px-2 py-1 text-[10px] font-semibold text-ink hover:bg-surface-hover"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={f.confirmarCargaPendiente}
+              className="flex-1 rounded border border-amber-500 bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-900 hover:bg-amber-200 dark:bg-amber-900/50 dark:text-amber-200"
+            >
+              Cargar de todas formas
+            </button>
+          </div>
+        </div>
+      ) : (
+        f.msg && <p className="text-[10px] leading-snug text-ink">{f.msg}</p>
+      )}
 
       {usados.has("nombre") && (
         <CampoBloque

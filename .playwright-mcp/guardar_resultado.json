@@ -1,0 +1,132 @@
+{
+  "saveStatus": 200,
+  "ok": true,
+  "cambios": [
+    {
+      "id": "484d6d05-387",
+      "capa": "ORIGEN",
+      "antes": {
+        "x": 20,
+        "y": 94,
+        "width": 64,
+        "height": 13.666666666666664,
+        "lineHeight": 1.2
+      },
+      "despues": {
+        "x": 20,
+        "y": 89,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1.2
+      }
+    },
+    {
+      "id": "f1836fd9-92e",
+      "capa": "APARIENCIA",
+      "antes": {
+        "x": 105,
+        "y": 89,
+        "width": 64,
+        "height": 13.666666666666664,
+        "lineHeight": 1.2
+      },
+      "despues": {
+        "x": 105,
+        "y": 89,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1.2
+      }
+    },
+    {
+      "id": "00b42ccb-2ea",
+      "capa": "OLOR (título)",
+      "antes": {
+        "x": 16,
+        "y": 111.66666666666666,
+        "width": 64,
+        "height": 9,
+        "lineHeight": 1.2
+      },
+      "despues": {
+        "x": 20,
+        "y": 111.66666666666666,
+        "width": 64,
+        "height": 9,
+        "lineHeight": 1.2
+      }
+    },
+    {
+      "id": "d9545e81-c32",
+      "capa": "OLOR",
+      "antes": {
+        "x": 26.149312937110373,
+        "y": 122.46342252767624,
+        "width": 51.70137412577925,
+        "height": 18.869910805657067,
+        "lineHeight": 1
+      },
+      "despues": {
+        "x": 20,
+        "y": 123,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1.2
+      }
+    },
+    {
+      "id": "3945abe6-fd1",
+      "capa": "GRADO",
+      "antes": {
+        "x": 20,
+        "y": 158.33333333333331,
+        "width": 64,
+        "height": 13.666666666666664,
+        "lineHeight": 1
+      },
+      "despues": {
+        "x": 20,
+        "y": 156,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1
+      }
+    },
+    {
+      "id": "47188ae1-7d2",
+      "capa": "COMPOSICIÓN",
+      "antes": {
+        "x": 105,
+        "y": 123.66666666666666,
+        "width": 64,
+        "height": 13.666666666666664,
+        "lineHeight": 1.2
+      },
+      "despues": {
+        "x": 105,
+        "y": 123,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1.2
+      }
+    },
+    {
+      "id": "e5ce96df-64e",
+      "capa": "CONSERVACIÓN",
+      "antes": {
+        "x": 105,
+        "y": 157.33333333333331,
+        "width": 63.64713163248473,
+        "height": 22.135093989605227,
+        "lineHeight": 1.2
+      },
+      "despues": {
+        "x": 105,
+        "y": 156,
+        "width": 64,
+        "height": 18,
+        "lineHeight": 1.2
+      }
+    }
+  ]
+}

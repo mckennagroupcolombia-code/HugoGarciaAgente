@@ -1,0 +1,26 @@
+- generic [active] [ref=f5e1]:
+  - main [ref=f5e4]:
+    - button "Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos (recién) 25 hoy" [ref=f5e6] [cursor=pointer]:
+      - generic [ref=f5e13]:
+        - text: Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+        - generic [ref=f5e14]: (recién)
+      - generic [ref=f5e15]: 25 hoy
+    - generic [ref=f5e19]:
+      - generic [ref=f5e20]:
+        - generic [ref=f5e21]:
+          - button "Agenda" [ref=f5e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f5e31]
+        - generic [ref=f5e32]:
+          - button "Temas y estilo visual" [ref=f5e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f5e40] [cursor=pointer]
+          - button "Cuenta" [ref=f5e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f5e45]
+            - generic [ref=f5e46]: "1"
+      - tablist "Secciones de Diseño" [ref=f5e50]:
+        - tab "Imprimir" [ref=f5e51] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f5e57] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f5e65] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f5e70] [cursor=pointer]
+    - generic [ref=f5e79]: Cargando panel…
+  - button "Ver solicitudes en proceso" [ref=f5e84] [cursor=pointer]:
+    - generic [ref=f5e85]: "1"

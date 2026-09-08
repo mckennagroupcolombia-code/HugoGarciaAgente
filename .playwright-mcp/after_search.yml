@@ -1,0 +1,51 @@
+- generic [ref=f10e1]:
+  - main [ref=f10e4]:
+    - button "Actividad del equipo — Gloria Stella creó una acción TKT-2026-1193 — Empacar el ácido azelaico en sobres de 10 gr (recién) 35 hoy" [ref=f10e6] [cursor=pointer]:
+      - generic [ref=f10e13]:
+        - text: Actividad del equipo — Gloria Stella creó una acción TKT-2026-1193 — Empacar el ácido azelaico en sobres de 10 gr
+        - generic [ref=f10e14]: (recién)
+      - generic [ref=f10e15]: 35 hoy
+    - generic [ref=f10e19]:
+      - generic [ref=f10e20]:
+        - generic [ref=f10e21]:
+          - button "Agenda" [ref=f10e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f10e31]
+        - generic [ref=f10e32]:
+          - button "Temas y estilo visual" [ref=f10e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f10e40] [cursor=pointer]
+          - button "Cuenta" [ref=f10e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f10e45]
+            - generic [ref=f10e46]: "1"
+      - tablist "Secciones de Diseño" [ref=f10e50]:
+        - tab "Imprimir" [ref=f10e51] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f10e57] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f10e65] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f10e70] [cursor=pointer]
+    - generic [ref=f10e91]:
+      - generic [ref=f10e92]:
+        - heading "Studio" [level=1] [ref=f10e93]
+        - textbox "Buscar plantillas e imágenes en todas las carpetas…" [active] [ref=f10e95]: MANTECA DE CACAO REFINADA 1000g
+        - button "Seleccionar todo (1)" [ref=f10e3874] [cursor=pointer]
+        - button "Nueva plantilla" [ref=f10e97] [cursor=pointer]
+      - generic [ref=f10e98]:
+        - button "📁 Raíz" [disabled] [ref=f10e99]
+        - button "+ Carpeta" [ref=f10e100] [cursor=pointer]
+      - article "Arrastra a una carpeta para mover" [ref=f10e3875]:
+        - checkbox [ref=f10e3877]
+        - button [ref=f10e3878] [cursor=pointer]
+        - generic [ref=f10e3881]:
+          - heading "MANTECA DE CACAO REFINADA 1000g" [level=3] [ref=f10e3882]
+          - paragraph [ref=f10e3883]: 250 g · 76×66 mm · formulario
+          - button "📋 Aplicar en lote" [ref=f10e3884] [cursor=pointer]
+        - generic [ref=f10e3885]:
+          - button "Duplicar" [ref=f10e3886] [cursor=pointer]
+          - button "Eliminar" [ref=f10e3887] [cursor=pointer]
+      - generic [ref=f10e3889]:
+        - generic [ref=f10e3890]:
+          - generic [ref=f10e3891]: Biblioteca de etiquetas
+          - button "📁 Raíz" [disabled] [ref=f10e3892]
+          - button "+ Carpeta" [ref=f10e3893] [cursor=pointer]
+        - generic [ref=f10e3894]: 0 imagen(es) para «MANTECA DE CACAO REFINADA 1000g»
+        - paragraph [ref=f10e3896]: No hay imágenes PNG con ese nombre (las plantillas que coinciden aparecen arriba).
+  - button "Ver solicitudes en proceso" [ref=f10e84] [cursor=pointer]:
+    - generic [ref=f10e85]: "1"

@@ -1,0 +1,26 @@
+- generic [active] [ref=f10e1]:
+  - main [ref=f10e4]:
+    - button "Actividad del equipo — Gloria Stella creó una acción TKT-2026-1193 — Empacar el ácido azelaico en sobres de 10 gr (recién) 35 hoy" [ref=f10e6] [cursor=pointer]:
+      - generic [ref=f10e13]:
+        - text: Actividad del equipo — Gloria Stella creó una acción TKT-2026-1193 — Empacar el ácido azelaico en sobres de 10 gr
+        - generic [ref=f10e14]: (recién)
+      - generic [ref=f10e15]: 35 hoy
+    - generic [ref=f10e19]:
+      - generic [ref=f10e20]:
+        - generic [ref=f10e21]:
+          - button "Agenda" [ref=f10e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f10e31]
+        - generic [ref=f10e32]:
+          - button "Temas y estilo visual" [ref=f10e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f10e40] [cursor=pointer]
+          - button "Cuenta" [ref=f10e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f10e45]
+            - generic [ref=f10e46]: "1"
+      - tablist "Secciones de Diseño" [ref=f10e50]:
+        - tab "Imprimir" [ref=f10e51] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f10e57] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f10e65] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f10e70] [cursor=pointer]
+    - generic [ref=f10e79]: Cargando panel…
+  - button "Ver solicitudes en proceso" [ref=f10e84] [cursor=pointer]:
+    - generic [ref=f10e85]: "1"

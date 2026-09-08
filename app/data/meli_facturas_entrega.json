@@ -14892,6 +14892,50 @@
       "siigo_invoice_status": "closed",
       "siigo_invoice_cufe": "7602f5683529ffd9ec1404c9191d98f66510a5a4acef58a93b5d0d30d07d5eb85c65893f6443017d6eb3a0eaa59326a1",
       "pdf_subido_meli": true
+    },
+    "2000018327327330": {
+      "shipping_id": "47953260820",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T11:16:02",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "145",
+      "siigo_invoice_number": "FE145",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2614c8987330dc231135cceec12e2e3b95d1edecde4c5be47d6e932a7792db6ef669c6350a2f3fd53fd12ea57a346866",
+      "pdf_subido_meli": true
+    },
+    "2000018307782320": {
+      "shipping_id": "47944416697",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T12:14:14",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "146",
+      "siigo_invoice_number": "FE146",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4fb07c00e5777bb620f35928a9a9bcdf4057f49b8e5900602c41816264fc533d1ae716518bd6810b24b45258c3cb1423",
+      "pdf_subido_meli": true
+    },
+    "2000018296951812": {
+      "shipping_id": "47939669925",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T12:40:47",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "147",
+      "siigo_invoice_number": "FE147",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "dde7f95c324e135eec86662452cda69d0a2a125c2cd741a7d051ba6b69b345662727c8e5d8fe6b1303b81059fb781b90",
+      "pdf_subido_meli": true
+    },
+    "2000018317196472": {
+      "shipping_id": "47948806886",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T13:18:52",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "148",
+      "siigo_invoice_number": "FE148",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "7835ac60293ad2bd84071034340c5258e067226b84c76e592ef6dcb7cb92ff3ab40a40136dbd8b1719fe5470d439759c",
+      "pdf_subido_meli": true
     }
   },
   "2000018272473696": {

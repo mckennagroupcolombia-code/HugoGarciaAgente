@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import ChecklistGuiado from "../ui/ChecklistGuiado";
 
 export interface ProductoDocumentacion {
   ref: string;
@@ -31,6 +32,22 @@ interface CatalogResponse {
   drive_index?: { origen?: string; mensaje?: string; actualizado_at?: string | null };
   duracion_ms?: number;
   productos: ProductoRow[];
+}
+
+interface RevisionChecklistItem {
+  ref: string;
+  revisado: boolean;
+  revisado_por: string;
+  revisado_en: string;
+  notas: string;
+}
+
+interface RevisionChecklistResponse {
+  total: number;
+  revisados: number;
+  pendientes: number;
+  completo: boolean;
+  cola: RevisionChecklistItem[];
 }
 
 interface DriveHit {
@@ -80,10 +97,34 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
   const qc = useQueryClient();
   const [buscar, setBuscar] = useState("");
   const [soloFaltantes, setSoloFaltantes] = useState(false);
+  const [soloPorRevisar, setSoloPorRevisar] = useState(true);
   const [tipoFaltante, setTipoFaltante] = useState("");
   const [expandido, setExpandido] = useState<string | null>(null);
   const [asociar, setAsociar] = useState<{ producto: ProductoRow; tipo: string } | null>(null);
   const [linkManual, setLinkManual] = useState("");
+  const [notasRevision, setNotasRevision] = useState<Record<string, string>>({});
+
+  const revisionQ = useQuery<RevisionChecklistResponse>({
+    queryKey: ["documentos-revision-checklist"],
+    queryFn: () => api.get("/api/documentos/revision-checklist"),
+    staleTime: 15_000,
+  });
+  const revisionPorRef = useMemo(() => {
+    const m = new Map<string, RevisionChecklistItem>();
+    for (const it of revisionQ.data?.cola ?? []) m.set(it.ref, it);
+    return m;
+  }, [revisionQ.data]);
+  // Un ref no aparece en `cola` cuando ya está revisado (la cola solo trae
+  // pendientes) — lo tratamos como revisado por omisión una vez que cargó.
+  const estaRevisado = (ref: string) => !!revisionQ.data && !revisionPorRef.has(ref);
+
+  const marcarRevisadoMut = useMutation({
+    mutationFn: (body: { producto_ref: string; revisado: boolean; notas?: string }) =>
+      api.post<{ ok?: boolean; error?: string }>("/api/documentos/revision-checklist/marcar", body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["documentos-revision-checklist"] });
+    },
+  });
 
   const params = useMemo(() => {
     const q = new URLSearchParams();
@@ -135,7 +176,10 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
     },
   });
 
-  const productos = data?.productos ?? [];
+  const todosLosProductos = data?.productos ?? [];
+  const productos = soloPorRevisar
+    ? todosLosProductos.filter((p) => !estaRevisado(p.ref))
+    : todosLosProductos;
 
   const verFichaPdf = async (nombreArchivo: string) => {
     const { resolvePanelApiUrl } = await import("../../api/client");
@@ -154,6 +198,16 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
     <div className="space-y-3">
       <div>
         <h3 className="text-base font-semibold text-ink">Catálogo de productos (combos Alegra)</h3>
+        {revisionQ.data && (
+          <div className="mt-2">
+            <ChecklistGuiado
+              compact
+              titulo="Revisión de formato"
+              items={[]}
+              progreso={{ hechos: revisionQ.data.revisados, total: revisionQ.data.total }}
+            />
+          </div>
+        )}
         {data?.indices_drive && (
           <p className="mt-1 text-xs text-muted">
             PDFs indexados en Drive — FT: {data.indices_drive.ft ?? 0} · COA: {data.indices_drive.coa ?? 0} · SDS:{" "}
@@ -196,6 +250,10 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
           <input type="checkbox" checked={soloFaltantes} onChange={(e) => setSoloFaltantes(e.target.checked)} />
           Solo con faltantes
         </label>
+        <label className="flex items-center gap-2 text-sm pb-2">
+          <input type="checkbox" checked={soloPorRevisar} onChange={(e) => setSoloPorRevisar(e.target.checked)} />
+          Solo pendientes de revisar (formato)
+        </label>
         <select
           value={tipoFaltante}
           onChange={(e) => setTipoFaltante(e.target.value)}
@@ -231,6 +289,7 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
               <th className="px-3 py-2 font-medium">Ref</th>
               <th className="px-3 py-2 font-medium">Producto</th>
               <th className="px-3 py-2 font-medium">Documentos</th>
+              <th className="px-3 py-2 font-medium">Revisión de formato</th>
               <th className="px-3 py-2 font-medium">Acciones</th>
             </tr>
           </thead>
@@ -254,6 +313,34 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
                     />
                   </td>
                   <td className="px-3 py-2">
+                    {estaRevisado(p.ref) ? (
+                      <button
+                        type="button"
+                        disabled={marcarRevisadoMut.isPending}
+                        onClick={() => marcarRevisadoMut.mutate({ producto_ref: p.ref, revisado: false })}
+                        className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-500/30 hover:opacity-80"
+                        title="Marcar como pendiente de revisar de nuevo"
+                      >
+                        ✓ Revisado
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={marcarRevisadoMut.isPending}
+                        onClick={() =>
+                          marcarRevisadoMut.mutate({
+                            producto_ref: p.ref,
+                            revisado: true,
+                            notas: notasRevision[p.ref] || "",
+                          })
+                        }
+                        className="rounded-lg border border-border px-2 py-1 text-[11px] font-medium hover:border-accent disabled:opacity-40"
+                      >
+                        Marcar revisado
+                      </button>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => setExpandido(expandido === p.ref ? null : p.ref)}
@@ -265,7 +352,7 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
                 </tr>
                 {expandido === p.ref && (
                   <tr>
-                    <td colSpan={4} className="bg-surface-panel/80 px-4 py-4">
+                    <td colSpan={5} className="bg-surface-panel/80 px-4 py-4">
                       <div className="flex flex-wrap gap-2 mb-3">
                         <button
                           type="button"
@@ -331,6 +418,31 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
                           })}
                         </div>
                       )}
+                      <div className="mt-3 space-y-2 border-t border-border pt-3">
+                        <label className="block text-xs font-medium text-ink-secondary">
+                          Notas de la revisión (qué se corrigió, qué falta)
+                          <textarea
+                            value={notasRevision[p.ref] ?? revisionPorRef.get(p.ref)?.notas ?? ""}
+                            onChange={(e) => setNotasRevision((m) => ({ ...m, [p.ref]: e.target.value }))}
+                            rows={2}
+                            className="mt-1 block w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={marcarRevisadoMut.isPending}
+                          onClick={() =>
+                            marcarRevisadoMut.mutate({
+                              producto_ref: p.ref,
+                              revisado: true,
+                              notas: notasRevision[p.ref] || "",
+                            })
+                          }
+                          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+                        >
+                          {marcarRevisadoMut.isPending ? "Guardando…" : "Marcar revisado y siguiente"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -338,7 +450,12 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
             ))}
           </tbody>
         </table>
-        {!isLoading && productos.length === 0 && (
+        {!isLoading && productos.length === 0 && todosLosProductos.length > 0 && soloPorRevisar && (
+          <p className="flex items-center gap-2 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+            ✅ Todos los productos están revisados contra el formato vigente.
+          </p>
+        )}
+        {!isLoading && productos.length === 0 && (todosLosProductos.length === 0 || !soloPorRevisar) && (
           <p className="p-4 text-sm text-muted text-center">No hay productos que coincidan con el filtro.</p>
         )}
       </div>

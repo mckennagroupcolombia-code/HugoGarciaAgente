@@ -1,0 +1,444 @@
+- generic [active] [ref=f6e1]:
+  - main [ref=f6e4]:
+    - generic [ref=f6e4002]:
+      - generic [ref=f6e4003]:
+        - button "Volver a biblioteca" [ref=f6e4004] [cursor=pointer]:
+          - generic [ref=f6e4005]: ←
+        - textbox [ref=f6e4006]: MANTECA DE CACAO REFINADA 1000g
+        - button "250 g · 76×66 mm" [ref=f6e4007] [cursor=pointer]:
+          - text: 250 g · 76×66 mm
+          - generic [aria-hidden] [ref=f6e4008]: ✎
+        - button [ref=f6e4010] [cursor=pointer]
+        - button "Deshacer (Ctrl+Z)":
+          - generic: ↺
+        - button "Rehacer (Ctrl+Shift+Z)":
+          - generic: ↻
+        - generic [ref=f6e4015]:
+          - button "−" [ref=f6e4016] [cursor=pointer]
+          - button "145%" [ref=f6e4017] [cursor=pointer]
+          - button "+" [ref=f6e4018] [cursor=pointer]
+          - button "Guardar" [ref=f6e4019] [cursor=pointer]
+          - button "Duplicar" [ref=f6e4020] [cursor=pointer]
+          - generic "Exportar a resolución de impresión · 1794×1556 px · ~600 DPI" [ref=f6e4021]:
+            - generic [ref=f6e4022]: Export
+            - generic [ref=f6e4023]: 600 DPI Impresión
+          - button "Descargar PNG" [ref=f6e4024] [cursor=pointer]
+      - generic [ref=f6e4025]:
+        - complementary [ref=f6e4026]:
+          - button "Texto (T)" [ref=f6e4027] [cursor=pointer]:
+            - generic [ref=f6e4028]: T
+          - button "Texto en arco (curvatura arriba/abajo)" [ref=f6e4029] [cursor=pointer]:
+            - generic [ref=f6e4030]: T
+          - button "Rectángulo" [ref=f6e4033] [cursor=pointer]:
+            - generic [ref=f6e4034]: ▢
+          - button "Círculo / elipse" [ref=f6e4035] [cursor=pointer]:
+            - generic [ref=f6e4036]: ◯
+          - button "Línea" [ref=f6e4037] [cursor=pointer]:
+            - generic [ref=f6e4038]: ─
+          - button "Imagen" [ref=f6e4039] [cursor=pointer]:
+            - generic [ref=f6e4040]: ▣
+          - button "Iconos circulares (química, cosmética…)" [ref=f6e4041] [cursor=pointer]:
+            - generic [ref=f6e4042]: ⚗️
+          - button "Pictogramas GHS" [ref=f6e4044] [cursor=pointer]:
+            - generic [ref=f6e4045]: GHS
+          - button "Código EAN-13" [ref=f6e4046] [cursor=pointer]:
+            - generic [ref=f6e4047]: EAN
+        - generic [ref=f6e4048]:
+          - generic [ref=f6e4054]:
+            - generic [ref=f6e4055]: MANTECA DE CACAO REFINADA
+            - generic [ref=f6e4059]: "Concentración:"
+            - generic [ref=f6e4060]: "CAS:"
+            - generic [ref=f6e4061]: 8002-31-1
+            - generic [ref=f6e4063]: "Información técnica:"
+            - generic [ref=f6e4064]: TDS - COA
+            - generic [ref=f6e4065]: "Disponible en:"
+            - generic [ref=f6e4067]: www.mckennagroup.co
+            - generic [ref=f6e4073]: "ORIGEN:"
+            - generic [ref=f6e4074]: Colombia
+            - generic [ref=f6e4077]: "APARIENCIA:"
+            - generic [ref=f6e4078]: Sólido, blanco a blanco amarillento pálido, de textura suave y untuosa, presentándose en bloques o escamas irregulares.
+            - generic [ref=f6e4081]: "OLOR:"
+            - generic [ref=f6e4082]: Olor dulce y cremoso, con un trasfondo sutil de cacao.
+            - generic [ref=f6e4085]: "COMPOSICION:"
+            - generic [ref=f6e4088]: "GRADO:"
+            - generic [ref=f6e4091]: "CONSERVACIÓN:"
+            - generic [ref=f6e4092]: Guardar en lugar fresco, seco y bien cerrado.
+            - generic [ref=f6e4095]: CONTENIDO NETO
+            - generic [ref=f6e4096]: 1000g
+            - generic [ref=f6e4100]: Bogotá · Colombia
+            - generic [ref=f6e4104]: +57 319 652 90 76
+            - generic [ref=f6e4106]: info@mckennagroup.co
+            - generic [ref=f6e4112]: Cosmético — Refinada
+            - generic [ref=f6e4113]: NO GHS
+            - generic [ref=f6e4114]: Ácido Esteárico, Ácido Oleico, Ácido Palmítico, Ácido Linoleico
+            - generic [ref=f6e4115]: 100 % (materia prima pura)
+            - generic [ref=f6e4116]: MATERIA PRIMA GRADO COSMÉTICO — REFINADA
+          - generic [ref=f6e4121]:
+            - paragraph [ref=f6e4122]: Ficha y especificaciones
+            - generic [ref=f6e4123]:
+              - generic [ref=f6e4124]:
+                - generic [ref=f6e4125]: ORIGEN
+                - textbox "ORIGEN" [ref=f6e4126]: Colombia
+              - generic [ref=f6e4127]:
+                - generic [ref=f6e4128]: APARIENCIA
+                - textbox "APARIENCIA" [ref=f6e4129]: Sólido, blanco a blanco amarillento pálido, de textura suave y untuosa, presentándose en bloques o escamas irregulares.
+              - generic [ref=f6e4130]:
+                - generic [ref=f6e4131]: OLOR
+                - textbox "OLOR" [ref=f6e4132]: Olor dulce y cremoso, con un trasfondo sutil de cacao.
+              - generic [ref=f6e4133]:
+                - generic [ref=f6e4134]: COMPOSICIÓN
+                - textbox "COMPOSICIÓN" [ref=f6e4135]: Ácido Esteárico, Ácido Oleico, Ácido Palmítico, Ácido Linoleico
+              - generic [ref=f6e4136]:
+                - generic [ref=f6e4137]: GRADO
+                - textbox "GRADO" [ref=f6e4138]: Cosmético — Refinada
+              - generic [ref=f6e4139]:
+                - generic [ref=f6e4140]:
+                  - text: CONSERVACIÓN
+                  - generic [ref=f6e4141]: 8/10 palabras
+                - textbox "CONSERVACIÓN 8/10 palabras" [ref=f6e4142]: Guardar en lugar fresco, seco y bien cerrado.
+              - generic [ref=f6e4143]:
+                - generic [ref=f6e4144]: CONCENTRACIÓN
+                - textbox "CONCENTRACIÓN" [ref=f6e4145]: 100 % (materia prima pura)
+              - generic [ref=f6e4146]:
+                - generic [ref=f6e4147]: CAS
+                - textbox "CAS" [ref=f6e4148]: 8002-31-1
+              - generic [ref=f6e4149]:
+                - generic [ref=f6e4150]: GHS
+                - textbox "GHS" [ref=f6e4151]: NO GHS
+        - generic [ref=f6e4152]:
+          - generic "Arrastra para cambiar el ancho del panel" [ref=f6e4153]
+          - complementary [ref=f6e4154]:
+            - generic [ref=f6e4155]:
+              - generic [ref=f6e4156]:
+                - generic [ref=f6e4157]:
+                  - paragraph [ref=f6e4158]: Formulario de etiqueta
+                  - paragraph [ref=f6e4159]: "Igual que el sticker: título naranja + dato negro. Las cajas no se mueven."
+                - generic [ref=f6e4160]:
+                  - generic [ref=f6e4161]: Cargar ficha técnica
+                  - generic [ref=f6e4162]:
+                    - combobox [ref=f6e4163]:
+                      - option "Elegir ficha…" [selected]
+                      - option "ACEITE ARGAN"
+                      - option "ACEITE DE ARGAN"
+                      - option "ACEITE DE GIRASOL"
+                      - option "ACEITE DE JOJOBA"
+                      - option "ACEITE DE NEEM"
+                      - option "ACEITE DE RICINO"
+                      - option "ACEITE ESENCIAL ALBAHACA"
+                      - option "ACEITE ESENCIAL ÁRBOL DE TÉ"
+                      - option "ACEITE ESENCIAL BERGAMOTA"
+                      - option "ACEITE ESENCIAL CANELA"
+                      - option "ACEITE ESENCIAL CLAVOS"
+                      - option "ACEITE ESENCIAL EUCALIPTO"
+                      - option "ACEITE ESENCIAL HIERBA BUENA"
+                      - option "ACEITE ESENCIAL JAZMIN"
+                      - option "ACEITE ESENCIAL JENGIBRE"
+                      - option "ACEITE ESENCIAL MANDARINA"
+                      - option "ACEITE ESENCIAL MANZANILLA"
+                      - option "ACEITE ESENCIAL MENTA"
+                      - option "ACEITE ESENCIAL NARANJA"
+                      - option "ACEITE ESENCIAL PINO"
+                      - option "ACEITE ESENCIAL ROSA MOSQUETA"
+                      - option "ACEITE ESENCIAL ROSAS"
+                      - option "ACEITE ESENCIAL TOMILLO"
+                      - option "ACEITE ESENCIAL YLANG YLANG"
+                      - option "ACETATO DE SODIO ANHIDRO"
+                      - option "ACETE ESENCIAL ROMERO"
+                      - option "ÁCIDO ASCÓRBICO"
+                      - option "ACIDO AZELAICO"
+                      - option "ÁCIDO BENZOICO"
+                      - option "ÁCIDO BÓRICO"
+                      - option "ÁCIDO CÍTRICO"
+                      - option "ÁCIDO FUMÁRICO"
+                      - option "ÁCIDO GLICÓLICO"
+                      - option "ÁCIDO HIALURÓNICO"
+                      - option "ÁCIDO KÓJICO"
+                      - option "ÁCIDO LÁCTICO"
+                      - option "ÁCIDO MÁLICO"
+                      - option "ÁCIDO SALICÍLICO"
+                      - option "ÁCIDO SÓRBICO"
+                      - option "AGAR AGAR"
+                      - option "AGUA DE ROSAS"
+                      - option "ALANTOÍNA"
+                      - option "ALBUMINA DE HUEVO"
+                      - option "ALCANFOR"
+                      - option "ALCOHOL CETÍLICO"
+                      - option "ALCOHOL CETO ESTEARÍLICO"
+                      - option "ALGINATO DE SODIO"
+                      - option "ALMIDÓN DE YUCA"
+                      - option "ALOE VERA"
+                      - option "ALULOSA"
+                      - option "ARCILLA ROJA"
+                      - option "AZUFRE"
+                      - option "AZUL DE METILENO"
+                      - option "BCAA"
+                      - option "BENZOATO DE SODIO"
+                      - option "BETAÍNA DE COCO"
+                      - option "BICARBONATO DE SODIO"
+                      - option "BÓRAX"
+                      - option "AZELAIC ACID POWDER"
+                      - option "BTMS 50"
+                      - option "CAFEÍNA"
+                      - option "CAOLÍN COLOIDAL"
+                      - option "CARBÓN ACTIVADO"
+                      - option "CARBONATO DE CALCIO"
+                      - option "CARBONATO DE MAGNESIO"
+                      - option "CARBOPOL"
+                      - option "CARRAGENINA"
+                      - option "CELULOSA MICROCRISTALINA"
+                      - option "CERA ABEJAS REFINADA"
+                      - option "CERA CARNAUBA"
+                      - option "CITRATO DE CALCIO"
+                      - option "CITRATO DE MAGNESIO"
+                      - option "CITRATO DE POTASIO"
+                      - option "CITRATO DE ZINC"
+                      - option "CLORURO DE CALCIO"
+                      - option "CLORURO DE MAGNESIO"
+                      - option "NOMBRE DEL PRODUCTO"
+                      - option "COCOAMIDA DEA"
+                      - option "COLÁGENO"
+                      - option "COLÁGENO HIDROLIZADO"
+                      - option "COLOFONIA"
+                      - option "COLORANTE CARAMELO"
+                      - option "COLORANTE ERITROSINA"
+                      - option "INULINA"
+                      - option "CREATINA"
+                      - option "D PANTENOL"
+                      - option "DEXTROSA"
+                      - option "DIOXIDO DE TITANIO"
+                      - option "DMSO"
+                      - option "EFSF"
+                      - option "ELASTINA"
+                      - option "EMBRION DE PATO"
+                      - option "ESTEARATO DE MAGNESIO"
+                      - option "EXTRACTO DE MALTA"
+                      - option "EXTRACTO DE TÉ MATCHA"
+                      - option "FRUCTOSA"
+                      - option "ACEITE ARGAN"
+                      - option "ACEITE DE JOJOBA"
+                      - option "ACEITE DE RICINO"
+                      - option "ACEITE DE RICINO PRENSADO EN FRÍO"
+                      - option "ACIDO AZELAICO"
+                      - option "ÁCIDO CÍTRICO"
+                      - option "ÁCIDO SALICÍLICO"
+                      - option "ACIDO TRANEXAMICO"
+                      - option "ACIDO TRANEXAMICO 10G"
+                      - option "ALCOHOL CETÍLICO"
+                      - option "ALFA ARBUTINA"
+                      - option "ALGINATO DE SODIO"
+                      - option "ALMENDRA NATURAL SIN CASCARA"
+                      - option "ALULOSA"
+                      - option "AMINOÁCIDO BCAA INSTANT (M)"
+                      - option "ARANDANOS DESHIDRATADOS"
+                      - option "ARCILLA BLANCA - CAOLÍN"
+                      - option "ARCILLA BLANCA - CAOLÍN COLOIDAL"
+                      - option "CAOLÍN G30M"
+                      - option "CAOLIN USP"
+                      - option "CARBONATO DE CALCIO"
+                      - option "CELULOSA MICROCRISTALINA A 102"
+                      - option "CERA ABEJAS REFINADA AMARILLA"
+                      - option "CERA DE ABEJAS REFINADA BLANCA"
+                      - option "CITRATO DE CALCIO"
+                      - option "CITRATO DE MAGNESIO"
+                      - option "CITRATO DE POTASIO"
+                      - option "CLORURO DE CALCIO"
+                      - option "COCO DESECADO GRASO HILOS LARGOS"
+                      - option "COCO DESHIDRATADO EN HILOS"
+                      - option "COLÁGENO HIDROLIZADO"
+                      - option "COLAGENO HIDROLIZADODROLIZADO"
+                      - option "CREATINA"
+                      - option "CREATINA MONOHIDRATO"
+                      - option "D PANTENOL"
+                      - option "ERITRITOL CRISTAL"
+                      - option "EXTRACTO DE TÉ MATCHA"
+                      - option "EXTRACTO DE TÉ VERDE"
+                      - option "FLORES DE LAVANDA SECAS"
+                      - option "GELATINA SIN SABOR BLOOM 280"
+                      - option "GLICERINA"
+                      - option "GLUTAMATO MONOSÓDICO"
+                      - option "INULINA"
+                      - option "L-ARGININA"
+                      - option "L- PROLINA"
+                      - option "L- TEANINA"
+                      - option "L-TRIPTÓFANO"
+                      - option "LACTATO DE CALCIO"
+                      - option "LANOLINA ANHIDRA"
+                      - option "LECITINA DE SOYA EN POLVO"
+                      - option "MALTODEXTRINA"
+                      - option "MALTODEXTRINA M150"
+                      - option "MANI NATURAL TOSTADO"
+                      - option "MANI TOSTADO PARTIDO"
+                      - option "MANTECA DE CACAO REFINADA"
+                      - option "MANTECA DE CACAO REFINADA COSMETICA"
+                      - option "MENTOL"
+                      - option "NUEZ BRASIL"
+                      - option "NUEZ DEL BRASIL PARTIDA"
+                      - option "PAPAÍNA"
+                      - option "PISTACHOS TOSTADOS"
+                      - option "PISTACHOS TOSTADOS CON POCA SAL"
+                      - option "PISTACHOS TOSTADOS SALADOS"
+                      - option "PORTEINA DE SUERO DE LECHE"
+                      - option "PROTEINA DE SUERO DE LECHE"
+                      - option "SEMILLAS DE CALABAZA"
+                      - option "SEMILLAS DE GIRASOL"
+                      - option "SORBITOL POLVO"
+                      - option "SUCRALOSA"
+                      - option "TAURINA"
+                      - option "VASELINA"
+                      - option "VITAMINA D PANTENOL"
+                      - option "VITAMINA E"
+                      - option "GELATINA SIN SABOR BLOOM 280"
+                      - option "GLICERINA"
+                      - option "GLICERINA VEGETAL"
+                      - option "GLUTAMATO MONOSÓDICO"
+                      - option "GOMA ARABIGA"
+                      - option "GOMA GUAR"
+                      - option "GOMA XANTHAN"
+                      - option "GUSANO DE SEDA"
+                      - option "HIDROQUINONA"
+                      - option "INULINA"
+                      - option "JABÓN ESPUMA JACUZZI"
+                      - option "JABÓN POTÁSICO"
+                      - option "L- ALANINA"
+                      - option "L-ARGININA"
+                      - option "L-CARNTINA"
+                      - option "L-CISTEÍNA"
+                      - option "L-CITRULINA"
+                      - option "L-FENILALANINA"
+                      - option "L-GLUTAMINA"
+                      - option "L-HISTIDINA"
+                      - option "L ISOLEUCINA"
+                      - option "L- LEUCINA"
+                      - option "L LISINA"
+                      - option "L-ORNITINA"
+                      - option "L- PROLINA"
+                      - option "L- TEANINA"
+                      - option "L- TIROSINA"
+                      - option "L-TREONINA"
+                      - option "L-TRIPTÓFANO"
+                      - option "L- VALINA"
+                      - option "LACTATO DE CALCIO"
+                      - option "LANOLINA"
+                      - option "LANOLINA ANHIDRA"
+                      - option "LECITINA DE SOYA"
+                      - option "MALTODEXTRINA"
+                      - option "MANTECA CACAO"
+                      - option "MANTECA KARITÉ"
+                      - option "MENTOL"
+                      - option "METABISULFITO DE SODIO"
+                      - option "MOLIBDATO DE AMONIO"
+                      - option "ÓXIDO DE HIERRO"
+                      - option "OXIDO DE ZINC"
+                      - option "PAPAÍNA"
+                      - option "PARAFINA"
+                      - option "POLISORBATO 20"
+                      - option "PROPILENGLICOL"
+                      - option "PROTEÍNA AISLADA DE SOYA"
+                      - option "PROTEÍNA CONCENTRADA DE SUERO DE LECHE"
+                      - option "SABOR CARNE AHUMADA"
+                      - option "SCI"
+                      - option "NOMBRE DEL PRODUCTO"
+                      - option "SEBO DE CORDERO"
+                      - option "SHAROMIX 705"
+                      - option "SODA CÁUSTICA"
+                      - option "SORBATO DE POTASIO"
+                      - option "SUCRALOSA"
+                      - option "SUERO DE LECHE"
+                      - option "SULFATO DE CONDROITINA"
+                      - option "TAURINA"
+                      - option "UREA"
+                      - option "VASELINA"
+                      - option "VERDE MALAQUITA"
+                      - option "VIOLETA DE GENCIANA"
+                      - option "VITAMINA A ACETATO"
+                      - option "VITAMINA B12"
+                      - option "VITAMINA B3"
+                      - option "VITAMINA C"
+                      - option "VITAMINA E"
+                    - button "Cargar" [disabled] [ref=f6e4164]
+                - generic [ref=f6e4165]:
+                  - generic [ref=f6e4166]: NOMBRE
+                  - textbox "NOMBRE" [ref=f6e4167]: MANTECA DE CACAO REFINADA
+                - generic [ref=f6e4168]:
+                  - generic [ref=f6e4169]: CATEGORÍA
+                  - textbox "CATEGORÍA" [ref=f6e4170]: MATERIA PRIMA GRADO COSMÉTICO — REFINADA
+                - generic [ref=f6e4171]:
+                  - paragraph [ref=f6e4172]: LOGO
+                  - paragraph [ref=f6e4173]: Color de la línea comercial
+                  - generic [ref=f6e4174]:
+                    - button [ref=f6e4175] [cursor=pointer]:
+                      - generic [ref=f6e4176]:
+                        - img "Aceites, ceras y grasas"
+                    - button [ref=f6e4177] [cursor=pointer]:
+                      - generic [ref=f6e4178]:
+                        - img "Agro"
+                    - button [ref=f6e4179] [cursor=pointer]:
+                      - generic [ref=f6e4180]:
+                        - img "Alimentario"
+                    - button [ref=f6e4181] [cursor=pointer]:
+                      - generic [ref=f6e4182]:
+                        - img "Cosmética"
+                    - button [ref=f6e4183] [cursor=pointer]:
+                      - generic [ref=f6e4184]:
+                        - img "Industria"
+                    - button [ref=f6e4185] [cursor=pointer]:
+                      - generic [ref=f6e4186]:
+                        - img "Laboratorio"
+                  - paragraph [ref=f6e4187]: Aceites, ceras y grasas
+                - paragraph [ref=f6e4188]: Ficha y especificaciones se editan en la barra de abajo (hay más espacio para los campos).
+                - generic [ref=f6e4189]:
+                  - generic [ref=f6e4190]:
+                    - generic [ref=f6e4191]: CONTENIDO NETO
+                    - textbox "CONTENIDO NETO" [ref=f6e4192]: 1000g
+                  - generic [ref=f6e4193]:
+                    - text: Contenidos que manejamos
+                    - combobox "Contenidos que manejamos" [ref=f6e4194]:
+                      - option "Elegir presentación…" [selected]
+                      - text: Gramos
+                      - option "5g"
+                      - option "10g"
+                      - option "15g"
+                      - option "20g"
+                      - option "30g"
+                      - option "40g"
+                      - option "50g"
+                      - option "60g"
+                      - option "100g"
+                      - option "120g"
+                      - option "125g"
+                      - option "150g"
+                      - option "250g"
+                      - option "400g"
+                      - option "500g"
+                      - option "1000g"
+                      - text: Mililitros
+                      - option "5mL"
+                      - option "10mL"
+                      - option "15mL"
+                      - option "20mL"
+                      - option "30mL"
+                      - option "40mL"
+                      - option "50mL"
+                      - option "60mL"
+                      - option "100mL"
+                      - option "120mL"
+                      - option "125mL"
+                      - option "150mL"
+                      - option "250mL"
+                      - option "400mL"
+                      - option "500mL"
+                      - option "1000mL"
+                - generic [ref=f6e4195]:
+                  - paragraph [ref=f6e4196]: CÓDIGO DE BARRAS
+                  - paragraph [ref=f6e4197]: O clica el código de barras en el lienzo → «🔍 Buscar SKU».
+                  - generic [ref=f6e4198]:
+                    - text: EAN-13
+                    - textbox "EAN-13" [ref=f6e4199]:
+                      - /placeholder: 770…
+                      - text: "7701545002636"
+              - paragraph [ref=f6e4200]: Elige un texto en la barra de abajo o en el lienzo.
+              - button "Capas (56) ▸" [ref=f6e4202] [cursor=pointer]:
+                - generic [ref=f6e4203]: Capas (56)
+                - generic [ref=f6e4204]: ▸
+  - button "Ver solicitudes en proceso" [ref=f6e83] [cursor=pointer]:
+    - generic [ref=f6e84]: "1"

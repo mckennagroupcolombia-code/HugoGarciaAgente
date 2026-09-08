@@ -1,0 +1,38 @@
+- generic [active] [ref=f7e1]:
+  - main [ref=f7e4]:
+    - button "Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos (recién) 27 hoy" [ref=f7e6] [cursor=pointer]:
+      - generic [ref=f7e13]:
+        - text: Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos
+        - generic [ref=f7e14]: (recién)
+      - generic [ref=f7e15]: 27 hoy
+    - generic [ref=f7e19]:
+      - generic [ref=f7e20]:
+        - generic [ref=f7e21]:
+          - button "Agenda" [ref=f7e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f7e31]
+        - generic [ref=f7e32]:
+          - button "Temas y estilo visual" [ref=f7e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f7e40] [cursor=pointer]
+          - button "Cuenta" [ref=f7e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f7e45]
+      - tablist "Secciones de Diseño" [ref=f7e49]:
+        - tab "Imprimir" [ref=f7e50] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f7e56] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f7e64] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e83]:
+      - generic [ref=f7e84]:
+        - heading "Studio" [level=1] [ref=f7e85]
+        - textbox "Buscar plantillas e imágenes en todas las carpetas…" [ref=f7e87]
+        - button "Nueva plantilla" [ref=f7e88] [cursor=pointer]
+      - generic [ref=f7e89]:
+        - button "📁 Raíz" [disabled] [ref=f7e90]
+        - button "+ Carpeta" [ref=f7e91] [cursor=pointer]
+      - generic [ref=f7e93]:
+        - generic [ref=f7e94]:
+          - generic [ref=f7e95]: Biblioteca de etiquetas
+          - button "📁 Raíz" [disabled] [ref=f7e96]
+          - button "+ Carpeta" [ref=f7e97] [cursor=pointer]
+        - generic [ref=f7e98]: 0 imagen(es)
+  - button "Ver solicitudes en proceso" [ref=f7e104] [cursor=pointer]:
+    - generic [ref=f7e105]: "1"

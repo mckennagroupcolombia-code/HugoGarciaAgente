@@ -1,0 +1,70 @@
+- generic [ref=f5e1]:
+  - main [ref=f5e4]:
+    - button "Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos (recién) 25 hoy" [ref=f5e6] [cursor=pointer]:
+      - generic [ref=f5e13]:
+        - text: Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+        - generic [ref=f5e14]: (recién)
+      - generic [ref=f5e15]: 25 hoy
+    - generic [ref=f5e19]:
+      - generic [ref=f5e20]:
+        - generic [ref=f5e21]:
+          - button "Agenda" [ref=f5e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f5e31]
+        - generic [ref=f5e32]:
+          - button "Temas y estilo visual" [ref=f5e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f5e40] [cursor=pointer]
+          - button "Cuenta" [ref=f5e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f5e45]
+            - generic [ref=f5e46]: "1"
+      - tablist "Secciones de Diseño" [ref=f5e50]:
+        - tab "Imprimir" [ref=f5e51] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f5e57] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f5e65] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f5e70] [cursor=pointer]
+    - generic [ref=f5e91]:
+      - generic [ref=f5e92]:
+        - heading "Studio" [level=1] [ref=f5e93]
+        - textbox "Buscar plantillas e imágenes en todas las carpetas…" [active] [ref=f5e95]: Manteca de Cacao
+        - button "Seleccionar todo (3)" [ref=f5e3874] [cursor=pointer]
+        - button "Nueva plantilla" [ref=f5e97] [cursor=pointer]
+      - generic [ref=f5e98]:
+        - button "📁 Raíz" [disabled] [ref=f5e99]
+        - button "+ Carpeta" [ref=f5e100] [cursor=pointer]
+      - generic [ref=f5e188]:
+        - article "Arrastra a una carpeta para mover" [ref=f5e3875]:
+          - checkbox [ref=f5e3877]
+          - button [ref=f5e3878] [cursor=pointer]
+          - generic [ref=f5e3881]:
+            - heading "MANTECA DE CACAO REFINADA 1000g" [level=3] [ref=f5e3882]
+            - paragraph [ref=f5e3883]: 250 g · 76×66 mm · formulario
+            - button "📋 Aplicar en lote" [ref=f5e3884] [cursor=pointer]
+          - generic [ref=f5e3885]:
+            - button "Duplicar" [ref=f5e3886] [cursor=pointer]
+            - button "Eliminar" [ref=f5e3887] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f5e3888]:
+          - checkbox [ref=f5e3890]
+          - button [ref=f5e3891] [cursor=pointer]
+          - generic [ref=f5e3894]:
+            - heading "MANTECA DE CACAO REFINADA Kg" [level=3] [ref=f5e3895]
+            - paragraph [ref=f5e3896]: 250 g · 76×66 mm
+          - generic [ref=f5e3897]:
+            - button "Duplicar" [ref=f5e3898] [cursor=pointer]
+            - button "Eliminar" [ref=f5e3899] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f5e3900]:
+          - checkbox [ref=f5e3902]
+          - button [ref=f5e3903] [cursor=pointer]
+          - generic [ref=f5e3906]:
+            - heading "MANTECA DE CACAO NATURAL 500g" [level=3] [ref=f5e3907]
+            - paragraph [ref=f5e3908]: 250 g · 76×66 mm
+          - generic [ref=f5e3909]:
+            - button "Duplicar" [ref=f5e3910] [cursor=pointer]
+            - button "Eliminar" [ref=f5e3911] [cursor=pointer]
+      - generic [ref=f5e3913]:
+        - generic [ref=f5e3914]:
+          - generic [ref=f5e3915]: Biblioteca de etiquetas
+          - button "📁 Raíz" [disabled] [ref=f5e3916]
+          - button "+ Carpeta" [ref=f5e3917] [cursor=pointer]
+        - generic [ref=f5e3918]: 0 imagen(es) para «Manteca de Cacao»
+        - paragraph [ref=f5e3920]: No hay imágenes PNG con ese nombre (las plantillas que coinciden aparecen arriba).
+  - button "Ver solicitudes en proceso" [ref=f5e84] [cursor=pointer]:
+    - generic [ref=f5e85]: "1"

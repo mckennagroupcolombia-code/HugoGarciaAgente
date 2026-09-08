@@ -1,0 +1,2871 @@
+- generic [active] [ref=f6e1]:
+  - main [ref=f6e4]:
+    - button "Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos (recién) 27 hoy" [ref=f6e6] [cursor=pointer]:
+      - generic [ref=f6e13]:
+        - text: Actividad del equipo — Gloria Stella pausó TKT-2026-1185 — Limpiar etiquetar productos
+        - generic [ref=f6e14]: (recién)
+      - generic [ref=f6e15]: 27 hoy
+    - generic [ref=f6e19]:
+      - generic [ref=f6e20]:
+        - generic [ref=f6e21]:
+          - button "Agenda" [ref=f6e22] [cursor=pointer]
+          - heading "Diseño" [level=1] [ref=f6e31]
+        - generic [ref=f6e32]:
+          - button "Temas y estilo visual" [ref=f6e33] [cursor=pointer]
+          - button "Modo oscuro" [ref=f6e40] [cursor=pointer]
+          - button "Cuenta" [ref=f6e44] [cursor=pointer]:
+            - img "Armando Garcia" [ref=f6e45]
+      - tablist "Secciones de Diseño" [ref=f6e49]:
+        - tab "Imprimir" [ref=f6e50] [cursor=pointer]
+        - tab "Studio visual" [selected] [ref=f6e56] [cursor=pointer]
+        - tab "Papel y tinta" [ref=f6e64] [cursor=pointer]
+        - tab "Códigos EAN" [ref=f6e69] [cursor=pointer]
+    - generic [ref=f6e90]:
+      - generic [ref=f6e91]:
+        - heading "Studio" [level=1] [ref=f6e92]
+        - textbox "Buscar plantillas e imágenes en todas las carpetas…" [ref=f6e94]
+        - button "Seleccionar todo (307)" [ref=f6e95] [cursor=pointer]
+        - button "Nueva plantilla" [ref=f6e96] [cursor=pointer]
+      - generic [ref=f6e97]:
+        - button "📁 Raíz" [disabled] [ref=f6e98]
+        - button "+ Carpeta" [ref=f6e99] [cursor=pointer]
+      - generic [ref=f6e101]:
+        - generic [ref=f6e102]:
+          - generic [ref=f6e103]: Biblioteca de etiquetas
+          - button "📁 Raíz" [disabled] [ref=f6e104]
+          - button "+ Carpeta" [ref=f6e105] [cursor=pointer]
+        - generic [ref=f6e106]:
+          - generic [ref=f6e107]: 7 imagen(es)
+          - generic [ref=f6e108]:
+            - checkbox "Seleccionar todo" [ref=f6e109]
+            - text: Seleccionar todo
+        - generic [ref=f6e110]:
+          - button "✎ 📁 ETIQUETAS STUDIO" [ref=f6e111] [cursor=pointer]:
+            - button "✎" [ref=f6e112]
+            - generic [ref=f6e113]: 📁
+            - generic [ref=f6e114]: ETIQUETAS STUDIO
+          - generic "Arrastra a una carpeta para mover" [ref=f6e115]:
+            - checkbox [ref=f6e117]
+            - button [ref=f6e118] [cursor=pointer]:
+              - img "LOGO MORADO.png" [ref=f6e119]
+            - generic [ref=f6e120]:
+              - paragraph [ref=f6e121]: LOGO MORADO.png
+              - paragraph [ref=f6e122]: 40 KB
+            - button "⬇" [ref=f6e124] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e125]:
+            - checkbox [ref=f6e127]
+            - button [ref=f6e128] [cursor=pointer]:
+              - img "LOGO CAFE.png" [ref=f6e129]
+            - generic [ref=f6e130]:
+              - paragraph [ref=f6e131]: LOGO CAFE.png
+              - paragraph [ref=f6e132]: 135 KB
+            - button "⬇" [ref=f6e134] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e135]:
+            - checkbox [ref=f6e137]
+            - button [ref=f6e138] [cursor=pointer]:
+              - img "LOGO GRIS.png" [ref=f6e139]
+            - generic [ref=f6e140]:
+              - paragraph [ref=f6e141]: LOGO GRIS.png
+              - paragraph [ref=f6e142]: 5 mL · 2.6×0.87 in
+              - paragraph [ref=f6e143]: 40 KB
+            - button "⬇" [ref=f6e145] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e146]:
+            - checkbox [ref=f6e148]
+            - button [ref=f6e149] [cursor=pointer]:
+              - img "LOGO AZUL.png" [ref=f6e150]
+            - generic [ref=f6e151]:
+              - paragraph [ref=f6e152]: LOGO AZUL.png
+              - paragraph [ref=f6e153]: 36 KB
+            - button "⬇" [ref=f6e155] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e156]:
+            - checkbox [ref=f6e158]
+            - button [ref=f6e159] [cursor=pointer]:
+              - img "LOGO AMARILLO.png" [ref=f6e160]
+            - generic [ref=f6e161]:
+              - paragraph [ref=f6e162]: LOGO AMARILLO.png
+              - paragraph [ref=f6e163]: 39 KB
+            - button "⬇" [ref=f6e165] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e166]:
+            - checkbox [ref=f6e168]
+            - button [ref=f6e169] [cursor=pointer]:
+              - img "logo verde MCKG.png" [ref=f6e170]
+            - generic [ref=f6e171]:
+              - paragraph [ref=f6e172]: logo verde MCKG.png
+              - paragraph [ref=f6e173]: 960 KB
+            - button "⬇" [ref=f6e175] [cursor=pointer]
+          - generic "Arrastra a una carpeta para mover" [ref=f6e176]:
+            - checkbox [ref=f6e178]
+            - button [ref=f6e179] [cursor=pointer]:
+              - img "NUEZ_DEL_BRASIL_250g_4x.png" [ref=f6e180]
+            - generic [ref=f6e181]:
+              - paragraph [ref=f6e182]: NUEZ_DEL_BRASIL_250g_4x.png
+              - paragraph [ref=f6e183]: 250 g · 2.99×2.6 in
+              - paragraph [ref=f6e184]: 164 KB
+            - button "⬇" [ref=f6e186] [cursor=pointer]
+      - generic [ref=f6e187]:
+        - article "Arrastra a una carpeta para mover" [ref=f6e188]:
+          - checkbox [ref=f6e190]
+          - button [ref=f6e191] [cursor=pointer]
+          - generic [ref=f6e194]:
+            - heading "MANTECA DE CACAO REFINADA 1000g" [level=3] [ref=f6e195]
+            - paragraph [ref=f6e196]: 250 g · 76×66 mm · formulario
+            - button "📋 Aplicar en lote" [ref=f6e197] [cursor=pointer]
+          - generic [ref=f6e198]:
+            - button "Duplicar" [ref=f6e199] [cursor=pointer]
+            - button "Eliminar" [ref=f6e200] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e201]:
+          - checkbox [ref=f6e203]
+          - button [ref=f6e204] [cursor=pointer]
+          - generic [ref=f6e207]:
+            - heading "VITAMINA C 30 mL" [level=3] [ref=f6e208]
+            - paragraph [ref=f6e209]: 30 mL · 102×38 mm
+          - generic [ref=f6e210]:
+            - button "Duplicar" [ref=f6e211] [cursor=pointer]
+            - button "Eliminar" [ref=f6e212] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e213]:
+          - checkbox [ref=f6e215]
+          - button [ref=f6e216] [cursor=pointer]
+          - generic [ref=f6e219]:
+            - heading "SHAROMIX 705 50mL" [level=3] [ref=f6e220]
+            - paragraph [ref=f6e221]: 30 mL · 102×38 mm
+          - generic [ref=f6e222]:
+            - button "Duplicar" [ref=f6e223] [cursor=pointer]
+            - button "Eliminar" [ref=f6e224] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e225]:
+          - checkbox [ref=f6e227]
+          - button [ref=f6e228] [cursor=pointer]
+          - generic [ref=f6e231]:
+            - heading "MANI 500g" [level=3] [ref=f6e232]
+            - paragraph [ref=f6e233]: 100 g · 69×51 mm
+          - generic [ref=f6e234]:
+            - button "Duplicar" [ref=f6e235] [cursor=pointer]
+            - button "Eliminar" [ref=f6e236] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e237]:
+          - checkbox [ref=f6e239]
+          - button [ref=f6e240] [cursor=pointer]
+          - generic [ref=f6e244]:
+            - heading "CAFEINA 500g" [level=3] [ref=f6e245]
+            - paragraph [ref=f6e246]: 250 g · 76×66 mm
+          - generic [ref=f6e247]:
+            - button "Duplicar" [ref=f6e248] [cursor=pointer]
+            - button "Eliminar" [ref=f6e249] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e250]:
+          - checkbox [ref=f6e252]
+          - button [ref=f6e253] [cursor=pointer]
+          - generic [ref=f6e256]:
+            - heading "DPANTENOL 30mL" [level=3] [ref=f6e257]
+            - paragraph [ref=f6e258]: 30 mL · 102×38 mm
+          - generic [ref=f6e259]:
+            - button "Duplicar" [ref=f6e260] [cursor=pointer]
+            - button "Eliminar" [ref=f6e261] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e262]:
+          - checkbox [ref=f6e264]
+          - button [ref=f6e265] [cursor=pointer]
+          - generic [ref=f6e269]:
+            - heading "ALCOHOL CETILICO 500g" [level=3] [ref=f6e270]
+            - paragraph [ref=f6e271]: 250 g · 76×66 mm
+          - generic [ref=f6e272]:
+            - button "Duplicar" [ref=f6e273] [cursor=pointer]
+            - button "Eliminar" [ref=f6e274] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e275]:
+          - checkbox [ref=f6e277]
+          - button [ref=f6e278] [cursor=pointer]
+          - generic [ref=f6e282]:
+            - heading "PROTEINA AISLADA DE SOYA Kg" [level=3] [ref=f6e283]
+            - paragraph [ref=f6e284]: 250 g · 76×66 mm
+          - generic [ref=f6e285]:
+            - button "Duplicar" [ref=f6e286] [cursor=pointer]
+            - button "Eliminar" [ref=f6e287] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e288]:
+          - checkbox [ref=f6e290]
+          - button [ref=f6e291] [cursor=pointer]
+          - generic [ref=f6e295]:
+            - heading "LECITINA DE SOYA 500 g" [level=3] [ref=f6e296]
+            - paragraph [ref=f6e297]: 250 g · 76×66 mm
+          - generic [ref=f6e298]:
+            - button "Duplicar" [ref=f6e299] [cursor=pointer]
+            - button "Eliminar" [ref=f6e300] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e301]:
+          - checkbox [ref=f6e303]
+          - button [ref=f6e304] [cursor=pointer]
+          - generic [ref=f6e308]:
+            - heading "PROTEINA SUERO LECHE 80% Kg CREAR CODIGO" [level=3] [ref=f6e309]
+            - paragraph [ref=f6e310]: 250 g · 76×66 mm
+          - generic [ref=f6e311]:
+            - button "Duplicar" [ref=f6e312] [cursor=pointer]
+            - button "Eliminar" [ref=f6e313] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e314]:
+          - checkbox [ref=f6e316]
+          - button [ref=f6e317] [cursor=pointer]
+          - generic [ref=f6e321]:
+            - heading "SCI Kg" [level=3] [ref=f6e322]
+            - paragraph [ref=f6e323]: 250 g · 76×66 mm
+          - generic [ref=f6e324]:
+            - button "Duplicar" [ref=f6e325] [cursor=pointer]
+            - button "Eliminar" [ref=f6e326] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e327]:
+          - checkbox [ref=f6e329]
+          - button [ref=f6e330] [cursor=pointer]
+          - generic [ref=f6e334]:
+            - heading "SCI 500g" [level=3] [ref=f6e335]
+            - paragraph [ref=f6e336]: 250 g · 76×66 mm
+          - generic [ref=f6e337]:
+            - button "Duplicar" [ref=f6e338] [cursor=pointer]
+            - button "Eliminar" [ref=f6e339] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e340]:
+          - checkbox [ref=f6e342]
+          - button [ref=f6e343] [cursor=pointer]
+          - generic [ref=f6e347]:
+            - heading "SCI 250g" [level=3] [ref=f6e348]
+            - paragraph [ref=f6e349]: 250 g · 76×66 mm
+          - generic [ref=f6e350]:
+            - button "Duplicar" [ref=f6e351] [cursor=pointer]
+            - button "Eliminar" [ref=f6e352] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e353]:
+          - checkbox [ref=f6e355]
+          - button [ref=f6e356] [cursor=pointer]
+          - generic [ref=f6e360]:
+            - heading "BETAINA DE COCO 500mL" [level=3] [ref=f6e361]
+            - paragraph [ref=f6e362]: 250 g · 76×66 mm
+          - generic [ref=f6e363]:
+            - button "Duplicar" [ref=f6e364] [cursor=pointer]
+            - button "Eliminar" [ref=f6e365] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e366]:
+          - checkbox [ref=f6e368]
+          - button [ref=f6e369] [cursor=pointer]
+          - generic [ref=f6e373]:
+            - heading "BETAINA DE COCO Lt" [level=3] [ref=f6e374]
+            - paragraph [ref=f6e375]: 250 g · 76×66 mm
+          - generic [ref=f6e376]:
+            - button "Duplicar" [ref=f6e377] [cursor=pointer]
+            - button "Eliminar" [ref=f6e378] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e379]:
+          - checkbox [ref=f6e381]
+          - button [ref=f6e382] [cursor=pointer]
+          - generic [ref=f6e386]:
+            - heading "UREA 500g" [level=3] [ref=f6e387]
+            - paragraph [ref=f6e388]: 250 g · 76×66 mm
+          - generic [ref=f6e389]:
+            - button "Duplicar" [ref=f6e390] [cursor=pointer]
+            - button "Eliminar" [ref=f6e391] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e392]:
+          - checkbox [ref=f6e394]
+          - button [ref=f6e395] [cursor=pointer]
+          - generic [ref=f6e399]:
+            - heading "UREA 250g" [level=3] [ref=f6e400]
+            - paragraph [ref=f6e401]: 250 g · 76×66 mm
+          - generic [ref=f6e402]:
+            - button "Duplicar" [ref=f6e403] [cursor=pointer]
+            - button "Eliminar" [ref=f6e404] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e405]:
+          - checkbox [ref=f6e407]
+          - button [ref=f6e408] [cursor=pointer]
+          - generic [ref=f6e412]:
+            - heading "INULINA Kg" [level=3] [ref=f6e413]
+            - paragraph [ref=f6e414]: 250 g · 76×66 mm
+          - generic [ref=f6e415]:
+            - button "Duplicar" [ref=f6e416] [cursor=pointer]
+            - button "Eliminar" [ref=f6e417] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e418]:
+          - checkbox [ref=f6e420]
+          - button [ref=f6e421] [cursor=pointer]
+          - generic [ref=f6e425]:
+            - heading "INULINA 500g" [level=3] [ref=f6e426]
+            - paragraph [ref=f6e427]: 250 g · 76×66 mm
+          - generic [ref=f6e428]:
+            - button "Duplicar" [ref=f6e429] [cursor=pointer]
+            - button "Eliminar" [ref=f6e430] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e431]:
+          - checkbox [ref=f6e433]
+          - button [ref=f6e434] [cursor=pointer]
+          - generic [ref=f6e438]:
+            - heading "INULINA 250g" [level=3] [ref=f6e439]
+            - paragraph [ref=f6e440]: 250 g · 76×66 mm
+          - generic [ref=f6e441]:
+            - button "Duplicar" [ref=f6e442] [cursor=pointer]
+            - button "Eliminar" [ref=f6e443] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e444]:
+          - checkbox [ref=f6e446]
+          - button [ref=f6e447] [cursor=pointer]
+          - generic [ref=f6e451]:
+            - heading "CELULOSA MICROCRISTALINA 500g" [level=3] [ref=f6e452]
+            - paragraph [ref=f6e453]: 250 g · 76×66 mm
+          - generic [ref=f6e454]:
+            - button "Duplicar" [ref=f6e455] [cursor=pointer]
+            - button "Eliminar" [ref=f6e456] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e457]:
+          - checkbox [ref=f6e459]
+          - button [ref=f6e460] [cursor=pointer]
+          - generic [ref=f6e464]:
+            - heading "CITRATO MAGNESIO 500g" [level=3] [ref=f6e465]
+            - paragraph [ref=f6e466]: 250 g · 76×66 mm
+          - generic [ref=f6e467]:
+            - button "Duplicar" [ref=f6e468] [cursor=pointer]
+            - button "Eliminar" [ref=f6e469] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e470]:
+          - checkbox [ref=f6e472]
+          - button [ref=f6e473] [cursor=pointer]
+          - generic [ref=f6e477]:
+            - heading "MANTECA DE CACAO REFINADA Kg" [level=3] [ref=f6e478]
+            - paragraph [ref=f6e479]: 250 g · 76×66 mm
+          - generic [ref=f6e480]:
+            - button "Duplicar" [ref=f6e481] [cursor=pointer]
+            - button "Eliminar" [ref=f6e482] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e483]:
+          - checkbox [ref=f6e485]
+          - button [ref=f6e486] [cursor=pointer]
+          - generic [ref=f6e490]:
+            - heading "OXIDO DE ZINC 250g" [level=3] [ref=f6e491]
+            - paragraph [ref=f6e492]: 250 g · 76×66 mm
+          - generic [ref=f6e493]:
+            - button "Duplicar" [ref=f6e494] [cursor=pointer]
+            - button "Eliminar" [ref=f6e495] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e496]:
+          - checkbox [ref=f6e498]
+          - button [ref=f6e499] [cursor=pointer]
+          - generic [ref=f6e503]:
+            - heading "ACIDO ASCORBICO 250g" [level=3] [ref=f6e504]
+            - paragraph [ref=f6e505]: 250 g · 76×66 mm
+          - generic [ref=f6e506]:
+            - button "Duplicar" [ref=f6e507] [cursor=pointer]
+            - button "Eliminar" [ref=f6e508] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e509]:
+          - checkbox [ref=f6e511]
+          - button [ref=f6e512] [cursor=pointer]
+          - generic [ref=f6e516]:
+            - heading "ACIDO ASCORBICO 500g" [level=3] [ref=f6e517]
+            - paragraph [ref=f6e518]: 250 g · 76×66 mm
+          - generic [ref=f6e519]:
+            - button "Duplicar" [ref=f6e520] [cursor=pointer]
+            - button "Eliminar" [ref=f6e521] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e522]:
+          - checkbox [ref=f6e524]
+          - button [ref=f6e525] [cursor=pointer]
+          - generic [ref=f6e529]:
+            - heading "MALTODEXTRINA 500g" [level=3] [ref=f6e530]
+            - paragraph [ref=f6e531]: 250 g · 76×66 mm
+          - generic [ref=f6e532]:
+            - button "Duplicar" [ref=f6e533] [cursor=pointer]
+            - button "Eliminar" [ref=f6e534] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e535]:
+          - checkbox [ref=f6e537]
+          - button [ref=f6e538] [cursor=pointer]
+          - generic [ref=f6e542]:
+            - heading "BICARBONATO DE SODIO 500g" [level=3] [ref=f6e543]
+            - paragraph [ref=f6e544]: 250 g · 76×66 mm
+          - generic [ref=f6e545]:
+            - button "Duplicar" [ref=f6e546] [cursor=pointer]
+            - button "Eliminar" [ref=f6e547] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e548]:
+          - checkbox [ref=f6e550]
+          - button [ref=f6e551] [cursor=pointer]
+          - generic [ref=f6e555]:
+            - heading "CLORURO CALCIO 500g" [level=3] [ref=f6e556]
+            - paragraph [ref=f6e557]: 250 g · 76×66 mm
+          - generic [ref=f6e558]:
+            - button "Duplicar" [ref=f6e559] [cursor=pointer]
+            - button "Eliminar" [ref=f6e560] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e561]:
+          - checkbox [ref=f6e563]
+          - button [ref=f6e564] [cursor=pointer]
+          - generic [ref=f6e568]:
+            - heading "ACEITE DE NEEM 500mL" [level=3] [ref=f6e569]
+            - paragraph [ref=f6e570]: 250 g · 76×66 mm
+          - generic [ref=f6e571]:
+            - button "Duplicar" [ref=f6e572] [cursor=pointer]
+            - button "Eliminar" [ref=f6e573] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e574]:
+          - checkbox [ref=f6e576]
+          - button [ref=f6e577] [cursor=pointer]
+          - generic [ref=f6e581]:
+            - heading "ACEITE DE RICINO 500mL" [level=3] [ref=f6e582]
+            - paragraph [ref=f6e583]: 250 g · 76×66 mm
+          - generic [ref=f6e584]:
+            - button "Duplicar" [ref=f6e585] [cursor=pointer]
+            - button "Eliminar" [ref=f6e586] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e587]:
+          - checkbox [ref=f6e589]
+          - button [ref=f6e590] [cursor=pointer]
+          - generic [ref=f6e594]:
+            - heading "Copia de PROTEINA DE SUERO DE LECHE Kg" [level=3] [ref=f6e595]
+            - paragraph [ref=f6e596]: 250 g · 76×66 mm
+          - generic [ref=f6e597]:
+            - button "Duplicar" [ref=f6e598] [cursor=pointer]
+            - button "Eliminar" [ref=f6e599] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e600]:
+          - checkbox [ref=f6e602]
+          - button [ref=f6e603] [cursor=pointer]
+          - generic [ref=f6e607]:
+            - heading "CERA DE ABEJAS NATURAL 500g" [level=3] [ref=f6e608]
+            - paragraph [ref=f6e609]: 250 g · 76×66 mm
+          - generic [ref=f6e610]:
+            - button "Duplicar" [ref=f6e611] [cursor=pointer]
+            - button "Eliminar" [ref=f6e612] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e613]:
+          - checkbox [ref=f6e615]
+          - button [ref=f6e616] [cursor=pointer]
+          - generic [ref=f6e620]:
+            - heading "TAURINA 250g" [level=3] [ref=f6e621]
+            - paragraph [ref=f6e622]: 250 g · 76×66 mm
+          - generic [ref=f6e623]:
+            - button "Duplicar" [ref=f6e624] [cursor=pointer]
+            - button "Eliminar" [ref=f6e625] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e626]:
+          - checkbox [ref=f6e628]
+          - button [ref=f6e629] [cursor=pointer]
+          - generic [ref=f6e633]:
+            - heading "SUERO DE LECHE Kg" [level=3] [ref=f6e634]
+            - paragraph [ref=f6e635]: 250 g · 76×66 mm
+          - generic [ref=f6e636]:
+            - button "Duplicar" [ref=f6e637] [cursor=pointer]
+            - button "Eliminar" [ref=f6e638] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e639]:
+          - checkbox [ref=f6e641]
+          - button [ref=f6e642] [cursor=pointer]
+          - generic [ref=f6e646]:
+            - heading "SUERO DE LECHE 500g" [level=3] [ref=f6e647]
+            - paragraph [ref=f6e648]: 250 g · 76×66 mm
+          - generic [ref=f6e649]:
+            - button "Duplicar" [ref=f6e650] [cursor=pointer]
+            - button "Eliminar" [ref=f6e651] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e652]:
+          - checkbox [ref=f6e654]
+          - button [ref=f6e655] [cursor=pointer]
+          - generic [ref=f6e659]:
+            - heading "SORBATO DE POTASIO 500g" [level=3] [ref=f6e660]
+            - paragraph [ref=f6e661]: 250 g · 76×66 mm
+          - generic [ref=f6e662]:
+            - button "Duplicar" [ref=f6e663] [cursor=pointer]
+            - button "Eliminar" [ref=f6e664] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e665]:
+          - checkbox [ref=f6e667]
+          - button [ref=f6e668] [cursor=pointer]
+          - generic [ref=f6e672]:
+            - heading "SORBATO DE POTASIO 250g" [level=3] [ref=f6e673]
+            - paragraph [ref=f6e674]: 250 g · 76×66 mm
+          - generic [ref=f6e675]:
+            - button "Duplicar" [ref=f6e676] [cursor=pointer]
+            - button "Eliminar" [ref=f6e677] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e678]:
+          - checkbox [ref=f6e680]
+          - button [ref=f6e681] [cursor=pointer]
+          - generic [ref=f6e685]:
+            - heading "SABOR CARNE AHUMADA 250g" [level=3] [ref=f6e686]
+            - paragraph [ref=f6e687]: 250 g · 76×66 mm
+          - generic [ref=f6e688]:
+            - button "Duplicar" [ref=f6e689] [cursor=pointer]
+            - button "Eliminar" [ref=f6e690] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e691]:
+          - checkbox [ref=f6e693]
+          - button [ref=f6e694] [cursor=pointer]
+          - generic [ref=f6e698]:
+            - heading "PROTEINA SUERO LECHE 80% 500g" [level=3] [ref=f6e699]
+            - paragraph [ref=f6e700]: 250 g · 76×66 mm
+          - generic [ref=f6e701]:
+            - button "Duplicar" [ref=f6e702] [cursor=pointer]
+            - button "Eliminar" [ref=f6e703] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e704]:
+          - checkbox [ref=f6e706]
+          - button [ref=f6e707] [cursor=pointer]
+          - generic [ref=f6e711]:
+            - heading "PROTEINA AISLADA DE SOYA 500g" [level=3] [ref=f6e712]
+            - paragraph [ref=f6e713]: 250 g · 76×66 mm
+          - generic [ref=f6e714]:
+            - button "Duplicar" [ref=f6e715] [cursor=pointer]
+            - button "Eliminar" [ref=f6e716] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e717]:
+          - checkbox [ref=f6e719]
+          - button [ref=f6e720] [cursor=pointer]
+          - generic [ref=f6e724]:
+            - heading "METABISULFITO DE SODIO 500g" [level=3] [ref=f6e725]
+            - paragraph [ref=f6e726]: 250 g · 76×66 mm
+          - generic [ref=f6e727]:
+            - button "Duplicar" [ref=f6e728] [cursor=pointer]
+            - button "Eliminar" [ref=f6e729] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e730]:
+          - checkbox [ref=f6e732]
+          - button [ref=f6e733] [cursor=pointer]
+          - generic [ref=f6e737]:
+            - heading "MANTECA DE CACAO NATURAL 500g" [level=3] [ref=f6e738]
+            - paragraph [ref=f6e739]: 250 g · 76×66 mm
+          - generic [ref=f6e740]:
+            - button "Duplicar" [ref=f6e741] [cursor=pointer]
+            - button "Eliminar" [ref=f6e742] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e743]:
+          - checkbox [ref=f6e745]
+          - button [ref=f6e746] [cursor=pointer]
+          - generic [ref=f6e750]:
+            - heading "JABON POTASICO 250mL" [level=3] [ref=f6e751]
+            - paragraph [ref=f6e752]: 250 g · 76×66 mm
+          - generic [ref=f6e753]:
+            - button "Duplicar" [ref=f6e754] [cursor=pointer]
+            - button "Eliminar" [ref=f6e755] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e756]:
+          - checkbox [ref=f6e758]
+          - button [ref=f6e759] [cursor=pointer]
+          - generic [ref=f6e763]:
+            - heading "JABON ESPUMA JACUZZI 500mL" [level=3] [ref=f6e764]
+            - paragraph [ref=f6e765]: 250 g · 76×66 mm
+          - generic [ref=f6e766]:
+            - button "Duplicar" [ref=f6e767] [cursor=pointer]
+            - button "Eliminar" [ref=f6e768] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e769]:
+          - checkbox [ref=f6e771]
+          - button [ref=f6e772] [cursor=pointer]
+          - generic [ref=f6e776]:
+            - heading "GOMA XANTHAN 500g" [level=3] [ref=f6e777]
+            - paragraph [ref=f6e778]: 250 g · 76×66 mm
+          - generic [ref=f6e779]:
+            - button "Duplicar" [ref=f6e780] [cursor=pointer]
+            - button "Eliminar" [ref=f6e781] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e782]:
+          - checkbox [ref=f6e784]
+          - button [ref=f6e785] [cursor=pointer]
+          - generic [ref=f6e789]:
+            - heading "GOMA GUAR 500g" [level=3] [ref=f6e790]
+            - paragraph [ref=f6e791]: 250 g · 76×66 mm
+          - generic [ref=f6e792]:
+            - button "Duplicar" [ref=f6e793] [cursor=pointer]
+            - button "Eliminar" [ref=f6e794] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e795]:
+          - checkbox [ref=f6e797]
+          - button [ref=f6e798] [cursor=pointer]
+          - generic [ref=f6e802]:
+            - heading "GLUTAMATO MONOSODICO 500g" [level=3] [ref=f6e803]
+            - paragraph [ref=f6e804]: 250 g · 76×66 mm
+          - generic [ref=f6e805]:
+            - button "Duplicar" [ref=f6e806] [cursor=pointer]
+            - button "Eliminar" [ref=f6e807] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e808]:
+          - checkbox [ref=f6e810]
+          - button [ref=f6e811] [cursor=pointer]
+          - generic [ref=f6e815]:
+            - heading "GLUTAMATO MONOSODICO 1000g" [level=3] [ref=f6e816]
+            - paragraph [ref=f6e817]: 250 g · 76×66 mm
+          - generic [ref=f6e818]:
+            - button "Duplicar" [ref=f6e819] [cursor=pointer]
+            - button "Eliminar" [ref=f6e820] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e821]:
+          - checkbox [ref=f6e823]
+          - button [ref=f6e824] [cursor=pointer]
+          - generic [ref=f6e828]:
+            - heading "GLICERINA Lt" [level=3] [ref=f6e829]
+            - paragraph [ref=f6e830]: 250 g · 76×66 mm
+          - generic [ref=f6e831]:
+            - button "Duplicar" [ref=f6e832] [cursor=pointer]
+            - button "Eliminar" [ref=f6e833] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e834]:
+          - checkbox [ref=f6e836]
+          - button [ref=f6e837] [cursor=pointer]
+          - generic [ref=f6e841]:
+            - heading "GLICERINA 500mL" [level=3] [ref=f6e842]
+            - paragraph [ref=f6e843]: 250 g · 76×66 mm
+          - generic [ref=f6e844]:
+            - button "Duplicar" [ref=f6e845] [cursor=pointer]
+            - button "Eliminar" [ref=f6e846] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e847]:
+          - checkbox [ref=f6e849]
+          - button [ref=f6e850] [cursor=pointer]
+          - generic [ref=f6e854]:
+            - heading "FRUCTOSA 500g" [level=3] [ref=f6e855]
+            - paragraph [ref=f6e856]: 250 g · 76×66 mm
+          - generic [ref=f6e857]:
+            - button "Duplicar" [ref=f6e858] [cursor=pointer]
+            - button "Eliminar" [ref=f6e859] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e860]:
+          - checkbox [ref=f6e862]
+          - button [ref=f6e863] [cursor=pointer]
+          - generic [ref=f6e867]:
+            - heading "FRUCTOSA 500 g" [level=3] [ref=f6e868]
+            - paragraph [ref=f6e869]: 250 g · 76×66 mm
+          - generic [ref=f6e870]:
+            - button "Duplicar" [ref=f6e871] [cursor=pointer]
+            - button "Eliminar" [ref=f6e872] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e873]:
+          - checkbox [ref=f6e875]
+          - button [ref=f6e876] [cursor=pointer]
+          - generic [ref=f6e880]:
+            - heading "FLORES SECAS LAVANDA 100g" [level=3] [ref=f6e881]
+            - paragraph [ref=f6e882]: 250 g · 76×66 mm
+          - generic [ref=f6e883]:
+            - button "Duplicar" [ref=f6e884] [cursor=pointer]
+            - button "Eliminar" [ref=f6e885] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e886]:
+          - checkbox [ref=f6e888]
+          - button [ref=f6e889] [cursor=pointer]
+          - generic [ref=f6e893]:
+            - heading "FLORES SECAS CALENDULA 50g" [level=3] [ref=f6e894]
+            - paragraph [ref=f6e895]: 250 g · 76×66 mm
+          - generic [ref=f6e896]:
+            - button "Duplicar" [ref=f6e897] [cursor=pointer]
+            - button "Eliminar" [ref=f6e898] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e899]:
+          - checkbox [ref=f6e901]
+          - button [ref=f6e902] [cursor=pointer]
+          - generic [ref=f6e906]:
+            - heading "EXTRACTO DE MALTA 500g" [level=3] [ref=f6e907]
+            - paragraph [ref=f6e908]: 250 g · 76×66 mm
+          - generic [ref=f6e909]:
+            - button "Duplicar" [ref=f6e910] [cursor=pointer]
+            - button "Eliminar" [ref=f6e911] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e912]:
+          - checkbox [ref=f6e914]
+          - button [ref=f6e915] [cursor=pointer]
+          - generic [ref=f6e919]:
+            - heading "ESTEARATO DE MAGNESIO 500g" [level=3] [ref=f6e920]
+            - paragraph [ref=f6e921]: 250 g · 76×66 mm
+          - generic [ref=f6e922]:
+            - button "Duplicar" [ref=f6e923] [cursor=pointer]
+            - button "Eliminar" [ref=f6e924] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e925]:
+          - checkbox [ref=f6e927]
+          - button [ref=f6e928] [cursor=pointer]
+          - generic [ref=f6e932]:
+            - heading "DIOXIDO DE TITANIO 500g" [level=3] [ref=f6e933]
+            - paragraph [ref=f6e934]: 250 g · 76×66 mm
+          - generic [ref=f6e935]:
+            - button "Duplicar" [ref=f6e936] [cursor=pointer]
+            - button "Eliminar" [ref=f6e937] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e938]:
+          - checkbox [ref=f6e940]
+          - button [ref=f6e941] [cursor=pointer]
+          - generic [ref=f6e945]:
+            - heading "DEXTROSA Kg" [level=3] [ref=f6e946]
+            - paragraph [ref=f6e947]: 250 g · 76×66 mm
+          - generic [ref=f6e948]:
+            - button "Duplicar" [ref=f6e949] [cursor=pointer]
+            - button "Eliminar" [ref=f6e950] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e951]:
+          - checkbox [ref=f6e953]
+          - button [ref=f6e954] [cursor=pointer]
+          - generic [ref=f6e958]:
+            - heading "COLÁGENO HIDROLIZADO 500g" [level=3] [ref=f6e959]
+            - paragraph [ref=f6e960]: 250 g · 76×66 mm
+          - generic [ref=f6e961]:
+            - button "Duplicar" [ref=f6e962] [cursor=pointer]
+            - button "Eliminar" [ref=f6e963] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e964]:
+          - checkbox [ref=f6e966]
+          - button [ref=f6e967] [cursor=pointer]
+          - generic [ref=f6e971]:
+            - heading "COLÁGENO HIDROLIZADO 250g" [level=3] [ref=f6e972]
+            - paragraph [ref=f6e973]: 250 g · 76×66 mm
+          - generic [ref=f6e974]:
+            - button "Duplicar" [ref=f6e975] [cursor=pointer]
+            - button "Eliminar" [ref=f6e976] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e977]:
+          - checkbox [ref=f6e979]
+          - button [ref=f6e980] [cursor=pointer]
+          - generic [ref=f6e984]:
+            - heading "CLORURO DE MAGNESIO Kg" [level=3] [ref=f6e985]
+            - paragraph [ref=f6e986]: 250 g · 76×66 mm
+          - generic [ref=f6e987]:
+            - button "Duplicar" [ref=f6e988] [cursor=pointer]
+            - button "Eliminar" [ref=f6e989] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e990]:
+          - checkbox [ref=f6e992]
+          - button [ref=f6e993] [cursor=pointer]
+          - generic [ref=f6e997]:
+            - heading "CLORURO DE MAGNESIO 500g" [level=3] [ref=f6e998]
+            - paragraph [ref=f6e999]: 250 g · 76×66 mm
+          - generic [ref=f6e1000]:
+            - button "Duplicar" [ref=f6e1001] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1002] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1003]:
+          - checkbox [ref=f6e1005]
+          - button [ref=f6e1006] [cursor=pointer]
+          - generic [ref=f6e1010]:
+            - heading "CITRATO ZINC 500g" [level=3] [ref=f6e1011]
+            - paragraph [ref=f6e1012]: 250 g · 76×66 mm
+          - generic [ref=f6e1013]:
+            - button "Duplicar" [ref=f6e1014] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1015] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1016]:
+          - checkbox [ref=f6e1018]
+          - button [ref=f6e1019] [cursor=pointer]
+          - generic [ref=f6e1023]:
+            - heading "CITRATO POTASIO Kg" [level=3] [ref=f6e1024]
+            - paragraph [ref=f6e1025]: 250 g · 76×66 mm
+          - generic [ref=f6e1026]:
+            - button "Duplicar" [ref=f6e1027] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1028] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1029]:
+          - checkbox [ref=f6e1031]
+          - button [ref=f6e1032] [cursor=pointer]
+          - generic [ref=f6e1036]:
+            - heading "CITRATO POTASIO 500g" [level=3] [ref=f6e1037]
+            - paragraph [ref=f6e1038]: 250 g · 76×66 mm
+          - generic [ref=f6e1039]:
+            - button "Duplicar" [ref=f6e1040] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1041] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1042]:
+          - checkbox [ref=f6e1044]
+          - button [ref=f6e1045] [cursor=pointer]
+          - generic [ref=f6e1049]:
+            - heading "CITRATO MAGNESIO Kg" [level=3] [ref=f6e1050]
+            - paragraph [ref=f6e1051]: 250 g · 76×66 mm
+          - generic [ref=f6e1052]:
+            - button "Duplicar" [ref=f6e1053] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1054] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1055]:
+          - checkbox [ref=f6e1057]
+          - button [ref=f6e1058] [cursor=pointer]
+          - generic [ref=f6e1062]:
+            - heading "CITRATO MAGNESIO 250g" [level=3] [ref=f6e1063]
+            - paragraph [ref=f6e1064]: 250 g · 76×66 mm
+          - generic [ref=f6e1065]:
+            - button "Duplicar" [ref=f6e1066] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1067] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1068]:
+          - checkbox [ref=f6e1070]
+          - button [ref=f6e1071] [cursor=pointer]
+          - generic [ref=f6e1075]:
+            - heading "CITRATO DE CALCIO 500g" [level=3] [ref=f6e1076]
+            - paragraph [ref=f6e1077]: 250 g · 76×66 mm
+          - generic [ref=f6e1078]:
+            - button "Duplicar" [ref=f6e1079] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1080] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1081]:
+          - checkbox [ref=f6e1083]
+          - button [ref=f6e1084] [cursor=pointer]
+          - generic [ref=f6e1088]:
+            - heading "CERA DE ABEJAS REFINADA AMARILLA Kg" [level=3] [ref=f6e1089]
+            - paragraph [ref=f6e1090]: 250 g · 76×66 mm
+          - generic [ref=f6e1091]:
+            - button "Duplicar" [ref=f6e1092] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1093] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1094]:
+          - checkbox [ref=f6e1096]
+          - button [ref=f6e1097] [cursor=pointer]
+          - generic [ref=f6e1101]:
+            - heading "CERA DE ABEJAS REFINADA AMARILLA 500g" [level=3] [ref=f6e1102]
+            - paragraph [ref=f6e1103]: 250 g · 76×66 mm
+          - generic [ref=f6e1104]:
+            - button "Duplicar" [ref=f6e1105] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1106] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1107]:
+          - checkbox [ref=f6e1109]
+          - button [ref=f6e1110] [cursor=pointer]
+          - generic [ref=f6e1114]:
+            - heading "CERA CARNAUBA 500g" [level=3] [ref=f6e1115]
+            - paragraph [ref=f6e1116]: 250 g · 76×66 mm
+          - generic [ref=f6e1117]:
+            - button "Duplicar" [ref=f6e1118] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1119] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1120]:
+          - checkbox [ref=f6e1122]
+          - button [ref=f6e1123] [cursor=pointer]
+          - generic [ref=f6e1127]:
+            - heading "CERA CARNAUBA 250g" [level=3] [ref=f6e1128]
+            - paragraph [ref=f6e1129]: 250 g · 76×66 mm
+          - generic [ref=f6e1130]:
+            - button "Duplicar" [ref=f6e1131] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1132] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1133]:
+          - checkbox [ref=f6e1135]
+          - button [ref=f6e1136] [cursor=pointer]
+          - generic [ref=f6e1140]:
+            - heading "CELULOSA MICROCRISTALINA 101 500g" [level=3] [ref=f6e1141]
+            - paragraph [ref=f6e1142]: 250 g · 76×66 mm
+          - generic [ref=f6e1143]:
+            - button "Duplicar" [ref=f6e1144] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1145] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1146]:
+          - checkbox [ref=f6e1148]
+          - button [ref=f6e1149] [cursor=pointer]
+          - generic [ref=f6e1153]:
+            - heading "CARBONATO DE MAGNESIO 500g" [level=3] [ref=f6e1154]
+            - paragraph [ref=f6e1155]: 250 g · 76×66 mm
+          - generic [ref=f6e1156]:
+            - button "Duplicar" [ref=f6e1157] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1158] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1159]:
+          - checkbox [ref=f6e1161]
+          - button [ref=f6e1162] [cursor=pointer]
+          - generic [ref=f6e1166]:
+            - heading "CARBONATO DE CALCIO 500g" [level=3] [ref=f6e1167]
+            - paragraph [ref=f6e1168]: 250 g · 76×66 mm
+          - generic [ref=f6e1169]:
+            - button "Duplicar" [ref=f6e1170] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1171] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1172]:
+          - checkbox [ref=f6e1174]
+          - button [ref=f6e1175] [cursor=pointer]
+          - generic [ref=f6e1179]:
+            - heading "CARBON ACTIVADO PELLETS 800g" [level=3] [ref=f6e1180]
+            - paragraph [ref=f6e1181]: 250 g · 76×66 mm
+          - generic [ref=f6e1182]:
+            - button "Duplicar" [ref=f6e1183] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1184] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1185]:
+          - checkbox [ref=f6e1187]
+          - button [ref=f6e1188] [cursor=pointer]
+          - generic [ref=f6e1192]:
+            - heading "CARBON ACTIVADO PELLETS 500g" [level=3] [ref=f6e1193]
+            - paragraph [ref=f6e1194]: 250 g · 76×66 mm
+          - generic [ref=f6e1195]:
+            - button "Duplicar" [ref=f6e1196] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1197] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1198]:
+          - checkbox [ref=f6e1200]
+          - button [ref=f6e1201] [cursor=pointer]
+          - generic [ref=f6e1205]:
+            - heading "CAFEINA 500g" [level=3] [ref=f6e1206]
+            - paragraph [ref=f6e1207]: 250 g · 76×66 mm
+          - generic [ref=f6e1208]:
+            - button "Duplicar" [ref=f6e1209] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1210] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1211]:
+          - checkbox [ref=f6e1213]
+          - button [ref=f6e1214] [cursor=pointer]
+          - generic [ref=f6e1218]:
+            - heading "BORAX 500g" [level=3] [ref=f6e1219]
+            - paragraph [ref=f6e1220]: 250 g · 76×66 mm
+          - generic [ref=f6e1221]:
+            - button "Duplicar" [ref=f6e1222] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1223] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1224]:
+          - checkbox [ref=f6e1226]
+          - button [ref=f6e1227] [cursor=pointer]
+          - generic [ref=f6e1231]:
+            - heading "BENZOATO DE SODIO 500g" [level=3] [ref=f6e1232]
+            - paragraph [ref=f6e1233]: 250 g · 76×66 mm
+          - generic [ref=f6e1234]:
+            - button "Duplicar" [ref=f6e1235] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1236] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1237]:
+          - checkbox [ref=f6e1239]
+          - button [ref=f6e1240] [cursor=pointer]
+          - generic [ref=f6e1244]:
+            - heading "BCAA 500g" [level=3] [ref=f6e1245]
+            - paragraph [ref=f6e1246]: 250 g · 76×66 mm
+          - generic [ref=f6e1247]:
+            - button "Duplicar" [ref=f6e1248] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1249] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1250]:
+          - checkbox [ref=f6e1252]
+          - button [ref=f6e1253] [cursor=pointer]
+          - generic [ref=f6e1257]:
+            - heading "BCAA 250g" [level=3] [ref=f6e1258]
+            - paragraph [ref=f6e1259]: 250 g · 76×66 mm
+          - generic [ref=f6e1260]:
+            - button "Duplicar" [ref=f6e1261] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1262] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1263]:
+          - checkbox [ref=f6e1265]
+          - button [ref=f6e1266] [cursor=pointer]
+          - generic [ref=f6e1270]:
+            - heading "ARCILLA ROJA 250g" [level=3] [ref=f6e1271]
+            - paragraph [ref=f6e1272]: 250 g · 76×66 mm
+          - generic [ref=f6e1273]:
+            - button "Duplicar" [ref=f6e1274] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1275] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1276]:
+          - checkbox [ref=f6e1278]
+          - button [ref=f6e1279] [cursor=pointer]
+          - generic [ref=f6e1283]:
+            - heading "ARCILLA BLANCA Kg" [level=3] [ref=f6e1284]
+            - paragraph [ref=f6e1285]: 250 g · 76×66 mm
+          - generic [ref=f6e1286]:
+            - button "Duplicar" [ref=f6e1287] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1288] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1289]:
+          - checkbox [ref=f6e1291]
+          - button [ref=f6e1292] [cursor=pointer]
+          - generic [ref=f6e1296]:
+            - heading "ALULOSA Kg" [level=3] [ref=f6e1297]
+            - paragraph [ref=f6e1298]: 250 g · 76×66 mm
+          - generic [ref=f6e1299]:
+            - button "Duplicar" [ref=f6e1300] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1301] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1302]:
+          - checkbox [ref=f6e1304]
+          - button [ref=f6e1305] [cursor=pointer]
+          - generic [ref=f6e1309]:
+            - heading "ALULOSA 500g" [level=3] [ref=f6e1310]
+            - paragraph [ref=f6e1311]: 250 g · 76×66 mm
+          - generic [ref=f6e1312]:
+            - button "Duplicar" [ref=f6e1313] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1314] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1315]:
+          - checkbox [ref=f6e1317]
+          - button [ref=f6e1318] [cursor=pointer]
+          - generic [ref=f6e1322]:
+            - heading "ALULOSA 250g" [level=3] [ref=f6e1323]
+            - paragraph [ref=f6e1324]: 250 g · 76×66 mm
+          - generic [ref=f6e1325]:
+            - button "Duplicar" [ref=f6e1326] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1327] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1328]:
+          - checkbox [ref=f6e1330]
+          - button [ref=f6e1331] [cursor=pointer]
+          - generic [ref=f6e1335]:
+            - heading "ALCOHOL CETO ESTEARILICO 500 g" [level=3] [ref=f6e1336]
+            - paragraph [ref=f6e1337]: 250 g · 76×66 mm
+          - generic [ref=f6e1338]:
+            - button "Duplicar" [ref=f6e1339] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1340] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1341]:
+          - checkbox [ref=f6e1343]
+          - button [ref=f6e1344] [cursor=pointer]
+          - generic [ref=f6e1348]:
+            - heading "ALCOHOL CETO ESTEARILICO 250g" [level=3] [ref=f6e1349]
+            - paragraph [ref=f6e1350]: 250 g · 76×66 mm
+          - generic [ref=f6e1351]:
+            - button "Duplicar" [ref=f6e1352] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1353] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1354]:
+          - checkbox [ref=f6e1356]
+          - button [ref=f6e1357] [cursor=pointer]
+          - generic [ref=f6e1361]:
+            - heading "ALCOHOL CETILICO 250g" [level=3] [ref=f6e1362]
+            - paragraph [ref=f6e1363]: 250 g · 76×66 mm
+          - generic [ref=f6e1364]:
+            - button "Duplicar" [ref=f6e1365] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1366] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1367]:
+          - checkbox [ref=f6e1369]
+          - button [ref=f6e1370] [cursor=pointer]
+          - generic [ref=f6e1374]:
+            - heading "ALBUMINA DE HUEVO 500g" [level=3] [ref=f6e1375]
+            - paragraph [ref=f6e1376]: 250 g · 76×66 mm
+          - generic [ref=f6e1377]:
+            - button "Duplicar" [ref=f6e1378] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1379] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1380]:
+          - checkbox [ref=f6e1382]
+          - button [ref=f6e1383] [cursor=pointer]
+          - generic [ref=f6e1387]:
+            - heading "ALANTOÍNA 100g" [level=3] [ref=f6e1388]
+            - paragraph [ref=f6e1389]: 250 g · 76×66 mm
+          - generic [ref=f6e1390]:
+            - button "Duplicar" [ref=f6e1391] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1392] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1393]:
+          - checkbox [ref=f6e1395]
+          - button [ref=f6e1396] [cursor=pointer]
+          - generic [ref=f6e1400]:
+            - heading "ALANTOINA 250g" [level=3] [ref=f6e1401]
+            - paragraph [ref=f6e1402]: 250 g · 76×66 mm
+          - generic [ref=f6e1403]:
+            - button "Duplicar" [ref=f6e1404] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1405] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1406]:
+          - checkbox [ref=f6e1408]
+          - button [ref=f6e1409] [cursor=pointer]
+          - generic [ref=f6e1413]:
+            - heading "ACIDO SORBICO Kg" [level=3] [ref=f6e1414]
+            - paragraph [ref=f6e1415]: 250 g · 76×66 mm
+          - generic [ref=f6e1416]:
+            - button "Duplicar" [ref=f6e1417] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1418] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1419]:
+          - checkbox [ref=f6e1421]
+          - button [ref=f6e1422] [cursor=pointer]
+          - generic [ref=f6e1426]:
+            - heading "ACIDO SORBICO 250g" [level=3] [ref=f6e1427]
+            - paragraph [ref=f6e1428]: 250 g · 76×66 mm
+          - generic [ref=f6e1429]:
+            - button "Duplicar" [ref=f6e1430] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1431] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1432]:
+          - checkbox [ref=f6e1434]
+          - button [ref=f6e1435] [cursor=pointer]
+          - generic [ref=f6e1439]:
+            - heading "ACIDO SALICILICO 500g" [level=3] [ref=f6e1440]
+            - paragraph [ref=f6e1441]: 250 g · 76×66 mm
+          - generic [ref=f6e1442]:
+            - button "Duplicar" [ref=f6e1443] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1444] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1445]:
+          - checkbox [ref=f6e1447]
+          - button [ref=f6e1448] [cursor=pointer]
+          - generic [ref=f6e1452]:
+            - heading "ACIDO FUMARICO 500g" [level=3] [ref=f6e1453]
+            - paragraph [ref=f6e1454]: 250 g · 76×66 mm
+          - generic [ref=f6e1455]:
+            - button "Duplicar" [ref=f6e1456] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1457] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1458]:
+          - checkbox [ref=f6e1460]
+          - button [ref=f6e1461] [cursor=pointer]
+          - generic [ref=f6e1465]:
+            - heading "ACIDO CITRICO Kg" [level=3] [ref=f6e1466]
+            - paragraph [ref=f6e1467]: 250 g · 76×66 mm
+          - generic [ref=f6e1468]:
+            - button "Duplicar" [ref=f6e1469] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1470] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1471]:
+          - checkbox [ref=f6e1473]
+          - button [ref=f6e1474] [cursor=pointer]
+          - generic [ref=f6e1478]:
+            - heading "ACIDO CITRICO 500g" [level=3] [ref=f6e1479]
+            - paragraph [ref=f6e1480]: 250 g · 76×66 mm
+          - generic [ref=f6e1481]:
+            - button "Duplicar" [ref=f6e1482] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1483] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1484]:
+          - checkbox [ref=f6e1486]
+          - button [ref=f6e1487] [cursor=pointer]
+          - generic [ref=f6e1491]:
+            - heading "ACIDO CITRICO 250g" [level=3] [ref=f6e1492]
+            - paragraph [ref=f6e1493]: 250 g · 76×66 mm
+          - generic [ref=f6e1494]:
+            - button "Duplicar" [ref=f6e1495] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1496] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1497]:
+          - checkbox [ref=f6e1499]
+          - button [ref=f6e1500] [cursor=pointer]
+          - generic [ref=f6e1504]:
+            - heading "ACIDO BORICO Kg" [level=3] [ref=f6e1505]
+            - paragraph [ref=f6e1506]: 250 g · 76×66 mm
+          - generic [ref=f6e1507]:
+            - button "Duplicar" [ref=f6e1508] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1509] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1510]:
+          - checkbox [ref=f6e1512]
+          - button [ref=f6e1513] [cursor=pointer]
+          - generic [ref=f6e1517]:
+            - heading "ACIDO BORICO 500g" [level=3] [ref=f6e1518]
+            - paragraph [ref=f6e1519]: 250 g · 76×66 mm
+          - generic [ref=f6e1520]:
+            - button "Duplicar" [ref=f6e1521] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1522] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1523]:
+          - checkbox [ref=f6e1525]
+          - button [ref=f6e1526] [cursor=pointer]
+          - generic [ref=f6e1530]:
+            - heading "ACIDO BORICO 1000g" [level=3] [ref=f6e1531]
+            - paragraph [ref=f6e1532]: 250 g · 76×66 mm
+          - generic [ref=f6e1533]:
+            - button "Duplicar" [ref=f6e1534] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1535] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1536]:
+          - checkbox [ref=f6e1538]
+          - button [ref=f6e1539] [cursor=pointer]
+          - generic [ref=f6e1543]:
+            - heading "ACETATO DE SODIO 500g" [level=3] [ref=f6e1544]
+            - paragraph [ref=f6e1545]: 250 g · 76×66 mm
+          - generic [ref=f6e1546]:
+            - button "Duplicar" [ref=f6e1547] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1548] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1549]:
+          - checkbox [ref=f6e1551]
+          - button [ref=f6e1552] [cursor=pointer]
+          - generic [ref=f6e1556]:
+            - heading "ACEITE DE RICINO LT" [level=3] [ref=f6e1557]
+            - paragraph [ref=f6e1558]: 250 g · 76×66 mm
+          - generic [ref=f6e1559]:
+            - button "Duplicar" [ref=f6e1560] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1561] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1562]:
+          - checkbox [ref=f6e1564]
+          - button [ref=f6e1565] [cursor=pointer]
+          - generic [ref=f6e1569]:
+            - heading "ACEITE DE GIRASOL 500mL" [level=3] [ref=f6e1570]
+            - paragraph [ref=f6e1571]: 250 g · 76×66 mm
+          - generic [ref=f6e1572]:
+            - button "Duplicar" [ref=f6e1573] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1574] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1575]:
+          - checkbox [ref=f6e1577]
+          - button [ref=f6e1578] [cursor=pointer]
+          - generic [ref=f6e1582]:
+            - heading "PROTEINA DE SUERO DE LECHE Kg" [level=3] [ref=f6e1583]
+            - paragraph [ref=f6e1584]: 250 g · 76×66 mm
+          - generic [ref=f6e1585]:
+            - button "Duplicar" [ref=f6e1586] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1587] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1588]:
+          - checkbox [ref=f6e1590]
+          - button [ref=f6e1591] [cursor=pointer]
+          - generic [ref=f6e1595]:
+            - heading "CREATINA MONOHIDRATO 1000g" [level=3] [ref=f6e1596]
+            - paragraph [ref=f6e1597]: 250 g · 76×66 mm
+          - generic [ref=f6e1598]:
+            - button "Duplicar" [ref=f6e1599] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1600] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1601]:
+          - checkbox [ref=f6e1603]
+          - button [ref=f6e1604] [cursor=pointer]
+          - generic [ref=f6e1608]:
+            - heading "CREATINA MONOHIDRATO 250g" [level=3] [ref=f6e1609]
+            - paragraph [ref=f6e1610]: 250 g · 76×66 mm
+          - generic [ref=f6e1611]:
+            - button "Duplicar" [ref=f6e1612] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1613] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1614]:
+          - checkbox [ref=f6e1616]
+          - button [ref=f6e1617] [cursor=pointer]
+          - generic [ref=f6e1621]:
+            - heading "CREATINA MONOHIDRATO 500g nueva" [level=3] [ref=f6e1622]
+            - paragraph [ref=f6e1623]: 500g · 76×66 mm
+          - generic [ref=f6e1624]:
+            - button "Duplicar" [ref=f6e1625] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1626] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1627]:
+          - checkbox [ref=f6e1629]
+          - button [ref=f6e1630] [cursor=pointer]
+          - generic [ref=f6e1633]:
+            - heading "CAPSULAS TRANSPARENTES 0" [level=3] [ref=f6e1634]
+            - paragraph [ref=f6e1635]: 5 mL · 66×22 mm
+          - generic [ref=f6e1636]:
+            - button "Duplicar" [ref=f6e1637] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1638] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1639]:
+          - checkbox [ref=f6e1641]
+          - button [ref=f6e1642] [cursor=pointer]
+          - generic [ref=f6e1645]:
+            - heading "CAPSULAS VERDE BLANCO 0" [level=3] [ref=f6e1646]
+            - paragraph [ref=f6e1647]: 5 mL · 66×22 mm
+          - generic [ref=f6e1648]:
+            - button "Duplicar" [ref=f6e1649] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1650] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1651]:
+          - checkbox [ref=f6e1653]
+          - button [ref=f6e1654] [cursor=pointer]
+          - generic [ref=f6e1657]:
+            - heading "CAPSULAS AZUL BLANCO 0" [level=3] [ref=f6e1658]
+            - paragraph [ref=f6e1659]: 5 mL · 66×22 mm
+          - generic [ref=f6e1660]:
+            - button "Duplicar" [ref=f6e1661] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1662] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1663]:
+          - checkbox [ref=f6e1665]
+          - button [ref=f6e1666] [cursor=pointer]
+          - generic [ref=f6e1669]:
+            - heading "CAPSULAS TRANSPARENTES 00" [level=3] [ref=f6e1670]
+            - paragraph [ref=f6e1671]: 5 mL · 66×22 mm
+          - generic [ref=f6e1672]:
+            - button "Duplicar" [ref=f6e1673] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1674] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1675]:
+          - checkbox [ref=f6e1677]
+          - button [ref=f6e1678] [cursor=pointer]
+          - generic [ref=f6e1681]:
+            - heading "ACIDO HIALURONICO BAJO PESO MOLECULAR 30mL" [level=3] [ref=f6e1682]
+            - paragraph [ref=f6e1683]: 30 mL · 102×38 mm
+          - generic [ref=f6e1684]:
+            - button "Duplicar" [ref=f6e1685] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1686] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1687]:
+          - checkbox [ref=f6e1689]
+          - button [ref=f6e1690] [cursor=pointer]
+          - generic [ref=f6e1693]:
+            - heading "HIALURONICO ALTO PESO MOLECULAR 30mL" [level=3] [ref=f6e1694]
+            - paragraph [ref=f6e1695]: 30 mL · 102×38 mm
+          - generic [ref=f6e1696]:
+            - button "Duplicar" [ref=f6e1697] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1698] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1699]:
+          - checkbox [ref=f6e1701]
+          - button [ref=f6e1702] [cursor=pointer]
+          - generic [ref=f6e1705]:
+            - heading "MANTECA KARITE BLANCA 125g" [level=3] [ref=f6e1706]
+            - paragraph [ref=f6e1707]: CIRCLE · 53.9×53.9 mm
+          - generic [ref=f6e1708]:
+            - button "Duplicar" [ref=f6e1709] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1710] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1711]:
+          - checkbox [ref=f6e1713]
+          - button [ref=f6e1714] [cursor=pointer]
+          - generic [ref=f6e1717]:
+            - heading "BETAINA DE COCO 250mL" [level=3] [ref=f6e1718]
+            - paragraph [ref=f6e1719]: 54mm · 54×58 mm
+          - generic [ref=f6e1720]:
+            - button "Duplicar" [ref=f6e1721] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1722] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1723]:
+          - checkbox [ref=f6e1725]
+          - button [ref=f6e1726] [cursor=pointer]
+          - generic [ref=f6e1729]:
+            - heading "MANTECA KARITE 125g" [level=3] [ref=f6e1730]
+            - paragraph [ref=f6e1731]: Personalizado · 53×53 mm
+          - generic [ref=f6e1732]:
+            - button "Duplicar" [ref=f6e1733] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1734] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1735]:
+          - checkbox [ref=f6e1737]
+          - button [ref=f6e1738] [cursor=pointer]
+          - generic [ref=f6e1741]:
+            - heading "L ARGININA 100g" [level=3] [ref=f6e1742]
+            - paragraph [ref=f6e1743]: 54mm · 58×54 mm
+          - generic [ref=f6e1744]:
+            - button "Duplicar" [ref=f6e1745] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1746] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1747]:
+          - checkbox [ref=f6e1749]
+          - button [ref=f6e1750] [cursor=pointer]
+          - generic [ref=f6e1753]:
+            - heading "ACIDO AZELAICO 10g" [level=3] [ref=f6e1754]
+            - paragraph [ref=f6e1755]: 5 g · 50×42 mm
+          - generic [ref=f6e1756]:
+            - button "Duplicar" [ref=f6e1757] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1758] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1759]:
+          - checkbox [ref=f6e1761]
+          - button [ref=f6e1762] [cursor=pointer]
+          - generic [ref=f6e1765]:
+            - heading "ALFA ARBUTINA 10g" [level=3] [ref=f6e1766]
+            - paragraph [ref=f6e1767]: 5 g · 50×42 mm
+          - generic [ref=f6e1768]:
+            - button "Duplicar" [ref=f6e1769] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1770] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1771]:
+          - checkbox [ref=f6e1773]
+          - button [ref=f6e1774] [cursor=pointer]
+          - generic [ref=f6e1777]:
+            - heading "PISTACHOS 500g" [level=3] [ref=f6e1778]
+            - paragraph [ref=f6e1779]: 100 g · 69×51 mm
+          - generic [ref=f6e1780]:
+            - button "Duplicar" [ref=f6e1781] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1782] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1783]:
+          - checkbox [ref=f6e1785]
+          - button [ref=f6e1786] [cursor=pointer]
+          - generic [ref=f6e1789]:
+            - heading "L TEANINA 100g" [level=3] [ref=f6e1790]
+            - paragraph [ref=f6e1791]: 54mm · 58×54 mm
+          - generic [ref=f6e1792]:
+            - button "Duplicar" [ref=f6e1793] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1794] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1795]:
+          - checkbox [ref=f6e1797]
+          - button [ref=f6e1798] [cursor=pointer]
+          - generic [ref=f6e1801]:
+            - heading "ACEITE ARGAN 50mL" [level=3] [ref=f6e1802]
+            - paragraph [ref=f6e1803]: 30 mL · 102×38 mm
+          - generic [ref=f6e1804]:
+            - button "Duplicar" [ref=f6e1805] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1806] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1807]:
+          - checkbox [ref=f6e1809]
+          - button [ref=f6e1810] [cursor=pointer]
+          - generic [ref=f6e1813]:
+            - heading "ACIDO IALURONICO ALTO PESO MOLECULAR 30mL" [level=3] [ref=f6e1814]
+            - paragraph [ref=f6e1815]: 30 mL · 102×38 mm
+          - generic [ref=f6e1816]:
+            - button "Duplicar" [ref=f6e1817] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1818] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1819]:
+          - checkbox [ref=f6e1821]
+          - button [ref=f6e1822] [cursor=pointer]
+          - generic [ref=f6e1825]:
+            - heading "EXTRACTO DE ALOE VERA 30mL" [level=3] [ref=f6e1826]
+            - paragraph [ref=f6e1827]: 30 mL · 102×38 mm
+          - generic [ref=f6e1828]:
+            - button "Duplicar" [ref=f6e1829] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1830] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1831]:
+          - checkbox [ref=f6e1833]
+          - button [ref=f6e1834] [cursor=pointer]
+          - generic [ref=f6e1837]:
+            - heading "ACIDO SALICILICO 20P 30mL" [level=3] [ref=f6e1838]
+            - paragraph [ref=f6e1839]: 30 mL · 102×38 mm
+          - generic [ref=f6e1840]:
+            - button "Duplicar" [ref=f6e1841] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1842] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1843]:
+          - checkbox [ref=f6e1845]
+          - button [ref=f6e1846] [cursor=pointer]
+          - generic [ref=f6e1849]:
+            - heading "VITAMINA E 30mL" [level=3] [ref=f6e1850]
+            - paragraph [ref=f6e1851]: 30 mL · 102×38 mm
+          - generic [ref=f6e1852]:
+            - button "Duplicar" [ref=f6e1853] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1854] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1855]:
+          - checkbox [ref=f6e1857]
+          - button [ref=f6e1858] [cursor=pointer]
+          - generic [ref=f6e1861]:
+            - heading "AZUL DE METILENO 30 mL" [level=3] [ref=f6e1862]
+            - paragraph [ref=f6e1863]: 5 g · 50×42 mm
+          - generic [ref=f6e1864]:
+            - button "Duplicar" [ref=f6e1865] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1866] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1867]:
+          - checkbox [ref=f6e1869]
+          - button [ref=f6e1870] [cursor=pointer]
+          - generic [ref=f6e1873]:
+            - heading "COCO DESHIDRATADO HILO 500g" [level=3] [ref=f6e1874]
+            - paragraph [ref=f6e1875]: 100 g · 69×51 mm
+          - generic [ref=f6e1876]:
+            - button "Duplicar" [ref=f6e1877] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1878] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1879]:
+          - checkbox [ref=f6e1881]
+          - button [ref=f6e1882] [cursor=pointer]
+          - generic [ref=f6e1885]:
+            - heading "PISTACHOS 250g" [level=3] [ref=f6e1886]
+            - paragraph [ref=f6e1887]: 100 g · 69×51 mm
+          - generic [ref=f6e1888]:
+            - button "Duplicar" [ref=f6e1889] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1890] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1891]:
+          - checkbox [ref=f6e1893]
+          - button [ref=f6e1894] [cursor=pointer]
+          - generic [ref=f6e1897]:
+            - heading "ACEITE JOJOBA 30mL" [level=3] [ref=f6e1898]
+            - paragraph [ref=f6e1899]: 30 mL · 102×38 mm
+          - generic [ref=f6e1900]:
+            - button "Duplicar" [ref=f6e1901] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1902] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1903]:
+          - checkbox [ref=f6e1905]
+          - button [ref=f6e1906] [cursor=pointer]
+          - generic [ref=f6e1909]:
+            - heading "VASELINA 900g" [level=3] [ref=f6e1910]
+            - paragraph [ref=f6e1911]: Circular 70 · 70×70 mm
+          - generic [ref=f6e1912]:
+            - button "Duplicar" [ref=f6e1913] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1914] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1915]:
+          - checkbox [ref=f6e1917]
+          - button [ref=f6e1918] [cursor=pointer]
+          - generic [ref=f6e1921]:
+            - heading "VASELINA 400g" [level=3] [ref=f6e1922]
+            - paragraph [ref=f6e1923]: Circular · 55×55 mm
+          - generic [ref=f6e1924]:
+            - button "Duplicar" [ref=f6e1925] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1926] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1927]:
+          - checkbox [ref=f6e1929]
+          - button [ref=f6e1930] [cursor=pointer]
+          - generic [ref=f6e1933]:
+            - heading "GUASNO DE SEDA 30mL" [level=3] [ref=f6e1934]
+            - paragraph [ref=f6e1935]: 30 mL · 102×38 mm
+          - generic [ref=f6e1936]:
+            - button "Duplicar" [ref=f6e1937] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1938] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1939]:
+          - checkbox [ref=f6e1941]
+          - button [ref=f6e1942] [cursor=pointer]
+          - generic [ref=f6e1945]:
+            - heading "ACEITE DE RICINO 250mL" [level=3] [ref=f6e1946]
+            - paragraph [ref=f6e1947]: 54mm · 58×54 mm
+          - generic [ref=f6e1948]:
+            - button "Duplicar" [ref=f6e1949] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1950] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1951]:
+          - checkbox [ref=f6e1953]
+          - button [ref=f6e1954] [cursor=pointer]
+          - generic [ref=f6e1957]:
+            - heading "ACIDO LACTICO 85P 30mL" [level=3] [ref=f6e1958]
+            - paragraph [ref=f6e1959]: 30 mL · 102×38 mm
+          - generic [ref=f6e1960]:
+            - button "Duplicar" [ref=f6e1961] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1962] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1963]:
+          - checkbox [ref=f6e1965]
+          - button [ref=f6e1966] [cursor=pointer]
+          - generic [ref=f6e1969]:
+            - heading "JABON POTASICO Lt" [level=3] [ref=f6e1970]
+            - paragraph [ref=f6e1971]: Personalizado · 76×108 mm
+          - generic [ref=f6e1972]:
+            - button "Duplicar" [ref=f6e1973] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1974] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1975]:
+          - checkbox [ref=f6e1977]
+          - button [ref=f6e1978] [cursor=pointer]
+          - generic [ref=f6e1981]:
+            - heading "ACEITE DE NEEM 60mL" [level=3] [ref=f6e1982]
+            - paragraph [ref=f6e1983]: Personalizado · 38×102 mm
+          - generic [ref=f6e1984]:
+            - button "Duplicar" [ref=f6e1985] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1986] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1987]:
+          - checkbox [ref=f6e1989]
+          - button [ref=f6e1990] [cursor=pointer]
+          - generic [ref=f6e1993]:
+            - heading "MENTOL CRISTAL 100G" [level=3] [ref=f6e1994]
+            - paragraph [ref=f6e1995]: 100 g · 69×51 mm
+          - generic [ref=f6e1996]:
+            - button "Duplicar" [ref=f6e1997] [cursor=pointer]
+            - button "Eliminar" [ref=f6e1998] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e1999]:
+          - checkbox [ref=f6e2001]
+          - button [ref=f6e2002] [cursor=pointer]
+          - generic [ref=f6e2005]:
+            - heading "SEMILLA DE CALABAZA 250g" [level=3] [ref=f6e2006]
+            - paragraph [ref=f6e2007]: 100 g · 69×51 mm
+          - generic [ref=f6e2008]:
+            - button "Duplicar" [ref=f6e2009] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2010] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2011]:
+          - checkbox [ref=f6e2013]
+          - button [ref=f6e2014] [cursor=pointer]
+          - generic [ref=f6e2017]:
+            - heading "CAFEINA 100g" [level=3] [ref=f6e2018]
+            - paragraph [ref=f6e2019]: 100 g · 69×51 mm
+          - generic [ref=f6e2020]:
+            - button "Duplicar" [ref=f6e2021] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2022] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2023]:
+          - checkbox [ref=f6e2025]
+          - button [ref=f6e2026] [cursor=pointer]
+          - generic [ref=f6e2029]:
+            - heading "SEMILLA DE CALABAZA 500g" [level=3] [ref=f6e2030]
+            - paragraph [ref=f6e2031]: 100 g · 69×51 mm
+          - generic [ref=f6e2032]:
+            - button "Duplicar" [ref=f6e2033] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2034] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2035]:
+          - checkbox [ref=f6e2037]
+          - button [ref=f6e2038] [cursor=pointer]
+          - generic [ref=f6e2041]:
+            - heading "ALGINATO DE SODIO 100g" [level=3] [ref=f6e2042]
+            - paragraph [ref=f6e2043]: 100 g · 69×51 mm
+          - generic [ref=f6e2044]:
+            - button "Duplicar" [ref=f6e2045] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2046] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2047]:
+          - checkbox [ref=f6e2049]
+          - button [ref=f6e2050] [cursor=pointer]
+          - generic [ref=f6e2053]:
+            - heading "CLORURO DE CALCIO 100g" [level=3] [ref=f6e2054]
+            - paragraph [ref=f6e2055]: 100 g · 69×51 mm
+          - generic [ref=f6e2056]:
+            - button "Duplicar" [ref=f6e2057] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2058] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2059]:
+          - checkbox [ref=f6e2061]
+          - button [ref=f6e2062] [cursor=pointer]
+          - generic [ref=f6e2065]:
+            - heading "ARANDANOS DESHIDRATADOS 500g" [level=3] [ref=f6e2066]
+            - paragraph [ref=f6e2067]: 100 g · 69×51 mm
+          - generic [ref=f6e2068]:
+            - button "Duplicar" [ref=f6e2069] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2070] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2071]:
+          - checkbox [ref=f6e2073]
+          - button [ref=f6e2074] [cursor=pointer]
+          - generic [ref=f6e2077]:
+            - heading "LACTATO DE CALCIO 100g" [level=3] [ref=f6e2078]
+            - paragraph [ref=f6e2079]: 100 g · 69×51 mm
+          - generic [ref=f6e2080]:
+            - button "Duplicar" [ref=f6e2081] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2082] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2083]:
+          - checkbox [ref=f6e2085]
+          - button [ref=f6e2086] [cursor=pointer]
+          - generic [ref=f6e2089]:
+            - heading "ALGINATO DE SODIO 50g" [level=3] [ref=f6e2090]
+            - paragraph [ref=f6e2091]: 30 mL · 102×38 mm
+          - generic [ref=f6e2092]:
+            - button "Duplicar" [ref=f6e2093] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2094] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2095]:
+          - checkbox [ref=f6e2097]
+          - button [ref=f6e2098] [cursor=pointer]
+          - generic [ref=f6e2101]:
+            - heading "LACTATO DE CALCIO 50g" [level=3] [ref=f6e2102]
+            - paragraph [ref=f6e2103]: 30 mL · 102×38 mm
+          - generic [ref=f6e2104]:
+            - button "Duplicar" [ref=f6e2105] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2106] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2107]:
+          - checkbox [ref=f6e2109]
+          - button [ref=f6e2110] [cursor=pointer]
+          - generic [ref=f6e2113]:
+            - heading "MANTECA KARITE 125g BLANCA" [level=3] [ref=f6e2114]
+            - paragraph [ref=f6e2115]: Circular · 55×55 mm
+          - generic [ref=f6e2116]:
+            - button "Duplicar" [ref=f6e2117] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2118] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2119]:
+          - checkbox [ref=f6e2121]
+          - button [ref=f6e2122] [cursor=pointer]
+          - generic [ref=f6e2125]:
+            - heading "Copia de Copia de MANTECA KARITE 125g" [level=3] [ref=f6e2126]
+            - paragraph [ref=f6e2127]: Circular · 55×55 mm
+          - generic [ref=f6e2128]:
+            - button "Duplicar" [ref=f6e2129] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2130] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2131]:
+          - checkbox [ref=f6e2133]
+          - button [ref=f6e2134] [cursor=pointer]
+          - generic [ref=f6e2137]:
+            - heading "Copia de MANTECA KARITE 125g" [level=3] [ref=f6e2138]
+            - paragraph [ref=f6e2139]: Circular · 55×55 mm
+          - generic [ref=f6e2140]:
+            - button "Duplicar" [ref=f6e2141] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2142] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2143]:
+          - checkbox [ref=f6e2145]
+          - button [ref=f6e2146] [cursor=pointer]
+          - generic [ref=f6e2149]:
+            - heading "MANI NATURAL TOSTADO 500g" [level=3] [ref=f6e2150]
+            - paragraph [ref=f6e2151]: 100 g · 69×51 mm
+          - generic [ref=f6e2152]:
+            - button "Duplicar" [ref=f6e2153] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2154] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2155]:
+          - checkbox [ref=f6e2157]
+          - button [ref=f6e2158] [cursor=pointer]
+          - generic [ref=f6e2161]:
+            - heading "NUEZ DEL BRASIL 250g" [level=3] [ref=f6e2162]
+            - paragraph [ref=f6e2163]: 100 g · 69×51 mm
+          - generic [ref=f6e2164]:
+            - button "Duplicar" [ref=f6e2165] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2166] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2167]:
+          - checkbox [ref=f6e2169]
+          - button [ref=f6e2170] [cursor=pointer]
+          - generic [ref=f6e2173]:
+            - heading "ALMENDRA NATURAL 500g" [level=3] [ref=f6e2174]
+            - paragraph [ref=f6e2175]: 100 g · 69×51 mm
+          - generic [ref=f6e2176]:
+            - button "Duplicar" [ref=f6e2177] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2178] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2179]:
+          - checkbox [ref=f6e2181]
+          - button [ref=f6e2182] [cursor=pointer]
+          - generic [ref=f6e2185]:
+            - heading "VITAMINA E 100g" [level=3] [ref=f6e2186]
+            - paragraph [ref=f6e2187]: 100 g · 69×51 mm
+          - generic [ref=f6e2188]:
+            - button "Duplicar" [ref=f6e2189] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2190] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2191]:
+          - checkbox [ref=f6e2193]
+          - button [ref=f6e2194] [cursor=pointer]
+          - generic [ref=f6e2197]:
+            - heading "VITAMINA D3 250g" [level=3] [ref=f6e2198]
+            - paragraph [ref=f6e2199]: 250 g · 76×66 mm
+          - generic [ref=f6e2200]:
+            - button "Duplicar" [ref=f6e2201] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2202] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2203]:
+          - checkbox [ref=f6e2205]
+          - button [ref=f6e2206] [cursor=pointer]
+          - generic [ref=f6e2209]:
+            - heading "VITAMINA B12 100g" [level=3] [ref=f6e2210]
+            - paragraph [ref=f6e2211]: 5 g · 50×42 mm
+          - generic [ref=f6e2212]:
+            - button "Duplicar" [ref=f6e2213] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2214] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2215]:
+          - checkbox [ref=f6e2217]
+          - button [ref=f6e2218] [cursor=pointer]
+          - generic [ref=f6e2221]:
+            - heading "VIOLETA DE GENCIANA 30mL" [level=3] [ref=f6e2222]
+            - paragraph [ref=f6e2223]: 5 g · 50×42 mm
+          - generic [ref=f6e2224]:
+            - button "Duplicar" [ref=f6e2225] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2226] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2227]:
+          - checkbox [ref=f6e2229]
+          - button [ref=f6e2230] [cursor=pointer]
+          - generic [ref=f6e2233]:
+            - heading "VERDE MALAQUITA 30mL" [level=3] [ref=f6e2234]
+            - paragraph [ref=f6e2235]: 5 g · 50×42 mm
+          - generic [ref=f6e2236]:
+            - button "Duplicar" [ref=f6e2237] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2238] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2239]:
+          - checkbox [ref=f6e2241]
+          - button [ref=f6e2242] [cursor=pointer]
+          - generic [ref=f6e2245]:
+            - heading "TRIETANOLAMINA Lt" [level=3] [ref=f6e2246]
+            - paragraph [ref=f6e2247]: 250 g · 76×66 mm
+          - generic [ref=f6e2248]:
+            - button "Duplicar" [ref=f6e2249] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2250] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2251]:
+          - checkbox [ref=f6e2253]
+          - button [ref=f6e2254] [cursor=pointer]
+          - generic [ref=f6e2257]:
+            - heading "TENSOSIL COCO 500mL FALTA CODIGO BARRAS" [level=3] [ref=f6e2258]
+            - paragraph [ref=f6e2259]: 250 g · 76×66 mm
+          - generic [ref=f6e2260]:
+            - button "Duplicar" [ref=f6e2261] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2262] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2263]:
+          - checkbox [ref=f6e2265]
+          - button [ref=f6e2266] [cursor=pointer]
+          - generic [ref=f6e2269]:
+            - heading "Silica gel 500g" [level=3] [ref=f6e2270]
+            - paragraph [ref=f6e2271]: 250 g · 76×66 mm
+          - generic [ref=f6e2272]:
+            - button "Duplicar" [ref=f6e2273] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2274] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2275]:
+          - checkbox [ref=f6e2277]
+          - button [ref=f6e2278] [cursor=pointer]
+          - generic [ref=f6e2281]:
+            - heading "Silica gel ARENA 500g" [level=3] [ref=f6e2282]
+            - paragraph [ref=f6e2283]: 250 g · 76×66 mm
+          - generic [ref=f6e2284]:
+            - button "Duplicar" [ref=f6e2285] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2286] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2287]:
+          - checkbox [ref=f6e2289]
+          - button [ref=f6e2290] [cursor=pointer]
+          - generic [ref=f6e2293]:
+            - heading "Silica gel ARENA 250g" [level=3] [ref=f6e2294]
+            - paragraph [ref=f6e2295]: 250 g · 76×66 mm
+          - generic [ref=f6e2296]:
+            - button "Duplicar" [ref=f6e2297] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2298] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2299]:
+          - checkbox [ref=f6e2301]
+          - button [ref=f6e2302] [cursor=pointer]
+          - generic [ref=f6e2305]:
+            - heading "Semilla de Uva 120mL" [level=3] [ref=f6e2306]
+            - paragraph [ref=f6e2307]: 30 mL · 102×38 mm
+          - generic [ref=f6e2308]:
+            - button "Duplicar" [ref=f6e2309] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2310] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2311]:
+          - checkbox [ref=f6e2313]
+          - button [ref=f6e2314] [cursor=pointer]
+          - generic [ref=f6e2317]:
+            - heading "SULFATO DE COBRE 500g" [level=3] [ref=f6e2318]
+            - paragraph [ref=f6e2319]: 250 g · 76×66 mm
+          - generic [ref=f6e2320]:
+            - button "Duplicar" [ref=f6e2321] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2322] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2323]:
+          - checkbox [ref=f6e2325]
+          - button [ref=f6e2326] [cursor=pointer]
+          - generic [ref=f6e2329]:
+            - heading "SULFATO DE HIERRO 500g" [level=3] [ref=f6e2330]
+            - paragraph [ref=f6e2331]: 250 g · 76×66 mm
+          - generic [ref=f6e2332]:
+            - button "Duplicar" [ref=f6e2333] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2334] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2335]:
+          - checkbox [ref=f6e2337]
+          - button [ref=f6e2338] [cursor=pointer]
+          - generic [ref=f6e2341]:
+            - heading "SUCRALOSA 250g" [level=3] [ref=f6e2342]
+            - paragraph [ref=f6e2343]: 100 g · 69×51 mm
+          - generic [ref=f6e2344]:
+            - button "Duplicar" [ref=f6e2345] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2346] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2347]:
+          - checkbox [ref=f6e2349]
+          - button [ref=f6e2350] [cursor=pointer]
+          - generic [ref=f6e2353]:
+            - heading "SUCRALOSA 100g" [level=3] [ref=f6e2354]
+            - paragraph [ref=f6e2355]: 100 g · 69×51 mm
+          - generic [ref=f6e2356]:
+            - button "Duplicar" [ref=f6e2357] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2358] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2359]:
+          - checkbox [ref=f6e2361]
+          - button [ref=f6e2362] [cursor=pointer]
+          - generic [ref=f6e2365]:
+            - heading "SORBITOL Kg" [level=3] [ref=f6e2366]
+            - paragraph [ref=f6e2367]: 250 g · 76×66 mm
+          - generic [ref=f6e2368]:
+            - button "Duplicar" [ref=f6e2369] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2370] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2371]:
+          - checkbox [ref=f6e2373]
+          - button [ref=f6e2374] [cursor=pointer]
+          - generic [ref=f6e2377]:
+            - heading "SORBATO DE POTASIO 100g" [level=3] [ref=f6e2378]
+            - paragraph [ref=f6e2379]: 100 g · 69×51 mm
+          - generic [ref=f6e2380]:
+            - button "Duplicar" [ref=f6e2381] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2382] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2383]:
+          - checkbox [ref=f6e2385]
+          - button [ref=f6e2386] [cursor=pointer]
+          - generic [ref=f6e2389]:
+            - heading "SHAROMIX 500mL" [level=3] [ref=f6e2390]
+            - paragraph [ref=f6e2391]: 250 g · 76×66 mm
+          - generic [ref=f6e2392]:
+            - button "Duplicar" [ref=f6e2393] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2394] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2395]:
+          - checkbox [ref=f6e2397]
+          - button [ref=f6e2398] [cursor=pointer]
+          - generic [ref=f6e2401]:
+            - heading "SHAROMIX 250 mL" [level=3] [ref=f6e2402]
+            - paragraph [ref=f6e2403]: 54mm · 58×54 mm
+          - generic [ref=f6e2404]:
+            - button "Duplicar" [ref=f6e2405] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2406] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2407]:
+          - checkbox [ref=f6e2409]
+          - button [ref=f6e2410] [cursor=pointer]
+          - generic [ref=f6e2413]:
+            - heading "RETINOL 5P 30mL" [level=3] [ref=f6e2414]
+            - paragraph [ref=f6e2415]: 30 mL · 102×38 mm
+          - generic [ref=f6e2416]:
+            - button "Duplicar" [ref=f6e2417] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2418] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2419]:
+          - checkbox [ref=f6e2421]
+          - button [ref=f6e2422] [cursor=pointer]
+          - generic [ref=f6e2425]:
+            - heading "RESINA EPOXI 500mL" [level=3] [ref=f6e2426]
+            - paragraph [ref=f6e2427]: 250 g · 76×66 mm
+          - generic [ref=f6e2428]:
+            - button "Duplicar" [ref=f6e2429] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2430] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2431]:
+          - checkbox [ref=f6e2433]
+          - button [ref=f6e2434] [cursor=pointer]
+          - generic [ref=f6e2437]:
+            - heading "POLISORBATO 80 500 ML X CREAR CODIGO DE BARRAS" [level=3] [ref=f6e2438]
+            - paragraph [ref=f6e2439]: 54mm · 58×54 mm
+          - generic [ref=f6e2440]:
+            - button "Duplicar" [ref=f6e2441] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2442] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2443]:
+          - checkbox [ref=f6e2445]
+          - button [ref=f6e2446] [cursor=pointer]
+          - generic [ref=f6e2449]:
+            - heading "PAPAINA 100g" [level=3] [ref=f6e2450]
+            - paragraph [ref=f6e2451]: 54mm · 58×54 mm
+          - generic [ref=f6e2452]:
+            - button "Duplicar" [ref=f6e2453] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2454] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2455]:
+          - checkbox [ref=f6e2457]
+          - button [ref=f6e2458] [cursor=pointer]
+          - generic [ref=f6e2461]:
+            - heading "ORELLANA ROSADA SECA 50g" [level=3] [ref=f6e2462]
+            - paragraph [ref=f6e2463]: 250 g · 76×66 mm
+          - generic [ref=f6e2464]:
+            - button "Duplicar" [ref=f6e2465] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2466] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2467]:
+          - checkbox [ref=f6e2469]
+          - button [ref=f6e2470] [cursor=pointer]
+          - generic [ref=f6e2473]:
+            - heading "ORELLANA AZUL SECA 50g" [level=3] [ref=f6e2474]
+            - paragraph [ref=f6e2475]: 250 g · 76×66 mm
+          - generic [ref=f6e2476]:
+            - button "Duplicar" [ref=f6e2477] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2478] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2479]:
+          - checkbox [ref=f6e2481]
+          - button [ref=f6e2482] [cursor=pointer]
+          - generic [ref=f6e2485]:
+            - heading "NONILFENOL Lt" [level=3] [ref=f6e2486]
+            - paragraph [ref=f6e2487]: 102x76 mm · 102×76 mm
+          - generic [ref=f6e2488]:
+            - button "Duplicar" [ref=f6e2489] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2490] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2491]:
+          - checkbox [ref=f6e2493]
+          - button [ref=f6e2494] [cursor=pointer]
+          - generic [ref=f6e2497]:
+            - heading "NIACINAMIDA 100g" [level=3] [ref=f6e2498]
+            - paragraph [ref=f6e2499]: 100 g · 69×51 mm
+          - generic [ref=f6e2500]:
+            - button "Duplicar" [ref=f6e2501] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2502] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2503]:
+          - checkbox [ref=f6e2505]
+          - button [ref=f6e2506] [cursor=pointer]
+          - generic [ref=f6e2509]:
+            - heading "MOLIBDATO DE AMONIO 100g" [level=3] [ref=f6e2510]
+            - paragraph [ref=f6e2511]: 30 mL · 102×38 mm
+          - generic [ref=f6e2512]:
+            - button "Duplicar" [ref=f6e2513] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2514] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2515]:
+          - checkbox [ref=f6e2517]
+          - button [ref=f6e2518] [cursor=pointer]
+          - generic [ref=f6e2521]:
+            - heading "MELATONINA 100 g" [level=3] [ref=f6e2522]
+            - paragraph [ref=f6e2523]: 100 g · 69×51 mm
+          - generic [ref=f6e2524]:
+            - button "Duplicar" [ref=f6e2525] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2526] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2527]:
+          - checkbox [ref=f6e2529]
+          - button [ref=f6e2530] [cursor=pointer]
+          - generic [ref=f6e2533]:
+            - heading "LANOLINA 40g" [level=3] [ref=f6e2534]
+            - paragraph [ref=f6e2535]: 5 mL · 66×22 mm
+          - generic [ref=f6e2536]:
+            - button "Duplicar" [ref=f6e2537] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2538] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2539]:
+          - checkbox [ref=f6e2541]
+          - button [ref=f6e2542] [cursor=pointer]
+          - generic [ref=f6e2545]:
+            - heading "LACTATO 250g" [level=3] [ref=f6e2546]
+            - paragraph [ref=f6e2547]: 250 g · 76×66 mm
+          - generic [ref=f6e2548]:
+            - button "Duplicar" [ref=f6e2549] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2550] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2551]:
+          - checkbox [ref=f6e2553]
+          - button [ref=f6e2554] [cursor=pointer]
+          - generic [ref=f6e2557]:
+            - heading "L TRIPTOFANO 100g" [level=3] [ref=f6e2558]
+            - paragraph [ref=f6e2559]: 100 g · 69×51 mm
+          - generic [ref=f6e2560]:
+            - button "Duplicar" [ref=f6e2561] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2562] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2563]:
+          - checkbox [ref=f6e2565]
+          - button [ref=f6e2566] [cursor=pointer]
+          - generic [ref=f6e2569]:
+            - heading "L PROLINA 100g" [level=3] [ref=f6e2570]
+            - paragraph [ref=f6e2571]: 100 g · 69×51 mm
+          - generic [ref=f6e2572]:
+            - button "Duplicar" [ref=f6e2573] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2574] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2575]:
+          - checkbox [ref=f6e2577]
+          - button [ref=f6e2578] [cursor=pointer]
+          - generic [ref=f6e2581]:
+            - heading "L ORNITINA 100g" [level=3] [ref=f6e2582]
+            - paragraph [ref=f6e2583]: 100 g · 69×51 mm
+          - generic [ref=f6e2584]:
+            - button "Duplicar" [ref=f6e2585] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2586] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2587]:
+          - checkbox [ref=f6e2589]
+          - button [ref=f6e2590] [cursor=pointer]
+          - generic [ref=f6e2593]:
+            - heading "L LISINA 100g" [level=3] [ref=f6e2594]
+            - paragraph [ref=f6e2595]: 100 g · 69×51 mm
+          - generic [ref=f6e2596]:
+            - button "Duplicar" [ref=f6e2597] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2598] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2599]:
+          - checkbox [ref=f6e2601]
+          - button [ref=f6e2602] [cursor=pointer]
+          - generic [ref=f6e2605]:
+            - heading "L GLUTAMINA 100g" [level=3] [ref=f6e2606]
+            - paragraph [ref=f6e2607]: 54mm · 58×54 mm
+          - generic [ref=f6e2608]:
+            - button "Duplicar" [ref=f6e2609] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2610] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2611]:
+          - checkbox [ref=f6e2613]
+          - button [ref=f6e2614] [cursor=pointer]
+          - generic [ref=f6e2617]:
+            - heading "L FENILALANINA 100g" [level=3] [ref=f6e2618]
+            - paragraph [ref=f6e2619]: 100 g · 69×51 mm
+          - generic [ref=f6e2620]:
+            - button "Duplicar" [ref=f6e2621] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2622] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2623]:
+          - checkbox [ref=f6e2625]
+          - button [ref=f6e2626] [cursor=pointer]
+          - generic [ref=f6e2629]:
+            - heading "L CITRULINA 100g" [level=3] [ref=f6e2630]
+            - paragraph [ref=f6e2631]: 100 g · 69×51 mm
+          - generic [ref=f6e2632]:
+            - button "Duplicar" [ref=f6e2633] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2634] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2635]:
+          - checkbox [ref=f6e2637]
+          - button [ref=f6e2638] [cursor=pointer]
+          - generic [ref=f6e2641]:
+            - heading "L CARNITINA 100g" [level=3] [ref=f6e2642]
+            - paragraph [ref=f6e2643]: 54mm · 58×54 mm
+          - generic [ref=f6e2644]:
+            - button "Duplicar" [ref=f6e2645] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2646] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2647]:
+          - checkbox [ref=f6e2649]
+          - button [ref=f6e2650] [cursor=pointer]
+          - generic [ref=f6e2653]:
+            - heading "L ALGINATO DE SODIO 100g" [level=3] [ref=f6e2654]
+            - paragraph [ref=f6e2655]: 100 g · 69×51 mm
+          - generic [ref=f6e2656]:
+            - button "Duplicar" [ref=f6e2657] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2658] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2659]:
+          - checkbox [ref=f6e2661]
+          - button [ref=f6e2662] [cursor=pointer]
+          - generic [ref=f6e2665]:
+            - heading "HARINA DE TRIGO PANIFICACIÓN 00 Kg" [level=3] [ref=f6e2666]
+            - paragraph [ref=f6e2667]: 250 g · 76×66 mm
+          - generic [ref=f6e2668]:
+            - button "Duplicar" [ref=f6e2669] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2670] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2671]:
+          - checkbox [ref=f6e2673]
+          - button [ref=f6e2674] [cursor=pointer]
+          - generic [ref=f6e2677]:
+            - heading "HARINA DE ALGARROBA 500g" [level=3] [ref=f6e2678]
+            - paragraph [ref=f6e2679]: 250 g · 76×66 mm
+          - generic [ref=f6e2680]:
+            - button "Duplicar" [ref=f6e2681] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2682] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2683]:
+          - checkbox [ref=f6e2685]
+          - button [ref=f6e2686] [cursor=pointer]
+          - generic [ref=f6e2689]:
+            - heading "GUSANO DE SEDA 30mL" [level=3] [ref=f6e2690]
+            - paragraph [ref=f6e2691]: 30 mL · 102×38 mm
+          - generic [ref=f6e2692]:
+            - button "Duplicar" [ref=f6e2693] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2694] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2695]:
+          - checkbox [ref=f6e2697]
+          - button [ref=f6e2698] [cursor=pointer]
+          - generic [ref=f6e2701]:
+            - heading "GLUTARALDEHIDO 2P 500ML" [level=3] [ref=f6e2702]
+            - paragraph [ref=f6e2703]: 250 g · 76×66 mm
+          - generic [ref=f6e2704]:
+            - button "Duplicar" [ref=f6e2705] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2706] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2707]:
+          - checkbox [ref=f6e2709]
+          - button [ref=f6e2710] [cursor=pointer]
+          - generic [ref=f6e2713]:
+            - heading "GLICINATO DE MAGNESIO 250g" [level=3] [ref=f6e2714]
+            - paragraph [ref=f6e2715]: 250 g · 76×66 mm
+          - generic [ref=f6e2716]:
+            - button "Duplicar" [ref=f6e2717] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2718] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2719]:
+          - checkbox [ref=f6e2721]
+          - button [ref=f6e2722] [cursor=pointer]
+          - generic [ref=f6e2725]:
+            - heading "GLICERINA gL" [level=3] [ref=f6e2726]
+            - paragraph [ref=f6e2727]: 102x76 mm · 102×76 mm
+          - generic [ref=f6e2728]:
+            - button "Duplicar" [ref=f6e2729] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2730] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2731]:
+          - checkbox [ref=f6e2733]
+          - button [ref=f6e2734] [cursor=pointer]
+          - generic [ref=f6e2737]:
+            - heading "GLICERINA 250 mL" [level=3] [ref=f6e2738]
+            - paragraph [ref=f6e2739]: 54mm · 58×54 mm
+          - generic [ref=f6e2740]:
+            - button "Duplicar" [ref=f6e2741] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2742] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2743]:
+          - checkbox [ref=f6e2745]
+          - button [ref=f6e2746] [cursor=pointer]
+          - generic [ref=f6e2749]:
+            - heading "GELATINA SIN SABOR DOTCHI 500g" [level=3] [ref=f6e2750]
+            - paragraph [ref=f6e2751]: 102x76 mm · 102×76 mm
+          - generic [ref=f6e2752]:
+            - button "Duplicar" [ref=f6e2753] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2754] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2755]:
+          - checkbox [ref=f6e2757]
+          - button [ref=f6e2758] [cursor=pointer]
+          - generic [ref=f6e2761]:
+            - heading "FRAGANCIA LIPO NECTAR SANDIA 250mL" [level=3] [ref=f6e2762]
+            - paragraph [ref=f6e2763]: 100 g · 69×51 mm
+          - generic [ref=f6e2764]:
+            - button "Duplicar" [ref=f6e2765] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2766] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2767]:
+          - checkbox [ref=f6e2769]
+          - button [ref=f6e2770] [cursor=pointer]
+          - generic [ref=f6e2773]:
+            - heading "FRAGANCIA HIDRO FRAMBUESA" [level=3] [ref=f6e2774]
+            - paragraph [ref=f6e2775]: FRAGANCIAS · 42×50 mm
+          - generic [ref=f6e2776]:
+            - button "Duplicar" [ref=f6e2777] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2778] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2779]:
+          - checkbox [ref=f6e2781]
+          - button [ref=f6e2782] [cursor=pointer]
+          - generic [ref=f6e2785]:
+            - heading "FLOR DE JAMAICA 100g" [level=3] [ref=f6e2786]
+            - paragraph [ref=f6e2787]: 100 g · 69×51 mm
+          - generic [ref=f6e2788]:
+            - button "Duplicar" [ref=f6e2789] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2790] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2791]:
+          - checkbox [ref=f6e2793]
+          - button [ref=f6e2794] [cursor=pointer]
+          - generic [ref=f6e2797]:
+            - heading "EXTRACTO GLICOLICO LAVANDA 60mL" [level=3] [ref=f6e2798]
+            - paragraph [ref=f6e2799]: 54mm · 58×54 mm
+          - generic [ref=f6e2800]:
+            - button "Duplicar" [ref=f6e2801] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2802] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2803]:
+          - checkbox [ref=f6e2805]
+          - button [ref=f6e2806] [cursor=pointer]
+          - generic [ref=f6e2809]:
+            - heading "EXTRACTO GLICOLICO LAVANDA 120mL" [level=3] [ref=f6e2810]
+            - paragraph [ref=f6e2811]: 54mm · 58×54 mm
+          - generic [ref=f6e2812]:
+            - button "Duplicar" [ref=f6e2813] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2814] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2815]:
+          - checkbox [ref=f6e2817]
+          - button [ref=f6e2818] [cursor=pointer]
+          - generic [ref=f6e2821]:
+            - heading "ESENCIAL YLANG YLANG 5mL" [level=3] [ref=f6e2822]
+            - paragraph [ref=f6e2823]: 5 mL · 66×22 mm
+          - generic [ref=f6e2824]:
+            - button "Duplicar" [ref=f6e2825] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2826] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2827]:
+          - checkbox [ref=f6e2829]
+          - button [ref=f6e2830] [cursor=pointer]
+          - generic [ref=f6e2833]:
+            - heading "ESENCIAL TOMILLO 5mL" [level=3] [ref=f6e2834]
+            - paragraph [ref=f6e2835]: 5 mL · 66×22 mm
+          - generic [ref=f6e2836]:
+            - button "Duplicar" [ref=f6e2837] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2838] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2839]:
+          - checkbox [ref=f6e2841]
+          - button [ref=f6e2842] [cursor=pointer]
+          - generic [ref=f6e2845]:
+            - heading "ESENCIAL ROSAS 5mL" [level=3] [ref=f6e2846]
+            - paragraph [ref=f6e2847]: 5 mL · 66×22 mm
+          - generic [ref=f6e2848]:
+            - button "Duplicar" [ref=f6e2849] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2850] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2851]:
+          - checkbox [ref=f6e2853]
+          - button [ref=f6e2854] [cursor=pointer]
+          - generic [ref=f6e2857]:
+            - heading "ESENCIAL ROSA MOSQUETA 5mL" [level=3] [ref=f6e2858]
+            - paragraph [ref=f6e2859]: 5 mL · 66×22 mm
+          - generic [ref=f6e2860]:
+            - button "Duplicar" [ref=f6e2861] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2862] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2863]:
+          - checkbox [ref=f6e2865]
+          - button [ref=f6e2866] [cursor=pointer]
+          - generic [ref=f6e2869]:
+            - heading "ESENCIAL ROMERO 5mL" [level=3] [ref=f6e2870]
+            - paragraph [ref=f6e2871]: 5 mL · 66×22 mm
+          - generic [ref=f6e2872]:
+            - button "Duplicar" [ref=f6e2873] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2874] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2875]:
+          - checkbox [ref=f6e2877]
+          - button [ref=f6e2878] [cursor=pointer]
+          - generic [ref=f6e2881]:
+            - heading "ESENCIAL PINO 5mL" [level=3] [ref=f6e2882]
+            - paragraph [ref=f6e2883]: 5 mL · 66×22 mm
+          - generic [ref=f6e2884]:
+            - button "Duplicar" [ref=f6e2885] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2886] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2887]:
+          - checkbox [ref=f6e2889]
+          - button [ref=f6e2890] [cursor=pointer]
+          - generic [ref=f6e2893]:
+            - heading "ESENCIAL NARANJA 5 mL" [level=3] [ref=f6e2894]
+            - paragraph [ref=f6e2895]: 5 mL · 66×22 mm
+          - generic [ref=f6e2896]:
+            - button "Duplicar" [ref=f6e2897] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2898] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2899]:
+          - checkbox [ref=f6e2901]
+          - button [ref=f6e2902] [cursor=pointer]
+          - generic [ref=f6e2905]:
+            - heading "ESENCIAL MENTA 5mL" [level=3] [ref=f6e2906]
+            - paragraph [ref=f6e2907]: 5 mL · 66×22 mm
+          - generic [ref=f6e2908]:
+            - button "Duplicar" [ref=f6e2909] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2910] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2911]:
+          - checkbox [ref=f6e2913]
+          - button [ref=f6e2914] [cursor=pointer]
+          - generic [ref=f6e2917]:
+            - heading "ESENCIAL MARACUYA 5mL" [level=3] [ref=f6e2918]
+            - paragraph [ref=f6e2919]: 5 mL · 66×22 mm
+          - generic [ref=f6e2920]:
+            - button "Duplicar" [ref=f6e2921] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2922] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2923]:
+          - checkbox [ref=f6e2925]
+          - button [ref=f6e2926] [cursor=pointer]
+          - generic [ref=f6e2929]:
+            - heading "ESENCIAL MANZANILLA 5 mL" [level=3] [ref=f6e2930]
+            - paragraph [ref=f6e2931]: 5 mL · 66×22 mm
+          - generic [ref=f6e2932]:
+            - button "Duplicar" [ref=f6e2933] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2934] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2935]:
+          - checkbox [ref=f6e2937]
+          - button [ref=f6e2938] [cursor=pointer]
+          - generic [ref=f6e2941]:
+            - heading "ESENCIAL MANDARINA 5mL" [level=3] [ref=f6e2942]
+            - paragraph [ref=f6e2943]: 5 mL · 66×22 mm
+          - generic [ref=f6e2944]:
+            - button "Duplicar" [ref=f6e2945] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2946] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2947]:
+          - checkbox [ref=f6e2949]
+          - button [ref=f6e2950] [cursor=pointer]
+          - generic [ref=f6e2953]:
+            - heading "ESENCIAL LIMON 5ML" [level=3] [ref=f6e2954]
+            - paragraph [ref=f6e2955]: 5 mL · 66×22 mm
+          - generic [ref=f6e2956]:
+            - button "Duplicar" [ref=f6e2957] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2958] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2959]:
+          - checkbox [ref=f6e2961]
+          - button [ref=f6e2962] [cursor=pointer]
+          - generic [ref=f6e2965]:
+            - heading "ESENCIAL LAVANDA 5 mL" [level=3] [ref=f6e2966]
+            - paragraph [ref=f6e2967]: 5 mL · 66×22 mm
+          - generic [ref=f6e2968]:
+            - button "Duplicar" [ref=f6e2969] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2970] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2971]:
+          - checkbox [ref=f6e2973]
+          - button [ref=f6e2974] [cursor=pointer]
+          - generic [ref=f6e2977]:
+            - heading "ESENCIAL JENGIBRE 5mL" [level=3] [ref=f6e2978]
+            - paragraph [ref=f6e2979]: 5 mL · 66×22 mm
+          - generic [ref=f6e2980]:
+            - button "Duplicar" [ref=f6e2981] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2982] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2983]:
+          - checkbox [ref=f6e2985]
+          - button [ref=f6e2986] [cursor=pointer]
+          - generic [ref=f6e2989]:
+            - heading "ESENCIAL JAZMIN 5ML" [level=3] [ref=f6e2990]
+            - paragraph [ref=f6e2991]: 5 mL · 66×22 mm
+          - generic [ref=f6e2992]:
+            - button "Duplicar" [ref=f6e2993] [cursor=pointer]
+            - button "Eliminar" [ref=f6e2994] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e2995]:
+          - checkbox [ref=f6e2997]
+          - button [ref=f6e2998] [cursor=pointer]
+          - generic [ref=f6e3001]:
+            - heading "ESENCIAL HIERBABUENA 5mL" [level=3] [ref=f6e3002]
+            - paragraph [ref=f6e3003]: 5 mL · 66×22 mm
+          - generic [ref=f6e3004]:
+            - button "Duplicar" [ref=f6e3005] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3006] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3007]:
+          - checkbox [ref=f6e3009]
+          - button [ref=f6e3010] [cursor=pointer]
+          - generic [ref=f6e3013]:
+            - heading "ESENCIAL GERANIO 5mL" [level=3] [ref=f6e3014]
+            - paragraph [ref=f6e3015]: 5 mL · 66×22 mm
+          - generic [ref=f6e3016]:
+            - button "Duplicar" [ref=f6e3017] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3018] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3019]:
+          - checkbox [ref=f6e3021]
+          - button [ref=f6e3022] [cursor=pointer]
+          - generic [ref=f6e3025]:
+            - heading "ESENCIAL EUCALIPTO 5mL" [level=3] [ref=f6e3026]
+            - paragraph [ref=f6e3027]: 5 mL · 66×22 mm
+          - generic [ref=f6e3028]:
+            - button "Duplicar" [ref=f6e3029] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3030] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3031]:
+          - checkbox [ref=f6e3033]
+          - button [ref=f6e3034] [cursor=pointer]
+          - generic [ref=f6e3037]:
+            - heading "ESENCIAL CLAVOS 5mL" [level=3] [ref=f6e3038]
+            - paragraph [ref=f6e3039]: 5 mL · 66×22 mm
+          - generic [ref=f6e3040]:
+            - button "Duplicar" [ref=f6e3041] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3042] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3043]:
+          - checkbox [ref=f6e3045]
+          - button [ref=f6e3046] [cursor=pointer]
+          - generic [ref=f6e3049]:
+            - heading "ESENCIAL CANELA 5mL" [level=3] [ref=f6e3050]
+            - paragraph [ref=f6e3051]: 5 mL · 66×22 mm
+          - generic [ref=f6e3052]:
+            - button "Duplicar" [ref=f6e3053] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3054] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3055]:
+          - checkbox [ref=f6e3057]
+          - button [ref=f6e3058] [cursor=pointer]
+          - generic [ref=f6e3061]:
+            - heading "ESENCIAL BERGAMOTA 5mL" [level=3] [ref=f6e3062]
+            - paragraph [ref=f6e3063]: 5 mL · 66×22 mm
+          - generic [ref=f6e3064]:
+            - button "Duplicar" [ref=f6e3065] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3066] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3067]:
+          - checkbox [ref=f6e3069]
+          - button [ref=f6e3070] [cursor=pointer]
+          - generic [ref=f6e3073]:
+            - heading "ESENCIAL ARBOL DE TE 5mL" [level=3] [ref=f6e3074]
+            - paragraph [ref=f6e3075]: 5 mL · 66×22 mm
+          - generic [ref=f6e3076]:
+            - button "Duplicar" [ref=f6e3077] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3078] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3079]:
+          - checkbox [ref=f6e3081]
+          - button [ref=f6e3082] [cursor=pointer]
+          - generic [ref=f6e3085]:
+            - heading "ESENCIAL ALBAHACA 5mL" [level=3] [ref=f6e3086]
+            - paragraph [ref=f6e3087]: 5 mL · 66×22 mm
+          - generic [ref=f6e3088]:
+            - button "Duplicar" [ref=f6e3089] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3090] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3091]:
+          - checkbox [ref=f6e3093]
+          - button [ref=f6e3094] [cursor=pointer]
+          - generic [ref=f6e3097]:
+            - heading "ERITRITOL 500g" [level=3] [ref=f6e3098]
+            - paragraph [ref=f6e3099]: 250 g · 76×66 mm
+          - generic [ref=f6e3100]:
+            - button "Duplicar" [ref=f6e3101] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3102] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3103]:
+          - checkbox [ref=f6e3105]
+          - button [ref=f6e3106] [cursor=pointer]
+          - generic [ref=f6e3109]:
+            - heading "ELASTINA 30 mL" [level=3] [ref=f6e3110]
+            - paragraph [ref=f6e3111]: 30 mL · 102×38 mm
+          - generic [ref=f6e3112]:
+            - button "Duplicar" [ref=f6e3113] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3114] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3115]:
+          - checkbox [ref=f6e3117]
+          - button [ref=f6e3118] [cursor=pointer]
+          - generic [ref=f6e3121]:
+            - heading "ELASTINA 30 m" [level=3] [ref=f6e3122]
+            - paragraph [ref=f6e3123]: 30 mL · 102×38 mm
+          - generic [ref=f6e3124]:
+            - button "Duplicar" [ref=f6e3125] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3126] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3127]:
+          - checkbox [ref=f6e3129]
+          - button [ref=f6e3130] [cursor=pointer]
+          - generic [ref=f6e3133]:
+            - heading "DMSO 30ML" [level=3] [ref=f6e3134]
+            - paragraph [ref=f6e3135]: 30 mL · 102×38 mm
+          - generic [ref=f6e3136]:
+            - button "Duplicar" [ref=f6e3137] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3138] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3139]:
+          - checkbox [ref=f6e3141]
+          - button [ref=f6e3142] [cursor=pointer]
+          - generic [ref=f6e3145]:
+            - heading "DMSO 30 mL" [level=3] [ref=f6e3146]
+            - paragraph [ref=f6e3147]: 30 mL · 102×38 mm
+          - generic [ref=f6e3148]:
+            - button "Duplicar" [ref=f6e3149] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3150] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3151]:
+          - checkbox [ref=f6e3153]
+          - button [ref=f6e3154] [cursor=pointer]
+          - generic [ref=f6e3157]:
+            - heading "DL METIONINA 500g" [level=3] [ref=f6e3158]
+            - paragraph [ref=f6e3159]: 250 g · 76×66 mm
+          - generic [ref=f6e3160]:
+            - button "Duplicar" [ref=f6e3161] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3162] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3163]:
+          - checkbox [ref=f6e3165]
+          - button [ref=f6e3166] [cursor=pointer]
+          - generic [ref=f6e3169]:
+            - heading "D PANTENOL 50 mL" [level=3] [ref=f6e3170]
+            - paragraph [ref=f6e3171]: 30 mL · 102×38 mm
+          - generic [ref=f6e3172]:
+            - button "Duplicar" [ref=f6e3173] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3174] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3175]:
+          - checkbox [ref=f6e3177]
+          - button [ref=f6e3178] [cursor=pointer]
+          - generic [ref=f6e3181]:
+            - heading "D PANTENOL 120mL" [level=3] [ref=f6e3182]
+            - paragraph [ref=f6e3183]: 30 mL · 102×38 mm
+          - generic [ref=f6e3184]:
+            - button "Duplicar" [ref=f6e3185] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3186] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3187]:
+          - checkbox [ref=f6e3189]
+          - button [ref=f6e3190] [cursor=pointer]
+          - generic [ref=f6e3193]:
+            - heading "CREMOR TARTARO 500g" [level=3] [ref=f6e3194]
+            - paragraph [ref=f6e3195]: 250 g · 76×66 mm
+          - generic [ref=f6e3196]:
+            - button "Duplicar" [ref=f6e3197] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3198] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3199]:
+          - checkbox [ref=f6e3201]
+          - button [ref=f6e3202] [cursor=pointer]
+          - generic [ref=f6e3205]:
+            - heading "COLORANTE ROJO ERITROSINA 50g Falta codigo" [level=3] [ref=f6e3206]
+            - paragraph [ref=f6e3207]: 30 mL · 102×38 mm
+          - generic [ref=f6e3208]:
+            - button "Duplicar" [ref=f6e3209] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3210] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3211]:
+          - checkbox [ref=f6e3213]
+          - button [ref=f6e3214] [cursor=pointer]
+          - generic [ref=f6e3217]:
+            - heading "COLORANTE AZUL BRILLANTE 50g Falta codigo" [level=3] [ref=f6e3218]
+            - paragraph [ref=f6e3219]: 30 mL · 102×38 mm
+          - generic [ref=f6e3220]:
+            - button "Duplicar" [ref=f6e3221] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3222] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3223]:
+          - checkbox [ref=f6e3225]
+          - button [ref=f6e3226] [cursor=pointer]
+          - generic [ref=f6e3229]:
+            - heading "COLAGENO 30mL" [level=3] [ref=f6e3230]
+            - paragraph [ref=f6e3231]: 30 mL · 102×38 mm
+          - generic [ref=f6e3232]:
+            - button "Duplicar" [ref=f6e3233] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3234] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3235]:
+          - checkbox [ref=f6e3237]
+          - button [ref=f6e3238] [cursor=pointer]
+          - generic [ref=f6e3241]:
+            - heading "COCOAMIDA 500mL" [level=3] [ref=f6e3242]
+            - paragraph [ref=f6e3243]: 250 g · 76×66 mm
+          - generic [ref=f6e3244]:
+            - button "Duplicar" [ref=f6e3245] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3246] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3247]:
+          - checkbox [ref=f6e3249]
+          - button [ref=f6e3250] [cursor=pointer]
+          - generic [ref=f6e3253]:
+            - heading "CIRUELAS DESHIDRATADAS 500g" [level=3] [ref=f6e3254]
+            - paragraph [ref=f6e3255]: 100 g · 69×51 mm
+          - generic [ref=f6e3256]:
+            - button "Duplicar" [ref=f6e3257] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3258] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3259]:
+          - checkbox [ref=f6e3261]
+          - button [ref=f6e3262] [cursor=pointer]
+          - generic [ref=f6e3265]:
+            - heading "CELULOSA PH 102 500g" [level=3] [ref=f6e3266]
+            - paragraph [ref=f6e3267]: 250 g · 76×66 mm
+          - generic [ref=f6e3268]:
+            - button "Duplicar" [ref=f6e3269] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3270] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3271]:
+          - checkbox [ref=f6e3273]
+          - button [ref=f6e3274] [cursor=pointer]
+          - generic [ref=f6e3277]:
+            - heading "BTMS 500g" [level=3] [ref=f6e3278]
+            - paragraph [ref=f6e3279]: 250 g · 76×66 mm
+          - generic [ref=f6e3280]:
+            - button "Duplicar" [ref=f6e3281] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3282] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3283]:
+          - checkbox [ref=f6e3285]
+          - button [ref=f6e3286] [cursor=pointer]
+          - generic [ref=f6e3289]:
+            - heading "BTMS 250g" [level=3] [ref=f6e3290]
+            - paragraph [ref=f6e3291]: 250 g · 76×66 mm
+          - generic [ref=f6e3292]:
+            - button "Duplicar" [ref=f6e3293] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3294] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3295]:
+          - checkbox [ref=f6e3297]
+          - button [ref=f6e3298] [cursor=pointer]
+          - generic [ref=f6e3301]:
+            - heading "AZUFRE MICRONIZADO 500g" [level=3] [ref=f6e3302]
+            - paragraph [ref=f6e3303]: 250 g · 76×66 mm
+          - generic [ref=f6e3304]:
+            - button "Duplicar" [ref=f6e3305] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3306] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3307]:
+          - checkbox [ref=f6e3309]
+          - button [ref=f6e3310] [cursor=pointer]
+          - generic [ref=f6e3313]:
+            - heading "ARCILLA VERDE 250g" [level=3] [ref=f6e3314]
+            - paragraph [ref=f6e3315]: 250 g · 76×66 mm
+          - generic [ref=f6e3316]:
+            - button "Duplicar" [ref=f6e3317] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3318] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3319]:
+          - checkbox [ref=f6e3321]
+          - button [ref=f6e3322] [cursor=pointer]
+          - generic [ref=f6e3325]:
+            - heading "ARCILLA BLANC 500g" [level=3] [ref=f6e3326]
+            - paragraph [ref=f6e3327]: 250 g · 76×66 mm
+          - generic [ref=f6e3328]:
+            - button "Duplicar" [ref=f6e3329] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3330] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3331]:
+          - checkbox [ref=f6e3333]
+          - button [ref=f6e3334] [cursor=pointer]
+          - generic [ref=f6e3337]:
+            - heading "ARCILLA AMARILLA Kg" [level=3] [ref=f6e3338]
+            - paragraph [ref=f6e3339]: 250 g · 76×66 mm
+          - generic [ref=f6e3340]:
+            - button "Duplicar" [ref=f6e3341] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3342] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3343]:
+          - checkbox [ref=f6e3345]
+          - button [ref=f6e3346] [cursor=pointer]
+          - generic [ref=f6e3349]:
+            - heading "ARCILLA AMARILLA 250g" [level=3] [ref=f6e3350]
+            - paragraph [ref=f6e3351]: 250 g · 76×66 mm
+          - generic [ref=f6e3352]:
+            - button "Duplicar" [ref=f6e3353] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3354] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3355]:
+          - checkbox [ref=f6e3357]
+          - button [ref=f6e3358] [cursor=pointer]
+          - generic [ref=f6e3361]:
+            - heading "ALUMBRE DE POTASIO Kg" [level=3] [ref=f6e3362]
+            - paragraph [ref=f6e3363]: 250 g · 76×66 mm
+          - generic [ref=f6e3364]:
+            - button "Duplicar" [ref=f6e3365] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3366] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3367]:
+          - checkbox [ref=f6e3369]
+          - button [ref=f6e3370] [cursor=pointer]
+          - generic [ref=f6e3373]:
+            - heading "ALUMBRE DE POTASIO 500g" [level=3] [ref=f6e3374]
+            - paragraph [ref=f6e3375]: 250 g · 76×66 mm
+          - generic [ref=f6e3376]:
+            - button "Duplicar" [ref=f6e3377] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3378] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3379]:
+          - checkbox [ref=f6e3381]
+          - button [ref=f6e3382] [cursor=pointer]
+          - generic [ref=f6e3385]:
+            - heading "ALGINATO DE SODIO 100g" [level=3] [ref=f6e3386]
+            - paragraph [ref=f6e3387]: 100 g · 69×51 mm
+          - generic [ref=f6e3388]:
+            - button "Duplicar" [ref=f6e3389] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3390] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3391]:
+          - checkbox [ref=f6e3393]
+          - button [ref=f6e3394] [cursor=pointer]
+          - generic [ref=f6e3397]:
+            - heading "AGUA DESTILADA gL" [level=3] [ref=f6e3398]
+            - paragraph [ref=f6e3399]: 5 g · 50×42 mm
+          - generic [ref=f6e3400]:
+            - button "Duplicar" [ref=f6e3401] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3402] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3403]:
+          - checkbox [ref=f6e3405]
+          - button [ref=f6e3406] [cursor=pointer]
+          - generic [ref=f6e3409]:
+            - heading "AGUA DESTILADA Lt" [level=3] [ref=f6e3410]
+            - paragraph [ref=f6e3411]: 5 g · 50×42 mm
+          - generic [ref=f6e3412]:
+            - button "Duplicar" [ref=f6e3413] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3414] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3415]:
+          - checkbox [ref=f6e3417]
+          - button [ref=f6e3418] [cursor=pointer]
+          - generic [ref=f6e3421]:
+            - heading "AGUA DESTILADA 500mL" [level=3] [ref=f6e3422]
+            - paragraph [ref=f6e3423]: 250 g · 76×66 mm
+          - generic [ref=f6e3424]:
+            - button "Duplicar" [ref=f6e3425] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3426] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3427]:
+          - checkbox [ref=f6e3429]
+          - button [ref=f6e3430] [cursor=pointer]
+          - generic [ref=f6e3433]:
+            - heading "AGUA DESTILADA 250mL" [level=3] [ref=f6e3434]
+            - paragraph [ref=f6e3435]: 5 g · 50×42 mm
+          - generic [ref=f6e3436]:
+            - button "Duplicar" [ref=f6e3437] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3438] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3439]:
+          - checkbox [ref=f6e3441]
+          - button [ref=f6e3442] [cursor=pointer]
+          - generic [ref=f6e3445]:
+            - heading "AGUA DE ROSAS 250mL" [level=3] [ref=f6e3446]
+            - paragraph [ref=f6e3447]: 30 mL · 102×38 mm
+          - generic [ref=f6e3448]:
+            - button "Duplicar" [ref=f6e3449] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3450] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3451]:
+          - checkbox [ref=f6e3453]
+          - button [ref=f6e3454] [cursor=pointer]
+          - generic [ref=f6e3457]:
+            - heading "AGAR AGAR 100g" [level=3] [ref=f6e3458]
+            - paragraph [ref=f6e3459]: 100 g · 69×51 mm
+          - generic [ref=f6e3460]:
+            - button "Duplicar" [ref=f6e3461] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3462] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3463]:
+          - checkbox [ref=f6e3465]
+          - button [ref=f6e3466] [cursor=pointer]
+          - generic [ref=f6e3469]:
+            - heading "ACIDO TRANEXAMICO 10g" [level=3] [ref=f6e3470]
+            - paragraph [ref=f6e3471]: 5 g · 50×42 mm
+          - generic [ref=f6e3472]:
+            - button "Duplicar" [ref=f6e3473] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3474] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3475]:
+          - checkbox [ref=f6e3477]
+          - button [ref=f6e3478] [cursor=pointer]
+          - generic [ref=f6e3481]:
+            - heading "ACIDO SORBICO 100g" [level=3] [ref=f6e3482]
+            - paragraph [ref=f6e3483]: 100 g · 69×51 mm
+          - generic [ref=f6e3484]:
+            - button "Duplicar" [ref=f6e3485] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3486] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3487]:
+          - checkbox [ref=f6e3489]
+          - button [ref=f6e3490] [cursor=pointer]
+          - generic [ref=f6e3493]:
+            - heading "ACIDO SALICILICO 50g" [level=3] [ref=f6e3494]
+            - paragraph [ref=f6e3495]: 30 mL · 102×38 mm
+          - generic [ref=f6e3496]:
+            - button "Duplicar" [ref=f6e3497] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3498] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3499]:
+          - checkbox [ref=f6e3501]
+          - button [ref=f6e3502] [cursor=pointer]
+          - generic [ref=f6e3505]:
+            - heading "ACIDO SALICILICO 100g" [level=3] [ref=f6e3506]
+            - paragraph [ref=f6e3507]: 100 g · 69×51 mm
+          - generic [ref=f6e3508]:
+            - button "Duplicar" [ref=f6e3509] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3510] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3511]:
+          - checkbox [ref=f6e3513]
+          - button [ref=f6e3514] [cursor=pointer]
+          - generic [ref=f6e3517]:
+            - heading "ACIDO MANDELICO 5g" [level=3] [ref=f6e3518]
+            - paragraph [ref=f6e3519]: 5 g · 50×42 mm
+          - generic [ref=f6e3520]:
+            - button "Duplicar" [ref=f6e3521] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3522] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3523]:
+          - checkbox [ref=f6e3525]
+          - button [ref=f6e3526] [cursor=pointer]
+          - generic [ref=f6e3529]:
+            - heading "ACIDO MALICO 100g" [level=3] [ref=f6e3530]
+            - paragraph [ref=f6e3531]: 100 g · 69×51 mm
+          - generic [ref=f6e3532]:
+            - button "Duplicar" [ref=f6e3533] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3534] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3535]:
+          - checkbox [ref=f6e3537]
+          - button [ref=f6e3538] [cursor=pointer]
+          - generic [ref=f6e3541]:
+            - heading "ACIDO LACTICO 30mL" [level=3] [ref=f6e3542]
+            - paragraph [ref=f6e3543]: 30 mL · 102×38 mm
+          - generic [ref=f6e3544]:
+            - button "Duplicar" [ref=f6e3545] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3546] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3547]:
+          - checkbox [ref=f6e3549]
+          - button [ref=f6e3550] [cursor=pointer]
+          - generic [ref=f6e3553]:
+            - heading "ACIDO KOJICO D PALMITATO 30mL" [level=3] [ref=f6e3554]
+            - paragraph [ref=f6e3555]: 30 mL · 102×38 mm
+          - generic [ref=f6e3556]:
+            - button "Duplicar" [ref=f6e3557] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3558] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3559]:
+          - checkbox [ref=f6e3561]
+          - button [ref=f6e3562] [cursor=pointer]
+          - generic [ref=f6e3565]:
+            - heading "ACIDO KOJICO 30mL" [level=3] [ref=f6e3566]
+            - paragraph [ref=f6e3567]: 30 mL · 102×38 mm
+          - generic [ref=f6e3568]:
+            - button "Duplicar" [ref=f6e3569] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3570] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3571]:
+          - checkbox [ref=f6e3573]
+          - button [ref=f6e3574] [cursor=pointer]
+          - generic [ref=f6e3577]:
+            - heading "ACIDO ESTEARICO 500g" [level=3] [ref=f6e3578]
+            - paragraph [ref=f6e3579]: 250 g · 76×66 mm
+          - generic [ref=f6e3580]:
+            - button "Duplicar" [ref=f6e3581] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3582] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3583]:
+          - checkbox [ref=f6e3585]
+          - button [ref=f6e3586] [cursor=pointer]
+          - generic [ref=f6e3589]:
+            - heading "ACIDO BENZOICO 100g" [level=3] [ref=f6e3590]
+            - paragraph [ref=f6e3591]: 100 g · 69×51 mm
+          - generic [ref=f6e3592]:
+            - button "Duplicar" [ref=f6e3593] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3594] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3595]:
+          - checkbox [ref=f6e3597]
+          - button [ref=f6e3598] [cursor=pointer]
+          - generic [ref=f6e3601]:
+            - heading "ACIDO ASCORBICO 100g" [level=3] [ref=f6e3602]
+            - paragraph [ref=f6e3603]: 100 g · 69×51 mm
+          - generic [ref=f6e3604]:
+            - button "Duplicar" [ref=f6e3605] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3606] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3607]:
+          - checkbox [ref=f6e3609]
+          - button [ref=f6e3610] [cursor=pointer]
+          - generic [ref=f6e3613]:
+            - heading "ACIDO ACETICO GLACIAL Lt" [level=3] [ref=f6e3614]
+            - paragraph [ref=f6e3615]: 250 g · 76×66 mm
+          - generic [ref=f6e3616]:
+            - button "Duplicar" [ref=f6e3617] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3618] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3619]:
+          - checkbox [ref=f6e3621]
+          - button [ref=f6e3622] [cursor=pointer]
+          - generic [ref=f6e3625]:
+            - heading "ACEITE MINERAL 500mL" [level=3] [ref=f6e3626]
+            - paragraph [ref=f6e3627]: 250 g · 76×66 mm
+          - generic [ref=f6e3628]:
+            - button "Duplicar" [ref=f6e3629] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3630] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3631]:
+          - checkbox [ref=f6e3633]
+          - button [ref=f6e3634] [cursor=pointer]
+          - generic [ref=f6e3637]:
+            - heading "ACEITE DE NEEM 500mL" [level=3] [ref=f6e3638]
+            - paragraph [ref=f6e3639]: 54mm · 58×54 mm
+          - generic [ref=f6e3640]:
+            - button "Duplicar" [ref=f6e3641] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3642] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3643]:
+          - checkbox [ref=f6e3645]
+          - button [ref=f6e3646] [cursor=pointer]
+          - generic [ref=f6e3649]:
+            - heading "ACEITE DE NEEM 250mL" [level=3] [ref=f6e3650]
+            - paragraph [ref=f6e3651]: 54mm · 58×54 mm
+          - generic [ref=f6e3652]:
+            - button "Duplicar" [ref=f6e3653] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3654] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3655]:
+          - checkbox [ref=f6e3657]
+          - button [ref=f6e3658] [cursor=pointer]
+          - generic [ref=f6e3661]:
+            - heading "ACEITE DE NEEM 120mL" [level=3] [ref=f6e3662]
+            - paragraph [ref=f6e3663]: 30 mL · 101×40 mm
+          - generic [ref=f6e3664]:
+            - button "Duplicar" [ref=f6e3665] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3666] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3667]:
+          - checkbox [ref=f6e3669]
+          - button [ref=f6e3670] [cursor=pointer]
+          - generic [ref=f6e3673]:
+            - heading "ACEITE DE LINAZA 250mL" [level=3] [ref=f6e3674]
+            - paragraph [ref=f6e3675]: 54mm · 58×54 mm
+          - generic [ref=f6e3676]:
+            - button "Duplicar" [ref=f6e3677] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3678] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3679]:
+          - checkbox [ref=f6e3681]
+          - button [ref=f6e3682] [cursor=pointer]
+          - generic [ref=f6e3685]:
+            - heading "NUEZ DEL BRASIL 500g" [level=3] [ref=f6e3686]
+            - paragraph [ref=f6e3687]: 100 g · 69×51 mm
+          - generic [ref=f6e3688]:
+            - button "Duplicar" [ref=f6e3689] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3690] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3691]:
+          - checkbox [ref=f6e3693]
+          - button [ref=f6e3694] [cursor=pointer]
+          - generic [ref=f6e3697]:
+            - heading "EMBRION DE PATO 30mL" [level=3] [ref=f6e3698]
+            - paragraph [ref=f6e3699]: 30 mL · 102×38 mm
+          - generic [ref=f6e3700]:
+            - button "Duplicar" [ref=f6e3701] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3702] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3703]:
+          - checkbox [ref=f6e3705]
+          - button [ref=f6e3706] [cursor=pointer]
+          - generic [ref=f6e3709]:
+            - heading "ACIDO GLICOLICO 50P 30mL" [level=3] [ref=f6e3710]
+            - paragraph [ref=f6e3711]: 30 mL · 102×38 mm
+          - generic [ref=f6e3712]:
+            - button "Duplicar" [ref=f6e3713] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3714] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3715]:
+          - checkbox [ref=f6e3717]
+          - button [ref=f6e3718] [cursor=pointer]
+          - generic [ref=f6e3721]:
+            - heading "ACIDO KOJICO 5% 30mL" [level=3] [ref=f6e3722]
+            - paragraph [ref=f6e3723]: 30 mL · 102×38 mm
+          - generic [ref=f6e3724]:
+            - button "Duplicar" [ref=f6e3725] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3726] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3727]:
+          - checkbox [ref=f6e3729]
+          - button [ref=f6e3730] [cursor=pointer]
+          - generic [ref=f6e3733]:
+            - heading "COLAGENO HIDROLIZADO 30mL" [level=3] [ref=f6e3734]
+            - paragraph [ref=f6e3735]: 30 mL · 102×38 mm
+          - generic [ref=f6e3736]:
+            - button "Duplicar" [ref=f6e3737] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3738] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3739]:
+          - checkbox [ref=f6e3741]
+          - button [ref=f6e3742] [cursor=pointer]
+          - generic [ref=f6e3745]:
+            - heading "ACEITE ARBOL DE TE 30mL" [level=3] [ref=f6e3746]
+            - paragraph [ref=f6e3747]: 30 mL · 102×38 mm
+          - generic [ref=f6e3748]:
+            - button "Duplicar" [ref=f6e3749] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3750] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3751]:
+          - checkbox [ref=f6e3753]
+          - button [ref=f6e3754] [cursor=pointer]
+          - generic [ref=f6e3757]:
+            - heading "FRAGANCIA LIPOSOLUBLE PINA 120mL" [level=3] [ref=f6e3758]
+            - paragraph [ref=f6e3759]: FRAGANCIAS · 42×50 mm
+          - generic [ref=f6e3760]:
+            - button "Duplicar" [ref=f6e3761] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3762] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3763]:
+          - checkbox [ref=f6e3765]
+          - button [ref=f6e3766] [cursor=pointer]
+          - generic [ref=f6e3769]:
+            - heading "FRAGANCIA LIPOSOLUBLE LAVANDA 120mL" [level=3] [ref=f6e3770]
+            - paragraph [ref=f6e3771]: FRAGANCIAS · 42×50 mm
+          - generic [ref=f6e3772]:
+            - button "Duplicar" [ref=f6e3773] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3774] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3775]:
+          - checkbox [ref=f6e3777]
+          - button [ref=f6e3778] [cursor=pointer]
+          - generic [ref=f6e3781]:
+            - heading "BTMS 125g" [level=3] [ref=f6e3782]
+            - paragraph [ref=f6e3783]: 100 g · 69×51 mm
+          - generic [ref=f6e3784]:
+            - button "Duplicar" [ref=f6e3785] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3786] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3787]:
+          - checkbox [ref=f6e3789]
+          - button [ref=f6e3790] [cursor=pointer]
+          - generic [ref=f6e3793]:
+            - heading "DIPROPILENGLICOL 500mL" [level=3] [ref=f6e3794]
+            - paragraph [ref=f6e3795]: 250 g · 76×66 mm
+          - generic [ref=f6e3796]:
+            - button "Duplicar" [ref=f6e3797] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3798] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3799]:
+          - checkbox [ref=f6e3801]
+          - button [ref=f6e3802] [cursor=pointer]
+          - generic [ref=f6e3805]:
+            - heading "AGUA DESTILDA 250 mL" [level=3] [ref=f6e3806]
+            - paragraph [ref=f6e3807]: 5 g · 50×42 mm
+          - generic [ref=f6e3808]:
+            - button "Duplicar" [ref=f6e3809] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3810] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3811]:
+          - checkbox [ref=f6e3813]
+          - button [ref=f6e3814] [cursor=pointer]
+          - generic [ref=f6e3817]:
+            - heading "PISTACHOS 1000g" [level=3] [ref=f6e3818]
+            - paragraph [ref=f6e3819]: 100 g · 69×51 mm
+          - generic [ref=f6e3820]:
+            - button "Duplicar" [ref=f6e3821] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3822] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3823]:
+          - checkbox [ref=f6e3825]
+          - button [ref=f6e3826] [cursor=pointer]
+          - generic [ref=f6e3829]:
+            - heading "Copia de AMINOACIDO L PROLINA 100g" [level=3] [ref=f6e3830]
+            - paragraph [ref=f6e3831]: 5 g · 50×42 mm
+          - generic [ref=f6e3832]:
+            - button "Duplicar" [ref=f6e3833] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3834] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3835]:
+          - checkbox [ref=f6e3837]
+          - button [ref=f6e3838] [cursor=pointer]
+          - generic [ref=f6e3841]:
+            - heading "ALMENDRA NATURAL 250g" [level=3] [ref=f6e3842]
+            - paragraph [ref=f6e3843]: 100 g · 69×51 mm
+          - generic [ref=f6e3844]:
+            - button "Duplicar" [ref=f6e3845] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3846] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3847]:
+          - checkbox [ref=f6e3849]
+          - button [ref=f6e3850] [cursor=pointer]
+          - generic [ref=f6e3853]:
+            - heading "ARANDANOS DESHIDRATADOS 250g" [level=3] [ref=f6e3854]
+            - paragraph [ref=f6e3855]: 100 g · 69×51 mm
+          - generic [ref=f6e3856]:
+            - button "Duplicar" [ref=f6e3857] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3858] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3859]:
+          - checkbox [ref=f6e3861]
+          - button [ref=f6e3862] [cursor=pointer]
+          - generic [ref=f6e3865]:
+            - heading "Copia de ARANDANOS DESHIDRATADOS 250g" [level=3] [ref=f6e3866]
+            - paragraph [ref=f6e3867]: 100 g · 69×51 mm
+          - generic [ref=f6e3868]:
+            - button "Duplicar" [ref=f6e3869] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3870] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3871]:
+          - checkbox [ref=f6e3873]
+          - button [ref=f6e3874] [cursor=pointer]
+          - generic [ref=f6e3877]:
+            - heading "PISTACHOS 500g" [level=3] [ref=f6e3878]
+            - paragraph [ref=f6e3879]: 100 g · 69×51 mm
+          - generic [ref=f6e3880]:
+            - button "Duplicar" [ref=f6e3881] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3882] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3883]:
+          - checkbox [ref=f6e3885]
+          - button [ref=f6e3886] [cursor=pointer]
+          - generic [ref=f6e3889]:
+            - heading "COCO DESHIDRATADO HILO 250g" [level=3] [ref=f6e3890]
+            - paragraph [ref=f6e3891]: 100 g · 69×51 mm
+          - generic [ref=f6e3892]:
+            - button "Duplicar" [ref=f6e3893] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3894] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3895]:
+          - checkbox [ref=f6e3897]
+          - button [ref=f6e3898] [cursor=pointer]
+          - generic [ref=f6e3901]:
+            - heading "PLANTILLA 100g cafe" [level=3] [ref=f6e3902]
+            - paragraph [ref=f6e3903]: 100 g · 69×51 mm
+          - generic [ref=f6e3904]:
+            - button "Duplicar" [ref=f6e3905] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3906] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3907]:
+          - checkbox [ref=f6e3909]
+          - button [ref=f6e3910] [cursor=pointer]
+          - generic [ref=f6e3913]:
+            - heading "AMINOACIDO L PROLINA 100g" [level=3] [ref=f6e3914]
+            - paragraph [ref=f6e3915]: 100 g · 69×51 mm
+          - generic [ref=f6e3916]:
+            - button "Duplicar" [ref=f6e3917] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3918] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3919]:
+          - checkbox [ref=f6e3921]
+          - button [ref=f6e3922] [cursor=pointer]
+          - generic [ref=f6e3925]:
+            - heading "CLORURO DE CALCIO 50g" [level=3] [ref=f6e3926]
+            - paragraph [ref=f6e3927]: 30 mL · 102×38 mm
+          - generic [ref=f6e3928]:
+            - button "Duplicar" [ref=f6e3929] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3930] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3931]:
+          - checkbox [ref=f6e3933]
+          - button [ref=f6e3934] [cursor=pointer]
+          - generic [ref=f6e3937]:
+            - heading "ALGINATO DE SODIO 50g" [level=3] [ref=f6e3938]
+            - paragraph [ref=f6e3939]: 30 mL · 102×38 mm
+          - generic [ref=f6e3940]:
+            - button "Duplicar" [ref=f6e3941] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3942] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3943]:
+          - checkbox [ref=f6e3945]
+          - button [ref=f6e3946] [cursor=pointer]
+          - generic [ref=f6e3949]:
+            - heading "PLANTILLA 500g AZUL" [level=3] [ref=f6e3950]
+            - paragraph [ref=f6e3951]: 250 g · 76×66 mm
+          - generic [ref=f6e3952]:
+            - button "Duplicar" [ref=f6e3953] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3954] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3955]:
+          - checkbox [ref=f6e3957]
+          - button [ref=f6e3958] [cursor=pointer]
+          - generic [ref=f6e3961]:
+            - heading "PLANTILLA 500g AMARILLA" [level=3] [ref=f6e3962]
+            - paragraph [ref=f6e3963]: 250 g · 76×66 mm
+          - generic [ref=f6e3964]:
+            - button "Duplicar" [ref=f6e3965] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3966] [cursor=pointer]
+        - article "Arrastra a una carpeta para mover" [ref=f6e3967]:
+          - checkbox [ref=f6e3969]
+          - button [ref=f6e3970] [cursor=pointer]
+          - generic [ref=f6e3973]:
+            - heading "PLANTILLA 100g AZUL" [level=3] [ref=f6e3974]
+            - paragraph [ref=f6e3975]: 100 g · 69×51 mm
+          - generic [ref=f6e3976]:
+            - button "Duplicar" [ref=f6e3977] [cursor=pointer]
+            - button "Eliminar" [ref=f6e3978] [cursor=pointer]
+  - button "Ver solicitudes en proceso" [ref=f6e83] [cursor=pointer]:
+    - generic [ref=f6e84]: "1"

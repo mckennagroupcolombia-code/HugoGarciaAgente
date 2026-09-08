@@ -19,6 +19,7 @@ const LibroMayorPanel = lazy(() => import("./LibroMayorPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const CatalogoAlegraPanel = lazy(() => import("./CatalogoAlegraPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
+const ContabilidadInicioPanel = lazy(() => import("./ContabilidadInicioPanel"));
 
 function TabCargando() {
   return (
@@ -30,6 +31,8 @@ function TabCargando() {
 
 function renderSubpanel(id: ContabilidadPanelId) {
   switch (id) {
+    case "contabilidad-inicio":
+      return <ContabilidadInicioPanel />;
     // Ya no navegable directo (tab oculta, se accede vía el icono del
     // encabezado) — Facturación/Sync/Facturas/Astro Killer viven ahora en su
     // propia sección de nivel superior (ver FacturacionPanel.tsx).

@@ -1,6 +1,97 @@
 {
   "archivos": [
     {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123539.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123539.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123539.pdf",
+      "subido_at": "2026-09-08T12:35:39",
+      "bytes": 301761
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123517.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123517.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123517.pdf",
+      "subido_at": "2026-09-08T12:35:17",
+      "bytes": 301761
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123502.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123502.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123502.pdf",
+      "subido_at": "2026-09-08T12:35:02",
+      "bytes": 301761
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123416.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123416.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123416.pdf",
+      "subido_at": "2026-09-08T12:34:16",
+      "bytes": 301761
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123353.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123353.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123353.pdf",
+      "subido_at": "2026-09-08T12:33:53",
+      "bytes": 301761
+    },
+    {
+      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260908_123330.pdf",
+      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123330.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260908_123330.pdf",
+      "subido_at": "2026-09-08T12:33:30",
+      "bytes": 301761
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260908_122943.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260908_122943.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260908_122943.pdf",
+      "subido_at": "2026-09-08T12:29:43",
+      "bytes": 298713
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260908_122930.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260908_122930.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260908_122930.pdf",
+      "subido_at": "2026-09-08T12:29:30",
+      "bytes": 298713
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122850.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122850.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122850.pdf",
+      "subido_at": "2026-09-08T12:28:50",
+      "bytes": 253356
+    },
+    {
+      "nombre": "ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122836.pdf",
+      "ruta": "Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122836.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ARANDANOS_DESHIDRATADOS_250g_6.25x_20260908_122836.pdf",
+      "subido_at": "2026-09-08T12:28:36",
+      "bytes": 253356
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122658.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122658.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122658.pdf",
+      "subido_at": "2026-09-08T12:26:58",
+      "bytes": 257705
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122626.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122626.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122626.pdf",
+      "subido_at": "2026-09-08T12:26:26",
+      "bytes": 257705
+    },
+    {
+      "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122001.pdf",
+      "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122001.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260908_122001.pdf",
+      "subido_at": "2026-09-08T12:20:01",
+      "bytes": 257705
+    },
+    {
       "nombre": "MANI_NATURAL_TOSTADO_500g_6.25x_20260907_120839.pdf",
       "ruta": "Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260907_120839.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANI_NATURAL_TOSTADO_500g_6.25x_20260907_120839.pdf",
@@ -1308,97 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260731_094558.pdf",
       "subido_at": "2026-07-31T09:45:58",
       "bytes": 301752
-    },
-    {
-      "nombre": "AGUA_DESTILDA_250_mL_6.25x_20260731_094529.pdf",
-      "ruta": "Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260731_094529.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA_DESTILDA_250_mL_6.25x_20260731_094529.pdf",
-      "subido_at": "2026-07-31T09:45:29",
-      "bytes": 301752
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125207.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125207.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125207.pdf",
-      "subido_at": "2026-07-30T12:52:07",
-      "bytes": 705769
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125122.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125122.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125122.pdf",
-      "subido_at": "2026-07-30T12:51:22",
-      "bytes": 705769
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125100.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125100.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125100.pdf",
-      "subido_at": "2026-07-30T12:51:00",
-      "bytes": 705769
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125025.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125025.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x_20260730_125025.pdf",
-      "subido_at": "2026-07-30T12:50:25",
-      "bytes": 705769
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_Kg_6.25x.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_Kg_6.25x.pdf",
-      "subido_at": "2026-07-30T12:50:09",
-      "bytes": 705769
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124749.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124749.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124749.pdf",
-      "subido_at": "2026-07-30T12:47:49",
-      "bytes": 705623
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124719.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124719.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124719.pdf",
-      "subido_at": "2026-07-30T12:47:19",
-      "bytes": 705623
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124644.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124644.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2_20260730_124644.pdf",
-      "subido_at": "2026-07-30T12:46:44",
-      "bytes": 705623
-    },
-    {
-      "nombre": "MANTECA_DE_CACAO_REFINADA_500g_6.25x_2.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_DE_CACAO_REFINADA_500g_6.25x_2.pdf",
-      "subido_at": "2026-07-30T12:46:24",
-      "bytes": 705623
-    },
-    {
-      "nombre": "UREA_250g_6.25x_20260730_124415.pdf",
-      "ruta": "Etiquetas McKenna/UREA_250g_6.25x_20260730_124415.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/UREA_250g_6.25x_20260730_124415.pdf",
-      "subido_at": "2026-07-30T12:44:15",
-      "bytes": 634911
-    },
-    {
-      "nombre": "UREA_250g_6.25x_20260730_124339.pdf",
-      "ruta": "Etiquetas McKenna/UREA_250g_6.25x_20260730_124339.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/UREA_250g_6.25x_20260730_124339.pdf",
-      "subido_at": "2026-07-30T12:43:39",
-      "bytes": 634911
-    },
-    {
-      "nombre": "UREA_250g_6.25x_20260730_124307.pdf",
-      "ruta": "Etiquetas McKenna/UREA_250g_6.25x_20260730_124307.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/UREA_250g_6.25x_20260730_124307.pdf",
-      "subido_at": "2026-07-30T12:43:07",
-      "bytes": 634911
     }
   ]
 }

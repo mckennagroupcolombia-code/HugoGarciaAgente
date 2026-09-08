@@ -31,6 +31,7 @@ _initialized = False
 TIPOS_CUENTA = ("activo", "pasivo", "patrimonio", "ingreso", "gasto", "costo")
 NATURALEZAS = ("debito", "credito")
 TIPOS_TERCERO = ("proveedor", "cliente", "socio", "empleado", "otro")
+TIPOS_PERSONA = ("natural", "juridica")
 
 
 @contextmanager
@@ -125,7 +126,47 @@ def init_db() -> None:
     _sembrar_datos_iniciales()
     _migrar_cuentas_v2()
     _migrar_columnas_v3()
+    _migrar_columnas_v4()
+    _ensure_gastos_personales()
     _initialized = True
+
+
+def _migrar_columnas_v4() -> None:
+    """cc_terceros: tipo_persona (natural/jurídica, para retención en la fuente
+    más adelante) y usuario_id (vínculo con su login de Tickets — Cuenta de
+    Socio, gastos personales privados). Idempotente, mismo patrón que
+    `_migrar_columnas_v3`."""
+    with _conn() as con:
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_terceros)")}
+        if "tipo_persona" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN tipo_persona TEXT NOT NULL DEFAULT 'juridica'")
+        if "usuario_id" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN usuario_id INTEGER")
+
+
+def _ensure_gastos_personales() -> None:
+    """Gastos personales de un socio, sin relación con McKenna — NO pasa por
+    partida doble (no toca cc_movimientos ni el balance): es un registro
+    simple, a propósito, porque es dinero del socio, no de la empresa."""
+    with _conn() as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS cc_gastos_personales (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tercero_id INTEGER NOT NULL REFERENCES cc_terceros(id),
+                fecha TEXT NOT NULL,
+                categoria TEXT NOT NULL DEFAULT '',
+                descripcion TEXT NOT NULL DEFAULT '',
+                monto REAL NOT NULL,
+                soporte_path TEXT NOT NULL DEFAULT '',
+                soporte_nombre TEXT NOT NULL DEFAULT '',
+                soporte_mime TEXT NOT NULL DEFAULT '',
+                created_by INTEGER,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cc_gastos_personales_tercero ON cc_gastos_personales(tercero_id)"
+        )
 
 
 def _migrar_columnas_v3() -> None:
@@ -371,12 +412,15 @@ def crear_tercero(payload: dict) -> dict:
     tipo = str(payload.get("tipo") or "proveedor").strip()
     if tipo not in TIPOS_TERCERO:
         raise ValueError(f"tipo inválido, debe ser uno de: {', '.join(TIPOS_TERCERO)}")
+    tipo_persona = str(payload.get("tipo_persona") or "juridica").strip()
+    if tipo_persona not in TIPOS_PERSONA:
+        raise ValueError(f"tipo_persona inválido, debe ser uno de: {', '.join(TIPOS_PERSONA)}")
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO cc_terceros
                  (nombre, tipo, identificacion, telefono, email, cuenta_bancaria,
-                  cuenta_por_pagar_id, notas, activo)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+                  cuenta_por_pagar_id, notas, activo, tipo_persona, usuario_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
             (
                 nombre,
                 tipo,
@@ -386,6 +430,8 @@ def crear_tercero(payload: dict) -> dict:
                 str(payload.get("cuenta_bancaria") or "").strip(),
                 int(payload["cuenta_por_pagar_id"]) if payload.get("cuenta_por_pagar_id") else None,
                 str(payload.get("notas") or "").strip(),
+                tipo_persona,
+                int(payload["usuario_id"]) if payload.get("usuario_id") else None,
             ),
         )
         tercero_id = cur.lastrowid
@@ -398,15 +444,19 @@ def actualizar_tercero(tercero_id: int, payload: dict) -> dict:
     if not actual:
         raise ValueError("Tercero no encontrado")
     campos: dict = {}
-    for k in ("nombre", "tipo", "identificacion", "telefono", "email", "cuenta_bancaria", "notas"):
+    for k in ("nombre", "tipo", "identificacion", "telefono", "email", "cuenta_bancaria", "notas", "tipo_persona"):
         if k in payload:
             campos[k] = str(payload[k] or "").strip()
     if campos.get("tipo") and campos["tipo"] not in TIPOS_TERCERO:
         raise ValueError(f"tipo inválido, debe ser uno de: {', '.join(TIPOS_TERCERO)}")
+    if campos.get("tipo_persona") and campos["tipo_persona"] not in TIPOS_PERSONA:
+        raise ValueError(f"tipo_persona inválido, debe ser uno de: {', '.join(TIPOS_PERSONA)}")
     if "cuenta_por_pagar_id" in payload:
         campos["cuenta_por_pagar_id"] = (
             int(payload["cuenta_por_pagar_id"]) if payload["cuenta_por_pagar_id"] else None
         )
+    if "usuario_id" in payload:
+        campos["usuario_id"] = int(payload["usuario_id"]) if payload["usuario_id"] else None
     if "activo" in payload:
         campos["activo"] = 1 if payload["activo"] else 0
     if not campos:
@@ -1251,6 +1301,65 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     )
 
 
+def registrar_aporte_capital(payload: dict, created_by: int | None = None) -> dict:
+    """Un socio mete dinero como capital (patrimonio, `3115 Aportes sociales`)
+    — a diferencia de un préstamo, NO es pasivo y no se "abona" ni se
+    devuelve. payload: fecha, tercero_id (debe ser socio), monto,
+    medio_pago_id, referencia, concepto (opcional)."""
+    _ensure()
+    fecha = str(payload.get("fecha") or "").strip()
+    tercero_id = int(payload.get("tercero_id") or 0)
+    monto = round(float(payload.get("monto") or 0), 2)
+    medio_pago_id = int(payload.get("medio_pago_id") or 0)
+    referencia = str(payload.get("referencia") or "").strip()
+    concepto_extra = str(payload.get("concepto") or "").strip()
+
+    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
+        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+
+    tercero = obtener_tercero(tercero_id)
+    if not tercero:
+        raise ValueError("Tercero no encontrado")
+    if tercero.get("tipo") != "socio":
+        raise ValueError("Un aporte de capital solo se registra para un tercero tipo 'socio'")
+    medio = obtener_medio_pago(medio_pago_id)
+    if not medio:
+        raise ValueError("Medio de pago no encontrado")
+    with _conn() as con:
+        cuenta_patrimonio_id = _cuenta_id_por_codigo(con, "3115")
+    if not cuenta_patrimonio_id:
+        raise ValueError("No existe la cuenta 3115 (Aportes sociales) en el plan de cuentas")
+
+    concepto = f"Aporte de capital de {tercero['nombre']}" + (
+        f" — {concepto_extra}" if concepto_extra else ""
+    )
+    lineas = [
+        {
+            "cuenta_id": medio["cuenta_id"],
+            "debito": monto,
+            "credito": 0,
+            "descripcion": f"Entrada vía {medio['nombre']}",
+        },
+        {
+            "cuenta_id": cuenta_patrimonio_id,
+            "debito": 0,
+            "credito": monto,
+            "tercero_id": tercero_id,
+            "descripcion": f"Aporte de capital — {tercero['nombre']}",
+        },
+    ]
+    return crear_movimiento(
+        fecha=fecha,
+        concepto=concepto,
+        lineas=lineas,
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen="aporte_capital",
+        plantilla_datos=payload,
+        created_by=created_by,
+    )
+
+
 def registrar_abono_prestamo_recibido(payload: dict, created_by: int | None = None) -> dict:
     """Abona (total o parcialmente) un préstamo recibido de un socio/tercero,
     girándole dinero. payload: fecha, tercero_id, monto, medio_pago_id,
@@ -1554,3 +1663,161 @@ def registrar_egreso(payload: dict, created_by: int | None = None) -> dict:
         plantilla_datos=payload,
         created_by=created_by,
     )
+
+
+# ─── Cuenta de Socio: gastos personales privados ───────────────────────────
+# Dinero del socio, SIN relación con McKenna — no pasa por partida doble
+# (no toca cc_movimientos ni el balance de comprobación) a propósito. Solo
+# visible para el propio socio (vía `tercero.usuario_id`) o un admin — la
+# regla de privacidad se aplica en las rutas (app/routes.py), no aquí: estas
+# funciones asumen que el llamante ya fue autorizado.
+
+_COMPROBANTES_DIR_PERSONAL = os.path.join(_COMPROBANTES_DIR, "personal")
+
+
+def tercero_por_usuario(usuario_id: int) -> dict | None:
+    """El tercero (tipo socio, normalmente) vinculado a este usuario de login,
+    o None si nadie está vinculado a esa cuenta."""
+    _ensure()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT * FROM cc_terceros WHERE usuario_id=? AND activo=1 LIMIT 1", (usuario_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def crear_gasto_personal(payload: dict, created_by: int | None = None) -> dict:
+    _ensure()
+    tercero_id = int(payload.get("tercero_id") or 0)
+    fecha = str(payload.get("fecha") or "").strip()
+    monto = round(float(payload.get("monto") or 0), 2)
+    if not tercero_id or not fecha or monto <= 0:
+        raise ValueError("tercero_id, fecha y monto (> 0) son requeridos")
+    tercero = obtener_tercero(tercero_id)
+    if not tercero:
+        raise ValueError("Tercero no encontrado")
+    with _conn() as con:
+        cur = con.execute(
+            """INSERT INTO cc_gastos_personales
+                 (tercero_id, fecha, categoria, descripcion, monto, created_by)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                tercero_id,
+                fecha,
+                str(payload.get("categoria") or "").strip(),
+                str(payload.get("descripcion") or "").strip(),
+                monto,
+                int(created_by) if created_by else None,
+            ),
+        )
+        gasto_id = cur.lastrowid
+    return obtener_gasto_personal(gasto_id)
+
+
+def obtener_gasto_personal(gasto_id: int) -> dict | None:
+    _ensure()
+    with _conn() as con:
+        row = con.execute("SELECT * FROM cc_gastos_personales WHERE id=?", (gasto_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def listar_gastos_personales(tercero_id: int) -> list[dict]:
+    _ensure()
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT * FROM cc_gastos_personales WHERE tercero_id=? ORDER BY fecha DESC, id DESC",
+            (tercero_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def eliminar_gasto_personal(gasto_id: int) -> bool:
+    _ensure()
+    gasto = obtener_gasto_personal(gasto_id)
+    if gasto and gasto.get("soporte_path"):
+        try:
+            ruta_abs = os.path.join(_COMPROBANTES_DIR_PERSONAL, os.path.basename(gasto["soporte_path"]))
+            if os.path.isfile(ruta_abs):
+                os.remove(ruta_abs)
+        except OSError:
+            pass
+    with _conn() as con:
+        cur = con.execute("DELETE FROM cc_gastos_personales WHERE id=?", (gasto_id,))
+        return cur.rowcount > 0
+
+
+def guardar_comprobante_gasto_personal(gasto_id: int, contenido: bytes, nombre: str, mime: str) -> dict:
+    _ensure()
+    actual = obtener_gasto_personal(gasto_id)
+    if not actual:
+        raise ValueError("Gasto no encontrado")
+    if not contenido:
+        raise ValueError("Archivo vacío")
+    os.makedirs(_COMPROBANTES_DIR_PERSONAL, exist_ok=True)
+    ext = os.path.splitext(nombre or "")[1][:10] or ""
+    archivo = f"gasto{gasto_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+    ruta_abs = os.path.join(_COMPROBANTES_DIR_PERSONAL, archivo)
+    with open(ruta_abs, "wb") as f:
+        f.write(contenido)
+
+    anterior = (actual.get("soporte_path") or "").strip()
+    if anterior:
+        try:
+            ruta_anterior = os.path.join(_COMPROBANTES_DIR_PERSONAL, os.path.basename(anterior))
+            if os.path.isfile(ruta_anterior):
+                os.remove(ruta_anterior)
+        except OSError:
+            pass
+
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_gastos_personales SET soporte_path=?, soporte_nombre=?, soporte_mime=? WHERE id=?",
+            (archivo, (nombre or "")[:200], (mime or "")[:100], gasto_id),
+        )
+    return obtener_gasto_personal(gasto_id)
+
+
+def ruta_comprobante_gasto_personal(gasto_id: int) -> tuple[str, str, str] | None:
+    _ensure()
+    gasto = obtener_gasto_personal(gasto_id)
+    if not gasto:
+        return None
+    archivo = (gasto.get("soporte_path") or "").strip()
+    if not archivo:
+        return None
+    ruta_abs = os.path.join(_COMPROBANTES_DIR_PERSONAL, os.path.basename(archivo))
+    if not os.path.isfile(ruta_abs):
+        return None
+    return ruta_abs, gasto.get("soporte_mime") or "application/octet-stream", gasto.get("soporte_nombre") or archivo
+
+
+def eliminar_comprobante_gasto_personal(gasto_id: int) -> bool:
+    _ensure()
+    gasto = obtener_gasto_personal(gasto_id)
+    if not gasto:
+        raise ValueError("Gasto no encontrado")
+    archivo = (gasto.get("soporte_path") or "").strip()
+    if archivo:
+        try:
+            ruta_abs = os.path.join(_COMPROBANTES_DIR_PERSONAL, os.path.basename(archivo))
+            if os.path.isfile(ruta_abs):
+                os.remove(ruta_abs)
+        except OSError:
+            pass
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_gastos_personales SET soporte_path='', soporte_nombre='', soporte_mime='' WHERE id=?",
+            (gasto_id,),
+        )
+    return True
+
+
+def cuenta_socio(tercero_id: int) -> dict:
+    """Todo lo de un socio en un solo lugar: su saldo/relación financiera con
+    McKenna (ya existente) + su registro de gastos personales (nuevo, no pasa
+    por partida doble)."""
+    _ensure()
+    saldo = saldo_tercero(tercero_id)
+    movimientos = listar_movimientos(tercero_id=tercero_id, limit=500)
+    gastos = listar_gastos_personales(tercero_id)
+    return {"saldo": saldo, "movimientos": movimientos, "gastos_personales": gastos}

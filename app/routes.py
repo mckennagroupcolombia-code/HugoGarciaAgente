@@ -6171,6 +6171,43 @@ def register_routes(app):
 
         return jsonify(buscar_archivos_drive_para_producto(nombre, ref))
 
+    @app.route("/app/api/documentos/revision-checklist", methods=["GET"])
+    @app.route("/api/documentos/revision-checklist", methods=["GET"])
+    def api_documentos_revision_checklist():
+        """Cola de revisión guiada: qué producto falta revisar/corregir contra
+        el formato vigente de FT/COA/SDS. Ver app/services/documentos_revision.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.documentos_revision import resumen_checklist
+
+            return jsonify(resumen_checklist())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/documentos/revision-checklist/marcar", methods=["POST"])
+    @app.route("/api/documentos/revision-checklist/marcar", methods=["POST"])
+    def api_documentos_revision_marcar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        try:
+            from app.services.documentos_revision import marcar_revisado
+
+            u = _panel_tickets_usuario()
+            revisado_por = (u.get("username") or u.get("nombre") or "") if u else ""
+            entry = marcar_revisado(
+                body.get("producto_ref") or body.get("ref") or "",
+                bool(body.get("revisado", True)),
+                revisado_por=revisado_por,
+                notas=body.get("notas") or "",
+            )
+            return jsonify({"ok": True, "revision": entry})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     def _api_doc_generar(modulo: str, datos: dict, body: dict) -> tuple:
         """Helper COA/SDS: generar DOCX/PDF (+ Drive opcional)."""
         import yaml as _yaml
@@ -9900,6 +9937,195 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/checklist", methods=["GET"])
+    @app.route("/app/api/contabilidad/checklist", methods=["GET"])
+    def api_contabilidad_checklist():
+        """Checklist guiado del hub Contabilidad: qué falta por hacer hoy
+        (extractos por cargar/clasificar, préstamos con saldo pendiente,
+        pasos abiertos de revisión de facturación). Ver
+        app/services/contabilidad_checklist.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_checklist import resumen_checklist
+
+            return jsonify(resumen_checklist())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Cuenta de Socio: gastos personales privados ────────────────────────
+    # Dinero del socio, sin relación con McKenna. Solo lo ve el propio socio
+    # (vía tercero.usuario_id) o un admin — igual que el resto del panel,
+    # "admin" incluye tener el CHAT_API_TOKEN crudo (mismo criterio que ya usa
+    # este archivo en otras rutas, ver `chat_api_token_matches_request`).
+
+    def _cc_es_admin(usuario) -> bool:
+        """«Admin real» para efectos de privacidad de gastos personales — NO es
+        lo mismo que nivel>=3: en la práctica los dos socios (Cynthia, Armando)
+        tienen rol Administrador (nivel 3) para lo operativo, así que ese
+        criterio los dejaría ver los gastos personales del otro. Mismo criterio
+        ya usado en `adminAccess.ts::esAdminVistaEquipo` (excluye a Cynthia del
+        nivel aunque tenga rol admin) — aquí se generaliza a cualquier socio:
+        solo la cuenta "admin" real, o una llamada sin identidad de persona
+        (token de sistema crudo), ven los gastos personales de todos."""
+        if not usuario:
+            return chat_api_token_matches_request()
+        username = (usuario.get("username") or "").strip().lower()
+        return username == "admin"
+
+    def _cc_puede_ver_tercero(usuario, tercero_id: int) -> bool:
+        if _cc_es_admin(usuario):
+            return True
+        if not usuario:
+            return False
+        from app.services.contabilidad_core import tercero_por_usuario
+
+        t = tercero_por_usuario(int(usuario["id"]))
+        return bool(t and t["id"] == tercero_id)
+
+    @app.route("/api/contabilidad/cc/mi-tercero", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/mi-tercero", methods=["GET"])
+    def api_cc_mi_tercero():
+        """Resuelve el tercero (socio) vinculado al usuario autenticado, si lo
+        hay — así el frontend sabe si ir directo a su Cuenta de Socio o
+        mostrar un selector (solo admin ve el selector con todos)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_core import tercero_por_usuario
+
+            u = _panel_tickets_usuario()
+            tercero = tercero_por_usuario(int(u["id"])) if u else None
+            return jsonify({"tercero": tercero, "es_admin": _cc_es_admin(u)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tercero_id>/cuenta-socio", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tercero_id>/cuenta-socio", methods=["GET"])
+    def api_cc_cuenta_socio(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        if not _cc_puede_ver_tercero(u, tercero_id):
+            return jsonify({"error": "No autorizado para ver esta cuenta"}), 403
+        try:
+            from app.services.contabilidad_core import cuenta_socio
+
+            return jsonify(cuenta_socio(tercero_id))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/gastos-personales", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/gastos-personales", methods=["POST"])
+    def api_cc_gasto_personal_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        data = request.get_json(silent=True) or {}
+        try:
+            tercero_id = int(data.get("tercero_id") or 0)
+        except (TypeError, ValueError):
+            return jsonify({"error": "tercero_id inválido"}), 400
+        if not _cc_puede_ver_tercero(u, tercero_id):
+            return jsonify({"error": "No autorizado para registrar en esta cuenta"}), 403
+        try:
+            from app.services.contabilidad_core import crear_gasto_personal
+
+            return jsonify(crear_gasto_personal(data, created_by=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/gastos-personales/<int:gasto_id>", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/cc/gastos-personales/<int:gasto_id>", methods=["DELETE"])
+    def api_cc_gasto_personal_eliminar(gasto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        try:
+            from app.services.contabilidad_core import eliminar_gasto_personal, obtener_gasto_personal
+
+            gasto = obtener_gasto_personal(gasto_id)
+            if not gasto:
+                return jsonify({"error": "No encontrado"}), 404
+            if not _cc_puede_ver_tercero(u, gasto["tercero_id"]):
+                return jsonify({"error": "No autorizado"}), 403
+            return jsonify({"ok": eliminar_gasto_personal(gasto_id)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["POST"])
+    def api_cc_gasto_personal_comprobante_subir(gasto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        try:
+            from app.services.contabilidad_core import guardar_comprobante_gasto_personal, obtener_gasto_personal
+
+            gasto = obtener_gasto_personal(gasto_id)
+            if not gasto:
+                return jsonify({"error": "No encontrado"}), 404
+            if not _cc_puede_ver_tercero(u, gasto["tercero_id"]):
+                return jsonify({"error": "No autorizado"}), 403
+            archivo = request.files.get("archivo") or request.files.get("file")
+            if not archivo or not archivo.filename:
+                return jsonify({"error": "Envíe el archivo en multipart «archivo»"}), 400
+            contenido = archivo.read()
+            if len(contenido) > 15 * 1024 * 1024:
+                return jsonify({"error": "Archivo demasiado grande (máx 15 MB)"}), 400
+            gasto2 = guardar_comprobante_gasto_personal(gasto_id, contenido, archivo.filename, archivo.mimetype or "")
+            return jsonify({"ok": True, "gasto": gasto2})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["GET"])
+    def api_cc_gasto_personal_comprobante_ver(gasto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        from flask import send_file
+
+        try:
+            from app.services.contabilidad_core import obtener_gasto_personal, ruta_comprobante_gasto_personal
+
+            gasto = obtener_gasto_personal(gasto_id)
+            if not gasto:
+                return jsonify({"error": "No encontrado"}), 404
+            if not _cc_puede_ver_tercero(u, gasto["tercero_id"]):
+                return jsonify({"error": "No autorizado"}), 403
+            res = ruta_comprobante_gasto_personal(gasto_id)
+            if not res:
+                return jsonify({"error": "Este gasto no tiene comprobante adjunto"}), 404
+            ruta_abs, mime, nombre = res
+            return send_file(ruta_abs, mimetype=mime, download_name=nombre, as_attachment=False)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["DELETE"])
+    @app.route("/app/api/contabilidad/cc/gastos-personales/<int:gasto_id>/comprobante", methods=["DELETE"])
+    def api_cc_gasto_personal_comprobante_eliminar(gasto_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        u = _panel_tickets_usuario()
+        try:
+            from app.services.contabilidad_core import eliminar_comprobante_gasto_personal, obtener_gasto_personal
+
+            gasto = obtener_gasto_personal(gasto_id)
+            if not gasto:
+                return jsonify({"error": "No encontrado"}), 404
+            if not _cc_puede_ver_tercero(u, gasto["tercero_id"]):
+                return jsonify({"error": "No autorizado"}), 403
+            return jsonify({"ok": eliminar_comprobante_gasto_personal(gasto_id)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     _CC_PLANTILLAS = {
         "compra-socio-amazon": "registrar_compra_socio_amazon",
         "pago-socio": "registrar_pago_socio",
@@ -9908,6 +10134,7 @@ def register_routes(app):
         "egreso": "registrar_egreso",
         "prestamo-recibido": "registrar_prestamo_recibido",
         "prestamo-otorgado": "registrar_prestamo_otorgado",
+        "aporte-capital": "registrar_aporte_capital",
     }
 
     @app.route("/api/contabilidad/cc/plantillas/abono-prestamo", methods=["POST"])

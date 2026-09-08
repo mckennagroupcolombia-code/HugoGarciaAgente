@@ -2,18 +2,24 @@ import { useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 
 /**
- * Adjuntar/ver/quitar el comprobante de sustento de un asiento del Libro
- * Mayor propio (app/services/contabilidad_core.py::guardar_comprobante) —
- * clave cuando la operación (p.ej. compra courier de un socio) no tiene
- * factura fiscal. Usado en LibroMayorPanel.tsx y PrestamosPanel.tsx.
+ * Adjuntar/ver/quitar un comprobante contra tres endpoints (subir/ver/quitar)
+ * que comparten el mismo contrato: POST multipart «archivo», GET sirve el
+ * archivo, DELETE lo quita. Usado hoy para el sustento de un asiento del
+ * Libro Mayor (`.../cc/movimientos/<id>/comprobante` — LibroMayorPanel.tsx,
+ * PrestamosPanel.tsx) y para gastos personales de la Cuenta de Socio
+ * (`.../cc/gastos-personales/<id>/comprobante` — CuentaSocioPanel.tsx).
  */
 export default function ComprobanteWidget({
-  movimientoId,
+  uploadUrl,
+  viewUrl,
+  deleteUrl,
   soportePath,
   soporteNombre,
   onUpdated,
 }: {
-  movimientoId: number;
+  uploadUrl: string;
+  viewUrl: string;
+  deleteUrl: string;
   soportePath?: string;
   soporteNombre?: string;
   onUpdated: () => void;
@@ -27,11 +33,7 @@ export default function ComprobanteWidget({
     try {
       const fd = new FormData();
       fd.append("archivo", file);
-      const r = await api.upload<{ ok?: boolean; error?: string }>(
-        `/api/contabilidad/cc/movimientos/${movimientoId}/comprobante`,
-        fd,
-        { timeoutMs: 60_000 },
-      );
+      const r = await api.upload<{ ok?: boolean; error?: string }>(uploadUrl, fd, { timeoutMs: 60_000 });
       if (r.error) throw new Error(r.error);
       onUpdated();
     } catch (e) {
@@ -42,7 +44,7 @@ export default function ComprobanteWidget({
   };
 
   const ver = async () => {
-    const url = await fetchAuthBlobUrl(`/api/contabilidad/cc/movimientos/${movimientoId}/comprobante`);
+    const url = await fetchAuthBlobUrl(viewUrl);
     if (url) window.open(url, "_blank", "noopener");
     else setErr("No se pudo abrir el comprobante");
   };
@@ -52,7 +54,7 @@ export default function ComprobanteWidget({
     setBusy(true);
     setErr(null);
     try {
-      await api.delete(`/api/contabilidad/cc/movimientos/${movimientoId}/comprobante`);
+      await api.delete(deleteUrl);
       onUpdated();
     } catch (e) {
       setErr((e as Error).message || "No se pudo quitar");

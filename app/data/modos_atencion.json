@@ -2,29 +2,140 @@
   "numeros_en_humano": [
     "573009990001@c.us",
     "172692212863191@lid",
-    "573227203834@c.us"
+    "573227203834@c.us",
+    "573212158090@c.us",
+    "69148990259320@lid",
+    "573202824251@c.us",
+    "179542618554564@lid",
+    "573137372361@c.us",
+    "250473919598840@lid",
+    "263947315847322@lid",
+    "573108806486@c.us",
+    "573188840971@c.us",
+    "37271759769852@lid",
+    "17716824002565@lid",
+    "573203009384@c.us",
+    "573112480787@c.us",
+    "47434222854324@lid"
   ],
   "numeros_silenciados": [],
   "timestamps": {
     "573009990001@c.us": 1788827507.8595436,
     "172692212863191@lid": 1788828505.0996683,
-    "573227203834@c.us": 1788828505.0996683
+    "573227203834@c.us": 1788828505.0996683,
+    "573212158090@c.us": 1788877129.7004871,
+    "69148990259320@lid": 1788877129.7004871,
+    "573202824251@c.us": 1788877179.9745762,
+    "179542618554564@lid": 1788877179.9745762,
+    "573137372361@c.us": 1788880562.1479404,
+    "250473919598840@lid": 1788880562.1479404,
+    "263947315847322@lid": 1788882275.0111103,
+    "573108806486@c.us": 1788882275.0111103,
+    "573188840971@c.us": 1788882278.177526,
+    "37271759769852@lid": 1788882278.177526,
+    "17716824002565@lid": 1788886460.2614193,
+    "573203009384@c.us": 1788886460.2614193,
+    "573112480787@c.us": 1788892395.4270754,
+    "47434222854324@lid": 1788892395.4270754
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1788827507.8595436,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "hola"
+      "ultimo_mensaje": "Cu\u00e1nto es?"
     },
     "172692212863191@lid": {
       "timestamp": 1788828505.0996683,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1nto es?"
     },
     "573227203834@c.us": {
       "timestamp": 1788828505.0996683,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573212158090@c.us": {
+      "timestamp": 1788877129.7004871,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "69148990259320@lid": {
+      "timestamp": 1788877129.7004871,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573202824251@c.us": {
+      "timestamp": 1788877179.9745762,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "179542618554564@lid": {
+      "timestamp": 1788877179.9745762,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573137372361@c.us": {
+      "timestamp": 1788880562.1479404,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "250473919598840@lid": {
+      "timestamp": 1788880562.1479404,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "263947315847322@lid": {
+      "timestamp": 1788882275.0111103,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573108806486@c.us": {
+      "timestamp": 1788882275.0111103,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573188840971@c.us": {
+      "timestamp": 1788882278.177526,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "37271759769852@lid": {
+      "timestamp": 1788882278.177526,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "17716824002565@lid": {
+      "timestamp": 1788886460.2614193,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573203009384@c.us": {
+      "timestamp": 1788886460.2614193,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "573112480787@c.us": {
+      "timestamp": 1788892395.4270754,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
+    },
+    "47434222854324@lid": {
+      "timestamp": 1788892395.4270754,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cu\u00e1nto es?"
     }
+  },
+  "bot_global_activo": false,
+  "horario_bot": {
+    "habilitado": false,
+    "hora_inicio": "08:00",
+    "hora_fin": "18:00",
+    "dias": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
   }
 }

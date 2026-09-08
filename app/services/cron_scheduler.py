@@ -121,6 +121,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Postea al libro mayor propio (Contabilidad → Libro Mayor) las ventas MeLi/web/Siigo, compras, compras al exterior, servicios, impuestos y cuotas de créditos que ya agrega el libro operativo (Contabilidad → Ingresos y Egresos), para que el balance de comprobación refleje todo el negocio. Ventana móvil de los últimos días (default 10); reprocesar no duplica.",
         "script": "scripts/contabilidad_autopost_cron.py",
     },
+    "revision_facturacion": {
+        "nombre": "Revisión autónoma de facturación MeLi",
+        "descripcion": "Detecta ventas MeLi con problema de facturación (posible duplicado, factura sin subir a MeLi, sin facturar vencida, cancelada sin nota crédito), crea/actualiza el ticket-checklist del día en el Centro de Mando y deja una sugerencia corta de IA (nunca ejecuta nada solo) como comentario en cada caso nuevo. Avisa por WhatsApp solo si hay casos nuevos.",
+        "script": "scripts/revision_facturacion_cron.py",
+    },
 }
 
 

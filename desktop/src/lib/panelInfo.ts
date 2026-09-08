@@ -408,6 +408,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  "contabilidad-inicio": {
+    emoji: "✅",
+    label: "Inicio · Contabilidad",
+    description:
+      "Checklist guiado del hub Contabilidad: qué falta por hacer hoy (extractos bancarios por cargar o clasificar, préstamos con saldo pendiente, revisión de facturación MeLi), en un solo lugar en vez de recorrer cada pestaña por separado.",
+    tips: [
+      "Cada pendiente lleva directo a donde se resuelve — no duplica ningún panel, solo apunta a él.",
+      "Cuando no hay pendientes, el checklist queda en verde.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   "libro-mayor": {
     emoji: "🧮",
     label: "Libro Mayor",

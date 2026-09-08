@@ -42,6 +42,7 @@ export type Panel =
   | "ingresos-egresos"
   | "creditos-adquiridos"
   | "libro-mayor"
+  | "contabilidad-inicio"
   | "prestamos"
   | "tickets"
   | "etiquetas"
@@ -140,7 +141,8 @@ export type LibroMayorBootTab =
   | "creditos-adquiridos"
   | "cuentas-t"
   | "balance"
-  | "informes";
+  | "informes"
+  | "cuenta-socio";
 
 interface AppState {
   panel: Panel;
@@ -171,6 +173,13 @@ interface AppState {
   /** Abrir Libro Mayor → Vista Avanzada directo en una subvista (ej. desde un atajo externo). */
   libroMayorBootTab: LibroMayorBootTab | null;
   setLibroMayorBootTab: (v: LibroMayorBootTab | null) => void;
+  /** Con qué tercero abrir la subvista "Cuenta de Socio" (ej. desde "Ver cuenta completa"). */
+  libroMayorBootTerceroId: number | null;
+  setLibroMayorBootTerceroId: (v: number | null) => void;
+  /** One-shot: al entrar a Diario (junto con libroMayorBootTab="diario"), abre de una vez la
+   * bandeja "Pendientes por clasificar" — usado por el banner guiado de Vista Simple. */
+  libroMayorAbrirPendientes: boolean;
+  setLibroMayorAbrirPendientes: (v: boolean) => void;
   /** Abrir detalle de factura pendiente al entrar al panel Facturas. */
   facturasBootSufijo: string | null;
   setFacturasBootSufijo: (v: string | null) => void;
@@ -261,6 +270,10 @@ export const useAppStore = create<AppState>()(
       setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
       libroMayorBootTab: null,
       setLibroMayorBootTab: (libroMayorBootTab) => set({ libroMayorBootTab }),
+      libroMayorBootTerceroId: null,
+      setLibroMayorBootTerceroId: (libroMayorBootTerceroId) => set({ libroMayorBootTerceroId }),
+      libroMayorAbrirPendientes: false,
+      setLibroMayorAbrirPendientes: (libroMayorAbrirPendientes) => set({ libroMayorAbrirPendientes }),
       facturasBootSufijo: null,
       setFacturasBootSufijo: (facturasBootSufijo) => set({ facturasBootSufijo }),
       facturasBootVista: null,

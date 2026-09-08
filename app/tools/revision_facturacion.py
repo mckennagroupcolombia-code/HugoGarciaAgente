@@ -20,11 +20,28 @@ es un duplicado real").
 """
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
 from datetime import datetime
+from typing import Any
 
 MARCADOR = "Revisión facturación MeLi"
+
+# Modelo por defecto del repo para sugerencias cortas (ver
+# app/services/llm_budget.py — tabla de precios). No es configurable por
+# item: si algún día se necesita otro modelo, se cambia acá una sola vez.
+_MODELO_SUGERENCIA = "claude-sonnet-5"
+
+_PROMPT_SISTEMA = (
+    "Eres un asistente de contabilidad/facturación de McKenna Group (Colombia). "
+    "Se te da UN caso de una venta de MercadoLibre con un problema de facturación "
+    "ya detectado por reglas (no debes re-detectar el problema, ya se sabe cuál es). "
+    "Tu única tarea es sugerir, en máximo 3 líneas y en español, el siguiente paso "
+    "concreto que debería tomar la persona que revisa el ticket. Nunca digas que ya "
+    "resolviste nada — solo sugieres. No inventes números de factura ni montos que no "
+    "te dieron."
+)
 
 
 def _db_path() -> str:
@@ -211,3 +228,60 @@ def crear_o_actualizar_ticket_revision_facturacion(items: list[dict]) -> tuple[b
     if err:
         return False, f"No se pudo crear el ticket: {err}"
     return True, f"🎫 Ticket #{ticket.get('id')} creado en el Centro de Mando: *{titulo}* ({len(pasos)} caso(s))."
+
+
+def sugerir_resolucion(order_id: str, tipo: str, contexto: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Sugerencia corta (IA) de qué hacer con UN caso de revisión de
+    facturación — nunca ejecuta nada por sí sola (no anula factura, no emite
+    nota crédito, no cambia estado de venta): el operador sigue decidiendo y
+    marcando "revisado" a mano, igual que hoy. Se guarda como comentario del
+    ticket del día (ver `scripts/revision_facturacion_cron.py`).
+
+    Respeta el presupuesto de `app/services/llm_budget.py` — nunca lanza
+    excepción, nunca gasta si `permitir_llamada` lo niega (límite diario o de
+    lote ya alcanzado). Devuelve {"ok": bool, "sugerencia"?: str, "motivo"?: str}.
+    """
+    from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_anthropic
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        return {"ok": False, "motivo": "Sin ANTHROPIC_API_KEY configurada."}
+
+    ok, motivo = permitir_llamada(_MODELO_SUGERENCIA, contexto="revision_facturacion")
+    if not ok:
+        return {"ok": False, "motivo": motivo}
+
+    ctx = contexto or {}
+    partes_contexto = [f"Orden MeLi: {order_id}", f"Tipo de problema (ya detectado): {tipo}"]
+    if ctx.get("motivo_sugerido"):
+        partes_contexto.append(f"Detalle de la regla: {ctx['motivo_sugerido']}")
+    if ctx.get("cliente"):
+        partes_contexto.append(f"Cliente: {ctx['cliente']}")
+    if ctx.get("factura_numero"):
+        partes_contexto.append(f"Factura relacionada: {ctx['factura_numero']}")
+    if ctx.get("fecha_entrega"):
+        partes_contexto.append(f"Fecha de entrega: {ctx['fecha_entrega']}")
+
+    try:
+        import anthropic
+
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model=_MODELO_SUGERENCIA,
+            max_tokens=300,
+            system=_PROMPT_SISTEMA,
+            messages=[{"role": "user", "content": "\n".join(partes_contexto)}],
+        )
+        tin, tout = usage_anthropic(message)
+        registrar_llamada(_MODELO_SUGERENCIA, tin, tout, contexto="revision_facturacion")
+
+        texto = ""
+        for block in message.content:
+            if getattr(block, "type", "") == "text":
+                texto += block.text
+        texto = texto.strip()
+        if not texto:
+            return {"ok": False, "motivo": "El modelo no devolvió texto."}
+        return {"ok": True, "sugerencia": texto}
+    except Exception as e:
+        return {"ok": False, "motivo": f"Error llamando al modelo: {e}"}

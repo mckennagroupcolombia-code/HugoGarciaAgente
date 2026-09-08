@@ -9,6 +9,7 @@ import {
   BLOQUES_SPECS,
   camposDesdeFichaTecnica,
   camposUsadosEnPlantilla,
+  coincideConNombrePlantilla,
   contenidoNetoDesdeTexto,
   eanDesdeSrcBarcode,
   elementoPorRolCapa,
@@ -47,6 +48,13 @@ export function useFormularioEtiqueta(
   const [fichaId, setFichaId] = useState("");
   const [cargando, setCargando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  /** Ficha con nombre distinto al de esta plantilla, a la espera de que el
+   *  usuario confirme que sí quiere cargarla igual (ver `cargarFicha`). */
+  const [pendiente, setPendiente] = useState<{
+    next: Record<string, string>;
+    sku: string;
+    tituloFicha: string;
+  } | null>(null);
   const [eanManual, setEanManual] = useState("");
   const { data: codigosEan } = useCodigosEan();
 
@@ -97,10 +105,20 @@ export function useFormularioEtiqueta(
 
   const aplicarLogo = (linea: LogoLinea) => onChange(aplicarLogoLinea(doc, linea));
 
+  const aplicarCargaFicha = (next: Record<string, string>, sku: string) => {
+    let updated = aplicarCamposAPlantilla(doc, next);
+    const match =
+      (codigosEan ?? []).find((c) => sku && c.sku.toLowerCase() === sku.toLowerCase())
+      || eanSugeridos[0];
+    if (match && barcodeEl) updated = aplicarBarcodeEan(updated, match.codigo);
+    onChange(updated);
+  };
+
   const cargarFicha = async () => {
     if (!fichaId) return;
     setCargando(true);
     setMsg(null);
+    setPendiente(null);
     try {
       const res = await api.get<{ datos: Record<string, unknown> }>(
         `/api/fichas/datos/${encodeURIComponent(fichaId)}`,
@@ -113,19 +131,40 @@ export function useFormularioEtiqueta(
         setMsg("Esa ficha no tiene datos mapeables a esta etiqueta.");
         return;
       }
-      let updated = aplicarCamposAPlantilla(doc, next);
       const sku = String((res.datos || {}).sku || doc.sku || "").trim();
-      const match =
-        (codigosEan ?? []).find((c) => sku && c.sku.toLowerCase() === sku.toLowerCase())
-        || eanSugeridos[0];
-      if (match && barcodeEl) updated = aplicarBarcodeEan(updated, match.codigo);
-      onChange(updated);
+      const tituloFicha = fichas.find((fi) => fi.id === fichaId)?.titulo || mapped.nombre || fichaId;
+      const nombrePlantilla = doc.nombre || valores.nombre || "";
+      // Esta plantilla ya existe con un nombre propio (p. ej. "MANTECA DE
+      // CACAO REFINADA 1000g"); si la ficha elegida es de otro producto,
+      // cargarla aquí y guardar sobrescribiría en silencio esa plantilla —
+      // su nombre en la biblioteca nunca cambiaría para avisarlo. Frenar
+      // antes de aplicar y pedir confirmación explícita.
+      if (!coincideConNombrePlantilla(tituloFicha, nombrePlantilla)) {
+        setPendiente({ next, sku, tituloFicha });
+        setMsg(
+          `"${tituloFicha}" no parece el mismo producto que "${nombrePlantilla}". Si guardas, sobrescribes esta plantilla con datos de otro producto — duplícala primero o confirma abajo si es intencional.`,
+        );
+        return;
+      }
+      aplicarCargaFicha(next, sku);
       setMsg(`Cargados ${Object.keys(next).length} campos. El formato no se movió.`);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "No se pudo cargar la ficha");
     } finally {
       setCargando(false);
     }
+  };
+
+  const confirmarCargaPendiente = () => {
+    if (!pendiente) return;
+    aplicarCargaFicha(pendiente.next, pendiente.sku);
+    setMsg(`Cargados ${Object.keys(pendiente.next).length} campos de "${pendiente.tituloFicha}" (confirmado). El formato no se movió.`);
+    setPendiente(null);
+  };
+
+  const cancelarCargaPendiente = () => {
+    setPendiente(null);
+    setMsg(null);
   };
 
   const disponible = activo && (campos.length > 0 || !!logoEl || !!barcodeEl);
@@ -145,6 +184,9 @@ export function useFormularioEtiqueta(
     cargando,
     msg,
     cargarFicha,
+    pendiente,
+    confirmarCargaPendiente,
+    cancelarCargaPendiente,
     fichaGrid,
     specs,
     eanSugeridos,

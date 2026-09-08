@@ -1,0 +1,201 @@
+- main [ref=f1e4]:
+  - button "Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos (recién) 25 hoy" [ref=f1e6] [cursor=pointer]:
+    - generic [ref=f1e13]:
+      - text: Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+      - generic [ref=f1e14]: (recién)
+    - generic [ref=f1e15]: 25 hoy
+  - generic [ref=f1e20]:
+    - generic [ref=f1e21]:
+      - tablist "Secciones de Agenda" [ref=f1e3575]:
+        - tab "Agenda" [selected] [ref=f1e3576] [cursor=pointer]
+        - tab "Mensajes" [ref=f1e3581] [cursor=pointer]
+        - tab "Métricas" [ref=f1e3586] [cursor=pointer]
+      - generic "Equipo" [ref=f1e3591]:
+        - generic "Cynthia Ruiz" [ref=f1e3592]:
+          - img "Cynthia Ruiz" [ref=f1e3593]
+        - generic "Armando Garcia" [ref=f1e3595]:
+          - img "Armando Garcia" [ref=f1e3596]
+        - generic "Jenniffer Garcia" [ref=f1e3598]:
+          - img "Jenniffer Garcia" [ref=f1e3599]
+        - generic "Victor Garcia" [ref=f1e3601]: V
+    - generic [ref=f1e32]:
+      - button "Temas y estilo visual" [ref=f1e33] [cursor=pointer]
+      - button "Modo oscuro" [ref=f1e40] [cursor=pointer]
+      - button "Cuenta" [ref=f1e44] [cursor=pointer]:
+        - img "Armando Garcia" [ref=f1e45]
+        - generic [ref=f1e46]: "1"
+  - generic [ref=f1e3607]:
+    - generic [ref=f1e3608]:
+      - paragraph [ref=f1e3609]: Martes, 8 de septiembre
+      - heading "Buenos días, Armando" [level=2] [ref=f1e3610]
+    - generic [ref=f1e3611]:
+      - paragraph [ref=f1e3612]: Ir a…
+      - generic [ref=f1e3613]:
+        - button "Atención" [ref=f1e3614] [cursor=pointer]
+        - button "Canales" [ref=f1e3621] [cursor=pointer]
+        - button "Diseño" [ref=f1e3628] [cursor=pointer]
+        - button "Docs técnicos" [ref=f1e3635] [cursor=pointer]
+        - button "Contabilidad" [ref=f1e3642] [cursor=pointer]
+        - button "Negocio" [ref=f1e3649] [cursor=pointer]
+        - button "Inventario" [ref=f1e3655] [cursor=pointer]
+        - button "Publicaciones" [ref=f1e3662] [cursor=pointer]
+        - button "Placas" [ref=f1e3669] [cursor=pointer]
+        - button "Contenido" [ref=f1e3676] [cursor=pointer]
+        - button "Sistemas" [ref=f1e3683] [cursor=pointer]
+        - button "Facturación" [ref=f1e3690] [cursor=pointer]
+    - generic [ref=f1e3699]:
+      - button "Dólar hoy · COP $3.126,08 ▼ -0,49% TRM BanRep · Tasa de hoy · clic para ampliar" [ref=f1e3700] [cursor=pointer]:
+        - generic [ref=f1e3705]:
+          - paragraph [ref=f1e3706]: Dólar hoy · COP
+          - generic [ref=f1e3707]:
+            - paragraph [ref=f1e3708]: $3.126,08
+            - generic [ref=f1e3709]: ▼ -0,49%
+          - paragraph [ref=f1e3710]: TRM BanRep · Tasa de hoy · clic para ampliar
+      - button "↻" [ref=f1e3714] [cursor=pointer]
+    - generic [ref=f1e3715]:
+      - generic [ref=f1e3716]:
+        - paragraph [ref=f1e3718]:
+          - text: Acciones
+          - generic [ref=f1e3721]: "6"
+        - generic [ref=f1e3722]:
+          - 'button "Solicitar compra — Beaker De Vidrio 50 Ml Laboratorio Vaso De Precipitado Pidió: Administrador" [ref=f1e3723] [cursor=pointer]':
+            - generic [ref=f1e3725]:
+              - generic [ref=f1e3726]: Solicitar compra — Beaker De Vidrio 50 Ml Laboratorio Vaso De Precipitado
+              - generic [ref=f1e3727]: "Pidió: Administrador"
+          - 'button "Subir al 3 piso a airear los monotubes de los gongos Pidió: Victor Garcia" [ref=f1e3728] [cursor=pointer]':
+            - generic [ref=f1e3730]:
+              - generic [ref=f1e3731]: Subir al 3 piso a airear los monotubes de los gongos
+              - generic [ref=f1e3732]: "Pidió: Victor Garcia"
+          - 'button "Alistar envios colecta y flex Pidió: Jenniffer Garcia" [ref=f1e3733] [cursor=pointer]':
+            - generic [ref=f1e3735]:
+              - generic [ref=f1e3736]: Alistar envios colecta y flex
+              - generic [ref=f1e3737]: "Pidió: Jenniffer Garcia"
+      - generic [ref=f1e3738]:
+        - paragraph [ref=f1e3740]:
+          - text: Solicitudes
+          - generic [ref=f1e3744]: "1"
+        - 'button "ESTAS SON LAS ETIQUETAS QUE YA SE ACABARON PARA QUE PORFAVOR LAS SUBAN YO LES AVISO PARA QUE CAMBIEN LA FOTO DE LA PUBLICACION. Pidió: Jenniffer Garcia" [ref=f1e3746] [cursor=pointer]':
+          - generic [ref=f1e3747]:
+            - generic [ref=f1e3748]: ESTAS SON LAS ETIQUETAS QUE YA SE ACABARON PARA QUE PORFAVOR LAS SUBAN YO LES AVISO PARA QUE CAMBIEN LA FOTO DE LA PUBLICACION.
+            - generic [ref=f1e3749]: "Pidió: Jenniffer Garcia"
+    - generic [ref=f1e3750]:
+      - generic [ref=f1e3751]:
+        - paragraph [ref=f1e3752]: Recordatorios
+        - button "Ver todo →" [ref=f1e3756] [cursor=pointer]
+      - paragraph [ref=f1e3757]: Sin recordatorios programados.
+    - generic [ref=f1e3758]:
+      - paragraph [ref=f1e3760]: Actividad del equipo
+      - generic [ref=f1e3766]:
+        - generic [ref=f1e3767]:
+          - generic [ref=f1e3768]: ⚡
+          - generic [ref=f1e3769]: Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+          - generic [ref=f1e3770]: recién
+        - generic [ref=f1e3771]:
+          - generic [ref=f1e3772]: ▶
+          - generic [ref=f1e3773]: Victor Garcia inició TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+          - generic [ref=f1e3774]: recién
+        - generic [ref=f1e3775]:
+          - generic [ref=f1e3776]: ✅
+          - generic [ref=f1e3777]: Victor Garcia completó TKT-2026-1186 — Colocar la fecha Alós productos ya empacados
+          - generic [ref=f1e3778]: recién
+        - generic [ref=f1e3779]:
+          - generic [ref=f1e3780]: ⚡
+          - generic [ref=f1e3781]: Jenniffer Garcia creó una acción TKT-2026-1189 — Alistar envios colecta y flex
+          - generic [ref=f1e3782]: recién
+        - generic [ref=f1e3783]:
+          - generic [ref=f1e3784]: ▶
+          - generic [ref=f1e3785]: Jenniffer Garcia inició TKT-2026-1189 — Alistar envios colecta y flex
+          - generic [ref=f1e3786]: recién
+        - generic [ref=f1e3787]:
+          - generic [ref=f1e3788]: ✅
+          - generic [ref=f1e3789]: Jenniffer Garcia completó TKT-2026-1188 — Anotar guias en el cuaderno
+          - generic [ref=f1e3790]: recién
+    - generic [ref=f1e3791]:
+      - paragraph [ref=f1e3793]: Ecosistema
+      - generic [ref=f1e3796]:
+        - generic "activo" [ref=f1e3797]: Webhook MeLi · :8080
+        - generic "failed" [ref=f1e3799]: Agente · :8081
+        - generic "activo" [ref=f1e3801]: Sitio web · :8083
+        - generic "activo" [ref=f1e3803]: WhatsApp bot · :3000
+        - generic "activo" [ref=f1e3805]: WhatsApp supervisor · :3001
+        - generic "US$0.19 de hoy" [ref=f1e3807]: Presupuesto IA
+    - generic [ref=f1e3809]:
+      - generic [ref=f1e3810]:
+        - paragraph [ref=f1e3811]: Árbol de commits
+        - button "Ver todo →" [ref=f1e3814] [cursor=pointer]
+      - generic [ref=f1e3846]:
+        - generic [ref=f1e3847]:
+          - generic [ref=f1e3848]: "feat(facturacion): boton \"Facturar ahora\" para ventas MeLi sin facturar (TKT-2026-1178)"
+          - generic [ref=f1e3849]: McKenna
+        - generic [ref=f1e3850]:
+          - generic [ref=f1e3851]: "Auto-commit: backup nocturno 2026-09-08 02:00"
+          - generic [ref=f1e3852]: McKenna
+        - generic [ref=f1e3853]:
+          - generic [ref=f1e3854]: "Auto-commit: actualizacion diaria 2026-09-07 23:00"
+          - generic [ref=f1e3855]: McKenna
+        - generic [ref=f1e3856]:
+          - generic [ref=f1e3857]: "fix(pedidos-web): reintento automático de aviso WhatsApp + mensaje de pago verificable"
+          - generic [ref=f1e3858]: McKenna
+        - generic [ref=f1e3859]:
+          - generic [ref=f1e3860]: "Auto-commit: backup nocturno 2026-09-07 02:00"
+          - generic [ref=f1e3861]: McKenna
+        - generic [ref=f1e3862]:
+          - generic [ref=f1e3863]: "fix(studio): autofit real + aplicación masiva de etiquetas MP"
+          - generic [ref=f1e3864]: McKenna
+        - generic [ref=f1e3865]:
+          - generic [ref=f1e3866]: "feat(studio): scale photo layout to canvas"
+          - generic [ref=f1e3867]: Cursor
+        - generic [ref=f1e3868]:
+          - generic [ref=f1e3869]: "Auto-commit: actualizacion diaria 2026-09-06 23:00"
+          - generic [ref=f1e3870]: McKenna
+        - generic [ref=f1e3871]:
+          - generic [ref=f1e3872]: "Auto-commit: backup nocturno 2026-09-06 02:00"
+          - generic [ref=f1e3873]: McKenna
+        - generic [ref=f1e3874]:
+          - generic [ref=f1e3875]: "Auto-commit: actualizacion diaria 2026-09-05 23:00"
+          - generic [ref=f1e3876]: McKenna
+        - generic [ref=f1e3877]:
+          - generic [ref=f1e3878]: "Auto-commit: backup nocturno 2026-09-05 02:00"
+          - generic [ref=f1e3879]: McKenna
+        - generic [ref=f1e3880]:
+          - generic [ref=f1e3881]: "Auto-commit: actualizacion diaria 2026-09-04 23:00"
+          - generic [ref=f1e3882]: McKenna
+        - generic [ref=f1e3883]:
+          - generic [ref=f1e3884]: "fix(alegra): conserva espacios al escribir el nombre de producto/combo"
+          - generic [ref=f1e3885]: McKenna
+        - generic [ref=f1e3886]:
+          - generic [ref=f1e3887]: "feat(facturacion): usa billing_info real de MeLi en autofactura por entrega"
+          - generic [ref=f1e3888]: McKenna
+        - generic [ref=f1e3889]:
+          - generic [ref=f1e3890]: "Auto-commit: backup nocturno 2026-09-04 02:00"
+          - generic [ref=f1e3891]: McKenna
+    - generic [ref=f1e3892]:
+      - generic [ref=f1e3893]:
+        - paragraph [ref=f1e3894]: Cambios recientes
+        - button "Ver todo →" [ref=f1e3898] [cursor=pointer]
+      - generic [ref=f1e3899]:
+        - generic [ref=f1e3900]:
+          - generic [ref=f1e3901]:
+            - generic [ref=f1e3902]: "Catálogo Alegra: precio MeLi por SKU"
+            - generic [ref=f1e3903]: 2026-09-07 14:20
+          - paragraph [ref=f1e3904]: Cursor Auto · Nueva funcionalidad
+        - generic [ref=f1e3905]:
+          - generic [ref=f1e3906]:
+            - generic [ref=f1e3907]: "Catálogo Alegra: tabs fijos + botones más chicos"
+            - generic [ref=f1e3908]: 2026-09-07 13:50
+          - paragraph [ref=f1e3909]: Cursor Auto · Mejora / UX
+        - generic [ref=f1e3910]:
+          - generic [ref=f1e3911]:
+            - generic [ref=f1e3912]: "Alegra: liberar SKU inactivo al recrear combo"
+            - generic [ref=f1e3913]: 2026-09-07 13:10
+          - paragraph [ref=f1e3914]: Cursor Auto · Corrección / Operación
+        - generic [ref=f1e3915]:
+          - generic [ref=f1e3916]:
+            - generic [ref=f1e3917]: "Pedidos Web: fix overrides SKU + factura MCKG-55E67969A1"
+            - generic [ref=f1e3918]: 2026-09-07 12:53
+          - paragraph [ref=f1e3919]: Cursor Auto · Corrección / Operación
+        - generic [ref=f1e3920]:
+          - generic [ref=f1e3921]:
+            - generic [ref=f1e3922]: "Pedidos Web: emergente para verificar datos antes de facturar"
+            - generic [ref=f1e3923]: 2026-09-07 12:40
+          - paragraph [ref=f1e3924]: Cursor Auto · Mejora / Feature

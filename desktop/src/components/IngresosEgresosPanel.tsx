@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import TerceroSelect from "./TerceroSelect";
 
 const EXTRACTO_EXTS = [".csv", ".xlsx", ".xlsm", ".txt", ".tsv", ".pdf"];
 
@@ -193,7 +194,7 @@ type PlanCuentaMin = { id: number; codigo: string; nombre: string; tipo: string;
 type TerceroMin = { id: number; nombre: string; tipo: string; activo: number };
 type MedioPagoMin = { id: number; nombre: string; activo: number };
 
-type ClasifTipo = "prestamo" | "ingreso" | "egreso";
+type ClasifTipo = "prestamo" | "ingreso" | "egreso" | "proveedor";
 type ClasifSub = "nuevo" | "abono";
 
 /** Traduce (tipo de línea bancaria, ¿es nuevo o abono?) a la plantilla y
@@ -465,11 +466,6 @@ export default function IngresosEgresosPanel({
     queryFn: () => api.get("/api/contabilidad/cc/plan-cuentas?activas=0"),
     enabled: pendientesAbierto,
   });
-  const tercerosClasifQ = useQuery<{ terceros: TerceroMin[] }>({
-    queryKey: ["cc-terceros-clasificar"],
-    queryFn: () => api.get("/api/contabilidad/cc/terceros?activos=0"),
-    enabled: pendientesAbierto,
-  });
   const mediosClasifQ = useQuery<{ medios_pago: MedioPagoMin[] }>({
     queryKey: ["cc-medios-pago-clasificar"],
     queryFn: () => api.get("/api/contabilidad/cc/medios-pago"),
@@ -481,6 +477,35 @@ export default function IngresosEgresosPanel({
       const linea = clasificarLinea;
       if (!linea) throw new Error("Selecciona una línea del banco");
       if (!clasificarForm.medio_pago_id) throw new Error("Selecciona el medio de pago");
+
+      // Pago a proveedor: payload propio (`registrar_compra_proveedor` usa
+      // `valor`/`cuenta_destino_id`/`forma_pago`, no `monto`/`cuenta_gasto_id`
+      // como las demás plantillas de esta bandeja). Siempre "contado" porque
+      // ya sabemos que el dinero salió del banco — no aplica a crédito.
+      if (clasificarTipo === "proveedor") {
+        if (!clasificarForm.tercero_id) throw new Error("Selecciona el proveedor");
+        if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta destino (inventario/costo)");
+        const r = await api.post<{ ok?: boolean; error?: string; movimiento?: { id: number } }>(
+          "/api/contabilidad/cc/plantillas/compra-proveedor",
+          {
+            fecha: linea.fecha,
+            tercero_id: Number(clasificarForm.tercero_id),
+            concepto: clasificarForm.concepto.trim() || linea.descripcion,
+            valor: linea.monto,
+            cuenta_destino_id: Number(clasificarForm.cuenta_id),
+            forma_pago: "contado",
+            medio_pago_id: Number(clasificarForm.medio_pago_id),
+            referencia: `extracto:${linea.id}`,
+          },
+        );
+        if (r.error || !r.movimiento) throw new Error(r.error || "No se pudo crear el asiento contable");
+        await api.post("/api/contabilidad/extractos/vincular", {
+          extracto_mov_id: linea.id,
+          movimiento_id: `cc:${r.movimiento.id}`,
+        });
+        return;
+      }
+
       const base: Record<string, unknown> = {
         fecha: linea.fecha,
         monto: linea.monto,
@@ -1960,6 +1985,7 @@ export default function IngresosEgresosPanel({
                     { id: "prestamo", label: "Préstamo" },
                     { id: "ingreso", label: "Ingreso" },
                     { id: "egreso", label: "Egreso" },
+                    { id: "proveedor", label: "Proveedor" },
                   ] as { id: ClasifTipo; label: string }[]
                 ).map((t) => (
                   <button
@@ -1997,20 +2023,40 @@ export default function IngresosEgresosPanel({
                       {clasificarLinea.tipo === "credito" ? "Nos devolvieron un préstamo" : "Abonamos un préstamo"}
                     </button>
                   </div>
+                  <TerceroSelect
+                    label="Tercero (socio o quien preste/reciba)"
+                    value={clasificarForm.tercero_id}
+                    onChange={(id) => setClasificarForm((f) => ({ ...f, tercero_id: id }))}
+                  />
+                </>
+              )}
+
+              {clasificarTipo === "proveedor" && (
+                <>
+                  <p className="text-xs text-muted">
+                    Ej. compra de materia prima a un proveedor externo o a un socio actuando como
+                    proveedor. Queda registrado como pago de contado (ya sabemos que el dinero salió del
+                    banco).
+                  </p>
+                  <TerceroSelect
+                    label="Proveedor / tercero"
+                    value={clasificarForm.tercero_id}
+                    onChange={(id) => setClasificarForm((f) => ({ ...f, tercero_id: id }))}
+                    tiposPermitidos={["proveedor", "socio", "otro"]}
+                  />
                   <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
-                    Tercero (socio o quien preste/reciba)
+                    Cuenta destino (inventario/costo)
                     <select
-                      value={clasificarForm.tercero_id}
-                      onChange={(e) => setClasificarForm((f) => ({ ...f, tercero_id: e.target.value }))}
+                      value={clasificarForm.cuenta_id}
+                      onChange={(e) => setClasificarForm((f) => ({ ...f, cuenta_id: e.target.value }))}
                       className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
                     >
                       <option value="">Selecciona…</option>
-                      {(tercerosClasifQ.data?.terceros ?? [])
-                        .filter((t) => t.activo)
-                        .map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                            {t.tipo === "socio" ? " (socio)" : ""}
+                      {(cuentasClasifQ.data?.cuentas ?? [])
+                        .filter((c) => c.activa && (c.tipo === "activo" || c.tipo === "costo"))
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.codigo} · {c.nombre}
                           </option>
                         ))}
                     </select>
@@ -2041,23 +2087,11 @@ export default function IngresosEgresosPanel({
                         ))}
                     </select>
                   </label>
-                  <label className="block space-y-1 text-xs font-semibold text-ink-secondary">
-                    Tercero (opcional)
-                    <select
-                      value={clasificarForm.tercero_id}
-                      onChange={(e) => setClasificarForm((f) => ({ ...f, tercero_id: e.target.value }))}
-                      className="block w-full rounded-lg border-2 border-border bg-surface-panel px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
-                    >
-                      <option value="">—</option>
-                      {(tercerosClasifQ.data?.terceros ?? [])
-                        .filter((t) => t.activo)
-                        .map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.nombre}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
+                  <TerceroSelect
+                    label="Tercero (opcional)"
+                    value={clasificarForm.tercero_id}
+                    onChange={(id) => setClasificarForm((f) => ({ ...f, tercero_id: id }))}
+                  />
                 </>
               )}
 

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import ComprobanteWidget from "./ComprobanteWidget";
+import TerceroSelect from "./TerceroSelect";
 import { Icon } from "../icons";
 import type { IconName } from "../icons/types";
 import { usePanelTheme } from "../stores/panelTheme";
@@ -13,6 +14,7 @@ import "./libroMayor.css";
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const PrestamosPanel = lazy(() => import("./PrestamosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
+const CuentaSocioPanel = lazy(() => import("./CuentaSocioPanel"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -31,6 +33,8 @@ interface PlanCuenta {
   notas: string;
 }
 
+type TipoPersona = "natural" | "juridica";
+
 interface Tercero {
   id: number;
   nombre: string;
@@ -42,6 +46,8 @@ interface Tercero {
   cuenta_por_pagar_id: number | null;
   notas: string;
   activo: number;
+  tipo_persona?: TipoPersona;
+  usuario_id?: number | null;
 }
 
 interface MedioPago {
@@ -258,7 +264,7 @@ export default function LibroMayorPanel() {
 
 /* ─── Vista simple ────────────────────────────────────────────────────────── */
 
-type AccionRapida = "ingreso" | "egreso" | "compra-socio" | "pago-socio" | "compra-proveedor";
+type AccionRapida = "ingreso" | "egreso" | "compra-socio" | "pago-socio" | "compra-proveedor" | "aporte-capital";
 
 const ACCIONES: { id: AccionRapida; icon: IconName; label: string; desc: string }[] = [
   { id: "ingreso", icon: "inbox", label: "Ingreso", desc: "Entra a caja o banco" },
@@ -266,7 +272,54 @@ const ACCIONES: { id: AccionRapida; icon: IconName; label: string; desc: string 
   { id: "compra-socio", icon: "package", label: "Compra socio", desc: "Amazon u otra compra con comisión" },
   { id: "pago-socio", icon: "handshake", label: "Pago a socio", desc: "Gira para saldar su cuenta" },
   { id: "compra-proveedor", icon: "receipt", label: "Compra proveedor", desc: "Externo o socio-proveedor" },
+  { id: "aporte-capital", icon: "chartBar", label: "Aporte de capital", desc: "Patrimonio, no préstamo" },
 ];
+
+function BannerPendientes() {
+  const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
+  const setAbrirPendientes = useAppStore((s) => s.setLibroMayorAbrirPendientes);
+
+  const desde = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    return d.toISOString().slice(0, 10);
+  }, []);
+  const hasta = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  const pendQ = useQuery<{ pendientes: unknown[] }>({
+    queryKey: ["extractos-pendientes-banner", desde, hasta],
+    queryFn: () => api.get(`/api/contabilidad/extractos/pendientes?desde=${desde}&hasta=${hasta}&limit=500`),
+  });
+
+  function irAClasificar() {
+    setAbrirPendientes(true);
+    setLibroMayorBootTab("diario");
+  }
+
+  if (pendQ.isLoading) {
+    return <div className="lm-card px-4 py-3 text-xs text-muted">Revisando el banco…</div>;
+  }
+  const n = pendQ.data?.pendientes?.length ?? 0;
+  if (n === 0) {
+    return (
+      <div className="lm-card flex items-center gap-2 border-emerald-600/30 bg-emerald-600/5 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+        ✅ Todo el banco de los últimos 90 días está contabilizado.
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={irAClasificar}
+      className="lm-card flex w-full flex-wrap items-center justify-between gap-2 border-amber-600/40 bg-amber-600/10 px-4 py-3 text-left hover:bg-amber-600/15"
+    >
+      <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
+        ⚠️ {n} movimiento{n === 1 ? "" : "s"} del banco sin contabilizar (últimos 90 días)
+      </span>
+      <span className="text-xs font-bold text-amber-800 underline dark:text-amber-300">Clasificarlos →</span>
+    </button>
+  );
+}
 
 function VistaSimple() {
   const qc = useQueryClient();
@@ -292,6 +345,8 @@ function VistaSimple() {
 
   return (
     <div className="space-y-4">
+      <BannerPendientes />
+
       {socios.length > 0 && (
         <div className="grid gap-2 sm:grid-cols-2">
           {socios.map((s) => (
@@ -335,6 +390,7 @@ function VistaSimple() {
       {accion === "compra-socio" && <FormCompraSocio onDone={onDone} onError={onError} />}
       {accion === "pago-socio" && <FormPagoSocio onDone={onDone} onError={onError} />}
       {accion === "compra-proveedor" && <FormCompraProveedor onDone={onDone} onError={onError} />}
+      {accion === "aporte-capital" && <FormAporteCapital onDone={onDone} onError={onError} />}
 
       <div>
         <h3 className="mb-2 text-sm font-semibold tracking-tight text-ink">
@@ -351,11 +407,19 @@ function VistaSimple() {
 }
 
 function SaldoSocioCard({ tercero, onGirar }: { tercero: Tercero; onGirar: () => void }) {
+  const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
+  const setLibroMayorBootTerceroId = useAppStore((s) => s.setLibroMayorBootTerceroId);
   const saldoQ = useQuery<SaldoTercero>({
     queryKey: ["cc-saldo-tercero", tercero.id],
     queryFn: () => api.get(`/api/contabilidad/cc/terceros/${tercero.id}/saldo`),
   });
   const saldo = saldoQ.data?.saldo_por_pagar ?? 0;
+
+  function verCuenta() {
+    setLibroMayorBootTerceroId(tercero.id);
+    setLibroMayorBootTab("cuenta-socio");
+  }
+
   return (
     <div className="lm-card lm-kpi">
       <div className="flex min-w-0 items-center gap-3">
@@ -363,10 +427,15 @@ function SaldoSocioCard({ tercero, onGirar }: { tercero: Tercero; onGirar: () =>
           <Icon name="handshake" size={20} weight="duotone" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">Por pagar a {tercero.nombre}</p>
+          <button type="button" onClick={verCuenta} className="truncate text-sm font-semibold text-ink hover:text-accent hover:underline">
+            Por pagar a {tercero.nombre}
+          </button>
           <p className={`mt-0.5 text-xl font-extrabold tabular-nums tracking-tight ${saldo > 0 ? "text-accent" : "text-ink"}`}>
             {saldoQ.isLoading ? "…" : formatCop(saldo)}
           </p>
+          <button type="button" onClick={verCuenta} className="mt-0.5 text-[11px] font-bold text-accent hover:underline">
+            Ver cuenta completa →
+          </button>
         </div>
       </div>
       {saldo > 0 && (
@@ -514,7 +583,9 @@ function TablaMovimientos({
                     )}
                     <div className="mt-1">
                       <ComprobanteWidget
-                        movimientoId={m.id}
+                        uploadUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
+                        viewUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
+                        deleteUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}
                         soportePath={m.soporte_path}
                         soporteNombre={m.soporte_nombre}
                         onUpdated={() => void qc.invalidateQueries({ queryKey: ["cc-movimientos"] })}
@@ -880,6 +951,100 @@ function FormPagoSocio({
   );
 }
 
+function FormAporteCapital({
+  onDone,
+  onError,
+}: {
+  onDone: (msg: string) => void;
+  onError: (e: unknown) => void;
+}) {
+  const terceros = useTerceros();
+  const mediosQ = useMediosPago();
+  const [form, setForm] = useState({
+    fecha: new Date().toISOString().slice(0, 10),
+    tercero_id: "",
+    monto: "",
+    medio_pago_id: "",
+    referencia: "",
+    concepto: "",
+  });
+
+  const socios = (terceros.data?.terceros ?? []).filter((t) => t.tipo === "socio" && t.activo);
+  const medios = mediosQ.data?.medios_pago ?? [];
+
+  const mut = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api.post<{ ok?: boolean; error?: string; movimiento?: Movimiento }>(
+        "/api/contabilidad/cc/plantillas/aporte-capital",
+        body,
+      ),
+    onSuccess: (r) => {
+      if (r.error) return onError(new Error(r.error));
+      onDone("Aporte de capital registrado");
+    },
+    onError,
+  });
+
+  return (
+    <form
+      className={`${cardCls} space-y-3`}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const monto = parseFloat(form.monto);
+        if (!form.tercero_id || !form.medio_pago_id) return onError(new Error("Selecciona socio y medio de pago"));
+        if (!(monto > 0)) return onError(new Error("Ingresa un monto válido"));
+        mut.mutate({
+          fecha: form.fecha,
+          tercero_id: Number(form.tercero_id),
+          monto,
+          medio_pago_id: Number(form.medio_pago_id),
+          referencia: form.referencia.trim(),
+          concepto: form.concepto.trim(),
+        });
+      }}
+    >
+      <p className="text-base font-bold tracking-tight text-ink">Aporte de capital</p>
+      <p className="text-sm leading-snug text-muted">
+        Dinero que un socio mete como capital — patrimonio, no un préstamo: no se abona ni se
+        devuelve como una cuenta por pagar.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Campo label="Fecha">
+          <input type="date" required value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} className={inputCls} />
+        </Campo>
+        <Campo label="Socio">
+          <select required value={form.tercero_id} onChange={(e) => setForm((f) => ({ ...f, tercero_id: e.target.value }))} className={inputCls}>
+            <option value="">Selecciona…</option>
+            {socios.map((s) => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
+          </select>
+        </Campo>
+        <Campo label="Monto (COP)">
+          <input type="number" min="0" step="1000" required value={form.monto} onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))} className={inputCls} />
+        </Campo>
+        <Campo label="Hacia">
+          <select required value={form.medio_pago_id} onChange={(e) => setForm((f) => ({ ...f, medio_pago_id: e.target.value }))} className={inputCls}>
+            <option value="">Selecciona…</option>
+            {medios.map((m) => (
+              <option key={m.id} value={m.id}>{m.nombre}</option>
+            ))}
+          </select>
+        </Campo>
+        <Campo label="Nota (opcional)">
+          <input value={form.concepto} onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))} className={inputCls} />
+        </Campo>
+        <Campo label="Referencia (opcional)">
+          <input value={form.referencia} onChange={(e) => setForm((f) => ({ ...f, referencia: e.target.value }))} className={inputCls} />
+        </Campo>
+      </div>
+      <button type="submit" disabled={mut.isPending} className="mck-btn mck-btn-primary px-4 py-2 text-sm disabled:opacity-40">
+        {mut.isPending ? "Guardando…" : "Registrar aporte"}
+      </button>
+    </form>
+  );
+}
+
 function FormCompraProveedor({
   onDone,
   onError,
@@ -888,7 +1053,6 @@ function FormCompraProveedor({
   onError: (e: unknown) => void;
 }) {
   const cuentasQ = usePlanCuentas();
-  const terceros = useTerceros();
   const mediosQ = useMediosPago();
   const [form, setForm] = useState({
     fecha: new Date().toISOString().slice(0, 10),
@@ -901,7 +1065,6 @@ function FormCompraProveedor({
     referencia: "",
   });
 
-  const terc = (terceros.data?.terceros ?? []).filter((t) => t.activo);
   const cuentas = (cuentasQ.data?.cuentas ?? []).filter((c) => c.activa && (c.tipo === "activo" || c.tipo === "costo"));
   const medios = mediosQ.data?.medios_pago ?? [];
 
@@ -947,14 +1110,12 @@ function FormCompraProveedor({
         <Campo label="Fecha">
           <input type="date" required value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} className={inputCls} />
         </Campo>
-        <Campo label="Proveedor / tercero">
-          <select required value={form.tercero_id} onChange={(e) => setForm((f) => ({ ...f, tercero_id: e.target.value }))} className={inputCls}>
-            <option value="">Selecciona…</option>
-            {terc.map((t) => (
-              <option key={t.id} value={t.id}>{t.nombre}{t.tipo === "socio" ? " (socio)" : ""}</option>
-            ))}
-          </select>
-        </Campo>
+        <TerceroSelect
+          label="Proveedor / tercero"
+          value={form.tercero_id}
+          onChange={(id) => setForm((f) => ({ ...f, tercero_id: id }))}
+          tiposPermitidos={["proveedor", "socio", "otro"]}
+        />
         <Campo label="Concepto">
           <input required value={form.concepto} onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))} className={inputCls} placeholder="Ej. Manteca de cacao 10kg" />
         </Campo>
@@ -1008,7 +1169,8 @@ type SubvistaAvanzada =
   | "asiento-manual"
   | "prestamos"
   | "creditos-adquiridos"
-  | "informes";
+  | "informes"
+  | "cuenta-socio";
 
 /** El libro mismo: diario, plan de cuentas, terceros, asientos, cuenta en T, balance. */
 const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
@@ -1026,6 +1188,7 @@ const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] =
 const SUBTABS_SUBLIBROS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
   { id: "prestamos", label: "Préstamos", icon: "handshake" },
   { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar" },
+  { id: "cuenta-socio", label: "Cuenta de Socio", icon: "users" },
 ];
 
 const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
@@ -1057,14 +1220,20 @@ function VistaAvanzada({
 }) {
   const [sub, setSub] = useState<SubvistaAvanzada>(() => bootSub || "diario");
   const [pendientesSignal, setPendientesSignal] = useState(0);
+  const abrirPendientesBoot = useAppStore((s) => s.libroMayorAbrirPendientes);
+  const setAbrirPendientesBoot = useAppStore((s) => s.setLibroMayorAbrirPendientes);
 
   useEffect(() => {
     if (bootSub) {
       setSub(bootSub);
       onBootConsumido?.();
     }
+    if (bootSub === "diario" && abrirPendientesBoot) {
+      setPendientesSignal((n) => n + 1);
+      setAbrirPendientesBoot(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bootSub]);
+  }, [bootSub, abrirPendientesBoot]);
 
   function irAPendientes() {
     setSub("diario");
@@ -1109,6 +1278,11 @@ function VistaAvanzada({
       {sub === "creditos-adquiridos" && (
         <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
           <CreditosAdquiridosPanel />
+        </Suspense>
+      )}
+      {sub === "cuenta-socio" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <CuentaSocioPanel />
         </Suspense>
       )}
     </div>
@@ -1215,20 +1389,37 @@ function PlanCuentasTab() {
   );
 }
 
+type UsuarioLogin = { id: number; nombre: string };
+
+function useUsuariosLogin(enabled: boolean) {
+  return useQuery<UsuarioLogin[]>({
+    queryKey: ["tickets-usuarios-login"],
+    queryFn: () => api.get("/api/tickets/usuarios"),
+    enabled,
+  });
+}
+
+function emptyTerceroForm() {
+  return {
+    nombre: "",
+    tipo: "proveedor" as TipoTercero,
+    tipo_persona: "juridica" as TipoPersona,
+    identificacion: "",
+    telefono: "",
+    cuenta_por_pagar_id: "",
+    usuario_id: "",
+    notas: "",
+  };
+}
+
 function TercerosTab() {
   const qc = useQueryClient();
   const terceros = useTerceros();
   const cuentasQ = usePlanCuentas();
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    nombre: "",
-    tipo: "proveedor" as TipoTercero,
-    identificacion: "",
-    telefono: "",
-    cuenta_por_pagar_id: "",
-    notas: "",
-  });
+  const [form, setForm] = useState(emptyTerceroForm);
+  const usuariosQ = useUsuariosLogin(showForm && form.tipo === "socio");
 
   const pasivos = (cuentasQ.data?.cuentas ?? []).filter((c) => c.activa && c.tipo === "pasivo");
 
@@ -1237,7 +1428,7 @@ function TercerosTab() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["cc-terceros"] });
       setShowForm(false);
-      setForm({ nombre: "", tipo: "proveedor", identificacion: "", telefono: "", cuenta_por_pagar_id: "", notas: "" });
+      setForm(emptyTerceroForm());
       setMsg("Tercero creado");
     },
     onError: (e) => setMsg((e as Error).message),
@@ -1265,9 +1456,11 @@ function TercerosTab() {
             crearMut.mutate({
               nombre: form.nombre.trim(),
               tipo: form.tipo,
+              tipo_persona: form.tipo_persona,
               identificacion: form.identificacion.trim(),
               telefono: form.telefono.trim(),
               cuenta_por_pagar_id: form.cuenta_por_pagar_id ? Number(form.cuenta_por_pagar_id) : null,
+              usuario_id: form.usuario_id ? Number(form.usuario_id) : null,
               notas: form.notas.trim(),
             });
           }}
@@ -1282,7 +1475,23 @@ function TercerosTab() {
               ))}
             </select>
           </Campo>
-          <Campo label="Identificación (opcional)">
+          <Campo label="Naturaleza">
+            <div className="flex gap-2 rounded-lg bg-surface p-1">
+              {(["natural", "juridica"] as TipoPersona[]).map((tp) => (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, tipo_persona: tp }))}
+                  className={`flex-1 rounded-md px-2 py-1.5 text-xs font-bold ${
+                    form.tipo_persona === tp ? "bg-accent text-white" : "text-muted"
+                  }`}
+                >
+                  {tp === "natural" ? "Persona natural" : "Persona jurídica"}
+                </button>
+              ))}
+            </div>
+          </Campo>
+          <Campo label={form.tipo_persona === "natural" ? "Cédula (opcional)" : "NIT (opcional)"}>
             <input value={form.identificacion} onChange={(e) => setForm((f) => ({ ...f, identificacion: e.target.value }))} className={inputCls} />
           </Campo>
           <Campo label="Teléfono (opcional)">
@@ -1296,6 +1505,16 @@ function TercerosTab() {
               ))}
             </select>
           </Campo>
+          {form.tipo === "socio" && (
+            <Campo label="Usuario de login (para su Cuenta de Socio privada)">
+              <select value={form.usuario_id} onChange={(e) => setForm((f) => ({ ...f, usuario_id: e.target.value }))} className={inputCls}>
+                <option value="">Sin vincular todavía</option>
+                {(usuariosQ.data ?? []).map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+              </select>
+            </Campo>
+          )}
           <Campo label="Notas (opcional)">
             <input value={form.notas} onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))} className={inputCls} />
           </Campo>
@@ -1320,7 +1539,10 @@ function TercerosTab() {
             {lista.map((t) => (
               <tr key={t.id} className={`border-t border-border/60 ${!t.activo ? "opacity-50" : ""}`}>
                 <td className="px-3 py-2 font-semibold text-ink">{t.nombre}</td>
-                <td className="px-3 py-2 text-muted capitalize">{t.tipo}</td>
+                <td className="px-3 py-2 text-muted capitalize">
+                  {t.tipo}
+                  {t.tipo_persona === "natural" && <span className="ml-1 text-[9px] uppercase text-accent">Natural</span>}
+                </td>
                 <td className="px-3 py-2 text-muted">{t.identificacion || "—"}</td>
                 <td className="px-3 py-2 text-muted">{t.telefono || "—"}</td>
                 <td className="px-3 py-2 text-muted">{t.activo ? "Activo" : "Inactivo"}</td>

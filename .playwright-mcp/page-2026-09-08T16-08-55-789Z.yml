@@ -1,0 +1,136 @@
+- generic [active] [ref=f38e1]:
+  - banner [ref=f38e2]:
+    - generic [ref=f38e3]:
+      - generic [ref=f38e4]:
+        - link "Saltar al contenido" [ref=f38e5] [cursor=pointer]:
+          - /url: "#root-app"
+        - button "Menú de atajos" [ref=f38e7] [cursor=pointer]
+        - dialog [aria-hidden] [ref=f38e9]:
+          - list [ref=f38e10]:
+            - link [ref=f38e11] [cursor=pointer]:
+              - /url: "#root-app"
+              - text: Saltar el contenido
+            - link [ref=f38e12] [cursor=pointer]:
+              - /url: https://www.mercadolibre.com.co/accesibilidad/feedback
+              - text: Comentar sobre accesibilidad
+          - separator [aria-hidden] [ref=f38e13]
+          - list [ref=f38e14]:
+            - link [ref=f38e15] [cursor=pointer]:
+              - /url: "#cb1-edit"
+              - generic [ref=f38e16]: /
+            - link [ref=f38e18] [cursor=pointer]:
+              - /url: https://myaccount.mercadolibre.com.co/purchases/list
+              - generic [ref=f38e19]: P
+            - link [ref=f38e21] [cursor=pointer]:
+              - /url: https://www.mercadolibre.com.co/gz/cart/v2
+              - generic [ref=f38e22]: C
+            - link [ref=f38e24] [cursor=pointer]:
+              - /url: "#results"
+              - generic [ref=f38e25]: F
+            - link [ref=f38e27] [cursor=pointer]:
+              - /url: "#"
+              - generic [ref=f38e28]: Z
+        - link "Mercado Libre Colombia - Donde comprar y vender de todo" [ref=f38e30] [cursor=pointer]:
+          - /url: //www.mercadolibre.com.co
+      - search [ref=f38e32]:
+        - generic [ref=f38e33]: Ingresa lo que quieras encontrar
+        - combobox "Ingresa lo que quieras encontrar" [ref=f38e34]: dmso
+        - button [ref=f38e35] [cursor=pointer]:
+          - img "Buscar" [ref=f38e36]: 
+        - text: Tiendas oficiales
+      - link [ref=f38e38] [cursor=pointer]:
+        - /url: https://www.mercadolibre.com.co/suscripciones/melimas/planes#origin=bannermenu-acq-cupon-010926_100926&me.audience=all&me.bu=9&me.bu_line=36&me.component_id=banner_menu_web_ml&me.content_id=BM_LYT_ADQ_0109&me.flow=146&me.logic=campaigns&me.position=0
+        - img "CUPÓN EXCLUSIVO PARA SUSCRIPTORES MELI+" [ref=f38e39]
+      - 'link " Enviar a Cynthia Carrera 102 a #132 d-12" [ref=f38e42] [cursor=pointer]':
+        - /url: https://www.mercadolibre.com.co/addresses/v3/navigation/hub?go=https%3A%2F%2Flistado.mercadolibre.com.co%2Fdmso
+        - text: 
+        - generic [ref=f38e43]: Enviar a Cynthia
+        - generic [ref=f38e44]: "Carrera 102 a #132 d-12"
+      - list [ref=f38e47]:
+        - listitem [ref=f38e48]:
+          - button "Categorías" [ref=f38e49] [cursor=pointer]
+        - listitem [ref=f38e50]:
+          - link "Ofertas" [ref=f38e51] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ofertas#nav-header
+        - listitem [ref=f38e52]:
+          - link "Cupones" [ref=f38e53] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/cupones?source_page=mperfil#menu-user#nav-header
+        - listitem [ref=f38e54]:
+          - link "Supermercado Nuevo" [ref=f38e55] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ofertas/supermercado#nav-header
+            - text: Supermercado
+            - generic [ref=f38e56]: Nuevo
+        - listitem [ref=f38e57]:
+          - link "Moda" [ref=f38e58] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/c/ropa-y-accesorios#nav-header
+        - listitem [ref=f38e59]:
+          - link "Vender" [ref=f38e60] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/syi/core/list#nav-header
+        - listitem [ref=f38e61]:
+          - link "Ayuda / PQR" [ref=f38e62] [cursor=pointer]:
+            - /url: https://www.mercadolibre.com.co/ayuda#nav-header
+      - generic [ref=f38e63]:
+        - navigation "Menú de usuario" [ref=f38e64]:
+          - list [ref=f38e65]:
+            - listitem [ref=f38e66]:
+              - button "Mckenna ..., menú" [ref=f38e69] [cursor=pointer]:
+                - generic [ref=f38e70]: Mckenna ...
+            - listitem [ref=f38e75]:
+              - link "Mis compras" [ref=f38e76] [cursor=pointer]:
+                - /url: https://myaccount.mercadolibre.com.co/purchases/list#nav-header
+              - button "Favoritos" [ref=f38e77] [cursor=pointer]
+              - button "Notificaciones 2 nuevas" [ref=f38e79] [cursor=pointer]:
+                - generic [ref=f38e80]: 
+                - generic [ref=f38e81]: "2"
+            - listitem
+        - link "0 productos en tu carrito" [ref=f38e82] [cursor=pointer]:
+          - /url: https://www.mercadolibre.com.co/gz/cart/v2
+          - generic [aria-hidden] [ref=f38e83]: 
+  - main [ref=f38e84]:
+    - generic [ref=f38e88]:
+      - progressbar
+  - generic:
+    - heading "Más información " [level=2]:
+      - button "Más información " [ref=f38e91] [cursor=pointer]:
+        - text: Más información
+        - generic [ref=f38e92]: 
+  - contentinfo [ref=f38e93]:
+    - generic [ref=f38e95]:
+      - generic [ref=f38e96]:
+        - generic [ref=f38e97]: Copyright © 1999-2026. MercadoLibre Colombia LTDA.
+        - navigation [ref=f38e98]:
+          - list [ref=f38e99]:
+            - listitem [ref=f38e100]:
+              - link "Trabaja con nosotros" [ref=f38e101] [cursor=pointer]:
+                - /url: https://careers-meli.mercadolibre.com/?utm_campaign=site-mco&utm_source=mercadolibre&utm_medium=mercadolibre
+            - listitem [ref=f38e102]:
+              - link "Términos y condiciones" [ref=f38e103] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ayuda/terminos-condiciones-de-uso_1841
+            - listitem [ref=f38e104]:
+              - link "Promociones" [ref=f38e105] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/l/promociones
+            - listitem [ref=f38e106]:
+              - link "Cómo cuidamos tu privacidad" [ref=f38e107] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/privacidad
+            - listitem [ref=f38e108]:
+              - link "Accesibilidad" [ref=f38e109] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/accesibilidad
+            - listitem [ref=f38e110]:
+              - link "Ayuda / PQR" [ref=f38e111] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ayuda
+            - listitem [ref=f38e112]:
+              - link "Navidad" [ref=f38e113] [cursor=pointer]:
+                - /url: https://www.mercadolibre.com.co/ofertas/navidad
+            - listitem [ref=f38e114]:
+              - link "www.sic.gov.co" [ref=f38e115] [cursor=pointer]:
+                - /url: https://www.sic.gov.co/
+      - paragraph [ref=f38e116]: "Calle 100 #7-33, Torre I, Piso 16, Bogotá D.C., Colombia"
+    - generic [ref=f38e117]:
+      - link [ref=f38e118] [cursor=pointer]:
+        - /url: https://www.sic.gov.co/
+        - img "SIC - Industria y comercio" [ref=f38e119]
+      - link [ref=f38e120] [cursor=pointer]:
+        - /url: https://www.sic.gov.co/pare-y-compare
+        - img "Precio por unidad de medida" [ref=f38e121]
+    - link "Mercado Libre" [ref=f38e122] [cursor=pointer]:
+      - /url: https://hp.mercadolibre.com/?p=ML&s=MCO&d=desktop

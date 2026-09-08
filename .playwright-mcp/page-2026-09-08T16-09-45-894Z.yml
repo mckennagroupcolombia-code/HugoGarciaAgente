@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - main [ref=e4]:
+    - button "Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos (recién) 25 hoy" [ref=e6] [cursor=pointer]:
+      - generic [ref=e13]:
+        - text: Actividad del equipo — Victor Garcia creó una acción TKT-2026-1190 — Subir al 3 piso a airear los monotubes de los gongos
+        - generic [ref=e14]: (recién)
+      - generic [ref=e15]: 25 hoy
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - button "Agenda" [ref=e22] [cursor=pointer]
+          - heading "Contabilidad" [level=1] [ref=e31]
+        - generic [ref=e32]:
+          - toolbar "Herramientas Contabilidad" [ref=e33]:
+            - button "Crear producto / combo en Alegra" [ref=e34] [cursor=pointer]
+            - button "Consultar factura" [ref=e38] [cursor=pointer]
+            - button "Calculadora" [ref=e42] [cursor=pointer]
+          - button "Temas y estilo visual" [ref=e52] [cursor=pointer]
+          - button "Modo oscuro" [ref=e59] [cursor=pointer]
+          - button "Cuenta" [ref=e63] [cursor=pointer]:
+            - img "Armando Garcia" [ref=e64]
+            - generic [ref=e65]: "1"
+      - tablist "Secciones de Contabilidad" [ref=e70]:
+        - tab "Libro Mayor" [selected] [ref=e71] [cursor=pointer]
+        - tab "Compras exterior" [ref=e78] [cursor=pointer]
+        - tab "Costos de productos" [ref=e86] [cursor=pointer]
+        - tab "Catálogo Alegra" [ref=e92] [cursor=pointer]
+        - tab "Operativos" [ref=e99] [cursor=pointer]
+    - generic [ref=e104]: Cargando…
+  - button "Ver solicitudes en proceso" [ref=e110] [cursor=pointer]:
+    - generic [ref=e111]: "1"
