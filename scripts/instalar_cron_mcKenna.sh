@@ -41,6 +41,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "15 8 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/monitor_comunicaciones_importaciones.py >>${LOG} 2>&1"
   echo "# Notas crédito automáticas: ventas MeLi canceladas con factura ya emitida (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "20 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/emitir_notas_credito_cron.py >>${LOG} 2>&1"
+  echo "# Resolución de Anulaciones (RA): ventas MeLi con reintegro al comprador → expediente, nota crédito y asiento; reporta la deuda abierta aunque no emita nada. Sucesor de emitir_notas_credito_cron.py — conviven sin pisarse mientras RA_EMISION_ACTIVA=0 (modo sombra)"
+  echo "35 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/anulaciones_cron.py >>${LOG} 2>&1"
   echo "# Sincronización de precios MeLi → Siigo/Web: precio vivo de MeLi corrige Siigo/Sheets/Web donde difieran (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "0 7,15 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reconciliar_precios_meli_cron.py >>${LOG} 2>&1"
   echo "# Publicidad MeLi: recomendaciones de ACOS por rotación → ticket + WhatsApp (lunes, frecuencia real vía Sistemas → Tareas Programadas)"

@@ -20,6 +20,7 @@ const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const CatalogoAlegraPanel = lazy(() => import("./CatalogoAlegraPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
 const ContabilidadInicioPanel = lazy(() => import("./ContabilidadInicioPanel"));
+const AnulacionesPanel = lazy(() => import("./AnulacionesPanel"));
 
 function TabCargando() {
   return (
@@ -46,6 +47,8 @@ function renderSubpanel(id: ContabilidadPanelId) {
       return <CatalogoAlegraPanel />;
     case "libro-mayor":
       return <LibroMayorPanel />;
+    case "anulaciones":
+      return <AnulacionesPanel />;
     case "operativos":
     case "rrhh":
       return <OperativosPanel />;

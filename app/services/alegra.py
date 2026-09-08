@@ -44,6 +44,14 @@ _ALEGRA_BASE = "https://api.alegra.com/api/v1"
 NIT_CONSUMIDOR_FINAL_MELI = (os.getenv("SIIGO_MELI_NIT_CONSUMIDOR_FINAL", "222222222222") or "222222222222").strip()
 NOMBRE_CONSUMIDOR_FINAL_MELI = "Consumidor Final"
 
+# Tope de `observations` en una nota crédito. Es lo ÚNICO que el contador ve
+# del caso cuando revisa dentro de Alegra, así que el relato del expediente
+# (app/services/anulaciones_motor.py::relato_para_observaciones) se escribe
+# para caber aquí: un relato cortado a la mitad es peor que uno corto.
+# Configurable porque el máximo real que acepta Alegra no está documentado —
+# subirlo solo después de confirmarlo contra la API, no por optimismo.
+MAX_OBSERVACIONES_NC_ALEGRA = int(os.getenv("ALEGRA_MAX_OBSERVACIONES_NC", "500") or "500")
+
 _contacto_cache: dict[str, str] = {}  # identificacion -> alegra contact id (proceso actual)
 _producto_cache: dict[str, dict] = {}  # sku -> {"id":..., "price":...} (proceso actual)
 
@@ -782,7 +790,7 @@ def crear_nota_credito_alegra(
     if warehouse_id:
         payload["warehouse"] = {"id": warehouse_id}
     if motivo:
-        payload["observations"] = motivo[:500]
+        payload["observations"] = motivo[:MAX_OBSERVACIONES_NC_ALEGRA]
 
     try:
         res = requests.post(f"{_ALEGRA_BASE}/credit-notes", headers=headers, json=payload, timeout=20)
@@ -847,6 +855,203 @@ def descargar_factura_pdf_alegra(factura_id: str) -> str:
     except Exception as e:
         print(f"⚠️ No se pudo descargar PDF Alegra {factura_id}: {e}")
     return ""
+
+
+def descubrir_tipo_nota_credito_sin_referencia_alegra(dias_atras: int = 180) -> dict:
+    """Lee las notas crédito recientes de Alegra y reporta el `type` de las que
+    NO están enlazadas a una factura.
+
+    Existe porque el literal correcto para Colombia no está en la referencia
+    pública de Alegra — exactamente el mismo problema que tuvimos con
+    `VOID_ELECTRONIC_INVOICE`, que se resolvió el 2026-09-03 leyendo con GET
+    una nota crédito creada a mano por el operador. Este helper automatiza ese
+    descubrimiento: el operador crea UNA nota crédito sin referencia a mano y
+    esta función dice qué `type` quedó, para ponerlo en
+    `ALEGRA_NC_SIN_REFERENCIA_TYPE`.
+
+    Adivinar el literal contra la DIAN no es una opción: un `type` equivocado
+    timbra un documento electrónico incorrecto que después hay que anular.
+    """
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    desde = (datetime.now() - timedelta(days=int(dias_atras))).strftime("%Y-%m-%d")
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/credit-notes", headers=headers,
+            params={"date_afterOrEqual": desde, "limit": 30, "order_direction": "DESC"},
+            timeout=20,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red consultando notas crédito: {e}"}
+    if res.status_code != 200:
+        return {"ok": False, "error": f"HTTP {res.status_code}: {res.text[:300]}"}
+
+    candidatas = []
+    tipos_vistos: dict[str, int] = {}
+    for nc in (res.json() or []):
+        tipo = str(nc.get("type") or "")
+        tipos_vistos[tipo] = tipos_vistos.get(tipo, 0) + 1
+        if not (nc.get("invoices") or []):
+            candidatas.append({
+                "id": nc.get("id"),
+                "numero": (nc.get("numberTemplate") or {}).get("fullNumber"),
+                "fecha": nc.get("date"),
+                "type": tipo,
+                "total": nc.get("total"),
+                "observations": (nc.get("observations") or "")[:200],
+            })
+    return {
+        "ok": True,
+        "candidatas": candidatas,
+        "tipos_vistos": tipos_vistos,
+        "sugerencia": candidatas[0]["type"] if candidatas else "",
+        "nota": (
+            "Poner el `type` de la candidata en ALEGRA_NC_SIN_REFERENCIA_TYPE. "
+            "Si no hay candidatas, pedirle al operador que cree UNA nota crédito "
+            "sin referencia a mano en Alegra y volver a correr esto."
+        ),
+    }
+
+
+def crear_nota_credito_sin_referencia_alegra(
+    *,
+    cliente_id: str | None = None,
+    cliente_nombre: str = "",
+    cliente_identificacion: str = "",
+    items: list[dict] | None = None,
+    total: float | None = None,
+    motivo: str = "",
+    enviar_dian: bool = True,
+) -> dict:
+    """Nota crédito de Alegra SIN factura de referencia.
+
+    Es la única vía para anular una venta cuya factura quedó en Siigo (todo lo
+    anterior al 2026-09-02, `FECHA_CORTE_MIGRACION_ALEGRA`): la cuenta de Siigo
+    quedó en modo solo lectura tras la migración — confirmado en
+    `log_cron.txt` los días 6 y 7 de septiembre de 2026, error `read_only` — así
+    que `crear_nota_credito_siigo` ya no puede emitir, y
+    `crear_nota_credito_alegra` tampoco sirve porque arma
+    `type: "VOID_ELECTRONIC_INVOICE"` con `invoices:[{id}]` y ese id tiene que
+    ser de una factura de Alegra.
+
+    La trazabilidad con la factura original (número + CUFE de Siigo) va en
+    `observations` — es el único hilo que va a quedar entre los dos sistemas.
+
+    INVENTARIO: por defecto se emite con un ítem genérico
+    (`ALEGRA_NC_ITEM_GENERICO_SKU`, típicamente un servicio sin movimiento de
+    inventario) en vez de los ítems reales. Emitirla con los ítems reales haría
+    que Alegra REINGRESE a stock un producto que nunca salió de Alegra (la
+    salida quedó registrada en Siigo), descuadrando el inventario. Para el
+    rezago histórico esto es un ajuste de cierre de una era contable, no una
+    devolución operativa. Pasar `items` explícitos solo si se entiende ese efecto.
+    """
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    tipo = (os.getenv("ALEGRA_NC_SIN_REFERENCIA_TYPE") or "").strip()
+    if not tipo:
+        return {
+            "ok": False,
+            "requiere_descubrimiento": True,
+            "error": (
+                "Falta ALEGRA_NC_SIN_REFERENCIA_TYPE. El literal correcto para Colombia no está "
+                "documentado por Alegra: pedirle al operador que cree UNA nota crédito sin "
+                "referencia a mano y correr "
+                "`descubrir_tipo_nota_credito_sin_referencia_alegra()` para leerlo. "
+                "No se adivina: un `type` equivocado timbra un documento incorrecto ante la DIAN."
+            ),
+        }
+
+    if not cliente_id:
+        # Las facturas MeLi de la era Siigo salieron a "Consumidor Final" con
+        # NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222),
+        # un tercero que muy probablemente no existe como contacto en Alegra —
+        # sin esto el POST devuelve un 400 genérico difícil de diagnosticar.
+        identificacion = (
+            cliente_identificacion
+            or os.getenv("SIIGO_MELI_NIT_CONSUMIDOR_FINAL")
+            or "222222222222"
+        )
+        cliente_id, err = _resolver_o_crear_contacto_alegra(
+            nombre=cliente_nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
+            identificacion=identificacion,
+        )
+        if not cliente_id:
+            return {"ok": False, "error": f"No se pudo resolver el cliente en Alegra: {err}"}
+
+    if not items:
+        if total is None or float(total) <= 0:
+            return {"ok": False, "error": "Sin `items` explícitos hay que pasar `total` > 0."}
+        sku_generico = (os.getenv("ALEGRA_NC_ITEM_GENERICO_SKU") or "").strip()
+        if not sku_generico:
+            return {
+                "ok": False,
+                "error": (
+                    "Falta ALEGRA_NC_ITEM_GENERICO_SKU — el código de un ítem de tipo servicio "
+                    "en Alegra (sin movimiento de inventario) para emitir la nota crédito del "
+                    "rezago Siigo sin reingresar stock que nunca salió de Alegra."
+                ),
+            }
+        prod = buscar_producto_alegra_por_referencia(sku_generico)
+        prod_id = (prod or {}).get("id") if isinstance(prod, dict) else None
+        if not prod_id:
+            return {
+                "ok": False,
+                "error": f"El ítem genérico {sku_generico!r} no existe en Alegra.",
+            }
+        items = [{"id": prod_id, "price": round(float(total), 2), "quantity": 1}]
+
+    template_id = _resolver_template_nota_credito_alegra(headers)
+    payload: dict = {
+        "date": datetime.now().strftime("%Y-%m-%d"),
+        "client": {"id": cliente_id},
+        "items": items,
+        "type": tipo,
+        "stamp": {"generateStamp": bool(enviar_dian)},
+    }
+    if template_id:
+        payload["numberTemplate"] = {"id": template_id}
+    if motivo:
+        payload["observations"] = motivo[:MAX_OBSERVACIONES_NC_ALEGRA]
+
+    try:
+        res = requests.post(f"{_ALEGRA_BASE}/credit-notes", headers=headers, json=payload, timeout=20)
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red creando la nota crédito sin referencia: {e}"}
+    if res.status_code not in (200, 201):
+        return {
+            "ok": False,
+            "status_code": res.status_code,
+            "error": f"Error al crear nota crédito sin referencia en Alegra: {res.text[:1000]}",
+            "payload": payload,
+        }
+
+    nc = res.json()
+    stamp = nc.get("stamp") or {}
+    numero = (nc.get("numberTemplate") or {}).get("fullNumber")
+    return {
+        "ok": True,
+        "sin_referencia": True,
+        "nc_id": nc.get("id"),
+        "numero": numero,
+        "status": stamp.get("legalStatus") or nc.get("status"),
+        "cufe": stamp.get("cufe") or "",
+        "url": f"https://app.alegra.com/credit-note/view/id/{nc.get('id')}" if nc.get("id") else "",
+        "data": nc,
+        "payload": payload,
+        # Mismos alias que `crear_nota_credito_alegra` — los call-sites no
+        # necesitan una tercera rama de lectura del resultado.
+        "credit_note_id": nc.get("id"),
+        "name": numero,
+        "number": (nc.get("numberTemplate") or {}).get("formattedNumber"),
+        "cude": stamp.get("cufe") or "",
+        "total": nc.get("total"),
+    }
 
 
 def descargar_nota_credito_pdf_alegra(nc_id: str) -> str:
@@ -1169,6 +1374,117 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         "msg": f"Nombre de {codigo} actualizado",
         "codigo": codigo,
         "nombre": nombre_ok,
+    }
+
+
+def actualizar_referencia_alegra_producto(codigo_actual: str, nuevo_codigo: str) -> dict:
+    """Cambia el `reference` (SKU) de un producto/kit Alegra.
+
+    A diferencia de nombre/precio, Alegra sí rechaza este cambio si el ítem ya
+    tiene movimientos (misma señal que la composición de un kit — ver
+    `_inferir_movimientos_item_alegra` / `_mensaje_bloqueo_movimientos_alegra`).
+    El SKU es la clave que usan MeLi, la sincronización de stock web,
+    proveedores.db y Siigo: quien llama esto es responsable de propagar el
+    cambio a esos sistemas por separado (no ocurre automáticamente).
+
+    Retorna ``{ok, msg|error, codigo_anterior?, codigo_nuevo?, nombre?,
+    bloqueado_movimientos?}``.
+    """
+    import re
+
+    codigo_actual = (codigo_actual or "").strip()
+    nuevo_limpio = re.sub(r"[^A-Za-z0-9._-]", "", (nuevo_codigo or "").strip())
+    if not codigo_actual:
+        return {"ok": False, "error": "codigo_actual es obligatorio"}
+    if not nuevo_limpio:
+        return {"ok": False, "error": "nuevo_codigo es obligatorio"}
+    if nuevo_limpio.upper() == codigo_actual.upper():
+        return {"ok": True, "msg": "Sin cambios", "codigo_anterior": codigo_actual, "codigo_nuevo": codigo_actual}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": codigo_actual, "limit": 5},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red obteniendo producto: {e}"}
+    if res.status_code != 200:
+        return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
+    productos = res.json() or []
+    if not productos:
+        return {"ok": False, "error": f"Producto {codigo_actual} no existe en Alegra"}
+
+    item = productos[0]
+    item_id = item.get("id")
+    if not item_id:
+        return {"ok": False, "error": f"Producto {codigo_actual} sin id en Alegra"}
+
+    inferido = _inferir_movimientos_item_alegra(item)
+    if inferido is True:
+        return {
+            "ok": False,
+            "error": (
+                "Este ítem ya tiene movimientos en Alegra y no se puede cambiar el SKU. "
+                "Duplicalo o creá uno nuevo con el código correcto."
+            ),
+            "bloqueado_movimientos": True,
+            "codigo_anterior": codigo_actual,
+        }
+
+    try:
+        res_dup = requests.get(
+            f"{_ALEGRA_BASE}/items",
+            headers=headers,
+            params={"reference": nuevo_limpio, "limit": 1},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red verificando SKU nuevo: {e}"}
+    if res_dup.status_code == 200 and (res_dup.json() or []):
+        return {"ok": False, "error": f"El SKU {nuevo_limpio} ya existe en Alegra"}
+
+    try:
+        res2 = requests.put(
+            f"{_ALEGRA_BASE}/items/{item_id}",
+            headers=headers,
+            json={"reference": nuevo_limpio},
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red actualizando SKU: {e}"}
+    if res2.status_code != 200:
+        cuerpo = res2.text[:400] if res2.text else ""
+        bloqueo = _mensaje_bloqueo_movimientos_alegra(cuerpo)
+        if bloqueo:
+            return {
+                "ok": False,
+                "error": bloqueo,
+                "bloqueado_movimientos": True,
+                "codigo_anterior": codigo_actual,
+            }
+        return {
+            "ok": False,
+            "error": f"Alegra PUT error {res2.status_code}: {cuerpo[:300]}",
+            "codigo_anterior": codigo_actual,
+        }
+
+    _producto_cache.pop(codigo_actual, None)
+    global _combos_alegra_cache, _combos_alegra_cache_ts
+    _combos_alegra_cache = []
+    _combos_alegra_cache_ts = 0.0
+    return {
+        "ok": True,
+        "msg": f"SKU {codigo_actual} → {nuevo_limpio} actualizado en Alegra",
+        "codigo_anterior": codigo_actual,
+        "codigo_nuevo": nuevo_limpio,
+        "nombre": item.get("name") or "",
     }
 
 

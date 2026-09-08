@@ -105,6 +105,12 @@ def create_app():
         print(f"⚠️ Proveedores: {e}")
 
     try:
+        from app.routes_anulaciones import register_anulaciones_routes
+        register_anulaciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Anulaciones / notas crédito: {e}")
+
+    try:
         from app.routes_cron import register_cron_routes
         register_cron_routes(app)
     except Exception as e:

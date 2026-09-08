@@ -182,9 +182,50 @@ def _extract_ids(resource: str, payload: dict[str, Any] | None) -> dict[str, str
 
 def crear_accion_anular_factura_por_reclamo(resource: str, *, topic: str | None = None) -> None:
     """
-    Entrada principal: se invoca desde /notifications cuando llega topic claims/mediations/returns.
-    Crea una acción en el Centro de mando (tickets) si no existe aún.
+    Entrada principal: se invoca desde /notifications cuando llega un tópico de
+    reclamo/devolución (`post_purchase` hoy; `claims`/`mediations`/`returns` por
+    compatibilidad — ver `app/meli_webhook_topics.py`).
+
+    Desde el 2026-09-08 delega en el módulo de Resolución de Anulaciones, que
+    ABRE UN EXPEDIENTE en vez de crear de una el ticket "anular factura".
+
+    Por qué cambió: este flujo pedía anular la factura apenas se ABRÍA el
+    reclamo, no cuando se resolvía. Un reclamo puede cerrarse a favor del
+    vendedor sin ningún reintegro — y entonces la factura sigue siendo válida.
+    Si alguien trabajaba ese ticket obedientemente, anulaba ventas vivas. Que
+    nunca se ejecutara (los eventos `post_purchase` se descartaban en el
+    webhook) es lo único que lo evitó. Ahora el expediente se abre aquí y la
+    decisión de emitir la toma `scripts/anulaciones_cron.py` cuando confirma un
+    reintegro real.
+
+    `RA_RECLAMOS_ACTIVO=0` vuelve al comportamiento anterior (ticket inmediato),
+    como salida de emergencia si el módulo nuevo diera problemas.
     """
+    if (os.getenv("RA_RECLAMOS_ACTIVO", "1") or "1").strip() == "1":
+        try:
+            from app.tools.anulaciones import procesar_evento_reclamo
+
+            caso = procesar_evento_reclamo(resource, topic=topic)
+            log_json(
+                "meli_claim_expediente",
+                codigo=caso.get("codigo"), estado=caso.get("estado"),
+                resource=(resource or "")[:300], topic=topic,
+            )
+            return
+        except Exception as e:
+            # No perder el evento por un fallo del módulo nuevo: se cae al
+            # camino histórico (ticket manual), que es ruidoso pero no pierde
+            # el caso.
+            log_json("meli_claim_expediente_error", error=str(e)[:300], resource=(resource or "")[:300])
+
+    _crear_ticket_reclamo_legado(resource, topic=topic)
+
+
+def _crear_ticket_reclamo_legado(resource: str, *, topic: str | None = None) -> None:
+    """Camino histórico: ticket "anular factura / nota crédito" en el Centro de
+    Mando apenas llega la notificación. Se conserva como respaldo (ver
+    `RA_RECLAMOS_ACTIVO`) pero NO es el flujo por defecto — sus problemas están
+    explicados en `crear_accion_anular_factura_por_reclamo`."""
     from app.services import tickets_db as _tdb
 
     _tdb.init_db()

@@ -21,12 +21,27 @@ def meli_webhook_es_reclamo_devolucion(topic: str | None) -> bool:
     Reclamos / devoluciones (post-venta) en MeLi.
 
     Nombres observados/posibles según integración:
+    - post_purchase / marketplace_post_purchase  ← el que MeLi usa HOY
     - claims / marketplace_claims
     - mediations / marketplace_mediations
     - returns / marketplace_returns
+
+    `post_purchase` se agregó el 2026-09-08. Es el nombre real con el que MeLi
+    está notificando los reclamos (resource `/post-purchase/v1/claims/{id}`), y
+    al no estar en esta lista TODOS caían en `topic_no_manejado` y se
+    descartaban: 38 notificaciones de 7 reclamos distintos entre el 4 y el 8 de
+    septiembre de 2026, cero tickets creados (ver
+    `app/data/webhook_meli_incidents.jsonl`). En todo ese archivo no aparece un
+    solo evento con tópico `claims`, `returns` ni `mediations` — los nombres que
+    este código esperaba. Mismo patrón del incidente de abril/2026 con
+    `questions`/`orders_v2`/`messages`: suponer el nombre de un tópico sin
+    verificarlo contra tráfico real deja un flujo roto en silencio durante
+    semanas. Los nombres viejos se conservan por si la app vuelve a recibirlos.
     """
     t = (topic or "").strip().lower()
     return t in (
+        "post_purchase",
+        "marketplace_post_purchase",
         "claims",
         "marketplace_claims",
         "mediations",

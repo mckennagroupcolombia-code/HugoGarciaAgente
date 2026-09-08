@@ -90,6 +90,12 @@ from app.tools.meli_compliance import (
     republicar_desde_diagnostico,
 )
 from app.tools.analisis_competencia_precios import analizar_competencia_precios
+from app.tools.anulaciones import (
+    consultar_expediente_anulacion,
+    buscar_anulaciones_similares,
+    registrar_nota_expediente,
+    resumen_anulaciones_pendientes,
+)
 from app.tools.sede_sur import (
     crear_ticket_sede_sur,
     resolver_ticket_sede_sur,
@@ -899,6 +905,15 @@ def configurar_ia(app):
             autopublicar_producto_meli,
             republicar_desde_diagnostico,
             analizar_competencia_precios,
+            # Resolución de Anulaciones — el expediente de una venta anulada es
+            # la unidad de contexto que comparten todos los agentes: quien
+            # atienda un ticket de nota crédito recupera el caso entero con una
+            # llamada, ve precedentes con `buscar_anulaciones_similares` y deja
+            # su conclusión con `registrar_nota_expediente` para el siguiente.
+            consultar_expediente_anulacion,
+            buscar_anulaciones_similares,
+            registrar_nota_expediente,
+            resumen_anulaciones_pendientes,
         ]
 
         _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}

@@ -1,9 +1,12 @@
 # Module: Resolucion de Anulaciones (RA)
 
-> **Estado: DISEÑO — no implementado.** Esta ficha es la especificacion acordada el 2026-09-08
-> tras el diagnostico del pack `2000014813807951`. Se convierte en ficha normal cuando exista
-> el codigo. Mientras tanto, cualquier agente que la lea debe saber que describe lo que va a
-> existir, no lo que existe.
+> **Estado: IMPLEMENTADO (2026-09-08), EMISION EN MODO SOMBRA.** El codigo existe y esta
+> probado (`pytest tests/test_anulaciones.py`, 26 tests). `RA_EMISION_ACTIVA=0` por defecto:
+> el motor detecta, clasifica, decide y abre expedientes, pero NO llama a Alegra hasta que se
+> ponga en 1. Antes de encenderlo faltan dos cosas que no dependen del codigo:
+> `ALEGRA_NC_SIN_REFERENCIA_TYPE` (descubrir el literal, ver Riesgos) y la decision del
+> contador sobre el rezago Siigo y el reembolso a cargo de MeLi. El panel del contador
+> (Contabilidad -> Anulaciones) ya esta y compila (`cd desktop && npm run build`).
 
 ## Proposito
 
@@ -187,21 +190,55 @@ Para el contador: panel "Anulaciones" con filtro por estado y motivo, export men
 (NC ↔ factura ↔ motivo ↔ asiento ↔ expediente), y el relato dentro del propio documento
 electronico para cuando revise en Alegra sin abrir el panel.
 
-## Archivos Ancla (a crear)
+## Archivos Ancla
 
-- `app/services/anulaciones_db.py` — esquema, transiciones de estado, `registrar_evento()`,
-  `expediente_completo()`. Mismo patron de `_conn()`/`init_db()` que `contabilidad_db.py`.
-- `app/services/anulaciones_motor.py` — deteccion (refund), clasificacion por la matriz, politica
-  de autonomia, emision. Orquesta `alegra.py` y `contabilidad_core.crear_movimiento`.
-- `app/services/alegra.py` — **nueva** `crear_nota_credito_sin_referencia_alegra()` para las
-  facturas de la era Siigo. `crear_nota_credito_alegra()` no sirve: arma
-  `type: "VOID_ELECTRONIC_INVOICE"` con `invoices:[{id}]`, y ese `id` debe ser de una factura de
-  Alegra.
-- `app/tools/anulaciones.py` — las tres herramientas de agente + la creacion/actualizacion del
-  ticket. Patron de `app/tools/revision_facturacion.py`.
-- `scripts/anulaciones_cron.py` — barrido, con job en `app/services/cron_scheduler.py`.
-- `app/meli_webhook_topics.py` — agregar `post_purchase` a `meli_webhook_es_reclamo_devolucion()`.
-- `desktop/src/components/AnulacionesPanel.tsx` — vista del contador.
+- `app/services/anulaciones_db.py` — esquema (`anulaciones` + `anulacion_eventos` en
+  `contabilidad.db`), maquina de estados (`transicionar` valida las transiciones y lanza
+  ValueError en vez de escribir un estado imposible), `registrar_evento` (append-only, con
+  `dedupe` para reintentos del mismo fallo), `resolver` (acepta codigo / referencia / pack /
+  numero de factura), `deuda_abierta`, `buscar` (precedentes) y `expediente_completo`.
+- `app/services/anulaciones_motor.py` — `reintegro_de_orden` (el disparador),
+  `clasificar` (la matriz, PURA: sin red ni DB), `evaluar_autonomia` (la politica, determinista),
+  `relato_para_observaciones` / `relato_largo`, `emitir`, `postear_asiento`,
+  `registrar_retorno_inventario`, `cerrar_si_completo`.
+- `app/services/alegra.py` — `crear_nota_credito_sin_referencia_alegra()` para las facturas de la
+  era Siigo (`crear_nota_credito_alegra` no sirve: arma `type: "VOID_ELECTRONIC_INVOICE"` con
+  `invoices:[{id}]` y ese id debe ser de una factura de Alegra) +
+  `descubrir_tipo_nota_credito_sin_referencia_alegra()` + `MAX_OBSERVACIONES_NC_ALEGRA`.
+- `app/tools/anulaciones.py` — las cuatro herramientas de agente, el ticket y
+  `procesar_evento_reclamo()` (entrada desde el webhook).
+- `scripts/anulaciones_cron.py` — el barrido. Job `anulaciones_ra` en `cron_scheduler.py`.
+- `app/meli_webhook_topics.py` — `post_purchase` agregado a `meli_webhook_es_reclamo_devolucion()`.
+- `app/meli_reclamos.py` — `crear_accion_anular_factura_por_reclamo()` ahora delega en el
+  expediente; el ticket inmediato queda como camino legado tras `RA_RECLAMOS_ACTIVO=0`.
+- `app/core.py` — las cuatro herramientas registradas en `todas_las_herramientas`.
+- `app/services/contabilidad_core.py` — cuenta PUC `4175` (Devoluciones en ventas) en
+  `_migrar_cuentas_v2`.
+- `tests/test_anulaciones.py` — 26 tests puros.
+- `app/routes_anulaciones.py` — API del panel bajo `/api/anulaciones/*` (+ alias `/app/api/...`).
+  Permiso `libro-mayor`, no `facturacion`: un expediente muestra el motivo de la anulacion, el
+  monto reintegrado y el asiento contable — es el nivel de sensibilidad del libro mayor.
+- `desktop/src/components/AnulacionesPanel.tsx` + `hooks/useAnulaciones.ts` — la vista del
+  contador. Lo primero que muestra es la DEUDA, no la actividad del dia. Cada fila abre el
+  expediente completo con su linea de tiempo: el mismo contenido que recibe un agente con
+  `consultar_expediente_anulacion`, para que persona y agente miren el mismo caso.
+- Conexiones del panel: `stores/app.ts` (tipo `Panel`), `lib/contabilidadAccess.ts` (pestana +
+  permiso), `lib/panelInfo.ts` (metadata), `components/ContabilidadPanel.tsx` (lazy + case),
+  `icons/mck/paths/panels.tsx` (icono).
+
+## Variables de entorno
+
+| Variable | Default | Para qué |
+| --- | --- | --- |
+| `RA_EMISION_ACTIVA` | `0` | Modo sombra. En `0` clasifica y decide pero no llama a Alegra. |
+| `RA_UMBRAL_AUTONOMIA` | `300000` | Monto máximo que se emite sin aprobación humana. |
+| `RA_CRON_ACTIVO` | `1` | Apaga el cron sin tocar el crontab. |
+| `RA_CRON_QUIET` | `0` | No envía WhatsApp (pruebas). |
+| `RA_RECLAMOS_ACTIVO` | `1` | En `0` vuelve al ticket inmediato del flujo viejo. |
+| `ALEGRA_NC_SIN_REFERENCIA_TYPE` | — | **Obligatoria** para el rezago Siigo. Sin ella la emisión se bloquea con `falta_tipo_nc_sin_referencia`. |
+| `ALEGRA_NC_ITEM_GENERICO_SKU` | — | Ítem servicio (sin inventario) para la NC sin referencia. |
+| `ALEGRA_MAX_OBSERVACIONES_NC` | `500` | Tope del relato dentro del documento electrónico. |
+| `NOTAS_CREDITO_MARGEN_HORAS` | `48` | Margen tras el reintegro (compartida con el cron viejo). |
 
 ## Invariantes
 
@@ -245,15 +282,21 @@ electronico para cuando revise en Alegra sin abrir el panel.
 
 ## Validacion
 
-- `pytest tests/test_smoke.py tests/test_notas_credito.py` + tests nuevos de la maquina de estados
-  y de la clasificacion por matriz (puros, sin red).
-- Test de regresion del webhook con el resource real `/post-purchase/v1/claims/{id}`.
+- `pytest tests/test_smoke.py tests/test_notas_credito.py tests/test_anulaciones.py` — los 26
+  tests nuevos son puros (base temporal, sin red) y cubren la clasificacion por matriz, la
+  politica de autonomia, la maquina de estados y el resource real
+  `/post-purchase/v1/claims/{id}` del webhook.
 - Emision contra una COPIA de `contabilidad.db`, nunca contra la base real sin `--dry-run`.
 - `balance_comprobacion()["cuadra"] == True` despues de postear asientos de NC.
 - Verificar que un expediente recien creado se recupera completo con
   `consultar_expediente_anulacion()` — si un agente no puede reconstruir el caso desde el codigo,
   el modulo no cumple su proposito.
-- `cd desktop && npm run build` antes de dar por bueno el panel.
+- `cd desktop && npm run build` (tsc -b + vite build) antes de dar por bueno el panel. El tipo
+  `Panel` es una union cerrada y `MCK_PANEL_PATHS` es un `Record<Panel, ReactNode>`: agregar un
+  panel sin su icono rompe la compilacion (paso obligatorio, no opcional).
+- El permiso del panel (`puedeVerModuloContabilidad(user, "anulaciones")`) y el del backend
+  (`routes_anulaciones._usuario_puede`) deben coincidir — si divergen, la pestana se ve pero la
+  API responde 403.
 
 ## Memoria Antes de Cambiar
 
@@ -261,9 +304,30 @@ electronico para cuando revise en Alegra sin abrir el panel.
 python3 scripts/consultar_memoria_debug.py --q "notas credito anulacion devolucion reclamo meli alegra siigo read only"
 ```
 
-## Casos abiertos que este diseño NO resuelve todavia
+## Encendido (en orden)
+
+1. `pytest tests/test_anulaciones.py` en la maquina real.
+2. Dejar correr el cron en modo sombra unos dias y revisar los expedientes que abre:
+   `python3 -c "from app.services import anulaciones_db as a; print(a.listar(abiertos=True))"`.
+   Lo que importa es que la CLASIFICACION sea correcta, no que emita.
+3. El operador crea UNA nota credito sin referencia a mano en Alegra;
+   `descubrir_tipo_nota_credito_sin_referencia_alegra()` da el `type` →
+   `ALEGRA_NC_SIN_REFERENCIA_TYPE`.
+4. Crear el item generico de servicio en Alegra → `ALEGRA_NC_ITEM_GENERICO_SKU`.
+5. Decision del contador sobre el rezago Siigo y el reembolso a cargo de MeLi.
+6. `RA_EMISION_ACTIVA=1`, primero con `RA_UMBRAL_AUTONOMIA` bajo (ej. 50000) para que solo se
+   emitan solos los casos pequenos mientras se gana confianza.
+7. Cuando lleve semanas estable, apagar `notas_credito_auto` (`NOTAS_CREDITO_CRON_ACTIVO=0`).
+
+## Casos abiertos que este modulo NO resuelve todavia
 
 - Si Siigo se reactiva o todo el rezago se emite en Alegra sin referencia. **Decision del contador.**
 - Tratamiento contable del ingreso por compensacion de MeLi. **Decision del contador.**
-- Si ventas web y WhatsApp entran al motor en la primera version o solo MeLi.
-- Umbrales: `RA_UMBRAL_AUTONOMIA` (monto) y escalamiento por antiguedad (72h / 7 dias).
+- Ventas web y WhatsApp: el esquema ya las contempla (`origen`, `referencia_web`), pero el
+  barrido de hoy solo recorre MeLi.
+- Escalamiento por antiguedad (72h sube prioridad, 7 dias avisa a direccion): el dato ya esta
+  en `deuda_abierta()['dias_mas_antigua']`, falta la regla que actue sobre el.
+- Nota credito por LINEAS para devolucion parcial: hoy esos casos van a `requiere_decision`
+  correctamente, pero la emision automatica sigue siendo por el total.
+- Alerta cuando un topico desconocido se repite en `webhook_meli_incidents.jsonl` — el punto
+  ciego que hizo invisible el bug de `post_purchase` durante 4 dias.

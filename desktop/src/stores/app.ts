@@ -43,6 +43,7 @@ export type Panel =
   | "creditos-adquiridos"
   | "libro-mayor"
   | "contabilidad-inicio"
+  | "anulaciones"
   | "prestamos"
   | "tickets"
   | "etiquetas"

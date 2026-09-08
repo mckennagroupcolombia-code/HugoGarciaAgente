@@ -76,6 +76,19 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Emite en Siigo la nota crédito de ventas MeLi canceladas con factura ya emitida (margen 48h) y avisa por WhatsApp.",
         "script": "scripts/emitir_notas_credito_cron.py",
     },
+    "anulaciones_ra": {
+        "nombre": "Resolución de Anulaciones (notas crédito)",
+        "descripcion": (
+            "Detecta ventas MeLi con reintegro al comprador (cancelación, devolución o reclamo), "
+            "abre un expediente por caso, emite la nota crédito en Alegra cuando la política de "
+            "autonomía lo permite y postea el asiento en el libro mayor propio. A diferencia del "
+            "cron viejo (notas_credito_auto) no parte de order.status=cancelled — una devolución "
+            "deja la orden PAGADA — y reporta la DEUDA abierta aunque no haya emitido nada, para "
+            "que un caso pendiente nunca se confunda con un día sin devoluciones. Sucesor de "
+            "notas_credito_auto: cuando lleve unas semanas estable, aquel se apaga."
+        ),
+        "script": "scripts/anulaciones_cron.py",
+    },
     "reconciliar_precios_meli": {
         "nombre": "Sincronización de precios MeLi → Siigo/Web",
         "descripcion": "Compara el precio vivo de cada publicación activa en MeLi contra Siigo por SKU y corrige Siigo → Sheets → Web donde difieran (MeLi es la referencia maestra). Diferencias >2× (posible SKU cruzado) no se aplican solas, se reportan por WhatsApp para revisión manual en Ganancia (/app).",

@@ -204,6 +204,15 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M4 9h16" />
     </>
   ),
+  // Documento con el borde inferior dentado (comprobante) y una flecha de
+  // retorno: una nota crédito devuelve el valor de una factura ya emitida.
+  anulaciones: (
+    <>
+      <path d="M7 3.5h10v14l-2.5-1.5L12 17.5 9.5 16 7 17.5v-14z" />
+      <path d="M14 8H9.5" />
+      <path d="M11 11.5l-1.5-1.5L11 8.5" />
+    </>
+  ),
   "contabilidad-inicio": (
     <>
       <path d="M9 11l2 2 4-4" />

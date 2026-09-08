@@ -131,6 +131,22 @@
     {
       "path": "app/tools/catalogos_proveedores_web.py",
       "nota": "Extractores de catálogos web de proveedores (sin LLM)"
+    },
+    {
+      "path": "scripts/anulaciones_cron.py",
+      "nota": "Cron Resolución de Anulaciones (notas crédito)"
+    },
+    {
+      "path": "app/services/anulaciones_db.py",
+      "nota": "Expedientes de anulación (RA)"
+    },
+    {
+      "path": "app/services/anulaciones_motor.py",
+      "nota": "Motor RA: detección, clasificación, emisión"
+    },
+    {
+      "path": "app/tools/anulaciones.py",
+      "nota": "Herramientas RA para agentes + ticket"
     }
   ]
 }

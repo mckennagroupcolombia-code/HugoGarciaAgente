@@ -31,6 +31,7 @@ import { esAdminPanel } from "./adminAccess";
 export const CONTABILIDAD_PANELS = [
   "contabilidad-inicio",
   "libro-mayor",
+  "anulaciones",
   "compras-exterior",
   "productos-siigo",
   "costos-productos",
@@ -199,6 +200,15 @@ export function puedeVerModuloContabilidad(
   }
   if (seccion === "servicios") {
     return Boolean(p.servicios || p.operativos || p.rentabilidad);
+  }
+  if (seccion === "anulaciones") {
+    // Mismo permiso que Libro Mayor, y a propósito: un expediente muestra el
+    // motivo por el que se anuló una venta, el monto reintegrado al comprador y
+    // el asiento contable. Es el nivel de sensibilidad del libro mayor, no el de
+    // una lista de facturas. Debe coincidir con `_usuario_puede` en
+    // `app/routes_anulaciones.py` — si divergen, el panel se ve pero la API
+    // responde 403.
+    return Boolean(p["libro-mayor"]);
   }
   if (seccion === "libro-mayor") {
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con

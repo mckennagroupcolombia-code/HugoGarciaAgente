@@ -197,6 +197,11 @@ def _migrar_cuentas_v2() -> None:
         ("5299", "Comisiones y gastos plataformas de venta", "gasto", "debito"),
         ("2295", "Préstamos por pagar - terceros", "pasivo", "credito"),
         ("1290", "Préstamos por cobrar - terceros", "activo", "debito"),
+        # Resolución de Anulaciones (RA, sep-2026): una nota crédito por
+        # devolución/cancelación es un CONTRA-INGRESO, no un gasto — llevarla a
+        # 5195 inflaría ventas y gastos a la vez y dejaría el margen mentiroso.
+        # Ver `app/services/anulaciones_motor.py::postear_asiento`.
+        ("4175", "Devoluciones en ventas", "ingreso", "debito"),
     ]
     with _conn() as con:
         for codigo, nombre, tipo, naturaleza in nuevas:

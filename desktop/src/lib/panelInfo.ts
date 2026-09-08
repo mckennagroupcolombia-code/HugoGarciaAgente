@@ -420,6 +420,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  anulaciones: {
+    emoji: "🧾",
+    label: "Anulaciones",
+    description:
+      "Ventas anuladas —cancelación, devolución, reclamo o reembolso— y el estado de su nota crédito. Cada caso es un expediente con su línea de tiempo: por qué se anuló, qué factura se afectó, qué nota crédito se emitió y qué pasó con el inventario.",
+    tips: [
+      "Lo primero que muestra es la deuda: cuántas anulaciones siguen sin nota crédito y desde hace cuántos días la más antigua.",
+      "Un caso 'Requiere decisión' no se emite solo por política (rezago de Siigo, reembolso a cargo de MeLi, monto alto o devolución parcial) — aprobarlo deja tu nombre en el expediente.",
+      "Las notas que dejes en un expediente las lee después cualquier agente IA que consulte el caso.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   "libro-mayor": {
     emoji: "🧮",
     label: "Libro Mayor",
