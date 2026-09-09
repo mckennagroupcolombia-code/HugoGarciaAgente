@@ -411,6 +411,15 @@ webhook — precedente: en abril/2026 se asumió que `questions`/`orders_v2`/`me
 suscritos en la app de MeLi y no era cierto, dejando preventa/posventa rotas en silencio semanas.
 Requiere habilitar el tópico `shipments` en developers.mercadolibre.com para la app.
 
+**Estado desde el 2026-09-09: apagado (`=0`) a propósito.** Estuvo en `1` del 4 al 9 de sep y produjo
+(a) packs multi-producto facturados a medias — el webhook corría con código anterior al fix
+multi-orden porque nunca se reinició — y (b) 41 packs facturados dos veces, porque astroselling
+seguía facturando en Siigo al comprar mientras Alegra facturaba al entregar. Hoy se factura **a mano
+con el botón "Facturar ahora"** de Facturación → Ventas, que emite **una sola factura por carrito**
+(`facturar_pack_meli_manual`) y aborta si el pack ya tiene factura o documento fiscal en MeLi. Antes
+de volver a encender el automático: cerrar la regularización y sanear el catálogo. Ficha completa,
+cronología y decisiones abiertas: `docs/agentic/modules/facturacion-meli-alegra.md`.
+
 ### H. Facturación al momento de ENTREGA (política general, no solo MeLi) + nota crédito
 
 Principio de negocio (reemplaza "facturar al vender"): facturar en el momento de la **entrega**

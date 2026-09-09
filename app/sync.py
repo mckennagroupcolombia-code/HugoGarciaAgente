@@ -389,7 +389,7 @@ def _hay_accion_abierta_sync_facturas_faltantes() -> bool:
                 """
                 SELECT id
                 FROM tickets
-                WHERE tipo='accion'
+                WHERE tipo IN ('accion','solicitud')
                   AND titulo=?
                   AND estado IN ('pendiente','en_proceso','esperando_aprobacion')
                 ORDER BY id DESC
@@ -414,6 +414,16 @@ def _crear_accion_sync_facturas_faltantes_siigo(
     """
     packs_ticket = _packs_accionables_sync(categorias)
     if not packs_ticket:
+        return None
+    # Apagado por defecto desde el 2026-09-09: tras la migración a Alegra la
+    # categoría "sin_cruce" pasó a ser simplemente "todo lo que aún no se
+    # facturó", y este ticket duplicaba —peor— lo que ya muestra Facturación →
+    # Ventas (cruce comprado vs facturado, histórico, botón Facturar). Además
+    # un bug de dedupe (buscaba tipo 'accion' pero el ticket asignado se guarda
+    # como 'solicitud') creaba uno NUEVO cada día: la operadora llegó a tener 5
+    # abiertos con 35→98 pasos repetidos. Reactivable con
+    # SYNC_TICKET_FALTANTES_ACTIVO=1 si algún día vuelve a hacer falta.
+    if (os.getenv("SYNC_TICKET_FALTANTES_ACTIVO", "0") or "0").strip() != "1":
         return None
     if _hay_accion_abierta_sync_facturas_faltantes():
         return None

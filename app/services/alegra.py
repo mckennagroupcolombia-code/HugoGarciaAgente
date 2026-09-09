@@ -186,7 +186,14 @@ def buscar_producto_alegra_por_referencia(sku: str):
     resultados = res.json() or []
     if not resultados:
         return None
-    item = resultados[0]
+    # Preferir el ítem ACTIVO. Alegra acepta ítems inactivos en una factura
+    # nueva, pero después no deja anularla (error 9053 "solo ítems activos"):
+    # confirmado en vivo 2026-09-09 — FE200 se emitió con el bicarbonato
+    # inactivo (id 29) y FE36 no se pudo anular por un ítem -LEGACY. Tomar el
+    # primero sin mirar `status` producía facturas que mañana no se pueden
+    # corregir.
+    activos = [it for it in resultados if (it.get("status") or "active").strip().lower() == "active"]
+    item = activos[0] if activos else resultados[0]
     precio = 0.0
     precios = item.get("price") or []
     if precios and isinstance(precios, list):
@@ -353,14 +360,45 @@ def _nombre_object_persona(nombre: str) -> dict:
 
 def _resolver_o_crear_contacto_alegra(
     *, nombre: str, identificacion: str, email: str = "", telefono: str = "", direccion: str = "",
+    tipo_documento: str = "",
 ) -> tuple[str | None, str]:
     """Busca un contacto por identificación; si no existe, lo crea. Retorna
     (id_de_alegra, error) — error vacío si ok. El detalle de error se propaga
     al operador (panel Cotizar/Facturar) en vez de quedarse solo en el print
-    de consola, que se puede perder si el proceso se reinicia justo después."""
+    de consola, que se puede perder si el proceso se reinicia justo después.
+
+    `tipo_documento`: "NIT" o "CC" si el llamador ya sabe el tipo real (ej.
+    `doc_type` de MeLi billing_info) — se usa tal cual. Si viene vacío,
+    cae al heurístico por longitud (≤10 dígitos → CC), que es SOLO un
+    fallback: un NIT de empresa colombiana casi siempre tiene 9-10 dígitos,
+    igual que una cédula, así que sin la señal real el heurístico clasifica
+    mal la mayoría de NITs de empresa como CC (bug confirmado en vivo con
+    Fork Catering — factura A71352 vía Siigo, sep-2026).
+
+    Para `tipo_documento="NIT"`: el `number` que Alegra espera es SOLO la
+    base (sin dígito de verificación) — Alegra lo calcula solo y lo guarda
+    aparte en `identificationObject.dv` (confirmado en vivo contra contactos
+    reales de la cuenta: NIT 900397034 → dv "9"). Pero MeLi entrega el NIT
+    del comprador YA con el DV pegado al final (`billing_info.doc_number`,
+    10 dígitos = base de 9 + DV). Si se manda tal cual, Alegra trata los 10
+    dígitos como si fueran la base y calcula un DV nuevo encima — el MISMO
+    bug de Siigo, reproducido en Alegra (confirmado en vivo: NIT
+    "9003970349" → Alegra calculó dv "5", igual que el check_digit erróneo
+    de Siigo). Por eso se recorta el último dígito cuando el tipo es NIT y
+    vienen 10 dígitos."""
     identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
     if not identificacion:
         return None, "Identificación vacía."
+
+    tipo_doc_normalizado = (tipo_documento or "").strip().upper()
+    id_type = tipo_doc_normalizado if tipo_doc_normalizado in ("NIT", "CC") else (
+        "CC" if len(identificacion) <= 10 else "NIT"
+    )
+    if id_type == "NIT" and len(identificacion) == 10:
+        # Los últimos 9-10 dígitos de un NIT colombiano son base(9)+DV(1) —
+        # MeLi ya trae el DV pegado; Alegra lo quiere aparte.
+        identificacion = identificacion[:-1]
+
     if identificacion in _contacto_cache:
         return _contacto_cache[identificacion], ""
 
@@ -390,7 +428,7 @@ def _resolver_o_crear_contacto_alegra(
                 "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
                 "nameObject": _nombre_object_persona(nombre),
                 "identificationObject": {
-                    "type": "CC" if len(identificacion) <= 10 else "NIT",
+                    "type": id_type,
                     "number": identificacion,
                 },
                 "kindOfPerson": "PERSON_ENTITY",
@@ -426,7 +464,7 @@ def _resolver_o_crear_contacto_alegra(
         "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
         "nameObject": _nombre_object_persona(nombre),
         "identificationObject": {
-            "type": "CC" if len(identificacion) <= 10 else "NIT",
+            "type": id_type,
             "number": identificacion,
         },
         "kindOfPerson": "PERSON_ENTITY",
@@ -467,6 +505,7 @@ def crear_factura_venta_alegra(
     descargar_pdf: bool = True,
     enviar_dian: bool = True,
     enviar_correo: bool = False,
+    tipo_documento: str = "",
     **_compat,  # absorbe kwargs propios de Siigo (document_id, seller_id, payment_id, customer_*_code)
 ) -> dict:
     """
@@ -495,6 +534,7 @@ def crear_factura_venta_alegra(
     contacto_id, error_contacto = _resolver_o_crear_contacto_alegra(
         nombre=nombre_cliente, identificacion=identificacion_digits,
         email=email, telefono=telefono, direccion=direccion_envio,
+        tipo_documento=tipo_documento,
     )
     if not contacto_id:
         detalle = f" {error_contacto}" if error_contacto else ""
@@ -1854,9 +1894,16 @@ def _stamp_info_alegra(factura: dict) -> dict:
 
 
 # Fecha de corte de la migración Siigo → Alegra (primera factura real en Alegra,
-# FE1, emitida 2026-09-02). Facturas con fecha anterior solo existen en Siigo;
-# desde esta fecha en adelante, solo en Alegra — no hay solapamiento real.
+# FE1, emitida 2026-09-02).
 FECHA_CORTE_MIGRACION_ALEGRA = "2026-09-02"
+
+# Última factura emitida en Siigo (astroselling siguió facturando al comprar los
+# días 2 y 3 de sep — 90 facturas — mientras Alegra ya facturaba al entregar).
+# SÍ hubo solapamiento real: 41 packs facturados en ambos sistemas (ver
+# docs/agentic/modules/facturacion-meli-alegra.md §3). Cortar Siigo en el día del
+# corte dejaba esas 90 ventas invisibles para el índice legado y el panel de
+# Ventas, que las mostraba como "sin facturar".
+FECHA_ULTIMA_FACTURA_SIIGO = "2026-09-03"
 
 
 def obtener_facturas_hibridas(fecha_inicio: str, fecha_fin: str | None = None, estricto: bool = False) -> list:
@@ -1874,7 +1921,7 @@ def obtener_facturas_hibridas(fecha_inicio: str, fecha_fin: str | None = None, e
     """
     resultados: list = []
 
-    if fecha_inicio < FECHA_CORTE_MIGRACION_ALEGRA:
+    if fecha_inicio <= FECHA_ULTIMA_FACTURA_SIIGO:
         from app.services.siigo import obtener_facturas_siigo_paginadas as _siigo_fn
 
         try:
@@ -1885,10 +1932,11 @@ def obtener_facturas_hibridas(fecha_inicio: str, fecha_fin: str | None = None, e
             facturas_siigo = []
         for f in facturas_siigo:
             fecha = (f.get("date") or "")[:10]
-            # Estrictamente antes del corte — evita doble conteo si alguna
-            # factura de Siigo quedó con fecha del día del corte o posterior
-            # (no debería pasar, pero es barato de chequear).
-            if fecha < FECHA_CORTE_MIGRACION_ALEGRA:
+            # Hasta la última emisión real de Siigo (inclusive). Los días de
+            # solape con Alegra (2–3 sep) devuelven facturas de ambos sistemas
+            # para la misma venta: eso es un duplicado real que el panel debe
+            # mostrar como tal, no ruido que haya que esconder.
+            if fecha <= FECHA_ULTIMA_FACTURA_SIIGO:
                 resultados.append(f)
 
     desde_alegra = max(fecha_inicio, FECHA_CORTE_MIGRACION_ALEGRA)
@@ -2911,7 +2959,14 @@ def _detalle_venta_meli(order_id: str, *, token: str | None = None) -> dict | No
         items = []
         for it in orden.get("order_items") or []:
             item_info = it.get("item") or {}
-            sku = (item_info.get("seller_custom_field") or "").strip()
+            # `seller_custom_field` primero (es el SKU de la VARIACIÓN comprada,
+            # ver la nota en _construir_lineas_factura_desde_orden_meli), y
+            # `seller_sku` como respaldo: hay publicaciones (confirmado en vivo
+            # 2026-09-09, pack 2000014920695311) donde MeLi deja
+            # `seller_custom_field` en null y solo llena `seller_sku`. Mirando
+            # uno solo de los dos, esas líneas quedaban con SKU "—" y no
+            # pareaban contra la factura al cruzar comprado vs facturado.
+            sku = (item_info.get("seller_custom_field") or item_info.get("seller_sku") or "").strip()
             if not sku:
                 for attr in item_info.get("attributes") or []:
                     if attr.get("id") == "SELLER_SKU":

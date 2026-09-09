@@ -6823,6 +6823,53 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    @app.route("/api/facturacion/ventas-unificadas/historial", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/historial", methods=["GET"])
+    def api_facturacion_ventas_historial():
+        """Histórico extenso desde SQLite, sin llamar a MeLi ni a Alegra.
+
+        El listado en vivo está topado en 150 filas porque cada una cuesta hasta
+        3 llamadas HTTP a MeLi. Acá se sirve lo YA reconstruido (se persiste con
+        cada listado), así el operador puede revisar miles de ventas al instante.
+        El estado es una foto: cada fila trae `cache_actualizado_en` y se refresca
+        una por una con /refrescar/<order_id>.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.facturacion_ventas_cache import estadisticas, listar_historial
+
+            data = listar_historial(
+                segmento=(request.args.get("segmento") or "concretadas").strip().lower(),
+                estado=(request.args.get("estado") or "").strip() or None,
+                q=(request.args.get("q") or "").strip() or None,
+                limite=int(request.args.get("limit") or 500),
+                offset=int(request.args.get("offset") or 0),
+            )
+            data["estadisticas"] = estadisticas()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300], "ventas": []}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/refrescar/<order_id>", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/refrescar/<order_id>", methods=["POST"])
+    def api_facturacion_ventas_refrescar(order_id):
+        """Re-consulta UNA venta contra MeLi/Alegra y actualiza su fila del
+        histórico. MeLi no deja refrescar el estado de cientos de ventas de
+        golpe (cada una son varias llamadas), así que el refresco es puntual:
+        el operador corrobora la venta que le interesa, no todo el listado."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.facturacion_ventas_unificado import consultar_venta_individual
+
+            fila = consultar_venta_individual(str(order_id))
+            if not fila:
+                return jsonify({"ok": False, "error": "No se encontró esa orden/pack en MeLi."}), 404
+            return jsonify({"ok": True, "venta": fila})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
     @app.route("/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     @app.route("/app/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     def api_facturacion_ventas_unificadas_comprador(order_id):
@@ -6867,10 +6914,15 @@ def register_routes(app):
     @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
     def api_facturacion_ventas_unificadas_facturar_ahora():
         """Botón "Facturar ahora" del panel Ventas y NC (ver TKT-2026-1178):
-        emite en Alegra, desde la aplicación, una venta MeLi puntual marcada
-        "🔴 Sin facturar" — sin tener que ir a Alegra manualmente. Reusa la
-        misma lógica que la autofactura automática al entregarse el pedido
-        (Flujo G), pero disparada por un operador para UNA orden concreta."""
+        emite en Alegra, desde la aplicación, una venta MeLi entregada sin
+        factura — sin tener que ir a Alegra manualmente.
+
+        Factura el CARRITO COMPLETO, no la orden de la fila: un carrito de N
+        productos son N órdenes con el mismo `pack_id`, y facturar solo una deja
+        el resto sin facturar (el error que obligó a emitir notas crédito y
+        reemitir consolidado a mano en sep-2026). Ver
+        `facturar_pack_meli_manual`, que aborta sin emitir si alguna orden del
+        pack ya está facturada."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json(silent=True) or {}
@@ -6878,10 +6930,15 @@ def register_routes(app):
         if not order_id:
             return jsonify({"ok": False, "error": "order_id requerido"}), 400
         try:
-            from app.tools.meli_autofactura_entrega import facturar_orden_meli_manual
+            from app.tools.meli_autofactura_entrega import facturar_pack_meli_manual
 
-            resultado = facturar_orden_meli_manual(order_id)
-            return jsonify(resultado), (200 if resultado.get("ok") else 502)
+            resultado = facturar_pack_meli_manual(order_id)
+            # 200 siempre que el endpoint mismo respondió bien: un fallo de negocio
+            # (producto sin mapear en Alegra, datos de facturación incompletos, etc.)
+            # no es un "Bad Gateway" — antes se mapeaba a 502 y el panel lo mostraba
+            # como si el backend se hubiera caído, cuando el error real venía en
+            # `resultado["error"]` (ver TKT facturar-ahora 502 falso positivo, sep-2026).
+            return jsonify(resultado), 200
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:300]}), 500
 
@@ -19487,6 +19544,59 @@ def register_routes(app):
             return jsonify({"error": "No encontrada"}), 404
         return jsonify({"ok": True})
 
+    # ── Ficha de etiqueta: fichas guardadas ──────────────────────────────────
+    # Persistencia del formulario ProductLabelForm.tsx (antes solo vivía en
+    # memoria de React y se perdía al recargar). 'nombre' lo escribe el
+    # operador a mano — nunca se deriva de data.productName.
+
+    @app.route("/api/etiquetas/fichas", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/fichas", methods=["GET", "POST"])
+    def api_etiquetas_fichas():
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_fichas import guardar_ficha, listar_fichas
+
+        if request.method == "GET":
+            q = (request.args.get("q") or "").strip()
+            items = listar_fichas(q=q)
+            return jsonify({"fichas": items, "total": len(items)})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = guardar_ficha(body)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "ficha": entry})
+
+    @app.route("/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
+    @app.route("/app/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
+    def api_etiquetas_fichas_id(ficha_id: str):
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_fichas import eliminar_ficha, guardar_ficha, obtener_ficha
+
+        if request.method == "GET":
+            f = obtener_ficha(ficha_id)
+            if not f:
+                return jsonify({"error": "No encontrada"}), 404
+            return jsonify({"ficha": f})
+
+        if request.method == "DELETE":
+            ok = eliminar_ficha(ficha_id)
+            if not ok:
+                return jsonify({"error": "No encontrada"}), 404
+            return jsonify({"ok": True})
+
+        body = request.get_json(silent=True) or {}
+        body["id"] = ficha_id
+        try:
+            entry = guardar_ficha(body)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "ficha": entry})
+
     @app.route("/api/plantillas-visuales/exportar", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/exportar", methods=["POST"])
     def api_plantillas_visuales_exportar():
@@ -20280,6 +20390,38 @@ REGLAS:
             meta = {**_meta_formato_png_de_indice(destino, nombre), **meta}
         entry = _registrar_png_recurso(nombre, destino, len(raw), meta=meta or None)
         return jsonify({"ok": True, **entry})
+
+    # ── Logos corporativos (carpeta DISENO CORPORATIVO del repo) ─────────
+    # Usados por la "Ficha de etiqueta" (botón del logo): el operador elige
+    # el logo desde el panel y el color de acento de la ficha se toma del
+    # logo elegido (cálculo en el navegador, ver lib/colorDominante.ts).
+    @app.route("/api/etiquetas/logos-corporativos", methods=["GET"])
+    @app.route("/app/api/etiquetas/logos-corporativos", methods=["GET"])
+    def api_etiquetas_logos_corporativos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import carpeta_logos, listar_logos
+
+        base = carpeta_logos()
+        logos = listar_logos()
+        return jsonify({
+            "logos": logos,
+            "carpeta": str(base) if base else None,
+            "total": len(logos),
+        })
+
+    @app.route("/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])
+    @app.route("/app/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])
+    def api_etiquetas_logo_corporativo_archivo(nombre: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import ruta_logo
+
+        ruta, mime = ruta_logo(nombre)
+        if ruta is None:
+            return jsonify({"error": "Logo no encontrado"}), 404
+        from flask import send_file
+        return send_file(ruta, mimetype=mime, conditional=True)
 
     @app.route("/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])

@@ -158,34 +158,50 @@ def _item_prestamos_pendientes() -> dict[str, Any] | None:
     )
 
 
+# Estados del panel Facturación → Ventas que exigen acción humana (mismo set que
+# NEEDS_REVIEW en VentasAstroKillerPanel.tsx).
+_ESTADOS_FACTURACION_ACCIONABLES = (
+    "facturada_parcial",
+    "sin_facturar",
+    "facturada_pendiente_subir_meli",
+    "cancelada_pendiente_nc",
+)
+
+
 def _item_facturacion_pendiente() -> dict[str, Any] | None:
+    """Casos de facturación MeLi que requieren acción, leídos del histórico
+    del panel Facturación → Ventas (app/services/facturacion_ventas_cache.py).
+
+    Antes contaba los pasos abiertos del ticket-checklist y mandaba al usuario
+    a Tickets, donde tenía que copiar el ID de cada venta y pegarlo en
+    Facturación para poder revisarla. Ahora el CTA lleva directo a
+    Facturación → Ventas con el filtro "solo pendientes": la revisión se hace
+    en el mismo sitio donde está el cruce comprado vs facturado y el botón
+    Facturar. El ticket queda solo como registro, no como herramienta.
+    """
     try:
-        from app.tools.revision_facturacion import pasos_abiertos_facturacion
+        from app.services.facturacion_ventas_cache import estadisticas
+
+        por_estado = estadisticas().get("por_estado") or {}
     except Exception:
         return None
-    try:
-        pasos = pasos_abiertos_facturacion()
-    except Exception:
-        return None
-    n = len(pasos)
+    n = sum(int(por_estado.get(e) or 0) for e in _ESTADOS_FACTURACION_ACCIONABLES)
+    parciales = int(por_estado.get("facturada_parcial") or 0)
     if n == 0:
         return _item(
             "facturacion_pendiente",
-            "Revisión de facturación MeLi",
-            "Sin pasos abiertos en el ticket de revisión de facturación.",
+            "Facturación MeLi pendiente",
+            "Sin ventas con problema de facturación en el histórico del panel.",
             0,
             "ok",
-            "ticket_facturacion",
+            "facturacion_ventas",
         )
-    return _item(
-        "facturacion_pendiente",
-        "Revisión de facturación MeLi",
-        f"{n} caso{'s' if n != 1 else ''} pendiente{'s' if n != 1 else ''} en el ticket de "
-        "revisión de facturación (duplicados, pendientes de subir o vencidos sin facturar).",
-        n,
-        "alta",
-        "ticket_facturacion",
+    detalle = (
+        f"{n} venta{'s' if n != 1 else ''} con acción pendiente en Facturación → Ventas"
+        + (f" ({parciales} facturada{'s' if parciales != 1 else ''} a medias)" if parciales else "")
+        + ". Se revisan ahí mismo, con el cruce comprado vs facturado y el botón Facturar."
     )
+    return _item("facturacion_pendiente", "Facturación MeLi pendiente", detalle, n, "alta", "facturacion_ventas")
 
 
 def resumen_checklist() -> dict[str, Any]:

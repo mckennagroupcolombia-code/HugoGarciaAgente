@@ -68,6 +68,13 @@ export default function FacturacionPanel() {
     if (fromLegacy === "sync" || fromLegacy === "compra" || fromLegacy === "ventas") setSub(fromLegacy);
   }, [panel]);
 
+  // Llegada con contexto (paso de ticket o checklist de Contabilidad): abrir
+  // directamente la pestaña Ventas, que es la que consume `ventasBoot`.
+  const ventasBoot = useAppStore((s) => s.ventasBoot);
+  useEffect(() => {
+    if (ventasBoot && puedeVentas) setSub("ventas");
+  }, [ventasBoot, puedeVentas]);
+
 
   useEffect(() => {
     if (!subtabs.length) return;

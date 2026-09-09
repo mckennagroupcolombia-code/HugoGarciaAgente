@@ -187,6 +187,11 @@ interface AppState {
   /** Vista interna al abrir Facturas desde el menú Facturación. */
   facturasBootVista: "pendientes" | "historial" | "consultar" | null;
   setFacturasBootVista: (v: "pendientes" | "historial" | "consultar" | null) => void;
+  /** Abrir Facturación → Ventas con contexto: una venta concreta (desde un
+   * paso de ticket) o el filtro "solo pendientes" (desde el checklist de
+   * Contabilidad). Se consume y se limpia al montar el panel. */
+  ventasBoot: { busqueda?: string; soloPendientes?: boolean } | null;
+  setVentasBoot: (v: { busqueda?: string; soloPendientes?: boolean } | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -279,6 +284,8 @@ export const useAppStore = create<AppState>()(
       setFacturasBootSufijo: (facturasBootSufijo) => set({ facturasBootSufijo }),
       facturasBootVista: null,
       setFacturasBootVista: (facturasBootVista) => set({ facturasBootVista }),
+      ventasBoot: null,
+      setVentasBoot: (ventasBoot) => set({ ventasBoot }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;

@@ -7556,6 +7556,29 @@ export function PasosSection({
                   >
                     {p.descripcion}
                   </label>
+                  {/* Un paso que nombra una venta MeLi se abre directo en
+                      Facturación → Ventas, sin copiar el ID y pegarlo en otro
+                      apartado (queja de la operadora, sep-2026). */}
+                  {(() => {
+                    const m = /\b(\d{12,20})\b/.exec(p.descripcion || "");
+                    if (!m) return null;
+                    const idVenta = m[1];
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          useAppStore.getState().setVentasBoot({ busqueda: idVenta });
+                          useAppStore.getState().setPanel("facturacion");
+                        }}
+                        className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent hover:bg-accent/20"
+                        title={`Abrir la venta ${idVenta} en Facturación → Ventas`}
+                      >
+                        Abrir en Facturación ↗
+                      </button>
+                    );
+                  })()}
                 </div>
                 <PasoNotaPostit
                   titulo={p.descripcion}

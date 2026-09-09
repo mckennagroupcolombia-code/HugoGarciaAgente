@@ -61,6 +61,12 @@ export default function ContabilidadInicioPanel() {
         setPanel("tickets");
         setTicketsBootView("list");
         return;
+      case "facturacion_ventas":
+        // Directo al panel donde se resuelve (cruce comprado vs facturado +
+        // botón Facturar), no al ticket que solo lista IDs.
+        useAppStore.getState().setVentasBoot({ soloPendientes: true });
+        setPanel("facturacion");
+        return;
       default:
         return;
     }
