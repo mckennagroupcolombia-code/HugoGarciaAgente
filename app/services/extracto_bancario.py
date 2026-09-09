@@ -1306,6 +1306,32 @@ def pendientes_por_clasificar(
     return out
 
 
+def ruta_archivo_extracto(extracto_id: int) -> dict[str, Any] | None:
+    """Ubica en disco el archivo original subido para un extracto (para verlo/descargarlo).
+
+    Retorna ``{"path", "nombre_descarga"}`` o ``None`` si el extracto no existe
+    o el archivo ya no está en disco (p. ej. borrado a mano fuera del panel).
+    """
+    ensure_extracto_tables()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT archivo_path, archivo_nombre FROM extractos_bancarios WHERE id = ?",
+            (int(extracto_id),),
+        ).fetchone()
+    if not row:
+        return None
+    stored = (row["archivo_path"] or "").strip()
+    if not stored:
+        return None
+    full = os.path.join(_EXTRACTOS_DIR, os.path.basename(stored))
+    if not os.path.isfile(full):
+        return None
+    return {
+        "path": full,
+        "nombre_descarga": (row["archivo_nombre"] or "").strip() or os.path.basename(full),
+    }
+
+
 def eliminar_extracto(extracto_id: int) -> bool:
     ensure_extracto_tables()
     with _conn() as con:

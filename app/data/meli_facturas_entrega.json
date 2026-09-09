@@ -14936,6 +14936,457 @@
       "siigo_invoice_status": "closed",
       "siigo_invoice_cufe": "7835ac60293ad2bd84071034340c5258e067226b84c76e592ef6dcb7cb92ff3ab40a40136dbd8b1719fe5470d439759c",
       "pdf_subido_meli": true
+    },
+    "2000018325289012": {
+      "shipping_id": "47952322892",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T14:21:10",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "151",
+      "siigo_invoice_number": "FE151",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "1acb5108c1e26952d195864d89f4cfec79b6e1934289195e6c7fdfc8ebf439dec6d001a4f9dab037bf29606c14bd1446",
+      "pdf_subido_meli": true
+    },
+    "2000018290294166": {
+      "shipping_id": "47936619827",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T14:22:23",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "152",
+      "siigo_invoice_number": "FE152",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2048aa14baa307d1ac5a5a6cfbbfd8f9e9f7422ae8bd8d20f96dbcba0122e3f965b76b7969da2a33f2e5a5a10e111d3f",
+      "pdf_subido_meli": true
+    },
+    "2000018326991570": {
+      "shipping_id": "47953105046",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T14:56:24",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "153",
+      "siigo_invoice_number": "FE153",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "e922c420cd5b633d318703f216e23aed0d8606574e707795e033bb5c3bc46b2d56cd12126c05ee5e178cee623330097a",
+      "pdf_subido_meli": true
+    },
+    "2000018247862122": {
+      "shipping_id": "47916611201",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T14:56:38",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "154",
+      "siigo_invoice_number": "FE154",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "6610d6b5e51d6b6ffd0c42c743d2c5d74401f92db9dd6db73677a21ec6067da121e52a96d35bec3c3feb5e9fa8556d23",
+      "pdf_subido_meli": false
+    },
+    "2000018321252388": {
+      "shipping_id": "47950221277",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T15:04:47",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "155",
+      "siigo_invoice_number": "FE155",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4d4b8b8a644ef20bd99a1fc7ead990808f975ca3d671b51797174829fbd705f7764b28b3c0ee9b445951f50518f25250",
+      "pdf_subido_meli": true
+    },
+    "2000018332734514": {
+      "shipping_id": "47955727636",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T15:21:44",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "156",
+      "siigo_invoice_number": "FE156",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "2747344737772789b65d4c7ee93872625b00b51b700db257d440a04a9173092921df28a055ea6e7ce5733522ba4ca565",
+      "pdf_subido_meli": true
+    },
+    "2000018345018310": {
+      "shipping_id": "47961098601",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T15:30:51",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "157",
+      "siigo_invoice_number": "FE157",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "68a7e66a814b6d92b40249300b6b45677bbdd89e4b487f424d2bae6a987eb26bb36a4d865ccc81fefcd590380b5e5cb1",
+      "pdf_subido_meli": true
+    },
+    "2000018334626718": {
+      "shipping_id": "47956599294",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T15:40:47",
+      "error": "No puedo emitir factura automática: C-CAPVACGEL00TRA1000Un: no existe en Alegra"
+    },
+    "2000018348026106": {
+      "shipping_id": "47962825190",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T15:41:21",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "158",
+      "siigo_invoice_number": "FE158",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "75d3e8973f32cba4d581a6e380dae8ef268768810cb71cbf727c9e0f0167c3fccb8690e2a7aaf2e596fcc61f8f4e28cb",
+      "pdf_subido_meli": true
+    },
+    "2000018333324120": {
+      "shipping_id": "47955999098",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T15:43:02",
+      "error": "No puedo emitir factura automática: Aceite Ricino Castor Puro 250ml (MCO1636834856): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018333452380": {
+      "shipping_id": "47955764469",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T15:56:54",
+      "error": "Error de red con Alegra: HTTPSConnectionPool(host='api.alegra.com', port=443): Read timed out. (read timeout=20)"
+    },
+    "2000018325484584": {
+      "shipping_id": "47952415160",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T15:58:41",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "160",
+      "siigo_invoice_number": "FE160",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "22644560ae82a78a33983c976686f27d62205a97f3b907cde1e6e58914484346246ae232174da0b7f071b96991efa374",
+      "pdf_subido_meli": true
+    },
+    "2000018306281560": {
+      "shipping_id": "47943808205",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T16:05:07",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "161",
+      "siigo_invoice_number": "FE161",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "9b7526015ca6428002469afd9e7983f30bc8929cbaa91c1bcb1d15e986cba9bd302d8a53b8914d9f6f7ee57ccd62f989",
+      "pdf_subido_meli": true
+    },
+    "2000018324833052": {
+      "shipping_id": "47952114932",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T16:11:06",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "162",
+      "siigo_invoice_number": "FE162",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f6dbfd7205b94d1bc112d11d8769c6c16ebe462fefef339a571d3111275662d2c72e6a25a01af2f4866d6bfc289601c5",
+      "pdf_subido_meli": true
+    },
+    "2000018318898066": {
+      "shipping_id": "47949234215",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T16:43:40",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "163",
+      "siigo_invoice_number": "FE163",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f12bb71ac1e8510f52f071fd256e7f9cd57c0925dbfd9269c9019fc29d123b1e777f487fca5d2e35d9c4fea1af4f4143",
+      "pdf_subido_meli": true
+    },
+    "2000018316126456": {
+      "shipping_id": "47948053675",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T16:45:12",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "164",
+      "siigo_invoice_number": "FE164",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "259c8e5b51e664a17bc995c702fad4f2968ed0f0e11618273e433358e739bd091ff4bebe5e5b3248d634ba7d18629126",
+      "pdf_subido_meli": true
+    },
+    "2000018348774666": {
+      "shipping_id": "47963190228",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T16:59:04",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "165",
+      "siigo_invoice_number": "FE165",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "3caf9848f224105498033ef6807bdad24cc8c39f1c0230d0de0dcf5c798b640d6d1c78aca32f665aed0c3a695f03dae5",
+      "pdf_subido_meli": true
+    },
+    "2000018321583448": {
+      "shipping_id": "47950659308",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:03:18",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "166",
+      "siigo_invoice_number": "FE166",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "cc8e8596660abf562b0919512c324e734cec6b24bc60821bb4f441540cf88e41fd399c54ff7ecf4e6dd9123438d28a60",
+      "pdf_subido_meli": true
+    },
+    "2000018298813214": {
+      "shipping_id": "47940511925",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:06:47",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "167",
+      "siigo_invoice_number": "FE167",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "999c7ffbcfd3d74514688f46489c90b259818db03eac4e6f6fa979521f7628a26679fa11a5c4099696c109ca73de155f",
+      "pdf_subido_meli": true
+    },
+    "2000018322262328": {
+      "shipping_id": "47950941480",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T17:18:29",
+      "error": "No puedo emitir factura automática: C-CREMON250g: no existe en Alegra"
+    },
+    "2000018335152112": {
+      "shipping_id": "47956535471",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:23:06",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "168",
+      "siigo_invoice_number": "FE168",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "1ed52f64f3795e4f4e5ddeb81eccfcd905200dbc4da899933578dd40e6ecacf2d5b9074ed892dec35b378d7b17c16c5c",
+      "pdf_subido_meli": true
+    },
+    "2000018307967692": {
+      "shipping_id": "47944786358",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:25:33",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "169",
+      "siigo_invoice_number": "FE169",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "eb208b9fa3995780bce7133a7fccefa3c08a022935accbcdab0814a31893327e04c1c70811333eb7bf8afb83acd1cefa",
+      "pdf_subido_meli": true
+    },
+    "2000018322658808": {
+      "shipping_id": "47951110844",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:35:30",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "170",
+      "siigo_invoice_number": "FE170",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "3969f0d2d5734bf5e72b53c37fa0e3ed1234a0a30dbe629439a81758e4a9a032e1bfc0c4ea5f8276c5b72b6a2c15e960",
+      "pdf_subido_meli": true
+    },
+    "2000018321840758": {
+      "shipping_id": "47950469115",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T17:40:13",
+      "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018335033142": {
+      "shipping_id": "47956483259",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:41:34",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "171",
+      "siigo_invoice_number": "FE171",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "0e3f938537e870e4c0baae914831bcec4f26512629b8b2a107fe5f35c54437a49f976cc9c33a8eacbf4ce60cd12e0b03",
+      "pdf_subido_meli": true
+    },
+    "2000018306888084": {
+      "shipping_id": "47944050089",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T17:55:36",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "172",
+      "siigo_invoice_number": "FE172",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "07e6937c0cab1d64290c4fda825c33030cac1922a4f0e9173e52ddbd8d513d49e69b2ba1b044139c4964394a2696730f",
+      "pdf_subido_meli": true
+    },
+    "2000018326893668": {
+      "shipping_id": "47952766349",
+      "estado": "error",
+      "actualizado_en": "2026-09-08T18:01:25",
+      "error": "No puedo emitir factura automática: C-CREMON250g: no existe en Alegra"
+    },
+    "2000018332034280": {
+      "shipping_id": "47955105021",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:02:36",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "173",
+      "siigo_invoice_number": "FE173",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4714a4196f9d57d8388f0ac1b2996e166035f8ef6659486d0e61d37a045b710178646eb35606a77f07dcc37f48992dda",
+      "pdf_subido_meli": true
+    },
+    "2000018307736672": {
+      "shipping_id": "47944398165",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:06:42",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "174",
+      "siigo_invoice_number": "FE174",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "54be4a69031c833abc9de648855746eb72fb59aa44fb7eb689872a9dc742d6fecfc993cb53ab29d9661a4f4d7bd48a1f",
+      "pdf_subido_meli": true
+    },
+    "2000018330996548": {
+      "shipping_id": "47954928422",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:09:12",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "175",
+      "siigo_invoice_number": "FE175",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "d2814adc198c6bcd386ac5af5d8e5ad48e5ec078dbc0779c4bcebf1ad1ef8c5bbb476485baa3834da4df5668949d34f6",
+      "pdf_subido_meli": true
+    },
+    "2000018339107502": {
+      "shipping_id": "47958285623",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:14:40",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "176",
+      "siigo_invoice_number": "FE176",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "7964c170f9f82049a44b07a9554a23f56165af52a2c71a6752384452f5c015605ab75663f03f6a37cbba7b007ccdd101",
+      "pdf_subido_meli": true
+    },
+    "2000018334772458": {
+      "shipping_id": "47956658954",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:24:22",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "177",
+      "siigo_invoice_number": "FE177",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f673d9eb15471d3b12c2bdf181a468e85f8fd3c7c54d16ac048d6be5d9b692067a209e6a44c5dc5bbde7b23b8a7cda6e",
+      "pdf_subido_meli": true
+    },
+    "2000018184808772": {
+      "shipping_id": "47887457069",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-08T18:32:48",
+      "pack_id": "2000014772411967",
+      "legado_factura_numero": "FV-2-71252",
+      "legado_integracion": "astroselling"
+    },
+    "2000018310951394": {
+      "shipping_id": "47946115172",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T18:54:22",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "178",
+      "siigo_invoice_number": "FE178",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "7102458504f234b2ff74275dc0ac5e99b61e4b2d1ea867f7f587faffc18ee3044f8e10e5ab07ffc803799afacaf94875",
+      "pdf_subido_meli": true
+    },
+    "2000018343163774": {
+      "shipping_id": "47960490028",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T19:34:15",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "179",
+      "siigo_invoice_number": "FE179",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f08146a8e271d47a1dc047d0c79d9e368d429fc3ec8c470e028e6e6ef26fb87efc3da2ab77d526052fc4ac00f6193850",
+      "pdf_subido_meli": true
+    },
+    "2000018302385292": {
+      "shipping_id": "47942113127",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T19:45:08",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "180",
+      "siigo_invoice_number": "FE180",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "ad9eaa562c984dbc5f451060eb318268eb75ce7075f7e6d4f8217c883edca251230c084c5fd14fb9425df3552d41e997",
+      "pdf_subido_meli": true
+    },
+    "2000018340743194": {
+      "shipping_id": "47959276124",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T19:52:11",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "181",
+      "siigo_invoice_number": "FE181",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "aa3520b2f80dacbf104cd1b6c89d2ad250a1ea8ec21363ca6ccb139e50d34eab9f91db974d46df4f1f8ac6528988d376",
+      "pdf_subido_meli": true
+    },
+    "2000018344014232": {
+      "shipping_id": "47960905470",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T20:15:42",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "182",
+      "siigo_invoice_number": "FE182",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "93cfcba2811f9d4aba39c7e7f62f9a0c643eeaab8e9fdcdfecf8338fa62245b93018c9d7a8d01e74401df2fdfcccf470",
+      "pdf_subido_meli": true
+    },
+    "2000018255857924": {
+      "shipping_id": "47920678640",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T20:16:41",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "183",
+      "siigo_invoice_number": "FE183",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "1ef1d08c0129c34e3b124ec211aa29648256d36d7d4371d0c19da657aedd66050e72ba87329be9a1da3d971fbd73533b",
+      "pdf_subido_meli": false
+    },
+    "2000018328127080": {
+      "shipping_id": "47953621526",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T20:24:31",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "184",
+      "siigo_invoice_number": "FE184",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "a2a9800939e824cf86dcad1496b7c0fbe9b6e7bb8910b9836727e2922794eb306e18ada6169eade0863ee1ab5a82a8bd",
+      "pdf_subido_meli": true
+    },
+    "2000018342806186": {
+      "shipping_id": "47960007345",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T20:25:55",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "185",
+      "siigo_invoice_number": "FE185",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "eee282d7c258df9100d54fde2acfa4e45cfce38e4e3c2aec78f076fcd63217c1372d2e4cbd3633fc26272f81334cc8df",
+      "pdf_subido_meli": true
+    },
+    "2000018314530678": {
+      "shipping_id": "47947662910",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T20:44:58",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "186",
+      "siigo_invoice_number": "FE186",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "fc0d6f87866ea690ee2b6a67344ed650f22d8bdfa7a0c94bd5cda6d735ace4463b3d3359c81be6501facef0e633aa5e3",
+      "pdf_subido_meli": true
+    },
+    "2000018335811654": {
+      "shipping_id": "47957132808",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T21:15:27",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "187",
+      "siigo_invoice_number": "FE187",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "b3fb89f729e39c5daa08cd3734e8cfc6c2c885afe7fb70a0bc77857f77bc772dc2bda20a8989a3633c24a36738526ca3",
+      "pdf_subido_meli": true
+    },
+    "2000018324992428": {
+      "shipping_id": "47951887561",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-08T21:23:49",
+      "proveedor": "alegra",
+      "siigo_invoice_id": "188",
+      "siigo_invoice_number": "FE188",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f832e5c8f436ba347db86295aa9219376a8b89aabf14ffd9f13886553b546ce45ed9732e5142dfa388c068a16c98ca81",
+      "pdf_subido_meli": true
     }
   },
   "2000018272473696": {

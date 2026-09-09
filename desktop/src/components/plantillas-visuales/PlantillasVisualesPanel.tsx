@@ -21,6 +21,7 @@ import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoP
 import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
+import FormulariosEtiquetadosPanel from "./FormulariosEtiquetadosPanel";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
@@ -566,7 +567,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote";
+type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote" | "formularios-etiquetas";
 
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
@@ -598,7 +599,9 @@ export default function PlantillasVisualesPanel({
   const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
 
   useEffect(() => {
-    onInmersivoChange?.(vista === "editor" || vista === "diligenciar" || vista === "lote");
+    onInmersivoChange?.(
+      vista === "editor" || vista === "diligenciar" || vista === "lote" || vista === "formularios-etiquetas",
+    );
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
@@ -1001,6 +1004,14 @@ export default function PlantillasVisualesPanel({
     );
   }
 
+  if (vista === "formularios-etiquetas") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <FormulariosEtiquetadosPanel onVolver={() => setVista("lista")} />
+      </div>
+    );
+  }
+
   if (vista === "lote" && plantillaLote) {
     return (
       <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
@@ -1262,6 +1273,13 @@ export default function PlantillasVisualesPanel({
             )}
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => setVista("formularios-etiquetas")}
+          className="rounded-lg border border-accent/40 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
+        >
+          Formularios etiquetados
+        </button>
         <button
           type="button"
           onClick={abrirNuevo}

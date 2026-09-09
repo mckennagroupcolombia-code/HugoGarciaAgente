@@ -7186,10 +7186,14 @@ def register_routes(app):
     @app.route("/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     def api_alegra_catalogo_editar(codigo: str):
-        """Edita nombre, precio y/o composición de kit en Alegra + espejo local.
+        """Edita SKU, nombre, precio y/o composición de kit en Alegra + espejo local.
 
         ``componentes`` solo aplica a combos/kits y solo si Alegra no tiene
         movimientos asociados (si los hay → 409 + ``bloqueado_movimientos``).
+        ``nuevo_codigo`` (cambio de SKU/reference) tiene la misma restricción y
+        aplica a productos y combos por igual; no se propaga a MeLi, la
+        sincronización de stock web ni proveedores.db — eso lo debe hacer el
+        operador aparte.
         """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -7202,10 +7206,17 @@ def register_routes(app):
         componentes = body.get("componentes")
         if componentes is None:
             componentes = body.get("components")
-        if nombre is None and precio_raw is None and componentes is None:
+        nuevo_codigo = body.get("nuevo_codigo")
+        if nuevo_codigo is None:
+            nuevo_codigo = body.get("sku_nuevo")
+        if nuevo_codigo is not None:
+            nuevo_codigo = str(nuevo_codigo).strip()
+            if not nuevo_codigo or nuevo_codigo.upper() == codigo.upper():
+                nuevo_codigo = None
+        if nombre is None and precio_raw is None and componentes is None and nuevo_codigo is None:
             return jsonify({
                 "ok": False,
-                "error": "Enviá nombre, precio_lista y/o componentes",
+                "error": "Enviá nombre, precio_lista, componentes y/o nuevo_codigo",
             }), 400
         if componentes is not None:
             if not isinstance(componentes, list) or len(componentes) < 1:
@@ -7218,12 +7229,32 @@ def register_routes(app):
                 actualizar_combo_alegra,
                 actualizar_nombre_alegra_producto,
                 actualizar_precio_alegra_producto,
+                actualizar_referencia_alegra_producto,
             )
             from app.services import alegra_catalogo_db as cat
             from app.panel_activity import log_line
 
             cambios: dict = {}
             comps_guardados = None
+
+            # SKU primero: si cambia, todo lo demás abajo debe usar el código
+            # nuevo (Alegra ya no encuentra el ítem por el `reference` viejo).
+            if nuevo_codigo is not None:
+                log_line(f"▶ catalogo_editar_sku {codigo} → {nuevo_codigo}")
+                r_sku = actualizar_referencia_alegra_producto(codigo, nuevo_codigo)
+                if not r_sku.get("ok"):
+                    err = r_sku.get("error") or r_sku.get("msg") or "Error cambiando SKU"
+                    status = 409 if r_sku.get("bloqueado_movimientos") else 400
+                    return jsonify({
+                        "ok": False,
+                        "error": err,
+                        "bloqueado_movimientos": bool(r_sku.get("bloqueado_movimientos")),
+                    }), status
+                codigo_nuevo = r_sku.get("codigo_nuevo") or nuevo_codigo
+                cat.renombrar_referencia_local(codigo, codigo_nuevo)
+                cambios["codigo_anterior"] = codigo
+                codigo = codigo_nuevo
+                cambios["codigo"] = codigo
 
             # Composición primero: un solo PUT de kit puede llevar también
             # nombre/precio; evita dos escrituras si el operador cambia todo.
@@ -9251,7 +9282,7 @@ def register_routes(app):
             data = obtener_dolar_hora(force=force)
         except Exception as e:
             return jsonify({"error": f"No se pudo obtener la TRM: {e}", "unidad": "COP"}), 502
-        if data.get("error"):
+        if data.get("error") and not data.get("spot_valor"):
             return jsonify(data), 502
         return jsonify(data)
 
@@ -9426,6 +9457,28 @@ def register_routes(app):
             if not data:
                 return jsonify({"error": "No encontrado"}), 404
             return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/<int:extracto_id>/archivo", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/<int:extracto_id>/archivo", methods=["GET"])
+    def api_contabilidad_extractos_archivo(extracto_id: int):
+        """Sirve el archivo original (CSV/Excel/PDF) subido para un extracto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        try:
+            from app.services.extracto_bancario import ruta_archivo_extracto
+
+            info = ruta_archivo_extracto(extracto_id)
+            if not info:
+                return jsonify({"error": "Archivo no encontrado"}), 404
+            return send_file(
+                info["path"],
+                as_attachment=False,
+                download_name=info["nombre_descarga"],
+            )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

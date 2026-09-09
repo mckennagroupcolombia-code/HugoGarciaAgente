@@ -173,7 +173,10 @@ export type CampoTextoFichaMp =
   | "olor"
   | "composicion"
   | "grado"
-  | "ghs";
+  | "ghs"
+  | "correo"
+  | "telefono"
+  | "disponibleWeb";
 
 export interface EstiloCampoTextoFichaMp {
   /** Multiplicador sobre el tamaño base del bloque (1 = sin cambio). */
@@ -209,6 +212,9 @@ export const CAMPOS_TEXTO_FICHA_MP: {
   { id: "composicion", label: "Composición", boldDefault: false },
   { id: "grado", label: "Grado", boldDefault: false },
   { id: "ghs", label: "GHS", boldDefault: true },
+  { id: "correo", label: "Correo", boldDefault: false },
+  { id: "telefono", label: "Teléfono", boldDefault: false },
+  { id: "disponibleWeb", label: "Disponible en mckennagroup.co", boldDefault: false },
 ];
 
 export const ESTILO_FICHA_MP_DEFAULT: EstiloFichaMp = {

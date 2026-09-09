@@ -943,7 +943,7 @@ export function labelCapaElemento(
       const pretty: Record<string, string> = {
         nombre: "NOMBRE",
         tagline: "CATEGORÍA",
-        concentracionValor: "CONCENTRACIÓN",
+        concentracionValor: "PUREZA",
         casNumero: "CAS",
         origen: "ORIGEN",
         apariencia: "APARIENCIA",

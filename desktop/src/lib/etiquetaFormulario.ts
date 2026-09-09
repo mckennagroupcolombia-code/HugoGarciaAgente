@@ -31,13 +31,16 @@ export const CAMPOS_ETIQUETA_FISICA: readonly CampoTextoFichaMp[] = [
   "grado",
   "almacenamiento",
   "peso",
+  "correo",
+  "telefono",
+  "disponibleWeb",
 ];
 
 export function labelCampoEtiqueta(id: string): string {
   const cortos: Record<string, string> = {
     nombre: "NOMBRE",
     tagline: "CATEGORÍA",
-    concentracionValor: "CONCENTRACIÓN",
+    concentracionValor: "PUREZA",
     casNumero: "CAS",
     origen: "ORIGEN",
     apariencia: "APARIENCIA",
@@ -47,6 +50,9 @@ export function labelCampoEtiqueta(id: string): string {
     almacenamiento: "CONSERVACIÓN",
     peso: "CONTENIDO NETO",
     ghs: "GHS",
+    correo: "CORREO",
+    telefono: "TELÉFONO",
+    disponibleWeb: "DISPONIBLE EN MCKENNAGROUP.CO",
   };
   return cortos[id] || CAMPOS_TEXTO_FICHA_MP.find((c) => c.id === id)?.label || id;
 }
@@ -68,21 +74,36 @@ export type BloqueFormularioEtiqueta = {
   /** Tope duro de palabras (la casilla es chica y comparte grilla con las
    *  otras 5 — un párrafo largo desborda incluso con autofit). */
   maxPalabras?: number;
+  /** Lista de valores frecuentes ofrecida como `<datalist>` — el operador
+   *  puede elegir uno o seguir escribiendo libre (no restringe el valor). */
+  sugerencias?: readonly string[];
 };
 
+/** Grados de materia prima fijos (independientes de la línea comercial que
+ *  define el color/logo — ver `PALETA_LOGO_LINEA`). */
+export const GRADOS_MATERIA_PRIMA = ["Alimentario", "Cosmético", "Agro", "Industrial"] as const;
+
+export const PAISES_ORIGEN_SUGERIDOS = [
+  "China", "India", "Estados Unidos", "Alemania", "España",
+  "Malasia", "Indonesia", "Brasil", "Colombia", "Francia", "Italia",
+] as const;
+
 export const BLOQUES_FICHA_GRID: readonly BloqueFormularioEtiqueta[] = [
-  { id: "origen", titulo: "ORIGEN", campo: "origen" },
+  { id: "origen", titulo: "ORIGEN", campo: "origen", sugerencias: PAISES_ORIGEN_SUGERIDOS },
   { id: "apariencia", titulo: "APARIENCIA", campo: "apariencia", largo: true },
   { id: "olor", titulo: "OLOR", campo: "olor" },
   { id: "composicion", titulo: "COMPOSICIÓN", campo: "composicion", largo: true },
-  { id: "grado", titulo: "GRADO", campo: "grado" },
+  { id: "grado", titulo: "GRADO", campo: "grado", sugerencias: GRADOS_MATERIA_PRIMA },
   { id: "conservacion", titulo: "CONSERVACIÓN", campo: "almacenamiento", largo: true, maxPalabras: 10 },
 ];
 
 export const BLOQUES_SPECS: readonly BloqueFormularioEtiqueta[] = [
-  { id: "concentracion", titulo: "CONCENTRACIÓN", campo: "concentracionValor" },
-  { id: "cas", titulo: "CAS", campo: "casNumero" },
+  { id: "concentracion", titulo: "PUREZA", campo: "concentracionValor" },
+  { id: "cas", titulo: "CAS / EINECS", campo: "casNumero" },
   { id: "ghs", titulo: "GHS", campo: "ghs" },
+  { id: "disponibleWeb", titulo: "DISPONIBLE EN MCKENNAGROUP.CO", campo: "disponibleWeb" },
+  { id: "correo", titulo: "CORREO", campo: "correo" },
+  { id: "telefono", titulo: "TELÉFONO", campo: "telefono" },
 ];
 
 /** Tope de palabras por campo (derivado de los bloques) — se aplica también
@@ -288,9 +309,21 @@ export function partirNombreEtiqueta(nombre: string): string {
   return `${words.slice(0, 2).join(" ")}\n${words.slice(2).join(" ")}`.toUpperCase();
 }
 
+/** Placeholder que reemplaza cualquier campo del formulario para el que la
+ *  ficha técnica cargada no trae dato (ver `camposDesdeFichaTecnica`) — a
+ *  propósito muy visible, para que nadie lo confunda con un dato real ni lo
+ *  imprima sin darse cuenta. */
+export const FICHA_SIN_DATO = "— completar —";
+
 /**
  * Extrae los campos de una etiqueta 76×66 desde una ficha técnica
- * (`datosDesdeFormulario` / YAML de `fichas_word/datos`).
+ * (`datosDesdeFormulario` / YAML de `fichas_word/datos`). Siempre devuelve
+ * los 12 campos (nunca omite uno por falta de dato) — el que no venga en la
+ * ficha se llena con `FICHA_SIN_DATO`, nunca se deja vacío en el objeto de
+ * retorno, porque `aplicarCamposAPlantilla` solo toca los campos presentes
+ * y un campo ausente aquí se traduce en "queda con lo que ya tenía el
+ * recuadro" — casi siempre el dato de OTRO producto si la plantilla se
+ * duplicó de una existente.
  */
 export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<string, string> {
   const cf =
@@ -318,59 +351,74 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   const coaLote =
     coa.lote && typeof coa.lote === "object" ? (coa.lote as Record<string, unknown>) : {};
 
-  const nombre = pick(
+  const nombreRaw = pick(
     datos.nombre_producto,
     datos.titulo,
     ident.nombre_comercial,
     coaIdent.nombre_comercial,
   );
-  const grado = pick(datos.grado, ident.grado, coaIdent.grado);
-  const cas = pick(datos.cas, ident.cas, coaIdent.cas).replace(/^(CAS\s*#?\s*)/i, "");
-  const origen = pick(
+  const gradoRaw = pick(datos.grado, ident.grado, coaIdent.grado);
+  const casRaw = pick(datos.cas, ident.cas, coaIdent.cas).replace(/^(CAS\s*#?\s*)/i, "");
+  const origenRaw = pick(
     datos.pais_origen,
     lote.pais_origen,
     coaLote.pais_origen,
     valorEnFilas(datos.identidad, "pais de origen", "origen"),
   );
-  const apariencia = pick(
+  const aparienciaRaw = pick(
     cf.apariencia,
     valorEnFilas(datos.propiedades, "apariencia", "appearance"),
   );
-  const olor = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
-  const composicion = flattenComposicion(datos.composicion);
-  const almacenamiento = pick(
+  const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
+  const composicionRaw = flattenComposicion(datos.composicion);
+  const almacenamientoRaw = pick(
     datos.almacenamiento,
     emp.almacenamiento,
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
   );
-  const concentracion = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
-  const peso = pick(datos.presentacion, ident.presentacion, lote.tamano_lote);
+  const concentracionRaw = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
+  const pesoRaw = pick(datos.presentacion, ident.presentacion, lote.tamano_lote);
   // El GHS solo puede venir de un campo dedicado a clasificación de peligro
   // (nunca de "recomendaciones" de uso — antes, a falta de `ghs`, se tomaba
   // la primera línea de las recomendaciones como si fuera el pictograma,
   // p. ej. "Combina el colágeno con una dieta saludable…" mostrado como
-  // GHS). Sin campo explícito, el valor seguro por defecto es "NO GHS".
-  const ghsRaw = pick(datos.ghs, datos.ghsCodigo, ident.ghs, coaIdent.ghs);
-  const ghs = ghsRaw || "NO GHS";
-  const tagline = pick(
-    datos.tagline,
-    grado ? `MATERIA PRIMA GRADO ${grado.toUpperCase()}` : "",
-  );
+  // GHS). Sin campo explícito, el valor seguro por defecto es "NO GHS": a
+  // diferencia de los demás campos, la ausencia de dato SÍ tiene un valor
+  // correcto y conocido (sin clasificación de peligro), así que no es
+  // FICHA_SIN_DATO como el resto.
+  const ghs = pick(datos.ghs, datos.ghsCodigo, ident.ghs, coaIdent.ghs) || "NO GHS";
 
-  const out: Record<string, string> = {};
-  if (nombre) out.nombre = partirNombreEtiqueta(nombre);
-  if (tagline) out.tagline = tagline.toUpperCase();
-  if (concentracion) out.concentracionValor = concentracion;
-  if (cas) out.casNumero = cas;
-  if (ghs) out.ghs = ghs;
-  if (origen) out.origen = origen;
-  if (apariencia) out.apariencia = apariencia;
-  if (olor) out.olor = olor;
-  if (composicion) out.composicion = composicion;
-  if (grado) out.grado = grado;
-  if (almacenamiento) out.almacenamiento = almacenamiento;
-  if (peso) out.peso = peso;
-  return out;
+  // Ningún campo del formulario físico se deja "tal como estaba" cuando la
+  // ficha cargada no trae ese dato — antes, un campo ausente simplemente no
+  // se incluía en `out`, y como `aplicarCamposAPlantilla` solo toca los
+  // campos presentes, el recuadro se quedaba con el valor de lo que sea que
+  // hubiera antes (con frecuencia el producto de OTRO ingrediente, si la
+  // plantilla se duplicó de una existente). Pasó de verdad: una etiqueta de
+  // prueba para "CAFEÍNA 500g" duplicada desde manteca de cacao terminó con
+  // GRADO "Cosmético — Refinada" y la lista de ácidos grasos de la manteca
+  // como COMPOSICIÓN, sin ningún aviso — se veía como una etiqueta completa
+  // y bien diagramada. Mejor un placeholder visible que nadie debería
+  // imprimir sin notar, que un dato de otro producto colado en silencio.
+  const nombre = nombreRaw ? partirNombreEtiqueta(nombreRaw) : FICHA_SIN_DATO;
+  const grado = gradoRaw || FICHA_SIN_DATO;
+  const tagline = (
+    pick(datos.tagline) || (gradoRaw ? `MATERIA PRIMA GRADO ${gradoRaw.toUpperCase()}` : "")
+  ) || `MATERIA PRIMA GRADO ${FICHA_SIN_DATO}`;
+
+  return {
+    nombre,
+    tagline: tagline.toUpperCase(),
+    concentracionValor: concentracionRaw || FICHA_SIN_DATO,
+    casNumero: casRaw || FICHA_SIN_DATO,
+    ghs,
+    origen: origenRaw || FICHA_SIN_DATO,
+    apariencia: aparienciaRaw || FICHA_SIN_DATO,
+    olor: olorRaw || FICHA_SIN_DATO,
+    composicion: composicionRaw || FICHA_SIN_DATO,
+    grado,
+    almacenamiento: almacenamientoRaw || FICHA_SIN_DATO,
+    peso: pesoRaw || FICHA_SIN_DATO,
+  };
 }
 
 export function aplicarCamposAPlantilla(

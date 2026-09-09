@@ -389,6 +389,39 @@ def borrar_item_local(reference: str) -> bool:
     return True
 
 
+def renombrar_referencia_local(reference_actual: str, reference_nueva: str) -> dict[str, Any] | None:
+    """Renombra la `reference` de un ítem en el espejo local tras cambiar el SKU en Alegra.
+
+    También actualiza `component_reference` en las recetas de OTROS kits que
+    usaban el código viejo, para que el espejo no quede desincronizado hasta
+    la próxima sync completa.
+    """
+    cdb._ensure()
+    actual = (reference_actual or "").strip()
+    nueva = (reference_nueva or "").strip()
+    if not actual or not nueva or actual.upper() == nueva.upper():
+        return obtener_item(actual) if actual else None
+    item = obtener_item(actual)
+    if not item:
+        return None
+    ref = item["reference"]
+    now = _now_iso()
+    with cdb._conn() as con:
+        con.execute(
+            "UPDATE alegra_items SET reference = ?, updated_at = ?, synced_at = ? WHERE reference = ?",
+            (nueva, now, now, ref),
+        )
+        con.execute(
+            "UPDATE alegra_kit_components SET kit_reference = ? WHERE kit_reference = ?",
+            (nueva, ref),
+        )
+        con.execute(
+            "UPDATE alegra_kit_components SET component_reference = ? WHERE component_reference = ?",
+            (nueva, ref),
+        )
+    return obtener_item(nueva)
+
+
 def actualizar_campos_locales(
     reference: str,
     *,

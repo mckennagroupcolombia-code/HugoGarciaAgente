@@ -340,7 +340,11 @@ def extraer_etiqueta_con_gemini(
         from google.genai import types as gtypes
 
         img_opt, mime_opt = _optimizar_imagen_bytes(imagen_bytes, mime_type)
-        client = genai.Client(api_key=api_key)
+        # timeout explícito (ms): sin esto una llamada colgada consume todo
+        # el presupuesto de la petición entrante (el panel Studio Visual,
+        # detrás del túnel Cloudflare, corta con 504 mucho antes) y nunca
+        # deja llegar al fallback de Anthropic más abajo.
+        client = genai.Client(api_key=api_key, http_options=gtypes.HttpOptions(timeout=40_000))
         contents = [
             gtypes.Part.from_bytes(data=img_opt, mime_type=mime_opt),
             prompt or _PROMPT_ABSTRACCION_ETIQUETA,
@@ -385,7 +389,11 @@ def extraer_etiqueta_con_anthropic(
         b64 = base64.b64encode(img_opt).decode("utf-8")
         media_type = mime_opt if mime_opt in ("image/jpeg", "image/png", "image/gif", "image/webp") else "image/jpeg"
 
-        client = anthropic.Anthropic(api_key=api_key)
+        # timeout explícito (s): mismo motivo que en extraer_etiqueta_con_gemini
+        # — este fallback ya corre después del intento de Gemini, así que sin
+        # tope propio puede sumar tiempo suficiente para que el 504 llegue
+        # antes de que Anthropic responda.
+        client = anthropic.Anthropic(api_key=api_key, timeout=40.0)
         message = client.messages.create(
             model=modelo,
             max_tokens=max_tokens,

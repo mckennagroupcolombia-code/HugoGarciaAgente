@@ -305,6 +305,14 @@ function fmtCop(v: number | null): string {
   }).format(v);
 }
 
+function etiquetaMes(mesKey: string): string {
+  const [y, m] = mesKey.split("-").map((x) => parseInt(x, 10));
+  if (!y || !m) return mesKey;
+  const d = new Date(y, m - 1, 1);
+  const s = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 type CatalogoItem = { codigo: string; nombre: string };
 
 type EnvioExterior = {
@@ -814,6 +822,7 @@ export default function ComprasExteriorPanel() {
   const [cuentaCobroId, setCuentaCobroId] = useState<number | null>(null);
   const [modalVerificar, setModalVerificar] = useState(false);
   const [seleccionIds, setSeleccionIds] = useState<number[]>([]);
+  const [verTodosMesesAdeudado, setVerTodosMesesAdeudado] = useState(false);
   const [envioModal, setEnvioModal] = useState<"crear" | EnvioExterior | null>(null);
   const [fechaEnvio, setFechaEnvio] = useState(() => new Date().toISOString().slice(0, 10));
   const [fleteEnvio, setFleteEnvio] = useState("");
@@ -887,6 +896,69 @@ export default function ComprasExteriorPanel() {
   }, [cuentaCobroId, modalVerificar]);
 
   const gruposHistorial = useMemo(() => agruparHistorial(historial), [historial]);
+
+  const resumenAdeudado = useMemo(() => {
+    type Acum = { mercAprob: number; mercPend: number; fleteAprob: number; fletePend: number };
+    const nuevoAcum = (): Acum => ({ mercAprob: 0, mercPend: 0, fleteAprob: 0, fletePend: 0 });
+    const meses = new Map<string, Map<string, Acum>>();
+    const acumular = (mesKey: string, emisor: string, patch: Partial<Acum>) => {
+      if (!mesKey || !emisor) return;
+      const porEmisor = meses.get(mesKey) || new Map<string, Acum>();
+      meses.set(mesKey, porEmisor);
+      const acc = porEmisor.get(emisor) || nuevoAcum();
+      porEmisor.set(emisor, {
+        mercAprob: acc.mercAprob + (patch.mercAprob || 0),
+        mercPend: acc.mercPend + (patch.mercPend || 0),
+        fleteAprob: acc.fleteAprob + (patch.fleteAprob || 0),
+        fletePend: acc.fletePend + (patch.fletePend || 0),
+      });
+    };
+    const enviosVistos = new Set<number>();
+    for (const c of historial) {
+      const emisor = (c.emisor_nombre || "").trim();
+      if (!emisor) continue;
+      const mesCompra = (c.fecha_compra || c.created_at || "").slice(0, 7);
+      if (mesCompra) {
+        if (c.cuenta_cobro_estado === "aprobada") {
+          acumular(mesCompra, emisor, { mercAprob: c.total_cobro_cop || 0 });
+        } else if (c.cuenta_cobro_estado === "pendiente") {
+          acumular(mesCompra, emisor, { mercPend: c.total_cobro_cop || 0 });
+        }
+        if (!c.envio_id) {
+          if (c.cuenta_flete_estado === "aprobada") {
+            acumular(mesCompra, emisor, { fleteAprob: c.flete_cobro_cop || 0 });
+          } else if (c.cuenta_flete_estado === "pendiente") {
+            acumular(mesCompra, emisor, { fletePend: c.flete_cobro_cop || 0 });
+          }
+        }
+      }
+      const env = c.envio;
+      if (env?.id && !enviosVistos.has(env.id)) {
+        enviosVistos.add(env.id);
+        const emisorEnvio = (env.emisor_nombre || emisor).trim();
+        const mesEnvio = (env.fecha_envio || "").slice(0, 7);
+        if (emisorEnvio && mesEnvio) {
+          if (env.cuenta_flete_estado === "aprobada") {
+            acumular(mesEnvio, emisorEnvio, { fleteAprob: env.flete_cobro_cop || 0 });
+          } else if (env.cuenta_flete_estado === "pendiente") {
+            acumular(mesEnvio, emisorEnvio, { fletePend: env.flete_cobro_cop || 0 });
+          }
+        }
+      }
+    }
+    return Array.from(meses.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([mes, porEmisor]) => ({
+        mes,
+        emisores: Array.from(porEmisor.entries())
+          .map(([emisor, acc]) => ({
+            emisor,
+            aprobado: acc.mercAprob + acc.fleteAprob,
+            pendiente: acc.mercPend + acc.fletePend,
+          }))
+          .sort((a, b) => b.aprobado + b.pendiente - (a.aprobado + a.pendiente)),
+      }));
+  }, [historial]);
 
   const toggleSeleccion = (id: number) => {
     setSeleccionIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -2149,6 +2221,54 @@ export default function ComprasExteriorPanel() {
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {resumenAdeudado.length > 0 && (
+        <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Adeudado por cuentas de cobro</h3>
+              <p className="text-[11px] text-muted">
+                Por mes y por quien cobra. «Aprobado» = PDF ya generado; «pendiente» = calculado,
+                falta aprobar. El flete de un paquete cuenta en el mes de su envío, no en el de
+                cada compra.
+              </p>
+            </div>
+            {resumenAdeudado.length > 2 && (
+              <button
+                type="button"
+                onClick={() => setVerTodosMesesAdeudado((v) => !v)}
+                className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+              >
+                {verTodosMesesAdeudado ? "Ver solo recientes" : `Ver todos (${resumenAdeudado.length} meses)`}
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(verTodosMesesAdeudado ? resumenAdeudado : resumenAdeudado.slice(0, 2)).map((mesInfo) => (
+              <div key={mesInfo.mes} className="rounded-lg border border-border bg-surface p-2.5">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {etiquetaMes(mesInfo.mes)}
+                </p>
+                <ul className="space-y-1.5">
+                  {mesInfo.emisores.map((e) => (
+                    <li key={e.emisor} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="min-w-0 truncate text-ink">{e.emisor}</span>
+                      <span className="shrink-0 text-right">
+                        <span className="font-semibold text-accent">{fmtCop(e.aprobado)}</span>
+                        {e.pendiente > 0 && (
+                          <span className="ml-1 text-[10px] text-amber-700 dark:text-amber-400">
+                            (+{fmtCop(e.pendiente)} pend.)
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 

@@ -4978,3 +4978,42 @@ Tickets activos de importaciones: 0
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-08T18:00:01] resumen_actividad_sede_sur: 52 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 17 nuevas · 15 completadas · 16 iniciadas
+
+*Por persona:*
+• Gloria Stella: 6 nuevas, 6 completadas
+• Victor Garcia: 4 nuevas, 4 completadas
+• Jenniffer Garcia: 5 nuevas, 3 completadas
+• Armando Garcia: 0 nuevas, 2 completadas
+• Administrador: 2 nuevas, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-08-29 → 2026-09-08…
+✅ Token de Mercado Libre refrescado exitosamente.
+   825 creado(s), 0 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-08) no es el último día del mes.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

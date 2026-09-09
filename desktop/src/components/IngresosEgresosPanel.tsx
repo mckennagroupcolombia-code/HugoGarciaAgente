@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { api, fetchAuthBlobUrl } from "../api/client";
 import TerceroSelect from "./TerceroSelect";
 
 const EXTRACTO_EXTS = [".csv", ".xlsx", ".xlsm", ".txt", ".tsv", ".pdf"];
@@ -1650,6 +1650,27 @@ export default function IngresosEgresosPanel({
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-2 pt-0.5">
+                              <button
+                                type="button"
+                                className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink hover:border-accent hover:text-accent"
+                                onClick={() => {
+                                  void (async () => {
+                                    const url = await fetchAuthBlobUrl(
+                                      `/api/contabilidad/extractos/${ex.id}/archivo`,
+                                    );
+                                    if (!url) {
+                                      setUploadMsg(
+                                        `No se pudo abrir el archivo del extracto #${ex.id} (¿se borró del disco?)`,
+                                      );
+                                      return;
+                                    }
+                                    window.open(url, "_blank", "noopener,noreferrer");
+                                    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                                  })();
+                                }}
+                              >
+                                Ver archivo
+                              </button>
                               <button
                                 type="button"
                                 className="rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink hover:border-accent hover:text-accent"
