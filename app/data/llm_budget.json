@@ -1,14 +1,14 @@
 {
  "fecha": "2026-09-08",
- "gasto_usd": 0.923443,
- "llamadas": 72,
+ "gasto_usd": 0.952241,
+ "llamadas": 75,
  "por_modelo": {
-  "claude-sonnet-5": 0.669706,
+  "claude-sonnet-5": 0.698504,
   "claude-sonnet-4-6": 0.147231,
   "gemini-2.5-flash": 0.106506
  },
  "por_contexto": {
-  "cliente_chat": 0.669706,
+  "cliente_chat": 0.698504,
   "facturacion_extraccion": 0.016023,
   "plantilla_etiqueta_vision": 0.237714
  },

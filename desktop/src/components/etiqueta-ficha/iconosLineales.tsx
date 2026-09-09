@@ -8,7 +8,9 @@ interface Props {
   className?: string;
 }
 
-const base = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+// strokeWidth subido de 2 a 2.6 — a 2 se veía muy delgado para imprimir
+// (el trazo tiende a desaparecer o verse borroso a tamaños de etiqueta).
+const base = { fill: "none", stroke: "currentColor", strokeWidth: 2.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
 export function IconoOrigen({ size = 26, className }: Props) {
   return (

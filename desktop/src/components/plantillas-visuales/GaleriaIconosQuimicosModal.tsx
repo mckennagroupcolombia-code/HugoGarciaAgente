@@ -4,6 +4,7 @@ import {
   CATEGORIAS_ICONOS_QUIMICA,
   ICONOS_QUIMICA_CIRCULARES,
   iconoQuimicoASvgDataUrl,
+  quitarCirculoExterior,
   type IconoQuimicoCircular,
 } from "../../lib/iconosQuimicaCirculares";
 
@@ -23,7 +24,10 @@ export default function GaleriaIconosQuimicosModal({
   const [buscar, setBuscar] = useState("");
   const [categoria, setCategoria] = useState<string>("todos");
   const [colorPersonalizado, setColorPersonalizado] = useState(colorTinta);
-  const [conCirculo, setConCirculo] = useState(true);
+  // Por defecto sin el círculo exterior: en impresión pequeña (íconos de
+  // ficha de etiqueta) ese borde solo suma una línea más sin aportar nada,
+  // y competía con el resto del trazo ya delgado.
+  const [conCirculo, setConCirculo] = useState(false);
 
   const iconosFiltrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -154,9 +158,7 @@ export default function GaleriaIconosQuimicosModal({
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
               {iconosFiltrados.map((ico) => {
                 const dataUrl = iconoQuimicoASvgDataUrl(ico.svg, colorPersonalizado, conCirculo);
-                const svgPreview = conCirculo
-                  ? ico.svg
-                  : ico.svg.replace(/<circle[^>]*r="44"[^>]*\/>/g, "");
+                const svgPreview = conCirculo ? ico.svg : quitarCirculoExterior(ico.svg);
 
                 return (
                   <button

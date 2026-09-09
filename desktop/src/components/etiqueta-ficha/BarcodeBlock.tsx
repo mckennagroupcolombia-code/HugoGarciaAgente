@@ -1,13 +1,15 @@
 import { useMemo, useRef, useState } from "react";
 import { generarEAN13, svgToDataUrl } from "../../lib/ean13";
 import { useCodigosEan } from "../../lib/etiquetasCodigosEan";
-import { filtrarCodigosEanPorTexto } from "../../lib/etiquetaFormulario";
-import EditableField from "./EditableField";
+import { filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
 
 /** Código de barras EAN-13 — usa el generador SVG propio del repo (sin
- *  dependencia externa tipo JsBarcode). Clic sobre el código (en edición)
- *  abre un buscador de SKU ya registrados (mismo catálogo que usa el
- *  Formulario de etiqueta física). */
+ *  dependencia externa tipo JsBarcode). El SVG ya imprime los dígitos
+ *  debajo de las barras (como cualquier EAN-13 real), así que no hay una
+ *  casilla de número aparte: clic sobre el código (en edición) abre un
+ *  buscador de SKU ya registrados (mismo catálogo que usa el Formulario
+ *  de etiqueta física), con opción de escribir el código a mano si no
+ *  está en la lista. */
 export default function BarcodeBlock({
   value,
   onChange,
@@ -18,13 +20,14 @@ export default function BarcodeBlock({
   editMode: boolean;
 }) {
   const ean = useMemo(() => generarEAN13(value), [value]);
-  const grupos = ean ? `${ean.digits[0]} ${ean.digits.slice(1, 7)} ${ean.digits.slice(7)}` : "";
 
   const { data: codigos } = useCodigosEan();
   const [buscadorAbierto, setBuscadorAbierto] = useState(false);
   const [q, setQ] = useState("");
   const sugeridos = useMemo(() => filtrarCodigosEanPorTexto(codigos ?? [], q, 10), [codigos, q]);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const qDigitos = q.replace(/\D/g, "");
+  const qEsCodigoValido = qDigitos.length === 12 || qDigitos.length === 13;
 
   const elegir = (codigo: string) => {
     onChange(codigo.replace(/\D/g, "").slice(0, 13));
@@ -45,24 +48,19 @@ export default function BarcodeBlock({
           <img
             src={svgToDataUrl(ean.svg)}
             alt={`Código de barras ${ean.digits}`}
-            className="h-[54px] w-1/2 max-w-[200px] object-contain"
+            className="h-auto w-full max-w-[280px]"
           />
         </button>
+      ) : editMode ? (
+        <button
+          type="button"
+          onClick={() => setBuscadorAbierto(true)}
+          className="rounded border border-dashed border-[#111111]/25 px-3 py-2 text-[13px] text-[#111111]/50 hover:border-[#FFA500] hover:text-[#FFA500]"
+        >
+          Elegir código de barras…
+        </button>
       ) : (
-        <p className="text-center text-[13px] text-[#111111]/50">Código inválido — usa 12 o 13 dígitos.</p>
-      )}
-      {editMode ? (
-        <EditableField
-          value={value}
-          onChange={(v) => onChange(v.replace(/\D/g, "").slice(0, 13))}
-          editMode
-          styleKey="barcodeNumber"
-          defaultFontSize={12.5}
-          className="w-full max-w-[240px] text-center font-mono text-[#111111]"
-          placeholder="EAN-13 (12-13 dígitos)"
-        />
-      ) : (
-        grupos && <p className="text-center text-[12.5px] font-mono tracking-widest text-[#111111]/70">{grupos}</p>
+        <p className="text-center text-[13px] text-[#111111]/50">Sin código de barras.</p>
       )}
 
       {buscadorAbierto && (
@@ -77,9 +75,18 @@ export default function BarcodeBlock({
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Nombre, SKU o código…"
+            placeholder="Nombre, SKU o código de 12-13 dígitos…"
             className="mb-2 w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
           />
+          {qEsCodigoValido && (
+            <button
+              type="button"
+              onClick={() => elegir(qDigitos)}
+              className="mb-2 w-full rounded-lg border border-dashed border-accent/40 px-2.5 py-1.5 text-left text-xs text-accent hover:bg-accent/5"
+            >
+              Usar código escrito: <span className="font-mono">{qDigitos}</span>
+            </button>
+          )}
           <ul className="max-h-56 space-y-1 overflow-y-auto">
             {sugeridos.length === 0 && <li className="px-1 py-1 text-xs text-muted">Sin resultados.</li>}
             {sugeridos.map((c) => (

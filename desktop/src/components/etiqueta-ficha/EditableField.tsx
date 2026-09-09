@@ -8,8 +8,43 @@
  * tamaño/fuente para esa casilla puntual — evita seguir describiendo
  * tamaños en píxeles por chat; el operador los ajusta directamente.
  */
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import { FUENTES_DISPONIBLES, useTextStyleCtx } from "./TextStyleContext";
+
+/** Atributo para reconocer el menú (ya portado a `document.body`) como
+ *  "dentro" del campo al detectar clics afuera — ver uso en los
+ *  `mousedown` listeners de `EditableField`/`EditableLabel`. */
+const ATTR_MENU_TAMANO = "data-menu-tamano-fuente";
+
+/** Posición en pantalla (coords. de viewport) del punto de anclaje del
+ *  menú — se recalcula si cambia scroll/resize mientras está abierto. El
+ *  lienzo puede estar dentro de un contenedor con `overflow-hidden` (o
+ *  escalado por el marco de formato), así que el menú se porta a
+ *  `document.body` y se posiciona con estas coordenadas absolutas en vez
+ *  de `position: absolute` relativo a un ancestro — si no, quedaba
+ *  recortado por ese `overflow-hidden` en vez de superponerse al lienzo. */
+function usePosicionAnclaje(anchorEl: HTMLElement | null): { top: number; left: number } | null {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!anchorEl) {
+      setPos(null);
+      return;
+    }
+    const actualizar = () => {
+      const r = anchorEl.getBoundingClientRect();
+      setPos({ top: r.bottom + 4, left: r.left + r.width / 2 });
+    };
+    actualizar();
+    window.addEventListener("scroll", actualizar, true);
+    window.addEventListener("resize", actualizar);
+    return () => {
+      window.removeEventListener("scroll", actualizar, true);
+      window.removeEventListener("resize", actualizar);
+    };
+  }, [anchorEl]);
+  return pos;
+}
 
 interface Props {
   value: string;
@@ -41,19 +76,32 @@ interface Props {
 
 /** Menú flotante de tamaño/fuente compartido por `EditableField` (valores
  *  editables) y `EditableLabel` (títulos fijos, ej. "ORIGEN") — misma
- *  casilla de override en `TextStyleContext` para ambos. */
+ *  casilla de override en `TextStyleContext` para ambos.
+ *
+ *  Se porta a `document.body` (en vez de vivir como hijo `absolute` del
+ *  campo) para poder superponerse al lienzo aunque este tenga
+ *  `overflow-hidden` (esquinas redondeadas, patrón de retícula) o esté
+ *  escalado dentro del marco de formato — si no, quedaba recortado justo
+ *  en el borde del lienzo en vez de flotar sobre él. */
 export function MenuTamanoFuente({
   styleKey,
   fontSize,
+  anchorRef,
 }: {
   styleKey: string;
   fontSize: number;
+  anchorRef: RefObject<HTMLElement | null>;
 }) {
   const { estilos, setEstilo, setAbierto } = useTextStyleCtx();
   const override = estilos[styleKey];
-  return (
+  const pos = usePosicionAnclaje(anchorRef.current);
+  if (typeof document === "undefined" || !pos) return null;
+
+  return createPortal(
     <div
-      className="absolute left-1/2 top-full z-[300] mt-1 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-xs text-ink shadow-2xl"
+      {...{ [ATTR_MENU_TAMANO]: true }}
+      style={{ position: "fixed", top: pos.top, left: pos.left, transform: "translateX(-50%)" }}
+      className="z-[300] flex items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-xs text-ink shadow-2xl"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <label className="flex items-center gap-1">
@@ -84,8 +132,17 @@ export function MenuTamanoFuente({
       <button type="button" onClick={() => setAbierto(null)} className="ml-1 text-muted hover:text-ink">
         ✕
       </button>
-    </div>
+    </div>,
+    document.body,
   );
+}
+
+/** Un clic cae "adentro" del campo si toca el propio wrapper o el menú ya
+ *  portado a `document.body` (que dejó de ser descendiente del wrapper en
+ *  el DOM real). */
+function clicAdentro(wrap: HTMLElement | null, target: Node): boolean {
+  if (wrap && wrap.contains(target)) return true;
+  return target instanceof Element ? Boolean(target.closest(`[${ATTR_MENU_TAMANO}]`)) : false;
 }
 
 /** Título fijo (no editable como texto) que igual puede cambiar de
@@ -115,7 +172,7 @@ export function EditableLabel({
   useEffect(() => {
     if (!menuAbierto) return;
     const onMouseDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setAbierto(null);
+      if (!clicAdentro(wrapRef.current, e.target as Node)) setAbierto(null);
     };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
@@ -143,7 +200,9 @@ export function EditableLabel({
       >
         {texto}
       </button>
-      {menuAbierto && <MenuTamanoFuente styleKey={styleKey} fontSize={fontSize} />}
+      {menuAbierto && (
+        <MenuTamanoFuente styleKey={styleKey} fontSize={fontSize} anchorRef={wrapRef} />
+      )}
     </div>
   );
 }
@@ -177,7 +236,7 @@ export default function EditableField({
   useEffect(() => {
     if (!menuAbierto) return;
     const onMouseDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setAbierto(null);
+      if (!clicAdentro(wrapRef.current, e.target as Node)) setAbierto(null);
     };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
@@ -239,7 +298,11 @@ export default function EditableField({
         />
       )}
       {menuAbierto && (
-        <MenuTamanoFuente styleKey={styleKey} fontSize={estiloFinal.fontSize as number} />
+        <MenuTamanoFuente
+          styleKey={styleKey}
+          fontSize={estiloFinal.fontSize as number}
+          anchorRef={wrapRef}
+        />
       )}
     </div>
   );

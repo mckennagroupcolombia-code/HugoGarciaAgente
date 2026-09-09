@@ -9,7 +9,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
-import { camposDesdeFichaTecnica, FICHA_SIN_DATO } from "../../lib/etiquetaFormulario";
+import { camposDesdeFichaTecnica, FICHA_SIN_DATO } from "../../lib/fichaTecnicaCampos";
 import type { ProductLabelData } from "./productLabelTypes";
 
 interface FichaItem {

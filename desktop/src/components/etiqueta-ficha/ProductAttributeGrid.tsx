@@ -35,16 +35,16 @@ export default function ProductAttributeGrid({
 }) {
   const [campoAbierto, setCampoAbierto] = useState<AttributeKey | null>(null);
 
-  // size={52} = el doble del tamaño por defecto (26) del set de íconos
-  // lineales — la caja del botón en ProductAttribute también se agrandó
-  // (h-14 w-14) para que quepan sin recortarse.
+  // size={58} — la caja del botón en ProductAttribute también se agrandó
+  // (h-16 w-16) para que quepan sin recortarse; el trazo (strokeWidth) se
+  // engrosó aparte, en `iconosLineales.tsx`, para que se vea claro impreso.
   const celdas: { icon: ReactNode; title: string; campo: AttributeKey }[] = [
-    { icon: <IconoOrigen size={52} />, title: "Origen", campo: "origin" },
-    { icon: <IconoApariencia size={52} />, title: "Apariencia", campo: "appearance" },
-    { icon: <IconoOlor size={52} />, title: "Olor", campo: "odor" },
-    { icon: <IconoComposicion size={52} />, title: "Composición", campo: "composition" },
-    { icon: <IconoGrado size={52} />, title: "Grado", campo: "grade" },
-    { icon: <IconoConservacion size={52} />, title: "Conservación", campo: "storage" },
+    { icon: <IconoOrigen size={58} />, title: "Origen", campo: "origin" },
+    { icon: <IconoApariencia size={58} />, title: "Apariencia", campo: "appearance" },
+    { icon: <IconoOlor size={58} />, title: "Olor", campo: "odor" },
+    { icon: <IconoComposicion size={58} />, title: "Composición", campo: "composition" },
+    { icon: <IconoGrado size={58} />, title: "Grado", campo: "grade" },
+    { icon: <IconoConservacion size={58} />, title: "Conservación", campo: "storage" },
   ];
 
   return (

@@ -5017,3 +5017,74 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel f249350] Auto-commit: actualizacion diaria 2026-09-08 23:00
+ 92 files changed, 6076 insertions(+), 1284 deletions(-)
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00014 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00016 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00020 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00021 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00022 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00023 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00024 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00024 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00025 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00026 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00027 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00027 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00028 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00029 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00030 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00031 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00032 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00033 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero 00034 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/Cuenta de cobro numero ENV-00001 flete paquete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00013 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00014 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00015 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00016 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00020 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00021 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00022 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00023 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00024 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00025 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00026 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00027 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00027 flete compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00028 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00029 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00030 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00031 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00032 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00033 compra en el exterior.pdf
+ create mode 100644 app/data/cuentas_cobro_cuota_manejo/preview_Cuenta de cobro numero 00034 flete compra en el exterior.pdf
+ create mode 100644 desktop/src/components/etiqueta-ficha/BarcodeBlock.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/BuscadorFichaTecnica.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ContactFooter.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/EditableField.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/GhsBadge.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/NetContent.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ProductAttribute.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ProductClassification.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ProductHeader.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/TechnicalIdentity.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/TextStyleContext.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/iconosLineales.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/productLabelTypes.ts
+ create mode 100644 desktop/src/components/plantillas-visuales/FormulariosEtiquetadosPanel.tsx
+ create mode 100644 propuestas-iconos-full.png
+[2026-09-08 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-08 23:00'
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-08-30 → 2026-09-09…
+✅ Token de Mercado Libre refrescado exitosamente.
+   19 creado(s), 721 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

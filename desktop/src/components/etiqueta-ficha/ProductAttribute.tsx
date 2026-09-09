@@ -36,11 +36,11 @@ export default function ProductAttribute({
         disabled={!editMode}
         onClick={onEditarIcono}
         title={editMode ? "Cambiar ícono" : undefined}
-        className={`mb-[3px] flex h-14 w-14 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#FFA500] transition-transform duration-150 ${
+        className={`mb-[3px] flex h-16 w-16 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#FFA500] transition-transform duration-150 ${
           editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[#FFA500]/[0.08]" : "cursor-default"
         }`}
       >
-        {iconSrc ? <img src={iconSrc} alt="" className="h-[52px] w-[52px] object-contain" /> : icon}
+        {iconSrc ? <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" /> : icon}
       </button>
       <EditableLabel
         texto={title}

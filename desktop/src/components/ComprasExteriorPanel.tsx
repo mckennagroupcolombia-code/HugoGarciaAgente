@@ -457,6 +457,61 @@ function agruparHistorial(
   return out;
 }
 
+type GrupoHistorial = ReturnType<typeof agruparHistorial>[number];
+
+function fechaDeGrupo(g: GrupoHistorial): string {
+  if (g.kind === "envio") {
+    return (
+      g.envio.fecha_envio || g.compras[0]?.fecha_compra || g.compras[0]?.created_at || ""
+    ).slice(0, 10);
+  }
+  return (g.compra.fecha_compra || g.compra.created_at || "").slice(0, 10);
+}
+
+type MesHistorial = {
+  mes: string;
+  grupos: GrupoHistorial[];
+  compras: number;
+  totalAprobado: number;
+  totalPendiente: number;
+};
+
+/** Agrupa por mes (fecha de envío del paquete, o de compra si va sola) para no forzar
+ * scroll infinito: solo los meses recientes se muestran abiertos por defecto. */
+function agruparPorMes(grupos: GrupoHistorial[]): MesHistorial[] {
+  const map = new Map<string, GrupoHistorial[]>();
+  for (const g of grupos) {
+    const mes = fechaDeGrupo(g).slice(0, 7) || "Sin fecha";
+    const arr = map.get(mes) || [];
+    arr.push(g);
+    map.set(mes, arr);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([mes, gs]) => {
+      let aprob = 0;
+      let pend = 0;
+      let compras = 0;
+      for (const g of gs) {
+        const items = g.kind === "envio" ? g.compras : [g.compra];
+        compras += items.length;
+        for (const c of items) {
+          if (c.cuenta_cobro_estado === "aprobada") aprob += c.total_cobro_cop || 0;
+          else if (c.cuenta_cobro_estado === "pendiente") pend += c.total_cobro_cop || 0;
+          if (!c.envio_id) {
+            if (c.cuenta_flete_estado === "aprobada") aprob += c.flete_cobro_cop || 0;
+            else if (c.cuenta_flete_estado === "pendiente") pend += c.flete_cobro_cop || 0;
+          }
+        }
+        if (g.kind === "envio") {
+          if (g.envio.cuenta_flete_estado === "aprobada") aprob += g.envio.flete_cobro_cop || 0;
+          else if (g.envio.cuenta_flete_estado === "pendiente") pend += g.envio.flete_cobro_cop || 0;
+        }
+      }
+      return { mes, grupos: gs, compras, totalAprobado: aprob, totalPendiente: pend };
+    });
+}
+
 const CUOTA_MANEJO_PCT_DEFAULT = 5;
 
 /** Valor mercancía neta en COP (sin flete) — base de la cuota de manejo. */
@@ -823,6 +878,8 @@ export default function ComprasExteriorPanel() {
   const [modalVerificar, setModalVerificar] = useState(false);
   const [seleccionIds, setSeleccionIds] = useState<number[]>([]);
   const [verTodosMesesAdeudado, setVerTodosMesesAdeudado] = useState(false);
+  const [busquedaHistorial, setBusquedaHistorial] = useState("");
+  const [mesesCerrados, setMesesCerrados] = useState<Set<string> | null>(null);
   const [envioModal, setEnvioModal] = useState<"crear" | EnvioExterior | null>(null);
   const [fechaEnvio, setFechaEnvio] = useState(() => new Date().toISOString().slice(0, 10));
   const [fleteEnvio, setFleteEnvio] = useState("");
@@ -895,7 +952,50 @@ export default function ComprasExteriorPanel() {
     };
   }, [cuentaCobroId, modalVerificar]);
 
-  const gruposHistorial = useMemo(() => agruparHistorial(historial), [historial]);
+  const historialFiltrado = useMemo(() => {
+    const q = busquedaHistorial.trim().toLowerCase();
+    if (!q) return historial;
+    return historial.filter((c) => {
+      const campos = [
+        c.proveedor,
+        c.numero_pedido,
+        c.emisor_nombre,
+        c.moneda,
+        String(c.id),
+        ...(c.lineas || []).map((l) => l.nombre),
+      ];
+      return campos.some((v) => (v || "").toString().toLowerCase().includes(q));
+    });
+  }, [historial, busquedaHistorial]);
+
+  const gruposHistorial = useMemo(
+    () => agruparHistorial(historialFiltrado),
+    [historialFiltrado],
+  );
+
+  const mesesHistorial = useMemo(() => agruparPorMes(gruposHistorial), [gruposHistorial]);
+
+  useEffect(() => {
+    if (mesesCerrados !== null) return;
+    if (!historial.length) return;
+    if (mesesHistorial.length <= 2) {
+      setMesesCerrados(new Set());
+      return;
+    }
+    setMesesCerrados(new Set(mesesHistorial.slice(2).map((m) => m.mes)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historial.length, mesesHistorial.length]);
+
+  const buscandoHistorial = busquedaHistorial.trim().length > 0;
+  const mesEstaAbierto = (mes: string) => buscandoHistorial || !(mesesCerrados?.has(mes));
+  const toggleMes = (mes: string) => {
+    setMesesCerrados((prev) => {
+      const next = new Set(prev || []);
+      if (next.has(mes)) next.delete(mes);
+      else next.add(mes);
+      return next;
+    });
+  };
 
   const resumenAdeudado = useMemo(() => {
     type Acum = { mercAprob: number; mercPend: number; fleteAprob: number; fletePend: number };
@@ -2332,8 +2432,59 @@ export default function ComprasExteriorPanel() {
           </p>
         )}
 
-        <ul className="space-y-2">
-          {gruposHistorial.map((g) => {
+        {historial.length > 0 && (
+          <div className="flex items-center gap-2">
+            <input
+              value={busquedaHistorial}
+              onChange={(e) => setBusquedaHistorial(e.target.value)}
+              placeholder="Buscar por proveedor, Nº pedido, producto o emisor…"
+              className="w-full max-w-sm rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs"
+            />
+            {buscandoHistorial && (
+              <button
+                type="button"
+                onClick={() => setBusquedaHistorial("")}
+                className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-ink"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        )}
+
+        {buscandoHistorial && mesesHistorial.length === 0 && (
+          <p className="text-xs text-muted py-4 text-center">
+            Sin resultados para «{busquedaHistorial}».
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {mesesHistorial.map((mi) => {
+            const abiertoMes = mesEstaAbierto(mi.mes);
+            return (
+              <div key={mi.mes} className="rounded-lg border border-border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleMes(mi.mes)}
+                  className="flex w-full flex-wrap items-center justify-between gap-2 bg-surface-input/60 px-3 py-2 text-left hover:bg-surface-input"
+                >
+                  <span className="text-xs font-semibold text-ink">
+                    {mi.mes === "Sin fecha" ? "Sin fecha" : etiquetaMes(mi.mes)}{" "}
+                    <span className="font-normal text-muted">· {mi.compras} compra(s)</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-[11px]">
+                    <span className="font-semibold text-accent">{fmtCop(mi.totalAprobado)}</span>
+                    {mi.totalPendiente > 0 && (
+                      <span className="text-amber-700 dark:text-amber-400">
+                        +{fmtCop(mi.totalPendiente)} pend.
+                      </span>
+                    )}
+                    <span className="text-muted">{abiertoMes ? "▲" : "▼"}</span>
+                  </span>
+                </button>
+                {abiertoMes && (
+        <ul className="space-y-2 p-2">
+          {mi.grupos.map((g) => {
             const compras = g.kind === "envio" ? g.compras : [g.compra];
             const envio = g.kind === "envio" ? g.envio : null;
             const filas = compras.map((c) => {
@@ -2395,18 +2546,42 @@ export default function ComprasExteriorPanel() {
                         {c.flete && !c.envio ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
                         {" · "}
                         {c.total_guardados} costo(s)
-                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
-                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
-                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
-                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
-                          : ""}
-                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0 && !c.envio
-                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
-                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
-                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
-                          : ""}
-                        {c.emisor_nombre ? ` · a nombre de ${c.emisor_nombre}` : ""}
                       </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {c.total_cobro_cop != null && c.total_cobro_cop > 0 && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                              c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                            }`}
+                          >
+                            Merc. {fmtCop(c.total_cobro_cop)}
+                            {c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                              ? " ✓"
+                              : " · pend."}
+                          </span>
+                        )}
+                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0 && !c.envio && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                              c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                            }`}
+                          >
+                            Flete {fmtCop(c.flete_cobro_cop)}
+                            {c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                              ? " ✓"
+                              : " · pend."}
+                          </span>
+                        )}
+                        {c.emisor_nombre && (
+                          <span className="rounded-full bg-surface-input px-1.5 py-0.5 text-[9px] font-medium text-muted">
+                            {c.emisor_nombre}
+                          </span>
+                        )}
+                      </div>
                       <p className="truncate text-[10px] text-muted">
                         {(c.lineas || [])
                           .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
@@ -2618,6 +2793,11 @@ export default function ComprasExteriorPanel() {
             );
           })}
         </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
         </div>
       </div>
