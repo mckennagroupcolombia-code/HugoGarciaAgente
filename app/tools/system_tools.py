@@ -248,25 +248,51 @@ def consultar_tarifa_mercadoenvios(ciudad_destino: str, peso_kg: float) -> dict:
         print(f"Error en consultar_tarifa_mercadoenvios: {e}")
         return consultar_tarifa_envio(ciudad_destino)
 
-def consultar_tarifa_envio(ciudad: str) -> dict:
+def consultar_tarifa_envio(ciudad: str, peso_kg: float = 1.0) -> dict:
     """
-    Consulta la tarifa de envío de Interrapidísimo para una ciudad específica.
+    Consulta la tarifa de envío de Interrapidísimo para una ciudad y un peso.
+
+    Args:
+        ciudad: ciudad de destino (ej. "Medellín", "Chía").
+        peso_kg: peso total del pedido en kilos. El costo NO es plano: sube por
+            tramos, así que pasarlo cambia el resultado.
+
+    Antes leía la clave legacy `ciudades` del JSON, que solo trae `precio_base`
+    (la tarifa de 1 kg de la zona) e ignoraba el peso por completo: para un
+    pedido de 3 kg a Cali devolvía $18.500 cuando la tabla cobra $28.400. Ahora
+    delega en `tarifas_envio.cotizar_envio`, la misma función que usa la tienda
+    web, para que los tres caminos (web, chat de cliente y herramientas del
+    agente) coticen igual.
     """
+    from app.services.tarifas_envio import cotizar_envio
+
     try:
-        with open('app/data/tarifas_interrapidisimo.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        # Normalizar ciudad (quitar tildes, minúsculas)
-        ciudad_norm = unicodedata.normalize('NFKD', ciudad).encode('ASCII', 'ignore').decode('utf-8').lower().strip()
-        
-        ciudades = data.get('ciudades', {})
-        # Buscar coincidencia flexible
-        for ciudad_clave, info in ciudades.items():
-            clave_norm = unicodedata.normalize('NFKD', ciudad_clave).encode('ASCII', 'ignore').decode('utf-8').lower()
-            if clave_norm in ciudad_norm or ciudad_norm in clave_norm:
-                return {"ciudad": ciudad_clave.capitalize(), "tarifa": info}
-                
-        return {"ciudad": "Default", "tarifa": ciudades.get('default')}
+        cot = cotizar_envio(ciudad, peso_kg=float(peso_kg or 1.0))
     except Exception as e:
         print(f"Error consultando tarifa de envío: {e}")
-        return {"ciudad": "Error", "tarifa": {"precio_kg": 18000, "precio_base": 18000, "dias": 4}}
+        # Sin tabla no se inventa una cifra: el que llama debe pedir el dato a
+        # un humano en vez de cotizar mal (antes aquí había un $18.000 fijo).
+        return {
+            "ciudad": ciudad,
+            "error": "No se pudo calcular la tarifa; confirmar con un asesor.",
+            "tarifa": None,
+        }
+
+    try:
+        base_1kg = cotizar_envio(ciudad, peso_kg=1.0)["costo"]
+    except Exception:
+        base_1kg = cot["costo"]
+
+    return {
+        "ciudad": (ciudad or "").strip().title(),
+        "tarifa": {
+            # `precio_base` se conserva por compatibilidad con quien ya lo leía
+            # y significa lo mismo que antes: la tarifa de 1 kg de la zona.
+            # `precio_calculado` es el valor real para el peso consultado.
+            "precio_base": base_1kg,
+            "precio_calculado": cot["costo"],
+            "peso_kg": cot["peso_kg"],
+            "dias": cot["dias"],
+            "zona": cot["zona_nombre"],
+        },
+    }

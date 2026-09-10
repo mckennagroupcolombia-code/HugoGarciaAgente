@@ -359,10 +359,10 @@ REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
    - Para el resto del país: despachamos por transportadora (Interrapidísimo u otro operador). El tiempo de entrega varía según la ciudad.
    - Si el cliente pregunta por tienda física, dirección o punto de recogida, responde: "Somos tienda virtual, no contamos con punto físico. Para Bogotá hacemos entrega el mismo día de lunes a viernes con mensajero."
 9. TARIFAS DE ENVÍO — REGLA CRÍTICA:
-   - SIEMPRE usa 'consultar_tarifa_envio' para obtener el costo de envío. NUNCA inventes ni estimes un valor.
-   - Tarifas vigentes hasta 1 kg: Bogotá $8.800 · Resto del país $18.000.
-   - Peso mayor a 1 kg sube el costo (+$2.000 por cada kg adicional). Informa siempre que el precio depende del peso del pedido.
-   - Ejemplo correcto: "El envío a Medellín hasta 1 kg vale $18.000; si el pedido pesa más, el valor sube."
+   - SIEMPRE usa 'consultar_tarifa_envio' para obtener el costo de envío, pasándole la ciudad Y el peso total del pedido en kilos. NUNCA inventes ni estimes un valor.
+   - PROHIBIDO dar una cifra de envío que no venga de esa herramienta o de un bloque "TARIFA DE ENVÍO" inyectado en este prompt. No hay tarifa única "para el resto del país": el costo depende de la ZONA (local / regional / nacional 1 / nacional 2 / difícil acceso) y del PESO total del pedido.
+   - Si no sabes la ciudad de destino, PREGÚNTALA antes de dar cualquier valor.
+   - Ejemplo correcto: "El envío a Medellín hasta 1 kg vale $18.500; si el pedido pesa más, el valor sube — dígame las cantidades y le doy el total exacto."
 10. DATOS DE PAGO — REGLA CRÍTICA (incumplirla causó que apagaran el bot):
    - PROHIBIDO ABSOLUTAMENTE inventar, recordar o completar números de cuenta bancaria, Nequi, Daviplata, llaves, QR o NIT. Ningún dato de pago sale de tu memoria del entrenamiento.
    - Los ÚNICOS datos de pago que puedes compartir son los del bloque "DATOS DE PAGO AUTORIZADOS" de este prompt. Si el bloque no trae el método que pide el cliente, responde: "Veci, ahí mismo un asesor le comparte los datos para el pago" y NO des ningún número.
@@ -2505,6 +2505,137 @@ def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) ->
     return "\n\n".join(resultados)
 
 
+# --- Tarifa de envío como dato resuelto (Bloque C, sep-2026) -----------------
+#
+# Los canales de cliente (whatsapp, web_chat) responden SIN tool-use, así que la
+# regla "SIEMPRE usa consultar_tarifa_envio" era inaplicable ahí: el LLM solo
+# tenía las cifras escritas a mano en el prompt, y estaban desactualizadas
+# frente a app/data/tarifas_interrapidisimo.json.
+#   Cali 3 kg  -> el bot decía ~$22.000 (18.000 + 2.000/kg); la tabla da $28.400
+#   Chía 1 kg  -> el bot decía $18.000; es zona regional, $12.500
+#   Leticia    -> el bot decía $18.000; difícil acceso, $20.900
+# Igual que el catálogo, la tarifa se resuelve en Python y se inyecta ya
+# calculada; el prompt solo prohíbe dar cifras que no vengan de este bloque.
+
+_PAT_PREGUNTA_ENVIO = re.compile(
+    r"\b(env[ií]os?|env[ií]an|env[ií]a|envian|domicilio|flete|despacho|despachan|"
+    r"transportadora|interrapid\w*|servientrega)\b",
+    re.I,
+)
+
+
+@functools.lru_cache(maxsize=1)
+def _lugares_tarifa_envio() -> tuple:
+    """(ciudades, departamentos) normalizados y ordenados de más largo a más corto.
+
+    Se ordenan por longitud para que "san andres de cuerquia" gane sobre
+    "san andres" cuando ambos aparecen en el texto.
+    """
+    try:
+        from app.services.tarifas_envio import _datos, normalizar_lugar
+
+        datos = _datos()
+        ciudades = sorted(datos.get("zona_por_ciudad", {}), key=len, reverse=True)
+        deptos = sorted(
+            ((normalizar_lugar(d), d) for d in datos.get("zona_por_departamento", {})),
+            key=lambda par: len(par[0]),
+            reverse=True,
+        )
+        return (tuple(ciudades), tuple(deptos))
+    except Exception:
+        return ((), ())
+
+
+def _destino_envio_mensaje(pregunta: str, messages: list | None = None) -> tuple:
+    """Ciudad y departamento de destino, del mensaje o de lo que dijo el cliente antes."""
+    from app.services.tarifas_envio import normalizar_lugar
+
+    ciudades, deptos = _lugares_tarifa_envio()
+    if not ciudades:
+        return ("", "")
+
+    textos = [pregunta or ""]
+    # Solo mensajes del cliente: la ciudad la dice él, y una ciudad nombrada por
+    # el bot en una respuesta anterior no es el destino de este pedido.
+    for m in reversed((messages or [])[-10:]):
+        if (m or {}).get("role") == "user":
+            textos.append(_extraer_texto_visible_mensaje(m.get("content")))
+
+    for texto in textos:
+        norm = f" {normalizar_lugar(texto)} "
+        for ciudad in ciudades:
+            if f" {ciudad} " in norm:
+                return (ciudad, "")
+        for depto_norm, depto_original in deptos:
+            if f" {depto_norm} " in norm:
+                return ("", depto_original)
+    return ("", "")
+
+
+def _preflight_tarifa_envio(pregunta: str, messages: list | None = None) -> str | None:
+    if not _PAT_PREGUNTA_ENVIO.search(pregunta or ""):
+        return None
+    try:
+        from app.services.tarifas_envio import cotizar_envio
+    except Exception as e:
+        _log_error("preflight_tarifa_envio_import", e)
+        return None
+
+    ciudad, depto = _destino_envio_mensaje(pregunta, messages)
+    if not ciudad and not depto:
+        # Sin destino no hay tarifa: se le da al LLM la única cifra que no
+        # depende de la ciudad y la orden de preguntarla. Nunca la tabla
+        # completa, para que no la recite ni interpole.
+        try:
+            bogota = cotizar_envio("bogota", "", 1.0)["costo"]
+        except Exception:
+            bogota = 0
+        ancla = (
+            f"Lo único que puede afirmar sin la ciudad: en Bogotá y área "
+            f"metropolitana el envío vale ${bogota:,.0f} hasta 1 kg".replace(",", ".")
+            + ", con entrega el mismo día de lunes a viernes por mensajero. "
+            if bogota
+            else ""
+        )
+        return (
+            "TARIFA DE ENVÍO — el cliente no ha dicho la ciudad de destino y la "
+            "tarifa depende de ella. PIDA LA CIUDAD antes de dar cualquier cifra "
+            f"de envío. {ancla}Para cualquier otro destino, NO estime, NO promedie "
+            "y NO dé una cifra 'aproximada': pregunte la ciudad."
+        )
+
+    try:
+        base = cotizar_envio(ciudad or depto, depto, 1.0)
+        escalera = [
+            (kg, cotizar_envio(ciudad or depto, depto, float(kg))["costo"])
+            for kg in (1, 2, 3, 5)
+        ]
+    except Exception as e:
+        _log_error("preflight_tarifa_envio", e)
+        return None
+
+    destino = (ciudad or depto).title()
+    lineas = [
+        "TARIFA DE ENVÍO (tabla Interrapidísimo vigente — use SOLO estas cifras, "
+        "no las redondee ni las interpole):",
+        f"- Destino: {destino} → zona {base['zona_nombre']}",
+        f"- Entrega estimada: {base['dias']} día(s) hábil(es) tras el despacho.",
+        "- Costo según el peso total del pedido: "
+        + " · ".join(f"hasta {kg} kg ${costo:,.0f}".replace(",", ".") for kg, costo in escalera),
+    ]
+    if base["zona"] == "local":
+        lineas.append(
+            "- Bogotá y área metropolitana: entrega el MISMO DÍA de lunes a viernes "
+            "con mensajero, si el pago queda confirmado a tiempo."
+        )
+    lineas.append(
+        "- El envío se cobra por peso total del pedido. Si no sabe cuánto pesa lo "
+        "que el cliente pidió, dé la tarifa de 1 kg diciendo que es hasta 1 kg y "
+        "que sube con el peso. NUNCA invente un valor intermedio."
+    )
+    return "\n".join(lineas)
+
+
 def _preflight_ficha_tecnica(pregunta: str, messages: list | None = None) -> str | None:
     if not _mensaje_parece_consulta_tecnica_web(pregunta):
         return None
@@ -3093,6 +3224,9 @@ def obtener_respuesta_ia(
                 pregunta_visible, messages
             )
         ctx_ficha = _preflight_ficha_tecnica(pregunta_visible, messages)
+        # Los canales de cliente no tienen tool-use: la tarifa se resuelve aquí
+        # con la tabla real y se inyecta ya calculada (ver _preflight_tarifa_envio).
+        ctx_envio = _preflight_tarifa_envio(pregunta_visible, messages)
         memoria_vec = _memoria_vectorial_para_chat(pregunta_visible, historial=messages)
 
         # Si el cliente pregunta por algo específico pero no hay evidencia en catálogo/ficha,
@@ -3101,6 +3235,7 @@ def obtener_respuesta_ia(
             not ctx_catalogo
             and not ctx_ficha
             and not memoria_vec
+            and not ctx_envio
             and _mensaje_parece_consulta_producto(pregunta_visible)
         ):
             if es_web:
@@ -3134,7 +3269,9 @@ def obtener_respuesta_ia(
             contexto_ficha=ctx_ficha,
             extraer_texto_visible=_extraer_texto_visible_mensaje,
             sanitizar_web=_sanitizar_respuesta_web_chat if es_web else None,
-            extra_sistema=contexto_sistema or "",
+            extra_sistema="\n\n".join(
+                bloque for bloque in (contexto_sistema or "", ctx_envio or "") if bloque
+            ),
         )
         if texto_cli:
             final_messages = messages + [{"role": "assistant", "content": texto_cli}]

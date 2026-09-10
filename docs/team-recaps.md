@@ -1,3 +1,17 @@
+### 2026-09-10 00:45 - Tarifas de envío: el bot cotizaba de memoria, no de la tabla (Bloque C)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (plata: se cobraba de menos y de más)
+- **Qué se implementó:**
+  - **El problema:** las tarifas estaban **escritas a mano en dos prompts** (`app/core.py` regla 9 y `app/agent/cliente_chat.py`) — "Bogotá $8.800 · resto del país $18.000, +$2.000 por kg adicional" — mientras la tabla real vive en `app/data/tarifas_interrapidisimo.json` con cinco zonas y tramos por peso. Divergencias medidas: Cali 3 kg el bot decía ~$22.000 y la tabla cobra **$28.400**; Chía es zona regional a **$12.500** y el bot cobraba $18.000; Leticia es difícil acceso a **$20.900**. Se perdía plata en pedidos pesados y se cobraba de más a Cundinamarca.
+  - **Causa de fondo:** la regla decía "SIEMPRE usa `consultar_tarifa_envio`", pero los canales de cliente (`whatsapp`, `web_chat`) responden **sin tool-use** — ahí esa regla era inaplicable y el LLM solo tenía las cifras del prompt.
+  - **Solución:** `_preflight_tarifa_envio()` en `core.py` resuelve la tarifa en Python (misma `tarifas_envio.cotizar_envio` que usa la tienda web) y la inyecta ya calculada vía `extra_sistema`, igual que se hace con el catálogo. Incluye zona, días y escalera de 1/2/3/5 kg. Detecta la ciudad en el mensaje o en lo que **el cliente** dijo antes — nunca en una ciudad que el bot haya mencionado, que no es el destino del pedido.
+  - **Sin ciudad no hay cifra:** si el cliente no dijo la ciudad, el bloque ordena preguntarla y solo permite afirmar la de Bogotá (leída de la tabla, no escrita). Prohibido estimar o promediar.
+  - **Prompts limpios:** las dos listas de tarifas se reemplazaron por la regla de no dar ninguna cifra que no venga del bloque inyectado.
+  - **Tercer camino, también roto:** la herramienta `consultar_tarifa_envio` (la que sí usan los canales con tool-use) leía la clave legacy `ciudades` del JSON, que solo trae la tarifa de 1 kg, e **ignoraba el peso por completo** — 3 kg a Cali devolvía $18.500. Ahora acepta `peso_kg` y delega en `cotizar_envio`, así los tres caminos (web, chat de cliente, herramientas) cotizan igual. Su fallback de error tenía un `$18.000` fijo; ahora devuelve error explícito en vez de cotizar mal.
+  - 10 tests nuevos en `tests/test_tarifa_envio_chat.py`, incluido uno end-to-end que verifica que el bloque llega hasta el prompt del LLM y no se queda en el helper.
+- **Archivos Modificados:** `app/core.py`, `app/agent/cliente_chat.py`, `app/tools/system_tools.py`, `tests/test_tarifa_envio_chat.py` (nuevo), `docs/team-recaps.md`
+
+
 ### 2026-09-10 00:05 - Catálogo del bot: variantes morfológicas, allowlist hardcodeada y caché stale perdida (Bloque B)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de fondo (catálogo del bot / pérdida de ventas)
