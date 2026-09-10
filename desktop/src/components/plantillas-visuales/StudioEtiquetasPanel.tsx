@@ -27,7 +27,7 @@ interface Props {
 
 export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoriaFiltroChange }: Props) {
   const { data: cats } = useCategoriasEtiqueta();
-  const categorias = cats ?? CATEGORIAS_ETIQUETA;
+  const categorias = Array.isArray(cats) ? cats : CATEGORIAS_ETIQUETA;
   const { data: etiquetas, isLoading } = useEtiquetasStudio();
   const [buscar, setBuscar] = useState("");
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoria
   const grupos = useMemo(() => {
     const q = buscar.trim().toLowerCase();
     const porCategoria = new Map<string, EtiquetaStudioPng[]>();
-    for (const e of etiquetas ?? []) {
+    for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
       const visible = nombreVisibleEtiqueta(e.nombre);
       if (q && !visible.toLowerCase().includes(q)) continue;
       const cat = detectarCategoriaEn(categorias, visible);
@@ -134,7 +134,7 @@ export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoria
       {vistaPrevia && (
         <LightboxImagen
           nombre={vistaPrevia}
-          formato={(etiquetas ?? []).find((e) => e.nombre === vistaPrevia) ?? null}
+          formato={(Array.isArray(etiquetas) ? etiquetas : []).find((e) => e.nombre === vistaPrevia) ?? null}
           onCerrar={() => setVistaPrevia(null)}
           onDescargar={() => void descargar(vistaPrevia)}
           descargando={descargando}

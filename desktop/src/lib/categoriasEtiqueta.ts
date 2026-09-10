@@ -109,14 +109,24 @@ export function esIdPlantillaFicha(id: string): boolean {
 }
 
 
+export const QK_CATEGORIAS_ETIQUETA = ["etiquetas-categorias"] as const;
+
+/** Carga el catálogo del servidor (semilla local como respaldo).
+ *
+ *  Exportada a propósito: la precarga de Diseño llena esta MISMA clave de caché,
+ *  y si allá se guardaba la respuesta cruda `{categorias: […]}` mientras el hook
+ *  esperaba el arreglo, el panel reventaba con "n.map is not a function". Una
+ *  clave de caché, una sola función que decide la forma del dato. */
+export async function fetchCategoriasEtiqueta(): Promise<CategoriaEtiqueta[]> {
+  const res = await api.get<{ categorias: CategoriaEtiqueta[] }>("/api/etiquetas/categorias");
+  return res.categorias?.length ? res.categorias : CATEGORIAS_ETIQUETA;
+}
+
 /** Catálogo de categorías del servidor, con la semilla local como respaldo. */
 export function useCategoriasEtiqueta() {
   return useQuery({
-    queryKey: ["etiquetas-categorias"],
-    queryFn: async () => {
-      const res = await api.get<{ categorias: CategoriaEtiqueta[] }>("/api/etiquetas/categorias");
-      return res.categorias?.length ? res.categorias : CATEGORIAS_ETIQUETA;
-    },
+    queryKey: QK_CATEGORIAS_ETIQUETA,
+    queryFn: fetchCategoriasEtiqueta,
     staleTime: 60_000,
     gcTime: 60 * 60 * 1000,
   });

@@ -53,7 +53,7 @@ export default function NuevaPlantillaCategoriaPanel({
 }: Props) {
   const qc = useQueryClient();
   const { data: catsData } = useCategoriasEtiqueta();
-  const categorias = catsData ?? CATEGORIAS_ETIQUETA;
+  const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
 
   const [paso, setPaso] = useState<Paso>(categoriaInicial ? "partida" : "categoria");
   const [categoriaId, setCategoriaId] = useState(categoriaInicial);

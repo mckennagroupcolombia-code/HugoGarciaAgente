@@ -30,7 +30,9 @@ export interface ResumenCategoria {
  *  otras pestañas de Studio muestran los mismos grupos. */
 export function useResumenCategorias() {
   const { data: cats } = useCategoriasEtiqueta();
-  const categorias = cats ?? CATEGORIAS_ETIQUETA;
+  // Guardas de forma: un valor con la forma equivocada en la caché no puede
+  // volver a tumbar el panel entero (fue el «n.map is not a function»).
+  const categorias = Array.isArray(cats) ? cats : CATEGORIAS_ETIQUETA;
 
   const { data: plantillasData, isLoading: cargandoPlantillas } = useQuery({
     queryKey: ["plantillas-visuales", "__todas__"],
@@ -51,7 +53,7 @@ export function useResumenCategorias() {
       porCategoria.set(cat, lista);
     }
     const etiquetasPorCategoria = new Map<string, number>();
-    for (const e of etiquetas ?? []) {
+    for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
       const cat = detectarCategoriaEn(categorias, nombreVisibleEtiqueta(e.nombre));
       etiquetasPorCategoria.set(cat, (etiquetasPorCategoria.get(cat) ?? 0) + 1);
     }

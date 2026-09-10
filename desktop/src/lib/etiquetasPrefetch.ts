@@ -1,6 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { puedeVerEtiquetasAvanzado } from "./studioVisualAccess";
+import { fetchCategoriasEtiqueta, QK_CATEGORIAS_ETIQUETA } from "./categoriasEtiqueta";
+import {
+  fetchEtiquetasStudio,
+  QK_ETIQUETAS_STUDIO,
+} from "../components/plantillas-visuales/studioEtiquetasData";
 import type { TicketsUser } from "../stores/ticketsAuth";
 
 /**
@@ -74,8 +79,8 @@ function precargasStudio(): Precarga[] {
     // Portada de Studio: categorías + catálogo completo de plantillas + las
     // etiquetas ya generadas. Son las tres consultas que arman las tarjetas.
     {
-      queryKey: ["etiquetas-categorias"],
-      queryFn: () => api.get("/api/etiquetas/categorias"),
+      queryKey: [...QK_CATEGORIAS_ETIQUETA],
+      queryFn: fetchCategoriasEtiqueta,
       staleTime: 60_000,
     },
     {
@@ -84,8 +89,8 @@ function precargasStudio(): Precarga[] {
       staleTime: 15_000,
     },
     {
-      queryKey: ["etiquetas-recursos-png", "ETIQUETAS STUDIO"],
-      queryFn: () => api.get("/api/etiquetas/recursos-png?carpeta=ETIQUETAS%20STUDIO"),
+      queryKey: [...QK_ETIQUETAS_STUDIO],
+      queryFn: fetchEtiquetasStudio,
       staleTime: 15_000,
     },
   ];
@@ -94,11 +99,10 @@ function precargasStudio(): Precarga[] {
 /** Papel y tinta. */
 function precargasInventario(): Precarga[] {
   return [
-    {
-      queryKey: ["etiquetas-inventario-consumibles"],
-      queryFn: async () => api.get("/api/etiquetas/inventario-consumibles"),
-      staleTime: 15_000,
-    },
+    // Inventario de consumibles NO se precarga: su useQuery normaliza los items
+    // antes de guardarlos y aquí no hay acceso a ese normalizador. Precargar la
+    // respuesta cruda dejaría en caché un dato con otra forma — el mismo tipo de
+    // desajuste que provocó el «n.map is not a function».
     {
       queryKey: ["etiquetas-niveles-tinta"],
       queryFn: () => api.get("/api/etiquetas/niveles-tinta"),

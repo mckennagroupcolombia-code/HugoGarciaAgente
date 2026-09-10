@@ -640,7 +640,7 @@ export default function PlantillasVisualesPanel({
   const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
   const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
   const { data: catsData } = useCategoriasEtiqueta();
-  const categorias = catsData ?? CATEGORIAS_ETIQUETA;
+  const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
 
   useEffect(() => {
     onInmersivoChange?.(

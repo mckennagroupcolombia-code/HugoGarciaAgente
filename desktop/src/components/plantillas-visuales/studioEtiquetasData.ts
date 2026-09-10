@@ -21,15 +21,29 @@ export interface EtiquetaStudioPng {
   dpi?: number | null;
 }
 
+/** Clave con un tercer segmento a propósito: la biblioteca de "Recursos" usa
+ *  `["etiquetas-recursos-png", carpetaActual]` y guarda la respuesta completa
+ *  `{recursos, carpetas, …}`. Al navegar a la carpeta ETIQUETAS STUDIO las dos
+ *  claves habrían sido idénticas con formas de dato distintas. Sigue empezando
+ *  por "etiquetas-recursos-png" para que las invalidaciones por prefijo (subir o
+ *  borrar un PNG) también refresquen esta lista. */
+export const QK_ETIQUETAS_STUDIO = [
+  "etiquetas-recursos-png",
+  CARPETA_ETIQUETAS_STUDIO,
+  "lista",
+] as const;
+
+export async function fetchEtiquetasStudio(): Promise<EtiquetaStudioPng[]> {
+  const res = await api.get<{ recursos: EtiquetaStudioPng[] }>(
+    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}`,
+  );
+  return res.recursos ?? [];
+}
+
 export function useEtiquetasStudio() {
   return useQuery({
-    queryKey: ["etiquetas-recursos-png", CARPETA_ETIQUETAS_STUDIO],
-    queryFn: async () => {
-      const res = await api.get<{ recursos: EtiquetaStudioPng[] }>(
-        `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}`,
-      );
-      return res.recursos ?? [];
-    },
+    queryKey: QK_ETIQUETAS_STUDIO,
+    queryFn: fetchEtiquetasStudio,
     staleTime: 15_000,
     gcTime: 60 * 60 * 1000,
   });
