@@ -2495,6 +2495,13 @@ def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) ->
         # Ni combos SIIGO ni Sheets resolvieron: queda anotado para revisarlo.
         # Sin esto, los huecos del catálogo solo se descubren leyendo chats
         # (así se encontró el caso de la creatina el 2026-09-09).
+        #
+        # Excepción: las preguntas de envío pasan el filtro de "parece consulta
+        # de catálogo" ("hacen envíos a Medellín") y por supuesto no encuentran
+        # producto. Registrarlas convertiría esta lista —cuyo único valor es
+        # decir qué productos faltan— en ruido.
+        if _PAT_PREGUNTA_ENVIO.search(pregunta or ""):
+            return None
         try:
             from app.services.catalogo_faltantes import registrar_sin_resultado
 
