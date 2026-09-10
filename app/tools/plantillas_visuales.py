@@ -1118,10 +1118,21 @@ def _aplicar_datos_producto_a_elementos(elementos: list[dict], datos: dict) -> N
     presente en `datos` (ya formateado por el frontend — ver
     `contenidoCampoProductoFichaMp` en plantillaFichaTecnicaMp.ts, que evita
     reimplementar el formateo de campos compuestos en dos lenguajes)."""
+    ocultos: list[dict] = []
     for el in elementos:
         campo = el.get("campoProducto")
-        if campo and campo in datos:
-            el["content"] = datos[campo]
+        if not campo:
+            continue
+        valor = datos.get(campo)
+        if campo in datos:
+            el["content"] = valor
+        # Un campo marcado como opcional que ese producto no trae se quita del
+        # lienzo; si no, la etiqueta sale con el texto de muestra de la plantilla
+        # (p. ej. el CAS de otro producto).
+        if el.get("ocultarSiVacio") and not str(valor or "").strip():
+            ocultos.append(el)
+    for el in ocultos:
+        elementos.remove(el)
 
 
 def aplicar_plantilla_lote(

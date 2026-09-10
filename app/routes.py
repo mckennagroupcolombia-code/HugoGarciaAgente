@@ -19807,6 +19807,64 @@ def register_routes(app):
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 
+        # Publicar en la biblioteca: hasta ahora el lote solo escribía en
+        # renders_etiquetas/, una carpeta que ningún panel lista — las etiquetas
+        # quedaban invisibles. Se copian a "ETIQUETAS STUDIO/<Categoría>" para que
+        # aparezcan agrupadas en Studio → Etiquetas y en Diseño → Imprimir.
+        try:
+            from app.tools.etiquetas_categorias import detectar_categoria, listar_categorias
+            from app.tools.plantillas_visuales import obtener_plantilla
+
+            _REPO_DIR_ETIQUETAS_LOTE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+            plantilla = obtener_plantilla(plantilla_id) or {}
+            cats = listar_categorias()
+            cat_id = (plantilla.get("categoria_producto") or "").strip()
+            etiqueta_cat = next(
+                (c["etiqueta"] for c in cats if c["id"] == cat_id),
+                None,
+            ) or next(
+                (c["etiqueta"] for c in cats
+                 if c["id"] == detectar_categoria(plantilla.get("nombre") or "", cats)),
+                "Otros",
+            )
+            sub = os.path.join("ETIQUETAS STUDIO", _nombre_carpeta_png_seguro(etiqueta_cat))
+            destino_dir = os.path.join(_carpeta_png_recursos_etiquetas(), sub)
+            os.makedirs(destino_dir, exist_ok=True)
+            fmt = (plantilla.get("formato") or {})
+            import shutil as _shutil_lote
+            for r in resultados:
+                if not r.get("ok") or not r.get("ruta"):
+                    continue
+                origen = os.path.realpath(os.path.join(_REPO_DIR_ETIQUETAS_LOTE, r["ruta"]))
+                if not os.path.isfile(origen):
+                    continue
+                ext = os.path.splitext(origen)[1] or ".png"
+                base = _nombre_png_recurso_seguro(f"{r.get('sku') or 'etiqueta'}{ext}")
+                destino = os.path.join(destino_dir, base)
+                # Regenerar el mismo SKU pisa su etiqueta anterior en vez de dejar
+                # copias _2 _5 _7 como las que ensuciaron la biblioteca. Solo se
+                # renombra si el nombre ya está tomado por OTRO archivo del árbol
+                # (los nombres son únicos globalmente, ver _nombre_png_disponible).
+                if not os.path.exists(destino) and not _nombre_png_disponible(base):
+                    stem = base[: -len(ext)]
+                    base = _nombre_png_recurso_seguro(f"{stem}_{_nombre_carpeta_png_seguro(etiqueta_cat)}{ext}")
+                    destino = os.path.join(destino_dir, base)
+                _shutil_lote.copyfile(origen, destino)
+                entry = _registrar_png_recurso(
+                    f"{sub}/{base}".replace("\\", "/"),
+                    destino,
+                    os.path.getsize(destino),
+                    {
+                        "tipo_etiqueta": fmt.get("nombre"),
+                        "ancho_mm": fmt.get("ancho_mm"),
+                        "alto_mm": fmt.get("alto_mm"),
+                    },
+                )
+                r["biblioteca"] = entry.get("nombre")
+        except Exception as exc:  # la etiqueta ya se generó: no invalidar el lote
+            print(f"⚠️ aplicar-lote: no se pudo publicar en la biblioteca: {exc}")
+
         exitosos = sum(1 for r in resultados if r.get("ok"))
         con_revision = sum(1 for r in resultados if r.get("requiere_revision"))
         return jsonify({

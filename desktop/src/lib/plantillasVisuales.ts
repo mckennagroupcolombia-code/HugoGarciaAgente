@@ -85,6 +85,9 @@ export interface ElementoTexto extends ElementoBase {
   /** Qué dato de producto/ficha técnica alimenta este texto.
    *  Ausente = contenido fijo de marca/diseño (no se toca en lote ni en el formulario). */
   campoProducto?: string;
+  /** Campo opcional: si el producto no trae ese dato, el elemento se quita del
+   *  lienzo en vez de imprimir el texto de muestra de la plantilla. */
+  ocultarSiVacio?: boolean;
 }
 
 /** Único lugar que decide si un texto usa autofit (arco/círculo lo ignoran).

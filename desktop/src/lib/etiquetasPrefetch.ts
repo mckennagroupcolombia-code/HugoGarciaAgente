@@ -71,6 +71,23 @@ function precargasStudio(): Precarga[] {
       queryFn: () => api.get("/api/etiquetas/recursos-png/carpetas"),
       staleTime: 15_000,
     },
+    // Portada de Studio: categorías + catálogo completo de plantillas + las
+    // etiquetas ya generadas. Son las tres consultas que arman las tarjetas.
+    {
+      queryKey: ["etiquetas-categorias"],
+      queryFn: () => api.get("/api/etiquetas/categorias"),
+      staleTime: 60_000,
+    },
+    {
+      queryKey: ["plantillas-visuales", "__todas__"],
+      queryFn: () => api.get("/api/plantillas-visuales?todas=1"),
+      staleTime: 15_000,
+    },
+    {
+      queryKey: ["etiquetas-recursos-png", "ETIQUETAS STUDIO"],
+      queryFn: () => api.get("/api/etiquetas/recursos-png?carpeta=ETIQUETAS%20STUDIO"),
+      staleTime: 15_000,
+    },
   ];
 }
 

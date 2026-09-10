@@ -38,6 +38,7 @@ import {
 import { categoriaProductoDe } from "../../lib/plantillasVisuales";
 import StudioCategoriasPanel from "./StudioCategoriasPanel";
 import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
+import NuevaPlantillaCategoriaPanel from "./NuevaPlantillaCategoriaPanel";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -579,7 +580,15 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote" | "formularios-etiquetas";
+type Vista =
+  | "lista"
+  | "formato"
+  | "scan"
+  | "editor"
+  | "diligenciar"
+  | "lote"
+  | "formularios-etiquetas"
+  | "nueva-plantilla-categoria";
 
 const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
   { id: "categorias", label: "Categorías" },
@@ -635,7 +644,11 @@ export default function PlantillasVisualesPanel({
 
   useEffect(() => {
     onInmersivoChange?.(
-      vista === "editor" || vista === "diligenciar" || vista === "lote" || vista === "formularios-etiquetas",
+      vista === "editor"
+        || vista === "diligenciar"
+        || vista === "lote"
+        || vista === "formularios-etiquetas"
+        || vista === "nueva-plantilla-categoria",
     );
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
@@ -1082,6 +1095,30 @@ export default function PlantillasVisualesPanel({
     );
   }
 
+  if (vista === "nueva-plantilla-categoria") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <NuevaPlantillaCategoriaPanel
+          categoriaInicial={categoriaFiltro}
+          onVolver={() => setVista("lista")}
+          onCreada={(plantilla) => {
+            setFichaInicial(null);
+            setDoc(plantilla);
+            docGuardadoRef.current = plantilla;
+            setMsg("Plantilla de categoría creada ✓ — ajústala y guarda si hace falta");
+            setTimeout(() => setMsg(null), 4000);
+            setVista("editor");
+          }}
+          onLienzoEnBlanco={(catId) => {
+            setCategoriaFiltro(catId);
+            setVista("formato");
+          }}
+          onFormularioFicha={() => setVista("formularios-etiquetas")}
+        />
+      </div>
+    );
+  }
+
   if (vista === "formularios-etiquetas") {
     return (
       <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
@@ -1319,10 +1356,7 @@ export default function PlantillasVisualesPanel({
         <StudioCategoriasPanel
           onCrearPlantilla={(catId) => {
             setCategoriaFiltro(catId);
-            setSubvista("disenos");
-            setMsg(
-              `Elige un diseño de «${etiquetaCategoriaEn(categorias, catId)}» como punto de partida, o crea uno nuevo.`,
-            );
+            setVista("nueva-plantilla-categoria");
           }}
           onAbrirPlantilla={(doc) => void abrirPlantilla(doc.id)}
           onCrearEtiquetas={(doc) => {
@@ -1337,7 +1371,10 @@ export default function PlantillasVisualesPanel({
             setCategoriaFiltro(catId);
             setSubvista("etiquetas");
           }}
-          onNuevaCategoria={() => setVista("formularios-etiquetas")}
+          onNuevaCategoria={() => {
+            setCategoriaFiltro("");
+            setVista("nueva-plantilla-categoria");
+          }}
         />
       )}
 
@@ -1448,10 +1485,18 @@ export default function PlantillasVisualesPanel({
         <button
           type="button"
           onClick={abrirNuevo}
-          title="Lienzo libre: cajas de texto, símbolos y disposición propia de la categoría"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          title="Lienzo libre: cajas de texto, símbolos y disposición propia"
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink-secondary hover:bg-surface-hover"
         >
           Nuevo diseño
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("nueva-plantilla-categoria")}
+          title="Elegir categoría, partir de un diseño y marcar los campos que cambian por producto"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+        >
+          Nueva plantilla de categoría
         </button>
       </div>
 
