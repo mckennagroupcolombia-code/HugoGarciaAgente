@@ -10,6 +10,8 @@ export interface FichaEtiquetaGuardada {
   nombre: string;
   data: ProductLabelData;
   tipo_nombre?: string;
+  /** Id de CATEGORIAS_ETIQUETA (lib/categoriasEtiqueta.ts). */
+  categoria?: string;
   attribute_icons?: Partial<Record<AttributeKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
   creado: string;
@@ -21,6 +23,7 @@ export interface GuardarFichaEtiquetaBody {
   nombre: string;
   data: ProductLabelData;
   tipo_nombre?: string;
+  categoria?: string;
   attribute_icons?: Partial<Record<AttributeKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
 import {
   duplicarPlantillaVisual,
   fusionarMetadatosPlantillaTrasGuardar,
@@ -68,12 +69,14 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
         `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(carpetaActual)}`,
       ),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const { data: carpetasTodasData } = useQuery({
     queryKey: ["etiquetas-recursos-png-carpetas"],
     queryFn: () => api.get<{ carpetas: string[] }>("/api/etiquetas/recursos-png/carpetas"),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const recursos = data?.recursos ?? [];
@@ -596,6 +599,16 @@ export default function PlantillasVisualesPanel({
   const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
   const [fichaInicial, setFichaInicial] = useState<PlantillaVisualDoc | null>(null);
+  // El card de plantilla es draggable (para mover a carpetas). Si el mouse va a
+  // los botones de acción hay que soltar el arrastre: si no, un clic con el
+  // mínimo movimiento arranca un drag y el botón "Eliminar" nunca dispara.
+  const [arrastreBloqueado, setArrastreBloqueado] = useState(false);
+  const [eliminandoLote, setEliminandoLote] = useState(false);
+  // Confirmación propia en vez de window.confirm: si el navegador tiene marcado
+  // "impedir que esta página abra más diálogos" (Firefox lo ofrece tras varios
+  // confirm seguidos), window.confirm devuelve false sin mostrar nada y el
+  // borrado quedaba en silencio, como si el botón no hiciera nada.
+  const [confirmarBorrado, setConfirmarBorrado] = useState<{ ids: string[]; nombre?: string } | null>(null);
   const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
 
   useEffect(() => {
@@ -617,12 +630,14 @@ export default function PlantillasVisualesPanel({
         `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscarDebounced ? `&q=${encodeURIComponent(buscarDebounced)}` : ""}`,
       ),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const { data: carpetasTodasData } = useQuery({
     queryKey: ["plantillas-visuales-carpetas"],
     queryFn: () => api.get<{ carpetas: string[] }>("/api/plantillas-visuales/carpetas"),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const plantillas = data?.plantillas ?? [];
@@ -792,10 +807,41 @@ export default function PlantillasVisualesPanel({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [vista, doc]);
 
-  const eliminarMut = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/plantillas-visuales/${id}`),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] }),
+  const eliminarLoteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const fallidos: string[] = [];
+      for (const id of ids) {
+        try {
+          await api.delete(`/api/plantillas-visuales/${id}`);
+        } catch {
+          fallidos.push(id);
+        }
+      }
+      return fallidos;
+    },
+    onMutate: () => {
+      setEliminandoLote(true);
+      setMsg(null);
+    },
+    onSuccess: (fallidos) => {
+      setSeleccionadas(new Set());
+      setMsg(
+        fallidos.length > 0
+          ? `No se pudieron eliminar ${fallidos.length} plantilla(s)`
+          : "Plantilla(s) eliminada(s) ✓",
+      );
+      setTimeout(() => setMsg(null), 2500);
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al eliminar las plantillas seleccionadas"),
+    onSettled: () => setEliminandoLote(false),
   });
+
+  function eliminarSeleccionadas() {
+    const ids = Array.from(seleccionadas);
+    if (ids.length === 0) return;
+    setConfirmarBorrado({ ids });
+  }
 
   const [exportando, setExportando] = useState(false);
   const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
@@ -1241,10 +1287,18 @@ export default function PlantillasVisualesPanel({
             <button
               type="button"
               onClick={() => setMenuMoverAbierto((v) => !v)}
-              disabled={moviendoLote}
+              disabled={moviendoLote || eliminandoLote}
               className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
             >
               {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionadas.size})`}
+            </button>
+            <button
+              type="button"
+              onClick={eliminarSeleccionadas}
+              disabled={eliminandoLote || moviendoLote}
+              className="ml-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+            >
+              {eliminandoLote ? "Eliminando…" : `Eliminar (${seleccionadas.size})`}
             </button>
             {menuMoverAbierto && (
               <div className="absolute right-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
@@ -1276,18 +1330,34 @@ export default function PlantillasVisualesPanel({
         <button
           type="button"
           onClick={() => setVista("formularios-etiquetas")}
+          title="Formulario de ficha por SKU, con plantilla por categoría de producto. Se guarda en su propia lista, no aquí."
           className="rounded-lg border border-accent/40 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
         >
-          Formularios etiquetados
+          Fichas de etiqueta
         </button>
         <button
           type="button"
           onClick={abrirNuevo}
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
-          Nueva plantilla
+          Nueva plantilla de lienzo
         </button>
       </div>
+
+      {/* Las dos pantallas se llamaban parecido ("plantilla" aquí y allá) y
+          guardan en almacenes distintos: una ficha guardada nunca aparece en
+          esta lista, y eso se leía como que no se había guardado. */}
+      <p className="mb-4 text-[11px] text-muted">
+        Esta lista son plantillas de <strong>lienzo</strong>, una por producto y tamaño. Las{" "}
+        <button
+          type="button"
+          onClick={() => setVista("formularios-etiquetas")}
+          className="underline decoration-dotted hover:text-accent"
+        >
+          fichas de etiqueta
+        </button>{" "}
+        se guardan aparte, en su propia pantalla, con una plantilla por categoría de producto.
+      </p>
 
       <div className="mb-5 flex flex-wrap items-center gap-1 text-xs">
         <button
@@ -1464,7 +1534,7 @@ export default function PlantillasVisualesPanel({
             const seleccionada = seleccionadas.has(p.id);
             return (
               <article
-                draggable
+                draggable={!arrastreBloqueado}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = "move";
                   iniciarArrastrePlantilla(p.id);
@@ -1476,7 +1546,11 @@ export default function PlantillasVisualesPanel({
                   seleccionada ? "border-accent ring-2 ring-accent/40" : "border-border"
                 }`}
               >
-                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95">
+                <label
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95"
+                >
                   <input
                     type="checkbox"
                     checked={seleccionada}
@@ -1531,11 +1605,17 @@ export default function PlantillasVisualesPanel({
                     </button>
                   )}
                 </div>
-                <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                <div
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                >
                   <button
                     type="button"
                     title="Duplicar"
+                    draggable={false}
                     disabled={duplicandoId === p.id || guardarMut.isPending}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
                       void duplicarPlantillaPorId(p.id);
@@ -1547,13 +1627,16 @@ export default function PlantillasVisualesPanel({
                   <button
                     type="button"
                     title="Eliminar"
+                    draggable={false}
+                    disabled={eliminandoLote}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`¿Eliminar "${p.nombre}"?`)) eliminarMut.mutate(p.id);
+                      setConfirmarBorrado({ ids: [p.id], nombre: p.nombre });
                     }}
-                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600"
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600 disabled:opacity-50"
                   >
-                    Eliminar
+                    {eliminandoLote ? "…" : "Eliminar"}
                   </button>
                 </div>
               </article>
@@ -1565,6 +1648,47 @@ export default function PlantillasVisualesPanel({
       {buscarDebounced && (
         <div className="mt-6">
           <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
+        </div>
+      )}
+
+      {confirmarBorrado && (
+        <div
+          className="fixed inset-0 z-[800] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setConfirmarBorrado(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface-panel p-5 shadow-paper-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold text-ink">
+              {confirmarBorrado.ids.length === 1
+                ? `¿Eliminar "${confirmarBorrado.nombre ?? "esta plantilla"}"?`
+                : `¿Eliminar ${confirmarBorrado.ids.length} plantillas seleccionadas?`}
+            </p>
+            <p className="mt-1 text-xs text-muted">Esta acción no se puede deshacer.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmarBorrado(null)}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                autoFocus
+                disabled={eliminandoLote}
+                onClick={() => {
+                  const ids = confirmarBorrado.ids;
+                  setConfirmarBorrado(null);
+                  eliminarLoteMut.mutate(ids);
+                }}
+                className="rounded-lg bg-danger px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {eliminandoLote ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

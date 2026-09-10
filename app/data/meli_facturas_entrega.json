@@ -14563,9 +14563,16 @@
     },
     "2000018318663316": {
       "shipping_id": "47949144349",
-      "estado": "error",
-      "actualizado_en": "2026-09-07T15:55:07",
-      "error": "No puedo emitir factura automática: GOTVID50mL: no existe en Alegra"
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:10:13",
+      "error": "No puedo emitir factura automática: GOTVID50mL: no existe en Alegra",
+      "proveedor": "alegra",
+      "pack_id": "2000018318663316",
+      "siigo_invoice_id": "233",
+      "siigo_invoice_number": "FE233",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "4b9534f00606fcbfb6031812aeafe2ceb865a5f1d0698df98b43b0153dbe185ab0af99f21c375a69e390032a5b65ffea",
+      "pdf_subido_meli": true
     },
     "2000018300263682": {
       "shipping_id": "47941164103",
@@ -15922,8 +15929,8 @@
     },
     "2000018347776622": {
       "shipping_id": "47962706518",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-09T14:46:18",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-10T00:01:12",
       "preview": {
         "lineas": [
           {
@@ -15940,7 +15947,14 @@
         "direccion_envio": "Carrera 4 # 16-50, EL LLANO, Cartago, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014927246945",
+      "siigo_invoice_id": "238",
+      "siigo_invoice_number": "FE238",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "6cddb9acac472c32be77345c081b7c8e07fd8227e11bbb088eca6850f34ca333d774e76f61a2726b820f9771ff973d19",
+      "pdf_subido_meli": true
     },
     "2000018343636834": {
       "shipping_id": "47960427363",
@@ -17440,8 +17454,8 @@
     },
     "2000018350560800": {
       "shipping_id": "47963770037",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-09T16:51:20",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:52:11",
       "preview": {
         "lineas": [
           {
@@ -17458,7 +17472,15 @@
         "direccion_envio": "Calle 63d Bis 28 a 52, Benjamín Herrera, Barrios Unidos, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014929901995",
+      "siigo_invoice_id": "237",
+      "siigo_invoice_number": "FE237",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "b9d6635e0e2b9fb55227bf6c94f9a6d2dd5e4768f0b6b58f0cc0c3696dac4ae8348bd4fd9f287c5f4b942452aab89cfc",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018340767890": {
       "shipping_id": "47958991307",
@@ -17484,8 +17506,8 @@
     },
     "2000018350562696": {
       "shipping_id": "47963770037",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-09T16:51:22",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:52:11",
       "preview": {
         "lineas": [
           {
@@ -17502,7 +17524,15 @@
         "direccion_envio": "Calle 63d Bis 28 a 52, Benjamín Herrera, Barrios Unidos, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014929901995",
+      "siigo_invoice_id": "237",
+      "siigo_invoice_number": "FE237",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "b9d6635e0e2b9fb55227bf6c94f9a6d2dd5e4768f0b6b58f0cc0c3696dac4ae8348bd4fd9f287c5f4b942452aab89cfc",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018340770658": {
       "shipping_id": "47958991307",
@@ -17550,8 +17580,8 @@
     },
     "2000018349977116": {
       "shipping_id": "47963482911",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-09T16:56:35",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:36:28",
       "preview": {
         "lineas": [
           {
@@ -17568,7 +17598,14 @@
         "direccion_envio": "Avenida Calle Cl. 107 Sur # 50 - 187, La tablaza, Caldas, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014929350357",
+      "siigo_invoice_id": "236",
+      "siigo_invoice_number": "FE236",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "5fb44db34a7b7e649340e7c6cc63cc93d5b77001becff9dd27ecbdd203216b64fd6e7e6d4472c1581d6001790264ffbc",
+      "pdf_subido_meli": true
     },
     "2000018339092304": {
       "shipping_id": "47958275869",
@@ -18174,8 +18211,8 @@
     },
     "2000018365094522": {
       "shipping_id": "47970556103",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-09T20:03:06",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:24:06",
       "preview": {
         "lineas": [
           {
@@ -18192,7 +18229,14 @@
         "direccion_envio": "Calle 48B BISSUR #72I-25, Boitá, Kennedy, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018365094522",
+      "siigo_invoice_id": "235",
+      "siigo_invoice_number": "FE235",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "f7e395190bf6974a5656b0c99885ebdeecf29d5ef7e7eedb5b458e4810347c44e1c70fec18bc3b0df04961b143272198",
+      "pdf_subido_meli": true
     },
     "2000018350730524": {
       "shipping_id": "47964150860",
@@ -18507,6 +18551,18 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018363027902": {
+      "shipping_id": "47969580313",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-09T23:20:14",
+      "proveedor": "alegra",
+      "pack_id": "2000018363027902",
+      "siigo_invoice_id": "234",
+      "siigo_invoice_number": "FE234",
+      "siigo_invoice_status": "closed",
+      "siigo_invoice_cufe": "45835d500058bbc547c252c1a39d398a962f293ec68f130dd910d6c5fea6c81154c92317a598438f2534fd15bb0c2b53",
+      "pdf_subido_meli": true
     }
   },
   "2000018272473696": {

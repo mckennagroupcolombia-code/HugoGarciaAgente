@@ -69,6 +69,7 @@ import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
+import { precargarDiseno, ETIQUETAS_GC_TIME } from "../lib/etiquetasPrefetch";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -1309,6 +1310,7 @@ function PanelLateralApariencia({
   const { data: coloresData, isLoading: cargandoColores } = useQuery({
     queryKey: ["etiquetas-colores-guardados"],
     queryFn: () => api.get<{ colores: ColorEtiquetaGuardado[] }>("/api/etiquetas/colores"),
+    gcTime: ETIQUETAS_GC_TIME,
   });
   const coloresGuardados = coloresData?.colores ?? [];
 
@@ -4213,6 +4215,7 @@ function TabConfigurar() {
         `/api/etiquetas/combos-siigo${busquedaDebounced ? `?q=${encodeURIComponent(busquedaDebounced)}` : ""}`,
       ),
     staleTime: 5 * 60 * 1000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const guardarMut = useGuardarPublicacion();
@@ -5245,6 +5248,7 @@ function TabImprimir({
   const { data: estadoData, refetch: refetchImpresora } = useQuery({
     queryKey: ["etiquetas-impresora"],
     queryFn: () => api.get<ImpResp>("/api/etiquetas/impresora"),
+    gcTime: ETIQUETAS_GC_TIME,
     refetchInterval: 30000,
   });
 
@@ -6197,6 +6201,7 @@ function NivelesTintaImpresora({
     queryFn: fetchNivelesTintaResumen,
     retry: 1,
     staleTime: 30_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   async function leerImpresora() {
@@ -6649,6 +6654,7 @@ function TabInventarioPapelTinta() {
       const res = await api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles");
       return { items: normalizarInventarioItems(res.items ?? []) };
     },
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const crearMut = useMutation({
@@ -6998,8 +7004,17 @@ export default function EtiquetasPanel() {
   });
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
+  const qcPrecarga = useQueryClient();
   const setStudioInmersivoStore = useAppStore((s) => s.setEtiquetasStudioInmersivo);
   const [studioInmersivo, setStudioInmersivoLocal] = useState(false);
+
+  // Al entrar a Diseño se piden de una vez las etiquetas de todas las pestañas,
+  // para que Imprimir / Studio visual / Papel y tinta / EAN ya estén cargadas
+  // cuando el operador cambie de pestaña (ver lib/etiquetasPrefetch.ts).
+  useEffect(() => {
+    precargarDiseno(qcPrecarga, ticketsUser);
+  }, [qcPrecarga, ticketsUser]);
+
   const setStudioInmersivo = useCallback((v: boolean) => {
     setStudioInmersivoLocal(v);
     setStudioInmersivoStore(v);

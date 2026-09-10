@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { useAppStore, type EtiquetasTab } from "../../stores/app";
 import { tabsEtiquetasVisibles } from "../../lib/studioVisualAccess";
@@ -6,6 +7,7 @@ import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { Icon, type UiIconName } from "../../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
 import ScrollableTabList from "./ScrollableTabList";
+import { precargarDiseno } from "../../lib/etiquetasPrefetch";
 
 const TABS: { id: EtiquetasTab; label: string; shortLabel: string; icon: UiIconName }[] = [
   { id: "imprimir", label: "Imprimir", shortLabel: "Imprimir", icon: "printer" },
@@ -23,6 +25,7 @@ export default function DisenoNavTabs() {
   const setTab = useAppStore((s) => s.setEtiquetasTab);
   const setPanel = useAppStore((s) => s.setPanel);
   const user = useTicketsAuth((s) => s.user);
+  const qc = useQueryClient();
   const allowed = tabsEtiquetasVisibles(user);
   const tabs = TABS.filter((t) => allowed.includes(t.id));
   const activo = tabs.some((t) => t.id === tab) ? tab : (tabs[0]?.id ?? "imprimir");
@@ -32,6 +35,12 @@ export default function DisenoNavTabs() {
       guardarUltimoPanelHub("diseno", "etiquetas");
     }
   }, [panel]);
+
+  // Con el hub de Diseño visible ya se pueden pedir las etiquetas de todas las
+  // pestañas: al hacer clic la vista aparece con datos, sin "Cargando…".
+  useEffect(() => {
+    precargarDiseno(qc, user);
+  }, [qc, user]);
 
   if (tabs.length === 0) return null;
 
@@ -53,6 +62,8 @@ export default function DisenoNavTabs() {
             aria-label={t.label}
             title={t.label}
             onClick={() => irAEtiquetas(t.id)}
+            onMouseEnter={() => precargarDiseno(qc, user)}
+            onFocus={() => precargarDiseno(qc, user)}
             className={hubTabClass(selected, "mck-hub-tab-etiquetado flex-col")}
           >
             <Icon name={t.icon} size={22} weight="bold" className="shrink-0" />

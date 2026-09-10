@@ -13817,6 +13817,10 @@ def register_routes(app):
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
         "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
         "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
+        # Estos tres solo vivían en TIPOS_ETIQUETA_DEFAULT del panel; ahora que
+        # el catálogo de formatos lo manda el servidor, tienen que estar aquí o
+        # desaparecen del selector.
+        "500 g": (76, 66), "1000 g": (102, 76), "1 kg": (102, 76),
     }
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}
@@ -13862,6 +13866,25 @@ def register_routes(app):
             return out
         return _default_etiquetas_tipos() if fallback_default else []
 
+    def _load_etiquetas_tipos_eliminados() -> set:
+        """Formatos de fábrica que el operador borró a propósito.
+
+        Sin esta lista, `_load_etiquetas_tipos` volvía a inyectar cada formato de
+        `_ETIQUETAS` con setdefault y borrar uno de fábrica era imposible: el PUT
+        lo quitaba del JSON y el GET siguiente lo devolvía otra vez.
+        """
+        try:
+            with open(_ETIQUETAS_TIPOS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except (FileNotFoundError, ValueError, OSError):
+            return set()
+        if not isinstance(data, dict):
+            return set()
+        items = data.get("eliminados")
+        if not isinstance(items, list):
+            return set()
+        return {n.strip() for n in items if isinstance(n, str) and n.strip()}
+
     def _load_etiquetas_tipos() -> list:
         loaded: list = []
         try:
@@ -13876,9 +13899,13 @@ def register_routes(app):
             pass
         if not loaded:
             return _default_etiquetas_tipos()
-        # Formatos nuevos (p. ej. Circular 50) aunque el JSON aún no los tenga.
+        # Formatos nuevos (p. ej. Circular 50) aunque el JSON aún no los tenga,
+        # salvo los que el operador eliminó explícitamente.
+        eliminados = _load_etiquetas_tipos_eliminados()
         by_name = {t["nombre"]: t for t in loaded}
         for t in _default_etiquetas_tipos():
+            if t["nombre"] in eliminados:
+                continue
             by_name.setdefault(t["nombre"], t)
         return sorted(by_name.values(), key=lambda t: str(t["nombre"]).lower())
 
@@ -13892,9 +13919,19 @@ def register_routes(app):
                 f"Ningún formato válido. Nombre obligatorio; "
                 f"ancho 1–{max_ancho:g} mm y alto 1–{max_alto:g} mm."
             )
+        # El PUT trae la lista completa que debe quedar: todo formato de fábrica
+        # que no venga en ella queda marcado como eliminado (y uno que vuelva a
+        # aparecer se desmarca, para poder recuperarlo).
+        presentes = {t["nombre"] for t in normalizados}
+        eliminados = sorted(
+            {t["nombre"] for t in _default_etiquetas_tipos() if t["nombre"] not in presentes},
+        )
         os.makedirs(os.path.dirname(_ETIQUETAS_TIPOS_PATH), exist_ok=True)
         with open(_ETIQUETAS_TIPOS_PATH, "w", encoding="utf-8") as f:
-            json.dump({"tipos": normalizados}, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {"tipos": normalizados, "eliminados": eliminados},
+                f, ensure_ascii=False, indent=2,
+            )
         return normalizados, None
 
     def _etiquetas_tipos_map() -> dict:

@@ -116,6 +116,12 @@ def guardar_ficha(body: dict) -> dict:
     tipo_nombre = (body.get("tipo_nombre") or "").strip()
     if tipo_nombre:
         entry["tipo_nombre"] = tipo_nombre
+    # Categoría de producto (aceites, frutos secos, conservantes…): decide de
+    # qué plantilla parte una ficha nueva. La lista vive en el panel
+    # (desktop/src/lib/categoriasEtiqueta.ts); aquí solo se persiste el id.
+    categoria = (body.get("categoria") or "").strip()
+    if categoria:
+        entry["categoria"] = categoria
     attribute_icons = body.get("attribute_icons")
     if isinstance(attribute_icons, dict) and attribute_icons:
         entry["attribute_icons"] = json.loads(json.dumps(attribute_icons, ensure_ascii=False))

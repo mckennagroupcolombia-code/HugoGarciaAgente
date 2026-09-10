@@ -27,19 +27,28 @@ export const TIPOS_ETIQUETA_DEFAULT: TipoEtiqueta[] = [
   { nombre: "54mm", ancho_mm: 54, alto_mm: 58 },
 ];
 
+/**
+ * Normaliza la lista de formatos que devuelve el servidor.
+ *
+ * Los `TIPOS_ETIQUETA_DEFAULT` son solo respaldo para cuando el endpoint no
+ * responde: el servidor ya completa los formatos de fábrica que falten. Antes
+ * se mezclaban SIEMPRE aquí, y por eso borrar un formato de fábrica (Circular,
+ * CIRCLE, 54mm…) no servía de nada: desaparecía del servidor pero el panel lo
+ * volvía a insertar en la misma lista que acababa de recibir.
+ */
 export function mergeTiposEtiqueta(apiTipos?: TipoEtiqueta[]): TipoEtiqueta[] {
   const map = new Map<string, TipoEtiqueta>();
-  for (const t of TIPOS_ETIQUETA_DEFAULT) {
-    map.set(t.nombre, { ...t });
-  }
   for (const t of apiTipos ?? []) {
     const nombre = (t.nombre || "").trim();
     if (!nombre) continue;
     map.set(nombre, {
       nombre,
-      ancho_mm: Number(t.ancho_mm) || map.get(nombre)?.ancho_mm || 0,
-      alto_mm: Number(t.alto_mm) || map.get(nombre)?.alto_mm || 0,
+      ancho_mm: Number(t.ancho_mm) || 0,
+      alto_mm: Number(t.alto_mm) || 0,
     });
+  }
+  if (map.size === 0) {
+    for (const t of TIPOS_ETIQUETA_DEFAULT) map.set(t.nombre, { ...t });
   }
   return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }

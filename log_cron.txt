@@ -5327,3 +5327,25 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel e0c85d7] Auto-commit: actualizacion diaria 2026-09-09 23:00
+ 48 files changed, 4705 insertions(+), 1292 deletions(-)
+ create mode 100644 app/tools/etiquetas_fichas.py
+ create mode 100644 app/tools/logos_corporativos.py
+ create mode 100644 desktop/src/components/etiqueta-ficha/GaleriaGhsModal.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/PopoverFlotante.tsx
+ create mode 100644 desktop/src/lib/colorDominante.ts
+ create mode 100644 desktop/src/lib/etiquetasFichas.ts
+ create mode 100644 desktop/src/lib/fichaTecnicaAplicar.ts
+ create mode 100644 desktop/src/lib/fichaTecnicaMatch.ts
+ create mode 100644 desktop/src/lib/logosCorporativos.ts
+[2026-09-09 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-09 23:00'
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-08-31 → 2026-09-10…
+✅ Token de Mercado Libre refrescado exitosamente.
+   11 creado(s), 754 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

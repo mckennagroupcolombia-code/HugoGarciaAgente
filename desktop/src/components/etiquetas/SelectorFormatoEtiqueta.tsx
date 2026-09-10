@@ -59,6 +59,10 @@ function MenuFormatoDropdown({
   deleting = false,
 }: MenuFormatoProps) {
   const [abierto, setAbierto] = useState(false);
+  // Confirmación en dos clics dentro del menú: window.confirm no sirve aquí
+  // porque el navegador puede tener bloqueados los diálogos de la página y
+  // devolvería false sin avisar.
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; minWidth: number } | null>(null);
@@ -74,6 +78,7 @@ function MenuFormatoDropdown({
   useLayoutEffect(() => {
     if (!abierto) {
       setPos(null);
+      setConfirmando(null);
       return;
     }
     updatePos();
@@ -136,17 +141,32 @@ function MenuFormatoDropdown({
                 >
                   <span className="truncate">{etiquetaOpcionLabel(t)}</span>
                 </button>
-                <IconButton
-                  icon="trash"
-                  label={`Eliminar ${t.nombre}`}
-                  size="xs"
-                  tone="danger"
-                  disabled={deleting}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(t.nombre);
-                  }}
-                />
+                {confirmando === t.nombre ? (
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    className="mr-1 shrink-0 rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmando(null);
+                      onDelete(t.nombre);
+                    }}
+                  >
+                    {deleting ? "…" : "Confirmar"}
+                  </button>
+                ) : (
+                  <IconButton
+                    icon="trash"
+                    label={`Eliminar ${t.nombre}`}
+                    size="xs"
+                    tone="danger"
+                    disabled={deleting}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmando(t.nombre);
+                    }}
+                  />
+                )}
               </li>
             ))}
           </ul>

@@ -49,12 +49,22 @@ import {
   useGuardarFichaEtiqueta,
   type FichaEtiquetaGuardada,
 } from "../../lib/etiquetasFichas";
+import {
+  CATEGORIAS_ETIQUETA,
+  CATEGORIA_ETIQUETA_OTROS,
+  categoriaDeIdPlantilla,
+  detectarCategoriaEtiqueta,
+  esIdPlantillaFicha,
+  etiquetaCategoria,
+  idPlantillaCategoria,
+  PLANTILLA_FICHA_ID,
+} from "../../lib/categoriasEtiqueta";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
-/** Id reservado de la plantilla del formulario en el almacén de fichas. */
-const PLANTILLA_ID = "__plantilla__";
-const PLANTILLA_NOMBRE = "Plantilla del formulario";
+/** Id reservado de la plantilla global (respaldo de toda categoría sin plantilla propia). */
+const PLANTILLA_ID = PLANTILLA_FICHA_ID;
+const PLANTILLA_NOMBRE = "Plantilla base (todas las categorías)";
 
 /** Partes fijas de la plantilla aplicadas sobre la ficha vacía. */
 function fichaDesdePlantilla(plantilla: FichaEtiquetaGuardada | undefined): ProductLabelData {
@@ -135,8 +145,21 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
   // derivado de data.productName) + autoguardado en backend por cada ficha.
   const { estilos, reemplazarEstilos } = useTextStyleCtx();
   const { data: fichasTodas } = useFichasEtiquetaGuardadas();
-  const plantilla = fichasTodas?.find((f) => f.id === PLANTILLA_ID);
-  const fichasGuardadas = fichasTodas?.filter((f) => f.id !== PLANTILLA_ID);
+  const plantillaBase = fichasTodas?.find((f) => f.id === PLANTILLA_ID);
+  // Plantillas por categoría de producto (aceites, frutos secos, conservantes…).
+  // Una ficha nueva parte de la de su categoría; si esa categoría todavía no
+  // tiene plantilla propia, cae a la base, que es como funcionaba antes.
+  const plantillasPorCategoria = useMemo(() => {
+    const m = new Map<string, FichaEtiquetaGuardada>();
+    for (const f of fichasTodas ?? []) {
+      const cat = categoriaDeIdPlantilla(f.id);
+      if (cat) m.set(cat, f);
+    }
+    return m;
+  }, [fichasTodas]);
+  const fichasGuardadas = fichasTodas?.filter((f) => !esIdPlantillaFicha(f.id));
+  const [categoria, setCategoria] = useState<string>(CATEGORIA_ETIQUETA_OTROS);
+  const plantilla = plantillasPorCategoria.get(categoria) ?? plantillaBase;
   const guardarFichaMutation = useGuardarFichaEtiqueta();
   const eliminarFichaMutation = useEliminarFichaEtiqueta();
   const [plantillaMsg, setPlantillaMsg] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -162,6 +185,7 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
           nombre,
           data,
           tipo_nombre: tipoNombre || undefined,
+          categoria: categoria || undefined,
           attribute_icons: attributeIcons,
           text_styles: estilos,
         },
@@ -181,26 +205,38 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     }, AUTOGUARDADO_DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nombreFicha, data, tipoNombre, attributeIcons, estilos, etapa]);
+  }, [nombreFicha, data, tipoNombre, categoria, attributeIcons, estilos, etapa]);
 
   /** Guarda las partes fijas actuales (logo, acento, contacto, textos
-   *  fijos, íconos de atributo y tipografías) como plantilla del formulario. */
-  const guardarPlantilla = () => {
+   *  fijos, íconos de atributo y tipografías) como plantilla.
+   *
+   *  `destino` decide el alcance: una categoría concreta (lo normal) o la
+   *  plantilla base, que solo se usa para las categorías que aún no tienen
+   *  la suya. */
+  const guardarPlantilla = (destino: "categoria" | "base") => {
     const fijos: Partial<ProductLabelData> = {};
     const origen = data as unknown as Record<string, unknown>;
-    const destino = fijos as unknown as Record<string, unknown>;
-    for (const k of CAMPOS_PLANTILLA) destino[k] = origen[k];
+    const destinoObj = fijos as unknown as Record<string, unknown>;
+    for (const k of CAMPOS_PLANTILLA) destinoObj[k] = origen[k];
     setPlantillaMsg(null);
+    const porCategoria = destino === "categoria" && Boolean(categoria);
     guardarFichaMutation.mutate(
       {
-        id: PLANTILLA_ID,
-        nombre: PLANTILLA_NOMBRE,
+        id: porCategoria ? idPlantillaCategoria(categoria) : PLANTILLA_ID,
+        nombre: porCategoria ? `Plantilla · ${etiquetaCategoria(categoria)}` : PLANTILLA_NOMBRE,
         data: { ...PRODUCTO_VACIO, ...fijos },
+        categoria: porCategoria ? categoria : undefined,
         attribute_icons: attributeIcons,
         text_styles: estilos,
       },
       {
-        onSuccess: () => setPlantillaMsg({ ok: true, texto: "Plantilla del formulario guardada: las fichas nuevas partirán de ella." }),
+        onSuccess: () =>
+          setPlantillaMsg({
+            ok: true,
+            texto: porCategoria
+              ? `Plantilla de «${etiquetaCategoria(categoria)}» guardada: las fichas nuevas de esa categoría partirán de ella.`
+              : "Plantilla base guardada: la usarán las categorías que no tengan plantilla propia.",
+          }),
         onError: (err) =>
           setPlantillaMsg({ ok: false, texto: err instanceof Error ? err.message : "No se pudo guardar la plantilla" }),
       },
@@ -213,6 +249,7 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     setAttributeIcons(f.attribute_icons || {});
     reemplazarEstilos(f.text_styles || {});
     setNombreFicha(f.nombre);
+    setCategoria(f.categoria || detectarCategoriaEtiqueta(f.data?.productName || f.nombre));
     setFichaId(f.id);
     setAutoguardado({ estado: "idle" });
     setEnlace(null);
@@ -226,6 +263,7 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     setAttributeIcons({});
     reemplazarEstilos({});
     setNombreFicha("");
+    setCategoria(CATEGORIA_ETIQUETA_OTROS);
     setFichaId(null);
     setAutoguardado({ estado: "idle" });
     setEnlace(null);
@@ -233,11 +271,17 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     setEtapa("inicio");
   };
 
-  /** Inicio → formulario: ficha vacía + plantilla, y la información del SKU. */
-  const crearFichaDesdeSku = async (tipoNom: string, codigo: CodigoEan) => {
-    setData(fichaDesdePlantilla(plantilla));
-    setAttributeIcons(plantilla?.attribute_icons ?? {});
-    reemplazarEstilos(plantilla?.text_styles ?? {});
+  /** Inicio → formulario: ficha vacía + plantilla, y la información del SKU.
+   *
+   *  La categoría llega desde la pantalla de inicio (detectada del nombre del
+   *  SKU y corregible a mano); hay que resolver la plantilla con ESE valor y no
+   *  con el estado `categoria`, que aún no se ha actualizado en este render. */
+  const crearFichaDesdeSku = async (tipoNom: string, codigo: CodigoEan, categoriaElegida: string) => {
+    const plantillaInicial = plantillasPorCategoria.get(categoriaElegida) ?? plantillaBase;
+    setCategoria(categoriaElegida);
+    setData(fichaDesdePlantilla(plantillaInicial));
+    setAttributeIcons(plantillaInicial?.attribute_icons ?? {});
+    reemplazarEstilos(plantillaInicial?.text_styles ?? {});
     setTipoNombre(tipoNom);
     setFichaId(null);
     setEditMode(true);
@@ -517,8 +561,9 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
         tipos={tipos}
         tiposLoading={tiposLoading}
         fichasGuardadas={fichasGuardadas ?? []}
-        tienePlantilla={Boolean(plantilla)}
-        onCrear={(tipoNom, codigo) => void crearFichaDesdeSku(tipoNom, codigo)}
+        tienePlantillaBase={Boolean(plantillaBase)}
+        categoriasConPlantilla={plantillasPorCategoria}
+        onCrear={(tipoNom, codigo, cat) => void crearFichaDesdeSku(tipoNom, codigo, cat)}
         onAbrir={abrirFichaGuardada}
         onEliminar={eliminarFichaGuardada}
       />
@@ -565,14 +610,41 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
           + Nueva ficha
         </button>
 
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          Categoría:
+          <select
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+            title="Categoría de producto: decide de qué plantilla parten las fichas nuevas"
+            className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
+          >
+            {CATEGORIAS_ETIQUETA.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.etiqueta}
+                {plantillasPorCategoria.has(c.id) ? " ✓" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button
           type="button"
-          onClick={guardarPlantilla}
+          onClick={() => guardarPlantilla("categoria")}
           disabled={!editMode || guardarFichaMutation.isPending}
-          title="Guarda logo, acento, contacto, textos fijos, íconos y tipografías actuales como plantilla: toda ficha nueva partirá de ellos"
+          title="Guarda logo, acento, contacto, textos fijos, íconos y tipografías actuales como plantilla de esta categoría: toda ficha nueva de la categoría partirá de ellos"
           className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
         >
-          Guardar como plantilla
+          Guardar plantilla de «{etiquetaCategoria(categoria)}»
+        </button>
+
+        <button
+          type="button"
+          onClick={() => guardarPlantilla("base")}
+          disabled={!editMode || guardarFichaMutation.isPending}
+          title="Guarda estos mismos datos como plantilla base: la usan las categorías que todavía no tienen plantilla propia"
+          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-hover disabled:opacity-50"
+        >
+          …o como plantilla base
         </button>
 
         <label className="flex items-center gap-1.5 text-xs text-muted">
@@ -759,7 +831,8 @@ function PantallaInicio({
   tipos,
   tiposLoading,
   fichasGuardadas,
-  tienePlantilla,
+  tienePlantillaBase,
+  categoriasConPlantilla,
   onCrear,
   onAbrir,
   onEliminar,
@@ -768,16 +841,25 @@ function PantallaInicio({
   tipos: TipoEtiqueta[];
   tiposLoading: boolean;
   fichasGuardadas: FichaEtiquetaGuardada[];
-  tienePlantilla: boolean;
-  onCrear: (tipoNombre: string, codigo: CodigoEan) => void;
+  tienePlantillaBase: boolean;
+  categoriasConPlantilla: Map<string, FichaEtiquetaGuardada>;
+  onCrear: (tipoNombre: string, codigo: CodigoEan, categoria: string) => void;
   onAbrir: (f: FichaEtiquetaGuardada) => void;
   onEliminar: (f: FichaEtiquetaGuardada) => void;
 }) {
   const [tipoNombre, setTipoNombre] = useState("");
   const [q, setQ] = useState("");
   const [sku, setSku] = useState<CodigoEan | null>(null);
+  // Categoría corregida a mano; mientras sea null manda la detectada del SKU,
+  // para que cambiar de SKU vuelva a detectar en vez de arrastrar la anterior.
+  const [categoriaManual, setCategoriaManual] = useState<string | null>(null);
   const { data: codigos, isLoading: codigosLoading } = useCodigosEan();
   const sugeridos = useMemo(() => filtrarCodigosEanPorTexto(codigos ?? [], q, 12), [codigos, q]);
+  const categoriaDetectada = useMemo(
+    () => (sku ? detectarCategoriaEtiqueta(sku.nombre_producto || sku.sku) : CATEGORIA_ETIQUETA_OTROS),
+    [sku],
+  );
+  const categoria = categoriaManual ?? categoriaDetectada;
   const listo = Boolean(tipoNombre) && Boolean(sku);
 
   return (
@@ -792,9 +874,10 @@ function PantallaInicio({
         </button>
         <h2 className="text-base font-bold text-ink">Ficha de etiqueta</h2>
         <span className="text-[11px] text-muted">
-          {tienePlantilla
-            ? "Las fichas nuevas parten de la plantilla del formulario guardada."
-            : "Aún no hay plantilla del formulario: las fichas nuevas parten de los datos corporativos por defecto."}
+          {categoriasConPlantilla.size > 0
+            ? `${categoriasConPlantilla.size} categoría(s) con plantilla propia`
+            : "Todavía no hay plantillas por categoría"}
+          {tienePlantillaBase ? " · el resto parte de la plantilla base." : " · el resto parte de los datos corporativos por defecto."}
         </span>
       </header>
 
@@ -831,7 +914,10 @@ function PantallaInicio({
                 <span className="min-w-0 flex-1 truncate font-semibold text-ink">{sku.nombre_producto || sku.sku}</span>
                 <button
                   type="button"
-                  onClick={() => setSku(null)}
+                  onClick={() => {
+                    setSku(null);
+                    setCategoriaManual(null);
+                  }}
                   className="text-muted hover:text-ink"
                   title="Cambiar SKU"
                 >
@@ -869,10 +955,36 @@ function PantallaInicio({
             )}
           </div>
 
+          <label className="mb-3 block text-xs text-muted">
+            <span className="mb-1 block font-semibold text-ink">3. Categoría de producto</span>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoriaManual(e.target.value)}
+              className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
+            >
+              {CATEGORIAS_ETIQUETA.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.etiqueta}
+                  {categoriasConPlantilla.has(c.id) ? " ✓ (con plantilla)" : ""}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-[11px] text-muted">
+              {sku && categoriaManual === null
+                ? `Detectada del nombre del SKU. Cámbiala si no corresponde.`
+                : "Decide de qué plantilla parte la ficha."}
+              {categoriasConPlantilla.has(categoria)
+                ? ` Se usará la plantilla de «${etiquetaCategoria(categoria)}».`
+                : tienePlantillaBase
+                  ? " Esta categoría aún no tiene plantilla propia: se usará la base."
+                  : " Aún no hay plantilla: se usarán los datos corporativos por defecto."}
+            </span>
+          </label>
+
           <button
             type="button"
             disabled={!listo}
-            onClick={() => sku && onCrear(tipoNombre, sku)}
+            onClick={() => sku && onCrear(tipoNombre, sku, categoria)}
             className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {listo ? "Abrir ficha con este SKU" : "Elige Formato y SKU para continuar"}
@@ -880,8 +992,35 @@ function PantallaInicio({
         </section>
 
         <section className="rounded-xl border border-border bg-surface-panel p-4">
+          {categoriasConPlantilla.size > 0 && (
+            <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
+              <h3 className="text-xs font-bold text-ink">Plantillas por categoría</h3>
+              <p className="mb-2 text-[11px] text-muted">
+                Cada categoría define logo, color de acento, contacto y tipografías de sus etiquetas.
+              </p>
+              <ul className="space-y-1">
+                {[...categoriasConPlantilla.entries()].map(([cat, f]) => (
+                  <li key={cat} className="flex items-center gap-1 rounded px-1.5 py-1 text-xs hover:bg-surface-hover">
+                    <span className="min-w-0 flex-1 truncate text-ink">{etiquetaCategoria(cat)}</span>
+                    <button
+                      type="button"
+                      onClick={() => onEliminar(f)}
+                      title={`Quitar la plantilla de ${etiquetaCategoria(cat)}`}
+                      className="shrink-0 rounded px-1.5 py-0.5 text-muted hover:bg-red-50 hover:text-red-600"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <h3 className="text-sm font-bold text-ink">Fichas guardadas</h3>
-          <p className="mb-3 text-[11px] text-muted">Se guardan solas con el título del SKU mientras las editas.</p>
+          <p className="mb-3 text-[11px] text-muted">
+            Se guardan solas con el título del SKU mientras las editas. Viven aquí, no en la lista de
+            plantillas de Studio visual.
+          </p>
           {fichasGuardadas.length === 0 && <p className="text-xs text-muted">Todavía no hay fichas guardadas.</p>}
           <ul className="max-h-[420px] space-y-1 overflow-y-auto">
             {fichasGuardadas.map((f) => (
@@ -894,6 +1033,9 @@ function PantallaInicio({
                 >
                   {f.nombre}
                   {f.tipo_nombre && <span className="ml-1 text-[10px] text-muted">· {f.tipo_nombre}</span>}
+                  {f.categoria && (
+                    <span className="ml-1 text-[10px] text-muted">· {etiquetaCategoria(f.categoria)}</span>
+                  )}
                   <span className="ml-1 text-[10px] text-muted">
                     {new Date(f.actualizado).toLocaleString("es-CO", {
                       day: "2-digit",

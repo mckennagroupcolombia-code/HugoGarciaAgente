@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
 import {
   targetEscaneoDesdeFila,
   targetEscaneoDesdePlantilla,
@@ -290,6 +291,7 @@ export function EtiquetasStudioCatalogo({
       return api.get<CatalogoStudioResponse>(`/api/etiquetas/studio/catalogo?${p.toString()}`);
     },
     staleTime: 20_000,
+    gcTime: ETIQUETAS_GC_TIME,
     enabled: !modoListaModelo,
   });
 

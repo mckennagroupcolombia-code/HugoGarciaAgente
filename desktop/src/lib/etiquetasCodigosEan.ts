@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { ETIQUETAS_GC_TIME } from "./etiquetasPrefetch";
 
 export interface CodigoEan {
   id: string;
@@ -138,6 +139,7 @@ export function useCodigosEan() {
       return data.codigos ?? [];
     },
     staleTime: 30_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 }
 
