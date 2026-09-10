@@ -15,7 +15,7 @@ export default function ProductClassification({
   editMode: boolean;
 }) {
   return (
-    <div className="mx-auto flex w-full min-h-[40px] items-center justify-center rounded-[3px] bg-[#FFA500] px-4">
+    <div className="mx-auto flex w-full min-h-[40px] items-center justify-center rounded-[3px] bg-[color:var(--acento)] px-4">
       <EditableField
         value={value}
         onChange={onChange}

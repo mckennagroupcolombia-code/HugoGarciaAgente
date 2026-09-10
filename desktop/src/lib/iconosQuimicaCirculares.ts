@@ -1,8 +1,22 @@
 /**
- * Iconos vectoriales minimalistas y modernos para los 6 atributos de la ficha
- * técnica de materias primas (Origen, Aroma, Apariencia, Composición, Calidad,
- * Conservación). Cada icono cuenta con estética limpia, trazo fino/medio,
- * proporción armónica y encerrado en un círculo perfecto.
+ * Iconos vectoriales para los 6 atributos de la ficha técnica de materias
+ * primas (Origen, Aroma, Apariencia, Composición, Calidad, Conservación).
+ *
+ * Criterios de dibujo (rediseño 2026-09): se priorizó que cada ícono se
+ * ENTIENDA de un vistazo e impreso a ~1 cm:
+ *  - Trazo grueso y uniforme (4–5 en el lienzo de 100): a 2–3 el dibujo se
+ *    perdía en la etiqueta impresa.
+ *  - Una sola idea por ícono, sin detalles decorativos pequeños (puntos,
+ *    brillos, sombras) que a tamaño etiqueta se vuelven ruido.
+ *  - Siluetas conocidas (pin de mapa, escudo con chulo, gota tachada,
+ *    anillo de benceno, reloj de arena) en vez de composiciones abstractas.
+ *  - Relleno sólido en la parte que da identidad (bandera, bolas de la
+ *    molécula, cuerpo del candado, pupila) para ganar contraste.
+ *
+ * Todos usan viewBox 0 0 100 100, `currentColor` y un círculo exterior
+ * r=44 que la galería puede quitar (ver `quitarCirculoExterior`). El
+ * contenido se dibuja dentro de 18..82 para que, al quitar el círculo y
+ * acercar ×1.3, nada quede recortado.
  */
 
 export interface IconoQuimicoCircular {
@@ -63,6 +77,11 @@ export const CATEGORIAS_ICONOS_QUIMICA = [
   { id: "conservacion", label: "📦 Conservación" },
 ] as const;
 
+/** Apertura común: trazo 4, puntas redondas, sin relleno por defecto. */
+const SVG_ABRE =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">`;
+const CIRCULO_EXT = `<circle cx="50" cy="50" r="44" stroke-width="3.2"/>`;
+
 export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
   // --- PAÍS DE ORIGEN / ORIGEN ---
   {
@@ -70,15 +89,14 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Globo Terráqueo & Meridianos",
     categoria: "origen",
     tags: ["origen", "pais", "globo", "mundo", "geografia", "procedencia", "internacional"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="50" cy="50" r="24" stroke-width="2.8"/>
-      <ellipse cx="50" cy="50" rx="9" ry="24" stroke-width="2.4"/>
-      <line x1="26" y1="50" x2="74" y2="50" stroke-width="2.6"/>
-      <path d="M28 38 Q50 44 72 38" stroke-width="2.2"/>
-      <path d="M28 62 Q50 56 72 62" stroke-width="2.2"/>
-      <circle cx="64" cy="40" r="6" stroke-width="2"/>
-      <circle cx="64" cy="40" r="2.6" fill="currentColor"/>
+    // Globo clásico: círculo, un meridiano central y dos paralelos curvos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="50" cy="50" r="27" stroke-width="4.5"/>
+      <ellipse cx="50" cy="50" rx="11" ry="27" stroke-width="3.5"/>
+      <line x1="23" y1="50" x2="77" y2="50" stroke-width="3.5"/>
+      <path d="M27.5 36 Q50 42 72.5 36" stroke-width="3.5"/>
+      <path d="M27.5 64 Q50 58 72.5 64" stroke-width="3.5"/>
     </svg>`,
   },
   {
@@ -86,11 +104,11 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Pin de Ubicación / Punto de Origen",
     categoria: "origen",
     tags: ["origen", "pin", "ubicacion", "mapa", "punto", "procedencia", "lugar"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M50 24 C61 24 70 33 70 44 C70 58 50 78 50 78 C50 78 30 58 30 44 C30 33 39 24 50 24 Z" stroke-width="3"/>
-      <circle cx="50" cy="44" r="8" stroke-width="2.6"/>
-      <ellipse cx="50" cy="83" rx="14" ry="2.6" stroke-width="2"/>
+    // Pin de mapa grande con punto central relleno.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 18 C63.5 18 74 28.5 74 42 C74 59 50 82 50 82 C50 82 26 59 26 42 C26 28.5 36.5 18 50 18 Z" stroke-width="4.5"/>
+      <circle cx="50" cy="42" r="8" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -98,11 +116,12 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Bandera / País de Procedencia",
     categoria: "origen",
     tags: ["origen", "bandera", "pais", "procedencia", "nacion", "importado"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="32" cy="80" r="2.6" fill="currentColor"/>
-      <line x1="32" y1="78" x2="32" y2="22" stroke-width="3.2"/>
-      <path d="M32 26 L60 26 C64 30 56 34 60 38 L32 38 Z" stroke-width="2.8"/>
+    // Bandera ondeando rellena sobre un mástil grueso.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <line x1="30" y1="18" x2="30" y2="82" stroke-width="5"/>
+      <line x1="22" y1="82" x2="38" y2="82" stroke-width="4"/>
+      <path d="M30 22 C38 17 46 27 54 22 C60 18 66 19 72 22 L72 50 C66 47 60 46 54 50 C46 55 38 45 30 50 Z" fill="currentColor" stroke-width="3"/>
     </svg>`,
   },
 
@@ -112,13 +131,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Ondas de Aroma / Gota",
     categoria: "aroma",
     tags: ["aroma", "olor", "esencia", "gota", "fragancia", "ondas", "perfume"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M50 46 C50 46 38 62 38 72 C38 79 43 84 50 84 C57 84 62 79 62 72 C62 62 50 46 50 46 Z" stroke-width="3"/>
-      <circle cx="44" cy="68" r="1.8" fill="currentColor"/>
-      <path d="M38 44 Q42 36 38 28" stroke-width="2.4"/>
-      <path d="M50 40 Q54 32 50 22" stroke-width="2.6"/>
-      <path d="M62 44 Q58 36 62 28" stroke-width="2.4"/>
+    // Gota de esencia con tres ondas de vapor que suben.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 40 C50 40 34 57 34 69 C34 78 41 84 50 84 C59 84 66 78 66 69 C66 57 50 40 50 40 Z" stroke-width="4.5"/>
+      <path d="M36 30 C32 25 40 20 36 14" stroke-width="3.5"/>
+      <path d="M50 30 C46 25 54 20 50 14" stroke-width="3.5"/>
+      <path d="M64 30 C60 25 68 20 64 14" stroke-width="3.5"/>
     </svg>`,
   },
   {
@@ -126,17 +145,17 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Frasco Atomizador / Fragancia",
     categoria: "aroma",
     tags: ["aroma", "olor", "frasco", "perfume", "atomizador", "spray", "fragancia"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <rect x="38" y="46" width="24" height="30" rx="4" stroke-width="2.8"/>
-      <rect x="44" y="34" width="12" height="12" rx="2" stroke-width="2.6"/>
-      <circle cx="50" cy="26" r="6" stroke-width="2.6"/>
-      <line x1="50" y1="34" x2="50" y2="32" stroke-width="2.4"/>
-      <line x1="60" y1="22" x2="66" y2="16" stroke-width="2.2"/>
-      <line x1="64" y1="28" x2="72" y2="26" stroke-width="2.2"/>
-      <line x1="62" y1="34" x2="70" y2="36" stroke-width="2.2"/>
-      <circle cx="68" cy="20" r="1.5" fill="currentColor"/>
-      <circle cx="74" cy="27" r="1.3" fill="currentColor"/>
+    // Frasco de perfume con cabezal y chorro de spray hacia la derecha.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <rect x="32" y="42" width="34" height="40" rx="6" stroke-width="4.5"/>
+      <line x1="36" y1="64" x2="62" y2="64" stroke-width="3.5"/>
+      <rect x="43" y="32" width="12" height="10" stroke-width="4"/>
+      <rect x="38" y="22" width="22" height="10" rx="3" stroke-width="4"/>
+      <line x1="60" y1="27" x2="68" y2="27" stroke-width="4"/>
+      <line x1="74" y1="27" x2="82" y2="27" stroke-width="3.5"/>
+      <line x1="73" y1="21" x2="80" y2="16" stroke-width="3.5"/>
+      <line x1="73" y1="33" x2="80" y2="38" stroke-width="3.5"/>
     </svg>`,
   },
   {
@@ -144,30 +163,32 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Flor & Ondas de Fragancia",
     categoria: "aroma",
     tags: ["aroma", "olor", "flor", "esencia", "botanico", "fragancia", "floral"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="50" cy="58" r="6" stroke-width="2.6"/>
-      <ellipse cx="50" cy="48" rx="5" ry="8" stroke-width="2.4"/>
-      <ellipse cx="50" cy="68" rx="5" ry="8" stroke-width="2.4"/>
-      <ellipse cx="40" cy="58" rx="8" ry="5" stroke-width="2.4"/>
-      <ellipse cx="60" cy="58" rx="8" ry="5" stroke-width="2.4"/>
-      <path d="M40 34 Q44 26 40 18" stroke-width="2.4"/>
-      <path d="M50 32 Q54 24 50 16" stroke-width="2.6"/>
-      <path d="M60 34 Q56 26 60 18" stroke-width="2.4"/>
+    // Flor de cinco pétalos con centro relleno.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <g stroke-width="3.8">
+        <ellipse cx="50" cy="34" rx="8.5" ry="15" transform="rotate(0 50 50)"/>
+        <ellipse cx="50" cy="34" rx="8.5" ry="15" transform="rotate(72 50 50)"/>
+        <ellipse cx="50" cy="34" rx="8.5" ry="15" transform="rotate(144 50 50)"/>
+        <ellipse cx="50" cy="34" rx="8.5" ry="15" transform="rotate(216 50 50)"/>
+        <ellipse cx="50" cy="34" rx="8.5" ry="15" transform="rotate(288 50 50)"/>
+      </g>
+      <circle cx="50" cy="50" r="7.5" fill="currentColor" stroke="none"/>
     </svg>`,
   },
-
   {
     id: "aroma_nariz_percepcion",
     nombre: "Nariz / Percepción Olfativa",
     categoria: "aroma",
     tags: ["aroma", "olor", "nariz", "percepcion", "olfativo", "nota"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M46 24 C46 24 35 44 37 57 C38 65 46 68 54 64" stroke-width="2.8"/>
-      <circle cx="43" cy="58" r="2.2" fill="currentColor" stroke="none"/>
-      <path d="M27 42 Q22 33 27 24" stroke-width="2.2"/>
-      <path d="M34 36 Q29 27 34 18" stroke-width="2.2"/>
+    // Perfil de rostro (frente, nariz, labios, mentón) con ondas de olor
+    // que llegan a la nariz — una nariz sola no se reconocía.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M40 18 C54 18 62 26 60 36 C59 40 58 42 62 46 L65 49 L60 51 C59 54 61 56 59 58 C59 61 57 62 55 63 C56 66 55 68 51 68 C48 68 45 70 44 75 L44 82" stroke-width="4.5"/>
+      <path d="M30 40 C26 34 32 28 28 22" stroke-width="3.5"/>
+      <path d="M22 54 C18 48 24 42 20 36" stroke-width="3.5"/>
+      <path d="M30 68 C26 62 32 56 28 50" stroke-width="3.5"/>
     </svg>`,
   },
   {
@@ -175,12 +196,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Nube de Aroma / Notas al Aire",
     categoria: "aroma",
     tags: ["aroma", "olor", "nube", "notas", "difusion", "ambiente", "fragancia"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M34 58 C28 58 24 53 24 47 C24 41 28 37 34 37 C35 30 41 25 49 25 C57 25 63 30 65 37 C71 37 75 42 75 48 C75 54 71 58 65 58 Z" stroke-width="2.6"/>
-      <path d="M40 66 Q42 72 38 76" stroke-width="2.2"/>
-      <path d="M50 66 Q52 72 48 76" stroke-width="2.2"/>
-      <path d="M60 66 Q62 72 58 76" stroke-width="2.2"/>
+    // Nube grande con tres ondas debajo.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M32 60 C24 60 19 54 19 47 C19 40 25 35 32 36 C34 27 42 21 51 21 C60 21 67 27 69 35 C75 36 80 41 80 47 C80 54 74 60 67 60 Z" stroke-width="4.5"/>
+      <path d="M36 70 C34 74 38 78 36 82" stroke-width="3.5"/>
+      <path d="M50 70 C48 74 52 78 50 82" stroke-width="3.5"/>
+      <path d="M64 70 C62 74 66 78 64 82" stroke-width="3.5"/>
     </svg>`,
   },
 
@@ -190,16 +212,16 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Molécula Enlazada / Ball-and-Stick",
     categoria: "composicion",
     tags: ["composicion", "molecula", "atomo", "quimica", "enlace", "estructura", "formula"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <line x1="37" y1="38" x2="61" y2="30" stroke-width="2.6"/>
-      <line x1="37" y1="38" x2="33" y2="62" stroke-width="2.6"/>
-      <line x1="37" y1="38" x2="63" y2="58" stroke-width="2.6"/>
-      <line x1="63" y1="58" x2="61" y2="30" stroke-width="2.6"/>
-      <circle cx="37" cy="38" r="8" stroke-width="2.6"/>
-      <circle cx="61" cy="30" r="5.5" stroke-width="2.4"/>
-      <circle cx="33" cy="62" r="5.5" stroke-width="2.4"/>
-      <circle cx="63" cy="58" r="6.5" stroke-width="2.4"/>
+    // Átomo central relleno con tres átomos enlazados (bolas rellenas).
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <line x1="50" y1="50" x2="28" y2="32" stroke-width="4.5"/>
+      <line x1="50" y1="50" x2="72" y2="32" stroke-width="4.5"/>
+      <line x1="50" y1="50" x2="50" y2="78" stroke-width="4.5"/>
+      <circle cx="50" cy="50" r="10.5" fill="currentColor" stroke="none"/>
+      <circle cx="28" cy="32" r="7.5" fill="currentColor" stroke="none"/>
+      <circle cx="72" cy="32" r="7.5" fill="currentColor" stroke="none"/>
+      <circle cx="50" cy="78" r="7.5" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -207,12 +229,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Átomo / Estructura Atómica",
     categoria: "composicion",
     tags: ["composicion", "atomo", "molecula", "quimica", "orbita", "electron", "estructura"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="50" cy="50" r="4.5" fill="currentColor" stroke="none"/>
-      <ellipse cx="50" cy="50" rx="27" ry="10.5" stroke-width="2.4"/>
-      <ellipse cx="50" cy="50" rx="27" ry="10.5" stroke-width="2.4" transform="rotate(60 50 50)"/>
-      <ellipse cx="50" cy="50" rx="27" ry="10.5" stroke-width="2.4" transform="rotate(120 50 50)"/>
+    // Núcleo relleno y tres órbitas.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="50" cy="50" r="6.5" fill="currentColor" stroke="none"/>
+      <ellipse cx="50" cy="50" rx="30" ry="12" stroke-width="3.6"/>
+      <ellipse cx="50" cy="50" rx="30" ry="12" stroke-width="3.6" transform="rotate(60 50 50)"/>
+      <ellipse cx="50" cy="50" rx="30" ry="12" stroke-width="3.6" transform="rotate(120 50 50)"/>
     </svg>`,
   },
   {
@@ -220,15 +243,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Anillo Molecular / Hexágono",
     categoria: "composicion",
     tags: ["composicion", "molecula", "quimica", "hexagono", "anillo", "benceno", "formula"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M50 25 L71 37.5 L71 62.5 L50 75 L29 62.5 L29 37.5 Z" stroke-width="2.8"/>
-      <circle cx="50" cy="25" r="2.4" fill="currentColor" stroke="none"/>
-      <circle cx="71" cy="37.5" r="2.4" fill="currentColor" stroke="none"/>
-      <circle cx="71" cy="62.5" r="2.4" fill="currentColor" stroke="none"/>
-      <circle cx="50" cy="75" r="2.4" fill="currentColor" stroke="none"/>
-      <circle cx="29" cy="62.5" r="2.4" fill="currentColor" stroke="none"/>
-      <circle cx="29" cy="37.5" r="2.4" fill="currentColor" stroke="none"/>
+    // Anillo de benceno: hexágono con tres dobles enlaces internos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 22 L74.2 36 L74.2 64 L50 78 L25.8 64 L25.8 36 Z" stroke-width="4.5"/>
+      <line x1="50" y1="30" x2="67.3" y2="40" stroke-width="3.5"/>
+      <line x1="67.3" y1="60" x2="50" y2="70" stroke-width="3.5"/>
+      <line x1="32.7" y1="60" x2="32.7" y2="40" stroke-width="3.5"/>
     </svg>`,
   },
 
@@ -238,12 +259,12 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Ojo / Inspección Visual",
     categoria: "apariencia",
     tags: ["apariencia", "ojo", "visual", "inspeccion", "color", "aspecto"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M28 38 C38 30 62 30 72 38" stroke-width="2.6"/>
-      <path d="M22 50 C34 36 66 36 78 50 C66 64 34 64 22 50 Z" stroke-width="3"/>
-      <circle cx="50" cy="50" r="9" stroke-width="2.6"/>
-      <circle cx="50" cy="50" r="3.5" fill="currentColor"/>
+    // Ojo almendrado con iris y pupila rellena.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M18 50 C30 31 70 31 82 50 C70 69 30 69 18 50 Z" stroke-width="4.5"/>
+      <circle cx="50" cy="50" r="11.5" stroke-width="4"/>
+      <circle cx="50" cy="50" r="5" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -251,13 +272,14 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Lupa sobre Muestra",
     categoria: "apariencia",
     tags: ["apariencia", "lupa", "muestra", "textura", "inspeccion", "detalle"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="44" cy="44" r="16" stroke-width="3"/>
-      <line x1="56" y1="56" x2="72" y2="72" stroke-width="3.6"/>
-      <circle cx="40" cy="40" r="2" fill="currentColor"/>
-      <circle cx="48" cy="46" r="2.3" fill="currentColor"/>
-      <circle cx="42" cy="50" r="1.6" fill="currentColor"/>
+    // Lupa grande con mango grueso y tres partículas dentro del lente.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="42" cy="42" r="21" stroke-width="4.5"/>
+      <line x1="57" y1="57" x2="78" y2="78" stroke-width="6.5"/>
+      <circle cx="36" cy="38" r="2.8" fill="currentColor" stroke="none"/>
+      <circle cx="47" cy="44" r="3.2" fill="currentColor" stroke="none"/>
+      <circle cx="39" cy="49" r="2.4" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -265,11 +287,14 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Paleta de Tono / Color",
     categoria: "apariencia",
     tags: ["apariencia", "color", "tono", "paleta", "aspecto", "visual"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="42" cy="42" r="14" stroke-width="2.6"/>
-      <circle cx="58" cy="42" r="14" stroke-width="2.6"/>
-      <circle cx="50" cy="58" r="14" stroke-width="2.6"/>
+    // Paleta de pintor con cuatro pozos de color rellenos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 22 C68 22 82 35 82 50 C82 57 77 61 70 59 C64 57 61 62 63 68 C65 76 59 82 50 82 C32 82 18 68 18 50 C18 35 32 22 50 22 Z" stroke-width="4.5"/>
+      <circle cx="36" cy="42" r="5.5" fill="currentColor" stroke="none"/>
+      <circle cx="51" cy="35" r="5.5" fill="currentColor" stroke="none"/>
+      <circle cx="66" cy="42" r="5.5" fill="currentColor" stroke="none"/>
+      <circle cx="33" cy="58" r="5.5" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -277,15 +302,15 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Polvo / Textura Granulada",
     categoria: "apariencia",
     tags: ["apariencia", "polvo", "granulado", "textura", "solido", "particulas", "harina"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M30 66 Q50 74 70 66 L66 40 Q50 34 34 40 Z" stroke-width="2.6"/>
-      <circle cx="40" cy="48" r="1.8" fill="currentColor" stroke="none"/>
-      <circle cx="50" cy="44" r="1.6" fill="currentColor" stroke="none"/>
-      <circle cx="60" cy="48" r="1.8" fill="currentColor" stroke="none"/>
-      <circle cx="44" cy="56" r="1.6" fill="currentColor" stroke="none"/>
-      <circle cx="56" cy="56" r="1.6" fill="currentColor" stroke="none"/>
-      <circle cx="50" cy="62" r="1.8" fill="currentColor" stroke="none"/>
+    // Montículo de polvo relleno con partículas cayendo encima.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M18 76 C30 74 34 58 42 54 C46 52 48 46 50 46 C52 46 54 52 58 54 C66 58 70 74 82 76 Z" fill="currentColor" stroke-width="3"/>
+      <circle cx="34" cy="36" r="3" fill="currentColor" stroke="none"/>
+      <circle cx="50" cy="26" r="3.4" fill="currentColor" stroke="none"/>
+      <circle cx="66" cy="36" r="3" fill="currentColor" stroke="none"/>
+      <circle cx="42" cy="20" r="2.4" fill="currentColor" stroke="none"/>
+      <circle cx="59" cy="20" r="2.4" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -293,11 +318,14 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Líquido / Nivel en Vaso",
     categoria: "apariencia",
     tags: ["apariencia", "liquido", "nivel", "vaso", "fluido", "textura", "viscosidad"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M36 28 H64 L60 68 C60 74 40 74 40 68 Z" stroke-width="2.8"/>
-      <line x1="34" y1="28" x2="66" y2="28" stroke-width="2.6"/>
-      <path d="M41 52 Q50 47 59 52 L59.4 60 C59.4 65 40.6 65 40.6 60 Z" stroke-width="2"/>
+    // Vaso de laboratorio con línea de nivel ondulada y dos burbujas.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M34 20 L34 62 C34 72 41 78 50 78 C59 78 66 72 66 62 L66 20" stroke-width="4.5"/>
+      <line x1="28" y1="20" x2="72" y2="20" stroke-width="4.5"/>
+      <path d="M34 50 C40 45 46 55 51 50 C56 45 61 55 66 50" stroke-width="3.5"/>
+      <circle cx="44" cy="64" r="2.6" fill="currentColor" stroke="none"/>
+      <circle cx="55" cy="68" r="2.2" fill="currentColor" stroke="none"/>
     </svg>`,
   },
 
@@ -307,12 +335,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Medalla & Cinta de Calidad",
     categoria: "calidad",
     tags: ["calidad", "grado", "medalla", "sello", "certificacion", "premium"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M40 20 L34 46 L44 40 L50 50 Z" stroke-width="2.6"/>
-      <path d="M60 20 L66 46 L56 40 L50 50 Z" stroke-width="2.6"/>
-      <circle cx="50" cy="58" r="18" stroke-width="3"/>
-      <path d="M43 58 L48 64 L59 51" stroke-width="3.4"/>
+    // Medalla con cintas rellenas y estrella rellena en el centro.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M38 18 L30 46 L44 42 L50 52 L46 18 Z" fill="currentColor" stroke-width="3"/>
+      <path d="M62 18 L70 46 L56 42 L50 52 L54 18 Z" fill="currentColor" stroke-width="3"/>
+      <circle cx="50" cy="62" r="18" stroke-width="4.5"/>
+      <path d="M50 53 L52.2 58.9 L58.6 59.2 L53.6 63.2 L55.3 69.3 L50 65.8 L44.7 69.3 L46.4 63.2 L41.4 59.2 L47.8 58.9 Z" fill="currentColor" stroke-width="2"/>
     </svg>`,
   },
   {
@@ -320,10 +349,11 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Escudo de Grado / Sello",
     categoria: "calidad",
     tags: ["calidad", "grado", "escudo", "sello", "garantia", "certificacion"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <path d="M50 22 L72 30 C72 50 62 68 50 76 C38 68 28 50 28 30 Z" stroke-width="3"/>
-      <path d="M41 52 Q50 52 50 43 Q50 52 59 52 Q50 52 50 61 Q50 52 41 52 Z" stroke-width="2.2" fill="currentColor"/>
+    // Escudo con chulo grande: garantía / calidad comprobada.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 18 L76 28 C76 50 66 70 50 80 C34 70 24 50 24 28 Z" stroke-width="4.5"/>
+      <path d="M39 50 L47 58 L62 41" stroke-width="5.5"/>
     </svg>`,
   },
   {
@@ -331,14 +361,15 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Certificado & Sello de Control",
     categoria: "calidad",
     tags: ["calidad", "grado", "certificado", "sello", "control", "documento", "usp"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <rect x="32" y="22" width="36" height="48" rx="3" stroke-width="2.8"/>
-      <path d="M58 22 L68 32 L58 32 Z" stroke-width="2.4"/>
-      <line x1="38" y1="40" x2="56" y2="40" stroke-width="2.2"/>
-      <line x1="38" y1="48" x2="56" y2="48" stroke-width="2.2"/>
-      <circle cx="62" cy="68" r="14" stroke-width="3"/>
-      <path d="M56 68 L61 73 L70 62" stroke-width="3"/>
+    // Documento con líneas de texto y sello circular con chulo en la esquina.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <rect x="28" y="18" width="40" height="52" rx="4" stroke-width="4.5"/>
+      <line x1="36" y1="32" x2="60" y2="32" stroke-width="3.5"/>
+      <line x1="36" y1="42" x2="60" y2="42" stroke-width="3.5"/>
+      <line x1="36" y1="52" x2="50" y2="52" stroke-width="3.5"/>
+      <circle cx="64" cy="66" r="13" fill="currentColor" stroke="none"/>
+      <path d="M58 66 L63 71 L71 61" stroke="#ffffff" stroke-width="4"/>
     </svg>`,
   },
 
@@ -348,13 +379,15 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Reloj de Arena / Vida Útil",
     categoria: "conservacion",
     tags: ["conservacion", "almacen", "vida util", "vencimiento", "reloj", "tiempo"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <line x1="30" y1="24" x2="70" y2="24" stroke-width="3.2"/>
-      <line x1="30" y1="76" x2="70" y2="76" stroke-width="3.2"/>
-      <path d="M34 24 L66 24 L66 30 C66 38 58 44 50 50 C58 56 66 62 66 70 L66 76 L34 76 L34 70 C34 62 42 56 50 50 C42 44 34 38 34 30 Z" stroke-width="2.8"/>
-      <path d="M42 30 L58 30 L50 40 Z" fill="currentColor"/>
-      <path d="M42 70 L58 70 L50 60 Z" fill="currentColor"/>
+    // Reloj de arena con arena rellena arriba y abajo.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <line x1="32" y1="20" x2="68" y2="20" stroke-width="5"/>
+      <line x1="32" y1="80" x2="68" y2="80" stroke-width="5"/>
+      <path d="M36 20 L36 28 C36 38 46 44 48 50 C46 56 36 62 36 72 L36 80" stroke-width="4.5"/>
+      <path d="M64 20 L64 28 C64 38 54 44 52 50 C54 56 64 62 64 72 L64 80" stroke-width="4.5"/>
+      <path d="M40 28 L60 28 L50 42 Z" fill="currentColor" stroke="none"/>
+      <path d="M39 80 L61 80 L50 66 Z" fill="currentColor" stroke="none"/>
     </svg>`,
   },
   {
@@ -362,11 +395,11 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Lugar Seco / Sin Humedad",
     categoria: "conservacion",
     tags: ["conservacion", "almacen", "seco", "humedad", "gota", "clima"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <circle cx="50" cy="49" r="26" stroke-width="2.6"/>
-      <path d="M50 34 C50 34 40 46 40 54 C40 60 44 64 50 64 C56 64 60 60 60 54 C60 46 50 34 50 34 Z" stroke-width="2.8"/>
-      <line x1="30" y1="69" x2="70" y2="29" stroke-width="3.6"/>
+    // Pictograma estándar "mantener seco": gota grande tachada.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 18 C50 18 30 42 30 56 C30 68 39 78 50 78 C61 78 70 68 70 56 C70 42 50 18 50 18 Z" stroke-width="4.5"/>
+      <line x1="24" y1="76" x2="76" y2="24" stroke-width="6"/>
     </svg>`,
   },
   {
@@ -374,13 +407,13 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     nombre: "Envase Sellado / Seguro",
     categoria: "conservacion",
     tags: ["conservacion", "almacen", "envase", "sellado", "candado", "hermetico"],
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="50" cy="50" r="44" stroke-width="3.2"/>
-      <rect x="30" y="44" width="40" height="32" rx="4" stroke-width="3"/>
-      <line x1="30" y1="54" x2="70" y2="54" stroke-width="2.6"/>
-      <rect x="44" y="30" width="12" height="14" rx="3" stroke-width="2.8"/>
-      <path d="M46 30 L46 24 C46 20 54 20 54 24 L54 30" stroke-width="2.8"/>
-      <circle cx="50" cy="37" r="1.8" fill="currentColor"/>
+    // Frasco con tapa y candado relleno al frente.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <rect x="30" y="20" width="40" height="12" rx="3" stroke-width="4.5"/>
+      <path d="M33 32 L33 74 C33 78 36 81 40 81 L60 81 C64 81 67 78 67 74 L67 32" stroke-width="4.5"/>
+      <path d="M43 52 L43 47 C43 39 57 39 57 47 L57 52" stroke-width="3.8"/>
+      <rect x="39" y="52" width="22" height="17" rx="3" fill="currentColor" stroke="none"/>
     </svg>`,
   },
 ];

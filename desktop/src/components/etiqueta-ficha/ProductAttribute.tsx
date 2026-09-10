@@ -36,8 +36,8 @@ export default function ProductAttribute({
         disabled={!editMode}
         onClick={onEditarIcono}
         title={editMode ? "Cambiar ícono" : undefined}
-        className={`mb-[3px] flex h-16 w-16 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#FFA500] transition-transform duration-150 ${
-          editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[#FFA500]/[0.08]" : "cursor-default"
+        className={`mb-[3px] flex h-16 w-16 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[color:var(--acento)] transition-transform duration-150 ${
+          editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[color:var(--acento-08)]" : "cursor-default"
         }`}
       >
         {iconSrc ? <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" /> : icon}
@@ -47,16 +47,28 @@ export default function ProductAttribute({
         editMode={editMode}
         styleKey={`${styleKey}Titulo`}
         defaultFontSize={17}
-        className="mb-[5px] font-bold uppercase leading-[1.05] tracking-wide text-[#FFA500]"
+        className="mb-[5px] font-bold uppercase leading-[1.05] tracking-wide text-[color:var(--acento)]"
       />
       <EditableField
         value={value}
         onChange={onChange}
         editMode={editMode}
         multiline
+        marcoVisible
         styleKey={styleKey}
         defaultFontSize={14}
-        className="mx-auto w-[92%] max-w-[320px] text-center font-medium leading-[1.22] text-[#111111]"
+        // Texto descriptivo justificado al ancho del cuadro; la última línea
+        // va centrada (un texto de una sola línea no se estira) y la
+        // separación silábica (lang="es" en la raíz de la ficha) evita
+        // huecos grandes entre palabras — justificado sin deformarse.
+        //
+        // min-h de 3 renglones (3 × line-height 1.22, en em para seguir al
+        // tamaño de letra elegido): el cuadro reserva ese alto siempre, así
+        // la ficha no crece —ni se encoge dentro del marco de formato— al
+        // pasar de 1 a 3 renglones; la letra se mantiene. Ancho completo de
+        // la celda (antes 92 % con tope 320 px) para que quepan más palabras
+        // por renglón.
+        className="w-full min-h-[3.7em] break-words text-justify [text-align-last:center] hyphens-auto font-medium leading-[1.22] text-[#111111]"
       />
     </div>
   );

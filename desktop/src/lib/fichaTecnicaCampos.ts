@@ -180,7 +180,128 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     olor: olorRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
     grado,
-    almacenamiento: almacenamientoRaw || FICHA_SIN_DATO,
+    almacenamiento: almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : FICHA_SIN_DATO,
     peso: pesoRaw || FICHA_SIN_DATO,
   };
+}
+
+/** Registro del catálogo EAN con lo mínimo para deducir la presentación. */
+interface CodigoEanPresentacion {
+  sku: string;
+  nombre_producto: string;
+  presentacion?: string;
+}
+
+function unidadNormal(u: string): string {
+  const l = u.toLowerCase();
+  if (l === "kg" || l.startsWith("kilo")) return " Kg";
+  if (l === "l" || l === "lt" || l.startsWith("litro")) return " Lt";
+  if (l === "ml") return "mL";
+  if (l === "g" || l === "gr" || l === "grs") return "g";
+  if (l === "mg") return "mg";
+  if (l === "oz") return " oz";
+  return " un";
+}
+
+/** Contenido neto a partir del SKU elegido en el código de barras:
+ *  "ACIDO SALICILICO 30mL" → "30mL", "C-INUKg" → "1 Kg", "MANTECA DE CACAO
+ *  REFINADA" + presentación "500" + SKU "…500g" → "500g". Vacío si no se
+ *  puede deducir (el operador lo escribe a mano). */
+export function contenidoNetoDesdeCodigo(c: CodigoEanPresentacion): string {
+  const fuentes = [c.nombre_producto || "", c.sku || ""];
+  const conNumero = /(\d+(?:[.,]\d+)?)\s*(kg|kilos?|grs?|g|mg|ml|lt|l|litros?|oz|un|und)\b/i;
+  for (const f of fuentes) {
+    const m = conNumero.exec(f);
+    if (m) return `${m[1].replace(",", ".")}${unidadNormal(m[2])}`;
+  }
+  for (const f of fuentes) {
+    if (/\b(kg|kilos?)\b|kg$/i.test(f)) return "1 Kg";
+    if (/\b(lt|litros?)\b|lt$/i.test(f)) return "1 Lt";
+  }
+  const n = parseInt(c.presentacion || "", 10);
+  if (Number.isFinite(n) && n > 1) {
+    const liquido = /\b(ml|lt)\b|ml$|lt$/i.test(fuentes.join(" "));
+    return `${n}${liquido ? "mL" : "g"}`;
+  }
+  if (n === 1) return "1 Kg";
+  return "";
+}
+
+/** Términos propios de una instrucción de conservación: dónde y cómo se
+ *  guarda (ambiente, humedad, temperatura, luz, envase). */
+const CLAVES_CONSERVACION =
+  /guard|almacen|conserv|\blugar\b|envase|recipiente|empaque|temperatur|°\s*c\b|grados|refriger|congel|ventil|oscur|alejad|protegid|herm[eé]tic|cerrad|\bluz\b|calor|humedad|fresc|\bsec[oa]s?\b|ambient|\bsol\b|contamin/i;
+/** Verbos/expresiones que confirman que la frase habla de almacenar (no
+ *  de usar el producto): tienen prioridad al armar el resumen. */
+const CLAVES_ALMACENAR =
+  /guard|almacen|conserv|\blugar\b|mantenga el envase|mantener el envase|mantenga el empaque|envase bien cerrado|empaque bien cerrado|refriger|congel/i;
+/** Frases de MODO DE USO o preparación (piel, dosis, cocina…): nunca van
+ *  en Conservación aunque mencionen temperatura o humedad. */
+const CLAVES_USO =
+  /\bpiel\b|cabello|rostro|aplic|dilu|\buso\b|\busar\b|utiliz|dosis|mezcl|ingerir|ingesta|consum|prueba de parche|al[eé]rgic|irrit|gelific|hervir|cocin|prepar|postre|receta|proporci|cucharad|\btaza\b|calent|enfr[ií]e|formulaci|medici[oó]n/i;
+/** Frases de caducidad / fechas: no son conservación (solo se admiten en
+ *  el fallback, recortando la cola "hasta por 24 meses…"). */
+const CLAVES_CADUCIDAD =
+  /caduc|vencim|fabricaci|\bfecha|\bmeses\b|\baños?\b|\blote\b|garant|vida [uú]til|reanalisis|reanálisis/i;
+/** Cola de caducidad dentro de una frase de conservación. */
+const COLA_CADUCIDAD = /\s*,?\s*(hasta por|durante|por un per[ií]odo de|por)\s+\d+\s*(meses|años)[^.;]*/gi;
+/** ~3 renglones de 14 px en la celda de la ficha (≈ 45-50 caracteres por renglón). */
+const MAX_CARACTERES_CONSERVACION = 150;
+
+function limpiarFrase(f: string): string {
+  const sin = f
+    .replace(COLA_CADUCIDAD, "")
+    .replace(/\s*\(\s*\)/g, "")
+    .replace(/^(se recomienda|es recomendable|se sugiere|se debe|se deben|debe|deben|recomendamos|el producto debe|se aconseja|es importante)\s+/i, "")
+    .replace(/^(ser\s+)/i, "")
+    .trim()
+    .replace(/[,;\s]+$/, "");
+  return sin.charAt(0).toUpperCase() + sin.slice(1);
+}
+
+/** Resume el texto de almacenamiento de la ficha técnica a lo esencial de
+ *  CÓMO conservar el producto — ambiente, humedad, temperatura, luz,
+ *  envase — en no más de ~3 renglones. Se descartan las frases de modo de
+ *  uso, caducidad o fecha de fabricación, se quitan las muletillas ("Se
+ *  recomienda…") y van primero las frases con verbo de almacenar. Si el
+ *  texto no dice nada de conservación (solo modo de uso), devuelve "" para
+ *  que el operador lo escriba. */
+export function sintetizarConservacion(texto: string, maxChars = MAX_CARACTERES_CONSERVACION): string {
+  const limpio = (texto || "").replace(/\s+/g, " ").trim();
+  if (!limpio) return "";
+  const frases = limpio
+    .split(/(?<=[.;])\s+/)
+    .map((f) => f.trim())
+    .filter(Boolean);
+  const utiles = frases.filter(
+    (f) => CLAVES_CONSERVACION.test(f) && !CLAVES_USO.test(f) && !CLAVES_CADUCIDAD.test(f),
+  );
+  let candidatas = [
+    ...utiles.filter((f) => CLAVES_ALMACENAR.test(f)),
+    ...utiles.filter((f) => !CLAVES_ALMACENAR.test(f)),
+  ];
+  if (candidatas.length === 0) candidatas = frases.filter((f) => CLAVES_ALMACENAR.test(f) && !CLAVES_USO.test(f));
+  if (candidatas.length === 0) return "";
+
+  let out = "";
+  for (const f of candidatas) {
+    const frase = limpiarFrase(f);
+    if (!frase) continue;
+    if (!out) out = frase;
+    else if (`${out} ${frase}`.length <= maxChars) out = `${out} ${frase}`;
+    else break;
+  }
+  if (out.length > maxChars) {
+    // Cortar en la última coma o espacio antes del límite, nunca a mitad
+    // de palabra ni dejando un paréntesis abierto.
+    let corte = out.slice(0, maxChars);
+    const paren = corte.lastIndexOf("(");
+    if (paren > 0 && !corte.slice(paren).includes(")")) corte = corte.slice(0, paren);
+    const idx = Math.max(corte.lastIndexOf(","), corte.lastIndexOf(";"), corte.lastIndexOf(" "));
+    out = corte.slice(0, idx > 40 ? idx : corte.length);
+  }
+  out = out.replace(/[,;\s]+$/, "");
+  if (!out) return "";
+  if (!/[.!?]$/.test(out)) out += ".";
+  return out;
 }

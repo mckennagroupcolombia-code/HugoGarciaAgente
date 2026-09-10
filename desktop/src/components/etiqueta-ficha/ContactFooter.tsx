@@ -30,7 +30,7 @@ export default function ContactFooter({
     { key: "email", icon: <IconoCorreo size={32} />, value: email, onChange: onEmailChange },
   ];
   return (
-    <div className={`${RETICULA_MAESTRA} h-[46px] items-center bg-[#FFA500]`}>
+    <div className={`${RETICULA_MAESTRA} h-[46px] items-center bg-[color:var(--acento)]`}>
       {grupos.map((g, i) => (
         <div
           key={g.key}

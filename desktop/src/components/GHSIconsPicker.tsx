@@ -9,7 +9,7 @@ export function ghsSvgADataUrl(svg: string): string {
   }
 }
 
-function marcoGhsSvg(digitos: string, noMode = false): string {
+export function marcoGhsSvg(digitos: string, noMode = false): string {
   const FRAME = `<polygon points="50,4 96,50 50,96 4,50" fill="white" stroke="#DA291C" stroke-width="6.5" stroke-linejoin="miter"/>`;
   if (noMode) {
     const centro =

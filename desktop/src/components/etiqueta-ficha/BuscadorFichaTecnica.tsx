@@ -2,49 +2,32 @@
  * Buscador compacto de fichas técnicas — botón de lupa junto al nombre del
  * producto que abre un desplegable chico (no un panel de pantalla completa)
  * con sugerencias en vivo a medida que se escribe, igual que el buscador de
- * SKU de `BarcodeBlock`. Antes era un panel lateral que se abría solo al
- * enfocar el título: quedaba encima de todo (z-index alto) y bloqueaba el
- * menú de tamaño/fuente del propio título. Ahora es una acción aparte,
- * explícita, que no compite con nada más.
+ * SKU de `BarcodeBlock`.
+ *
+ * Las sugerencias se ordenan por afinidad de PALABRAS CLAVE con lo escrito
+ * (ver `lib/fichaTecnicaMatch.ts`), no por subcadena: "PISTACHOS TOSTADOS
+ * Kg" encuentra "PISTACHO TOSTADO" aunque no coincida letra a letra. Al
+ * abrirse con un código de barras ya elegido, la consulta arranca con el
+ * título de ese código (`consultaInicial`).
  */
 import { useEffect, useRef, useState } from "react";
-import { api } from "../../api/client";
-import { camposDesdeFichaTecnica, FICHA_SIN_DATO } from "../../lib/fichaTecnicaCampos";
+import { cargarPatchDesdeFichaTecnica, listarFichasTecnicas, type FichaTecnicaItem } from "../../lib/fichaTecnicaAplicar";
+import { ordenarFichasPorConsulta, palabrasClave } from "../../lib/fichaTecnicaMatch";
 import type { ProductLabelData } from "./productLabelTypes";
-
-interface FichaItem {
-  id: string;
-  titulo: string;
-  archivo: string;
-}
-
-/** `camposDesdeFichaTecnica` habla el vocabulario del Formulario de
- *  etiqueta física (76×66); esta ficha usa nombres en inglés — un solo
- *  mapa entre los dos para no duplicar la lógica de extracción. */
-const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
-  nombre: "productName",
-  tagline: "classification",
-  concentracionValor: "concentration",
-  casNumero: "cas",
-  origen: "origin",
-  apariencia: "appearance",
-  olor: "odor",
-  composicion: "composition",
-  grado: "grade",
-  almacenamiento: "storage",
-  peso: "netContent",
-  ghs: "ghs",
-};
+import PopoverFlotante from "./PopoverFlotante";
 
 const MAX_SUGERENCIAS = 8;
 
 export default function BuscadorFichaTecnica({
   onAplicar,
+  consultaInicial = "",
 }: {
   onAplicar: (patch: Partial<ProductLabelData>) => void;
+  /** Texto con el que arranca la búsqueda al abrir (título del código de barras). */
+  consultaInicial?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [fichas, setFichas] = useState<FichaItem[]>([]);
+  const [fichas, setFichas] = useState<FichaTecnicaItem[]>([]);
   const [q, setQ] = useState("");
   const [cargando, setCargando] = useState(false);
   const [aplicandoId, setAplicandoId] = useState<string | null>(null);
@@ -56,65 +39,34 @@ export default function BuscadorFichaTecnica({
     let cancel = false;
     setCargando(true);
     setError(null);
-    (async () => {
-      try {
-        const res = await api.get<{ items: FichaItem[] }>("/api/fichas/datos");
-        if (!cancel) setFichas(res.items || []);
-      } catch (e) {
+    listarFichasTecnicas()
+      .then((items) => {
+        if (!cancel) setFichas(items);
+      })
+      .catch((e) => {
         if (!cancel) setError(e instanceof Error ? e.message : "No se pudieron cargar las fichas técnicas");
-      } finally {
+      })
+      .finally(() => {
         if (!cancel) setCargando(false);
-      }
-    })();
+      });
     return () => {
       cancel = true;
     };
   }, [abierto, fichas.length]);
 
-  useEffect(() => {
-    if (!abierto) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setAbierto(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAbierto(false);
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [abierto]);
+  const abrir = () => {
+    setAbierto((v) => {
+      if (!v && !q.trim() && consultaInicial.trim()) setQ(consultaInicial.trim());
+      return !v;
+    });
+  };
 
-  const aplicar = async (ficha: FichaItem) => {
+  const aplicar = async (ficha: FichaTecnicaItem) => {
     setAplicandoId(ficha.id);
     setError(null);
     try {
-      const res = await api.get<{ datos: Record<string, unknown> }>(
-        `/api/fichas/datos/${encodeURIComponent(ficha.id)}`,
-      );
-      const mapeado = camposDesdeFichaTecnica(res.datos || {});
-      const patch: Partial<ProductLabelData> = {};
-      for (const [origenId, destino] of Object.entries(MAPA_A_PRODUCT_LABEL)) {
-        if (!destino) continue;
-        const valor = mapeado[origenId];
-        const tieneValor = Boolean(valor) && valor !== FICHA_SIN_DATO;
-        // Todos los campos de MAPA_A_PRODUCT_LABEL son de texto — el cast
-        // evita que TS exija que el valor sea compatible con TODAS las
-        // props de ProductLabelData (incluida `logoScale`, numérica) al
-        // escribir por una key genérica.
-        if (tieneValor) {
-          (patch as unknown as Record<keyof ProductLabelData, string>)[destino] = valor as string;
-        } else {
-          // Sin dato para este campo en la ficha elegida: se deja en
-          // blanco (no se conserva texto de otra ficha ni el ejemplo de
-          // fábrica, que no corresponde a este producto) para que quede
-          // claro qué falta diligenciar a mano.
-          (patch as unknown as Record<keyof ProductLabelData, string>)[destino] = "";
-        }
-      }
-      onAplicar(patch);
+      const patch = await cargarPatchDesdeFichaTecnica(ficha.id);
+      onAplicar({ ...patch, fichaTecnicaId: ficha.id, fichaTecnicaTitulo: ficha.titulo });
       setAbierto(false);
       setQ("");
     } catch (e) {
@@ -124,28 +76,21 @@ export default function BuscadorFichaTecnica({
     }
   };
 
-  const qNorm = q.trim().toLowerCase();
-  const sugeridas = (qNorm ? fichas.filter((f) => f.titulo.toLowerCase().includes(qNorm)) : fichas).slice(
-    0,
-    MAX_SUGERENCIAS,
-  );
+  const claves = palabrasClave(q);
+  const sugeridas = (q.trim() ? ordenarFichasPorConsulta(fichas, q) : fichas).slice(0, MAX_SUGERENCIAS);
 
   return (
     <div ref={wrapRef} className="relative inline-block">
       <button
         type="button"
-        onClick={() => setAbierto((v) => !v)}
+        onClick={abrir}
         title="Buscar ficha técnica para autorellenar la etiqueta"
-        className="flex h-6 w-6 items-center justify-center rounded border border-[#111111]/15 bg-white text-[11px] text-[#111111]/50 hover:border-[#FFA500] hover:text-[#FFA500]"
+        className="flex h-6 w-6 items-center justify-center rounded border border-[#111111]/15 bg-white text-[11px] text-[#111111]/50 hover:border-[color:var(--acento)] hover:text-[color:var(--acento)]"
       >
         🔍
       </button>
 
-      {abierto && (
-        <div
-          className="absolute left-1/2 top-full z-[150] mt-1.5 w-72 -translate-x-1/2 rounded-lg border border-border bg-surface-panel p-2.5 text-left shadow-2xl"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
+      <PopoverFlotante anchorRef={wrapRef} abierto={abierto} onCerrar={() => setAbierto(false)} alinear="centro" ancho={300}>
           <div className="mb-1.5 flex items-center justify-between">
             <p className="text-xs font-semibold text-ink">Buscar ficha técnica</p>
             <button type="button" onClick={() => setAbierto(false)} className="text-muted hover:text-ink">
@@ -161,10 +106,20 @@ export default function BuscadorFichaTecnica({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Nombre del producto…"
-            className="mb-2 w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
+            className="mb-1 w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
           />
+          {claves.length > 0 && (
+            <p className="mb-1.5 text-[10px] text-muted">
+              Palabras clave:{" "}
+              {claves.map((c) => (
+                <span key={c} className="mr-1 rounded bg-accent/10 px-1 py-px font-mono text-accent">
+                  {c}
+                </span>
+              ))}
+            </p>
+          )}
           {error && <p className="mb-1.5 rounded bg-danger/10 px-2 py-1 text-[11px] text-danger">{error}</p>}
-          <ul className="max-h-56 space-y-1 overflow-y-auto">
+          <ul className="space-y-1">
             {cargando && <li className="px-1 py-1 text-xs text-muted">Cargando…</li>}
             {!cargando && sugeridas.length === 0 && (
               <li className="px-1 py-1 text-xs text-muted">Sin resultados.</li>
@@ -178,12 +133,12 @@ export default function BuscadorFichaTecnica({
                   className="w-full rounded px-2 py-1.5 text-left text-xs text-ink hover:bg-accent/10 disabled:opacity-50"
                 >
                   {aplicandoId === f.id ? "Cargando…" : f.titulo}
+                  {f.borrador && <span className="ml-1 text-[10px] text-muted">(borrador)</span>}
                 </button>
               </li>
             ))}
           </ul>
-        </div>
-      )}
+      </PopoverFlotante>
     </div>
   );
 }

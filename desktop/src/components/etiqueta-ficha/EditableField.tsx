@@ -72,6 +72,11 @@ interface Props {
    *  técnicas del nombre del producto): el menú flotante, con más z-index,
    *  quedaba encima de ese panel y bloqueaba los clics sobre él. */
   sinMenuTamano?: boolean;
+  /** En edición, el marco punteado se ve SIEMPRE (no solo al pasar el
+   *  ratón): delimita el tamaño real del cuadro — p. ej. los 3 renglones
+   *  reservados de los textos descriptivos, que con texto corto quedan en
+   *  blanco y no se distinguen. No afecta la vista ni el PNG. */
+  marcoVisible?: boolean;
 }
 
 /** Menú flotante de tamaño/fuente compartido por `EditableField` (valores
@@ -195,7 +200,7 @@ export function EditableLabel({
         type="button"
         onClick={() => setAbierto(menuAbierto ? null : styleKey)}
         title="Cambiar tamaño/fuente"
-        className={`${className} inline-block cursor-pointer rounded-sm border border-dashed border-transparent bg-transparent p-0 hover:border-[#FFA500]/50`}
+        className={`${className} inline-block cursor-pointer rounded-sm border border-dashed border-transparent bg-transparent p-0 hover:border-[color:var(--acento-50)]`}
         style={estiloFinal}
       >
         {texto}
@@ -220,6 +225,7 @@ export default function EditableField({
   variant = "light",
   onFocus,
   sinMenuTamano,
+  marcoVisible,
 }: Props) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -266,12 +272,15 @@ export default function EditableField({
   // --mck-field-fs) !important; }` que compacta todos los campos de la
   // app — sin ella, ningún tamaño elegido en el menú se ve: el !important
   // le gana siempre al `style` en línea.
+  const bordeReposo = marcoVisible
+    ? variant === "dark" ? "border-white/50" : "border-[color:var(--acento-50)]"
+    : "border-transparent";
   const editCls =
     variant === "dark"
       ? `${className} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
-        + `border border-dashed border-transparent hover:border-white/60 focus:border-white focus:bg-white/10`
+        + `border border-dashed ${bordeReposo} hover:border-white/60 focus:border-white focus:bg-white/10`
       : `${className} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
-        + `border border-dashed border-transparent hover:border-[#FFA500]/50 focus:border-[#FFA500] focus:bg-[#FFA500]/5`;
+        + `border border-dashed ${bordeReposo} hover:border-[color:var(--acento-50)] focus:border-[color:var(--acento)] focus:bg-[color:var(--acento-05)]`;
 
   return (
     <div ref={wrapRef} className="relative w-full">

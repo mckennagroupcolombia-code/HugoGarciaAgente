@@ -15,6 +15,8 @@ export interface TextStyleOverride {
 interface TextStyleCtx {
   estilos: Record<string, TextStyleOverride>;
   setEstilo: (key: string, patch: TextStyleOverride) => void;
+  /** Reemplaza todos los overrides de una — usado al abrir una ficha guardada. */
+  reemplazarEstilos: (estilos: Record<string, TextStyleOverride>) => void;
   abierto: string | null;
   setAbierto: (key: string | null) => void;
 }
@@ -28,7 +30,11 @@ export function TextStyleProvider({ children }: { children: ReactNode }) {
   const setEstilo = (key: string, patch: TextStyleOverride) =>
     setEstilos((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
 
-  return <Ctx.Provider value={{ estilos, setEstilo, abierto, setAbierto }}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={{ estilos, setEstilo, reemplazarEstilos: setEstilos, abierto, setAbierto }}>
+      {children}
+    </Ctx.Provider>
+  );
 }
 
 export function useTextStyleCtx(): TextStyleCtx {

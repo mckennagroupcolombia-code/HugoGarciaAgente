@@ -21,11 +21,11 @@ export default function TechnicalIdentity({
     { key: "cas", label: "CAS:", value: cas, onChange: onCasChange },
   ];
   return (
-    <div className="grid w-full grid-cols-[auto_1fr] overflow-hidden rounded-[4px] border-[1.5px] border-[#FFA500] text-center">
+    <div className="grid w-full grid-cols-[auto_1fr] overflow-hidden rounded-[4px] border-[1.5px] border-[color:var(--acento)] text-center">
       {filas.map((fila, i) => (
         <div key={fila.key} className="contents">
           <div
-            className={`flex min-h-[34px] items-center justify-center border-r-[1.5px] border-[#FFA500] px-3 ${
+            className={`flex min-h-[34px] items-center justify-center border-r-[1.5px] border-[color:var(--acento)] px-3 ${
               i > 0 ? "border-t-[1.5px]" : ""
             }`}
           >
@@ -38,7 +38,7 @@ export default function TechnicalIdentity({
             />
           </div>
           <div
-            className={`flex min-h-[34px] items-center justify-center px-3 ${i > 0 ? "border-t-[1.5px] border-[#FFA500]" : ""}`}
+            className={`flex min-h-[34px] items-center justify-center px-3 ${i > 0 ? "border-t-[1.5px] border-[color:var(--acento)]" : ""}`}
           >
             <EditableField
               value={fila.value}

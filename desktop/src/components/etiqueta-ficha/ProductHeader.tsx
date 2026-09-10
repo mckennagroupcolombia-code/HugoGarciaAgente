@@ -1,8 +1,15 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import EditableField from "./EditableField";
 import ProductClassification from "./ProductClassification";
 import BuscadorFichaTecnica from "./BuscadorFichaTecnica";
-import { RETICULA_MAESTRA, type ProductLabelData } from "./productLabelTypes";
+import { ACENTO_POR_DEFECTO, RETICULA_MAESTRA, normalizarHex, type ProductLabelData } from "./productLabelTypes";
+import PopoverFlotante from "./PopoverFlotante";
+import { colorAcentoDesdeImagen } from "../../lib/colorDominante";
+import {
+  cargarLogoCorporativoComoDataUrl,
+  useLogosCorporativos,
+  type LogoCorporativo,
+} from "../../lib/logosCorporativos";
 
 /** Caja del logo a escala 1 (tamaño por defecto) — el operador la escala
  *  manualmente con los botones －/＋. Tope máximo (1.3) elegido para que a
@@ -17,6 +24,10 @@ const LOGO_ALTO_BASE = 65;
 const LOGO_ESCALA_MIN = 0.6;
 const LOGO_ESCALA_MAX = 1.3;
 const LOGO_ESCALA_PASO = 0.1;
+/** Escala con la que entra todo logo (y la de una ficha sin dato): el
+ *  máximo, 130 % — a menos, el logo se pierde impreso. El operador puede
+ *  bajarla con －. */
+const LOGO_ESCALA_DEFECTO = LOGO_ESCALA_MAX;
 
 function clampEscalaLogo(v: number): number {
   return Math.min(LOGO_ESCALA_MAX, Math.max(LOGO_ESCALA_MIN, Math.round(v * 10) / 10));
@@ -37,7 +48,13 @@ function tamanoNombre(nombre: string): number {
 
 /** Cabecera: nombre del producto + banda de clasificación (columnas 1+2)
  *  y logotipo (columna 3) — la identidad técnica (Pureza/CAS) vive ahora
- *  en la columna técnica del cuerpo, debajo de "Disponible en". */
+ *  en la columna técnica del cuerpo, debajo de "Disponible en".
+ *
+ *  El botón del logo abre la carpeta DISEÑO CORPORATIVO del servidor
+ *  (`/api/etiquetas/logos-corporativos`): al elegir un logo, su color
+ *  dominante pasa a ser el acento de toda la ficha (bandas, bordes,
+ *  títulos, íconos) de una vez. También se puede subir un archivo propio
+ *  (mismo cálculo de acento) o ajustar el color a mano. */
 export default function ProductHeader({
   data,
   onChange,
@@ -48,17 +65,51 @@ export default function ProductHeader({
   editMode: boolean;
 }) {
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const logoWrapRef = useRef<HTMLDivElement>(null);
+  const [menuLogo, setMenuLogo] = useState(false);
+  const [cargandoLogo, setCargandoLogo] = useState<string | null>(null);
+  const [errorLogo, setErrorLogo] = useState<string | null>(null);
+  const { data: logosData, isLoading: logosCargando, error: logosError } = useLogosCorporativos(
+    editMode && menuLogo,
+  );
+
+  /** Pone el logo al 130 % y, si la imagen tiene color, cambia el acento de la ficha. */
+  const aplicarLogo = async (dataUrl: string, nombre: string) => {
+    const acento = await colorAcentoDesdeImagen(dataUrl);
+    onChange({
+      logoUrl: dataUrl,
+      logoNombre: nombre,
+      logoScale: LOGO_ESCALA_DEFECTO,
+      ...(acento ? { accentColor: acento } : {}),
+    });
+  };
 
   const adjuntarLogo = (file: File) => {
     if (!file.type.startsWith("image/")) return;
     const reader = new FileReader();
-    reader.onload = () => onChange({ logoUrl: String(reader.result || "") });
+    reader.onload = () => void aplicarLogo(String(reader.result || ""), file.name);
     reader.readAsDataURL(file);
   };
 
-  const escalaLogo = clampEscalaLogo(data.logoScale ?? 1);
+  const elegirLogoCorporativo = async (logo: LogoCorporativo) => {
+    setCargandoLogo(logo.nombre);
+    setErrorLogo(null);
+    try {
+      const dataUrl = await cargarLogoCorporativoComoDataUrl(logo.nombre);
+      await aplicarLogo(dataUrl, logo.nombre);
+      setMenuLogo(false);
+    } catch (e) {
+      setErrorLogo(e instanceof Error ? e.message : "No se pudo cargar el logo");
+    } finally {
+      setCargandoLogo(null);
+    }
+  };
+
+  const escalaLogo = clampEscalaLogo(data.logoScale ?? LOGO_ESCALA_DEFECTO);
   const ajustarEscalaLogo = (delta: number) =>
     onChange({ logoScale: clampEscalaLogo(escalaLogo + delta) });
+  const acentoActual = normalizarHex(data.accentColor);
+  const logos = logosData?.logos ?? [];
 
   return (
     // Misma retícula de 3 columnas que el resto de la ficha — sin padding
@@ -76,12 +127,12 @@ export default function ProductHeader({
               multiline
               styleKey="productName"
               defaultFontSize={tamanoNombre(data.productName)}
-              className="whitespace-pre-line text-center font-extrabold uppercase leading-[1.02] tracking-[-0.4px] text-[#FFA500]"
+              className="whitespace-pre-line text-center font-extrabold uppercase leading-[1.02] tracking-[-0.4px] text-[color:var(--acento)]"
             />
           </div>
           {editMode && (
             <div className="pt-1">
-              <BuscadorFichaTecnica onAplicar={onChange} />
+              <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
             </div>
           )}
         </div>
@@ -92,7 +143,7 @@ export default function ProductHeader({
         />
       </div>
 
-      <div className="flex flex-col items-center gap-2 px-4">
+      <div ref={logoWrapRef} className="relative flex flex-col items-center gap-2 px-4">
         <input
           ref={logoInputRef}
           type="file"
@@ -107,8 +158,8 @@ export default function ProductHeader({
         <button
           type="button"
           disabled={!editMode}
-          onClick={() => logoInputRef.current?.click()}
-          title={editMode ? "Adjuntar logo" : undefined}
+          onClick={() => setMenuLogo((v) => !v)}
+          title={editMode ? "Elegir logo (carpeta DISEÑO CORPORATIVO)" : undefined}
           style={{
             // Ancho Y alto explícitos (no solo un `max-height` con el alto
             // en "auto"): con solo `max-height`, el alto real de la caja
@@ -120,9 +171,12 @@ export default function ProductHeader({
             width: LOGO_ANCHO_BASE * escalaLogo,
             height: LOGO_ALTO_BASE * escalaLogo,
           }}
+          // Sin logo: el marco punteado con "McKenna Group" solo se ve en
+          // edición (es una invitación a elegirlo); en vista y en el PNG
+          // impreso la caja queda en blanco para no imprimir un placeholder.
           className={`relative flex items-center justify-center overflow-hidden rounded-[3px] text-[11px] font-bold uppercase tracking-wider text-[#111111]/50 ${
-            data.logoUrl ? "" : "border border-dashed border-[#111111]/20"
-          } ${editMode ? "cursor-pointer hover:border-[#FFA500] hover:text-[#FFA500]" : "cursor-default"}`}
+            data.logoUrl || !editMode ? "" : "border border-dashed border-[#111111]/20"
+          } ${editMode ? "cursor-pointer hover:border-[color:var(--acento)] hover:text-[color:var(--acento)]" : "cursor-default"}`}
         >
           {data.logoUrl ? (
             <img
@@ -130,9 +184,9 @@ export default function ProductHeader({
               alt="Logo"
               className="h-full w-full object-contain"
             />
-          ) : (
+          ) : editMode ? (
             "McKenna Group"
-          )}
+          ) : null}
         </button>
         {editMode && data.logoUrl && (
           <div className="flex items-center gap-1.5 text-[11px] text-[#111111]/50">
@@ -141,7 +195,7 @@ export default function ProductHeader({
               onClick={() => ajustarEscalaLogo(-LOGO_ESCALA_PASO)}
               disabled={escalaLogo <= LOGO_ESCALA_MIN}
               title="Reducir logo"
-              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[#FFA500] hover:text-[#FFA500] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:cursor-not-allowed disabled:opacity-30"
             >
               －
             </button>
@@ -151,12 +205,98 @@ export default function ProductHeader({
               onClick={() => ajustarEscalaLogo(LOGO_ESCALA_PASO)}
               disabled={escalaLogo >= LOGO_ESCALA_MAX}
               title="Aumentar logo"
-              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[#FFA500] hover:text-[#FFA500] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:cursor-not-allowed disabled:opacity-30"
             >
               ＋
             </button>
           </div>
         )}
+
+        <PopoverFlotante
+          anchorRef={logoWrapRef}
+          abierto={editMode && menuLogo}
+          onCerrar={() => setMenuLogo(false)}
+          alinear="derecha"
+          ancho={330}
+        >
+            <div className="mb-1.5 flex items-center justify-between">
+              <p className="text-xs font-semibold text-ink">Logos · DISEÑO CORPORATIVO</p>
+              <button type="button" onClick={() => setMenuLogo(false)} className="text-muted hover:text-ink">
+                ✕
+              </button>
+            </div>
+            <p className="mb-2 text-[11px] text-muted">
+              Al elegir un logo, su color pasa a ser el acento de toda la ficha.
+            </p>
+            {logosCargando && <p className="px-1 py-1 text-xs text-muted">Cargando…</p>}
+            {logosError && (
+              <p className="mb-1.5 rounded bg-danger/10 px-2 py-1 text-[11px] text-danger">
+                {logosError instanceof Error ? logosError.message : "No se pudo leer la carpeta de logos"}
+              </p>
+            )}
+            {errorLogo && <p className="mb-1.5 rounded bg-danger/10 px-2 py-1 text-[11px] text-danger">{errorLogo}</p>}
+            {!logosCargando && !logosError && logos.length === 0 && (
+              <p className="px-1 py-1 text-xs text-muted">La carpeta no tiene imágenes.</p>
+            )}
+            {logos.length > 0 && (
+              <div className="grid grid-cols-3 gap-1.5 pr-0.5">
+                {logos.map((logo) => {
+                  const activo = data.logoNombre === logo.nombre;
+                  const cargando = cargandoLogo === logo.nombre;
+                  return (
+                    <button
+                      key={logo.nombre}
+                      type="button"
+                      disabled={cargandoLogo !== null}
+                      onClick={() => void elegirLogoCorporativo(logo)}
+                      title={logo.nombre}
+                      className={`flex flex-col items-center gap-1 rounded-md border p-1.5 text-center transition hover:border-accent hover:bg-accent/5 disabled:opacity-60 ${
+                        activo ? "border-accent bg-accent/10" : "border-border bg-white"
+                      }`}
+                    >
+                      <span className="flex h-14 w-full items-center justify-center overflow-hidden rounded bg-white">
+                        {logo.thumb ? (
+                          <img src={logo.thumb} alt="" className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-[10px] text-muted">sin vista previa</span>
+                        )}
+                      </span>
+                      <span className="line-clamp-2 w-full text-[10px] leading-tight text-ink">
+                        {cargando ? "Cargando…" : logo.nombre.replace(/\.[a-z0-9]+$/i, "")}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:bg-surface-hover"
+              >
+                Subir archivo…
+              </button>
+              <label className="flex items-center gap-1.5 text-[11px] text-muted" title="Ajustar el acento a mano">
+                Acento
+                <input
+                  type="color"
+                  value={acentoActual}
+                  onChange={(e) => onChange({ accentColor: e.target.value })}
+                  className="h-5 w-7 cursor-pointer rounded border border-border p-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => onChange({ accentColor: ACENTO_POR_DEFECTO })}
+                  disabled={acentoActual === ACENTO_POR_DEFECTO}
+                  title="Volver al naranja corporativo"
+                  className="text-[11px] text-muted hover:text-ink disabled:opacity-30"
+                >
+                  ↺
+                </button>
+              </label>
+            </div>
+        </PopoverFlotante>
       </div>
     </div>
   );

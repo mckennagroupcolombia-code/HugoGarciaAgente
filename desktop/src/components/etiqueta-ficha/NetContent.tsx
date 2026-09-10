@@ -13,13 +13,13 @@ export default function NetContent({
   editMode: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 border-r-[1.5px] border-[#FFA500] px-6 py-2.5">
+    <div className="flex flex-col items-center justify-center gap-2 border-r-[1.5px] border-[color:var(--acento)] px-6 py-2.5">
       <EditableLabel
         texto={"Contenido\nNeto"}
         editMode={editMode}
         styleKey="netContentTitulo"
         defaultFontSize={17}
-        className="whitespace-pre-line text-center font-bold uppercase leading-[1.05] tracking-wide text-[#FFA500]"
+        className="whitespace-pre-line text-center font-bold uppercase leading-[1.05] tracking-wide text-[color:var(--acento)]"
       />
       <EditableField
         value={value}

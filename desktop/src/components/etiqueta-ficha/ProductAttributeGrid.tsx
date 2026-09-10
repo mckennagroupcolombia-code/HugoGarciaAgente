@@ -1,25 +1,49 @@
 import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
-import {
-  IconoApariencia,
-  IconoComposicion,
-  IconoConservacion,
-  IconoGrado,
-  IconoOlor,
-  IconoOrigen,
-} from "./iconosLineales";
+import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
 import type { ProductLabelData } from "./productLabelTypes";
 
 export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
 
+/** Ícono por defecto de cada atributo = un ícono de la galería (misma
+ *  familia visual que los que el operador puede elegir después, en vez de
+ *  un set lineal aparte). Se dibuja en línea (no como data URL) para que
+ *  herede el color de acento vía `currentColor`. */
+const ICONO_GALERIA_POR_DEFECTO: Record<AttributeKey, string> = {
+  origin: "origen_globo_meridianos",
+  appearance: "apariencia_ojo",
+  odor: "aroma_ondas_gota",
+  composition: "composicion_molecula_enlazada",
+  grade: "calidad_escudo_sello",
+  storage: "conservacion_envase_sellado",
+};
+
+const TAMANO_ICONO = 58;
+
+function IconoGaleriaInline({ id, size = TAMANO_ICONO }: { id: string; size?: number }) {
+  const icono = ICONOS_QUIMICA_CIRCULARES.find((i) => i.id === id);
+  if (!icono) return null;
+  // Sin el círculo exterior y acercado ×1.3 — exactamente como la galería
+  // inserta los íconos elegidos, para que defecto y elegido midan igual.
+  return (
+    <span
+      aria-hidden="true"
+      className="block [&>svg]:h-full [&>svg]:w-full"
+      style={{ width: size, height: size }}
+      dangerouslySetInnerHTML={{ __html: quitarCirculoExterior(icono.svg) }}
+    />
+  );
+}
+
 /** Cuadrícula 2 columnas × 3 filas de atributos del producto, con
- *  divisores naranja horizontales entre filas y uno vertical entre
- *  columnas — tabla editorial abierta, no seis cards independientes. Filas
- *  compactas (95px mínimo, alto según contenido si hace falta más — nunca
- *  se recorta). Cada ícono es clicable y reutiliza la galería de íconos
- *  químicos ya existente en Studio Visual (una sola instancia del modal
- *  compartida por los 6 módulos). */
+ *  divisores en color de acento horizontales entre filas y uno vertical
+ *  entre columnas — tabla editorial abierta, no seis cards independientes.
+ *  Filas compactas (95px mínimo, alto según contenido si hace falta más —
+ *  nunca se recorta). Cada ícono es clicable y reutiliza la galería de
+ *  íconos químicos (una sola instancia del modal compartida por los 6
+ *  módulos); mientras no se elija uno, se ve el de la galería asignado por
+ *  defecto a ese atributo. */
 export default function ProductAttributeGrid({
   data,
   onChange,
@@ -35,22 +59,28 @@ export default function ProductAttributeGrid({
 }) {
   const [campoAbierto, setCampoAbierto] = useState<AttributeKey | null>(null);
 
-  // size={58} — la caja del botón en ProductAttribute también se agrandó
-  // (h-16 w-16) para que quepan sin recortarse; el trazo (strokeWidth) se
-  // engrosó aparte, en `iconosLineales.tsx`, para que se vea claro impreso.
-  const celdas: { icon: ReactNode; title: string; campo: AttributeKey }[] = [
-    { icon: <IconoOrigen size={58} />, title: "Origen", campo: "origin" },
-    { icon: <IconoApariencia size={58} />, title: "Apariencia", campo: "appearance" },
-    { icon: <IconoOlor size={58} />, title: "Olor", campo: "odor" },
-    { icon: <IconoComposicion size={58} />, title: "Composición", campo: "composition" },
-    { icon: <IconoGrado size={58} />, title: "Grado", campo: "grade" },
-    { icon: <IconoConservacion size={58} />, title: "Conservación", campo: "storage" },
-  ];
+  const celdas: { icon: ReactNode; title: string; campo: AttributeKey }[] = (
+    [
+      ["Origen", "origin"],
+      ["Apariencia", "appearance"],
+      ["Olor", "odor"],
+      ["Composición", "composition"],
+      ["Grado", "grade"],
+      ["Conservación", "storage"],
+    ] as [string, AttributeKey][]
+  ).map(([title, campo]) => ({
+    title,
+    campo,
+    icon: <IconoGaleriaInline id={ICONO_GALERIA_POR_DEFECTO[campo]} />,
+  }));
 
   return (
     <div
-      className="col-span-2 grid grid-cols-2 border-y-[1.5px] border-[#FFA500]"
-      style={{ gridTemplateRows: "repeat(3, minmax(95px, auto))" }}
+      className="col-span-2 grid grid-cols-2 border-y-[1.5px] border-[color:var(--acento)]"
+      // Alto mínimo de fila = ícono 64 + título ~26 + 3 renglones de texto
+      // (~51 px a 14 px) + relleno 20 → 160 px: las tres filas miden lo mismo
+      // aunque una tenga 1 renglón y otra 3, y solo crecen pasados los 3.
+      style={{ gridTemplateRows: "repeat(3, minmax(160px, auto))" }}
     >
       {celdas.map((c, i) => {
         const esColIzq = i % 2 === 0;
@@ -58,8 +88,8 @@ export default function ProductAttributeGrid({
         return (
           <div
             key={c.campo}
-            className={`${esColIzq ? "border-r-[1.5px] border-[#FFA500]" : ""} ${
-              esFilaUltima ? "" : "border-b-[1.5px] border-[#FFA500]"
+            className={`${esColIzq ? "border-r-[1.5px] border-[color:var(--acento)]" : ""} ${
+              esFilaUltima ? "" : "border-b-[1.5px] border-[color:var(--acento)]"
             }`}
           >
             <ProductAttribute
