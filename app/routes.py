@@ -911,6 +911,103 @@ from app.services.autocorrector import (
 )
 
 
+# --- Escalación a humano (ver docs: Bloque A, sep-2026) -------------------
+#
+# Contexto: hasta sep-2026 dos interceptores de `/whatsapp` respondían
+# "déjame consultar esa información con mi equipo y le confirmo en un momento".
+# En 30 días salió 45 veces a 34 clientes y el 60% NUNCA recibió respuesta
+# humana en las 2h siguientes: es la misma promesa vacía que costó la
+# confianza en jul-2026. La frase queda prohibida (ver _PAT_PROMESA_VACIA).
+#
+# Reglas nuevas:
+#   1. Solo se escala cuando el cliente PIDE un humano de forma explícita
+#      (_PAT_PIDE_HUMANO, con límites de palabra). Antes bastaba con que el
+#      mensaje contuviera la subcadena "asesor" en cualquier contexto.
+#   2. Los temas sensibles (descuento, reclamo, garantía, devolución) avisan
+#      al grupo EN PARALELO pero NO pisan la respuesta del LLM.
+#   3. El texto que se le manda al cliente tiene que ser cumplible: no promete
+#      un plazo que nadie garantiza y aprovecha el turno para adelantar trabajo.
+
+_PAT_PIDE_HUMANO = re.compile(
+    # verbo de contacto/solicitud + referencia a una persona, en la misma frase
+    r"\b(?:hablar|comunic\w*|pasar\w*|p[aá]s\w*|contact\w*|atend\w*|transferir\w*"
+    r"|necesit\w*|quiero|requiero|solicito)"
+    r"\b[^.?!\n]{0,40}?\b(?:asesor(?:es|a|as)?|humano\w*|persona|alguien|agente|vendedor\w*|ejecutiv\w*)\b"
+    # o el mensaje ES la petición: "asesor", "con un asesor por favor", "agente humano"
+    r"|^\s*(?:con\s+)?(?:un[ao]?\s+|el\s+|la\s+)?(?:asesor(?:es|a|as)?|agente\s+humano|humano)"
+    r"(?:\s*,?\s*(?:por\s+favor|porfa\w*|pf|gracias))?\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
+
+_PAT_TEMA_SENSIBLE = re.compile(
+    r"\b(?:descuent\w*|reclamo\w*|garant[ií]a\w*|devoluci[oó]n\w*|devolver)\b"
+    r"|m[aá]s\s+barat[oa]|precio\s+especial",
+    re.IGNORECASE,
+)
+
+# Frase prohibida: promesa de seguimiento que el equipo no cumple.
+_PAT_PROMESA_VACIA = re.compile(
+    r"(?:d[ée]jame\s+(?:consultar|verificar)[^.\n]*?)?\ble\s+confirmo\s+en\s+un\s+momento\b[^.\n]*\.?\s*🙏?",
+    re.IGNORECASE,
+)
+
+
+def _grupo_escalacion_clientes() -> str:
+    """Grupo que recibe las escalaciones de clientes de WhatsApp.
+
+    Seam de configuración: hoy cae al grupo que ya venía recibiéndolas
+    (Facturacion_Compras_SIIGO vía GRUPO_FACTURACION_COMPRAS_WA), que es un
+    grupo de 2 personas y NO es el destino natural para una consulta comercial.
+    Apuntar GRUPO_ESCALACION_CLIENTES_WA al grupo que atienda ventas.
+    """
+    return _jid_limpio(
+        os.getenv("GRUPO_ESCALACION_CLIENTES_WA", "")
+        or os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
+    )
+
+
+def _texto_escalacion_cliente() -> str:
+    """Respuesta cumplible cuando el cliente pide un asesor humano.
+
+    No dice "en un momento": o el equipo está en horario y contesta por este
+    mismo chat, o está fuera de horario y se dice con todas sus letras.
+    """
+    if _fuera_horario_laboral_equipo():
+        return (
+            "Listo veci, ya le pasé su mensaje al equipo. En este momento estamos "
+            "fuera del horario de atención (lunes a viernes, 8:00 a 18:00), así que "
+            "un asesor le responde por este mismo chat apenas abramos.\n\n"
+            "Si quiere, mientras tanto dígame qué producto necesita y le voy "
+            "adelantando la cotización. 🙏"
+        )
+    return (
+        "Listo veci, ya le pasé su mensaje al equipo. Un asesor le responde por "
+        "este mismo chat.\n\n"
+        "Si quiere, mientras tanto dígame qué producto necesita y le voy "
+        "adelantando la cotización. 🙏"
+    )
+
+
+def _alertar_escalacion_cliente(sender_id: str, message_text: str, motivo: str) -> None:
+    """Avisa al grupo. Nunca bloquea ni reemplaza la respuesta al cliente."""
+    try:
+        from app.services.wa_jid import formato_display
+
+        etiqueta = formato_display(sender_id)
+    except Exception:
+        etiqueta = sender_id
+    aviso = (
+        f"🙋 *CLIENTE PIDE ASESOR* ({motivo})\n"
+        f"👤 {etiqueta} ({sender_id})\n"
+        f"💬 {message_text[:400]}\n\n"
+        f"Responder con: `resp {sender_id}: <respuesta>`"
+    )
+    try:
+        enviar_whatsapp_reporte(aviso, numero_destino=_grupo_escalacion_clientes())
+    except Exception as exc:  # nunca tumbar el turno del cliente por el aviso
+        print(f"⚠️ [ESCALACION] no se pudo avisar al grupo: {exc}")
+
+
 def _normalizar_respuesta_cliente(texto: str) -> str:
     """Evita enviar mensajes legacy/confusos al cliente final."""
     if not texto:
@@ -921,6 +1018,15 @@ def _normalizar_respuesta_cliente(texto: str) -> str:
             "Veci, tuvimos un problema técnico temporal. "
             "¿Me reenvía su mensaje, por favor? 🙏"
         )
+    # Red de seguridad: la promesa vacía no sale al cliente venga de donde venga
+    # (interceptor legacy, prompt, o alucinación del modelo).
+    if _PAT_PROMESA_VACIA.search(texto):
+        limpio = _PAT_PROMESA_VACIA.sub("", texto).strip()
+        # Si al quitar la promesa solo queda el vocativo ("Veci,") o un resto
+        # sin contenido, el mensaje no dice nada: mejor la escalación honesta.
+        if len(re.sub(r"[^0-9A-Za-zÁÉÍÓÚÑáéíóúñ]", "", limpio)) < 20:
+            return _texto_escalacion_cliente()
+        texto = limpio
     return texto
 
 
@@ -2882,32 +2988,31 @@ def register_routes(app):
             )
 
         # --- Escalación al Grupo ---
-        keywords_escalacion = [
-            "quiero hablar con una persona",
-            "hablar con alguien",
-            "asesor",
-            "agente humano",
-            "devolución",
-            "reclamo",
-            "garantía",
-            "descuento",
-            "precio especial",
-            "más barato",
-            "mas barato",
-        ]
-        if any(keyword in message_text.lower() for keyword in keywords_escalacion):
-            mensaje_aprobacion = (
-                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
-                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
-            )
-            enviar_whatsapp_reporte(
-                mensaje_aprobacion, numero_destino=grupo_contabilidad
+        # Solo cuando el cliente pide un humano EXPLÍCITAMENTE. El match por
+        # subcadena anterior ("asesor" en cualquier posición) disparaba esta
+        # rama en conversaciones normales y mataba el turno del LLM.
+        if _PAT_PIDE_HUMANO.search(message_text or ""):
+            # Decisión deliberada: NO se pausa el bot aquí (existe
+            # _pausar_por_bot, y el chat web sí lo hace en app/core.py). Con el
+            # 60% de escalaciones históricamente sin respuesta humana en 2h,
+            # silenciar el bot dejaría al cliente sin nadie; además el texto de
+            # escalación se ofrece a seguir adelantando la cotización, así que
+            # tiene que poder responder. El humano toma el chat desde el panel.
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "pidió hablar con un asesor"),
             )
             return jsonify(
-                {
-                    "status": "escalated",
-                    "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏",
-                }
+                {"status": "escalated", "respuesta": _texto_escalacion_cliente()}
+            )
+
+        # Temas sensibles (descuento, reclamo, garantía, devolución): el equipo
+        # se entera EN PARALELO, pero el cliente igual recibe la respuesta del
+        # LLM en vez de un texto enlatado que no resuelve nada.
+        if _PAT_TEMA_SENSIBLE.search(message_text or ""):
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "tema sensible: requiere revisión humana"),
             )
 
         # --- Procesamiento del Mensaje por la IA ---
@@ -2944,20 +3049,15 @@ def register_routes(app):
 
         respuesta_ia = _normalizar_respuesta_cliente(respuesta_ia)
 
+        # Si el LLM expresó incertidumbre, se avisa al grupo pero NO se pisa su
+        # respuesta: una negativa honesta y contextualizada ("ese precio se lo
+        # confirma un asesor") le sirve más al cliente que la promesa enlatada
+        # que se enviaba aquí antes.
         incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]
         if any(frase in respuesta_ia.lower() for frase in incertidumbre_ia):
-            mensaje_aprobacion = (
-                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
-                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
-            )
-            enviar_whatsapp_reporte(
-                mensaje_aprobacion, numero_destino=grupo_contabilidad
-            )
-            return jsonify(
-                {
-                    "status": "escalated",
-                    "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏",
-                }
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "la IA no pudo resolverlo"),
             )
 
         # --- Gestión de la Respuesta ---

@@ -22,6 +22,12 @@ def _build_client(monkeypatch):
     monkeypatch.setattr(routes, "chat_api_token_matches_request", lambda: True)
     monkeypatch.setattr(routes, "_remote_es_grupo_web_pedido", lambda _jid: False)
     monkeypatch.setattr(routes, "cargar_modos_atencion", lambda: {"numeros_en_humano": []})
+    # `_pausar_por_bot` (anti-loop) llama a guardar_modos_atencion. Sin este
+    # mock la escritura caía sobre el app/data/modos_atencion.json REAL con el
+    # dict vacío del mock de arriba: correr la suite borraba los números en
+    # modo humano de producción (24 clientes el 2026-09-09) y el bot volvía a
+    # responderle a chats que un asesor tenía tomados.
+    monkeypatch.setattr(routes, "guardar_modos_atencion", lambda _data: None)
     monkeypatch.setattr(
         routes,
         "analizar_imagen_pago",

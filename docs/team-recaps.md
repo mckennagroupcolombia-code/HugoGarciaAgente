@@ -1,3 +1,19 @@
+### 2026-09-09 23:55 - Bot WhatsApp: eliminada la promesa vacía de escalación (Bloque A)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (calidad del bot de atención)
+- **Qué se implementó:**
+  - **Diagnóstico con datos, no impresiones:** 30 días de `wa_chats.db` (982 respuestas del bot, 214 chats) + 205 turnos del chat web. La frase `"déjame consultar esa información con mi equipo y le confirmo en un momento"` salió **45 veces a 34 clientes** y el **60% nunca recibió respuesta humana en 2h**. Es la misma promesa vacía que costó la confianza en jul-2026, y no venía del modelo: la devolvían dos interceptores de `app/routes.py`.
+  - **Interceptor 1** (`keywords_escalacion`): hacía *substring* de "asesor"/"descuento"/"garantía", así que mataba el turno del LLM en conversaciones normales. Reemplazado por `_PAT_PIDE_HUMANO` — intención explícita con límites de palabra, que excluye "asesoría/asesoramiento" (servicio que el bot sí atiende) frente a "asesor/asesora" (persona). Sobre el corpus real de 2.080 entradas: de 34 disparos a **20, todos peticiones genuinas**.
+  - **Interceptor 2:** si la respuesta del LLM contenía "no puedo"/"no tengo información"/"no estoy seguro", **descartaba la respuesta buena** y mandaba la promesa. Ahora avisa al grupo y deja pasar la negativa honesta y contextualizada.
+  - **Temas sensibles** (descuento, reclamo, garantía, devolución): `_PAT_TEMA_SENSIBLE` avisa al grupo **en paralelo** sin pisar al LLM.
+  - **Texto cumplible:** `_texto_escalacion_cliente()` dice el horario real de atención y ofrece seguir adelantando la cotización en el mismo turno. **Decisión: no se pausa el bot al escalar** (aunque existe `_pausar_por_bot` y el chat web sí pausa) — con 60% de escalaciones sin atender, silenciarlo dejaría al cliente sin nadie.
+  - **Red de seguridad:** `_normalizar_respuesta_cliente` filtra `_PAT_PROMESA_VACIA` venga de donde venga (interceptor legacy, prompt o alucinación).
+  - **Seam de enrutamiento:** nuevo `GRUPO_ESCALACION_CLIENTES_WA`. Por defecto sigue cayendo en Facturacion_Compras_SIIGO (2 personas), que **no** es el destino natural de una consulta comercial — pendiente que el equipo lo apunte al grupo de ventas.
+  - **Bug aparte, peligroso:** `tests/test_whatsapp_pago_y_media.py` mockeaba `cargar_modos_atencion` pero no `guardar_modos_atencion`, así que el anti-loop escribía el dict vacío del mock sobre el `app/data/modos_atencion.json` **real**: correr la suite borraba los 24 números en modo humano de producción y el bot volvía a responder chats que un asesor tenía tomados. Mockeado también el guardado.
+  - 4 tests de regresión que fijan el contrato de la frase prohibida. Suite: 77 passed en `test_smoke.py` + 34 en los de WhatsApp/chat web.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_smoke.py`, `tests/test_whatsapp_pago_y_media.py`, `docs/team-recaps.md`
+
+
 ### 2026-09-07 14:20 - Catálogo Alegra: precio MeLi por SKU
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva funcionalidad
