@@ -1260,20 +1260,32 @@ def listar_productos_combo_alegra() -> list:
     try:
         headers = _alegra_headers()
     except RuntimeError:
-        return []
+        # Sin credenciales no hay nada que pedir, pero si ya teníamos catálogo
+        # en memoria es mejor servirlo que dejar al bot sin productos.
+        return list(_combos_alegra_cache)
 
     out = []
     pagina = 0
+    hubo_error = False
     while True:
-        res = requests.get(
-            f"{_ALEGRA_BASE}/items",
-            headers=headers,
-            params={"type": "kit", "limit": 30, "start": pagina * 30},
-            timeout=20,
-        )
-        if res.status_code != 200:
+        try:
+            res = requests.get(
+                f"{_ALEGRA_BASE}/items",
+                headers=headers,
+                params={"type": "kit", "limit": 30, "start": pagina * 30},
+                timeout=20,
+            )
+        except requests.RequestException:
+            hubo_error = True
             break
-        resultados = res.json() or []
+        if res.status_code != 200:
+            hubo_error = True
+            break
+        try:
+            resultados = res.json() or []
+        except ValueError:
+            hubo_error = True
+            break
         if not resultados:
             break
         out.extend(
@@ -1283,6 +1295,18 @@ def listar_productos_combo_alegra() -> list:
         if len(resultados) < 30:
             break
         pagina += 1
+
+    # Caché stale antes que catálogo vacío. Esta red de seguridad existía en
+    # `listar_productos_combo_siigo` (jul-2026) y se perdió al migrar a Alegra
+    # el 2026-09-03: si la API fallaba justo al vencer el TTL, se cacheaba []
+    # con marca de tiempo fresca y durante los siguientes 5 minutos TODA
+    # consulta de producto respondía "no encontré ese producto" — con el
+    # catálogo intacto del otro lado. Es el mismo fallo que en julio hacía que
+    # la misma referencia se encontrara y 30 s después no.
+    if hubo_error and len(out) < len(_combos_alegra_cache):
+        # No se refresca el timestamp: así el próximo turno vuelve a intentarlo
+        # en vez de quedarse con el catálogo viejo durante todo el TTL.
+        return list(_combos_alegra_cache)
 
     _combos_alegra_cache = out
     _combos_alegra_cache_ts = _time.time()

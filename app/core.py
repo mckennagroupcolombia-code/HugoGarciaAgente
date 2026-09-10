@@ -1569,10 +1569,16 @@ def _nota_producto_alternativo_web(consulta: str, items: list[dict] | None = Non
             "BTMS-25 no aparece en catálogo web; manejamos *BTMS 50* "
             "(distinta concentración)."
         )
-    if "cosgard" in q:
-        return "COSGARD no aparece en catálogo web; puede confirmar con un asesor por WhatsApp."
-    if "ylang" in q:
-        return "Ylang Ylang no aparece en catálogo web en este momento."
+    # Aquí vivían dos reglas hardcodeadas por producto que el catálogo real
+    # desmiente o duplica:
+    #   - "Ylang Ylang no aparece en catálogo web": falso, existe
+    #     (ACEITE ESENCIAL YLANG YLANG 5 mL, C-ACEESEYLAYLA5mL, stock 18).
+    #   - "COSGARD no aparece en catálogo web; puede confirmar con un asesor":
+    #     cierto, pero esta nota se antepone a _respuesta_no_encontrado_catalogo_web,
+    #     que ya lo dice y ya ofrece el asesor — el cliente recibía el mismo
+    #     mensaje dos veces seguidas (visto en el chat web).
+    # La nota de BTMS-25 se conserva porque aporta información que el catálogo
+    # no puede dar solo: cuál es la referencia equivalente y en qué se diferencia.
     return ""
 
 
@@ -1785,6 +1791,50 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     return False
 
 
+@functools.lru_cache(maxsize=1)
+def _tokens_catalogo_web() -> frozenset:
+    """Palabras que nombran productos reales, tomadas del catálogo de la tienda.
+
+    Se usa para distinguir "500g" (elige presentación de lo ya ofrecido) de
+    "creatina monohidratada 1kg" (nombra un producto). Cacheado: el archivo se
+    regenera cada pocas horas y un fallo de lectura solo debe degradar a la
+    heurística anterior, nunca romper el turno.
+    """
+    ruta = os.path.join(
+        os.path.dirname(__file__), "..", "PAGINA_WEB", "site", "data", "cache.json"
+    )
+    tokens: set[str] = set()
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            data = json.load(f)
+        for seccion in data.get("sections", []):
+            for prod in seccion.get("products", []):
+                for palabra in re.findall(r"[a-záéíóúüñ]+", (prod.get("name") or "").lower()):
+                    # >=5 letras evita "de", "con", "kg", "mL" y adjetivos de
+                    # presentación que sí son selección ("grande", "mediana").
+                    if len(palabra) >= 5 and palabra not in _PALABRAS_PRESENTACION:
+                        tokens.add(palabra)
+    except Exception:
+        return frozenset()
+    return frozenset(tokens)
+
+
+_PALABRAS_PRESENTACION = frozenset(
+    {"grande", "mediana", "pequena", "pequeña", "litro", "litros", "kilo", "kilos",
+     "gramos", "mililitros", "libra", "libras", "copia"}
+)
+
+
+def _mensaje_nombra_producto_del_catalogo(low: str) -> bool:
+    """True si el mensaje contiene una palabra que nombra un producto real."""
+    catalogo = _tokens_catalogo_web()
+    if not catalogo:
+        return False
+    return any(
+        t in catalogo for t in re.findall(r"[a-záéíóúüñ]+", low) if len(t) >= 5
+    )
+
+
 def _es_seleccion_presentacion_web(texto: str) -> bool:
     """Cliente elige variante corta (ej. '250g', 'la grande') — no un producto nuevo."""
     low = (texto or "").strip().lower()
@@ -1833,6 +1883,14 @@ def _es_seleccion_presentacion_web(texto: str) -> bool:
         "en vez del",
     )
     if any(s in f" {low} " for s in producto_nuevo):
+        return False
+    # La lista de arriba es una allowlist escrita a mano: cualquier producto que
+    # no esté en ella (creatina, taurina, sucralosa, alulosa…) se clasificaba
+    # como "el cliente eligió una presentación", y el término de búsqueda se
+    # devolvía crudo con el producto del historial pegado delante. Caso real del
+    # 2026-09-09: "creatina monohidratada 1kg" nunca llegó a buscarse como
+    # producto. El catálogo real es la fuente de verdad, no la lista.
+    if _mensaje_nombra_producto_del_catalogo(low):
         return False
     if re.search(r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b", low):
         return True
@@ -2434,6 +2492,15 @@ def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) ->
             if cand == termino or len(resultados) >= 3:
                 break
     if not resultados:
+        # Ni combos SIIGO ni Sheets resolvieron: queda anotado para revisarlo.
+        # Sin esto, los huecos del catálogo solo se descubren leyendo chats
+        # (así se encontró el caso de la creatina el 2026-09-09).
+        try:
+            from app.services.catalogo_faltantes import registrar_sin_resultado
+
+            registrar_sin_resultado(termino, canal="whatsapp")
+        except Exception:
+            pass
         return None
     return "\n\n".join(resultados)
 
