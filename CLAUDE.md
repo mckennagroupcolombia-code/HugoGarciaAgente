@@ -619,6 +619,7 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
 | `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
+| `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
