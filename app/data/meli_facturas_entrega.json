@@ -15554,15 +15554,17 @@
     },
     "2000018230538604": {
       "shipping_id": "47908471865",
-      "estado": "facturada",
-      "actualizado_en": "2026-09-09T12:36:00",
+      "estado": "anulada",
+      "actualizado_en": "2026-09-09T17:09:37",
       "proveedor": "alegra",
       "pack_id": "2000014816067223",
       "siigo_invoice_id": "195",
       "siigo_invoice_number": "FE195",
       "siigo_invoice_status": "closed",
       "siigo_invoice_cufe": "c578c31b11cb3903ba1903485d0a42d41d0a270869f87a3af69225041f5f709a70cd48f803b1c78c9a4eaeb800807bdd",
-      "pdf_subido_meli": true
+      "pdf_subido_meli": true,
+      "nota_credito_numero": "NC97",
+      "nota_credito_motivo": "Duplicada: Siigo FV-2-71396 (Astroselling)"
     },
     "2000018340737796": {
       "estado": "facturada",
