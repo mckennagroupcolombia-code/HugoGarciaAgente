@@ -76,6 +76,7 @@ export const OPERATIVOS_SUBTABS = [
   { id: "rrhh", label: "Recursos humanos" },
   { id: "impuestos", label: "Pagos de impuestos" },
   { id: "servicios", label: "Servicios" },
+  { id: "mensajeria", label: "Mensajería" },
 ] as const;
 
 export type OperativosSubtabId = (typeof OPERATIVOS_SUBTABS)[number]["id"];
@@ -123,6 +124,7 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.operativos
       || p.impuestos
       || p.servicios
+      || p.mensajeria
       || p["libro-mayor"],
   );
 }
@@ -150,6 +152,7 @@ export function puedeVerModuloContabilidad(
     !esPanelContabilidad(seccion)
     && seccion !== "impuestos"
     && seccion !== "servicios"
+    && seccion !== "mensajeria"
     && !esModuloExternoConPermisoAqui
   ) {
     return null;
@@ -200,6 +203,12 @@ export function puedeVerModuloContabilidad(
   }
   if (seccion === "servicios") {
     return Boolean(p.servicios || p.operativos || p.rentabilidad);
+  }
+  if (seccion === "mensajeria") {
+    // Pagos a la transportadora: lo lleva despachos (pedidos/empaque) y lo
+    // aprueba administración — por eso hereda también de `pedidos`, no solo de
+    // los permisos contables.
+    return Boolean(p.mensajeria || p.servicios || p.operativos || p.pedidos);
   }
   if (seccion === "anulaciones") {
     // Mismo permiso que Libro Mayor, y a propósito: un expediente muestra el

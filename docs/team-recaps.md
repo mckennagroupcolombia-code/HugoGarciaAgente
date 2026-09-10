@@ -2161,3 +2161,26 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Ficha completa para agentes: `docs/agentic/modules/facturacion-meli-alegra.md` (+ `learned_context.md`, `INDEX.md`, `CLAUDE.md` Flujo G).
 - **Archivos Modificados:** `app/tools/meli_autofactura_entrega.py`, `app/services/alegra.py`, `app/services/facturacion_ventas_unificado.py`, `app/services/facturacion_ventas_cache.py` (nuevo), `app/services/contabilidad_checklist.py`, `app/sync.py`, `app/tools/revision_facturacion.py`, `app/routes.py`, `scripts/regularizar_packs_parciales.py` (nuevo), `scripts/emitir_notas_credito_cron.py`, `scripts/revision_facturacion_cron.py`, `desktop/src/components/VentasAstroKillerPanel.tsx`, `TicketsPanel.tsx`, `FacturacionPanel.tsx`, `ContabilidadInicioPanel.tsx`, `desktop/src/stores/app.ts`, `.env.example`, `CLAUDE.md`, `docs/agentic/{INDEX,learned_context}.md`, `docs/agentic/modules/facturacion-meli-alegra.md` (nuevo), `docs/facturacion/skus_siigo_sin_alegra.md` (nuevo), `docs/team-recaps.md`
   - **Cierre (17:20):** regularización completada — 39 packs (13 duplicados solo-NC, 25 consolidaciones, y FE195 anulada con NC97 tras eliminar una NC manual sin timbre). 40 NC y 29 FE timbradas hoy. Además: `obtener_facturas_hibridas` ahora toma Siigo hasta `FECHA_ULTIMA_FACTURA_SIIGO` (3-sep) — las 90 facturas de astroselling del 2–3 sep eran invisibles para el índice legado y el panel las mostraba "sin facturar". Índice reconstruido, histórico recalentado, ticket #1322 cerrado; a Jenniffer solo le quedan 4 "PAGO DIAN" de jun/jul.
+
+### 2026-09-10 18:45 - Pagos de mensajería en el panel (TKT-2026-1219, Jenniffer)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Módulo nuevo (Operativos → Mensajería)
+- **Qué se implementó:**
+  - El Excel "ENVIOS INTERRA" (día · cant. envíos · enlace de guías · valor · estado · fecha de pago) pasa al panel: `/app → Contabilidad → Operativos → Mensajería`. Un renglón por día, días sin despacho con valor 0 y su nota ("domingo", "no salen").
+  - **Importar del Excel:** se pegan las filas tal cual (tabuladores, `$ 50.700`, `19-ago`); lo que ya decía CANCELADO con fecha de pago se carga como lotes pagados del histórico, así no se pierde lo de agosto.
+  - **Lote de pago:** se marcan los días pendientes, se agrupan y se crea solo el ticket de aprobación (categoría logística, asignado a `MENSAJERIA_APROBADOR`, default `armando`) — el mismo trámite que se abría a mano. Al pagar se registra fecha, banco, referencia, monto y **comprobante adjunto**.
+  - **Contabilidad sin doble digitación:** el lote pagado entra a Ingresos/Egresos con fuente `mensajeria_pago` y de ahí al Libro Mayor por autopost (PUC 5135), conciliable contra el extracto como cualquier otro egreso.
+  - Permiso nuevo `mensajeria`, heredado de `servicios`, `operativos` o `pedidos` (Jenniffer ya lo ve con los permisos que tiene).
+- **Archivos Modificados:** `app/services/mensajeria_pagos.py` (nuevo), `app/routes.py`, `app/services/contabilidad_ledger.py`, `app/services/contabilidad_autopost.py`, `desktop/src/components/MensajeriaPanel.tsx` (nuevo), `OperativosPanel.tsx`, `IngresosEgresosPanel.tsx`, `Settings.tsx`, `TicketsPanel.tsx`, `desktop/src/lib/{contabilidadAccess.ts,panelInfo.ts}`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-10 19:30 - Guías de envío desde el panel (impresora térmica Vretti)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Módulo nuevo (Atención → Guías de envío)
+- **Qué se implementó:**
+  - El rótulo de envío que despachos llenaba en Excel/Word ahora se genera en el panel: se marcan los pedidos que salen (tienda web + despachos de WhatsApp, con dirección ya cargada) y se abre un PDF de **10x15 cm, una página por paquete**, listo para la Vretti (también 10x10 y 5x7,5).
+  - Diseño pensado para térmica: negro sobre blanco, destinatario en grande (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor declarado y **código de barras Code128** con la guía o la referencia. El bloque inferior está anclado para que un destinatario corto no deje hueco y un contenido largo no invada el pie.
+  - Pestañas **Envío suelto** (formulario en blanco) y **Remitente** (NIT/dirección/teléfono de McKenna, `app/data/remitente_envios.json` — hoy vacíos, hay que completarlos una vez).
+  - Cada rótulo queda registrado (`rotulos_envio` en despachos.db) con reimpresión desde el historial; `GET /api/guias/conteo` alimenta la sugerencia "N rótulos impresos ese día — usar" en la casilla *envíos* de Operativos → Mensajería.
+  - **MeLi no se incluye a propósito:** esas ventas van con la etiqueta de Mercado Libre (Colecta/Flex).
+  - Detalle de implementación: el `ImageReader` del isotipo se crea una vez por PDF; dentro del bucle, un lote de 20 rótulos pesaba ~16 MB.
+- **Archivos Modificados:** `app/tools/guias_envio.py` (nuevo), `app/routes.py`, `desktop/src/components/GuiasEnvioPanel.tsx` (nuevo), `MensajeriaPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `CLAUDE.md`, `docs/team-recaps.md`

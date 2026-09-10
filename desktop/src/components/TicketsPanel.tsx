@@ -6497,10 +6497,11 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
                     { id: "libro-mayor", label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos (permiso propio, no heredado)" },
                     { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
-                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios" },
+                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería" },
                     { id: "rrhh",          label: "RRHH · Compensaciones" },
                     { id: "impuestos",     label: "Pagos de impuestos" },
                     { id: "servicios",     label: "Servicios" },
+                    { id: "mensajeria",    label: "Pagos de mensajería / envíos" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;

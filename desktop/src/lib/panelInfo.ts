@@ -115,6 +115,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "atencion",
   },
+  "guias-envio": {
+    emoji: "🏷️",
+    label: "Guías de envío",
+    description:
+      "Rótulos de envío para la impresora térmica (Vretti, rollo 10x15 cm): se eligen los pedidos que salen hoy y se imprime una página por paquete, con destinatario, contenido y código de barras. Reemplaza el formato en Excel/Word.",
+    tips: [
+      "Marca los pedidos del día y dale «Imprimir rótulos»: se abre el PDF listo para la térmica.",
+      "Al imprimir deja la escala en «Tamaño real / 100 %», si no el rótulo sale corrido.",
+      "Para un envío que no viene de un pedido, usa la pestaña «Envío suelto».",
+      "Los datos de McKenna que salen abajo (NIT, dirección, teléfono) se llenan una vez en «Remitente».",
+    ],
+    tier: "core",
+    category: "atencion",
+  },
   empaque: {
     emoji: "📷",
     label: "Empaque",
@@ -371,9 +385,9 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   operativos: {
     emoji: "🛠️",
     label: "Operativos",
-    description: "Recursos humanos, pagos de impuestos y servicios públicos / recurrentes — operación administrativa del día a día.",
+    description: "Recursos humanos, pagos de impuestos, servicios públicos / recurrentes y pagos de mensajería — operación administrativa del día a día.",
     tips: [
-      "Dentro de Operativos elige la subpestaña: RR.HH., Impuestos o Servicios.",
+      "Dentro de Operativos elige la subpestaña: RR.HH., Impuestos, Servicios o Mensajería.",
       "Servicios usa los mismos contratos que en Rentabilidad.",
       "Impuestos es una bitácora interna de pagos (DIAN, ICA, etc.).",
     ],

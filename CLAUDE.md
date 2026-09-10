@@ -137,6 +137,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── meli.py                MeLi API: órdenes, stock, facturas, aprendizaje
 │   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
 │   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
+│   │   ├── mensajeria_pagos.py   Envíos diarios + lotes de pago a transportadoras (ex Excel «ENVIOS INTERRA»)
 │   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
 │   │
 │   ├── tools/
@@ -146,6 +147,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── backup_drive.py        Backup nocturno Drive/local + git push opcional + WA a GRUPO_ALERTAS_SISTEMAS_WA
 │   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
 │   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío / entregado)
+│   │   ├── guias_envio.py         Rótulos de envío en PDF (10x15 cm) para impresora térmica Vretti
 │   │   ├── notas_credito.py       Ticket "anular factura / nota crédito" en Centro de Mando (Web/MeLi)
 │   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
 │   │   └── sincronizar_facturas_de_compra_siigo.py  Facturas de compra desde Gmail
@@ -227,6 +229,7 @@ FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
 FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
 
 # Operaciones, observabilidad y cron
+MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
 GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
 AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
 AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
@@ -536,6 +539,64 @@ Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no ve
 es el puente. Ningún endpoint del módulo llama a un LLM (una extracción de catálogos con Claude sería
 un paso aparte, gateado por `llm_budget`).
 
+### K. Pagos de mensajería (ex Excel «ENVIOS INTERRA»)
+
+Origen: TKT-2026-1219 — despachos (Jenniffer) llevaba en un Excel aparte un renglón por día con
+la cantidad de envíos, el enlace a la factura de guías de Interrapidísimo y el valor, y pedía la
+aprobación del pago abriendo un ticket a mano. Ahora vive en el panel:
+
+```
+/app → Contabilidad → Operativos → Mensajería   (desktop/src/components/MensajeriaPanel.tsx)
+  ├─ Un renglón por día: fecha · cantidad de envíos · enlace de guías · valor · nota
+  │    (días sin despacho — "domingo", "no salen" — se registran con valor 0)
+  ├─ "Importar del Excel": pegar las filas tal cual; las que decían CANCELADO con su fecha de
+  │    pago se agrupan como lotes ya pagados y conservan el histórico
+  ├─ Seleccionar días pendientes → lote de pago + ticket de aprobación automático
+  │    (categoría logistica, asignado al usuario de `MENSAJERIA_APROBADOR`, default `armando`)
+  └─ Registrar pago: fecha, banco, referencia, monto y comprobante adjunto
+
+app/services/mensajeria_pagos.py   tablas `mensajeria_envios` / `mensajeria_lotes` en
+                                   contabilidad.db; comprobantes en comprobantes/mensajeria/
+contabilidad_ledger._egresos_mensajeria   lote pagado → fuente "mensajeria_pago" en
+                                   Ingresos/Egresos → autopost al Libro Mayor (PUC 5135)
+```
+
+Permiso: `mensajeria`, heredado también de `servicios`, `operativos` o `pedidos` — el registro lo
+lleva despachos y la aprobación administración (ver `desktop/src/lib/contabilidadAccess.ts`).
+
+### L. Guías (rótulos) de envío para impresora térmica
+
+Reemplaza el formato en Excel/Word que despachos llenaba a mano para pegar en la caja. La
+impresora es una **Vretti térmica, rollo de 10x15 cm** (también hay 10x10 y 5x7,5 en
+`guias_envio.TAMANOS`).
+
+```
+/app → Atención → Guías de envío   (desktop/src/components/GuiasEnvioPanel.tsx)
+  ├─ "Desde pedidos": pedidos de la tienda web (orders.db) y despachos de WhatsApp
+  │    (despachos.db) de los últimos 15 días, con dirección ya cargada → marcar → PDF
+  ├─ "Envío suelto": formulario en blanco para lo que no viene de un pedido
+  ├─ "Remitente": datos de McKenna que salen abajo (app/data/remitente_envios.json)
+  └─ Historial con reimpresión (tabla `rotulos_envio` en app/data/despachos.db)
+
+POST /api/guias/rotulos → registra los rótulos y devuelve la URL del PDF
+GET  /api/guias/rotulos.pdf?ids=1,2&tamano=10x15 → PDF, una página por paquete
+GET  /api/guias/conteo?fecha=YYYY-MM-DD → rótulos impresos ese día
+```
+
+El PDF lo arma ReportLab (`generar_pdf`): encabezado con isotipo, bloque grande de
+destinatario (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor y
+código de barras Code128 con la guía o la referencia del pedido. Todo en negro sobre blanco —
+la térmica es monocromo — y el `ImageReader` del logo se crea **una sola vez** por PDF (si se
+crea dentro del bucle, un lote de 20 rótulos pesa ~16 MB).
+
+**MeLi queda fuera a propósito:** esas ventas viajan con la etiqueta que genera Mercado Libre
+(Colecta/Flex); un rótulo propio no la reemplaza.
+
+**Enlace con Flujo K:** `GET /api/guias/conteo` alimenta la sugerencia "N rótulos impresos ese
+día — usar" de la casilla *envíos* en Operativos → Mensajería, para no contar paquetes a mano.
+
+Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::puedeVerPanel`).
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
 Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
@@ -620,6 +681,8 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
 | `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
+| `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
+| `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |

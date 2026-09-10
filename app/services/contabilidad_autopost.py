@@ -34,6 +34,7 @@ FUENTE_MAPEO: dict[str, str] = {
     "compra_exterior": "1436",
     "operativos_impuestos": "5195",
     "operativos_servicios": "5135",
+    "mensajeria_pago": "5135",
     "cuenta_cobro_correo": "5195",
 }
 # Fuentes con tratamiento especial (no es un simple par Bancos <-> cuenta única)

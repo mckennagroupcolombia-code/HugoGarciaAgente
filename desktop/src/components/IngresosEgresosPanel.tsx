@@ -162,6 +162,7 @@ const FUENTE_LABEL: Record<string, string> = {
   cuenta_cobro_correo: "Cuenta de cobro (correo)",
   operativos_impuestos: "Impuestos",
   operativos_servicios: "Servicios (operativos)",
+  mensajeria_pago: "Mensajería (envíos)",
   creditos_adquiridos: "Créditos adquiridos",
   // Asientos manuales del Libro Mayor propio (ver movimientos_manuales_como_libro)
   compra_socio_amazon: "Compra socio (Amazon)",
