@@ -40,6 +40,23 @@ export async function fetchEtiquetasStudio(): Promise<EtiquetaStudioPng[]> {
   return res.recursos ?? [];
 }
 
+/** Categoría de una etiqueta por su ruta: solo las que viven en una subcarpeta
+ *  `ETIQUETAS STUDIO/<Categoría>/…`, que son las generadas desde una plantilla.
+ *  Las 90 sueltas en la raíz son el catálogo viejo y devuelven null a propósito. */
+export function categoriaDeRutaEtiqueta(
+  nombre: string,
+  cats: { id: string; etiqueta: string }[],
+): string | null {
+  const partes = (nombre || "").replace(/\\/g, "/").split("/");
+  if (partes.length < 3) return null;
+  if (partes[0].trim().toUpperCase() !== CARPETA_ETIQUETAS_STUDIO) return null;
+  const carpeta = partes[1].trim().toLowerCase();
+  const cat = cats.find(
+    (c) => c.etiqueta.trim().toLowerCase() === carpeta || c.id === carpeta,
+  );
+  return cat?.id ?? null;
+}
+
 export function useEtiquetasStudio() {
   return useQuery({
     queryKey: QK_ETIQUETAS_STUDIO,

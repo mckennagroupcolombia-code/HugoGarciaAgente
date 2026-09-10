@@ -155,3 +155,18 @@ export function idCategoriaDesdeNombre(nombre: string): string {
   const base = normalizar(nombre).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return base || CATEGORIA_ETIQUETA_OTROS;
 }
+
+
+/** Nombre de una plantilla: nunca el de un producto.
+ *
+ *  Una plantilla se aplica a toda la familia, así que llamarla "CITRATO DE
+ *  MAGNESIO 500g" hacía pensar que era la etiqueta de ese producto. */
+export function nombrePlantillaCategoria(
+  cats: CategoriaEtiqueta[],
+  categoriaId: string,
+  tamano?: string | null,
+): string {
+  const cat = etiquetaCategoriaEn(cats, categoriaId) || "Sin categoría";
+  const t = (tamano || "").trim();
+  return t ? `Plantilla de ${cat} tamaño ${t}` : `Plantilla de ${cat}`;
+}

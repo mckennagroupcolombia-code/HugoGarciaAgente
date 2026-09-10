@@ -4,6 +4,7 @@ Generación de etiquetas McKenna Studio: PDF imprimible y persistencia.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -438,13 +439,49 @@ def _lookup_meta_png_index(rel: str, ruta_abs: Path, index: list[dict]) -> dict:
     return {}
 
 
+def _categoria_producto_png(rel_n: str, entry: dict[str, Any]) -> str:
+    """(1) corregida a mano en el índice → (2) subcarpeta ETIQUETAS STUDIO/<Categoría>
+    (donde el lote deja lo que genera) → (3) deducida del nombre del archivo."""
+    from app.tools.etiquetas_categorias import (
+        CATEGORIA_OTROS,
+        detectar_categoria,
+        listar_categorias,
+    )
+
+    guardada = (entry.get("categoria_producto") or "").strip()
+    if guardada:
+        return guardada
+
+    cats = listar_categorias()
+    partes = rel_n.split("/")
+    if len(partes) >= 3 and partes[0].strip().upper() == "ETIQUETAS STUDIO":
+        carpeta = partes[1].strip().lower()
+        for c in cats:
+            if c["etiqueta"].strip().lower() == carpeta or c["id"] == carpeta:
+                return c["id"]
+
+    nombre = partes[-1]
+    for suf in (".png", ".jpg", ".jpeg"):
+        if nombre.lower().endswith(suf):
+            nombre = nombre[: -len(suf)]
+            break
+    nombre = re.sub(r"_\d+(\.\d+)?x(_\d+)?$", "", nombre, flags=re.I).replace("_", " ")
+    return detectar_categoria(nombre, cats) or CATEGORIA_OTROS
+
+
 def enriquecer_recurso_png(
     rel: str,
     *,
     index: list[dict] | None = None,
     tipos: list[tuple[str, float, float]] | None = None,
 ) -> dict[str, Any]:
-    """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi} para un PNG relativo."""
+    """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi, categoria_producto}.
+
+    `categoria_producto` agrupa el catálogo de Imprimir por familia de producto y no
+    solo por tamaño: un mismo producto suele llevar varios tamaños de etiqueta. Se
+    resuelve en tres pasos, del más explícito al deducido — lo corregido a mano en el
+    índice manda sobre todo lo demás.
+    """
     base = _carpeta_recursos_png()
     rel_n = (rel or "").replace("\\", "/").lstrip("/")
     ruta = base / rel_n
@@ -473,6 +510,7 @@ def enriquecer_recurso_png(
             alto = alto or inferido.get("alto_mm")
 
     out: dict[str, Any] = {"nombre": rel_n}
+    out["categoria_producto"] = _categoria_producto_png(rel_n, entry)
     if tipo:
         out["tipo_etiqueta"] = tipo
     if ancho and alto:

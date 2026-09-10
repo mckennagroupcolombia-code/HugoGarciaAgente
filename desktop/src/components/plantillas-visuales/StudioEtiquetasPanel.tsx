@@ -17,15 +17,23 @@ import {
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { descargarBlob } from "../../lib/etiquetaAssets";
 import { useEtiquetasStudio, type EtiquetaStudioPng } from "./studioEtiquetasData";
+import { useFichasEtiquetaGuardadas } from "../../lib/etiquetasFichas";
+import { esIdPlantillaFicha } from "../../lib/categoriasEtiqueta";
 import { nombreVisibleEtiqueta } from "./StudioCategoriasPanel";
 
 interface Props {
   /** Categoría a la que se llegó desde una tarjeta; "" = todas. */
   categoriaFiltro?: string;
   onCategoriaFiltroChange?: (id: string) => void;
+  /** Abre una etiqueta guardada del formulario, por su id. */
+  onAbrirEtiquetaGuardada?: (fichaId: string) => void;
 }
 
-export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoriaFiltroChange }: Props) {
+export default function StudioEtiquetasPanel({
+  categoriaFiltro = "",
+  onCategoriaFiltroChange,
+  onAbrirEtiquetaGuardada,
+}: Props) {
   const { data: cats } = useCategoriasEtiqueta();
   const categorias = Array.isArray(cats) ? cats : CATEGORIAS_ETIQUETA;
   const { data: etiquetas, isLoading } = useEtiquetasStudio();
@@ -58,10 +66,37 @@ export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoria
       lista.push(e);
       porCategoria.set(cat, lista);
     }
-    return categorias
-      .map((c) => ({ categoria: c, items: porCategoria.get(c.id) ?? [] }))
-      .filter((g) => g.items.length > 0);
+    return categorias.map((c) => ({ categoria: c, items: porCategoria.get(c.id) ?? [] }));
   }, [etiquetas, categorias, buscar, categoriaFiltro]);
+
+  // Las etiquetas guardadas del formulario son etiquetas de un SKU igual que los
+  // PNG: se muestran aquí, agrupadas por la misma categoría, en vez de vivir solo
+  // dentro de su propia pantalla.
+  const { data: fichas } = useFichasEtiquetaGuardadas();
+  const guardadasPorCategoria = useMemo(() => {
+    const q = buscar.trim().toLowerCase();
+    const m = new Map<
+      string,
+      { id: string; nombre: string; formato: string; actualizado: string }[]
+    >();
+    for (const f of Array.isArray(fichas) ? fichas : []) {
+      if (esIdPlantillaFicha(f.id)) continue;
+      if (q && !f.nombre.toLowerCase().includes(q)) continue;
+      const cat = f.categoria || detectarCategoriaEn(categorias, f.nombre);
+      if (categoriaFiltro && cat !== categoriaFiltro) continue;
+      const lista = m.get(cat) ?? [];
+      lista.push({
+        id: f.id,
+        nombre: f.nombre,
+        formato: f.tipo_nombre || "",
+        actualizado: f.actualizado
+          ? new Date(f.actualizado).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })
+          : "",
+      });
+      m.set(cat, lista);
+    }
+    return m;
+  }, [fichas, categorias, buscar, categoriaFiltro]);
 
   const total = grupos.reduce((n, g) => n + g.items.length, 0);
 
@@ -98,7 +133,10 @@ export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoria
       )}
 
       <div className="space-y-6">
-        {grupos.map(({ categoria, items }) => (
+        {grupos.map(({ categoria, items }) => {
+          const guardadas = guardadasPorCategoria.get(categoria.id) ?? [];
+          if (items.length === 0 && guardadas.length === 0) return null;
+          return (
           <section key={categoria.id}>
             <h3 className="mb-2 flex items-baseline gap-2 text-sm font-bold text-ink">
               {categoria.etiqueta}
@@ -127,8 +165,34 @@ export default function StudioEtiquetasPanel({ categoriaFiltro = "", onCategoria
                 </button>
               ))}
             </div>
+
+            {guardadas.length > 0 && (
+              <div className="mt-2 rounded-lg border border-accent/30 bg-accent/5 p-2">
+                <p className="mb-1.5 text-[10px] font-semibold text-accent">
+                  Editables en el formulario ({guardadas.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {guardadas.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => onAbrirEtiquetaGuardada?.(g.id)}
+                      title="Abrir esta etiqueta en el formulario"
+                      className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-left text-[11px] text-ink hover:border-accent hover:text-accent"
+                    >
+                      <span className="block max-w-[16rem] truncate font-medium">{g.nombre}</span>
+                      <span className="block text-[10px] text-muted">
+                        {g.formato || "Sin tamaño"}
+                        {g.actualizado ? ` · ${g.actualizado}` : ""}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
-        ))}
+          );
+        })}
       </div>
 
       {vistaPrevia && (

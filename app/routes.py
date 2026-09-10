@@ -20902,19 +20902,42 @@ REGLAS:
             except OSError:
                 entradas = []
             carpetas = sorted((e.name for e in entradas if e.is_dir()), key=str.lower)
+            # ?recursivo=1 incluye las subcarpetas. Studio agrupa las etiquetas por
+            # categoría usando la subcarpeta ETIQUETAS STUDIO/<Categoría>/, y sin
+            # esto las que están dentro no se veían por ningún lado.
+            recursivo = (request.args.get("recursivo") or "").strip() == "1"
+            base_png = os.path.realpath(_carpeta_png_recursos_etiquetas())
+            if recursivo:
+                candidatos = []
+                for dirpath, _dirs, files in os.walk(destino):
+                    for nombre_f in files:
+                        if _extension_imagen_recurso_ok(nombre_f):
+                            candidatos.append((os.path.realpath(os.path.join(dirpath, nombre_f)), nombre_f))
+            else:
+                candidatos = [
+                    (os.path.realpath(e.path), e.name)
+                    for e in entradas
+                    if e.is_file() and _extension_imagen_recurso_ok(e.name)
+                ]
             archivos = []
-            for e in entradas:
-                if not e.is_file() or not _extension_imagen_recurso_ok(e.name):
-                    continue
-                ruta_abs = os.path.realpath(e.path)
+            for ruta_abs, nombre_base in candidatos:
                 registrado = indice.get(ruta_abs)
                 if registrado:
                     item = dict(registrado)
                 else:
-                    st = e.stat()
+                    try:
+                        st = os.stat(ruta_abs)
+                    except OSError:
+                        continue
+                    # Nombre relativo a la raíz de Recursos PNG: es la clave con la
+                    # que el resto del panel identifica cada imagen.
+                    try:
+                        nombre_rel = os.path.relpath(ruta_abs, base_png).replace("\\", "/")
+                    except ValueError:
+                        nombre_rel = nombre_base
                     item = {
                         "id": None,
-                        "nombre": e.name,
+                        "nombre": nombre_rel,
                         "ruta_completa": ruta_abs,
                         "bytes": st.st_size,
                         "subido_at": _dt.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
@@ -20923,7 +20946,7 @@ REGLAS:
                     }
                 # Completa formato (mm) si falta en el índice.
                 if not (item.get("ancho_mm") and item.get("alto_mm")):
-                    meta_inf = _meta_formato_png_de_indice(ruta_abs, e.name)
+                    meta_inf = _meta_formato_png_de_indice(ruta_abs, nombre_base)
                     for k, v in meta_inf.items():
                         item.setdefault(k, v)
                 archivos.append(item)

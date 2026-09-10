@@ -52,6 +52,8 @@ import {
 import {
   CATEGORIAS_ETIQUETA,
   CATEGORIA_ETIQUETA_OTROS,
+  nombrePlantillaCategoria,
+  useCategoriasEtiqueta,
   categoriaDeIdPlantilla,
   detectarCategoriaEtiqueta,
   esIdPlantillaFicha,
@@ -94,15 +96,36 @@ const ANCHO_DISENO = 960;
 /** Ancho máximo del marco de formato en pantalla. */
 const MARCO_MAX_ANCHO = 640;
 
-export default function ProductLabelForm({ onVolver }: { onVolver: () => void }) {
+export interface EntradaFormularioEtiqueta {
+  /** Abrir una plantilla o etiqueta guardada por su id. */
+  fichaId?: string | null;
+  /** Nueva etiqueta de producto a partir de esta plantilla (pide el SKU). */
+  nuevaEtiquetaDePlantilla?: string | null;
+  /** Nueva plantilla para esta categoría (pide el tamaño). */
+  nuevaPlantillaCategoria?: string | null;
+}
+
+export default function ProductLabelForm({
+  onVolver,
+  entrada,
+}: {
+  onVolver: () => void;
+  entrada?: EntradaFormularioEtiqueta | null;
+}) {
   return (
     <TextStyleProvider>
-      <ProductLabelFormInner onVolver={onVolver} />
+      <ProductLabelFormInner onVolver={onVolver} entrada={entrada} />
     </TextStyleProvider>
   );
 }
 
-function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
+function ProductLabelFormInner({
+  onVolver,
+  entrada,
+}: {
+  onVolver: () => void;
+  entrada?: EntradaFormularioEtiqueta | null;
+}) {
   const { data: tiposData, isLoading: tiposLoading } = useTiposEtiqueta();
   const tipos = tiposData?.tipos ?? [];
 
@@ -146,18 +169,22 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
   const { estilos, reemplazarEstilos } = useTextStyleCtx();
   const { data: fichasTodas } = useFichasEtiquetaGuardadas();
   const plantillaBase = fichasTodas?.find((f) => f.id === PLANTILLA_ID);
-  // Plantillas por categoría de producto (aceites, frutos secos, conservantes…).
-  // Una ficha nueva parte de la de su categoría; si esa categoría todavía no
-  // tiene plantilla propia, cae a la base, que es como funcionaba antes.
+  // Plantillas por categoría: las etiquetas marcadas con `es_plantilla_categoria`.
+  // (El criterio viejo era el id `__plantilla__:<cat>`, que solo guardaba campos
+  // fijos de marca y no servía como formato de la familia.)
   const plantillasPorCategoria = useMemo(() => {
     const m = new Map<string, FichaEtiquetaGuardada>();
     for (const f of fichasTodas ?? []) {
-      const cat = categoriaDeIdPlantilla(f.id);
-      if (cat) m.set(cat, f);
+      if (!f.es_plantilla_categoria || !f.categoria) continue;
+      if (!m.has(f.categoria)) m.set(f.categoria, f);
     }
     return m;
   }, [fichasTodas]);
-  const fichasGuardadas = fichasTodas?.filter((f) => !esIdPlantillaFicha(f.id));
+  /** Todo lo guardado que no sea plantilla ni resto del mecanismo viejo. */
+  const fichasGuardadas = fichasTodas?.filter(
+    (f) => !esIdPlantillaFicha(f.id) && !f.es_plantilla_categoria,
+  );
+  const plantillasGuardadas = fichasTodas?.filter((f) => f.es_plantilla_categoria) ?? [];
   const [categoria, setCategoria] = useState<string>(CATEGORIA_ETIQUETA_OTROS);
   const plantilla = plantillasPorCategoria.get(categoria) ?? plantillaBase;
   const guardarFichaMutation = useGuardarFichaEtiqueta();
@@ -165,6 +192,12 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
   const [plantillaMsg, setPlantillaMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
   const [nombreFicha, setNombreFicha] = useState("");
+  /** La ficha en edición se guardará como plantilla de su categoría. */
+  const [esPlantillaNueva, setEsPlantillaNueva] = useState(false);
+  /** Plantilla de la que salió la etiqueta en edición. */
+  const [plantillaOrigenId, setPlantillaOrigenId] = useState<string | null>(null);
+  const { data: catsData } = useCategoriasEtiqueta();
+  const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [autoguardado, setAutoguardado] = useState<
     { estado: "idle" | "pendiente" | "guardando" | "ok" | "error"; texto?: string }
@@ -186,6 +219,8 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
           data,
           tipo_nombre: tipoNombre || undefined,
           categoria: categoria || undefined,
+          es_plantilla_categoria: esPlantillaNueva || undefined,
+          plantilla_id: plantillaOrigenId || undefined,
           attribute_icons: attributeIcons,
           text_styles: estilos,
         },
@@ -205,43 +240,13 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     }, AUTOGUARDADO_DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nombreFicha, data, tipoNombre, categoria, attributeIcons, estilos, etapa]);
+  }, [nombreFicha, data, tipoNombre, categoria, esPlantillaNueva, plantillaOrigenId, attributeIcons, estilos, etapa]);
 
-  /** Guarda las partes fijas actuales (logo, acento, contacto, textos
-   *  fijos, íconos de atributo y tipografías) como plantilla.
-   *
-   *  `destino` decide el alcance: una categoría concreta (lo normal) o la
-   *  plantilla base, que solo se usa para las categorías que aún no tienen
-   *  la suya. */
-  const guardarPlantilla = (destino: "categoria" | "base") => {
-    const fijos: Partial<ProductLabelData> = {};
-    const origen = data as unknown as Record<string, unknown>;
-    const destinoObj = fijos as unknown as Record<string, unknown>;
-    for (const k of CAMPOS_PLANTILLA) destinoObj[k] = origen[k];
-    setPlantillaMsg(null);
-    const porCategoria = destino === "categoria" && Boolean(categoria);
-    guardarFichaMutation.mutate(
-      {
-        id: porCategoria ? idPlantillaCategoria(categoria) : PLANTILLA_ID,
-        nombre: porCategoria ? `Plantilla · ${etiquetaCategoria(categoria)}` : PLANTILLA_NOMBRE,
-        data: { ...PRODUCTO_VACIO, ...fijos },
-        categoria: porCategoria ? categoria : undefined,
-        attribute_icons: attributeIcons,
-        text_styles: estilos,
-      },
-      {
-        onSuccess: () =>
-          setPlantillaMsg({
-            ok: true,
-            texto: porCategoria
-              ? `Plantilla de «${etiquetaCategoria(categoria)}» guardada: las fichas nuevas de esa categoría partirán de ella.`
-              : "Plantilla base guardada: la usarán las categorías que no tengan plantilla propia.",
-          }),
-        onError: (err) =>
-          setPlantillaMsg({ ok: false, texto: err instanceof Error ? err.message : "No se pudo guardar la plantilla" }),
-      },
-    );
-  };
+  // Crear plantillas dejó de vivir aquí: la plantilla de una categoría es de
+  // lienzo (única que genera etiquetas de muchos SKU de golpe y con ajuste caja
+  // por caja). Esta pantalla hace UNA etiqueta suelta. Las plantillas que se
+  // crearon antes por aquí (`__plantilla__:<categoría>`) siguen visibles en la
+  // portada de Studio y se abren desde ahí.
 
   const abrirFichaGuardada = (f: FichaEtiquetaGuardada) => {
     setData(f.data);
@@ -249,6 +254,8 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     setAttributeIcons(f.attribute_icons || {});
     reemplazarEstilos(f.text_styles || {});
     setNombreFicha(f.nombre);
+    setEsPlantillaNueva(Boolean(f.es_plantilla_categoria));
+    setPlantillaOrigenId(f.plantilla_id ?? null);
     setCategoria(f.categoria || detectarCategoriaEtiqueta(f.data?.productName || f.nombre));
     setFichaId(f.id);
     setAutoguardado({ estado: "idle" });
@@ -289,6 +296,78 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     setEtapa("formulario");
     onChange({ barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13) });
     await onElegirCodigo(codigo);
+  };
+
+  // Abrir directo lo que se pidió desde Studio, sin pasar por pantallas
+  // intermedias: llegar a una etiqueta concreta eran tres saltos.
+  const abiertaRef = useRef(false);
+  useEffect(() => {
+    const id = entrada?.fichaId;
+    if (abiertaRef.current || !id) return;
+    const f = fichasTodas?.find((x) => x.id === id);
+    if (!f) return;
+    abiertaRef.current = true;
+    abrirFichaGuardada(f);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entrada?.fichaId, fichasTodas]);
+
+  const plantillaDeEntrada = entrada?.nuevaEtiquetaDePlantilla
+    ? fichasTodas?.find((f) => f.id === entrada.nuevaEtiquetaDePlantilla)
+    : undefined;
+
+  /** Nueva plantilla de una categoría: parte de la plantilla que ya exista en esa
+   *  familia (para no rehacer el ajuste) y solo cambia el tamaño. */
+  const crearPlantillaDeCategoria = (categoriaId: string, tamano: string) => {
+    const previa = plantillasPorCategoria.get(categoriaId);
+    const nombre = nombrePlantillaCategoria(categorias, categoriaId, tamano);
+    setCategoria(categoriaId);
+    setTipoNombre(tamano);
+    setData(previa?.data ? { ...previa.data } : fichaDesdePlantilla(plantillaBase));
+    setAttributeIcons(previa?.attribute_icons ?? plantillaBase?.attribute_icons ?? {});
+    reemplazarEstilos(previa?.text_styles ?? plantillaBase?.text_styles ?? {});
+    setNombreFicha(nombre);
+    setFichaId(null);
+    setEsPlantillaNueva(true);
+    setPlantillaOrigenId(null);
+    setEditMode(true);
+    setEnlace(null);
+    setEtapa("formulario");
+  };
+
+  /** Nueva etiqueta de un producto: parte de la plantilla de la categoría y solo
+   *  cambia la información del SKU elegido. */
+  const crearEtiquetaDesdePlantilla = async (
+    plantilla: FichaEtiquetaGuardada,
+    codigo: CodigoEan,
+  ) => {
+    setCategoria(plantilla.categoria || CATEGORIA_ETIQUETA_OTROS);
+    setTipoNombre(plantilla.tipo_nombre || "");
+    setData({ ...plantilla.data });
+    setAttributeIcons(plantilla.attribute_icons ?? {});
+    reemplazarEstilos(plantilla.text_styles ?? {});
+    setFichaId(null);
+    setEsPlantillaNueva(false);
+    setPlantillaOrigenId(plantilla.id);
+    setEditMode(true);
+    setEtapa("formulario");
+    onChange({ barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13) });
+    await onElegirCodigo(codigo);
+  };
+
+  /** Copia una etiqueta guardada conservando su formato ya ajustado: es la forma
+   *  de reusar una etiqueta bien terminada para otro producto. */
+  const duplicarFichaGuardada = (f: FichaEtiquetaGuardada) => {
+    guardarFichaMutation.mutate(
+      {
+        nombre: `${f.nombre} (copia)`,
+        data: f.data,
+        tipo_nombre: f.tipo_nombre,
+        categoria: f.categoria,
+        attribute_icons: f.attribute_icons,
+        text_styles: f.text_styles,
+      },
+      { onSuccess: (res) => abrirFichaGuardada(res.ficha) },
+    );
   };
 
   const eliminarFichaGuardada = (f: FichaEtiquetaGuardada) => {
@@ -426,6 +505,138 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     }
   };
 
+  // ── Plantilla de categoría y generación en lote ───────────────────────────
+  //
+  // Este formato es "un formato unificado", no la etiqueta de un producto: se
+  // marca como plantilla de su categoría y se despliega sobre varios SKU. El
+  // render es del navegador (html-to-image), así que el lote se hace aquí,
+  // secuencialmente: por cada SKU se aplican sus datos, se espera al repintado,
+  // se rasteriza y se sube. No hay motor de servidor para esta ficha.
+
+  const esPlantillaDeCategoria = Boolean(
+    fichaId && fichasTodas?.find((f) => f.id === fichaId)?.es_plantilla_categoria,
+  );
+
+  const marcarComoPlantilla = () => {
+    if (!fichaId || !nombreFicha.trim()) return;
+    setPlantillaMsg(null);
+    guardarFichaMutation.mutate(
+      {
+        id: fichaId,
+        nombre: nombreFicha.trim(),
+        data,
+        tipo_nombre: tipoNombre || undefined,
+        categoria: categoria || undefined,
+        es_plantilla_categoria: true,
+        attribute_icons: attributeIcons,
+        text_styles: estilos,
+      },
+      {
+        onSuccess: () =>
+          setPlantillaMsg({
+            ok: true,
+            texto: `Ya es la plantilla de «${etiquetaCategoria(categoria)}»: desde Studio → Categorías puedes generar con ella las etiquetas de la familia.`,
+          }),
+        onError: (err) =>
+          setPlantillaMsg({
+            ok: false,
+            texto: err instanceof Error ? err.message : "No se pudo marcar como plantilla",
+          }),
+      },
+    );
+  };
+
+  const [loteAbierto, setLoteAbierto] = useState(false);
+  const [loteSeleccion, setLoteSeleccion] = useState<CodigoEan[]>([]);
+  const [loteProgreso, setLoteProgreso] = useState<{ hechos: number; total: number } | null>(null);
+  const [loteResultado, setLoteResultado] = useState<string[]>([]);
+
+  const esperarRepintado = () =>
+    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  /** Rasteriza la ficha tal como está ahora mismo en pantalla. */
+  const rasterizarFichaActual = async (): Promise<{ blob: Blob; anchoMm?: number; altoMm?: number; ratio: number }> => {
+    const el = fichaRef.current;
+    if (!el) throw new Error("La ficha no está montada");
+    if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
+    const DPI_IMPRESION = 300;
+    const anchoMm = tipo?.ancho_mm;
+    const altoMm = tipo?.alto_mm;
+    const ratio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / ANCHO_DISENO : 3;
+    const { toBlob } = await import("html-to-image");
+    const blob = await toBlob(el, { pixelRatio: ratio, backgroundColor: "#ffffff", cacheBust: true });
+    if (!blob) throw new Error("No se pudo rasterizar la ficha");
+    return { blob, anchoMm, altoMm, ratio };
+  };
+
+  const generarLoteCategoria = async () => {
+    if (loteSeleccion.length === 0 || guardando) return;
+    setGuardando(true);
+    setLoteResultado([]);
+    setLoteProgreso({ hechos: 0, total: loteSeleccion.length });
+    const datosBase = data;
+    const nombreBase = nombreFicha;
+    const estabaEditando = editMode;
+    const hechos: string[] = [];
+    try {
+      if (estabaEditando) {
+        setEditMode(false);
+        await esperarRepintado();
+      }
+      const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
+      const fichasTecnicas = await listarFichasTecnicas().catch(() => []);
+      for (const [i, codigo] of loteSeleccion.entries()) {
+        const titulo = (codigo.nombre_producto || codigo.sku || "").trim();
+        const neto = contenidoNetoDesdeCodigo(codigo);
+        let patch: Partial<ProductLabelData> = {};
+        const mejor = mejorFichaParaTitulo(fichasTecnicas, titulo);
+        if (mejor && mejor.puntaje >= UMBRAL_ENLACE_AUTOMATICO) {
+          patch = await cargarPatchDesdeFichaTecnica(mejor.ficha.id).catch(() => ({}));
+        }
+        // El formato (logo, acento, contacto, tipografías) es el de la plantilla:
+        // solo cambian los datos del producto.
+        setData({
+          ...datosBase,
+          ...patch,
+          barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13),
+          barcodeTitle: titulo,
+          ...(neto ? { netContent: neto } : {}),
+        });
+        await esperarRepintado();
+        await esperarRepintado();
+        const { blob, anchoMm, altoMm, ratio } = await rasterizarFichaActual();
+        const nombreArchivo = `${nombreArchivoDesdeTitulo(titulo) || codigo.sku || "etiqueta"}.png`;
+        await subirImagenBlobAEtiquetas(blob, nombreArchivo, {
+          carpeta: `ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}`,
+          tipo_etiqueta: tipo?.nombre,
+          ancho_mm: anchoMm,
+          alto_mm: altoMm,
+          dpi: anchoMm ? 300 : undefined,
+          escala: ratio,
+        });
+        hechos.push(nombreArchivo);
+        setLoteProgreso({ hechos: i + 1, total: loteSeleccion.length });
+      }
+      setLoteResultado(hechos);
+      setGuardarMsg({
+        ok: true,
+        texto: `${hechos.length} etiqueta(s) generadas en ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}.`,
+      });
+    } catch (e) {
+      setGuardarMsg({
+        ok: false,
+        texto: `${hechos.length} de ${loteSeleccion.length} generadas. ${e instanceof Error ? e.message : "Error en el lote"}`,
+      });
+    } finally {
+      // Se restaura la plantilla tal como estaba: el lote no la modifica.
+      setData(datosBase);
+      setNombreFicha(nombreBase);
+      if (estabaEditando) setEditMode(true);
+      setLoteProgreso(null);
+      setGuardando(false);
+    }
+  };
+
   /** Nombre del archivo: título del código de barras elegido (catálogo
    *  EAN); sin código, nombre de la ficha guardada o del producto. */
   const nombreArchivoPng = () =>
@@ -438,7 +649,9 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     try {
       const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
       const res = await subirImagenBlobAEtiquetas(previa.blob, nombreArchivoPng(), {
-        carpeta: "ETIQUETAS STUDIO",
+        // Subcarpeta por categoría: así la etiqueta aparece dentro de su
+        // categoría en Studio y no se mezcla con el catálogo viejo de la raíz.
+        carpeta: `ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}`,
         tipo_etiqueta: tipo?.nombre,
         ancho_mm: previa.anchoMm,
         alto_mm: previa.altoMm,
@@ -554,6 +767,35 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
     </div>
   );
 
+  // Nueva plantilla de una categoría: solo falta el tamaño.
+  if (etapa === "inicio" && entrada?.nuevaPlantillaCategoria) {
+    return (
+      <ElegirTamanoPlantilla
+        categoriaId={entrada.nuevaPlantillaCategoria}
+        categoriaLabel={etiquetaCategoria(entrada.nuevaPlantillaCategoria)}
+        tipos={tipos}
+        tiposLoading={tiposLoading}
+        yaUsados={[...plantillasPorCategoria.values()]
+          .filter((f) => f.categoria === entrada.nuevaPlantillaCategoria)
+          .map((f) => f.tipo_nombre || "")}
+        onVolver={onVolver}
+        onElegir={(tamano) => crearPlantillaDeCategoria(entrada.nuevaPlantillaCategoria!, tamano)}
+      />
+    );
+  }
+
+  // Nueva etiqueta de producto: la plantilla ya está elegida, falta el SKU.
+  if (etapa === "inicio" && plantillaDeEntrada) {
+    return (
+      <ElegirProductoParaEtiqueta
+        plantilla={plantillaDeEntrada}
+        categoriaLabel={etiquetaCategoria(plantillaDeEntrada.categoria || "")}
+        onVolver={onVolver}
+        onElegir={(codigo) => void crearEtiquetaDesdePlantilla(plantillaDeEntrada, codigo)}
+      />
+    );
+  }
+
   if (etapa === "inicio") {
     return (
       <PantallaInicio
@@ -561,10 +803,12 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
         tipos={tipos}
         tiposLoading={tiposLoading}
         fichasGuardadas={fichasGuardadas ?? []}
+        plantillasGuardadas={plantillasGuardadas}
         tienePlantillaBase={Boolean(plantillaBase)}
         categoriasConPlantilla={plantillasPorCategoria}
         onCrear={(tipoNom, codigo, cat) => void crearFichaDesdeSku(tipoNom, codigo, cat)}
         onAbrir={abrirFichaGuardada}
+        onDuplicar={duplicarFichaGuardada}
         onEliminar={eliminarFichaGuardada}
       />
     );
@@ -583,7 +827,7 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
         >
           ← Volver
         </button>
-        <h2 className="text-base font-bold text-ink">Ficha de etiqueta</h2>
+        <h2 className="text-base font-bold text-ink">Etiqueta suelta</h2>
 
         <input
           type="text"
@@ -604,11 +848,33 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
         <button
           type="button"
           onClick={nuevaFicha}
-          title="Volver al inicio para elegir otro Formato y SKU, o abrir una ficha guardada"
+          title="Volver a la lista de etiquetas guardadas"
           className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover"
         >
-          + Nueva ficha
+          ← Etiquetas
         </button>
+
+        {esPlantillaDeCategoria ? (
+          <button
+            type="button"
+            onClick={() => setLoteAbierto(true)}
+            disabled={guardando}
+            title="Aplicar este formato a varios productos de la categoría"
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            Generar etiquetas de la categoría
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={marcarComoPlantilla}
+            disabled={!fichaId || guardarFichaMutation.isPending}
+            title="Este formato pasa a ser la plantilla de su categoría"
+            className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
+          >
+            Usar como plantilla de «{etiquetaCategoria(categoria)}»
+          </button>
+        )}
 
         <label className="flex items-center gap-1.5 text-xs text-muted">
           Categoría:
@@ -626,26 +892,6 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
             ))}
           </select>
         </label>
-
-        <button
-          type="button"
-          onClick={() => guardarPlantilla("categoria")}
-          disabled={!editMode || guardarFichaMutation.isPending}
-          title="Guarda logo, acento, contacto, textos fijos, íconos y tipografías actuales como plantilla de esta categoría: toda ficha nueva de la categoría partirá de ellos"
-          className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
-        >
-          Guardar plantilla de «{etiquetaCategoria(categoria)}»
-        </button>
-
-        <button
-          type="button"
-          onClick={() => guardarPlantilla("base")}
-          disabled={!editMode || guardarFichaMutation.isPending}
-          title="Guarda estos mismos datos como plantilla base: la usan las categorías que todavía no tienen plantilla propia"
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-muted hover:bg-surface-hover disabled:opacity-50"
-        >
-          …o como plantilla base
-        </button>
 
         <label className="flex items-center gap-1.5 text-xs text-muted">
           Formato:
@@ -819,7 +1065,147 @@ function ProductLabelFormInner({ onVolver }: { onVolver: () => void }) {
           </div>,
           document.body,
         )}
+
+      {loteAbierto && (
+        <LotePorCategoria
+          categoriaLabel={etiquetaCategoria(categoria)}
+          seleccion={loteSeleccion}
+          onSeleccionChange={setLoteSeleccion}
+          progreso={loteProgreso}
+          resultado={loteResultado}
+          generando={guardando}
+          onGenerar={() => void generarLoteCategoria()}
+          onCerrar={() => {
+            if (guardando) return;
+            setLoteAbierto(false);
+            setLoteResultado([]);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/** Selector de SKU para desplegar la plantilla sobre toda una categoría.
+ *  El render corre en el navegador, uno por uno: el progreso se muestra porque
+ *  con 20-40 productos la espera se nota. */
+function LotePorCategoria({
+  categoriaLabel,
+  seleccion,
+  onSeleccionChange,
+  progreso,
+  resultado,
+  generando,
+  onGenerar,
+  onCerrar,
+}: {
+  categoriaLabel: string;
+  seleccion: CodigoEan[];
+  onSeleccionChange: (v: CodigoEan[]) => void;
+  progreso: { hechos: number; total: number } | null;
+  resultado: string[];
+  generando: boolean;
+  onGenerar: () => void;
+  onCerrar: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const { data: codigos, isLoading } = useCodigosEan();
+  const sugeridos = useMemo(
+    () => filtrarCodigosEanPorTexto(codigos ?? [], q, 40),
+    [codigos, q],
+  );
+  const marcados = new Set(seleccion.map((c) => c.id));
+
+  return createPortal(
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-sm font-bold text-ink">Generar etiquetas de «{categoriaLabel}»</p>
+          <p className="text-[11px] text-muted">
+            Se aplica este mismo formato a cada producto que elijas: cambian los datos, no el
+            diseño. Las etiquetas quedan en ETIQUETAS STUDIO/{categoriaLabel}.
+          </p>
+        </div>
+
+        <div className="border-b border-border px-4 py-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar producto, SKU o código…"
+            className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs"
+          />
+        </div>
+
+        <ul className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
+          {isLoading && <li className="px-2 py-1 text-xs text-muted">Cargando catálogo…</li>}
+          {!isLoading && sugeridos.length === 0 && (
+            <li className="px-2 py-1 text-xs text-muted">Sin resultados.</li>
+          )}
+          {sugeridos.map((c) => (
+            <li key={c.id}>
+              <label className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-surface-hover">
+                <input
+                  type="checkbox"
+                  checked={marcados.has(c.id)}
+                  disabled={generando}
+                  onChange={() =>
+                    onSeleccionChange(
+                      marcados.has(c.id)
+                        ? seleccion.filter((x) => x.id !== c.id)
+                        : [...seleccion, c],
+                    )
+                  }
+                />
+                <span className="font-mono text-[10px] text-muted">{c.codigo}</span>
+                <span className="min-w-0 flex-1 truncate text-ink">
+                  {c.nombre_producto || c.sku}
+                </span>
+                {c.presentacion && (
+                  <span className="shrink-0 text-[10px] text-muted">{c.presentacion}</span>
+                )}
+              </label>
+            </li>
+          ))}
+        </ul>
+
+        {resultado.length > 0 && (
+          <p className="border-t border-border px-4 py-2 text-[11px] text-accent">
+            ✓ {resultado.length} etiqueta(s): {resultado.slice(0, 4).join(", ")}
+            {resultado.length > 4 ? "…" : ""}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
+          <span className="text-[11px] text-muted">
+            {progreso
+              ? `Generando ${progreso.hechos} de ${progreso.total}…`
+              : `${seleccion.length} producto(s) seleccionados`}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onCerrar}
+              disabled={generando}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              onClick={onGenerar}
+              disabled={generando || seleccion.length === 0}
+              className="rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+            >
+              {generando ? "Generando…" : `Generar ${seleccion.length || ""}`}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -831,20 +1217,24 @@ function PantallaInicio({
   tipos,
   tiposLoading,
   fichasGuardadas,
+  plantillasGuardadas,
   tienePlantillaBase,
   categoriasConPlantilla,
   onCrear,
   onAbrir,
+  onDuplicar,
   onEliminar,
 }: {
   onVolver: () => void;
   tipos: TipoEtiqueta[];
   tiposLoading: boolean;
   fichasGuardadas: FichaEtiquetaGuardada[];
+  plantillasGuardadas: FichaEtiquetaGuardada[];
   tienePlantillaBase: boolean;
   categoriasConPlantilla: Map<string, FichaEtiquetaGuardada>;
   onCrear: (tipoNombre: string, codigo: CodigoEan, categoria: string) => void;
   onAbrir: (f: FichaEtiquetaGuardada) => void;
+  onDuplicar: (f: FichaEtiquetaGuardada) => void;
   onEliminar: (f: FichaEtiquetaGuardada) => void;
 }) {
   const [tipoNombre, setTipoNombre] = useState("");
@@ -872,143 +1262,37 @@ function PantallaInicio({
         >
           ← Volver
         </button>
-        <h2 className="text-base font-bold text-ink">Ficha de etiqueta</h2>
+        <h2 className="text-base font-bold text-ink">Etiqueta suelta</h2>
         <span className="text-[11px] text-muted">
-          {categoriasConPlantilla.size > 0
-            ? `${categoriasConPlantilla.size} categoría(s) con plantilla propia`
-            : "Todavía no hay plantillas por categoría"}
-          {tienePlantillaBase ? " · el resto parte de la plantilla base." : " · el resto parte de los datos corporativos por defecto."}
+          Las plantillas viven en Studio → Categorías; aquí solo se consultan las etiquetas
+          que ya se guardaron.
         </span>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section className="rounded-xl border border-border bg-surface-panel p-4">
-          <h3 className="text-sm font-bold text-ink">Nueva ficha</h3>
-          <p className="mb-3 text-[11px] text-muted">
-            Elige el Formato de la etiqueta y el SKU. La ficha se abre vacía y carga solo la información de ese
-            SKU: código de barras, contenido neto, título y la ficha técnica que coincida.
-          </p>
-
-          <label className="mb-3 block text-xs text-muted">
-            <span className="mb-1 block font-semibold text-ink">1. Formato de la etiqueta</span>
-            <select
-              value={tipoNombre}
-              onChange={(e) => setTipoNombre(e.target.value)}
-              disabled={tiposLoading}
-              className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink disabled:opacity-50"
-            >
-              <option value="">{tiposLoading ? "Cargando…" : "Elegir formato…"}</option>
-              {tipos.map((t) => (
-                <option key={t.nombre} value={t.nombre}>
-                  {t.nombre} ({formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)})
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="mb-3 text-xs text-muted">
-            <span className="mb-1 block font-semibold text-ink">2. SKU (código de barras)</span>
-            {sku ? (
-              <div className="flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-2.5 py-1.5">
-                <span className="font-mono text-[11px] text-muted">{sku.codigo}</span>
-                <span className="min-w-0 flex-1 truncate font-semibold text-ink">{sku.nombre_producto || sku.sku}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSku(null);
-                    setCategoriaManual(null);
-                  }}
-                  className="text-muted hover:text-ink"
-                  title="Cambiar SKU"
-                >
-                  ✕
-                </button>
-              </div>
-            ) : (
-              <>
-                <input
-                  autoFocus
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Nombre, SKU o código de 12-13 dígitos…"
-                  className="mb-1.5 w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
-                />
-                <ul className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-border bg-surface p-1">
-                  {codigosLoading && <li className="px-2 py-1 text-xs text-muted">Cargando catálogo…</li>}
-                  {!codigosLoading && sugeridos.length === 0 && (
-                    <li className="px-2 py-1 text-xs text-muted">Sin resultados.</li>
-                  )}
-                  {sugeridos.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSku(c)}
-                        className="w-full rounded px-2 py-1.5 text-left text-xs text-ink hover:bg-accent/10"
-                      >
-                        <span className="font-mono text-[11px] text-muted">{c.codigo}</span>
-                        <span className="ml-1.5 font-medium">{c.nombre_producto || c.sku}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-
-          <label className="mb-3 block text-xs text-muted">
-            <span className="mb-1 block font-semibold text-ink">3. Categoría de producto</span>
-            <select
-              value={categoria}
-              onChange={(e) => setCategoriaManual(e.target.value)}
-              className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
-            >
-              {CATEGORIAS_ETIQUETA.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.etiqueta}
-                  {categoriasConPlantilla.has(c.id) ? " ✓ (con plantilla)" : ""}
-                </option>
-              ))}
-            </select>
-            <span className="mt-1 block text-[11px] text-muted">
-              {sku && categoriaManual === null
-                ? `Detectada del nombre del SKU. Cámbiala si no corresponde.`
-                : "Decide de qué plantilla parte la ficha."}
-              {categoriasConPlantilla.has(categoria)
-                ? ` Se usará la plantilla de «${etiquetaCategoria(categoria)}».`
-                : tienePlantillaBase
-                  ? " Esta categoría aún no tiene plantilla propia: se usará la base."
-                  : " Aún no hay plantilla: se usarán los datos corporativos por defecto."}
-            </span>
-          </label>
-
-          <button
-            type="button"
-            disabled={!listo}
-            onClick={() => sku && onCrear(tipoNombre, sku, categoria)}
-            className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {listo ? "Abrir ficha con este SKU" : "Elige Formato y SKU para continuar"}
-          </button>
-        </section>
+      {/* El apartado "Nueva ficha" (formato + SKU + categoría) se retiró: guardaba
+          una ficha suelta sin asignar plantilla a la categoría, así que prometía
+          algo que no hacía. Las etiquetas de una categoría se generan desde su
+          plantilla de lienzo (Studio → Categorías → Crear etiquetas). Aquí solo
+          quedan las etiquetas ya guardadas, para consultarlas o editarlas. */}
+      <div className="grid gap-4">
 
         <section className="rounded-xl border border-border bg-surface-panel p-4">
-          {categoriasConPlantilla.size > 0 && (
+          {plantillasGuardadas.length > 0 && (
             <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
-              <h3 className="text-xs font-bold text-ink">Plantillas por categoría</h3>
+              <h3 className="text-xs font-bold text-ink">Plantillas</h3>
               <p className="mb-2 text-[11px] text-muted">
-                Cada categoría define logo, color de acento, contacto y tipografías de sus etiquetas.
+                Un formulario por categoría y tamaño. Se ajusta una vez y sirve para todos los
+                productos de la familia.
               </p>
               <ul className="space-y-1">
-                {[...categoriasConPlantilla.entries()].map(([cat, f]) => (
-                  <li key={cat} className="flex items-center gap-1 rounded px-1.5 py-1 text-xs hover:bg-surface-hover">
-                    <span className="min-w-0 flex-1 truncate text-ink">{etiquetaCategoria(cat)}</span>
+                {plantillasGuardadas.map((f) => (
+                  <li key={f.id}>
                     <button
                       type="button"
-                      onClick={() => onEliminar(f)}
-                      title={`Quitar la plantilla de ${etiquetaCategoria(cat)}`}
-                      className="shrink-0 rounded px-1.5 py-0.5 text-muted hover:bg-red-50 hover:text-red-600"
+                      onClick={() => onAbrir(f)}
+                      className="w-full truncate rounded px-1.5 py-1 text-left text-xs text-ink hover:bg-surface-hover"
                     >
-                      ×
+                      {f.nombre}
                     </button>
                   </li>
                 ))}
@@ -1016,12 +1300,12 @@ function PantallaInicio({
             </div>
           )}
 
-          <h3 className="text-sm font-bold text-ink">Fichas guardadas</h3>
+          <h3 className="text-sm font-bold text-ink">Etiquetas guardadas</h3>
           <p className="mb-3 text-[11px] text-muted">
-            Se guardan solas con el título del SKU mientras las editas. Viven aquí, no en la lista de
-            plantillas de Studio visual.
+            Cada una es la etiqueta de un SKU, no una plantilla. Ábrelas para consultarlas o
+            seguir editándolas.
           </p>
-          {fichasGuardadas.length === 0 && <p className="text-xs text-muted">Todavía no hay fichas guardadas.</p>}
+          {fichasGuardadas.length === 0 && <p className="text-xs text-muted">Todavía no hay etiquetas guardadas.</p>}
           <ul className="max-h-[420px] space-y-1 overflow-y-auto">
             {fichasGuardadas.map((f) => (
               <li key={f.id} className="flex items-center gap-1 rounded px-2 py-1.5 hover:bg-surface-hover">
@@ -1047,8 +1331,16 @@ function PantallaInicio({
                 </button>
                 <button
                   type="button"
+                  onClick={() => onDuplicar(f)}
+                  title="Duplicar conservando el formato ya ajustado"
+                  className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary hover:bg-surface-hover"
+                >
+                  Duplicar
+                </button>
+                <button
+                  type="button"
                   onClick={() => onEliminar(f)}
-                  title="Eliminar ficha guardada"
+                  title="Eliminar etiqueta guardada"
                   className="shrink-0 rounded px-1.5 py-0.5 text-xs text-muted hover:bg-red-50 hover:text-red-600"
                 >
                   ×
@@ -1058,6 +1350,151 @@ function PantallaInicio({
           </ul>
         </section>
       </div>
+    </div>
+  );
+}
+
+
+/** Paso único para una plantilla nueva: el tamaño de etiqueta.
+ *  La categoría ya viene de la tarjeta y el contenido se hereda de la plantilla
+ *  que ya exista en esa familia, para no rehacer el ajuste. */
+function ElegirTamanoPlantilla({
+  categoriaId,
+  categoriaLabel,
+  tipos,
+  tiposLoading,
+  yaUsados,
+  onVolver,
+  onElegir,
+}: {
+  categoriaId: string;
+  categoriaLabel: string;
+  tipos: TipoEtiqueta[];
+  tiposLoading: boolean;
+  yaUsados: string[];
+  onVolver: () => void;
+  onElegir: (tamano: string) => void;
+}) {
+  const [tamano, setTamano] = useState("");
+  const usados = new Set(yaUsados.filter(Boolean));
+  return (
+    <div className="mx-auto flex h-full max-w-xl min-h-0 flex-col overflow-auto p-4">
+      <header className="mb-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onVolver}
+          className="rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+        >
+          ← Volver
+        </button>
+        <h2 className="text-base font-bold text-ink">Nueva plantilla · {categoriaLabel}</h2>
+      </header>
+
+      <section className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-3 text-[11px] text-muted">
+          Una plantilla sirve para toda la categoría en un tamaño concreto. Si ya hay una en
+          esta familia, la nueva parte de ella y solo cambia el tamaño.
+        </p>
+        <label className="mb-3 block text-xs text-muted">
+          <span className="mb-1 block font-semibold text-ink">Tamaño de etiqueta</span>
+          <select
+            value={tamano}
+            onChange={(e) => setTamano(e.target.value)}
+            disabled={tiposLoading}
+            className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink disabled:opacity-50"
+          >
+            <option value="">{tiposLoading ? "Cargando…" : "Elegir tamaño…"}</option>
+            {tipos.map((t) => (
+              <option key={t.nombre} value={t.nombre} disabled={usados.has(t.nombre)}>
+                {t.nombre} ({formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)})
+                {usados.has(t.nombre) ? " — ya tiene plantilla" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          disabled={!tamano}
+          onClick={() => onElegir(tamano)}
+          className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
+        >
+          {tamano
+            ? `Crear «Plantilla de ${categoriaLabel} tamaño ${tamano}»`
+            : "Elige un tamaño para continuar"}
+        </button>
+        <p className="mt-2 text-[10px] text-muted">Categoría: {categoriaId}</p>
+      </section>
+    </div>
+  );
+}
+
+/** Paso único para una etiqueta nueva: el producto. El formato lo pone la plantilla. */
+function ElegirProductoParaEtiqueta({
+  plantilla,
+  categoriaLabel,
+  onVolver,
+  onElegir,
+}: {
+  plantilla: FichaEtiquetaGuardada;
+  categoriaLabel: string;
+  onVolver: () => void;
+  onElegir: (codigo: CodigoEan) => void;
+}) {
+  const [q, setQ] = useState("");
+  const { data: codigos, isLoading } = useCodigosEan();
+  const sugeridos = useMemo(() => filtrarCodigosEanPorTexto(codigos ?? [], q, 25), [codigos, q]);
+  return (
+    <div className="mx-auto flex h-full max-w-2xl min-h-0 flex-col overflow-auto p-4">
+      <header className="mb-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onVolver}
+          className="rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+        >
+          ← Volver
+        </button>
+        <h2 className="text-base font-bold text-ink">Nueva etiqueta · {categoriaLabel}</h2>
+        <span className="text-[11px] text-muted">
+          {plantilla.nombre}
+          {plantilla.tipo_nombre ? ` · ${plantilla.tipo_nombre}` : ""}
+        </span>
+      </header>
+
+      <section className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-3 text-[11px] text-muted">
+          Elige el producto: se aplica esta plantilla y se completa sola con su código de
+          barras, su contenido neto y la ficha técnica que le corresponda. Después puedes
+          ajustar cualquier campo.
+        </p>
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Nombre, SKU o código de 12-13 dígitos…"
+          className="mb-2 w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
+        />
+        <ul className="max-h-[50vh] space-y-1 overflow-y-auto rounded-lg border border-border bg-surface p-1">
+          {isLoading && <li className="px-2 py-1 text-xs text-muted">Cargando catálogo…</li>}
+          {!isLoading && sugeridos.length === 0 && (
+            <li className="px-2 py-1 text-xs text-muted">Sin resultados.</li>
+          )}
+          {sugeridos.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => onElegir(c)}
+                className="w-full rounded px-2 py-1.5 text-left text-xs text-ink hover:bg-accent/10"
+              >
+                <span className="font-mono text-[11px] text-muted">{c.codigo}</span>
+                <span className="ml-1.5 font-medium">{c.nombre_producto || c.sku}</span>
+                {c.presentacion && (
+                  <span className="ml-1.5 text-[10px] text-muted">{c.presentacion}</span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

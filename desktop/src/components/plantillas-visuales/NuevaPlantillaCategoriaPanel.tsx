@@ -1,18 +1,22 @@
 /**
- * Asistente "Nueva plantilla de categoría" — el flujo que faltaba.
+ * Asistente "Nueva plantilla de categoría".
  *
- * Antes había dos botones sueltos ("Fichas de etiqueta" y "Nueva plantilla de
- * lienzo") que producían cosas distintas en almacenes distintos, y ninguna de
- * las 201 plantillas existentes era reutilizable: 0 tenían campos variables, así
- * que cada etiqueta se hacía a mano. Aquí se elige la categoría, un punto de
- * partida, y se marcan de una pasada qué cajas de texto cambian por producto.
- * El resultado es UNA plantilla por categoría, lista para "Crear etiquetas".
+ * Dos pasos, sin preguntar por el motor: se elige la categoría y un diseño de
+ * partida, y se marca de una pasada qué cajas de texto cambian por producto.
+ * El resultado es la plantilla de esa categoría, lista para "Crear etiquetas".
+ *
+ * La plantilla es SIEMPRE de lienzo, y no por capricho: es el único motor que
+ * genera las etiquetas de muchos SKU de golpe (`aplicar_plantilla_lote`, en el
+ * servidor) y el único con ajuste automático caja por caja. El formulario de
+ * ficha dibuja en el navegador, una etiqueta a la vez, y por eso dejó de ser una
+ * forma de crear plantillas.
  */
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
   useCategoriasEtiqueta,
+  etiquetaCategoriaEn,
   idCategoriaDesdeNombre,
   CATEGORIAS_ETIQUETA,
   type CategoriaEtiqueta,
@@ -36,8 +40,6 @@ interface Props {
   onCreada: (doc: PlantillaVisualDoc) => void;
   /** "Lienzo en blanco" delega en el selector de formato que ya existe. */
   onLienzoEnBlanco: (categoriaId: string) => void;
-  /** "Formulario de ficha" delega en ProductLabelForm. */
-  onFormularioFicha: () => void;
 }
 
 function esTexto(el: ElementoVisual): el is ElementoTexto {
@@ -49,7 +51,6 @@ export default function NuevaPlantillaCategoriaPanel({
   onVolver,
   onCreada,
   onLienzoEnBlanco,
-  onFormularioFicha,
 }: Props) {
   const qc = useQueryClient();
   const { data: catsData } = useCategoriasEtiqueta();
@@ -74,13 +75,35 @@ export default function NuevaPlantillaCategoriaPanel({
     gcTime: 60 * 60 * 1000,
   });
 
+  // Se listan TODOS los diseños, con los de la categoría primero y los más
+  // recientes arriba. Antes solo salían los de la categoría, y como un diseño
+  // recién creado suele clasificar en otra (o en "Otros") hasta que se le fija
+  // la categoría, parecía que los nuevos no existían.
   const candidatos = useMemo(() => {
     const todas = plantillasData?.plantillas ?? [];
     const q = buscar.trim().toLowerCase();
-    const propias = todas.filter((p) => categoriaProductoDe(p, categorias) === categoriaId);
-    const lista = q ? todas.filter((p) => (p.nombre || "").toLowerCase().includes(q)) : propias;
-    return lista.slice(0, 60);
+    const lista = q
+      ? todas.filter((p) => (p.nombre || "").toLowerCase().includes(q))
+      : [...todas];
+    const puntaje = (p: PlantillaVisualDoc) => {
+      if (categoriaProductoDe(p, categorias) !== categoriaId) return 2;
+      return p.es_plantilla_categoria ? 0 : 1;
+    };
+    lista.sort((a, b) => {
+      const d = puntaje(a) - puntaje(b);
+      if (d !== 0) return d;
+      return (b.updated_at || "").localeCompare(a.updated_at || "");
+    });
+    return lista.slice(0, 80);
   }, [plantillasData, categorias, categoriaId, buscar]);
+
+  const nDeLaCategoria = useMemo(
+    () =>
+      (plantillasData?.plantillas ?? []).filter(
+        (p) => categoriaProductoDe(p, categorias) === categoriaId,
+      ).length,
+    [plantillasData, categorias, categoriaId],
+  );
 
   const guardarCategoriasMut = useMutation({
     mutationFn: (lista: CategoriaEtiqueta[]) =>
@@ -258,20 +281,6 @@ export default function NuevaPlantillaCategoriaPanel({
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => onLienzoEnBlanco(categoriaId)}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
-            >
-              Lienzo en blanco
-            </button>
-            <button
-              type="button"
-              onClick={onFormularioFicha}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
-            >
-              Formulario de ficha
-            </button>
-            <button
-              type="button"
               onClick={() => setPaso("categoria")}
               className="rounded-lg px-3 py-2 text-xs text-muted hover:bg-surface-hover"
             >
@@ -280,22 +289,43 @@ export default function NuevaPlantillaCategoriaPanel({
           </div>
 
           <p className="mb-2 text-xs text-muted">
-            Lo más rápido es partir de un diseño que ya existe
-            {categoria ? ` de «${categoria.etiqueta}»` : ""} y marcarle los campos que cambian
-            por producto. El diseño original no se toca: se duplica.
+            Elige el diseño del que parte la plantilla
+            {categoria ? ` de «${categoria.etiqueta}»` : ""}: en el paso siguiente le marcas
+            qué cambia por producto. El diseño original no se toca, se duplica.
+            {categoria
+              ? ` Primero los ${nDeLaCategoria} de esta categoría; debajo, el resto del catálogo.`
+              : ""}
           </p>
-          <input
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Buscar en todos los diseños…"
-            className="mb-3 w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-          />
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <input
+              value={buscar}
+              onChange={(e) => setBuscar(e.target.value)}
+              placeholder="Buscar en todos los diseños…"
+              className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => onLienzoEnBlanco(categoriaId)}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
+            >
+              Empezar desde cero
+            </button>
+          </div>
 
           {candidatos.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted">
-              No hay diseños en esta categoría. Busca uno de otra categoría, o empieza con un
-              lienzo en blanco.
-            </p>
+            <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
+              <p className="text-sm text-muted">
+                Esta categoría todavía no tiene diseños. Busca uno de otra categoría para
+                partir de él, o empieza el lienzo desde cero.
+              </p>
+              <button
+                type="button"
+                onClick={() => onLienzoEnBlanco(categoriaId)}
+                className="mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Empezar desde cero
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
               {candidatos.map((p) => (
@@ -310,6 +340,13 @@ export default function NuevaPlantillaCategoriaPanel({
                   </span>
                   <span className="block truncate px-2 py-1.5 text-[11px] font-medium text-ink">
                     {p.nombre}
+                  </span>
+                  <span className="block truncate px-2 pb-1.5 text-[10px] text-muted">
+                    {p.formato?.nombre || "Sin tamaño"}
+                    {categoriaProductoDe(p, categorias) !== categoriaId
+                      ? ` · ${etiquetaCategoriaEn(categorias, categoriaProductoDe(p, categorias))}`
+                      : ""}
+                    {p.es_plantilla_categoria ? " ★" : ""}
                   </span>
                 </button>
               ))}

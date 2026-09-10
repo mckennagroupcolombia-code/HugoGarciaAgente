@@ -23,6 +23,7 @@ import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import FormulariosEtiquetadosPanel from "./FormulariosEtiquetadosPanel";
+import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
@@ -590,10 +591,13 @@ type Vista =
   | "formularios-etiquetas"
   | "nueva-plantilla-categoria";
 
+// Studio es el apartado de PLANTILLAS. Las 90 etiquetas y los 201 diseños que
+// ya existían son el catálogo viejo: se consultan e imprimen desde
+// Diseño → Imprimir (agrupados por categoría) y desde "Catálogo antiguo", pero
+// no se mezclan con las plantillas nuevas.
 const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
   { id: "categorias", label: "Categorías" },
-  { id: "etiquetas", label: "Etiquetas" },
-  { id: "disenos", label: "Diseños" },
+  { id: "disenos", label: "Catálogo antiguo" },
   { id: "recursos", label: "Recursos" },
 ];
 
@@ -635,6 +639,13 @@ export default function PlantillasVisualesPanel({
   // borrado quedaba en silencio, como si el botón no hiciera nada.
   const [confirmarBorrado, setConfirmarBorrado] = useState<{ ids: string[]; nombre?: string } | null>(null);
   const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
+  /** Categoría para la que se está creando un lienzo en blanco. Sin esto, el
+   *  diseño nuevo caía en "Otros" y la categoría seguía diciendo "Sin plantilla":
+   *  el camino "empezar desde cero" no dejaba plantilla en ninguna parte. */
+  const [categoriaPendiente, setCategoriaPendiente] = useState<string | null>(null);
+  /** Qué debe abrir el formulario: una guardada, una etiqueta nueva desde una
+   *  plantilla, o una plantilla nueva de una categoría. */
+  const [entradaFormulario, setEntradaFormulario] = useState<EntradaFormularioEtiqueta | null>(null);
   const subvista = useAppStore((s) => s.studioSubvista);
   const setSubvista = useAppStore((s) => s.setStudioSubvista);
   const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
@@ -932,9 +943,15 @@ export default function PlantillasVisualesPanel({
     });
   }, [abrirCopiaGuardada, doc, guardarMut]);
 
+  const abrirFormulario = useCallback((entrada: EntradaFormularioEtiqueta) => {
+    setEntradaFormulario(entrada);
+    setVista("formularios-etiquetas");
+  }, []);
+
   const abrirNuevo = () => {
     setDoc(null);
     setPendienteNuevo(null);
+    setCategoriaPendiente(null);
     setVista("formato");
   };
 
@@ -944,9 +961,26 @@ export default function PlantillasVisualesPanel({
   };
 
   const crearDesdeScan = (nuevo: PlantillaVisualDoc) => {
-    setDoc(nuevo);
-    docGuardadoRef.current = nuevo;
+    const doc = categoriaPendiente
+      ? {
+          ...nuevo,
+          nombre:
+            nuevo.nombre && nuevo.nombre !== "Sin título"
+              ? nuevo.nombre
+              : `Plantilla · ${etiquetaCategoriaEn(categorias, categoriaPendiente)}`,
+          categoria_producto: categoriaPendiente,
+          es_plantilla_categoria: true,
+          formulario: true,
+        }
+      : nuevo;
+    setDoc(doc);
+    docGuardadoRef.current = doc;
     setPendienteNuevo(null);
+    if (categoriaPendiente) {
+      setMsg("Marca los campos variables en el panel de la derecha y guarda");
+      setTimeout(() => setMsg(null), 5000);
+      setCategoriaPendiente(null);
+    }
     setVista("editor");
   };
 
@@ -1111,9 +1145,9 @@ export default function PlantillasVisualesPanel({
           }}
           onLienzoEnBlanco={(catId) => {
             setCategoriaFiltro(catId);
+            setCategoriaPendiente(catId);
             setVista("formato");
           }}
-          onFormularioFicha={() => setVista("formularios-etiquetas")}
         />
       </div>
     );
@@ -1122,7 +1156,13 @@ export default function PlantillasVisualesPanel({
   if (vista === "formularios-etiquetas") {
     return (
       <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
-        <FormulariosEtiquetadosPanel onVolver={() => setVista("lista")} />
+        <FormulariosEtiquetadosPanel
+          entrada={entradaFormulario}
+          onVolver={() => {
+            setEntradaFormulario(null);
+            setVista("lista");
+          }}
+        />
       </div>
     );
   }
@@ -1339,7 +1379,9 @@ export default function PlantillasVisualesPanel({
             type="button"
             onClick={() => {
               setSubvista(sv.id);
-              if (sv.id === "categorias") setCategoriaFiltro("");
+              // Entrar por la pestaña es "muéstrame todo": si no se limpia, el
+              // filtro que dejó una tarjeta esconde los diseños nuevos.
+              setCategoriaFiltro("");
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
               subvista === sv.id
@@ -1354,26 +1396,32 @@ export default function PlantillasVisualesPanel({
 
       {subvista === "categorias" && (
         <StudioCategoriasPanel
-          onCrearPlantilla={(catId) => {
-            setCategoriaFiltro(catId);
-            setVista("nueva-plantilla-categoria");
+          onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onAbrirPlantilla={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ fichaId: pl.id });
+              return;
+            }
+            void abrirPlantilla(pl.id);
           }}
-          onAbrirPlantilla={(doc) => void abrirPlantilla(doc.id)}
-          onCrearEtiquetas={(doc) => {
-            setPlantillaLote({ id: doc.id, nombre: doc.nombre });
+          onAbrirEtiqueta={(e) => {
+            if (e.fichaId) {
+              abrirFormulario({ fichaId: e.fichaId });
+              return;
+            }
+            // PNG ya terminado: se ve e imprime desde Diseño → Imprimir.
+            setSubvista("recursos");
+            setMsg(`«${e.nombre}» está lista: se imprime desde Diseño → Imprimir.`);
+            setTimeout(() => setMsg(null), 5000);
+          }}
+          onNuevaEtiqueta={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ nuevaEtiquetaDePlantilla: pl.id });
+              return;
+            }
+            setPlantillaLote({ id: pl.id, nombre: pl.nombre });
             setVista("lote");
-          }}
-          onVerDisenos={(catId) => {
-            setCategoriaFiltro(catId);
-            setSubvista("disenos");
-          }}
-          onVerEtiquetas={(catId) => {
-            setCategoriaFiltro(catId);
-            setSubvista("etiquetas");
-          }}
-          onNuevaCategoria={() => {
-            setCategoriaFiltro("");
-            setVista("nueva-plantilla-categoria");
           }}
         />
       )}
@@ -1382,6 +1430,7 @@ export default function PlantillasVisualesPanel({
         <StudioEtiquetasPanel
           categoriaFiltro={categoriaFiltro}
           onCategoriaFiltroChange={setCategoriaFiltro}
+          onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
         />
       )}
 
@@ -1474,14 +1523,6 @@ export default function PlantillasVisualesPanel({
             )}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setVista("formularios-etiquetas")}
-          title="Formulario de ficha por SKU: estructura fija, se guarda en su propia lista"
-          className="rounded-lg border border-accent/40 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
-        >
-          Formulario de ficha
-        </button>
         <button
           type="button"
           onClick={abrirNuevo}

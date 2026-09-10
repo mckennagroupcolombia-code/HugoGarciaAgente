@@ -122,6 +122,16 @@ def guardar_ficha(body: dict) -> dict:
     categoria = (body.get("categoria") or "").strip()
     if categoria:
         entry["categoria"] = categoria
+    # Marca de "esta etiqueta ES la plantilla de su categoría": el formato ya
+    # ajustado que se despliega sobre todos los productos de la familia. Se
+    # guarda aquí (no en plantillas_visuales) porque es del motor de formulario.
+    if body.get("es_plantilla_categoria"):
+        entry["es_plantilla_categoria"] = True
+    # De qué plantilla salió esta etiqueta. Distingue lo hecho con el flujo nuevo
+    # de las fichas sueltas del catálogo viejo, que no tienen plantilla detrás.
+    plantilla_id = (body.get("plantilla_id") or "").strip()
+    if plantilla_id:
+        entry["plantilla_id"] = plantilla_id
     attribute_icons = body.get("attribute_icons")
     if isinstance(attribute_icons, dict) and attribute_icons:
         entry["attribute_icons"] = json.loads(json.dumps(attribute_icons, ensure_ascii=False))

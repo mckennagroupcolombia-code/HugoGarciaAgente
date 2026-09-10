@@ -12,6 +12,11 @@ export interface FichaEtiquetaGuardada {
   tipo_nombre?: string;
   /** Id de CATEGORIAS_ETIQUETA (lib/categoriasEtiqueta.ts). */
   categoria?: string;
+  /** Esta etiqueta es la plantilla de su categoría: el formato ajustado que se
+   *  despliega sobre todos los productos de esa familia. */
+  es_plantilla_categoria?: boolean;
+  /** Plantilla de la que salió esta etiqueta (vacío en las del catálogo viejo). */
+  plantilla_id?: string;
   attribute_icons?: Partial<Record<AttributeKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
   creado: string;
@@ -24,6 +29,8 @@ export interface GuardarFichaEtiquetaBody {
   data: ProductLabelData;
   tipo_nombre?: string;
   categoria?: string;
+  es_plantilla_categoria?: boolean;
+  plantilla_id?: string;
   attribute_icons?: Partial<Record<AttributeKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
 }
