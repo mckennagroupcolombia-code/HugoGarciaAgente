@@ -19591,7 +19591,11 @@ def register_routes(app):
         if request.method == "GET":
             q = (request.args.get("q") or "").strip()
             carpeta = (request.args.get("carpeta") or "").strip().strip("/")
-            items = listar_plantillas(q=q, carpeta=carpeta)
+            # ?todas=1 ignora la carpeta y devuelve el catálogo completo: lo usan
+            # las vistas por categoría de Studio, que cuentan y agrupan todo sin
+            # importar en qué carpeta esté cada plantilla.
+            todas = (request.args.get("todas") or "").strip() == "1"
+            items = listar_plantillas(q=q, carpeta=None if todas else carpeta)
             carpetas = listar_carpetas_plantillas(carpeta)
             return jsonify({
                 "plantillas": items,
@@ -20902,6 +20906,33 @@ REGLAS:
         if err:
             return jsonify({"error": err}), 400
         return jsonify({"ok": True, "tipos": tipos})
+
+    # ── Etiquetas: categorías de producto (Studio visual) ────────────────────
+
+    @app.route("/api/etiquetas/categorias", methods=["GET", "PUT"])
+    @app.route("/app/api/etiquetas/categorias", methods=["GET", "PUT"])
+    def api_etiquetas_categorias():
+        """Catálogo de categorías de producto (aceites, frutos secos, conservantes…).
+
+        Primer nivel de Studio visual: cada categoría agrupa su plantilla, sus
+        diseños y las etiquetas hechas con ella. El PUT reemplaza la lista completa;
+        lo que no venga queda eliminado y NO se resucita en la lectura siguiente
+        (ver app/tools/etiquetas_categorias.py)."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_categorias import guardar_categorias, listar_categorias
+
+        if request.method == "GET":
+            cats = listar_categorias()
+            return jsonify({"categorias": cats, "total": len(cats)})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            cats = guardar_categorias(body.get("categorias"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "categorias": cats, "total": len(cats)})
 
     # ── Etiquetas: colores guardados ─────────────────────────────────────────
 

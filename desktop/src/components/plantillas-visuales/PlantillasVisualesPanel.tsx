@@ -29,6 +29,15 @@ import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
 import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
+import { useAppStore, type StudioSubvista } from "../../stores/app";
+import {
+  useCategoriasEtiqueta,
+  etiquetaCategoriaEn,
+  CATEGORIAS_ETIQUETA,
+} from "../../lib/categoriasEtiqueta";
+import { categoriaProductoDe } from "../../lib/plantillasVisuales";
+import StudioCategoriasPanel from "./StudioCategoriasPanel";
+import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -572,6 +581,13 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
 
 type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote" | "formularios-etiquetas";
 
+const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "etiquetas", label: "Etiquetas" },
+  { id: "disenos", label: "Diseños" },
+  { id: "recursos", label: "Recursos" },
+];
+
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
 }: {
@@ -610,6 +626,12 @@ export default function PlantillasVisualesPanel({
   // borrado quedaba en silencio, como si el botón no hiciera nada.
   const [confirmarBorrado, setConfirmarBorrado] = useState<{ ids: string[]; nombre?: string } | null>(null);
   const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
+  const subvista = useAppStore((s) => s.studioSubvista);
+  const setSubvista = useAppStore((s) => s.setStudioSubvista);
+  const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
+  const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
+  const { data: catsData } = useCategoriasEtiqueta();
+  const categorias = catsData ?? CATEGORIAS_ETIQUETA;
 
   useEffect(() => {
     onInmersivoChange?.(
@@ -640,7 +662,17 @@ export default function PlantillasVisualesPanel({
     gcTime: ETIQUETAS_GC_TIME,
   });
 
-  const plantillas = data?.plantillas ?? [];
+  const plantillasTodas = data?.plantillas ?? [];
+  // Filtro por categoría de producto: se activa al entrar desde una tarjeta de
+  // la portada. La categoría se deduce del nombre para las plantillas heredadas
+  // que no la tienen guardada (ver categoriaProductoDe).
+  const plantillas = useMemo(
+    () =>
+      categoriaFiltro
+        ? plantillasTodas.filter((p) => categoriaProductoDe(p, categorias) === categoriaFiltro)
+        : plantillasTodas,
+    [plantillasTodas, categoriaFiltro, categorias],
+  );
   const subcarpetas = data?.carpetas ?? [];
   const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
 
@@ -1259,8 +1291,86 @@ export default function PlantillasVisualesPanel({
 
   return (
     <div className="mx-auto max-w-6xl">
+      {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
+          con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
+          es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h1 className="mr-2 text-lg font-bold tracking-tight text-ink">Studio</h1>
+        {SUBVISTAS.map((sv) => (
+          <button
+            key={sv.id}
+            type="button"
+            onClick={() => {
+              setSubvista(sv.id);
+              if (sv.id === "categorias") setCategoriaFiltro("");
+            }}
+            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+              subvista === sv.id
+                ? "bg-accent text-white"
+                : "border border-border text-ink-secondary hover:bg-surface-hover"
+            }`}
+          >
+            {sv.label}
+          </button>
+        ))}
+      </div>
+
+      {subvista === "categorias" && (
+        <StudioCategoriasPanel
+          onCrearPlantilla={(catId) => {
+            setCategoriaFiltro(catId);
+            setSubvista("disenos");
+            setMsg(
+              `Elige un diseño de «${etiquetaCategoriaEn(categorias, catId)}» como punto de partida, o crea uno nuevo.`,
+            );
+          }}
+          onAbrirPlantilla={(doc) => void abrirPlantilla(doc.id)}
+          onCrearEtiquetas={(doc) => {
+            setPlantillaLote({ id: doc.id, nombre: doc.nombre });
+            setVista("lote");
+          }}
+          onVerDisenos={(catId) => {
+            setCategoriaFiltro(catId);
+            setSubvista("disenos");
+          }}
+          onVerEtiquetas={(catId) => {
+            setCategoriaFiltro(catId);
+            setSubvista("etiquetas");
+          }}
+          onNuevaCategoria={() => setVista("formularios-etiquetas")}
+        />
+      )}
+
+      {subvista === "etiquetas" && (
+        <StudioEtiquetasPanel
+          categoriaFiltro={categoriaFiltro}
+          onCategoriaFiltroChange={setCategoriaFiltro}
+        />
+      )}
+
+      {subvista === "recursos" && (
+        <div>
+          <p className="mb-3 text-xs text-muted">
+            Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
+            terminadas están en la pestaña «Etiquetas».
+          </p>
+          <BibliotecaEtiquetasSection />
+        </div>
+      )}
+
+      {subvista === "disenos" && (
+      <>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-bold tracking-tight text-ink">Studio</h1>
+        {categoriaFiltro && (
+          <button
+            type="button"
+            onClick={() => setCategoriaFiltro("")}
+            title="Quitar el filtro de categoría"
+            className="shrink-0 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10"
+          >
+            {etiquetaCategoriaEn(categorias, categoriaFiltro)} ✕
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <input
             value={buscar}
@@ -1330,33 +1440,25 @@ export default function PlantillasVisualesPanel({
         <button
           type="button"
           onClick={() => setVista("formularios-etiquetas")}
-          title="Formulario de ficha por SKU, con plantilla por categoría de producto. Se guarda en su propia lista, no aquí."
+          title="Formulario de ficha por SKU: estructura fija, se guarda en su propia lista"
           className="rounded-lg border border-accent/40 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
         >
-          Fichas de etiqueta
+          Formulario de ficha
         </button>
         <button
           type="button"
           onClick={abrirNuevo}
+          title="Lienzo libre: cajas de texto, símbolos y disposición propia de la categoría"
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
-          Nueva plantilla de lienzo
+          Nuevo diseño
         </button>
       </div>
 
-      {/* Las dos pantallas se llamaban parecido ("plantilla" aquí y allá) y
-          guardan en almacenes distintos: una ficha guardada nunca aparece en
-          esta lista, y eso se leía como que no se había guardado. */}
       <p className="mb-4 text-[11px] text-muted">
-        Esta lista son plantillas de <strong>lienzo</strong>, una por producto y tamaño. Las{" "}
-        <button
-          type="button"
-          onClick={() => setVista("formularios-etiquetas")}
-          className="underline decoration-dotted hover:text-accent"
-        >
-          fichas de etiqueta
-        </button>{" "}
-        se guardan aparte, en su propia pantalla, con una plantilla por categoría de producto.
+        Los <strong>diseños</strong> son el punto de partida: se duplican y se les marcan los
+        campos variables para convertirlos en la plantilla de una categoría. Las etiquetas ya
+        generadas están en la pestaña «Etiquetas».
       </p>
 
       <div className="mb-5 flex flex-wrap items-center gap-1 text-xs">
@@ -1430,14 +1532,6 @@ export default function PlantillasVisualesPanel({
           {creandoCarpeta ? "…" : "+ Carpeta"}
         </button>
       </div>
-
-      {/* Con búsqueda activa, las plantillas van primero y la biblioteca PNG
-          (filtrada por el mismo texto) baja al final. */}
-      {!buscarDebounced && (
-        <div className="mb-5">
-          <BibliotecaEtiquetasSection />
-        </div>
-      )}
 
       {msg && (
         <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm">
@@ -1575,6 +1669,9 @@ export default function PlantillasVisualesPanel({
                   <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {labelFormato(p.formato)}
+                    {" · "}
+                    {etiquetaCategoriaEn(categorias, categoriaProductoDe(p, categorias))}
+                    {p.es_plantilla_categoria ? " ★ plantilla" : ""}
                     {esPlantillaFichaMp(p) ? " · formulario SCI" : ""}
                     {esPlantillaFormularioEtiqueta(p) && !esPlantillaFichaMp(p) ? " · formulario" : ""}
                   </p>
@@ -1649,6 +1746,9 @@ export default function PlantillasVisualesPanel({
         <div className="mt-6">
           <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
         </div>
+      )}
+
+      </>
       )}
 
       {confirmarBorrado && (

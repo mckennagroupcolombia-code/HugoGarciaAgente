@@ -1,13 +1,19 @@
 /**
- * Categorías de producto para las plantillas de "Ficha de etiqueta".
+ * Categorías de producto de las etiquetas: primer nivel de Studio visual.
  *
  * Lista PROPIA del módulo de etiquetas (decisión del 2026-09-10): a
  * propósito NO reusa las líneas/subcategorías de `proveedores_db`, porque
  * aquello clasifica el catálogo comercial y esto agrupa etiquetas por cómo
- * se diseñan. Para agregar una categoría basta añadir una entrada aquí:
- * `claves` son las palabras que se buscan en el nombre del producto para
- * detectarla sola, de la más específica a la más genérica.
+ * se diseñan.
+ *
+ * El catálogo vive en el servidor (`GET|PUT /api/etiquetas/categorias`,
+ * app/tools/etiquetas_categorias.py) para que el operador pueda crear
+ * categorías nuevas. La lista de abajo es la SEMILLA con la que se creó y
+ * el respaldo si el endpoint no responde — no la fuente de verdad: usa
+ * `useCategoriasEtiqueta()`.
  */
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../api/client";
 
 export interface CategoriaEtiqueta {
   id: string;
@@ -96,4 +102,42 @@ export function categoriaDeIdPlantilla(id: string): string | null {
 /** true para la plantilla global y para cualquier plantilla de categoría. */
 export function esIdPlantillaFicha(id: string): boolean {
   return id === PLANTILLA_FICHA_ID || id.startsWith(`${PLANTILLA_FICHA_ID}:`);
+}
+
+
+/** Catálogo de categorías del servidor, con la semilla local como respaldo. */
+export function useCategoriasEtiqueta() {
+  return useQuery({
+    queryKey: ["etiquetas-categorias"],
+    queryFn: async () => {
+      const res = await api.get<{ categorias: CategoriaEtiqueta[] }>("/api/etiquetas/categorias");
+      return res.categorias?.length ? res.categorias : CATEGORIAS_ETIQUETA;
+    },
+    staleTime: 60_000,
+    gcTime: 60 * 60 * 1000,
+  });
+}
+
+/** Nombre visible usando el catálogo que ya se tenga a mano (evita releer el hook). */
+export function etiquetaCategoriaEn(cats: CategoriaEtiqueta[], id: string | undefined | null): string {
+  if (!id) return "";
+  return cats.find((c) => c.id === id)?.etiqueta ?? etiquetaCategoria(id);
+}
+
+/** Igual que `detectarCategoriaEtiqueta` pero contra un catálogo dado. */
+export function detectarCategoriaEn(cats: CategoriaEtiqueta[], nombreProducto: string): string {
+  const texto = ` ${normalizar(nombreProducto)} `;
+  if (texto.trim().length === 0) return CATEGORIA_ETIQUETA_OTROS;
+  for (const cat of cats) {
+    for (const clave of cat.claves) {
+      if (texto.includes(normalizar(clave))) return cat.id;
+    }
+  }
+  return CATEGORIA_ETIQUETA_OTROS;
+}
+
+/** Id legible a partir del nombre escrito por el operador ("Sales de baño" → "sales-de-bano"). */
+export function idCategoriaDesdeNombre(nombre: string): string {
+  const base = normalizar(nombre).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return base || CATEGORIA_ETIQUETA_OTROS;
 }

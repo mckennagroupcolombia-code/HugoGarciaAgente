@@ -305,6 +305,20 @@ def guardar_plantilla(body: dict) -> dict:
     sku = (sku or "").strip()
     if sku:
         entry["sku"] = sku
+    # Categoría de producto (aceites, frutos secos…) y marca de "esta es LA
+    # plantilla de la categoría". Distinto de `categoria`, que es el tipo de
+    # formato (etiquetas / meli / banners) y se conserva por legado.
+    categoria_producto = body.get("categoria_producto")
+    if categoria_producto is None:
+        categoria_producto = (existente or {}).get("categoria_producto")
+    categoria_producto = (categoria_producto or "").strip()
+    if categoria_producto:
+        entry["categoria_producto"] = categoria_producto
+    es_plantilla_categoria = body.get("es_plantilla_categoria")
+    if es_plantilla_categoria is None:
+        es_plantilla_categoria = (existente or {}).get("es_plantilla_categoria")
+    if es_plantilla_categoria:
+        entry["es_plantilla_categoria"] = True
     formulario = body.get("formulario")
     if formulario is None:
         formulario = (existente or {}).get("formulario")

@@ -1,6 +1,7 @@
 /** Tipos y formatos base del Editor de Plantillas Visuales. */
 
 import type { TipoEtiqueta } from "./etiquetasTipos";
+import { detectarCategoriaEn, type CategoriaEtiqueta } from "./categoriasEtiqueta";
 
 /** Mismo DPI que el lienzo en pantalla (96 ≈ tamaño real al 100% zoom). */
 export const ETIQUETA_IMPRESION_DPI = 96;
@@ -144,6 +145,11 @@ export interface PlantillaVisualDoc {
   ficha_mp?: Record<string, unknown>;
   /** Etiqueta física con cajas variables (`campoProducto`). No regenera layout. */
   formulario?: boolean;
+  /** Categoría de PRODUCTO (aceites, frutos secos…), id de CATEGORIAS_ETIQUETA.
+   *  Ojo: `categoria` (arriba) es el tipo de FORMATO — etiquetas/meli/banners. */
+  categoria_producto?: string;
+  /** Es LA plantilla de esa categoría: la que se usa para generar sus etiquetas. */
+  es_plantilla_categoria?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -1118,4 +1124,18 @@ export function fusionarMetadatosPlantillaTrasGuardar(
     created_at: servidor.created_at ?? local.created_at,
     updated_at: servidor.updated_at ?? local.updated_at,
   };
+}
+
+
+/** Categoría de producto de una plantilla.
+ *
+ *  Las 201 plantillas heredadas no la tienen guardada, así que se deduce del
+ *  nombre en vez de migrar el JSON: nada se reescribe en disco y el operador
+ *  puede fijarla a mano (entonces sí se persiste).
+ */
+export function categoriaProductoDe(
+  doc: Pick<PlantillaVisualDoc, "categoria_producto" | "nombre">,
+  cats: CategoriaEtiqueta[],
+): string {
+  return doc.categoria_producto || detectarCategoriaEn(cats, doc.nombre || "");
 }
