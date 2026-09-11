@@ -97,6 +97,11 @@ const PATRON_RETICULA: CSSProperties = {
 const ANCHO_DISENO = 960;
 /** Ancho máximo del marco de formato en pantalla. */
 const MARCO_MAX_ANCHO = 640;
+/** Filas del cuerpo (atributos + columna derecha). Alto mínimo = ícono 64 +
+ *  título ~26 + 3 renglones de texto (~51 px a 14 px) + relleno 20 → 160 px:
+ *  las tres filas miden lo mismo aunque una tenga 1 renglón y otra 3, y solo
+ *  crecen pasados los 3. */
+const FILAS_CUERPO = "repeat(3, minmax(160px, auto))";
 
 export interface EntradaFormularioEtiqueta {
   /** Abrir una plantilla o etiqueta guardada por su id. */
@@ -762,7 +767,10 @@ function ProductLabelFormInner({
         />
 
         {/* 4. Cuerpo principal + 7. columna derecha */}
-        <div className={`${RETICULA_MAESTRA} border-t-[1.5px] border-[color:var(--acento)]`}>
+        <div
+          className={`${RETICULA_MAESTRA} border-t-[1.5px] border-[color:var(--acento)]`}
+          style={{ gridTemplateRows: FILAS_CUERPO }}
+        >
           <ProductAttributeGrid
             data={data}
             onChange={onChange}
@@ -773,42 +781,50 @@ function ProductLabelFormInner({
 
           {/* pl 13px + borde 3px = pr 16px: el contenido queda centrado en
               el eje de la columna de la retícula (con px-4 simétrico el
-              borde lo corría 1.5px). justify-center: el bloque GHS /
-              documentos / pureza se centra también en vertical respecto al
-              alto que impone la cuadrícula de atributos. */}
-          <div className="flex flex-col items-center justify-center gap-[14px] border-l-[3px] border-[color:var(--acento)] py-4 pl-[13px] pr-4">
-            <GhsBadge
-              value={data.ghs}
-              onChange={(v) => onChange({ ghs: v })}
-              iconSvg={data.ghsIconSvg}
-              onIconChange={(svg) => onChange({ ghsIconSvg: svg })}
-              desplazamiento={data.ghsDesplazamiento ?? 0}
-              onDesplazamientoChange={(v) => onChange({ ghsDesplazamiento: v })}
-              editMode={editMode}
-            />
-            <TechnicalDocuments
-              technicalDocuments={data.technicalDocuments}
-              website={data.website}
-              onTechnicalDocumentsChange={(v) => onChange({ technicalDocuments: v })}
-              onWebsiteChange={(v) => onChange({ website: v })}
-              editMode={editMode}
-            />
-            <TechnicalIdentity
-              concentration={data.concentration}
-              cas={data.cas}
-              onConcentrationChange={(v) => onChange({ concentration: v })}
-              onCasChange={(v) => onChange({ cas: v })}
-              casTitulo={data.casTitulo}
-              onCasTituloChange={(v) => onChange({ casTitulo: v })}
-              editMode={editMode}
-            />
-            <CucharaMedidora
-              cantidad={data.cucharaCantidad ?? ""}
-              unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
-              onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
-              onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
-              editMode={editMode}
-            />
+              borde lo corría 1.5px). La columna hereda las 3 filas de los
+              atributos (subgrid): GHS + información técnica se centran en
+              vertical en las filas 1-2, y el cuadro Pureza/CAS + cuchara en
+              la fila 3 (Grado / Conservación). */}
+          <div
+            className="grid border-l-[3px] border-[color:var(--acento)] pl-[13px] pr-4"
+            style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
+          >
+            <div className="row-span-2 flex flex-col items-center justify-center gap-[14px] py-4">
+              <GhsBadge
+                value={data.ghs}
+                onChange={(v) => onChange({ ghs: v })}
+                iconSvg={data.ghsIconSvg}
+                onIconChange={(svg) => onChange({ ghsIconSvg: svg })}
+                desplazamiento={data.ghsDesplazamiento ?? 0}
+                onDesplazamientoChange={(v) => onChange({ ghsDesplazamiento: v })}
+                editMode={editMode}
+              />
+              <TechnicalDocuments
+                technicalDocuments={data.technicalDocuments}
+                website={data.website}
+                onTechnicalDocumentsChange={(v) => onChange({ technicalDocuments: v })}
+                onWebsiteChange={(v) => onChange({ website: v })}
+                editMode={editMode}
+              />
+            </div>
+            <div className="flex flex-col items-center justify-center gap-[14px] py-4">
+              <TechnicalIdentity
+                concentration={data.concentration}
+                cas={data.cas}
+                onConcentrationChange={(v) => onChange({ concentration: v })}
+                onCasChange={(v) => onChange({ cas: v })}
+                casTitulo={data.casTitulo}
+                onCasTituloChange={(v) => onChange({ casTitulo: v })}
+                editMode={editMode}
+              />
+              <CucharaMedidora
+                cantidad={data.cucharaCantidad ?? ""}
+                unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
+                onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
+                onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
+                editMode={editMode}
+              />
+            </div>
           </div>
         </div>
 

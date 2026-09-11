@@ -77,10 +77,10 @@ export default function ProductAttributeGrid({
   return (
     <div
       className="col-span-2 grid grid-cols-2 border-y-[1.5px] border-[color:var(--acento)]"
-      // Alto mínimo de fila = ícono 64 + título ~26 + 3 renglones de texto
-      // (~51 px a 14 px) + relleno 20 → 160 px: las tres filas miden lo mismo
-      // aunque una tenga 1 renglón y otra 3, y solo crecen pasados los 3.
-      style={{ gridTemplateRows: "repeat(3, minmax(160px, auto))" }}
+      // Las 3 filas las define el cuerpo de la ficha (FILAS_CUERPO en
+      // ProductLabelForm) y aquí se heredan con `subgrid`: así la columna
+      // derecha comparte exactamente las mismas líneas de fila.
+      style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
     >
       {celdas.map((c, i) => {
         const esColIzq = i % 2 === 0;

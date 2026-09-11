@@ -1,3 +1,61 @@
+### 2026-09-10 23:25 - Ficha de etiqueta: Pureza/CAS y cuchara centrados en su fila de la retícula
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño
+- **Qué se implementó:**
+  - La columna derecha de la ficha (GHS, información técnica, Pureza/CAS) ahora comparte las 3 filas de los atributos con CSS `subgrid`, en vez de centrarse sola sobre todo el alto.
+  - GHS + información técnica quedan centrados en las filas 1-2; el cuadro Pureza/CAS + la casilla de la cuchara, centrados en la fila 3 (Grado / Conservación). Las filas no cambian de alto (medido: 186 · 178 · 199 px en CITRATO POTASIO, 0 px de desfase del centro).
+  - El alto mínimo de fila (`FILAS_CUERPO`) pasó de `ProductAttributeGrid` al cuerpo de la ficha, que lo hereda a las dos columnas.
+  - Se quitan los archivos `.bak-*` que dejaron las tareas de hoy y que el auto-commit de las 23:00 subió al repo.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `ProductAttributeGrid.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-10 22:55 - Ficha de etiqueta: casilla "Incluye cuchara medidora de"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Casilla nueva debajo del cuadro Pureza/CAS: "Incluye cuchara medidora de: N g|mL aprox.", con el mismo trazo, radio y ancho que ese cuadro para no crear líneas nuevas en la retícula.
+  - En edición: número + desplegable g / mL; "aprox." es fijo. Sin número la casilla no se imprime (vista y PNG), así las etiquetas existentes no cambian.
+  - `cucharaCantidad` y `cucharaUnidad` se guardan en la ficha y forman parte de `CAMPOS_PLANTILLA`: la plantilla de categoría los hereda a las etiquetas nuevas. La cantidad se establece a mano en cada plantilla.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx` (nuevo), `ProductLabelForm.tsx`, `productLabelTypes.ts`
+
+
+### 2026-09-10 22:25 - Plantilla de Sales minerales con el diseño de CITRATO POTASIO 500g
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño
+- **Qué se implementó:**
+  - La plantilla de categoría "Plantilla de Sales minerales tamaño 500 g" (`e834e09ec492`) tomó los tamaños de letra de CITRATO POTASIO 500g, la etiqueta aprobada como modelo de la familia (nombre 39 → 30, clasificación 26 → 20). Logo y color siguen por producto.
+  - Pictograma GHS con desplazamiento vertical por ficha (`ghsDesplazamiento`, % de su caja, flechas ▲▼ en edición); −20 % en la plantilla, CITRATO POTASIO y CITRATO CALCIO. Solo se mueve el rombo con `transform`, la columna no se corre.
+  - Títulos elegibles desde el menú de tamaño/fuente del título: "Composición" o "Fórmula molecular" (`compositionTitulo`), "CAS" o "EINECS" (`casTitulo`).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/GhsBadge.tsx`, `EditableField.tsx`, `ProductAttribute.tsx`, `ProductAttributeGrid.tsx`, `TechnicalIdentity.tsx`, `ProductLabelForm.tsx`, `productLabelTypes.ts`, `app/data/etiquetas_fichas.json`
+
+
+### 2026-09-10 22:00 - Ficha de etiqueta: los íconos elegidos a mano siguen el color del logo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Los íconos de atributo elegidos en la galería se guardaban como `<img>` con el color de tinta fijo, así que Composición y Conservación (elegidos a mano en 8 fichas) no cambiaban al elegir otro logo.
+  - `ProductAttribute` ahora dibuja esos SVG en línea con el color cambiado a `currentColor`, igual que los íconos por defecto; un data URL que no sea SVG de la galería o traiga algo ejecutable sigue como `<img>`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`
+
+
+### 2026-09-10 21:40 - Logos corporativos: subir en masa, galería en ventana y eliminar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Menú del logo de la ficha: botón "+ Agregar imágenes a la carpeta" que guarda PNG/JPG/WEBP en `DISENO CORPORATIVO ` (el antiguo "Subir archivo…" pasa a "Usar sin guardar…").
+  - Botón "⤢ Galería": ventana con buscador, subida en masa (Shift/Ctrl en el explorador o arrastrando archivos), selección con Shift+clic, "Seleccionar todo" y eliminar uno o varios con confirmación dentro de la ventana.
+  - Eliminar no borra: mueve el archivo a `DISENO CORPORATIVO /.papelera/`. Rutas nuevas `POST /api/etiquetas/logos-corporativos` (subir, valida bytes reales, sin SVG, no sobrescribe) y `POST /api/etiquetas/logos-corporativos/eliminar` (requiere acceso a Studio).
+- **Archivos Modificados:** `app/routes.py`, `app/tools/logos_corporativos.py`, `desktop/src/lib/logosCorporativos.ts`, `desktop/src/components/etiqueta-ficha/ProductHeader.tsx`, `desktop/src/components/etiqueta-ficha/GaleriaLogosCorporativosModal.tsx` (nuevo)
+
+
+### 2026-09-10 20:25 - Studio → Recursos: botón para subir imágenes desde el ordenador
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Botón "⬆ Subir imágenes" en la biblioteca de Recursos, junto a "+ Carpeta": sube uno o varios JPG/PNG a la carpeta abierta, con progreso y aviso de los que fallan. Usa el mismo endpoint que la galería del editor.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`
+
+
 ### 2026-09-10 00:45 - Tarifas de envío: el bot cotizaba de memoria, no de la tabla (Bloque C)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de fondo (plata: se cobraba de menos y de más)
