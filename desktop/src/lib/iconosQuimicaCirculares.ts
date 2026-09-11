@@ -208,6 +208,21 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
 
   // --- COMPOSICIÓN ---
   {
+    id: "composicion_matraz",
+    nombre: "Matraz / Fórmula Química",
+    categoria: "composicion",
+    tags: ["composicion", "formula", "quimica", "matraz", "laboratorio", "erlenmeyer", "lineal"],
+    // Matraz Erlenmeyer lineal con nivel de líquido y dos burbujas (etiqueta 30 mL).
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <line x1="41" y1="18" x2="59" y2="18" stroke-width="5"/>
+      <path d="M45 18 L45 40 L28 72 C26 76 29 80 33 80 L67 80 C71 80 74 76 72 72 L55 40 L55 18" stroke-width="5"/>
+      <line x1="34" y1="62" x2="66" y2="62" stroke-width="4"/>
+      <circle cx="46" cy="71" r="2.5" stroke-width="3"/>
+      <circle cx="57" cy="68" r="2" stroke-width="3"/>
+    </svg>`,
+  },
+  {
     id: "composicion_molecula_enlazada",
     nombre: "Molécula Enlazada / Ball-and-Stick",
     categoria: "composicion",
@@ -328,8 +343,40 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
       <circle cx="55" cy="68" r="2.2" fill="currentColor" stroke="none"/>
     </svg>`,
   },
+  {
+    id: "apariencia_escamas",
+    nombre: "Escamas / Partículas",
+    categoria: "apariencia",
+    tags: ["apariencia", "escamas", "particulas", "hojuelas", "solido", "cristales", "lineal"],
+    // Hojuelas lineales sueltas y dos partículas (etiqueta 30 mL).
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M24 34 L40 26 L46 40 L30 47 Z" stroke-width="4.5"/>
+      <path d="M56 22 L72 28 L66 43 L51 37 Z" stroke-width="4.5"/>
+      <path d="M26 60 L42 55 L46 70 L30 75 Z" stroke-width="4.5"/>
+      <path d="M55 53 L71 50 L75 65 L59 69 Z" stroke-width="4.5"/>
+      <circle cx="50" cy="48" r="1.5" stroke-width="3"/>
+      <circle cx="50" cy="80" r="1.5" stroke-width="3"/>
+      <circle cx="78" cy="42" r="1.5" stroke-width="3"/>
+    </svg>`,
+  },
 
   // --- CALIDAD ---
+  {
+    id: "calidad_medalla_lineal",
+    nombre: "Medalla Lineal / Grado",
+    categoria: "calidad",
+    tags: ["calidad", "grado", "medalla", "sello", "certificacion", "lineal"],
+    // Medalla de contorno con cinta en V y chulo (etiqueta 30 mL): sin rellenos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M36 18 L44 43" stroke-width="5"/>
+      <path d="M64 18 L56 43" stroke-width="5"/>
+      <line x1="36" y1="18" x2="64" y2="18" stroke-width="5"/>
+      <circle cx="50" cy="61" r="18" stroke-width="5"/>
+      <path d="M42 61 L48 67 L59 55" stroke-width="5"/>
+    </svg>`,
+  },
   {
     id: "calidad_medalla",
     nombre: "Medalla & Cinta de Calidad",
@@ -374,6 +421,18 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
   },
 
   // --- CONSERVACIÓN ---
+  {
+    id: "conservacion_termometro",
+    nombre: "Termómetro / Temperatura",
+    categoria: "conservacion",
+    tags: ["conservacion", "almacen", "temperatura", "termometro", "fresco", "clima", "lineal"],
+    // Termómetro lineal con columna y tres marcas de escala (etiqueta 30 mL).
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M42 59 L42 26 A8 8 0 0 1 58 26 L58 59 A14 14 0 1 1 42 59 Z" stroke-width="5"/>
+      <path d="M65 28 H71 M65 41 H71 M65 54 H71" stroke-width="4"/>
+    </svg>`,
+  },
   {
     id: "conservacion_reloj_arena",
     nombre: "Reloj de Arena / Vida Útil",

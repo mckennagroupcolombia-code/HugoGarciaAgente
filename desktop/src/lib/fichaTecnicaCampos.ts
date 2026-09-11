@@ -5,6 +5,7 @@
  * pertenecía al viejo Formulario de etiqueta física / Estudio Visual, ya
  * removido) porque estas funciones no dependen de nada de ese sistema.
  */
+import { clasificacionSgaDesdeSds, codigosGhs } from "./ghsIconos";
 
 interface CodigoEanBuscable {
   nombre_producto: string;
@@ -161,7 +162,23 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   // seguro por defecto es "NO GHS": a diferencia de los demás campos, la
   // ausencia de dato SÍ tiene un valor correcto y conocido, así que no es
   // FICHA_SIN_DATO como el resto.
-  const ghs = pick(datos.ghs, datos.ghsCodigo, ident.ghs, coaIdent.ghs) || "NO GHS";
+  //
+  // Las fichas guardan los pictogramas en la sección de peligros de la SDS
+  // (`_sds.peligros.pictogramas`: "GHS07 - Nocivo\nH302: …"), no en un campo
+  // `ghs`. Sin leerla, ÁCIDO SALICÍLICO, CLORURO DE CALCIO, INULINA… salían
+  // como "NO GHS" y "No está clasificado como peligroso".
+  const sds = datos._sds && typeof datos._sds === "object" ? (datos._sds as Record<string, unknown>) : {};
+  const peligros =
+    sds.peligros && typeof sds.peligros === "object" ? (sds.peligros as Record<string, unknown>) : {};
+  const pictogramasSds = texto(peligros.pictogramas);
+  const codigosSds = codigosGhs(pictogramasSds);
+  const ghs =
+    pick(datos.ghs, datos.ghsCodigo, ident.ghs, coaIdent.ghs)
+    || (codigosSds.length > 0 ? codigosSds.join(", ") : "")
+    || "NO GHS";
+  // Clasificación corta (palabra de advertencia + frases H), solo si la SDS
+  // trae pictogramas de peligro; si no, la etiqueta pone la frase del SGA.
+  const clasificacionSga = clasificacionSgaDesdeSds(pictogramasSds, texto(peligros.clasificacion));
 
   const nombre = nombreRaw ? partirNombreEtiqueta(nombreRaw) : FICHA_SIN_DATO;
   const grado = gradoRaw || FICHA_SIN_DATO;
@@ -175,6 +192,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     concentracionValor: concentracionRaw || FICHA_SIN_DATO,
     casNumero: casRaw || FICHA_SIN_DATO,
     ghs,
+    clasificacionSga,
     origen: origenRaw || FICHA_SIN_DATO,
     apariencia: aparienciaRaw || FICHA_SIN_DATO,
     olor: olorRaw || FICHA_SIN_DATO,

@@ -16,7 +16,11 @@ export default function GaleriaGhsModal({
   codigoActual,
   onCerrar,
   onElegir,
+  circuloNoGhs = false,
 }: {
+  /** Etiqueta 30 mL: ofrece también el círculo «¡NO GHS» (su marca sin
+   *  peligro por defecto); al elegirlo llega `onElegir("", "NO GHS")`. */
+  circuloNoGhs?: boolean;
   abierta: boolean;
   /** Código ya puesto en la ficha ("GHS07", "NO GHS") para resaltarlo. */
   codigoActual?: string;
@@ -65,6 +69,25 @@ export default function GaleriaGhsModal({
 
         <div className="flex-1 overflow-y-auto p-4">
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+            {circuloNoGhs && (
+              <button
+                type="button"
+                onClick={() => {
+                  onElegir("", "NO GHS");
+                  onCerrar();
+                }}
+                title="Sin clasificación GHS — círculo de la etiqueta"
+                className={`${tarjeta} ${tarjetaNormal}`}
+              >
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[3px] border-accent text-[13px] font-extrabold leading-none text-ink">
+                  ¡NO
+                  <br />
+                  GHS
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-accent">NO GHS</span>
+                <span className="text-[11px] font-semibold leading-tight text-ink">Círculo</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => elegirSvg(svgNoGhs, "NO GHS")}

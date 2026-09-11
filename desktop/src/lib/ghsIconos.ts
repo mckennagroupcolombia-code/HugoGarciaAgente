@@ -220,3 +220,37 @@ export const GHS_ICONOS: GHSIcono[] = [
     svg: makeGHSSvg(GHS09_SYMBOL),
   },
 ];
+
+/** Códigos de pictograma (GHS01…GHS09) presentes en un texto, sin repetir y
+ *  en el orden en que aparecen: "GHS07 - Nocivo", "GHS07, GHS09", "GHS007".
+ *  "GHS00" / "No aplica" no cuentan (no hay pictograma). */
+export function codigosGhs(texto: string | undefined | null): string[] {
+  const codigos: string[] = [];
+  for (const m of (texto || "").matchAll(/GHS\s*0*([1-9])(?!\d)/gi)) {
+    const codigo = `GHS0${m[1]}`;
+    if (!codigos.includes(codigo)) codigos.push(codigo);
+  }
+  return codigos;
+}
+
+/** SVG del pictograma oficial de un código ("GHS07" → rombo con exclamación),
+ *  o null si el código no está en la lista. */
+export function svgPictogramaGhs(codigo: string): string | null {
+  return GHS_ICONOS.find((i) => i.codigo === codigo.trim().toUpperCase())?.svg ?? null;
+}
+
+/** Clasificación corta para la etiqueta a partir de la sección de peligros de
+ *  la SDS: palabra de advertencia + frases H. "" si la SDS no trae
+ *  pictogramas de peligro. */
+export function clasificacionSgaDesdeSds(pictogramas: string, clasificacion: string): string {
+  if (codigosGhs(pictogramas).length === 0) return "";
+  const palabra = /palabra de advertencia\s*:?\s*(peligro|atenci[oó]n)/i.exec(`${clasificacion} ${pictogramas}`);
+  const frasesH = [...new Set((pictogramas.match(/\bH\d{3}\b/g) ?? []).map((h) => h.toUpperCase()))];
+  // "Peligro. Frases H: H302, H315, H319." — la palabra de advertencia solo
+  // si la SDS la dice (no se adivina entre Peligro y Atención).
+  const partes = [
+    palabra ? `${palabra[1][0].toUpperCase()}${palabra[1].slice(1).toLowerCase()}` : "",
+    frasesH.length ? `Frases H: ${frasesH.join(", ")}` : "",
+  ].filter(Boolean);
+  return partes.length ? `${partes.join(". ")}.` : "";
+}

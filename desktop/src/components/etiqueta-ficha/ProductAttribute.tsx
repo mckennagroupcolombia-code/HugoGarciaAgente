@@ -7,7 +7,7 @@ import EditableField, { EditableLabel } from "./EditableField";
  *  SVG con ese color cambiado a `currentColor` para dibujarlo en línea, o
  *  null si no es un SVG de la galería (o trae algo ejecutable) — ahí se
  *  sigue usando <img>. */
-function svgElegidoConAcento(src: string | undefined): string | null {
+export function svgElegidoConAcento(src: string | undefined): string | null {
   if (!src || !src.startsWith("data:image/svg+xml")) return null;
   const coma = src.indexOf(",");
   if (coma < 0) return null;

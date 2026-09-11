@@ -30,6 +30,7 @@ const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
   almacenamiento: "storage",
   peso: "netContent",
   ghs: "ghs",
+  clasificacionSga: "clasificacionTexto",
 };
 
 const LISTA_TTL_MS = 5 * 60_000;
@@ -72,5 +73,8 @@ export async function cargarPatchDesdeFichaTecnica(fichaId: string): Promise<Par
       Boolean(valor) && !String(valor).toLowerCase().includes(FICHA_SIN_DATO.toLowerCase());
     destinoTexto[destino] = tieneValor ? (valor as string) : "";
   }
+  // El pictograma lo decide el código GHS de ESTA ficha: se quita el que se
+  // hubiera elegido a mano en la galería (podía ser de otro producto).
+  patch.ghsIconSvg = "";
   return patch;
 }

@@ -41,6 +41,11 @@ export interface ProductLabelData {
   /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
   cucharaCantidad?: string;
   cucharaUnidad?: string;
+  /** Formato 30 mL: grado del subtítulo "INSUMO GRADO …" (sin dato = COSMÉTICO). */
+  gradoInsumo?: string;
+  /** Formato 30 mL: texto de clasificación SGA (vacío = frase por defecto si
+   *  el producto no es peligroso). */
+  clasificacionTexto?: string;
 
   technicalDocuments: string;
   website: string;
@@ -143,6 +148,7 @@ export const CAMPOS_PLANTILLA = [
   "casTitulo",
   "cucharaCantidad",
   "cucharaUnidad",
+  "gradoInsumo",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
 export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
@@ -168,6 +174,7 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   storage: "",
   ghs: "NO GHS",
   ghsIconSvg: "",
+  clasificacionTexto: "",
   technicalDocuments: "TDS - COA",
   website: "www.mckennagroup.co",
   netContent: "",
@@ -199,6 +206,7 @@ export const CAMPOS_PRODUCTO = [
   "netContent",
   "ghs",
   "ghsIconSvg",
+  "clasificacionTexto",
   "barcode",
   "barcodeTitle",
   "fichaTecnicaId",

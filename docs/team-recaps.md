@@ -1,3 +1,27 @@
+### 2026-09-11 13:58 - GHS: los pictogramas de la ficha técnica ya llegan a la etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - **Causa:** las fichas guardan los pictogramas en la sección de peligros de la SDS (`_sds.peligros.pictogramas`: «GHS07 - Nocivo…»), pero el autollenado solo leía un campo `ghs` que ninguna ficha tiene. ÁCIDO SALICÍLICO, ÁCIDO AZELAICO, CLORURO y CARBONATO DE CALCIO, L-ARGININA e INULINA salían como «NO GHS» y «No está clasificado como peligroso». Probado contra las 238 fichas: ahora esos 7 productos (8 fichas) salen como GHS07.
+  - `camposDesdeFichaTecnica` lee los códigos de la SDS y arma una clasificación corta con la palabra de advertencia y las frases H («Peligro. Frases H: H302, H315, H319.»), que llena la clasificación de la etiqueta de 30 mL.
+  - El rombo que se dibuja es el pictograma oficial del código (`lib/ghsIconos`: `codigosGhs`, `svgPictogramaGhs`), no un marco vacío con el número; aplica también a la ficha de 250/500 g.
+  - Cargar un SKU o una ficha quita el pictograma elegido a mano antes (podía ser de otro producto); un pictograma elegido mientras la ficha aún carga ya no se pisa.
+- **Archivos Modificados:** `desktop/src/lib/ghsIconos.ts`, `fichaTecnicaCampos.ts`, `fichaTecnicaAplicar.ts`, `desktop/src/components/etiqueta-ficha/GhsBadge.tsx`, `GaleriaGhsModal.tsx`, `ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-11 13:55 - Etiqueta de 30 mL: tres paneles horizontales, editada igual que la de 250/500 g
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al elegir el formato «30 mL» (102 × 38 mm) el formulario de etiquetas usa una composición propia de tres paneles: matriz técnica 2 × 3 (Fórmula química o Composición, Grado, Conservación, Origen, Apariencia, Olor) con franja de ubicación y teléfono · logo, nombre, «INSUMO GRADO COSMÉTICO/ALIMENTARIO/AGRO/INDUSTRIAL», tabla Concentración/CAS y contenido neto · información técnica, web, clasificación GHS, código EAN-13 y franja de correo.
+  - Mismo objeto de datos, SKU, ficha técnica, logo con su color, autoguardado, plantillas por categoría y generación en lote que la ficha de 76 × 66. Se edita igual: directamente sobre la etiqueta, con menú de tamaño/fuente, clic en íconos, logo, GHS y código de barras.
+  - Retícula en CSS Grid calculada del formato: las líneas de las filas coinciden en los tres paneles. El texto se encoge si no cabe en su casilla y se marca en rojo si ni así cabe. Rellenos de un solo color, esquinas de 10 px.
+  - Cuatro íconos lineales nuevos en la galería (matraz, medalla, termómetro, escamas). El menú de logos corporativos quedó como componente compartido (`MenuLogoCorporativo`) y `BarcodeBlock` acepta clases para reutilizarse.
+  - Botones nuevos en el encabezado para todos los formatos: «Imprimir» (solo la etiqueta, a tamaño real) y «Restablecer datos» (vuelve a cargar el SKU y su ficha técnica).
+  - Datos nuevos en la ficha: `gradoInsumo` (de plantilla) y `clasificacionTexto` (de producto).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/` (nuevo), `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `ProductHeader.tsx`, `MenuLogoCorporativo.tsx` (nuevo), `BarcodeBlock.tsx`, `ProductAttribute.tsx`, `productLabelTypes.ts`, `desktop/src/lib/iconosQuimicaCirculares.ts`, `docs/team-recaps.md`
+
+
 ### 2026-09-11 00:45 - La plantilla nunca cambia: elegir un SKU en ella abre una etiqueta nueva
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección

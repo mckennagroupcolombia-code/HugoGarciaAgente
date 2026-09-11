@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import GaleriaGhsModal from "./GaleriaGhsModal";
 import { ghsSvgADataUrl, marcoGhsSvg } from "../GHSIconsPicker";
+import { codigosGhs, svgPictogramaGhs } from "../../lib/ghsIconos";
 
 /** Estado GHS — mismo patrón que los íconos de atributo: el pictograma es
  *  un botón; en edición, clic abre la galería GHS y un clic allí lo
@@ -17,9 +18,17 @@ const TAMANO_ROMBO = 124;
 const DESPLAZAMIENTO_PASO = 5;
 const DESPLAZAMIENTO_MAX = 50;
 
+/** Rombo del texto `value`: el pictograma oficial del (primer) código
+ *  ("GHS07 - Nocivo" → exclamación); un código fuera de la lista, el marco
+ *  con su número; sin código, "NO GHS". */
 function pictogramaPorDefecto(value: string): string {
+  const [codigo] = codigosGhs(value);
   const m = /GHS\s*0*(\d{1,3})/i.exec(value || "");
-  const svg = m ? marcoGhsSvg(m[1].padStart(3, "0"), false) : marcoGhsSvg("", true);
+  const svg = codigo
+    ? svgPictogramaGhs(codigo) ?? marcoGhsSvg(codigo.slice(3).padStart(3, "0"), false)
+    : m
+      ? marcoGhsSvg(m[1].padStart(3, "0"), false)
+      : marcoGhsSvg("", true);
   return ghsSvgADataUrl(svg);
 }
 

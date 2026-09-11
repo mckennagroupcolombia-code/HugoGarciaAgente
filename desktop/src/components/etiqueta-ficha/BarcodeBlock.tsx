@@ -20,11 +20,19 @@ export default function BarcodeBlock({
   onChange,
   onElegirCodigo,
   editMode,
+  className = "relative flex flex-col items-center justify-center gap-1.5 px-4 py-2.5",
+  claseBoton = "",
+  claseImagen = "h-auto w-full max-w-[280px]",
 }: {
   value: string;
   onChange: (v: string) => void;
   onElegirCodigo?: (codigo: CodigoEan) => void;
   editMode: boolean;
+  /** Clases del contenedor, del botón y de la imagen: la etiqueta de 30 mL
+   *  usa el mismo bloque (y el mismo buscador de SKU) con sus medidas. */
+  className?: string;
+  claseBoton?: string;
+  claseImagen?: string;
 }) {
   const ean = useMemo(() => generarEAN13(value), [value]);
 
@@ -50,19 +58,19 @@ export default function BarcodeBlock({
   };
 
   return (
-    <div ref={wrapRef} className="relative flex flex-col items-center justify-center gap-1.5 px-4 py-2.5">
+    <div ref={wrapRef} className={className}>
       {ean ? (
         <button
           type="button"
           disabled={!editMode}
           onClick={() => setBuscadorAbierto((v) => !v)}
           title={editMode ? "Buscar por SKU" : undefined}
-          className={`rounded-sm ${editMode ? "cursor-pointer hover:ring-2 hover:ring-[color:var(--acento-50)]" : "cursor-default"}`}
+          className={`${claseBoton} rounded-sm ${editMode ? "cursor-pointer hover:ring-2 hover:ring-[color:var(--acento-50)]" : "cursor-default"}`}
         >
           <img
             src={svgToDataUrl(ean.svg)}
             alt={`Código de barras ${ean.digits}`}
-            className="h-auto w-full max-w-[280px]"
+            className={claseImagen}
           />
         </button>
       ) : editMode ? (

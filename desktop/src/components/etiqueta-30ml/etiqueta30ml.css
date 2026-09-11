@@ -1,0 +1,679 @@
+/*
+ * Etiqueta 30 mL — tres paneles horizontales.
+ *
+ * Toda la estructura es CSS Grid: etiqueta (3 columnas iguales), matriz del
+ * panel izquierdo (2 × 3 + franja), filas del panel central y derecho, tabla
+ * técnica y franjas. Rellenos de un solo color (sin degradados). Las medidas
+ * llegan como variables desde `variables30ml`
+ * (retícula calculada del formato) y el color, del logo elegido (--acento).
+ * Las pistas usan minmax(0, …): el contenido nunca cambia el ancho ni el alto
+ * de una columna o fila; el texto se encoge (useAjusteTexto).
+ */
+
+.e30-etiqueta {
+  box-sizing: border-box;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: var(--e30-separacion);
+  padding: var(--e30-margen);
+  overflow: hidden;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.e30-etiqueta *,
+.e30-etiqueta *::before,
+.e30-etiqueta *::after {
+  box-sizing: border-box;
+  font-style: normal;
+}
+
+.e30-etiqueta p,
+.e30-etiqueta h1 {
+  margin: 0;
+}
+
+/* ── Edición en el sitio (CampoEtiqueta), mismo trato que EditableField:
+      el texto se vuelve casilla sin cambiar de tamaño ni de sitio. Va antes
+      que las reglas de cada texto (misma especificidad baja) para que el
+      color, peso y tamaño de cada una sigan mandando. ────────────────────── */
+
+.e30-campo-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+:where(.e30-etiqueta) .e30-campo {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px dashed transparent;
+  border-radius: 2px;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-family: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-align: center;
+  text-transform: inherit;
+  resize: none;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+:where(.e30-etiqueta) .e30-campo:hover {
+  border-color: var(--acento-50);
+}
+:where(.e30-etiqueta) .e30-campo:focus {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+}
+:where(.e30-etiqueta) .e30-campo::placeholder {
+  color: #a8a8a8;
+  opacity: 1;
+}
+:where(.e30-etiqueta) .e30-campo-oscuro:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+:where(.e30-etiqueta) .e30-campo-oscuro:focus {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
+}
+:where(.e30-etiqueta) .e30-campo-oscuro::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Texto que no cabe ni al tamaño mínimo: solo se marca en edición. */
+.e30-editando .e30-desborde {
+  border-color: #dc2626 !important;
+  outline: 1px dashed #dc2626;
+  outline-offset: 1px;
+}
+
+/* ── Paneles ─────────────────────────────────────────────────────────────── */
+
+.e30-panel {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: var(--e30-borde) solid var(--acento);
+  border-radius: var(--e30-radio);
+}
+
+.e30-panel-izq {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr)) var(--e30-franja);
+}
+
+.e30-panel-centro {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--e30-fila) minmax(0, 1fr) var(--e30-neto);
+}
+
+.e30-panel-der {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr)) var(--e30-franja);
+}
+
+.e30-panel > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Líneas divisorias: bordes de la propia casilla (no cambian las pistas). */
+.e30-linea-der {
+  border-right: var(--e30-linea) solid var(--acento);
+}
+.e30-linea-inf {
+  border-bottom: var(--e30-linea) solid var(--acento);
+}
+.e30-linea-sup {
+  border-top: var(--e30-linea) solid var(--acento);
+}
+
+/* Dato vacío en edición: ejemplo de referencia en gris (no se imprime). */
+.e30-etiqueta .e30-ejemplo {
+  color: #a8a8a8 !important;
+}
+
+/* ── Celda técnica (panel izquierdo) ─────────────────────────────────────── */
+
+.e30-celda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 12px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.e30-celda-icono {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 0 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--acento);
+  cursor: default;
+}
+.e30-celda-icono:not(:disabled) {
+  cursor: pointer;
+}
+.e30-celda-icono:not(:disabled):hover {
+  background: var(--acento-suave);
+}
+
+.e30-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.e30-svg > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+/* Trazo uniforme en todos los íconos: el CSS manda sobre el atributo
+   stroke-width de cada SVG de la galería. 4.8 unidades × 1.3 (acercamiento
+   sin círculo) × 0.38 px/unidad ≈ 2.4 px en la caja de 38 px — el mismo
+   peso relativo de un trazo de 3 px en un ícono de ~48 px. */
+.e30-svg > svg * {
+  stroke-width: 4.8;
+}
+
+.e30-celda-titulo {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--acento);
+}
+
+.e30-celda-valor {
+  width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.18;
+  color: #1a1a1a;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* ── Franjas inferiores ──────────────────────────────────────────────────── */
+
+.e30-franja {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  background: var(--acento);
+  color: #ffffff;
+}
+
+.e30-franja-dato {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  height: 56%;
+  padding: 0 10px;
+}
+.e30-franja-dato + .e30-franja-dato {
+  border-left: 1.5px solid rgba(255, 255, 255, 0.92);
+}
+
+.e30-franja-icono {
+  display: flex;
+  flex: none;
+  color: #ffffff;
+}
+.e30-franja-icono svg {
+  width: 26px;
+  height: 26px;
+}
+
+/* En edición la casilla mide lo que su texto, para que ícono + dato sigan
+   centrados como una unidad (sin field-sizing, el navegador usa su ancho
+   por defecto). */
+.e30-franja-dato > .e30-campo-wrap {
+  flex: 0 1 auto;
+  width: auto;
+}
+.e30-franja-dato .e30-campo {
+  width: auto;
+  max-width: 100%;
+  min-width: 3ch;
+  field-sizing: content;
+}
+
+.e30-franja-texto {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.e30-franja .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ── Panel central ───────────────────────────────────────────────────────── */
+
+.e30-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.e30-logo-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70%;
+  height: 100%;
+  padding: 0;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: default;
+}
+.e30-logo-caja:not(:disabled) {
+  cursor: pointer;
+}
+.e30-logo-caja:not(:disabled):hover {
+  border-color: var(--acento);
+}
+.e30-logo-caja img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.e30-logo-vacio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1.5px dashed #c8c8c8;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a8a8a8;
+}
+
+.e30-identidad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  overflow: hidden;
+}
+
+.e30-nombre-caja {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.e30-nombre-caja > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Lupa de fichas técnicas junto al nombre (solo en edición). */
+.e30-nombre-caja > .e30-lupa {
+  flex: none;
+  align-self: center;
+}
+
+.e30-nombre {
+  width: 100%;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  color: var(--acento);
+}
+
+.e30-subtitulo {
+  flex: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--acento);
+}
+
+.e30-grado-boton {
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1.5px dashed var(--acento);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.e30-tabla {
+  display: grid;
+  flex: none;
+  grid-template-columns: 49% 51%;
+  grid-template-rows: repeat(2, 28px);
+  width: 87%;
+  border: 1.75px solid var(--acento);
+}
+
+.e30-tabla-campo,
+.e30-tabla-valor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.e30-tabla-campo {
+  border-right: 1.75px solid var(--acento);
+  background: var(--acento-suave);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--acento);
+}
+
+.e30-tabla-valor {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+}
+
+.e30-tabla-fila1 {
+  border-bottom: 1.75px solid var(--acento);
+}
+
+.e30-neto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px 14px;
+  overflow: hidden;
+}
+
+.e30-neto-titulo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.e30-neto-valor {
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #111111;
+}
+
+/* ── Panel derecho ───────────────────────────────────────────────────────── */
+
+.e30-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.e30-info-titulo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.e30-info-docs {
+  max-width: 94%;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: #111111;
+}
+
+.e30-info-disp {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.e30-web {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 94%;
+  height: 27px;
+  margin-top: 3px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--acento);
+  color: #ffffff;
+}
+
+.e30-web-texto {
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.e30-web .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.e30-clasif {
+  display: grid;
+  grid-template-columns: 32% 68%;
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.e30-clasif-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 10px 0 10px 10px;
+}
+
+.e30-ghs-boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: default;
+}
+.e30-ghs-boton:not(:disabled) {
+  cursor: pointer;
+}
+.e30-ghs-boton:not(:disabled):hover {
+  border-color: var(--acento);
+}
+
+.e30-ghs-circulo {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 74px;
+  padding: 8px;
+  border: 2.5px solid var(--acento);
+  border-radius: 50%;
+  text-align: center;
+}
+
+.e30-ghs-texto {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #111111;
+}
+
+.e30-ghs-pictogramas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  max-width: 100%;
+}
+.e30-ghs-pictograma {
+  display: block;
+  width: 80px;
+  max-width: 100%;
+  height: 80px;
+  object-fit: contain;
+}
+/* Varios pictogramas: dos lado a lado; tres en triángulo (2 + 1). El
+   contenedor lleva ancho fijo (dos rombos + separación): ajustado a su
+   contenido, los apilaba en columna. */
+.e30-ghs-n2 {
+  width: 106px;
+}
+.e30-ghs-n2 .e30-ghs-pictograma {
+  width: 52px;
+  height: 52px;
+}
+.e30-ghs-n3 {
+  width: 94px;
+}
+.e30-ghs-n3 .e30-ghs-pictograma {
+  width: 46px;
+  height: 46px;
+}
+
+.e30-clasif-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 14px 10px 6px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.e30-clasif-titulo {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.e30-clasif-valor {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #1a1a1a;
+}
+
+.e30-barras {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+.e30-barras-boton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.e30-barras-img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ── Guías de la retícula (casilla «Retícula», solo en edición: el PNG y la
+      impresión se generan en modo vista y no las llevan). ───────────────── */
+
+.e30-guias .e30-panel > *,
+.e30-guias .e30-tabla > * {
+  outline: 1px dashed rgba(0, 140, 255, 0.8);
+  outline-offset: -1px;
+}

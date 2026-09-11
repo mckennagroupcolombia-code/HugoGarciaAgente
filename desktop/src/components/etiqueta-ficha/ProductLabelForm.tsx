@@ -66,6 +66,10 @@ import {
   idPlantillaCategoria,
   PLANTILLA_FICHA_ID,
 } from "../../lib/categoriasEtiqueta";
+import LabelPreview from "../etiqueta-30ml/LabelPreview";
+import Marco30ml from "../etiqueta-30ml/Marco30ml";
+import { ANCHO_30ML, esFormato30ml, esPeligrosoGhs, reticula30ml } from "../etiqueta-30ml/etiqueta30mlTypes";
+import { imprimirImagenEtiqueta } from "../etiqueta-30ml/imprimirEtiqueta";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -141,6 +145,10 @@ function ProductLabelFormInner({
 
   const [tipoNombre, setTipoNombre] = useState("");
   const tipo: TipoEtiqueta | undefined = tipos.find((t) => t.nombre === tipoNombre);
+  /** El formato 30 mL es otra composición (tres paneles horizontales) con
+   *  su propio formulario; el resto de formatos usa la ficha de 76 × 66. */
+  const es30ml = esFormato30ml(tipoNombre);
+  const anchoDiseno = es30ml ? ANCHO_30ML : ANCHO_DISENO;
 
   // "inicio": elegir Formato + SKU (o abrir una ficha guardada) — la ficha
   // no se muestra ni carga nada hasta entonces. "formulario": la ficha.
@@ -170,7 +178,14 @@ function ProductLabelFormInner({
     });
   };
 
-  const onChange = (patch: Partial<ProductLabelData>) => setData((d) => ({ ...d, ...patch }));
+  /** Cambios del GHS hechos a mano (galería): la ficha técnica llega en
+   *  segundo plano tras elegir el SKU y no debe pisar un pictograma que el
+   *  operador eligió mientras tanto. */
+  const cambiosGhsRef = useRef(0);
+  const onChange = (patch: Partial<ProductLabelData>) => {
+    if ("ghs" in patch || "ghsIconSvg" in patch) cambiosGhsRef.current += 1;
+    setData((d) => ({ ...d, ...patch }));
+  };
   const onIconChange = (campo: AttributeKey, svgDataUrl: string) =>
     setAttributeIcons((prev) => ({ ...prev, [campo]: svgDataUrl }));
 
@@ -392,7 +407,12 @@ function ProductLabelFormInner({
           : fichaDesdePlantilla(previa)
         : fichaDesdePlantilla(plantillaBase),
     );
-    setAttributeIcons(previa?.attribute_icons ?? plantillaBase?.attribute_icons ?? {});
+    // La etiqueta de 30 mL tiene su propio juego de íconos (matraz, medalla,
+    // termómetro…): partiendo de una plantilla de otro formato no se heredan.
+    const mismoDiseno = esFormato30ml(tamano) === esFormato30ml(previa?.tipo_nombre);
+    setAttributeIcons(
+      mismoDiseno ? (previa?.attribute_icons ?? plantillaBase?.attribute_icons ?? {}) : {},
+    );
     reemplazarEstilos(previa?.text_styles ?? plantillaBase?.text_styles ?? {});
     setNombreFicha(nombre);
     setFichaId(null);
@@ -487,6 +507,7 @@ function ProductLabelFormInner({
     onChange({ barcodeTitle: titulo, ...(neto ? { netContent: neto } : {}) });
     const claves = palabrasClave(titulo);
     setEnlace({ tipo: "info", texto: `Buscando ficha técnica para "${titulo}"…` });
+    const ghsAntes = cambiosGhsRef.current;
     try {
       const fichas = await listarFichasTecnicas();
       const mejor = mejorFichaParaTitulo(fichas, titulo);
@@ -502,6 +523,12 @@ function ProductLabelFormInner({
         return;
       }
       const patch = await cargarPatchDesdeFichaTecnica(mejor.ficha.id);
+      if (cambiosGhsRef.current !== ghsAntes) {
+        // Se eligió un pictograma a mano mientras cargaba la ficha: manda ese.
+        delete patch.ghs;
+        delete patch.ghsIconSvg;
+        delete patch.clasificacionTexto;
+      }
       onChange({
         ...patch,
         ...(neto ? { netContent: neto } : {}),
@@ -577,7 +604,7 @@ function ProductLabelFormInner({
       // ancho_mm a 300dpi. Sin Formato ("tamaño libre"): escala fija alta
       // (960px de diseño × 3 ≈ 2880px), suficiente para imprimir bien sin
       // un tamaño físico de referencia.
-      const pixelRatio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / ANCHO_DISENO : 3;
+      const pixelRatio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / anchoDiseno : 3;
 
       const { toBlob } = await import("html-to-image");
       const blob = await toBlob(el, {
@@ -675,18 +702,63 @@ function ProductLabelFormInner({
     new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   /** Rasteriza la ficha tal como está ahora mismo en pantalla. */
-  const rasterizarFichaActual = async (): Promise<{ blob: Blob; anchoMm?: number; altoMm?: number; ratio: number }> => {
+  const rasterizarFichaActual = async (
+    DPI_IMPRESION = 300,
+  ): Promise<{ blob: Blob; anchoMm?: number; altoMm?: number; ratio: number }> => {
     const el = fichaRef.current;
     if (!el) throw new Error("La ficha no está montada");
     if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
-    const DPI_IMPRESION = 300;
     const anchoMm = tipo?.ancho_mm;
     const altoMm = tipo?.alto_mm;
-    const ratio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / ANCHO_DISENO : 3;
+    const ratio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / anchoDiseno : 3;
     const { toBlob } = await import("html-to-image");
     const blob = await toBlob(el, { pixelRatio: ratio, backgroundColor: "#ffffff", cacheBust: true });
     if (!blob) throw new Error("No se pudo rasterizar la ficha");
     return { blob, anchoMm, altoMm, ratio };
+  };
+
+  /** Imprime solo la etiqueta (formato 30 mL): se rasteriza en modo vista a
+   *  600 dpi y va a un iframe con la hoja del tamaño real, sin el formulario. */
+  const [imprimiendo, setImprimiendo] = useState(false);
+  const imprimirEtiqueta = async () => {
+    if (imprimiendo || guardando) return;
+    setImprimiendo(true);
+    setGuardarMsg(null);
+    const estabaEditando = editMode;
+    try {
+      if (estabaEditando) {
+        setEditMode(false);
+        await esperarRepintado();
+      }
+      const { blob, anchoMm, altoMm } = await rasterizarFichaActual(600);
+      await imprimirImagenEtiqueta(blob, anchoMm ?? 102, altoMm ?? 38);
+    } catch (e) {
+      setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo imprimir la etiqueta" });
+    } finally {
+      if (estabaEditando) setEditMode(true);
+      setImprimiendo(false);
+    }
+  };
+
+  /** Restablecer: borra lo escrito a mano en los datos de producto y, en una
+   *  etiqueta con SKU, los vuelve a cargar de su código de barras y su ficha
+   *  técnica. El diseño (logo, color, contacto, íconos) no se toca. */
+  const { data: codigosEan } = useCodigosEan();
+  const esPlantillaEnEdicion = esPlantillaDeCategoria || esPlantillaNueva;
+  const [confirmarRestablecer, setConfirmarRestablecer] = useState(false);
+
+  /** Retícula de la etiqueta 30 mL, calculada de las medidas del formato. */
+  const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  const clasificacionContradice =
+    esPeligrosoGhs(data.ghs) && /no\s+est[aá]\s+clasificad/i.test(data.clasificacionTexto || "");
+  const restablecerDatos = () => {
+    const digitos = (data.barcode || "").replace(/\D/g, "");
+    const codigo = esPlantillaEnEdicion
+      ? undefined
+      : (codigosEan ?? []).find((c) => (c.codigo || "").replace(/\D/g, "").slice(0, 13) === digitos);
+    setData((d) => ({ ...sinDatosDeProducto(d), barcode: esPlantillaEnEdicion ? "" : d.barcode }));
+    setEnlace(null);
+    if (codigo) void onElegirCodigo(codigo, true);
   };
 
   const generarLoteCategoria = async () => {
@@ -1136,8 +1208,59 @@ function ProductLabelFormInner({
           >
             {guardando && !previa ? "Generando…" : "Guardar PNG para imprimir"}
           </button>
+          <button
+            type="button"
+            onClick={() => void imprimirEtiqueta()}
+            disabled={imprimiendo || guardando || !tipo}
+            title={
+              tipo
+                ? "Imprime solo la etiqueta, a su tamaño real y sin el formulario"
+                : "Elige un Formato para imprimir a tamaño real"
+            }
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {imprimiendo ? "Preparando…" : "Imprimir"}
+          </button>
         </div>
       </header>
+
+      {/* Restablecer (etiquetas de producto; en una plantilla hace lo mismo
+          «Limpiar plantilla»). */}
+      {!esPlantillaEnEdicion && (
+        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+          {confirmarRestablecer ? (
+            <span className="flex flex-wrap items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+              ¿Borrar lo escrito a mano y volver a cargar los datos del SKU y su ficha técnica? El diseño se conserva.
+              <button
+                type="button"
+                onClick={() => {
+                  restablecerDatos();
+                  setConfirmarRestablecer(false);
+                }}
+                className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
+              >
+                Sí, restablecer
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmarRestablecer(false)}
+                className="rounded border border-red-300 bg-white px-2 py-0.5 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmarRestablecer(true)}
+              title="Vuelve a cargar los datos del SKU y su ficha técnica"
+              className="rounded-lg border border-border bg-surface px-3 py-1 font-semibold text-ink hover:bg-surface-hover"
+            >
+              Restablecer datos
+            </button>
+          )}
+        </div>
+      )}
 
       {guardarMsg && (
         <p className={`mb-2 text-[12px] ${guardarMsg.ok ? "text-accent" : "text-red-600"}`}>
@@ -1207,14 +1330,43 @@ function ProductLabelFormInner({
         </p>
       )}
 
-      {marco && (
+      {marco && !es30ml && (
         <p className="mb-2 text-[11px] text-muted">
           Ajustada a {tipo?.nombre} ({tipo && formatoMedidasEtiqueta(tipo.ancho_mm, tipo.alto_mm)}) — el marco
           punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
         </p>
       )}
 
-      {marco ? (
+      {es30ml && clasificacionContradice && (
+        <p role="alert" className="mb-2 text-[12px] font-semibold text-red-600">
+          ⚠ El producto tiene pictograma de peligro ({data.ghs}), pero la clasificación dice que no
+          está clasificado como peligroso. Corrige el texto antes de imprimir.
+        </p>
+      )}
+
+      {es30ml ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted">
+            Ajustada a {tipo?.nombre ?? "30 mL"} (
+            {tipo ? formatoMedidasEtiqueta(tipo.ancho_mm, tipo.alto_mm) : "102 × 38 mm"}) — el marco
+            punteado es el tamaño real de la etiqueta. En edición, lo gris es un ejemplo de
+            referencia y no se imprime.
+          </p>
+          <Marco30ml reticula={reticula30}>
+            <LabelPreview
+              ref={fichaRef}
+              data={data}
+              reticula={reticula30}
+              editMode={editMode}
+              attributeIcons={attributeIcons}
+              guias={showGrid && editMode}
+              onChange={onChange}
+              onIconChange={onIconChange}
+              onElegirCodigo={(c) => void onElegirCodigo(c)}
+            />
+          </Marco30ml>
+        </>
+      ) : marco ? (
         <div
           className="relative mx-auto overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
           style={{ width: marco.ancho, height: marco.alto }}
@@ -1660,6 +1812,12 @@ function ElegirTamanoPlantilla({
               </option>
             ))}
           </select>
+          {esFormato30ml(tamano) && (
+            <span className="mt-1 block text-[11px] text-accent">
+              30 mL usa la etiqueta horizontal de tres paneles; se edita igual que las demás,
+              directamente sobre la etiqueta.
+            </span>
+          )}
         </label>
         <label className="mb-3 block text-xs text-muted">
           <span className="mb-1 block font-semibold text-ink">Partir de</span>
