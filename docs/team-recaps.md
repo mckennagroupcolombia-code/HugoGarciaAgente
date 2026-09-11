@@ -1,3 +1,15 @@
+### 2026-09-10 23:40 - Etiquetas: una etiqueta nueva ya no hereda los datos del producto de la plantilla
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - **Causa:** "Nueva etiqueta" copiaba la plantilla completa, incluidos nombre, composición, pureza, CAS y ficha técnica del producto con que se armó. Si la ficha técnica del SKU nuevo no se cargaba, esos datos se quedaban sin aviso: CITRATO POTASIO 500g salió con los de CITRATO DE MAGNESIO. El lote tenía el mismo hueco y además no guardaba la ficha técnica usada.
+  - Nuevo `CAMPOS_PRODUCTO` / `sinDatosDeProducto()`: la etiqueta nueva, el lote y una plantilla nueva de la misma familia toman solo el diseño; los datos de producto arrancan en blanco y los llena la ficha técnica.
+  - El lote salta los SKU sin ficha técnica (no sube PNG en blanco) y los lista al final para hacerlos a mano.
+  - Aviso rojo en la ficha cuando el código de barras no corresponde a la ficha técnica enlazada (o al nombre, si no hay enlace) — `discrepanciaProducto()`, mismo umbral que el enlace automático. "Guardar PNG" pide confirmar mientras el aviso esté. Probado contra las 8 fichas guardadas: solo marca CITRATO POTASIO.
+  - Plantilla de Sales minerales (`e834e09ec492`) sin los datos de Citrato de Magnesio: queda solo el diseño.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `desktop/src/lib/fichaTecnicaMatch.ts`, `docs/team-recaps.md` (la limpieza de la plantilla es en `app/data/etiquetas_fichas.json`, que no se versiona)
+
+
 ### 2026-09-10 23:25 - Ficha de etiqueta: Pureza/CAS y cuchara centrados en su fila de la retícula
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de diseño

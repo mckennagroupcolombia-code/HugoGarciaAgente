@@ -126,6 +126,25 @@ export function mejorFichaParaTitulo<T extends CandidataFicha>(
   return mejor;
 }
 
+/** ¿El producto del código de barras es otro que el de la etiqueta? Compara
+ *  el título del código con la ficha técnica enlazada o, sin enlace, con el
+ *  nombre escrito en la etiqueta. null = coinciden o no hay con qué comparar.
+ *  Pesos iguales: "CITRATO POTASIO" vs "CITRATO DE MAGNESIO" = 0.33 (avisa);
+ *  "CITRATO CALCIO 500g" vs "CITRATO DE CALCIO" = 1. */
+export function discrepanciaProducto(
+  tituloCodigo: string | undefined,
+  tituloFicha: string | undefined,
+  nombreProducto: string | undefined,
+): { contra: string; origen: "ficha" | "nombre" } | null {
+  const claves = palabrasClave(tituloCodigo || "");
+  if (claves.length === 0) return null;
+  const ficha = (tituloFicha || "").trim();
+  const contra = ficha || (nombreProducto || "").trim();
+  if (!contra) return null;
+  if (puntuarTitulo(claves, contra) >= UMBRAL_ENLACE_AUTOMATICO) return null;
+  return { contra: contra.replace(/\s+/g, " "), origen: ficha ? "ficha" : "nombre" };
+}
+
 /** Ordena por afinidad de palabras clave con la consulta; si ninguna
  *  coincide, cae al filtro clásico por subcadena. */
 export function ordenarFichasPorConsulta<T extends CandidataFicha>(fichas: T[], consulta: string): T[] {

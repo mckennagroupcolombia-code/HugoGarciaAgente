@@ -32,6 +32,7 @@ import {
   PRODUCTO_VACIO,
   RETICULA_MAESTRA,
   UNIDADES_CUCHARA,
+  sinDatosDeProducto,
   variablesAcento,
   type ProductLabelData,
 } from "./productLabelTypes";
@@ -39,6 +40,7 @@ import { useCodigosEan, type CodigoEan } from "../../lib/etiquetasCodigosEan";
 import { cargarPatchDesdeFichaTecnica, listarFichasTecnicas } from "../../lib/fichaTecnicaAplicar";
 import { contenidoNetoDesdeCodigo, filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
 import {
+  discrepanciaProducto,
   mejorFichaParaTitulo,
   nombreArchivoDesdeTitulo,
   palabrasClave,
@@ -376,17 +378,16 @@ function ProductLabelFormInner({
       ? fichasTodas?.find((f) => f.id === baseId)
       : plantillasPorCategoria.get(categoriaId);
     const nombre = nombrePlantillaCategoria(categorias, categoriaId, tamano);
-    // De la misma familia se copia todo (los textos técnicos sirven de arranque).
-    // De otra categoría se copia SOLO la parte fija de marca — logo, acento,
-    // contacto, documentos —; arrastrar el nombre o el CAS de otro producto
-    // dejaría la plantilla nueva con datos ajenos.
+    // De la misma familia se copia todo el diseño; de otra categoría, SOLO la
+    // parte fija de marca — logo, acento, contacto, documentos —. En ningún
+    // caso los datos del producto: una plantilla no es de ningún producto.
     const mismaFamilia = Boolean(previa && previa.categoria === categoriaId);
     setCategoria(categoriaId);
     setTipoNombre(tamano);
     setData(
       previa?.data
         ? mismaFamilia
-          ? { ...previa.data }
+          ? sinDatosDeProducto(previa.data)
           : fichaDesdePlantilla(previa)
         : fichaDesdePlantilla(plantillaBase),
     );
@@ -403,15 +404,17 @@ function ProductLabelFormInner({
     setEtapa("formulario");
   };
 
-  /** Nueva etiqueta de un producto: parte de la plantilla de la categoría y solo
-   *  cambia la información del SKU elegido. */
+  /** Nueva etiqueta de un producto: toma el diseño de la plantilla de la
+   *  categoría con los datos de producto EN BLANCO, y los llena con el SKU
+   *  elegido y su ficha técnica. Si la ficha no aparece, quedan casillas
+   *  vacías a la vista, nunca los datos del producto de la plantilla. */
   const crearEtiquetaDesdePlantilla = async (
     plantilla: FichaEtiquetaGuardada,
     codigo: CodigoEan,
   ) => {
     setCategoria(plantilla.categoria || CATEGORIA_ETIQUETA_OTROS);
     setTipoNombre(plantilla.tipo_nombre || "");
-    setData({ ...plantilla.data });
+    setData(sinDatosDeProducto(plantilla.data));
     setAttributeIcons(plantilla.attribute_icons ?? {});
     reemplazarEstilos(plantilla.text_styles ?? {});
     setFichaId(null);
@@ -505,6 +508,9 @@ function ProductLabelFormInner({
     return () => ro.disconnect();
   }, [data, editMode]);
 
+  const discrepancia = discrepanciaProducto(data.barcodeTitle, data.fichaTecnicaTitulo, data.productName);
+  const [confirmarDiscrepancia, setConfirmarDiscrepancia] = useState(false);
+
   const marco = useMemo(() => {
     if (!tipo || !tipo.ancho_mm || !tipo.alto_mm) return null;
     const ratio = tipo.ancho_mm / tipo.alto_mm;
@@ -518,9 +524,16 @@ function ProductLabelFormInner({
    *  si no, una escala fija alta) y lo muestra en una vista previa. La
    *  subida a Diseño → Imprimir (`ETIQUETAS STUDIO`, mismo destino que usa
    *  Estudio Visual) solo ocurre al confirmar en esa vista previa. */
-  const generarPng = async () => {
+  const generarPng = async (aunConDiscrepancia = false) => {
     const el = fichaRef.current;
     if (!el || guardando) return;
+    // Código de barras de un producto y datos de otro: se pide confirmar en el
+    // aviso rojo en vez de dejar imprimir la etiqueta así sin más.
+    if (discrepancia && !aunConDiscrepancia) {
+      setConfirmarDiscrepancia(true);
+      return;
+    }
+    setConfirmarDiscrepancia(false);
     setGuardando(true);
     setGuardarMsg(null);
     const estabaEditando = editMode;
@@ -649,28 +662,38 @@ function ProductLabelFormInner({
     const nombreBase = nombreFicha;
     const estabaEditando = editMode;
     const hechos: string[] = [];
+    const sinFicha: string[] = [];
     try {
       if (estabaEditando) {
         setEditMode(false);
         await esperarRepintado();
       }
       const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
-      const fichasTecnicas = await listarFichasTecnicas().catch(() => []);
+      const fichasTecnicas = await listarFichasTecnicas();
       for (const [i, codigo] of loteSeleccion.entries()) {
         const titulo = (codigo.nombre_producto || codigo.sku || "").trim();
         const neto = contenidoNetoDesdeCodigo(codigo);
-        let patch: Partial<ProductLabelData> = {};
         const mejor = mejorFichaParaTitulo(fichasTecnicas, titulo);
-        if (mejor && mejor.puntaje >= UMBRAL_ENLACE_AUTOMATICO) {
-          patch = await cargarPatchDesdeFichaTecnica(mejor.ficha.id).catch(() => ({}));
+        const patch =
+          mejor && mejor.puntaje >= UMBRAL_ENLACE_AUTOMATICO
+            ? await cargarPatchDesdeFichaTecnica(mejor.ficha.id).catch(() => null)
+            : null;
+        // Sin ficha técnica no se genera: saldría una etiqueta en blanco para
+        // imprimir. Se reporta al final para hacerla a mano.
+        if (!patch || !mejor) {
+          sinFicha.push(titulo || codigo.sku || "(sin nombre)");
+          setLoteProgreso({ hechos: i + 1, total: loteSeleccion.length });
+          continue;
         }
-        // El formato (logo, acento, contacto, tipografías) es el de la plantilla:
-        // solo cambian los datos del producto.
+        // El diseño es el de la plantilla; los datos de producto, solo los de
+        // este SKU y su ficha técnica (nunca los que traiga la plantilla).
         setData({
-          ...datosBase,
+          ...sinDatosDeProducto(datosBase),
           ...patch,
           barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13),
           barcodeTitle: titulo,
+          fichaTecnicaId: mejor.ficha.id,
+          fichaTecnicaTitulo: mejor.ficha.titulo,
           ...(neto ? { netContent: neto } : {}),
         });
         await esperarRepintado();
@@ -690,8 +713,12 @@ function ProductLabelFormInner({
       }
       setLoteResultado(hechos);
       setGuardarMsg({
-        ok: true,
-        texto: `${hechos.length} etiqueta(s) generadas en ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}.`,
+        ok: sinFicha.length === 0,
+        texto:
+          `${hechos.length} etiqueta(s) generadas en ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}.`
+          + (sinFicha.length > 0
+            ? ` Sin ficha técnica, no se generaron (hazlas a mano): ${sinFicha.join(", ")}.`
+            : ""),
       });
     } catch (e) {
       setGuardarMsg({
@@ -1031,7 +1058,7 @@ function ProductLabelFormInner({
           </button>
           <button
             type="button"
-            onClick={generarPng}
+            onClick={() => void generarPng()}
             disabled={guardando}
             title="Genera un PNG listo para imprimir (300 dpi si hay Formato elegido), lo muestra en vista previa y, al confirmar, lo guarda junto con el Formato en Diseño → Imprimir"
             className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
@@ -1062,6 +1089,44 @@ function ProductLabelFormInner({
           {enlace.tipo === "ok" ? "✓ " : enlace.tipo === "error" ? "✗ " : "ℹ "}
           {enlace.texto}
         </p>
+      )}
+      {discrepancia && (
+        <div
+          role="alert"
+          className="mb-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+        >
+          <p className="font-semibold">
+            ⚠ El código de barras es de «{data.barcodeTitle}», pero{" "}
+            {discrepancia.origen === "ficha"
+              ? `la ficha técnica enlazada es «${discrepancia.contra}»`
+              : `el nombre en la etiqueta es «${discrepancia.contra}»`}
+            .
+          </p>
+          <p className="mt-0.5">
+            Parecen productos distintos. Usa la lupa junto al nombre para elegir la ficha técnica correcta antes de
+            imprimir.
+          </p>
+          {confirmarDiscrepancia && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="font-semibold">¿Guardar el PNG así de todos modos?</span>
+              <button
+                type="button"
+                onClick={() => void generarPng(true)}
+                disabled={guardando}
+                className="rounded-md bg-red-600 px-3 py-1 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Sí, generar igual
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmarDiscrepancia(false)}
+                className="rounded-md border border-red-300 bg-white px-3 py-1 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+        </div>
       )}
       {(data.barcodeTitle || data.fichaTecnicaTitulo) && (
         <p className="mb-2 text-[11px] text-muted">

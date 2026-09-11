@@ -180,6 +180,40 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   email: "info@mckennagroup.co",
 };
 
+/** Datos de UN producto: los traen su código de barras y su ficha técnica.
+ *  Una etiqueta nueva nunca los hereda de la plantilla — antes se copiaban
+ *  y, si la ficha técnica no se cargaba, la etiqueta quedaba con el nombre,
+ *  la composición y el CAS de otro producto sin que nada lo notara (así
+ *  salió CITRATO POTASIO con los datos de CITRATO DE MAGNESIO). */
+export const CAMPOS_PRODUCTO = [
+  "productName",
+  "classification",
+  "concentration",
+  "cas",
+  "origin",
+  "appearance",
+  "odor",
+  "composition",
+  "grade",
+  "storage",
+  "netContent",
+  "ghs",
+  "ghsIconSvg",
+  "barcode",
+  "barcodeTitle",
+  "fichaTecnicaId",
+  "fichaTecnicaTitulo",
+] as const satisfies readonly (keyof ProductLabelData)[];
+
+/** El diseño de una ficha (logo, acento, contacto, títulos, GHS, cuchara…)
+ *  con los datos de producto en blanco. */
+export function sinDatosDeProducto(data: ProductLabelData): ProductLabelData {
+  const out = { ...data } as unknown as Record<string, unknown>;
+  const vacio = PRODUCTO_VACIO as unknown as Record<string, unknown>;
+  for (const k of CAMPOS_PRODUCTO) out[k] = vacio[k];
+  return out as unknown as ProductLabelData;
+}
+
 /** Paleta fija de la ficha — ver especificación: naranja corporativo,
  *  fondo blanco, texto principal casi negro, retícula gris translúcida. */
 export const COLOR_FICHA = {
