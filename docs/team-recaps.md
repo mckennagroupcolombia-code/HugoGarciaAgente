@@ -1,3 +1,11 @@
+### 2026-09-10 23:58 - Ficha de etiqueta: tamaño ajustable de «Disponible en:»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - «Disponible en:» (encima de la banda de la web) era texto fijo de 14 px; ahora es un título ajustable como los demás: en edición, clic abre el menú de tamaño/fuente (`styleKey` `disponibleEnTitulo`). Por defecto sigue en 14 px, así que las etiquetas existentes no cambian.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`
+
+
 ### 2026-09-10 23:50 - Botón «Limpiar plantilla»
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad

@@ -37,7 +37,16 @@ export default function TechnicalDocuments({
         defaultFontSize={14}
         className="mt-[6px] block whitespace-pre-line break-words text-center font-semibold text-[color:var(--acento)]"
       />
-      <p className="mt-[14px] text-[14px] font-medium text-[#111111]">Disponible en:</p>
+      <div className="mt-[14px]">
+        <EditableLabel
+          texto="Disponible en:"
+          editMode={editMode}
+          styleKey="disponibleEnTitulo"
+          defaultFontSize={14}
+          as="p"
+          className="font-medium text-[#111111]"
+        />
+      </div>
       <div className="mt-[6px] flex h-[36px] w-full items-center justify-center rounded-[4px] bg-[color:var(--acento)] px-3">
         <EditableField
           value={website}
