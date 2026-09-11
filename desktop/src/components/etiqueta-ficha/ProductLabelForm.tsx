@@ -454,15 +454,33 @@ function ProductLabelFormInner({
   // guardada) y busca, por palabras clave, la ficha técnica que le
   // corresponde para autorellenar la etiqueta (ver lib/fichaTecnicaMatch).
   const [enlace, setEnlace] = useState<{ tipo: "ok" | "info" | "error"; texto: string } | null>(null);
-  /** `renombrar`: la ficha toma el nombre del SKU. Una plantilla no se
-   *  renombra — elegir un código dentro de ella la dejaba llamándose como el
-   *  producto ("COCO DESHIDRATADO HILOS 250g" en vez de "Plantilla de Sales
-   *  minerales tamaño 500 g"). Al crear una etiqueta se pasa explícito porque
-   *  `esPlantillaNueva` de este render todavía no refleja el cambio. */
-  const onElegirCodigo = async (codigo: CodigoEan, renombrar = !esPlantillaNueva) => {
+  /** Elegir un SKU dentro de una PLANTILLA no la toca: se abre una etiqueta
+   *  nueva con su diseño (y los datos de producto en blanco) que se guarda
+   *  aparte con el nombre del SKU. Antes el autoguardado escribía sobre la
+   *  plantilla, que quedaba llamándose como el producto ("COCO DESHIDRATADO
+   *  HILOS 250g" en vez de "Plantilla de Sales minerales tamaño 500 g").
+   *  `yaEsEtiquetaNueva`: lo pasan las funciones que crean la etiqueta, porque
+   *  `esPlantillaNueva` de este render todavía no refleja su cambio. */
+  const onElegirCodigo = async (codigo: CodigoEan, yaEsEtiquetaNueva = false) => {
     const titulo = (codigo.nombre_producto || codigo.sku || "").trim();
     if (!titulo) return;
-    if (renombrar) setNombreFicha(titulo);
+    if (esPlantillaNueva && !yaEsEtiquetaNueva) {
+      const plantillaId = fichaIdRef.current;
+      fichaIdRef.current = null;
+      creandoRef.current = false;
+      setFichaId(null);
+      setEsPlantillaNueva(false);
+      setPlantillaOrigenId(plantillaId);
+      setData((d) => ({
+        ...sinDatosDeProducto(d),
+        barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13),
+      }));
+      setPlantillaMsg({
+        ok: true,
+        texto: `Etiqueta nueva «${titulo}» a partir de la plantilla: se guarda aparte y la plantilla no cambia.`,
+      });
+    }
+    setNombreFicha(titulo);
     // Contenido neto = presentación del SKU ("30mL", "500g", "1 Kg"); si la
     // ficha técnica también trae uno, manda el del SKU (es el envase real).
     const neto = contenidoNetoDesdeCodigo(codigo);

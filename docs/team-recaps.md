@@ -1,3 +1,13 @@
+### 2026-09-11 00:45 - La plantilla nunca cambia: elegir un SKU en ella abre una etiqueta nueva
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Al elegir un código de barras dentro de una plantilla, el autoguardado escribía sobre la plantilla: tomaba el nombre del SKU («COCO DESHIDRATADO HILOS 250g») y dejaba de verse como plantilla de la familia.
+  - Ahora ese SKU abre una etiqueta nueva con el diseño de la plantilla y los datos de producto en blanco (luego los llena la ficha técnica), guardada aparte con el nombre del SKU y `plantilla_id` de origen. La plantilla queda como estaba.
+  - Plantilla `e834e09ec492` renombrada de vuelta a «Plantilla de Sales minerales tamaño 500 g» (dato en `app/data/etiquetas_fichas.json`, no versionado).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
 ### 2026-09-11 00:30 - Ficha de etiqueta: logo fijo al 130 %, eslogan «Proveemos a tus ideas» y plantillas que no se renombran
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de diseño + Corrección
