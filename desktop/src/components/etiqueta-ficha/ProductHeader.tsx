@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import EditableField from "./EditableField";
+import EditableField, { EditableLabel } from "./EditableField";
 import ProductClassification from "./ProductClassification";
 import BuscadorFichaTecnica from "./BuscadorFichaTecnica";
 import { ACENTO_POR_DEFECTO, RETICULA_MAESTRA, normalizarHex, type ProductLabelData } from "./productLabelTypes";
@@ -13,27 +13,15 @@ import {
 } from "../../lib/logosCorporativos";
 import GaleriaLogosCorporativosModal from "./GaleriaLogosCorporativosModal";
 
-/** Caja del logo a escala 1 (tamaño por defecto) — el operador la escala
- *  manualmente con los botones －/＋. Tope máximo (1.3) elegido para que a
- *  esa escala la caja (273px) siga cabiendo dentro del ancho útil de la
- *  columna 3 (~288px con el padding del header) sin invadir la columna 2.
- *  Alto subido a 65px (antes 55) — mismo presupuesto vertical del header,
- *  que hoy lo define la columna del título, no el logo (ver comprobación
- *  visual: incluso a escala 1.3 el logo queda muy por debajo de esa
- *  altura). */
-const LOGO_ANCHO_BASE = 210;
-const LOGO_ALTO_BASE = 65;
-const LOGO_ESCALA_MIN = 0.6;
-const LOGO_ESCALA_MAX = 1.3;
-const LOGO_ESCALA_PASO = 0.1;
-/** Escala con la que entra todo logo (y la de una ficha sin dato): el
- *  máximo, 130 % — a menos, el logo se pierde impreso. El operador puede
- *  bajarla con －. */
-const LOGO_ESCALA_DEFECTO = LOGO_ESCALA_MAX;
-
-function clampEscalaLogo(v: number): number {
-  return Math.min(LOGO_ESCALA_MAX, Math.max(LOGO_ESCALA_MIN, Math.round(v * 10) / 10));
-}
+/** Caja del logo: 210×65 a escala 1, siempre al 130 % (273×84.5). Ya no se
+ *  escala a mano (los botones －/＋ se quitaron): a menos el logo se pierde
+ *  impreso, y 1.3 es lo máximo que cabe en el ancho útil de la columna 3
+ *  (~288px con el padding del header) sin invadir la columna 2. El dato
+ *  `logoScale` de las fichas guardadas se ignora. */
+const LOGO_ANCHO = 210 * 1.3;
+const LOGO_ALTO = 65 * 1.3;
+/** Eslogan fijo bajo el logo. */
+const ESLOGAN = "Proveemos a tus ideas";
 
 /** Tamaño del nombre según su longitud — nunca por debajo de 22px. Sin
  *  clamp() (nada de responsive aquí): la escala se resuelve en JS contra
@@ -78,13 +66,12 @@ export default function ProductHeader({
     editMode && menuLogo,
   );
 
-  /** Pone el logo al 130 % y, si la imagen tiene color, cambia el acento de la ficha. */
+  /** Pone el logo y, si la imagen tiene color, cambia el acento de la ficha. */
   const aplicarLogo = async (dataUrl: string, nombre: string) => {
     const acento = await colorAcentoDesdeImagen(dataUrl);
     onChange({
       logoUrl: dataUrl,
       logoNombre: nombre,
-      logoScale: LOGO_ESCALA_DEFECTO,
       ...(acento ? { accentColor: acento } : {}),
     });
   };
@@ -111,9 +98,6 @@ export default function ProductHeader({
     }
   };
 
-  const escalaLogo = clampEscalaLogo(data.logoScale ?? LOGO_ESCALA_DEFECTO);
-  const ajustarEscalaLogo = (delta: number) =>
-    onChange({ logoScale: clampEscalaLogo(escalaLogo + delta) });
   const acentoActual = normalizarHex(data.accentColor);
   const logos = logosData?.logos ?? [];
 
@@ -174,8 +158,8 @@ export default function ProductHeader({
             // el `overflow-hidden` en vez de escalado completo dentro de
             // la caja. Con las dos medidas fijas, `object-contain` sí
             // aprovecha el 100% del espacio disponible sin recortar nada.
-            width: LOGO_ANCHO_BASE * escalaLogo,
-            height: LOGO_ALTO_BASE * escalaLogo,
+            width: LOGO_ANCHO,
+            height: LOGO_ALTO,
           }}
           // Sin logo: el marco punteado con "McKenna Group" solo se ve en
           // edición (es una invitación a elegirlo); en vista y en el PNG
@@ -194,29 +178,14 @@ export default function ProductHeader({
             "McKenna Group"
           ) : null}
         </button>
-        {editMode && data.logoUrl && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[#111111]/50">
-            <button
-              type="button"
-              onClick={() => ajustarEscalaLogo(-LOGO_ESCALA_PASO)}
-              disabled={escalaLogo <= LOGO_ESCALA_MIN}
-              title="Reducir logo"
-              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              －
-            </button>
-            <span className="w-9 text-center tabular-nums">{Math.round(escalaLogo * 100)}%</span>
-            <button
-              type="button"
-              onClick={() => ajustarEscalaLogo(LOGO_ESCALA_PASO)}
-              disabled={escalaLogo >= LOGO_ESCALA_MAX}
-              title="Aumentar logo"
-              className="flex h-5 w-5 items-center justify-center rounded border border-[#111111]/20 hover:border-[color:var(--acento)] hover:text-[color:var(--acento)] disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              ＋
-            </button>
-          </div>
-        )}
+        <EditableLabel
+          texto={ESLOGAN}
+          editMode={editMode}
+          styleKey="esloganLogo"
+          defaultFontSize={15}
+          as="p"
+          className="text-center font-semibold tracking-wide text-[color:var(--acento)]"
+        />
 
         <PopoverFlotante
           anchorRef={logoWrapRef}

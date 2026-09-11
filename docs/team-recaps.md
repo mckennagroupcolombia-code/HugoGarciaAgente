@@ -1,3 +1,13 @@
+### 2026-09-11 00:30 - Ficha de etiqueta: logo fijo al 130 %, eslogan «Proveemos a tus ideas» y plantillas que no se renombran
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño + Corrección
+- **Qué se implementó:**
+  - El logo queda siempre al 130 % (caja 273×84.5 px): se quitaron los botones －/＋ y se ignora el `logoScale` guardado.
+  - Debajo del logo, el eslogan fijo «Proveemos a tus ideas» en el color de acento; tamaño y fuente ajustables desde su menú (`styleKey` `esloganLogo`, 15 px por defecto).
+  - Corrección: elegir un código de barras dentro de una plantilla le cambiaba el nombre por el del producto (la plantilla de Sales minerales quedó como «COCO DESHIDRATADO HILOS 250g»). Ahora `onElegirCodigo` solo renombra etiquetas, no plantillas.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductHeader.tsx`, `ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
 ### 2026-09-10 23:58 - Ficha de etiqueta: tamaño ajustable de «Disponible en:»
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora

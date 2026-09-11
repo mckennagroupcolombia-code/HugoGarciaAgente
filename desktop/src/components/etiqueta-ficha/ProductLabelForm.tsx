@@ -345,7 +345,7 @@ function ProductLabelFormInner({
     setPlantillaMsg(null);
     setEtapa("formulario");
     onChange({ barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13) });
-    await onElegirCodigo(codigo);
+    await onElegirCodigo(codigo, true);
   };
 
   // Abrir directo lo que se pidió desde Studio, sin pasar por pantallas
@@ -426,7 +426,7 @@ function ProductLabelFormInner({
     setEditMode(true);
     setEtapa("formulario");
     onChange({ barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13) });
-    await onElegirCodigo(codigo);
+    await onElegirCodigo(codigo, true);
   };
 
   /** Copia una etiqueta guardada conservando su formato ya ajustado: es la forma
@@ -454,10 +454,15 @@ function ProductLabelFormInner({
   // guardada) y busca, por palabras clave, la ficha técnica que le
   // corresponde para autorellenar la etiqueta (ver lib/fichaTecnicaMatch).
   const [enlace, setEnlace] = useState<{ tipo: "ok" | "info" | "error"; texto: string } | null>(null);
-  const onElegirCodigo = async (codigo: CodigoEan) => {
+  /** `renombrar`: la ficha toma el nombre del SKU. Una plantilla no se
+   *  renombra — elegir un código dentro de ella la dejaba llamándose como el
+   *  producto ("COCO DESHIDRATADO HILOS 250g" en vez de "Plantilla de Sales
+   *  minerales tamaño 500 g"). Al crear una etiqueta se pasa explícito porque
+   *  `esPlantillaNueva` de este render todavía no refleja el cambio. */
+  const onElegirCodigo = async (codigo: CodigoEan, renombrar = !esPlantillaNueva) => {
     const titulo = (codigo.nombre_producto || codigo.sku || "").trim();
     if (!titulo) return;
-    setNombreFicha(titulo);
+    if (renombrar) setNombreFicha(titulo);
     // Contenido neto = presentación del SKU ("30mL", "500g", "1 Kg"); si la
     // ficha técnica también trae uno, manda el del SKU (es el envase real).
     const neto = contenidoNetoDesdeCodigo(codigo);
