@@ -214,6 +214,13 @@ export function sinDatosDeProducto(data: ProductLabelData): ProductLabelData {
   return out as unknown as ProductLabelData;
 }
 
+/** ¿Queda algún dato de producto distinto del de una ficha vacía? */
+export function tieneDatosDeProducto(data: ProductLabelData): boolean {
+  const d = data as unknown as Record<string, unknown>;
+  const vacio = PRODUCTO_VACIO as unknown as Record<string, unknown>;
+  return CAMPOS_PRODUCTO.some((k) => (d[k] ?? "") !== (vacio[k] ?? ""));
+}
+
 /** Paleta fija de la ficha — ver especificación: naranja corporativo,
  *  fondo blanco, texto principal casi negro, retícula gris translúcida. */
 export const COLOR_FICHA = {

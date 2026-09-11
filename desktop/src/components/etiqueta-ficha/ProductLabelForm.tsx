@@ -33,6 +33,7 @@ import {
   RETICULA_MAESTRA,
   UNIDADES_CUCHARA,
   sinDatosDeProducto,
+  tieneDatosDeProducto,
   variablesAcento,
   type ProductLabelData,
 } from "./productLabelTypes";
@@ -630,6 +631,18 @@ function ProductLabelFormInner({
     );
   };
 
+  /** Una plantilla es diseño, no un producto: vacía los datos de producto
+   *  (nombre, composición, CAS, código de barras, ficha técnica…) y deja
+   *  logo, colores, tipografías, íconos, GHS, títulos y cuchara. */
+  const [confirmarLimpiar, setConfirmarLimpiar] = useState(false);
+  const plantillaConDatos = tieneDatosDeProducto(data);
+  const limpiarPlantilla = () => {
+    setData((d) => sinDatosDeProducto(d));
+    setEnlace(null);
+    setConfirmarLimpiar(false);
+    setPlantillaMsg({ ok: true, texto: "Plantilla limpia: quedó solo el diseño." });
+  };
+
   const [loteAbierto, setLoteAbierto] = useState(false);
   const [loteSeleccion, setLoteSeleccion] = useState<CodigoEan[]>([]);
   const [loteProgreso, setLoteProgreso] = useState<{ hechos: number; total: number } | null>(null);
@@ -1002,6 +1015,41 @@ function ProductLabelFormInner({
             Usar como plantilla de «{etiquetaCategoria(categoria)}»
           </button>
         )}
+
+        {(esPlantillaDeCategoria || esPlantillaNueva) &&
+          (confirmarLimpiar ? (
+            <span className="flex flex-wrap items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-[11px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+              ¿Borrar nombre, composición, CAS, código y demás datos de producto? El diseño se conserva.
+              <button
+                type="button"
+                onClick={limpiarPlantilla}
+                className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
+              >
+                Sí, limpiar
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmarLimpiar(false)}
+                className="rounded border border-red-300 bg-white px-2 py-0.5 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmarLimpiar(true)}
+              disabled={!plantillaConDatos}
+              title={
+                plantillaConDatos
+                  ? "Quita los datos del producto con que se armó la plantilla y deja solo el diseño"
+                  : "La plantilla ya no tiene datos de producto"
+              }
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+            >
+              {plantillaConDatos ? "Limpiar plantilla" : "✓ Plantilla limpia"}
+            </button>
+          ))}
 
         <label className="flex items-center gap-1.5 text-xs text-muted">
           Categoría:

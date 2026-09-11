@@ -1,3 +1,12 @@
+### 2026-09-10 23:50 - Botón «Limpiar plantilla»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al abrir una plantilla de categoría aparece «Limpiar plantilla» junto a «Generar etiquetas de la categoría». Con confirmación, vacía los datos de producto (`CAMPOS_PRODUCTO`: nombre, composición, CAS, código de barras, ficha técnica…) y conserva el diseño: logo, colores, tipografías, íconos, GHS, títulos y cuchara.
+  - Si la plantilla ya no tiene datos de producto, el botón queda desactivado como «✓ Plantilla limpia».
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `docs/team-recaps.md`
+
+
 ### 2026-09-10 23:40 - Etiquetas: una etiqueta nueva ya no hereda los datos del producto de la plantilla
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección
