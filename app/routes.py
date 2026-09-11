@@ -10184,6 +10184,28 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/extractos/clasificacion", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/clasificacion", methods=["GET"])
+    def api_contabilidad_extractos_clasificacion():
+        """Propuesta de cuenta PUC y tercero para cada línea sin clasificar.
+
+        Solo propone: no escribe un asiento ni vincula nada. `resumen=1` devuelve
+        el consolidado por concepto — cuánto se puede aplicar en lote y cuánto
+        necesita que alguien decida.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import extracto_clasificador as ec
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            if request.args.get("resumen") in ("1", "true", "si"):
+                return jsonify(ec.resumen(desde, hasta))
+            return jsonify({"propuestas": ec.proponer(desde, hasta)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/extractos/candidatos", methods=["GET"])
     @app.route("/app/api/contabilidad/extractos/candidatos", methods=["GET"])
     def api_contabilidad_extractos_candidatos():

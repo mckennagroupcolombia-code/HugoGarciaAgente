@@ -5582,3 +5582,100 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 5fcce20] Auto-commit: actualizacion diaria 2026-09-10 23:00
+ 160 files changed, 73345 insertions(+), 2983 deletions(-)
+ rename DISENO CORPORATIVO /{ => .papelera}/ejemplo1.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/ejemplo2.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/face.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/face2.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/g793.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/guia.png (100%)
+ rename DISENO CORPORATIVO /{ => .papelera}/kojico.png (100%)
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_01_TURQUESA_0C6069.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_02_VERDE_LIMON_77CA03.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_03_AZUL_1C71D8.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_04_VERDE_049051.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_05_ROSA_FE208B.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_06_NARANJA_FE9320.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_07_AZUL_GRIS_526389.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_08_VERDE_GRIS_527F89.png
+ create mode 100644 DISENO CORPORATIVO /MCKENNA_GROUP_09_MORADO_78419B.png
+ create mode 100644 app/.routes.py.bak-logos
+ create mode 100644 app/.routes.py.bak-logos2
+ create mode 100644 app/data/.etiquetas_fichas.json.bak-sales
+ create mode 100644 app/data/alegra_plan_cuentas.json
+ create mode 100644 app/data/catalogo_sin_resultado.json
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T172235.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T172657.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T174417.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T175916.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T180707.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T181111.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T182500.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T183624.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T184930.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T190024.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T191955.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T193124.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T194154.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T203053.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T210015.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T211449.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T212329.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T215506.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T220101.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T223543.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260910T223908.png
+ create mode 100644 app/services/alegra_espejo.py
+ create mode 100644 app/services/calendario_tributario.py
+ create mode 100644 app/services/compras_socios.py
+ create mode 100644 app/services/empresa.py
+ create mode 100644 app/services/pagos_wizard.py
+ create mode 100644 app/services/prestamos.py
+ create mode 100644 app/services/retenciones.py
+ create mode 100644 app/tools/.logos_corporativos.py.bak-logos
+ create mode 100644 app/tools/correo_marca.py
+ create mode 100644 app/tools/prestamos_pdf.py
+ create mode 100644 desktop/src/components/EsquemaTercerosPanel.tsx
+ create mode 100644 desktop/src/components/PagosWizardPanel.tsx
+ create mode 100644 desktop/src/components/PrestamosCronogramaPanel.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/.EditableField.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.GhsBadge.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductAttribute.tsx.bak-acento
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductAttribute.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductAttributeGrid.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductHeader.tsx.bak-logos
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductLabelForm.tsx.bak-cuchara
+ create mode 100644 desktop/src/components/etiqueta-ficha/.ProductLabelForm.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.TechnicalIdentity.tsx.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/.productLabelTypes.ts.bak-cuchara
+ create mode 100644 desktop/src/components/etiqueta-ficha/.productLabelTypes.ts.bak-sales
+ create mode 100644 desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx
+ create mode 100644 desktop/src/components/etiqueta-ficha/GaleriaLogosCorporativosModal.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/.PlantillasVisualesPanel.tsx.bak-subir-imagenes
+ create mode 100644 desktop/src/lib/.logosCorporativos.ts.bak-logos
+ create mode 100644 docs/agentic/CALENDARIO-CIJUF-2026.pdf
+ create mode 100644 docs/agentic/PENDIENTES-CONTABILIDAD.md
+ create mode 100644 docs/agentic/modules/prestamos.md
+ create mode 100644 docs/agentic/modules/relaciones-socios-terceros.md
+ create mode 100755 scripts/prestamos_recordatorio_cron.py
+ create mode 100644 tests/test_calendario_tributario.py
+ create mode 100644 tests/test_compra_socio_autopost.py
+ create mode 100644 tests/test_correo_marca.py
+ create mode 100644 tests/test_empresa_identidad.py
+ create mode 100644 tests/test_pagos_wizard.py
+ create mode 100644 tests/test_prestamos.py
+ create mode 100644 tests/test_prestamos_pdf.py
+ create mode 100644 tests/test_reintegro_socio.py
+ create mode 100644 tests/test_retenciones.py
+[2026-09-10 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-10 23:00'
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-09-01 → 2026-09-11…
+✅ Token de Mercado Libre refrescado exitosamente.
+   4 creado(s), 717 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

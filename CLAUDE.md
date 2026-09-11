@@ -726,6 +726,35 @@ app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila
                                      (scripts/contabilidad_autopost_cron.py, job
                                      "contabilidad_autopost" en Sistemas → Tareas Programadas) +
                                      backfill manual (scripts/backfill_contabilidad_autopost.py).
+app/services/meli_facturacion.py    La factura mensual de MeLi, desglosada por concepto y
+                                     traducida al PUC. GET /billing/integration/... — **5 peticiones
+                                     por minuto**, el módulo pacea solo y cachea los períodos
+                                     cerrados. Existe porque ese gasto no se ve por ningún lado:
+                                     MeLi cobra $44-47M/mes (de los cuales ~$24M son PUBLICIDAD) y
+                                     **nada de eso pasa por el extracto bancario** — la factura se
+                                     cobra contra el saldo de MercadoPago (111010), y el banco solo
+                                     ve el traslado que fondea esa cuenta.
+                                     ⚠️ NO usar `meli_ads.gasto_ads_por_rango()` para contabilizar:
+                                     para ago-2026 reportó $654.448 cuando la factura cobró
+                                     $23.853.390 (35x). Las métricas sirven para decidir campañas;
+                                     la factura es la fuente de verdad.
+                                     ⚠️ Los `detail_sub_type` que empiezan por «B» son anulaciones y
+                                     RESTAN, aunque la API los manda en positivo y sin marcarlos
+                                     CREDIT. Van a la misma cuenta que anulan (BV→CV, BXD→CXD,
+                                     BFF→CFF: se cambia la B por C). Sumándolos en positivo, agosto
+                                     daba $46.013.088 contra los $44.175.672 reales.
+app/services/extracto_clasificador.py  Propone cuenta PUC + tercero para las líneas de banco
+                                     que NO tienen contrapartida en el libro (las que
+                                     `sugerencias_auto` no puede emparejar porque la operación
+                                     nunca se contabilizó: 200 de 358 en jul-ago 2026). Reglas por
+                                     descripción del banco; `proponer()` / `resumen()` NO escriben
+                                     nada. Endpoint `/api/contabilidad/extractos/clasificacion`.
+                                     Tres trampas que las reglas evitan a propósito: (a) los
+                                     traslados a MercadoPago son plata propia, no ingreso ni gasto
+                                     ($40,7M en ago-2026); (b) el banco rotula «PAGO A PROVE» la
+                                     quincena de quien presta servicios — persona natural va a 5135
+                                     con retención, no a 2205; (c) una entrada sin identificar no se
+                                     marca como venta, que ya entra por el auto-posteo.
 app/services/extracto_bancario.py   Conciliación bancaria (ya existente): importar extracto,
                                      vincular/desvincular, sugerencias automáticas,
                                      pendientes_por_clasificar() (líneas de banco sin vínculo).
