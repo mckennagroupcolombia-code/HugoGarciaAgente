@@ -33,6 +33,8 @@ export const CONTABILIDAD_PANELS = [
   "libro-mayor",
   "anulaciones",
   "compras-exterior",
+  "prestamos",
+  "pagos",
   "productos-siigo",
   "costos-productos",
   "catalogo-alegra",
@@ -219,11 +221,25 @@ export function puedeVerModuloContabilidad(
     // responde 403.
     return Boolean(p["libro-mayor"]);
   }
+  if (seccion === "pagos") {
+    // Solicitar y aprobar pagos mueve plata y crea asientos. Mismo criterio que
+    // libro-mayor: permiso explícito, no heredado de facturación/sync.
+    return Boolean(p.pagos || p["libro-mayor"]);
+  }
+  if (seccion === "prestamos") {
+    // Permiso propio y explícito, con el mismo criterio que libro-mayor: el
+    // módulo expone cédula, correo, cuenta bancaria y saldos de socios y
+    // familiares. No se hereda de facturación ni de sync.
+    // Quien tenga libro-mayor también lo ve, porque el Diario ya muestra esos
+    // mismos movimientos y negarlo acá no protegería nada.
+    return Boolean(p.prestamos || p["libro-mayor"]);
+  }
   if (seccion === "libro-mayor") {
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con
     // socios/proveedores son datos sensibles — no se hereda de facturación/sync.
-    // Cubre TODO lo que vive adentro (Diario/ex Ingresos-Egresos, Préstamos,
-    // Créditos Adquiridos incluidos) — ver Vista Avanzada en LibroMayorPanel.tsx.
+    // Cubre TODO lo que vive adentro (Diario/ex Ingresos-Egresos, Créditos
+    // Adquiridos incluidos) — ver Vista Avanzada en LibroMayorPanel.tsx.
+    // Préstamos salió a su propia sección el 2026-09-10 y tiene su regla arriba.
     // El Diario ya expone movimientos de socios/préstamos, así que exigir el
     // mismo permiso estricto para todo el hub es lo correcto, no solo lo más simple.
     return Boolean(p["libro-mayor"]);

@@ -46,6 +46,7 @@ export type Panel =
   | "contabilidad-inicio"
   | "anulaciones"
   | "prestamos"
+  | "pagos"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"

@@ -460,15 +460,30 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  pagos: {
+    emoji: "💸",
+    label: "Solicitudes de pago",
+    description:
+      "Cada pago que se solicita genera su asiento en el Libro Mayor y su comprobante en Alegra al aprobarse. Antes los pagos se aprobaban como tickets de texto libre y el registro contable quedaba pendiente de que alguien se acordara.",
+    tips: [
+      "El wizard elige la cuenta contable según lo que se paga: un flete va a Transporte, no al saco de Servicios.",
+      "Las opciones salen de los saldos reales: proveedores con deuda, cuotas del mes, servicios activos.",
+      "El asiento se MUESTRA antes de aprobar — quien firma ve contra qué cuenta va.",
+      "Una solicitud rechazada no deja ningún rastro contable.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   prestamos: {
     emoji: "🤝",
     label: "Préstamos",
     description:
-      "Dinero que un socio o tercero le presta a la empresa, y dinero que la empresa presta a un socio o tercero — separado de compras a nombre de un socio (eso vive en Libro Mayor). Cada préstamo usa su cuenta PUC (2380/2295 por pagar, 1355/1290 por cobrar) y queda visible en el balance de comprobación.",
+      "Préstamos que socios y familiares le hacen a la empresa, con su ciclo completo: contrato firmable, cronograma de cuotas, retención en la fuente y reportes al prestamista. Cada préstamo queda enlazado a su tercero y a los asientos del Libro Mayor (2295/2380 por pagar, 5305 intereses, 2365 retención).",
     tips: [
-      "«Nos prestan a nosotros» registra un pasivo (cuenta por pagar); «Le prestamos a alguien» registra un activo (cuenta por cobrar).",
-      "Tasa de interés y plazo son solo referencia del acuerdo — no generan tabla de amortización (para eso ver Créditos Adquiridos).",
-      "El saldo mostrado aquí es solo de préstamos; el saldo total del tercero (incluyendo compras a su nombre) está en Libro Mayor.",
+      "«+ Prestamista» da de alta al tercero con cédula, correo y cuenta bancaria, y lo inscribe como contacto en Alegra.",
+      "El simulador muestra, ANTES de comprometerte, cuánto recibe el prestamista y cuánto cuesta en efectivo anual.",
+      "Los PDF se generan siempre; el correo al tercero lo dispara un humano, nunca sale solo.",
+      "«Cómo funciona» explica el esquema de socios y familiares, y el límite aduanero de las compras con tarjeta personal.",
     ],
     tier: "standard",
     category: "contabilidad",

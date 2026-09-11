@@ -1,0 +1,1882 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../../api/client";
+import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
+import {
+  duplicarPlantillaVisual,
+  fusionarMetadatosPlantillaTrasGuardar,
+  labelFormato,
+  type FormatoCanvas,
+  type PlantillaVisualDoc,
+} from "../../lib/plantillasVisuales";
+import {
+  descargarBlob,
+  exportarPlantillaBlob,
+  subirImagenBlobAEtiquetas,
+} from "../../lib/plantillasVisualesExport";
+import { sanitizarAltosTextoPlantilla } from "./TextoArcoSvg";
+import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
+import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
+import { useTicketsAuth } from "../../stores/ticketsAuth";
+import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoPng } from "../etiquetas/RecursoPngViewer";
+import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
+import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
+import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
+import FormulariosEtiquetadosPanel from "./FormulariosEtiquetadosPanel";
+import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
+import VisualCanvasEditor from "./VisualCanvasEditor";
+import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
+import AplicarLotePanel from "./AplicarLotePanel";
+import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
+import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
+import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
+import { useAppStore, type StudioSubvista } from "../../stores/app";
+import {
+  useCategoriasEtiqueta,
+  etiquetaCategoriaEn,
+  CATEGORIAS_ETIQUETA,
+} from "../../lib/categoriasEtiqueta";
+import { categoriaProductoDe } from "../../lib/plantillasVisuales";
+import StudioCategoriasPanel from "./StudioCategoriasPanel";
+import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
+import NuevaPlantillaCategoriaPanel from "./NuevaPlantillaCategoriaPanel";
+
+interface RecursoPngBiblioteca {
+  id: string | null;
+  nombre: string;
+  subido_at?: string;
+  bytes?: number;
+  thumb_b64?: string | null;
+  thumb_mime?: string | null;
+  tipo_etiqueta?: string | null;
+  ancho_mm?: number | null;
+  alto_mm?: number | null;
+  dpi?: number | null;
+}
+
+const formatoBytes = formatoBytesRecurso;
+
+function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: string }) {
+  const qc = useQueryClient();
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const puedeEliminarPng = puedeEliminarPngEtiquetas(ticketsUser);
+  const [descargandoId, setDescargandoId] = useState<string | null>(null);
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [eliminandoLote, setEliminandoLote] = useState(false);
+  const [errorLote, setErrorLote] = useState<string | null>(null);
+  const [vistaPreviaNombre, setVistaPreviaNombre] = useState<string | null>(null);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false);
+  const [moviendoLote, setMoviendoLote] = useState(false);
+  const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
+  const [arrastrando, setArrastrando] = useState<string[] | null>(null);
+  const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["etiquetas-recursos-png", carpetaActual],
+    queryFn: () =>
+      api.get<{ recursos: RecursoPngBiblioteca[]; carpetas: string[]; carpeta_actual: string }>(
+        `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(carpetaActual)}`,
+      ),
+    staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
+  });
+
+  const { data: carpetasTodasData } = useQuery({
+    queryKey: ["etiquetas-recursos-png-carpetas"],
+    queryFn: () => api.get<{ carpetas: string[] }>("/api/etiquetas/recursos-png/carpetas"),
+    staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
+  });
+
+  const recursos = data?.recursos ?? [];
+  // La biblioteca se filtra con el buscador principal del Studio: un solo
+  // buscador para plantillas e imágenes (el interno confundía — parecía que
+  // "solo buscaba PNG").
+  const q = filtroExterno.trim().toLowerCase();
+  const filtrados = q ? recursos.filter((r) => r.nombre.toLowerCase().includes(q)) : recursos;
+  const subcarpetas = useMemo(() => {
+    const nombres = data?.carpetas ?? [];
+    if (!q) return nombres;
+    return nombres.filter((n) => n.toLowerCase().includes(q));
+  }, [data?.carpetas, q]);
+  const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
+
+  function irACarpeta(rel: string) {
+    setCarpetaActual(rel);
+    setSeleccionados(new Set());
+    setMenuMoverAbierto(false);
+  }
+
+  function alternarSeleccion(nombre: string) {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(nombre)) next.delete(nombre);
+      else next.add(nombre);
+      return next;
+    });
+  }
+
+  const todosFiltradosSeleccionados =
+    filtrados.length > 0 && filtrados.every((r) => seleccionados.has(r.nombre));
+
+  function alternarSeleccionarTodo() {
+    setSeleccionados((prev) => {
+      if (todosFiltradosSeleccionados) {
+        const next = new Set(prev);
+        filtrados.forEach((r) => next.delete(r.nombre));
+        return next;
+      }
+      const next = new Set(prev);
+      filtrados.forEach((r) => next.add(r.nombre));
+      return next;
+    });
+  }
+
+  const eliminarMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.delete<{ ok: boolean }>(`/api/etiquetas/recursos-png/${encodeURIComponent(nombre)}`),
+    onMutate: (nombre) => setEliminandoId(nombre),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] }),
+    onSettled: () => setEliminandoId(null),
+  });
+
+  const eliminarLoteMut = useMutation({
+    mutationFn: (nombres: string[]) =>
+      api.post<{ ok: boolean; eliminados: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/eliminar-lote",
+        { nombres },
+      ),
+    onMutate: () => {
+      setEliminandoLote(true);
+      setErrorLote(null);
+    },
+    onSuccess: (res) => {
+      setSeleccionados((prev) => {
+        const next = new Set(prev);
+        res.eliminados.forEach((n) => next.delete(n));
+        return next;
+      });
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setErrorLote(`No se pudieron eliminar ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "Error al eliminar las imágenes seleccionadas"),
+    onSettled: () => setEliminandoLote(false),
+  });
+
+  function eliminarSeleccionados() {
+    const nombres = Array.from(seleccionados);
+    if (nombres.length === 0) return;
+    if (!window.confirm(`¿Eliminar ${nombres.length} imagen(es) seleccionada(s) de la biblioteca?`)) return;
+    eliminarLoteMut.mutate(nombres);
+  }
+
+  const crearCarpetaMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.post<{ ok: boolean; carpeta: string }>("/api/etiquetas/recursos-png/carpetas", {
+        nombre,
+        carpeta_padre: carpetaActual,
+      }),
+    onMutate: () => setCreandoCarpeta(true),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "No se pudo crear la carpeta"),
+    onSettled: () => setCreandoCarpeta(false),
+  });
+
+  function crearCarpeta() {
+    const nombre = window.prompt("Nombre de la nueva carpeta:");
+    if (!nombre || !nombre.trim()) return;
+    crearCarpetaMut.mutate(nombre.trim());
+  }
+
+  const renombrarCarpetaMut = useMutation({
+    mutationFn: ({ carpeta, nombreNuevo }: { carpeta: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; carpeta: string }>(
+        "/api/etiquetas/recursos-png/carpetas/renombrar",
+        { carpeta, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "No se pudo renombrar la carpeta"),
+  });
+
+  function renombrarCarpeta(rel: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarCarpetaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const moverLoteMut = useMutation({
+    mutationFn: ({ nombres, destino }: { nombres: string[]; destino: string }) =>
+      api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/mover",
+        { nombres, carpeta_destino: destino },
+      ),
+    onMutate: () => {
+      setMoviendoLote(true);
+      setErrorLote(null);
+    },
+    onSuccess: (res) => {
+      setMenuMoverAbierto(false);
+      setSeleccionados(new Set());
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setErrorLote(`No se pudieron mover ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png-carpetas"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "Error al mover las imágenes seleccionadas"),
+    onSettled: () => setMoviendoLote(false),
+  });
+
+  function moverSeleccionados(destino: string) {
+    const nombres = Array.from(seleccionados);
+    if (nombres.length === 0) return;
+    moverLoteMut.mutate({ nombres, destino });
+  }
+
+  function iniciarArrastre(nombre: string) {
+    const enSeleccion = seleccionados.has(nombre) && seleccionados.size > 1;
+    setArrastrando(enSeleccion ? Array.from(seleccionados) : [nombre]);
+  }
+
+  function finalizarArrastre() {
+    setArrastrando(null);
+    setCarpetaHoverDrop(null);
+  }
+
+  function soltarEnCarpeta(destino: string) {
+    if (arrastrando && arrastrando.length > 0) {
+      moverLoteMut.mutate({ nombres: arrastrando, destino });
+    }
+    finalizarArrastre();
+  }
+
+  async function descargar(nombre: string) {
+    setDescargandoId(nombre);
+    try {
+      const url = await resolverUrlImagenCanvas(
+        `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(nombre)}`,
+      );
+      const res = await fetch(url);
+      const blob = await res.blob();
+      descargarBlob(blob, nombre);
+    } finally {
+      setDescargandoId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-1 text-xs">
+        <span className="mr-2 text-sm font-bold text-ink">Biblioteca de etiquetas</span>
+        <button
+          type="button"
+          onClick={() => irACarpeta("")}
+          disabled={carpetaActual === ""}
+          onDragOver={(e) => {
+            if (!arrastrando || carpetaActual === "") return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDragEnter={(e) => {
+            if (!arrastrando || carpetaActual === "") return;
+            e.preventDefault();
+            setCarpetaHoverDrop("");
+          }}
+          onDragLeave={() => setCarpetaHoverDrop((v) => (v === "" ? null : v))}
+          onDrop={(e) => {
+            if (carpetaActual === "") return;
+            e.preventDefault();
+            soltarEnCarpeta("");
+          }}
+          className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+            carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
+          }`}
+        >
+          📁 Raíz
+        </button>
+        {segmentosRuta.map((seg, i) => {
+          const rel = segmentosRuta.slice(0, i + 1).join("/");
+          const esUltimo = i === segmentosRuta.length - 1;
+          return (
+            <span key={rel} className="flex items-center gap-1">
+              <span className="text-muted">/</span>
+              <button
+                type="button"
+                onClick={() => irACarpeta(rel)}
+                disabled={esUltimo}
+                onDragOver={(e) => {
+                  if (!arrastrando || esUltimo) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrando || esUltimo) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  if (esUltimo) return;
+                  e.preventDefault();
+                  soltarEnCarpeta(rel);
+                }}
+                className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+                  carpetaHoverDrop === rel ? "bg-accent/15 text-accent" : ""
+                }`}
+              >
+                {seg}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          onClick={crearCarpeta}
+          disabled={creandoCarpeta}
+          className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+        >
+          {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <span className="shrink-0 text-xs text-muted">
+          {q ? `${filtrados.length} imagen(es) para «${filtroExterno.trim()}»` : `${filtrados.length} imagen(es)`}
+        </span>
+        {filtrados.length > 0 && (
+          <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-secondary">
+            <input
+              type="checkbox"
+              checked={todosFiltradosSeleccionados}
+              onChange={alternarSeleccionarTodo}
+            />
+            Seleccionar todo
+          </label>
+        )}
+        {seleccionados.size > 0 && (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuMoverAbierto((v) => !v)}
+              disabled={moviendoLote}
+              className="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            >
+              {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionados.size})`}
+            </button>
+            {menuMoverAbierto && (
+              <div className="absolute left-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => moverSeleccionados("")}
+                  disabled={carpetaActual === ""}
+                  className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+                >
+                  📁 Raíz
+                </button>
+                {(carpetasTodasData?.carpetas ?? [])
+                  .filter((c) => c !== carpetaActual)
+                  .map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => moverSeleccionados(c)}
+                      className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
+                      title={c}
+                    >
+                      📁 {c}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+        {puedeEliminarPng && seleccionados.size > 0 && (
+          <button
+            type="button"
+            onClick={eliminarSeleccionados}
+            disabled={eliminandoLote}
+            className="shrink-0 rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+          >
+            {eliminandoLote ? "Eliminando…" : `Eliminar seleccionadas (${seleccionados.size})`}
+          </button>
+        )}
+      </div>
+
+      {errorLote && (
+        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+          {errorLote}
+        </p>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        </div>
+      ) : filtrados.length === 0 && subcarpetas.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted">
+          {q
+            ? "No hay imágenes PNG con ese nombre (las plantillas que coinciden aparecen arriba)."
+            : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {subcarpetas.map((nombreCarpeta) => {
+            const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
+            const enHoverDrop = carpetaHoverDrop === rel;
+            return (
+              <div
+                key={rel}
+                role="button"
+                tabIndex={0}
+                onDoubleClick={() => irACarpeta(rel)}
+                onClick={() => irACarpeta(rel)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") irACarpeta(rel);
+                }}
+                title={rel}
+                onDragOver={(e) => {
+                  if (!arrastrando) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrando) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  soltarEnCarpeta(rel);
+                }}
+                className={`group/carpeta relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed p-2 text-center transition ${
+                  enHoverDrop
+                    ? "border-accent bg-accent/10"
+                    : "border-border bg-surface hover:border-accent hover:bg-surface-hover"
+                }`}
+              >
+                <button
+                  type="button"
+                  title="Renombrar carpeta"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    renombrarCarpeta(rel, nombreCarpeta);
+                  }}
+                  className="absolute right-1 top-1 rounded-md border border-border bg-white/95 px-1 py-0.5 text-[10px] opacity-0 shadow-sm transition hover:bg-surface-hover group-hover/carpeta:opacity-100 dark:bg-zinc-900/95"
+                >
+                  ✎
+                </button>
+                <span className="text-3xl">📁</span>
+                <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
+              </div>
+            );
+          })}
+          {filtrados.map((r) => {
+            const activo = seleccionados.has(r.nombre);
+            return (
+            <div
+              key={r.nombre}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                iniciarArrastre(r.nombre);
+              }}
+              onDragEnd={finalizarArrastre}
+              title="Arrastra a una carpeta para mover"
+              className={`group relative flex cursor-grab flex-col overflow-hidden rounded-lg border bg-surface active:cursor-grabbing ${
+                activo ? "border-accent ring-2 ring-accent/40" : "border-border"
+              }`}
+            >
+              <label className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm dark:bg-zinc-900/95">
+                <input
+                  type="checkbox"
+                  checked={activo}
+                  onChange={() => alternarSeleccion(r.nombre)}
+                  className="h-3.5 w-3.5"
+                />
+              </label>
+              <button
+                type="button"
+                title="Ver imagen"
+                onClick={() => setVistaPreviaNombre(r.nombre)}
+                className="flex aspect-square items-center justify-center bg-zinc-100 p-1 hover:opacity-90 dark:bg-zinc-800/40"
+              >
+                <MiniaturaRecursoPng nombre={r.nombre} thumbB64={r.thumb_b64} thumbMime={r.thumb_mime} />
+              </button>
+              <div className="px-1.5 py-1">
+                <p className="truncate text-[10px] text-ink" title={r.nombre}>
+                  {r.nombre}
+                </p>
+                {labelFormatoPng(r) ? (
+                  <p className="truncate text-[9px] font-medium text-ink/70" title={labelFormatoPng(r)}>
+                    {labelFormatoPng(r)}
+                  </p>
+                ) : null}
+                <p className="truncate text-[9px] text-muted">{formatoBytes(r.bytes)}</p>
+              </div>
+              <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                <button
+                  type="button"
+                  title="Descargar"
+                  disabled={descargandoId === r.nombre}
+                  onClick={() => void descargar(r.nombre)}
+                  className="rounded-md border border-border bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary shadow-sm hover:bg-surface-hover disabled:opacity-50 dark:bg-zinc-900/95"
+                >
+                  {descargandoId === r.nombre ? "…" : "⬇"}
+                </button>
+                {puedeEliminarPng ? (
+                  <button
+                    type="button"
+                    title="Eliminar"
+                    disabled={eliminandoId === r.nombre}
+                    onClick={() => {
+                      if (!window.confirm(`¿Eliminar "${r.nombre}" de la biblioteca?`)) return;
+                      eliminarMut.mutate(r.nombre);
+                    }}
+                    className="rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80"
+                  >
+                    {eliminandoId === r.nombre ? "…" : "✕"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            );
+          })}
+        </div>
+      )}
+
+      {vistaPreviaNombre && (
+        <LightboxImagen
+          nombre={vistaPreviaNombre}
+          formato={recursos.find((r) => r.nombre === vistaPreviaNombre) ?? null}
+          onCerrar={() => setVistaPreviaNombre(null)}
+          onDescargar={() => void descargar(vistaPreviaNombre)}
+          onEliminar={
+            puedeEliminarPng
+              ? () => {
+                  if (!window.confirm(`¿Eliminar "${vistaPreviaNombre}" de la biblioteca?`)) return;
+                  eliminarMut.mutate(vistaPreviaNombre, {
+                    onSuccess: () => setVistaPreviaNombre(null),
+                  });
+                }
+              : undefined
+          }
+          descargando={descargandoId === vistaPreviaNombre}
+          eliminando={eliminandoId === vistaPreviaNombre}
+        />
+      )}
+    </div>
+  );
+}
+
+type Vista =
+  | "lista"
+  | "formato"
+  | "scan"
+  | "editor"
+  | "diligenciar"
+  | "lote"
+  | "formularios-etiquetas"
+  | "nueva-plantilla-categoria";
+
+// Studio es el apartado de PLANTILLAS. Las 90 etiquetas y los 201 diseños que
+// ya existían son el catálogo viejo: se consultan e imprimen desde
+// Diseño → Imprimir (agrupados por categoría) y desde "Catálogo antiguo", pero
+// no se mezclan con las plantillas nuevas.
+const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "disenos", label: "Catálogo antiguo" },
+  { id: "recursos", label: "Recursos" },
+];
+
+export default function PlantillasVisualesPanel({
+  onInmersivoChange,
+}: {
+  /** Notifica cuando el editor entra/sale de la vista de lienzo a pantalla completa. */
+  onInmersivoChange?: (inmersivo: boolean) => void;
+} = {}) {
+  const qc = useQueryClient();
+  const [vista, setVista] = useState<Vista>("lista");
+  const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
+  const [pendienteNuevo, setPendienteNuevo] = useState<{
+    formato: FormatoCanvas;
+    categoriaId: string;
+  } | null>(null);
+  const [buscar, setBuscar] = useState("");
+  const [buscarDebounced, setBuscarDebounced] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  // Snapshot del último doc guardado (o recién abierto): compararlo con `doc`
+  // dice si hay cambios sin guardar, para poder avisar antes de perderlos.
+  const docGuardadoRef = useRef<PlantillaVisualDoc | null>(null);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+  const [creandoCarpeta, setCreandoCarpeta] = useState(false);
+  const [moviendoLote, setMoviendoLote] = useState(false);
+  const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
+  const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
+  const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+  const [fichaInicial, setFichaInicial] = useState<PlantillaVisualDoc | null>(null);
+  // El card de plantilla es draggable (para mover a carpetas). Si el mouse va a
+  // los botones de acción hay que soltar el arrastre: si no, un clic con el
+  // mínimo movimiento arranca un drag y el botón "Eliminar" nunca dispara.
+  const [arrastreBloqueado, setArrastreBloqueado] = useState(false);
+  const [eliminandoLote, setEliminandoLote] = useState(false);
+  // Confirmación propia en vez de window.confirm: si el navegador tiene marcado
+  // "impedir que esta página abra más diálogos" (Firefox lo ofrece tras varios
+  // confirm seguidos), window.confirm devuelve false sin mostrar nada y el
+  // borrado quedaba en silencio, como si el botón no hiciera nada.
+  const [confirmarBorrado, setConfirmarBorrado] = useState<{ ids: string[]; nombre?: string } | null>(null);
+  const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
+  /** Categoría para la que se está creando un lienzo en blanco. Sin esto, el
+   *  diseño nuevo caía en "Otros" y la categoría seguía diciendo "Sin plantilla":
+   *  el camino "empezar desde cero" no dejaba plantilla en ninguna parte. */
+  const [categoriaPendiente, setCategoriaPendiente] = useState<string | null>(null);
+  /** Qué debe abrir el formulario: una guardada, una etiqueta nueva desde una
+   *  plantilla, o una plantilla nueva de una categoría. */
+  const [entradaFormulario, setEntradaFormulario] = useState<EntradaFormularioEtiqueta | null>(null);
+  const subvista = useAppStore((s) => s.studioSubvista);
+  const setSubvista = useAppStore((s) => s.setStudioSubvista);
+  const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
+  const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
+  const { data: catsData } = useCategoriasEtiqueta();
+  const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
+
+  useEffect(() => {
+    onInmersivoChange?.(
+      vista === "editor"
+        || vista === "diligenciar"
+        || vista === "lote"
+        || vista === "formularios-etiquetas"
+        || vista === "nueva-plantilla-categoria",
+    );
+    return () => onInmersivoChange?.(false);
+  }, [vista, onInmersivoChange]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setBuscarDebounced(buscar), 250);
+    return () => window.clearTimeout(t);
+  }, [buscar]);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["plantillas-visuales", buscarDebounced, carpetaActual],
+    queryFn: () =>
+      api.get<{ plantillas: PlantillaVisualDoc[]; carpetas: string[]; carpeta_actual: string }>(
+        `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscarDebounced ? `&q=${encodeURIComponent(buscarDebounced)}` : ""}`,
+      ),
+    staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
+  });
+
+  const { data: carpetasTodasData } = useQuery({
+    queryKey: ["plantillas-visuales-carpetas"],
+    queryFn: () => api.get<{ carpetas: string[] }>("/api/plantillas-visuales/carpetas"),
+    staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
+  });
+
+  const plantillasTodas = data?.plantillas ?? [];
+  // Filtro por categoría de producto: se activa al entrar desde una tarjeta de
+  // la portada. La categoría se deduce del nombre para las plantillas heredadas
+  // que no la tienen guardada (ver categoriaProductoDe).
+  const plantillas = useMemo(
+    () =>
+      categoriaFiltro
+        ? plantillasTodas.filter((p) => categoriaProductoDe(p, categorias) === categoriaFiltro)
+        : plantillasTodas,
+    [plantillasTodas, categoriaFiltro, categorias],
+  );
+  const subcarpetas = data?.carpetas ?? [];
+  const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
+
+  function irACarpeta(rel: string) {
+    setCarpetaActual(rel);
+    setSeleccionadas(new Set());
+    setMenuMoverAbierto(false);
+  }
+
+  function alternarSeleccionPlantilla(id: string) {
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const crearCarpetaPlantillaMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.post<{ ok: boolean; carpeta: string }>("/api/plantillas-visuales/carpetas", {
+        nombre,
+        carpeta_padre: carpetaActual,
+      }),
+    onMutate: () => setCreandoCarpeta(true),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo crear la carpeta"),
+    onSettled: () => setCreandoCarpeta(false),
+  });
+
+  function crearCarpetaPlantilla() {
+    const nombre = window.prompt("Nombre de la nueva carpeta:");
+    if (!nombre || !nombre.trim()) return;
+    crearCarpetaPlantillaMut.mutate(nombre.trim());
+  }
+
+  const renombrarCarpetaPlantillaMut = useMutation({
+    mutationFn: ({ carpeta, nombreNuevo }: { carpeta: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; carpeta: string }>(
+        "/api/plantillas-visuales/carpetas/renombrar",
+        { carpeta, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo renombrar la carpeta"),
+  });
+
+  function renombrarCarpetaPlantilla(rel: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarCarpetaPlantillaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const moverPlantillasMut = useMutation({
+    mutationFn: ({ ids, destino }: { ids: string[]; destino: string }) =>
+      api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
+        "/api/plantillas-visuales/mover",
+        { ids, carpeta_destino: destino },
+      ),
+    onMutate: () => {
+      setMoviendoLote(true);
+      setMsg(null);
+    },
+    onSuccess: (res) => {
+      setMenuMoverAbierto(false);
+      setSeleccionadas(new Set());
+      const fallidos = Object.keys(res.errores || {});
+      setMsg(
+        fallidos.length > 0
+          ? `No se pudieron mover ${fallidos.length} plantilla(s)`
+          : "Movida(s) ✓",
+      );
+      setTimeout(() => setMsg(null), 2500);
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al mover las plantillas seleccionadas"),
+    onSettled: () => setMoviendoLote(false),
+  });
+
+  function moverSeleccionadas(destino: string) {
+    const ids = Array.from(seleccionadas);
+    if (ids.length === 0) return;
+    moverPlantillasMut.mutate({ ids, destino });
+  }
+
+  function iniciarArrastrePlantilla(id: string) {
+    const enSeleccion = seleccionadas.has(id) && seleccionadas.size > 1;
+    setArrastrandoIds(enSeleccion ? Array.from(seleccionadas) : [id]);
+  }
+
+  function finalizarArrastrePlantilla() {
+    setArrastrandoIds(null);
+    setCarpetaHoverDrop(null);
+  }
+
+  function soltarPlantillaEnCarpeta(destino: string) {
+    if (arrastrandoIds && arrastrandoIds.length > 0) {
+      moverPlantillasMut.mutate({ ids: arrastrandoIds, destino });
+    }
+    finalizarArrastrePlantilla();
+  }
+
+  const guardarMut = useMutation({
+    mutationFn: (payload: PlantillaVisualDoc) =>
+      api.post<{ plantilla: PlantillaVisualDoc }>("/api/plantillas-visuales", payload),
+    onSuccess: (res) => {
+      setDoc((prev) => {
+        const next =
+          prev && res.plantilla
+            ? fusionarMetadatosPlantillaTrasGuardar(prev, res.plantilla)
+            : res.plantilla;
+        docGuardadoRef.current = next;
+        return next;
+      });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+      setMsg("Plantilla guardada ✓");
+      setTimeout(() => setMsg(null), 2500);
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al guardar"),
+  });
+
+  // Refs "valor más reciente" para el autoguardado: el intervalo se crea una
+  // sola vez por sesión de editor (deps: [vista]) y lee estas refs en cada
+  // tick, así no se reinicia con cada tecla mientras se edita el texto.
+  const docRef = useRef<PlantillaVisualDoc | null>(null);
+  useEffect(() => {
+    docRef.current = doc;
+  }, [doc]);
+  const guardarEnCursoRef = useRef(false);
+  useEffect(() => {
+    guardarEnCursoRef.current = guardarMut.isPending;
+  }, [guardarMut.isPending]);
+  const mutateGuardarRef = useRef(guardarMut.mutate);
+  useEffect(() => {
+    mutateGuardarRef.current = guardarMut.mutate;
+  }, [guardarMut.mutate]);
+
+  useEffect(() => {
+    if (vista !== "editor") return;
+    const AUTOSAVE_MS = 60_000;
+    const id = window.setInterval(() => {
+      const actual = docRef.current;
+      if (actual && docGuardadoRef.current !== actual && !guardarEnCursoRef.current) {
+        mutateGuardarRef.current(actual);
+      }
+    }, AUTOSAVE_MS);
+    return () => window.clearInterval(id);
+  }, [vista]);
+
+  useEffect(() => {
+    if (vista !== "editor") return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (!doc || docGuardadoRef.current === doc) return;
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [vista, doc]);
+
+  const eliminarLoteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const fallidos: string[] = [];
+      for (const id of ids) {
+        try {
+          await api.delete(`/api/plantillas-visuales/${id}`);
+        } catch {
+          fallidos.push(id);
+        }
+      }
+      return fallidos;
+    },
+    onMutate: () => {
+      setEliminandoLote(true);
+      setMsg(null);
+    },
+    onSuccess: (fallidos) => {
+      setSeleccionadas(new Set());
+      setMsg(
+        fallidos.length > 0
+          ? `No se pudieron eliminar ${fallidos.length} plantilla(s)`
+          : "Plantilla(s) eliminada(s) ✓",
+      );
+      setTimeout(() => setMsg(null), 2500);
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al eliminar las plantillas seleccionadas"),
+    onSettled: () => setEliminandoLote(false),
+  });
+
+  function eliminarSeleccionadas() {
+    const ids = Array.from(seleccionadas);
+    if (ids.length === 0) return;
+    setConfirmarBorrado({ ids });
+  }
+
+  const [exportando, setExportando] = useState(false);
+  const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
+
+  const abrirCopiaGuardada = useCallback(
+    (local: PlantillaVisualDoc, servidor: PlantillaVisualDoc) => {
+      const fusionado = fusionarMetadatosPlantillaTrasGuardar(local, servidor);
+      setDoc(fusionado);
+      docGuardadoRef.current = fusionado;
+      setVista("editor");
+      setMsg("Plantilla duplicada ✓");
+      setTimeout(() => setMsg(null), 2500);
+    },
+    [],
+  );
+
+  const duplicarPlantillaPorId = useCallback(
+    async (id: string) => {
+      setDuplicandoId(id);
+      setMsg(null);
+      try {
+        const res = await api.get<{ plantilla: PlantillaVisualDoc }>(
+          `/api/plantillas-visuales/${id}`,
+        );
+        const copia = duplicarPlantillaVisual(res.plantilla);
+        const saved = await guardarMut.mutateAsync(copia);
+        abrirCopiaGuardada(copia, saved.plantilla);
+      } catch (e) {
+        setMsg(e instanceof Error ? e.message : "No se pudo duplicar la plantilla");
+      } finally {
+        setDuplicandoId(null);
+      }
+    },
+    [abrirCopiaGuardada, guardarMut],
+  );
+
+  const duplicarPlantillaActual = useCallback(() => {
+    if (!doc) return;
+    const copia = duplicarPlantillaVisual(doc);
+    guardarMut.mutate(copia, {
+      onSuccess: (res) => abrirCopiaGuardada(copia, res.plantilla),
+      onError: (e: Error) => setMsg(e.message || "No se pudo duplicar la plantilla"),
+    });
+  }, [abrirCopiaGuardada, doc, guardarMut]);
+
+  const abrirFormulario = useCallback((entrada: EntradaFormularioEtiqueta) => {
+    setEntradaFormulario(entrada);
+    setVista("formularios-etiquetas");
+  }, []);
+
+  const abrirNuevo = () => {
+    setDoc(null);
+    setPendienteNuevo(null);
+    setCategoriaPendiente(null);
+    setVista("formato");
+  };
+
+  const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
+    setPendienteNuevo({ formato, categoriaId });
+    setVista("scan");
+  };
+
+  const crearDesdeScan = (nuevo: PlantillaVisualDoc) => {
+    const doc = categoriaPendiente
+      ? {
+          ...nuevo,
+          nombre:
+            nuevo.nombre && nuevo.nombre !== "Sin título"
+              ? nuevo.nombre
+              : `Plantilla · ${etiquetaCategoriaEn(categorias, categoriaPendiente)}`,
+          categoria_producto: categoriaPendiente,
+          es_plantilla_categoria: true,
+          formulario: true,
+        }
+      : nuevo;
+    setDoc(doc);
+    docGuardadoRef.current = doc;
+    setPendienteNuevo(null);
+    if (categoriaPendiente) {
+      setMsg("Marca los campos variables en el panel de la derecha y guarda");
+      setTimeout(() => setMsg(null), 5000);
+      setCategoriaPendiente(null);
+    }
+    setVista("editor");
+  };
+
+  const abrirPlantilla = useCallback(async (id: string) => {
+    try {
+      const res = await api.get<{ plantilla: PlantillaVisualDoc }>(
+        `/api/plantillas-visuales/${id}`,
+      );
+      const limpio = sanitizarAltosTextoPlantilla(res.plantilla);
+      if (esPlantillaFichaMp(limpio)) {
+        setFichaInicial(limpio);
+        setVista("diligenciar");
+        return;
+      }
+      setFichaInicial(null);
+      setDoc(limpio);
+      docGuardadoRef.current = limpio;
+      setVista("editor");
+    } catch {
+      setMsg("No se pudo abrir la plantilla");
+    }
+  }, []);
+
+  /** PNG generado pendiente de confirmación: se muestra en vista previa antes
+   *  de descargarlo y guardarlo en la biblioteca. `blobOriginal`/`urlOriginal`
+   *  quedan fijos (para poder marcar zonas siempre sobre la versión sin
+   *  desenfocar); `blob`/`url` son la versión final a descargar. */
+  const [previewExport, setPreviewExport] = useState<{
+    blobOriginal: Blob;
+    urlOriginal: string;
+    blob: Blob;
+    url: string;
+    escala: number;
+    nombreArchivo: string;
+    desenfocado: boolean;
+  } | null>(null);
+  const [desenfoqueAbierto, setDesenfoqueAbierto] = useState(false);
+
+  const exportar = async (escala = 1) => {
+    if (!doc) return;
+    setExportando(true);
+    setMsg(null);
+    try {
+      const blob = await exportarPlantillaBlob(doc, "png", { escala });
+      const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
+      const suf = escala !== 1 ? `@${escala}x` : "";
+      const url = URL.createObjectURL(blob);
+      setPreviewExport({
+        blobOriginal: blob,
+        urlOriginal: url,
+        blob,
+        url,
+        escala,
+        nombreArchivo: `${safe}${suf}.png`,
+        desenfocado: false,
+      });
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Error al exportar");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  const cancelarExport = () => {
+    if (previewExport) {
+      URL.revokeObjectURL(previewExport.urlOriginal);
+      if (previewExport.url !== previewExport.urlOriginal) URL.revokeObjectURL(previewExport.url);
+    }
+    setDesenfoqueAbierto(false);
+    setPreviewExport(null);
+  };
+
+  const aplicarDesenfoquePreview = (blobDesenfocado: Blob) => {
+    setPreviewExport((prev) => {
+      if (!prev) return prev;
+      if (prev.url !== prev.urlOriginal) URL.revokeObjectURL(prev.url);
+      return { ...prev, blob: blobDesenfocado, url: URL.createObjectURL(blobDesenfocado), desenfocado: true };
+    });
+  };
+
+  const quitarDesenfoquePreview = () => {
+    setPreviewExport((prev) => {
+      if (!prev) return prev;
+      if (prev.url !== prev.urlOriginal) URL.revokeObjectURL(prev.url);
+      return { ...prev, blob: prev.blobOriginal, url: prev.urlOriginal, desenfocado: false };
+    });
+  };
+
+  const confirmarExport = async () => {
+    if (!doc || !previewExport) return;
+    const { blob, escala, nombreArchivo } = previewExport;
+    setExportando(true);
+    try {
+      descargarBlob(blob, nombreArchivo);
+      const esEtiqueta = Boolean(doc.formato.tipo_etiqueta || doc.formato.ancho_mm);
+      await subirImagenBlobAEtiquetas(blob, nombreArchivo, {
+        carpeta: esEtiqueta ? "ETIQUETAS STUDIO" : undefined,
+        tipo_etiqueta: doc.formato.tipo_etiqueta || (esEtiqueta ? doc.formato.nombre : undefined),
+        ancho_mm: doc.formato.ancho_mm,
+        alto_mm: doc.formato.alto_mm,
+        dpi: Math.round((doc.formato.dpi || 96) * escala),
+        escala,
+      });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+
+      const dimMm =
+        doc.formato.ancho_mm && doc.formato.alto_mm
+          ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
+          : "";
+      const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
+      const notaDesenfoque = previewExport.desenfocado ? " · zonas desenfocadas" : "";
+      setMsg(`Exportado PNG (${dim} px${dimMm}) · guardado en biblioteca ✓${notaDesenfoque}`);
+      setTimeout(() => setMsg(null), 2500);
+      cancelarExport();
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "Error al exportar");
+    } finally {
+      setExportando(false);
+    }
+  };
+
+  if (vista === "diligenciar") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <FichaMpDiligenciarPanel
+          key={fichaInicial?.id ?? "nueva"}
+          inicial={fichaInicial}
+          onVolver={() => {
+            setFichaInicial(null);
+            setVista("lista");
+          }}
+          onGuardada={() => {
+            void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+            void qc.invalidateQueries({ queryKey: ["plantillas-visuales-carpetas"] });
+          }}
+          onAbrirEnLienzo={(plantilla) => {
+            setFichaInicial(null);
+            setDoc(plantilla);
+            docGuardadoRef.current = plantilla;
+            setVista("editor");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "nueva-plantilla-categoria") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <NuevaPlantillaCategoriaPanel
+          categoriaInicial={categoriaFiltro}
+          onVolver={() => setVista("lista")}
+          onCreada={(plantilla) => {
+            setFichaInicial(null);
+            setDoc(plantilla);
+            docGuardadoRef.current = plantilla;
+            setMsg("Plantilla de categoría creada ✓ — ajústala y guarda si hace falta");
+            setTimeout(() => setMsg(null), 4000);
+            setVista("editor");
+          }}
+          onLienzoEnBlanco={(catId) => {
+            setCategoriaFiltro(catId);
+            setCategoriaPendiente(catId);
+            setVista("formato");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "formularios-etiquetas") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <FormulariosEtiquetadosPanel
+          entrada={entradaFormulario}
+          onVolver={() => {
+            setEntradaFormulario(null);
+            setVista("lista");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "lote" && plantillaLote) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <AplicarLotePanel
+          plantillaId={plantillaLote.id}
+          nombrePlantilla={plantillaLote.nombre}
+          onVolver={() => {
+            setPlantillaLote(null);
+            setVista("lista");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "formato") {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <SelectorFormatoCanvas
+          onElegir={elegirFormato}
+          onCancelar={() => {
+            setPendienteNuevo(null);
+            setVista("lista");
+          }}
+          subtitulo="Elige primero el tamaño del lienzo; después podrás pegar una foto y ajustar el dibujo a ese formato."
+        />
+      </div>
+    );
+  }
+
+  if (vista === "scan" && pendienteNuevo) {
+    return (
+      <div className="mx-auto max-w-4xl">
+        <ScanCapturaLayoutPanel
+          formato={pendienteNuevo.formato}
+          categoriaId={pendienteNuevo.categoriaId}
+          carpeta={carpetaActual}
+          onListo={crearDesdeScan}
+          onVolver={() => setVista("formato")}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "editor" && doc) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        {msg && (
+          <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2 rounded-lg border border-accent/40 bg-surface-panel px-4 py-2 text-sm text-ink shadow-lg">
+            {msg}
+          </div>
+        )}
+        <VisualCanvasEditor
+          doc={doc}
+          onChange={setDoc}
+          onGuardar={() => guardarMut.mutate(doc)}
+          onDuplicar={duplicarPlantillaActual}
+          onVolver={() => {
+            if (
+              docGuardadoRef.current !== doc &&
+              !window.confirm("Hay cambios sin guardar. ¿Salir de todas formas? Se perderán.")
+            ) {
+              return;
+            }
+            setVista("lista");
+            setDoc(null);
+            docGuardadoRef.current = null;
+          }}
+          onExportar={exportar}
+          dirty={docGuardadoRef.current !== doc}
+          guardando={guardarMut.isPending}
+          duplicando={guardarMut.isPending}
+          exportando={exportando}
+        />
+
+        {previewExport && (
+          <div
+            className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={cancelarExport}
+          >
+            <div
+              className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-paper-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div>
+                  <p className="text-sm font-bold text-ink">Vista previa de la descarga</p>
+                  <p className="text-[11px] text-muted">
+                    {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
+                    {Math.round(doc.formato.alto_px * previewExport.escala)} px
+                    {doc.formato.ancho_mm && doc.formato.alto_mm
+                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
+                      : ""}
+                    {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
+                  </p>
+                  {previewExport.desenfocado && (
+                    <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                      🔒 Zonas desenfocadas
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={cancelarExport}
+                  className="rounded-md px-2 py-1 text-sm text-muted hover:bg-surface-hover"
+                  aria-label="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
+              <div
+                className="flex min-h-[320px] flex-1 items-center justify-center overflow-hidden p-4"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%),linear-gradient(45deg,#d5d5d5 25%,transparent 25%,transparent 75%,#d5d5d5 75%)",
+                  backgroundSize: "16px 16px",
+                  backgroundPosition: "0 0, 8px 8px",
+                  backgroundColor: "#f0f0f0",
+                }}
+              >
+                {/* El PNG nativo es 600 DPI; aquí se muestra a tamaño de lectura
+                    (llena el modal, misma proporción que el lienzo). Antes se
+                    forzaba ancho_px del editor a 96 DPI (~189 px) y la etiqueta
+                    quedaba diminuta frente al zoom de ajuste. */}
+                <img
+                  src={previewExport.url}
+                  alt="Vista previa del PNG a descargar"
+                  width={Math.round(doc.formato.ancho_px * previewExport.escala)}
+                  height={Math.round(doc.formato.alto_px * previewExport.escala)}
+                  className="rounded shadow-lg"
+                  style={{
+                    width: "auto",
+                    height: "auto",
+                    maxWidth: "100%",
+                    maxHeight: "min(70vh, 720px)",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <p className="text-[11px] text-muted">
+                  MeLi no permite fotos con teléfono, web o datos de empresa: usa{" "}
+                  <button
+                    type="button"
+                    onClick={() => setDesenfoqueAbierto(true)}
+                    disabled={exportando}
+                    className="font-bold text-accent underline decoration-dotted underline-offset-2 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Desenfocar zonas
+                  </button>{" "}
+                  antes de descargar.
+                </p>
+                <div className="flex gap-2">
+                  {previewExport.desenfocado && (
+                    <button
+                      type="button"
+                      onClick={quitarDesenfoquePreview}
+                      disabled={exportando}
+                      className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                    >
+                      Quitar desenfoque
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={cancelarExport}
+                    disabled={exportando}
+                    className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void confirmarExport()}
+                    disabled={exportando}
+                    className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white hover:opacity-90 disabled:opacity-50"
+                  >
+                    {exportando ? "Guardando…" : "⬇ Descargar y guardar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {previewExport && (
+          <DesenfoquePlantillaModal
+            open={desenfoqueAbierto}
+            onClose={() => setDesenfoqueAbierto(false)}
+            blobOriginal={previewExport.blobOriginal}
+            imageUrl={previewExport.urlOriginal}
+            formato="png"
+            onAplicado={aplicarDesenfoquePreview}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
+          con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
+          es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h1 className="mr-2 text-lg font-bold tracking-tight text-ink">Studio</h1>
+        {SUBVISTAS.map((sv) => (
+          <button
+            key={sv.id}
+            type="button"
+            onClick={() => {
+              setSubvista(sv.id);
+              // Entrar por la pestaña es "muéstrame todo": si no se limpia, el
+              // filtro que dejó una tarjeta esconde los diseños nuevos.
+              setCategoriaFiltro("");
+            }}
+            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+              subvista === sv.id
+                ? "bg-accent text-white"
+                : "border border-border text-ink-secondary hover:bg-surface-hover"
+            }`}
+          >
+            {sv.label}
+          </button>
+        ))}
+      </div>
+
+      {subvista === "categorias" && (
+        <StudioCategoriasPanel
+          onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onAbrirPlantilla={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ fichaId: pl.id });
+              return;
+            }
+            void abrirPlantilla(pl.id);
+          }}
+          onAbrirEtiqueta={(e) => {
+            if (e.fichaId) {
+              abrirFormulario({ fichaId: e.fichaId });
+              return;
+            }
+            // PNG ya terminado: se ve e imprime desde Diseño → Imprimir.
+            setSubvista("recursos");
+            setMsg(`«${e.nombre}» está lista: se imprime desde Diseño → Imprimir.`);
+            setTimeout(() => setMsg(null), 5000);
+          }}
+          onNuevaEtiqueta={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ nuevaEtiquetaDePlantilla: pl.id });
+              return;
+            }
+            setPlantillaLote({ id: pl.id, nombre: pl.nombre });
+            setVista("lote");
+          }}
+        />
+      )}
+
+      {subvista === "etiquetas" && (
+        <StudioEtiquetasPanel
+          categoriaFiltro={categoriaFiltro}
+          onCategoriaFiltroChange={setCategoriaFiltro}
+          onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
+        />
+      )}
+
+      {subvista === "recursos" && (
+        <div>
+          <p className="mb-3 text-xs text-muted">
+            Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
+            terminadas están en la pestaña «Etiquetas».
+          </p>
+          <BibliotecaEtiquetasSection />
+        </div>
+      )}
+
+      {subvista === "disenos" && (
+      <>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        {categoriaFiltro && (
+          <button
+            type="button"
+            onClick={() => setCategoriaFiltro("")}
+            title="Quitar el filtro de categoría"
+            className="shrink-0 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10"
+          >
+            {etiquetaCategoriaEn(categorias, categoriaFiltro)} ✕
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <input
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+            placeholder="Buscar plantillas e imágenes en todas las carpetas…"
+            className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+          />
+        </div>
+        {plantillas.length > 0 && (
+          <button
+            type="button"
+            onClick={() =>
+              setSeleccionadas((prev) =>
+                prev.size === plantillas.length ? new Set() : new Set(plantillas.map((p) => p.id)),
+              )
+            }
+            className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover"
+          >
+            {seleccionadas.size === plantillas.length ? "Deseleccionar todo" : `Seleccionar todo (${plantillas.length})`}
+          </button>
+        )}
+        {seleccionadas.size > 0 && (
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuMoverAbierto((v) => !v)}
+              disabled={moviendoLote || eliminandoLote}
+              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            >
+              {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionadas.size})`}
+            </button>
+            <button
+              type="button"
+              onClick={eliminarSeleccionadas}
+              disabled={eliminandoLote || moviendoLote}
+              className="ml-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+            >
+              {eliminandoLote ? "Eliminando…" : `Eliminar (${seleccionadas.size})`}
+            </button>
+            {menuMoverAbierto && (
+              <div className="absolute right-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
+                <button
+                  type="button"
+                  onClick={() => moverSeleccionadas("")}
+                  disabled={carpetaActual === ""}
+                  className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
+                >
+                  📁 Raíz
+                </button>
+                {(carpetasTodasData?.carpetas ?? [])
+                  .filter((c) => c !== carpetaActual)
+                  .map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => moverSeleccionadas(c)}
+                      className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
+                      title={c}
+                    >
+                      📁 {c}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={abrirNuevo}
+          title="Lienzo libre: cajas de texto, símbolos y disposición propia"
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink-secondary hover:bg-surface-hover"
+        >
+          Nuevo diseño
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("nueva-plantilla-categoria")}
+          title="Elegir categoría, partir de un diseño y marcar los campos que cambian por producto"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+        >
+          Nueva plantilla de categoría
+        </button>
+      </div>
+
+      <p className="mb-4 text-[11px] text-muted">
+        Los <strong>diseños</strong> son el punto de partida: se duplican y se les marcan los
+        campos variables para convertirlos en la plantilla de una categoría. Las etiquetas ya
+        generadas están en la pestaña «Etiquetas».
+      </p>
+
+      <div className="mb-5 flex flex-wrap items-center gap-1 text-xs">
+        <button
+          type="button"
+          onClick={() => irACarpeta("")}
+          disabled={carpetaActual === ""}
+          onDragOver={(e) => {
+            if (!arrastrandoIds || carpetaActual === "") return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDragEnter={(e) => {
+            if (!arrastrandoIds || carpetaActual === "") return;
+            e.preventDefault();
+            setCarpetaHoverDrop("");
+          }}
+          onDragLeave={() => setCarpetaHoverDrop((v) => (v === "" ? null : v))}
+          onDrop={(e) => {
+            if (carpetaActual === "") return;
+            e.preventDefault();
+            soltarPlantillaEnCarpeta("");
+          }}
+          className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+            carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
+          }`}
+        >
+          📁 Raíz
+        </button>
+        {segmentosRuta.map((seg, i) => {
+          const rel = segmentosRuta.slice(0, i + 1).join("/");
+          const esUltimo = i === segmentosRuta.length - 1;
+          return (
+            <span key={rel} className="flex items-center gap-1">
+              <span className="text-muted">/</span>
+              <button
+                type="button"
+                onClick={() => irACarpeta(rel)}
+                disabled={esUltimo}
+                onDragOver={(e) => {
+                  if (!arrastrandoIds || esUltimo) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrandoIds || esUltimo) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  if (esUltimo) return;
+                  e.preventDefault();
+                  soltarPlantillaEnCarpeta(rel);
+                }}
+                className={`rounded px-1.5 py-0.5 font-semibold text-ink-secondary hover:bg-surface-hover disabled:cursor-default disabled:font-bold disabled:text-ink disabled:hover:bg-transparent ${
+                  carpetaHoverDrop === rel ? "bg-accent/15 text-accent" : ""
+                }`}
+              >
+                {seg}
+              </button>
+            </span>
+          );
+        })}
+        <button
+          type="button"
+          onClick={crearCarpetaPlantilla}
+          disabled={creandoCarpeta}
+          className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+        >
+          {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+      </div>
+
+      {msg && (
+        <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm">
+          {msg}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        </div>
+      ) : plantillas.length === 0 && subcarpetas.length === 0 ? (
+        buscarDebounced ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-12 text-center">
+            <p className="text-sm font-medium text-ink">
+              Sin plantillas que coincidan con «{buscarDebounced}»
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-muted">
+              La búsqueda revisa todas las carpetas. Abajo se muestran las imágenes
+              de la biblioteca que coinciden.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-surface-panel px-8 py-20 text-center">
+            <p className="text-sm font-medium text-ink">Sin plantillas todavía</p>
+            <p className="mt-1 max-w-sm text-sm text-muted">
+              Elige un formato de impresión o un tamaño a medida y abre un lienzo en blanco.
+            </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={abrirNuevo}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Nueva plantilla
+              </button>
+            </div>
+          </div>
+        )
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {subcarpetas.map((nombreCarpeta) => {
+            const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
+            const enHoverDrop = carpetaHoverDrop === rel;
+            return (
+              <div
+                key={rel}
+                role="button"
+                tabIndex={0}
+                onDoubleClick={() => irACarpeta(rel)}
+                onClick={() => irACarpeta(rel)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") irACarpeta(rel);
+                }}
+                title={rel}
+                onDragOver={(e) => {
+                  if (!arrastrandoIds) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDragEnter={(e) => {
+                  if (!arrastrandoIds) return;
+                  e.preventDefault();
+                  setCarpetaHoverDrop(rel);
+                }}
+                onDragLeave={() => setCarpetaHoverDrop((v) => (v === rel ? null : v))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  soltarPlantillaEnCarpeta(rel);
+                }}
+                className={`group/carpeta relative flex min-h-[164px] cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed p-4 text-center transition ${
+                  enHoverDrop
+                    ? "border-accent bg-accent/10"
+                    : "border-border bg-surface-panel hover:border-accent hover:bg-surface-hover"
+                }`}
+              >
+                <button
+                  type="button"
+                  title="Renombrar carpeta"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    renombrarCarpetaPlantilla(rel, nombreCarpeta);
+                  }}
+                  className="absolute right-2 top-2 rounded-md border border-border bg-white/95 px-1.5 py-0.5 text-xs opacity-0 shadow-sm transition hover:bg-surface-hover group-hover/carpeta:opacity-100 dark:bg-zinc-900/95"
+                >
+                  ✎
+                </button>
+                <span className="text-3xl">📁</span>
+                <span className="w-full truncate text-xs font-medium text-ink">{nombreCarpeta}</span>
+              </div>
+            );
+          })}
+          {plantillas.map((p) => {
+            const seleccionada = seleccionadas.has(p.id);
+            return (
+              <article
+                draggable={!arrastreBloqueado}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  iniciarArrastrePlantilla(p.id);
+                }}
+                onDragEnd={finalizarArrastrePlantilla}
+                title="Arrastra a una carpeta para mover"
+                key={p.id}
+                className={`group relative cursor-grab overflow-hidden rounded-xl border bg-surface-panel transition hover:border-accent/40 hover:shadow-md active:cursor-grabbing ${
+                  seleccionada ? "border-accent ring-2 ring-accent/40" : "border-border"
+                }`}
+              >
+                <label
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95"
+                >
+                  <input
+                    type="checkbox"
+                    checked={seleccionada}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      alternarSeleccionPlantilla(p.id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-3.5 w-3.5"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void abrirPlantilla(p.id)}
+                  className="flex w-full items-center justify-center bg-[#525659] p-4"
+                >
+                  <div className="flex min-h-[120px] items-center justify-center">
+                    <PlantillaVisualMiniatura doc={p} maxAncho={140} maxAlto={100} />
+                  </div>
+                </button>
+                <div className="px-3 py-2.5">
+                  <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
+                  <p className="mt-0.5 text-[11px] text-muted">
+                    {labelFormato(p.formato)}
+                    {" · "}
+                    {etiquetaCategoriaEn(categorias, categoriaProductoDe(p, categorias))}
+                    {p.es_plantilla_categoria ? " ★ plantilla" : ""}
+                    {esPlantillaFichaMp(p) ? " · formulario SCI" : ""}
+                    {esPlantillaFormularioEtiqueta(p) && !esPlantillaFichaMp(p) ? " · formulario" : ""}
+                  </p>
+                  {esPlantillaFormularioEtiqueta(p) && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPlantillaLote({ id: p.id, nombre: p.nombre });
+                        setVista("lote");
+                      }}
+                      className="mt-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/20"
+                    >
+                      📋 Aplicar en lote
+                    </button>
+                  )}
+                  {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
+                    <button
+                      type="button"
+                      title={`Ir a la carpeta ${p.carpeta || "raíz"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        irACarpeta(p.carpeta || "");
+                      }}
+                      className="mt-1 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-muted transition hover:border-accent hover:text-accent"
+                    >
+                      📁 {p.carpeta || "raíz"}
+                    </button>
+                  )}
+                </div>
+                <div
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                >
+                  <button
+                    type="button"
+                    title="Duplicar"
+                    draggable={false}
+                    disabled={duplicandoId === p.id || guardarMut.isPending}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void duplicarPlantillaPorId(p.id);
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-accent disabled:opacity-50"
+                  >
+                    {duplicandoId === p.id ? "…" : "Duplicar"}
+                  </button>
+                  <button
+                    type="button"
+                    title="Eliminar"
+                    draggable={false}
+                    disabled={eliminandoLote}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmarBorrado({ ids: [p.id], nombre: p.nombre });
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600 disabled:opacity-50"
+                  >
+                    {eliminandoLote ? "…" : "Eliminar"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {buscarDebounced && (
+        <div className="mt-6">
+          <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
+        </div>
+      )}
+
+      </>
+      )}
+
+      {confirmarBorrado && (
+        <div
+          className="fixed inset-0 z-[800] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setConfirmarBorrado(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface-panel p-5 shadow-paper-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold text-ink">
+              {confirmarBorrado.ids.length === 1
+                ? `¿Eliminar "${confirmarBorrado.nombre ?? "esta plantilla"}"?`
+                : `¿Eliminar ${confirmarBorrado.ids.length} plantillas seleccionadas?`}
+            </p>
+            <p className="mt-1 text-xs text-muted">Esta acción no se puede deshacer.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmarBorrado(null)}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                autoFocus
+                disabled={eliminandoLote}
+                onClick={() => {
+                  const ids = confirmarBorrado.ids;
+                  setConfirmarBorrado(null);
+                  eliminarLoteMut.mutate(ids);
+                }}
+                className="rounded-lg bg-danger px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {eliminandoLote ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

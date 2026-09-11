@@ -234,6 +234,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M14 14.2h4M16 13.2v4" />
     </>
   ),
+  // Billete saliendo: una solicitud de pago es plata que sale con un visto bueno.
+  pagos: (
+    <>
+      <rect x="2.5" y="6" width="14" height="9" rx="1.5" />
+      <circle cx="9.5" cy="10.5" r="2" />
+      <path d="M16 18.5l2 2 4-4.5" />
+    </>
+  ),
   prestamos: (
     <>
       <path d="M4 8h11M15 8l-3-3M15 8l-3 3" />

@@ -22,6 +22,7 @@ import ProductAttributeGrid, { type AttributeKey } from "./ProductAttributeGrid"
 import GhsBadge from "./GhsBadge";
 import TechnicalDocuments from "./TechnicalDocuments";
 import TechnicalIdentity from "./TechnicalIdentity";
+import CucharaMedidora from "./CucharaMedidora";
 import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
 import ContactFooter from "./ContactFooter";
@@ -30,6 +31,7 @@ import {
   CAMPOS_PLANTILLA,
   PRODUCTO_VACIO,
   RETICULA_MAESTRA,
+  UNIDADES_CUCHARA,
   variablesAcento,
   type ProductLabelData,
 } from "./productLabelTypes";
@@ -203,6 +205,19 @@ function ProductLabelFormInner({
     { estado: "idle" | "pendiente" | "guardando" | "ok" | "error"; texto?: string }
   >({ estado: "idle" });
 
+  // El id vive también en un ref porque el efecto de autoguardado NO lo lleva en
+  // sus dependencias: sin esto, escribir mientras el primer POST está en vuelo
+  // creaba una SEGUNDA ficha (el closure seguía viendo fichaId=null). Se notaba
+  // como pares de etiquetas creadas con 2 segundos de diferencia, una de ellas
+  // congelada a medio escribir.
+  const fichaIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    fichaIdRef.current = fichaId;
+  }, [fichaId]);
+  /** Hay un alta en vuelo: no se puede lanzar otra o se duplica. */
+  const creandoRef = useRef(false);
+  const [reintentoGuardado, setReintentoGuardado] = useState(0);
+
   useEffect(() => {
     const nombre = nombreFicha.trim();
     if (!nombre || etapa !== "formulario") {
@@ -211,10 +226,18 @@ function ProductLabelFormInner({
     }
     setAutoguardado({ estado: "pendiente" });
     const t = setTimeout(() => {
+      const idActual = fichaIdRef.current;
+      if (!idActual && creandoRef.current) {
+        // El alta va en camino: se reintenta en breve, cuando el id exista. Sin
+        // el reintento, dejar de escribir justo aquí perdía el último cambio.
+        setReintentoGuardado((n) => n + 1);
+        return;
+      }
+      if (!idActual) creandoRef.current = true;
       setAutoguardado({ estado: "guardando" });
       guardarFichaMutation.mutate(
         {
-          id: fichaId ?? undefined,
+          id: idActual ?? undefined,
           nombre,
           data,
           tipo_nombre: tipoNombre || undefined,
@@ -226,6 +249,7 @@ function ProductLabelFormInner({
         },
         {
           onSuccess: (res) => {
+            fichaIdRef.current = res.ficha.id;
             setFichaId(res.ficha.id);
             setAutoguardado({ estado: "ok", texto: "Guardado" });
           },
@@ -235,12 +259,26 @@ function ProductLabelFormInner({
               texto: err instanceof Error ? err.message : "No se pudo guardar",
             });
           },
+          onSettled: () => {
+            creandoRef.current = false;
+          },
         },
       );
     }, AUTOGUARDADO_DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nombreFicha, data, tipoNombre, categoria, esPlantillaNueva, plantillaOrigenId, attributeIcons, estilos, etapa]);
+  }, [
+    nombreFicha,
+    data,
+    tipoNombre,
+    categoria,
+    esPlantillaNueva,
+    plantillaOrigenId,
+    attributeIcons,
+    estilos,
+    etapa,
+    reintentoGuardado,
+  ]);
 
   // Crear plantillas dejó de vivir aquí: la plantilla de una categoría es de
   // lienzo (única que genera etiquetas de muchos SKU de golpe y con ajuste caja
@@ -254,6 +292,8 @@ function ProductLabelFormInner({
     setAttributeIcons(f.attribute_icons || {});
     reemplazarEstilos(f.text_styles || {});
     setNombreFicha(f.nombre);
+    fichaIdRef.current = f.id;
+    creandoRef.current = false;
     setEsPlantillaNueva(Boolean(f.es_plantilla_categoria));
     setPlantillaOrigenId(f.plantilla_id ?? null);
     setCategoria(f.categoria || detectarCategoriaEtiqueta(f.data?.productName || f.nombre));
@@ -272,6 +312,8 @@ function ProductLabelFormInner({
     setNombreFicha("");
     setCategoria(CATEGORIA_ETIQUETA_OTROS);
     setFichaId(null);
+    fichaIdRef.current = null;
+    creandoRef.current = false;
     setAutoguardado({ estado: "idle" });
     setEnlace(null);
     setPlantillaMsg(null);
@@ -315,18 +357,40 @@ function ProductLabelFormInner({
     ? fichasTodas?.find((f) => f.id === entrada.nuevaEtiquetaDePlantilla)
     : undefined;
 
-  /** Nueva plantilla de una categoría: parte de la plantilla que ya exista en esa
-   *  familia (para no rehacer el ajuste) y solo cambia el tamaño. */
-  const crearPlantillaDeCategoria = (categoriaId: string, tamano: string) => {
-    const previa = plantillasPorCategoria.get(categoriaId);
+  /** Nueva plantilla de una categoría.
+   *
+   *  `baseId` es la plantilla de la que se copia el ajuste — puede ser de OTRA
+   *  categoría: el diseño ya afinado de una familia suele servir de punto de
+   *  partida para la siguiente. Sin base, arranca en blanco. */
+  const crearPlantillaDeCategoria = (
+    categoriaId: string,
+    tamano: string,
+    baseId?: string | null,
+  ) => {
+    const previa = baseId
+      ? fichasTodas?.find((f) => f.id === baseId)
+      : plantillasPorCategoria.get(categoriaId);
     const nombre = nombrePlantillaCategoria(categorias, categoriaId, tamano);
+    // De la misma familia se copia todo (los textos técnicos sirven de arranque).
+    // De otra categoría se copia SOLO la parte fija de marca — logo, acento,
+    // contacto, documentos —; arrastrar el nombre o el CAS de otro producto
+    // dejaría la plantilla nueva con datos ajenos.
+    const mismaFamilia = Boolean(previa && previa.categoria === categoriaId);
     setCategoria(categoriaId);
     setTipoNombre(tamano);
-    setData(previa?.data ? { ...previa.data } : fichaDesdePlantilla(plantillaBase));
+    setData(
+      previa?.data
+        ? mismaFamilia
+          ? { ...previa.data }
+          : fichaDesdePlantilla(previa)
+        : fichaDesdePlantilla(plantillaBase),
+    );
     setAttributeIcons(previa?.attribute_icons ?? plantillaBase?.attribute_icons ?? {});
     reemplazarEstilos(previa?.text_styles ?? plantillaBase?.text_styles ?? {});
     setNombreFicha(nombre);
     setFichaId(null);
+    fichaIdRef.current = null;
+    creandoRef.current = false;
     setEsPlantillaNueva(true);
     setPlantillaOrigenId(null);
     setEditMode(true);
@@ -346,6 +410,8 @@ function ProductLabelFormInner({
     setAttributeIcons(plantilla.attribute_icons ?? {});
     reemplazarEstilos(plantilla.text_styles ?? {});
     setFichaId(null);
+    fichaIdRef.current = null;
+    creandoRef.current = false;
     setEsPlantillaNueva(false);
     setPlantillaOrigenId(plantilla.id);
     setEditMode(true);
@@ -716,6 +782,8 @@ function ProductLabelFormInner({
               onChange={(v) => onChange({ ghs: v })}
               iconSvg={data.ghsIconSvg}
               onIconChange={(svg) => onChange({ ghsIconSvg: svg })}
+              desplazamiento={data.ghsDesplazamiento ?? 0}
+              onDesplazamientoChange={(v) => onChange({ ghsDesplazamiento: v })}
               editMode={editMode}
             />
             <TechnicalDocuments
@@ -730,6 +798,15 @@ function ProductLabelFormInner({
               cas={data.cas}
               onConcentrationChange={(v) => onChange({ concentration: v })}
               onCasChange={(v) => onChange({ cas: v })}
+              casTitulo={data.casTitulo}
+              onCasTituloChange={(v) => onChange({ casTitulo: v })}
+              editMode={editMode}
+            />
+            <CucharaMedidora
+              cantidad={data.cucharaCantidad ?? ""}
+              unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
+              onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
+              onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
               editMode={editMode}
             />
           </div>
@@ -775,11 +852,18 @@ function ProductLabelFormInner({
         categoriaLabel={etiquetaCategoria(entrada.nuevaPlantillaCategoria)}
         tipos={tipos}
         tiposLoading={tiposLoading}
-        yaUsados={[...plantillasPorCategoria.values()]
-          .filter((f) => f.categoria === entrada.nuevaPlantillaCategoria)
+        yaUsados={(fichasTodas ?? [])
+          .filter(
+            (f) =>
+              f.es_plantilla_categoria && f.categoria === entrada.nuevaPlantillaCategoria,
+          )
           .map((f) => f.tipo_nombre || "")}
+        plantillasBase={(fichasTodas ?? []).filter((f) => f.es_plantilla_categoria)}
+        etiquetaDeCategoria={etiquetaCategoria}
         onVolver={onVolver}
-        onElegir={(tamano) => crearPlantillaDeCategoria(entrada.nuevaPlantillaCategoria!, tamano)}
+        onElegir={(tamano, baseId) =>
+          crearPlantillaDeCategoria(entrada.nuevaPlantillaCategoria!, tamano, baseId)
+        }
       />
     );
   }
@@ -1364,6 +1448,8 @@ function ElegirTamanoPlantilla({
   tipos,
   tiposLoading,
   yaUsados,
+  plantillasBase,
+  etiquetaDeCategoria,
   onVolver,
   onElegir,
 }: {
@@ -1372,10 +1458,21 @@ function ElegirTamanoPlantilla({
   tipos: TipoEtiqueta[];
   tiposLoading: boolean;
   yaUsados: string[];
+  /** Todas las plantillas existentes, de cualquier categoría. */
+  plantillasBase: FichaEtiquetaGuardada[];
+  etiquetaDeCategoria: (id: string) => string;
   onVolver: () => void;
-  onElegir: (tamano: string) => void;
+  onElegir: (tamano: string, baseId: string | null) => void;
 }) {
   const [tamano, setTamano] = useState("");
+  // Por defecto, la plantilla de esta misma categoría; si no hay, la primera que
+  // exista. Solo se ofrecen plantillas como base, nunca etiquetas de producto.
+  const [baseId, setBaseId] = useState<string>(
+    () =>
+      plantillasBase.find((f) => f.categoria === categoriaId)?.id
+      ?? plantillasBase[0]?.id
+      ?? "",
+  );
   const usados = new Set(yaUsados.filter(Boolean));
   return (
     <div className="mx-auto flex h-full max-w-xl min-h-0 flex-col overflow-auto p-4">
@@ -1412,10 +1509,34 @@ function ElegirTamanoPlantilla({
             ))}
           </select>
         </label>
+        <label className="mb-3 block text-xs text-muted">
+          <span className="mb-1 block font-semibold text-ink">Partir de</span>
+          <select
+            value={baseId}
+            onChange={(e) => setBaseId(e.target.value)}
+            className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
+          >
+            <option value="">Lienzo en blanco (datos corporativos)</option>
+            {plantillasBase.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nombre}
+                {f.categoria !== categoriaId
+                  ? ` — de ${etiquetaDeCategoria(f.categoria || "")}`
+                  : ""}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-[11px] text-muted">
+            De la misma categoría se copia todo. De otra categoría se copia solo la parte
+            de marca (logo, color, contacto, tipografías): los datos del producto no se
+            arrastran.
+          </span>
+        </label>
+
         <button
           type="button"
           disabled={!tamano}
-          onClick={() => onElegir(tamano)}
+          onClick={() => onElegir(tamano, baseId || null)}
           className="w-full rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-40"
         >
           {tamano

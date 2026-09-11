@@ -1,4 +1,5 @@
 import EditableField, { EditableLabel } from "./EditableField";
+import { TITULOS_CAS } from "./productLabelTypes";
 
 /** Cuadro técnico de Concentración / CAS — borde naranja, dos filas, un
  *  divisor naranja horizontal y uno vertical entre label y dato. Tabla
@@ -8,17 +9,39 @@ export default function TechnicalIdentity({
   cas,
   onConcentrationChange,
   onCasChange,
+  casTitulo,
+  onCasTituloChange,
   editMode,
 }: {
   concentration: string;
   cas: string;
   onConcentrationChange: (v: string) => void;
   onCasChange: (v: string) => void;
+  /** "CAS" o "EINECS" (sin dato = "CAS"). */
+  casTitulo?: string;
+  onCasTituloChange?: (v: string) => void;
   editMode: boolean;
 }) {
-  const filas: { key: string; label: string; value: string; onChange: (v: string) => void }[] = [
+  const rotuloCas = casTitulo || TITULOS_CAS[0];
+  const filas: {
+    key: string;
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    opciones?: readonly string[];
+    opcion?: string;
+    onOpcion?: (v: string) => void;
+  }[] = [
     { key: "concentration", label: "Pureza:", value: concentration, onChange: onConcentrationChange },
-    { key: "cas", label: "CAS:", value: cas, onChange: onCasChange },
+    {
+      key: "cas",
+      label: `${rotuloCas}:`,
+      value: cas,
+      onChange: onCasChange,
+      opciones: TITULOS_CAS,
+      opcion: rotuloCas,
+      onOpcion: onCasTituloChange,
+    },
   ];
   return (
     <div className="grid w-full grid-cols-[auto_1fr] overflow-hidden rounded-[4px] border-[1.5px] border-[color:var(--acento)] text-center">
@@ -35,6 +58,9 @@ export default function TechnicalIdentity({
               styleKey={`${fila.key}Titulo`}
               defaultFontSize={15}
               className="font-bold text-[#111111]"
+              opciones={fila.opciones}
+              valorOpcion={fila.opcion}
+              onElegirOpcion={fila.onOpcion}
             />
           </div>
           <div

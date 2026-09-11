@@ -56,6 +56,12 @@ interface RecursoPngBiblioteca {
 
 const formatoBytes = formatoBytesRecurso;
 
+function esImagenPngJpg(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (/\.(png|jpe?g)$/.test(lower)) return true;
+  return file.type === "image/png" || file.type === "image/jpeg";
+}
+
 function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: string }) {
   const qc = useQueryClient();
   const ticketsUser = useTicketsAuth((s) => s.user);
@@ -72,6 +78,8 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
   const [arrastrando, setArrastrando] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+  const inputSubirRef = useRef<HTMLInputElement>(null);
+  const [subida, setSubida] = useState<{ total: number; done: number } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["etiquetas-recursos-png", carpetaActual],
@@ -262,6 +270,40 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
     finalizarArrastre();
   }
 
+  // Sube una o varias imágenes del ordenador a la carpeta abierta, una por una
+  // (mismo endpoint que la galería del editor).
+  async function subirImagenes(files: File[]) {
+    const validos = files.filter(esImagenPngJpg);
+    if (validos.length === 0) {
+      setErrorLote("Solo se pueden subir imágenes JPG o PNG.");
+      return;
+    }
+    setErrorLote(null);
+    setSubida({ total: validos.length, done: 0 });
+    const errores: string[] = [];
+    for (let i = 0; i < validos.length; i++) {
+      const file = validos[i];
+      try {
+        const fd = new FormData();
+        fd.append("archivo", file);
+        fd.append("carpeta", carpetaActual);
+        await api.upload<{ ok: boolean; nombre: string }>("/api/etiquetas/recursos-png", fd);
+      } catch (err) {
+        errores.push(`${file.name}: ${err instanceof Error ? err.message : "error de subida"}`);
+      }
+      setSubida({ total: validos.length, done: i + 1 });
+    }
+    await qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    setSubida(null);
+    const ignorados = files.length - validos.length;
+    const avisos: string[] = [];
+    if (errores.length > 0) {
+      avisos.push(`No se pudieron subir ${errores.length}: ${errores.slice(0, 3).join("; ")}${errores.length > 3 ? "…" : ""}`);
+    }
+    if (ignorados > 0) avisos.push(`${ignorados} archivo(s) ignorado(s): solo JPG o PNG.`);
+    if (avisos.length > 0) setErrorLote(avisos.join(" "));
+  }
+
   async function descargar(nombre: string) {
     setDescargandoId(nombre);
     try {
@@ -348,6 +390,27 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
           className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
         >
           {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+        <input
+          ref={inputSubirRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            if (files.length > 0) void subirImagenes(files);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => inputSubirRef.current?.click()}
+          disabled={!!subida}
+          title="Sube una o varias imágenes JPG/PNG desde el ordenador a esta carpeta"
+          className="shrink-0 rounded-lg bg-accent px-2.5 py-1 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {subida ? `Subiendo ${subida.done}/${subida.total}…` : "⬆ Subir imágenes"}
         </button>
       </div>
 

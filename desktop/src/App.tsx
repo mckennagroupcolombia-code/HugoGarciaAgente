@@ -122,6 +122,7 @@ function PanelRouterInner() {
     case "ingresos-egresos":
     case "creditos-adquiridos":
     case "prestamos":
+    case "pagos":
     case "libro-mayor":
       return <ContabilidadPanel />;
     case "rentabilidad":

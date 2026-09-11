@@ -57,68 +57,22 @@ WEB_INVOICE_EMAIL_FALLBACK = (
     os.getenv("WEB_INVOICE_EMAIL_FALLBACK", "facturasmckennagroup@gmail.com") or ""
 ).strip()
 
-# Paleta alineada con PAGINA_WEB/site/static/css/main.css
-_MCK_GREEN = "#0c6069"
-_MCK_GREEN_DARK = "#045159"
-_MCK_GREEN_DEEP = "#022d33"
-_MCK_GREEN_LIGHT = "#6aacb3"
-_MCK_BG = "#e3fcff"
-_MCK_MUTED = "#3a7e87"
-_MCK_FONT = "Montserrat, Helvetica Neue, Arial, sans-serif"
-_LOGO_URL = f"{SITE_URL}/static/img/isotipo.png"
+# La plantilla de marca vive en `correo_marca` desde que también la usan los
+# correos de préstamos; estos alias mantienen el código de pedidos sin tocar.
+from app.tools import correo_marca as _marca
+
+_MCK_GREEN = _marca.VERDE
+_MCK_GREEN_DARK = _marca.VERDE_OSCURO
+_MCK_GREEN_DEEP = _marca.VERDE_PROFUNDO
+_MCK_GREEN_LIGHT = _marca.VERDE_CLARO
+_MCK_BG = _marca.FONDO
+_MCK_MUTED = _marca.TENUE
+_MCK_FONT = _marca.FUENTE
+_LOGO_URL = _marca.LOGO_URL
 
 
 def _wrap_mckenna_email(*, preheader: str, inner_html: str) -> str:
-    """Plantilla tipo sitio web: fondo aqua, tipografía Montserrat, barra marca verde."""
-    pre = html_module.escape(preheader)
-    return f"""<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
-<title>McKenna Group</title>
-</head>
-<body style="margin:0;padding:0;background-color:{_MCK_BG};">
-  <div style="display:none;font-size:1px;color:{_MCK_BG};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">{pre}</div>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:{_MCK_BG};">
-    <tr>
-      <td align="center" style="padding:28px 16px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid rgba(12,96,105,0.18);box-shadow:0 4px 24px rgba(2,45,51,0.06);">
-          <tr>
-            <td style="background:{_MCK_GREEN};padding:18px 24px;text-align:center;border-bottom:2px solid {_MCK_GREEN_DARK};">
-              <table role="presentation" cellspacing="0" cellpadding="0" align="center"><tr>
-                <td style="vertical-align:middle;padding-right:12px;">
-                  <img src="{_LOGO_URL}" alt="" width="44" height="44" style="display:block;border:0;">
-                </td>
-                <td style="vertical-align:middle;text-align:left;">
-                  <div style="font-family:{_MCK_FONT};font-weight:800;font-size:17px;color:{_MCK_BG};letter-spacing:-0.3px;line-height:1.2;">McKenna Group</div>
-                  <div style="font-family:{_MCK_FONT};font-size:9px;font-weight:600;letter-spacing:2.2px;text-transform:uppercase;color:rgba(227,252,255,0.85);margin-top:4px;">Materias primas</div>
-                </td>
-              </tr></table>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px 28px 28px 28px;font-family:{_MCK_FONT};font-size:15px;line-height:1.75;color:{_MCK_GREEN_DEEP};">
-              {inner_html}
-            </td>
-          </tr>
-          <tr>
-            <td style="background:{_MCK_GREEN_DEEP};padding:20px 24px;text-align:center;">
-              <p style="margin:0;font-family:{_MCK_FONT};font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(227,252,255,0.75);">McKenna Group S.A.S. · Bogotá, Colombia</p>
-              <p style="margin:10px 0 0 0;font-family:{_MCK_FONT};font-size:13px;">
-                <a href="{html_module.escape(SITE_URL)}" style="color:{_MCK_GREEN_LIGHT};text-decoration:none;font-weight:600;">mckennagroup.co</a>
-                &nbsp;·&nbsp;
-                <a href="{html_module.escape(SITE_URL + "/catalogo")}" style="color:{_MCK_GREEN_LIGHT};text-decoration:none;">Catálogo</a>
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>"""
+    return _marca.marco(preheader=preheader, inner_html=inner_html)
 
 
 def orders_db_path() -> Path:

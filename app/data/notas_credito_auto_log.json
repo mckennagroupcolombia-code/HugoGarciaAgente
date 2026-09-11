@@ -811,6 +811,18 @@
       "subida_meli": true,
       "proveedor": "Siigo",
       "actualizado_en": "2026-09-04T07:24:15"
+    },
+    "2000014851989261": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71423",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-10T07:25:41"
+    },
+    "2000018127217092": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71049",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-10T07:25:51"
     }
   }
 }

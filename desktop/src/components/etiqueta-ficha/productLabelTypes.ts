@@ -31,6 +31,16 @@ export interface ProductLabelData {
   /** Data URL del pictograma GHS elegido en la galería (vacío = sin
    *  pictograma, se ve el texto de `ghs` en su lugar). */
   ghsIconSvg?: string;
+  /** Desplazamiento vertical del pictograma GHS, en % de su caja (negativo =
+   *  más arriba). Solo mueve el rombo, no el resto de la columna. */
+  ghsDesplazamiento?: number;
+  /** Título del atributo de composición (sin dato = "Composición"). */
+  compositionTitulo?: string;
+  /** Rótulo del número de registro del cuadro técnico (sin dato = "CAS"). */
+  casTitulo?: string;
+  /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
+  cucharaCantidad?: string;
+  cucharaUnidad?: string;
 
   technicalDocuments: string;
   website: string;
@@ -128,7 +138,16 @@ export const CAMPOS_PLANTILLA = [
   "city",
   "phone",
   "email",
+  "ghsDesplazamiento",
+  "compositionTitulo",
+  "casTitulo",
+  "cucharaCantidad",
+  "cucharaUnidad",
 ] as const satisfies readonly (keyof ProductLabelData)[];
+
+export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
+export const TITULOS_CAS = ["CAS", "EINECS"] as const;
+export const UNIDADES_CUCHARA = ["g", "mL"] as const;
 
 /** Ficha vacía: sin información de producto. Los campos fijos traen el
  *  valor corporativo por defecto (se reemplazan por la plantilla guardada). */

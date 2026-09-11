@@ -3050,3 +3050,319 @@ def _detalle_venta_web(reference: str) -> dict | None:
 # `app/services/facturacion_ventas_unificado.py::listar_ventas_meli_unificado`,
 # que además recorre las ÓRDENES (no solo las facturas) para poder detectar
 # "sin_facturar" — algo que esta función nunca pudo hacer.
+
+
+# Retenciones configuradas en la cuenta (GET /retentions, verificado 2026-09-10).
+# (concepto, tarifa) -> id en Alegra. Se mapea explícito y no por nombre: los
+# nombres se editan desde la interfaz de Alegra y romperían el match en silencio.
+RETENCIONES_ALEGRA: dict[tuple[str, float], int] = {
+    ("compras", 2.5): 3,
+    ("compras", 3.5): 4,
+    ("servicios", 4.0): 9,
+    ("servicios", 6.0): 10,
+    ("honorarios", 10.0): 5,
+    ("honorarios", 11.0): 6,
+    # ⚠️ FALTA en la cuenta: retención de rendimientos financieros al 7%
+    # (Art. 395 E.T.), la de los intereses de préstamos. Hay que crearla en
+    # Alegra (Configuración → Retenciones) antes de poder incluirla en un
+    # documento soporte.
+}
+
+
+def retencion_alegra_id(concepto: str, tarifa_pct: float) -> int | None:
+    """Id de la retención en Alegra para un concepto y tarifa, o None si esa
+    combinación no está configurada en la cuenta."""
+    return RETENCIONES_ALEGRA.get((str(concepto or "").strip().lower(), round(float(tarifa_pct or 0), 2)))
+
+
+def listar_retenciones_alegra() -> tuple[list | None, str]:
+    """Retenciones configuradas en la cuenta (solo lectura). Sirve para revisar
+    que el mapeo de `RETENCIONES_ALEGRA` siga vigente."""
+    try:
+        headers = _alegra_headers()
+        r = requests.get(f"{_ALEGRA_BASE}/retentions", headers=headers, timeout=15)
+    except (RuntimeError, requests.RequestException) as e:
+        return None, str(e)
+    if r.status_code != 200:
+        return None, f"HTTP {r.status_code}: {r.text[:200]}"
+    data = r.json()
+    return (data if isinstance(data, list) else (data.get("data") or [])), ""
+
+
+def consultar_contacto_alegra(identificacion: str, tipo_documento: str = "") -> dict:
+    """Consulta SI un contacto existe en Alegra, sin crearlo.
+
+    A diferencia de `_resolver_o_crear_contacto_alegra`, esta función no tiene
+    efectos: la usa el panel de Préstamos para mostrar si el prestamista ya está
+    inscrito como contacto antes de emitirle documentos. Crear el contacto al
+    solo abrir una pantalla ensuciaría el directorio de Alegra con terceros que
+    quizá nunca reciban una factura.
+
+    Devuelve {"existe": bool, "id": str|None, "nombre": str, "email": str,
+    "identificacion": str, "error": str}.
+    """
+    vacio = {"existe": False, "id": None, "nombre": "", "email": "", "identificacion": "", "error": ""}
+    digits = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    if not digits:
+        return {**vacio, "error": "Identificación vacía."}
+
+    # Misma normalización de NIT que la creación, para no reportar "no existe"
+    # sobre un contacto que sí está pero guardado sin el dígito de verificación.
+    tipo = (tipo_documento or "").strip().upper()
+    id_type = tipo if tipo in ("NIT", "CC") else ("CC" if len(digits) <= 10 else "NIT")
+    if id_type == "NIT" and len(digits) == 10:
+        digits = digits[:-1]
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {**vacio, "identificacion": digits, "error": str(e)}
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/contacts", headers=headers,
+            params={"identification": digits}, timeout=15,
+        )
+    except requests.RequestException as e:
+        return {**vacio, "identificacion": digits, "error": f"Error de red consultando Alegra: {e}"}
+
+    if res.status_code != 200:
+        return {
+            **vacio,
+            "identificacion": digits,
+            "error": f"Alegra respondió HTTP {res.status_code}: {res.text[:200]}",
+        }
+
+    try:
+        data = res.json()
+    except ValueError:
+        return {**vacio, "identificacion": digits, "error": "Alegra devolvió una respuesta no-JSON."}
+
+    contactos = data if isinstance(data, list) else (data.get("data") or [])
+    if not contactos:
+        return {**vacio, "identificacion": digits}
+
+    c = contactos[0]
+    return {
+        "existe": True,
+        "id": str(c.get("id") or ""),
+        "nombre": str(c.get("name") or ""),
+        "email": str(c.get("email") or ""),
+        "identificacion": digits,
+        "error": "",
+    }
+
+
+# ─── Documento soporte (adquisiciones a no obligados a facturar) ────────────
+# Res. DIAN 000167 de 2021. Hoy lo usa el módulo de préstamos para soportar el
+# gasto por intereses pagados a prestamistas persona natural, que no pueden
+# emitir factura. Ver app/services/prestamos.py y docs/agentic/modules/prestamos.md.
+
+# Plantilla de numeración `supportDocument` en la cuenta de McKenna. OJO: en la
+# misma cuenta existe la id=16, llamada "Documento Soporte" pero cuyo tipo real
+# es `saleTicket` (tiquete POS) — NO es la correcta, y usarla emitiría el
+# documento equivocado. Confirmado contra /number-templates el 2026-09-10.
+ALEGRA_NUMBER_TEMPLATE_DOC_SOPORTE = os.getenv("ALEGRA_TEMPLATE_DOC_SOPORTE", "10")
+
+
+def _resolver_o_crear_proveedor_persona_natural_alegra(
+    *, identificacion: str, nombre: str, email: str = ""
+) -> tuple[str | None, str]:
+    """Proveedor persona natural, para documento soporte.
+
+    Aparte de `_resolver_o_crear_proveedor_alegra`, que fija `LEGAL_ENTITY` +
+    `COMMON_REGIME` — correcto para un proveedor empresa, equivocado para el
+    contraparte típico de un documento soporte, que por definición es alguien
+    NO obligado a facturar (persona natural, no responsable de IVA).
+    """
+    digits = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    if not digits:
+        return None, "Identificación vacía."
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return None, str(e)
+
+    try:
+        res = requests.get(
+            f"{_ALEGRA_BASE}/contacts", headers=headers,
+            params={"identification": digits, "limit": 5}, timeout=15,
+        )
+    except requests.RequestException as e:
+        return None, f"Error de red consultando el contacto: {e}"
+    if res.status_code == 200 and (res.json() or []):
+        return str((res.json())[0]["id"]), ""
+
+    payload = {
+        "name": _nombre_object_persona(nombre or f"Prestamista {digits}"),
+        "identificationObject": {"type": "CC", "number": digits},
+        "kindOfPerson": "PERSON_ENTITY",
+        "regime": "SIMPLIFIED_REGIME",
+        "type": ["provider"],
+    }
+    if email:
+        payload["email"] = email
+    try:
+        r = requests.post(f"{_ALEGRA_BASE}/contacts", headers=headers, json=payload, timeout=20)
+    except requests.RequestException as e:
+        return None, f"Error de red creando el contacto: {e}"
+    if r.status_code in (200, 201):
+        return str(r.json()["id"]), ""
+    return None, f"Alegra rechazó el proveedor (HTTP {r.status_code}): {r.text[:250]}"
+
+
+def crear_documento_soporte_alegra(
+    *,
+    identificacion: str,
+    nombre: str,
+    fecha: str,
+    valor: float,
+    descripcion: str,
+    cuenta_contable: str,
+    email: str = "",
+    observaciones: str = "",
+    retencion: dict | None = None,
+    dry_run: bool = False,
+) -> dict:
+    """Emite un documento soporte en Alegra por `valor` (una sola línea).
+
+    `dry_run=True` arma y devuelve el payload SIN enviarlo. Un documento soporte
+    emitido ya viajó a la DIAN y solo se corrige con nota de ajuste, así que el
+    módulo de préstamos arranca en modo sombra hasta que el operador confirme
+    el ítem y active el flag — no por duda legal (ver abajo), sino porque no se
+    emite un documento fiscal irreversible sin decisión explícita.
+
+    Usa **cuenta contable** (`purchases.categories`), no ítem de inventario.
+    Alegra rechaza `purchases.items` con «Uno de los items especificados es
+    inválido» (11034) para CUALQUIER ítem en esta cuenta —incluido el genérico
+    que usa producción—. La vía de cuenta contable es la que documenta su propia
+    ayuda para gastos, y es la que funciona (verificado en vivo el 2026-09-11).
+
+    Retorna {"status": "success"|"dry_run"|"error", ...}.
+    """
+    valor = round(float(valor or 0), 2)
+    if valor <= 0:
+        return {"status": "error", "message": "El valor del documento soporte debe ser mayor que cero."}
+
+    if not str(cuenta_contable or "").strip():
+        return {"status": "error", "message": "Falta la cuenta contable de la línea."}
+
+    payload = {
+        "date": str(fecha)[:10],
+        "dueDate": str(fecha)[:10],
+        "numberTemplate": {"id": str(ALEGRA_NUMBER_TEMPLATE_DOC_SOPORTE)},
+        "purchases": {
+            "categories": [{
+                "id": str(cuenta_contable),
+                "price": valor,
+                "quantity": 1,
+                "observations": descripcion[:255],
+            }]
+        },
+        # OJO: el único valor que Alegra acepta acá es "CASH" (verificado contra
+        # la API el 2026-09-10: cash/transfer/TRANSFER/check/other devuelven
+        # 11305 "El forma de pago no es válido"). No describe cómo se pagó —
+        # eso vive en el Libro Mayor, en el medio de pago del asiento.
+        "paymentMethod": "CASH",
+        "paymentType": "INSTRUMENT_NOT_DEFINED",
+        "billOperationType": "INDIVIDUAL",
+    }
+    if observaciones:
+        payload["observations"] = observaciones[:500]
+
+    # Retención practicada sobre este documento. Se manda el id de Alegra, no la
+    # tarifa: así queda registrada en sus reportes y el contador entra a pagarla
+    # sin recalcular nada.
+    aviso_retencion = ""
+    if retencion and float(retencion.get("retencion") or 0) > 0:
+        rid = retencion_alegra_id(retencion.get("concepto", ""), retencion.get("tarifa_pct", 0))
+        if rid:
+            payload["retentions"] = [{"id": rid, "amount": round(float(retencion["retencion"]), 2)}]
+        else:
+            aviso_retencion = (
+                f"⚠️ La retención de {retencion.get('concepto')} al "
+                f"{retencion.get('tarifa_pct')}% no está configurada en Alegra "
+                "(Configuración → Retenciones). El documento iría SIN retención."
+            )
+
+    if dry_run:
+        # No se resuelve ni se crea el proveedor: crear un contacto es escribir
+        # en Alegra, y el modo sombra no debe dejar rastro.
+        return {
+            "status": "dry_run",
+            "payload": {**payload, "provider": f"<se resolvería por CC {identificacion}>"},
+            "cuenta_contable": str(cuenta_contable),
+            "valor": valor,
+            "retencion": retencion or None,
+            "aviso": aviso_retencion or None,
+        }
+
+    proveedor_id, err = _resolver_o_crear_proveedor_persona_natural_alegra(
+        identificacion=identificacion, nombre=nombre, email=email
+    )
+    if not proveedor_id:
+        return {"status": "error", "message": f"No se pudo resolver el prestamista en Alegra. {err}"}
+    payload["provider"] = int(proveedor_id) if str(proveedor_id).isdigit() else proveedor_id
+
+    try:
+        headers = _alegra_headers()
+        r = requests.post(f"{_ALEGRA_BASE}/bills", headers=headers, json=payload, timeout=25)
+    except (RuntimeError, requests.RequestException) as e:
+        return {"status": "error", "message": f"Error emitiendo el documento soporte: {e}"}
+
+    if r.status_code in (200, 201):
+        data = r.json()
+        numero = data.get("numberTemplate", {}).get("fullNumber") or str(data.get("number") or "")
+        print(f"✅ Documento soporte creado en Alegra: {data.get('id')} ({numero})", flush=True)
+        return {"status": "success", "id": str(data.get("id")), "numero": numero, "data": data}
+    print(f"❌ Alegra rechazó el documento soporte: {r.status_code} - {r.text[:300]}", flush=True)
+    return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
+
+
+def crear_item_servicio_alegra(
+    *, referencia: str, nombre: str, descripcion: str = "", tipo: str = "product"
+) -> dict:
+    """Crea en Alegra un ítem de catálogo, sin IVA y sin inventario.
+
+    Lo usan los documentos soporte, que necesitan una línea con un producto real:
+    emitir un documento fiscal contra el ítem genérico de compras sería un
+    soporte equivocado. Idempotente: si la referencia ya existe la devuelve en
+    vez de duplicarla (un catálogo con dos ítems iguales termina con facturas
+    apuntando a cualquiera de los dos).
+    """
+    existente = buscar_producto_alegra_por_referencia(referencia)
+    if existente:
+        return {"status": "success", "creado": False, "id": str(existente["id"]), "data": existente}
+
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"status": "error", "message": str(e)}
+
+    payload = {
+        "name": nombre[:150],
+        "reference": referencia,
+        "type": tipo,
+        "status": "active",
+        # Sin IVA: la mercancía de los socios no entró por importación ordinaria,
+        # así que no hay IVA descontable que trasladar (Art. 485 E.T.).
+        "tax": [],
+        "price": 0,
+        # Sin `inventory.unit` Alegra crea el ítem pero lo rechaza al usarlo en
+        # un documento ("Uno de los items especificados es inválido", 11034).
+        # Confirmado el 2026-09-10 creando MERCANCIA-SOCIO, que necesitó un PUT
+        # posterior para quedar utilizable.
+        "inventory": {"unit": "unit"},
+    }
+    if descripcion:
+        payload["description"] = descripcion[:500]
+
+    try:
+        r = requests.post(f"{_ALEGRA_BASE}/items", headers=headers, json=payload, timeout=25)
+    except requests.RequestException as e:
+        return {"status": "error", "message": f"Error de red creando el ítem: {e}"}
+    if r.status_code in (200, 201):
+        data = r.json()
+        print(f"✅ Ítem creado en Alegra: {data.get('id')} ({referencia})", flush=True)
+        return {"status": "success", "creado": True, "id": str(data.get("id")), "data": data}
+    return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}

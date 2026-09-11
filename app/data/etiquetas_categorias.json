@@ -12,84 +12,17 @@
     },
     {
       "id": "aceites-esenciales",
-      "etiqueta": "Aceites esenciales",
-      "claves": [
-        "aceite esencial",
-        "esencial ",
-        "esencia de",
-        "oleorresina"
-      ]
+      "etiqueta": "Aceites Esenciales",
+      "claves": []
     },
     {
       "id": "aceites",
-      "etiqueta": "Aceites y grasas",
-      "claves": [
-        "aceite",
-        "oleo",
-        "grasa vegetal",
-        "trigliceridos"
-      ]
-    },
-    {
-      "id": "ceras-mantecas",
-      "etiqueta": "Ceras y mantecas",
-      "claves": [
-        "cera ",
-        "manteca",
-        "karite",
-        "butter",
-        "parafina",
-        "vaselina",
-        "lanolina",
-        "cetilico",
-        "cetearilico",
-        "estearilico",
-        "alcohol graso"
-      ]
-    },
-    {
-      "id": "extractos",
-      "etiqueta": "Extractos vegetales",
-      "claves": [
-        "extracto",
-        "tintura",
-        "polvo de hoja",
-        "hidrolato",
-        "agua de "
-      ]
-    },
-    {
-      "id": "frutos-secos",
-      "etiqueta": "Frutos secos",
-      "claves": [
-        "mani",
-        "almendra",
-        "nuez",
-        "marañon",
-        "maranon",
-        "pistacho",
-        "avellana",
-        "uva pasa",
-        "ciruela",
-        "arandano"
-      ]
-    },
-    {
-      "id": "deshidratados",
-      "etiqueta": "Deshidratados y hongos",
-      "claves": [
-        "deshidratad",
-        "orellana",
-        "flor de jamaica",
-        "hongo",
-        "champinon",
-        "seco",
-        "seca"
-      ]
+      "etiqueta": "Aceites & Grasas",
+      "claves": []
     },
     {
       "id": "semillas",
-      "etiqueta": "Semillas",
+      "etiqueta": "Semillas & Frutos Secos",
       "claves": [
         "semilla",
         "chia",
@@ -103,20 +36,12 @@
     },
     {
       "id": "cereales-harinas",
-      "etiqueta": "Cereales y harinas",
-      "claves": [
-        "harina",
-        "avena",
-        "salvado",
-        "almidon",
-        "fecula",
-        "maiz",
-        "arroz"
-      ]
+      "etiqueta": "Harinas",
+      "claves": []
     },
     {
       "id": "vitaminas",
-      "etiqueta": "Vitaminas y suplementos",
+      "etiqueta": "Vitaminas & Enzimas",
       "claves": [
         "vitamina",
         "ascorbico",
@@ -149,80 +74,9 @@
       ]
     },
     {
-      "id": "sales",
-      "etiqueta": "Sales y ácidos inorgánicos",
-      "claves": [
-        "bicarbonato",
-        "carbonato",
-        "cloruro",
-        "sulfato",
-        "fosfato",
-        "nitrato",
-        "hidroxido",
-        "soda caustica",
-        "alumbre",
-        "molibdato",
-        "cremor tartaro",
-        "azufre",
-        "lactato",
-        "sal "
-      ]
-    },
-    {
-      "id": "acidos",
-      "etiqueta": "Ácidos orgánicos",
-      "claves": [
-        "acido citrico",
-        "acido lactico",
-        "acido malico",
-        "acido tartarico",
-        "acido salicilico",
-        "acido glicolico",
-        "acido"
-      ]
-    },
-    {
       "id": "aminoacidos-proteinas",
-      "etiqueta": "Aminoácidos y proteínas",
-      "claves": [
-        "colageno",
-        "proteina",
-        "arginina",
-        "glicina",
-        "lisina",
-        "creatina",
-        "taurina",
-        "glutamina",
-        "carnitina",
-        "citrulina",
-        "fenilalanina",
-        "ornitina",
-        "prolina",
-        "teanina",
-        "triptofano",
-        "metionina",
-        "aminoacido",
-        "peptido",
-        "keratina",
-        "queratina",
-        "elastina"
-      ]
-    },
-    {
-      "id": "enzimas",
-      "etiqueta": "Enzimas y fermentos",
-      "claves": [
-        "enzima",
-        "papaina",
-        "bromelina",
-        "amilasa",
-        "proteasa",
-        "lipasa",
-        "lactasa",
-        "probiotico",
-        "fermento",
-        "levadura"
-      ]
+      "etiqueta": "Aminoácidos & Proteínas",
+      "claves": []
     },
     {
       "id": "conservantes",
@@ -241,63 +95,9 @@
       ]
     },
     {
-      "id": "aditivos",
-      "etiqueta": "Aditivos alimentarios",
-      "claves": [
-        "aditivo",
-        "antiaglomerante",
-        "antioxidante",
-        "acidulante",
-        "regulador de acidez",
-        "potenciador",
-        "saborizante",
-        "colorante",
-        "edulcorante",
-        "estevia",
-        "sucralosa",
-        "eritritol",
-        "sorbitol",
-        "xilitol",
-        "maltitol"
-      ]
-    },
-    {
       "id": "gelificantes",
-      "etiqueta": "Gelificantes y espesantes",
-      "claves": [
-        "goma",
-        "xantan",
-        "xantana",
-        "guar",
-        "carragenina",
-        "pectina",
-        "gelatina",
-        "agar",
-        "carbomer",
-        "carbopol",
-        "espesante",
-        "gelificante",
-        "alginato",
-        "celulosa",
-        "inulina",
-        "fibra"
-      ]
-    },
-    {
-      "id": "emulsificantes",
-      "etiqueta": "Emulsificantes",
-      "claves": [
-        "emulsificante",
-        "emulsionante",
-        "polawax",
-        "cera autoemulsionante",
-        "lecitina",
-        "polisorbato",
-        "tween",
-        "span ",
-        "monoestearato",
-        "olivem"
-      ]
+      "etiqueta": "Gelificantes & Espesantes & Emulsificantes",
+      "claves": []
     },
     {
       "id": "tensoactivos",
@@ -312,7 +112,7 @@
         "cocamidopropil",
         "cocoamida",
         "btms",
-        "sci ",
+        "sci",
         "isetionato",
         "nonilfenol",
         "jabon",
@@ -342,37 +142,17 @@
     },
     {
       "id": "arcillas",
-      "etiqueta": "Arcillas y minerales",
-      "claves": [
-        "arcilla",
-        "bentonita",
-        "caolin",
-        "kaolin",
-        "talco",
-        "silice",
-        "silica",
-        "diatomea",
-        "zeolita",
-        "carbon activado"
-      ]
+      "etiqueta": "Arcillas",
+      "claves": []
     },
     {
       "id": "excipientes",
-      "etiqueta": "Excipientes y cápsulas",
-      "claves": [
-        "capsula",
-        "excipiente",
-        "estearato de magnesio",
-        "dioxido de silicio",
-        "celulosa microcristalina",
-        "aglutinante",
-        "desintegrante",
-        "pastillero"
-      ]
+      "etiqueta": "Cápsulas & Excipientes",
+      "claves": []
     },
     {
       "id": "colorantes-reactivos",
-      "etiqueta": "Colorantes y reactivos",
+      "etiqueta": "Colorantes y Reactivos",
       "claves": [
         "azul de metileno",
         "verde malaquita",
@@ -384,37 +164,18 @@
     },
     {
       "id": "activos-cosmeticos",
-      "etiqueta": "Activos cosméticos",
-      "claves": [
-        "hialuronico",
-        "retinal",
-        "peptidos",
-        "coenzima",
-        "argireline",
-        "matrixyl",
-        "urea",
-        "alantoina",
-        "aloe",
-        "bisabolol",
-        "arbutina",
-        "cafeina",
-        "mentol",
-        "embrion",
-        "gusano de seda",
-        "baba de caracol"
-      ]
+      "etiqueta": "Activos Cosméticos",
+      "claves": []
     },
     {
-      "id": "quimicos-industriales",
-      "etiqueta": "Químicos industriales",
-      "claves": [
-        "resina",
-        "epoxi",
-        "poliuretano",
-        "catalizador",
-        "endurecedor",
-        "pigmento industrial"
-      ]
+      "id": "manteca-ceras",
+      "etiqueta": "Mantecas & Ceras",
+      "claves": []
+    },
+    {
+      "id": "hierbas-desecadas",
+      "etiqueta": "Extractos Frutales & Hierbas",
+      "claves": []
     },
     {
       "id": "otros",

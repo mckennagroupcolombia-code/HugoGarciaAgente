@@ -142,6 +142,21 @@ def _migrar_columnas_v4() -> None:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN tipo_persona TEXT NOT NULL DEFAULT 'juridica'")
         if "usuario_id" not in cols:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN usuario_id INTEGER")
+        # Documento soporte (DIAN Concepto 000112 int 7 de 2024): McKenna solo
+        # lo emite cuando el tercero NO está obligado a facturar. Un tercero
+        # persona natural puede igualmente estar obligado (responsable de IVA,
+        # comerciante inscrito), y ahí la factura la expide él — `tipo_persona`
+        # solo no alcanza para decidir. Ver prestamos.requiere_documento_soporte.
+        if "obligado_a_facturar" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN obligado_a_facturar INTEGER NOT NULL DEFAULT 0"
+            )
+        # Declarante de renta: cambia la tarifa de retención (2,5% vs 3,5% en
+        # compras, 4% vs 6% en servicios). Default 1 (declarante) porque es la
+        # tarifa MENOR: si el dato está mal, se retiene de menos y se corrige,
+        # en vez de retenerle de más a alguien y tener que devolvérselo.
+        if "declarante" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN declarante INTEGER NOT NULL DEFAULT 1")
 
 
 def _ensure_gastos_personales() -> None:
@@ -202,6 +217,34 @@ def _migrar_cuentas_v2() -> None:
         # 5195 inflaría ventas y gastos a la vez y dejaría el margen mentiroso.
         # Ver `app/services/anulaciones_motor.py::postear_asiento`.
         ("4175", "Devoluciones en ventas", "ingreso", "debito"),
+        # Retención en la fuente que McKenna practica como agente retenedor y
+        # consigna a la DIAN — hoy la usan los pagos de intereses a prestamistas
+        # particulares (rendimientos financieros 7%, Art. 395 ET). Es un PASIVO
+        # con la DIAN, no un gasto: el gasto de McKenna es el interés bruto
+        # completo, y la retención solo cambia a quién se le gira esa parte.
+        # Ver `app/services/prestamos.py::registrar_pago_cuota`.
+        ("2365", "Retención en la fuente por pagar", "pasivo", "credito"),
+        # ── Gastos por naturaleza (ampliación 2026-09-11) ──────────────────
+        # Hasta acá TODO gasto operativo caía en 5135 "Servicios": la luz, el
+        # contador, los fletes de Interrapidísimo y el arriendo terminaban en la
+        # misma cuenta, y el estado de resultados no decía nada útil. Códigos
+        # del PUC colombiano (Decreto 2650), no inventados, y cada uno tiene su
+        # equivalente en Alegra — ver `alegra_espejo.MAPA_PUC`.
+        ("5105", "Gastos de personal - sueldos y salarios", "gasto", "debito"),
+        ("5110", "Honorarios", "gasto", "debito"),
+        ("5120", "Arrendamientos", "gasto", "debito"),
+        ("5130", "Seguros", "gasto", "debito"),
+        ("5145", "Mantenimiento y reparaciones", "gasto", "debito"),
+        ("5155", "Gastos de viaje", "gasto", "debito"),
+        # Subcuentas de 5135 Servicios (PUC 5135xx), para separar lo que antes
+        # se mezclaba. La 5135 genérica se mantiene para lo que no encaje.
+        ("513525", "Acueducto y alcantarillado", "gasto", "debito"),
+        ("513530", "Energía eléctrica", "gasto", "debito"),
+        ("513535", "Teléfono e internet", "gasto", "debito"),
+        ("513550", "Transporte, fletes y acarreos", "gasto", "debito"),
+        ("513555", "Gas", "gasto", "debito"),
+        ("513560", "Software y suscripciones (SaaS)", "gasto", "debito"),
+        ("513595", "Otros servicios", "gasto", "debito"),
     ]
     with _conn() as con:
         for codigo, nombre, tipo, naturaleza in nuevas:

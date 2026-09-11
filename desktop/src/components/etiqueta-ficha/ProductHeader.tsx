@@ -8,8 +8,10 @@ import { colorAcentoDesdeImagen } from "../../lib/colorDominante";
 import {
   cargarLogoCorporativoComoDataUrl,
   useLogosCorporativos,
+  useSubirLogosCorporativos,
   type LogoCorporativo,
 } from "../../lib/logosCorporativos";
+import GaleriaLogosCorporativosModal from "./GaleriaLogosCorporativosModal";
 
 /** Caja del logo a escala 1 (tamaño por defecto) — el operador la escala
  *  manualmente con los botones －/＋. Tope máximo (1.3) elegido para que a
@@ -69,6 +71,9 @@ export default function ProductHeader({
   const [menuLogo, setMenuLogo] = useState(false);
   const [cargandoLogo, setCargandoLogo] = useState<string | null>(null);
   const [errorLogo, setErrorLogo] = useState<string | null>(null);
+  const agregarInputRef = useRef<HTMLInputElement>(null);
+  const [galeriaAbierta, setGaleriaAbierta] = useState(false);
+  const { subir: agregarACarpeta, progreso: agregando, error: errorAgregar } = useSubirLogosCorporativos();
   const { data: logosData, isLoading: logosCargando, error: logosError } = useLogosCorporativos(
     editMode && menuLogo,
   );
@@ -98,6 +103,7 @@ export default function ProductHeader({
       const dataUrl = await cargarLogoCorporativoComoDataUrl(logo.nombre);
       await aplicarLogo(dataUrl, logo.nombre);
       setMenuLogo(false);
+      setGaleriaAbierta(false);
     } catch (e) {
       setErrorLogo(e instanceof Error ? e.message : "No se pudo cargar el logo");
     } finally {
@@ -221,9 +227,22 @@ export default function ProductHeader({
         >
             <div className="mb-1.5 flex items-center justify-between">
               <p className="text-xs font-semibold text-ink">Logos · DISEÑO CORPORATIVO</p>
-              <button type="button" onClick={() => setMenuLogo(false)} className="text-muted hover:text-ink">
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuLogo(false);
+                    setGaleriaAbierta(true);
+                  }}
+                  title="Abrir la galería en ventana para subir y eliminar logos"
+                  className="rounded-md border border-border px-1.5 py-0.5 text-[11px] font-semibold text-ink-secondary hover:bg-surface-hover"
+                >
+                  ⤢ Galería
+                </button>
+                <button type="button" onClick={() => setMenuLogo(false)} className="text-muted hover:text-ink">
+                  ✕
+                </button>
+              </div>
             </div>
             <p className="mb-2 text-[11px] text-muted">
               Al elegir un logo, su color pasa a ser el acento de toda la ficha.
@@ -235,6 +254,7 @@ export default function ProductHeader({
               </p>
             )}
             {errorLogo && <p className="mb-1.5 rounded bg-danger/10 px-2 py-1 text-[11px] text-danger">{errorLogo}</p>}
+            {errorAgregar && <p className="mb-1.5 rounded bg-danger/10 px-2 py-1 text-[11px] text-danger">{errorAgregar}</p>}
             {!logosCargando && !logosError && logos.length === 0 && (
               <p className="px-1 py-1 text-xs text-muted">La carpeta no tiene imágenes.</p>
             )}
@@ -269,13 +289,35 @@ export default function ProductHeader({
                 })}
               </div>
             )}
+            <input
+              ref={agregarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                if (files.length > 0) void agregarACarpeta(files);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => agregarInputRef.current?.click()}
+              disabled={!!agregando}
+              title="Guarda imágenes (PNG, JPG o WEBP) en la carpeta DISEÑO CORPORATIVO — en el explorador, mantén Shift o Ctrl para elegir varias"
+              className="mt-2 w-full rounded-lg bg-accent px-2.5 py-1.5 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {agregando ? `Agregando ${agregando.done}/${agregando.total}…` : "+ Agregar imágenes a la carpeta"}
+            </button>
             <div className="mt-2 flex items-center justify-between gap-2 border-t border-border pt-2">
               <button
                 type="button"
                 onClick={() => logoInputRef.current?.click()}
+                title="Pone una imagen del ordenador solo en esta ficha, sin guardarla en la carpeta"
                 className="rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-ink hover:bg-surface-hover"
               >
-                Subir archivo…
+                Usar sin guardar…
               </button>
               <label className="flex items-center gap-1.5 text-[11px] text-muted" title="Ajustar el acento a mano">
                 Acento
@@ -297,6 +339,13 @@ export default function ProductHeader({
               </label>
             </div>
         </PopoverFlotante>
+        <GaleriaLogosCorporativosModal
+          abierta={editMode && galeriaAbierta}
+          logoActivo={data.logoNombre}
+          cargandoNombre={cargandoLogo}
+          onCerrar={() => setGaleriaAbierta(false)}
+          onElegir={(logo) => void elegirLogoCorporativo(logo)}
+        />
       </div>
     </div>
   );

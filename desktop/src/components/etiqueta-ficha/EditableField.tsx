@@ -92,10 +92,14 @@ export function MenuTamanoFuente({
   styleKey,
   fontSize,
   anchorRef,
+  opcionesTexto,
 }: {
   styleKey: string;
   fontSize: number;
   anchorRef: RefObject<HTMLElement | null>;
+  /** Títulos alternativos entre los que se puede escoger (ej. "Composición"
+   *  o "Fórmula molecular"). */
+  opcionesTexto?: { opciones: readonly string[]; actual: string; onElegir: (v: string) => void };
 }) {
   const { estilos, setEstilo, setAbierto } = useTextStyleCtx();
   const override = estilos[styleKey];
@@ -109,6 +113,22 @@ export function MenuTamanoFuente({
       className="z-[300] flex items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-xs text-ink shadow-2xl"
       onMouseDown={(e) => e.stopPropagation()}
     >
+      {opcionesTexto && (
+        <label className="flex items-center gap-1">
+          <span className="text-muted">Título</span>
+          <select
+            value={opcionesTexto.actual}
+            onChange={(e) => opcionesTexto.onElegir(e.target.value)}
+            className="rounded border border-border bg-surface-input px-1 py-0.5 text-xs font-semibold"
+          >
+            {opcionesTexto.opciones.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="flex items-center gap-1">
         <span className="text-muted">Tamaño</span>
         <input
@@ -161,6 +181,9 @@ export function EditableLabel({
   defaultFontSize,
   className = "",
   as = "span",
+  opciones,
+  valorOpcion,
+  onElegirOpcion,
 }: {
   texto: string;
   editMode: boolean;
@@ -168,6 +191,11 @@ export function EditableLabel({
   defaultFontSize: number;
   className?: string;
   as?: "span" | "p" | "div";
+  /** Títulos entre los que se puede escoger desde el menú (con `valorOpcion`
+   *  y `onElegirOpcion`); `texto` es lo que se muestra. */
+  opciones?: readonly string[];
+  valorOpcion?: string;
+  onElegirOpcion?: (v: string) => void;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const { estilos, abierto, setAbierto } = useTextStyleCtx();
@@ -199,14 +227,23 @@ export function EditableLabel({
       <button
         type="button"
         onClick={() => setAbierto(menuAbierto ? null : styleKey)}
-        title="Cambiar tamaño/fuente"
+        title={opciones ? "Cambiar título/tamaño/fuente" : "Cambiar tamaño/fuente"}
         className={`${className} inline-block cursor-pointer rounded-sm border border-dashed border-transparent bg-transparent p-0 hover:border-[color:var(--acento-50)]`}
         style={estiloFinal}
       >
         {texto}
       </button>
       {menuAbierto && (
-        <MenuTamanoFuente styleKey={styleKey} fontSize={fontSize} anchorRef={wrapRef} />
+        <MenuTamanoFuente
+          styleKey={styleKey}
+          fontSize={fontSize}
+          anchorRef={wrapRef}
+          opcionesTexto={
+            opciones && onElegirOpcion
+              ? { opciones, actual: valorOpcion ?? opciones[0], onElegir: onElegirOpcion }
+              : undefined
+          }
+        />
       )}
     </div>
   );

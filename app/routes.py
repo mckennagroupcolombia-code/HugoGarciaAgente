@@ -8768,6 +8768,35 @@ def register_routes(app):
             as_attachment=True,
         )
 
+    @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro/enviar", methods=["POST"])
+    @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro/enviar", methods=["POST"])
+    def api_compras_exterior_enviar_cuenta_cobro(compra_id: int):
+        """Envía por correo la cuenta de cobro al emisor (el socio/familiar que la
+        expide). El destinatario sale del perfil del usuario que figura como
+        emisor, no de una lista fija. `dry_run` para revisar antes de disparar.
+
+        Body: { tipo?: "mercancia"|"flete", destinatario?, nota?, dry_run? }
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.cuenta_cobro_cuota_manejo import enviar_cuenta_cobro
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                enviar_cuenta_cobro(
+                    compra_id,
+                    tipo=str(d.get("tipo") or "mercancia"),
+                    destinatario=str(d.get("destinatario") or ""),
+                    nota=str(d.get("nota") or ""),
+                    dry_run=bool(d.get("dry_run")),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/app/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     @app.route("/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     def api_compras_exterior_cuentas_cobro_reset():
@@ -10772,6 +10801,640 @@ def register_routes(app):
             payload = request.get_json(silent=True) or {}
             mov = fn(payload, created_by=_cc_uid())
             return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Préstamos recibidos de terceros ────────────────────────────────────
+    # Producto de captación con prestamistas particulares (sep-2026): tasa
+    # efectiva anual, amortización por tramos, retención del 7% y documentos
+    # al prestamista. Ver app/services/prestamos.py y Flujo M en CLAUDE.md.
+
+    @app.route("/api/contabilidad/esquema-terceros", methods=["GET"])
+    @app.route("/app/api/contabilidad/esquema-terceros", methods=["GET"])
+    def api_esquema_terceros():
+        """Saldos vivos para el apartado «Cómo funciona el esquema»: lo que se
+        les debe a los socios, la retención por declarar del período y la tabla
+        de cuantías mínimas. Ver docs/agentic/modules/relaciones-socios-terceros.md."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            import app.services.contabilidad_core as cc
+            from app.services.retenciones import resumen_conceptos, resumen_periodo, uvt
+
+            cc._ensure()
+            with cc._conn() as con:
+                socios = [
+                    {
+                        "tercero": r["tercero"] or "(sin tercero)",
+                        "identificacion": r["identificacion"] or "",
+                        "saldo": round(float(r["saldo"] or 0), 2),
+                    }
+                    for r in con.execute(
+                        """
+                        SELECT t.nombre AS tercero, t.identificacion,
+                               SUM(l.credito - l.debito) AS saldo
+                          FROM cc_movimiento_lineas l
+                          JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
+                          JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
+                          LEFT JOIN cc_terceros t ON t.id = l.tercero_id
+                         WHERE c.codigo = '2380'
+                         GROUP BY t.id
+                        HAVING ROUND(SUM(l.credito - l.debito), 2) <> 0
+                         ORDER BY saldo DESC
+                        """
+                    )
+                ]
+                fila = con.execute(
+                    """
+                    SELECT SUM(l.credito - l.debito) AS saldo
+                      FROM cc_movimiento_lineas l
+                      JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
+                      JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
+                     WHERE c.codigo = '2365'
+                    """
+                ).fetchone()
+
+            hoy = _date.today()
+            # El período relevante es el mes ANTERIOR: es el que está por declararse.
+            anio, mes = (hoy.year - 1, 12) if hoy.month == 1 else (hoy.year, hoy.month - 1)
+            periodo = resumen_periodo(anio, mes)
+            return jsonify({
+                "socios": socios,
+                "retencion_por_pagar": round(float(fila["saldo"] or 0), 2) if fila else 0.0,
+                "periodo_retencion": {
+                    "periodo": periodo["periodo"],
+                    "total_retencion": periodo["total_retencion"],
+                    "por_concepto": periodo["por_concepto"],
+                    "vencimiento": periodo["vencimiento"],
+                },
+                "uvt": uvt(hoy.year),
+                "minimos": resumen_conceptos(hoy.year),
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/alegra/espejo", methods=["GET"])
+    @app.route("/app/api/alegra/espejo", methods=["GET"])
+    def api_alegra_espejo_previsualizar():
+        """Qué asientos del Libro Mayor se espejarían a Alegra en un rango.
+        Incluye si la cuenta tiene tipo de comprobante configurado — sin eso no
+        se puede postear. Ver app/services/alegra_espejo.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra_espejo import previsualizar_periodo
+
+            desde = (request.args.get("desde") or "").strip()
+            hasta = (request.args.get("hasta") or "").strip()
+            if not desde or not hasta:
+                return jsonify({"error": "desde y hasta son requeridos (YYYY-MM-DD)"}), 400
+            tipos = (request.args.get("tipos_origen") or "").strip()
+            return jsonify(
+                previsualizar_periodo(
+                    desde, hasta, tuple(t for t in tipos.split(",") if t) or None
+                )
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/alegra/espejo/<int:movimiento_id>", methods=["POST"])
+    @app.route("/app/api/alegra/espejo/<int:movimiento_id>", methods=["POST"])
+    def api_alegra_espejo_postear(movimiento_id: int):
+        """Postea un asiento del Libro Mayor como comprobante contable en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra_espejo import espejar_movimiento
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(espejar_movimiento(movimiento_id, forzar=bool(d.get("forzar"))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Solicitudes de pago (wizard) ───────────────────────────────────
+    # El asiento nace del acto de pagar, no de un paso posterior que se olvida.
+    # Ver app/services/pagos_wizard.py.
+
+    @app.route("/api/pagos/categorias", methods=["GET"])
+    @app.route("/app/api/pagos/categorias", methods=["GET"])
+    def api_pagos_categorias():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import CATEGORIAS
+
+            return jsonify({"categorias": [
+                {"id": k, "label": v["label"], "ayuda": v["ayuda"], "icono": v["icono"],
+                 "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
+                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios"}
+                for k, v in CATEGORIAS.items()
+            ]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/opciones/<string:categoria>", methods=["GET"])
+    @app.route("/app/api/pagos/opciones/<string:categoria>", methods=["GET"])
+    def api_pagos_opciones(categoria: str):
+        """Qué se puede pagar en esa categoría — sale de los saldos reales."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import opciones
+
+            return jsonify(opciones(categoria))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/previsualizar", methods=["POST"])
+    @app.route("/app/api/pagos/previsualizar", methods=["POST"])
+    def api_pagos_previsualizar():
+        """El asiento que se crearía, sin guardar nada."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import previsualizar
+
+            return jsonify(previsualizar(request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes", methods=["GET"])
+    def api_pagos_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import listar, resumen
+
+            estado = (request.args.get("estado") or "").strip() or None
+            return jsonify({"solicitudes": listar(estado), "resumen": resumen()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes", methods=["POST"])
+    def api_pagos_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import crear_solicitud
+
+            return jsonify(crear_solicitud(request.get_json(silent=True) or {}, created_by=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/registrar", methods=["POST"])
+    @app.route("/app/api/pagos/registrar", methods=["POST"])
+    def api_pagos_registrar_directo():
+        """Registra el pago YA aprobado, en un paso. Solo administradores.
+
+        Los socios montan y aprueban sus propios pagos: pedirles auto-aprobarse
+        en dos pasos es burocracia sin control real. Lo que NO se salta es ver
+        el asiento antes de confirmar, y queda anotado quién lo registró."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import registrar_pago_directo
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(registrar_pago_directo(
+                d, _panel_tickets_usuario(), espejar=bool(d.get("espejar", True))
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/puedo-registrar", methods=["GET"])
+    @app.route("/app/api/pagos/puedo-registrar", methods=["GET"])
+    def api_pagos_puedo_registrar():
+        """Si el usuario de la sesión puede registrar sin aprobación — el panel
+        lo usa para mostrar u ocultar esa opción."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import puede_registrar_directo
+
+            u = _panel_tickets_usuario()
+            return jsonify({
+                "puede": puede_registrar_directo(u),
+                "usuario": (u or {}).get("nombre") or "",
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
+    def api_pagos_aprobar(sid: int):
+        """Aprueba y **ahí** crea el asiento + el comprobante en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import aprobar
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(aprobar(sid, aprobada_por=_cc_uid(), espejar=bool(d.get("espejar", True))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
+    def api_pagos_rechazar(sid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import rechazar
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(rechazar(sid, str(d.get("motivo") or ""), por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/saldos", methods=["GET"])
+    @app.route("/app/api/socios/saldos", methods=["GET"])
+    def api_socios_saldos():
+        """Lo que McKenna le debe a cada socio por mercancía comprada con su
+        tarjeta personal (cuenta 2380)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import saldo_socios
+
+            return jsonify({"socios": saldo_socios()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/<int:tercero_id>/pendiente", methods=["GET"])
+    @app.route("/app/api/socios/<int:tercero_id>/pendiente", methods=["GET"])
+    def api_socios_pendiente(tercero_id: int):
+        """Qué compone el saldo de un socio: compras que lo cargaron y
+        reintegros ya girados."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import detalle_pendiente_socio
+
+            return jsonify(detalle_pendiente_socio(tercero_id))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/reintegro", methods=["POST"])
+    @app.route("/app/api/socios/reintegro", methods=["POST"])
+    def api_socios_reintegro():
+        """Registra el giro al socio. Es **la línea que aparece en el extracto
+        bancario** — la compra no, porque salió de su tarjeta personal.
+        Body: tercero_id, monto, fecha, medio_pago_id, referencia,
+        permitir_exceso (opcional)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import registrar_reintegro
+
+            return jsonify(
+                registrar_reintegro(request.get_json(silent=True) or {}, created_by=_cc_uid())
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/simular", methods=["POST"])
+    @app.route("/app/api/prestamos/simular", methods=["POST"])
+    def api_prestamos_simular():
+        """Cronograma de prueba sin guardar nada: el panel lo usa para que el
+        operador vea, antes de comprometerse, cuánto recibe el prestamista y
+        cuánto le cuesta a McKenna con cada combinación de tasa y reparto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import calcular_cronograma
+
+            d = request.get_json(silent=True) or {}
+            crono = calcular_cronograma(
+                float(d.get("capital") or 0),
+                tasa_ea=float(d.get("tasa_ea", 0.25)),
+                plazo_meses=int(d.get("plazo_meses", 24)),
+                meses_tramo1=int(d.get("meses_tramo1", 12)),
+                pct_capital_tramo1=float(d.get("pct_capital_tramo1", 0.30)),
+                retencion_pct=float(d.get("retencion_pct", 0.07)),
+                gross_up=bool(d.get("gross_up")),
+                fecha_desembolso=d.get("fecha_desembolso") or None,
+                dia_pago=int(d.get("dia_pago") or 0) or None,
+            )
+            return jsonify({"ok": True, **crono})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos", methods=["GET"])
+    @app.route("/app/api/prestamos", methods=["GET"])
+    def api_prestamos_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import listar_prestamos
+
+            estado = (request.args.get("estado") or "").strip() or None
+            return jsonify({"prestamos": listar_prestamos(estado)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos", methods=["POST"])
+    @app.route("/app/api/prestamos", methods=["POST"])
+    def api_prestamos_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import crear_prestamo
+
+            payload = request.get_json(silent=True) or {}
+            return jsonify({"ok": True, "prestamo": crear_prestamo(payload, created_by=_cc_uid())})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>", methods=["GET"])
+    def api_prestamos_detalle(prestamo_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import obtener_prestamo
+
+            p = obtener_prestamo(prestamo_id)
+            if not p:
+                return jsonify({"error": "Préstamo no encontrado"}), 404
+            return jsonify({"prestamo": p})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
+    def api_prestamos_pagar_cuota(prestamo_id: int, numero: int):
+        """Marca la cuota como pagada y crea el asiento (capital / interés /
+        retención / banco). Lo hace quien ya montó la transferencia."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import registrar_pago_cuota
+
+            payload = request.get_json(silent=True) or {}
+            p = registrar_pago_cuota(prestamo_id, numero, payload, created_by=_cc_uid())
+            return jsonify({"ok": True, "prestamo": p})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/documento", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/documento", methods=["GET"])
+    def api_prestamos_documento(prestamo_id: int):
+        """Descarga el PDF (contrato o certificado). Generar no envía nada al
+        tercero — para eso está /enviar."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from flask import send_file
+
+            from app.services.prestamos import generar_documento
+
+            doc = generar_documento(
+                prestamo_id,
+                (request.args.get("tipo") or "contrato"),
+                corte=(request.args.get("corte") or None),
+            )
+            return send_file(
+                doc["ruta"], mimetype="application/pdf",
+                as_attachment=True, download_name=doc["nombre"],
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/enviar", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/enviar", methods=["POST"])
+    def api_prestamos_enviar_documento(prestamo_id: int):
+        """Envía el documento al correo del prestamista. Acción explícita a
+        propósito: es correspondencia financiera a un tercero y un PDF
+        equivocado ya enviado no se puede recoger."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import enviar_documento
+
+            d = request.get_json(silent=True) or {}
+            r = enviar_documento(
+                prestamo_id,
+                (d.get("tipo") or "contrato"),
+                corte=(d.get("corte") or None),
+                destinatario=(d.get("destinatario") or None),
+            )
+            return jsonify(r)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/alegra", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/alegra", methods=["GET"])
+    def api_prestamos_alegra(prestamo_id: int):
+        """Si el prestamista ya existe como contacto en Alegra (solo lectura)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import estado_alegra
+
+            return jsonify(estado_alegra(prestamo_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/documento-soporte", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/documento-soporte", methods=["POST"])
+    def api_prestamos_documento_soporte(prestamo_id: int, numero: int):
+        """Emite (o simula, según PRESTAMOS_DOC_SOPORTE_ACTIVO) el documento
+        soporte a la DIAN por los intereses de una cuota. Se dispara solo tras
+        pagar; esto sirve para reintentar si Alegra falló, o para previsualizar
+        el payload en modo sombra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import emitir_documento_soporte_cuota
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                emitir_documento_soporte_cuota(prestamo_id, numero, forzar=bool(d.get("forzar")))
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas", methods=["POST"])
+    @app.route("/app/api/prestamos/prestamistas", methods=["POST"])
+    def api_prestamos_crear_prestamista():
+        """Da de alta un prestamista (tercero) con sus datos de contacto y
+        bancarios, y lo inscribe como contacto en Alegra. No duplica: si ya
+        existe uno con esa cédula/NIT completa lo que falte."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import crear_prestamista
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                crear_prestamista(d, inscribir_en_alegra=bool(d.get("inscribir_en_alegra", True)))
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas/<int:tercero_id>", methods=["PATCH"])
+    @app.route("/app/api/prestamos/prestamistas/<int:tercero_id>", methods=["PATCH"])
+    def api_prestamos_actualizar_prestamista(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import actualizar_prestamista
+
+            return jsonify(actualizar_prestamista(tercero_id, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas/<int:tercero_id>/alegra", methods=["POST"])
+    @app.route("/app/api/prestamos/prestamistas/<int:tercero_id>/alegra", methods=["POST"])
+    def api_prestamos_inscribir_alegra(tercero_id: int):
+        """Inscribe (o reintenta inscribir) al prestamista en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import sincronizar_prestamista_alegra
+
+            return jsonify(sincronizar_prestamista_alegra(tercero_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/reporte-mensual", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/reporte-mensual", methods=["POST"])
+    def api_prestamos_reporte_mensual(prestamo_id: int):
+        """Envía al prestamista el reporte del mes con el certificado adjunto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import enviar_reporte_mensual
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            return jsonify(
+                enviar_reporte_mensual(
+                    prestamo_id,
+                    int(d.get("anio") or hoy.year),
+                    int(d.get("mes") or hoy.month),
+                    destinatario=(d.get("destinatario") or None),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/retenciones", methods=["GET"])
+    @app.route("/app/api/prestamos/retenciones", methods=["GET"])
+    def api_prestamos_retenciones():
+        """Retención practicada sobre intereses en un mes, con el detalle por
+        tercero que necesita el formulario 350 y la cifra de control de 2365."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import resumen_retenciones_mes
+
+            hoy = _date.today()
+            return jsonify(
+                resumen_retenciones_mes(
+                    int(request.args.get("anio") or hoy.year),
+                    int(request.args.get("mes") or hoy.month),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/retenciones/ticket", methods=["POST"])
+    @app.route("/app/api/prestamos/retenciones/ticket", methods=["POST"])
+    def api_prestamos_retenciones_ticket():
+        """Crea (o previsualiza) el ticket para declarar la retención del mes.
+        El cron lo hace solo el día configurado; esto sirve para adelantarlo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import crear_ticket_retenciones_mes
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            return jsonify(
+                crear_ticket_retenciones_mes(
+                    int(d.get("anio") or hoy.year),
+                    int(d.get("mes") or hoy.month),
+                    dry_run=bool(d.get("dry_run")),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/recordatorio", methods=["POST"])
+    @app.route("/app/api/prestamos/recordatorio", methods=["POST"])
+    def api_prestamos_recordatorio():
+        """Crea (o previsualiza) el ticket mensual de pagos a despachos. El cron
+        lo hace solo el día configurado; esto sirve para adelantarlo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import crear_recordatorio_pagos_mes
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            r = crear_recordatorio_pagos_mes(
+                int(d.get("anio") or hoy.year),
+                int(d.get("mes") or hoy.month),
+                dry_run=bool(d.get("dry_run")),
+            )
+            return jsonify(r)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:
@@ -21013,6 +21676,47 @@ REGLAS:
             "carpeta": str(base) if base else None,
             "total": len(logos),
         })
+
+    @app.route("/api/etiquetas/logos-corporativos", methods=["POST"])
+    @app.route("/app/api/etiquetas/logos-corporativos", methods=["POST"])
+    def api_etiquetas_logos_corporativos_subir():
+        """Agrega una imagen del ordenador a la carpeta DISENO CORPORATIVO
+        (botón "+ Agregar imágenes a la carpeta" del menú del logo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import guardar_logo
+
+        archivo = request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Falta archivo de imagen"}), 400
+        try:
+            logo = guardar_logo(archivo.filename, archivo.read())
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True, "logo": logo})
+
+    @app.route("/api/etiquetas/logos-corporativos/eliminar", methods=["POST"])
+    @app.route("/app/api/etiquetas/logos-corporativos/eliminar", methods=["POST"])
+    def api_etiquetas_logos_corporativos_eliminar():
+        """Quita uno o varios logos de la galería (los mueve a `.papelera/`
+        dentro de la carpeta, no los borra)."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.logos_corporativos import enviar_a_papelera
+
+        body = request.get_json(silent=True) or {}
+        nombres = [str(n) for n in (body.get("nombres") or []) if str(n).strip()]
+        if not nombres:
+            return jsonify({"error": "Falta 'nombres'"}), 400
+        eliminados, errores = [], {}
+        for nombre in nombres:
+            try:
+                enviar_a_papelera(nombre)
+                eliminados.append(nombre)
+            except (ValueError, OSError) as e:
+                errores[nombre] = str(e)
+        return jsonify({"ok": not errores, "eliminados": eliminados, "errores": errores})
 
     @app.route("/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])
     @app.route("/app/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])

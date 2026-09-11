@@ -1,0 +1,2389 @@
+{
+ "cuentas": {
+  "5001": {
+   "id": "5001",
+   "nombre": "Activos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5002": {
+   "id": "5002",
+   "nombre": "Activos corrientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5001",
+   "movimientos": false
+  },
+  "5003": {
+   "id": "5003",
+   "nombre": "Efectivo y equivalentes de efectivo",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5004": {
+   "id": "5004",
+   "nombre": "Caja",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5003",
+   "movimientos": false
+  },
+  "5005": {
+   "id": "5005",
+   "nombre": "Bancos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5003",
+   "movimientos": false
+  },
+  "5006": {
+   "id": "5006",
+   "nombre": "Deudores comerciales y otras cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5007": {
+   "id": "5007",
+   "nombre": "Cuentas por cobrar clientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5006",
+   "movimientos": false
+  },
+  "5008": {
+   "id": "5008",
+   "nombre": "Cuentas por cobrar clientes nacionales",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5007",
+   "movimientos": true
+  },
+  "5009": {
+   "id": "5009",
+   "nombre": "Deterioro acumulado de cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5008",
+   "movimientos": true
+  },
+  "5010": {
+   "id": "5010",
+   "nombre": "Cuentas por cobrar a socios y accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5006",
+   "movimientos": false
+  },
+  "5011": {
+   "id": "5011",
+   "nombre": "Cuentas por cobrar a socios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5010",
+   "movimientos": true
+  },
+  "5012": {
+   "id": "5012",
+   "nombre": "Cuentas por cobrar a accionistas",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5010",
+   "movimientos": true
+  },
+  "5013": {
+   "id": "5013",
+   "nombre": "Avances y anticipos entregados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5006",
+   "movimientos": true
+  },
+  "5014": {
+   "id": "5014",
+   "nombre": "Avances y anticipos a proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5013",
+   "movimientos": true
+  },
+  "5015": {
+   "id": "5015",
+   "nombre": "Avances y anticipos a empleados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5013",
+   "movimientos": true
+  },
+  "5016": {
+   "id": "5016",
+   "nombre": "Otros deudores y cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5006",
+   "movimientos": false
+  },
+  "5017": {
+   "id": "5017",
+   "nombre": "Cuentas por cobrar empleados",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5016",
+   "movimientos": true
+  },
+  "5018": {
+   "id": "5018",
+   "nombre": "Préstamos a terceros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5016",
+   "movimientos": true
+  },
+  "5019": {
+   "id": "5019",
+   "nombre": "Otras cuentas por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5016",
+   "movimientos": false
+  },
+  "5020": {
+   "id": "5020",
+   "nombre": "Cuentas por cobrar a cargo de terceros",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5019",
+   "movimientos": true
+  },
+  "5021": {
+   "id": "5021",
+   "nombre": "Devoluciones a proveedores",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5019",
+   "movimientos": true
+  },
+  "5022": {
+   "id": "5022",
+   "nombre": "Intereses por cobrar",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5019",
+   "movimientos": true
+  },
+  "5023": {
+   "id": "5023",
+   "nombre": "Inversiones financieras a corto plazo",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5024": {
+   "id": "5024",
+   "nombre": "Acciones de otras compañías",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5023",
+   "movimientos": true
+  },
+  "5025": {
+   "id": "5025",
+   "nombre": "Depósitos a plazos fijos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5023",
+   "movimientos": true
+  },
+  "5026": {
+   "id": "5026",
+   "nombre": "Otras inversiones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5023",
+   "movimientos": true
+  },
+  "5027": {
+   "id": "5027",
+   "nombre": "Activos por impuestos corrientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5028": {
+   "id": "5028",
+   "nombre": "Impuestos a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5027",
+   "movimientos": false
+  },
+  "5029": {
+   "id": "5029",
+   "nombre": "Impuesto a las ventas a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5028",
+   "movimientos": true
+  },
+  "5030": {
+   "id": "5030",
+   "nombre": "IVA devuelto en compras a favor",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5029",
+   "movimientos": true
+  },
+  "5031": {
+   "id": "5031",
+   "nombre": "Anticipos o saldos a favor del Impuesto de Industria y Comercio",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5028",
+   "movimientos": true
+  },
+  "5032": {
+   "id": "5032",
+   "nombre": "Impuesto nacional al consumo a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5028",
+   "movimientos": true
+  },
+  "5033": {
+   "id": "5033",
+   "nombre": "Sobrantes en impuestos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5028",
+   "movimientos": true
+  },
+  "5034": {
+   "id": "5034",
+   "nombre": "Otro tipo de impuesto a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5028",
+   "movimientos": true
+  },
+  "5035": {
+   "id": "5035",
+   "nombre": "Activos por retenciones a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5036": {
+   "id": "5036",
+   "nombre": "Retención en la fuente a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5035",
+   "movimientos": true
+  },
+  "5037": {
+   "id": "5037",
+   "nombre": "Retención compras 2.5%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5038": {
+   "id": "5038",
+   "nombre": "Retención arrendamiento 3.5%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5039": {
+   "id": "5039",
+   "nombre": "Retención servicio 4%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5040": {
+   "id": "5040",
+   "nombre": "Retención servicio 6%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5041": {
+   "id": "5041",
+   "nombre": "Retención honorarios y comisiones 10%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5042": {
+   "id": "5042",
+   "nombre": "Retención honorarios y comisiones 11%",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5036",
+   "movimientos": true
+  },
+  "5043": {
+   "id": "5043",
+   "nombre": "Retención de impuesto a las ventas a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5035",
+   "movimientos": true
+  },
+  "5044": {
+   "id": "5044",
+   "nombre": "Impuesto de Industria y Comercio retenido",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5035",
+   "movimientos": true
+  },
+  "5045": {
+   "id": "5045",
+   "nombre": "Otro tipo de retención a favor",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5035",
+   "movimientos": true
+  },
+  "5046": {
+   "id": "5046",
+   "nombre": "Inventarios",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": true
+  },
+  "5047": {
+   "id": "5047",
+   "nombre": "Inventario de mercancías",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5046",
+   "movimientos": true
+  },
+  "5048": {
+   "id": "5048",
+   "nombre": "Activos pagados por anticipado",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5049": {
+   "id": "5049",
+   "nombre": "Otros activos corrientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5002",
+   "movimientos": false
+  },
+  "5050": {
+   "id": "5050",
+   "nombre": "Activos no corrientes",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5001",
+   "movimientos": false
+  },
+  "5051": {
+   "id": "5051",
+   "nombre": "Propiedad, planta y equipo (Activos fijos)",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5050",
+   "movimientos": false
+  },
+  "5052": {
+   "id": "5052",
+   "nombre": "Terrenos",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5053": {
+   "id": "5053",
+   "nombre": "Construcciones y edificaciones",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5054": {
+   "id": "5054",
+   "nombre": "Equipo de oficina",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5055": {
+   "id": "5055",
+   "nombre": "Muebles y enseres",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5056": {
+   "id": "5056",
+   "nombre": "Equipo de computación",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5057": {
+   "id": "5057",
+   "nombre": "Flota y equipos de transporte",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5051",
+   "movimientos": true
+  },
+  "5058": {
+   "id": "5058",
+   "nombre": "Depreciación acumulada",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5050",
+   "movimientos": false
+  },
+  "5059": {
+   "id": "5059",
+   "nombre": "Depreciación acumulada Construcciones y Edificaciones",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5058",
+   "movimientos": true
+  },
+  "5060": {
+   "id": "5060",
+   "nombre": "Depreciación acumulada Equipo de oficina",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5058",
+   "movimientos": true
+  },
+  "5061": {
+   "id": "5061",
+   "nombre": "Depreciación acumulada Muebles y enseres",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5058",
+   "movimientos": true
+  },
+  "5062": {
+   "id": "5062",
+   "nombre": "Depreciación acumulada Equipo de computación",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5058",
+   "movimientos": true
+  },
+  "5063": {
+   "id": "5063",
+   "nombre": "Depreciación acumulada Flota y equipos de transporte",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5058",
+   "movimientos": true
+  },
+  "5064": {
+   "id": "5064",
+   "nombre": "Deterioro acumulado de valor",
+   "tipo": "asset",
+   "naturaleza": "credit",
+   "padre": "5050",
+   "movimientos": true
+  },
+  "5065": {
+   "id": "5065",
+   "nombre": "Propiedad, planta y equipo (Impuestos descontables)",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5050",
+   "movimientos": false
+  },
+  "5066": {
+   "id": "5066",
+   "nombre": "Pasivos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5067": {
+   "id": "5067",
+   "nombre": "Pasivos corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5066",
+   "movimientos": false
+  },
+  "5068": {
+   "id": "5068",
+   "nombre": "Acreedores comerciales y otras cuentas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5069": {
+   "id": "5069",
+   "nombre": "Cuentas por pagar a proveedores",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5068",
+   "movimientos": false
+  },
+  "5070": {
+   "id": "5070",
+   "nombre": "Cuentas por pagar a proveedores nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5069",
+   "movimientos": true
+  },
+  "5071": {
+   "id": "5071",
+   "nombre": "Cuentas por pagar a proveedores del exterior",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5069",
+   "movimientos": true
+  },
+  "5072": {
+   "id": "5072",
+   "nombre": "Avances y anticipos recibidos",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5068",
+   "movimientos": true
+  },
+  "5073": {
+   "id": "5073",
+   "nombre": "Avances y anticipos recibidos de clientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5072",
+   "movimientos": true
+  },
+  "5074": {
+   "id": "5074",
+   "nombre": "Otras cuentas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5068",
+   "movimientos": false
+  },
+  "5075": {
+   "id": "5075",
+   "nombre": "Devoluciones de clientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5074",
+   "movimientos": true
+  },
+  "5076": {
+   "id": "5076",
+   "nombre": "Obligaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5077": {
+   "id": "5077",
+   "nombre": "Salarios y prestaciones sociales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5076",
+   "movimientos": false
+  },
+  "5078": {
+   "id": "5078",
+   "nombre": "Salarios a empleados por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5077",
+   "movimientos": false
+  },
+  "5079": {
+   "id": "5079",
+   "nombre": "Salarios por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5080": {
+   "id": "5080",
+   "nombre": "Cesantías por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5081": {
+   "id": "5081",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5082": {
+   "id": "5082",
+   "nombre": "Prima de servicios",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5083": {
+   "id": "5083",
+   "nombre": "Vacaciones consolidadas",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5084": {
+   "id": "5084",
+   "nombre": "Prestaciones extralegales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5085": {
+   "id": "5085",
+   "nombre": "Indemnizaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5078",
+   "movimientos": true
+  },
+  "5086": {
+   "id": "5086",
+   "nombre": "Otras obligaciones laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5076",
+   "movimientos": true
+  },
+  "5087": {
+   "id": "5087",
+   "nombre": "Retenciones y aportes laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5088": {
+   "id": "5088",
+   "nombre": "Aportes de seguridad social",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5087",
+   "movimientos": false
+  },
+  "5089": {
+   "id": "5089",
+   "nombre": "Aportes a entidades promotoras de salud, EPS",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5088",
+   "movimientos": true
+  },
+  "5090": {
+   "id": "5090",
+   "nombre": "Aportes a administradoras de riesgos profesionales, ARP",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5088",
+   "movimientos": true
+  },
+  "5091": {
+   "id": "5091",
+   "nombre": "Aportes al ICBF, SENA y cajas de compensación",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5088",
+   "movimientos": true
+  },
+  "5092": {
+   "id": "5092",
+   "nombre": "Fondos de cesantías y/o pensiones",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5087",
+   "movimientos": true
+  },
+  "5093": {
+   "id": "5093",
+   "nombre": "Obligaciones financieras a corto plazo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5094": {
+   "id": "5094",
+   "nombre": "Préstamos bancarios a corto plazo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5093",
+   "movimientos": false
+  },
+  "5095": {
+   "id": "5095",
+   "nombre": "Préstamos a corto plazo bancos nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5094",
+   "movimientos": true
+  },
+  "5096": {
+   "id": "5096",
+   "nombre": "Obligaciones gubernamentales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5093",
+   "movimientos": true
+  },
+  "5097": {
+   "id": "5097",
+   "nombre": "Tarjetas de crédito",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5093",
+   "movimientos": true
+  },
+  "5098": {
+   "id": "5098",
+   "nombre": "Pasivos por impuestos corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5099": {
+   "id": "5099",
+   "nombre": "Impuestos por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5098",
+   "movimientos": false
+  },
+  "5100": {
+   "id": "5100",
+   "nombre": "Impuesto a las ventas por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5099",
+   "movimientos": true
+  },
+  "5101": {
+   "id": "5101",
+   "nombre": "Impuesto a las ventas descontable",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "padre": "5100",
+   "movimientos": true
+  },
+  "5102": {
+   "id": "5102",
+   "nombre": "IVA devuelto en compras",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5101",
+   "movimientos": true
+  },
+  "5103": {
+   "id": "5103",
+   "nombre": "IVA devuelto en ventas",
+   "tipo": "liability",
+   "naturaleza": "debit",
+   "padre": "5100",
+   "movimientos": true
+  },
+  "5104": {
+   "id": "5104",
+   "nombre": "Impuesto de industria y comercio por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5098",
+   "movimientos": true
+  },
+  "5105": {
+   "id": "5105",
+   "nombre": "Impuesto nacional al consumo por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5098",
+   "movimientos": true
+  },
+  "5106": {
+   "id": "5106",
+   "nombre": "Otro tipo de impuesto por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5098",
+   "movimientos": true
+  },
+  "5107": {
+   "id": "5107",
+   "nombre": "Pasivos por retenciones corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5108": {
+   "id": "5108",
+   "nombre": "Retenciones por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5107",
+   "movimientos": false
+  },
+  "5109": {
+   "id": "5109",
+   "nombre": "Retención en la fuente por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5108",
+   "movimientos": true
+  },
+  "5110": {
+   "id": "5110",
+   "nombre": "Salarios y pagos laborales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5109",
+   "movimientos": true
+  },
+  "5111": {
+   "id": "5111",
+   "nombre": "Retención honorarios y comisiones por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5109",
+   "movimientos": true
+  },
+  "5112": {
+   "id": "5112",
+   "nombre": "Retenciones honorarios y comisiones 10% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5111",
+   "movimientos": true
+  },
+  "5113": {
+   "id": "5113",
+   "nombre": "Retenciones honorarios y comisiones 11% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5111",
+   "movimientos": true
+  },
+  "5114": {
+   "id": "5114",
+   "nombre": "Retención servicios por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5109",
+   "movimientos": true
+  },
+  "5115": {
+   "id": "5115",
+   "nombre": "Retenciones servicios 4% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5114",
+   "movimientos": true
+  },
+  "5116": {
+   "id": "5116",
+   "nombre": "Retenciones servicios 6% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5114",
+   "movimientos": true
+  },
+  "5117": {
+   "id": "5117",
+   "nombre": "Retención arrendamientos por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5109",
+   "movimientos": true
+  },
+  "5118": {
+   "id": "5118",
+   "nombre": "Retenciones arriendo 3.5% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5117",
+   "movimientos": true
+  },
+  "5119": {
+   "id": "5119",
+   "nombre": "Retenciones compra por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5109",
+   "movimientos": true
+  },
+  "5120": {
+   "id": "5120",
+   "nombre": "Retenciones compra 2.5% por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5119",
+   "movimientos": true
+  },
+  "5121": {
+   "id": "5121",
+   "nombre": "Retención de IVA por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5108",
+   "movimientos": true
+  },
+  "5122": {
+   "id": "5122",
+   "nombre": "Retención de industria y comercio por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5108",
+   "movimientos": true
+  },
+  "5123": {
+   "id": "5123",
+   "nombre": "Otro tipo de retención por pagar",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5108",
+   "movimientos": true
+  },
+  "5124": {
+   "id": "5124",
+   "nombre": "Otros pasivos corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5067",
+   "movimientos": false
+  },
+  "5125": {
+   "id": "5125",
+   "nombre": "Ingresos recibidos para terceros",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5124",
+   "movimientos": true
+  },
+  "5126": {
+   "id": "5126",
+   "nombre": "Pasivos no corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5066",
+   "movimientos": false
+  },
+  "5127": {
+   "id": "5127",
+   "nombre": "Obligaciones financieras a largo plazo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5126",
+   "movimientos": false
+  },
+  "5128": {
+   "id": "5128",
+   "nombre": "Préstamos a largo plazo bancos nacionales",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5127",
+   "movimientos": true
+  },
+  "5129": {
+   "id": "5129",
+   "nombre": "Préstamos bancarios a largo plazo",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5128",
+   "movimientos": true
+  },
+  "5130": {
+   "id": "5130",
+   "nombre": "Otros pasivos no corrientes",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5126",
+   "movimientos": false
+  },
+  "5131": {
+   "id": "5131",
+   "nombre": "Patrimonio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5132": {
+   "id": "5132",
+   "nombre": "Capital social",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": false
+  },
+  "5133": {
+   "id": "5133",
+   "nombre": "Capital social suscrito y pagado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5132",
+   "movimientos": false
+  },
+  "5134": {
+   "id": "5134",
+   "nombre": "Capital social suscrito",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5133",
+   "movimientos": true
+  },
+  "5135": {
+   "id": "5135",
+   "nombre": "Capital social autorizado",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5134",
+   "movimientos": true
+  },
+  "5136": {
+   "id": "5136",
+   "nombre": "Capital por suscribir o Acciones",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "padre": "5134",
+   "movimientos": true
+  },
+  "5137": {
+   "id": "5137",
+   "nombre": "Capital social suscrito por cobrar",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "padre": "5133",
+   "movimientos": true
+  },
+  "5138": {
+   "id": "5138",
+   "nombre": "Capital suscrito por cobrar o Accionistas comunes",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "padre": "5137",
+   "movimientos": true
+  },
+  "5139": {
+   "id": "5139",
+   "nombre": "Reservas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": false
+  },
+  "5140": {
+   "id": "5140",
+   "nombre": "Resultado del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": true
+  },
+  "5141": {
+   "id": "5141",
+   "nombre": "Utilidad del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5140",
+   "movimientos": true
+  },
+  "5142": {
+   "id": "5142",
+   "nombre": "Pérdida del ejercicio",
+   "tipo": "equity",
+   "naturaleza": "debit",
+   "padre": "5140",
+   "movimientos": true
+  },
+  "5143": {
+   "id": "5143",
+   "nombre": "Ganancias acumuladas",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": true
+  },
+  "5144": {
+   "id": "5144",
+   "nombre": "Superávit",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": false
+  },
+  "5145": {
+   "id": "5145",
+   "nombre": "Ajustes por saldos iniciales",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5131",
+   "movimientos": false
+  },
+  "5146": {
+   "id": "5146",
+   "nombre": "Ajustes iniciales en bancos",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5145",
+   "movimientos": true
+  },
+  "5187": {
+   "id": "5187",
+   "nombre": "Prima de servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5188": {
+   "id": "5188",
+   "nombre": "Vacaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5189": {
+   "id": "5189",
+   "nombre": "Dotación a trabajadores",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5190": {
+   "id": "5190",
+   "nombre": "Aportes a ARL",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5191": {
+   "id": "5191",
+   "nombre": "Aportes a EPS",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5192": {
+   "id": "5192",
+   "nombre": "Aportes fondo de pensiones y cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5193": {
+   "id": "5193",
+   "nombre": "Aportes cajas de compensación familiar",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5194": {
+   "id": "5194",
+   "nombre": "Aportes ICBF",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5195": {
+   "id": "5195",
+   "nombre": "Aportes SENA",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5196": {
+   "id": "5196",
+   "nombre": "Incapacidades personal administrativo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5197": {
+   "id": "5197",
+   "nombre": "Otros gastos del personal administrativo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5198": {
+   "id": "5198",
+   "nombre": "Gastos generales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5199": {
+   "id": "5199",
+   "nombre": "Honorarios y servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5200": {
+   "id": "5200",
+   "nombre": "Asesoría jurídica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5199",
+   "movimientos": true
+  },
+  "5201": {
+   "id": "5201",
+   "nombre": "Asesoría financiera",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5199",
+   "movimientos": true
+  },
+  "5202": {
+   "id": "5202",
+   "nombre": "Otros honorarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5199",
+   "movimientos": true
+  },
+  "5203": {
+   "id": "5203",
+   "nombre": "Arrendamientos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5204": {
+   "id": "5204",
+   "nombre": "Arrendamiento de equipos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5203",
+   "movimientos": true
+  },
+  "5205": {
+   "id": "5205",
+   "nombre": "Arrendamiento de Oficinas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5203",
+   "movimientos": true
+  },
+  "5206": {
+   "id": "5206",
+   "nombre": "Servicios públicos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5207": {
+   "id": "5207",
+   "nombre": "Gas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5208": {
+   "id": "5208",
+   "nombre": "Aseo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5209": {
+   "id": "5209",
+   "nombre": "Agua",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5210": {
+   "id": "5210",
+   "nombre": "Asistencia técnica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5211": {
+   "id": "5211",
+   "nombre": "Alcantarillado/ Acueducto",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5212": {
+   "id": "5212",
+   "nombre": "Energía eléctrica",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5213": {
+   "id": "5213",
+   "nombre": "Teléfono / Internet",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5214": {
+   "id": "5214",
+   "nombre": "Transporte y acarreo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5215": {
+   "id": "5215",
+   "nombre": "Otros servicios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5206",
+   "movimientos": true
+  },
+  "5216": {
+   "id": "5216",
+   "nombre": "Gastos de representación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5217": {
+   "id": "5217",
+   "nombre": "Elementos de aseo y cafetería",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5216",
+   "movimientos": true
+  },
+  "5218": {
+   "id": "5218",
+   "nombre": "Útiles, papelería y fotocopia",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5216",
+   "movimientos": true
+  },
+  "5219": {
+   "id": "5219",
+   "nombre": "Combustibles y lubricantes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5216",
+   "movimientos": true
+  },
+  "5220": {
+   "id": "5220",
+   "nombre": "Taxis y buses",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5216",
+   "movimientos": true
+  },
+  "5221": {
+   "id": "5221",
+   "nombre": "Estacionamiento",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5216",
+   "movimientos": true
+  },
+  "5222": {
+   "id": "5222",
+   "nombre": "Propaganda y publicidad",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5223": {
+   "id": "5223",
+   "nombre": "Vigilancia y seguridad",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5224": {
+   "id": "5224",
+   "nombre": "Seguros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5225": {
+   "id": "5225",
+   "nombre": "Seguro de vida",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5224",
+   "movimientos": true
+  },
+  "5226": {
+   "id": "5226",
+   "nombre": "Seguro de accidentes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5224",
+   "movimientos": true
+  },
+  "5227": {
+   "id": "5227",
+   "nombre": "Seguro de vehículos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5224",
+   "movimientos": true
+  },
+  "5228": {
+   "id": "5228",
+   "nombre": "Seguro contra Incendios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5224",
+   "movimientos": true
+  },
+  "5229": {
+   "id": "5229",
+   "nombre": "Servicios Online",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5230": {
+   "id": "5230",
+   "nombre": "Software contables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5229",
+   "movimientos": true
+  },
+  "5231": {
+   "id": "5231",
+   "nombre": "Cuotas y suscripciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": true
+  },
+  "5232": {
+   "id": "5232",
+   "nombre": "Gastos legales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5233": {
+   "id": "5233",
+   "nombre": "Notariales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5232",
+   "movimientos": true
+  },
+  "5234": {
+   "id": "5234",
+   "nombre": "Registro mercantil",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5232",
+   "movimientos": true
+  },
+  "5235": {
+   "id": "5235",
+   "nombre": "Trámites legales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5232",
+   "movimientos": true
+  },
+  "5236": {
+   "id": "5236",
+   "nombre": "Mantenimiento y reparaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5237": {
+   "id": "5237",
+   "nombre": "Construcción y edificación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5236",
+   "movimientos": true
+  },
+  "5238": {
+   "id": "5238",
+   "nombre": "Equipo oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5236",
+   "movimientos": true
+  },
+  "5239": {
+   "id": "5239",
+   "nombre": "Equipo computación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5236",
+   "movimientos": true
+  },
+  "5240": {
+   "id": "5240",
+   "nombre": "Adecuaciones e instalaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5236",
+   "movimientos": true
+  },
+  "5241": {
+   "id": "5241",
+   "nombre": "Combustibles y lubricantes",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": true
+  },
+  "5242": {
+   "id": "5242",
+   "nombre": "Otros gastos generales",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": true
+  },
+  "5243": {
+   "id": "5243",
+   "nombre": "Depreciaciones, amortizaciones y desvalorizaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5198",
+   "movimientos": false
+  },
+  "5244": {
+   "id": "5244",
+   "nombre": "Deterioro de cuentas por cobrar",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5243",
+   "movimientos": true
+  },
+  "5245": {
+   "id": "5245",
+   "nombre": "Depreciación de propiedad, planta y equipo",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5243",
+   "movimientos": false
+  },
+  "5246": {
+   "id": "5246",
+   "nombre": "Depreciación Construcciones y edificaciones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5245",
+   "movimientos": true
+  },
+  "5247": {
+   "id": "5247",
+   "nombre": "Depreciación Equipo de oficina",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5245",
+   "movimientos": true
+  },
+  "5248": {
+   "id": "5248",
+   "nombre": "Depreciación furniture",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5245",
+   "movimientos": true
+  },
+  "5249": {
+   "id": "5249",
+   "nombre": "Depreciación Equipo de computación",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5245",
+   "movimientos": true
+  },
+  "5250": {
+   "id": "5250",
+   "nombre": "Depreciación Flota y equipos de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5245",
+   "movimientos": true
+  },
+  "5251": {
+   "id": "5251",
+   "nombre": "Gastos financieros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5252": {
+   "id": "5252",
+   "nombre": "Gastos por Intereses financieros",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5251",
+   "movimientos": true
+  },
+  "5253": {
+   "id": "5253",
+   "nombre": "Gastos por Intereses de mora",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5251",
+   "movimientos": true
+  },
+  "5254": {
+   "id": "5254",
+   "nombre": "Otros gastos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5255": {
+   "id": "5255",
+   "nombre": "Comisiones bancarias",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5254",
+   "movimientos": true
+  },
+  "5256": {
+   "id": "5256",
+   "nombre": "Pérdida en venta de Activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5254",
+   "movimientos": true
+  },
+  "5257": {
+   "id": "5257",
+   "nombre": "Pérdida por disposición de activos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5254",
+   "movimientos": true
+  },
+  "5258": {
+   "id": "5258",
+   "nombre": "Pérdida por diferencia en cambio",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5254",
+   "movimientos": true
+  },
+  "5259": {
+   "id": "5259",
+   "nombre": "Ajustes por aproximaciones en cálculos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5254",
+   "movimientos": true
+  },
+  "5260": {
+   "id": "5260",
+   "nombre": "Gastos por impuestos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5261": {
+   "id": "5261",
+   "nombre": "Impuestos de renta y complementarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5260",
+   "movimientos": true
+  },
+  "5262": {
+   "id": "5262",
+   "nombre": "Gastos por impuestos no acreditables",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5260",
+   "movimientos": true
+  },
+  "5263": {
+   "id": "5263",
+   "nombre": "Retención en la fuente asumida",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5260",
+   "movimientos": true
+  },
+  "5264": {
+   "id": "5264",
+   "nombre": "Costos",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5265": {
+   "id": "5265",
+   "nombre": "Costos de ventas y operación",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5264",
+   "movimientos": false
+  },
+  "5266": {
+   "id": "5266",
+   "nombre": "Costos de la mercancía vendida",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5265",
+   "movimientos": true
+  },
+  "5267": {
+   "id": "5267",
+   "nombre": "Costos del inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5266",
+   "movimientos": true
+  },
+  "5268": {
+   "id": "5268",
+   "nombre": "Ajustes al inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5266",
+   "movimientos": true
+  },
+  "5269": {
+   "id": "5269",
+   "nombre": "Descuentos financieros",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5266",
+   "movimientos": true
+  },
+  "5270": {
+   "id": "5270",
+   "nombre": "Devoluciones en compras de inventario",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5266",
+   "movimientos": true
+  },
+  "5271": {
+   "id": "5271",
+   "nombre": "Costo de los servicios vendidos",
+   "tipo": "cost",
+   "naturaleza": "debit",
+   "padre": "5265",
+   "movimientos": true
+  },
+  "5272": {
+   "id": "5272",
+   "nombre": "Costos de producción",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5273": {
+   "id": "5273",
+   "nombre": "Materia prima directa",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5272",
+   "movimientos": true
+  },
+  "5274": {
+   "id": "5274",
+   "nombre": "Mano de obra",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5272",
+   "movimientos": true
+  },
+  "5275": {
+   "id": "5275",
+   "nombre": "Sueldos y salarios personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5276": {
+   "id": "5276",
+   "nombre": "Horas extras y recargos personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5277": {
+   "id": "5277",
+   "nombre": "Auxilio de transporte personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5278": {
+   "id": "5278",
+   "nombre": "Cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5279": {
+   "id": "5279",
+   "nombre": "Intereses sobre cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5280": {
+   "id": "5280",
+   "nombre": "Prima de servicios personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5281": {
+   "id": "5281",
+   "nombre": "Dotación a trabajadores personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5282": {
+   "id": "5282",
+   "nombre": "Aportes a ARL personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5283": {
+   "id": "5283",
+   "nombre": "Aportes a EPS personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5284": {
+   "id": "5284",
+   "nombre": "Aportes fondo de pensiones y cesantías personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5285": {
+   "id": "5285",
+   "nombre": "Aportes cajas de compensación familiar personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5286": {
+   "id": "5286",
+   "nombre": "Aportes ICBF personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5287": {
+   "id": "5287",
+   "nombre": "Aportes SENA personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5288": {
+   "id": "5288",
+   "nombre": "Otros gastos del personal operativo",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5274",
+   "movimientos": true
+  },
+  "5289": {
+   "id": "5289",
+   "nombre": "Costos indirectos",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5272",
+   "movimientos": true
+  },
+  "5290": {
+   "id": "5290",
+   "nombre": "Contratos de servicios",
+   "tipo": "productionCost",
+   "naturaleza": "debit",
+   "padre": "5272",
+   "movimientos": true
+  },
+  "5291": {
+   "id": "5291",
+   "nombre": "Cuentas de orden",
+   "tipo": "order",
+   "naturaleza": "credit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5292": {
+   "id": "5292",
+   "nombre": "Cuentas de orden deudoras",
+   "tipo": "order",
+   "naturaleza": "debit",
+   "padre": "5291",
+   "movimientos": false
+  },
+  "5293": {
+   "id": "5293",
+   "nombre": "Cuentas de orden acreedoras",
+   "tipo": "order",
+   "naturaleza": "credit",
+   "padre": "5291",
+   "movimientos": false
+  },
+  "5294": {
+   "id": "5294",
+   "nombre": "Transferencias bancarias",
+   "tipo": "other",
+   "naturaleza": "credit",
+   "padre": null,
+   "movimientos": true
+  },
+  "5295": {
+   "id": "5295",
+   "nombre": "Caja chica",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5004",
+   "movimientos": true
+  },
+  "5296": {
+   "id": "5296",
+   "nombre": "Caja general",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5004",
+   "movimientos": true
+  },
+  "5297": {
+   "id": "5297",
+   "nombre": "Banco 1",
+   "tipo": "asset",
+   "naturaleza": "debit",
+   "padre": "5005",
+   "movimientos": true
+  },
+  "5298": {
+   "id": "5298",
+   "nombre": "Tarjeta de crédito empresarial",
+   "tipo": "liability",
+   "naturaleza": "credit",
+   "padre": "5097",
+   "movimientos": true
+  },
+  "5147": {
+   "id": "5147",
+   "nombre": "Ajustes iniciales en inventario",
+   "tipo": "equity",
+   "naturaleza": "credit",
+   "padre": "5145",
+   "movimientos": true
+  },
+  "5148": {
+   "id": "5148",
+   "nombre": "Ingresos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5149": {
+   "id": "5149",
+   "nombre": "Ingresos de actividades ordinarias",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5148",
+   "movimientos": false
+  },
+  "5150": {
+   "id": "5150",
+   "nombre": "Ventas",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5149",
+   "movimientos": true
+  },
+  "5151": {
+   "id": "5151",
+   "nombre": "Devoluciones en ventas",
+   "tipo": "income",
+   "naturaleza": "debit",
+   "padre": "5149",
+   "movimientos": true
+  },
+  "5152": {
+   "id": "5152",
+   "nombre": "Otros Ingresos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5148",
+   "movimientos": false
+  },
+  "5153": {
+   "id": "5153",
+   "nombre": "Ingresos financieros",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5152",
+   "movimientos": false
+  },
+  "5154": {
+   "id": "5154",
+   "nombre": "Ingresos por Intereses financieros",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5153",
+   "movimientos": true
+  },
+  "5155": {
+   "id": "5155",
+   "nombre": "Utilidad en venta de Activos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5153",
+   "movimientos": true
+  },
+  "5156": {
+   "id": "5156",
+   "nombre": "Otros ingresos diversos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5152",
+   "movimientos": false
+  },
+  "5157": {
+   "id": "5157",
+   "nombre": "Ganancia por diferencia en cambio",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5156",
+   "movimientos": true
+  },
+  "5158": {
+   "id": "5158",
+   "nombre": "Ajustes por aproximaciones en cálculos",
+   "tipo": "income",
+   "naturaleza": "credit",
+   "padre": "5156",
+   "movimientos": true
+  },
+  "5159": {
+   "id": "5159",
+   "nombre": "Gastos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": null,
+   "movimientos": false
+  },
+  "5160": {
+   "id": "5160",
+   "nombre": "Gastos de venta",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5161": {
+   "id": "5161",
+   "nombre": "Gastos de personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5160",
+   "movimientos": false
+  },
+  "5162": {
+   "id": "5162",
+   "nombre": "Sueldos personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5163": {
+   "id": "5163",
+   "nombre": "Horas extras y recargos personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5164": {
+   "id": "5164",
+   "nombre": "Comisiones personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5165": {
+   "id": "5165",
+   "nombre": "Auxilio de transporte personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5166": {
+   "id": "5166",
+   "nombre": "Cesantías personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5167": {
+   "id": "5167",
+   "nombre": "Intereses sobre cesantías personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5168": {
+   "id": "5168",
+   "nombre": "Prima de servicios personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5169": {
+   "id": "5169",
+   "nombre": "Vacaciones personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5170": {
+   "id": "5170",
+   "nombre": "Dotación a trabajadores de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5171": {
+   "id": "5171",
+   "nombre": "Aportes a ARL personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5172": {
+   "id": "5172",
+   "nombre": "Aportes a EPS personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5173": {
+   "id": "5173",
+   "nombre": "Aportes fondo de pensiones y cesantías personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5174": {
+   "id": "5174",
+   "nombre": "Aportes cajas de compensación familiar personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5175": {
+   "id": "5175",
+   "nombre": "Aportes ICBF personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5176": {
+   "id": "5176",
+   "nombre": "Aportes SENA personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5177": {
+   "id": "5177",
+   "nombre": "Incapacidades personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5178": {
+   "id": "5178",
+   "nombre": "Otros gastos del personal de ventas",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5161",
+   "movimientos": true
+  },
+  "5179": {
+   "id": "5179",
+   "nombre": "Gastos de administración",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5159",
+   "movimientos": false
+  },
+  "5180": {
+   "id": "5180",
+   "nombre": "Gastos de personal",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5179",
+   "movimientos": false
+  },
+  "5181": {
+   "id": "5181",
+   "nombre": "Sueldos y salarios",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5182": {
+   "id": "5182",
+   "nombre": "Horas extras y recargos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5183": {
+   "id": "5183",
+   "nombre": "Comisiones",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5184": {
+   "id": "5184",
+   "nombre": "Auxilio de transporte",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5185": {
+   "id": "5185",
+   "nombre": "Cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  },
+  "5186": {
+   "id": "5186",
+   "nombre": "Intereses sobre cesantías",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "padre": "5180",
+   "movimientos": true
+  }
+ },
+ "total": 298
+}

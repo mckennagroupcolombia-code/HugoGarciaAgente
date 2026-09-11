@@ -5350,3 +5350,235 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-08-31 → 2026-09-10…
+✅ Token de Mercado Libre refrescado exitosamente.
+   1 creado(s), 765 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 663 | Envíos nuevos consultados: 60 | Resueltos: 59 | Sin resolver: 1 | Aún no despachados: 0
+   Total municipios acumulados: 127
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-INU250g
+INFO: SKU extra MeLi/web incorporado: C-DEXKg
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 195 exactos, 19 alias, 61 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 219/275 combos SIIGO tienen publicación (se ocultan 56)
+INFO: Catálogo listo: 21 categorías, 176 fichas (31 con varias presentaciones), 219 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+   21 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 8 | Sospechosos (>2×): 13
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   147 órdenes canceladas en la ventana.
+⏳ Error de red listando facturas Siigo (página 152); reintento 1/3 en 3s: HTTPSConnectionPool(host='api.siigo.com', port=443): Max retries exceeded with url: /v1/invoices?created_start=2026-06-07&page=152 (Caused by ConnectTimeoutError(<HTTPSConnection(host='api.siigo.com', port=443) at 0x715990bb8fe0>, 'Connection to api.siigo.com timed out. (connect timeout=20)'))
+   4361 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3505 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   4 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71049 ($22,574)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   0 caso(s) con problema · 0 nuevo(s) en esta corrida.
+   Nada que reportar.
+✅ Centro de Mando (tickets DB) inicializado
+⏭  RA: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 10) no es día de pago de nómina (15 o fin de mes).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-08-31 → 2026-09-10…
+✅ Token de Mercado Libre refrescado exitosamente.
+   22 creado(s), 766 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-10T18:00:01] resumen_actividad_sede_sur: 39 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 13 nuevas · 11 completadas · 10 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 5 nuevas, 5 completadas
+• Armando Garcia: 5 nuevas, 2 completadas
+• Victor Garcia: 2 nuevas, 2 completadas
+• Gloria Stella: 1 nueva, 2 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-08-31 → 2026-09-10…
+✅ Token de Mercado Libre refrescado exitosamente.
+   17 creado(s), 787 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-10) no es el último día del mes.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

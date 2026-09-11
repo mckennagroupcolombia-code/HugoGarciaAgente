@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
-import type { ProductLabelData } from "./productLabelTypes";
+import { TITULOS_COMPOSICION, type ProductLabelData } from "./productLabelTypes";
 
 export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
 
@@ -64,7 +64,7 @@ export default function ProductAttributeGrid({
       ["Origen", "origin"],
       ["Apariencia", "appearance"],
       ["Olor", "odor"],
-      ["Composición", "composition"],
+      [data.compositionTitulo || TITULOS_COMPOSICION[0], "composition"],
       ["Grado", "grade"],
       ["Conservación", "storage"],
     ] as [string, AttributeKey][]
@@ -101,6 +101,12 @@ export default function ProductAttributeGrid({
               editMode={editMode}
               onEditarIcono={() => setCampoAbierto(c.campo)}
               styleKey={c.campo}
+              {...(c.campo === "composition"
+                ? {
+                    tituloOpciones: TITULOS_COMPOSICION,
+                    onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
+                  }
+                : {})}
             />
           </div>
         );

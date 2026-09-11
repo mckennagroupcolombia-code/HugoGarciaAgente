@@ -206,12 +206,85 @@ export default function StudioCategoriasPanel({
       api.put<{ categorias: CategoriaEtiqueta[] }>("/api/etiquetas/categorias", { categorias: lista }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["etiquetas-categorias"] });
-      setCreandoCat(false);
-      setNombreCat("");
-      setClavesCat("");
     },
     onError: (e: Error) => setErrorCat(e.message || "No se pudo crear la categoría"),
   });
+
+  // ── Editar / eliminar categoría y borrar etiquetas ────────────────────────
+  const [editandoCat, setEditandoCat] = useState<string | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editClaves, setEditClaves] = useState("");
+  /** Confirmación en dos pasos, dentro del panel: el navegador puede tener los
+   *  diálogos bloqueados y `confirm()` devolvería false sin avisar. */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [borrando, setBorrando] = useState<string | null>(null);
+
+  const eliminarFichaMut = useMutation({
+    mutationFn: (id: string) => api.delete<{ ok: boolean }>(`/api/etiquetas/fichas/${id}`),
+    onSettled: () => {
+      setBorrando(null);
+      setConfirmando(null);
+      void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
+    },
+  });
+
+  const eliminarPngMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.delete<{ ok: boolean }>(
+        `/api/etiquetas/recursos-png/${nombre.split("/").map(encodeURIComponent).join("%2F")}`,
+      ),
+    onSettled: () => {
+      setBorrando(null);
+      setConfirmando(null);
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+    },
+  });
+
+  function eliminarEtiqueta(e: EtiquetaDeCategoria) {
+    setBorrando(e.clave);
+    if (e.fichaId) eliminarFichaMut.mutate(e.fichaId);
+    else if (e.png) eliminarPngMut.mutate(e.png.nombre);
+  }
+
+  function empezarEdicion(cat: CategoriaEtiqueta) {
+    setEditandoCat(cat.id);
+    setEditNombre(cat.etiqueta);
+    setEditClaves((cat.claves || []).join(", "));
+    setConfirmando(null);
+  }
+
+  function guardarEdicion(catId: string) {
+    const nombre = editNombre.trim();
+    if (!nombre) return;
+    setErrorCat(null);
+    guardarCategoriasMut.mutate(
+      categorias.map((c) =>
+        c.id === catId
+          ? {
+              ...c,
+              etiqueta: nombre,
+              claves: editClaves.split(",").map((k) => k.trim()).filter(Boolean),
+            }
+          : c,
+      ),
+      { onSuccess: () => setEditandoCat(null) },
+    );
+  }
+
+  function eliminarCategoria(catId: string) {
+    setErrorCat(null);
+    setBorrando(`cat:${catId}`);
+    guardarCategoriasMut.mutate(
+      categorias.filter((c) => c.id !== catId),
+      {
+        onSettled: () => {
+          setBorrando(null);
+          setConfirmando(null);
+        },
+      },
+    );
+  }
 
   function crearCategoria() {
     const nombre = nombreCat.trim();
@@ -230,7 +303,13 @@ export default function StudioCategoriasPanel({
     // "Otros" es el respaldo y va siempre al final: no debe capturar nada antes.
     const sinOtros = categorias.filter((c) => c.id !== "otros");
     const otros = categorias.filter((c) => c.id === "otros");
-    guardarCategoriasMut.mutate([...sinOtros, nueva, ...otros]);
+    guardarCategoriasMut.mutate([...sinOtros, nueva, ...otros], {
+      onSuccess: () => {
+        setCreandoCat(false);
+        setNombreCat("");
+        setClavesCat("");
+      },
+    });
   }
 
   // Primero las que tienen trabajo hecho; las vacías al final, para que la
@@ -331,9 +410,92 @@ export default function StudioCategoriasPanel({
               </div>
 
               <div className="flex flex-1 flex-col gap-2 px-3 py-2.5">
-                <h3 className="truncate text-sm font-semibold text-ink" title={categoria.etiqueta}>
-                  {categoria.etiqueta}
-                </h3>
+                {editandoCat === categoria.id ? (
+                  <div className="space-y-1.5">
+                    <input
+                      autoFocus
+                      value={editNombre}
+                      onChange={(e) => setEditNombre(e.target.value)}
+                      placeholder="Nombre de la categoría"
+                      className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                    />
+                    <input
+                      value={editClaves}
+                      onChange={(e) => setEditClaves(e.target.value)}
+                      placeholder="Palabras clave, separadas por comas"
+                      className="w-full rounded border border-border bg-surface px-2 py-1 text-[11px]"
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => guardarEdicion(categoria.id)}
+                        disabled={!editNombre.trim() || guardarCategoriasMut.isPending}
+                        className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditandoCat(null)}
+                        className="rounded border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-1">
+                    <h3
+                      className="min-w-0 flex-1 truncate text-sm font-semibold text-ink"
+                      title={categoria.etiqueta}
+                    >
+                      {categoria.etiqueta}
+                    </h3>
+                    {confirmando === `cat:${categoria.id}` ? (
+                      <div className="flex shrink-0 items-center gap-1">
+                        <span className="text-[10px] text-danger">
+                          {plantillas.length + etiquetas.length > 0
+                            ? `Se queda con ${plantillas.length} plantilla(s) y ${etiquetas.length} etiqueta(s) sin categoría.`
+                            : "¿Eliminar?"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => eliminarCategoria(categoria.id)}
+                          disabled={borrando === `cat:${categoria.id}`}
+                          className="rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                        >
+                          {borrando === `cat:${categoria.id}` ? "…" : "Sí, eliminar"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmando(null)}
+                          className="rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-secondary hover:bg-surface-hover"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex shrink-0 gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => empezarEdicion(categoria)}
+                          title="Editar nombre y palabras clave"
+                          className="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-surface-hover hover:text-ink"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmando(`cat:${categoria.id}`)}
+                          title="Eliminar categoría"
+                          className="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-red-50 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Una plantilla por tamaño. El chip abre la plantilla para ajustarla;
                     hacer una etiqueta de un producto va por el botón de abajo. */}
@@ -369,12 +531,12 @@ export default function StudioCategoriasPanel({
                     ) : (
                       <ul className="max-h-32 space-y-0.5 overflow-y-auto">
                         {etiquetas.map((e) => (
-                          <li key={e.clave}>
+                          <li key={e.clave} className="flex items-center gap-1">
                             <button
                               type="button"
                               onClick={() => onAbrirEtiqueta(e)}
                               title={e.nombre}
-                              className="flex w-full items-baseline gap-1.5 rounded px-1 py-0.5 text-left hover:bg-surface-hover"
+                              className="flex min-w-0 flex-1 items-baseline gap-1.5 rounded px-1 py-0.5 text-left hover:bg-surface-hover"
                             >
                               <span className="min-w-0 flex-1 truncate text-[11px] text-ink">
                                 {e.nombre}
@@ -383,6 +545,34 @@ export default function StudioCategoriasPanel({
                                 <span className="shrink-0 text-[9px] text-muted">{e.detalle}</span>
                               )}
                             </button>
+                            {confirmando === e.clave ? (
+                              <span className="flex shrink-0 items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarEtiqueta(e)}
+                                  disabled={borrando === e.clave}
+                                  className="rounded bg-danger px-1.5 py-0.5 text-[9px] font-bold text-white disabled:opacity-50"
+                                >
+                                  {borrando === e.clave ? "…" : "Eliminar"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmando(null)}
+                                  className="rounded border border-border px-1 py-0.5 text-[9px] text-ink-secondary hover:bg-surface-hover"
+                                >
+                                  No
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmando(e.clave)}
+                                title="Eliminar etiqueta"
+                                className="shrink-0 rounded px-1 py-0.5 text-[11px] text-muted hover:bg-red-50 hover:text-red-600"
+                              >
+                                ×
+                              </button>
+                            )}
                           </li>
                         ))}
                       </ul>

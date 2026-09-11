@@ -8,6 +8,12 @@ import CuentaCobroAccentPicker, {
 } from "./CuentaCobroAccentPicker";
 import { datos_emisor_documento, datos_emisor_label } from "./cuentaCobroLabels";
 
+// NIT de McKenna. Hasta el 2026-09-10 acá decía "901.952.087-1", que no es el de
+// la empresa — el correcto es 901.316.016-3 (verificado contra GET /company de
+// Alegra). El backend lo toma de app/services/empresa.py; acá es solo texto de
+// presentación, pero debe coincidir con el que sale en el PDF.
+const NIT_MCKENNA = "901.316.016-3";
+
 export type CuentaCobroTipo = "mercancia" | "flete";
 
 export type LineaCuentaCobro = {
@@ -310,7 +316,7 @@ export default function CuentaCobroAprobacion({
           <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Dirigida a</p>
             <p className="font-semibold">McKenna Group S.A.S.</p>
-            <p className="text-[11px] text-muted">NIT 901.952.087-1</p>
+            <p className="text-[11px] text-muted">NIT {NIT_MCKENNA}</p>
           </div>
         </div>
 

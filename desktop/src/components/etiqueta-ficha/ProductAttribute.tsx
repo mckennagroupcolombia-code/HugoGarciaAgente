@@ -1,6 +1,31 @@
 import type { ReactNode } from "react";
 import EditableField, { EditableLabel } from "./EditableField";
 
+/** Los íconos elegidos en la galería se guardan como data URL SVG con el
+ *  color de tinta ya puesto (ver `iconoQuimicoASvgDataUrl`); pintados como
+ *  <img> no seguían el acento de la ficha al cambiar de logo. Devuelve el
+ *  SVG con ese color cambiado a `currentColor` para dibujarlo en línea, o
+ *  null si no es un SVG de la galería (o trae algo ejecutable) — ahí se
+ *  sigue usando <img>. */
+function svgElegidoConAcento(src: string | undefined): string | null {
+  if (!src || !src.startsWith("data:image/svg+xml")) return null;
+  const coma = src.indexOf(",");
+  if (coma < 0) return null;
+  const cabecera = src.slice(0, coma);
+  const cuerpo = src.slice(coma + 1);
+  let svg: string;
+  try {
+    svg = cabecera.includes(";base64")
+      ? decodeURIComponent(escape(atob(cuerpo)))
+      : decodeURIComponent(cuerpo);
+  } catch {
+    return null;
+  }
+  svg = svg.trim();
+  if (!svg.startsWith("<svg") || /<script|<foreignObject|\son\w+\s*=|javascript:|href\s*=/i.test(svg)) return null;
+  return svg.replace(/\b(stroke|fill)="(?!none")[^"]*"/g, '$1="currentColor"');
+}
+
 /** Un módulo de atributo: ícono (clicable, abre la galería) + título en
  *  mayúscula + valor — una sola unidad visual centrada. Sin `h-full`: se
  *  deja crecer con su propio contenido (la celda de `ProductAttributeGrid`
@@ -15,7 +40,12 @@ export default function ProductAttribute({
   editMode,
   onEditarIcono,
   styleKey,
+  tituloOpciones,
+  onTituloChange,
 }: {
+  /** Títulos alternativos que se escogen desde el menú del título. */
+  tituloOpciones?: readonly string[];
+  onTituloChange?: (v: string) => void;
   /** Ícono por defecto (SVG propio) cuando no se ha elegido uno de la galería. */
   icon: ReactNode;
   /** Data URL del ícono elegido en la galería, si lo hay. */
@@ -29,6 +59,7 @@ export default function ProductAttribute({
   /** Clave única del campo (ej. "origin") para el menú de tipografía. */
   styleKey: string;
 }) {
+  const svgInline = svgElegidoConAcento(iconSrc);
   return (
     <div className="flex flex-col items-center px-4 py-2.5 text-center">
       <button
@@ -40,13 +71,26 @@ export default function ProductAttribute({
           editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[color:var(--acento-08)]" : "cursor-default"
         }`}
       >
-        {iconSrc ? <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" /> : icon}
+        {svgInline ? (
+          <span
+            aria-hidden="true"
+            className="block h-[58px] w-[58px] [&>svg]:h-full [&>svg]:w-full"
+            dangerouslySetInnerHTML={{ __html: svgInline }}
+          />
+        ) : iconSrc ? (
+          <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" />
+        ) : (
+          icon
+        )}
       </button>
       <EditableLabel
         texto={title}
         editMode={editMode}
         styleKey={`${styleKey}Titulo`}
         defaultFontSize={17}
+        opciones={tituloOpciones}
+        valorOpcion={title}
+        onElegirOpcion={onTituloChange}
         className="mb-[5px] font-bold uppercase leading-[1.05] tracking-wide text-[color:var(--acento)]"
       />
       <EditableField

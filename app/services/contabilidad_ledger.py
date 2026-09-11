@@ -219,6 +219,16 @@ def _egresos_compras_exterior(desde: str, hasta: str) -> list[dict]:
                     "fecha_compra": fecha_compra,
                     "fecha_registro": fecha_reg,
                     "n_lineas": n_lin,
+                    # Quién puso la plata: el socio compró con su tarjeta personal,
+                    # así que la compra genera un pasivo con él, no una salida de
+                    # Bancos. Ver docs/agentic/modules/relaciones-socios-terceros.md
+                    "emisor_usuario_id": c.get("emisor_usuario_id"),
+                    "emisor_nombre": c.get("emisor_nombre"),
+                    "cuota_manejo_pct": c.get("cuota_pct"),
+                    # Valor ya liquidado, no recalcular: la cuota se cobra sobre la
+                    # MERCANCÍA, mientras que `monto` acá incluye también el flete.
+                    "cuota_manejo_cop": c.get("cuota_manejo_cop"),
+                    "valor_compra_cop": c.get("valor_compra_cop"),
                 },
             )
         )

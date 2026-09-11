@@ -19,6 +19,8 @@ const LibroMayorPanel = lazy(() => import("./LibroMayorPanel"));
 const CostosProductosPanel = lazy(() => import("./CostosProductosPanel"));
 const CatalogoAlegraPanel = lazy(() => import("./CatalogoAlegraPanel"));
 const ComprasExteriorPanel = lazy(() => import("./ComprasExteriorPanel"));
+const PrestamosPanel = lazy(() => import("./PrestamosPanel"));
+const PagosWizardPanel = lazy(() => import("./PagosWizardPanel"));
 const ContabilidadInicioPanel = lazy(() => import("./ContabilidadInicioPanel"));
 const AnulacionesPanel = lazy(() => import("./AnulacionesPanel"));
 
@@ -41,6 +43,14 @@ function renderSubpanel(id: ContabilidadPanelId) {
       return <FacturacionPanel />;
     case "compras-exterior":
       return <ComprasExteriorPanel />;
+    // Sección propia, al mismo nivel que Compras exterior. Antes vivía enterrada
+    // como subtab del Libro Mayor, donde nadie la encontraba: el préstamo de un
+    // tercero es una relación con su propio ciclo (contrato, cronograma,
+    // retención, documentos), no un detalle del libro.
+    case "prestamos":
+      return <PrestamosPanel />;
+    case "pagos":
+      return <PagosWizardPanel />;
     case "costos-productos":
       return <CostosProductosPanel />;
     case "catalogo-alegra":

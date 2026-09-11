@@ -173,3 +173,7 @@ app/data/verificacion_formulario_manteca/
 /cafeina_test.png
 /cafeina_test2.png
 /preview_audit.png
+
+# PDFs de préstamos (contratos y certificados) — se regeneran desde la BD,
+# son binarios que crecen con cada emisión y no aportan nada en el historial.
+app/data/prestamos_documentos/
