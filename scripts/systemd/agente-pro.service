@@ -1,0 +1,30 @@
+# Agente principal Flask :8081 + CLI (agente_pro.py).
+#
+# ESTA es la unidad viva del puerto 8081 en esta máquina (decisión 12-sep-2026).
+# `mckenna-agente.service` hace exactamente lo mismo y quedó DESHABILITADA a
+# propósito: tenerlas ambas enabled dejó la segunda en `failed` con
+# "Address already in use" desde el 8-sep sin que nadie lo notara. No volver a
+# habilitar las dos — un solo dueño por puerto.
+#
+#   sudo cp scripts/systemd/agente-pro.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now agente-pro
+#
+[Unit]
+Description=Agente Pro - McKenna Group
+After=network.target webhook-meli.service
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente
+# -u: sin buffer, para que el log de journalctl salga en vivo y no por bloques.
+ExecStart=/home/mckg/mi-agente/venv/bin/python3 -u /home/mckg/mi-agente/agente_pro.py
+Restart=always
+RestartSec=10
+EnvironmentFile=-/home/mckg/mi-agente/.env
+
+[Install]
+WantedBy=multi-user.target

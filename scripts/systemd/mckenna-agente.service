@@ -1,3 +1,9 @@
+# ⚠️ NO habilitar en el servidor de McKenna: el :8081 lo sirve `agente-pro.service`
+# (ver scripts/systemd/agente-pro.service). Esta unidad quedó deshabilitada el
+# 12-sep-2026 porque tener las dos enabled la dejó en `failed` con
+# "Address already in use" desde el 8-sep. Se conserva como plantilla para una
+# instalación nueva donde agente-pro no exista — pero una sola, nunca ambas.
+#
 # Agente principal Flask :8081 + CLI (mismo proceso que agente_pro.py).
 #
 #   sudo cp scripts/systemd/mckenna-agente.service /etc/systemd/system/

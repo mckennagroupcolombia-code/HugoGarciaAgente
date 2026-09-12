@@ -87,7 +87,7 @@ git pull origin main    # o: git pull origin master
 | Puerto | Proceso | Unidad systemd (plantilla en `scripts/systemd/`) |
 |--------|---------|---------------------------------------------------|
 | 8080 | `webhook_meli.py` | `webhook-meli.service` |
-| 8081 | `agente_pro.py` | `mckenna-agente.service` (o alias `agente-pro.service`) |
+| 8081 | `agente_pro.py` | `agente-pro.service` — **la unidad viva**; `mckenna-agente.service` hace lo mismo y está deshabilitada a propósito (12-sep-2026: tener ambas enabled la dejó en `failed` por `Address already in use` desde el 8-sep, sin que nadie lo notara). Nunca habilitar las dos. |
 | 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service` |
 | túnel | `cloudflared` | `cloudflared.service` u otra unidad que gestione el túnel |
 
