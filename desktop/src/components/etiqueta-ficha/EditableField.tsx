@@ -11,6 +11,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { FUENTES_DISPONIBLES, useTextStyleCtx } from "./TextStyleContext";
+import { EJEMPLO_ETIQUETA } from "./productLabelTypes";
 
 /** Atributo para reconocer el menú (ya portado a `document.body`) como
  *  "dentro" del campo al detectar clics afuera — ver uso en los
@@ -59,6 +60,9 @@ interface Props {
   multiline?: boolean;
   className?: string;
   style?: CSSProperties;
+  /** Texto guía en gris de la casilla vacía, solo en edición (en vista y en
+   *  el PNG la casilla vacía queda en blanco). Sin él se usa el ejemplo de
+   *  `EJEMPLO_ETIQUETA` cuya clave es el `styleKey` de la casilla. */
   placeholder?: string;
   /** "dark" = sobre fondo naranja sólido (banda de clasificación, banda web):
    *  el foco/hover se marca en blanco en vez de en naranja, que quedaría
@@ -291,16 +295,19 @@ export default function EditableField({
     ...(override?.fontFamily ? { fontFamily: override.fontFamily } : {}),
   };
 
+  const ejemplo = placeholder ?? (EJEMPLO_ETIQUETA as Record<string, string>)[styleKey];
+
   const abrirMenu = () => {
     if (!sinMenuTamano) setAbierto(styleKey);
     onFocus?.();
   };
 
   if (!editMode) {
+    // Solo el dato: el ejemplo es guía de edición y no debe imprimirse.
     return multiline ? (
-      <p className={className} style={estiloFinal}>{value || placeholder}</p>
+      <p className={className} style={estiloFinal}>{value}</p>
     ) : (
-      <span className={className} style={estiloFinal}>{value || placeholder}</span>
+      <span className={className} style={estiloFinal}>{value}</span>
     );
   }
 
@@ -312,11 +319,14 @@ export default function EditableField({
   const bordeReposo = marcoVisible
     ? variant === "dark" ? "border-white/50" : "border-[color:var(--acento-50)]"
     : "border-transparent";
+  // Ejemplo gris pálido (blanco translúcido sobre las bandas de color).
+  const clsEjemplo =
+    variant === "dark" ? "placeholder:text-white/55" : "placeholder:text-[#b4b4b4]";
   const editCls =
     variant === "dark"
-      ? `${className} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
+      ? `${className} ${clsEjemplo} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
         + `border border-dashed ${bordeReposo} hover:border-white/60 focus:border-white focus:bg-white/10`
-      : `${className} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
+      : `${className} ${clsEjemplo} mck-field-lg w-full resize-none rounded-sm bg-transparent outline-none transition-colors `
         + `border border-dashed ${bordeReposo} hover:border-[color:var(--acento-50)] focus:border-[color:var(--acento)] focus:bg-[color:var(--acento-05)]`;
 
   return (
@@ -326,7 +336,7 @@ export default function EditableField({
           ref={taRef}
           rows={1}
           value={value}
-          placeholder={placeholder}
+          placeholder={ejemplo}
           onChange={(e) => onChange(e.target.value)}
           onFocus={abrirMenu}
           className={editCls}
@@ -336,7 +346,7 @@ export default function EditableField({
         <input
           type="text"
           value={value}
-          placeholder={placeholder}
+          placeholder={ejemplo}
           onChange={(e) => onChange(e.target.value)}
           onFocus={abrirMenu}
           className={editCls}

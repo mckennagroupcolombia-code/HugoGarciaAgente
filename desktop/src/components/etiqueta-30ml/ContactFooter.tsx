@@ -14,7 +14,16 @@ export interface DatoContacto {
  *  columnas iguales —las mismas de la matriz de arriba— separadas por una
  *  línea blanca; con uno, el dato va centrado. Cada dato se edita en el sitio,
  *  como el pie de la ficha de 76 × 66. */
-export default function ContactFooter({ datos, editMode }: { datos: DatoContacto[]; editMode: boolean }) {
+export default function ContactFooter({
+  datos,
+  editMode,
+  tam = TAM_30ML.franja,
+}: {
+  datos: DatoContacto[];
+  editMode: boolean;
+  /** Tamaño de letra máximo y mínimo (por defecto, el de la etiqueta 30 mL). */
+  tam?: readonly [number, number];
+}) {
   return (
     <div className="e30-franja" style={{ gridTemplateColumns: `repeat(${datos.length}, minmax(0, 1fr))` }}>
       {datos.map((d) => (
@@ -29,7 +38,7 @@ export default function ContactFooter({ datos, editMode }: { datos: DatoContacto
             editMode={editMode}
             styleKey={`e30_${d.clave}`}
             ejemplo={d.ejemplo}
-            tam={TAM_30ML.franja}
+            tam={tam}
             maxLineas={1}
             oscuro
             className="e30-franja-texto"

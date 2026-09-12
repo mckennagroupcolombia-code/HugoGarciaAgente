@@ -10,14 +10,31 @@ import type { CSSProperties } from "react";
 import { ghsSvgADataUrl, marcoGhsSvg } from "../GHSIconsPicker";
 import { codigosGhs, svgPictogramaGhs } from "../../lib/ghsIconos";
 import type { AttributeKey } from "../etiqueta-ficha/ProductAttributeGrid";
-import { normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
+import { EJEMPLO_ETIQUETA, normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 
 export const NOMBRE_FORMATO_30ML = "30 mL";
 export const MEDIDAS_30ML_POR_DEFECTO = { ancho_mm: 102, alto_mm: 38 } as const;
 
-/** ¿El formato elegido usa la etiqueta de tres paneles? */
-export function esFormato30ml(tipoNombre?: string | null): boolean {
-  return /^30\s*ml$/i.test((tipoNombre || "").trim());
+/** ¿El formato elegido usa la etiqueta de tres paneles? Por el nombre o, si
+ *  se lo renombró (los formatos se muestran por tamaño), por sus medidas. */
+export function esFormato30ml(
+  tipoNombre?: string | null,
+  medidas?: { ancho_mm?: number; alto_mm?: number } | null,
+): boolean {
+  if (/^30\s*ml$/i.test((tipoNombre || "").trim())) return true;
+  return sonMedidas(medidas, MEDIDAS_30ML_POR_DEFECTO);
+}
+
+/** Mismas medidas (mm) que el formato, con medio milímetro de tolerancia. */
+export function sonMedidas(
+  medidas: { ancho_mm?: number; alto_mm?: number } | null | undefined,
+  esperadas: { ancho_mm: number; alto_mm: number },
+): boolean {
+  if (!medidas?.ancho_mm || !medidas?.alto_mm) return false;
+  return (
+    Math.abs(medidas.ancho_mm - esperadas.ancho_mm) < 0.5
+    && Math.abs(medidas.alto_mm - esperadas.alto_mm) < 0.5
+  );
 }
 
 /** Ancho de diseño en px. La etiqueta se maqueta siempre a este ancho y se
@@ -85,7 +102,8 @@ export const TAM_30ML = {
   valorCelda: [14, 9],
   nombre: [34, 16],
   tabla: [14, 10],
-  neto: [58, 38],
+  // Cabe centrado en la banda del alto de las franjas (alineado con el pie).
+  neto: [50, 36],
   clasificacion: [13, 9],
   ghs: [14, 9],
   franja: [13, 9],
@@ -197,28 +215,12 @@ export function textoContenidoNeto(neto: string | undefined): string {
 
 // ── Ejemplo de referencia ──────────────────────────────────────────────────
 
-/** Datos de ejemplo del diseño de referencia. En modo edición se ven en gris
- *  dentro de cada casilla vacía para ubicar el contenido; nunca se guardan
- *  ni salen en el PNG ni en la impresión (que se generan en modo vista). */
+/** Ejemplos en gris de las casillas vacías (solo en edición): los mismos de
+ *  la ficha de 76 × 66 (`EJEMPLO_ETIQUETA`) más el texto de clasificación. */
 export const EJEMPLO_30ML = {
-  productName: "NOMBRE DEL PRODUCTO",
-  composition: "C₁₆H₃₄O",
-  grade: "Cosmético",
-  storage: "Lugar fresco y seco",
-  origin: "Malasia",
-  appearance: "Escamas blancas",
-  odor: "Suave, característico",
-  concentration: "99%",
-  cas: "36653-82-4",
-  netContent: "500 g",
-  barcode: "7700875002637",
-  technicalDocuments: "TDS - COA",
-  website: "www.mckennagroup.co",
-  city: "Bogotá - Colombia",
-  phone: "+57 319 652 90 76",
-  email: "info@mckennagroup.co",
+  ...EJEMPLO_ETIQUETA,
   clasificacionTexto: CLASIFICACION_NO_PELIGROSO,
-} as const satisfies Partial<Record<keyof ProductLabelData, string>>;
+} as const;
 
 // ── Color ───────────────────────────────────────────────────────────────────
 
@@ -243,8 +245,9 @@ export function variables30ml(r: Reticula30ml, accentColor?: string): CSSPropert
   return {
     "--acento": acento,
     "--acento-50": `${acento}80`,
-    // Rellenos de un solo color: el acento (franjas, barra web) y un lila
-    // suave sólido (columna de títulos de la tabla, foco de las casillas).
+    // Rellenos de un solo color: el acento (franjas, barra web). El lila
+    // suave solo marca en edición el foco de las casillas; la tabla
+    // Pureza/CAS va sin relleno.
     "--acento-suave": mezclarHex(acento, "#FFFFFF", 0.88),
     "--e30-margen": `${r.margen}px`,
     "--e30-separacion": `${r.separacion}px`,

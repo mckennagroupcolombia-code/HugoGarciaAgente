@@ -17,7 +17,8 @@ import {
   CATEGORIAS_ETIQUETA,
   type CategoriaEtiqueta,
 } from "../../lib/categoriasEtiqueta";
-import { categoriaProductoDe, type PlantillaVisualDoc } from "../../lib/plantillasVisuales";
+import { categoriaProductoDe, labelFormato, type PlantillaVisualDoc } from "../../lib/plantillasVisuales";
+import { etiquetaTamanoFormato, etiquetaTamanoTipoNombre, useTiposEtiqueta } from "../../lib/etiquetasTipos";
 import { useFichasEtiquetaGuardadas } from "../../lib/etiquetasFichas";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import {
@@ -84,8 +85,10 @@ export function useResumenCategorias() {
   });
   const { data: etiquetas, isLoading: cargandoEtiquetas } = useEtiquetasStudio();
   const { data: fichas } = useFichasEtiquetaGuardadas();
+  const { data: tiposData } = useTiposEtiqueta();
 
   const resumen = useMemo<ResumenCategoria[]>(() => {
+    const tiposEt = tiposData?.tipos ?? [];
     const plantillas = plantillasData?.plantillas ?? [];
     const porCategoria = new Map<string, PlantillaVisualDoc[]>();
     for (const p of plantillas) {
@@ -110,7 +113,10 @@ export function useResumenCategorias() {
       push(cat, {
         clave: `png:${e.nombre}`,
         nombre: nombreVisibleEtiqueta(e.nombre),
-        detalle: e.tipo_etiqueta || "",
+        detalle:
+          e.ancho_mm && e.alto_mm
+            ? etiquetaTamanoFormato(e.tipo_etiqueta, e.ancho_mm, e.alto_mm)
+            : etiquetaTamanoTipoNombre(e.tipo_etiqueta, tiposEt),
         png: e,
       });
     }
@@ -120,10 +126,11 @@ export function useResumenCategorias() {
       // `plantilla_id` a propósito: exigirlo escondía lo recién creado antes de
       // que ese campo existiera.
       if (f.es_plantilla_categoria || !f.categoria || esIdPlantillaFicha(f.id)) continue;
+      const tam = etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt);
       push(f.categoria, {
         clave: `ficha:${f.id}`,
         nombre: f.nombre,
-        detalle: `${f.tipo_nombre || ""}${f.tipo_nombre ? " · " : ""}en edición`,
+        detalle: `${tam}${tam ? " · " : ""}en edición`,
         fichaId: f.id,
       });
     }
@@ -137,7 +144,7 @@ export function useResumenCategorias() {
         motor: "ficha",
         id: f.id,
         nombre: f.nombre,
-        formato: f.tipo_nombre || "Sin tamaño",
+        formato: etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt) || "Sin tamaño",
       });
       fichasPlantilla.set(cat, lista);
     }
@@ -149,7 +156,7 @@ export function useResumenCategorias() {
           motor: "lienzo" as const,
           id: d.id,
           nombre: d.nombre,
-          formato: d.formato?.nombre || "Sin tamaño",
+          formato: d.formato ? labelFormato(d.formato) : "Sin tamaño",
           doc: d,
         }));
       return {
@@ -159,7 +166,7 @@ export function useResumenCategorias() {
         etiquetas: etiquetasPorCategoria.get(categoria.id) ?? [],
       };
     });
-  }, [plantillasData, etiquetas, fichas, categorias]);
+  }, [plantillasData, etiquetas, fichas, categorias, tiposData]);
 
   return { resumen, categorias, cargando: cargandoPlantillas || cargandoEtiquetas };
 }

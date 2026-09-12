@@ -1,15 +1,22 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import type { Reticula30ml } from "./etiqueta30mlTypes";
 
 /** En pantallas angostas la escala no baja de aquí: la etiqueta se recorre
  *  de lado a lado antes que volverse ilegible. */
 const ESCALA_MINIMA = 0.55;
 
-/** Marco de formato de la etiqueta 30 mL — el mismo marco punteado de la
- *  ficha de 76 × 66 (tamaño real de la etiqueta), escalado al ancho de la
+/** Marco de formato de las etiquetas de retícula fija (30 mL, 69 × 51 mm) —
+ *  el mismo marco punteado de la ficha de 76 × 66 (tamaño real de la
+ *  etiqueta), escalado al ancho de la
  *  pantalla. La etiqueta conserva siempre su proporción: nunca se reorganiza,
  *  y si no cabe, el marco se desplaza en horizontal. */
-export default function Marco30ml({ reticula, children }: { reticula: Reticula30ml; children: ReactNode }) {
+export default function Marco30ml({
+  reticula,
+  children,
+}: {
+  /** Medidas de diseño de la etiqueta (px); sirve para cualquier formato. */
+  reticula: { ancho: number; alto: number };
+  children: ReactNode;
+}) {
   const contRef = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(0);
   useLayoutEffect(() => {

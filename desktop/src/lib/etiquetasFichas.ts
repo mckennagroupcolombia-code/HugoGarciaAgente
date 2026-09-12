@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { ProductLabelData } from "../components/etiqueta-ficha/productLabelTypes";
-import type { AttributeKey } from "../components/etiqueta-ficha/ProductAttributeGrid";
+import type { IconoKey } from "../components/etiqueta-ficha/ProductAttributeGrid";
 import type { TextStyleOverride } from "../components/etiqueta-ficha/TextStyleContext";
 
 export interface FichaEtiquetaGuardada {
@@ -17,7 +17,7 @@ export interface FichaEtiquetaGuardada {
   es_plantilla_categoria?: boolean;
   /** Plantilla de la que salió esta etiqueta (vacío en las del catálogo viejo). */
   plantilla_id?: string;
-  attribute_icons?: Partial<Record<AttributeKey, string>>;
+  attribute_icons?: Partial<Record<IconoKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
   creado: string;
   actualizado: string;
@@ -31,7 +31,7 @@ export interface GuardarFichaEtiquetaBody {
   categoria?: string;
   es_plantilla_categoria?: boolean;
   plantilla_id?: string;
-  attribute_icons?: Partial<Record<AttributeKey, string>>;
+  attribute_icons?: Partial<Record<IconoKey, string>>;
   text_styles?: Record<string, TextStyleOverride>;
 }
 

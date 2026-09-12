@@ -446,7 +446,7 @@ export function CatalogoDiagramacionScanner({
     return (
       <section className={`${shellCls} items-center justify-center p-8 text-center`}>
         <p className="text-sm font-semibold text-ink">
-          Selecciona una plantilla · {formato.nombre}
+          Selecciona una plantilla · {formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)}
         </p>
         <p className="mt-1 max-w-sm text-xs text-muted">
           Haz clic en un producto con archivo .ai en la lista. El escaneo arranca solo.
@@ -489,7 +489,7 @@ export function CatalogoDiagramacionScanner({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-ink">{titulo}</p>
             <p className="truncate font-mono text-[10px] text-muted">
-              {target.archivo_ai} · {formato.nombre} · {formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)}
+              {target.archivo_ai} · {formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)}
             </p>
           </div>
         )}

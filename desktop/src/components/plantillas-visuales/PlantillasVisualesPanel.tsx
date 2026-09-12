@@ -676,6 +676,8 @@ export default function PlantillasVisualesPanel({
   const [pendienteNuevo, setPendienteNuevo] = useState<{
     formato: FormatoCanvas;
     categoriaId: string;
+    /** Título escrito a mano al elegir el tamaño. */
+    nombre?: string;
   } | null>(null);
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
@@ -1018,12 +1020,14 @@ export default function PlantillasVisualesPanel({
     setVista("formato");
   };
 
-  const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    setPendienteNuevo({ formato, categoriaId });
+  const elegirFormato = (formato: FormatoCanvas, categoriaId: string, nombre?: string) => {
+    setPendienteNuevo({ formato, categoriaId, nombre });
     setVista("scan");
   };
 
-  const crearDesdeScan = (nuevo: PlantillaVisualDoc) => {
+  const crearDesdeScan = (escaneado: PlantillaVisualDoc) => {
+    const nombreManual = pendienteNuevo?.nombre?.trim();
+    const nuevo = nombreManual ? { ...escaneado, nombre: nombreManual } : escaneado;
     const doc = categoriaPendiente
       ? {
           ...nuevo,
@@ -1249,6 +1253,7 @@ export default function PlantillasVisualesPanel({
     return (
       <div className="mx-auto max-w-4xl">
         <SelectorFormatoCanvas
+          pedirNombre
           onElegir={elegirFormato}
           onCancelar={() => {
             setPendienteNuevo(null);
@@ -1321,7 +1326,7 @@ export default function PlantillasVisualesPanel({
                     {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
                     {Math.round(doc.formato.alto_px * previewExport.escala)} px
                     {doc.formato.ancho_mm && doc.formato.alto_mm
-                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
+                      ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
                       : ""}
                     {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
                   </p>

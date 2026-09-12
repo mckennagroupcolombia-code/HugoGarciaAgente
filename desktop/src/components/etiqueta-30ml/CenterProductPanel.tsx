@@ -97,7 +97,7 @@ export default function CenterProductPanel({
         <div className="e30-tabla">
           <div className="e30-tabla-campo e30-tabla-fila1">
             <EditableLabel
-              texto="Concentración:"
+              texto="PUREZA:"
               editMode={editMode}
               styleKey="e30_concentrationTitulo"
               defaultFontSize={13}
@@ -167,8 +167,9 @@ export default function CenterProductPanel({
 }
 
 /** «COSMÉTICO» del subtítulo: en edición despliega ALIMENTARIO, AGRO,
- *  INDUSTRIAL. El menú se porta fuera de la etiqueta (no sale en el PNG). */
-function GradoInsumo({
+ *  INDUSTRIAL. El menú se porta fuera de la etiqueta (no sale en el PNG).
+ *  Lo usa también la etiqueta de 69 × 51 mm. */
+export function GradoInsumo({
   valor,
   editMode,
   onElegir,

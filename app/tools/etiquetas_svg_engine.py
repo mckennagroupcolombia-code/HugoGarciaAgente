@@ -111,6 +111,11 @@ def _spec_para_tipo(tipo: str) -> dict | None:
     alt = aliases.get(tipo)
     if alt and alt in plantillas:
         return plantillas[alt]
+    # Formato fusionado 76×66 (antes «250 g» y «500 g» por separado).
+    if tipo == "250 / 500 g":
+        for alt in ("500 g", "250 g"):
+            if alt in plantillas:
+                return plantillas[alt]
     return None
 
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { formatoMedidasEtiqueta, useTiposEtiqueta } from "../../lib/etiquetasTipos";
+import { etiquetaTamanoFormato, formatoMedidasEtiqueta, useTiposEtiqueta } from "../../lib/etiquetasTipos";
 import { IllustrationIcon } from "../../icons/IllustrationIcon";
 import type { UiIconName } from "../../icons";
 import {
@@ -13,10 +13,13 @@ import {
 } from "../../lib/plantillasVisuales";
 
 interface Props {
-  onElegir: (formato: FormatoCanvas, categoriaId: string) => void;
+  /** `nombre`: título escrito a mano para la plantilla nueva (vacío = sin título). */
+  onElegir: (formato: FormatoCanvas, categoriaId: string, nombre?: string) => void;
   onCancelar: () => void;
   titulo?: string;
   subtitulo?: string;
+  /** Muestra el campo «Nombre de la plantilla» (al crear, no al cambiar formato). */
+  pedirNombre?: boolean;
 }
 
 const CAT_ICONS: Record<string, UiIconName> = {
@@ -29,7 +32,14 @@ const CAT_ICONS: Record<string, UiIconName> = {
   personalizado: "palette",
 };
 
-export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, subtitulo }: Props) {
+export default function SelectorFormatoCanvas({
+  onElegir,
+  onCancelar,
+  titulo,
+  subtitulo,
+  pedirNombre = false,
+}: Props) {
+  const [nombrePlantilla, setNombrePlantilla] = useState("");
   const { data: tiposData, isLoading: tiposLoading } = useTiposEtiqueta();
   const tipos = tiposData?.tipos ?? [];
 
@@ -51,7 +61,7 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
 
   function elegirPreset(p: FormatoPreset) {
     if (!categoria) return;
-    onElegir(presetToFormato(p, categoria.id), categoria.id);
+    onElegir(presetToFormato(p, categoria.id), categoria.id, nombrePlantilla.trim() || undefined);
   }
 
   function elegirPersonalizado() {
@@ -67,7 +77,7 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
       alto_mm: customUnidad === "mm" ? alto : undefined,
       dpi,
     };
-    onElegir(formato, "personalizado");
+    onElegir(formato, "personalizado", nombrePlantilla.trim() || undefined);
   }
 
   return (
@@ -85,6 +95,23 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
           Cancelar
         </button>
       </div>
+
+      {pedirNombre && (
+        <label className="mb-4 block">
+          <span className="text-xs font-semibold text-ink">Nombre de la plantilla</span>
+          <input
+            type="text"
+            value={nombrePlantilla}
+            onChange={(e) => setNombrePlantilla(e.target.value)}
+            placeholder="Ej. Sales minerales 500 g"
+            className="mt-1 w-full max-w-md rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink"
+            autoFocus
+          />
+          <span className="mt-1 block text-[11px] text-muted">
+            El tamaño no le da nombre a la plantilla: escríbelo tú. Se puede cambiar después en el editor.
+          </span>
+        </label>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-1.5">
         {categorias.map((cat) => (
@@ -146,15 +173,22 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar, titulo, su
                     style={{ width: thumb.width, height: thumb.height }}
                   />
                 </div>
-                <p className="font-semibold text-ink">{fmt.nombre}</p>
-                <p className="mt-0.5 text-xs text-muted">
-                  {esEtiqueta && fmt.ancho_mm != null && fmt.alto_mm != null
-                    ? `${fmt.nombre} · ${formatoMedidasEtiqueta(fmt.ancho_mm, fmt.alto_mm)}`
-                    : f.ancho_mm != null && f.alto_mm != null
-                      ? formatoMedidasEtiqueta(f.ancho_mm, f.alto_mm)
-                      : `${f.ancho_px} × ${f.alto_px} px`}
-                </p>
-                {fmt.descripcion && (
+                {esEtiqueta && fmt.ancho_mm != null && fmt.alto_mm != null ? (
+                  // Etiquetas: el tamaño es el nombre del formato.
+                  <p className="font-semibold tabular-nums text-ink">
+                    {etiquetaTamanoFormato(fmt.tipo_etiqueta, fmt.ancho_mm, fmt.alto_mm)}
+                  </p>
+                ) : (
+                  <>
+                    <p className="font-semibold text-ink">{fmt.nombre}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {f.ancho_mm != null && f.alto_mm != null
+                        ? formatoMedidasEtiqueta(f.ancho_mm, f.alto_mm)
+                        : `${f.ancho_px} × ${f.alto_px} px`}
+                    </p>
+                  </>
+                )}
+                {fmt.descripcion && !esEtiqueta && (
                   <p className="mt-1 text-xs text-ink-secondary">{fmt.descripcion}</p>
                 )}
               </button>

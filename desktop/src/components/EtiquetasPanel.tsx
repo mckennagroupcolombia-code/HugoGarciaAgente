@@ -38,8 +38,10 @@ import {
   mmParaTipoEtiqueta,
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
+  etiquetaTamanoTipoNombre,
   formatoMedidasEtiqueta,
   formatoMedidasEtiquetaTitle,
+  nombreTipoEtiquetaCanonico,
   mmAPulgadasDisplay,
   pulgadasAMm,
 } from "../lib/etiquetasTipos";
@@ -55,7 +57,7 @@ import {
   ETIQUETA_STUDIO_DEFAULT,
   type EtiquetaStudioDatos,
 } from "../lib/etiquetasNormativa";
-import { studioDatosDesdeCatalogo, presentacionDesdeTipoEtiqueta } from "../lib/etiquetasStudioHelpers";
+import { studioDatosDesdeCatalogo } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { Banner, Badge, Card, StatTile, Button, IconButton, Modal, Spinner } from "./etiquetas/ui";
@@ -773,16 +775,16 @@ function payloadDesdeFormularioEtiqueta(
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const ETIQUETAS_LISTA = [
-  "30 mL", "5 mL", "125 g", "250 g", "1 Lt",
-  "100 g", "Lactato", "Circular", "Circular 50", "Circle 50", "CIRCLE", "Circular 70", "5 g", "54mm",
+  "30 mL", "5 mL", "125 g", "250 / 500 g", "1 Lt", "1 kg",
+  "100 g", "Lactato", "Circular", "Circular 50", "CIRCLE", "Circular 70", "5 g", "Pastillero",
 ];
 
 /** Ancho × alto mm (misma tabla que Flask _ETIQUETAS). */
 const ETIQUETAS_MM: Record<string, [number, number]> = {
   "30 mL": [102, 38], "5 mL": [66, 22], "125 g": [70, 70],
-  "250 g": [76, 66], "1 Lt": [108, 76],
+  "250 / 500 g": [76, 66], "1 Lt": [108, 76], "1 kg": [102, 76],
   "100 g": [69, 51], Lactato: [38, 140], Circular: [55, 55],
-  "Circular 50": [50, 50], "Circle 50": [50, 50], CIRCLE: [53.9, 53.9], "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
+  "Circular 50": [50, 50], CIRCLE: [53.9, 53.9], "Circular 70": [70, 70], "5 g": [50, 42], Pastillero: [54, 58],
 };
 
 const TAMANO_TEXTO_PT_MIN = 3;
@@ -3661,7 +3663,9 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     datosIniciales.venc_x_pct,
     datosIniciales.venc_y_pct,
   );
-  const tipoInit = datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0];
+  const tipoInit = datosIniciales.tipo_etiqueta
+    ? nombreTipoEtiquetaCanonico(datosIniciales.tipo_etiqueta)
+    : ETIQUETAS_LISTA[0];
   const [mmInitW, mmInitH] = mmParaTipoEtiqueta(tipoInit, TIPOS_ETIQUETA_DEFAULT);
   const [form, setForm] = useState<DatosEtiqueta>({
     siigo_code: combo.code,
@@ -4796,7 +4800,10 @@ function ChecklistPedidoEtiquetas({
                     )}
                   </p>
                   {linea.tipoEtiqueta && (
-                    <p className="text-[10px] text-muted">Formato sugerido: {linea.tipoEtiqueta}</p>
+                    <p className="text-[10px] text-muted">
+                      Formato sugerido:{" "}
+                      {etiquetaTamanoTipoNombre(linea.tipoEtiqueta, TIPOS_ETIQUETA_DEFAULT) || linea.tipoEtiqueta}
+                    </p>
                   )}
                 </button>
                 {item.notas && !editandoNota && (
@@ -5142,7 +5149,6 @@ function TabImprimir({
   const expParaImpresion = incluirLoteExp ? expParaEtiqueta(vencimiento) : undefined;
 
   const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => {
-    const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
     return {
       ...studioDatos,
       modo_etiqueta: "original",
@@ -5150,8 +5156,8 @@ function TabImprimir({
       tipo_etiqueta: formato.nombre,
       ancho_mm: formato.anchoMm,
       alto_mm: formato.altoMm,
-      contenido_neto: pres.contenido_neto ?? studioDatos.contenido_neto,
-      unidad: pres.unidad ?? studioDatos.unidad,
+      contenido_neto: studioDatos.contenido_neto,
+      unidad: studioDatos.unidad,
       lote: incluirLoteExp ? (loteParaEtiqueta(lote) || "") : "",
       vencimiento: incluirLoteExp ? (expParaEtiqueta(vencimiento) || "") : "",
       mostrar_lote_vencimiento: incluirLoteExp,
@@ -5495,7 +5501,7 @@ function TabImprimir({
       || "SVG";
     setLog((prev) => [
       ...prev,
-      `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formatoMedidasEtiqueta(formato.anchoMm, formato.altoMm) || `${formato.anchoMm}×${formato.altoMm}`}) · ${calidad}${loteInfo} · ${plantilla}...`,
+      `[${ts}] ${cantidad} cop. · ${formatoMedidasEtiqueta(formato.anchoMm, formato.altoMm) || `${formato.anchoMm}×${formato.altoMm} mm`} · ${calidad}${loteInfo} · ${plantilla}...`,
     ]);
     setErrorImpresion(null);
 
@@ -6594,7 +6600,7 @@ function FormularioPapelInventario({
           >
             <option value="">— Sin vincular —</option>
             {formatos.map((f) => (
-              <option key={f} value={f}>{f}</option>
+              <option key={f} value={f}>{etiquetaTamanoTipoNombre(f, TIPOS_ETIQUETA_DEFAULT) || f}</option>
             ))}
           </select>
         </label>

@@ -270,19 +270,32 @@ _TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
     ("30 mL", 102.0, 38.0),
     ("5 mL", 66.0, 22.0),
     ("125 g", 70.0, 70.0),
-    ("250 g", 76.0, 66.0),
-    ("500 g", 76.0, 66.0),
+    ("250 / 500 g", 76.0, 66.0),
     ("1 Lt", 108.0, 76.0),
     ("100 g", 69.0, 51.0),
     ("Lactato", 38.0, 140.0),
     ("Circular", 55.0, 55.0),
     ("Circular 50", 50.0, 50.0),
-    ("Circle 50", 50.0, 50.0),
     ("CIRCLE", 53.9, 53.9),
     ("Circular 70", 70.0, 70.0),
     ("5 g", 50.0, 42.0),
-    ("54mm", 54.0, 58.0),
+    ("Pastillero", 54.0, 58.0),
+    ("1 kg", 102.0, 76.0),
 ]
+
+# Nombres viejos → formato fusionado (mismo mapa que _ETIQUETAS_ALIAS en routes.py).
+_TIPOS_ETIQUETA_ALIAS: dict[str, str] = {
+    "250 g": "250 / 500 g",
+    "500 g": "250 / 500 g",
+    "54mm": "Pastillero",
+    "1000 g": "1 kg",
+    "Circle 50": "Circular 50",
+}
+
+
+def canon_tipo_etiqueta(nombre: str | None) -> str:
+    n = (nombre or "").strip()
+    return _TIPOS_ETIQUETA_ALIAS.get(n, n)
 
 
 def _carpeta_recursos_png() -> Path:
@@ -316,7 +329,7 @@ def _tipos_etiqueta_mm() -> list[tuple[str, float, float]]:
                 for it in items:
                     if not isinstance(it, dict):
                         continue
-                    nombre = (it.get("nombre") or "").strip()
+                    nombre = canon_tipo_etiqueta(it.get("nombre"))
                     try:
                         aw = float(it.get("ancho_mm") or 0)
                         ah = float(it.get("alto_mm") or 0)
@@ -343,6 +356,12 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
     import re as _re_fmt
 
     stem = Path(nombre).stem
+    por_nombre = {t[0]: t for t in tipos}
+    tipos = list(tipos) + [
+        (viejo, por_nombre[nuevo][1], por_nombre[nuevo][2])
+        for viejo, nuevo in _TIPOS_ETIQUETA_ALIAS.items()
+        if nuevo in por_nombre and viejo not in por_nombre
+    ]
     # 1) Contenido neto explícito: 250g, 100_g, 30ml, 1kg…
     for m in _re_fmt.finditer(
         r"(?<![a-z0-9])(\d+(?:[.,]\d+)?)\s*[_\-]?\s*(g|ml|mL|lt|l|kg|mm)\b",
@@ -367,7 +386,7 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
             candidatos.add(_norm_clave_formato(f"{neto}mL"))
         for nombre_t, aw, ah in tipos:
             if _norm_clave_formato(nombre_t) in candidatos:
-                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+                return {"tipo_etiqueta": canon_tipo_etiqueta(nombre_t), "ancho_mm": aw, "alto_mm": ah}
 
     # 2) Tipos con dígitos como segmento completo (_250_g_, _54mm_), no substrings de producto.
     segmentos = {_norm_clave_formato(s) for s in _re_fmt.split(r"[_\s\-]+", stem) if s}
@@ -382,7 +401,7 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
                 rf"(?<![a-z0-9]){_re_fmt.escape(clave_t)}(?![a-z0-9])",
                 _norm_clave_formato(stem),
             ):
-                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+                return {"tipo_etiqueta": canon_tipo_etiqueta(nombre_t), "ancho_mm": aw, "alto_mm": ah}
     return None
 
 
@@ -691,7 +710,7 @@ def _save_diagramacion_formatos(data: dict) -> None:
 
 
 def obtener_diagramacion_formato(tipo_etiqueta: str) -> dict | None:
-    tipo = (tipo_etiqueta or "").strip()
+    tipo = canon_tipo_etiqueta(tipo_etiqueta)
     if not tipo:
         return None
     entry = _load_diagramacion_formatos().get(tipo)
@@ -699,7 +718,7 @@ def obtener_diagramacion_formato(tipo_etiqueta: str) -> dict | None:
 
 
 def guardar_diagramacion_formato(tipo_etiqueta: str, datos: dict) -> dict:
-    tipo = (tipo_etiqueta or "").strip()
+    tipo = canon_tipo_etiqueta(tipo_etiqueta)
     if not tipo:
         raise ValueError("tipo_etiqueta obligatorio")
     all_data = _load_diagramacion_formatos()

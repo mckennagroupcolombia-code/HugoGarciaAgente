@@ -1,6 +1,6 @@
 /** Tipos y formatos base del Editor de Plantillas Visuales. */
 
-import type { TipoEtiqueta } from "./etiquetasTipos";
+import { etiquetaTamanoFormato, type TipoEtiqueta } from "./etiquetasTipos";
 import { detectarCategoriaEn, type CategoriaEtiqueta } from "./categoriasEtiqueta";
 
 /** Mismo DPI que el lienzo en pantalla (96 ≈ tamaño real al 100% zoom). */
@@ -630,14 +630,13 @@ export function elementoImagenDefecto(src: string, x = 80, y = 80): ElementoImag
 }
 
 export function labelFormato(f: FormatoCanvas): string {
-  const dims =
-    f.ancho_mm != null && f.alto_mm != null
-      ? `${f.ancho_mm}×${f.alto_mm} mm`
-      : `${f.ancho_px}×${f.alto_px} px`;
-  if (f.tipo_etiqueta) {
-    return `${f.tipo_etiqueta} · ${dims}`;
+  if (f.ancho_mm != null && f.alto_mm != null) {
+    // Etiquetas: solo el tamaño (in · mm); el nombre interno no se muestra.
+    const med = etiquetaTamanoFormato(f.tipo_etiqueta || f.nombre, f.ancho_mm, f.alto_mm);
+    if (f.tipo_etiqueta) return med;
+    return `${f.nombre} · ${med}`;
   }
-  return `${f.nombre} · ${dims}`;
+  return `${f.nombre} · ${f.ancho_px}×${f.alto_px} px`;
 }
 
 /** Preset de escala para exportar PNG/JPG sin deformar el diseño. */

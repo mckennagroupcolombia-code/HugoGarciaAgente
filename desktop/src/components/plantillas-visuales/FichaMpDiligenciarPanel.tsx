@@ -40,7 +40,8 @@ import {
 } from "../../lib/plantillasVisuales";
 import { descargarBlob, subirImagenBlobAEtiquetas } from "../../lib/plantillasVisualesExport";
 import {
-  formatoMedidasEtiqueta,
+  etiquetaTamanoFormato,
+  nombreTipoEtiquetaCanonico,
   useTiposEtiqueta,
   type TipoEtiqueta,
 } from "../../lib/etiquetasTipos";
@@ -1328,13 +1329,17 @@ export default function FichaMpDiligenciarPanel({
   const [nombrePlantilla, setNombrePlantilla] = useState(
     inicial?.nombre || "Etiqueta MP",
   );
-  const [tipoNombre, setTipoNombre] = useState(parsed?.tipoNombre || "250 g");
+  const [tipoNombre, setTipoNombre] = useState(
+    nombreTipoEtiquetaCanonico(parsed?.tipoNombre) || "250 / 500 g",
+  );
   const tipo = tipos.find((t) => t.nombre === tipoNombre)
-    ?? tipos.find((t) => t.nombre === "250 g")
+    ?? tipos.find((t) => t.nombre === "250 / 500 g")
     ?? FICHA_MP_TIPO;
   const [color, setColor] = useState(parsed?.color || COLOR_FICHA_MP_DEFAULT);
   const [datos, setDatos] = useState<DatosFichaTecnicaMp>(
-    () => parsed?.datos || crearDatosFichaMpVacios(parsed?.tipoNombre || "250 g"),
+    () => parsed?.datos || crearDatosFichaMpVacios(
+      parsed?.tipoNombre && !parsed.tipoNombre.includes("/") ? parsed.tipoNombre : "250 g",
+    ),
   );
   const [escaneandoIA, setEscaneandoIA] = useState(false);
   const [estilo, setEstilo] = useState<EstiloFichaMp>(
@@ -1811,7 +1816,7 @@ export default function FichaMpDiligenciarPanel({
                 >
                   {tipos.map((t) => (
                     <option key={t.nombre} value={t.nombre}>
-                      {t.nombre} · {formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)} ({t.ancho_mm}×{t.alto_mm} mm)
+                      {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
                     </option>
                   ))}
                 </select>
@@ -2247,7 +2252,7 @@ export default function FichaMpDiligenciarPanel({
               >
                 {tipos.map((t) => (
                   <option key={t.nombre} value={t.nombre}>
-                    {t.nombre} · {formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)} ({t.ancho_mm}×{t.alto_mm} mm)
+                    {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
                   </option>
                 ))}
               </select>

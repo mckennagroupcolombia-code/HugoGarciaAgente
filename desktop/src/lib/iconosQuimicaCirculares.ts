@@ -22,7 +22,7 @@
 export interface IconoQuimicoCircular {
   id: string;
   nombre: string;
-  categoria: "origen" | "aroma" | "apariencia" | "composicion" | "calidad" | "conservacion";
+  categoria: "origen" | "aroma" | "apariencia" | "composicion" | "calidad" | "conservacion" | "seguridad";
   tags: string[];
   /** SVG markup con viewBox 0 0 100 100 y círculos/líneas limpios */
   svg: string;
@@ -75,6 +75,7 @@ export const CATEGORIAS_ICONOS_QUIMICA = [
   { id: "composicion", label: "⚛️ Composición" },
   { id: "calidad", label: "🏅 Calidad" },
   { id: "conservacion", label: "📦 Conservación" },
+  { id: "seguridad", label: "⚠️ Seguridad" },
 ] as const;
 
 /** Apertura común: trazo 4, puntas redondas, sin relleno por defecto. */
@@ -417,6 +418,21 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
       <line x1="36" y1="52" x2="50" y2="52" stroke-width="3.5"/>
       <circle cx="64" cy="66" r="13" fill="currentColor" stroke="none"/>
       <path d="M58 66 L63 71 L71 61" stroke="#ffffff" stroke-width="4"/>
+    </svg>`,
+  },
+
+  // --- SEGURIDAD ---
+  {
+    id: "seguridad_atencion",
+    nombre: "Atención / Alérgenos",
+    categoria: "seguridad",
+    tags: ["seguridad", "alergenos", "atencion", "advertencia", "alerta", "exclamacion", "lineal"],
+    // Signo de exclamación en un círculo: la marca de alérgenos de la etiqueta.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="50" cy="50" r="30" stroke-width="5"/>
+      <line x1="50" y1="33" x2="50" y2="55" stroke-width="6"/>
+      <line x1="50" y1="65" x2="50" y2="66" stroke-width="7"/>
     </svg>`,
   },
 

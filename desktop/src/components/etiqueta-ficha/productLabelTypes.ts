@@ -46,6 +46,10 @@ export interface ProductLabelData {
   /** Formato 30 mL: texto de clasificación SGA (vacío = frase por defecto si
    *  el producto no es peligroso). */
   clasificacionTexto?: string;
+  /** Formato 69 × 51 mm (alimentos): línea de alérgenos ("Contiene: frutos
+   *  secos…"). Dato de plantilla: toda etiqueta de la familia la hereda y se
+   *  ajusta por producto. */
+  alergenos?: string;
 
   technicalDocuments: string;
   website: string;
@@ -129,6 +133,32 @@ export const PRODUCTO_EJEMPLO: ProductLabelData = {
   email: "info@mckennagroup.co",
 };
 
+/** Ejemplo de referencia de cada casilla, compartido por todos los formatos.
+ *  En edición se ve en gris dentro de la casilla vacía, como guía de qué va
+ *  ahí; nunca se guarda ni sale en el PNG ni en la impresión (que se generan
+ *  en modo vista). `EditableField` lo toma por su `styleKey`, que es el
+ *  nombre del dato. */
+export const EJEMPLO_ETIQUETA = {
+  productName: "NOMBRE DEL PRODUCTO",
+  classification: "MATERIA PRIMA GRADO COSMÉTICO",
+  composition: "C₁₆H₃₄O",
+  grade: "Cosmético",
+  storage: "Lugar fresco y seco",
+  origin: "Malasia",
+  appearance: "Escamas blancas",
+  odor: "Suave, característico",
+  concentration: "99%",
+  cas: "36653-82-4",
+  netContent: "500 g",
+  barcode: "7700875002637",
+  technicalDocuments: "TDS - COA",
+  website: "www.mckennagroup.co",
+  city: "Bogotá - Colombia",
+  phone: "+57 319 652 90 76",
+  email: "info@mckennagroup.co",
+  alergenos: "Contiene: frutos secos. Puede contener trazas de maní.",
+} as const satisfies Partial<Record<keyof ProductLabelData, string>>;
+
 /** Campos FIJOS de la empresa que forman la "plantilla del formulario":
  *  se guardan una vez y toda ficha nueva arranca con ellos. El resto de
  *  campos (producto, atributos, código de barras…) llega del SKU elegido y
@@ -149,6 +179,7 @@ export const CAMPOS_PLANTILLA = [
   "cucharaCantidad",
   "cucharaUnidad",
   "gradoInsumo",
+  "alergenos",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
 export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;

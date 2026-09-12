@@ -41,7 +41,8 @@
   margin: 0;
 }
 
-/* ── Edición en el sitio (CampoEtiqueta), mismo trato que EditableField:
+/* ── Edición en el sitio (CampoEtiqueta), mismo trato que EditableField (la
+      comparten la etiqueta 30 mL y la de 69 × 51 mm, `.es-etiqueta`):
       el texto se vuelve casilla sin cambiar de tamaño ni de sitio. Va antes
       que las reglas de cada texto (misma especificidad baja) para que el
       color, peso y tamaño de cada una sigan mandando. ────────────────────── */
@@ -52,7 +53,7 @@
   min-width: 0;
 }
 
-:where(.e30-etiqueta) .e30-campo {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo {
   display: block;
   width: 100%;
   min-width: 0;
@@ -75,25 +76,25 @@
   resize: none;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
-:where(.e30-etiqueta) .e30-campo:hover {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo:hover {
   border-color: var(--acento-50);
 }
-:where(.e30-etiqueta) .e30-campo:focus {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo:focus {
   border-color: var(--acento);
   background: var(--acento-suave);
 }
-:where(.e30-etiqueta) .e30-campo::placeholder {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo::placeholder {
   color: #a8a8a8;
   opacity: 1;
 }
-:where(.e30-etiqueta) .e30-campo-oscuro:hover {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro:hover {
   border-color: rgba(255, 255, 255, 0.6);
 }
-:where(.e30-etiqueta) .e30-campo-oscuro:focus {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro:focus {
   border-color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
 }
-:where(.e30-etiqueta) .e30-campo-oscuro::placeholder {
+:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
@@ -148,7 +149,8 @@
 }
 
 /* Dato vacío en edición: ejemplo de referencia en gris (no se imprime). */
-.e30-etiqueta .e30-ejemplo {
+.e30-etiqueta .e30-ejemplo,
+.es-etiqueta .e30-ejemplo {
   color: #a8a8a8 !important;
 }
 
@@ -242,9 +244,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
   min-width: 0;
-  height: 56%;
+  height: 60%;
   padding: 0 10px;
 }
 .e30-franja-dato + .e30-franja-dato {
@@ -256,9 +258,13 @@
   flex: none;
   color: #ffffff;
 }
+/* 36 px (26 × 1.4) con trazo fino: los íconos lineales vienen con 2.6
+   unidades de 24, que a este tamaño serían casi 4 px de línea; 1.6 unidades
+   quedan en ~2.4 px. El CSS manda sobre el atributo del SVG. */
 .e30-franja-icono svg {
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
+  stroke-width: 1.6;
 }
 
 /* En edición la casilla mide lo que su texto, para que ícono + dato sigan
@@ -426,9 +432,9 @@
 
 .e30-tabla-campo {
   border-right: 1.75px solid var(--acento);
-  background: var(--acento-suave);
   font-size: 13px;
   font-weight: 700;
+  text-transform: uppercase;
   color: var(--acento);
 }
 
@@ -442,14 +448,26 @@
   border-bottom: 1.75px solid var(--acento);
 }
 
+/* Dos pistas: el título arriba y, abajo, una banda del mismo alto que las
+   franjas de contacto de los paneles laterales (--e30-franja). El valor va
+   centrado en esa banda: queda en la misma línea horizontal que los textos
+   del pie (ubicación, teléfono, correo). */
 .e30-neto {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 6px 12px 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) var(--e30-franja);
+  justify-items: center;
+  padding: 0 12px;
   overflow: hidden;
+  text-align: center;
+}
+.e30-neto > :first-child {
+  align-self: end;
+  padding-bottom: 2px;
+}
+.e30-neto > :last-child {
+  align-self: center;
+  width: 100%;
 }
 
 .e30-neto-titulo {
@@ -461,7 +479,7 @@
 }
 
 .e30-neto-valor {
-  font-size: 58px;
+  font-size: 50px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.01em;

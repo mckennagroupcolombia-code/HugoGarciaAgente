@@ -6,6 +6,10 @@ import { TITULOS_COMPOSICION, type ProductLabelData } from "./productLabelTypes"
 
 export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
 
+/** Claves de los íconos guardados en `attribute_icons`: las seis celdas de la
+ *  ficha y la línea de alérgenos de la etiqueta de 69 × 51 mm. */
+export type IconoKey = AttributeKey | "alergenos";
+
 /** Ícono por defecto de cada atributo = un ícono de la galería (misma
  *  familia visual que los que el operador puede elegir después, en vez de
  *  un set lineal aparte). Se dibuja en línea (no como data URL) para que

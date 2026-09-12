@@ -23,6 +23,7 @@ import {
 } from "../../lib/categoriasEtiqueta";
 import {
   categoriaProductoDe,
+  labelFormato,
   type ElementoTexto,
   type ElementoVisual,
   type PlantillaVisualDoc,
@@ -342,7 +343,7 @@ export default function NuevaPlantillaCategoriaPanel({
                     {p.nombre}
                   </span>
                   <span className="block truncate px-2 pb-1.5 text-[10px] text-muted">
-                    {p.formato?.nombre || "Sin tamaño"}
+                    {p.formato ? labelFormato(p.formato) : "Sin tamaño"}
                     {categoriaProductoDe(p, categorias) !== categoriaId
                       ? ` · ${etiquetaCategoriaEn(categorias, categoriaProductoDe(p, categorias))}`
                       : ""}

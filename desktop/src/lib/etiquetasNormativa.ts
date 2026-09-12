@@ -99,7 +99,7 @@ export const ETIQUETA_STUDIO_DEFAULT: EtiquetaStudioDatos = {
   nit: "901316016-3",
   ciudad: "Bogotá — Colombia",
   notas_tecnicas: "COA y ficha técnica en www.mckennagroup.co",
-  tipo_etiqueta: "250 g",
+  tipo_etiqueta: "250 / 500 g",
   ancho_mm: 76,
   alto_mm: 66,
   mostrar_formula_molecular: false,

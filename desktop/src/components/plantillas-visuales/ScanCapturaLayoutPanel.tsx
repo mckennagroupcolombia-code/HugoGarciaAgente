@@ -5,7 +5,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { imagenDesdePortapapeles } from "../../lib/clipboardImage";
-import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import {
   labelFormato,
   nuevoId,
@@ -130,11 +129,6 @@ export default function ScanCapturaLayoutPanel({
     [previewUrl],
   );
 
-  const mmLabel =
-    formato.ancho_mm && formato.alto_mm
-      ? `${formatoMedidasEtiqueta(formato.ancho_mm, formato.alto_mm)} · ${formato.ancho_mm}×${formato.alto_mm} mm`
-      : null;
-
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-5 flex items-start justify-between gap-4">
@@ -142,7 +136,7 @@ export default function ScanCapturaLayoutPanel({
           <h2 className="text-base font-bold text-ink">Captura → lienzo</h2>
           <p className="mt-0.5 text-sm text-muted">
             Formato elegido: <strong className="text-ink">{labelFormato(formato)}</strong>
-            {mmLabel ? ` (${mmLabel})` : ""} · {formato.ancho_px}×{formato.alto_px} px.
+            {" "}· {formato.ancho_px}×{formato.alto_px} px.
             La diagramación se escala a este tamaño.
           </p>
         </div>

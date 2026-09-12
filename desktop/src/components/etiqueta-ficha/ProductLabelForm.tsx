@@ -18,7 +18,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import ProductHeader from "./ProductHeader";
-import ProductAttributeGrid, { type AttributeKey } from "./ProductAttributeGrid";
+import ProductAttributeGrid, { type IconoKey } from "./ProductAttributeGrid";
 import GhsBadge from "./GhsBadge";
 import TechnicalDocuments from "./TechnicalDocuments";
 import TechnicalIdentity from "./TechnicalIdentity";
@@ -47,7 +47,13 @@ import {
   palabrasClave,
   UMBRAL_ENLACE_AUTOMATICO,
 } from "../../lib/fichaTecnicaMatch";
-import { formatoMedidasEtiqueta, useTiposEtiqueta, type TipoEtiqueta } from "../../lib/etiquetasTipos";
+import {
+  etiquetaTamanoFormato,
+  etiquetaTamanoTipoNombre,
+  nombreTipoEtiquetaCanonico,
+  useTiposEtiqueta,
+  type TipoEtiqueta,
+} from "../../lib/etiquetasTipos";
 import {
   useEliminarFichaEtiqueta,
   useFichasEtiquetaGuardadas,
@@ -70,6 +76,8 @@ import LabelPreview from "../etiqueta-30ml/LabelPreview";
 import Marco30ml from "../etiqueta-30ml/Marco30ml";
 import { ANCHO_30ML, esFormato30ml, esPeligrosoGhs, reticula30ml } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { imprimirImagenEtiqueta } from "../etiqueta-30ml/imprimirEtiqueta";
+import EtiquetaSimple from "../etiqueta-simple/EtiquetaSimple";
+import { ANCHO_SIMPLE, esFormatoSimple, reticulaSimple } from "../etiqueta-simple/etiquetaSimpleTypes";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -147,8 +155,10 @@ function ProductLabelFormInner({
   const tipo: TipoEtiqueta | undefined = tipos.find((t) => t.nombre === tipoNombre);
   /** El formato 30 mL es otra composición (tres paneles horizontales) con
    *  su propio formulario; el resto de formatos usa la ficha de 76 × 66. */
-  const es30ml = esFormato30ml(tipoNombre);
-  const anchoDiseno = es30ml ? ANCHO_30ML : ANCHO_DISENO;
+  const es30ml = esFormato30ml(tipoNombre, tipo);
+  /** 69 × 51 mm ("100 g"): diagramación simple de dos columnas. */
+  const esSimple = esFormatoSimple(tipoNombre, tipo);
+  const anchoDiseno = es30ml ? ANCHO_30ML : esSimple ? ANCHO_SIMPLE : ANCHO_DISENO;
 
   // "inicio": elegir Formato + SKU (o abrir una ficha guardada) — la ficha
   // no se muestra ni carga nada hasta entonces. "formulario": la ficha.
@@ -156,7 +166,7 @@ function ProductLabelFormInner({
   const [data, setData] = useState<ProductLabelData>(PRODUCTO_VACIO);
   const [editMode, setEditMode] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
-  const [attributeIcons, setAttributeIcons] = useState<Partial<Record<AttributeKey, string>>>({});
+  const [attributeIcons, setAttributeIcons] = useState<Partial<Record<IconoKey, string>>>({});
   const [guardando, setGuardando] = useState(false);
   const [guardarMsg, setGuardarMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   /** PNG ya renderizado, a la espera de que el operador lo confirme en la
@@ -186,7 +196,7 @@ function ProductLabelFormInner({
     if ("ghs" in patch || "ghsIconSvg" in patch) cambiosGhsRef.current += 1;
     setData((d) => ({ ...d, ...patch }));
   };
-  const onIconChange = (campo: AttributeKey, svgDataUrl: string) =>
+  const onIconChange = (campo: IconoKey, svgDataUrl: string) =>
     setAttributeIcons((prev) => ({ ...prev, [campo]: svgDataUrl }));
 
   // ── Fichas guardadas: nombre elegido a mano por el operador (nunca
@@ -311,7 +321,7 @@ function ProductLabelFormInner({
 
   const abrirFichaGuardada = (f: FichaEtiquetaGuardada) => {
     setData(f.data);
-    setTipoNombre(f.tipo_nombre || "");
+    setTipoNombre(nombreTipoEtiquetaCanonico(f.tipo_nombre));
     setAttributeIcons(f.attribute_icons || {});
     reemplazarEstilos(f.text_styles || {});
     setNombreFicha(f.nombre);
@@ -434,7 +444,7 @@ function ProductLabelFormInner({
     codigo: CodigoEan,
   ) => {
     setCategoria(plantilla.categoria || CATEGORIA_ETIQUETA_OTROS);
-    setTipoNombre(plantilla.tipo_nombre || "");
+    setTipoNombre(nombreTipoEtiquetaCanonico(plantilla.tipo_nombre));
     setData(sinDatosDeProducto(plantilla.data));
     setAttributeIcons(plantilla.attribute_icons ?? {});
     reemplazarEstilos(plantilla.text_styles ?? {});
@@ -749,6 +759,7 @@ function ProductLabelFormInner({
 
   /** Retícula de la etiqueta 30 mL, calculada de las medidas del formato. */
   const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  const retSimple = useMemo(() => reticulaSimple(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
     esPeligrosoGhs(data.ghs) && /no\s+est[aá]\s+clasificad/i.test(data.clasificacionTexto || "");
   const restablecerDatos = () => {
@@ -1174,7 +1185,7 @@ function ProductLabelFormInner({
             <option value="">{tiposLoading ? "Cargando…" : "Sin ajustar (tamaño libre)"}</option>
             {tipos.map((t) => (
               <option key={t.nombre} value={t.nombre}>
-                {t.nombre} ({formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)})
+                {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
               </option>
             ))}
           </select>
@@ -1330,9 +1341,9 @@ function ProductLabelFormInner({
         </p>
       )}
 
-      {marco && !es30ml && (
+      {marco && !es30ml && !esSimple && (
         <p className="mb-2 text-[11px] text-muted">
-          Ajustada a {tipo?.nombre} ({tipo && formatoMedidasEtiqueta(tipo.ancho_mm, tipo.alto_mm)}) — el marco
+          Ajustada a {tipo && etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm)} — el marco
           punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
         </p>
       )}
@@ -1347,8 +1358,8 @@ function ProductLabelFormInner({
       {es30ml ? (
         <>
           <p className="mb-2 text-[11px] text-muted">
-            Ajustada a {tipo?.nombre ?? "30 mL"} (
-            {tipo ? formatoMedidasEtiqueta(tipo.ancho_mm, tipo.alto_mm) : "102 × 38 mm"}) — el marco
+            Ajustada a{" "}
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "4.02×1.5 in · 102×38 mm"} — el marco
             punteado es el tamaño real de la etiqueta. En edición, lo gris es un ejemplo de
             referencia y no se imprime.
           </p>
@@ -1363,6 +1374,27 @@ function ProductLabelFormInner({
               onChange={onChange}
               onIconChange={onIconChange}
               onElegirCodigo={(c) => void onElegirCodigo(c)}
+            />
+          </Marco30ml>
+        </>
+      ) : esSimple ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted">
+            Ajustada a{" "}
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.72×2.01 in · 69×51 mm"} — diagramación
+            simple de dos columnas. En edición, lo gris es un ejemplo de referencia y no se imprime.
+          </p>
+          <Marco30ml reticula={retSimple}>
+            <EtiquetaSimple
+              ref={fichaRef}
+              data={data}
+              reticula={retSimple}
+              editMode={editMode}
+              guias={showGrid && editMode}
+              onChange={onChange}
+              onElegirCodigo={(c) => void onElegirCodigo(c)}
+              attributeIcons={attributeIcons}
+              onIconChange={onIconChange}
             />
           </Marco30ml>
         </>
@@ -1399,7 +1431,7 @@ function ProductLabelFormInner({
                   <p className="text-[11px] text-muted">
                     {nombreArchivoPng()} · {previa.anchoPx} × {previa.altoPx} px
                     {previa.anchoMm && previa.altoMm
-                      ? ` · ${previa.anchoMm} × ${previa.altoMm} mm a ${previa.dpi} dpi (${tipo?.nombre})`
+                      ? ` · ${previa.anchoMm} × ${previa.altoMm} mm a ${previa.dpi} dpi`
                       : " · tamaño libre (sin Formato elegido)"}
                   </p>
                 </div>
@@ -1704,7 +1736,9 @@ function PantallaInicio({
                   title={f.nombre}
                 >
                   {f.nombre}
-                  {f.tipo_nombre && <span className="ml-1 text-[10px] text-muted">· {f.tipo_nombre}</span>}
+                  {etiquetaTamanoTipoNombre(f.tipo_nombre, tipos) && (
+                    <span className="ml-1 text-[10px] text-muted">· {etiquetaTamanoTipoNombre(f.tipo_nombre, tipos)}</span>
+                  )}
                   {f.categoria && (
                     <span className="ml-1 text-[10px] text-muted">· {etiquetaCategoria(f.categoria)}</span>
                   )}
@@ -1807,11 +1841,17 @@ function ElegirTamanoPlantilla({
             <option value="">{tiposLoading ? "Cargando…" : "Elegir tamaño…"}</option>
             {tipos.map((t) => (
               <option key={t.nombre} value={t.nombre} disabled={usados.has(t.nombre)}>
-                {t.nombre} ({formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm)})
+                {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
                 {usados.has(t.nombre) ? " — ya tiene plantilla" : ""}
               </option>
             ))}
           </select>
+          {esFormatoSimple(tamano) && (
+            <span className="mt-1 block text-[11px] text-accent">
+              69 × 51 mm usa la diagramación simple de dos columnas (nombre, contenido neto,
+              conservación y alérgenos · logo y código de barras).
+            </span>
+          )}
           {esFormato30ml(tamano) && (
             <span className="mt-1 block text-[11px] text-accent">
               30 mL usa la etiqueta horizontal de tres paneles; se edita igual que las demás,
@@ -1873,6 +1913,8 @@ function ElegirProductoParaEtiqueta({
 }) {
   const [q, setQ] = useState("");
   const { data: codigos, isLoading } = useCodigosEan();
+  const { data: tiposData } = useTiposEtiqueta();
+  const tamanoPlantilla = etiquetaTamanoTipoNombre(plantilla.tipo_nombre, tiposData?.tipos ?? []);
   const sugeridos = useMemo(() => filtrarCodigosEanPorTexto(codigos ?? [], q, 25), [codigos, q]);
   return (
     <div className="mx-auto flex h-full max-w-2xl min-h-0 flex-col overflow-auto p-4">
@@ -1887,7 +1929,7 @@ function ElegirProductoParaEtiqueta({
         <h2 className="text-base font-bold text-ink">Nueva etiqueta · {categoriaLabel}</h2>
         <span className="text-[11px] text-muted">
           {plantilla.nombre}
-          {plantilla.tipo_nombre ? ` · ${plantilla.tipo_nombre}` : ""}
+          {tamanoPlantilla ? ` · ${tamanoPlantilla}` : ""}
         </span>
       </header>
 

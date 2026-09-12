@@ -1,0 +1,415 @@
+/*
+ * Etiqueta 69 × 51 mm — diagramación simple (Semillas & Frutos Secos).
+ *
+ * Un solo panel con CSS Grid: columna de producto (58 %) y columna de marca
+ * (42 %) separadas por una línea del acento, y la franja de contacto abajo a
+ * todo el ancho (reglas `.e30-franja*` de la etiqueta 30 mL). Rellenos de un
+ * solo color; las casillas se editan en el sitio (`.e30-campo`, en
+ * etiqueta30ml.css) y el texto se encoge para caber (useAjusteTexto).
+ *
+ * Las dos columnas comparten la primera fila —la «cabeza», de alto fijo— para
+ * que el recuadro «INSUMO GRADO …» y la barra de la web terminen en la misma
+ * línea: las dos van pegadas a su borde inferior con el mismo respiro. Antes
+ * cada una colgaba de su propia columna (del nombre una, del logo la otra) y
+ * bailaban según lo que midiera el texto.
+ */
+
+.es-etiqueta {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  padding: var(--es-margen);
+  overflow: hidden;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.es-etiqueta *,
+.es-etiqueta *::before,
+.es-etiqueta *::after {
+  box-sizing: border-box;
+  font-style: normal;
+}
+
+.es-etiqueta p,
+.es-etiqueta h1 {
+  margin: 0;
+}
+
+.es-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+  /* Cabeza (guía compartida) · cuerpo · franja de contacto. */
+  grid-template-rows: var(--es-cabeza) minmax(0, 1fr) var(--es-franja);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: var(--es-borde) solid var(--acento);
+  border-radius: var(--es-radio);
+  background: #ffffff;
+}
+
+.es-panel > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Banda superior: la guía compartida ──────────────────────────────────── */
+
+/* Cada mitad reparte su alto entre lo de arriba (nombre · logo), que se
+   estira, y la barra del acento, que mide lo suyo. El mismo `padding-bottom`
+   en las dos es lo que deja las dos barras terminando en la misma línea. */
+.es-cabeza {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: var(--es-respiro);
+}
+
+.es-cabeza-izq {
+  position: relative;
+  align-items: center;
+  justify-items: center;
+  row-gap: 10px;
+  padding-top: 22px;
+  padding-right: 26px;
+  padding-left: 26px;
+  border-right: var(--es-linea) solid var(--acento);
+  /* Sin raya, pero con el mismo grosor abajo que la mitad derecha: si no, su
+     barra quedaría los 1,5 px de la línea más arriba que este recuadro. */
+  border-bottom: var(--es-linea) solid transparent;
+}
+
+/* La raya que separa la información técnica del código de barras queda en el
+   borde de la banda, o sea a `--es-respiro` por debajo de la barra de la web
+   (el mismo aire que tenía cuando colgaba de `.es-info`). */
+.es-cabeza-der {
+  border-bottom: var(--es-linea) solid var(--acento);
+}
+
+/* ── Columna del producto ────────────────────────────────────────────────── */
+
+.es-nombre-caja {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+.es-nombre-caja > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Copia invisible del nombre para medir su renglón más ancho (el recuadro
+   del grado toma ese ancho). No se ve ni ocupa lugar. */
+.es-nombre-espejo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  text-align: center;
+}
+.es-nombre-caja > .es-nombre-espejo {
+  flex: none;
+}
+.es-nombre-copia {
+  width: auto;
+}
+
+/* Lupa de fichas técnicas (solo en edición), en la esquina de la columna. */
+.es-lupa {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+}
+
+.es-nombre {
+  width: 100%;
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  color: var(--acento);
+}
+
+.es-subtitulo {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 6px 10px;
+  text-align: center;
+  border-radius: 6px;
+  background: var(--acento);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+/* El texto del recuadro va en su propia caja (sin el relleno del recuadro)
+   para medir sus renglones: uno si cabe, dos si el nombre es muy corto. */
+.es-subtitulo-texto {
+  display: block;
+  line-height: 1.15;
+  overflow-wrap: normal;
+}
+/* Menú del grado dentro del recuadro: subrayado blanco, no del acento. */
+.es-subtitulo .e30-grado-boton {
+  border-bottom-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Cuerpo de la columna: contenido neto y la lista de datos, centrados en lo
+   que queda bajo la banda. */
+.es-cuerpo-izq {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: center;
+  row-gap: 14px;
+  padding: 0 26px 18px;
+  overflow: hidden;
+  border-right: var(--es-linea) solid var(--acento);
+}
+
+.es-neto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+.es-neto-titulo {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+
+.es-neto-valor {
+  width: 100%;
+  font-size: 76px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #111111;
+}
+
+/* Lista de datos: los íconos en una columna y los textos arrancando todos a
+   la misma altura (con `display: contents`, cada dato aporta sus dos celdas
+   a esta misma retícula). */
+.es-datos {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 9px;
+  width: 100%;
+  padding-top: 12px;
+  border-top: var(--es-linea) solid var(--acento);
+}
+
+.es-dato {
+  display: contents;
+}
+
+.es-dato-cuerpo {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  text-align: left;
+}
+.es-dato-cuerpo > .e30-campo-wrap,
+.es-dato-cuerpo > .es-dato-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* En esta lista el texto va alineado a la izquierda, no centrado. */
+.es-cuerpo-izq .es-dato-cuerpo,
+.es-cuerpo-izq .es-dato-cuerpo :where(.e30-campo) {
+  text-align: left;
+}
+
+/* Íconos de la galería (clic en edición): 45 px, un 50 % más grandes que
+   los 30 px iniciales. */
+.es-dato-icono {
+  flex: none;
+  width: 45px;
+  height: 45px;
+  margin: 0;
+}
+
+/* Rótulo fijo delante del dato («ORIGEN:»). */
+.es-dato-rotulo {
+  flex: none;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  color: var(--acento);
+}
+
+.es-dato-texto {
+  min-width: 0;
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #1a1a1a;
+}
+.es-alergenos {
+  font-weight: 700;
+  color: #111111;
+}
+
+/* Textos centrados en esta columna (también en edición). */
+.es-cabeza-izq,
+.es-cuerpo-izq,
+.es-cabeza-izq :where(.e30-campo),
+.es-cuerpo-izq :where(.e30-campo) {
+  text-align: center;
+}
+
+
+/* ── Columna de marca ────────────────────────────────────────────────────── */
+
+/* Bajo la banda: el código de barras se queda con el alto que sobre (cuanto
+   más grande, mejor lee el escáner) y el timbre mide sus 10 mm. */
+.es-cuerpo-der {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+/* Recuadro en blanco para el timbre físico. La palabra «Timbre» solo se ve
+   en edición (el PNG y la impresión se generan en modo vista). */
+.es-timbre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 14px;
+}
+.es-timbre-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 86%;
+  height: var(--es-timbre);
+  border: var(--es-linea) solid var(--acento);
+  border-radius: 4px;
+  background: #ffffff;
+}
+.es-timbre-nota {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b4b4b4;
+}
+
+/* Información técnica, como en las demás etiquetas: dónde consultar la
+   TDS / COA. Cierra la banda superior — su último renglón es la barra de la
+   web, que es la que se alinea con el recuadro del grado. */
+.es-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 0 0;
+  text-align: center;
+}
+.es-info-titulo {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+.es-info-docs {
+  max-width: 92%;
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  color: #111111;
+}
+.es-info-disp {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+}
+.es-web {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90%;
+  height: 32px;
+  margin-top: 4px;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--acento);
+  color: #ffffff;
+}
+.es-web-texto {
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.es-web .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.es-info :where(.e30-campo) {
+  text-align: center;
+}
+
+.es-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 14px 0;
+  border-bottom: var(--es-linea) solid var(--acento);
+}
+
+.es-cabeza-der .es-logo-caja {
+  width: 82%;
+}
+
+.es-cuerpo-der .e30-barras {
+  padding: 10px 0;
+}
+.es-cuerpo-der .e30-barras-boton {
+  width: 96%;
+}
+
+/* ── Guías de la retícula (casilla «Retícula», solo en edición) ───────────── */
+
+.es-guias .es-panel > *,
+.es-guias .es-cabeza > *,
+.es-guias .es-cuerpo-izq > *,
+.es-guias .es-cuerpo-der > * {
+  outline: 1px dashed rgba(0, 140, 255, 0.8);
+  outline-offset: -1px;
+}
