@@ -1023,11 +1023,18 @@ def _logo_por_color_acento(color: str | None) -> Path | None:
     return path if path.is_file() else None
 
 
+# El formato FT + COA + SDS lleva un único logo y un único color: el turquesa corporativo.
+LOGO_FORMATO = CABEZOTES_DIR / "logotipo_turquesa.png"
+COLOR_FORMATO = "#044D5C"
+
+
 def _path_logo_correspondiente(
     cabezote_id: str | None,
     color_acento: str | None = None,
 ) -> Path | None:
-    """Cabezote elegido, o el logo del color del formato, o el azul por defecto."""
+    """Logo turquesa del formato; si faltara el archivo, el cabezote elegido o el del color."""
+    if LOGO_FORMATO.is_file():
+        return LOGO_FORMATO
     try:
         elegido = resolver_cabezote_path(cabezote_id)
     except Exception:
@@ -1220,7 +1227,9 @@ def _contexto_html(
     # Color de acento (tema)
     _hex_re = re.compile(r'^#[0-9A-Fa-f]{6}$')
     color_raw = (d.get("color_acento") or "").strip()
-    color_acento = color_raw if _hex_re.match(color_raw) else "#069DC2"
+    color_acento = COLOR_FORMATO if LOGO_FORMATO.is_file() else (
+        color_raw if _hex_re.match(color_raw) else "#069DC2"
+    )
 
     cabezote_src = None
     cabezote_w_cm = None
@@ -1333,7 +1342,16 @@ FIRMA_PERFIL_UNICO = {
     "nombre": "Gloria Stella Velandia Cobos",
     "cargo": "Directora de Calidad",
     "organizacion": "",
+    "firma_id": "8774c26567767247",
 }
+
+
+def _firma_unica_src() -> str:
+    """Imagen de la firma única, de la biblioteca de firmas."""
+    ruta = FICHAS_DIR / "firmas" / f"{FIRMA_PERFIL_UNICO['firma_id']}.png"
+    if not ruta.is_file():
+        return ""
+    return _imagen_a_data_url(ruta) or ""
 
 
 def _contexto_coa(datos_coa: dict) -> dict:
@@ -1396,8 +1414,10 @@ def _contexto_coa(datos_coa: dict) -> dict:
     }
 
 
+# EINECS y grado no cuentan: se editan en la identificación compartida (FT+COA+SDS)
+# y, solos, imprimirían un COA vacío con la firma por defecto.
 _COA_CAMPOS_EXCLUSIVOS = (
-    "einces", "concentracion", "grado", "presentacion", "incluye",
+    "concentracion", "presentacion", "incluye",
     "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
     "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
@@ -1418,19 +1438,19 @@ def _coa_diligenciado(coa_ctx: dict) -> bool:
 
 
 def _con_firma_default(coa_ctx: dict) -> dict:
-    """Aplica el perfil único de firma cuando el COA sí está diligenciado pero
-    no trae firmante propio. Llamar SOLO después de confirmar
-    _coa_diligenciado(coa_ctx) — si se aplica antes, un COA vacío parecería
-    diligenciado solo por el nombre por defecto (regresión detectada y
-    corregida en la limpieza de firmas de sep-2026)."""
-    if not (coa_ctx.get("firma_nombre") or "").strip():
-        coa_ctx = {
-            **coa_ctx,
-            "firma_nombre": FIRMA_PERFIL_UNICO["nombre"],
-            "firma_cargo": FIRMA_PERFIL_UNICO["cargo"],
-            "firma_organizacion": coa_ctx.get("firma_organizacion") or FIRMA_PERFIL_UNICO["organizacion"],
-        }
-    return coa_ctx
+    """El COA lo emite McKenna Group y lo firma SIEMPRE la misma persona
+    (Gloria Stella Velandia Cobos, Directora de Calidad): se impone el perfil
+    único con su firma e se ignora cualquier firmante que viniera del documento
+    del proveedor al escanearlo. Llamar SOLO después de confirmar
+    _coa_diligenciado(coa_ctx): si se aplica antes, un COA vacío parecería
+    diligenciado solo por el nombre por defecto."""
+    return {
+        **coa_ctx,
+        "firma_nombre": FIRMA_PERFIL_UNICO["nombre"],
+        "firma_cargo": FIRMA_PERFIL_UNICO["cargo"],
+        "firma_organizacion": FIRMA_PERFIL_UNICO["organizacion"],
+        "firma_imagen_src": _firma_unica_src(),
+    }
 
 
 def _contexto_sds(datos_sds: dict) -> dict:
@@ -1490,6 +1510,7 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "nombre_comercial": (ident.get("nombre_comercial") or "").strip(),
         "inci": (ident.get("nombre_inci") or "").strip(),
         "cas": (ident.get("cas") or "").strip(),
+        "numero_ce": (ident.get("numero_ce") or ident.get("einces") or "").strip(),
         "formula": (ident.get("formula_molecular") or "").strip(),
         "usos": (ident.get("usos") or "").strip(),
         "telefono": (ident.get("telefono_emergencia") or "").strip(),

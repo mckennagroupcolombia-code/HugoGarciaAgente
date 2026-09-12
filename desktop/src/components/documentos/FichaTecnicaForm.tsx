@@ -380,6 +380,7 @@ export default function FichaTecnicaForm({
   externalColorAcento,
   hideRecomendaciones = true,
   onAutoCompletarRef,
+  formulaBloqueada,
 }: {
   productoRef?: string;
   productoNombre?: string;
@@ -393,6 +394,8 @@ export default function FichaTecnicaForm({
   externalColorAcento?: string;
   hideRecomendaciones?: boolean;
   onAutoCompletarRef?: (fn: (resultados: Record<string, string>) => void) => void;
+  /** Motivo por el que la fórmula molecular no aplica (clasificación del insumo). */
+  formulaBloqueada?: string | null;
 }) {
   const [state, setState] = useState<FichaTecnicaFormState>(() => ({
     ...formularioDesdeDatos({}),
@@ -770,6 +773,7 @@ export default function FichaTecnicaForm({
               onChange={set}
               placeholder={placeholder}
               formula={formula}
+              bloqueado={formula ? formulaBloqueada ?? undefined : undefined}
               actions={<IaBtn label="IA" {...ia(campo)} />}
             />
           ))}

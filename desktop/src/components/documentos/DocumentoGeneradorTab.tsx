@@ -952,6 +952,8 @@ export function Field({
   actions,
   /** Dígitos como subíndices de fórmula molecular (C₆H₁₂O₆). */
   formula,
+  /** Casilla que no aplica a este insumo: se muestra el motivo en vez del campo. */
+  bloqueado,
 }: {
   label?: string;
   value: string;
@@ -964,7 +966,25 @@ export function Field({
   clearable?: boolean;
   actions?: ReactNode;
   formula?: boolean;
+  bloqueado?: string;
 }) {
+  if (bloqueado) {
+    return (
+      <div>
+        {label && (
+          <div className="mb-1 flex min-h-[1.25rem] items-center">
+            <label className="text-xs text-muted/60">{label}</label>
+          </div>
+        )}
+        <div
+          className="w-full cursor-not-allowed rounded-lg border border-dashed border-border bg-surface-input/40 px-3 py-2 text-xs text-muted/70"
+          title={value ? `Valor guardado (no se usa): ${value}` : undefined}
+        >
+          No aplica · {bloqueado}
+        </div>
+      </div>
+    );
+  }
   const hasValue = value.length > 0;
   const showClear = clearable;
   const shown = formula ? formatearFormulaMolecular(value) : value;
