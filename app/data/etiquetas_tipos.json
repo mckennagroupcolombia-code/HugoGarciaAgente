@@ -46,6 +46,11 @@
       "alto_mm": 55.0
     },
     {
+      "nombre": "Circular 53",
+      "ancho_mm": 53.0,
+      "alto_mm": 53.0
+    },
+    {
       "nombre": "Circular 70",
       "ancho_mm": 70.0,
       "alto_mm": 70.0

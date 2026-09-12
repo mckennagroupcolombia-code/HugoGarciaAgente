@@ -5,7 +5,7 @@
  * al elegir un código de barras — una sola lógica de extracción.
  */
 import { api } from "../api/client";
-import type { ProductLabelData } from "../components/etiqueta-ficha/productLabelTypes";
+import { CAMPOS_PLANTILLA, type ProductLabelData } from "../components/etiqueta-ficha/productLabelTypes";
 import { camposDesdeFichaTecnica, FICHA_SIN_DATO } from "./fichaTecnicaCampos";
 import type { CandidataFicha } from "./fichaTecnicaMatch";
 
@@ -28,6 +28,9 @@ const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
   composicion: "composition",
   grado: "grade",
   almacenamiento: "storage",
+  alergenos: "alergenos",
+  descripcion: "descripcionProducto",
+  aplicaciones: "aplicaciones",
   peso: "netContent",
   ghs: "ghs",
   clasificacionSga: "clasificacionTexto",
@@ -55,8 +58,14 @@ export async function listarFichasTecnicas(forzar = false): Promise<FichaTecnica
   return listaEnCurso;
 }
 
-/** Parche con los 12 campos mapeados. Lo que la ficha no trae queda en
- *  blanco (no se conserva texto de otra ficha ni el ejemplo de fábrica). */
+/** Campos de la PLANTILLA (alérgenos, contacto, web…): la ficha los pisa si
+ *  los trae, pero si no, se dejan como están — son el valor de la familia,
+ *  no un dato suelto de otro producto. Los de producto sí se vacían. */
+const ES_CAMPO_PLANTILLA = new Set<string>(CAMPOS_PLANTILLA);
+
+/** Parche con los campos mapeados. Lo que la ficha no trae queda en blanco
+ *  (no se conserva texto de otra ficha ni el ejemplo de fábrica), salvo los
+ *  campos de plantilla. */
 export async function cargarPatchDesdeFichaTecnica(fichaId: string): Promise<Partial<ProductLabelData>> {
   const res = await api.get<{ datos: Record<string, unknown> }>(
     `/api/fichas/datos/${encodeURIComponent(fichaId)}`,
@@ -71,6 +80,7 @@ export async function cargarPatchDesdeFichaTecnica(fichaId: string): Promise<Par
     // como "MATERIA PRIMA GRADO — completar —") también cuenta como vacío.
     const tieneValor =
       Boolean(valor) && !String(valor).toLowerCase().includes(FICHA_SIN_DATO.toLowerCase());
+    if (!tieneValor && ES_CAMPO_PLANTILLA.has(destino)) continue;
     destinoTexto[destino] = tieneValor ? (valor as string) : "";
   }
   // El pictograma lo decide el código GHS de ESTA ficha: se quita el que se

@@ -51,6 +51,21 @@ export interface ProductLabelData {
    *  ajusta por producto. */
   alergenos?: string;
 
+  // ── Formato circular 53 × 53 mm (ceras y mantecas) ───────────────────────
+  /** Descripción corta bajo el título curvo. */
+  descripcionProducto?: string;
+  /** Encabezado del bloque central ("Aplicaciones:"). Dato de plantilla. */
+  aplicacionesTitulo?: string;
+  /** Una aplicación por renglón; cada una sale con su viñeta. */
+  aplicaciones?: string;
+  /** Razón social sobre el arco izquierdo. Dato de plantilla. */
+  empresa?: string;
+  /** Registro sanitario, sobre el arco inferior izquierdo. */
+  registro?: string;
+  /** Aviso de control de calidad del arco derecho. Dato de plantilla: es la
+   *  misma frase para toda la familia. */
+  controlCalidad?: string;
+
   technicalDocuments: string;
   website: string;
 
@@ -180,6 +195,9 @@ export const CAMPOS_PLANTILLA = [
   "cucharaUnidad",
   "gradoInsumo",
   "alergenos",
+  "aplicacionesTitulo",
+  "empresa",
+  "controlCalidad",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
 export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
@@ -216,6 +234,9 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   city: "Bogotá · Colombia",
   phone: "+57 319 652 90 76",
   email: "info@mckennagroup.co",
+  descripcionProducto: "",
+  aplicaciones: "",
+  registro: "",
 };
 
 /** Datos de UN producto: los traen su código de barras y su ficha técnica.
@@ -242,6 +263,9 @@ export const CAMPOS_PRODUCTO = [
   "barcodeTitle",
   "fichaTecnicaId",
   "fichaTecnicaTitulo",
+  "descripcionProducto",
+  "aplicaciones",
+  "registro",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
 /** El diseño de una ficha (logo, acento, contacto, títulos, GHS, cuchara…)

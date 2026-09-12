@@ -77,7 +77,18 @@ import Marco30ml from "../etiqueta-30ml/Marco30ml";
 import { ANCHO_30ML, esFormato30ml, esPeligrosoGhs, reticula30ml } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { imprimirImagenEtiqueta } from "../etiqueta-30ml/imprimirEtiqueta";
 import EtiquetaSimple from "../etiqueta-simple/EtiquetaSimple";
+import {
+  parcheOrtografia,
+  revisarOrtografiaEtiqueta,
+  type CampoOrtografia,
+} from "../../lib/ortografiaEtiqueta";
 import { ANCHO_SIMPLE, esFormatoSimple, reticulaSimple } from "../etiqueta-simple/etiquetaSimpleTypes";
+import EtiquetaCircular from "../etiqueta-circular/EtiquetaCircular";
+import {
+  DIAMETRO_CIRCULAR,
+  esFormatoCircular,
+  reticulaCircular,
+} from "../etiqueta-circular/etiquetaCircularTypes";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -158,7 +169,15 @@ function ProductLabelFormInner({
   const es30ml = esFormato30ml(tipoNombre, tipo);
   /** 69 × 51 mm ("100 g"): diagramación simple de dos columnas. */
   const esSimple = esFormatoSimple(tipoNombre, tipo);
-  const anchoDiseno = es30ml ? ANCHO_30ML : esSimple ? ANCHO_SIMPLE : ANCHO_DISENO;
+  /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
+  const esCircular = esFormatoCircular(tipoNombre, tipo);
+  const anchoDiseno = es30ml
+    ? ANCHO_30ML
+    : esSimple
+      ? ANCHO_SIMPLE
+      : esCircular
+        ? DIAMETRO_CIRCULAR
+        : ANCHO_DISENO;
 
   // "inicio": elegir Formato + SKU (o abrir una ficha guardada) — la ficha
   // no se muestra ni carga nada hasta entonces. "formulario": la ficha.
@@ -757,9 +776,21 @@ function ProductLabelFormInner({
   const esPlantillaEnEdicion = esPlantillaDeCategoria || esPlantillaNueva;
   const [confirmarRestablecer, setConfirmarRestablecer] = useState(false);
 
+  /** Ortografía: se revisa TODA la etiqueta sola, sin botón que apretar. El
+   *  corrector del navegador solo marca la casilla que se está editando, y
+   *  casi todo lo que se imprime llegó de la ficha técnica sin que nadie lo
+   *  escribiera aquí. Avisa; no bloquea imprimir. */
+  const ortografia = useMemo(() => revisarOrtografiaEtiqueta(data), [data]);
+  const [detalleOrto, setDetalleOrto] = useState(false);
+  const corregirOrtografia = (campos: CampoOrtografia[]) => {
+    if (!campos.length) return;
+    onChange(parcheOrtografia(campos));
+  };
+
   /** Retícula de la etiqueta 30 mL, calculada de las medidas del formato. */
   const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retSimple = useMemo(() => reticulaSimple(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  const retCircular = useMemo(() => reticulaCircular(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
     esPeligrosoGhs(data.ghs) && /no\s+est[aá]\s+clasificad/i.test(data.clasificacionTexto || "");
   const restablecerDatos = () => {
@@ -1273,6 +1304,57 @@ function ProductLabelFormInner({
         </div>
       )}
 
+      {/* Ortografía de la etiqueta — ver `lib/ortografiaEtiqueta`. */}
+      {ortografia.length > 0 && (
+        <div className="mb-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">
+              ⚠ Ortografía: {ortografia.length}{" "}
+              {ortografia.length === 1 ? "casilla por revisar" : "casillas por revisar"}
+            </span>
+            <button
+              type="button"
+              onClick={() => corregirOrtografia(ortografia)}
+              className="rounded bg-amber-600 px-2 py-0.5 font-semibold text-white hover:bg-amber-700"
+            >
+              Corregir todo
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetalleOrto((v) => !v)}
+              className="rounded border border-amber-400 bg-white px-2 py-0.5 font-semibold text-amber-800 hover:bg-amber-100 dark:bg-transparent dark:text-amber-100"
+            >
+              {detalleOrto ? "Ocultar detalle" : "Ver detalle"}
+            </button>
+            <span className="text-amber-800/80 dark:text-amber-200/70">
+              Tildes, espacios y palabras repetidas. Lo demás lo subraya el corrector del navegador
+              al escribir.
+            </span>
+          </div>
+          {detalleOrto && (
+            <ul className="mt-1.5 space-y-1">
+              {ortografia.map((c) => (
+                <li key={c.campo as string} className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-semibold">{c.titulo}:</span>
+                  {c.hallazgos.map((h, i) => (
+                    <span key={i} className="rounded bg-white/70 px-1 dark:bg-black/20">
+                      <s className="opacity-60">{h.original}</s> → <b>{h.sugerencia}</b>
+                    </span>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => corregirOrtografia([c])}
+                    className="rounded border border-amber-400 px-1.5 py-0.5 font-semibold text-amber-800 hover:bg-amber-100 dark:text-amber-100"
+                  >
+                    Corregir
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {guardarMsg && (
         <p className={`mb-2 text-[12px] ${guardarMsg.ok ? "text-accent" : "text-red-600"}`}>
           {guardarMsg.ok ? "✓ " : "✗ "}
@@ -1341,7 +1423,7 @@ function ProductLabelFormInner({
         </p>
       )}
 
-      {marco && !es30ml && !esSimple && (
+      {marco && !es30ml && !esSimple && !esCircular && (
         <p className="mb-2 text-[11px] text-muted">
           Ajustada a {tipo && etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm)} — el marco
           punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
@@ -1395,6 +1477,27 @@ function ProductLabelFormInner({
               onElegirCodigo={(c) => void onElegirCodigo(c)}
               attributeIcons={attributeIcons}
               onIconChange={onIconChange}
+            />
+          </Marco30ml>
+        </>
+      ) : esCircular ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted">
+            Ajustada a{" "}
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.09×2.09 in · 53×53 mm"} —
+            etiqueta redonda: el nombre y los datos del borde van sobre arcos (se editan con un clic)
+            y el bloque central se apila dentro del círculo. En edición, lo gris es un ejemplo de
+            referencia y no se imprime.
+          </p>
+          <Marco30ml reticula={{ ancho: retCircular.diametro, alto: retCircular.diametro }}>
+            <EtiquetaCircular
+              ref={fichaRef}
+              data={data}
+              reticula={retCircular}
+              editMode={editMode}
+              guias={showGrid && editMode}
+              onChange={onChange}
+              onElegirCodigo={(c) => void onElegirCodigo(c)}
             />
           </Marco30ml>
         </>
@@ -1846,6 +1949,12 @@ function ElegirTamanoPlantilla({
               </option>
             ))}
           </select>
+          {esFormatoCircular(tamano) && (
+            <span className="mt-1 block text-[11px] text-accent">
+              53 × 53 mm usa la etiqueta redonda de ceras y mantecas (nombre y datos sobre arcos;
+              descripción, aplicaciones con viñeta, código de barras y peso en el centro).
+            </span>
+          )}
           {esFormatoSimple(tamano) && (
             <span className="mt-1 block text-[11px] text-accent">
               69 × 51 mm usa la diagramación simple de dos columnas (nombre, contenido neto,

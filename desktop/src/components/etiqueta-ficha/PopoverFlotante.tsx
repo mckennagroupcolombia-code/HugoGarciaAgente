@@ -37,7 +37,9 @@ export default function PopoverFlotante({
   ancho = 288,
   children,
 }: {
-  anchorRef: RefObject<HTMLElement | null>;
+  /** Element, no HTMLElement: los textos curvos de la etiqueta circular son
+   *  SVG y también sirven de ancla (solo se usa getBoundingClientRect). */
+  anchorRef: RefObject<Element | null>;
   abierto: boolean;
   onCerrar: () => void;
   /** Alineación horizontal respecto al ancla. */

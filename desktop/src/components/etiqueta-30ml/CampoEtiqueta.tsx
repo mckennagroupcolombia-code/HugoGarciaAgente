@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { MenuTamanoFuente } from "../etiqueta-ficha/EditableField";
 import { useTextStyleCtx } from "../etiqueta-ficha/TextStyleContext";
 import { useAjusteTexto } from "./useAjusteTexto";
+import { campoRevisaOrtografia } from "../../lib/ortografiaEtiqueta";
 
 const ATTR_MENU_TAMANO = "data-menu-tamano-fuente";
 
@@ -119,7 +120,11 @@ export default function CampoEtiqueta({
     className: clases,
     style: fuente,
     title: marcaDesborde ? "No cabe completo en su casilla: acórtalo" : undefined,
-    spellCheck: false,
+    // Corrector del navegador en las casillas de prosa (subrayado rojo y
+    // sugerencias al clic derecho); apagado en CAS, EAN, fórmula, web y
+    // contacto, donde subrayaría todo — ver `lib/ortografiaEtiqueta`.
+    spellCheck: campoRevisaOrtografia(styleKey),
+    lang: "es",
   };
 
   return (

@@ -1,0 +1,241 @@
+/*
+ * Etiqueta circular 53 × 53 mm (Ceras y mantecas).
+ *
+ * El lienzo es un cuadrado con `border-radius: 50%`: relación 1:1 siempre,
+ * fondo blanco puro y nada que se salga del círculo. Encima van dos capas —
+ * el SVG con los círculos y los textos curvos, y una capa HTML con las
+ * bandas del bloque central, que son las que se editan como en el resto de
+ * las etiquetas (`.e30-campo`, en etiqueta30ml.css).
+ */
+
+.ec-etiqueta {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.ec-etiqueta *,
+.ec-etiqueta *::before,
+.ec-etiqueta *::after {
+  box-sizing: border-box;
+  font-style: normal;
+}
+
+.ec-etiqueta p,
+.ec-etiqueta h1,
+.ec-etiqueta ul,
+.ec-etiqueta li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Capa SVG: círculos y textos curvos ──────────────────────────────────── */
+
+.ec-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ec-borde-exterior {
+  fill: none;
+  stroke: #d9d9d9;
+}
+.ec-borde-interior {
+  fill: none;
+  stroke: var(--acento);
+}
+
+.ec-curvo {
+  fill: var(--acento);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ec-curvo-titulo {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+/* El aviso de control de calidad es informativo, no de marca. */
+.ec-curvo-gris {
+  fill: #1a1a1a;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.ec-curvo-ejemplo {
+  fill: #b4b4b4;
+}
+
+/* En edición, los textos curvos se editan con un clic: el menú se abre
+   fuera de la etiqueta (no puede ir una casilla sobre una curva). */
+.ec-editando .ec-curvo {
+  cursor: pointer;
+}
+.ec-editando .ec-curvo:hover {
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 3px;
+}
+
+/* ── Capa HTML: bloque central ───────────────────────────────────────────── */
+
+.ec-centro {
+  position: absolute;
+  inset: 0;
+}
+
+/* Cada banda es tan ancha como quepa a su altura dentro del círculo naranja
+   (ver BANDAS_CIRCULAR): el ancho y el alto llegan en línea desde la
+   retícula, no se calculan aquí. */
+.ec-banda {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.ec-descripcion {
+  width: 100%;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.26;
+  color: #111111;
+}
+
+.ec-aplicaciones-titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #333333;
+}
+
+.ec-lista {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+/* Viñeta a la izquierda y el texto centrado al lado, como en la referencia:
+   la viñeta no se mueve aunque el texto ocupe uno o tres renglones. */
+.ec-item {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 6px;
+  width: 100%;
+}
+.ec-item-vineta {
+  margin-top: 0.42em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #111111;
+  justify-self: center;
+}
+.ec-item-texto {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.22;
+  color: #111111;
+}
+
+/* Quitar una aplicación: solo en edición, fuera del flujo del texto. */
+.ec-item-quitar {
+  position: absolute;
+  right: -20px;
+  border: 0;
+  background: transparent;
+  color: #b4b4b4;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ec-item-quitar:hover {
+  color: #d33;
+}
+.ec-item-caja {
+  position: relative;
+  min-width: 0;
+}
+
+.ec-anadir {
+  margin-top: 2px;
+  align-self: center;
+  border: 1px dashed var(--acento-50);
+  border-radius: 5px;
+  background: transparent;
+  padding: 1px 8px;
+  color: var(--acento);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ec-anadir:hover {
+  border-color: var(--acento);
+  background: var(--acento-suave);
+}
+
+/* ── Código de barras y peso ─────────────────────────────────────────────── */
+
+.ec-barras-caja {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+/* Franja decorativa de segmentos de color sobre las barras (§8). */
+.ec-franja-color {
+  display: flex;
+  width: 78%;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 1px;
+}
+.ec-franja-color span {
+  flex: 1 1 0;
+}
+
+.ec-etiqueta .e30-barras {
+  padding: 0;
+  width: 100%;
+}
+.ec-etiqueta .e30-barras-boton {
+  width: 100%;
+}
+
+.ec-neto {
+  width: 100%;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--acento);
+}
+
+/* ── Guías de la retícula (casilla «Retícula», solo en edición) ───────────── */
+
+.ec-guias .ec-banda {
+  outline: 1px dashed rgba(0, 140, 255, 0.8);
+  outline-offset: -1px;
+}

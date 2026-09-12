@@ -99,7 +99,7 @@ export const FICHA_SIN_DATO = "— completar —";
 /**
  * Extrae los campos de una etiqueta desde una ficha técnica
  * (`datosDesdeFormulario` / YAML de `fichas_word/datos`). Siempre devuelve
- * los 12 campos (nunca omite uno por falta de dato) — el que no venga en la
+ * los 14 campos (nunca omite uno por falta de dato) — el que no venga en la
  * ficha se llena con `FICHA_SIN_DATO`, para que quede visible qué falta
  * diligenciar a mano en vez de dejarlo con lo que hubiera antes (dato de
  * otro producto, si se venía de una ficha distinta).
@@ -151,15 +151,14 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   );
   const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
   const composicionRaw = flattenComposicion(datos.composicion);
-  // Ninguna de las 61 fichas completas tiene un campo `almacenamiento`: lo
-  // que dicen sobre conservar el producto vive dentro del bloque de
-  // recomendaciones de la SDS, bajo el encabezado "ALMACENAMIENTO:". Sin
-  // leerlo, Conservación salía siempre vacía — y como el parche escribe ""
-  // en lo que la ficha no trae, enlazar una ficha además borraba lo que el
-  // operador hubiera escrito.
+  // "Conservación y almacenamiento" del formulario FT+COA+SDS: es lo que
+  // escribió una persona para ESTE producto, así que va tal cual y manda
+  // sobre cualquier cosa que se deduzca de la SDS.
+  const conservacionFicha = pick(datos.conservacion, datos.almacenamiento, emp.almacenamiento);
+  // Sin ese campo, lo que la ficha diga sobre conservar el producto vive
+  // dentro del bloque de recomendaciones de la SDS, bajo el encabezado
+  // "ALMACENAMIENTO:", mezclado con las frases P. De ahí hay que resumirlo.
   const almacenamientoRaw = pick(
-    datos.almacenamiento,
-    emp.almacenamiento,
     seccionRecomendaciones(sds.recomendaciones, "ALMACENAMIENTO"),
     seccionRecomendaciones(datos.recomendaciones, "ALMACENAMIENTO"),
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
@@ -206,7 +205,21 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     olor: olorRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
     grado,
-    almacenamiento: almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : FICHA_SIN_DATO,
+    almacenamiento:
+      conservacionFicha
+      || (almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : "")
+      || FICHA_SIN_DATO,
+    // Declaración de alérgenos del formulario FT+COA+SDS ("Contiene: …").
+    // No se deduce de nada: o la ficha la trae, o no hay.
+    alergenos: pick(datos.alergenos) || FICHA_SIN_DATO,
+    // Descripción y aplicaciones (formato circular): la ficha las guarda como
+    // texto y como lista; la etiqueta quiere una aplicación por renglón.
+    descripcion: pick(datos.descripcion) || FICHA_SIN_DATO,
+    aplicaciones:
+      (Array.isArray(datos.aplicaciones)
+        ? (datos.aplicaciones as unknown[]).map(texto).filter(Boolean).join("\n")
+        : texto(datos.aplicaciones))
+      || FICHA_SIN_DATO,
     peso: pesoRaw || FICHA_SIN_DATO,
   };
 }

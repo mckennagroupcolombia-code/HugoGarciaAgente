@@ -1,3 +1,30 @@
+### 2026-09-12 17:04 - Etiqueta circular 53 x 53 mm (Ceras y mantecas)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Formato nuevo **«Circular 53»** (53 × 53 mm) con su propia composición radial, en `desktop/src/components/etiqueta-circular/`. Se elige como cualquier otro formato; la categoría «Ceras y mantecas» ya existía. No choca con los «Circular» (55 × 55) y «Circular 70» que ya estaban.
+  - **Geometría derivada del diámetro**, no a ojo: margen exterior 3,5 %, anillo entre el borde gris y el círculo naranja 6 %, zona segura central 80 %. Lienzo cuadrado con `border-radius: 50%` — relación 1:1 siempre, nada se sale ni se deforma al escalar.
+  - **Cuatro textos curvos en SVG `textPath`** (no letras rotadas sueltas), sobre tramos del anillo que no se tocan: aviso de control de calidad 28°-152° (derecha), registro sanitario 168°-232° (abajo-izquierda, arco invertido para que se lea del derecho), razón social y ciudad 238°-302° (izquierda, dos renglones), y el nombre del producto en su propio arco ya dentro del círculo naranja.
+  - **Bloque central en cinco bandas** de ancho calculado para lo que cabe a cada altura del círculo: descripción (540 px), «Aplicaciones:», lista con viñetas (650 px), código de barras con la franja decorativa de 8 colores, y el peso neto en el color de acento.
+  - **Se edita sobre la etiqueta**, como los demás formatos: los textos rectos en el sitio; los curvos con un clic que abre su casilla en un popover anclado al propio texto (no cabe un `<input>` sobre una curva). La lista de aplicaciones lleva «✕» por fila y «+ Añadir aplicación» — se guarda como una aplicación por renglón en `data.aplicaciones`.
+  - **Ajuste automático con aviso:** cada texto baja de medio en medio píxel hasta caber y, si ni al mínimo entra, se marca en rojo. Los curvos se miden contra el LARGO DEL ARCO (`getComputedTextLength`), no contra una caja: ahí no hay caja que medir.
+  - Campos nuevos en `ProductLabelData`: `descripcionProducto`, `aplicaciones`, `registro` (de producto) y `aplicacionesTitulo`, `empresa`, `controlCalidad` (de plantilla). `PopoverFlotante` acepta anclas SVG (`Element`, no `HTMLElement`).
+  - **Límite conocido:** §12 del pliego pedía que el aviso empezara arriba a la derecha, terminara abajo y nunca saliera invertido; en un círculo eso es incompatible (el texto que mira hacia afuera se da vuelta pasados los 150°). Se cortó el tramo en 152° para que ninguna letra quede de cabeza. Tampoco se hizo la exportación a SVG vectorial: el proyecto exporta PNG e imprime con `html-to-image`, que ya sirve para este formato.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-circular/{EtiquetaCircular.tsx,etiquetaCircularTypes.ts,etiquetaCircular.css}` (nuevos), `desktop/src/components/etiqueta-ficha/{ProductLabelForm.tsx,productLabelTypes.ts,PopoverFlotante.tsx}`, `app/data/etiquetas_tipos.json`, `docs/team-recaps.md`
+
+
+### 2026-09-12 17:04 - Conservación y alérgenos de la etiqueta salen por fin de la ficha técnica
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (autollenado de etiquetas)
+- **Qué se implementó:**
+  - **Causa:** el extractor buscaba la conservación en `datos.almacenamiento`, `empaque.almacenamiento` y `estabilidad`. **Ninguna de las 64 fichas completas tiene esos campos.** El formulario FT+COA+SDS guarda «Conservación y almacenamiento» en `datos.conservacion` y los alérgenos en `datos.alergenos` — dos campos que el extractor nunca miró. Resultado: Conservación salía siempre vacía y, como el parche escribe `""` en lo que la ficha no trae, enlazar una ficha además BORRABA lo que el operador hubiera escrito.
+  - La conservación sale ahora de `datos.conservacion` y va **tal cual**: la escribió una persona para ese producto, no se resume. Solo si la ficha no la trae se cae al bloque `ALMACENAMIENTO:` de las recomendaciones de la SDS (donde vive en 19 fichas, mezclada con las frases P) y ahí sí la resume `sintetizarConservacion`. `limpiarFrase` quita los códigos precautorios de cabeza (`P402`, `P403+P233:`): son de la SDS, no de la etiqueta.
+  - Campos nuevos del extractor: `alergenos`, `descripcion` y `aplicaciones` (la ficha las guarda como lista; la etiqueta las quiere una por renglón). Con eso la etiqueta circular llena sola su descripción y su lista de aplicaciones.
+  - **Regla nueva en el parche:** los campos de plantilla (alérgenos, contacto, web, título de aplicaciones…) no se vacían. Si la ficha los trae, mandan; si no, se conserva el valor de la familia. Los de producto siguen vaciándose, como estaba, para no arrastrar el dato de otro producto.
+  - Medido contra las 64 fichas reales: **21 llenan conservación** (antes 0) y **1 llena alérgenos** (ajonjolí negro). El resto es dato por diligenciar, no código: 42 fichas no dicen nada de conservación en ninguna parte del YAML y 17 no traen país de origen.
+- **Archivos Modificados:** `desktop/src/lib/{fichaTecnicaCampos.ts,fichaTecnicaAplicar.ts}`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `docs/team-recaps.md`
+
+
 ### 2026-09-12 14:40 - Guías de envío invisibles en el menú + dos unidades systemd peleando por el 8081
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección

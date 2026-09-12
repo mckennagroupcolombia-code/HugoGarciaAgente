@@ -12,6 +12,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { createPortal } from "react-dom";
 import { FUENTES_DISPONIBLES, useTextStyleCtx } from "./TextStyleContext";
 import { EJEMPLO_ETIQUETA } from "./productLabelTypes";
+import { campoRevisaOrtografia } from "../../lib/ortografiaEtiqueta";
 
 /** Atributo para reconocer el menú (ya portado a `document.body`) como
  *  "dentro" del campo al detectar clics afuera — ver uso en los
@@ -341,6 +342,8 @@ export default function EditableField({
           onFocus={abrirMenu}
           className={editCls}
           style={estiloFinal}
+          spellCheck={campoRevisaOrtografia(styleKey)}
+          lang="es"
         />
       ) : (
         <input
@@ -351,6 +354,8 @@ export default function EditableField({
           onFocus={abrirMenu}
           className={editCls}
           style={estiloFinal}
+          spellCheck={campoRevisaOrtografia(styleKey)}
+          lang="es"
         />
       )}
       {menuAbierto && (
