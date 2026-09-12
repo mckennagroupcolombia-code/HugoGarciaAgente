@@ -93,8 +93,15 @@ def calcular_cronograma(
     gross_up: bool = False,
     fecha_desembolso: str | date | None = None,
     dia_pago: int | None = None,
+    meses_gracia: int = 0,
 ) -> dict:
     """Cronograma completo de un préstamo recibido.
+
+    `meses_gracia` son meses en los que NO se causa interés y no hay cuota: el
+    cronograma es el mismo, corrido hacia adelante. El prestamista deja de ganar
+    esos meses (no se capitalizan ni se difieren), así que reduce lo pactado y
+    requiere su acuerdo. El plazo de las cuotas no cambia: con 24 cuotas y un
+    mes de gracia, la última vence a los 25 meses del desembolso.
 
     `pct_capital_tramo1` = fracción del capital que se amortiza durante los
     primeros `meses_tramo1` meses; el resto se reparte en línea recta en los
@@ -112,8 +119,11 @@ def calcular_cronograma(
         raise ValueError("capital debe ser mayor que cero")
     plazo_meses = int(plazo_meses)
     meses_tramo1 = int(meses_tramo1)
+    meses_gracia = int(meses_gracia or 0)
     if plazo_meses < 1:
         raise ValueError("plazo_meses debe ser al menos 1")
+    if meses_gracia < 0:
+        raise ValueError("meses_gracia no puede ser negativo")
     if not 0 <= meses_tramo1 <= plazo_meses:
         raise ValueError("meses_tramo1 debe estar entre 0 y plazo_meses")
     if not 0.0 <= float(pct_capital_tramo1) <= 1.0:
@@ -161,7 +171,11 @@ def calcular_cronograma(
         cuotas.append(
             {
                 "numero": n,
-                "fecha": _fecha_cuota(desembolso, n, dia_pago).isoformat() if desembolso else None,
+                "fecha": (
+                    _fecha_cuota(desembolso, n + meses_gracia, dia_pago).isoformat()
+                    if desembolso
+                    else None
+                ),
                 "saldo_inicial": round(saldo, 2),
                 "interes_bruto": interes_bruto,
                 "retencion": retencion,
@@ -187,7 +201,7 @@ def calcular_cronograma(
 
     # Costo real para McKenna. Sin gross-up coincide con la tasa pactada; con
     # gross-up sale mayor porque el 7% de la DIAN lo pone la empresa.
-    tir = _tir_mensual(capital, cuotas)
+    tir = _tir_mensual(capital, cuotas, meses_gracia=meses_gracia)
     costo_real_ea = ea_desde_tasa_mensual(tir) if tir is not None else float(tasa_ea)
 
     return {
@@ -209,6 +223,7 @@ def calcular_cronograma(
             "tasa_ea_pct": round(float(tasa_ea) * 100, 4),
             "tasa_mensual_pct": round(i * 100, 4),
             "plazo_meses": plazo_meses,
+            "meses_gracia": meses_gracia,
             "meses_tramo1": meses_tramo1,
             "pct_capital_tramo1": round(float(pct_capital_tramo1) * 100, 2),
             "retencion_pct": round(ret_pct * 100, 2),
@@ -219,19 +234,24 @@ def calcular_cronograma(
     }
 
 
-def _tir_mensual(capital: float, cuotas: list[dict]) -> float | None:
+def _tir_mensual(capital: float, cuotas: list[dict], meses_gracia: int = 0) -> float | None:
     """TIR mensual del flujo que realmente desembolsa McKenna (`cuota_causada`).
 
     Sin gross-up coincide con la tasa pactada; con gross-up sale mayor, que es
-    justo el punto: muestra cuánto encarece asumir la retención. Bisección
-    simple — el flujo tiene un solo cambio de signo, así que converge siempre.
+    justo el punto: muestra cuánto encarece asumir la retención. Con meses de
+    gracia sale menor: los pagos se corren y el dinero se tuvo más tiempo sin
+    costo. Bisección simple — el flujo tiene un solo cambio de signo, así que
+    converge siempre.
     """
     flujos = [c["cuota_causada"] for c in cuotas]
     if not flujos or capital <= 0:
         return None
+    desfase = max(0, int(meses_gracia or 0))
 
     def vpn(r: float) -> float:
-        return sum(f / (1.0 + r) ** (n + 1) for n, f in enumerate(flujos)) - capital
+        return sum(
+            f / (1.0 + r) ** (n + 1 + desfase) for n, f in enumerate(flujos)
+        ) - capital
 
     lo, hi = 1e-9, 1.0
     if vpn(lo) < 0:
@@ -338,7 +358,21 @@ def init_db() -> None:
             ON cc_prestamos(tercero_id);
         """)
         _migrar_doc_soporte(con)
+        _migrar_contrapartida(con)
     _initialized = True
+
+
+def _migrar_contrapartida(con: sqlite3.Connection) -> None:
+    """Meses de gracia y desembolsos que no entraron por el banco de la empresa
+    (el prestamista le giró a un socio, que repone después). Idempotente."""
+    cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_prestamos)")}
+    for col, defn in (
+        ("meses_gracia", "INTEGER NOT NULL DEFAULT 0"),
+        ("cuenta_contrapartida_id", "INTEGER REFERENCES cc_plan_cuentas(id)"),
+        ("tercero_contrapartida_id", "INTEGER REFERENCES cc_terceros(id)"),
+    ):
+        if col not in cols:
+            con.execute(f"ALTER TABLE cc_prestamos ADD COLUMN {col} {defn}")
 
 
 def _migrar_doc_soporte(con: sqlite3.Connection) -> None:
@@ -371,6 +405,11 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
     payload: tercero_id, capital, medio_pago_id, fecha_desembolso, y opcionales
     tasa_ea, plazo_meses, meses_tramo1, pct_capital_tramo1, retencion_pct,
     gross_up, dia_pago, referencia, notas.
+
+    Si el dinero no entró por el banco de la empresa, en vez de `medio_pago_id`
+    se pasa `cuenta_contrapartida_id` (+ `tercero_contrapartida_id`): el
+    préstamo nace completo en la fecha pactada contra esa cuenta y cada
+    reposición se registra y concilia aparte. Ver `registrar_prestamo_recibido`.
     """
     _ensure()
     import app.services.contabilidad_core as cc
@@ -378,9 +417,16 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
     tercero_id = int(payload.get("tercero_id") or 0)
     capital = round(float(payload.get("capital") or 0), 2)
     medio_pago_id = int(payload.get("medio_pago_id") or 0)
+    cuenta_contrapartida_id = int(payload.get("cuenta_contrapartida_id") or 0)
+    tercero_contrapartida_id = int(payload.get("tercero_contrapartida_id") or 0)
     fecha = str(payload.get("fecha_desembolso") or "").strip()[:10]
-    if not tercero_id or capital <= 0 or not medio_pago_id or not fecha:
-        raise ValueError("tercero_id, capital, medio_pago_id y fecha_desembolso son requeridos")
+    if not tercero_id or capital <= 0 or not fecha:
+        raise ValueError("tercero_id, capital y fecha_desembolso son requeridos")
+    if bool(medio_pago_id) == bool(cuenta_contrapartida_id):
+        raise ValueError(
+            "indica medio_pago_id (entró por caja/banco) o cuenta_contrapartida_id "
+            "(entró por otra vía), pero no ambos"
+        )
 
     tercero = cc.obtener_tercero(tercero_id)
     if not tercero:
@@ -402,6 +448,7 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
     tasa_ea = float(payload.get("tasa_ea", TASA_EA_DEFAULT))
     plazo = int(payload.get("plazo_meses", PLAZO_MESES_DEFAULT))
     meses_tramo1 = int(payload.get("meses_tramo1", MESES_TRAMO1_DEFAULT))
+    meses_gracia = int(payload.get("meses_gracia") or 0)
     pct_tramo1 = float(payload.get("pct_capital_tramo1", PCT_CAPITAL_TRAMO1_DEFAULT))
     ret_pct = float(payload.get("retencion_pct", RETENCION_RENDIMIENTOS_PCT))
     gross_up = bool(payload.get("gross_up"))
@@ -415,6 +462,7 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
         tasa_ea=tasa_ea,
         plazo_meses=plazo,
         meses_tramo1=meses_tramo1,
+        meses_gracia=meses_gracia,
         pct_capital_tramo1=pct_tramo1,
         retencion_pct=ret_pct,
         gross_up=gross_up,
@@ -428,6 +476,8 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
             "tercero_id": tercero_id,
             "monto": capital,
             "medio_pago_id": medio_pago_id,
+            "cuenta_contrapartida_id": cuenta_contrapartida_id,
+            "tercero_contrapartida_id": tercero_contrapartida_id,
             "referencia": referencia,
             "concepto": f"{plazo} cuotas al {tasa_ea * 100:.2f}% E.A.",
             "tasa_interes_pct": round(tasa_ea * 100, 4),
@@ -442,12 +492,15 @@ def crear_prestamo(payload: dict, created_by: int | None = None) -> dict:
                  (tercero_id, capital, tasa_ea, plazo_meses, meses_tramo1,
                   pct_capital_tramo1, retencion_pct, gross_up, fecha_desembolso,
                   dia_pago, medio_pago_id, estado, movimiento_desembolso_id,
-                  referencia, notas, created_by)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,'vigente',?,?,?,?)""",
+                  referencia, notas, created_by,
+                  cuenta_contrapartida_id, tercero_contrapartida_id, meses_gracia)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,'vigente',?,?,?,?,?,?,?)""",
             (
                 tercero_id, capital, tasa_ea, plazo, meses_tramo1, pct_tramo1,
-                ret_pct, 1 if gross_up else 0, fecha, dia_pago, medio_pago_id,
+                ret_pct, 1 if gross_up else 0, fecha, dia_pago, medio_pago_id or None,
                 mov.get("id"), referencia, notas, created_by,
+                cuenta_contrapartida_id or None, tercero_contrapartida_id or None,
+                meses_gracia,
             ),
         )
         prestamo_id = int(cur.lastrowid)
@@ -528,6 +581,136 @@ def listar_prestamos(estado: str | None = None) -> list[dict]:
             params.append(estado)
         sql += " ORDER BY fecha_desembolso DESC, id DESC"
         return [_fila_prestamo(con, r) for r in con.execute(sql, params)]
+
+
+def ampliar_capital(prestamo_id: int, payload: dict, created_by: int | None = None) -> dict:
+    """Suma capital a un préstamo ya creado y recalcula el cronograma.
+
+    Existe porque un mismo préstamo puede entregarse en partes y por vías
+    distintas: Antonio Ruiz prestó $16.000.000 pero consignó $9.200.000 a la
+    cuenta de la empresa y le giró $6.800.000 a una socia. Es UN préstamo con
+    UN cronograma, no dos, así que el capital se amplía en vez de crear otro.
+
+    Cada tramo deja su propio asiento —con su fecha y su contrapartida— para
+    que cada línea del extracto concilie con uno: `extracto_vinculos` admite un
+    solo vínculo por asiento.
+
+    payload: monto, fecha, y medio_pago_id o cuenta_contrapartida_id
+    (+ tercero_contrapartida_id), igual que `crear_prestamo`.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    p = obtener_prestamo(prestamo_id)
+    if not p:
+        raise ValueError("Préstamo no encontrado")
+    pagadas = [c for c in p["cuotas"] if c["estado"] == "pagada"]
+    if pagadas:
+        raise ValueError(
+            f"El préstamo ya tiene {len(pagadas)} cuota(s) pagada(s): "
+            "no se puede recalcular el cronograma"
+        )
+    monto = round(float(payload.get("monto") or 0), 2)
+    if monto <= 0:
+        raise ValueError("monto debe ser mayor que cero")
+    fecha = str(payload.get("fecha") or "").strip()[:10]
+    if not fecha:
+        raise ValueError("fecha requerida")
+
+    mov = cc.registrar_prestamo_recibido(
+        {
+            "fecha": fecha,
+            "tercero_id": p["tercero_id"],
+            "monto": monto,
+            "medio_pago_id": payload.get("medio_pago_id"),
+            "cuenta_contrapartida_id": payload.get("cuenta_contrapartida_id"),
+            "tercero_contrapartida_id": payload.get("tercero_contrapartida_id"),
+            "referencia": str(payload.get("referencia") or p["referencia"] or ""),
+            "concepto": f"Tramo adicional del préstamo #{prestamo_id}",
+        },
+        created_by=created_by,
+    )
+
+    capital_nuevo = round(float(p["capital"]) + monto, 2)
+    crono = calcular_cronograma(
+        capital_nuevo,
+        tasa_ea=p["tasa_ea"],
+        plazo_meses=p["plazo_meses"],
+        meses_tramo1=p["meses_tramo1"],
+        pct_capital_tramo1=p["pct_capital_tramo1"],
+        retencion_pct=p["retencion_pct"],
+        gross_up=bool(p["gross_up"]),
+        fecha_desembolso=p["fecha_desembolso"],
+        dia_pago=p["dia_pago"],
+        meses_gracia=int(p.get("meses_gracia") or 0),
+    )
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_prestamos SET capital=? WHERE id=?", (capital_nuevo, prestamo_id)
+        )
+        con.execute("DELETE FROM cc_prestamo_cuotas WHERE prestamo_id=?", (prestamo_id,))
+        con.executemany(
+            """INSERT INTO cc_prestamo_cuotas
+                 (prestamo_id, numero, fecha_vencimiento, saldo_inicial,
+                  interes_bruto, retencion, interes_girado, abono_capital,
+                  cuota_causada, cuota_girada, saldo_final)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            [
+                (
+                    prestamo_id, c["numero"], c["fecha"], c["saldo_inicial"],
+                    c["interes_bruto"], c["retencion"], c["interes_girado"],
+                    c["abono_capital"], c["cuota_causada"], c["cuota_girada"],
+                    c["saldo_final"],
+                )
+                for c in crono["cuotas"]
+            ],
+        )
+    out = obtener_prestamo(prestamo_id)
+    out["movimiento_ampliacion_id"] = mov.get("id")
+    return out
+
+
+def aplicar_meses_gracia(prestamo_id: int, meses: int) -> dict:
+    """Concede (o quita) meses de gracia a un préstamo ya creado: recalcula el
+    cronograma corriendo las cuotas, sin tocar el asiento de desembolso — el
+    dinero se movió el día que se movió y esa fecha no cambia.
+
+    Solo sobre cuotas sin pagar: recalcular un cronograma con cuotas ya giradas
+    dejaría los asientos del pago apuntando a cifras que ya no existen. Y la
+    gracia total le quita interés al prestamista, así que exige su acuerdo:
+    esto lo aplica un operador, nunca un proceso automático.
+    """
+    _ensure()
+    p = obtener_prestamo(prestamo_id)
+    if not p:
+        raise ValueError("Préstamo no encontrado")
+    pagadas = [c for c in p["cuotas"] if c["estado"] == "pagada"]
+    if pagadas:
+        raise ValueError(
+            f"El préstamo ya tiene {len(pagadas)} cuota(s) pagada(s): "
+            "no se puede recalcular el cronograma"
+        )
+    meses = int(meses or 0)
+    crono = calcular_cronograma(
+        p["capital"],
+        tasa_ea=p["tasa_ea"],
+        plazo_meses=p["plazo_meses"],
+        meses_tramo1=p["meses_tramo1"],
+        pct_capital_tramo1=p["pct_capital_tramo1"],
+        retencion_pct=p["retencion_pct"],
+        gross_up=bool(p["gross_up"]),
+        fecha_desembolso=p["fecha_desembolso"],
+        dia_pago=p["dia_pago"],
+        meses_gracia=meses,
+    )
+    with _conn() as con:
+        con.execute("UPDATE cc_prestamos SET meses_gracia=? WHERE id=?", (meses, prestamo_id))
+        for c in crono["cuotas"]:
+            con.execute(
+                "UPDATE cc_prestamo_cuotas SET fecha_vencimiento=? WHERE prestamo_id=? AND numero=?",
+                (c["fecha"], prestamo_id, c["numero"]),
+            )
+    return obtener_prestamo(prestamo_id)
 
 
 def obtener_prestamo(prestamo_id: int) -> dict | None:

@@ -368,6 +368,20 @@ def generar_pdf_contrato(prestamo: dict, destino: str | None = None) -> str:
         f"<b>{_cop(ultima.get('cuota_girada', 0))}</b>. El detalle mes a mes está en la página "
         "siguiente.", st["p"]))
 
+    # El período de gracia cambia lo que recibe: tiene que estar dicho con
+    # todas las letras, no solo reflejado en las fechas del cronograma.
+    gracia = int(prestamo.get("meses_gracia") or 0)
+    if gracia:
+        plural = "es" if gracia > 1 else ""
+        story.append(Paragraph(
+            f"<b>Período de gracia:</b> se pactó{plural} <b>{gracia} mes{plural} de gracia</b> "
+            f"desde la entrega del capital. Durante ese tiempo no se causan intereses y no hay "
+            f"cuota que pagar: la primera vence el "
+            f"{_fecha_larga(primera.get('fecha_vencimiento',''))}, un mes después de lo que "
+            f"correspondería sin la gracia. El plazo no se recorta —siguen siendo "
+            f"{prestamo['plazo_meses']} cuotas— y los valores de cada una son los mismos; lo que "
+            f"cambia es que el mes de gracia no genera rendimiento.", st["p"]))
+
     # ── La tasa, explicada ────────────────────────────────────────────────
     story.append(Paragraph("Cuánto le rinde", st["h"]))
     story.append(Paragraph(

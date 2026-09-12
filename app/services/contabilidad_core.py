@@ -1294,7 +1294,15 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     `2380` (socios) o `2295` (terceros). payload: fecha, tercero_id, monto,
     medio_pago_id, referencia, concepto (opcional), tasa_interes_pct y
     plazo_meses (opcionales, quedan guardados en plantilla_datos_json como
-    referencia del acuerdo, sin generar tabla de amortización)."""
+    referencia del acuerdo, sin generar tabla de amortización).
+
+    La contrapartida normal es el medio de pago (entra a caja o banco). Cuando
+    el dinero NO entró por el banco de la empresa —el prestamista le giró a un
+    socio, que lo repondrá después— se pasa `cuenta_contrapartida_id` en vez de
+    `medio_pago_id` (p. ej. 1355 cuentas por cobrar a socios) con
+    `tercero_contrapartida_id` para saber quién queda debiendo. El préstamo nace
+    completo en la fecha pactada y cada reposición se concilia por separado:
+    un asiento por línea de extracto, que es lo que exige `extracto_vinculos`."""
     _ensure()
     fecha = str(payload.get("fecha") or "").strip()
     tercero_id = int(payload.get("tercero_id") or 0)
@@ -1303,15 +1311,28 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     referencia = str(payload.get("referencia") or "").strip()
     concepto_extra = str(payload.get("concepto") or "").strip()
 
-    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
-        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+    cuenta_contrapartida_id = int(payload.get("cuenta_contrapartida_id") or 0)
+    tercero_contrapartida_id = int(payload.get("tercero_contrapartida_id") or 0)
+
+    if not fecha or not tercero_id or monto <= 0:
+        raise ValueError("fecha, tercero_id y monto son requeridos")
+    if bool(medio_pago_id) == bool(cuenta_contrapartida_id):
+        raise ValueError(
+            "indica medio_pago_id (entró por caja/banco) o cuenta_contrapartida_id "
+            "(entró por otra vía), pero no ambos"
+        )
 
     tercero = obtener_tercero(tercero_id)
     if not tercero:
         raise ValueError("Tercero no encontrado")
-    medio = obtener_medio_pago(medio_pago_id)
-    if not medio:
+    medio = obtener_medio_pago(medio_pago_id) if medio_pago_id else None
+    if medio_pago_id and not medio:
         raise ValueError("Medio de pago no encontrado")
+    contra = obtener_cuenta(cuenta_contrapartida_id) if cuenta_contrapartida_id else None
+    if cuenta_contrapartida_id and not contra:
+        raise ValueError("Cuenta de contrapartida no encontrada")
+    if tercero_contrapartida_id and not obtener_tercero(tercero_contrapartida_id):
+        raise ValueError("Tercero de la contrapartida no encontrado")
     with _conn() as con:
         cuenta_pasivo_id = tercero.get("cuenta_por_pagar_id") or _cuenta_id_por_codigo(
             con, _cuenta_pasivo_prestamo_codigo(tercero)
@@ -1322,13 +1343,28 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     concepto = f"Préstamo recibido de {tercero['nombre']}" + (
         f" — {concepto_extra}" if concepto_extra else ""
     )
-    lineas = [
-        {
+    if medio:
+        linea_debito = {
             "cuenta_id": medio["cuenta_id"],
             "debito": monto,
             "credito": 0,
             "descripcion": f"Entrada vía {medio['nombre']}",
-        },
+        }
+    else:
+        quien = obtener_tercero(tercero_contrapartida_id) if tercero_contrapartida_id else None
+        linea_debito = {
+            "cuenta_id": cuenta_contrapartida_id,
+            "debito": monto,
+            "credito": 0,
+            "tercero_id": tercero_contrapartida_id or None,
+            "descripcion": (
+                f"Recibido por {quien['nombre']}, pendiente de reponer a la empresa"
+                if quien
+                else f"Entrada vía {contra['nombre']}"
+            ),
+        }
+    lineas = [
+        linea_debito,
         {
             "cuenta_id": cuenta_pasivo_id,
             "debito": 0,

@@ -650,3 +650,179 @@ def test_reporte_mensual_requiere_movimiento_en_el_mes(mods):
     r = pr.enviar_reporte_mensual(p["id"], 2026, 11)
     assert r["enviado"] is False
     assert "No hubo desembolsos" in r["motivo"]
+
+
+# ── Desembolso que no entró por el banco de la empresa ────────────────────────
+# El prestamista le giró a un socio y el socio repone después (caso real
+# sep-2026). El préstamo debe nacer completo en la fecha pactada, porque es
+# desde ahí que corren los intereses, y la reposición se concilia aparte:
+# `extracto_vinculos.movimiento_id` es UNIQUE, así que un asiento de $20M no
+# puede vincularse a tres abonos.
+
+
+def _contrapartida(cc):
+    with cc._conn() as con:
+        return cc._cuenta_id_por_codigo(con, "1355")
+
+
+def test_desembolso_contra_cuenta_por_cobrar_a_socio(mods):
+    cc, pr, tercero, _medio = mods
+    socio = cc.crear_tercero(
+        {"nombre": "Socio Que Recibió", "tipo": "socio", "identificacion": "123", "email": "s@e.com"}
+    )
+    cuenta = _contrapartida(cc)
+    p = pr.crear_prestamo(
+        {
+            "tercero_id": tercero["id"],
+            "capital": CAPITAL,
+            "cuenta_contrapartida_id": cuenta,
+            "tercero_contrapartida_id": socio["id"],
+            "fecha_desembolso": "2026-08-19",
+        }
+    )
+    assert p["medio_pago_id"] is None
+    assert len(p["cuotas"]) == 24
+    assert cc.balance_comprobacion()["cuadra"]
+
+    mov = cc.obtener_movimiento(p["movimiento_desembolso_id"])
+    debitos = [l for l in mov["lineas"] if l["debito"]]
+    assert len(debitos) == 1
+    # El débito NO toca bancos: la plata no entró a la cuenta de la empresa.
+    assert debitos[0]["cuenta_id"] == cuenta
+    assert debitos[0]["tercero_id"] == socio["id"]
+    assert debitos[0]["debito"] == pytest.approx(CAPITAL)
+
+
+def test_contrapartida_y_medio_de_pago_son_excluyentes(mods):
+    cc, pr, tercero, medio = mods
+    base = {
+        "tercero_id": tercero["id"],
+        "capital": CAPITAL,
+        "fecha_desembolso": "2026-08-19",
+    }
+    with pytest.raises(ValueError, match="pero no ambos"):
+        pr.crear_prestamo({**base, "medio_pago_id": medio["id"], "cuenta_contrapartida_id": _contrapartida(cc)})
+    with pytest.raises(ValueError, match="pero no ambos"):
+        pr.crear_prestamo(base)
+
+
+def test_cuota_de_prestamo_sin_medio_de_pago_exige_uno_al_pagar(mods):
+    # El desembolso no tocó el banco, pero la cuota sí se gira: el panel tiene
+    # que pedir la cuenta en vez de heredar un medio de pago inexistente.
+    cc, pr, tercero, medio = mods
+    p = pr.crear_prestamo(
+        {
+            "tercero_id": tercero["id"],
+            "capital": CAPITAL,
+            "cuenta_contrapartida_id": _contrapartida(cc),
+            "fecha_desembolso": "2026-08-19",
+        }
+    )
+    with pytest.raises(ValueError, match="medio_pago_id"):
+        pr.registrar_pago_cuota(p["id"], 1)
+    pr.registrar_pago_cuota(p["id"], 1, {"medio_pago_id": medio["id"]})
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+# ── Mes de gracia (decisión del 11-sep-2026) ─────────────────────────────────
+# Gracia TOTAL: el primer mes no causa interés y no hay cuota. El cronograma es
+# el mismo corrido un mes; el prestamista deja de ganar ese mes (no se
+# capitaliza ni se difiere), así que reduce lo pactado.
+
+
+def test_gracia_corre_las_fechas_sin_cambiar_los_montos():
+    sin = calcular_cronograma(20_000_000, fecha_desembolso="2026-08-19")
+    con = calcular_cronograma(20_000_000, fecha_desembolso="2026-08-19", meses_gracia=1)
+    assert sin["cuotas"][0]["fecha"] == "2026-09-19"
+    assert con["cuotas"][0]["fecha"] == "2026-10-19"
+    # La última cuota vence a los 25 meses, no a los 24: el plazo no se recorta.
+    assert con["cuotas"][-1]["fecha"] == "2028-09-19"
+    for a, b in zip(sin["cuotas"], con["cuotas"]):
+        assert a["cuota_girada"] == b["cuota_girada"]
+        assert a["interes_bruto"] == b["interes_bruto"]
+
+
+def test_gracia_total_le_quita_un_mes_de_interes_al_prestamista():
+    # Es la consecuencia que hay que poder mostrarle al familiar antes de que
+    # acepte: con gracia total recibe menos que lo pactado sin ella.
+    sin = calcular_cronograma(20_000_000, fecha_desembolso="2026-08-19")
+    con = calcular_cronograma(20_000_000, fecha_desembolso="2026-08-19", meses_gracia=1)
+    assert con["totales"]["total_girado"] == sin["totales"]["total_girado"]
+    # El total es el mismo, pero llega un mes más tarde: eso es lo que abarata
+    # la operación para McKenna por debajo de la tasa pactada.
+    assert con["totales"]["costo_real_ea_pct"] < sin["totales"]["costo_real_ea_pct"]
+    assert con["totales"]["costo_real_ea_pct"] == pytest.approx(23.00, abs=0.05)
+
+
+def test_gracia_negativa_se_rechaza():
+    with pytest.raises(ValueError, match="meses_gracia"):
+        calcular_cronograma(1_000_000, meses_gracia=-1)
+
+
+def test_prestamo_con_gracia_guarda_el_parametro(mods):
+    cc, pr, tercero, medio = mods
+    p = _crear(pr, tercero, medio, meses_gracia=1, fecha_desembolso="2026-08-19", dia_pago=None)
+    assert p["meses_gracia"] == 1
+    assert p["cuotas"][0]["fecha_vencimiento"] == "2026-10-19"
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_aplicar_gracia_corre_las_cuotas_de_un_prestamo_existente(mods):
+    cc, pr, tercero, medio = mods
+    p = _crear(pr, tercero, medio, fecha_desembolso="2026-08-19", dia_pago=None)
+    assert p["cuotas"][0]["fecha_vencimiento"] == "2026-09-19"
+    mov_antes = p["movimiento_desembolso_id"]
+
+    con_gracia = pr.aplicar_meses_gracia(p["id"], 1)
+    assert con_gracia["meses_gracia"] == 1
+    assert con_gracia["cuotas"][0]["fecha_vencimiento"] == "2026-10-19"
+    assert con_gracia["cuotas"][-1]["fecha_vencimiento"] == "2028-09-19"
+    # El asiento de desembolso no se toca: la plata se movió el 19-ago.
+    assert con_gracia["movimiento_desembolso_id"] == mov_antes
+    assert cc.balance_comprobacion()["cuadra"]
+    # Los montos son los mismos, solo corridos.
+    assert [c["cuota_girada"] for c in con_gracia["cuotas"]] == [
+        c["cuota_girada"] for c in p["cuotas"]
+    ]
+
+
+def test_no_se_recalcula_un_cronograma_con_cuotas_ya_pagadas(mods):
+    _cc, pr, tercero, medio = mods
+    p = _crear(pr, tercero, medio)
+    pr.registrar_pago_cuota(p["id"], 1)
+    with pytest.raises(ValueError, match="pagada"):
+        pr.aplicar_meses_gracia(p["id"], 1)
+
+
+def test_ampliar_capital_mantiene_un_solo_cronograma(mods):
+    # Caso Antonio Ruiz: prestó 16M pero consignó una parte a la empresa y le
+    # giró el resto a una socia. Es un préstamo, no dos.
+    cc, pr, tercero, medio = mods
+    socia = cc.crear_tercero(
+        {"nombre": "Socia", "tipo": "socio", "identificacion": "77", "email": "c@e.com"}
+    )
+    p = _crear(
+        pr, tercero, medio,
+        capital=9_200_000, fecha_desembolso="2026-08-09", dia_pago=None, meses_gracia=1,
+    )
+    with cc._conn() as con:
+        c1355 = cc._cuenta_id_por_codigo(con, "1355")
+
+    ampliado = pr.ampliar_capital(
+        p["id"],
+        {
+            "monto": 6_800_000,
+            "fecha": "2026-08-09",
+            "cuenta_contrapartida_id": c1355,
+            "tercero_contrapartida_id": socia["id"],
+        },
+    )
+    assert ampliado["capital"] == 16_000_000
+    assert len(ampliado["cuotas"]) == 24
+    assert ampliado["cuotas"][0]["saldo_inicial"] == 16_000_000
+    assert ampliado["cuotas"][-1]["saldo_final"] == 0
+    # La gracia se conserva al recalcular
+    assert ampliado["cuotas"][0]["fecha_vencimiento"] == "2026-10-09"
+    # Dos asientos distintos: uno por cada vía de entrada, cada uno conciliable
+    assert ampliado["movimiento_ampliacion_id"] != ampliado["movimiento_desembolso_id"]
+    assert cc.balance_comprobacion()["cuadra"]
