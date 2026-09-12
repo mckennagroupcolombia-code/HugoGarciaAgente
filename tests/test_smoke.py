@@ -1740,7 +1740,10 @@ def test_wa_bot_detect_parece_respuesta_bot() -> None:
     assert parece_respuesta_bot("Hola Soy hugo Garcia de mckenna Group") is True
     assert parece_respuesta_bot("Buenos días") is False
     assert parece_respuesta_bot("Para que ciudad es") is False
-    assert parece_respuesta_bot("Veci, " + "x" * 120) is True
+    # Un asesor también escribe "veci" en respuestas largas: no es señal de bot
+    # (ese falso positivo dejó al bot respondiendo encima de Jenniffer, sep-2026).
+    assert parece_respuesta_bot("Cordial saludo veci, con gusto le asisto en su consulta. " + "x" * 120) is False
+    assert parece_respuesta_bot("Listo veci 🙏 A continuación sigue la conversación con un asesor humano.") is True
 
 
 def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:

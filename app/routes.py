@@ -1008,6 +1008,34 @@ def _alertar_escalacion_cliente(sender_id: str, message_text: str, motivo: str) 
         print(f"⚠️ [ESCALACION] no se pudo avisar al grupo: {exc}")
 
 
+_adjuntos_no_descargados_avisados: dict[str, float] = {}
+
+
+def _alertar_adjunto_no_descargado(sender_id: str, tipo: str, texto: str, grupo: str) -> None:
+    """Una alerta por cliente cada 10 min: el archivo solo se puede ver en el teléfono."""
+    ahora = time.time()
+    if ahora - _adjuntos_no_descargados_avisados.get(sender_id, 0) < 600:
+        return
+    _adjuntos_no_descargados_avisados[sender_id] = ahora
+    try:
+        from app.services.wa_jid import formato_display
+
+        etiqueta = formato_display(sender_id)
+    except Exception:
+        etiqueta = sender_id
+    nombre_tipo = {"image": "una imagen", "document": "un documento/PDF", "video": "un video"}.get(tipo, "un adjunto")
+    aviso = (
+        f"📎 *ADJUNTO SIN DESCARGAR*\n"
+        f"Cliente {etiqueta} envió {nombre_tipo} que el sistema no pudo descargar.\n"
+        f"Si es un comprobante de pago, revísalo directamente en el teléfono."
+        + (f"\n💬 {texto[:300]}" if texto else "")
+    )
+    try:
+        enviar_whatsapp_reporte(aviso, numero_destino=grupo)
+    except Exception as exc:
+        print(f"⚠️ [ADJUNTO] no se pudo avisar: {exc}")
+
+
 def _normalizar_respuesta_cliente(texto: str) -> str:
     """Evita enviar mensajes legacy/confusos al cliente final."""
     if not texto:
@@ -2707,6 +2735,20 @@ def register_routes(app):
             except Exception:
                 pass
 
+        # --- Adjunto que el puente no pudo descargar (whatsapp-web.js roto) ---
+        # Sin esto el comprobante o el PDF del cliente se perdía en silencio.
+        if (
+            data.get("mediaError")
+            and not es_any_grupo_admin
+            and not es_grupo_sede_sur
+            and not str(sender_id).endswith("@g.us")
+        ):
+            spawn_thread(
+                _alertar_adjunto_no_descargado,
+                args=(sender_id, str(data.get("tipoMensaje") or ""), message_text, grupo_compras),
+                daemon=True,
+            )
+
         # --- Números silenciados (spam / no clientes) ---
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             _modos_sil = cargar_modos_atencion()
@@ -2717,8 +2759,26 @@ def register_routes(app):
                 _wa_log("silenciado_ignorado", sender_id, (message_text or "")[:200])
                 return jsonify({"status": "silenciado", "respuesta": None})
 
+        # --- Agente de ventas v2 (app/agent/ventas_wa, bandera WA_AGENTE_V2) ---
+        from app.agent.ventas_wa.entrada import modo as _v2_modo_fn
+
+        _v2_modo = _v2_modo_fn()
+        _v2_aplica = (
+            _v2_modo != "off"
+            and not es_any_grupo_admin
+            and not es_grupo_sede_sur
+            and not is_after_sale
+            and not str(sender_id).endswith("@g.us")
+        )
+        if _v2_aplica and _v2_modo == "sombra":
+            from app.agent.ventas_wa.entrada import atender_en_sombra
+
+            atender_en_sombra(sender_id, wa_id=data.get("wa_id"), ts_msg=data.get("ts"))
+
         # --- Solicitud explícita de humano ---
-        if not es_any_grupo_admin and not es_grupo_sede_sur:
+        # Con v2 activo lo resuelve el agente (pasar_a_asesor) sin dejar el chat
+        # en modo humano para siempre, que es lo que hace este bloque legacy.
+        if not es_any_grupo_admin and not es_grupo_sede_sur and not (_v2_aplica and _v2_modo == "activo"):
             razon_h = _detectar_solicitud_humano(message_text)
             if razon_h:
                 from app.services.wa_jid import aplicar_modo_en_relacionados
@@ -2958,7 +3018,9 @@ def register_routes(app):
                         "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
                     }
                 )
-        elif is_payment_keyword_sin_img and not has_media:
+        elif is_payment_keyword_sin_img and not has_media and not (_v2_aplica and _v2_modo == "activo"):
+            # Legacy: "transferencia"/"consign…" sin imagen → pedía la imagen aunque
+            # el cliente solo preguntara cómo pagar. Con v2 activo decide el agente.
             return jsonify(
                 {
                     "status": "missing_image",
@@ -2986,6 +3048,14 @@ def register_routes(app):
                     "respuesta": f"Ya existe una respuesta pendiente de aprobación para la orden {order_id}.",
                 }
             )
+
+        if _v2_aplica and _v2_modo == "activo":
+            from app.agent.ventas_wa.entrada import atender as _v2_atender
+
+            _v2_res = _v2_atender(sender_id, wa_id=data.get("wa_id"), ts_msg=data.get("ts"))
+            if _v2_res.get("respuesta"):
+                _v2_res["respuesta"] = _normalizar_respuesta_cliente(_v2_res["respuesta"])
+            return jsonify(_v2_res)
 
         # --- Escalación al Grupo ---
         # Solo cuando el cliente pide un humano EXPLÍCITAMENTE. El match por
@@ -3146,6 +3216,28 @@ def register_routes(app):
                 ),
                 400,
             )
+        # --- Agente de ventas v2 en el chat web (bandera WEB_AGENTE_V2) ---
+        from app.agent.ventas_wa.entrada import atender_web, modo_web
+
+        _web_v2 = modo_web() if es_web_chat and mensaje and not adjuntos else "off"
+        if _web_v2 == "activo":
+            try:
+                r = atender_web(session_id, mensaje, pagina=page_url)
+                if r.get("respuesta"):
+                    return jsonify(
+                        {
+                            "respuesta": r["respuesta"],
+                            "acciones": r.get("acciones") or [],
+                            "timestamp": datetime.now().isoformat(),
+                            "status": "ok",
+                            "source": "agent_v2",
+                        }
+                    )
+            except Exception as e:  # si v2 falla, responde el flujo de siempre
+                log_json("web_v2_error", error=str(e)[:200])
+        elif _web_v2 == "sombra":
+            spawn_thread(atender_web, args=(session_id, mensaje), kwargs={"pagina": page_url}, daemon=True)
+
         try:
             respuesta, _ = obtener_respuesta_ia(
                 mensaje,
@@ -10206,6 +10298,31 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/extractos/clasificacion/aplicar", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos/clasificacion/aplicar", methods=["POST"])
+    def api_contabilidad_extractos_clasificacion_aplicar():
+        """Crea el asiento de las líneas de confianza ALTA y las vincula.
+
+        `simular` por defecto en true: este endpoint escribe en el Libro Mayor,
+        y el que solo quiere mirar no debe poder hacerlo sin decirlo.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import extracto_clasificador as ec
+
+            body = request.get_json(silent=True) or {}
+            simular = bool(body.get("simular", True))
+            r = ec.aplicar(
+                (body.get("desde") or "").strip() or None,
+                (body.get("hasta") or "").strip() or None,
+                simular=simular,
+                created_by=_cc_uid(),
+            )
+            return jsonify(r)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/extractos/candidatos", methods=["GET"])
     @app.route("/app/api/contabilidad/extractos/candidatos", methods=["GET"])
     def api_contabilidad_extractos_candidatos():
@@ -14136,6 +14253,62 @@ def register_routes(app):
         cancelar(jid, razon="panel")
         return jsonify({"ok": True})
 
+    # ── Pedidos armados por el agente de ventas WA v2 (app/agent/ventas_wa) ───
+
+    @app.route("/api/bot/pedidos-wa", methods=["GET"])
+    def api_bot_pedidos_wa():
+        """Pedidos del agente IA agrupables por estado. ?modo=activo|sombra (default: el vigente)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+        from app.agent.ventas_wa.entrada import modo as _modo_v2
+        from app.services.wa_jid import formato_display
+
+        vigente = _modo_v2()
+        modo = (request.args.get("modo") or "").strip().lower()
+        if modo not in ("activo", "sombra"):
+            modo = "sombra" if vigente == "sombra" else "activo"
+        dias = min(int(request.args.get("dias", 7)), 30)
+        pedidos = _ped.listar_para_panel(modo, dias=dias)
+        for p in pedidos:
+            p["display"] = formato_display(p["jid"])
+        return jsonify({"modo": modo, "modo_vigente": vigente, "pedidos": pedidos})
+
+    @app.route("/api/bot/pedidos-wa/<int:pedido_id>/estado", methods=["POST"])
+    def api_bot_pedidos_wa_estado(pedido_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+
+        body = request.get_json(silent=True) or {}
+        modo = "sombra" if str(body.get("modo") or "") == "sombra" else "activo"
+        if not _ped.cambiar_estado(modo, pedido_id, str(body.get("estado") or "")):
+            return jsonify({"error": "Pedido o estado inválido"}), 400
+        return jsonify({"ok": True})
+
+    @app.route("/api/bot/auditoria", methods=["GET"])
+    def api_bot_auditoria():
+        """Último reporte del auditor de canales y la última auditoría diaria con IA."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.auditor_canales import ultimo_reporte
+
+        return jsonify(ultimo_reporte())
+
+    @app.route("/api/bot/turnos-wa", methods=["GET"])
+    def api_bot_turnos_wa():
+        """Bitácora de turnos del agente v2 (en sombra: lo que habría respondido)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+        from app.services.wa_jid import formato_display
+
+        modo = "sombra" if request.args.get("modo") == "sombra" else "activo"
+        turnos = _ped.listar_turnos(modo, limite=min(int(request.args.get("limit", 100)), 300))
+        for t in turnos:
+            t["display"] = formato_display(t["jid"])
+        return jsonify({"modo": modo, "turnos": turnos})
+
     # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
 
     @app.route("/api/bot/chats", methods=["GET"])
@@ -14878,15 +15051,24 @@ def register_routes(app):
 
     _ETIQUETAS = {
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
-        "250 g": (76, 66), "1 Lt": (108, 76),
+        "250 / 500 g": (76, 66), "1 Lt": (108, 76),
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
-        "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
-        "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
-        # Estos tres solo vivían en TIPOS_ETIQUETA_DEFAULT del panel; ahora que
-        # el catálogo de formatos lo manda el servidor, tienen que estar aquí o
-        # desaparecen del selector.
-        "500 g": (76, 66), "1000 g": (102, 76), "1 kg": (102, 76),
+        "Circular 50": (50, 50), "CIRCLE": (53.9, 53.9),
+        "Circular 70": (70, 70), "5 g": (50, 42), "Pastillero": (54, 58),
+        "1 kg": (102, 76),
     }
+    # Nombres viejos de formatos con las mismas medidas, fusionados en uno solo
+    # (2026-09-11). Lo guardado con el nombre viejo sigue resolviendo al nuevo.
+    # 125 g y Circular 70 miden igual pero NO se fusionan: Circular es troquel
+    # redondo (se detecta por el nombre).
+    _ETIQUETAS_ALIAS = {
+        "250 g": "250 / 500 g", "500 g": "250 / 500 g",
+        "54mm": "Pastillero", "1000 g": "1 kg", "Circle 50": "Circular 50",
+    }
+
+    def _canon_tipo_etiqueta(nombre):
+        n = (nombre or "").strip()
+        return _ETIQUETAS_ALIAS.get(n, n)
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}
     _ETIQUETAS_MAX_MM = (108.0, 406.4)  # CW-C4000u: ancho × avance (PPD)
@@ -14910,7 +15092,7 @@ def register_routes(app):
         for it in items:
             if not isinstance(it, dict):
                 continue
-            nombre = (it.get("nombre") or "").strip()
+            nombre = _canon_tipo_etiqueta(it.get("nombre"))
             if not nombre or nombre in seen:
                 continue
             try:
@@ -15012,6 +15194,7 @@ def register_routes(app):
         except (TypeError, ValueError):
             pass
         mp = _etiquetas_tipos_map()
+        producto = _canon_tipo_etiqueta(producto)
         if producto in mp:
             return mp[producto]
         return _ETIQUETAS.get(producto)
@@ -15180,7 +15363,7 @@ def register_routes(app):
 
         def _fallo_backend_sin_error_lcd(salida_elpu: str) -> tuple:
             """CUPS/epsonUSB falló pero ELPU no reporta Status_ER_* (LCD puede estar en Listo)."""
-            tam = _ETIQUETAS.get(producto, (102, 38))
+            tam = _ETIQUETAS.get(_canon_tipo_etiqueta(producto), (102, 38))
             sensor = {
                 "Diecut_Gap": "troquelada con gap (separación entre etiquetas)",
                 "Diecut_Blackmark": "troquelada con marca negra",
@@ -23209,7 +23392,7 @@ REGLAS:
 
         body = request.get_json(silent=True) or {}
         archivo_ai = (body.get("archivo_ai") or "").strip() or None
-        tipo_etiqueta = (body.get("tipo_etiqueta") or "500 g").strip()
+        tipo_etiqueta = (body.get("tipo_etiqueta") or "250 / 500 g").strip()
         ancho_mm = body.get("ancho_mm")
         alto_mm = body.get("alto_mm")
         guardar = body.get("guardar", True) not in (False, 0, "0", "false")
@@ -23270,7 +23453,7 @@ REGLAS:
         try:
             result = preview_diagramacion_plantilla(
                 archivo_ai=archivo_ai,
-                tipo_etiqueta=(body.get("tipo_etiqueta") or "500 g").strip(),
+                tipo_etiqueta=(body.get("tipo_etiqueta") or "250 / 500 g").strip(),
                 diagramacion=body.get("diagramacion"),
                 diagramacion_graficos=body.get("diagramacion_graficos"),
                 textos_campo=body.get("textos_campo"),

@@ -609,7 +609,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                         comprador_id=from_id,
                     )
 
-                    if resultado_docs == "auto_enviado":
+                    if resultado_docs in ("auto_enviado", "auto_factura"):
                         procesados.add(msg_id)
                         # Mantener el pack direccionable: si se saca de la cola,
                         # el código corto deja de resolver (el fallback por
@@ -631,13 +631,25 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                             state["pendientes"][sufijo] = entrada_auto
                         _stats_mensaje_recibido(entrada_auto)
                         _stats_mensaje_cerrado(entrada_auto, "auto")
+                        if resultado_docs == "auto_factura":
+                            titulo_auto = "Factura"
+                            nota_auto = (
+                                "Se le confirmó que emitimos factura electrónica legal, "
+                                "48 h después de la entrega, disponible en el detalle de "
+                                "su compra en MeLi."
+                            )
+                        else:
+                            titulo_auto = "FT/COA"
+                            nota_auto = (
+                                "Se le indicó revisar la etiqueta del producto "
+                                "(política MeLi: sin enlaces externos ni datos de contacto)."
+                            )
                         notif_auto = (
-                            f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
+                            f"🤖 *Auto-respuesta postventa ({titulo_auto})*\n\n"
                             f"🔢 Código: *{sufijo}*\n"
                             f"👤 {nombre_comprador}\n"
                             f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
-                            f"_Se le indicó revisar la etiqueta del producto "
-                            f"(política MeLi: sin enlaces externos ni datos de contacto)._\n\n"
+                            f"_{nota_auto}_\n\n"
                             f"✍️ Para complementar o corregir la respuesta:\n"
                             f"*posventa {sufijo}: tu mensaje*  (o *resp {sufijo}: ...*)"
                         )

@@ -94,3 +94,65 @@ def test_auto_responde_con_texto_fijo_sin_llamar_a_meli(monkeypatch) -> None:
     assert resultado == "auto_enviado"
     assert enviados["pack_id"] == "123456"
     assert enviados["texto"] == respuesta_ficha_coa_meli()
+
+
+# ── Solicitud de factura (sep-2026, caso real código 255) ──────────────────
+
+
+def test_solicitud_simple_de_factura() -> None:
+    assert postventa_documentos.mensaje_solicita_factura("Por favor emitir factura legal.")
+    assert postventa_documentos.mensaje_solicita_factura("Me pueden enviar la factura?")
+    assert postventa_documentos.mensaje_solicita_factura("necesito que me facturen")
+    assert postventa_documentos.mensaje_solicita_factura("¿Me mandan la factura en PDF?")
+
+
+def test_factura_con_reclamo_o_datos_propios_va_al_grupo() -> None:
+    no = postventa_documentos.mensaje_solicita_factura
+    assert not no("La factura salió con error en el valor")
+    assert not no("Necesito la factura a nombre de mi empresa NIT 900123456")
+    assert not no("Todavía no me ha llegado la factura")
+    assert not no("Por favor anular la factura, voy a devolver el producto")
+    assert not no("[Solo adjunto(s) en MeLi: factura.pdf] — revisar conversación")
+    assert not no("¿Cuándo despachan mi pedido?")
+    assert not no("El frasco llegó roto y la tapa venía abierta, además " * 5 + "factura")
+
+
+def test_respuesta_factura_sin_enlaces_ni_contacto() -> None:
+    texto = postventa_documentos.respuesta_factura_meli()
+    low = texto.lower()
+    assert "http" not in low and "@" not in texto
+    assert "factura electrónica legal" in low
+    assert "48 horas" in low
+
+
+def test_factura_en_pdf_recibe_respuesta_de_factura_no_de_ficha(monkeypatch) -> None:
+    """'factura en pdf' contiene 'pdf' (keyword FT/COA): debe ganar la factura."""
+    monkeypatch.setattr(postventa_documentos, "_AUTO_FACTURA", True)
+    monkeypatch.setattr(postventa_documentos, "_AUTO_DOCS", True)
+    enviados = {}
+
+    def fake_responder(pack_id, texto, comprador_id=None):
+        enviados["texto"] = texto
+        return True
+
+    monkeypatch.setattr("modulo_posventa.responder_mensaje_posventa", fake_responder)
+
+    resultado = postventa_documentos.intentar_respuesta_automatica_documentos(
+        "123456", "Por favor emitir factura legal en pdf."
+    )
+    assert resultado == "auto_factura"
+    assert enviados["texto"] == postventa_documentos.respuesta_factura_meli()
+
+
+def test_auto_factura_apagada_no_responde(monkeypatch) -> None:
+    monkeypatch.setattr(postventa_documentos, "_AUTO_FACTURA", False)
+    monkeypatch.setattr(
+        "modulo_posventa.responder_mensaje_posventa",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("no debía enviar")),
+    )
+    assert (
+        postventa_documentos.intentar_respuesta_automatica_documentos(
+            "123456", "Por favor emitir factura legal."
+        )
+        == "sin_match"
+    )

@@ -41,6 +41,7 @@ from app.services.meli import (
     subir_factura_meli,
 )
 from app.services.alegra import (
+    _alias_sku_venta,
     buscar_producto_alegra_por_referencia,
     crear_factura_venta_alegra,
 )
@@ -215,7 +216,10 @@ def _buscar_producto_alegra_con_reintentos(sku: str, intentos: int = 3) -> dict 
             return producto
         if intento < intentos - 1:
             time.sleep(1.5 * (intento + 1))
-    return None
+    # SKU de venta distinto a la reference de Alegra (ver resolver_producto_venta_alegra):
+    # la línea conserva el SKU de MeLi y crear_factura_venta_alegra resuelve el alias.
+    ref_alias = _alias_sku_venta().get(sku.strip().upper())
+    return buscar_producto_alegra_por_referencia(ref_alias) if ref_alias else None
 
 
 def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict], str | None]:
