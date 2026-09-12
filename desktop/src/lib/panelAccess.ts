@@ -10,6 +10,13 @@ function puedeVerTickets(user: TicketsUser): boolean {
   return Boolean(p.tickets);
 }
 
+/** Rótulos de envío: admin, permiso propio, o quien despacha (pedidos/empaque). */
+export function puedeVerGuiasEnvio(user: TicketsUser): boolean {
+  if (esAdminPanel(user)) return true;
+  const perm = user.permisos_secciones;
+  return Boolean(!perm || perm["guias-envio"] || perm.pedidos || perm.empaque);
+}
+
 /** Visibilidad de un panel/sección del menú según rol y permisos. */
 export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string): boolean {
   if (!user) return false;
@@ -22,6 +29,10 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "settings") return true;
   if (seccion === "etiquetas") return true;
   if (seccion === "empaque") return true;
+  // Rótulos de envío: los hace quien despacha (pedidos/empaque). Debe decir lo
+  // mismo que `puedeVerPanel` en App.tsx — si diverge, el panel es accesible
+  // pero el botón no aparece en ningún menú (pasó con TKT-2026-1307).
+  if (seccion === "guias-envio") return puedeVerGuiasEnvio(user);
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas", "empaque"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;

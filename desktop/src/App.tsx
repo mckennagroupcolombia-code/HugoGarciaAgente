@@ -61,6 +61,7 @@ import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
 import { puedeVerModuloLogistica } from "./lib/logisticaAccess";
 import { esAdminPanel } from "./lib/adminAccess";
+import { puedeVerGuiasEnvio } from "./lib/panelAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -286,12 +287,9 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (contab !== null) return contab;
   if (panel === "etiquetas") return true;
   if (panel === "empaque") return true;
-  // Rótulos de envío: los hace quien despacha (pedidos/empaque).
-  if (panel === "guias-envio") {
-    if (esAdminPanel(user)) return true;
-    const perm = user.permisos_secciones;
-    return Boolean(!perm || perm["guias-envio"] || perm.pedidos || perm.empaque);
-  }
+  // Rótulos de envío: los hace quien despacha (pedidos/empaque). Regla
+  // compartida con el menú (lib/panelAccess) para que no diverjan.
+  if (panel === "guias-envio") return puedeVerGuiasEnvio(user);
   if (panel === "hugo" || panel === "tickets") {
     if (esAdminPanel(user)) return true;
     const p = user.permisos_secciones;
