@@ -1,5 +1,5 @@
 {
-  "500 g": {
+  "250 / 500 g": {
     "archivo_ai": "UREA 500g.ai",
     "ancho_mm": 76.0,
     "alto_mm": 66.0,
@@ -81,7 +81,7 @@
       287.7439928189,
       249.94933
     ],
-    "tipo_etiqueta": "500 g",
+    "tipo_etiqueta": "250 / 500 g",
     "updated_at": "2026-06-16T23:06:07"
   }
 }

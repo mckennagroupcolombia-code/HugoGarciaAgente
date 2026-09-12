@@ -1,25 +1,13 @@
 {
   "numeros_en_humano": [
-    "573009990001@c.us",
-    "172692212863191@lid",
-    "573227203834@c.us",
+    "116054462361830@lid",
+    "573183954547@c.us",
+    "61109012840604@lid",
+    "573003945052@c.us",
+    "103684889403577@lid",
+    "573124055615@c.us",
     "573212158090@c.us",
     "69148990259320@lid",
-    "573202824251@c.us",
-    "179542618554564@lid",
-    "573137372361@c.us",
-    "250473919598840@lid",
-    "263947315847322@lid",
-    "573108806486@c.us",
-    "573188840971@c.us",
-    "37271759769852@lid",
-    "17716824002565@lid",
-    "573203009384@c.us",
-    "573112480787@c.us",
-    "47434222854324@lid",
-    "118047343939638@lid",
-    "573023577762@c.us",
-    "195657704960012@lid",
     "573115713149@c.us",
     "54821012902003@lid",
     "173619909017622@lid",
@@ -28,195 +16,123 @@
     "573128485865@c.us",
     "112000482979882@lid",
     "573053106833@c.us",
-    "113108114751646@lid",
-    "573114360576@c.us"
+    "260653159858336@lid",
+    "573217423374@c.us"
   ],
   "numeros_silenciados": [],
   "timestamps": {
-    "573009990001@c.us": 1788827507.8595436,
-    "172692212863191@lid": 1788828505.0996683,
-    "573227203834@c.us": 1788828505.0996683,
-    "573212158090@c.us": 1788877129.7004871,
-    "69148990259320@lid": 1788877129.7004871,
-    "573202824251@c.us": 1788877179.9745762,
-    "179542618554564@lid": 1788877179.9745762,
-    "573137372361@c.us": 1788880562.1479404,
-    "250473919598840@lid": 1788880562.1479404,
-    "263947315847322@lid": 1788882275.0111103,
-    "573108806486@c.us": 1788882275.0111103,
-    "573188840971@c.us": 1788882278.177526,
-    "37271759769852@lid": 1788882278.177526,
-    "17716824002565@lid": 1788974755.7544167,
-    "573203009384@c.us": 1788974755.7544167,
-    "573112480787@c.us": 1788892395.4270754,
-    "47434222854324@lid": 1788892395.4270754,
-    "118047343939638@lid": 1788895641.4674416,
-    "573023577762@c.us": 1788896064.226658,
-    "195657704960012@lid": 1788896064.226658,
-    "573115713149@c.us": 1788901699.2615826,
-    "54821012902003@lid": 1788901699.2615826,
-    "173619909017622@lid": 1788989950.4451694,
-    "573164935659@c.us": 1788989950.4451694,
-    "39230852067497@lid": 1789068209.525665,
-    "573128485865@c.us": 1789068209.525665,
-    "112000482979882@lid": 1789078419.3782668,
-    "573053106833@c.us": 1789078419.3782668,
-    "113108114751646@lid": 1789084507.4429758,
-    "573114360576@c.us": 1789084507.4429758
+    "116054462361830@lid": 1789135765.493789,
+    "573183954547@c.us": 1789135765.493789,
+    "61109012840604@lid": 1789147239.6056125,
+    "573003945052@c.us": 1789147239.6056125,
+    "103684889403577@lid": 1789149585.807416,
+    "573124055615@c.us": 1789149585.807416,
+    "573212158090@c.us": 1789152462.147829,
+    "69148990259320@lid": 1789152462.147829,
+    "573115713149@c.us": 1789152462.147829,
+    "54821012902003@lid": 1789152462.147829,
+    "173619909017622@lid": 1789152462.147829,
+    "573164935659@c.us": 1789152462.147829,
+    "39230852067497@lid": 1789152462.147829,
+    "573128485865@c.us": 1789152462.147829,
+    "112000482979882@lid": 1789152462.147829,
+    "573053106833@c.us": 1789152462.147829,
+    "260653159858336@lid": 1789152462.147829,
+    "573217423374@c.us": 1789152462.147829
   },
   "bot_auto_pausados": {
-    "573009990001@c.us": {
-      "timestamp": 1788827507.8595436,
-      "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "172692212863191@lid": {
-      "timestamp": 1788828505.0996683,
+    "116054462361830@lid": {
+      "timestamp": 1789135765.493789,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "ultimo_mensaje": "Me puedes indicar si la presentaci\u00f3n cambio .... Si siguen manejando la otra presentaci\u00f3n? O si se equivocaron de producto"
     },
-    "573227203834@c.us": {
-      "timestamp": 1788828505.0996683,
+    "573183954547@c.us": {
+      "timestamp": 1789135765.493789,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "ultimo_mensaje": "Me puedes indicar si la presentaci\u00f3n cambio .... Si siguen manejando la otra presentaci\u00f3n? O si se equivocaron de producto"
+    },
+    "61109012840604@lid": {
+      "timestamp": 1789147239.6056125,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573003945052@c.us": {
+      "timestamp": 1789147239.6056125,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "103684889403577@lid": {
+      "timestamp": 1789149585.807416,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "573124055615@c.us": {
+      "timestamp": 1789149585.807416,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
     },
     "573212158090@c.us": {
-      "timestamp": 1788877129.7004871,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "69148990259320@lid": {
-      "timestamp": 1788877129.7004871,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573202824251@c.us": {
-      "timestamp": 1788877179.9745762,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "179542618554564@lid": {
-      "timestamp": 1788877179.9745762,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573137372361@c.us": {
-      "timestamp": 1788880562.1479404,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "250473919598840@lid": {
-      "timestamp": 1788880562.1479404,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "263947315847322@lid": {
-      "timestamp": 1788882275.0111103,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573108806486@c.us": {
-      "timestamp": 1788882275.0111103,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573188840971@c.us": {
-      "timestamp": 1788882278.177526,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "37271759769852@lid": {
-      "timestamp": 1788882278.177526,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "17716824002565@lid": {
-      "timestamp": 1788974755.7544167,
-      "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573203009384@c.us": {
-      "timestamp": 1788974755.7544167,
-      "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573112480787@c.us": {
-      "timestamp": 1788892395.4270754,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "47434222854324@lid": {
-      "timestamp": 1788892395.4270754,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "118047343939638@lid": {
-      "timestamp": 1788895641.4674416,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "573023577762@c.us": {
-      "timestamp": 1788896064.226658,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
-    },
-    "195657704960012@lid": {
-      "timestamp": 1788896064.226658,
-      "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "573115713149@c.us": {
-      "timestamp": 1788901699.2615826,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "54821012902003@lid": {
-      "timestamp": 1788901699.2615826,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "173619909017622@lid": {
-      "timestamp": 1788989950.4451694,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "573164935659@c.us": {
-      "timestamp": 1788989950.4451694,
-      "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "39230852067497@lid": {
-      "timestamp": 1789068209.525665,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "573128485865@c.us": {
-      "timestamp": 1789068209.525665,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "112000482979882@lid": {
-      "timestamp": 1789078419.3782668,
-      "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
     "573053106833@c.us": {
-      "timestamp": 1789078419.3782668,
-      "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
-    "113108114751646@lid": {
-      "timestamp": 1789084507.4429758,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+    "260653159858336@lid": {
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     },
-    "573114360576@c.us": {
-      "timestamp": 1789084507.4429758,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok q presentaci\u00f3nes de manteca ds karite"
+    "573217423374@c.us": {
+      "timestamp": 1789152462.147829,
+      "razon": "restaurado: asesor activo en las \u00faltimas 24 h",
+      "ultimo_mensaje": ""
     }
   },
-  "bot_global_activo": true,
+  "bot_global_activo": false,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

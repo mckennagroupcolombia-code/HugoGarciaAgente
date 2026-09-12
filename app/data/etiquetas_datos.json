@@ -20,7 +20,7 @@
     "pdf_ruta": "Etiquetas McKenna/CITRATO MAGNESIO 500g (3).pdf",
     "pdf_nombre": "CITRATO MAGNESIO 500g (3).pdf",
     "nombre_etiqueta": "CITRATO MAGNESIO 500g",
-    "tipo_etiqueta": "500 g",
+    "tipo_etiqueta": "250 / 500 g",
     "studio": true,
     "updated_at": "2026-06-17T04:19:21.177896",
     "siigo_code": "C-CITMAG500g",
@@ -34,7 +34,7 @@
     "siigo_name": "ALULOSA Kg",
     "nombre_etiqueta": "ALULOSA Kg",
     "presentacion": "500g",
-    "tipo_etiqueta": "500 g",
+    "tipo_etiqueta": "250 / 500 g",
     "lote_defecto": "LOT.",
     "vencimiento_defecto": "EXP.",
     "updated_at": "2026-06-19T22:42:42.471148"

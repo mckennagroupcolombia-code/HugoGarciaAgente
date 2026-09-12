@@ -5679,3 +5679,272 @@ Detalle en vivo: https://bot.mckennagroup.co/app
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-09-01 → 2026-09-11…
+✅ Token de Mercado Libre refrescado exitosamente.
+   1 creado(s), 721 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 647 | Envíos nuevos consultados: 60 | Resueltos: 60 | Sin resolver: 0 | Aún no despachados: 0
+   Total municipios acumulados: 137
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-INU250g
+INFO: SKU extra MeLi/web incorporado: C-DEXKg
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 193 exactos, 20 alias, 62 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 218/275 combos SIIGO tienen publicación (se ocultan 57)
+INFO: Catálogo listo: 21 categorías, 175 fichas (31 con varias presentaciones), 218 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+   22 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 9 | Sospechosos (>2×): 13
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   148 órdenes canceladas en la ventana.
+   4347 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3483 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71328 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   9 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71328 ($20,489), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71049 ($22,574)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   2 caso(s) con problema · 2 nuevo(s) en esta corrida.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   🎫 Ticket #1403 creado en el Centro de Mando: *Revisión facturación MeLi — 2026-09-11* (2 caso(s)).
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+   🤖 2 sugerencia(s) de IA agregadas como comentario.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  RA: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 11) no es día de pago de nómina (15 o fin de mes).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Auto-posteando contabilidad 2026-09-01 → 2026-09-11…
+✅ Token de Mercado Libre refrescado exitosamente.
+   20 creado(s), 722 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T14:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (147 min), +57 300 394 5052 (94 min), +57 311 571 3149 (89 min) | La sincronización de chats del panel falló 100 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T14:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (177 min), +57 311 571 3149 (119 min) | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 561 veces en 30 min.
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T15:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (207 min), +57 311 571 3149 (149 min) | La sincronización de chats del panel falló 12 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T15:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (237 min), +57 311 571 3149 (179 min), +57 300 394 5052 (33 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T16:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (267 min), +57 300 394 5052 (63 min) | La sincronización de chats del panel falló 526 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T16:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (297 min), +57 300 394 5052 (93 min) | La sincronización de chats del panel falló 326 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-11T17:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (327 min), +57 300 394 5052 (123 min) | La sincronización de chats del panel falló 12 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T17:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (357 min), +57 300 394 5052 (153 min) | La sincronización de chats del panel falló 1416 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T18:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (387 min), +57 300 394 5052 (183 min) | La sincronización de chats del panel falló 1500 veces en 30 min.
+[2026-09-11T18:00:01] resumen_actividad_sede_sur: 67 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 16 nuevas · 7 completadas · 11 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 8 nuevas, 2 completadas
+• Victor Garcia: 2 nuevas, 2 completadas
+• Gloria Stella: 2 nuevas, 2 completadas
+• Administrador: 3 nuevas, 0 completadas
+• Armando Garcia: 1 nueva, 1 completada
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-09-01 → 2026-09-11…
+✅ Token de Mercado Libre refrescado exitosamente.
+   18 creado(s), 742 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T18:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (417 min), +57 300 394 5052 (213 min) | La sincronización de chats del panel falló 1509 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+Sin turnos del agente en las últimas 24 h.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T19:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (447 min), +57 300 394 5052 (243 min), +57 315 243 2496 (21 min) | La sincronización de chats del panel falló 1639 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T19:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (477 min), +57 300 394 5052 (273 min), +57 315 243 2496 (51 min) | La sincronización de chats del panel falló 1690 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-11) no es el último día del mes.
+[auditor_canales 2026-09-11T20:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (507 min), +57 300 394 5052 (303 min), +57 315 243 2496 (81 min) | La sincronización de chats del panel falló 230 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T20:30:12] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (537 min), +57 300 394 5052 (333 min), +57 315 243 2496 (111 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-11T21:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (567 min), +57 300 394 5052 (363 min), +57 315 243 2496 (141 min)
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T21:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (597 min), +57 300 394 5052 (393 min), +57 315 243 2496 (171 min)

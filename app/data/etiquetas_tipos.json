@@ -16,7 +16,7 @@
       "alto_mm": 70.0
     },
     {
-      "nombre": "250 g",
+      "nombre": "250 / 500 g",
       "ancho_mm": 76.0,
       "alto_mm": 66.0
     },
@@ -39,11 +39,6 @@
       "nombre": "50g",
       "ancho_mm": 102.0,
       "alto_mm": 32.0
-    },
-    {
-      "nombre": "54mm",
-      "ancho_mm": 54.0,
-      "alto_mm": 58.0
     },
     {
       "nombre": "Circular",
