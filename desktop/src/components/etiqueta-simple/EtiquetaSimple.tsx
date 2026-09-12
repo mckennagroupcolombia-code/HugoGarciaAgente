@@ -244,29 +244,10 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
 
         {/* Bajo la guía · producto: contenido neto y datos */}
         <div className="es-cuerpo-izq">
-          <div className="es-neto">
-            <EditableLabel
-              texto="Contenido neto:"
-              editMode={editMode}
-              styleKey="es_netoTitulo"
-              defaultFontSize={17}
-              as="p"
-              className="es-neto-titulo"
-            />
-            <CampoEtiqueta
-              valor={data.netContent || ""}
-              onChange={cambio("netContent")}
-              editMode={editMode}
-              styleKey="es_netContent"
-              ejemplo={EJEMPLO_ETIQUETA.netContent}
-              mostrar={textoContenidoNeto}
-              tam={TAM_SIMPLE.neto}
-              maxLineas={1}
-              className="es-neto-valor"
-            />
-          </div>
-
-          <div className="es-datos">
+          {/* El origen encabeza la columna, sobre el contenido neto. Va en su
+              propia lista para que el ícono y el texto queden en la misma
+              vertical que los de conservación y alérgenos. */}
+          <div className="es-datos es-datos-origen">
             <div className="es-dato">
               <button
                 type="button"
@@ -291,6 +272,31 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
                 />
               </div>
             </div>
+          </div>
+
+          <div className="es-neto">
+            <EditableLabel
+              texto="Contenido neto:"
+              editMode={editMode}
+              styleKey="es_netoTitulo"
+              defaultFontSize={17}
+              as="p"
+              className="es-neto-titulo"
+            />
+            <CampoEtiqueta
+              valor={data.netContent || ""}
+              onChange={cambio("netContent")}
+              editMode={editMode}
+              styleKey="es_netContent"
+              ejemplo={EJEMPLO_ETIQUETA.netContent}
+              mostrar={textoContenidoNeto}
+              tam={TAM_SIMPLE.neto}
+              maxLineas={1}
+              className="es-neto-valor"
+            />
+          </div>
+
+          <div className="es-datos">
             <div className="es-dato">
               <button
                 type="button"

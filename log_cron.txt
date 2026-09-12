@@ -5948,3 +5948,8 @@ Sin turnos del agente en las últimas 24 h.
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 ✅ Reporte enviado a WhatsApp con éxito.
 [auditor_canales 2026-09-11T21:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (597 min), +57 300 394 5052 (393 min), +57 315 243 2496 (171 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-11T22:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (627 min), +57 300 394 5052 (423 min), +57 315 243 2496 (201 min)
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-11T22:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (657 min), +57 300 394 5052 (453 min), +57 315 243 2496 (231 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

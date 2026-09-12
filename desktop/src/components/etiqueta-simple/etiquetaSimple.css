@@ -178,15 +178,22 @@
 
 /* Cuerpo de la columna: contenido neto y la lista de datos, centrados en lo
    que queda bajo la banda. */
+/* Mismo aire entre el recuadro del grado, el origen y el contenido neto: el
+   hueco bajo la barra (`--es-respiro` más la línea de la banda) es también la
+   separación entre las filas, así los tres respiran igual. El sobrante de la
+   columna se lo lleva la tercera fila, que baja la lista de conservación y
+   alérgenos al pie. */
 .es-cuerpo-izq {
   display: grid;
-  grid-template-rows: auto auto;
-  align-content: center;
+  grid-template-rows: auto auto 1fr;
   justify-items: center;
-  row-gap: 14px;
+  row-gap: calc(var(--es-respiro) + var(--es-linea));
   padding: 0 26px 18px;
   overflow: hidden;
   border-right: var(--es-linea) solid var(--acento);
+}
+.es-cuerpo-izq > .es-datos:not(.es-datos-origen) {
+  align-self: end;
 }
 
 .es-neto {
@@ -227,6 +234,33 @@
   width: 100%;
   padding-top: 12px;
   border-top: var(--es-linea) solid var(--acento);
+}
+
+/* La del origen encabeza la columna: sin raya arriba (la raya separa el
+   contenido neto de conservación y alérgenos, más abajo) y, al ser un dato
+   solo, no sigue la retícula de dos columnas de la lista: ícono y texto van
+   juntos y centrados en la columna, como el nombre y el contenido neto. */
+.es-datos-origen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: auto;
+  max-width: 100%;
+  padding-top: 0;
+  border-top: 0;
+}
+/* En edición la casilla mide lo que su texto, para que ícono + dato sigan
+   centrados como una unidad (igual que en la franja de contacto). */
+.es-datos-origen .e30-campo-wrap {
+  flex: 0 1 auto;
+  width: auto;
+}
+.es-datos-origen .e30-campo {
+  width: auto;
+  max-width: 100%;
+  min-width: 3ch;
+  field-sizing: content;
 }
 
 .es-dato {

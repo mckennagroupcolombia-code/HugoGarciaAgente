@@ -65,7 +65,7 @@
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-11T21:30:01"
+    "ultima_ejecucion": "2026-09-11T22:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,

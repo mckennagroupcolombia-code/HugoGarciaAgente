@@ -1,16 +1,16 @@
 {
  "fecha": "2026-09-11",
- "gasto_usd": 0.62942,
- "llamadas": 87,
+ "gasto_usd": 0.63621,
+ "llamadas": 88,
  "por_modelo": {
-  "claude-sonnet-5": 0.617246,
+  "claude-sonnet-5": 0.624036,
   "claude-haiku-4-5": 0.012174
  },
  "por_contexto": {
   "cliente_chat": 0.141006,
   "revision_facturacion": 0.00382,
   "wa_ventas_v2": 0.448658,
-  "meli_preventa": 0.023762,
+  "meli_preventa": 0.030552,
   "wa_ventas_v2_supervisor": 0.012174
  },
  "alerta_enviada": false,
