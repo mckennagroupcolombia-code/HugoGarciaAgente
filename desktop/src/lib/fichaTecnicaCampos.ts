@@ -129,6 +129,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
       : {};
   const coaLote =
     coa.lote && typeof coa.lote === "object" ? (coa.lote as Record<string, unknown>) : {};
+  const sds = datos._sds && typeof datos._sds === "object" ? (datos._sds as Record<string, unknown>) : {};
 
   const nombreRaw = pick(
     datos.nombre_producto,
@@ -150,9 +151,17 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   );
   const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
   const composicionRaw = flattenComposicion(datos.composicion);
+  // Ninguna de las 61 fichas completas tiene un campo `almacenamiento`: lo
+  // que dicen sobre conservar el producto vive dentro del bloque de
+  // recomendaciones de la SDS, bajo el encabezado "ALMACENAMIENTO:". Sin
+  // leerlo, Conservación salía siempre vacía — y como el parche escribe ""
+  // en lo que la ficha no trae, enlazar una ficha además borraba lo que el
+  // operador hubiera escrito.
   const almacenamientoRaw = pick(
     datos.almacenamiento,
     emp.almacenamiento,
+    seccionRecomendaciones(sds.recomendaciones, "ALMACENAMIENTO"),
+    seccionRecomendaciones(datos.recomendaciones, "ALMACENAMIENTO"),
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
   );
   const concentracionRaw = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
@@ -167,7 +176,6 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   // (`_sds.peligros.pictogramas`: "GHS07 - Nocivo\nH302: …"), no en un campo
   // `ghs`. Sin leerla, ÁCIDO SALICÍLICO, CLORURO DE CALCIO, INULINA… salían
   // como "NO GHS" y "No está clasificado como peligroso".
-  const sds = datos._sds && typeof datos._sds === "object" ? (datos._sds as Record<string, unknown>) : {};
   const peligros =
     sds.peligros && typeof sds.peligros === "object" ? (sds.peligros as Record<string, unknown>) : {};
   const pictogramasSds = texto(peligros.pictogramas);
@@ -245,6 +253,22 @@ export function contenidoNetoDesdeCodigo(c: CodigoEanPresentacion): string {
   return "";
 }
 
+/** Saca una sección del bloque de recomendaciones de la SDS, que llega como
+ *  un texto con encabezados en mayúscula separados por renglón en blanco
+ *  ("SEÑAL DE PELIGRO: …", "PREVENCIÓN: …", "ALMACENAMIENTO: …",
+ *  "ELIMINACIÓN: …"). Devuelve lo que sigue a los dos puntos del encabezado
+ *  pedido, o "" si la ficha no lo trae. */
+function seccionRecomendaciones(valor: unknown, encabezado: string): string {
+  const t = texto(valor);
+  if (!t) return "";
+  const re = new RegExp(`^${encabezado}\\s*:`, "i");
+  const parrafo = t
+    .split(/\n+/)
+    .map((linea) => linea.trim())
+    .find((linea) => re.test(linea));
+  return parrafo ? parrafo.replace(/^[^:]*:\s*/, "").trim() : "";
+}
+
 /** Términos propios de una instrucción de conservación: dónde y cómo se
  *  guarda (ambiente, humedad, temperatura, luz, envase). */
 const CLAVES_CONSERVACION =
@@ -268,6 +292,9 @@ const MAX_CARACTERES_CONSERVACION = 150;
 
 function limpiarFrase(f: string): string {
   const sin = f
+    // "P402 Almacenar en un lugar seco", "P403+P233: Almacenar…": el código
+    // de la frase precautoria es de la SDS, no de la etiqueta.
+    .replace(/^(?:P\d{3}(?:\s*\+\s*P\d{3})*\s*:?\s*)+/i, "")
     .replace(COLA_CADUCIDAD, "")
     .replace(/\s*\(\s*\)/g, "")
     .replace(/^(se recomienda|es recomendable|se sugiere|se debe|se deben|debe|deben|recomendamos|el producto debe|se aconseja|es importante)\s+/i, "")

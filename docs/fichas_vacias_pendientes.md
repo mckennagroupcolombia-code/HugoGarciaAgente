@@ -4,7 +4,7 @@ Fichas cuyo dato estaba equivocado y no tiene fuente verificable. El campo se de
 
 Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viven en `fichas_word/datos/*.yaml` bajo las claves `_estado`, `_vacio_motivo` y `_vacio_pendientes`.
 
-**Total: 13**
+**Total: 21**
 
 ## ÁCIDO KÓJICO
 
@@ -88,7 +88,6 @@ Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viv
 - [ ] Confirmar la especie (Rosa canina o Rosa rubiginosa) y la parte usada, para fijar el INCI definitivo (Rosa Canina Fruit Oil / Rosa Rubiginosa Seed Oil).
 - [ ] Confirmar con la SDS del proveedor que el producto no está clasificado según el SGA, como se declara en esta ficha.
 - [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el perfil de ácidos grasos, el índice de peróxidos y el método de extracción (prensado en frío o refinado).
-- [ ] El producto no aparece en el catálogo de SKU suministrado: confirmar con el cliente si se sigue vendiendo y en qué presentación.
 - [ ] Revisar que no se solape con la ficha antigua ACEITE ESENCIAL ROSAS, que sí sería un aceite esencial de flores de rosa.
 
 ## ACEITE ESENCIAL ALBAHACA
@@ -121,6 +120,92 @@ Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viv
 - [ ] En Wikidata el mismo ítem trae dos CAS (68647-73-4 y 85085-48-9) asociados al EC 285-377-1: confirmar con el proveedor cuál par CAS/EC usa su SDS.
 - [ ] Confirmar con el proveedor la especie (Melaleuca alternifolia) y el país de origen.
 
+## ACEITE ESENCIAL BERGAMOTA
+
+- **Producto en catálogo:** Aceite Esencial Bergamota 5 Ml Mckenna Group Aromaterapia Y Masajes (`C-ACEESEBER5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_bergamota.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Limonene (d-limoneno)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente.
+- [ ] Confirmar con el proveedor el método de obtención (prensado en frío de la cáscara, que es lo habitual, o destilación) y si el aceite es FCF (sin bergapteno): de ello depende la advertencia de fotosensibilización y el límite de uso en productos que quedan sobre la piel.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Limonene (d-limoneno) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Líquido inflamable, categoría 3 (H226); peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); peligro acuático crónico, categoría 1 (H410). Palabra de advertencia: Peligro.
+
+```
+GHS02 - Llama
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H226: Líquidos y vapores inflamables.
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H410: Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P210: Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.
+P233: Mantener el recipiente herméticamente cerrado.
+P240: Conectar a tierra y enlace equipotencial del recipiente y del equipo receptor.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P370 + P378: En caso de incendio: Utilizar un agente extintor adecuado (polvo químico, espuma o CO₂) para apagarlo.
+P391: Recoger el vertido.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
+## ACEITE ESENCIAL CANELA
+
+- **Producto en catálogo:** Aceite Esencial Canela Mckenna Group 5ml Apto Difusor Masajes (`MCO1672155703`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_canela.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Cinnamaldehyde (cinamaldehido)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor. El perfil publicado no aporta peligro acuatico; varias SDS comerciales del aceite de corteza de canela anaden H411 y toxicidad aguda por via oral.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] El perfil GHS publicado proviene del cinamaldehído, que no aporta peligro acuático; varias SDS comerciales del aceite de corteza de canela añaden H411 y toxicidad aguda por vía oral. Confirmar con el proveedor antes de imprimir la etiqueta.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de cinamaldehído y de eugenol del lote.
+- [ ] Confirmar con el proveedor la especie (Cinnamomum verum o Cinnamomum aromaticum/cassia) y la parte usada (corteza u hoja): cambian el CAS, el INCI y el perfil de componentes.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Cinnamaldehyde (cinamaldehido) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); lesiones oculares graves o irritación ocular, categoría 2 (H319); toxicidad específica en determinados órganos (exposición única), categoría 3, vías respiratorias (H335). Palabra de advertencia: Atención.
+
+```
+GHS07 - Signo de exclamación
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H319: Provoca irritación ocular grave.
+H335: Puede irritar las vías respiratorias.
+P261: Evitar respirar los vapores o las nieblas.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P271: Utilizar únicamente en exteriores o en un lugar bien ventilado.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P305 + P351 + P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P337 + P313: Si persiste la irritación ocular: Consultar a un médico.
+P362 + P364: Quitar las prendas contaminadas y lavarlas antes de volver a usarlas.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
 ## ACEITE ESENCIAL CLAVOS
 
 - **Producto en catálogo:** Aceite Esencial De Clavos (`MCO1732025061`)
@@ -135,7 +220,96 @@ Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viv
 - [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de eugenol y de acetato de eugenilo del lote.
 - [ ] Definir el EINECS: Wikidata asocia 616-772-2 y 616-969-3 al mismo aceite; tomar el que use la SDS del proveedor.
 - [ ] Confirmar con el proveedor la parte de la planta destilada (botón floral, hoja o tallo): cambia el INCI y el perfil de eugenol.
-- [ ] El producto no aparece en el catálogo de SKU suministrado: confirmar con el cliente si se sigue vendiendo y en qué presentación.
+
+## ACEITE ESENCIAL EUCALIPTO
+
+- **Producto en catálogo:** ACEITE ESENCIAL EUCALIPTO 5 mL (`C-ACEESEEUC5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_eucalipto.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Eucalyptol (1,8-cineol)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de 1,8-cineol del lote, que es el parámetro de calidad del aceite de eucalipto.
+- [ ] Confirmar con el proveedor la especie exacta (Eucalyptus globulus u otra) y el país de origen.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Eucalyptol (1,8-cineol) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Líquido inflamable, categoría 3 (H226); peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); lesiones oculares graves o irritación ocular, categoría 2 (H319); peligro acuático crónico, categoría 2 (H411). Palabra de advertencia: Peligro.
+
+```
+GHS02 - Llama
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H226: Líquidos y vapores inflamables.
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H319: Provoca irritación ocular grave.
+H411: Tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P210: Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.
+P233: Mantener el recipiente herméticamente cerrado.
+P240: Conectar a tierra y enlace equipotencial del recipiente y del equipo receptor.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P305 + P351 + P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P337 + P313: Si persiste la irritación ocular: Consultar a un médico.
+P370 + P378: En caso de incendio: Utilizar un agente extintor adecuado (polvo químico, espuma o CO₂) para apagarlo.
+P391: Recoger el vertido.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
+## ACEITE ESENCIAL HIERBA BUENA
+
+- **Producto en catálogo:** ACEITE ESENCIAL HIERBA BUENA 5mL (`C-ACEESEHIEBUE5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_hierba_buena.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Carvone (carvona)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de carvona del lote.
+- [ ] Confirmar con el proveedor que el producto es efectivamente aceite de Mentha spicata (menta verde) y no de Mentha × piperita, porque los sinónimos de la ficha de ACEITE ESENCIAL MENTA mezclan los nombres de ambas.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Carvone (carvona) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); peligro acuático crónico, categoría 2 (H411). Palabra de advertencia: Peligro.
+
+```
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H411: Tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P261: Evitar respirar los vapores o las nieblas.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P362 + P364: Quitar las prendas contaminadas y lavarlas antes de volver a usarlas.
+P391: Recoger el vertido.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
 
 ## ACEITE ESENCIAL JAZMÍN
 
@@ -166,6 +340,53 @@ Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viv
 - [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente.
 - [ ] Confirmar con el proveedor el método de obtención (destilación del rizoma fresco o seco) y el país de origen.
 
+## ACEITE ESENCIAL MANDARINA
+
+- **Producto en catálogo:** Aceite Esencial Puro De Mandarina Mckenna Group 5ml Relajante (`C-ACEESENMAN5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_mandarina.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Limonene (d-limoneno)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente.
+- [ ] Confirmar con el proveedor el método de obtención (prensado en frío de la cáscara, que es lo habitual, o arrastre con vapor como decía la ficha antigua) y si el aceite es fotosensibilizante.
+- [ ] Confirmar si el producto se denomina mandarina o tangerina en la etiqueta: el INCI de Citrus reticulata se escribe como 'Tangerine Peel Oil', mientras que 'Citrus Nobilis (Mandarin Orange) Peel Oil' corresponde a otra especie.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Limonene (d-limoneno) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Líquido inflamable, categoría 3 (H226); peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); peligro acuático crónico, categoría 1 (H410). Palabra de advertencia: Peligro.
+
+```
+GHS02 - Llama
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H226: Líquidos y vapores inflamables.
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H410: Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P210: Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.
+P233: Mantener el recipiente herméticamente cerrado.
+P240: Conectar a tierra y enlace equipotencial del recipiente y del equipo receptor.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P370 + P378: En caso de incendio: Utilizar un agente extintor adecuado (polvo químico, espuma o CO₂) para apagarlo.
+P391: Recoger el vertido.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
 ## ACEITE ESENCIAL MANZANILLA
 
 - **Producto en catálogo:** ACEITE ESENCIAL MANZANILLA 5mL (`C-ACEESEMAN5mL`)
@@ -180,6 +401,136 @@ Generado por `scripts/reporte_fichas_vacias.py`. No editar a mano: los datos viv
 - [ ] Clasificación GHS (pictogramas, palabra de advertencia, frases H y P): ni Wikidata ni Wikipedia la registran para este aceite y PubChem no lo indexa como compuesto. Tomarla de la SDS del proveedor y completar la sección 2 y las líneas SEÑAL DE PELIGRO / INDICACIONES H antes de publicar.
 - [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente.
 - [ ] Confirmar con el proveedor la especie: manzanilla romana (Chamaemelum nobile) o manzanilla alemana/azul (Matricaria chamomilla, aceite de color azul por el camazuleno). La ficha antigua declara la romana, pero el color y el CAS cambian según la especie.
+
+## ACEITE ESENCIAL MENTA
+
+- **Producto en catálogo:** ACEITE ESENCIAL MENTA 5 mL (`C-ACEESEMEN5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_menta.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Menthol (mentol)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor. El perfil publicado no aporta inflamabilidad ni peligro por aspiracion; muchas SDS comerciales del aceite de menta piperita anaden H226, H304 y H411.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] El perfil GHS publicado proviene del mentol, que no aporta inflamabilidad ni peligro por aspiración; muchas SDS comerciales del aceite de menta piperita añaden H226, H304 y H411. Mientras el proveedor no lo confirme, la manipulación mantiene por precaución las medidas de producto inflamable.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de mentol y de mentona del lote.
+- [ ] Confirmar con el proveedor la especie del aceite que se vende como 'menta' (Mentha × piperita, Mentha arvensis o Mentha spicata): de ello dependen el CAS, el EINECS y el INCI de esta ficha y su diferencia con la referencia ACEITE ESENCIAL HIERBA BUENA.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Menthol (mentol) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Irritación cutánea, categoría 2 (H315); lesiones oculares graves o irritación ocular, categoría 2 (H319). Palabra de advertencia: Atención.
+
+```
+GHS07 - Signo de exclamación
+H315: Provoca irritación cutánea.
+H319: Provoca irritación ocular grave.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P305 + P351 + P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado.
+P332 + P313: En caso de irritación cutánea: Consultar a un médico.
+P337 + P313: Si persiste la irritación ocular: Consultar a un médico.
+P362 + P364: Quitar las prendas contaminadas y lavarlas antes de volver a usarlas.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
+## ACEITE ESENCIAL NARANJA
+
+- **Producto en catálogo:** ACEITE ESENCIAL NARANJA 5mL (`C-ACEESENAR5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_naranja.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Limonene (d-limoneno)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente. Pedir el contenido de limoneno del lote.
+- [ ] Definir el EINECS: Wikidata asocia el EC 232-433-8 a un ítem 'Orange Oil' con CAS 8028-48-6 distinto del 8008-57-9 usado aquí; tomar el par CAS/EC que use la SDS del proveedor.
+- [ ] Confirmar con el proveedor el método de obtención (prensado en frío de la cáscara, que es lo habitual, o arrastre con vapor como decía la ficha antigua).
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Limonene (d-limoneno) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Líquido inflamable, categoría 3 (H226); peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); peligro acuático crónico, categoría 1 (H410). Palabra de advertencia: Peligro.
+
+```
+GHS02 - Llama
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H226: Líquidos y vapores inflamables.
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H410: Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P210: Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.
+P233: Mantener el recipiente herméticamente cerrado.
+P240: Conectar a tierra y enlace equipotencial del recipiente y del equipo receptor.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P370 + P378: En caso de incendio: Utilizar un agente extintor adecuado (polvo químico, espuma o CO₂) para apagarlo.
+P391: Recoger el vertido.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
+
+## ACEITE ESENCIAL PINO
+
+- **Producto en catálogo:** ACEITE ESENCIAL PINO 5mL (`C-ACEESNPIN5mL`)
+- **Archivo:** `fichas_word/datos/vacio_ft_coa_sds_aceite_esencial_pino.yaml`
+- **Campos vacíos:** `composicion`, `grado`
+- **Por qué:** La clasificacion GHS que traia se dedujo de su componente mayoritario (Alpha-Pinene (alfa-pineno)) y no de un ensayo sobre el aceite, que es justo lo que la regla no permite. Se vacio la seccion 2 y se guardo lo que decia en `_ghs_derivado_descartado` para poder compararlo con la SDS del proveedor.
+
+**Qué hay que conseguir:**
+
+- [ ] Clasificacion GHS completa (pictogramas, palabra de advertencia, frases H y P) de la SDS del proveedor.
+- [ ] Composición: los constituyentes principales con su rango (cromatografía GC del lote) deben venir del COA/SDS del proveedor; no se incluyen porcentajes sin fuente.
+- [ ] Confirmar con el proveedor la especie y el par CAS/EINECS de su SDS: Wikidata asigna 8023-99-2 a Pinus sylvestris y 8000-26-8 (EC 616-768-0) a Pinus mugo, y muchas SDS comerciales usan el 8000-26-8 para el aceite de pino silvestre. No debe confundirse con el aceite de pino industrial (8002-09-3).
+- [ ] Confirmar que el producto es aceite esencial de acículas y no aceite de pino industrial obtenido de tocones, que tiene otro uso y otro perfil de peligros.
+
+<details><summary>Clasificación GHS que traía, descartada por deducirse de Alpha-Pinene (alfa-pineno) — sirve para contrastar con la del proveedor</summary>
+
+**Clasificación:** Líquido inflamable, categoría 3 (H226); toxicidad aguda por vía oral, categoría 4 (H302); peligro por aspiración, categoría 1 (H304); irritación cutánea, categoría 2 (H315); sensibilización cutánea, categoría 1 (H317); peligro acuático crónico, categoría 1 (H410). Palabra de advertencia: Peligro.
+
+```
+GHS02 - Llama
+GHS07 - Signo de exclamación
+GHS08 - Peligro para la salud
+GHS09 - Medio ambiente
+H226: Líquidos y vapores inflamables.
+H302: Nocivo en caso de ingestión.
+H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias.
+H315: Provoca irritación cutánea.
+H317: Puede provocar una reacción alérgica en la piel.
+H410: Muy tóxico para los organismos acuáticos, con efectos nocivos duraderos.
+P210: Mantener alejado del calor, de superficies calientes, de chispas, de llamas abiertas y de cualquier otra fuente de ignición. No fumar.
+P233: Mantener el recipiente herméticamente cerrado.
+P240: Conectar a tierra y enlace equipotencial del recipiente y del equipo receptor.
+P264: Lavarse concienzudamente las manos tras la manipulación.
+P270: No comer, beber ni fumar mientras se manipula este producto.
+P272: Las prendas de trabajo contaminadas no podrán sacarse del lugar de trabajo.
+P273: Evitar su liberación al medio ambiente.
+P280: Llevar guantes de protección y gafas de protección o protección facial.
+P301 + P310: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico.
+P331: No provocar el vómito.
+P302 + P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón.
+P333 + P313: En caso de irritación o erupción cutánea: Consultar a un médico.
+P370 + P378: En caso de incendio: Utilizar un agente extintor adecuado (polvo químico, espuma o CO₂) para apagarlo.
+P391: Recoger el vertido.
+P403 + P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco.
+P501: Eliminar el contenido y el recipiente conforme a la reglamentación local vigente.
+```
+
+</details>
 
 ## VITAMINA C
 

@@ -5953,3 +5953,28 @@ Sin turnos del agente en las últimas 24 h.
 ✅ Sin pedidos pagados recientes con aviso pendiente.
 [auditor_canales 2026-09-11T22:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (657 min), +57 300 394 5052 (453 min), +57 315 243 2496 (231 min)
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 57a895a] Auto-commit: actualizacion diaria 2026-09-11 23:00
+ 11 files changed, 382 insertions(+), 34 deletions(-)
+ create mode 100644 docs/fichas_vacias_pendientes.md
+ create mode 100644 scripts/reporte_fichas_vacias.py
+[2026-09-11 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-11 23:00'
+[auditor_canales 2026-09-11T23:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (687 min), +57 300 394 5052 (483 min), +57 315 243 2496 (261 min)
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-11T23:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 313 623 5399 (717 min), +57 300 394 5052 (513 min), +57 315 243 2496 (291 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-12T00:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 300 394 5052 (543 min), +57 315 243 2496 (321 min)
+🔎 Auto-posteando contabilidad 2026-09-02 → 2026-09-12…
+✅ Token de Mercado Libre refrescado exitosamente.
+   20 creado(s), 607 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-12T00:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 300 394 5052 (573 min), +57 315 243 2496 (351 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-12T01:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 300 394 5052 (603 min), +57 315 243 2496 (381 min)
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-12T01:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 300 394 5052 (633 min), +57 315 243 2496 (411 min)
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-12T02:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 300 394 5052 (663 min), +57 315 243 2496 (441 min)

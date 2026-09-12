@@ -42,6 +42,20 @@ def sku_de(titulo, prods):
     return (mejor[1], mejor[2]) if mejor else ("", "")
 
 
+def _obsoleta(pendiente, ficha):
+    """Viñetas que ya no aplican tras vaciar la ficha.
+
+    - 'Cotejar la clasificación GHS...' hablaba de una clasificación que ya se descartó.
+    - 'El producto no aparece en el catálogo...' sobra cuando sí se le encontró SKU.
+    """
+    t = pendiente.strip().lower()
+    if t.startswith("cotejar la clasificaci"):
+        return True
+    if t.startswith("el producto no aparece en el cat") and ficha.get("sku"):
+        return True
+    return False
+
+
 def main():
     prods = catalogo()
     vacias = []
@@ -60,6 +74,7 @@ def main():
             "pendientes": d.get("_vacio_pendientes") or [],
             "vacios": [k for k in ("cas", "sinonimos", "composicion", "grado")
                        if d.get(k) in ("", [], None)],
+            "ghs_descartado": d.get("_ghs_derivado_descartado") or {},
         })
 
     L = []
@@ -89,8 +104,25 @@ def main():
         L.append("**Qué hay que conseguir:**")
         L.append("")
         for p in v["pendientes"]:
+            if _obsoleta(p, v):
+                continue
             L.append("- [ ] %s" % p)
         L.append("")
+        g = v["ghs_descartado"]
+        if g.get("clasificacion") or g.get("pictogramas"):
+            L.append("<details><summary>Clasificación GHS que traía, descartada por deducirse de %s"
+                     " — sirve para contrastar con la del proveedor</summary>" % g.get("derivado_de", "?"))
+            L.append("")
+            if g.get("clasificacion"):
+                L.append("**Clasificación:** %s" % g["clasificacion"])
+                L.append("")
+            if g.get("pictogramas"):
+                L.append("```")
+                L.append(str(g["pictogramas"]).rstrip())
+                L.append("```")
+            L.append("")
+            L.append("</details>")
+            L.append("")
 
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
     with open(SALIDA, "w", encoding="utf-8") as fh:

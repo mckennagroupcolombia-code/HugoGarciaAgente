@@ -36,20 +36,24 @@ interface Props {
  *
  *   ┌───────────────────────┬──────────────┐
  *   │ NOMBRE DEL PRODUCTO   │    LOGO      │
- *   │                       ├──────────────┤  ┐
- *   │                       │ INF. TÉCNICA │  │ banda
- *   │ ███ INSUMO GRADO ███  │ ███ www… ███ │  │ «cabeza»
- *   ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼──────────────┤  ┘  ← guía compartida
- *   │ CONTENIDO NETO: 500 g │  ▌▌▐▌▌▐▐▌▌   │
- *   │ origen · conservación │              │
- *   │ alérgenos             │  ┌────────┐  │  ← timbre
+ *   │                       ├──────────────┤  cabeza
+ *   │                       │ INF. TÉCNICA │
+ *   │ ███ INSUMO GRADO ███  │ ███ www… ███ │
+ *   ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼──────────────┤  ← las dos barras
+ *   │      ⊕ ORIGEN: …      │              │
+ *   │    CONTENIDO NETO     │  ▌▌▐▌▌▐▐▌▌   │  medio
+ *   │        500 g          │              │
+ *   ├───────────────────────┼──────────────┤  ← raya = techo del timbre
+ *   │ ⊕ conservación        │ ┌──────────┐ │  pie
+ *   │ ⚠ alérgenos           │ └──────────┘ │
  *   ├───────────────────────┴──────────────┤
  *   │ ubicación · teléfono · correo        │
  *   └──────────────────────────────────────┘
  *
- * La primera fila del panel («cabeza») es común a las dos columnas: las dos
- * barras del acento van pegadas a su borde inferior con el mismo respiro, así
- * terminan en la misma línea mida lo que mida el nombre o el logo.
+ * Las dos columnas comparten las mismas filas, así cada división cae a la
+ * misma altura a un lado y al otro. El pie lo fija el timbre (10 mm reales) y
+ * lo que sobra se parte en sección áurea entre la cabeza y el medio; dentro
+ * de cada fila el texto se encoge para caber, que la retícula no se mueve.
  *
  * Es el nodo que se rasteriza para el PNG y la impresión (a su tamaño de
  * diseño); quien la muestra la escala desde afuera.
@@ -63,6 +67,9 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
    *  que su texto, así que medir contra su propia caja siempre daba "no cabe"
    *  (la tinta de las letras sobresale 2 px) y lo dejaba al mínimo. */
   const cabezaRef = useRef<HTMLDivElement>(null);
+  /** La fila del medio: el contenido neto se encoge si, con el origen encima,
+   *  no cabe en ella (las filas son fijas — es el texto el que se adapta). */
+  const medioRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const [menuLogo, setMenuLogo] = useState(false);
   /** Celda cuyo ícono se está cambiando en la galería (una sola instancia). */
@@ -243,7 +250,8 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
         </div>
 
         {/* Bajo la guía · producto: contenido neto y datos */}
-        <div className="es-cuerpo-izq">
+        {/* Fila 2 · producto: origen y contenido neto */}
+        <div ref={medioRef} className="es-medio-izq">
           {/* El origen encabeza la columna, sobre el contenido neto. Va en su
               propia lista para que el ícono y el texto queden en la misma
               vertical que los de conservación y alérgenos. */}
@@ -292,10 +300,25 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
               mostrar={textoContenidoNeto}
               tam={TAM_SIMPLE.neto}
               maxLineas={1}
+              cajaRef={medioRef}
               className="es-neto-valor"
             />
           </div>
+        </div>
 
+        {/* Fila 2 · marca: el código de barras se lleva la fila entera */}
+        <div className="es-medio-der">
+          <BarcodeSection
+            value={data.barcode}
+            editMode={editable}
+            onChange={(v) => onChange?.({ barcode: v })}
+            onElegirCodigo={onElegirCodigo}
+          />
+        </div>
+
+        {/* Fila 3 · producto: conservación y alérgenos, bajo la raya que marca
+            la guía compartida con el marco del timbre */}
+        <div className="es-pie-izq">
           <div className="es-datos">
             <div className="es-dato">
               <button
@@ -348,19 +371,10 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
           </div>
         </div>
 
-        {/* Bajo la guía · marca: código de barras y timbre */}
-        <div className="es-cuerpo-der">
-          <BarcodeSection
-            value={data.barcode}
-            editMode={editable}
-            onChange={(v) => onChange?.({ barcode: v })}
-            onElegirCodigo={onElegirCodigo}
-          />
-          {/* Espacio reservado para el timbre físico (lote, fecha…): un
-              recuadro vacío de 10 mm de alto con borde del acento. */}
-          <div className="es-timbre">
-            <div className="es-timbre-caja">{editMode && <span className="es-timbre-nota">Timbre</span>}</div>
-          </div>
+        {/* Fila 3 · marca: espacio en blanco para el timbre físico (lote,
+            fecha…), 10 mm reales que arrancan en la raya. */}
+        <div className="es-pie-der">
+          <div className="es-timbre-caja">{editMode && <span className="es-timbre-nota">Timbre</span>}</div>
         </div>
 
         {onIconChange && (

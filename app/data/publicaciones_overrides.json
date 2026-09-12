@@ -105,10 +105,6 @@
     "meli_item_id": "1102402049",
     "updated_at": "2026-06-12T01:10:33.485411"
   },
-  "C-ACEIESENROM5mL": {
-    "meli_item_id": "1278678363",
-    "updated_at": "2026-06-12T01:10:55.054039"
-  },
   "FOR-ACISALmL": {
     "estado_meli_config": "omitir",
     "updated_at": "2026-06-12T01:23:18.615895"
@@ -700,5 +696,9 @@
   "ALCPRFLT": {
     "meli_item_id": "MCO611941575",
     "updated_at": "2026-09-04T11:13:40.462028"
+  },
+  "C-ACEESEROM5mL": {
+    "meli_item_id": "1278678363",
+    "updated_at": "2026-06-12T01:10:55.054039"
   }
 }

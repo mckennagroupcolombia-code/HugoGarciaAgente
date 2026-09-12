@@ -2,16 +2,23 @@
  * Etiqueta 69 × 51 mm — diagramación simple (Semillas & Frutos Secos).
  *
  * Un solo panel con CSS Grid: columna de producto (58 %) y columna de marca
- * (42 %) separadas por una línea del acento, y la franja de contacto abajo a
- * todo el ancho (reglas `.e30-franja*` de la etiqueta 30 mL). Rellenos de un
- * solo color; las casillas se editan en el sitio (`.e30-campo`, en
- * etiqueta30ml.css) y el texto se encoge para caber (useAjusteTexto).
+ * (42 %) separadas por una línea del acento. Rellenos de un solo color; las
+ * casillas se editan en el sitio (`.e30-campo`, en etiqueta30ml.css) y el
+ * texto se encoge para caber (useAjusteTexto).
  *
- * Las dos columnas comparten la primera fila —la «cabeza», de alto fijo— para
- * que el recuadro «INSUMO GRADO …» y la barra de la web terminen en la misma
- * línea: las dos van pegadas a su borde inferior con el mismo respiro. Antes
- * cada una colgaba de su propia columna (del nombre una, del logo la otra) y
- * bailaban según lo que midiera el texto.
+ * Las dos columnas comparten las MISMAS filas, así cada división cae a la
+ * misma altura a un lado y al otro:
+ *
+ *   cabeza   nombre + «INSUMO GRADO …»   │  logo + inf. técnica + barra web
+ *   ──────────────────────────────────── guía: las dos barras del acento
+ *   medio    origen + contenido neto     │  código de barras
+ *   ──────────────────────────────────── guía: raya del neto = alto del timbre
+ *   pie      conservación + alérgenos    │  marco del timbre
+ *   ────────────────────────────────────
+ *   franja   ubicación · teléfono · correo
+ *
+ * El pie lo fija el timbre (10 mm reales); el alto que queda libre se reparte
+ * entre cabeza y medio en proporción áurea (ver `reticulaSimple`).
  */
 
 .es-etiqueta {
@@ -46,22 +53,28 @@
 .es-panel {
   display: grid;
   grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
-  /* Cabeza (guía compartida) · cuerpo · franja de contacto. */
-  grid-template-rows: var(--es-cabeza) minmax(0, 1fr) var(--es-franja);
+  grid-template-rows: var(--es-cabeza) var(--es-medio) var(--es-pie) var(--es-franja);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: var(--es-borde) solid var(--acento);
-  border-radius: var(--es-radio);
   background: #ffffff;
 }
 
 .es-panel > * {
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 
-/* ── Banda superior: la guía compartida ──────────────────────────────────── */
+/* La línea que parte las dos columnas la dibuja cada celda de la izquierda:
+   así corre entera de arriba abajo aunque las filas sean independientes. */
+.es-cabeza-izq,
+.es-medio-izq,
+.es-pie-izq {
+  border-right: var(--es-linea) solid var(--acento);
+}
+
+/* ── Fila 1 · cabeza: la guía de las dos barras del acento ───────────────── */
 
 /* Cada mitad reparte su alto entre lo de arriba (nombre · logo), que se
    estira, y la barra del acento, que mide lo suyo. El mismo `padding-bottom`
@@ -69,9 +82,6 @@
 .es-cabeza {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
   padding-bottom: var(--es-respiro);
 }
 
@@ -83,7 +93,6 @@
   padding-top: 22px;
   padding-right: 26px;
   padding-left: 26px;
-  border-right: var(--es-linea) solid var(--acento);
   /* Sin raya, pero con el mismo grosor abajo que la mitad derecha: si no, su
      barra quedaría los 1,5 px de la línea más arriba que este recuadro. */
   border-bottom: var(--es-linea) solid transparent;
@@ -176,24 +185,18 @@
   border-bottom-color: rgba(255, 255, 255, 0.85);
 }
 
-/* Cuerpo de la columna: contenido neto y la lista de datos, centrados en lo
-   que queda bajo la banda. */
+/* ── Fila 2 · medio: origen y contenido neto ─────────────────────────────── */
+
 /* Mismo aire entre el recuadro del grado, el origen y el contenido neto: el
    hueco bajo la barra (`--es-respiro` más la línea de la banda) es también la
-   separación entre las filas, así los tres respiran igual. El sobrante de la
-   columna se lo lleva la tercera fila, que baja la lista de conservación y
-   alérgenos al pie. */
-.es-cuerpo-izq {
+   separación entre estas filas y el que queda antes de la raya del pie. */
+.es-medio-izq {
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto;
+  align-content: start;
   justify-items: center;
   row-gap: calc(var(--es-respiro) + var(--es-linea));
-  padding: 0 26px 18px;
-  overflow: hidden;
-  border-right: var(--es-linea) solid var(--acento);
-}
-.es-cuerpo-izq > .es-datos:not(.es-datos-origen) {
-  align-self: end;
+  padding: 0 26px calc(var(--es-respiro) + var(--es-linea));
 }
 
 .es-neto {
@@ -222,9 +225,19 @@
   color: #111111;
 }
 
+/* ── Fila 3 · pie: conservación y alérgenos ──────────────────────────────── */
+
+.es-pie-izq {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding: 0 26px 14px;
+}
+
 /* Lista de datos: los íconos en una columna y los textos arrancando todos a
    la misma altura (con `display: contents`, cada dato aporta sus dos celdas
-   a esta misma retícula). */
+   a esta misma retícula). Su raya de arriba es la guía que comparte con el
+   marco del timbre, al otro lado de la etiqueta. */
 .es-datos {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -236,10 +249,9 @@
   border-top: var(--es-linea) solid var(--acento);
 }
 
-/* La del origen encabeza la columna: sin raya arriba (la raya separa el
-   contenido neto de conservación y alérgenos, más abajo) y, al ser un dato
-   solo, no sigue la retícula de dos columnas de la lista: ícono y texto van
-   juntos y centrados en la columna, como el nombre y el contenido neto. */
+/* La del origen encabeza la fila del medio: sin raya arriba y, al ser un dato
+   solo, no sigue la retícula de dos columnas de la lista — ícono y texto van
+   juntos y centrados, como el nombre y el contenido neto. */
 .es-datos-origen {
   display: flex;
   align-items: center;
@@ -279,9 +291,9 @@
   flex: 1 1 auto;
   min-width: 0;
 }
-/* En esta lista el texto va alineado a la izquierda, no centrado. */
-.es-cuerpo-izq .es-dato-cuerpo,
-.es-cuerpo-izq .es-dato-cuerpo :where(.e30-campo) {
+/* En la lista del pie el texto va alineado a la izquierda, no centrado. */
+.es-pie-izq .es-dato-cuerpo,
+.es-pie-izq .es-dato-cuerpo :where(.e30-campo) {
   text-align: left;
 }
 
@@ -318,48 +330,16 @@
 
 /* Textos centrados en esta columna (también en edición). */
 .es-cabeza-izq,
-.es-cuerpo-izq,
+.es-medio-izq,
+.es-pie-izq,
 .es-cabeza-izq :where(.e30-campo),
-.es-cuerpo-izq :where(.e30-campo) {
+.es-medio-izq :where(.e30-campo),
+.es-pie-izq :where(.e30-campo) {
   text-align: center;
 }
 
 
 /* ── Columna de marca ────────────────────────────────────────────────────── */
-
-/* Bajo la banda: el código de barras se queda con el alto que sobre (cuanto
-   más grande, mejor lee el escáner) y el timbre mide sus 10 mm. */
-.es-cuerpo-der {
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  overflow: hidden;
-}
-
-/* Recuadro en blanco para el timbre físico. La palabra «Timbre» solo se ve
-   en edición (el PNG y la impresión se generan en modo vista). */
-.es-timbre {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0 14px;
-}
-.es-timbre-caja {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 86%;
-  height: var(--es-timbre);
-  border: var(--es-linea) solid var(--acento);
-  border-radius: 4px;
-  background: #ffffff;
-}
-.es-timbre-nota {
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #b4b4b4;
-}
 
 /* Información técnica, como en las demás etiquetas: dónde consultar la
    TDS / COA. Cierra la banda superior — su último renglón es la barra de la
@@ -431,19 +411,51 @@
   width: 82%;
 }
 
-.es-cuerpo-der .e30-barras {
+/* El código de barras se queda con la fila del medio entera: cuanto más
+   grande, mejor lee el escáner. */
+.es-medio-der {
+  display: grid;
+}
+.es-medio-der .e30-barras {
   padding: 10px 0;
 }
-.es-cuerpo-der .e30-barras-boton {
+.es-medio-der .e30-barras-boton {
   width: 96%;
+}
+
+/* Espacio en blanco para el timbre físico: 10 mm reales pegados al borde
+   superior de la fila, para que su marco arranque justo en la raya que al
+   otro lado separa el contenido neto de conservación y alérgenos. */
+.es-pie-der {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding: 0 0 var(--es-respiro);
+}
+.es-timbre-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 86%;
+  height: var(--es-timbre);
+  border: var(--es-linea) solid var(--acento);
+  border-radius: 4px;
+  background: #ffffff;
+}
+.es-timbre-nota {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b4b4b4;
 }
 
 /* ── Guías de la retícula (casilla «Retícula», solo en edición) ───────────── */
 
 .es-guias .es-panel > *,
 .es-guias .es-cabeza > *,
-.es-guias .es-cuerpo-izq > *,
-.es-guias .es-cuerpo-der > * {
+.es-guias .es-medio-izq > *,
+.es-guias .es-pie-izq > * {
   outline: 1px dashed rgba(0, 140, 255, 0.8);
   outline-offset: -1px;
 }

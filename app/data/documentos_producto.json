@@ -483,27 +483,6 @@
       ],
       "updated_at": "2026-07-19T06:35:40+00:00"
     },
-    "C-ACEIESENROM5ML": {
-      "ref": "C-ACEIESENROM5ML",
-      "nombre": "ACETE ESENCIAL ROMERO",
-      "lotes": [
-        {
-          "lote_numero": "QZW988",
-          "estado": "nuevo",
-          "fabricante": "",
-          "pais_origen": "",
-          "fecha_fabricacion": "",
-          "fecha_vencimiento": "",
-          "fecha_recepcion": "2026-07-19",
-          "codigo_verificacion": "23YPXQ",
-          "ft_webViewLink": "",
-          "coa_webViewLink": "",
-          "vigente": true,
-          "registrado_en": "2026-07-19T06:35:40+00:00"
-        }
-      ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
-    },
     "C-ACIAZE10G": {
       "ref": "C-ACIAZE10G",
       "nombre": "ACIDO AZELAICO",
@@ -4297,6 +4276,27 @@
         }
       ],
       "updated_at": "2026-08-26T22:39:56+00:00"
+    },
+    "C-ACEESEROM5mL": {
+      "ref": "C-ACEESEROM5mL",
+      "nombre": "ACEITE ESENCIAL ROMERO",
+      "lotes": [
+        {
+          "lote_numero": "QZW988",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-07-19",
+          "codigo_verificacion": "23YPXQ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-07-19T06:35:40+00:00"
+        }
+      ],
+      "updated_at": "2026-07-19T06:35:40+00:00"
     }
   }
 }
