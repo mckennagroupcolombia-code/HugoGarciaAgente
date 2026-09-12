@@ -5380,6 +5380,67 @@ def _chat_rate_limit_excedido(session_id: str) -> bool:
     return False
 
 
+def _agregar_al_carrito_sesion(ref: str, qty: int) -> int:
+    """Mismo criterio que /carrito/agregar (comprable, precio, tope de stock), sin redirección.
+    Devuelve la cantidad realmente agregada."""
+    p = find_product(ref)
+    if not p or p.get("is_family") or not p.get("buyable"):
+        return 0
+    try:
+        price = float(p.get("precio_num") or 0)
+    except (TypeError, ValueError):
+        price = 0.0
+    if price <= 0:
+        return 0
+    cart_key = p.get("slug", ref).strip().lower()
+    cart = session.get("cart", {})
+    ya = cart.get(cart_key, {}).get("qty", 0)
+    stock = p.get("stock")
+    if stock is not None:
+        qty = min(qty, max(0, int(stock) - ya))
+    if qty <= 0:
+        return 0
+    if cart_key in cart:
+        cart[cart_key]["qty"] += qty
+    else:
+        cart[cart_key] = {
+            "name": p["name"],
+            "ref": p["ref"],
+            "price": price,
+            "qty": qty,
+            "photo": p.get("photo", ""),
+            "slug": cart_key,
+            "envio_gratis_web": bool(p.get("envio_gratis_web", False)),
+        }
+    session["cart"] = cart
+    session.modified = True
+    return qty
+
+
+def _aplicar_acciones_chat(acciones: list) -> list:
+    """
+    Acciones que devuelve el agente de ventas del chat (app/agent/ventas_wa):
+    'carrito' se aplica aquí, en la sesión del visitante (el agente en :8081 no
+    tiene su cookie); 'whatsapp' pasa tal cual para que la burbuja muestre el botón.
+    """
+    out = []
+    for a in acciones if isinstance(acciones, list) else []:
+        if not isinstance(a, dict):
+            continue
+        if a.get("tipo") == "carrito":
+            agregados = 0
+            for it in a.get("items") or []:
+                try:
+                    agregados += _agregar_al_carrito_sesion(str(it.get("ref") or ""), max(1, int(it.get("cantidad") or 1)))
+                except Exception as e:
+                    log.warning("chat carrito: %s", e)
+            if agregados:
+                out.append({"tipo": "carrito", "url": url_for("carrito"), "unidades": agregados})
+        elif a.get("tipo") == "whatsapp" and str(a.get("url") or "").startswith("https://wa.me/"):
+            out.append({"tipo": "whatsapp", "url": a["url"], "codigo": str(a.get("codigo") or "")[:20]})
+    return out
+
+
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
     """Proxy público hacia el agente Hugo García (puerto 8081)."""
@@ -5435,7 +5496,8 @@ def api_chat():
             reply = (body.get("respuesta") or body.get("reply") or "").strip()
             if reply:
                 source = body.get("source") or "agent"
-                return jsonify({"reply": reply, "ok": True, "source": source})
+                acciones = _aplicar_acciones_chat(body.get("acciones") or [])
+                return jsonify({"reply": reply, "ok": True, "source": source, "acciones": acciones})
             upstream_err = "upstream_200_vacio"
             log.warning("api_chat: 200 pero respuesta vacía")
         else:

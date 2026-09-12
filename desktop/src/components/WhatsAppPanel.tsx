@@ -4,6 +4,7 @@ import { ProseTextarea } from "./ProseTextarea";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import ImageLightbox from "./ImageLightbox";
 import WhatsAppMetricas from "./WhatsAppMetricas";
+import WhatsAppPedidosIA from "./WhatsAppPedidosIA";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { Icon, type UiIconName } from "../icons";
 import { AddIconButton } from "./AddIconButton";
@@ -149,7 +150,7 @@ const TIPO_LABEL: Record<string, { label: string; color: string }> = {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────
 
-type Tab = "chats" | "filtro" | "metricas" | "control" | "cuenta" | "numeros" | "interacciones";
+type Tab = "chats" | "pedidos" | "filtro" | "metricas" | "control" | "cuenta" | "numeros" | "interacciones";
 
 interface BridgeSesion {
   conectado: boolean;
@@ -174,6 +175,7 @@ interface BridgeStatus {
 function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab) => void; noLeidos?: number }) {
   const tabs: { id: Tab; label: string; icon: UiIconName }[] = [
     { id: "chats",         label: "Chats",     icon: "chat" },
+    { id: "pedidos",       label: "Pedidos IA", icon: "cart" },
     { id: "filtro",        label: "Filtro",    icon: "funnel" },
     { id: "metricas",      label: "Métricas",  icon: "chartBar" },
     { id: "control",       label: "Control",   icon: "wrench" },
@@ -1499,7 +1501,7 @@ function BibliotecaDrawer({ jid, onClose }: { jid: string; onClose: () => void }
   );
 }
 
-function TabChats() {
+function TabChats({ abrirJid, onAbierto }: { abrirJid?: string | null; onAbierto?: () => void } = {}) {
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
   const [noLeidos, setNoLeidos]             = useState(0);
   const [jidActivo, setJidActivo]           = useState<string | null>(null);
@@ -1601,6 +1603,19 @@ function TabChats() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes.length]);
+
+  // Llegada desde "Pedidos IA": abrir la conversación pedida (la lista agrupa
+  // @lid y @c.us del mismo cliente, así que se compara por jid o teléfono).
+  useEffect(() => {
+    if (!abrirJid || conversaciones.length === 0) return;
+    const digitos = abrirJid.replace(/\D/g, "");
+    const conv =
+      conversaciones.find((c) => c.jid === abrirJid || c.jid_raw === abrirJid) ??
+      conversaciones.find((c) => !!c.telefono && c.telefono.replace(/\D/g, "").endsWith(digitos.slice(-10)));
+    abrirChat(conv ?? { jid: abrirJid, ts: 0, texto: null, direccion: "entrada", tiene_media: 0, enviado_por: "", no_leidos: 0 });
+    onAbierto?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirJid, conversaciones]);
 
   function abrirChat(conv: Conversacion) {
     setJidActivo(conv.jid);
@@ -1963,8 +1978,9 @@ function TabFiltroRespuesta() {
 
 export default function WhatsAppPanel() {
   const [tab, setTab] = useState<Tab>("chats");
+  const [jidPorAbrir, setJidPorAbrir] = useState<string | null>(null);
   const [noLeidos, setNoLeidos] = useState(0);
-  const wide = tab === "chats" || tab === "metricas";
+  const wide = tab === "chats" || tab === "metricas" || tab === "pedidos";
 
   // Polling ligero del contador de no leídos para el badge del TabBar
   useEffect(() => {
@@ -1990,7 +2006,15 @@ export default function WhatsAppPanel() {
 
       <TabBar active={tab} onChange={setTab} noLeidos={noLeidos} />
 
-      {tab === "chats"         && <TabChats />}
+      {tab === "chats"         && <TabChats abrirJid={jidPorAbrir} onAbierto={() => setJidPorAbrir(null)} />}
+      {tab === "pedidos"       && (
+        <WhatsAppPedidosIA
+          onAbrirChat={(jid) => {
+            setJidPorAbrir(jid);
+            setTab("chats");
+          }}
+        />
+      )}
       {tab === "filtro"        && <TabFiltroRespuesta />}
       {tab === "metricas"      && <WhatsAppMetricas />}
       {tab === "control"       && <TabControl />}

@@ -2352,6 +2352,10 @@ button { cursor: pointer; }
 .chat-bubble { max-width: 82%; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; border-radius: 2px; }
 .chat-msg-user .chat-bubble { background: var(--green-dark); color: #fff; border-bottom-right-radius: 0; }
 .chat-msg-bot  .chat-bubble { background: #fff; color: var(--text-dark); border: 1.5px solid var(--green-pale); border-bottom-left-radius: 0; }
+.chat-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chat-accion { display: inline-block; padding: 6px 10px; font-size: 12px; font-weight: 600; text-decoration: none; border-radius: 2px; }
+.chat-accion-carrito { background: var(--green-dark); color: #fff; }
+.chat-accion-whatsapp { background: #25d366; color: #0b3d1f; }
 .chat-time { font-size: 9px; color: var(--text-muted); margin-top: 3px; letter-spacing: .5px; }
 
 /* Typing animation */

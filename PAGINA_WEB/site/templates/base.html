@@ -574,6 +574,26 @@ fbq('track','PageView');
     return bubble;
   }
 
+  // Botones que devuelve el agente de ventas: carrito listo o continuar por WhatsApp
+  // con el código del pedido (el asesor lo retoma sin volver a preguntar).
+  function renderAcciones(bubble, acciones){
+    var cont = null;
+    acciones.forEach(function(a){
+      var href = String(a.url || '');
+      var txt = '';
+      if(a.tipo === 'carrito' && href.charAt(0) === '/') txt = '🛒 Ver carrito y pagar';
+      else if(a.tipo === 'whatsapp' && href.indexOf('https://wa.me/') === 0) txt = '💬 Continuar por WhatsApp' + (a.codigo ? ' (' + a.codigo + ')' : '');
+      if(!txt) return;
+      if(!cont){ cont = document.createElement('div'); cont.className = 'chat-acciones'; bubble.appendChild(cont); }
+      var el = document.createElement('a');
+      el.className = 'chat-accion chat-accion-' + a.tipo;
+      el.href = href;
+      el.textContent = txt;
+      if(a.tipo === 'whatsapp'){ el.target = '_blank'; el.rel = 'noopener'; }
+      cont.appendChild(el);
+    });
+  }
+
   function setTyping(show){
     const id = 'chat-typing';
     let el = document.getElementById(id);
@@ -633,7 +653,14 @@ fbq('track','PageView');
       });
       const data = await res.json();
       setTyping(false);
-      addMsg(data.reply || 'Ups, no pude procesar tu mensaje. Intenta de nuevo.', 'bot');
+      if(data.source === 'agent_v2'){
+        // Agente de ventas: texto del modelo siempre escapado (solo **negrita** y saltos).
+        var html = esc(data.reply || '').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+        var bubble = addMsg(html, 'bot', true);
+        renderAcciones(bubble, data.acciones || []);
+      } else {
+        addMsg(data.reply || 'Ups, no pude procesar tu mensaje. Intenta de nuevo.', 'bot');
+      }
     } catch(e){
       setTyping(false);
       addMsg('Hubo un error de conexión. Escríbenos directamente por WhatsApp.', 'bot');

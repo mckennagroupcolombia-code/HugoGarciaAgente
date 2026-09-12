@@ -47,6 +47,13 @@ app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)
 app/data/empaque_uploads/
 app/data/empaque_evidencia.db
+# Agente de ventas WA v2: pedidos en curso, pausas y bitácora de turnos (runtime)
+app/data/ventas_wa.db
+app/data/ventas_wa.db-*
+app/data/ventas_wa_sombra.db
+app/data/ventas_wa_sombra.db-*
+# Estado del auditor de canales (runtime)
+app/data/auditor_canales.json
 
 # Bases de datos y cache
 mckenna_business.db
