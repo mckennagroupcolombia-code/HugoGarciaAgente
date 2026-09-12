@@ -2961,22 +2961,10 @@ export default function ComprasExteriorPanel() {
         <label className="block text-[10px]">
           <span className="font-bold text-muted">Cuota manejo %</span>
           <input
-            type="number"
-            min={0.01}
-            max={100}
-            step="0.1"
-            value={cuotaManejoPct}
-            onChange={(e) => setCuotaManejoPct(e.target.value)}
-            onBlur={() => {
-              const v = n(cuotaManejoPct);
-              if (!Number.isFinite(v) || v <= 0) {
-                setCuotaManejoPct(String(CUOTA_MANEJO_PCT_DEFAULT));
-              } else if (v > 100) {
-                setCuotaManejoPct("100");
-              }
-            }}
-            title="Porcentaje de cuota de manejo sobre la mercancía (editable)"
-            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
+            value={`${cuotaManejoPct}%`}
+            readOnly
+            title="Cuota de manejo fija del 5% sobre la mercancía desde el 11-sep-2026 (las compras anteriores conservan la suya)"
+            className="mt-0.5 w-full cursor-not-allowed rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono text-muted"
           />
         </label>
         <label className="col-span-2 block text-[10px]">

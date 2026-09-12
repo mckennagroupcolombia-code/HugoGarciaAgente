@@ -233,10 +233,19 @@ def _guardar_en_cache(filas: list[dict]) -> None:
 def _clave_item(sku: str | None, nombre: str | None) -> str:
     """Clave para parear una línea comprada con una facturada. El SKU manda; el
     nombre es el respaldo para líneas sin SKU (el listado de órdenes de MeLi no
-    siempre trae `seller_custom_field`, a diferencia del GET individual)."""
+    siempre trae `seller_custom_field`, a diferencia del GET individual).
+
+    El SKU se pasa por la tabla de equivalencias de venta (ver
+    `alegra.resolver_producto_venta_alegra`): cuando el producto entró a Alegra
+    con el código de compra, la línea comprada trae el SKU de MeLi y la
+    facturada la reference de Alegra. Sin esto el cruce las ve como productos
+    distintos y marca "facturada_parcial" una factura correcta — falso positivo
+    que lleva a "corregir" con nota crédito lo que estaba bien."""
     s = (sku or "").strip().upper()
     if s and s != "—":
-        return s
+        from app.services.alegra import _alias_sku_venta
+
+        return _alias_sku_venta().get(s, s).strip().upper()
     return (nombre or "").strip().upper()[:40]
 
 

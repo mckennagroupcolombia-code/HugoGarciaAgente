@@ -131,3 +131,29 @@ def test_resumen_para_el_panel():
     assert c26["minimo_cop"] == pytest.approx(27 * 52_374, abs=1)
     # Sin UVT del año, el mínimo en pesos queda en None y no en 0
     assert all(f["minimo_cop"] is None for f in resumen_conceptos(2027))
+
+
+def test_el_pago_del_350_no_resta_de_la_retencion_practicada(monkeypatch, tmp_path):
+    """Pagarle a la DIAN (débito 2365 / crédito Bancos) extingue la deuda; no es
+    retención "des-practicada". Contarlo dejó agosto-2026 en −$401.237 cuando se
+    habían practicado $196.763."""
+    import app.services.contabilidad_core as cc
+    from app.services.retenciones import resumen_periodo
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "c.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc.init_db()
+    with cc._conn() as con:
+        ids = {k: cc._cuenta_id_por_codigo(con, k) for k in ("1435", "2205", "2365", "1110")}
+    t = cc.crear_tercero({"nombre": "PRODUCTOS 3A SAS", "identificacion": "800158432"})
+    cc.crear_movimiento("2026-08-21", "Compra", [
+        {"cuenta_id": ids["1435"], "debito": 4_020_500, "credito": 0},
+        {"cuenta_id": ids["2365"], "debito": 0, "credito": 100_512, "tercero_id": t["id"],
+         "descripcion": "Retención compras 2,5%"},
+        {"cuenta_id": ids["2205"], "debito": 0, "credito": 3_919_988},
+    ])
+    cc.crear_movimiento("2026-08-20", "Pago PSE DIAN", [
+        {"cuenta_id": ids["2365"], "debito": 598_000, "credito": 0},
+        {"cuenta_id": ids["1110"], "debito": 0, "credito": 598_000},
+    ])
+    assert resumen_periodo(2026, 8)["total_retencion"] == pytest.approx(100_512)

@@ -47,7 +47,45 @@ extracto de agosto-septiembre se resuelve solo.
   **5120 Retenciones compra 2,5% por pagar**, así que el contador la ve al extraer.
 - Al pagarla: registrar el egreso contra 2365 para que deje de figurar como deuda.
 
-### 4. Retención no practicada en compras a proveedores — $3.109.562
+### 4. ~~Retención no practicada en compras a proveedores — $3.109.562~~ → SÍ SE DECLARÓ
+
+**✅ Resuelto el 2026-09-11 con los correos del contador (William Novoa,
+williamfer94@hotmail.com).** Él presenta el formulario 350 todos los meses, con
+retención por **compras** (renglones 36/49 personas jurídicas y 86/102 personas naturales):
+
+| Periodo 2026 | Base PJ | Ret. PJ | Base PN | Ret. PN | Total pagado |
+|---|---|---|---|---|---|
+| 1 ene | 13.028.000 | 326.000 | 4.629.000 | 116.000 | 442.000 |
+| 2 feb | 1.597.000 | 40.000 | 1.037.000 | 26.000 | 66.000 |
+| 3 mar | 12.706.000 | 318.000 | 1.898.000 | 47.000 | 365.000 |
+| 4 abr | 14.423.000 | 361.000 | 11.204.000 | 280.000 | 641.000 |
+| 5 may | 8.523.000 | 213.000 | 9.497.000 | 237.000 | 450.000 |
+| 6 jun | 16.408.000 | 410.000 | 3.765.000 | 94.000 | 504.000 |
+| 7 jul | 19.513.000 | 488.000 | 4.409.000 | 110.000 | 598.000 |
+| **Total** | | | | | **3.066.000** |
+
+Coincide casi al peso con los $3,1M que aquí se daban por "no practicados". La
+retención existe y se paga. Lo que falta es que **el Libro Mayor no la registra**: la
+2365 solo recibe el débito del pago PSE, sin la causación en cada compra. Por eso
+quedaba en negativo y los pagos de julio y agosto "restaban" (arreglado en
+`retenciones.resumen_periodo`).
+
+**Backfill hecho el 11-sep:** 29 asientos `retencion_compra` (referencia `ret:<factura>`),
+$2.621.225 de enero a agosto, por tercero, con la base tomada del XML DIAN cuando existe.
+Los pagos a proveedores ya salían netos de retención (p. ej. Factores, 20-ago,
+$3.220.642 = factura − 2,5%), así que causarla deja la cuenta del proveedor en cero.
+
+Queda pendiente: (a) la diferencia mensual contra el 350 (~$896.000 en total) es la
+columna de **personas naturales**: facturas que el contador tiene y que nunca llegaron
+por el correo de facturas — pedirle el detalle por tercero (**TKT-2026-1301**); (b) que
+el auto-post de `compra_gmail` cause la retención de aquí en adelante; (c) **Motores y
+Reductores GM** quedó con 2205 en −$39.916: se declaró su retención pero se le pagó la
+factura completa, o sea que McKenna la asumió; (d) estos asientos **no** se espejaron a
+Alegra a propósito: allá todavía no están las compras (punto 6), y subir solo la
+retención dejaría la cuenta por pagar del proveedor en negativo. Van juntos. Los 350 descargados están en el correo de McKenna, remitente
+williamfer94@hotmail.com, asunto «RTF periodo N».
+
+*Texto original (superado), para la historia:*
 
 30 facturas de 2026 superan las 27 UVT y **no se les practicó retefuente**.
 Verificado contra los XML DIAN: **ninguno de los 7 proveedores es autorretenedor**
@@ -63,6 +101,30 @@ compra tiene retefuente registrada** — las 6 con retención son ReteICA de 202
 | Global Trading | 1 | $207.362 |
 | Globalquimia | 1 | $160.650 |
 | Motores y Reductores GM | 1 | $47.500 |
+
+**⚠️ Actualización 2026-09-11 — el método de arriba no es confiable.** `R-99-PN` en
+el XML **no prueba** que un proveedor no sea autorretenedor: muchos facturadores lo
+ponen por defecto. Caso real: Duque Saldarriaga trae `R-99-PN` en sus XML y es
+autorretenedor por Res. DIAN 012297 de 2022 (TKT-2026-1290). Antes de dar por
+buena la cifra de cada proveedor, pedirle el RUT o la resolución.
+
+| Proveedor | Estado de la verificación |
+|---|---|
+| Productos 3A («Alimentos 3A») | **Confirmado NO autorretenedor** (Armando, 11-sep). Sí se les retiene. Ver nota abajo |
+| Duque Saldarriaga | Autorretenedor (Res. 012297/2022) — no se le retiene; no estaba en la tabla |
+| Los otros 6 | Sin verificar |
+
+*Productos 3A — corregido el 11-sep:* en julio se giró el total de BO15756
+($5.393.528) sin descontar la retención; el 21-ago se pagó BO16917 con $4.550.000,
+descontando las dos retenciones (TKT-2026-0899; Armando confirmó que ese débito es de
+3A). Libro Mayor: se anuló #1208 (pago de julio duplicado desde Siigo), se crearon las
+retenciones #1435 (BO15756, $113.304) y #1436 (BO16917, $100.512, base real $4.020.500
+según el XML: tiene ítems al 5%), y el pago #1437, vinculado al extracto 861. Todo se
+espejó a Alegra (comprobantes 5-10). Saldo con 3A: McKenna les debe **$8.339,50**.
+En el Libro Mayor, la retención de agosto pasa de $96.250,81 a $196.762,81, pero **esa
+no es la cifra a declarar**: el 350 lo arma William con todas las compras (estimado
+de agosto ≈ $656.000 solo a personas jurídicas). La retención de 3A de julio ya iba en
+el periodo 7 ($598.000). Ver la tabla de arriba.
 
 ⚠️ **Decisión de negocio, no técnica.** Son 195 facturas ya pagadas sin retener;
 corregirlo hacia atrás (asumir la retención, corregir declaraciones, o dejarlo)

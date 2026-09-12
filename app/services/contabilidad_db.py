@@ -1326,6 +1326,24 @@ def resetear_cuentas_cobro_compras_exterior(
     }
 
 
+def _pct_cuota_compra(d: dict) -> float:
+    """Porcentaje de cuota de manejo con el que se liquida una compra.
+
+    Desde el 2026-09-11 la cuota es fija del 5% para toda compra nueva: el
+    porcentaje que llegue del panel o de la API se ignora. Las compras
+    anteriores conservan el que ya tienen guardado (hay varias al 10% y una
+    al 8%) para no alterar cuentas de cobro ni asientos ya emitidos. Las
+    filas nuevas nacen con la columna en su default (5).
+    """
+    from app.services.cuenta_cobro_cuota_manejo import cuota_pct
+
+    try:
+        stored = float(d.get("cuota_pct") or 0)
+    except (TypeError, ValueError):
+        stored = 0.0
+    return stored if stored > 0 else cuota_pct()
+
+
 def _preparar_cuenta_cobro_pendiente(
     compra_id: int,
     *,
@@ -1354,13 +1372,7 @@ def _preparar_cuenta_cobro_pendiente(
         resolver_tasa_cuenta_cobro,
     )
 
-    pct_eff = cuota_pct
-    if pct_eff is None:
-        try:
-            stored = float(d.get("cuota_pct") or 0)
-            pct_eff = stored if stored > 0 else None
-        except (TypeError, ValueError):
-            pct_eff = None
+    pct_eff = _pct_cuota_compra(d)
 
     moneda = str(d.get("moneda") or "USD")
     trm = float(d.get("trm") or 0)
@@ -1562,13 +1574,7 @@ def aprobar_cuenta_cobro_compra(
             )
         return obtener_compra_exterior(compra_id)
 
-    pct_eff = cuota_pct
-    if pct_eff is None:
-        try:
-            stored = float(d.get("cuota_pct") or 0)
-            pct_eff = stored if stored > 0 else None
-        except (TypeError, ValueError):
-            pct_eff = None
+    pct_eff = _pct_cuota_compra(d)
 
     gen = generar_pdf_cuenta_cobro(
         compra_id=int(compra_id),
@@ -1740,13 +1746,7 @@ def previsualizar_cuenta_cobro_compra(
         ):
             moneda_flete = moneda
 
-    pct_eff = cuota_pct
-    if pct_eff is None:
-        try:
-            stored = float(d.get("cuota_pct") or 0)
-            pct_eff = stored if stored > 0 else None
-        except (TypeError, ValueError):
-            pct_eff = None
+    pct_eff = _pct_cuota_compra(d)
 
     preview_name = "preview_" + nombre_archivo_cuenta_cobro(
         int(compra_id), flete=(tipo_n == "flete")

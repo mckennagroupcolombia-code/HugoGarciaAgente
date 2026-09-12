@@ -198,6 +198,14 @@ def resumen_periodo(anio: int, mes: int) -> dict:
                   LEFT JOIN cc_terceros t ON t.id = l.tercero_id
                  WHERE c.codigo = ?
                    AND m.fecha BETWEEN ? AND ?
+                   -- El pago del formulario 350 (débito 2365 / crédito Bancos) extingue
+                   -- la deuda con la DIAN; no es retención "des-practicada". Contarlo
+                   -- restaba $598.000 a agosto-2026 y dejaba el período en negativo.
+                   AND NOT EXISTS (
+                       SELECT 1 FROM cc_movimiento_lineas l2
+                         JOIN cc_plan_cuentas c2 ON c2.id = l2.cuenta_id
+                        WHERE l2.movimiento_id = m.id AND c2.codigo LIKE '11%'
+                   )
                  ORDER BY m.fecha, t.nombre
                 """,
                 (CUENTA_RETENCION_PUC, desde, hasta),

@@ -220,6 +220,44 @@ def buscar_producto_alegra_por_referencia(sku: str):
     return out
 
 
+_SKU_ALIAS_VENTA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "alegra_sku_alias_venta.json")
+
+
+def _alias_sku_venta() -> dict:
+    try:
+        with open(_SKU_ALIAS_VENTA_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {str(k).strip().upper(): str(v).strip() for k, v in (data.get("alias") or {}).items() if v}
+
+
+def resolver_producto_venta_alegra(sku: str):
+    """Como `buscar_producto_alegra_por_referencia`, pero si el SKU de venta
+    (MeLi/web) no existe tal cual en Alegra, prueba su equivalencia en
+    `app/data/alegra_sku_alias_venta.json` ({SKU venta → reference Alegra}).
+
+    Existe porque varios productos entraron a Alegra con el código de COMPRA
+    (el de Siigo, p. ej. CAPGELVAC0AZUBLA) mientras MeLi y la web venden con
+    otro (C-CAPVACGEL0AZUBLA1000UN): la factura fallaba con "no existe en
+    Alegra" (pack 2000014952111255, sep-2026). No se renombra la reference en
+    Alegra porque las facturas de compra buscan por el código de compra y, si
+    no lo encuentran, caen a GENERICO y descuadran el inventario.
+
+    Solo para facturar VENTAS: no usar al crear/liberar productos, donde un
+    alias haría pasar por existente un código que en realidad no existe."""
+    prod = buscar_producto_alegra_por_referencia(sku)
+    if prod:
+        return prod
+    ref = _alias_sku_venta().get((sku or "").strip().upper())
+    if not ref:
+        return None
+    prod = buscar_producto_alegra_por_referencia(ref)
+    if prod:
+        prod = {**prod, "sku": sku, "alias_de": ref}
+    return prod
+
+
 def _liberar_reference_alegra_para_recrear(
     codigo: str,
     *,
@@ -555,7 +593,7 @@ def crear_factura_venta_alegra(
         if not codigo or cantidad <= 0 or precio_unitario < 0:
             return {"ok": False, "error": f"Línea inválida para factura: {p!r}"}
 
-        producto_alegra = buscar_producto_alegra_por_referencia(codigo)
+        producto_alegra = resolver_producto_venta_alegra(codigo)
         if not producto_alegra:
             return {
                 "ok": False,
