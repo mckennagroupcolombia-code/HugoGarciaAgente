@@ -34,6 +34,26 @@ cronograma.
 Sobre $10.000.000: intereses **$2.796.620 (27,97% bruto)**, retención $195.763,
 neto girado **$2.600.857 (26,01%)**, desembolso total de McKenna $12.796.620.
 
+## Préstamos vivos (al 2026-09-12)
+
+| # | Prestamista | Capital | 1ª cuota | Cómo entró |
+|---|---|---|---|---|
+| 1 | Antonio Ruiz | $16.000.000 | 9-oct · $679.287 | $9,2M al banco + $6,8M a Cynthia |
+| 2 | Gloria Stella Velandia Cobos | $29.000.000 | 18-oct · $1.231.207 | banco |
+| 3 | Lira Carmenza Prieto Domínguez | $16.950.000 | 11-nov · $719.619 | banco |
+| 4 | Victor Hugo García Barrero | $20.000.000 | 19-oct · $849.108 | dos giros a Armando |
+
+Total en 2295: **$81.950.000**. Los cuatro con **un mes de gracia** (decidido el
+2026-09-11) y contrato enviado ese día (MUT-2026-0001 a 0004).
+
+⚠️ **$15.700.000 nunca llegaron a la cuenta de McKenna**: por cobrar en 1355 a Armando
+$10.000.000 y a Cynthia $5.700.000. La empresa debe las cuotas igual.
+
+⚠️ **Victor Hugo también cobra por prestación de servicios.** Dos roles en la misma
+persona, dos retenciones que no se pueden mezclar: **4% servicios** (5135, es
+declarante) y **7% rendimientos** (5305). Son dos conceptos, dos certificados y dos
+renglones del formulario 350.
+
 ## Las tres cifras que no se deben confundir
 
 Es el error clásico del producto, y por eso las tres van juntas en el panel y en
@@ -97,6 +117,56 @@ Débito   5305       Gastos financieros         187.693   ← gasto = interés B
 
 La cuenta **2365** se sembró en `contabilidad_core._migrar_cuentas_v2()` con este
 módulo. El desembolso inicial reusa `contabilidad_core.registrar_prestamo_recibido`.
+
+## Cuando el capital no entra por el banco de McKenna
+
+Caso real sep-2026: el prestamista le giró a la cuenta **personal de un socio**, no a
+la de la empresa. La plata sí es un préstamo a McKenna —eso es lo pactado— pero el
+banco de la empresa no se movió, así que el asiento no puede acreditar Bancos.
+
+```
+Débito   1355  Cuentas por cobrar - socios [tercero=socio]   ← el socio queda debiendo
+    Crédito  2295  Préstamos por pagar - terceros            ← la empresa le debe al familiar
+```
+
+Se pasa `cuenta_contrapartida_id` (+ `tercero_contrapartida_id`) en vez de
+`medio_pago_id`; son **excluyentes** y pasar ambos o ninguno es error. El préstamo nace
+completo en la fecha pactada —que es cuando empiezan a correr los intereses— y cada
+reposición del socio se registra aparte (`Débito 1110 / Crédito 1355`).
+
+**Por qué un asiento por abono y no uno solo:** `extracto_vinculos.movimiento_id` es
+UNIQUE, así que un asiento se vincula a **una** línea del extracto. Si el socio repone
+en tres transferencias contra un único asiento de $20M, dos líneas de banco quedan
+huérfanas en «Pendientes por clasificar» para siempre.
+
+⚠️ El saldo en 1355 es un préstamo de la sociedad al socio y genera **interés
+presuntivo** (art. 35 ET, DTF del 1º de enero) mientras exista. Nadie lo liquida hoy.
+
+**Capital entregado en tramos:** `ampliar_capital(id, payload)` suma capital a un
+préstamo existente y recalcula el cronograma. Es UN préstamo con UN cronograma aunque
+el dinero llegara por vías distintas (Antonio Ruiz prestó $16M: $9,2M al banco y $6,8M
+a una socia). Cada tramo deja su propio asiento, con su fecha y su contrapartida.
+
+## Meses de gracia
+
+`meses_gracia` corre las cuotas hacia adelante **sin cambiar sus montos**: durante la
+gracia no se causa interés y no hay cuota. El plazo no se recorta — 24 cuotas con un
+mes de gracia vencen a los 25 meses del desembolso.
+
+Es **gracia total**: el interés de ese mes no se capitaliza ni se difiere, el
+prestamista simplemente no lo gana. Eso **reduce lo pactado**, así que exige su
+acuerdo y lo aplica un operador, nunca un proceso automático. Sobre $20M al 25% E.A.
+la gracia de un mes baja el costo real de McKenna de 25% a **23,00% E.A.**; la TIR
+descuenta el desfase, por eso `costo_real_ea_pct` deja de coincidir con la tasa pactada.
+
+`aplicar_meses_gracia(id, n)` lo concede a préstamos ya creados. Se niega si alguna
+cuota está pagada: recalcular entonces dejaría los asientos del pago apuntando a cifras
+que ya no existen. El asiento de desembolso **no se toca** — la plata se movió el día
+que se movió.
+
+El contrato PDF enuncia la cláusula con todas las letras. Reflejarla solo en las fechas
+del cronograma dejaba al prestamista sin forma de saber por qué su primera cuota se
+corrió un mes.
 
 ## Documento soporte a la DIAN
 
@@ -254,7 +324,7 @@ no se recoge.
 | `desktop/src/components/PrestamosCronogramaPanel.tsx` | Panel con simulador en vivo, cronograma y documentos |
 | `app/services/calendario_tributario.py` | Vencimientos DIAN de retención (año gravable 2026) |
 | `tests/test_calendario_tributario.py` | 18 tests: DV del NIT, fines de semana, orden por dígito, no extrapolar |
-| `tests/test_prestamos.py` | 62 tests: tasa, reparto, retención, orden de pago, balance, documento soporte, declaración |
+| `tests/test_prestamos.py` | 76 tests (5 de `ticket_retenciones` rojos desde el 2026-09-11, ajenos a este módulo): tasa, reparto, retención, orden de pago, balance, documento soporte, declaración |
 
 Endpoints: `/api/prestamos` (GET/POST), `/api/prestamos/<id>`,
 `/api/prestamos/simular`, `/api/prestamos/<id>/cuotas/<n>/pagar`,
@@ -301,6 +371,14 @@ Endpoints: `/api/prestamos` (GET/POST), `/api/prestamos/<id>`,
 
 ## Pendientes / riesgos abiertos
 
+- ⚠️ **El contrato de Antonio, Stella y Carmenza afirma que se pactó un mes de gracia,
+  y ellos no lo acordaron.** La gracia se decidió el 2026-09-11 y los cuatro contratos
+  se enviaron ese mismo día por instrucción explícita del usuario, tras advertirle el
+  riesgo. Si alguno objeta, hay un documento en su correo que dice otra cosa; se
+  resuelve hablando, no revirtiendo (`aplicar_meses_gracia(id, 0)` solo sirve mientras
+  no se le haya pagado ninguna cuota).
+- ⚠️ **$15.700.000 en 1355 sin interés presuntivo liquidado** (art. 35 ET). El saldo de
+  Armando y Cynthia lleva ahí desde agosto y nadie calcula ese ingreso.
 - ⚠️ **Validar con el contador** la tarifa de retención (7% general) según tipo de
   prestamista (natural declarante / no declarante / jurídica / no residente) y si
   hay cuantía mínima. No verificado contra la norma vigente.
