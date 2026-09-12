@@ -1,5 +1,37 @@
+### 2026-09-11 17:20 - COA: firma única de Gloria Stella Velandia, logo y color turquesa en todo el formato
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - **Firma única:** el COA que emite McKenna Group lo firma SIEMPRE Gloria Stella Velandia Cobos, Directora de Calidad, con su firma de la biblioteca (`fichas_word/firmas/8774c26567767247.png`). `_con_firma_default` ya no respeta el firmante que venga en los datos: lo impone. Antes había 6 firmantes distintos en los documentos (27 fichas con Edna Lida Méndez y 5 con firmantes de proveedores: Jim Fauteux, Mauricio Palacio, Cristina Bravo, Luis Enrique Rodríguez). Se actualizaron 83 fichas guardadas y se regeneraron los 61 PDF.
+  - El escáner de COA ya no guarda en la biblioteca la firma recortada del documento del proveedor ni la usa como firmante (queda solo como `firma_proveedor_b64`, de referencia).
+  - **Logo y color:** todo el formato FT/COA/SDS usa el logotipo turquesa (`fichas_word/cabezotes/logotipo_turquesa.png`) y el color #044D5C, sin importar el cabezote o el color que traiga la ficha.
+  - Migración de fichas antiguas: 17 aceites quedaron como BORRADOR (no publicados) porque su clasificación GHS no es verificable en fuentes públicas y no se acepta deducirla del componente mayoritario; se retiró la ficha antigua del argán (traía datos de un caolín). Ácido cítrico corregido (era anhidro descrito como monohidrato, beneficios y aplicaciones cosméticos en una ficha de grado Alimentos, declaraciones médicas, SDS sin clasificación).
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/services/coa_scan_jobs.py`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md` (datos: `fichas_word/datos/*.yaml`, PDF en `fichas_word/completo/`)
+
+
+### 2026-09-11 16:20 - Ácido málico al formato nuevo y dos correcciones del PDF completo
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Ficha de ÁCIDO MÁLICO rehecha en formato FT + SDS (sin COA hasta tener el del proveedor): CAS 6915-15-7 y EINECS 230-022-8 (ácido DL-málico), INS 296, sabor ácido (decía «Neutro»), sin el punto de ebullición de 235 °C (se descompone), sin la mención a fibromialgia, y con SDS completa (GHS07, H319). Se retira la ficha antigua `acido_malico.yaml`; la microbiología antigua tenía los signos invertidos (≥ en vez de ≤) y no se trasladó.
+  - PDF completo: EINECS y grado ya no hacen «diligenciado» al COA (solos imprimían un COA vacío con la firma por defecto). La tabla de composición de la SDS mostraba la concentración bajo «N° CAS» en 19 de 22 fichas: se corrige el orden de columnas de la plantilla (componente | concentración | CAS, igual que el editor) y la única ficha con el orden inverso (cera de abejas blanca). La SDS muestra el N.º CE (EINECS).
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md` (datos: `fichas_word/datos/ft_coa_sds_acido_malico.yaml`, `ft_coa_sds_cera_de_abejas_refinada_blanca.yaml`)
+
+
+### 2026-09-11 15:40 - Fichas técnicas: una por producto, identificación verificada y casillas según la clasificación del insumo
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora técnica + Corrección de datos
+- **Qué se implementó:**
+  - **Datos (`fichas_word/datos`, fuera de git; respaldos en `/home/mckg/backups_manual/fichas_datos_2026-09-11_*.tar.gz`):** fusionadas 15 fichas completas duplicadas (una por perfil de producto; colágeno cosmético/alimentos, nuez y maní entero/partido quedan separados) y retiradas 33 fichas antiguas (`origen_word`) que repetían una completa, pasando antes a la completa lo útil. «Ácido salicílico 20 % solución» se conserva como referencia aparte.
+  - 27 EINECS corregidos o completados, CAS de alulosa (551-68-8), vaselina y cera amarilla, fórmulas de eritritol, sorbitol, D-pantenol y glutamato; se retiran fórmulas que no correspondían (ricino, papaína). Todo verificado con el dígito de control y Wikidata. El EINECS de lactato de calcio correspondía a un fármaco (α-ergocriptina).
+  - Colágeno cosmético (solución 30 mL) y alimentos (polvo 500 g) tenían aplicaciones, beneficios, descripción y manipulación cruzados; alineados con su propio COA. INCI en 7 fichas cosméticas.
+  - **Formulario FT + COA + SDS:** nueva «Identificación del producto» con tipo de insumo (A sustancia definida · B natural o polímero · C mezcla · D alimento) y grado multi-selección. Las casillas CAS, EINECS / Número CE, INCI (nueva, antes no se veía) e INS (nueva) se habilitan según la clasificación; lo que no aplica se muestra y se guarda como «No aplica». La fórmula química se bloquea fuera del tipo A y la composición de la SDS se marca como requerida en B, C y D.
+  - EINECS y grado salen de la sección COA a la identificación compartida. El EINECS ahora también se guarda en la SDS (`numero_ce`); antes se perdía al volver a guardar. Nuevos campos en el YAML: `tipo_insumo`, `ins`. Las 60 fichas completas quedan clasificadas.
+- **Archivos Modificados:** `desktop/src/lib/clasificacionInsumo.ts` (nuevo), `desktop/src/components/FichasTecnicasPanel.tsx`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/documentos/DocumentoGeneradorTab.tsx`, `docs/team-recaps.md`
+
+
 ### 2026-09-11 13:58 - GHS: los pictogramas de la ficha técnica ya llegan a la etiqueta
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Corrección
 - **Qué se implementó:**
   - **Causa:** las fichas guardan los pictogramas en la sección de peligros de la SDS (`_sds.peligros.pictogramas`: «GHS07 - Nocivo…»), pero el autollenado solo leía un campo `ghs` que ninguna ficha tiene. ÁCIDO SALICÍLICO, ÁCIDO AZELAICO, CLORURO y CARBONATO DE CALCIO, L-ARGININA e INULINA salían como «NO GHS» y «No está clasificado como peligroso». Probado contra las 238 fichas: ahora esos 7 productos (8 fichas) salen como GHS07.
@@ -10,7 +42,7 @@
 
 
 ### 2026-09-11 13:55 - Etiqueta de 30 mL: tres paneles horizontales, editada igual que la de 250/500 g
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Nueva funcionalidad
 - **Qué se implementó:**
   - Al elegir el formato «30 mL» (102 × 38 mm) el formulario de etiquetas usa una composición propia de tres paneles: matriz técnica 2 × 3 (Fórmula química o Composición, Grado, Conservación, Origen, Apariencia, Olor) con franja de ubicación y teléfono · logo, nombre, «INSUMO GRADO COSMÉTICO/ALIMENTARIO/AGRO/INDUSTRIAL», tabla Concentración/CAS y contenido neto · información técnica, web, clasificación GHS, código EAN-13 y franja de correo.
@@ -51,7 +83,7 @@
 
 
 ### 2026-09-10 23:50 - Botón «Limpiar plantilla»
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Nueva funcionalidad
 - **Qué se implementó:**
   - Al abrir una plantilla de categoría aparece «Limpiar plantilla» junto a «Generar etiquetas de la categoría». Con confirmación, vacía los datos de producto (`CAMPOS_PRODUCTO`: nombre, composición, CAS, código de barras, ficha técnica…) y conserva el diseño: logo, colores, tipografías, íconos, GHS, títulos y cuchara.
