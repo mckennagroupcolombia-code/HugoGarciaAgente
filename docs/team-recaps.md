@@ -1,3 +1,211 @@
+### 2026-09-11 17:20 - COA: firma única de Gloria Stella Velandia, logo y color turquesa en todo el formato
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora técnica
+- **Qué se implementó:**
+  - **Firma única:** el COA que emite McKenna Group lo firma SIEMPRE Gloria Stella Velandia Cobos, Directora de Calidad, con su firma de la biblioteca (`fichas_word/firmas/8774c26567767247.png`). `_con_firma_default` ya no respeta el firmante que venga en los datos: lo impone. Antes había 6 firmantes distintos en los documentos (27 fichas con Edna Lida Méndez y 5 con firmantes de proveedores: Jim Fauteux, Mauricio Palacio, Cristina Bravo, Luis Enrique Rodríguez). Se actualizaron 83 fichas guardadas y se regeneraron los 61 PDF.
+  - El escáner de COA ya no guarda en la biblioteca la firma recortada del documento del proveedor ni la usa como firmante (queda solo como `firma_proveedor_b64`, de referencia).
+  - **Logo y color:** todo el formato FT/COA/SDS usa el logotipo turquesa (`fichas_word/cabezotes/logotipo_turquesa.png`) y el color #044D5C, sin importar el cabezote o el color que traiga la ficha.
+  - Migración de fichas antiguas: 17 aceites quedaron como BORRADOR (no publicados) porque su clasificación GHS no es verificable en fuentes públicas y no se acepta deducirla del componente mayoritario; se retiró la ficha antigua del argán (traía datos de un caolín). Ácido cítrico corregido (era anhidro descrito como monohidrato, beneficios y aplicaciones cosméticos en una ficha de grado Alimentos, declaraciones médicas, SDS sin clasificación).
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/services/coa_scan_jobs.py`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md` (datos: `fichas_word/datos/*.yaml`, PDF en `fichas_word/completo/`)
+
+
+### 2026-09-11 16:20 - Ácido málico al formato nuevo y dos correcciones del PDF completo
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Ficha de ÁCIDO MÁLICO rehecha en formato FT + SDS (sin COA hasta tener el del proveedor): CAS 6915-15-7 y EINECS 230-022-8 (ácido DL-málico), INS 296, sabor ácido (decía «Neutro»), sin el punto de ebullición de 235 °C (se descompone), sin la mención a fibromialgia, y con SDS completa (GHS07, H319). Se retira la ficha antigua `acido_malico.yaml`; la microbiología antigua tenía los signos invertidos (≥ en vez de ≤) y no se trasladó.
+  - PDF completo: EINECS y grado ya no hacen «diligenciado» al COA (solos imprimían un COA vacío con la firma por defecto). La tabla de composición de la SDS mostraba la concentración bajo «N° CAS» en 19 de 22 fichas: se corrige el orden de columnas de la plantilla (componente | concentración | CAS, igual que el editor) y la única ficha con el orden inverso (cera de abejas blanca). La SDS muestra el N.º CE (EINECS).
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md` (datos: `fichas_word/datos/ft_coa_sds_acido_malico.yaml`, `ft_coa_sds_cera_de_abejas_refinada_blanca.yaml`)
+
+
+### 2026-09-11 15:40 - Fichas técnicas: una por producto, identificación verificada y casillas según la clasificación del insumo
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora técnica + Corrección de datos
+- **Qué se implementó:**
+  - **Datos (`fichas_word/datos`, fuera de git; respaldos en `/home/mckg/backups_manual/fichas_datos_2026-09-11_*.tar.gz`):** fusionadas 15 fichas completas duplicadas (una por perfil de producto; colágeno cosmético/alimentos, nuez y maní entero/partido quedan separados) y retiradas 33 fichas antiguas (`origen_word`) que repetían una completa, pasando antes a la completa lo útil. «Ácido salicílico 20 % solución» se conserva como referencia aparte.
+  - 27 EINECS corregidos o completados, CAS de alulosa (551-68-8), vaselina y cera amarilla, fórmulas de eritritol, sorbitol, D-pantenol y glutamato; se retiran fórmulas que no correspondían (ricino, papaína). Todo verificado con el dígito de control y Wikidata. El EINECS de lactato de calcio correspondía a un fármaco (α-ergocriptina).
+  - Colágeno cosmético (solución 30 mL) y alimentos (polvo 500 g) tenían aplicaciones, beneficios, descripción y manipulación cruzados; alineados con su propio COA. INCI en 7 fichas cosméticas.
+  - **Formulario FT + COA + SDS:** nueva «Identificación del producto» con tipo de insumo (A sustancia definida · B natural o polímero · C mezcla · D alimento) y grado multi-selección. Las casillas CAS, EINECS / Número CE, INCI (nueva, antes no se veía) e INS (nueva) se habilitan según la clasificación; lo que no aplica se muestra y se guarda como «No aplica». La fórmula química se bloquea fuera del tipo A y la composición de la SDS se marca como requerida en B, C y D.
+  - EINECS y grado salen de la sección COA a la identificación compartida. El EINECS ahora también se guarda en la SDS (`numero_ce`); antes se perdía al volver a guardar. Nuevos campos en el YAML: `tipo_insumo`, `ins`. Las 60 fichas completas quedan clasificadas.
+- **Archivos Modificados:** `desktop/src/lib/clasificacionInsumo.ts` (nuevo), `desktop/src/components/FichasTecnicasPanel.tsx`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/documentos/DocumentoGeneradorTab.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-11 13:58 - GHS: los pictogramas de la ficha técnica ya llegan a la etiqueta
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - **Causa:** las fichas guardan los pictogramas en la sección de peligros de la SDS (`_sds.peligros.pictogramas`: «GHS07 - Nocivo…»), pero el autollenado solo leía un campo `ghs` que ninguna ficha tiene. ÁCIDO SALICÍLICO, ÁCIDO AZELAICO, CLORURO y CARBONATO DE CALCIO, L-ARGININA e INULINA salían como «NO GHS» y «No está clasificado como peligroso». Probado contra las 238 fichas: ahora esos 7 productos (8 fichas) salen como GHS07.
+  - `camposDesdeFichaTecnica` lee los códigos de la SDS y arma una clasificación corta con la palabra de advertencia y las frases H («Peligro. Frases H: H302, H315, H319.»), que llena la clasificación de la etiqueta de 30 mL.
+  - El rombo que se dibuja es el pictograma oficial del código (`lib/ghsIconos`: `codigosGhs`, `svgPictogramaGhs`), no un marco vacío con el número; aplica también a la ficha de 250/500 g.
+  - Cargar un SKU o una ficha quita el pictograma elegido a mano antes (podía ser de otro producto); un pictograma elegido mientras la ficha aún carga ya no se pisa.
+- **Archivos Modificados:** `desktop/src/lib/ghsIconos.ts`, `fichaTecnicaCampos.ts`, `fichaTecnicaAplicar.ts`, `desktop/src/components/etiqueta-ficha/GhsBadge.tsx`, `GaleriaGhsModal.tsx`, `ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-11 13:55 - Etiqueta de 30 mL: tres paneles horizontales, editada igual que la de 250/500 g
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al elegir el formato «30 mL» (102 × 38 mm) el formulario de etiquetas usa una composición propia de tres paneles: matriz técnica 2 × 3 (Fórmula química o Composición, Grado, Conservación, Origen, Apariencia, Olor) con franja de ubicación y teléfono · logo, nombre, «INSUMO GRADO COSMÉTICO/ALIMENTARIO/AGRO/INDUSTRIAL», tabla Concentración/CAS y contenido neto · información técnica, web, clasificación GHS, código EAN-13 y franja de correo.
+  - Mismo objeto de datos, SKU, ficha técnica, logo con su color, autoguardado, plantillas por categoría y generación en lote que la ficha de 76 × 66. Se edita igual: directamente sobre la etiqueta, con menú de tamaño/fuente, clic en íconos, logo, GHS y código de barras.
+  - Retícula en CSS Grid calculada del formato: las líneas de las filas coinciden en los tres paneles. El texto se encoge si no cabe en su casilla y se marca en rojo si ni así cabe. Rellenos de un solo color, esquinas de 10 px.
+  - Cuatro íconos lineales nuevos en la galería (matraz, medalla, termómetro, escamas). El menú de logos corporativos quedó como componente compartido (`MenuLogoCorporativo`) y `BarcodeBlock` acepta clases para reutilizarse.
+  - Botones nuevos en el encabezado para todos los formatos: «Imprimir» (solo la etiqueta, a tamaño real) y «Restablecer datos» (vuelve a cargar el SKU y su ficha técnica).
+  - Datos nuevos en la ficha: `gradoInsumo` (de plantilla) y `clasificacionTexto` (de producto).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/` (nuevo), `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `ProductHeader.tsx`, `MenuLogoCorporativo.tsx` (nuevo), `BarcodeBlock.tsx`, `ProductAttribute.tsx`, `productLabelTypes.ts`, `desktop/src/lib/iconosQuimicaCirculares.ts`, `docs/team-recaps.md`
+
+
+### 2026-09-11 00:45 - La plantilla nunca cambia: elegir un SKU en ella abre una etiqueta nueva
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Al elegir un código de barras dentro de una plantilla, el autoguardado escribía sobre la plantilla: tomaba el nombre del SKU («COCO DESHIDRATADO HILOS 250g») y dejaba de verse como plantilla de la familia.
+  - Ahora ese SKU abre una etiqueta nueva con el diseño de la plantilla y los datos de producto en blanco (luego los llena la ficha técnica), guardada aparte con el nombre del SKU y `plantilla_id` de origen. La plantilla queda como estaba.
+  - Plantilla `e834e09ec492` renombrada de vuelta a «Plantilla de Sales minerales tamaño 500 g» (dato en `app/data/etiquetas_fichas.json`, no versionado).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-11 00:30 - Ficha de etiqueta: logo fijo al 130 %, eslogan «Proveemos a tus ideas» y plantillas que no se renombran
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño + Corrección
+- **Qué se implementó:**
+  - El logo queda siempre al 130 % (caja 273×84.5 px): se quitaron los botones －/＋ y se ignora el `logoScale` guardado.
+  - Debajo del logo, el eslogan fijo «Proveemos a tus ideas» en el color de acento; tamaño y fuente ajustables desde su menú (`styleKey` `esloganLogo`, 15 px por defecto).
+  - Corrección: elegir un código de barras dentro de una plantilla le cambiaba el nombre por el del producto (la plantilla de Sales minerales quedó como «COCO DESHIDRATADO HILOS 250g»). Ahora `onElegirCodigo` solo renombra etiquetas, no plantillas.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductHeader.tsx`, `ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-10 23:58 - Ficha de etiqueta: tamaño ajustable de «Disponible en:»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora
+- **Qué se implementó:**
+  - «Disponible en:» (encima de la banda de la web) era texto fijo de 14 px; ahora es un título ajustable como los demás: en edición, clic abre el menú de tamaño/fuente (`styleKey` `disponibleEnTitulo`). Por defecto sigue en 14 px, así que las etiquetas existentes no cambian.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/TechnicalDocuments.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-10 23:50 - Botón «Limpiar plantilla»
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Al abrir una plantilla de categoría aparece «Limpiar plantilla» junto a «Generar etiquetas de la categoría». Con confirmación, vacía los datos de producto (`CAMPOS_PRODUCTO`: nombre, composición, CAS, código de barras, ficha técnica…) y conserva el diseño: logo, colores, tipografías, íconos, GHS, títulos y cuchara.
+  - Si la plantilla ya no tiene datos de producto, el botón queda desactivado como «✓ Plantilla limpia».
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `docs/team-recaps.md`
+
+
+### 2026-09-10 23:40 - Etiquetas: una etiqueta nueva ya no hereda los datos del producto de la plantilla
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - **Causa:** "Nueva etiqueta" copiaba la plantilla completa, incluidos nombre, composición, pureza, CAS y ficha técnica del producto con que se armó. Si la ficha técnica del SKU nuevo no se cargaba, esos datos se quedaban sin aviso: CITRATO POTASIO 500g salió con los de CITRATO DE MAGNESIO. El lote tenía el mismo hueco y además no guardaba la ficha técnica usada.
+  - Nuevo `CAMPOS_PRODUCTO` / `sinDatosDeProducto()`: la etiqueta nueva, el lote y una plantilla nueva de la misma familia toman solo el diseño; los datos de producto arrancan en blanco y los llena la ficha técnica.
+  - El lote salta los SKU sin ficha técnica (no sube PNG en blanco) y los lista al final para hacerlos a mano.
+  - Aviso rojo en la ficha cuando el código de barras no corresponde a la ficha técnica enlazada (o al nombre, si no hay enlace) — `discrepanciaProducto()`, mismo umbral que el enlace automático. "Guardar PNG" pide confirmar mientras el aviso esté. Probado contra las 8 fichas guardadas: solo marca CITRATO POTASIO.
+  - Plantilla de Sales minerales (`e834e09ec492`) sin los datos de Citrato de Magnesio: queda solo el diseño.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `desktop/src/lib/fichaTecnicaMatch.ts`, `docs/team-recaps.md` (la limpieza de la plantilla es en `app/data/etiquetas_fichas.json`, que no se versiona)
+
+
+### 2026-09-10 23:25 - Ficha de etiqueta: Pureza/CAS y cuchara centrados en su fila de la retícula
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño
+- **Qué se implementó:**
+  - La columna derecha de la ficha (GHS, información técnica, Pureza/CAS) ahora comparte las 3 filas de los atributos con CSS `subgrid`, en vez de centrarse sola sobre todo el alto.
+  - GHS + información técnica quedan centrados en las filas 1-2; el cuadro Pureza/CAS + la casilla de la cuchara, centrados en la fila 3 (Grado / Conservación). Las filas no cambian de alto (medido: 186 · 178 · 199 px en CITRATO POTASIO, 0 px de desfase del centro).
+  - El alto mínimo de fila (`FILAS_CUERPO`) pasó de `ProductAttributeGrid` al cuerpo de la ficha, que lo hereda a las dos columnas.
+  - Se quitan los archivos `.bak-*` que dejaron las tareas de hoy y que el auto-commit de las 23:00 subió al repo.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `ProductAttributeGrid.tsx`, `docs/team-recaps.md`
+
+
+### 2026-09-10 22:55 - Ficha de etiqueta: casilla "Incluye cuchara medidora de"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Casilla nueva debajo del cuadro Pureza/CAS: "Incluye cuchara medidora de: N g|mL aprox.", con el mismo trazo, radio y ancho que ese cuadro para no crear líneas nuevas en la retícula.
+  - En edición: número + desplegable g / mL; "aprox." es fijo. Sin número la casilla no se imprime (vista y PNG), así las etiquetas existentes no cambian.
+  - `cucharaCantidad` y `cucharaUnidad` se guardan en la ficha y forman parte de `CAMPOS_PLANTILLA`: la plantilla de categoría los hereda a las etiquetas nuevas. La cantidad se establece a mano en cada plantilla.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx` (nuevo), `ProductLabelForm.tsx`, `productLabelTypes.ts`
+
+
+### 2026-09-10 22:25 - Plantilla de Sales minerales con el diseño de CITRATO POTASIO 500g
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño
+- **Qué se implementó:**
+  - La plantilla de categoría "Plantilla de Sales minerales tamaño 500 g" (`e834e09ec492`) tomó los tamaños de letra de CITRATO POTASIO 500g, la etiqueta aprobada como modelo de la familia (nombre 39 → 30, clasificación 26 → 20). Logo y color siguen por producto.
+  - Pictograma GHS con desplazamiento vertical por ficha (`ghsDesplazamiento`, % de su caja, flechas ▲▼ en edición); −20 % en la plantilla, CITRATO POTASIO y CITRATO CALCIO. Solo se mueve el rombo con `transform`, la columna no se corre.
+  - Títulos elegibles desde el menú de tamaño/fuente del título: "Composición" o "Fórmula molecular" (`compositionTitulo`), "CAS" o "EINECS" (`casTitulo`).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/GhsBadge.tsx`, `EditableField.tsx`, `ProductAttribute.tsx`, `ProductAttributeGrid.tsx`, `TechnicalIdentity.tsx`, `ProductLabelForm.tsx`, `productLabelTypes.ts`, `app/data/etiquetas_fichas.json`
+
+
+### 2026-09-10 22:00 - Ficha de etiqueta: los íconos elegidos a mano siguen el color del logo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - Los íconos de atributo elegidos en la galería se guardaban como `<img>` con el color de tinta fijo, así que Composición y Conservación (elegidos a mano en 8 fichas) no cambiaban al elegir otro logo.
+  - `ProductAttribute` ahora dibuja esos SVG en línea con el color cambiado a `currentColor`, igual que los íconos por defecto; un data URL que no sea SVG de la galería o traiga algo ejecutable sigue como `<img>`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`
+
+
+### 2026-09-10 21:40 - Logos corporativos: subir en masa, galería en ventana y eliminar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Menú del logo de la ficha: botón "+ Agregar imágenes a la carpeta" que guarda PNG/JPG/WEBP en `DISENO CORPORATIVO ` (el antiguo "Subir archivo…" pasa a "Usar sin guardar…").
+  - Botón "⤢ Galería": ventana con buscador, subida en masa (Shift/Ctrl en el explorador o arrastrando archivos), selección con Shift+clic, "Seleccionar todo" y eliminar uno o varios con confirmación dentro de la ventana.
+  - Eliminar no borra: mueve el archivo a `DISENO CORPORATIVO /.papelera/`. Rutas nuevas `POST /api/etiquetas/logos-corporativos` (subir, valida bytes reales, sin SVG, no sobrescribe) y `POST /api/etiquetas/logos-corporativos/eliminar` (requiere acceso a Studio).
+- **Archivos Modificados:** `app/routes.py`, `app/tools/logos_corporativos.py`, `desktop/src/lib/logosCorporativos.ts`, `desktop/src/components/etiqueta-ficha/ProductHeader.tsx`, `desktop/src/components/etiqueta-ficha/GaleriaLogosCorporativosModal.tsx` (nuevo)
+
+
+### 2026-09-10 20:25 - Studio → Recursos: botón para subir imágenes desde el ordenador
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - Botón "⬆ Subir imágenes" en la biblioteca de Recursos, junto a "+ Carpeta": sube uno o varios JPG/PNG a la carpeta abierta, con progreso y aviso de los que fallan. Usa el mismo endpoint que la galería del editor.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`
+
+
+### 2026-09-10 00:45 - Tarifas de envío: el bot cotizaba de memoria, no de la tabla (Bloque C)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (plata: se cobraba de menos y de más)
+- **Qué se implementó:**
+  - **El problema:** las tarifas estaban **escritas a mano en dos prompts** (`app/core.py` regla 9 y `app/agent/cliente_chat.py`) — "Bogotá $8.800 · resto del país $18.000, +$2.000 por kg adicional" — mientras la tabla real vive en `app/data/tarifas_interrapidisimo.json` con cinco zonas y tramos por peso. Divergencias medidas: Cali 3 kg el bot decía ~$22.000 y la tabla cobra **$28.400**; Chía es zona regional a **$12.500** y el bot cobraba $18.000; Leticia es difícil acceso a **$20.900**. Se perdía plata en pedidos pesados y se cobraba de más a Cundinamarca.
+  - **Causa de fondo:** la regla decía "SIEMPRE usa `consultar_tarifa_envio`", pero los canales de cliente (`whatsapp`, `web_chat`) responden **sin tool-use** — ahí esa regla era inaplicable y el LLM solo tenía las cifras del prompt.
+  - **Solución:** `_preflight_tarifa_envio()` en `core.py` resuelve la tarifa en Python (misma `tarifas_envio.cotizar_envio` que usa la tienda web) y la inyecta ya calculada vía `extra_sistema`, igual que se hace con el catálogo. Incluye zona, días y escalera de 1/2/3/5 kg. Detecta la ciudad en el mensaje o en lo que **el cliente** dijo antes — nunca en una ciudad que el bot haya mencionado, que no es el destino del pedido.
+  - **Sin ciudad no hay cifra:** si el cliente no dijo la ciudad, el bloque ordena preguntarla y solo permite afirmar la de Bogotá (leída de la tabla, no escrita). Prohibido estimar o promediar.
+  - **Prompts limpios:** las dos listas de tarifas se reemplazaron por la regla de no dar ninguna cifra que no venga del bloque inyectado.
+  - **Tercer camino, también roto:** la herramienta `consultar_tarifa_envio` (la que sí usan los canales con tool-use) leía la clave legacy `ciudades` del JSON, que solo trae la tarifa de 1 kg, e **ignoraba el peso por completo** — 3 kg a Cali devolvía $18.500. Ahora acepta `peso_kg` y delega en `cotizar_envio`, así los tres caminos (web, chat de cliente, herramientas) cotizan igual. Su fallback de error tenía un `$18.000` fijo; ahora devuelve error explícito en vez de cotizar mal.
+  - 10 tests nuevos en `tests/test_tarifa_envio_chat.py`, incluido uno end-to-end que verifica que el bloque llega hasta el prompt del LLM y no se queda en el helper.
+- **Archivos Modificados:** `app/core.py`, `app/agent/cliente_chat.py`, `app/tools/system_tools.py`, `tests/test_tarifa_envio_chat.py` (nuevo), `docs/team-recaps.md`
+
+
+### 2026-09-10 00:05 - Catálogo del bot: variantes morfológicas, allowlist hardcodeada y caché stale perdida (Bloque B)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (catálogo del bot / pérdida de ventas)
+- **Qué se implementó:**
+  - **Caso que lo destapó:** el 9-sep un cliente pidió creatina de 1 kg y el bot respondió cinco veces *"el precio no me figura en el sistema"* sobre un producto en catálogo con stock 9 y precio $65.700. Reproducido en local: `"precio creatina"` encontraba, `"creatina monohidratada 1kg"` devolvía `None`.
+  - **Causa 1 — variantes morfológicas.** El matcher de combos comparaba por substring pura, así que `monohidratADA` no casaba con `MONOHIDRATO`. Nuevos `_raiz_token_combo()` / `_token_en_blob()` en `app/services/siigo.py`: raíz aproximada del español (mínimo 5 caracteres) aplicada en el scoring, en el filtro estricto de distintivos y en el conteo `df`. Deliberadamente asimétrico — la raíz del cliente debe ser prefijo de una palabra real del producto, para que "acido" no arrastre "ácido tánico". Además el umbral final de score bajó de `len(distintivos)*3` a `*2`: con 3 por token, todo match por raíz (que puntúa 2) moría ahí aunque el filtro estricto ya lo hubiera aceptado.
+  - **Causa 2 — allowlist escrita a mano.** `_es_seleccion_presentacion_web` decidía si un mensaje nombra un producto contra una tupla hardcodeada ("aceite", "urea", "niacinamida", "ylang"…). Creatina, taurina, sucralosa y alulosa no estaban, así que sus mensajes se clasificaban como "el cliente eligió presentación" y el término se buscaba crudo. Reemplazado por `_mensaje_nombra_producto_del_catalogo()`, derivado del catálogo real (`cache.json`, 206 tokens, cacheado, degrada a la heurística anterior si falla la lectura).
+  - **Causa 3 — notas hardcodeadas que mienten.** Se eliminaron dos reglas por producto en `_nota_producto_alternativo_web`: *"Ylang Ylang no aparece en catálogo web"* (falso — `C-ACEESEYLAYLA5mL`, stock 18) y la de COSGARD, que se anteponía a `_respuesta_no_encontrado_catalogo_web` y hacía que el cliente recibiera el mismo mensaje dos veces (visto en el chat web). Se conserva la de BTMS-25, que sí aporta la referencia equivalente.
+  - **Hallazgo aparte, el más grave: la red de seguridad de caché stale se perdió en la migración a Alegra del 3-sep.** `listar_productos_combo_alegra()` cacheaba `[]` con marca de tiempo fresca si la API fallaba, así que un solo error de Alegra dejaba al bot **sin catálogo durante los 5 minutos del TTL** y toda consulta respondía "no encontré ese producto". Es exactamente el fallo que en jul-2026 hacía que la misma referencia se encontrara y 30 s después no. Restaurada: ante error se devuelve la caché anterior sin refrescar el timestamp (reintenta al turno siguiente), y las excepciones de red ya no se propagan.
+  - **El test que debía cubrir eso estaba muerto:** `test_cache_stale_si_api_falla` parcheaba `siigo._combos_cache` / `siigo._siigo_get`, atributos que quedaron sin uso tras la migración; golpeaba la API real y fallaba en cualquier máquina con credenciales. Reapuntado a la caché de Alegra + test nuevo para excepción de red. La suite de matcher pasó de 15 s (con red) a 1,5 s.
+  - **Instrumentación:** nuevo `app/services/catalogo_faltantes.py`. Cada preflight que se queda sin resultados anota el término normalizado con su contador en `app/data/catalogo_sin_resultado.json`. Los huecos del catálogo dejan de descubrirse leyendo chats a mano.
+  - Verificado: los cinco fraseos del caso real resuelven; `acido tanico`, `cosgard` y `xyz inexistente` siguen sin inventar familia. 20 fallos en la suite completa, **idénticos con y sin estos cambios** (pre-existentes, otros módulos).
+- **Archivos Modificados:** `app/services/siigo.py`, `app/services/alegra.py`, `app/core.py`, `app/services/catalogo_faltantes.py` (nuevo), `tests/test_siigo_matcher.py`, `docs/team-recaps.md`
+
+
+### 2026-09-09 23:55 - Bot WhatsApp: eliminada la promesa vacía de escalación (Bloque A)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (calidad del bot de atención)
+- **Qué se implementó:**
+  - **Diagnóstico con datos, no impresiones:** 30 días de `wa_chats.db` (982 respuestas del bot, 214 chats) + 205 turnos del chat web. La frase `"déjame consultar esa información con mi equipo y le confirmo en un momento"` salió **45 veces a 34 clientes** y el **60% nunca recibió respuesta humana en 2h**. Es la misma promesa vacía que costó la confianza en jul-2026, y no venía del modelo: la devolvían dos interceptores de `app/routes.py`.
+  - **Interceptor 1** (`keywords_escalacion`): hacía *substring* de "asesor"/"descuento"/"garantía", así que mataba el turno del LLM en conversaciones normales. Reemplazado por `_PAT_PIDE_HUMANO` — intención explícita con límites de palabra, que excluye "asesoría/asesoramiento" (servicio que el bot sí atiende) frente a "asesor/asesora" (persona). Sobre el corpus real de 2.080 entradas: de 34 disparos a **20, todos peticiones genuinas**.
+  - **Interceptor 2:** si la respuesta del LLM contenía "no puedo"/"no tengo información"/"no estoy seguro", **descartaba la respuesta buena** y mandaba la promesa. Ahora avisa al grupo y deja pasar la negativa honesta y contextualizada.
+  - **Temas sensibles** (descuento, reclamo, garantía, devolución): `_PAT_TEMA_SENSIBLE` avisa al grupo **en paralelo** sin pisar al LLM.
+  - **Texto cumplible:** `_texto_escalacion_cliente()` dice el horario real de atención y ofrece seguir adelantando la cotización en el mismo turno. **Decisión: no se pausa el bot al escalar** (aunque existe `_pausar_por_bot` y el chat web sí pausa) — con 60% de escalaciones sin atender, silenciarlo dejaría al cliente sin nadie.
+  - **Red de seguridad:** `_normalizar_respuesta_cliente` filtra `_PAT_PROMESA_VACIA` venga de donde venga (interceptor legacy, prompt o alucinación).
+  - **Seam de enrutamiento:** nuevo `GRUPO_ESCALACION_CLIENTES_WA`. Por defecto sigue cayendo en Facturacion_Compras_SIIGO (2 personas), que **no** es el destino natural de una consulta comercial — pendiente que el equipo lo apunte al grupo de ventas.
+  - **Bug aparte, peligroso:** `tests/test_whatsapp_pago_y_media.py` mockeaba `cargar_modos_atencion` pero no `guardar_modos_atencion`, así que el anti-loop escribía el dict vacío del mock sobre el `app/data/modos_atencion.json` **real**: correr la suite borraba los 24 números en modo humano de producción y el bot volvía a responder chats que un asesor tenía tomados. Mockeado también el guardado.
+  - 4 tests de regresión que fijan el contrato de la frase prohibida. Suite: 77 passed en `test_smoke.py` + 34 en los de WhatsApp/chat web.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_smoke.py`, `tests/test_whatsapp_pago_y_media.py`, `docs/team-recaps.md`
+
+
 ### 2026-09-07 14:20 - Catálogo Alegra: precio MeLi por SKU
 - **Autor:** Cursor Auto
 - **Tipo de Cambio:** Nueva funcionalidad
@@ -2102,3 +2310,40 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `bandera()` global de Jinja (país → emoji) en `website.py`.
 - **Archivos Modificados:** `PAGINA_WEB/site/templates/cotizar.html`, `templates/_ruta_origen.html`, `static/css/main.css`, `website.py`, `docs/team-recaps.md`
 
+
+### 2026-09-09 17:30 - Facturación MeLi ↔ Alegra: packs a medias, empalme Siigo–Alegra, regularización y tickets
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de fondo (facturación) + herramienta de regularización + UX de revisión
+- **Qué se implementó:**
+  - **Causa raíz** de los packs facturados a medias: el fix multi-orden del 6-sep nunca corrió porque `webhook_meli.py` llevaba desde el 3-sep sin reiniciarse. Autofactura automática **apagada** (`MELI_AUTOFACTURA_ENTREGA_ACTIVO=0`); el botón "Facturar ahora" ahora emite **una sola factura por carrito** (`facturar_pack_meli_manual`) con barreras anti-duplicado.
+  - **Cruce comprado vs facturado a nivel de pack** en Facturación → Ventas (estado `facturada_parcial`, badge "Pack de N"), **histórico persistente** en SQLite (`facturacion_ventas_cache.py`, sin tope de 150, botón 🔄 por venta) y filtro **"Solo pendientes"**.
+  - **Empalme Siigo–Alegra** (30 días): 41 packs facturados dos veces ($1,45M) porque astroselling facturaba en Siigo al comprar y Alegra al entregar. Regla: la de Siigo es la válida; la de Alegra se anula, nunca se reemite. `scripts/regularizar_packs_parciales.py` clasifica A (parcial real → consolidar) / B (duplicado → solo anular Alegra) / C (humano), simula por defecto, re-verifica antes de emitir y reactiva temporalmente ítems `-LEGACY` para poder anular.
+  - **Alegra**: `_resolver_o_crear_contacto_alegra` usa el `doc_type` real y recorta el DV del NIT; `buscar_producto_alegra_por_referencia` prefiere ítems activos; reactivados `C-AGUDES250mL`, `C-ACERIC250mL`, `C-BICSOD500g`, `C-MANCACREFKg`; creados `C-CREMON250g`, `C-VITCACIASC100g`. Listado de 217 SKUs de Siigo sin ítem activo en Alegra: `docs/facturacion/skus_siigo_sin_alegra.md`.
+  - **Tickets**: ticket diario "Sync facturas faltantes" apagado (`SYNC_TICKET_FALTANTES_ACTIVO=0`, tenía bug de dedupe y creaba uno por día); cron de NC ya no intenta Siigo (solo lectura) y reutiliza su ticket de error; ticket de revisión se cierra solo al completar pasos; cada paso con id de venta tiene **"Abrir en Facturación ↗"**; el checklist de Contabilidad lleva a Facturación → Ventas con "Solo pendientes". Cerrados 7 tickets duplicados/obsoletos de Jenniffer.
+  - Casos resueltos hoy a mano: FE198 (Fork Catering, NIT corregido; FE197 duplicada anulada con NC55), FE200/FE201 consolidadas (FE181/FE182 anuladas con NC56/NC57).
+  - Ficha completa para agentes: `docs/agentic/modules/facturacion-meli-alegra.md` (+ `learned_context.md`, `INDEX.md`, `CLAUDE.md` Flujo G).
+- **Archivos Modificados:** `app/tools/meli_autofactura_entrega.py`, `app/services/alegra.py`, `app/services/facturacion_ventas_unificado.py`, `app/services/facturacion_ventas_cache.py` (nuevo), `app/services/contabilidad_checklist.py`, `app/sync.py`, `app/tools/revision_facturacion.py`, `app/routes.py`, `scripts/regularizar_packs_parciales.py` (nuevo), `scripts/emitir_notas_credito_cron.py`, `scripts/revision_facturacion_cron.py`, `desktop/src/components/VentasAstroKillerPanel.tsx`, `TicketsPanel.tsx`, `FacturacionPanel.tsx`, `ContabilidadInicioPanel.tsx`, `desktop/src/stores/app.ts`, `.env.example`, `CLAUDE.md`, `docs/agentic/{INDEX,learned_context}.md`, `docs/agentic/modules/facturacion-meli-alegra.md` (nuevo), `docs/facturacion/skus_siigo_sin_alegra.md` (nuevo), `docs/team-recaps.md`
+  - **Cierre (17:20):** regularización completada — 39 packs (13 duplicados solo-NC, 25 consolidaciones, y FE195 anulada con NC97 tras eliminar una NC manual sin timbre). 40 NC y 29 FE timbradas hoy. Además: `obtener_facturas_hibridas` ahora toma Siigo hasta `FECHA_ULTIMA_FACTURA_SIIGO` (3-sep) — las 90 facturas de astroselling del 2–3 sep eran invisibles para el índice legado y el panel las mostraba "sin facturar". Índice reconstruido, histórico recalentado, ticket #1322 cerrado; a Jenniffer solo le quedan 4 "PAGO DIAN" de jun/jul.
+
+### 2026-09-10 18:45 - Pagos de mensajería en el panel (TKT-2026-1219, Jenniffer)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Módulo nuevo (Operativos → Mensajería)
+- **Qué se implementó:**
+  - El Excel "ENVIOS INTERRA" (día · cant. envíos · enlace de guías · valor · estado · fecha de pago) pasa al panel: `/app → Contabilidad → Operativos → Mensajería`. Un renglón por día, días sin despacho con valor 0 y su nota ("domingo", "no salen").
+  - **Importar del Excel:** se pegan las filas tal cual (tabuladores, `$ 50.700`, `19-ago`); lo que ya decía CANCELADO con fecha de pago se carga como lotes pagados del histórico, así no se pierde lo de agosto.
+  - **Lote de pago:** se marcan los días pendientes, se agrupan y se crea solo el ticket de aprobación (categoría logística, asignado a `MENSAJERIA_APROBADOR`, default `armando`) — el mismo trámite que se abría a mano. Al pagar se registra fecha, banco, referencia, monto y **comprobante adjunto**.
+  - **Contabilidad sin doble digitación:** el lote pagado entra a Ingresos/Egresos con fuente `mensajeria_pago` y de ahí al Libro Mayor por autopost (PUC 5135), conciliable contra el extracto como cualquier otro egreso.
+  - Permiso nuevo `mensajeria`, heredado de `servicios`, `operativos` o `pedidos` (Jenniffer ya lo ve con los permisos que tiene).
+- **Archivos Modificados:** `app/services/mensajeria_pagos.py` (nuevo), `app/routes.py`, `app/services/contabilidad_ledger.py`, `app/services/contabilidad_autopost.py`, `desktop/src/components/MensajeriaPanel.tsx` (nuevo), `OperativosPanel.tsx`, `IngresosEgresosPanel.tsx`, `Settings.tsx`, `TicketsPanel.tsx`, `desktop/src/lib/{contabilidadAccess.ts,panelInfo.ts}`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-10 19:30 - Guías de envío desde el panel (impresora térmica Vretti)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Módulo nuevo (Atención → Guías de envío)
+- **Qué se implementó:**
+  - El rótulo de envío que despachos llenaba en Excel/Word ahora se genera en el panel: se marcan los pedidos que salen (tienda web + despachos de WhatsApp, con dirección ya cargada) y se abre un PDF de **10x15 cm, una página por paquete**, listo para la Vretti (también 10x10 y 5x7,5).
+  - Diseño pensado para térmica: negro sobre blanco, destinatario en grande (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor declarado y **código de barras Code128** con la guía o la referencia. El bloque inferior está anclado para que un destinatario corto no deje hueco y un contenido largo no invada el pie.
+  - Pestañas **Envío suelto** (formulario en blanco) y **Remitente** (NIT/dirección/teléfono de McKenna, `app/data/remitente_envios.json` — hoy vacíos, hay que completarlos una vez).
+  - Cada rótulo queda registrado (`rotulos_envio` en despachos.db) con reimpresión desde el historial; `GET /api/guias/conteo` alimenta la sugerencia "N rótulos impresos ese día — usar" en la casilla *envíos* de Operativos → Mensajería.
+  - **MeLi no se incluye a propósito:** esas ventas van con la etiqueta de Mercado Libre (Colecta/Flex).
+  - Detalle de implementación: el `ImageReader` del isotipo se crea una vez por PDF; dentro del bucle, un lote de 20 rótulos pesaba ~16 MB.
+- **Archivos Modificados:** `app/tools/guias_envio.py` (nuevo), `app/routes.py`, `desktop/src/components/GuiasEnvioPanel.tsx` (nuevo), `MensajeriaPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `CLAUDE.md`, `docs/team-recaps.md`

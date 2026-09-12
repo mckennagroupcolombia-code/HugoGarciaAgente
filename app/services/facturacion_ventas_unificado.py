@@ -176,6 +176,163 @@ def _facturas_alegra_cacheadas(headers: dict, desde: str, *, forzar: bool = Fals
     return facturas, notas_por_factura
 
 
+_CACHE_TTL_PUNTUAL = 900  # 15 min
+
+
+def _facturas_alegra_para_consulta_puntual(headers: dict) -> tuple[list, dict]:
+    """Facturas/NC para resolver UNA venta puntual (búsqueda o botón de refrescar).
+
+    Bajar TODAS las facturas desde la migración toma ~100s (medido en vivo
+    2026-09-09), lo que dejaba el botón de refrescar una fila colgado casi dos
+    minutos. Acá se reutiliza el caché completo aunque esté algo viejo y se le
+    suma la PRIMERA página de Alegra, que es donde cae cualquier factura
+    recién emitida — que es justo lo que el operador quiere ver al refrescar.
+    Alegra no permite filtrar `/invoices` por orden de compra (probado en vivo:
+    ignora `purchase_order`/`query` y devuelve las últimas sin filtrar).
+    """
+    cacheado = _cache_alegra.get(FECHA_CORTE_MIGRACION_ALEGRA)
+    base_facturas: list = []
+    notas: dict = {}
+    if cacheado and _time.time() - cacheado[0] < _CACHE_TTL_PUNTUAL:
+        base_facturas, notas = list(cacheado[1]), dict(cacheado[2])
+    else:
+        base_facturas, notas = _facturas_alegra_cacheadas(headers, FECHA_CORTE_MIGRACION_ALEGRA)
+        return base_facturas, notas
+
+    try:
+        r = requests.get(
+            f"{_ALEGRA_BASE}/invoices", headers=headers,
+            params={"date_afterEqual": FECHA_CORTE_MIGRACION_ALEGRA, "limit": 30, "order_direction": "DESC"},
+            timeout=20,
+        )
+        recientes = r.json() or [] if r.status_code == 200 else []
+    except requests.RequestException:
+        recientes = []
+
+    conocidas = {str(f.get("id")) for f in base_facturas}
+    for f in recientes:
+        if str(f.get("id")) in conocidas:
+            continue
+        f = dict(f)
+        f.setdefault("purchase_order", f.get("anotation"))
+        base_facturas.append(f)
+    return base_facturas, notas
+
+
+def _guardar_en_cache(filas: list[dict]) -> None:
+    """Persiste las filas ya reconstruidas en el histórico SQLite. Nunca debe
+    tumbar el listado: si el caché falla, el panel sigue funcionando en vivo."""
+    try:
+        from app.services.facturacion_ventas_cache import guardar_ventas
+
+        guardar_ventas(filas)
+    except Exception as e:  # noqa: BLE001 - el caché es best-effort
+        print(f"⚠️ [FACTURACION] No se pudo guardar el histórico de ventas: {e}")
+
+
+def _clave_item(sku: str | None, nombre: str | None) -> str:
+    """Clave para parear una línea comprada con una facturada. El SKU manda; el
+    nombre es el respaldo para líneas sin SKU (el listado de órdenes de MeLi no
+    siempre trae `seller_custom_field`, a diferencia del GET individual).
+
+    El SKU se pasa por la tabla de equivalencias de venta (ver
+    `alegra.resolver_producto_venta_alegra`): cuando el producto entró a Alegra
+    con el código de compra, la línea comprada trae el SKU de MeLi y la
+    facturada la reference de Alegra. Sin esto el cruce las ve como productos
+    distintos y marca "facturada_parcial" una factura correcta — falso positivo
+    que lleva a "corregir" con nota crédito lo que estaba bien."""
+    s = (sku or "").strip().upper()
+    if s and s != "—":
+        from app.services.alegra import _alias_sku_venta
+
+        return _alias_sku_venta().get(s, s).strip().upper()
+    return (nombre or "").strip().upper()[:40]
+
+
+def construir_cruce_pack(
+    items_comprados: list[dict], facturas_pack: list[dict], hay_factura_legado: bool = False,
+    *, datos_incompletos: bool = False,
+) -> dict:
+    """Cruce línea por línea de lo que el cliente compró (todo el pack/carrito)
+    contra lo que quedó facturado en Alegra para ese mismo pack.
+
+    Es la red de seguridad que faltaba: el estado `facturada_completa` solo mira
+    que EXISTA una factura y que MeLi tenga el PDF, no que la factura cubra todo
+    lo comprado. Con packs multi-orden eso dejó pasar facturas parciales.
+
+    Las facturas anuladas (con nota crédito) NO cuentan como facturado — si no,
+    una factura mala ya anulada seguiría tapando el faltante.
+
+    `concluyente` es False cuando hay una factura del legado Siigo: de esas no
+    tenemos las líneas, así que no se puede afirmar que falte algo.
+    """
+    comprado: dict[str, dict] = {}
+    for it in items_comprados:
+        k = _clave_item(it.get("sku"), it.get("nombre"))
+        if not k:
+            continue
+        reg = comprado.setdefault(k, {"sku": it.get("sku") or "—", "nombre": it.get("nombre"), "cantidad": 0.0, "total": 0.0})
+        reg["cantidad"] += float(it.get("cantidad") or 0)
+        reg["total"] += float(it.get("cantidad") or 0) * float(it.get("precio_unitario") or 0)
+
+    facturado: dict[str, dict] = {}
+    facturas_vigentes = [f for f in facturas_pack if not f.get("notas_credito")]
+    for f in facturas_vigentes:
+        for it in f.get("items") or []:
+            k = _clave_item(it.get("sku"), it.get("nombre"))
+            if not k:
+                continue
+            reg = facturado.setdefault(k, {"sku": it.get("sku") or "—", "nombre": it.get("nombre"), "cantidad": 0.0, "total": 0.0})
+            reg["cantidad"] += float(it.get("cantidad") or 0)
+            reg["total"] += float(it.get("total") or 0)
+
+    faltantes, sobrantes = [], []
+    for k, c in comprado.items():
+        fac = facturado.get(k)
+        if not fac:
+            faltantes.append({**c, "facturado": 0.0})
+        elif fac["cantidad"] + 0.001 < c["cantidad"]:
+            faltantes.append({**c, "facturado": fac["cantidad"]})
+    for k, f in facturado.items():
+        if k not in comprado:
+            sobrantes.append(f)
+
+    total_comprado = round(sum(c["total"] for c in comprado.values()), 2)
+    total_facturado = round(sum(f["total"] for f in facturado.values()), 2)
+    # `datos_incompletos`: no se pudo leer el detalle de alguna orden del pack
+    # (timeout/límite de MeLi). Sin esas líneas el cruce inventaría faltantes o
+    # sobrantes que no existen — y un falso positivo acá lleva a "corregir" una
+    # factura correcta, que es justo el error que este cruce debe evitar.
+    concluyente = not hay_factura_legado and not datos_incompletos
+    ok = bool(facturas_vigentes) and not faltantes and not sobrantes and concluyente
+
+    if not facturas_vigentes:
+        resumen = "Sin factura vigente" if not hay_factura_legado else "Facturada en el legado Siigo"
+    elif datos_incompletos:
+        resumen = "No verificable: MeLi no devolvió el detalle de todo el carrito — reintenta con 🔄"
+    elif not concluyente:
+        resumen = "No verificable (factura del legado Siigo, sin líneas)"
+    elif ok:
+        resumen = f"Coincide: {len(comprado)} producto(s)"
+    elif faltantes:
+        resumen = f"Faltan {len(faltantes)} de {len(comprado)} producto(s) por facturar"
+    else:
+        resumen = f"{len(sobrantes)} línea(s) facturada(s) que no están en la compra"
+
+    return {
+        "comprado": sorted(comprado.values(), key=lambda x: x["nombre"] or ""),
+        "facturado": sorted(facturado.values(), key=lambda x: x["nombre"] or ""),
+        "faltantes": faltantes,
+        "sobrantes": sobrantes,
+        "total_comprado": total_comprado,
+        "total_facturado": total_facturado,
+        "diferencia": round(total_comprado - total_facturado, 2),
+        "ok": ok,
+        "concluyente": concluyente,
+        "resumen": resumen,
+    }
+
+
 def listar_ventas_meli_unificado(
     *, dias: int = 30, segmento: str = "concretadas", limite: int = 200, forzar: bool = False,
 ) -> dict:
@@ -251,10 +408,32 @@ def listar_ventas_meli_unificado(
     abiertos = pasos_abiertos_facturacion()
 
     total_pagado_pack: dict[str, float] = {}
+    # Ítems comprados agrupados por PACK, no por orden. Un carrito de N productos
+    # genera N órdenes MeLi que comparten pack_id, así que cruzar
+    # orden-contra-factura da un falso "coincide" cuando se facturó UNA sola de
+    # las N: cada orden tiene 1 producto y su factura tiene 1 producto (caso real
+    # 2026-09-08, pack 2000014920695311: 7 productos por $226.295 y FE181
+    # facturó solo uno por $88.315 — el cruce por orden no lo vio). Se arma desde
+    # `ordenes`, que ya trae `order_items` en memoria: cero llamadas extra a MeLi.
+    items_pack: dict[str, list[dict]] = {}
+    ordenes_del_pack: dict[str, list[str]] = {}
     for o in ordenes:
         pid = str(o.get("pack_id") or o.get("id") or "").strip()
-        if pid:
-            total_pagado_pack[pid] = total_pagado_pack.get(pid, 0) + (o.get("total_amount") or 0)
+        if not pid:
+            continue
+        total_pagado_pack[pid] = total_pagado_pack.get(pid, 0) + (o.get("total_amount") or 0)
+        oid_o = str(o.get("id") or "").strip()
+        if oid_o and oid_o not in ordenes_del_pack.setdefault(pid, []):
+            ordenes_del_pack[pid].append(oid_o)
+        for it in o.get("order_items") or []:
+            info = it.get("item") or {}
+            sku = (info.get("seller_custom_field") or info.get("seller_sku") or "").strip()
+            items_pack.setdefault(pid, []).append({
+                "sku": sku or "—",
+                "nombre": info.get("title") or "Producto",
+                "cantidad": float(it.get("quantity") or 1),
+                "precio_unitario": float(it.get("unit_price") or 0),
+            })
 
     def _facturas_out(facturas_orden: list[dict]) -> list[dict]:
         out = []
@@ -277,6 +456,30 @@ def listar_ventas_meli_unificado(
                 ],
             })
         return out
+
+    # Facturas agrupadas por PACK: las de la propia orden, las de sus órdenes
+    # hermanas y las emitidas contra el pack_id (una factura consolidada del
+    # carrito lleva el pack_id en `purchase_order`). Sin esto, una consolidada
+    # se vería como "sin factura" desde las demás órdenes del mismo pack.
+    _cruce_por_pack: dict[str, dict] = {}
+
+    def _cruce_pack_cacheado(pack_id: str, hay_legado: bool) -> dict:
+        if pack_id in _cruce_por_pack:
+            return _cruce_por_pack[pack_id]
+        vistos: set[str] = set()
+        facturas_del_pack: list[dict] = []
+        for clave in [pack_id, *ordenes_del_pack.get(pack_id, [])]:
+            for f in por_orden.get(clave, []):
+                fid = str(f.get("id"))
+                if fid in vistos:
+                    continue
+                vistos.add(fid)
+                facturas_del_pack.append(f)
+        cruce = construir_cruce_pack(
+            items_pack.get(pack_id, []), _facturas_out(facturas_del_pack), hay_legado,
+        )
+        _cruce_por_pack[pack_id] = cruce
+        return cruce
 
     filas: list[dict] = []
     ordenes_por_id: dict[str, dict] = {}
@@ -334,6 +537,15 @@ def listar_ventas_meli_unificado(
             "nota_credito_legado": nc_legado.get("nc") if nc_legado else None,
             "nc_subida_meli_legado": bool(nc_legado.get("subida_meli")) if nc_legado else None,
         }
+        if not es_cancelada:
+            cruce = _cruce_pack_cacheado(pack_id, bool(legado))
+            fila["cruce"] = cruce
+            # Faltante real = hay factura vigente pero NO cubre todo lo comprado.
+            # Es distinto de "sin_facturar" (no hay nada emitido todavía).
+            fila["facturacion_parcial"] = bool(
+                cruce["concluyente"] and cruce["faltantes"] and cruce["total_facturado"] > 0
+            )
+            fila["ordenes_del_pack"] = len(ordenes_del_pack.get(pack_id, []) or [order_id])
         revis = revisados.get(order_id)
         abierto = abiertos.get(order_id)
         fila["revisado"] = bool(revis)
@@ -341,6 +553,37 @@ def listar_ventas_meli_unificado(
         fila["ticket_id"] = (revis or abierto or {}).get("ticket_id")
         fila["paso_id"] = (revis or abierto or {}).get("paso_id")
         filas.append(fila)
+
+    # UNA fila por VENTA (pack), no por orden. Un carrito de N productos son N
+    # órdenes MeLi con el mismo pack_id: mostrarlas como filas separadas hacía
+    # que el operador viera "1 producto, $65.700" en una fila y "1 producto,
+    # $38.244" en otra, para una venta que el cliente pagó en $103.944 — y que
+    # se factura con UNA sola factura (MeLi admite un documento fiscal por
+    # pack). Caso reportado 2026-09-09: pack 2000014944634019.
+    por_pack: dict[str, dict] = {}
+    filas_pack: list[dict] = []
+    for fila in filas:
+        pid = fila["pack_id"]
+        base = por_pack.get(pid)
+        if base is None:
+            fila["ordenes_ids"] = [fila["order_id"]]
+            por_pack[pid] = fila
+            filas_pack.append(fila)
+            continue
+        base["ordenes_ids"].append(fila["order_id"])
+        vistos = {f["factura_id"] for f in base["facturas"]}
+        base["facturas"].extend(f for f in fila["facturas"] if f["factura_id"] not in vistos)
+        base["factura_legado"] = base["factura_legado"] or fila["factura_legado"]
+        base["posible_duplicado"] = base["posible_duplicado"] or fila["posible_duplicado"]
+        base["cliente"] = base["cliente"] or fila["cliente"]
+        base["revisado"] = base["revisado"] or fila["revisado"]
+        base["revisado_notas"] = base["revisado_notas"] or fila["revisado_notas"]
+        base["ticket_id"] = base["ticket_id"] or fila["ticket_id"]
+        base["paso_id"] = base["paso_id"] or fila["paso_id"]
+    for fila in filas_pack:
+        fila["total"] = total_pagado_pack.get(fila["pack_id"]) or fila["total"]
+        fila["ordenes_del_pack"] = len(fila["ordenes_ids"])
+    filas = filas_pack
 
     # Pedidos web: solo los que YA tienen factura Alegra (mismo alcance que
     # tenía Astro Killer) — no se cruzan con `ordenes` (son MeLi).
@@ -394,7 +637,23 @@ def listar_ventas_meli_unificado(
         entrega/documento fiscal de una misma fila no dependen del de otra
         fila, así que no hay razón para esperar a que TODAS terminen una
         etapa antes de que cualquiera empiece la siguiente)."""
-        fila["venta_original"] = _detalle_venta_meli(fila["order_id"], token=token_meli)
+        # "Lo vendido" es el CARRITO COMPLETO (todas las órdenes del pack), no
+        # la orden de la fila. Sale de `ordenes` en memoria (cero llamadas)
+        # cuando el listado trae los SKU; si a alguna línea le falta el SKU se
+        # cae al detalle por orden vía API, que sí lo trae.
+        items_carrito = items_pack.get(fila["pack_id"]) or []
+        if items_carrito and all(i.get("sku") and i["sku"] != "—" for i in items_carrito):
+            fila["venta_original"] = {
+                "total_pagado": float(total_pagado_pack.get(fila["pack_id"]) or 0),
+                "items": items_carrito,
+            }
+        else:
+            acumulado, total_carrito = [], 0.0
+            for oid in fila.get("ordenes_ids") or [fila["order_id"]]:
+                det = _detalle_venta_meli(oid, token=token_meli) or {}
+                acumulado.extend(det.get("items") or [])
+                total_carrito += float(det.get("total_pagado") or 0)
+            fila["venta_original"] = {"total_pagado": total_carrito, "items": acumulado} if acumulado else None
         if fila["es_cancelada"]:
             return  # estado de canceladas se resuelve aparte, sin más llamadas MeLi
 
@@ -410,12 +669,29 @@ def listar_ventas_meli_unificado(
                     fila["factura_legado"] = legado_real
                     fila["posible_duplicado"] = True
 
-        if fila["facturas"] or fila["factura_legado"]:
+        cruce = fila.get("cruce") or {}
+        # Una orden puede no tener factura propia y aun así estar cubierta por la
+        # factura CONSOLIDADA del pack (emitida contra el pack_id). Sin esto, las
+        # 6 órdenes hermanas de una consolidada se reportarían "sin facturar" y
+        # el operador facturaría de nuevo lo ya facturado.
+        cubierta_por_pack = bool(cruce.get("ok")) and cruce.get("total_facturado", 0) > 0
+        # Una factura ANULADA (con nota crédito) no cuenta como "tiene factura":
+        # si no se reemitió, la venta está sin facturar aunque el documento exista.
+        facturas_vigentes = [f for f in fila["facturas"] if not f.get("notas_credito")]
+
+        if facturas_vigentes or fila["factura_legado"] or cubierta_por_pack:
             # Doble verificación MeLi: la factura existe (Alegra o legado),
             # ¿MeLi ya tiene el documento fiscal subido?
             tiene_doc = meli_pack_tiene_documento_fiscal(fila["pack_id"], token=token_meli)
             fila["meli_doc_fiscal"] = tiene_doc
-            fila["estado_facturacion"] = "facturada_completa" if tiene_doc else "facturada_pendiente_subir_meli"
+            if fila.get("facturacion_parcial"):
+                # Hay factura, pero NO cubre todo lo comprado: es el caso que
+                # venía pasando inadvertido como "✅ Facturada".
+                fila["estado_facturacion"] = "facturada_parcial"
+            elif tiene_doc:
+                fila["estado_facturacion"] = "facturada_completa"
+            else:
+                fila["estado_facturacion"] = "facturada_pendiente_subir_meli"
             return
 
         # Sin factura en ningún lado → ¿ya se entregó y desde cuándo? No se
@@ -481,6 +757,10 @@ def listar_ventas_meli_unificado(
         "actualizado_en": datetime.now().isoformat(timespec="seconds"),
     }
     _cache[cache_key] = (_time.time(), resultado)
+    # El histórico se llena solo con el uso normal del panel: cada listado en
+    # vivo deja sus filas persistidas para que la vista "Histórico" pueda
+    # mostrar miles sin volver a consultar MeLi (ver facturacion_ventas_cache).
+    _guardar_en_cache(filas)
     return resultado
 
 
@@ -496,7 +776,17 @@ def items_flaggeados_para_ticket(resultado: dict) -> list[dict]:
         estado = v.get("estado_facturacion")
         tipo = None
         motivo = None
-        if v.get("posible_duplicado"):
+        if v.get("facturacion_parcial"):
+            cruce = v.get("cruce") or {}
+            faltan = ", ".join(
+                f"{f.get('nombre') or f.get('sku')} (x{f.get('cantidad'):g})" for f in (cruce.get("faltantes") or [])[:5]
+            )
+            tipo = "facturacion_parcial"
+            motivo = (
+                f"La factura no cubre todo lo comprado: {cruce.get('resumen')}. "
+                f"Faltan: {faltan}. Diferencia ${cruce.get('diferencia', 0):,.0f}."
+            )
+        elif v.get("posible_duplicado"):
             tipo = "posible_duplicado"
             legado = v.get("factura_legado") or {}
             ref_legado = legado.get("factura_numero") or legado.get("factura_id") or "sin número"
@@ -558,9 +848,17 @@ def consultar_venta_individual(identificador: str) -> dict | None:
 
     try:
         headers = _alegra_headers()
-        facturas, notas_por_factura = _facturas_alegra_cacheadas(headers, FECHA_CORTE_MIGRACION_ALEGRA)
+        facturas, notas_por_factura = _facturas_alegra_para_consulta_puntual(headers)
     except RuntimeError:
         facturas, notas_por_factura = [], {}
+
+    # Órdenes hermanas del pack: hacen falta para cruzar TODO lo comprado en el
+    # carrito contra todo lo facturado (ver `construir_cruce_pack`). Con una sola
+    # orden a la vista, una factura parcial de un pack se ve perfecta.
+    pack_detalle = consultar_pack_meli(pack_id, token=token_meli) if pack_id != order_id else None
+    ordenes_hermanas = [str(o.get("id")) for o in (pack_detalle or {}).get("orders") or [] if o.get("id")]
+    if order_id not in ordenes_hermanas:
+        ordenes_hermanas.append(order_id)
 
     facturas_orden = sorted(
         [f for f in facturas if (f.get("purchase_order") or f.get("anotation") or "").strip() == order_id],
@@ -617,7 +915,70 @@ def consultar_venta_individual(identificador: str) -> dict | None:
         "nota_credito_legado": None,
         "nc_subida_meli_legado": None,
         "venta_original": _detalle_venta_meli(order_id, token=token_meli),
+        "ordenes_del_pack": len(ordenes_hermanas),
     }
+
+    # Cruce a nivel pack: lo comprado en TODAS las órdenes del carrito contra
+    # todas las facturas vigentes del pack (incluida una consolidada emitida
+    # contra el pack_id).
+    items_comprados: list[dict] = []
+    hermanas_sin_detalle = 0
+    for oid_h in ordenes_hermanas:
+        det = fila["venta_original"] if oid_h == order_id else _detalle_venta_meli(oid_h, token=token_meli)
+        if not det:
+            # Un reintento: MeLi devuelve vacío de forma intermitente bajo carga
+            # (confirmado en vivo 2026-09-09 con el pack 2000014920695311, donde
+            # una de 7 órdenes no respondió y el cruce reportó un faltante falso).
+            det = _detalle_venta_meli(oid_h, token=token_meli)
+        if not det or not (det.get("items") or []):
+            hermanas_sin_detalle += 1
+            continue
+        items_comprados.extend(det["items"])
+    claves_pack = {pack_id, *ordenes_hermanas}
+    facturas_pack_raw = sorted(
+        [f for f in facturas if (f.get("purchase_order") or f.get("anotation") or "").strip() in claves_pack],
+        key=lambda f: f.get("date") or "",
+    )
+    facturas_pack_out = [
+        {
+            "factura_id": str(f.get("id")),
+            "numero": (f.get("numberTemplate") or {}).get("fullNumber"),
+            "fecha": f.get("date"),
+            "estado": f.get("status"),
+            "total": f.get("total"),
+            "cufe": (f.get("stamp") or {}).get("cufe") or "",
+            "url": f"https://app.alegra.com/invoice/view/id/{f.get('id')}",
+            "notas_credito": notas_por_factura.get(str(f.get("id")), []),
+            "items": [
+                {"sku": it.get("code") or "—", "nombre": it.get("description"),
+                 "cantidad": it.get("quantity"), "total": it.get("total")}
+                for it in items_hibridos_normalizados(f)
+            ],
+        }
+        for f in facturas_pack_raw
+    ]
+    # La fila representa la VENTA completa: carrito, total pagado y todas las
+    # facturas del pack (misma regla que en el listado — una fila por pack).
+    if items_comprados:
+        fila["venta_original"] = {
+            "total_pagado": round(sum(float(i.get("cantidad") or 0) * float(i.get("precio_unitario") or 0) for i in items_comprados), 2),
+            "items": items_comprados,
+        }
+        fila["total"] = fila["venta_original"]["total_pagado"]
+    fila["ordenes_ids"] = ordenes_hermanas
+    if len(ordenes_hermanas) > 1:
+        fila["facturas"] = facturas_pack_out
+        facturas_orden = facturas_pack_raw
+
+    if not es_cancelada:
+        cruce = construir_cruce_pack(
+            items_comprados, facturas_pack_out, bool(legado),
+            datos_incompletos=hermanas_sin_detalle > 0,
+        )
+        fila["cruce"] = cruce
+        fila["facturacion_parcial"] = bool(
+            cruce["concluyente"] and cruce["faltantes"] and cruce["total_facturado"] > 0
+        )
 
     from app.tools.revision_facturacion import pasos_abiertos_facturacion, revisado_map_facturacion
 
@@ -630,12 +991,20 @@ def consultar_venta_individual(identificador: str) -> dict | None:
 
     if es_cancelada:
         fila["estado_facturacion"] = "cancelada_resuelta" if (legado or facturas_orden) else "cancelada_sin_factura"
+        _guardar_en_cache([fila])
         return fila
 
-    if facturas_orden or legado:
+    cruce_fila = fila.get("cruce") or {}
+    cubierta_por_pack = bool(cruce_fila.get("ok")) and cruce_fila.get("total_facturado", 0) > 0
+    facturas_vigentes_orden = [f for f in facturas_out if not f.get("notas_credito")]
+    if facturas_vigentes_orden or legado or cubierta_por_pack:
         tiene_doc = meli_pack_tiene_documento_fiscal(pack_id, token=token_meli)
         fila["meli_doc_fiscal"] = tiene_doc
-        fila["estado_facturacion"] = "facturada_completa" if tiene_doc else "facturada_pendiente_subir_meli"
+        if fila.get("facturacion_parcial"):
+            fila["estado_facturacion"] = "facturada_parcial"
+        else:
+            fila["estado_facturacion"] = "facturada_completa" if tiene_doc else "facturada_pendiente_subir_meli"
+        _guardar_en_cache([fila])
         return fila
 
     shipping_id = (orden.get("shipping") or {}).get("id")
@@ -659,4 +1028,5 @@ def consultar_venta_individual(identificador: str) -> dict | None:
         except ValueError:
             en_margen = False
     fila["estado_facturacion"] = "en_margen_entrega" if en_margen else "sin_facturar"
+    _guardar_en_cache([fila])
     return fila

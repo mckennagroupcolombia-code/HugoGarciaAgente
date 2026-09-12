@@ -305,6 +305,14 @@ function fmtCop(v: number | null): string {
   }).format(v);
 }
 
+function etiquetaMes(mesKey: string): string {
+  const [y, m] = mesKey.split("-").map((x) => parseInt(x, 10));
+  if (!y || !m) return mesKey;
+  const d = new Date(y, m - 1, 1);
+  const s = d.toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 type CatalogoItem = { codigo: string; nombre: string };
 
 type EnvioExterior = {
@@ -447,6 +455,61 @@ function agruparHistorial(
     }
   }
   return out;
+}
+
+type GrupoHistorial = ReturnType<typeof agruparHistorial>[number];
+
+function fechaDeGrupo(g: GrupoHistorial): string {
+  if (g.kind === "envio") {
+    return (
+      g.envio.fecha_envio || g.compras[0]?.fecha_compra || g.compras[0]?.created_at || ""
+    ).slice(0, 10);
+  }
+  return (g.compra.fecha_compra || g.compra.created_at || "").slice(0, 10);
+}
+
+type MesHistorial = {
+  mes: string;
+  grupos: GrupoHistorial[];
+  compras: number;
+  totalAprobado: number;
+  totalPendiente: number;
+};
+
+/** Agrupa por mes (fecha de envío del paquete, o de compra si va sola) para no forzar
+ * scroll infinito: solo los meses recientes se muestran abiertos por defecto. */
+function agruparPorMes(grupos: GrupoHistorial[]): MesHistorial[] {
+  const map = new Map<string, GrupoHistorial[]>();
+  for (const g of grupos) {
+    const mes = fechaDeGrupo(g).slice(0, 7) || "Sin fecha";
+    const arr = map.get(mes) || [];
+    arr.push(g);
+    map.set(mes, arr);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([mes, gs]) => {
+      let aprob = 0;
+      let pend = 0;
+      let compras = 0;
+      for (const g of gs) {
+        const items = g.kind === "envio" ? g.compras : [g.compra];
+        compras += items.length;
+        for (const c of items) {
+          if (c.cuenta_cobro_estado === "aprobada") aprob += c.total_cobro_cop || 0;
+          else if (c.cuenta_cobro_estado === "pendiente") pend += c.total_cobro_cop || 0;
+          if (!c.envio_id) {
+            if (c.cuenta_flete_estado === "aprobada") aprob += c.flete_cobro_cop || 0;
+            else if (c.cuenta_flete_estado === "pendiente") pend += c.flete_cobro_cop || 0;
+          }
+        }
+        if (g.kind === "envio") {
+          if (g.envio.cuenta_flete_estado === "aprobada") aprob += g.envio.flete_cobro_cop || 0;
+          else if (g.envio.cuenta_flete_estado === "pendiente") pend += g.envio.flete_cobro_cop || 0;
+        }
+      }
+      return { mes, grupos: gs, compras, totalAprobado: aprob, totalPendiente: pend };
+    });
 }
 
 const CUOTA_MANEJO_PCT_DEFAULT = 5;
@@ -814,6 +877,9 @@ export default function ComprasExteriorPanel() {
   const [cuentaCobroId, setCuentaCobroId] = useState<number | null>(null);
   const [modalVerificar, setModalVerificar] = useState(false);
   const [seleccionIds, setSeleccionIds] = useState<number[]>([]);
+  const [verTodosMesesAdeudado, setVerTodosMesesAdeudado] = useState(false);
+  const [busquedaHistorial, setBusquedaHistorial] = useState("");
+  const [mesesCerrados, setMesesCerrados] = useState<Set<string> | null>(null);
   const [envioModal, setEnvioModal] = useState<"crear" | EnvioExterior | null>(null);
   const [fechaEnvio, setFechaEnvio] = useState(() => new Date().toISOString().slice(0, 10));
   const [fleteEnvio, setFleteEnvio] = useState("");
@@ -886,7 +952,113 @@ export default function ComprasExteriorPanel() {
     };
   }, [cuentaCobroId, modalVerificar]);
 
-  const gruposHistorial = useMemo(() => agruparHistorial(historial), [historial]);
+  const historialFiltrado = useMemo(() => {
+    const q = busquedaHistorial.trim().toLowerCase();
+    if (!q) return historial;
+    return historial.filter((c) => {
+      const campos = [
+        c.proveedor,
+        c.numero_pedido,
+        c.emisor_nombre,
+        c.moneda,
+        String(c.id),
+        ...(c.lineas || []).map((l) => l.nombre),
+      ];
+      return campos.some((v) => (v || "").toString().toLowerCase().includes(q));
+    });
+  }, [historial, busquedaHistorial]);
+
+  const gruposHistorial = useMemo(
+    () => agruparHistorial(historialFiltrado),
+    [historialFiltrado],
+  );
+
+  const mesesHistorial = useMemo(() => agruparPorMes(gruposHistorial), [gruposHistorial]);
+
+  useEffect(() => {
+    if (mesesCerrados !== null) return;
+    if (!historial.length) return;
+    if (mesesHistorial.length <= 2) {
+      setMesesCerrados(new Set());
+      return;
+    }
+    setMesesCerrados(new Set(mesesHistorial.slice(2).map((m) => m.mes)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [historial.length, mesesHistorial.length]);
+
+  const buscandoHistorial = busquedaHistorial.trim().length > 0;
+  const mesEstaAbierto = (mes: string) => buscandoHistorial || !(mesesCerrados?.has(mes));
+  const toggleMes = (mes: string) => {
+    setMesesCerrados((prev) => {
+      const next = new Set(prev || []);
+      if (next.has(mes)) next.delete(mes);
+      else next.add(mes);
+      return next;
+    });
+  };
+
+  const resumenAdeudado = useMemo(() => {
+    type Acum = { mercAprob: number; mercPend: number; fleteAprob: number; fletePend: number };
+    const nuevoAcum = (): Acum => ({ mercAprob: 0, mercPend: 0, fleteAprob: 0, fletePend: 0 });
+    const meses = new Map<string, Map<string, Acum>>();
+    const acumular = (mesKey: string, emisor: string, patch: Partial<Acum>) => {
+      if (!mesKey || !emisor) return;
+      const porEmisor = meses.get(mesKey) || new Map<string, Acum>();
+      meses.set(mesKey, porEmisor);
+      const acc = porEmisor.get(emisor) || nuevoAcum();
+      porEmisor.set(emisor, {
+        mercAprob: acc.mercAprob + (patch.mercAprob || 0),
+        mercPend: acc.mercPend + (patch.mercPend || 0),
+        fleteAprob: acc.fleteAprob + (patch.fleteAprob || 0),
+        fletePend: acc.fletePend + (patch.fletePend || 0),
+      });
+    };
+    const enviosVistos = new Set<number>();
+    for (const c of historial) {
+      const emisor = (c.emisor_nombre || "").trim();
+      if (!emisor) continue;
+      const mesCompra = (c.fecha_compra || c.created_at || "").slice(0, 7);
+      if (mesCompra) {
+        if (c.cuenta_cobro_estado === "aprobada") {
+          acumular(mesCompra, emisor, { mercAprob: c.total_cobro_cop || 0 });
+        } else if (c.cuenta_cobro_estado === "pendiente") {
+          acumular(mesCompra, emisor, { mercPend: c.total_cobro_cop || 0 });
+        }
+        if (!c.envio_id) {
+          if (c.cuenta_flete_estado === "aprobada") {
+            acumular(mesCompra, emisor, { fleteAprob: c.flete_cobro_cop || 0 });
+          } else if (c.cuenta_flete_estado === "pendiente") {
+            acumular(mesCompra, emisor, { fletePend: c.flete_cobro_cop || 0 });
+          }
+        }
+      }
+      const env = c.envio;
+      if (env?.id && !enviosVistos.has(env.id)) {
+        enviosVistos.add(env.id);
+        const emisorEnvio = (env.emisor_nombre || emisor).trim();
+        const mesEnvio = (env.fecha_envio || "").slice(0, 7);
+        if (emisorEnvio && mesEnvio) {
+          if (env.cuenta_flete_estado === "aprobada") {
+            acumular(mesEnvio, emisorEnvio, { fleteAprob: env.flete_cobro_cop || 0 });
+          } else if (env.cuenta_flete_estado === "pendiente") {
+            acumular(mesEnvio, emisorEnvio, { fletePend: env.flete_cobro_cop || 0 });
+          }
+        }
+      }
+    }
+    return Array.from(meses.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([mes, porEmisor]) => ({
+        mes,
+        emisores: Array.from(porEmisor.entries())
+          .map(([emisor, acc]) => ({
+            emisor,
+            aprobado: acc.mercAprob + acc.fleteAprob,
+            pendiente: acc.mercPend + acc.fletePend,
+          }))
+          .sort((a, b) => b.aprobado + b.pendiente - (a.aprobado + a.pendiente)),
+      }));
+  }, [historial]);
 
   const toggleSeleccion = (id: number) => {
     setSeleccionIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -2152,6 +2324,54 @@ export default function ComprasExteriorPanel() {
         </section>
       )}
 
+      {resumenAdeudado.length > 0 && (
+        <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Adeudado por cuentas de cobro</h3>
+              <p className="text-[11px] text-muted">
+                Por mes y por quien cobra. «Aprobado» = PDF ya generado; «pendiente» = calculado,
+                falta aprobar. El flete de un paquete cuenta en el mes de su envío, no en el de
+                cada compra.
+              </p>
+            </div>
+            {resumenAdeudado.length > 2 && (
+              <button
+                type="button"
+                onClick={() => setVerTodosMesesAdeudado((v) => !v)}
+                className="rounded border border-border px-2 py-1 text-[11px] font-medium text-muted hover:text-ink"
+              >
+                {verTodosMesesAdeudado ? "Ver solo recientes" : `Ver todos (${resumenAdeudado.length} meses)`}
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(verTodosMesesAdeudado ? resumenAdeudado : resumenAdeudado.slice(0, 2)).map((mesInfo) => (
+              <div key={mesInfo.mes} className="rounded-lg border border-border bg-surface p-2.5">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {etiquetaMes(mesInfo.mes)}
+                </p>
+                <ul className="space-y-1.5">
+                  {mesInfo.emisores.map((e) => (
+                    <li key={e.emisor} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="min-w-0 truncate text-ink">{e.emisor}</span>
+                      <span className="shrink-0 text-right">
+                        <span className="font-semibold text-accent">{fmtCop(e.aprobado)}</span>
+                        {e.pendiente > 0 && (
+                          <span className="ml-1 text-[10px] text-amber-700 dark:text-amber-400">
+                            (+{fmtCop(e.pendiente)} pend.)
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="rounded-xl border border-border bg-surface-panel p-3 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -2212,8 +2432,59 @@ export default function ComprasExteriorPanel() {
           </p>
         )}
 
-        <ul className="space-y-2">
-          {gruposHistorial.map((g) => {
+        {historial.length > 0 && (
+          <div className="flex items-center gap-2">
+            <input
+              value={busquedaHistorial}
+              onChange={(e) => setBusquedaHistorial(e.target.value)}
+              placeholder="Buscar por proveedor, Nº pedido, producto o emisor…"
+              className="w-full max-w-sm rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs"
+            />
+            {buscandoHistorial && (
+              <button
+                type="button"
+                onClick={() => setBusquedaHistorial("")}
+                className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-muted hover:text-ink"
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        )}
+
+        {buscandoHistorial && mesesHistorial.length === 0 && (
+          <p className="text-xs text-muted py-4 text-center">
+            Sin resultados para «{busquedaHistorial}».
+          </p>
+        )}
+
+        <div className="space-y-2">
+          {mesesHistorial.map((mi) => {
+            const abiertoMes = mesEstaAbierto(mi.mes);
+            return (
+              <div key={mi.mes} className="rounded-lg border border-border overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleMes(mi.mes)}
+                  className="flex w-full flex-wrap items-center justify-between gap-2 bg-surface-input/60 px-3 py-2 text-left hover:bg-surface-input"
+                >
+                  <span className="text-xs font-semibold text-ink">
+                    {mi.mes === "Sin fecha" ? "Sin fecha" : etiquetaMes(mi.mes)}{" "}
+                    <span className="font-normal text-muted">· {mi.compras} compra(s)</span>
+                  </span>
+                  <span className="flex items-center gap-2 text-[11px]">
+                    <span className="font-semibold text-accent">{fmtCop(mi.totalAprobado)}</span>
+                    {mi.totalPendiente > 0 && (
+                      <span className="text-amber-700 dark:text-amber-400">
+                        +{fmtCop(mi.totalPendiente)} pend.
+                      </span>
+                    )}
+                    <span className="text-muted">{abiertoMes ? "▲" : "▼"}</span>
+                  </span>
+                </button>
+                {abiertoMes && (
+        <ul className="space-y-2 p-2">
+          {mi.grupos.map((g) => {
             const compras = g.kind === "envio" ? g.compras : [g.compra];
             const envio = g.kind === "envio" ? g.envio : null;
             const filas = compras.map((c) => {
@@ -2275,18 +2546,42 @@ export default function ComprasExteriorPanel() {
                         {c.flete && !c.envio ? ` · flete ${c.flete} ${c.moneda_flete || c.moneda}` : ""}
                         {" · "}
                         {c.total_guardados} costo(s)
-                        {c.total_cobro_cop != null && c.total_cobro_cop > 0
-                          ? c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
-                            ? ` · merc. OK ${fmtCop(c.total_cobro_cop)}`
-                            : ` · merc. pend. ${fmtCop(c.total_cobro_cop)}`
-                          : ""}
-                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0 && !c.envio
-                          ? c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
-                            ? ` · flete OK ${fmtCop(c.flete_cobro_cop)}`
-                            : ` · flete pend. ${fmtCop(c.flete_cobro_cop)}`
-                          : ""}
-                        {c.emisor_nombre ? ` · a nombre de ${c.emisor_nombre}` : ""}
                       </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {c.total_cobro_cop != null && c.total_cobro_cop > 0 && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                              c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                            }`}
+                          >
+                            Merc. {fmtCop(c.total_cobro_cop)}
+                            {c.cuenta_cobro_estado === "aprobada" || c.tiene_cuenta_cobro
+                              ? " ✓"
+                              : " · pend."}
+                          </span>
+                        )}
+                        {c.flete_cobro_cop != null && c.flete_cobro_cop > 0 && !c.envio && (
+                          <span
+                            className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${
+                              c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                            }`}
+                          >
+                            Flete {fmtCop(c.flete_cobro_cop)}
+                            {c.cuenta_flete_estado === "aprobada" || c.tiene_cuenta_flete
+                              ? " ✓"
+                              : " · pend."}
+                          </span>
+                        )}
+                        {c.emisor_nombre && (
+                          <span className="rounded-full bg-surface-input px-1.5 py-0.5 text-[9px] font-medium text-muted">
+                            {c.emisor_nombre}
+                          </span>
+                        )}
+                      </div>
                       <p className="truncate text-[10px] text-muted">
                         {(c.lineas || [])
                           .map((l) => `${l.codigo ? l.codigo + " " : ""}${l.nombre}`)
@@ -2498,6 +2793,11 @@ export default function ComprasExteriorPanel() {
             );
           })}
         </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
         </div>
       </div>
@@ -2661,22 +2961,10 @@ export default function ComprasExteriorPanel() {
         <label className="block text-[10px]">
           <span className="font-bold text-muted">Cuota manejo %</span>
           <input
-            type="number"
-            min={0.01}
-            max={100}
-            step="0.1"
-            value={cuotaManejoPct}
-            onChange={(e) => setCuotaManejoPct(e.target.value)}
-            onBlur={() => {
-              const v = n(cuotaManejoPct);
-              if (!Number.isFinite(v) || v <= 0) {
-                setCuotaManejoPct(String(CUOTA_MANEJO_PCT_DEFAULT));
-              } else if (v > 100) {
-                setCuotaManejoPct("100");
-              }
-            }}
-            title="Porcentaje de cuota de manejo sobre la mercancía (editable)"
-            className="mt-0.5 w-full rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono"
+            value={`${cuotaManejoPct}%`}
+            readOnly
+            title="Cuota de manejo fija del 5% sobre la mercancía desde el 11-sep-2026 (las compras anteriores conservan la suya)"
+            className="mt-0.5 w-full cursor-not-allowed rounded-lg border border-border bg-surface-input px-1.5 py-1 text-xs font-mono text-muted"
           />
         </label>
         <label className="col-span-2 block text-[10px]">

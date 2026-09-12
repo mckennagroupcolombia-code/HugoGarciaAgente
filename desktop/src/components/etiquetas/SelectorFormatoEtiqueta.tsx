@@ -2,8 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import {
   TIPOS_ETIQUETA_DEFAULT,
+  esTipoEtiquetaCircular,
+  etiquetaTamanoFormato,
   formatoMedidasEtiqueta,
   formatoMedidasEtiquetaTitle,
+  nombreTipoPorMedidas,
   mmAPulgadasDisplay,
   pulgadasAMm,
   useGuardarTiposEtiqueta,
@@ -23,16 +26,13 @@ export interface FormatoEtiquetaValor {
 
 const CUSTOM_KEY = "__custom__";
 
+/** El formato se muestra por su tamaño; el nombre interno no se enseña. */
 export function etiquetaOpcionLabel(t: TipoEtiqueta): string {
-  const med = formatoMedidasEtiqueta(t.ancho_mm, t.alto_mm);
-  return med ? `${t.nombre} · ${med}` : t.nombre;
+  return etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm) || t.nombre;
 }
 
 export function formatoEtiquetaValorLabel(v: FormatoEtiquetaValor): string {
-  const nombre = (v.nombre || "").trim();
-  const med = formatoMedidasEtiqueta(v.anchoMm, v.altoMm);
-  if (nombre && med) return `${nombre} · ${med}`;
-  return nombre || med || "—";
+  return etiquetaTamanoFormato(v.nombre, v.anchoMm, v.altoMm) || (v.nombre || "").trim() || "—";
 }
 
 interface MenuFormatoProps {
@@ -59,6 +59,10 @@ function MenuFormatoDropdown({
   deleting = false,
 }: MenuFormatoProps) {
   const [abierto, setAbierto] = useState(false);
+  // Confirmación en dos clics dentro del menú: window.confirm no sirve aquí
+  // porque el navegador puede tener bloqueados los diálogos de la página y
+  // devolvería false sin avisar.
+  const [confirmando, setConfirmando] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number; minWidth: number } | null>(null);
@@ -74,6 +78,7 @@ function MenuFormatoDropdown({
   useLayoutEffect(() => {
     if (!abierto) {
       setPos(null);
+      setConfirmando(null);
       return;
     }
     updatePos();
@@ -103,7 +108,7 @@ function MenuFormatoDropdown({
 
   const triggerLabel = etiquetaActual
     ? etiquetaOpcionLabel(etiquetaActual)
-    : "✏️ Nuevo / personalizado…";
+    : "✏️ Otro tamaño…";
 
   const panelCls = dark
     ? "rounded border border-white/30 bg-[#1e293b] py-1 shadow-xl"
@@ -136,17 +141,32 @@ function MenuFormatoDropdown({
                 >
                   <span className="truncate">{etiquetaOpcionLabel(t)}</span>
                 </button>
-                <IconButton
-                  icon="trash"
-                  label={`Eliminar ${t.nombre}`}
-                  size="xs"
-                  tone="danger"
-                  disabled={deleting}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(t.nombre);
-                  }}
-                />
+                {confirmando === t.nombre ? (
+                  <button
+                    type="button"
+                    disabled={deleting}
+                    className="mr-1 shrink-0 rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmando(null);
+                      onDelete(t.nombre);
+                    }}
+                  >
+                    {deleting ? "…" : "Confirmar"}
+                  </button>
+                ) : (
+                  <IconButton
+                    icon="trash"
+                    label={`Eliminar ${etiquetaOpcionLabel(t)}`}
+                    size="xs"
+                    tone="danger"
+                    disabled={deleting}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmando(t.nombre);
+                    }}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -158,7 +178,7 @@ function MenuFormatoDropdown({
               setAbierto(false);
             }}
           >
-            ✏️ Nuevo / personalizado…
+            ✏️ Otro tamaño…
           </button>
         </div>,
         document.body,
@@ -224,6 +244,9 @@ export function SelectorFormatoEtiqueta({
     [tipos, value.nombre],
   );
 
+  // Troquel redondo para un tamaño nuevo (no se ve en las medidas).
+  const [redonda, setRedonda] = useState(() => esTipoEtiquetaCircular(value.nombre));
+
   const etiquetaLectura = formatoEtiquetaValorLabel(value);
   const lecturaCls = dark
     ? "inline-flex min-h-7 items-center rounded border border-white/30 bg-white/10 px-2 py-0.5 text-[11px] text-white"
@@ -264,6 +287,24 @@ export function SelectorFormatoEtiqueta({
 
   const setValue = onChange ?? (() => {});
 
+  /** El formato ES su tamaño: si el catálogo ya tiene uno igual se usa ese, y
+   *  si no, el nombre interno se arma con las medidas (nada que escribir). */
+  function setMedidas(anchoMm: number, altoMm: number, circ = redonda) {
+    setMsgGuardar("");
+    const existente = tipos.find(
+      (t) =>
+        Math.abs(t.ancho_mm - anchoMm) < 0.05 &&
+        Math.abs(t.alto_mm - altoMm) < 0.05 &&
+        esTipoEtiquetaCircular(t.nombre) === circ,
+    );
+    setValue({ nombre: existente?.nombre ?? nombreTipoPorMedidas(anchoMm, altoMm, circ), anchoMm, altoMm });
+  }
+
+  function cambiarRedonda(circ: boolean) {
+    setRedonda(circ);
+    if (value.anchoMm > 0 && value.altoMm > 0) setMedidas(value.anchoMm, value.altoMm, circ);
+  }
+
   const selCls = selectClass || inputClass;
   const triggerClass = dark
     ? selCls || "w-full max-w-[11rem] rounded border border-white/30 bg-white/10 px-1.5 py-1 text-xs text-white focus:border-white focus:outline-none"
@@ -279,6 +320,7 @@ export function SelectorFormatoEtiqueta({
     }
     const t = tipos.find((x) => x.nombre === key);
     if (!t) return;
+    setRedonda(esTipoEtiquetaCircular(t.nombre));
     setValue({ nombre: t.nombre, anchoMm: t.ancho_mm, altoMm: t.alto_mm });
   }
 
@@ -296,20 +338,30 @@ export function SelectorFormatoEtiqueta({
   }
 
   function guardarEnCatalogo() {
-    const n = value.nombre.trim();
-    if (!n || value.anchoMm <= 0 || value.altoMm <= 0) {
-      setMsgGuardar("Completa nombre y medidas");
+    if (value.anchoMm <= 0 || value.altoMm <= 0) {
+      setMsgGuardar("Completa las medidas");
       return;
     }
+    const ancho = Math.round(value.anchoMm * 10) / 10;
+    const alto = Math.round(value.altoMm * 10) / 10;
+    const repetido = tipos.find(
+      (t) =>
+        Math.abs(t.ancho_mm - ancho) < 0.05 &&
+        Math.abs(t.alto_mm - alto) < 0.05 &&
+        esTipoEtiquetaCircular(t.nombre) === redonda,
+    );
+    if (repetido) {
+      setValue({ nombre: repetido.nombre, anchoMm: repetido.ancho_mm, altoMm: repetido.alto_mm });
+      setMsgGuardar("✓ Ese tamaño ya está en el catálogo");
+      setTimeout(() => setMsgGuardar(""), 2500);
+      return;
+    }
+    const n = nombreTipoPorMedidas(ancho, alto, redonda);
     const next = [
       ...tipos.filter((t) => t.nombre !== n),
-      {
-        nombre: n,
-        ancho_mm: Math.round(value.anchoMm * 10) / 10,
-        alto_mm: Math.round(value.altoMm * 10) / 10,
-      },
+      { nombre: n, ancho_mm: ancho, alto_mm: alto },
     ].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-    persistirTipos(next);
+    persistirTipos(next, () => setValue({ nombre: n, anchoMm: ancho, altoMm: alto }));
   }
 
   function eliminarDelCatalogo(nombre: string) {
@@ -348,7 +400,7 @@ export function SelectorFormatoEtiqueta({
       value={mmAPulgadasDisplay(value.anchoMm) || ""}
       onChange={(e) => {
         setMsgGuardar("");
-        setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+        setMedidas(pulgadasAMm(parseFloat(e.target.value) || 0), value.altoMm);
       }}
       className={mmInputClass}
       title={formatoMedidasEtiquetaTitle(value.anchoMm, value.altoMm) || "Ancho (pulgadas)"}
@@ -364,7 +416,7 @@ export function SelectorFormatoEtiqueta({
       value={mmAPulgadasDisplay(value.altoMm) || ""}
       onChange={(e) => {
         setMsgGuardar("");
-        setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+        setMedidas(value.anchoMm, pulgadasAMm(parseFloat(e.target.value) || 0));
       }}
       className={mmInputClass}
       title={formatoMedidasEtiquetaTitle(value.anchoMm, value.altoMm) || "Alto (pulgadas)"}
@@ -395,16 +447,10 @@ export function SelectorFormatoEtiqueta({
         {medidasActuales}
         {(selectValue === CUSTOM_KEY || !nombreEnCatalogo) && (
           <>
-            <input
-              type="text"
-              value={value.nombre}
-              onChange={(e) => {
-                setMsgGuardar("");
-                setValue({ ...value, nombre: e.target.value });
-              }}
-              placeholder="Nombre formato"
-              className="w-24 rounded-lg border border-border bg-surface-panel px-2 py-1 text-xs"
-            />
+            <label className="flex items-center gap-1 text-[10px] text-muted" title="Troquel redondo">
+              <input type="checkbox" checked={redonda} onChange={(e) => cambiarRedonda(e.target.checked)} />
+              Redonda
+            </label>
             <input
               type="number"
               min={0.04}
@@ -413,7 +459,7 @@ export function SelectorFormatoEtiqueta({
               value={mmAPulgadasDisplay(value.anchoMm) || ""}
               onChange={(e) => {
                 setMsgGuardar("");
-                setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+                setMedidas(pulgadasAMm(parseFloat(e.target.value) || 0), value.altoMm);
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
               title="Ancho (pulgadas)"
@@ -427,7 +473,7 @@ export function SelectorFormatoEtiqueta({
               value={mmAPulgadasDisplay(value.altoMm) || ""}
               onChange={(e) => {
                 setMsgGuardar("");
-                setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) });
+                setMedidas(value.anchoMm, pulgadasAMm(parseFloat(e.target.value) || 0));
               }}
               className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
               title="Alto (pulgadas)"
@@ -464,20 +510,17 @@ export function SelectorFormatoEtiqueta({
         {medidasActuales}
         {(selectValue === CUSTOM_KEY || !nombreEnCatalogo) && (
           <>
-            <input
-              type="text"
-              value={value.nombre}
-              onChange={(e) => setValue({ ...value, nombre: e.target.value })}
-              placeholder="Nombre"
-              className="w-[5rem] rounded border border-white/30 bg-white/10 px-1.5 py-1 text-xs text-white focus:border-white focus:outline-none"
-            />
+            <label className="flex items-center gap-1 text-[10px] text-white/80" title="Troquel redondo">
+              <input type="checkbox" checked={redonda} onChange={(e) => cambiarRedonda(e.target.checked)} />
+              Redonda
+            </label>
             <input
               type="number"
               min={0.04}
               max={4.25}
               step={0.01}
               value={mmAPulgadasDisplay(value.anchoMm) || ""}
-              onChange={(e) => setValue({ ...value, anchoMm: pulgadasAMm(parseFloat(e.target.value) || 0) })}
+              onChange={(e) => setMedidas(pulgadasAMm(parseFloat(e.target.value) || 0), value.altoMm)}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
               title="Ancho (pulgadas)"
             />
@@ -488,7 +531,7 @@ export function SelectorFormatoEtiqueta({
               max={16}
               step={0.01}
               value={mmAPulgadasDisplay(value.altoMm) || ""}
-              onChange={(e) => setValue({ ...value, altoMm: pulgadasAMm(parseFloat(e.target.value) || 0) })}
+              onChange={(e) => setMedidas(value.anchoMm, pulgadasAMm(parseFloat(e.target.value) || 0))}
               className="w-12 rounded border border-white/30 bg-white/10 px-1 py-1 text-xs text-white text-center"
               title="Alto (pulgadas)"
             />
@@ -515,18 +558,11 @@ export function SelectorFormatoEtiqueta({
           <label className={labelClass}>Formato</label>
           {menuDropdown}
         </div>
-        <div>
-          <label className={labelClass}>Nombre</label>
-          <input
-            type="text"
-            value={value.nombre}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, nombre: e.target.value });
-            }}
-            placeholder="30 mL"
-            className={`${inputClass} min-w-[5.5rem]`}
-          />
+        <div className="flex flex-col justify-end">
+          <label className={`${labelClass} flex items-center gap-1`} title="Troquel redondo">
+            <input type="checkbox" checked={redonda} onChange={(e) => cambiarRedonda(e.target.checked)} />
+            Redonda
+          </label>
         </div>
         <div>
           <label className={labelClass}>Ancho (in)</label>
@@ -562,18 +598,11 @@ export function SelectorFormatoEtiqueta({
       </div>
 
       <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-[7rem] flex-1">
-          <label className={labelClass}>Nombre</label>
-          <input
-            type="text"
-            value={value.nombre}
-            onChange={(e) => {
-              setMsgGuardar("");
-              setValue({ ...value, nombre: e.target.value });
-            }}
-            placeholder="30 mL"
-            className={`${inputClass} w-full`}
-          />
+        <div className="flex flex-col justify-end pb-2">
+          <label className={`${labelClass} flex items-center gap-1`} title="Troquel redondo">
+            <input type="checkbox" checked={redonda} onChange={(e) => cambiarRedonda(e.target.checked)} />
+            Redonda
+          </label>
         </div>
         <div>
           <label className={labelClass}>Ancho (in)</label>

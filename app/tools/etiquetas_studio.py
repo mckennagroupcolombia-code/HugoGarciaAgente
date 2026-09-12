@@ -4,6 +4,7 @@ Generación de etiquetas McKenna Studio: PDF imprimible y persistencia.
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -269,19 +270,32 @@ _TIPOS_ETIQUETA_DEFAULT: list[tuple[str, float, float]] = [
     ("30 mL", 102.0, 38.0),
     ("5 mL", 66.0, 22.0),
     ("125 g", 70.0, 70.0),
-    ("250 g", 76.0, 66.0),
-    ("500 g", 76.0, 66.0),
+    ("250 / 500 g", 76.0, 66.0),
     ("1 Lt", 108.0, 76.0),
     ("100 g", 69.0, 51.0),
     ("Lactato", 38.0, 140.0),
     ("Circular", 55.0, 55.0),
     ("Circular 50", 50.0, 50.0),
-    ("Circle 50", 50.0, 50.0),
     ("CIRCLE", 53.9, 53.9),
     ("Circular 70", 70.0, 70.0),
     ("5 g", 50.0, 42.0),
-    ("54mm", 54.0, 58.0),
+    ("Pastillero", 54.0, 58.0),
+    ("1 kg", 102.0, 76.0),
 ]
+
+# Nombres viejos → formato fusionado (mismo mapa que _ETIQUETAS_ALIAS en routes.py).
+_TIPOS_ETIQUETA_ALIAS: dict[str, str] = {
+    "250 g": "250 / 500 g",
+    "500 g": "250 / 500 g",
+    "54mm": "Pastillero",
+    "1000 g": "1 kg",
+    "Circle 50": "Circular 50",
+}
+
+
+def canon_tipo_etiqueta(nombre: str | None) -> str:
+    n = (nombre or "").strip()
+    return _TIPOS_ETIQUETA_ALIAS.get(n, n)
 
 
 def _carpeta_recursos_png() -> Path:
@@ -315,7 +329,7 @@ def _tipos_etiqueta_mm() -> list[tuple[str, float, float]]:
                 for it in items:
                     if not isinstance(it, dict):
                         continue
-                    nombre = (it.get("nombre") or "").strip()
+                    nombre = canon_tipo_etiqueta(it.get("nombre"))
                     try:
                         aw = float(it.get("ancho_mm") or 0)
                         ah = float(it.get("alto_mm") or 0)
@@ -342,6 +356,12 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
     import re as _re_fmt
 
     stem = Path(nombre).stem
+    por_nombre = {t[0]: t for t in tipos}
+    tipos = list(tipos) + [
+        (viejo, por_nombre[nuevo][1], por_nombre[nuevo][2])
+        for viejo, nuevo in _TIPOS_ETIQUETA_ALIAS.items()
+        if nuevo in por_nombre and viejo not in por_nombre
+    ]
     # 1) Contenido neto explícito: 250g, 100_g, 30ml, 1kg…
     for m in _re_fmt.finditer(
         r"(?<![a-z0-9])(\d+(?:[.,]\d+)?)\s*[_\-]?\s*(g|ml|mL|lt|l|kg|mm)\b",
@@ -366,7 +386,7 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
             candidatos.add(_norm_clave_formato(f"{neto}mL"))
         for nombre_t, aw, ah in tipos:
             if _norm_clave_formato(nombre_t) in candidatos:
-                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+                return {"tipo_etiqueta": canon_tipo_etiqueta(nombre_t), "ancho_mm": aw, "alto_mm": ah}
 
     # 2) Tipos con dígitos como segmento completo (_250_g_, _54mm_), no substrings de producto.
     segmentos = {_norm_clave_formato(s) for s in _re_fmt.split(r"[_\s\-]+", stem) if s}
@@ -381,7 +401,7 @@ def _inferir_formato_por_nombre(nombre: str, tipos: list[tuple[str, float, float
                 rf"(?<![a-z0-9]){_re_fmt.escape(clave_t)}(?![a-z0-9])",
                 _norm_clave_formato(stem),
             ):
-                return {"tipo_etiqueta": nombre_t, "ancho_mm": aw, "alto_mm": ah}
+                return {"tipo_etiqueta": canon_tipo_etiqueta(nombre_t), "ancho_mm": aw, "alto_mm": ah}
     return None
 
 
@@ -438,13 +458,49 @@ def _lookup_meta_png_index(rel: str, ruta_abs: Path, index: list[dict]) -> dict:
     return {}
 
 
+def _categoria_producto_png(rel_n: str, entry: dict[str, Any]) -> str:
+    """(1) corregida a mano en el índice → (2) subcarpeta ETIQUETAS STUDIO/<Categoría>
+    (donde el lote deja lo que genera) → (3) deducida del nombre del archivo."""
+    from app.tools.etiquetas_categorias import (
+        CATEGORIA_OTROS,
+        detectar_categoria,
+        listar_categorias,
+    )
+
+    guardada = (entry.get("categoria_producto") or "").strip()
+    if guardada:
+        return guardada
+
+    cats = listar_categorias()
+    partes = rel_n.split("/")
+    if len(partes) >= 3 and partes[0].strip().upper() == "ETIQUETAS STUDIO":
+        carpeta = partes[1].strip().lower()
+        for c in cats:
+            if c["etiqueta"].strip().lower() == carpeta or c["id"] == carpeta:
+                return c["id"]
+
+    nombre = partes[-1]
+    for suf in (".png", ".jpg", ".jpeg"):
+        if nombre.lower().endswith(suf):
+            nombre = nombre[: -len(suf)]
+            break
+    nombre = re.sub(r"_\d+(\.\d+)?x(_\d+)?$", "", nombre, flags=re.I).replace("_", " ")
+    return detectar_categoria(nombre, cats) or CATEGORIA_OTROS
+
+
 def enriquecer_recurso_png(
     rel: str,
     *,
     index: list[dict] | None = None,
     tipos: list[tuple[str, float, float]] | None = None,
 ) -> dict[str, Any]:
-    """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi} para un PNG relativo."""
+    """Devuelve {nombre, tipo_etiqueta, ancho_mm, alto_mm, dpi, categoria_producto}.
+
+    `categoria_producto` agrupa el catálogo de Imprimir por familia de producto y no
+    solo por tamaño: un mismo producto suele llevar varios tamaños de etiqueta. Se
+    resuelve en tres pasos, del más explícito al deducido — lo corregido a mano en el
+    índice manda sobre todo lo demás.
+    """
     base = _carpeta_recursos_png()
     rel_n = (rel or "").replace("\\", "/").lstrip("/")
     ruta = base / rel_n
@@ -473,6 +529,7 @@ def enriquecer_recurso_png(
             alto = alto or inferido.get("alto_mm")
 
     out: dict[str, Any] = {"nombre": rel_n}
+    out["categoria_producto"] = _categoria_producto_png(rel_n, entry)
     if tipo:
         out["tipo_etiqueta"] = tipo
     if ancho and alto:
@@ -653,7 +710,7 @@ def _save_diagramacion_formatos(data: dict) -> None:
 
 
 def obtener_diagramacion_formato(tipo_etiqueta: str) -> dict | None:
-    tipo = (tipo_etiqueta or "").strip()
+    tipo = canon_tipo_etiqueta(tipo_etiqueta)
     if not tipo:
         return None
     entry = _load_diagramacion_formatos().get(tipo)
@@ -661,7 +718,7 @@ def obtener_diagramacion_formato(tipo_etiqueta: str) -> dict | None:
 
 
 def guardar_diagramacion_formato(tipo_etiqueta: str, datos: dict) -> dict:
-    tipo = (tipo_etiqueta or "").strip()
+    tipo = canon_tipo_etiqueta(tipo_etiqueta)
     if not tipo:
         raise ValueError("tipo_etiqueta obligatorio")
     all_data = _load_diagramacion_formatos()

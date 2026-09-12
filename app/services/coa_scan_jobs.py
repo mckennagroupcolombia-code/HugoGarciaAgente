@@ -94,15 +94,11 @@ def empaquetar_resultado_coa_scan(
             data0, mime0 = partes_bytes[0]
             firma_url = recortar_firma_a_data_url(data0, mime0, firma_bbox_raw)
             if firma_url:
-                campos["firma_imagen_b64"] = firma_url
-                from app.services.firmas_guardadas import guardar_firma
-
-                guardar_firma(
-                    firma_url,
-                    nombre=str(campos.get("firma_nombre") or ""),
-                    cargo=str(campos.get("firma_cargo") or ""),
-                    organizacion=str(campos.get("firma_organizacion") or ""),
-                )
+                # La firma del proveedor no se guarda ni se reutiliza: el COA que
+                # emite McKenna Group lo firma siempre el perfil único
+                # (ficha_tecnica.FIRMA_PERFIL_UNICO). El recorte queda solo como
+                # referencia del documento escaneado.
+                campos["firma_proveedor_b64"] = firma_url
         except Exception as e_firma:
             print(f"⚠️ No se pudo recortar firma del COA: {e_firma}")
 

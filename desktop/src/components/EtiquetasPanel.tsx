@@ -38,8 +38,10 @@ import {
   mmParaTipoEtiqueta,
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
+  etiquetaTamanoTipoNombre,
   formatoMedidasEtiqueta,
   formatoMedidasEtiquetaTitle,
+  nombreTipoEtiquetaCanonico,
   mmAPulgadasDisplay,
   pulgadasAMm,
 } from "../lib/etiquetasTipos";
@@ -55,7 +57,7 @@ import {
   ETIQUETA_STUDIO_DEFAULT,
   type EtiquetaStudioDatos,
 } from "../lib/etiquetasNormativa";
-import { studioDatosDesdeCatalogo, presentacionDesdeTipoEtiqueta } from "../lib/etiquetasStudioHelpers";
+import { studioDatosDesdeCatalogo } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { Banner, Badge, Card, StatTile, Button, IconButton, Modal, Spinner } from "./etiquetas/ui";
@@ -69,6 +71,7 @@ import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
+import { precargarDiseno, ETIQUETAS_GC_TIME } from "../lib/etiquetasPrefetch";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -772,16 +775,16 @@ function payloadDesdeFormularioEtiqueta(
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const ETIQUETAS_LISTA = [
-  "30 mL", "5 mL", "125 g", "250 g", "1 Lt",
-  "100 g", "Lactato", "Circular", "Circular 50", "Circle 50", "CIRCLE", "Circular 70", "5 g", "54mm",
+  "30 mL", "5 mL", "125 g", "250 / 500 g", "1 Lt", "1 kg",
+  "100 g", "Lactato", "Circular", "Circular 50", "CIRCLE", "Circular 70", "5 g", "Pastillero",
 ];
 
 /** Ancho × alto mm (misma tabla que Flask _ETIQUETAS). */
 const ETIQUETAS_MM: Record<string, [number, number]> = {
   "30 mL": [102, 38], "5 mL": [66, 22], "125 g": [70, 70],
-  "250 g": [76, 66], "1 Lt": [108, 76],
+  "250 / 500 g": [76, 66], "1 Lt": [108, 76], "1 kg": [102, 76],
   "100 g": [69, 51], Lactato: [38, 140], Circular: [55, 55],
-  "Circular 50": [50, 50], "Circle 50": [50, 50], CIRCLE: [53.9, 53.9], "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
+  "Circular 50": [50, 50], CIRCLE: [53.9, 53.9], "Circular 70": [70, 70], "5 g": [50, 42], Pastillero: [54, 58],
 };
 
 const TAMANO_TEXTO_PT_MIN = 3;
@@ -1309,6 +1312,7 @@ function PanelLateralApariencia({
   const { data: coloresData, isLoading: cargandoColores } = useQuery({
     queryKey: ["etiquetas-colores-guardados"],
     queryFn: () => api.get<{ colores: ColorEtiquetaGuardado[] }>("/api/etiquetas/colores"),
+    gcTime: ETIQUETAS_GC_TIME,
   });
   const coloresGuardados = coloresData?.colores ?? [];
 
@@ -3659,7 +3663,9 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     datosIniciales.venc_x_pct,
     datosIniciales.venc_y_pct,
   );
-  const tipoInit = datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0];
+  const tipoInit = datosIniciales.tipo_etiqueta
+    ? nombreTipoEtiquetaCanonico(datosIniciales.tipo_etiqueta)
+    : ETIQUETAS_LISTA[0];
   const [mmInitW, mmInitH] = mmParaTipoEtiqueta(tipoInit, TIPOS_ETIQUETA_DEFAULT);
   const [form, setForm] = useState<DatosEtiqueta>({
     siigo_code: combo.code,
@@ -4213,6 +4219,7 @@ function TabConfigurar() {
         `/api/etiquetas/combos-siigo${busquedaDebounced ? `?q=${encodeURIComponent(busquedaDebounced)}` : ""}`,
       ),
     staleTime: 5 * 60 * 1000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const guardarMut = useGuardarPublicacion();
@@ -4793,7 +4800,10 @@ function ChecklistPedidoEtiquetas({
                     )}
                   </p>
                   {linea.tipoEtiqueta && (
-                    <p className="text-[10px] text-muted">Formato sugerido: {linea.tipoEtiqueta}</p>
+                    <p className="text-[10px] text-muted">
+                      Formato sugerido:{" "}
+                      {etiquetaTamanoTipoNombre(linea.tipoEtiqueta, TIPOS_ETIQUETA_DEFAULT) || linea.tipoEtiqueta}
+                    </p>
                   )}
                 </button>
                 {item.notas && !editandoNota && (
@@ -5139,7 +5149,6 @@ function TabImprimir({
   const expParaImpresion = incluirLoteExp ? expParaEtiqueta(vencimiento) : undefined;
 
   const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => {
-    const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
     return {
       ...studioDatos,
       modo_etiqueta: "original",
@@ -5147,8 +5156,8 @@ function TabImprimir({
       tipo_etiqueta: formato.nombre,
       ancho_mm: formato.anchoMm,
       alto_mm: formato.altoMm,
-      contenido_neto: pres.contenido_neto ?? studioDatos.contenido_neto,
-      unidad: pres.unidad ?? studioDatos.unidad,
+      contenido_neto: studioDatos.contenido_neto,
+      unidad: studioDatos.unidad,
       lote: incluirLoteExp ? (loteParaEtiqueta(lote) || "") : "",
       vencimiento: incluirLoteExp ? (expParaEtiqueta(vencimiento) || "") : "",
       mostrar_lote_vencimiento: incluirLoteExp,
@@ -5245,6 +5254,7 @@ function TabImprimir({
   const { data: estadoData, refetch: refetchImpresora } = useQuery({
     queryKey: ["etiquetas-impresora"],
     queryFn: () => api.get<ImpResp>("/api/etiquetas/impresora"),
+    gcTime: ETIQUETAS_GC_TIME,
     refetchInterval: 30000,
   });
 
@@ -5491,7 +5501,7 @@ function TabImprimir({
       || "SVG";
     setLog((prev) => [
       ...prev,
-      `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formatoMedidasEtiqueta(formato.anchoMm, formato.altoMm) || `${formato.anchoMm}×${formato.altoMm}`}) · ${calidad}${loteInfo} · ${plantilla}...`,
+      `[${ts}] ${cantidad} cop. · ${formatoMedidasEtiqueta(formato.anchoMm, formato.altoMm) || `${formato.anchoMm}×${formato.altoMm} mm`} · ${calidad}${loteInfo} · ${plantilla}...`,
     ]);
     setErrorImpresion(null);
 
@@ -6197,6 +6207,7 @@ function NivelesTintaImpresora({
     queryFn: fetchNivelesTintaResumen,
     retry: 1,
     staleTime: 30_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   async function leerImpresora() {
@@ -6589,7 +6600,7 @@ function FormularioPapelInventario({
           >
             <option value="">— Sin vincular —</option>
             {formatos.map((f) => (
-              <option key={f} value={f}>{f}</option>
+              <option key={f} value={f}>{etiquetaTamanoTipoNombre(f, TIPOS_ETIQUETA_DEFAULT) || f}</option>
             ))}
           </select>
         </label>
@@ -6649,6 +6660,7 @@ function TabInventarioPapelTinta() {
       const res = await api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles");
       return { items: normalizarInventarioItems(res.items ?? []) };
     },
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const crearMut = useMutation({
@@ -6998,8 +7010,17 @@ export default function EtiquetasPanel() {
   });
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
+  const qcPrecarga = useQueryClient();
   const setStudioInmersivoStore = useAppStore((s) => s.setEtiquetasStudioInmersivo);
   const [studioInmersivo, setStudioInmersivoLocal] = useState(false);
+
+  // Al entrar a Diseño se piden de una vez las etiquetas de todas las pestañas,
+  // para que Imprimir / Studio visual / Papel y tinta / EAN ya estén cargadas
+  // cuando el operador cambie de pestaña (ver lib/etiquetasPrefetch.ts).
+  useEffect(() => {
+    precargarDiseno(qcPrecarga, ticketsUser);
+  }, [qcPrecarga, ticketsUser]);
+
   const setStudioInmersivo = useCallback((v: boolean) => {
     setStudioInmersivoLocal(v);
     setStudioInmersivoStore(v);

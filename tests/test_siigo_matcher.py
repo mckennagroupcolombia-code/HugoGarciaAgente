@@ -91,8 +91,100 @@ def test_no_producto_sigue_vacio(monkeypatch):
 
 
 def test_cache_stale_si_api_falla(monkeypatch):
-    """API caída al vencer el TTL: devolver catálogo viejo, no lista vacía."""
-    monkeypatch.setattr(siigo, "_combos_cache", list(_COMBOS))
-    monkeypatch.setattr(siigo, "_combos_cache_ts", 0)  # TTL vencido
-    with patch.object(siigo, "_siigo_get", lambda *a, **k: None):
-        assert len(siigo.listar_productos_combo_siigo()) == len(_COMBOS)
+    """API caída al vencer el TTL: devolver catálogo viejo, no lista vacía.
+
+    El test apuntaba a `siigo._combos_cache` / `siigo._siigo_get`, pero el
+    2026-09-03 `listar_productos_combo_siigo` pasó a delegar en Alegra y esos
+    atributos quedaron muertos: el test golpeaba la API real y fallaba en
+    cualquier máquina con credenciales. Ahora ejercita la caché que de verdad
+    se usa — y con ello la red de seguridad que la migración había perdido.
+    """
+    from app.services import alegra
+
+    monkeypatch.setattr(alegra, "_combos_alegra_cache", list(_COMBOS))
+    monkeypatch.setattr(alegra, "_combos_alegra_cache_ts", 0)  # TTL vencido
+    monkeypatch.setattr(alegra, "_alegra_headers", lambda: {"Authorization": "test"})
+
+    class _RespFallo:
+        status_code = 500
+
+        def json(self):  # pragma: no cover - no debería llamarse
+            return []
+
+    monkeypatch.setattr(alegra.requests, "get", lambda *a, **k: _RespFallo())
+    assert len(siigo.listar_productos_combo_siigo()) == len(_COMBOS)
+
+
+def test_cache_stale_no_se_pisa_por_excepcion_de_red(monkeypatch):
+    """Un timeout no puede dejar el catálogo en blanco durante todo el TTL."""
+    from app.services import alegra
+
+    monkeypatch.setattr(alegra, "_combos_alegra_cache", list(_COMBOS))
+    monkeypatch.setattr(alegra, "_combos_alegra_cache_ts", 0)
+    monkeypatch.setattr(alegra, "_alegra_headers", lambda: {"Authorization": "test"})
+
+    def _boom(*_a, **_k):
+        raise alegra.requests.RequestException("timeout")
+
+    monkeypatch.setattr(alegra.requests, "get", _boom)
+    assert len(alegra.listar_productos_combo_alegra()) == len(_COMBOS)
+    # La caché en memoria queda intacta para el siguiente turno
+    assert len(alegra._combos_alegra_cache) == len(_COMBOS)
+
+
+# --- Bloque B (sep-2026): variantes morfológicas del español ------------------
+#
+# Caso real: el 2026-09-09 un cliente pidió creatina 1 kg cinco veces y el bot
+# respondió "el precio no me figura en el sistema" sobre un producto que estaba
+# en catálogo con stock 9. "precio creatina" sí encontraba; "creatina
+# monohidratADA" no, porque la comparación era substring pura contra
+# "CREATINA MONOHIDRATO".
+
+
+def test_raiz_token_tolera_genero_y_sufijos_quimicos() -> None:
+    from app.services.siigo import _raiz_token_combo
+
+    assert _raiz_token_combo("monohidratada") == _raiz_token_combo("monohidrato")
+    assert _raiz_token_combo("ascorbica") == _raiz_token_combo("ascorbico")
+    # Tokens cortos no se recortan: dejarían raíces ambiguas entre productos.
+    assert _raiz_token_combo("urea") == "urea"
+    assert _raiz_token_combo("soya") == "soya"
+    # Nunca por debajo de la raíz mínima
+    assert len(_raiz_token_combo("sales")) >= 5
+
+
+def test_token_en_blob_no_confunde_productos_distintos() -> None:
+    from app.services.siigo import _token_en_blob
+
+    assert _token_en_blob("monohidratada", "creatina monohidrato 1000g c-cremon1000g")
+    assert _token_en_blob("creatina", "creatina monohidrato 1000g c-cremon1000g")
+    # La raíz del cliente tiene que ser prefijo de una palabra real del producto,
+    # no al revés: "tanico" no puede arrastrar otros ácidos.
+    assert not _token_en_blob("tanico", "acido citrico 250g c-acicit250g")
+    assert not _token_en_blob("salicilico", "sales de epsom 500g c-saleps500g")
+
+
+def test_seleccion_presentacion_no_traga_productos_fuera_del_allowlist() -> None:
+    from app import core
+
+    # Nombra un producto real -> es una consulta de catálogo, no la elección de
+    # una presentación ya ofrecida. Antes dependía de una lista escrita a mano
+    # que no incluía creatina, taurina ni sucralosa.
+    for msg in ("creatina monohidratada 1kg", "taurina 250g", "sucralosa kilo"):
+        assert not core._es_seleccion_presentacion_web(msg), msg
+
+    # Respuestas cortas que sí eligen variante de lo ya ofrecido
+    for msg in ("500g", "la grande", "el de 1 kilo", "2"):
+        assert core._es_seleccion_presentacion_web(msg), msg
+
+
+def test_notas_hardcodeadas_por_producto_no_contradicen_el_catalogo() -> None:
+    from app import core
+
+    # Ylang Ylang SÍ está en catálogo (C-ACEESEYLAYLA5mL): la nota que decía lo
+    # contrario se eliminó. COSGARD duplicaba el texto de "no encontrado".
+    assert core._nota_producto_alternativo_web("ylang ylang") == ""
+    assert core._nota_producto_alternativo_web("cosgard") == ""
+    # BTMS-25 se conserva: aporta la referencia equivalente, que el catálogo
+    # por sí solo no puede dar.
+    assert "BTMS 50" in core._nota_producto_alternativo_web("btms 25")

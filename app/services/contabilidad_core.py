@@ -142,6 +142,21 @@ def _migrar_columnas_v4() -> None:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN tipo_persona TEXT NOT NULL DEFAULT 'juridica'")
         if "usuario_id" not in cols:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN usuario_id INTEGER")
+        # Documento soporte (DIAN Concepto 000112 int 7 de 2024): McKenna solo
+        # lo emite cuando el tercero NO está obligado a facturar. Un tercero
+        # persona natural puede igualmente estar obligado (responsable de IVA,
+        # comerciante inscrito), y ahí la factura la expide él — `tipo_persona`
+        # solo no alcanza para decidir. Ver prestamos.requiere_documento_soporte.
+        if "obligado_a_facturar" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN obligado_a_facturar INTEGER NOT NULL DEFAULT 0"
+            )
+        # Declarante de renta: cambia la tarifa de retención (2,5% vs 3,5% en
+        # compras, 4% vs 6% en servicios). Default 1 (declarante) porque es la
+        # tarifa MENOR: si el dato está mal, se retiene de menos y se corrige,
+        # en vez de retenerle de más a alguien y tener que devolvérselo.
+        if "declarante" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN declarante INTEGER NOT NULL DEFAULT 1")
 
 
 def _ensure_gastos_personales() -> None:
@@ -202,6 +217,34 @@ def _migrar_cuentas_v2() -> None:
         # 5195 inflaría ventas y gastos a la vez y dejaría el margen mentiroso.
         # Ver `app/services/anulaciones_motor.py::postear_asiento`.
         ("4175", "Devoluciones en ventas", "ingreso", "debito"),
+        # Retención en la fuente que McKenna practica como agente retenedor y
+        # consigna a la DIAN — hoy la usan los pagos de intereses a prestamistas
+        # particulares (rendimientos financieros 7%, Art. 395 ET). Es un PASIVO
+        # con la DIAN, no un gasto: el gasto de McKenna es el interés bruto
+        # completo, y la retención solo cambia a quién se le gira esa parte.
+        # Ver `app/services/prestamos.py::registrar_pago_cuota`.
+        ("2365", "Retención en la fuente por pagar", "pasivo", "credito"),
+        # ── Gastos por naturaleza (ampliación 2026-09-11) ──────────────────
+        # Hasta acá TODO gasto operativo caía en 5135 "Servicios": la luz, el
+        # contador, los fletes de Interrapidísimo y el arriendo terminaban en la
+        # misma cuenta, y el estado de resultados no decía nada útil. Códigos
+        # del PUC colombiano (Decreto 2650), no inventados, y cada uno tiene su
+        # equivalente en Alegra — ver `alegra_espejo.MAPA_PUC`.
+        ("5105", "Gastos de personal - sueldos y salarios", "gasto", "debito"),
+        ("5110", "Honorarios", "gasto", "debito"),
+        ("5120", "Arrendamientos", "gasto", "debito"),
+        ("5130", "Seguros", "gasto", "debito"),
+        ("5145", "Mantenimiento y reparaciones", "gasto", "debito"),
+        ("5155", "Gastos de viaje", "gasto", "debito"),
+        # Subcuentas de 5135 Servicios (PUC 5135xx), para separar lo que antes
+        # se mezclaba. La 5135 genérica se mantiene para lo que no encaje.
+        ("513525", "Acueducto y alcantarillado", "gasto", "debito"),
+        ("513530", "Energía eléctrica", "gasto", "debito"),
+        ("513535", "Teléfono e internet", "gasto", "debito"),
+        ("513550", "Transporte, fletes y acarreos", "gasto", "debito"),
+        ("513555", "Gas", "gasto", "debito"),
+        ("513560", "Software y suscripciones (SaaS)", "gasto", "debito"),
+        ("513595", "Otros servicios", "gasto", "debito"),
     ]
     with _conn() as con:
         for codigo, nombre, tipo, naturaleza in nuevas:
@@ -1251,7 +1294,15 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     `2380` (socios) o `2295` (terceros). payload: fecha, tercero_id, monto,
     medio_pago_id, referencia, concepto (opcional), tasa_interes_pct y
     plazo_meses (opcionales, quedan guardados en plantilla_datos_json como
-    referencia del acuerdo, sin generar tabla de amortización)."""
+    referencia del acuerdo, sin generar tabla de amortización).
+
+    La contrapartida normal es el medio de pago (entra a caja o banco). Cuando
+    el dinero NO entró por el banco de la empresa —el prestamista le giró a un
+    socio, que lo repondrá después— se pasa `cuenta_contrapartida_id` en vez de
+    `medio_pago_id` (p. ej. 1355 cuentas por cobrar a socios) con
+    `tercero_contrapartida_id` para saber quién queda debiendo. El préstamo nace
+    completo en la fecha pactada y cada reposición se concilia por separado:
+    un asiento por línea de extracto, que es lo que exige `extracto_vinculos`."""
     _ensure()
     fecha = str(payload.get("fecha") or "").strip()
     tercero_id = int(payload.get("tercero_id") or 0)
@@ -1260,15 +1311,28 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     referencia = str(payload.get("referencia") or "").strip()
     concepto_extra = str(payload.get("concepto") or "").strip()
 
-    if not fecha or not tercero_id or monto <= 0 or not medio_pago_id:
-        raise ValueError("fecha, tercero_id, monto y medio_pago_id son requeridos")
+    cuenta_contrapartida_id = int(payload.get("cuenta_contrapartida_id") or 0)
+    tercero_contrapartida_id = int(payload.get("tercero_contrapartida_id") or 0)
+
+    if not fecha or not tercero_id or monto <= 0:
+        raise ValueError("fecha, tercero_id y monto son requeridos")
+    if bool(medio_pago_id) == bool(cuenta_contrapartida_id):
+        raise ValueError(
+            "indica medio_pago_id (entró por caja/banco) o cuenta_contrapartida_id "
+            "(entró por otra vía), pero no ambos"
+        )
 
     tercero = obtener_tercero(tercero_id)
     if not tercero:
         raise ValueError("Tercero no encontrado")
-    medio = obtener_medio_pago(medio_pago_id)
-    if not medio:
+    medio = obtener_medio_pago(medio_pago_id) if medio_pago_id else None
+    if medio_pago_id and not medio:
         raise ValueError("Medio de pago no encontrado")
+    contra = obtener_cuenta(cuenta_contrapartida_id) if cuenta_contrapartida_id else None
+    if cuenta_contrapartida_id and not contra:
+        raise ValueError("Cuenta de contrapartida no encontrada")
+    if tercero_contrapartida_id and not obtener_tercero(tercero_contrapartida_id):
+        raise ValueError("Tercero de la contrapartida no encontrado")
     with _conn() as con:
         cuenta_pasivo_id = tercero.get("cuenta_por_pagar_id") or _cuenta_id_por_codigo(
             con, _cuenta_pasivo_prestamo_codigo(tercero)
@@ -1279,13 +1343,28 @@ def registrar_prestamo_recibido(payload: dict, created_by: int | None = None) ->
     concepto = f"Préstamo recibido de {tercero['nombre']}" + (
         f" — {concepto_extra}" if concepto_extra else ""
     )
-    lineas = [
-        {
+    if medio:
+        linea_debito = {
             "cuenta_id": medio["cuenta_id"],
             "debito": monto,
             "credito": 0,
             "descripcion": f"Entrada vía {medio['nombre']}",
-        },
+        }
+    else:
+        quien = obtener_tercero(tercero_contrapartida_id) if tercero_contrapartida_id else None
+        linea_debito = {
+            "cuenta_id": cuenta_contrapartida_id,
+            "debito": monto,
+            "credito": 0,
+            "tercero_id": tercero_contrapartida_id or None,
+            "descripcion": (
+                f"Recibido por {quien['nombre']}, pendiente de reponer a la empresa"
+                if quien
+                else f"Entrada vía {contra['nombre']}"
+            ),
+        }
+    lineas = [
+        linea_debito,
         {
             "cuenta_id": cuenta_pasivo_id,
             "debito": 0,

@@ -232,10 +232,20 @@ def datos_emisor(perfil: dict | None = None) -> dict[str, str]:
 
 
 def datos_pagador() -> dict[str, str]:
+    """McKenna, que es quien paga la cuenta de cobro.
+
+    Los defaults salen de `app/services/empresa.py`, no de literales acá: hasta
+    el 2026-09-10 este módulo traía el NIT "901.952.087-1", que NO es el de la
+    empresa (el correcto es 901.316.016-3, verificado contra GET /company de
+    Alegra). Las 41 cuentas de cobro emitidas hasta esa fecha salieron con el
+    NIT equivocado y hay que reexpedirlas.
+    """
+    from app.services import empresa
+
     return {
-        "razon": _env("CUOTA_MANEJO_PAGADOR_RAZON", "McKenna Group S.A.S."),
-        "nit": _env("CUOTA_MANEJO_PAGADOR_NIT", "901.952.087-1"),
-        "ciudad": _env("CUOTA_MANEJO_PAGADOR_CIUDAD", "Bogotá D.C."),
+        "razon": empresa.razon_social("CUOTA_MANEJO_PAGADOR_RAZON"),
+        "nit": empresa.nit("CUOTA_MANEJO_PAGADOR_NIT"),
+        "ciudad": empresa.ciudad("CUOTA_MANEJO_PAGADOR_CIUDAD"),
     }
 
 
@@ -1129,3 +1139,103 @@ def generar_pdf_cuenta_flete(
 
 def carpeta_pdfs() -> str:
     return _CARPETA
+
+
+# ─── Envío de la cuenta de cobro a su emisor ───────────────────────────────
+# La cuenta de cobro la emite un socio/familiar A McKenna (él es el acreedor,
+# McKenna el pagador), así que el destinatario natural es el propio emisor: es
+# su documento y necesita conservarlo. El correo sale del usuario del panel que
+# figura como emisor (`emisor_usuario_id`), no de una lista fija.
+
+def correo_emisor_cuenta_cobro(emisor_usuario_id: int | None) -> tuple[str, str]:
+    """(correo, nombre) del emisor. Cadena vacía si no tiene correo."""
+    perfil = perfil_emisor_por_id(emisor_usuario_id) if emisor_usuario_id else None
+    if not perfil:
+        return "", ""
+    return str(perfil.get("email") or "").strip(), str(perfil.get("nombre") or "").strip()
+
+
+def enviar_cuenta_cobro(
+    compra_id: int,
+    *,
+    tipo: str = "mercancia",
+    destinatario: str = "",
+    nota: str = "",
+    dry_run: bool = False,
+) -> dict:
+    """Envía por correo el PDF de una cuenta de cobro ya aprobada.
+
+    `dry_run=True` devuelve a quién iría y con qué adjunto, sin enviar — se usa
+    para revisar un lote completo antes de disparar correos que no se recogen.
+    """
+    from app.services.contabilidad_db import obtener_compra_exterior, ruta_cuenta_cobro_compra
+    from app.tools.web_pedidos import _send_smtp_with_attachments, _smtp_ready
+
+    tipo_n = (tipo or "mercancia").strip().lower()
+    if tipo_n in ("envio", "shipping", "freight"):
+        tipo_n = "flete"
+    if tipo_n not in ("mercancia", "flete"):
+        raise ValueError("tipo debe ser 'mercancia' o 'flete'")
+
+    compra = obtener_compra_exterior(int(compra_id))
+    if not compra:
+        raise ValueError(f"Compra {compra_id} no encontrada")
+
+    # Devuelve (ruta_absoluta, nombre_archivo), no un dict.
+    info = ruta_cuenta_cobro_compra(int(compra_id), tipo=tipo_n)
+    ruta = (info[0] if info else "") or ""
+    if not ruta or not os.path.isfile(ruta):
+        raise ValueError(f"La compra {compra_id} no tiene cuenta de cobro «{tipo_n}» generada")
+
+    correo, nombre = correo_emisor_cuenta_cobro(compra.get("emisor_usuario_id"))
+    correo = (destinatario or correo).strip()
+    nombre = nombre or str(compra.get("emisor_nombre") or "")
+    if not correo:
+        raise ValueError(
+            f"El emisor de la compra {compra_id} ({nombre or 'sin nombre'}) no tiene correo "
+            "en su perfil del panel"
+        )
+
+    numero = numero_cuenta_cobro(int(compra_id), flete=(tipo_n == "flete"))
+    archivo = os.path.basename(ruta)
+    if dry_run:
+        return {
+            "ok": True, "enviado": False, "dry_run": True, "compra_id": int(compra_id),
+            "tipo": tipo_n, "numero": numero, "destinatario": correo,
+            "emisor": nombre, "archivo": archivo,
+        }
+    if not _smtp_ready():
+        raise ValueError("SMTP no configurado (SMTP_HOST / SMTP_USER / SMTP_PASSWORD / EMAIL_FROM)")
+
+    pagador = datos_pagador()
+    etiqueta = "flete" if tipo_n == "flete" else "compra en el exterior"
+    cuerpo_nota = f"\n\n{nota.strip()}" if nota and nota.strip() else ""
+    texto = (
+        f"Cordial saludo, {nombre}.\n\n"
+        f"Adjuntamos la cuenta de cobro N° {numero} por {etiqueta}, a cargo de "
+        f"{pagador['razon']} (NIT {pagador['nit']}).{cuerpo_nota}\n\n"
+        "Cualquier inquietud, quedamos atentos.\n\n"
+        f"{pagador['razon']}\nNIT {pagador['nit']}"
+    )
+    html = (
+        f'<div style="font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:560px;">'
+        f'<p>Cordial saludo, <strong>{nombre}</strong>.</p>'
+        f'<p>Adjuntamos la cuenta de cobro <strong>N° {numero}</strong> por {etiqueta}, '
+        f'a cargo de {pagador["razon"]} (NIT {pagador["nit"]}).</p>'
+        + (f'<p>{nota.strip()}</p>' if nota and nota.strip() else "")
+        + f'<p>Cualquier inquietud, quedamos atentos.</p>'
+        f'<p style="color:#0c6069;"><strong>{pagador["razon"]}</strong><br>'
+        f'<span style="font-size:13px;color:#64748b;">NIT {pagador["nit"]}</span></p></div>'
+    )
+    with open(ruta, "rb") as fh:
+        contenido = fh.read()
+    ok = _send_smtp_with_attachments(
+        correo, f"Cuenta de cobro N° {numero} — {pagador['razon']}", texto, html,
+        [(archivo, "application/pdf", contenido)],
+    )
+    if not ok:
+        raise ValueError("Falló el envío SMTP (revisa credenciales y red)")
+    return {
+        "ok": True, "enviado": True, "compra_id": int(compra_id), "tipo": tipo_n,
+        "numero": numero, "destinatario": correo, "emisor": nombre, "archivo": archivo,
+    }

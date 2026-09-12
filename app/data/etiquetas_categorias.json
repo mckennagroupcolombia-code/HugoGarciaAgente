@@ -1,0 +1,186 @@
+{
+  "categorias": [
+    {
+      "id": "fragancias",
+      "etiqueta": "Fragancias",
+      "claves": [
+        "fragancia",
+        "perfume",
+        "aroma lipo",
+        "aroma hidro"
+      ]
+    },
+    {
+      "id": "aceites-esenciales",
+      "etiqueta": "Aceites Esenciales",
+      "claves": []
+    },
+    {
+      "id": "aceites",
+      "etiqueta": "Aceites & Grasas",
+      "claves": []
+    },
+    {
+      "id": "semillas",
+      "etiqueta": "Semillas & Frutos Secos",
+      "claves": [
+        "semilla",
+        "chia",
+        "linaza",
+        "ajonjoli",
+        "sesamo",
+        "quinua",
+        "amapola",
+        "girasol"
+      ]
+    },
+    {
+      "id": "cereales-harinas",
+      "etiqueta": "Harinas",
+      "claves": []
+    },
+    {
+      "id": "vitaminas",
+      "etiqueta": "Vitaminas & Enzimas",
+      "claves": [
+        "vitamina",
+        "ascorbico",
+        "tocoferol",
+        "retinol",
+        "niacinamida",
+        "biotina",
+        "acido folico",
+        "cianocobalamina",
+        "colecalciferol",
+        "pantenol",
+        "melatonina"
+      ]
+    },
+    {
+      "id": "sales-minerales",
+      "etiqueta": "Sales minerales",
+      "claves": [
+        "citrato",
+        "gluconato",
+        "bisglicinato",
+        "quelato",
+        "lactato de",
+        "sulfato de magnesio",
+        "cloruro de magnesio",
+        "carbonato de calcio",
+        "oxido de zinc",
+        "oxido de magnesio",
+        "mineral"
+      ]
+    },
+    {
+      "id": "aminoacidos-proteinas",
+      "etiqueta": "Aminoácidos & Proteínas",
+      "claves": []
+    },
+    {
+      "id": "conservantes",
+      "etiqueta": "Conservantes",
+      "claves": [
+        "conservante",
+        "sharomix",
+        "benzoato",
+        "sorbato",
+        "fenoxietanol",
+        "parabeno",
+        "geogard",
+        "cosgard",
+        "propionato",
+        "glutaraldehido"
+      ]
+    },
+    {
+      "id": "gelificantes",
+      "etiqueta": "Gelificantes & Espesantes & Emulsificantes",
+      "claves": []
+    },
+    {
+      "id": "tensoactivos",
+      "etiqueta": "Tensoactivos",
+      "claves": [
+        "tensoactivo",
+        "tensosil",
+        "betaina",
+        "lauril",
+        "laureth",
+        "coco glucosido",
+        "cocamidopropil",
+        "cocoamida",
+        "btms",
+        "sci",
+        "isetionato",
+        "nonilfenol",
+        "jabon",
+        "sles",
+        "sls"
+      ]
+    },
+    {
+      "id": "solventes",
+      "etiqueta": "Solventes",
+      "claves": [
+        "solvente",
+        "alcohol",
+        "etanol",
+        "isopropilico",
+        "glicerina",
+        "propilenglicol",
+        "butilenglicol",
+        "acetona",
+        "thinner",
+        "varsol",
+        "dpg",
+        "agua destilada",
+        "agua destilda",
+        "dmso"
+      ]
+    },
+    {
+      "id": "arcillas",
+      "etiqueta": "Arcillas",
+      "claves": []
+    },
+    {
+      "id": "excipientes",
+      "etiqueta": "Cápsulas & Excipientes",
+      "claves": []
+    },
+    {
+      "id": "colorantes-reactivos",
+      "etiqueta": "Colorantes y Reactivos",
+      "claves": [
+        "azul de metileno",
+        "verde malaquita",
+        "violeta de genciana",
+        "fucsina",
+        "reactivo",
+        "indicador"
+      ]
+    },
+    {
+      "id": "activos-cosmeticos",
+      "etiqueta": "Activos Cosméticos",
+      "claves": []
+    },
+    {
+      "id": "manteca-ceras",
+      "etiqueta": "Mantecas & Ceras",
+      "claves": []
+    },
+    {
+      "id": "hierbas-desecadas",
+      "etiqueta": "Extractos Frutales & Hierbas",
+      "claves": []
+    },
+    {
+      "id": "otros",
+      "etiqueta": "Otros",
+      "claves": []
+    }
+  ]
+}

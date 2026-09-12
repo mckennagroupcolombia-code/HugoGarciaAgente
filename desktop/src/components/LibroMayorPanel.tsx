@@ -12,7 +12,6 @@ import { useAppStore } from "../stores/app";
 import "./libroMayor.css";
 
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
-const PrestamosPanel = lazy(() => import("./PrestamosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const CuentaSocioPanel = lazy(() => import("./CuentaSocioPanel"));
 
@@ -1186,7 +1185,10 @@ const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] =
 
 /** Sub-libros: alimentan al libro mayor pero capturan datos propios (tasa, plazo, TRM…). */
 const SUBTABS_SUBLIBROS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  { id: "prestamos", label: "Préstamos", icon: "handshake" },
+  // Préstamos salió de acá el 2026-09-10: ahora es sección propia de Contabilidad,
+  // al mismo nivel que Compras exterior. Tenerlo en dos sitios confundía sobre
+  // dónde registrar, y el préstamo de un tercero tiene su propio ciclo (contrato,
+  // cronograma, retención, documentos), no es un detalle del libro.
   { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar" },
   { id: "cuenta-socio", label: "Cuenta de Socio", icon: "users" },
 ];
@@ -1218,7 +1220,12 @@ function VistaAvanzada({
   bootSub?: SubvistaAvanzada | null;
   onBootConsumido?: () => void;
 }) {
-  const [sub, setSub] = useState<SubvistaAvanzada>(() => bootSub || "diario");
+  // Si llega una subvista que ya no existe (p.ej. "prestamos", que salió a su
+  // propia sección), caer a "diario" en vez de renderizar una pantalla vacía.
+  const [sub, setSub] = useState<SubvistaAvanzada>(() => {
+    const valido = SUBTABS.some((t) => t.id === bootSub);
+    return valido && bootSub ? bootSub : "diario";
+  });
   const [pendientesSignal, setPendientesSignal] = useState(0);
   const abrirPendientesBoot = useAppStore((s) => s.libroMayorAbrirPendientes);
   const setAbrirPendientesBoot = useAppStore((s) => s.setLibroMayorAbrirPendientes);
@@ -1270,11 +1277,6 @@ function VistaAvanzada({
       {sub === "balance" && <BalanceTab />}
       {sub === "asiento-manual" && <AsientoManualTab />}
       {sub === "informes" && <InformesTab onVerPendientes={irAPendientes} />}
-      {sub === "prestamos" && (
-        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-          <PrestamosPanel />
-        </Suspense>
-      )}
       {sub === "creditos-adquiridos" && (
         <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
           <CreditosAdquiridosPanel />

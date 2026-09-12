@@ -17,6 +17,7 @@ const ImpuestosPanel = lazy(() => import("./ImpuestosPanel"));
 const TabServicios = lazy(() =>
   import("./RentabilidadPanel").then((m) => ({ default: m.TabServicios })),
 );
+const MensajeriaPanel = lazy(() => import("./MensajeriaPanel"));
 
 function Cargando() {
   return (
@@ -36,15 +37,17 @@ export default function OperativosPanel() {
   const puedeRrhh = Boolean(puedeVerModuloContabilidad(user, "rrhh"));
   const puedeImpuestos = Boolean(puedeVerModuloContabilidad(user, "impuestos"));
   const puedeServicios = Boolean(puedeVerModuloContabilidad(user, "servicios"));
+  const puedeMensajeria = Boolean(puedeVerModuloContabilidad(user, "mensajeria"));
 
   const subtabs = useMemo(
     () =>
       OPERATIVOS_SUBTABS.filter((t) => {
         if (t.id === "rrhh") return puedeRrhh;
         if (t.id === "impuestos") return puedeImpuestos;
+        if (t.id === "mensajeria") return puedeMensajeria;
         return puedeServicios;
       }),
-    [puedeRrhh, puedeImpuestos, puedeServicios],
+    [puedeRrhh, puedeImpuestos, puedeServicios, puedeMensajeria],
   );
 
   const [sub, setSub] = useState<OperativosSubtabId>(() => {
@@ -73,8 +76,8 @@ export default function OperativosPanel() {
   if (!subtabs.length) {
     return (
       <div className="mx-auto max-w-lg rounded-xl border border-border bg-surface-panel p-6 text-sm text-muted">
-        No tienes permisos de operativos. Pide acceso al administrador (RRHH, impuestos o
-        servicios).
+        No tienes permisos de operativos. Pide acceso al administrador (RRHH, impuestos,
+        servicios o mensajería).
       </div>
     );
   }
@@ -82,6 +85,7 @@ export default function OperativosPanel() {
   const iconFor = (id: OperativosSubtabId) => {
     if (id === "rrhh") return "rrhh";
     if (id === "impuestos") return "impuestos";
+    if (id === "mensajeria") return "pedidos";
     return "servicios";
   };
 
@@ -117,6 +121,7 @@ export default function OperativosPanel() {
           {sub === "rrhh" && <RRHHPanel />}
           {sub === "impuestos" && <ImpuestosPanel />}
           {sub === "servicios" && <TabServicios />}
+          {sub === "mensajeria" && <MensajeriaPanel />}
         </Suspense>
       </div>
     </div>

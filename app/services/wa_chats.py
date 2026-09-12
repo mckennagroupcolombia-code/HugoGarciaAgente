@@ -287,15 +287,17 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
         from_me = bool(raw.get("from_me"))
         direccion = "salida" if from_me else "entrada"
         enviado = str(raw.get("enviado_por") or ("humano" if from_me else "cliente"))
+        texto = str(raw.get("texto") or "")
         if from_me and enviado == "humano":
             try:
                 from app.services.wa_bot_detect import parece_respuesta_bot
 
+                # Antes se evaluaba el texto del mensaje ANTERIOR del lote (la
+                # variable se asignaba después de este bloque).
                 if parece_respuesta_bot(texto):
                     enviado = "bot"
             except Exception:
                 pass
-        texto = str(raw.get("texto") or "")
         if not texto and raw.get("tiene_media"):
             texto = "[adjunto]"
         if not texto and not raw.get("tiene_media"):

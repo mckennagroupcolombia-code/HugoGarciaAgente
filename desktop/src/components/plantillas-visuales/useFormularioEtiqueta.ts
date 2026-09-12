@@ -13,6 +13,7 @@ import {
   contenidoNetoDesdeTexto,
   eanDesdeSrcBarcode,
   elementoPorRolCapa,
+  FICHA_SIN_DATO,
   filtrarCodigosEanPorTexto,
   logoLineaDesdeSrc,
   valoresActualesFormulario,
@@ -24,6 +25,14 @@ interface FichaItem {
   id: string;
   titulo: string;
   archivo: string;
+}
+
+function mensajeCargaFicha(reales: number, pendientesPorCompletar: number): string {
+  const base = `Cargados ${reales} campo${reales === 1 ? "" : "s"}.`;
+  const aviso = pendientesPorCompletar
+    ? ` ${pendientesPorCompletar} quedaron marcados "${FICHA_SIN_DATO}" — la ficha no traía ese dato, complétalo a mano.`
+    : "";
+  return `${base}${aviso} El formato no se movió.`;
 }
 
 /**
@@ -124,10 +133,16 @@ export function useFormularioEtiqueta(
         `/api/fichas/datos/${encodeURIComponent(fichaId)}`,
       );
       const mapped = camposDesdeFichaTecnica(res.datos || {});
+      // `mapped` siempre trae los 12 campos (los que no tenía la ficha
+      // vienen como FICHA_SIN_DATO — ver camposDesdeFichaTecnica). Filtrar
+      // a los que usa esta plantilla; contar aparte cuántos son datos
+      // reales vs. cuántos quedan pendientes de completar a mano.
       const next = Object.fromEntries(
         Object.entries(mapped).filter(([k]) => usados.has(k as (typeof campos)[number])),
       );
-      if (!Object.keys(next).length) {
+      const reales = Object.entries(next).filter(([, v]) => v !== FICHA_SIN_DATO);
+      const pendientesPorCompletar = Object.keys(next).length - reales.length;
+      if (!reales.length) {
         setMsg("Esa ficha no tiene datos mapeables a esta etiqueta.");
         return;
       }
@@ -147,7 +162,7 @@ export function useFormularioEtiqueta(
         return;
       }
       aplicarCargaFicha(next, sku);
-      setMsg(`Cargados ${Object.keys(next).length} campos. El formato no se movió.`);
+      setMsg(mensajeCargaFicha(reales.length, pendientesPorCompletar));
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "No se pudo cargar la ficha");
     } finally {
@@ -158,7 +173,9 @@ export function useFormularioEtiqueta(
   const confirmarCargaPendiente = () => {
     if (!pendiente) return;
     aplicarCargaFicha(pendiente.next, pendiente.sku);
-    setMsg(`Cargados ${Object.keys(pendiente.next).length} campos de "${pendiente.tituloFicha}" (confirmado). El formato no se movió.`);
+    const reales = Object.values(pendiente.next).filter((v) => v !== FICHA_SIN_DATO).length;
+    const pendientesPorCompletar = Object.keys(pendiente.next).length - reales;
+    setMsg(`${mensajeCargaFicha(reales, pendientesPorCompletar)} (confirmado sobre "${pendiente.tituloFicha}")`);
     setPendiente(null);
   };
 

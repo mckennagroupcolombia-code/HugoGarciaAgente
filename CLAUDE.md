@@ -47,6 +47,13 @@ cd bot-mckenna && npm ci && npm start
 # systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
 
+### ⚠️ Pendientes de contabilidad (corte 2026-09-10)
+
+Antes de tocar contabilidad, leer **`docs/agentic/PENDIENTES-CONTABILIDAD.md`**: hay
+huecos abiertos con plazo fiscal y cifras que todavía no son utilizables (Bancos sin
+saldo inicial, $87,9M de pasivo con proveedores por conciliar, $3,1M de retefuente no
+practicada, 48 facturas de agosto sin registrar en Siigo ni Alegra).
+
 ### Metodología agentica
 
 Antes de cambios medianos/grandes, usar **`docs/agentic/INDEX.md`** como mapa corto: orquestador → memoria → skill/ficha de módulo → subagentes readonly → plan → implementación → verificación → aprendizaje reusable. Evita cargar todo `CLAUDE.md` cuando el cambio solo toca un módulo.
@@ -137,6 +144,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── meli.py                MeLi API: órdenes, stock, facturas, aprendizaje
 │   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
 │   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
+│   │   ├── mensajeria_pagos.py   Envíos diarios + lotes de pago a transportadoras (ex Excel «ENVIOS INTERRA»)
 │   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
 │   │
 │   ├── tools/
@@ -146,6 +154,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── backup_drive.py        Backup nocturno Drive/local + git push opcional + WA a GRUPO_ALERTAS_SISTEMAS_WA
 │   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
 │   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío / entregado)
+│   │   ├── guias_envio.py         Rótulos de envío en PDF (10x15 cm) para impresora térmica Vretti
 │   │   ├── notas_credito.py       Ticket "anular factura / nota crédito" en Centro de Mando (Web/MeLi)
 │   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
 │   │   └── sincronizar_facturas_de_compra_siigo.py  Facturas de compra desde Gmail
@@ -227,6 +236,7 @@ FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
 FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
 
 # Operaciones, observabilidad y cron
+MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
 GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
 AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
 AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
@@ -234,6 +244,24 @@ AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. 
 AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
 AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
 AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
+
+# Préstamos de terceros (app/services/prestamos.py — ver Flujo M)
+PRESTAMOS_DIA_RECORDATORIO   # Día del mes del ticket de pagos a despachos (default 5)
+PRESTAMOS_USUARIO_PAGOS      # Username que monta los pagos en Sucursal Negocios (default jerry)
+PRESTAMOS_RECORDATORIO_ACTIVO # 0 = desactiva el cron sin tocar el crontab
+PRESTAMOS_MUTUARIO_RAZON     # Razón social en el contrato (default McKenna Group S.A.S.)
+PRESTAMOS_MUTUARIO_NIT       # NIT en el contrato (default 901.316.016-3, verificado en Alegra)
+PRESTAMOS_MUTUARIO_REPRESENTANTE # Representante legal que firma (opcional)
+PRESTAMOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real a la DIAN (default 0 = modo sombra)
+PRESTAMOS_ALEGRA_ITEM_REF    # Referencia del ítem de intereses en Alegra (default INTERES-MUTUO)
+PRESTAMOS_DIA_AVISO_RETENCIONES # Día del mes del ticket de retenciones (default 3, sobre el mes anterior)
+UVT_<año>                    # Valor de la UVT si no está cargado en retenciones.py (ej. UVT_2027)
+EMAIL_CONTADOR               # Correo del contador para el detalle mensual de retenciones
+COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real de compras a socios (default 0 = sombra)
+COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra (default MERCANCIA-SOCIO)
+ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra (default 0 = sombra)
+PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
+ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
 
 # Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
 LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
@@ -291,6 +319,7 @@ generó un gasto de decenas de dólares sin aviso previo.
 | Auditoría estática | `app/tools/script_audit.py`, `app/data/scripts_manifest.json` | `py_compile` sin ejecutar `main`; herramienta `auditar_scripts` en Claude. |
 | Cron auditoría | `scripts/auditar_scripts_cron.py`, `scripts/instalar_cron_mcKenna.sh` | Diario (ej. 7:15); log en `log_cron.txt`; WhatsApp si hay fallos. |
 | Backup 2:00 + Git | `app/tools/backup_drive.py` | Tar en `backups_drive/` (no git), Drive opcional; luego `git add/commit/push` si hay cambios. |
+| Cron pagos préstamos | `scripts/prestamos_recordatorio_cron.py` | Día 5 (configurable); un ticket mensual a despachos con las cuotas del mes. Idempotente por período. |
 | Grupo WhatsApp | `jid_grupo_alertas_sistemas_wa()` | Mismo JID para mensaje de backup y alertas de auditoría cron. |
 
 **Tests de humo:** `pytest tests/test_smoke.py` (`/status`, auditoría, guard de archivos).
@@ -411,6 +440,15 @@ webhook — precedente: en abril/2026 se asumió que `questions`/`orders_v2`/`me
 suscritos en la app de MeLi y no era cierto, dejando preventa/posventa rotas en silencio semanas.
 Requiere habilitar el tópico `shipments` en developers.mercadolibre.com para la app.
 
+**Estado desde el 2026-09-09: apagado (`=0`) a propósito.** Estuvo en `1` del 4 al 9 de sep y produjo
+(a) packs multi-producto facturados a medias — el webhook corría con código anterior al fix
+multi-orden porque nunca se reinició — y (b) 41 packs facturados dos veces, porque astroselling
+seguía facturando en Siigo al comprar mientras Alegra facturaba al entregar. Hoy se factura **a mano
+con el botón "Facturar ahora"** de Facturación → Ventas, que emite **una sola factura por carrito**
+(`facturar_pack_meli_manual`) y aborta si el pack ya tiene factura o documento fiscal en MeLi. Antes
+de volver a encender el automático: cerrar la regularización y sanear el catálogo. Ficha completa,
+cronología y decisiones abiertas: `docs/agentic/modules/facturacion-meli-alegra.md`.
+
 ### H. Facturación al momento de ENTREGA (política general, no solo MeLi) + nota crédito
 
 Principio de negocio (reemplaza "facturar al vender"): facturar en el momento de la **entrega**
@@ -527,6 +565,191 @@ Datos: `app/services/proveedores_db.py` (SQLite `app/data/proveedores.db`, no ve
 es el puente. Ningún endpoint del módulo llama a un LLM (una extracción de catálogos con Claude sería
 un paso aparte, gateado por `llm_budget`).
 
+### N. Socios, familiares y terceros — quién es quién
+
+Cuatro relaciones distintas alrededor de McKenna, con tratamiento contable distinto:
+
+| Relación | Qué hace | Cuenta |
+|---|---|---|
+| **Socios** (Armando, Cynthia) | Compran en Amazon con **tarjeta personal**, traen a título personal y le venden a la empresa, que reintegra | **2380** |
+| **Socios** | Cuota de manejo 5% por conseguir la mercancía | 2380 contra costo |
+| **Familiares por servicios** | Prestación de servicios | 5135 (retención de **servicios**, no el 7% financiero) |
+| **Familiares prestamistas** | Solo consignaron dinero a la cuenta de la empresa | **2295** (Flujo M) |
+
+El mecanismo de los socios existe porque los productos son pequeños y el volumen
+residual no justifica una importación formal. **Clave para la conciliación:** el
+banco de McKenna NO se mueve cuando el socio compra (esa plata sale de su tarjeta);
+se mueve **al reintegrarle**. Esa es la línea que aparece en el extracto.
+
+**Asiento (corregido sep-2026, `contabilidad_autopost._lineas_compra_socio`):**
+`Débito 1435 (mercancía + flete + cuota) / Crédito 2365 (retención si aplica) /
+Crédito 2380 (neto al socio)`. **No toca Bancos** — el banco se mueve al reintegrar.
+
+⚠️ **Límite aduanero:** esa mercancía no entró por importación ordinaria, así que **no
+hay IVA descontable ni aranceles deducibles** (Art. 485 E.T.) y el documento soporte
+**no sanea** el estatus aduanero. Ver la ficha antes de proponer nada al respecto.
+
+**Reintegro al socio:** `compras_socios.registrar_reintegro()` — `Débito 2380 / Crédito 1110`.
+Es **la única línea de esta operación que aparece en el extracto** y la que se concilia; devuelve
+`cc:<id>` para `extracto_bancario.vincular()`. Panel: Préstamos → «Cómo funciona».
+
+**Retención:** `app/services/retenciones.py` (tarifas, cuantías mínimas, UVT por año —
+UVT 2026 = $52.374, Res. DIAN 000238/2025). La mayoría de estas compras queda **bajo
+las 27 UVT** y no lleva retención. Explicación viva en /app → Préstamos → «Cómo funciona».
+Ficha completa: `docs/agentic/modules/relaciones-socios-terceros.md`.
+
+### O. Solicitudes de pago con asiento automático
+
+```
+/app → Contabilidad → Solicitudes de pago   (PagosWizardPanel.tsx)
+  1. Elegir QUÉ se paga (13 categorías: proveedor, flete, servicio público,
+     honorarios, prestación de servicios, arriendo, nómina, cuota de préstamo,
+     reintegro a socio, impuestos, seguros, mantenimiento, otro)
+  2. Las opciones salen de los SALDOS REALES: proveedores con deuda en 2205,
+     cuotas del mes, servicios activos, retención pendiente en 2365
+  3. Se MUESTRA el asiento antes de aprobar
+  4. Al aprobar → asiento en el Libro Mayor + comprobante en Alegra
+```
+
+**Por qué existe:** hasta sep-2026 los pagos se aprobaban como tickets de texto
+libre ("APROBAR PAGO DE FACTORES") y el asiento dependía de que alguien se
+acordara después. No se hacía — el Libro Mayor tenía las compras pero no los
+pagos, y Bancos quedaba descuadrado. Es el mismo patrón que ya falló con las
+notas crédito (6 semanas) y las compras Gmail (96 sin postear): **lo que se deja
+como paso manual posterior, no se hace**.
+
+**Dos caminos, un solo motor:**
+- **Solicitar** (cualquiera con permiso `pagos`): crea la solicitud → ticket al
+  aprobador → al aprobar nace el asiento.
+- **Registrar directo** (solo nivel administrador — Cynthia y Armando): un paso,
+  sin ticket. Ellos montan y aprueban sus propios pagos; auto-aprobarse en dos
+  pasos es burocracia sin control real. Queda anotado «Registrado directamente
+  por X» y el panel lo marca con un chip: saltarse el control es válido,
+  **ocultarlo no**. Un test verifica que el asiento sea idéntico por ambos
+  caminos — si divergieran, un mismo pago quedaría contabilizado distinto según
+  quién lo registre.
+
+**Tres decisiones:** (a) el asiento se muestra antes de confirmar por los dos
+caminos — firmar un monto sin ver la cuenta es firmar a ciegas; (b) el asiento
+nace al **aprobar**, no al solicitar, así una solicitud rechazada no deja rastro;
+(c) si Alegra falla, el asiento interno igual queda y el espejo se reintenta.
+
+**«Honorarios» y «Prestación de servicios» no son lo mismo** (sep-2026): quien
+presta servicios operativos a McKenna sin ser nómina —calidad, empaque, apoyo—
+va a **5135 con retención de servicios (4% declarante / 6% no)**, no a 5110 con
+la de honorarios (10-11%). Sin esa categoría propia el pago solo podía entrar
+como honorario o como «Otro», y una tarifa equivocada sale del bolsillo de una
+persona real.
+
+**Plan de cuentas ampliado** para que esto sirva: antes TODO gasto caía en 5135
+«Servicios» (luz, contador y fletes juntos). Ahora hay 19 cuentas de gasto con
+códigos PUC reales — 513550 Transporte/fletes, 513530 Energía, 5110 Honorarios,
+5120 Arrendamientos… — y **las 35 cuentas están mapeadas a Alegra** una a una.
+Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
+
+### P. Agente de ventas v2 (WhatsApp + chat web) con supervisión
+
+Reemplaza, detrás de banderas, la cadena de ~70 interceptores regex + LLM sin herramientas
+que atendía WhatsApp y la burbuja web (auditoría 4–11 sep-2026: repreguntas, "lo confirma un
+asesor" con precios existentes, respuestas dobles, bot hablando encima del asesor).
+
+```
+app/agent/ventas_wa/
+  catalogo.py      precios de la PÁGINA WEB (cache.json + stock_web.json) — decisión del negocio
+  pedido.py        pedido por cliente en SQLite (ventas_wa.db; sombra → ventas_wa_sombra.db),
+                   código WEB-XXXXX para continuar por WhatsApp, historial propio del chat web
+  historial.py     WhatsApp lee wa_chats.db (incluye lo que escribe el asesor desde el teléfono);
+                   NO usa la memoria legacy conversaciones_whatsapp.sqlite3 (mezcla web + WA)
+  herramientas.py  buscar_producto, ficha_producto, actualizar_pedido, guardar_datos_cliente,
+                   ver_pedido, consultar_pedido_web, pasar_a_asesor (WA) /
+                   llevar_al_carrito + continuar_por_whatsapp (web)
+  agente.py        Claude con tool-use; cada llamada pasa por llm_budget
+  supervisor.py    nivel 1 reglas (precios respaldados, sin datos de pago, sin repreguntar) +
+                   nivel 2 revisor IA (claude-haiku-4-5) solo en respuestas de riesgo;
+                   UNA corrección por turno, si falla → respuesta segura + aviso
+  entrada.py       /whatsapp (agrupa ráfagas 6 s, se calla 12 h tras mensaje de un asesor,
+                   adopta pedidos WEB-XXXXX) y /chat web (atender_web)
+app/services/auditor_canales.py + scripts/auditor_canales_cron.py   nivel 3: cada 30 min sin IA
+                   (clientes sin respuesta, pedidos listos sin cerrar → re-alerta, puente, presupuesto)
+                   y 19:00 auditoría IA de una muestra que PROPONE mejoras
+```
+
+- **El bot NO cierra la venta:** arma el pedido y manda la tarjeta por mensaje directo a
+  `WA_V2_ALERTA_DESTINO` (default +57 318 243 2463) **desde la cuenta supervisora**
+  (bot-supervisor :3001, número 573196529076, `herramientas.enviar_alerta_asesor`) para que
+  no se confunda con los chats de clientes; si el supervisor cae, respaldo por el puente
+  principal :3000. El asesor confirma
+  total, comparte datos de pago y cierra. Pedidos agrupados en /app → Agente WA → **Pedidos IA**.
+- **Web:** si todo está disponible, el agente mete los productos en el carrito del visitante
+  (lo aplica `website.py::_aplicar_acciones_chat` en la sesión) y la burbuja muestra
+  "Ver carrito y pagar"; si no, botón "Continuar por WhatsApp" con el código del pedido.
+- **Banderas:** `WA_AGENTE_V2` y `WEB_AGENTE_V2` = `off | sombra | activo`. En sombra el flujo
+  legacy responde y v2 solo deja borradores (panel → Pedidos IA → Sombra). Desde 2026-09-11 ambas
+  en `sombra`. Presupuesto autorizado por el usuario ese día: `LLM_BUDGET_TOPE_USD=5.0`,
+  `LLM_BUDGET_DIARIO_USD=3.0` en `.env`.
+- **Nunca** cambiar `os.environ` en caliente para elegir la base: `pedido.usando_modo()` (ContextVar)
+  — el servidor es multihilo y otro hilo podría leer "activo" y responderle de verdad a un cliente.
+- `wa_bot_detect.parece_respuesta_bot` ya no marca como bot los mensajes con "veci": el asesor
+  también lo escribe, y ese falso positivo hacía creer que nadie humano atendía el chat.
+
+### K. Pagos de mensajería (ex Excel «ENVIOS INTERRA»)
+
+Origen: TKT-2026-1219 — despachos (Jenniffer) llevaba en un Excel aparte un renglón por día con
+la cantidad de envíos, el enlace a la factura de guías de Interrapidísimo y el valor, y pedía la
+aprobación del pago abriendo un ticket a mano. Ahora vive en el panel:
+
+```
+/app → Contabilidad → Operativos → Mensajería   (desktop/src/components/MensajeriaPanel.tsx)
+  ├─ Un renglón por día: fecha · cantidad de envíos · enlace de guías · valor · nota
+  │    (días sin despacho — "domingo", "no salen" — se registran con valor 0)
+  ├─ "Importar del Excel": pegar las filas tal cual; las que decían CANCELADO con su fecha de
+  │    pago se agrupan como lotes ya pagados y conservan el histórico
+  ├─ Seleccionar días pendientes → lote de pago + ticket de aprobación automático
+  │    (categoría logistica, asignado al usuario de `MENSAJERIA_APROBADOR`, default `armando`)
+  └─ Registrar pago: fecha, banco, referencia, monto y comprobante adjunto
+
+app/services/mensajeria_pagos.py   tablas `mensajeria_envios` / `mensajeria_lotes` en
+                                   contabilidad.db; comprobantes en comprobantes/mensajeria/
+contabilidad_ledger._egresos_mensajeria   lote pagado → fuente "mensajeria_pago" en
+                                   Ingresos/Egresos → autopost al Libro Mayor (PUC 5135)
+```
+
+Permiso: `mensajeria`, heredado también de `servicios`, `operativos` o `pedidos` — el registro lo
+lleva despachos y la aprobación administración (ver `desktop/src/lib/contabilidadAccess.ts`).
+
+### L. Guías (rótulos) de envío para impresora térmica
+
+Reemplaza el formato en Excel/Word que despachos llenaba a mano para pegar en la caja. La
+impresora es una **Vretti térmica, rollo de 10x15 cm** (también hay 10x10 y 5x7,5 en
+`guias_envio.TAMANOS`).
+
+```
+/app → Atención → Guías de envío   (desktop/src/components/GuiasEnvioPanel.tsx)
+  ├─ "Desde pedidos": pedidos de la tienda web (orders.db) y despachos de WhatsApp
+  │    (despachos.db) de los últimos 15 días, con dirección ya cargada → marcar → PDF
+  ├─ "Envío suelto": formulario en blanco para lo que no viene de un pedido
+  ├─ "Remitente": datos de McKenna que salen abajo (app/data/remitente_envios.json)
+  └─ Historial con reimpresión (tabla `rotulos_envio` en app/data/despachos.db)
+
+POST /api/guias/rotulos → registra los rótulos y devuelve la URL del PDF
+GET  /api/guias/rotulos.pdf?ids=1,2&tamano=10x15 → PDF, una página por paquete
+GET  /api/guias/conteo?fecha=YYYY-MM-DD → rótulos impresos ese día
+```
+
+El PDF lo arma ReportLab (`generar_pdf`): encabezado con isotipo, bloque grande de
+destinatario (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor y
+código de barras Code128 con la guía o la referencia del pedido. Todo en negro sobre blanco —
+la térmica es monocromo — y el `ImageReader` del logo se crea **una sola vez** por PDF (si se
+crea dentro del bucle, un lote de 20 rótulos pesa ~16 MB).
+
+**MeLi queda fuera a propósito:** esas ventas viajan con la etiqueta que genera Mercado Libre
+(Colecta/Flex); un rótulo propio no la reemplaza.
+
+**Enlace con Flujo K:** `GET /api/guias/conteo` alimenta la sugerencia "N rótulos impresos ese
+día — usar" de la casilla *envíos* en Operativos → Mensajería, para no contar paquetes a mano.
+
+Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::puedeVerPanel`).
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
 Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
@@ -548,6 +771,35 @@ app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila
                                      (scripts/contabilidad_autopost_cron.py, job
                                      "contabilidad_autopost" en Sistemas → Tareas Programadas) +
                                      backfill manual (scripts/backfill_contabilidad_autopost.py).
+app/services/meli_facturacion.py    La factura mensual de MeLi, desglosada por concepto y
+                                     traducida al PUC. GET /billing/integration/... — **5 peticiones
+                                     por minuto**, el módulo pacea solo y cachea los períodos
+                                     cerrados. Existe porque ese gasto no se ve por ningún lado:
+                                     MeLi cobra $44-47M/mes (de los cuales ~$24M son PUBLICIDAD) y
+                                     **nada de eso pasa por el extracto bancario** — la factura se
+                                     cobra contra el saldo de MercadoPago (111010), y el banco solo
+                                     ve el traslado que fondea esa cuenta.
+                                     ⚠️ NO usar `meli_ads.gasto_ads_por_rango()` para contabilizar:
+                                     para ago-2026 reportó $654.448 cuando la factura cobró
+                                     $23.853.390 (35x). Las métricas sirven para decidir campañas;
+                                     la factura es la fuente de verdad.
+                                     ⚠️ Los `detail_sub_type` que empiezan por «B» son anulaciones y
+                                     RESTAN, aunque la API los manda en positivo y sin marcarlos
+                                     CREDIT. Van a la misma cuenta que anulan (BV→CV, BXD→CXD,
+                                     BFF→CFF: se cambia la B por C). Sumándolos en positivo, agosto
+                                     daba $46.013.088 contra los $44.175.672 reales.
+app/services/extracto_clasificador.py  Propone cuenta PUC + tercero para las líneas de banco
+                                     que NO tienen contrapartida en el libro (las que
+                                     `sugerencias_auto` no puede emparejar porque la operación
+                                     nunca se contabilizó: 200 de 358 en jul-ago 2026). Reglas por
+                                     descripción del banco; `proponer()` / `resumen()` NO escriben
+                                     nada. Endpoint `/api/contabilidad/extractos/clasificacion`.
+                                     Tres trampas que las reglas evitan a propósito: (a) los
+                                     traslados a MercadoPago son plata propia, no ingreso ni gasto
+                                     ($40,7M en ago-2026); (b) el banco rotula «PAGO A PROVE» la
+                                     quincena de quien presta servicios — persona natural va a 5135
+                                     con retención, no a 2205; (c) una entrada sin identificar no se
+                                     marca como venta, que ya entra por el auto-posteo.
 app/services/extracto_bancario.py   Conciliación bancaria (ya existente): importar extracto,
                                      vincular/desvincular, sugerencias automáticas,
                                      pendientes_por_clasificar() (líneas de banco sin vínculo).
@@ -562,6 +814,76 @@ Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Pré
 **"Pendientes por clasificar"**: clasificar una línea de banco sin vínculo crea el asiento
 correcto (incl. préstamo) y la vincula en un solo paso. Adjuntar comprobante (`ComprobanteWidget.tsx`,
 compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras courier de un socio.
+
+### M. Préstamos de terceros (captación con particulares)
+
+```
+/app → Contabilidad → Préstamos   (sección propia; PrestamosCronogramaPanel.tsx)
+  ├─ «+ Prestamista»: alta del tercero con cédula, correo, teléfono y cuenta bancaria
+  │    → valida lo que el préstamo necesitará (no al desembolsar, cuando ya es tarde),
+  │      lo inscribe como contacto en Alegra y avisa si llevará documento soporte.
+  │      No duplica si ya existe esa cédula: completa lo que falte
+  ├─ Crear: tercero + capital + tasa E.A. + plazo + reparto de capital por tramos
+  │    → cronograma de N cuotas + asiento de desembolso (banco / 2295-2380)
+  ├─ Simulador en vivo: muestra ANTES de comprometerse qué gana el prestamista
+  │    (bruto y neto) y cuánto cuesta realmente a McKenna (TIR → efectiva anual)
+  ├─ Documentos PDF: contrato de mutuo (al desembolsar) y certificado de estado.
+  │    Se generan siempre; el ENVÍO por correo al tercero pide confirmación
+  ├─ Alegra: consulta de solo lectura si ya es contacto, con botón para inscribirlo
+  ├─ Reporte mensual al prestamista: lo girado en el mes (capital / interés / retención)
+  │    + certificado de estado adjunto. Envío manual, nunca automático tras un pago
+  └─ Pagar cuota → asiento capital(2295/2380) + interés(5305) + retención(2365) + banco
+
+scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
+  ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
+  │           todas las cuotas del mes: prestamista, cédula, cuenta, valor a girar
+  └─ día 3  → UN ticket de contabilidad con la retención practicada el mes ANTERIOR,
+              detalle por tercero para el formulario 350 + control contra la cuenta
+              2365 + fecha exacta de vencimiento (app/services/calendario_tributario.py,
+              año gravable 2026 cargado). Sube a prioridad crítica si vence en ≤5 días
+```
+
+**Condiciones vigentes (sep-2026):** 25% E.A. (= 1,8769% mensual vencido), 24 cuotas,
+capital 30% el primer año / 70% el segundo, retención del 7% **a cargo del prestamista**.
+Sobre $10.000.000 el prestamista gana **$2.796.620 brutos (27,97%)** y recibe
+$2.600.857 netos (26,01%).
+
+**Tres cifras distintas que no se deben confundir** (van las tres en el panel y en el PDF):
+la **tasa pactada** (25% E.A., lo único que se acuerda), el **rendimiento bruto** (27,97%,
+consecuencia del cronograma) y el **rendimiento neto** (26,01%, tras retención). 25% E.A.
+no da 50% a dos años porque el interés va sobre saldo insoluto: el capital promedio
+realmente prestado es $6,2M, no $10M.
+
+**Palanca de diseño:** devolver capital más tarde sube lo que gana el prestamista **sin
+cambiar la tasa** (0/100 → 34,72%; 30/70 → 27,97%; 50/50 → 23,46%), y el costo para
+McKenna es 25% E.A. en los tres casos. Descartado a propósito el "interés fijo sobre
+capital inicial", que cuesta ~30% E.A. real por el mismo capital promedio.
+
+**Retención:** McKenna es agente retenedor; descuenta el 7% (Art. 395 ET) y lo consigna
+a la DIAN. **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
+la asume McKenna y el costo real sube a 26,95% E.A.
+
+**Documento soporte (DIAN Concepto 000112 int 7 de 2024):** por el **capital** NO se emite
+(el mutuo no es venta de bienes ni servicios; se respalda con contrato + transferencia); por
+los **intereses** SÍ, pero solo si el prestamista es persona natural **no** obligada a
+facturar — si es jurídica u obligado, la factura la expide él. Se emite por el interés bruto
+de cada cuota vía `POST /bills` con plantilla `supportDocument` (id=10 en la cuenta; ⚠️ la
+id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca en modo sombra**
+(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`): antes de encender hay que crear en Alegra el ítem
+`INTERES-MUTUO` (hoy no existe).
+
+**Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
+(DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito
+del calendario es el **6**, no el 3 (el 3 es el DV; verificado contra GET /company de Alegra).
+La identidad fiscal (razón social, NIT, ciudad) vive **solo** en `app/services/empresa.py` —
+ningún módulo debe volver a escribir el literal. **No extrapola**: para un año sin tabla
+cargada dice "fecha no confirmada" en vez de adivinar — cargar 2027 cuando salga el decreto.
+
+⚠️ **Sin validar aún:** tarifa de retención según tipo de prestamista (confirmar con el
+contador), certificado anual de retenciones en formato DIAN (el plazo sí está: último día
+hábil de marzo), tope de usura (el contrato lo afirma pero nadie lo valida en código) y riesgo
+de captación masiva si esto escala a muchos terceros. Ficha completa, cronología y
+decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 
 ---
 
@@ -610,9 +932,14 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
 | `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
 | `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
+| `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
+| `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
+| `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
+| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar — ver `app/services/pagos_wizard.py` y Flujo O |
+| `/api/prestamos/*` | GET/POST | Bearer | Préstamos de terceros con cronograma: simular, crear, cuotas, pagar, documento PDF (contrato/certificado), envío al prestamista, contacto Alegra y ticket mensual — ver `app/services/prestamos.py` y Flujo M |
 | `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
 | `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |
@@ -1040,7 +1367,24 @@ WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
 
 7. **Deduplicación de preguntas MeLi**: ventana de 5 minutos para evitar procesar la misma pregunta dos veces.
 
-8. **Fuente de verdad contable**: `app/services/contabilidad_core.py` (Libro Mayor propio,
+8. **Identidad fiscal en un solo lugar**: razón social, NIT y ciudad de McKenna salen
+   de `app/services/empresa.py` (`EMPRESA_NIT`, default **901.316.016-3**, verificado
+   contra `GET /company` de Alegra). Cada módulo puede sobreescribir con su propia
+   variable (`CUOTA_MANEJO_PAGADOR_NIT`, `PRESTAMOS_MUTUARIO_NIT`), pero **el default
+   sale de un solo sitio**. Nació de un incidente real (sep-2026): el NIT estaba escrito
+   a mano en cuatro archivos y en dos decía "901.952.087-1", que no es el de la empresa —
+   las **41 cuentas de cobro de cuota de manejo emitidas hasta el 2026-09-10 salieron con
+   el NIT equivocado** y hay que reexpedirlas. `tests/test_empresa_identidad.py` recorre
+   `app/`, `desktop/src/` y `scripts/` con `ast` y falla si el NIT viejo reaparece como
+   literal en uso (en docstrings y comentarios sí puede, ahí está la historia).
+   `empresa.digito_verificacion()` / `nit_valido()` comprueban el DV con el algoritmo
+   de la DIAN antes de guardar un NIT — no detectan que sea de otra empresa, pero sí
+   el dígito cambiado o transpuesto. Devuelven `None` (no `False`) cuando no hay DV:
+   una cédula no lleva.
+   **Ojo con el dígito del calendario tributario:** es el **6** (901.316.016**-3** → el 3
+   es el DV), no el 3 — ver `app/services/calendario_tributario.py`.
+
+9. **Fuente de verdad contable**: `app/services/contabilidad_core.py` (Libro Mayor propio,
    partida doble, `balance_comprobacion()`) es la fuente de verdad operativa de la contabilidad
    de McKenna — ventas, compras, servicios, impuestos y créditos se postean ahí automáticamente
    (`contabilidad_autopost.py`), y socios/préstamos/proveedores se registran ahí directamente.

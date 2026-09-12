@@ -4328,7 +4328,7 @@ function CentroMandoHome({
         <div className="grid grid-cols-2 gap-2">
           {pVer("acciones") && (
             <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-3">
-              <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} />
+              <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} onVerTodo={acciones.length > 3 ? onAcciones : undefined} />
               {acciones.length === 0 ? (
                 <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
               ) : (
@@ -4345,6 +4345,12 @@ function CentroMandoHome({
                       </span>
                     </button>
                   ))}
+                  {acciones.length > 3 && (
+                    <button type="button" onClick={onAcciones}
+                      className="mck-press w-full rounded-lg border border-dashed border-accent/35 px-3 py-1.5 text-[11px] font-bold text-accent hover:bg-accent/10 transition">
+                      Ver las {acciones.length} — hay {acciones.length - 3} más →
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -4352,7 +4358,7 @@ function CentroMandoHome({
 
           {pVer("solicitudes") && (
             <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
-              <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} />
+              <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} onVerTodo={solicitudes.length > 3 ? onSolicitudes : undefined} />
               {solicitudes.length === 0 ? (
                 <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
               ) : (
@@ -4368,6 +4374,12 @@ function CentroMandoHome({
                       </span>
                     </button>
                   ))}
+                  {solicitudes.length > 3 && (
+                    <button type="button" onClick={onSolicitudes}
+                      className="mck-press w-full rounded-lg border border-dashed border-accent/35 px-3 py-1.5 text-[11px] font-bold text-accent hover:bg-accent/10 transition">
+                      Ver las {solicitudes.length} — hay {solicitudes.length - 3} más →
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -6485,10 +6497,11 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
                     { id: "libro-mayor", label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos (permiso propio, no heredado)" },
                     { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
-                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios" },
+                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería" },
                     { id: "rrhh",          label: "RRHH · Compensaciones" },
                     { id: "impuestos",     label: "Pagos de impuestos" },
                     { id: "servicios",     label: "Servicios" },
+                    { id: "mensajeria",    label: "Pagos de mensajería / envíos" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;
@@ -7544,6 +7557,29 @@ export function PasosSection({
                   >
                     {p.descripcion}
                   </label>
+                  {/* Un paso que nombra una venta MeLi se abre directo en
+                      Facturación → Ventas, sin copiar el ID y pegarlo en otro
+                      apartado (queja de la operadora, sep-2026). */}
+                  {(() => {
+                    const m = /\b(\d{12,20})\b/.exec(p.descripcion || "");
+                    if (!m) return null;
+                    const idVenta = m[1];
+                    return (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          useAppStore.getState().setVentasBoot({ busqueda: idVenta });
+                          useAppStore.getState().setPanel("facturacion");
+                        }}
+                        className="shrink-0 rounded-md border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-bold text-accent hover:bg-accent/20"
+                        title={`Abrir la venta ${idVenta} en Facturación → Ventas`}
+                      >
+                        Abrir en Facturación ↗
+                      </button>
+                    );
+                  })()}
                 </div>
                 <PasoNotaPostit
                   titulo={p.descripcion}

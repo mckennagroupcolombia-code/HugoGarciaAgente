@@ -687,10 +687,11 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "catalogo-alegra", label: "Catálogo Alegra — productos y combos (espejo local)" },
   { id: "libro-mayor",   label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos, cuentas T (permiso propio, no heredado)" },
-  { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios (avanzado)" },
+  { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería (avanzado)" },
   { id: "rrhh",          label: "RRHH · Compensaciones (también vía Operativos)" },
   { id: "impuestos",     label: "Pagos de impuestos (vía Operativos)" },
   { id: "servicios",     label: "Servicios públicos (vía Operativos o Rentabilidad)" },
+  { id: "mensajeria",    label: "Pagos de mensajería / envíos (vía Operativos, Servicios o Pedidos)" },
 ];
 
 // Sub-tabs within Centro de Mando (solo los que tienen pVer gating en TicketsPanel)

@@ -566,6 +566,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if sds.nombre_comercial %}<div class="kv-row"><div class="kv-key">Nombre comercial</div><div class="kv-val">{{ sds.nombre_comercial }}</div></div>{% endif %}
       {% if sds.inci %}<div class="kv-row"><div class="kv-key">INCI / Nombre químico</div><div class="kv-val">{{ sds.inci }}</div></div>{% endif %}
       {% if sds.cas %}<div class="kv-row"><div class="kv-key">N.º CAS</div><div class="kv-val mono">{{ sds.cas }}</div></div>{% endif %}
+      {% if sds.numero_ce and sds.numero_ce != "No aplica" %}<div class="kv-row"><div class="kv-key">N.º CE (EINECS)</div><div class="kv-val mono">{{ sds.numero_ce }}</div></div>{% endif %}
       {% if sds.formula %}<div class="kv-row"><div class="kv-key">Fórmula molecular</div><div class="kv-val mono">{{ sds.formula | formula_sub | safe }}</div></div>{% endif %}
       {% if sds.usos %}<div class="kv-row"><div class="kv-key">Usos recomendados</div><div class="kv-val">{{ sds.usos }}</div></div>{% endif %}
       <div class="kv-row"><div class="kv-key">Proveedor</div><div class="kv-val">McKenna Group S.A.S. · NIT 901316016-3</div></div>
@@ -585,7 +586,8 @@ sub { font-size: 0.72em; vertical-align: sub; }
   <div class="sec">
     <div class="sec-title"><span class="n">3</span><span class="t">Composición / información sobre componentes</span></div>
     <div class="tablewrap"><table class="datatab">
-      <tr><th>Componente</th><th>N° CAS</th><th>Concentración</th></tr>
+      {# Orden de las filas, igual que el editor: componente | concentración | CAS #}
+      <tr><th>Componente</th><th>Concentración</th><th>N° CAS</th></tr>
       {% for fila in sds.composicion %}
       <tr>
         <td class="prose">{{ fila[0] if fila|length > 0 }}</td>

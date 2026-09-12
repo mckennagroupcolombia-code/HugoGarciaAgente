@@ -136,7 +136,10 @@ export default function DolarHoraGadget() {
     return () => document.removeEventListener("keydown", onKey);
   }, [ampliado]);
 
-  const up = (data?.cambio_pct ?? 0) >= 0;
+  const tieneSpot = data?.spot_valor != null;
+  const valorPrincipal = tieneSpot ? data!.spot_valor! : data?.valor;
+  const cambioPctPrincipal = tieneSpot ? (data?.spot_cambio_pct ?? 0) : (data?.cambio_pct ?? 0);
+  const up = cambioPctPrincipal >= 0;
   const serie = data?.serie_dia ?? [];
 
   return (
@@ -154,28 +157,39 @@ export default function DolarHoraGadget() {
               <Icon name="chartBar" size={20} weight="duotone" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Dólar hoy · COP</p>
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted">
+                {tieneSpot ? "Dólar en vivo · COP" : "Dólar hoy · COP"}
+                {tieneSpot && (
+                  <span className="inline-flex items-center gap-1 text-success">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+                    en vivo
+                  </span>
+                )}
+              </p>
               {isLoading ? (
                 <p className="text-lg font-extrabold text-muted">Cargando…</p>
-              ) : isError ? (
+              ) : isError && !data ? (
                 <p className="truncate text-sm font-semibold text-danger">
                   {error instanceof Error ? error.message : "No se pudo cargar"}
                 </p>
               ) : (
                 <div className="flex items-baseline gap-2">
                   <p className="text-xl font-black tabular-nums tracking-tight text-ink">
-                    ${data ? fmtCop(data.valor) : "—"}
+                    ${valorPrincipal != null ? fmtCop(valorPrincipal) : "—"}
                   </p>
-                  {data && (
+                  {valorPrincipal != null && (
                     <span className={`text-xs font-bold ${up ? "text-success" : "text-danger"}`}>
                       {up ? "▲" : "▼"} {up ? "+" : ""}
-                      {data.cambio_pct.toLocaleString("es-CO", { maximumFractionDigits: 2 })}%
+                      {cambioPctPrincipal.toLocaleString("es-CO", { maximumFractionDigits: 2 })}%
                     </span>
                   )}
                 </div>
               )}
               <p className="text-[10px] text-muted">
-                {data?.fuente_label ?? "TRM BanRep"} · clic para ampliar
+                {tieneSpot
+                  ? `Spot mercado · TRM oficial $${data ? fmtCop(data.valor) : "—"}`
+                  : (data?.fuente_label ?? "TRM BanRep")}{" "}
+                · clic para ampliar
               </p>
             </div>
             <Icon name="expand" size={16} className="shrink-0 text-muted" />
@@ -214,6 +228,13 @@ export default function DolarHoraGadget() {
                   </p>
                   {data && (
                     <p className="text-[11px] text-muted">
+                      {tieneSpot && (
+                        <>
+                          Spot ${fmtCop(data.spot_valor!)}
+                          {data.spot_hora ? ` · ${data.spot_hora.slice(11, 16)}` : ""}
+                          {" · "}
+                        </>
+                      )}
                       TRM BanRep ${fmtCop(data.valor)}
                       {data.trm_fecha ? ` · ${data.trm_fecha}` : ""}
                     </p>

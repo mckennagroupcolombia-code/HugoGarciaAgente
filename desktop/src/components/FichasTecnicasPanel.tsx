@@ -24,6 +24,15 @@ import {
   type ParamRow,
 } from "../lib/coaParametros";
 import { formatearFormulaMolecular } from "../lib/formulaMolecular";
+import {
+  GRADOS_SUGERIDOS,
+  TIPOS_INSUMO,
+  alternarGrado,
+  casillasPorClasificacion,
+  esTipoInsumo,
+  gradoIncluye,
+  type TipoInsumo,
+} from "../lib/clasificacionInsumo";
 import { esperarJobScan } from "../lib/scanJobPoll";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
@@ -1272,8 +1281,8 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
 }
 
 function CoaSection({
-  coaEinces, setCoaEinces,
-  coaGrado, setCoaGrado,
+  coaEinces,
+  coaGrado,
   coaParametros, setCoaParametros,
   coaFirmaNombre, setCoaFirmaNombre,
   coaFirmaCargo, setCoaFirmaCargo,
@@ -1284,8 +1293,8 @@ function CoaSection({
   sugiriendo,
   errorSugerir,
 }: {
-  coaEinces: string; setCoaEinces: (v: string) => void;
-  coaGrado: string; setCoaGrado: (v: string) => void;
+  coaEinces: string;
+  coaGrado: string;
   coaParametros: string; setCoaParametros: (v: string) => void;
   coaFirmaNombre: string; setCoaFirmaNombre: (v: string) => void;
   coaFirmaCargo: string; setCoaFirmaCargo: (v: string) => void;
@@ -1338,45 +1347,9 @@ function CoaSection({
           </button>
         </div>
       )}
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div>
-          <Field
-            label="EINECS"
-            value={coaEinces}
-            onChange={setCoaEinces}
-            actions={<IaBtn {...ia("coa_einecs")} />}
-          />
-        </div>
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-xs text-muted">Grado</span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCoaGrado("")}
-                disabled={!coaGrado.length}
-                className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
-                  coaGrado.length
-                    ? "border-border text-muted hover:border-danger hover:bg-danger/10 hover:text-danger"
-                    : "cursor-default border-transparent text-muted/35"
-                }`}
-              >
-                Limpiar
-              </button>
-              <IaBtn {...ia("coa_grado")} />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5 mb-1.5">
-            {["Cosmético", "Alimentos", "Industrial", "Grasas y Ceras", "Agro"].map((g) => (
-              <button key={g} type="button"
-                onClick={() => setCoaGrado(coaGrado === g ? "" : g)}
-                className={`rounded-full px-3 py-0.5 text-[11px] font-medium border transition-colors ${coaGrado === g ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60 hover:text-accent"}`}
-              >{g}</button>
-            ))}
-          </div>
-          <Field value={coaGrado} onChange={setCoaGrado} placeholder="O escribe un grado personalizado…" label="Grado personalizado" />
-        </div>
-      </div>
+      <p className="text-[11px] text-muted">
+        EINECS y grado se editan arriba, en «Identificación del producto»: aplican a las tres secciones.
+      </p>
 
       <div>
         <p className="mb-2 text-xs font-medium text-muted">Datos de la firma</p>
@@ -1602,6 +1575,14 @@ function DocumentoCompletoTabContent({
   /* ── COA: solo campos exclusivos ── */
   const [coaEinces, setCoaEinces] = useState("");
   const [coaGrado, setCoaGrado] = useState("");
+  /* Clasificación del insumo: decide qué casillas de identificación aplican */
+  const [tipoInsumo, setTipoInsumo] = useState<TipoInsumo | "">("");
+  const [ins, setIns] = useState("");
+  const casillas = casillasPorClasificacion(tipoInsumo, coaGrado);
+  const casGuardar = casillas.cas ? "No aplica" : cas;
+  const einecsGuardar = casillas.einecs ? "No aplica" : coaEinces;
+  const inciGuardar = casillas.inci ? "" : inci;
+  const insGuardar = casillas.ins ? "" : ins;
   const [coaParametros, setCoaParametros] = useState("");
   const [coaFirmaNombre, setCoaFirmaNombre] = useState("");
   const [coaFirmaCargo, setCoaFirmaCargo] = useState("");
@@ -1730,6 +1711,8 @@ function DocumentoCompletoTabContent({
     if (nc) setNombreComercial(nc);
     const inciVal = String(datos.inci || coaIdent.nombre_inci || "");
     if (inciVal) setInci(inciVal);
+    setTipoInsumo(esTipoInsumo(datos.tipo_insumo) ? datos.tipo_insumo : "");
+    setIns(String(datos.ins || ""));
 
     if (datos._cabezote_id) setCabezoteId(String(datos._cabezote_id));
     if (datos.color_acento) setColorAcento(String(datos.color_acento));
@@ -1762,6 +1745,7 @@ function DocumentoCompletoTabContent({
 
     if (coaData) {
       if (coaIdent.einces) setCoaEinces(String(coaIdent.einces));
+      else if (sdsIdent.numero_ce) setCoaEinces(String(sdsIdent.numero_ce));
       if (coaIdent.grado) setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
       setCoaFirmaNombre(String(coaFirma.nombre || ""));
@@ -1809,10 +1793,11 @@ function DocumentoCompletoTabContent({
       identificacion: {
         nombre_comercial: nombreComercial || nombre,
         referencia_interna: referencia,
-        nombre_inci: inci,
-        cas,
-        einces: coaEinces,
+        nombre_inci: inciGuardar,
+        cas: casGuardar,
+        einces: einecsGuardar,
         grado: coaGrado,
+        ins: insGuardar,
       },
       lote: {
         numero: String(ft.lote || ""),
@@ -1831,8 +1816,8 @@ function DocumentoCompletoTabContent({
       },
     };
   }, [
-    nombre, nombreComercial, referencia, inci, cas,
-    coaEinces, coaGrado, coaParametros,
+    nombre, nombreComercial, referencia, inciGuardar, casGuardar,
+    einecsGuardar, insGuardar, coaGrado, coaParametros,
     coaFirmaNombre, coaFirmaCargo, coaFirmaOrganizacion, coaFirmaImagenB64,
   ]);
 
@@ -1841,8 +1826,9 @@ function DocumentoCompletoTabContent({
     identificacion: {
       nombre_comercial: nombreComercial || nombre,
       referencia_interna: referencia,
-      nombre_inci: inci,
-      cas,
+      nombre_inci: inciGuardar,
+      cas: casGuardar,
+      numero_ce: einecsGuardar,
     },
     peligros: { clasificacion: sdsClasificacion, pictogramas: sdsPictogramas },
     composicion: filasTresDesdeTexto(sdsComposicion),
@@ -1850,15 +1836,30 @@ function DocumentoCompletoTabContent({
     manipulacion: { manipulacion: sdsManipulacion },
     recomendaciones: sdsRecomendaciones,
   }), [
-    nombre, nombreComercial, referencia, inci, cas,
+    nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar,
     sdsClasificacion, sdsPictogramas, sdsComposicion,
     sdsPrimeros, sdsManipulacion, sdsRecomendaciones,
   ]);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  /** FT con la clasificación aplicada: lo que no aplica se guarda como tal. */
+  const _buildFt = () => {
+    const ft = { ...buildFtRef.current() } as Record<string, unknown>;
+    ft.cas = casGuardar;
+    ft.tipo_insumo = tipoInsumo;
+    ft.ins = insGuardar;
+    if (casillas.formula) {
+      ft.caracteristicas_fisicas = {
+        ...((ft.caracteristicas_fisicas as Record<string, unknown>) || {}),
+        formula_quimica: "",
+      };
+    }
+    return ft;
+  };
+
   const _buildBody = () => ({
-    ft: buildFtRef.current(),
+    ft: _buildFt(),
     coa: buildCoaDatos(),
     sds: buildSdsDatos(),
     cabezote_id: cabezoteId,
@@ -2022,13 +2023,104 @@ function DocumentoCompletoTabContent({
           onChange={setNombre}
           placeholder="Ej. Ácido cítrico"
         />
-        <Field
-          label="Número CAS"
-          value={cas}
-          onChange={setCas}
-          placeholder="0000-00-0"
-          actions={<IaBtn {...ia("cas")} />}
-        />
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted">Tipo de insumo</p>
+          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
+            {TIPOS_INSUMO.map((t) => {
+              const activo = tipoInsumo === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTipoInsumo(activo ? "" : t.id)}
+                  className={`rounded-lg border px-2.5 py-1.5 text-left transition-colors ${
+                    activo ? "border-accent bg-accent text-white" : "border-border text-ink hover:border-accent/60"
+                  }`}
+                >
+                  <span className="block text-[11px] font-semibold">
+                    {t.letra} · {t.nombre}
+                  </span>
+                  <span className={`block text-[10px] leading-tight ${activo ? "text-white/80" : "text-muted"}`}>
+                    {t.ejemplos}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {!tipoInsumo && (
+            <p className="text-[11px] text-amber-700">
+              Sin clasificar: todas las casillas quedan habilitadas. Elige el tipo para dejar solo las que aplican.
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted">
+              Grado <span className="text-muted/70">(puede ser más de uno)</span>
+            </p>
+            <IaBtn {...ia("coa_grado")} />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {GRADOS_SUGERIDOS.map((g) => {
+              const activo = gradoIncluye(coaGrado, g);
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => setCoaGrado(alternarGrado(coaGrado, g))}
+                  className={`rounded-full border px-3 py-0.5 text-[11px] font-medium transition-colors ${
+                    activo
+                      ? "border-accent bg-accent text-white"
+                      : "border-border text-muted hover:border-accent/60 hover:text-accent"
+                  }`}
+                >
+                  {g}
+                </button>
+              );
+            })}
+          </div>
+          <Field
+            label="Grado (texto que va en el COA)"
+            value={coaGrado}
+            onChange={setCoaGrado}
+            placeholder="O escríbelo a mano…"
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Número CAS"
+            value={cas}
+            onChange={setCas}
+            placeholder="0000-00-0"
+            bloqueado={casillas.cas ?? undefined}
+            actions={<IaBtn {...ia("cas")} />}
+          />
+          <Field
+            label="EINECS / Número CE"
+            value={coaEinces}
+            onChange={setCoaEinces}
+            placeholder="000-000-0"
+            bloqueado={casillas.einecs ?? undefined}
+            actions={<IaBtn {...ia("coa_einecs")} />}
+          />
+          <Field
+            label="Nombre INCI"
+            value={inci}
+            onChange={setInci}
+            placeholder="Ej. Panthenol"
+            bloqueado={casillas.inci ?? undefined}
+            actions={<IaBtn {...ia("inci")} />}
+          />
+          <Field
+            label="Número INS (aditivo alimentario)"
+            value={ins}
+            onChange={setIns}
+            placeholder="Ej. INS 330"
+            bloqueado={casillas.ins ?? undefined}
+          />
+        </div>
         {sugerirMut.isError && (
           <p className="text-xs text-danger">{(sugerirMut.error as Error).message}</p>
         )}
@@ -2278,13 +2370,14 @@ function DocumentoCompletoTabContent({
         hideColorAcento
         externalColorAcento={colorAcento}
         hideRecomendaciones
+        formulaBloqueada={casillas.formula}
       />
 
       {/* ─── COA: solo campos exclusivos ─── */}
       <SeccionBanner titulo="Sección 2 — Certificado de Análisis (COA)" />
       <CoaSection
-        coaEinces={coaEinces} setCoaEinces={setCoaEinces}
-        coaGrado={coaGrado} setCoaGrado={setCoaGrado}
+        coaEinces={coaEinces}
+        coaGrado={coaGrado}
         coaParametros={coaParametros} setCoaParametros={setCoaParametros}
         coaFirmaNombre={coaFirmaNombre} setCoaFirmaNombre={setCoaFirmaNombre}
         coaFirmaCargo={coaFirmaCargo} setCoaFirmaCargo={setCoaFirmaCargo}
@@ -2316,7 +2409,11 @@ function DocumentoCompletoTabContent({
           actions={<IaBtn {...ia("sds_pictogramas")} />}
         />
         <Field
-          label="Composición (componente|concentración)"
+          label={
+            casillas.composicionRequerida
+              ? "Composición (componente|concentración) · requerida para este tipo de insumo"
+              : "Composición (componente|concentración)"
+          }
           value={sdsComposicion}
           onChange={setSdsComposicion}
           rows={4}

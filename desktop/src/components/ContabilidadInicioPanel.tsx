@@ -54,12 +54,20 @@ export default function ContabilidadInicioPanel() {
         setLibroMayorBootTab("diario");
         return;
       case "libro_mayor_prestamos":
-        setPanel("libro-mayor");
-        setLibroMayorBootTab("prestamos");
+        // Préstamos dejó de ser subtab del Libro Mayor el 2026-09-10: ahora es
+        // sección propia de Contabilidad. El id de la acción se conserva para no
+        // romper avisos ya emitidos que apuntan a él.
+        setPanel("prestamos");
         return;
       case "ticket_facturacion":
         setPanel("tickets");
         setTicketsBootView("list");
+        return;
+      case "facturacion_ventas":
+        // Directo al panel donde se resuelve (cruce comprado vs facturado +
+        // botón Facturar), no al ticket que solo lista IDs.
+        useAppStore.getState().setVentasBoot({ soloPendientes: true });
+        setPanel("facturacion");
         return;
       default:
         return;

@@ -1578,6 +1578,10 @@ def actualizar_departamento(dept_id: int, data: dict) -> bool:
 
 TAREA_RECLAMO_MELI_ANULAR_FACTURA = "meli_reclamo_anular_factura_siigo"
 TAREA_SYNC_FACTURAS_FALTANTES_SIIGO = "meli_sync_facturas_faltantes_siigo"
+# Declaración mensual de retención en la fuente por intereses de préstamos.
+# El contador suele ser externo, así que el ticket va a quien coordina con él
+# (asignable en Sistemas → Aliados). Ver app/services/prestamos.py.
+TAREA_PRESTAMOS_DECLARAR_RETENCIONES = "prestamos_declarar_retenciones"
 
 # Marker line embedded in ticket.descripcion for automated re-sync on resolution.
 # Example:

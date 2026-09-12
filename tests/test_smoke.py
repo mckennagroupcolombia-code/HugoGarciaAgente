@@ -1740,7 +1740,10 @@ def test_wa_bot_detect_parece_respuesta_bot() -> None:
     assert parece_respuesta_bot("Hola Soy hugo Garcia de mckenna Group") is True
     assert parece_respuesta_bot("Buenos días") is False
     assert parece_respuesta_bot("Para que ciudad es") is False
-    assert parece_respuesta_bot("Veci, " + "x" * 120) is True
+    # Un asesor también escribe "veci" en respuestas largas: no es señal de bot
+    # (ese falso positivo dejó al bot respondiendo encima de Jenniffer, sep-2026).
+    assert parece_respuesta_bot("Cordial saludo veci, con gusto le asisto en su consulta. " + "x" * 120) is False
+    assert parece_respuesta_bot("Listo veci 🙏 A continuación sigue la conversación con un asesor humano.") is True
 
 
 def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:
@@ -1893,3 +1896,84 @@ def test_api_alegra_catalogo_cruza_precio_meli(monkeypatch):
             assert body["meli"]["desincronizados"] == 1
         assert c.post("/api/alegra/catalogo/igualar-meli", json={"codigos": ["C-X"]}).status_code == 401
 
+
+
+# --- Bloque A (sep-2026): la promesa vacía no vuelve --------------------------
+#
+# Contexto: dos interceptores de /whatsapp respondían "déjame consultar esa
+# información con mi equipo y le confirmo en un momento". En 30 días salió 45
+# veces a 34 clientes y el 60% nunca recibió respuesta humana en 2h. Estos
+# tests fijan el contrato para que ningún cambio futuro la reintroduzca.
+
+_FRASES_PROHIBIDAS = (
+    "le confirmo en un momento",
+    "déjame consultar esa información con mi equipo",
+    "déjame verificar",
+)
+
+
+def test_texto_escalacion_no_promete_plazo_incumplible() -> None:
+    from app import routes
+
+    texto = routes._texto_escalacion_cliente()
+    bajo = texto.lower()
+    for frase in _FRASES_PROHIBIDAS:
+        assert frase not in bajo, f"la escalación volvió a prometer: {frase!r}"
+    # tiene que ofrecer algo útil en el mismo turno, no solo dejar al cliente esperando
+    assert "cotiza" in bajo
+
+
+def test_normalizar_respuesta_filtra_promesa_vacia() -> None:
+    from app import routes
+
+    # 1. mensaje que es SOLO la promesa -> se sustituye por la escalación honesta
+    out = routes._normalizar_respuesta_cliente(
+        "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏"
+    )
+    assert "le confirmo en un momento" not in out.lower()
+    assert out == routes._texto_escalacion_cliente()
+
+    # 2. respuesta con contenido real -> se conserva y solo se poda la promesa
+    out2 = routes._normalizar_respuesta_cliente(
+        "Veci, la Creatina Monohidrato 1000g vale $65.700 y tenemos 9 unidades "
+        "disponibles. Le confirmo en un momento. ¿Le hago el pedido?"
+    )
+    assert "le confirmo en un momento" not in out2.lower()
+    assert "65.700" in out2
+    assert "¿Le hago el pedido?" in out2
+
+
+def test_pide_humano_solo_con_peticion_explicita() -> None:
+    from app import routes
+
+    escalan = (
+        "Quiero hablar con un asesor",
+        "Me puedes comunicar con un asesor",
+        "Asesor",
+        "necesito un agente humano",
+        "quiero hablar con una persona",
+        "Por favor me comunica con un asesor gracias",
+    )
+    for msg in escalan:
+        assert routes._PAT_PIDE_HUMANO.search(msg), f"debería escalar: {msg!r}"
+
+    # Falsos positivos del match por subcadena anterior: son preguntas que el
+    # LLM sí puede responder y que antes morían en el interceptor.
+    no_escalan = (
+        "Hola, necesito asesoría técnica para formulación de vitamina C",
+        "Buenas, manejan asesoramiento en formulación?",
+        "cuanto vale la creatina monohidratada de 1 kilo",
+        "quiero hablar del pedido MCKG-123",
+        "Me podrías compartir una foto de la etiqueta",
+    )
+    for msg in no_escalan:
+        assert not routes._PAT_PIDE_HUMANO.search(msg), f"no debería escalar: {msg!r}"
+
+
+def test_tema_sensible_avisa_pero_no_bloquea() -> None:
+    from app import routes
+
+    for msg in ("hay descuento por mayor?", "quiero una devolución", "es un reclamo"):
+        assert routes._PAT_TEMA_SENSIBLE.search(msg), msg
+    # un tema sensible NO es una petición de humano: el LLM debe seguir contestando
+    assert not routes._PAT_PIDE_HUMANO.search("hay descuento por mayor?")

@@ -111,6 +111,11 @@ def _spec_para_tipo(tipo: str) -> dict | None:
     alt = aliases.get(tipo)
     if alt and alt in plantillas:
         return plantillas[alt]
+    # Formato fusionado 76×66 (antes «250 g» y «500 g» por separado).
+    if tipo == "250 / 500 g":
+        for alt in ("500 g", "250 g"):
+            if alt in plantillas:
+                return plantillas[alt]
     return None
 
 
@@ -139,14 +144,14 @@ def _valor_campo(datos: dict, campo: str) -> str:
     if campo == "concentracion_formula":
         partes: list[str] = []
         if datos.get("mostrar_concentracion", True) is not False:
-            partes.append(f"Concentración: {conc}")
+            partes.append(f"Pureza: {conc}")
         if formula and datos.get("mostrar_formula_molecular", True) is not False:
             partes.append(f"Fórmula molecular: {formula}")
         return "".join(partes)
     if campo == "concentracion":
         if datos.get("mostrar_concentracion", True) is False:
             return ""
-        return f"Concentración: {conc}"
+        return f"Pureza: {conc}"
     if campo == "formula":
         if datos.get("mostrar_formula_molecular", True) is False:
             return ""

@@ -116,16 +116,20 @@ function EditarModal({
     nombre: string;
     precio: number;
     componentes?: Array<{ codigo: string; cantidad: number }>;
+    nuevo_codigo?: string;
   }) => void;
 }) {
   const esKit = item.type === "kit";
   const tituloId = useId();
   const [nombre, setNombre] = useState(item.name);
   const [precio, setPrecio] = useState(String(Math.round(item.precio_lista || 0)));
+  const [codigo, setCodigo] = useState(item.reference);
+  const [skuEditable, setSkuEditable] = useState(false);
   const [comps, setComps] = useState<CompEdit[]>([]);
-  const [cargandoReceta, setCargandoReceta] = useState(esKit);
+  const [cargandoReceta, setCargandoReceta] = useState(true);
   const [editableComposicion, setEditableComposicion] = useState(true);
   const [avisoMovimientos, setAvisoMovimientos] = useState<string | null>(null);
+  const [avisoSku, setAvisoSku] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [sugerencias, setSugerencias] = useState<
     Array<{ codigo: string; nombre: string; type?: string }>
@@ -133,7 +137,6 @@ function EditarModal({
   const [buscando, setBuscando] = useState(false);
 
   useEffect(() => {
-    if (!esKit) return;
     let cancel = false;
     setCargandoReceta(true);
     void (async () => {
@@ -162,16 +165,22 @@ function EditarModal({
           }>(`/api/siigo/productos/detalle?codigo=${encodeURIComponent(item.reference)}`);
           if (cancel) return;
           if (live.ok) {
-            aplicarComps(live.componentes || []);
-            const bloqueado =
-              live.tiene_movimientos === true || live.editable_composicion === false;
-            setEditableComposicion(!bloqueado);
-            if (bloqueado) {
+            const tieneMov = live.tiene_movimientos === true;
+            setSkuEditable(!tieneMov);
+            setAvisoSku(
+              tieneMov
+                ? "Este ítem ya tiene movimientos en Alegra: no se puede cambiar el SKU."
+                : null,
+            );
+            if (esKit) {
+              aplicarComps(live.componentes || []);
+              const bloqueado = tieneMov || live.editable_composicion === false;
+              setEditableComposicion(!bloqueado);
               setAvisoMovimientos(
-                "Este combo ya tiene movimientos en Alegra: podés editar nombre/precio, pero no la receta. Para otra composición, duplicá el combo.",
+                bloqueado
+                  ? "Este combo ya tiene movimientos en Alegra: podés editar nombre/precio, pero no la receta ni el SKU. Para otra composición, duplicá el combo."
+                  : null,
               );
-            } else {
-              setAvisoMovimientos(null);
             }
             desdeLive = true;
           }
@@ -179,20 +188,29 @@ function EditarModal({
           /* espejo local */
         }
         if (!desdeLive) {
-          const local = await api.get<{ ok: boolean; item?: { componentes?: Componente[] } }>(
-            `/api/alegra/catalogo/${encodeURIComponent(item.reference)}`,
+          setSkuEditable(true);
+          setAvisoSku(
+            "No se pudo confirmar movimientos en Alegra en vivo; si el ítem ya tiene ventas, Alegra rechazará el cambio de SKU.",
           );
-          if (cancel) return;
-          aplicarComps(local.item?.componentes || []);
-          setEditableComposicion(true);
-          setAvisoMovimientos(
-            "No se pudo confirmar movimientos en Alegra en vivo; se muestra la receta local. Si el kit ya tiene ventas, Alegra rechazará el guardado.",
-          );
+          if (esKit) {
+            const local = await api.get<{ ok: boolean; item?: { componentes?: Componente[] } }>(
+              `/api/alegra/catalogo/${encodeURIComponent(item.reference)}`,
+            );
+            if (cancel) return;
+            aplicarComps(local.item?.componentes || []);
+            setEditableComposicion(true);
+            setAvisoMovimientos(
+              "No se pudo confirmar movimientos en Alegra en vivo; se muestra la receta local. Si el kit ya tiene ventas, Alegra rechazará el guardado.",
+            );
+          }
         }
       } catch {
         if (!cancel) {
-          setComps([nuevaComp()]);
-          setAvisoMovimientos("No se pudo cargar la receta.");
+          if (esKit) {
+            setComps([nuevaComp()]);
+            setAvisoMovimientos("No se pudo cargar la receta.");
+          }
+          setSkuEditable(false);
         }
       } finally {
         if (!cancel) setCargandoReceta(false);
@@ -258,7 +276,20 @@ function EditarModal({
         <h3 id={tituloId} className="text-base font-semibold text-ink">
           Editar {esKit ? "combo" : "producto"}
         </h3>
-        <p className="mt-1 font-mono text-xs text-accent">{item.reference}</p>
+
+        <label className="mt-3 block text-xs font-semibold text-muted">SKU</label>
+        <input
+          type="text"
+          value={codigo}
+          disabled={busy || cargandoReceta || !skuEditable}
+          onChange={(e) => setCodigo(e.target.value.replace(/\s/g, ""))}
+          className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-accent outline-none focus:border-accent disabled:opacity-70"
+        />
+        {cargandoReceta ? (
+          <p className="mt-1 text-[10px] text-muted">Verificando movimientos en Alegra…</p>
+        ) : avisoSku ? (
+          <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-400">{avisoSku}</p>
+        ) : null}
 
         <label className="mt-4 block text-xs font-semibold text-muted">Nombre</label>
         <input
@@ -486,7 +517,7 @@ function EditarModal({
           </button>
           <button
             type="button"
-            disabled={busy || !nombre.trim() || cargandoReceta || !compsOk}
+            disabled={busy || !nombre.trim() || !codigo.trim() || cargandoReceta || !compsOk}
             onClick={() => {
               const p = Number(precio);
               if (Number.isNaN(p) || p < 0) return;
@@ -494,6 +525,7 @@ function EditarModal({
                 nombre: string;
                 precio: number;
                 componentes?: Array<{ codigo: string; cantidad: number }>;
+                nuevo_codigo?: string;
               } = {
                 nombre: nombreMayusculasAlegra(nombre, 150),
                 precio: Math.round(p),
@@ -503,6 +535,10 @@ function EditarModal({
                   codigo: c.codigo.trim(),
                   cantidad: Number(c.cantidad || 1),
                 }));
+              }
+              const codigoTrim = codigo.trim();
+              if (skuEditable && codigoTrim && codigoTrim !== item.reference) {
+                payload.nuevo_codigo = codigoTrim;
               }
               onSave(payload);
             }}
@@ -736,36 +772,45 @@ export default function CatalogoAlegraPanel() {
       nombre,
       precio_lista,
       componentes,
+      nuevo_codigo,
     }: {
       codigo: string;
       nombre: string;
       precio_lista: number;
       componentes?: Array<{ codigo: string; cantidad: number }>;
+      nuevo_codigo?: string;
     }) =>
       api.patch<{
         ok: boolean;
         item?: CatalogoItem & { componentes?: Componente[] };
+        cambios?: { codigo?: string; codigo_anterior?: string };
         error?: string;
         bloqueado_movimientos?: boolean;
       }>(`/api/alegra/catalogo/${encodeURIComponent(codigo)}`, {
         nombre,
         precio_lista,
         ...(componentes ? { componentes } : {}),
+        ...(nuevo_codigo ? { nuevo_codigo } : {}),
       }),
     onSuccess: (res, vars) => {
       setEditando(null);
       setEditError(null);
       setFlash(
-        vars.componentes
-          ? "Nombre, precio y receta guardados en Alegra"
-          : "Cambios guardados en Alegra",
+        vars.nuevo_codigo
+          ? `SKU ${vars.codigo} → ${vars.nuevo_codigo} actualizado en Alegra`
+          : vars.componentes
+            ? "Nombre, precio y receta guardados en Alegra"
+            : "Cambios guardados en Alegra",
       );
+      const codigoFinal = res.cambios?.codigo || vars.codigo;
       if (res.item?.componentes) {
-        setDetalleCache((prev) => ({
-          ...prev,
-          [vars.codigo]: res.item!.componentes!,
-        }));
-      } else if (vars.componentes) {
+        setDetalleCache((prev) => {
+          const next = { ...prev };
+          delete next[vars.codigo];
+          next[codigoFinal] = res.item!.componentes!;
+          return next;
+        });
+      } else if (vars.componentes || vars.nuevo_codigo) {
         setDetalleCache((prev) => {
           const next = { ...prev };
           delete next[vars.codigo];
@@ -1141,13 +1186,14 @@ export default function CatalogoAlegraPanel() {
               setEditError(null);
             }
           }}
-          onSave={({ nombre, precio, componentes }) => {
+          onSave={({ nombre, precio, componentes, nuevo_codigo }) => {
             setEditError(null);
             editMut.mutate({
               codigo: editando.reference,
               nombre,
               precio_lista: precio,
               componentes,
+              nuevo_codigo,
             });
           }}
         />

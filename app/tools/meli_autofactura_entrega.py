@@ -41,6 +41,7 @@ from app.services.meli import (
     subir_factura_meli,
 )
 from app.services.alegra import (
+    _alias_sku_venta,
     buscar_producto_alegra_por_referencia,
     crear_factura_venta_alegra,
 )
@@ -127,6 +128,7 @@ def _extraer_datos_comprador_desde_envio(shipment: dict) -> dict:
     return {
         "nombre_cliente": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
         "identificacion": NIT_CONSUMIDOR_FINAL_MELI,
+        "tipo_documento": "NIT",
         "direccion_envio": direccion,
         "telefono": telefono,
         "email": "",
@@ -142,6 +144,13 @@ def _parsear_billing_info(billing_info: dict) -> dict | None:
     Campos vienen tanto en el nivel superior (doc_number/doc_type) como
     repetidos en `additional_info` (lista de {type, value}); el nombre y la
     dirección solo están en additional_info.
+
+    `doc_type` de MeLi ("NIT", "CC", ...) se propaga tal cual a
+    `crear_factura_venta_alegra(tipo_documento=...)` — sin esto, Alegra
+    adivinaba CC/NIT por longitud del número y casi siempre clasificaba mal
+    un NIT de empresa como CC (9-10 dígitos, igual que una cédula). Bug
+    confirmado en vivo con Fork Catering (factura A71352, sep-2026): MeLi
+    SÍ traía `doc_type: "NIT"` y este parseo lo descartaba.
     """
     billing_info = billing_info or {}
     doc_number = "".join(ch for ch in str(billing_info.get("doc_number") or "") if ch.isdigit())
@@ -159,9 +168,12 @@ def _parsear_billing_info(billing_info: dict) -> dict | None:
     calle = " ".join(x for x in (extra.get("STREET_NAME"), extra.get("STREET_NUMBER")) if x)
     direccion = ", ".join(x for x in (calle, extra.get("NEIGHBORHOOD"), extra.get("CITY_NAME"), extra.get("STATE_NAME")) if x)
 
+    doc_type = str(billing_info.get("doc_type") or extra.get("DOC_TYPE") or "").strip().upper()
+
     return {
         "nombre_cliente": nombre,
         "identificacion": doc_number,
+        "tipo_documento": doc_type,
         "direccion_envio": direccion,
     }
 
@@ -182,6 +194,7 @@ def _extraer_datos_comprador(order_id: str, shipment: dict) -> dict:
         return datos_envio
 
     return {
+        **datos_envio,
         **datos_billing,
         "direccion_envio": datos_billing["direccion_envio"] or datos_envio["direccion_envio"],
         "telefono": datos_envio["telefono"],
@@ -203,7 +216,10 @@ def _buscar_producto_alegra_con_reintentos(sku: str, intentos: int = 3) -> dict 
             return producto
         if intento < intentos - 1:
             time.sleep(1.5 * (intento + 1))
-    return None
+    # SKU de venta distinto a la reference de Alegra (ver resolver_producto_venta_alegra):
+    # la línea conserva el SKU de MeLi y crear_factura_venta_alegra resuelve el alias.
+    ref_alias = _alias_sku_venta().get(sku.strip().upper())
+    return buscar_producto_alegra_por_referencia(ref_alias) if ref_alias else None
 
 
 def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict], str | None]:
@@ -477,6 +493,7 @@ def _facturar_orden_entregada(
         result = crear_factura_venta_alegra(
             nombre_cliente=datos_comprador["nombre_cliente"],
             identificacion=datos_comprador["identificacion"],
+            tipo_documento=datos_comprador.get("tipo_documento", ""),
             direccion_envio=datos_comprador["direccion_envio"],
             productos=lines,
             total=total,
@@ -580,6 +597,153 @@ def _facturar_orden_entregada(
         except Exception:
             pass
         return {"ok": False, "error": str(e)[:300]}
+
+
+def facturar_pack_meli_manual(order_id: str) -> dict:
+    """Factura el CARRITO COMPLETO de una venta MeLi en UNA sola factura.
+
+    Es lo que dispara el botón "Facturar ahora" del panel. Un carrito de N
+    productos son N órdenes MeLi distintas que comparten `pack_id`, y facturar
+    solo la orden de la fila deja el resto de la venta sin facturar: el error
+    que obligó a emitir notas crédito y reemitir consolidado a mano (packs
+    2000014920695311 y 2000014923702731, sep-2026). Como MeLi además admite un
+    solo documento fiscal por pack, N facturas separadas dejarían al comprador
+    viendo únicamente una.
+
+    Antes de emitir se verifica TODO (entrega, que ninguna orden del pack esté
+    ya facturada, que MeLi no tenga ya documento fiscal y que todos los SKU
+    existan en Alegra): si algo falla no se emite nada. Una factura parcial es
+    peor que no facturar, porque hay que anularla con nota crédito.
+    """
+    order_id = str(order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id requerido."}
+
+    orden = consultar_orden_meli_completa(order_id)
+    if not orden:
+        return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
+
+    pack_id = str(orden.get("pack_id") or order_id).strip()
+    pack = consultar_pack_meli(pack_id) if pack_id != order_id else None
+    order_ids = [str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]
+    if order_id not in order_ids:
+        order_ids.append(order_id)
+
+    # Una sola orden en el pack: el camino de siempre, sin consolidar.
+    if len(order_ids) <= 1:
+        return facturar_orden_meli_manual(order_id)
+
+    # El envío es del pack completo, así que basta con el de la orden abierta.
+    shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
+    shipment = consultar_envio_meli(shipping_id) if shipping_id else None
+    if shipping_id and (shipment or {}).get("status") != "delivered":
+        return {
+            "ok": False,
+            "error": f"El envío está en estado {(shipment or {}).get('status') or 'desconocido'!r}, aún no 'delivered'.",
+        }
+
+    # Barrera 1: ninguna orden del carrito puede estar ya facturada.
+    for oid in order_ids:
+        previo = _estado_existente_orden(oid)
+        if previo and previo.get("estado") in _ESTADOS_TERMINALES:
+            return {
+                "ok": False,
+                "error": (
+                    f"La orden {oid} de este mismo carrito ya está en estado "
+                    f"{previo.get('estado')!r} ({previo.get('siigo_invoice_number') or 'sin número'}). "
+                    "Revisa el pack antes de volver a facturar para no duplicar."
+                ),
+            }
+
+    # Barrera 2: si MeLi ya tiene documento fiscal del pack, algo ya se facturó.
+    if meli_pack_tiene_documento_fiscal(pack_id):
+        return {
+            "ok": False,
+            "error": (
+                f"El pack {pack_id} ya tiene un documento fiscal cargado en MeLi. "
+                "Si esa factura está mal, primero anúlala con nota crédito."
+            ),
+        }
+
+    # Barrera 3: líneas de TODAS las órdenes. Si falta un SKU en Alegra se aborta
+    # sin emitir: mejor no facturar que facturar incompleto.
+    lines: list[dict] = []
+    ordenes_completas: dict[str, dict] = {}
+    for oid in order_ids:
+        orden_h = orden if oid == order_id else consultar_orden_meli_completa(oid)
+        if not orden_h:
+            return {"ok": False, "error": f"No se pudo leer la orden {oid} del carrito — no se factura nada."}
+        ordenes_completas[oid] = orden_h
+        lineas_h, err = _construir_lineas_factura_desde_orden_meli(orden_h)
+        if err:
+            return {"ok": False, "error": f"Orden {oid}: {err}"}
+        lines.extend(lineas_h)
+
+    total = sum(l["cantidad"] * l["precio_unitario"] for l in lines)
+    datos_comprador = _extraer_datos_comprador(order_id, shipment or {})
+
+    result = crear_factura_venta_alegra(
+        nombre_cliente=datos_comprador["nombre_cliente"],
+        identificacion=datos_comprador["identificacion"],
+        tipo_documento=datos_comprador.get("tipo_documento", ""),
+        direccion_envio=datos_comprador["direccion_envio"],
+        productos=lines,
+        total=total,
+        telefono=datos_comprador["telefono"],
+        email=datos_comprador["email"],
+        observaciones=(
+            f"Venta MercadoLibre — Pack {pack_id} (carrito de {len(order_ids)} órdenes, "
+            f"{len(lines)} producto(s)). Órdenes: {', '.join(order_ids)}."
+        ),
+        # El pack_id como referencia: es lo que identifica al carrito completo, y
+        # permite que el panel reconozca la consolidada desde cualquiera de sus órdenes.
+        purchase_order=pack_id,
+        descargar_pdf=True,
+        enviar_dian=True,
+        enviar_correo=False,
+    )
+    if not result.get("ok"):
+        return {"ok": False, "error": result.get("error") or "Error desconocido creando la factura en Alegra."}
+
+    numero = result.get("number") or result.get("invoice_id")
+    pdf_subido = False
+    aviso = ""
+    if result.get("pdf_base64"):
+        subida = subir_factura_meli(pack_id, result["pdf_base64"], formato="pdf", prefijo_archivo="Fac")
+        pdf_subido = subida == "✅"
+        if not pdf_subido:
+            aviso = f" La factura se creó pero no se pudo subir el PDF a MeLi: {subida}"
+    else:
+        aviso = " No se pudo descargar el PDF de Alegra — súbelo a MeLi manualmente."
+
+    for i, oid in enumerate(order_ids):
+        _registrar_estado_orden(
+            oid,
+            estado="facturada",
+            proveedor="alegra",
+            pack_id=pack_id,
+            siigo_invoice_id=result.get("invoice_id"),
+            siigo_invoice_number=result.get("number"),
+            siigo_invoice_status=result.get("status"),
+            siigo_invoice_cufe=result.get("cufe") or None,
+            # MeLi admite un solo documento fiscal por pack: se marca en la orden
+            # que efectivamente lo subió, no en las demás.
+            pdf_subido_meli=pdf_subido and i == 0,
+            nota=f"Factura consolidada del carrito ({len(lines)} productos).",
+        )
+
+    return {
+        "ok": True,
+        "consolidada": True,
+        "numero": numero,
+        "invoice_id": result.get("invoice_id"),
+        "url": result.get("url"),
+        "ordenes_facturadas": order_ids,
+        "mensaje": (
+            f"Factura consolidada {numero} por ${total:,.0f} con los {len(lines)} productos "
+            f"del carrito ({len(order_ids)} órdenes).{aviso}"
+        ),
+    }
 
 
 def facturar_orden_meli_manual(order_id: str) -> dict:

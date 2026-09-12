@@ -1,0 +1,471 @@
+{
+ "2026-08-01": {
+  "key": "2026-08-01",
+  "grupo": "ML",
+  "desde": "2026-07-20",
+  "hasta": "2026-08-19",
+  "estado": "CLOSED",
+  "lineas": 2645,
+  "total_calculado": 44175672.0,
+  "total_meli": 44175672.0,
+  "conceptos": [
+   {
+    "codigo": "PADS",
+    "descripcion": "Cargo por campaña de publicidad de Product Ads",
+    "cuenta_puc": "529505",
+    "lineas": 41,
+    "monto": 23853390.0
+   },
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1807,
+    "monto": 12072988.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 680,
+    "monto": 8845427.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 30,
+    "monto": 264985.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CFCB",
+    "descripcion": "Cargo por servicio de colecta Full",
+    "cuenta_puc": "513550",
+    "lineas": 2,
+    "monto": 12600.0
+   },
+   {
+    "codigo": "BFF",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 1,
+    "monto": -8000.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 28,
+    "monto": -358964.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 55,
+    "monto": -551744.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": true
+ },
+ "2026-09-01": {
+  "key": "2026-09-01",
+  "grupo": "ML",
+  "desde": "2026-08-20",
+  "hasta": "2026-09-19",
+  "estado": "OPEN",
+  "lineas": 1814,
+  "total_calculado": 13488881.0,
+  "total_meli": 13120666.0,
+  "conceptos": [
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1288,
+    "monto": 7322714.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 455,
+    "monto": 6255286.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 16,
+    "monto": 169800.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CDSD",
+    "descripcion": "Cargo por devolución",
+    "cuenta_puc": "5299",
+    "lineas": 2,
+    "monto": 43900.0
+   },
+   {
+    "codigo": "CFCB",
+    "descripcion": "Cargo por servicio de colecta Full",
+    "cuenta_puc": "513550",
+    "lineas": 4,
+    "monto": 12600.0
+   },
+   {
+    "codigo": "BFF",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 1,
+    "monto": -8000.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 13,
+    "monto": -144500.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 34,
+    "monto": -207909.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": false
+ },
+ "2026-07-01": {
+  "key": "2026-07-01",
+  "grupo": "ML",
+  "desde": "2026-06-20",
+  "hasta": "2026-07-19",
+  "estado": "CLOSED",
+  "lineas": 2432,
+  "total_calculado": 46103554.0,
+  "total_meli": 46103554.0,
+  "conceptos": [
+   {
+    "codigo": "PADS",
+    "descripcion": "Cargo por campaña de publicidad de Product Ads",
+    "cuenta_puc": "529505",
+    "lineas": 30,
+    "monto": 26521851.0
+   },
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1635,
+    "monto": 10601686.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 676,
+    "monto": 9138324.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 29,
+    "monto": 241200.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CDSD",
+    "descripcion": "Cargo por devolución",
+    "cuenta_puc": "5299",
+    "lineas": 1,
+    "monto": 13700.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 41,
+    "monto": -198149.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 19,
+    "monto": -260048.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": true
+ },
+ "2026-06-01": {
+  "key": "2026-06-01",
+  "grupo": "ML",
+  "desde": "2026-05-20",
+  "hasta": "2026-06-19",
+  "estado": "CLOSED",
+  "lineas": 2234,
+  "total_calculado": 35864403.0,
+  "total_meli": 35864403.0,
+  "conceptos": [
+   {
+    "codigo": "PADS",
+    "descripcion": "Cargo por campaña de publicidad de Product Ads",
+    "cuenta_puc": "529505",
+    "lineas": 31,
+    "monto": 17149885.0
+   },
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1527,
+    "monto": 10309764.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 604,
+    "monto": 8245113.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 43,
+    "monto": 370780.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CDSD",
+    "descripcion": "Cargo por devolución",
+    "cuenta_puc": "5299",
+    "lineas": 1,
+    "monto": 9900.0
+   },
+   {
+    "codigo": "CFPB",
+    "descripcion": "Cargo por incumplimiento en Envíos Full",
+    "cuenta_puc": "513550",
+    "lineas": 1,
+    "monto": 3150.0
+   },
+   {
+    "codigo": "BFF",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 2,
+    "monto": -16000.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 4,
+    "monto": -76200.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 20,
+    "monto": -176979.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": true
+ },
+ "2026-05-01": {
+  "key": "2026-05-01",
+  "grupo": "ML",
+  "desde": "2026-04-20",
+  "hasta": "2026-05-19",
+  "estado": "CLOSED",
+  "lineas": 2029,
+  "total_calculado": 33925716.0,
+  "total_meli": 33925716.0,
+  "conceptos": [
+   {
+    "codigo": "PADS",
+    "descripcion": "Cargo por campaña de publicidad de Product Ads",
+    "cuenta_puc": "529505",
+    "lineas": 30,
+    "monto": 17364052.0
+   },
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1355,
+    "monto": 9065337.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 576,
+    "monto": 7795352.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 13,
+    "monto": 153500.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CDSD",
+    "descripcion": "Cargo por devolución",
+    "cuenta_puc": "5299",
+    "lineas": 2,
+    "monto": 15856.0
+   },
+   {
+    "codigo": "CFCB",
+    "descripcion": "Cargo por servicio de colecta Full",
+    "cuenta_puc": "513550",
+    "lineas": 6,
+    "monto": 12600.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 16,
+    "monto": -203468.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 30,
+    "monto": -322503.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": true
+ },
+ "2026-04-01": {
+  "key": "2026-04-01",
+  "grupo": "ML",
+  "desde": "2026-03-20",
+  "hasta": "2026-04-19",
+  "estado": "CLOSED",
+  "lineas": 2592,
+  "total_calculado": 41040731.0,
+  "total_meli": 41040731.0,
+  "conceptos": [
+   {
+    "codigo": "PADS",
+    "descripcion": "Cargo por campaña de publicidad de Product Ads",
+    "cuenta_puc": "529505",
+    "lineas": 31,
+    "monto": 20665213.0
+   },
+   {
+    "codigo": "CV",
+    "descripcion": "Cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 1848,
+    "monto": 11570710.0
+   },
+   {
+    "codigo": "CXD",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 673,
+    "monto": 8982144.0
+   },
+   {
+    "codigo": "CESM",
+    "descripcion": "Cargo por mantenimiento de Mi página",
+    "cuenta_puc": "513560",
+    "lineas": 1,
+    "monto": 44990.0
+   },
+   {
+    "codigo": "CFF",
+    "descripcion": "Cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 2,
+    "monto": 42400.0
+   },
+   {
+    "codigo": "CDSD",
+    "descripcion": "Cargo por devolución",
+    "cuenta_puc": "5299",
+    "lineas": 2,
+    "monto": 28100.0
+   },
+   {
+    "codigo": "CFBA",
+    "descripcion": "Cargo por stock antiguo en Full",
+    "cuenta_puc": "513550",
+    "lineas": 1,
+    "monto": 620.0
+   },
+   {
+    "codigo": "BFF",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 1,
+    "monto": -24900.0
+   },
+   {
+    "codigo": "BXD",
+    "descripcion": "Anulación del cargo por envíos de Mercado Libre",
+    "cuenta_puc": "513550",
+    "lineas": 7,
+    "monto": -106600.0
+   },
+   {
+    "codigo": "BV",
+    "descripcion": "Anulación del cargo por venta",
+    "cuenta_puc": "5299",
+    "lineas": 26,
+    "monto": -161946.0
+   }
+  ],
+  "sin_mapear": [],
+  "cuadra": true
+ }
+}

@@ -28,12 +28,28 @@ _DOLAR_CACHE_LOCK = threading.Lock()
 _DOLAR_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
 DOLAR_CACHE_TTL_S = 600.0
 
+# Spot de mercado (cuasi tiempo real, vía Yahoo Finance) — complementa la TRM
+# BanRep, que es oficial pero rezagada (se calcula con el cierre del día hábil
+# anterior y no se mueve intradía). Cache corto: el objetivo es que se sienta
+# "en vivo" sin golpear Yahoo en cada render.
+SPOT_URL = "https://query1.finance.yahoo.com/v8/finance/chart/USDCOP=X"
+_SPOT_HTTP_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "Mozilla/5.0 (compatible; mckenna-agente/1.0; +https://mckennagroup.co)",
+}
+_SPOT_CACHE_LOCK = threading.Lock()
+_SPOT_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
+SPOT_CACHE_TTL_S = 20.0
+
 
 def reset_dolar_cache() -> None:
     """Solo tests: vacía el cache en memoria del gadget USD/COP."""
     with _DOLAR_CACHE_LOCK:
         _DOLAR_CACHE["ts"] = 0.0
         _DOLAR_CACHE["data"] = None
+    with _SPOT_CACHE_LOCK:
+        _SPOT_CACHE["ts"] = 0.0
+        _SPOT_CACHE["data"] = None
 
 
 def _hoy_bogota() -> date:
@@ -298,6 +314,89 @@ def _cambio(actual: float, previo: float | None) -> tuple[float, float]:
     return abs_, pct
 
 
+def obtener_spot_usdcop(
+    *,
+    timeout_s: float = 8.0,
+    force: bool = False,
+) -> dict[str, Any]:
+    """USD/COP de mercado cuasi tiempo real (Yahoo Finance, símbolo USDCOP=X).
+
+    A diferencia de la TRM BanRep (oficial, un día hábil rezagada, un valor por
+    día), esto se mueve intradía. Fuente no oficial/sin SLA — por eso nunca
+    reemplaza la TRM en facturación/contabilidad, solo es referencia visual.
+    """
+    import requests
+
+    now = time.time()
+    if not force:
+        with _SPOT_CACHE_LOCK:
+            cached = _SPOT_CACHE["data"]
+            ts = float(_SPOT_CACHE["ts"] or 0)
+            if cached and (now - ts) < SPOT_CACHE_TTL_S:
+                return cached
+
+    try:
+        r = requests.get(
+            SPOT_URL,
+            params={"interval": "1m", "range": "1d"},
+            headers=_SPOT_HTTP_HEADERS,
+            timeout=timeout_s,
+        )
+        r.raise_for_status()
+        meta = r.json()["chart"]["result"][0]["meta"]
+        valor = float(meta["regularMarketPrice"])
+        previo = float(meta["previousClose"]) if meta.get("previousClose") else None
+        ts_mercado = meta.get("regularMarketTime")
+    except Exception as e:
+        log.warning("Spot USD/COP (Yahoo Finance) falló: %s", e)
+        out = {"error": f"No se pudo obtener el spot USD/COP: {e}"}
+        with _SPOT_CACHE_LOCK:
+            _SPOT_CACHE["ts"] = now
+            _SPOT_CACHE["data"] = out
+        return out
+
+    if valor <= 0:
+        return {"error": "Spot USD/COP inválido"}
+
+    cambio_abs, cambio_pct = _cambio(valor, previo)
+    hora = (
+        datetime.fromtimestamp(ts_mercado, tz=_TZ_BOGOTA).isoformat(timespec="seconds")
+        if ts_mercado
+        else datetime.now(_TZ_BOGOTA).isoformat(timespec="seconds")
+    )
+    out = {
+        "valor": round(valor, 2),
+        "previo": round(previo, 2) if previo else None,
+        "cambio_abs": cambio_abs,
+        "cambio_pct": cambio_pct,
+        "hora": hora,
+        "fuente": "yahoo_finance",
+        "fuente_label": "Spot mercado · Yahoo Finance",
+    }
+    with _SPOT_CACHE_LOCK:
+        _SPOT_CACHE["ts"] = now
+        _SPOT_CACHE["data"] = out
+    return out
+
+
+def _con_spot(data: dict[str, Any], *, timeout_s: float) -> dict[str, Any]:
+    """Adjunta el spot en vivo (cache corto propio) a una respuesta de TRM."""
+    spot = obtener_spot_usdcop(timeout_s=min(timeout_s, 8.0))
+    out = dict(data)
+    if spot.get("error"):
+        out["spot_valor"] = None
+        out["spot_error"] = spot["error"]
+    else:
+        out["spot_valor"] = spot["valor"]
+        out["spot_previo"] = spot.get("previo")
+        out["spot_cambio_abs"] = spot.get("cambio_abs")
+        out["spot_cambio_pct"] = spot.get("cambio_pct")
+        out["spot_hora"] = spot.get("hora")
+        out["spot_fuente"] = spot.get("fuente")
+        out["spot_fuente_label"] = spot.get("fuente_label")
+    return out
+
+
 def obtener_dolar_hora(
     *,
     timeout_s: float = 12.0,
@@ -315,7 +414,7 @@ def obtener_dolar_hora(
             cached = _DOLAR_CACHE["data"]
             ts = float(_DOLAR_CACHE["ts"] or 0)
             if cached and (now - ts) < DOLAR_CACHE_TTL_S:
-                return cached
+                return _con_spot(cached, timeout_s=timeout_s)
 
     trm = obtener_trm(None, timeout_s=timeout_s)
     serie_dia = obtener_trm_historico(limit=45, timeout_s=timeout_s)
@@ -328,10 +427,13 @@ def obtener_dolar_hora(
             trm_valor = None
 
     if not trm_valor or trm_valor <= 0:
-        return {
-            "error": trm.get("error") or "No se pudo obtener la TRM BanRep USD/COP",
-            "unidad": "COP",
-        }
+        return _con_spot(
+            {
+                "error": trm.get("error") or "No se pudo obtener la TRM BanRep USD/COP",
+                "unidad": "COP",
+            },
+            timeout_s=timeout_s,
+        )
 
     valor = float(trm_valor)
     previo_dia = None
@@ -368,4 +470,4 @@ def obtener_dolar_hora(
     with _DOLAR_CACHE_LOCK:
         _DOLAR_CACHE["ts"] = now
         _DOLAR_CACHE["data"] = out
-    return out
+    return _con_spot(out, timeout_s=timeout_s)

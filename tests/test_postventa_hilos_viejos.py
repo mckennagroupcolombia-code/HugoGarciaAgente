@@ -133,3 +133,49 @@ def test_sugerencia_omite_adjuntos_y_sin_producto():
         [{"nombre": "X"}], "[Solo adjunto(s) en MeLi: RUT.pdf] …", [], SELLER
     ) == ""
     assert notif._sugerencia_ia_postventa([], "¿me pasa la ficha?", [], SELLER) == ""
+
+
+def test_solicitud_factura_auto_responde_y_avisa_al_grupo(monkeypatch):
+    """Caso real sep-2026 (código 255): 'Por favor emitir factura legal.' se
+    responde solo y el grupo recibe el aviso con el código para complementar."""
+    pack = "2000009999990255"
+    alertas, enviados = [], []
+    estado = {"pendientes": {}, "procesados": []}
+
+    def fake_get(url, headers=None, timeout=None):
+        res = MagicMock()
+        res.status_code = 200
+        res.json.return_value = {
+            "conversation_status": {"status": "active"},
+            "messages": [_msg("m-fac", "3671532214", "Por favor emitir factura legal.",
+                              "2026-09-11T15:00:00.000Z")],
+        }
+        return res
+
+    import app.postventa_documentos as pdocs
+    monkeypatch.setattr(pdocs, "_AUTO_FACTURA", True)
+    monkeypatch.setattr(
+        "modulo_posventa.responder_mensaje_posventa",
+        lambda p, t, c=None, **k: enviados.append((p, t)) or True,
+    )
+    monkeypatch.setattr(notif, "refrescar_token_meli", lambda: "tok")
+    monkeypatch.setattr(notif, "obtener_seller_id_meli", lambda: SELLER)
+    monkeypatch.setattr(notif._requests_lib, "get", fake_get)
+    monkeypatch.setattr(notif, "jid_grupo_postventa_wa", lambda: "grupo@g.us")
+    monkeypatch.setattr(
+        notif, "enviar_whatsapp_reporte",
+        lambda texto, numero_destino=None: alertas.append(texto) or True,
+    )
+    monkeypatch.setattr(notif, "_cargar_state_posventa", lambda: estado)
+    monkeypatch.setattr(notif, "_guardar_state_posventa", lambda d: estado.update(d))
+    import app.monitor as monitor
+    monkeypatch.setattr(monitor, "incrementar_metrica", lambda *a, **k: None)
+
+    notif.procesar_postventa_meli_desde_webhook(f"/messages/packs/{pack}/sellers/{SELLER}")
+
+    assert enviados == [(pack, pdocs.respuesta_factura_meli())]
+    assert len(alertas) == 1
+    assert "Auto-respuesta postventa (Factura)" in alertas[0]
+    assert "posventa 255:" in alertas[0]
+    assert estado["pendientes"][pack]["auto_respondida"] == "auto_factura"
+    assert "m-fac" in estado["procesados"]

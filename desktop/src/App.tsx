@@ -20,6 +20,7 @@ const VentasEmailPanel = lazy(() => import("./components/VentasEmailPanel"));
 const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"));
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
+const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
 const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
@@ -121,6 +122,7 @@ function PanelRouterInner() {
     case "ingresos-egresos":
     case "creditos-adquiridos":
     case "prestamos":
+    case "pagos":
     case "libro-mayor":
       return <ContabilidadPanel />;
     case "rentabilidad":
@@ -138,6 +140,8 @@ function PanelRouterInner() {
       return <PedidosWebPanel />;
     case "empaque":
       return <EmpaquePanel />;
+    case "guias-envio":
+      return <GuiasEnvioPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -282,6 +286,12 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (contab !== null) return contab;
   if (panel === "etiquetas") return true;
   if (panel === "empaque") return true;
+  // Rótulos de envío: los hace quien despacha (pedidos/empaque).
+  if (panel === "guias-envio") {
+    if (esAdminPanel(user)) return true;
+    const perm = user.permisos_secciones;
+    return Boolean(!perm || perm["guias-envio"] || perm.pedidos || perm.empaque);
+  }
   if (panel === "hugo" || panel === "tickets") {
     if (esAdminPanel(user)) return true;
     const p = user.permisos_secciones;

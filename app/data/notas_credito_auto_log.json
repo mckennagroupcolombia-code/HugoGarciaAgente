@@ -811,6 +811,30 @@
       "subida_meli": true,
       "proveedor": "Siigo",
       "actualizado_en": "2026-09-04T07:24:15"
+    },
+    "2000014851989261": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71423",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-11T07:24:56"
+    },
+    "2000018127217092": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71049",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-11T07:25:51"
+    },
+    "2000018237497884": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71328",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-11T07:25:06"
+    },
+    "2000014813807951": {
+      "estado": "siigo_solo_lectura",
+      "factura": "FV-2-71288",
+      "proveedor": "Siigo",
+      "actualizado_en": "2026-09-11T07:25:41"
     }
   }
 }

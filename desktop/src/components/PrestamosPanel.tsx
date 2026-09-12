@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import TerceroSelect from "./TerceroSelect";
 import ComprobanteWidget from "./ComprobanteWidget";
+import PrestamosCronogramaPanel from "./PrestamosCronogramaPanel";
+import EsquemaTercerosPanel from "./EsquemaTercerosPanel";
 
 type Tercero = {
   id: number;
@@ -83,7 +85,7 @@ const emptyForm = {
 
 type Saldo = { tercero_id: number; nombre: string; saldo: number };
 
-export default function PrestamosPanel() {
+function PrestamosSaldosPanel() {
   const qc = useQueryClient();
   const [direccion, setDireccion] = useState<Direccion>("recibido");
   const [showForm, setShowForm] = useState(false);
@@ -568,6 +570,58 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
     <div className="rounded-xl border border-border bg-surface-panel px-3 py-3">
       <p className="text-[10px] font-bold uppercase text-muted">{label}</p>
       <p className={`mt-1 text-lg font-extrabold tabular-nums ${accent ? "text-accent" : "text-ink"}`}>{value}</p>
+    </div>
+  );
+}
+
+
+/**
+ * Dos vistas del mismo módulo, a propósito separadas:
+ *
+ *  - «Con cronograma»: el producto que McKenna ofrece a prestamistas
+ *    particulares (tasa E.A. pactada, plazo, amortización por tramos,
+ *    retención del 7%, contrato en PDF y ticket mensual a despachos).
+ *  - «Saldos por tercero»: el registro simple que ya existía — un desembolso
+ *    y abonos sueltos contra la misma cuenta de pasivo. Sigue siendo válido
+ *    para préstamos informales entre socios, sin cronograma ni documento, y
+ *    además muestra los saldos consolidados que incluyen `pago_socio`.
+ */
+export default function PrestamosPanel() {
+  const [tab, setTab] = useState<"cronograma" | "saldos" | "esquema">("cronograma");
+  return (
+    <div className="space-y-4">
+      <div className="mx-auto flex max-w-6xl gap-2 rounded-lg bg-surface p-1">
+        <button
+          type="button"
+          onClick={() => setTab("cronograma")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold ${
+            tab === "cronograma" ? "bg-accent text-white" : "text-muted"
+          }`}
+        >
+          Con cronograma
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("saldos")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold ${
+            tab === "saldos" ? "bg-accent text-white" : "text-muted"
+          }`}
+        >
+          Saldos por tercero
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("esquema")}
+          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold ${
+            tab === "esquema" ? "bg-accent text-white" : "text-muted"
+          }`}
+        >
+          Cómo funciona
+        </button>
+      </div>
+      {tab === "cronograma" && <PrestamosCronogramaPanel />}
+      {tab === "saldos" && <PrestamosSaldosPanel />}
+      {tab === "esquema" && <EsquemaTercerosPanel />}
     </div>
   );
 }

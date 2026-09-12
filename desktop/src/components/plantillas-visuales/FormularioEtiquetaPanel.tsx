@@ -65,6 +65,8 @@ export function CampoBloque({
     onChange(limitarPalabras(v, max));
   };
 
+  const listId = bloque.sugerencias ? `sugerencias-${bloque.id}` : undefined;
+
   return (
     <label className="flex h-full flex-col rounded-lg border border-[#ffa348]/70 bg-white/90 p-2">
       <span className="flex items-baseline justify-between gap-1 text-[9px] font-bold uppercase tracking-wide text-[#c86a12]">
@@ -83,12 +85,23 @@ export function CampoBloque({
           className="mt-0.5 w-full flex-1 resize-none rounded border border-border bg-surface px-2 py-1 text-[11px] font-semibold leading-snug text-ink"
         />
       ) : (
-        <input
-          type="text"
-          value={valor}
-          onChange={(e) => aplicarCambio(e.target.value)}
-          className="mt-0.5 w-full flex-1 rounded border border-border bg-surface px-2 py-1 text-[11px] font-semibold text-ink"
-        />
+        <>
+          <input
+            type="text"
+            list={listId}
+            value={valor}
+            onChange={(e) => aplicarCambio(e.target.value)}
+            placeholder={bloque.sugerencias ? "Escribe o elige…" : undefined}
+            className="mt-0.5 w-full flex-1 rounded border border-border bg-surface px-2 py-1 text-[11px] font-semibold text-ink"
+          />
+          {listId && (
+            <datalist id={listId}>
+              {bloque.sugerencias!.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          )}
+        </>
       )}
     </label>
   );

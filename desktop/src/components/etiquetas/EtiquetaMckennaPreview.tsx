@@ -301,7 +301,6 @@ export function EtiquetaMckennaPreview({
         <div className="mt-1 flex flex-col items-center gap-0.5">
           <p className="text-[10px] text-muted">
             {formatoMedidasEtiqueta(anchoMm, altoMm)} · {zoomPct}% ≈ tamaño impresión
-            {debounced.tipo_etiqueta ? ` · ${debounced.tipo_etiqueta}` : ""}
           </p>
           <button
             type="button"
@@ -317,7 +316,7 @@ export function EtiquetaMckennaPreview({
       )}
       {marcoFormato && !modoStudio && anchoMm && altoMm && (
         <p className="mt-2 text-center text-[10px] text-muted">
-          {formatoMedidasEtiqueta(anchoMm, altoMm)} · {debounced.tipo_etiqueta}
+          {formatoMedidasEtiqueta(anchoMm, altoMm)}
           {debounced.archivo_ai ? ` · ${debounced.archivo_ai}` : ""}
         </p>
       )}

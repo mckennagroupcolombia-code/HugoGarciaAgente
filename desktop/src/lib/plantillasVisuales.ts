@@ -1,6 +1,7 @@
 /** Tipos y formatos base del Editor de Plantillas Visuales. */
 
-import type { TipoEtiqueta } from "./etiquetasTipos";
+import { etiquetaTamanoFormato, type TipoEtiqueta } from "./etiquetasTipos";
+import { detectarCategoriaEn, type CategoriaEtiqueta } from "./categoriasEtiqueta";
 
 /** Mismo DPI que el lienzo en pantalla (96 ≈ tamaño real al 100% zoom). */
 export const ETIQUETA_IMPRESION_DPI = 96;
@@ -84,6 +85,9 @@ export interface ElementoTexto extends ElementoBase {
   /** Qué dato de producto/ficha técnica alimenta este texto.
    *  Ausente = contenido fijo de marca/diseño (no se toca en lote ni en el formulario). */
   campoProducto?: string;
+  /** Campo opcional: si el producto no trae ese dato, el elemento se quita del
+   *  lienzo en vez de imprimir el texto de muestra de la plantilla. */
+  ocultarSiVacio?: boolean;
 }
 
 /** Único lugar que decide si un texto usa autofit (arco/círculo lo ignoran).
@@ -144,6 +148,11 @@ export interface PlantillaVisualDoc {
   ficha_mp?: Record<string, unknown>;
   /** Etiqueta física con cajas variables (`campoProducto`). No regenera layout. */
   formulario?: boolean;
+  /** Categoría de PRODUCTO (aceites, frutos secos…), id de CATEGORIAS_ETIQUETA.
+   *  Ojo: `categoria` (arriba) es el tipo de FORMATO — etiquetas/meli/banners. */
+  categoria_producto?: string;
+  /** Es LA plantilla de esa categoría: la que se usa para generar sus etiquetas. */
+  es_plantilla_categoria?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -621,14 +630,13 @@ export function elementoImagenDefecto(src: string, x = 80, y = 80): ElementoImag
 }
 
 export function labelFormato(f: FormatoCanvas): string {
-  const dims =
-    f.ancho_mm != null && f.alto_mm != null
-      ? `${f.ancho_mm}×${f.alto_mm} mm`
-      : `${f.ancho_px}×${f.alto_px} px`;
-  if (f.tipo_etiqueta) {
-    return `${f.tipo_etiqueta} · ${dims}`;
+  if (f.ancho_mm != null && f.alto_mm != null) {
+    // Etiquetas: solo el tamaño (in · mm); el nombre interno no se muestra.
+    const med = etiquetaTamanoFormato(f.tipo_etiqueta || f.nombre, f.ancho_mm, f.alto_mm);
+    if (f.tipo_etiqueta) return med;
+    return `${f.nombre} · ${med}`;
   }
-  return `${f.nombre} · ${dims}`;
+  return `${f.nombre} · ${f.ancho_px}×${f.alto_px} px`;
 }
 
 /** Preset de escala para exportar PNG/JPG sin deformar el diseño. */
@@ -943,7 +951,7 @@ export function labelCapaElemento(
       const pretty: Record<string, string> = {
         nombre: "NOMBRE",
         tagline: "CATEGORÍA",
-        concentracionValor: "CONCENTRACIÓN",
+        concentracionValor: "PUREZA",
         casNumero: "CAS",
         origen: "ORIGEN",
         apariencia: "APARIENCIA",
@@ -1118,4 +1126,18 @@ export function fusionarMetadatosPlantillaTrasGuardar(
     created_at: servidor.created_at ?? local.created_at,
     updated_at: servidor.updated_at ?? local.updated_at,
   };
+}
+
+
+/** Categoría de producto de una plantilla.
+ *
+ *  Las 201 plantillas heredadas no la tienen guardada, así que se deduce del
+ *  nombre en vez de migrar el JSON: nada se reescribe en disco y el operador
+ *  puede fijarla a mano (entonces sí se persiste).
+ */
+export function categoriaProductoDe(
+  doc: Pick<PlantillaVisualDoc, "categoria_producto" | "nombre">,
+  cats: CategoriaEtiqueta[],
+): string {
+  return doc.categoria_producto || detectarCategoriaEn(cats, doc.nombre || "");
 }

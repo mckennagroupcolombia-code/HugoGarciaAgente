@@ -305,6 +305,20 @@ def guardar_plantilla(body: dict) -> dict:
     sku = (sku or "").strip()
     if sku:
         entry["sku"] = sku
+    # Categoría de producto (aceites, frutos secos…) y marca de "esta es LA
+    # plantilla de la categoría". Distinto de `categoria`, que es el tipo de
+    # formato (etiquetas / meli / banners) y se conserva por legado.
+    categoria_producto = body.get("categoria_producto")
+    if categoria_producto is None:
+        categoria_producto = (existente or {}).get("categoria_producto")
+    categoria_producto = (categoria_producto or "").strip()
+    if categoria_producto:
+        entry["categoria_producto"] = categoria_producto
+    es_plantilla_categoria = body.get("es_plantilla_categoria")
+    if es_plantilla_categoria is None:
+        es_plantilla_categoria = (existente or {}).get("es_plantilla_categoria")
+    if es_plantilla_categoria:
+        entry["es_plantilla_categoria"] = True
     formulario = body.get("formulario")
     if formulario is None:
         formulario = (existente or {}).get("formulario")
@@ -1104,10 +1118,21 @@ def _aplicar_datos_producto_a_elementos(elementos: list[dict], datos: dict) -> N
     presente en `datos` (ya formateado por el frontend — ver
     `contenidoCampoProductoFichaMp` en plantillaFichaTecnicaMp.ts, que evita
     reimplementar el formateo de campos compuestos en dos lenguajes)."""
+    ocultos: list[dict] = []
     for el in elementos:
         campo = el.get("campoProducto")
-        if campo and campo in datos:
-            el["content"] = datos[campo]
+        if not campo:
+            continue
+        valor = datos.get(campo)
+        if campo in datos:
+            el["content"] = valor
+        # Un campo marcado como opcional que ese producto no trae se quita del
+        # lienzo; si no, la etiqueta sale con el texto de muestra de la plantilla
+        # (p. ej. el CAS de otro producto).
+        if el.get("ocultarSiVacio") and not str(valor or "").strip():
+            ocultos.append(el)
+    for el in ocultos:
+        elementos.remove(el)
 
 
 def aplicar_plantilla_lote(

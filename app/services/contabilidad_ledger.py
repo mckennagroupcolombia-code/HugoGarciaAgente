@@ -219,6 +219,16 @@ def _egresos_compras_exterior(desde: str, hasta: str) -> list[dict]:
                     "fecha_compra": fecha_compra,
                     "fecha_registro": fecha_reg,
                     "n_lineas": n_lin,
+                    # Quién puso la plata: el socio compró con su tarjeta personal,
+                    # así que la compra genera un pasivo con él, no una salida de
+                    # Bancos. Ver docs/agentic/modules/relaciones-socios-terceros.md
+                    "emisor_usuario_id": c.get("emisor_usuario_id"),
+                    "emisor_nombre": c.get("emisor_nombre"),
+                    "cuota_manejo_pct": c.get("cuota_pct"),
+                    # Valor ya liquidado, no recalcular: la cuota se cobra sobre la
+                    # MERCANCÍA, mientras que `monto` acá incluye también el flete.
+                    "cuota_manejo_cop": c.get("cuota_manejo_cop"),
+                    "valor_compra_cop": c.get("valor_compra_cop"),
                 },
             )
         )
@@ -250,6 +260,43 @@ def _egresos_impuestos(desde: str, hasta: str) -> list[dict]:
                 monto=monto,
                 referencia=str(p.get("referencia") or p.get("id") or ""),
                 contraparte=str(p.get("entidad") or "DIAN"),
+            )
+        )
+    return out
+
+def _egresos_mensajeria(desde: str, hasta: str) -> list[dict]:
+    """Pagos a transportadoras de mensajería (lotes pagados en Operativos →
+    Mensajería). Antes se llevaban en un Excel aparte — ver TKT-2026-1219."""
+    try:
+        from app.services.mensajeria_pagos import pagos_en_rango
+
+        lotes = pagos_en_rango(desde, hasta)
+    except Exception:
+        return []
+    out = []
+    for lote in lotes:
+        monto = float(lote.get("total") or 0)
+        if monto <= 0:
+            continue
+        dias = lote.get("dias") or []
+        concepto = f"Mensajería · {lote.get('transportadora') or 'Transportadora'}"
+        if dias:
+            concepto += f" ({dias[0]['fecha']} a {dias[-1]['fecha']}, {len(dias)} día(s))"
+        out.append(
+            _row(
+                fecha=lote.get("fecha_pago") or "",
+                tipo="egreso",
+                fuente="mensajeria_pago",
+                concepto=concepto,
+                monto=monto,
+                referencia=str(lote.get("referencia") or f"lote-{lote.get('id')}"),
+                contraparte=str(lote.get("transportadora") or ""),
+                extra={
+                    "lote_id": lote.get("id"),
+                    "banco": lote.get("banco"),
+                    "dias": len(dias),
+                    "envios": sum(int(d.get("cantidad") or 0) for d in dias),
+                },
             )
         )
     return out
@@ -801,6 +848,7 @@ def armar_libro(
     movimientos.extend(_egresos_compras_exterior(desde, hasta))
     movimientos.extend(_egresos_impuestos(desde, hasta))
     movimientos.extend(_egresos_creditos(desde, hasta))
+    movimientos.extend(_egresos_mensajeria(desde, hasta))
     srv_rows, cobro_rows = _egresos_servicios_y_cobros(desde, hasta)
     movimientos.extend(srv_rows)
     movimientos.extend(cobro_rows)

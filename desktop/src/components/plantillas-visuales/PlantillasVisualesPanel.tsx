@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
 import {
   duplicarPlantillaVisual,
   fusionarMetadatosPlantillaTrasGuardar,
@@ -21,12 +22,24 @@ import { LightboxImagen, MiniaturaRecursoPng, formatoBytesRecurso, labelFormatoP
 import { formatoMedidasEtiqueta } from "../../lib/etiquetasTipos";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
+import FormulariosEtiquetadosPanel from "./FormulariosEtiquetadosPanel";
+import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
 import VisualCanvasEditor from "./VisualCanvasEditor";
 import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
 import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
+import { useAppStore, type StudioSubvista } from "../../stores/app";
+import {
+  useCategoriasEtiqueta,
+  etiquetaCategoriaEn,
+  CATEGORIAS_ETIQUETA,
+} from "../../lib/categoriasEtiqueta";
+import { categoriaProductoDe } from "../../lib/plantillasVisuales";
+import StudioCategoriasPanel from "./StudioCategoriasPanel";
+import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
+import NuevaPlantillaCategoriaPanel from "./NuevaPlantillaCategoriaPanel";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -42,6 +55,12 @@ interface RecursoPngBiblioteca {
 }
 
 const formatoBytes = formatoBytesRecurso;
+
+function esImagenPngJpg(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (/\.(png|jpe?g)$/.test(lower)) return true;
+  return file.type === "image/png" || file.type === "image/jpeg";
+}
 
 function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: string }) {
   const qc = useQueryClient();
@@ -59,6 +78,8 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   const [menuMoverAbierto, setMenuMoverAbierto] = useState(false);
   const [arrastrando, setArrastrando] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
+  const inputSubirRef = useRef<HTMLInputElement>(null);
+  const [subida, setSubida] = useState<{ total: number; done: number } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["etiquetas-recursos-png", carpetaActual],
@@ -67,12 +88,14 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
         `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(carpetaActual)}`,
       ),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const { data: carpetasTodasData } = useQuery({
     queryKey: ["etiquetas-recursos-png-carpetas"],
     queryFn: () => api.get<{ carpetas: string[] }>("/api/etiquetas/recursos-png/carpetas"),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const recursos = data?.recursos ?? [];
@@ -247,6 +270,40 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
     finalizarArrastre();
   }
 
+  // Sube una o varias imágenes del ordenador a la carpeta abierta, una por una
+  // (mismo endpoint que la galería del editor).
+  async function subirImagenes(files: File[]) {
+    const validos = files.filter(esImagenPngJpg);
+    if (validos.length === 0) {
+      setErrorLote("Solo se pueden subir imágenes JPG o PNG.");
+      return;
+    }
+    setErrorLote(null);
+    setSubida({ total: validos.length, done: 0 });
+    const errores: string[] = [];
+    for (let i = 0; i < validos.length; i++) {
+      const file = validos[i];
+      try {
+        const fd = new FormData();
+        fd.append("archivo", file);
+        fd.append("carpeta", carpetaActual);
+        await api.upload<{ ok: boolean; nombre: string }>("/api/etiquetas/recursos-png", fd);
+      } catch (err) {
+        errores.push(`${file.name}: ${err instanceof Error ? err.message : "error de subida"}`);
+      }
+      setSubida({ total: validos.length, done: i + 1 });
+    }
+    await qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    setSubida(null);
+    const ignorados = files.length - validos.length;
+    const avisos: string[] = [];
+    if (errores.length > 0) {
+      avisos.push(`No se pudieron subir ${errores.length}: ${errores.slice(0, 3).join("; ")}${errores.length > 3 ? "…" : ""}`);
+    }
+    if (ignorados > 0) avisos.push(`${ignorados} archivo(s) ignorado(s): solo JPG o PNG.`);
+    if (avisos.length > 0) setErrorLote(avisos.join(" "));
+  }
+
   async function descargar(nombre: string) {
     setDescargandoId(nombre);
     try {
@@ -333,6 +390,27 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
           className="ml-2 shrink-0 rounded-lg border border-border px-2 py-1 font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
         >
           {creandoCarpeta ? "…" : "+ Carpeta"}
+        </button>
+        <input
+          ref={inputSubirRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = e.target.files ? Array.from(e.target.files) : [];
+            if (files.length > 0) void subirImagenes(files);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => inputSubirRef.current?.click()}
+          disabled={!!subida}
+          title="Sube una o varias imágenes JPG/PNG desde el ordenador a esta carpeta"
+          className="shrink-0 rounded-lg bg-accent px-2.5 py-1 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {subida ? `Subiendo ${subida.done}/${subida.total}…` : "⬆ Subir imágenes"}
         </button>
       </div>
 
@@ -566,7 +644,25 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
   );
 }
 
-type Vista = "lista" | "formato" | "scan" | "editor" | "diligenciar" | "lote";
+type Vista =
+  | "lista"
+  | "formato"
+  | "scan"
+  | "editor"
+  | "diligenciar"
+  | "lote"
+  | "formularios-etiquetas"
+  | "nueva-plantilla-categoria";
+
+// Studio es el apartado de PLANTILLAS. Las 90 etiquetas y los 201 diseños que
+// ya existían son el catálogo viejo: se consultan e imprimen desde
+// Diseño → Imprimir (agrupados por categoría) y desde "Catálogo antiguo", pero
+// no se mezclan con las plantillas nuevas.
+const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
+  { id: "categorias", label: "Categorías" },
+  { id: "disenos", label: "Catálogo antiguo" },
+  { id: "recursos", label: "Recursos" },
+];
 
 export default function PlantillasVisualesPanel({
   onInmersivoChange,
@@ -580,6 +676,8 @@ export default function PlantillasVisualesPanel({
   const [pendienteNuevo, setPendienteNuevo] = useState<{
     formato: FormatoCanvas;
     categoriaId: string;
+    /** Título escrito a mano al elegir el tamaño. */
+    nombre?: string;
   } | null>(null);
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
@@ -595,10 +693,39 @@ export default function PlantillasVisualesPanel({
   const [arrastrandoIds, setArrastrandoIds] = useState<string[] | null>(null);
   const [carpetaHoverDrop, setCarpetaHoverDrop] = useState<string | null>(null);
   const [fichaInicial, setFichaInicial] = useState<PlantillaVisualDoc | null>(null);
+  // El card de plantilla es draggable (para mover a carpetas). Si el mouse va a
+  // los botones de acción hay que soltar el arrastre: si no, un clic con el
+  // mínimo movimiento arranca un drag y el botón "Eliminar" nunca dispara.
+  const [arrastreBloqueado, setArrastreBloqueado] = useState(false);
+  const [eliminandoLote, setEliminandoLote] = useState(false);
+  // Confirmación propia en vez de window.confirm: si el navegador tiene marcado
+  // "impedir que esta página abra más diálogos" (Firefox lo ofrece tras varios
+  // confirm seguidos), window.confirm devuelve false sin mostrar nada y el
+  // borrado quedaba en silencio, como si el botón no hiciera nada.
+  const [confirmarBorrado, setConfirmarBorrado] = useState<{ ids: string[]; nombre?: string } | null>(null);
   const [plantillaLote, setPlantillaLote] = useState<{ id: string; nombre: string } | null>(null);
+  /** Categoría para la que se está creando un lienzo en blanco. Sin esto, el
+   *  diseño nuevo caía en "Otros" y la categoría seguía diciendo "Sin plantilla":
+   *  el camino "empezar desde cero" no dejaba plantilla en ninguna parte. */
+  const [categoriaPendiente, setCategoriaPendiente] = useState<string | null>(null);
+  /** Qué debe abrir el formulario: una guardada, una etiqueta nueva desde una
+   *  plantilla, o una plantilla nueva de una categoría. */
+  const [entradaFormulario, setEntradaFormulario] = useState<EntradaFormularioEtiqueta | null>(null);
+  const subvista = useAppStore((s) => s.studioSubvista);
+  const setSubvista = useAppStore((s) => s.setStudioSubvista);
+  const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
+  const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
+  const { data: catsData } = useCategoriasEtiqueta();
+  const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
 
   useEffect(() => {
-    onInmersivoChange?.(vista === "editor" || vista === "diligenciar" || vista === "lote");
+    onInmersivoChange?.(
+      vista === "editor"
+        || vista === "diligenciar"
+        || vista === "lote"
+        || vista === "formularios-etiquetas"
+        || vista === "nueva-plantilla-categoria",
+    );
     return () => onInmersivoChange?.(false);
   }, [vista, onInmersivoChange]);
 
@@ -614,15 +741,27 @@ export default function PlantillasVisualesPanel({
         `/api/plantillas-visuales?carpeta=${encodeURIComponent(carpetaActual)}${buscarDebounced ? `&q=${encodeURIComponent(buscarDebounced)}` : ""}`,
       ),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
   const { data: carpetasTodasData } = useQuery({
     queryKey: ["plantillas-visuales-carpetas"],
     queryFn: () => api.get<{ carpetas: string[] }>("/api/plantillas-visuales/carpetas"),
     staleTime: 15_000,
+    gcTime: ETIQUETAS_GC_TIME,
   });
 
-  const plantillas = data?.plantillas ?? [];
+  const plantillasTodas = data?.plantillas ?? [];
+  // Filtro por categoría de producto: se activa al entrar desde una tarjeta de
+  // la portada. La categoría se deduce del nombre para las plantillas heredadas
+  // que no la tienen guardada (ver categoriaProductoDe).
+  const plantillas = useMemo(
+    () =>
+      categoriaFiltro
+        ? plantillasTodas.filter((p) => categoriaProductoDe(p, categorias) === categoriaFiltro)
+        : plantillasTodas,
+    [plantillasTodas, categoriaFiltro, categorias],
+  );
   const subcarpetas = data?.carpetas ?? [];
   const segmentosRuta = carpetaActual ? carpetaActual.split("/").filter(Boolean) : [];
 
@@ -789,10 +928,41 @@ export default function PlantillasVisualesPanel({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [vista, doc]);
 
-  const eliminarMut = useMutation({
-    mutationFn: (id: string) => api.delete(`/api/plantillas-visuales/${id}`),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] }),
+  const eliminarLoteMut = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const fallidos: string[] = [];
+      for (const id of ids) {
+        try {
+          await api.delete(`/api/plantillas-visuales/${id}`);
+        } catch {
+          fallidos.push(id);
+        }
+      }
+      return fallidos;
+    },
+    onMutate: () => {
+      setEliminandoLote(true);
+      setMsg(null);
+    },
+    onSuccess: (fallidos) => {
+      setSeleccionadas(new Set());
+      setMsg(
+        fallidos.length > 0
+          ? `No se pudieron eliminar ${fallidos.length} plantilla(s)`
+          : "Plantilla(s) eliminada(s) ✓",
+      );
+      setTimeout(() => setMsg(null), 2500);
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "Error al eliminar las plantillas seleccionadas"),
+    onSettled: () => setEliminandoLote(false),
   });
+
+  function eliminarSeleccionadas() {
+    const ids = Array.from(seleccionadas);
+    if (ids.length === 0) return;
+    setConfirmarBorrado({ ids });
+  }
 
   const [exportando, setExportando] = useState(false);
   const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
@@ -838,21 +1008,46 @@ export default function PlantillasVisualesPanel({
     });
   }, [abrirCopiaGuardada, doc, guardarMut]);
 
+  const abrirFormulario = useCallback((entrada: EntradaFormularioEtiqueta) => {
+    setEntradaFormulario(entrada);
+    setVista("formularios-etiquetas");
+  }, []);
+
   const abrirNuevo = () => {
     setDoc(null);
     setPendienteNuevo(null);
+    setCategoriaPendiente(null);
     setVista("formato");
   };
 
-  const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    setPendienteNuevo({ formato, categoriaId });
+  const elegirFormato = (formato: FormatoCanvas, categoriaId: string, nombre?: string) => {
+    setPendienteNuevo({ formato, categoriaId, nombre });
     setVista("scan");
   };
 
-  const crearDesdeScan = (nuevo: PlantillaVisualDoc) => {
-    setDoc(nuevo);
-    docGuardadoRef.current = nuevo;
+  const crearDesdeScan = (escaneado: PlantillaVisualDoc) => {
+    const nombreManual = pendienteNuevo?.nombre?.trim();
+    const nuevo = nombreManual ? { ...escaneado, nombre: nombreManual } : escaneado;
+    const doc = categoriaPendiente
+      ? {
+          ...nuevo,
+          nombre:
+            nuevo.nombre && nuevo.nombre !== "Sin título"
+              ? nuevo.nombre
+              : `Plantilla · ${etiquetaCategoriaEn(categorias, categoriaPendiente)}`,
+          categoria_producto: categoriaPendiente,
+          es_plantilla_categoria: true,
+          formulario: true,
+        }
+      : nuevo;
+    setDoc(doc);
+    docGuardadoRef.current = doc;
     setPendienteNuevo(null);
+    if (categoriaPendiente) {
+      setMsg("Marca los campos variables en el panel de la derecha y guarda");
+      setTimeout(() => setMsg(null), 5000);
+      setCategoriaPendiente(null);
+    }
     setVista("editor");
   };
 
@@ -1001,6 +1196,44 @@ export default function PlantillasVisualesPanel({
     );
   }
 
+  if (vista === "nueva-plantilla-categoria") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <NuevaPlantillaCategoriaPanel
+          categoriaInicial={categoriaFiltro}
+          onVolver={() => setVista("lista")}
+          onCreada={(plantilla) => {
+            setFichaInicial(null);
+            setDoc(plantilla);
+            docGuardadoRef.current = plantilla;
+            setMsg("Plantilla de categoría creada ✓ — ajústala y guarda si hace falta");
+            setTimeout(() => setMsg(null), 4000);
+            setVista("editor");
+          }}
+          onLienzoEnBlanco={(catId) => {
+            setCategoriaFiltro(catId);
+            setCategoriaPendiente(catId);
+            setVista("formato");
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (vista === "formularios-etiquetas") {
+    return (
+      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
+        <FormulariosEtiquetadosPanel
+          entrada={entradaFormulario}
+          onVolver={() => {
+            setEntradaFormulario(null);
+            setVista("lista");
+          }}
+        />
+      </div>
+    );
+  }
+
   if (vista === "lote" && plantillaLote) {
     return (
       <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
@@ -1020,6 +1253,7 @@ export default function PlantillasVisualesPanel({
     return (
       <div className="mx-auto max-w-4xl">
         <SelectorFormatoCanvas
+          pedirNombre
           onElegir={elegirFormato}
           onCancelar={() => {
             setPendienteNuevo(null);
@@ -1092,7 +1326,7 @@ export default function PlantillasVisualesPanel({
                     {previewExport.nombreArchivo} · {Math.round(doc.formato.ancho_px * previewExport.escala)}×
                     {Math.round(doc.formato.alto_px * previewExport.escala)} px
                     {doc.formato.ancho_mm && doc.formato.alto_mm
-                      ? ` · ${doc.formato.ancho_mm}×${doc.formato.alto_mm} mm · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
+                      ? ` · ${formatoMedidasEtiqueta(doc.formato.ancho_mm, doc.formato.alto_mm)}`
                       : ""}
                     {previewExport.escala !== 1 ? ` · escala ${previewExport.escala}x` : ""}
                   </p>
@@ -1202,8 +1436,95 @@ export default function PlantillasVisualesPanel({
 
   return (
     <div className="mx-auto max-w-6xl">
+      {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
+          con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
+          es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h1 className="mr-2 text-lg font-bold tracking-tight text-ink">Studio</h1>
+        {SUBVISTAS.map((sv) => (
+          <button
+            key={sv.id}
+            type="button"
+            onClick={() => {
+              setSubvista(sv.id);
+              // Entrar por la pestaña es "muéstrame todo": si no se limpia, el
+              // filtro que dejó una tarjeta esconde los diseños nuevos.
+              setCategoriaFiltro("");
+            }}
+            className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
+              subvista === sv.id
+                ? "bg-accent text-white"
+                : "border border-border text-ink-secondary hover:bg-surface-hover"
+            }`}
+          >
+            {sv.label}
+          </button>
+        ))}
+      </div>
+
+      {subvista === "categorias" && (
+        <StudioCategoriasPanel
+          onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
+          onAbrirPlantilla={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ fichaId: pl.id });
+              return;
+            }
+            void abrirPlantilla(pl.id);
+          }}
+          onAbrirEtiqueta={(e) => {
+            if (e.fichaId) {
+              abrirFormulario({ fichaId: e.fichaId });
+              return;
+            }
+            // PNG ya terminado: se ve e imprime desde Diseño → Imprimir.
+            setSubvista("recursos");
+            setMsg(`«${e.nombre}» está lista: se imprime desde Diseño → Imprimir.`);
+            setTimeout(() => setMsg(null), 5000);
+          }}
+          onNuevaEtiqueta={(pl) => {
+            if (pl.motor === "ficha") {
+              abrirFormulario({ nuevaEtiquetaDePlantilla: pl.id });
+              return;
+            }
+            setPlantillaLote({ id: pl.id, nombre: pl.nombre });
+            setVista("lote");
+          }}
+        />
+      )}
+
+      {subvista === "etiquetas" && (
+        <StudioEtiquetasPanel
+          categoriaFiltro={categoriaFiltro}
+          onCategoriaFiltroChange={setCategoriaFiltro}
+          onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
+        />
+      )}
+
+      {subvista === "recursos" && (
+        <div>
+          <p className="mb-3 text-xs text-muted">
+            Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
+            terminadas están en la pestaña «Etiquetas».
+          </p>
+          <BibliotecaEtiquetasSection />
+        </div>
+      )}
+
+      {subvista === "disenos" && (
+      <>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-bold tracking-tight text-ink">Studio</h1>
+        {categoriaFiltro && (
+          <button
+            type="button"
+            onClick={() => setCategoriaFiltro("")}
+            title="Quitar el filtro de categoría"
+            className="shrink-0 rounded-lg border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10"
+          >
+            {etiquetaCategoriaEn(categorias, categoriaFiltro)} ✕
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <input
             value={buscar}
@@ -1230,10 +1551,18 @@ export default function PlantillasVisualesPanel({
             <button
               type="button"
               onClick={() => setMenuMoverAbierto((v) => !v)}
-              disabled={moviendoLote}
+              disabled={moviendoLote || eliminandoLote}
               className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
             >
               {moviendoLote ? "Moviendo…" : `Mover a… (${seleccionadas.size})`}
+            </button>
+            <button
+              type="button"
+              onClick={eliminarSeleccionadas}
+              disabled={eliminandoLote || moviendoLote}
+              className="ml-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/20 disabled:opacity-50"
+            >
+              {eliminandoLote ? "Eliminando…" : `Eliminar (${seleccionadas.size})`}
             </button>
             {menuMoverAbierto && (
               <div className="absolute right-0 top-full z-30 mt-1 max-h-52 min-w-[180px] overflow-y-auto rounded-lg border border-border bg-surface-panel py-1 text-xs shadow-xl">
@@ -1265,11 +1594,26 @@ export default function PlantillasVisualesPanel({
         <button
           type="button"
           onClick={abrirNuevo}
+          title="Lienzo libre: cajas de texto, símbolos y disposición propia"
+          className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink-secondary hover:bg-surface-hover"
+        >
+          Nuevo diseño
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("nueva-plantilla-categoria")}
+          title="Elegir categoría, partir de un diseño y marcar los campos que cambian por producto"
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
-          Nueva plantilla
+          Nueva plantilla de categoría
         </button>
       </div>
+
+      <p className="mb-4 text-[11px] text-muted">
+        Los <strong>diseños</strong> son el punto de partida: se duplican y se les marcan los
+        campos variables para convertirlos en la plantilla de una categoría. Las etiquetas ya
+        generadas están en la pestaña «Etiquetas».
+      </p>
 
       <div className="mb-5 flex flex-wrap items-center gap-1 text-xs">
         <button
@@ -1342,14 +1686,6 @@ export default function PlantillasVisualesPanel({
           {creandoCarpeta ? "…" : "+ Carpeta"}
         </button>
       </div>
-
-      {/* Con búsqueda activa, las plantillas van primero y la biblioteca PNG
-          (filtrada por el mismo texto) baja al final. */}
-      {!buscarDebounced && (
-        <div className="mb-5">
-          <BibliotecaEtiquetasSection />
-        </div>
-      )}
 
       {msg && (
         <div className="mb-4 rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm">
@@ -1446,7 +1782,7 @@ export default function PlantillasVisualesPanel({
             const seleccionada = seleccionadas.has(p.id);
             return (
               <article
-                draggable
+                draggable={!arrastreBloqueado}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = "move";
                   iniciarArrastrePlantilla(p.id);
@@ -1458,7 +1794,11 @@ export default function PlantillasVisualesPanel({
                   seleccionada ? "border-accent ring-2 ring-accent/40" : "border-border"
                 }`}
               >
-                <label className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95">
+                <label
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute left-2 top-2 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm transition hover:border-accent dark:bg-zinc-900/95"
+                >
                   <input
                     type="checkbox"
                     checked={seleccionada}
@@ -1483,6 +1823,9 @@ export default function PlantillasVisualesPanel({
                   <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
                   <p className="mt-0.5 text-[11px] text-muted">
                     {labelFormato(p.formato)}
+                    {" · "}
+                    {etiquetaCategoriaEn(categorias, categoriaProductoDe(p, categorias))}
+                    {p.es_plantilla_categoria ? " ★ plantilla" : ""}
                     {esPlantillaFichaMp(p) ? " · formulario SCI" : ""}
                     {esPlantillaFormularioEtiqueta(p) && !esPlantillaFichaMp(p) ? " · formulario" : ""}
                   </p>
@@ -1513,11 +1856,17 @@ export default function PlantillasVisualesPanel({
                     </button>
                   )}
                 </div>
-                <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                <div
+                  onMouseEnter={() => setArrastreBloqueado(true)}
+                  onMouseLeave={() => setArrastreBloqueado(false)}
+                  className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                >
                   <button
                     type="button"
                     title="Duplicar"
+                    draggable={false}
                     disabled={duplicandoId === p.id || guardarMut.isPending}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
                       void duplicarPlantillaPorId(p.id);
@@ -1529,13 +1878,16 @@ export default function PlantillasVisualesPanel({
                   <button
                     type="button"
                     title="Eliminar"
+                    draggable={false}
+                    disabled={eliminandoLote}
+                    onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm(`¿Eliminar "${p.nombre}"?`)) eliminarMut.mutate(p.id);
+                      setConfirmarBorrado({ ids: [p.id], nombre: p.nombre });
                     }}
-                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600"
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600 disabled:opacity-50"
                   >
-                    Eliminar
+                    {eliminandoLote ? "…" : "Eliminar"}
                   </button>
                 </div>
               </article>
@@ -1547,6 +1899,50 @@ export default function PlantillasVisualesPanel({
       {buscarDebounced && (
         <div className="mt-6">
           <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
+        </div>
+      )}
+
+      </>
+      )}
+
+      {confirmarBorrado && (
+        <div
+          className="fixed inset-0 z-[800] flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setConfirmarBorrado(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface-panel p-5 shadow-paper-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold text-ink">
+              {confirmarBorrado.ids.length === 1
+                ? `¿Eliminar "${confirmarBorrado.nombre ?? "esta plantilla"}"?`
+                : `¿Eliminar ${confirmarBorrado.ids.length} plantillas seleccionadas?`}
+            </p>
+            <p className="mt-1 text-xs text-muted">Esta acción no se puede deshacer.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmarBorrado(null)}
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-ink-secondary hover:bg-surface-hover"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                autoFocus
+                disabled={eliminandoLote}
+                onClick={() => {
+                  const ids = confirmarBorrado.ids;
+                  setConfirmarBorrado(null);
+                  eliminarLoteMut.mutate(ids);
+                }}
+                className="rounded-lg bg-danger px-3 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {eliminandoLote ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

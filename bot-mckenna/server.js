@@ -603,7 +603,16 @@ client.on('message', async (msg) => {
     // Filtro 5: ignorar mensajes muy antiguos (más de 60 segundos)
     const ahora = Math.floor(Date.now() / 1000);
     if (ahora - msg.timestamp > 60) {
-        console.log(`⏭️ Mensaje antiguo ignorado de ${msg.from}`);
+        // Llegan en ráfaga tras una reconexión: no se responden (el cliente ya
+        // no espera respuesta automática de algo de hace rato), pero SÍ se guardan
+        // en el historial del panel para que coincida con el teléfono del asesor.
+        console.log(`⏭️ Mensaje antiguo (sin respuesta automática) de ${msg.from}`);
+        try {
+            const h = await mensajeAPayloadHistorial(msg);
+            if (h && !h.revoke) await enviarHistorialPanel([h]);
+        } catch (e) {
+            console.warn('⚠️ Historial de mensaje antiguo no guardado:', e.message);
+        }
         return;
     }
 
@@ -627,10 +636,23 @@ client.on('message', async (msg) => {
         let hasMedia = false;
         let mediaPath = '';
         let mediaType = '';
+        let mediaError = '';
 
         if (msg.hasMedia) {
             hasMedia = true;
-            const media = await msg.downloadMedia();
+            // Si la descarga falla (WhatsApp Web cambió por dentro y whatsapp-web.js
+            // lanza un error opaco "r"), antes se perdía el mensaje COMPLETO: ni
+            // historial del panel ni aviso al agente. Ahora sigue como "[adjunto]"
+            // y Python avisa al equipo para revisarlo en el teléfono.
+            let media = null;
+            try {
+                media = await msg.downloadMedia();
+            } catch (e) {
+                mediaError = (e && e.message) || 'error';
+                console.warn(`⚠️ Adjunto no descargado (${msg.type}) de ${msg.from}: ${mediaError}`,
+                    e && e.stack ? String(e.stack).split('\n').slice(0, 4).join(' | ') : '');
+                logActividad('ERROR', { texto: `Adjunto no descargado (${msg.type}): ${mediaError}`, de: msg.from });
+            }
             if (media) {
                 let extension = 'bin';
                 if (media.mimetype.includes('image/')) {
@@ -679,6 +701,8 @@ client.on('message', async (msg) => {
             hasMedia: hasMedia,
             mediaPath: mediaPath,
             mediaType: mediaType,
+            mediaError: mediaError,
+            tipoMensaje: msg.type,
             es_grupo_contabilidad: false
         }, { timeout: 120000 });
 
@@ -701,7 +725,8 @@ client.on('message', async (msg) => {
             await enviarHistorialPanel([outPayload]);
         }
     } catch (error) {
-        console.error("❌ Error de comunicación con el agente Python:", error.message);
+        console.error("❌ Error de comunicación con el agente Python:", error.message,
+            error && error.stack ? String(error.stack).split('\n').slice(0, 5).join(' | ') : '');
         logActividad('ERROR', { texto: `Comunicación con Python: ${error.message}`, de: msg.from });
     }
 });
@@ -1105,7 +1130,19 @@ app.post('/chats/sync', async (req, res) => {
         return res.status(503).json({ error: 'WhatsApp no conectado' });
     }
     try {
-        const chat = await client.getChatById(jid);
+        let chat = null;
+        try {
+            chat = await client.getChatById(jid);
+        } catch (e) {
+            // WhatsApp migró los chats individuales a LID: buscar por @c.us falla con
+            // "No LID for user". Se resuelve el LID del contacto y se reintenta.
+            if (!jid.endsWith('@c.us')) throw e;
+            const par = await client.getContactLidAndPhone([jid]).catch(() => null);
+            const lid = par && par[0] && par[0].lid;
+            if (!lid) throw e;
+            console.log(`🔁 /chats/sync: ${jid} → ${lid}`);
+            chat = await client.getChatById(lid);
+        }
         if (!chat) {
             return res.status(404).json({ error: 'Chat no encontrado' });
         }
@@ -1165,7 +1202,8 @@ app.post('/chats/sync', async (req, res) => {
             alias: aliasRegistrado,
         });
     } catch (e) {
-        console.error('❌ /chats/sync:', e.message);
+        console.error('❌ /chats/sync:', e.message,
+            e && e.stack ? String(e.stack).split('\n').slice(0, 4).join(' | ') : '');
         return res.status(500).json({ error: e.message });
     }
 });

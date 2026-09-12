@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { useAppStore } from "../stores/app";
 
 type Segmento = "concretadas" | "canceladas" | "todas";
 
@@ -76,6 +77,37 @@ interface VentaUnificada {
   venta_original: VentaOriginal | null;
   shipping_status?: string | null;
   estado_facturacion: string;
+  cruce?: CruceFacturacion | null;
+  facturacion_parcial?: boolean;
+  ordenes_del_pack?: number;
+  /** Todas las órdenes MeLi del carrito (la fila representa la venta completa). */
+  ordenes_ids?: string[];
+  cache_actualizado_en?: string;
+  desde_cache?: boolean;
+}
+
+interface LineaCruce {
+  sku: string;
+  nombre: string | null;
+  cantidad: number;
+  total: number;
+  facturado?: number;
+}
+
+/** Comparación de lo que el cliente compró (todo el carrito/pack) contra lo
+ * que quedó facturado. Es la verificación que faltaba: el estado "facturada"
+ * solo miraba que EXISTIERA una factura, no que cubriera toda la compra. */
+interface CruceFacturacion {
+  comprado: LineaCruce[];
+  facturado: LineaCruce[];
+  faltantes: LineaCruce[];
+  sobrantes: LineaCruce[];
+  total_comprado: number;
+  total_facturado: number;
+  diferencia: number;
+  ok: boolean;
+  concluyente: boolean;
+  resumen: string;
 }
 
 interface VentasResp {
@@ -120,9 +152,10 @@ const DIAS_OPCIONES = [7, 15, 30, 60, 90] as const;
 
 const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
   facturada_completa: { label: "✅ Facturada", cls: "bg-emerald-500/15 text-emerald-500" },
+  facturada_parcial: { label: "🔴 Facturada INCOMPLETA", cls: "bg-danger/15 text-danger" },
   facturada_pendiente_subir_meli: { label: "⚠️ Falta subir a MeLi", cls: "bg-amber-500/15 text-amber-500" },
-  en_transito: { label: "🚚 En tránsito", cls: "bg-surface text-muted" },
-  en_margen_entrega: { label: "⏳ Entregada, en margen 48h", cls: "bg-sky-500/15 text-sky-500" },
+  en_transito: { label: "🚚 En tránsito — se factura al entregar", cls: "bg-surface text-muted" },
+  en_margen_entrega: { label: "⏳ Sin facturar: esperando margen de 48h", cls: "bg-sky-500/15 text-sky-500" },
   sin_facturar: { label: "🔴 Sin facturar", cls: "bg-danger/15 text-danger" },
   cancelada_sin_factura: { label: "➖ Cancelada, sin factura", cls: "bg-surface text-muted" },
   cancelada_resuelta: { label: "✅ NC resuelta", cls: "bg-emerald-500/15 text-emerald-500" },
@@ -133,9 +166,15 @@ const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
 
 const NEEDS_REVIEW = new Set([
   "facturada_pendiente_subir_meli",
+  "facturada_parcial",
   "sin_facturar",
   "cancelada_pendiente_nc",
 ]);
+
+/** Estados en los que tiene sentido ofrecer "Facturar ahora": la venta está
+ * entregada y sin factura. `en_margen_entrega` entra acá a propósito — ver la
+ * nota en el botón. */
+const FACTURABLE = new Set(["sin_facturar", "en_margen_entrega"]);
 
 function nombreIntegracionLegado(integracion: string | null) {
   if (integracion === "astroselling") return "Astroselling (Siigo)";
@@ -278,6 +317,129 @@ function ClienteInfo({ venta }: { venta: VentaUnificada }) {
   );
 }
 
+/** Refresca UNA venta contra MeLi/Alegra. MeLi no permite refrescar el estado de
+ * cientos de ventas de golpe (cada fila son varias llamadas HTTP), así que el
+ * histórico se sirve desde el caché local y la corroboración es puntual: el
+ * operador actualiza la venta que le interesa. */
+function RefrescarBoton({
+  orderId, actualizadoEn, onListo,
+}: { orderId: string; actualizadoEn?: string; onListo: () => void }) {
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function refrescarVenta() {
+    setCargando(true);
+    setError(null);
+    try {
+      const r = await api.post<{ ok?: boolean; error?: string }>(
+        `/api/facturacion/ventas-unificadas/refrescar/${orderId}`,
+      );
+      if (!r?.ok) setError(r?.error || "No se pudo actualizar.");
+      else onListo();
+    } catch (e) {
+      setError((e as Error).message || "No se pudo actualizar.");
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void refrescarVenta()}
+      disabled={cargando}
+      className="rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted transition hover:bg-surface disabled:opacity-40"
+      title={
+        error
+          ? error
+          : actualizadoEn
+            ? `Estado tomado el ${formatFecha(actualizadoEn)}. Consultar MeLi ahora.`
+            : "Volver a consultar el estado de esta venta en MeLi"
+      }
+    >
+      {cargando ? "…" : "🔄"}
+    </button>
+  );
+}
+
+/** Cruce visual comprado vs facturado. Es la verificación que el operador tiene
+ * que poder hacer de un vistazo: si el carrito traía 7 productos y la factura
+ * cubre 1, acá se ve — antes ambos lados se veían "correctos" porque se comparaba
+ * orden contra factura, y cada orden de un pack trae un solo producto. */
+function CruceFacturacionBloque({ cruce, estado }: { cruce: CruceFacturacion; estado: string }) {
+  // Una venta que todavía no toca facturar (en tránsito o dentro del margen) no
+  // es una discrepancia: mostrarle "Diferencia $226.295" en rojo asusta sin
+  // motivo. Solo se compara de verdad cuando ya hay algo facturado.
+  const esperandoTurno =
+    cruce.total_facturado === 0 && (estado === "en_transito" || estado === "en_margen_entrega");
+  if (esperandoTurno) {
+    return (
+      <div className="mt-2 rounded-lg border border-border bg-surface px-3 py-2">
+        <p className="text-[11px] text-muted">
+          🕒 Todavía sin facturar — {cruce.comprado.length} producto(s) por{" "}
+          <span className="font-semibold text-ink">{pesos(cruce.total_comprado)}</span>.{" "}
+          {estado === "en_transito"
+            ? "Se factura cuando el pedido se entregue."
+            : "Dentro del margen de 48h desde la entrega."}
+        </p>
+      </div>
+    );
+  }
+  const grave = !cruce.ok && cruce.concluyente && cruce.faltantes.length > 0;
+  return (
+    <div
+      className={`mt-2 rounded-lg border px-3 py-2 ${
+        grave
+          ? "border-danger/40 bg-danger/5"
+          : cruce.ok
+            ? "border-emerald-500/30 bg-emerald-500/5"
+            : "border-border bg-surface"
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className={`text-[11px] font-bold ${grave ? "text-danger" : cruce.ok ? "text-emerald-600 dark:text-emerald-400" : "text-muted"}`}>
+          {grave ? "🔴 " : cruce.ok ? "✅ " : "ℹ️ "}
+          {cruce.resumen}
+        </p>
+        {/* Si cuadra, el desglose comprado/facturado/diferencia es ruido: basta
+            el visto y el monto. El desglose se reserva para cuando NO cuadra,
+            que es cuando el operador necesita ver los dos lados. */}
+        {cruce.ok ? (
+          <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            ✓ {pesos(cruce.total_comprado)} facturado
+          </p>
+        ) : (
+          <p className="text-[11px] text-muted">
+            Comprado {pesos(cruce.total_comprado)} · Facturado {pesos(cruce.total_facturado)}
+            {Math.abs(cruce.diferencia) >= 1 && (
+              <span className={grave ? "font-bold text-danger" : ""}> · Diferencia {pesos(cruce.diferencia)}</span>
+            )}
+          </p>
+        )}
+      </div>
+      {cruce.faltantes.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5">
+          {cruce.faltantes.map((f) => (
+            <li key={f.sku + f.nombre} className="text-[11px] text-danger">
+              Falta por facturar: <span className="font-semibold">{f.nombre || f.sku}</span> — comprado {f.cantidad}
+              {typeof f.facturado === "number" && f.facturado > 0 ? `, facturado ${f.facturado}` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      {cruce.sobrantes.length > 0 && (
+        <ul className="mt-1.5 space-y-0.5">
+          {cruce.sobrantes.map((f) => (
+            <li key={f.sku + f.nombre} className="text-[11px] text-amber-600 dark:text-amber-400">
+              Facturado pero no comprado: <span className="font-semibold">{f.nombre || f.sku}</span> (x{f.cantidad})
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 /** Botón "Revisar" inline: crea/reusa el paso del ticket de Centro de Mando y lo marca completado con un motivo opcional. */
 function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias: number; onRevisado: () => void }) {
   const [abierto, setAbierto] = useState(false);
@@ -373,7 +535,14 @@ export default function VentasAstroKillerPanel() {
   // rangos más amplios quedan disponibles para auditorías puntuales, a
   // sabiendas de que tardan más.
   const [dias, setDias] = useState<number>(7);
+  // "vivo" consulta MeLi (lento, topado, siempre al día); "historico" lee el
+  // caché local (instantáneo, sin tope, con la antigüedad a la vista).
+  const [modo, setModo] = useState<"vivo" | "historico">("vivo");
   const [busqueda, setBusqueda] = useState("");
+  // "Solo pendientes": oculta lo que no requiere acción (facturadas completas,
+  // en tránsito, en margen). Es el filtro con el que llega el checklist de
+  // Contabilidad — la revisión se hace acá, no en un ticket aparte.
+  const [soloPendientes, setSoloPendientes] = useState(false);
   const [verLoading, setVerLoading] = useState<string | null>(null);
   const [verError, setVerError] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
@@ -392,16 +561,40 @@ export default function VentasAstroKillerPanel() {
     setLimiteManual(null);
   }, [segmento, dias]);
 
-  const q = useQuery<VentasResp>({
+  const qVivo = useQuery<VentasResp>({
     queryKey: ["ventas-unificadas", segmento, dias, limite],
     queryFn: () => api.get(`/api/facturacion/ventas-unificadas?segmento=${segmento}&dias=${dias}&limit=${limite}`),
     staleTime: 60_000,
+    enabled: modo === "vivo",
   });
 
+  // Histórico: sale del caché local (SQLite), sin tocar MeLi. Por eso puede
+  // traer miles de filas al instante, mientras que el modo "en vivo" está
+  // topado en 150 (cada fila son varias llamadas HTTP a MeLi). Lo que se
+  // muestra acá es la última foto conocida de cada venta; el botón 🔄 de cada
+  // fila la vuelve a consultar contra MeLi una por una.
+  const qHistorial = useQuery<VentasResp>({
+    queryKey: ["ventas-historial", segmento, busqueda],
+    queryFn: () =>
+      api.get(
+        `/api/facturacion/ventas-unificadas/historial?segmento=${segmento}&limit=2000` +
+          (busqueda.trim() ? `&q=${encodeURIComponent(busqueda.trim())}` : ""),
+      ),
+    staleTime: 30_000,
+    enabled: modo === "historico",
+  });
+
+  const q = modo === "vivo" ? qVivo : qHistorial;
   const ventas = q.data?.ventas ?? [];
   const totalEnRango = q.data?.total_en_rango ?? ventas.length;
   const hayMas = totalEnRango > ventas.length;
-  const filtradasLocal = busqueda.trim() ? ventas.filter((v) => v.order_id.includes(busqueda.trim())) : ventas;
+  // Una fila = una venta (pack); cualquier orden del carrito, o el pack, la encuentra.
+  const filtradasLocal = busqueda.trim()
+    ? ventas.filter((v) => {
+        const q = busqueda.trim();
+        return v.order_id.includes(q) || v.pack_id.includes(q) || (v.ordenes_ids ?? []).some((o) => o.includes(q));
+      })
+    : ventas;
   const pendientesRevision = ventas.filter((v) => !v.revisado && (v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion)));
 
   // Búsqueda puntual en MeLi: la lista cargada solo trae `limite` filas del
@@ -413,7 +606,37 @@ export default function VentasAstroKillerPanel() {
   const [buscandoEnMeli, setBuscandoEnMeli] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const idBuscable = /^\d{9,17}$/.test(busqueda.trim());
-  const filtradas = resultadoBusqueda ? [resultadoBusqueda] : filtradasLocal;
+  const filtradas = (resultadoBusqueda ? [resultadoBusqueda] : filtradasLocal).filter(
+    (v) => !soloPendientes || v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion),
+  );
+
+  // Contexto de llegada (paso de ticket → una venta; checklist → solo
+  // pendientes). Se consume una sola vez y se limpia del store.
+  const ventasBoot = useAppStore((s) => s.ventasBoot);
+  const setVentasBoot = useAppStore((s) => s.setVentasBoot);
+  const [busquedaPendienteEnMeli, setBusquedaPendienteEnMeli] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ventasBoot) return;
+    if (ventasBoot.soloPendientes) {
+      setSoloPendientes(true);
+      setModo("historico");
+    }
+    if (ventasBoot.busqueda) {
+      setBusqueda(ventasBoot.busqueda);
+      setBusquedaPendienteEnMeli(ventasBoot.busqueda);
+    }
+    setVentasBoot(null);
+  }, [ventasBoot, setVentasBoot]);
+
+  // La búsqueda en MeLi se dispara después de que `busqueda` ya cambió (si no,
+  // buscarEnMeli leería el valor anterior del estado).
+  useEffect(() => {
+    if (busquedaPendienteEnMeli && busqueda.trim() === busquedaPendienteEnMeli) {
+      setBusquedaPendienteEnMeli(null);
+      void buscarEnMeli();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busqueda, busquedaPendienteEnMeli]);
 
   useEffect(() => {
     setResultadoBusqueda(null);
@@ -444,6 +667,7 @@ export default function VentasAstroKillerPanel() {
 
   function refrescar() {
     void qc.invalidateQueries({ queryKey: ["ventas-unificadas", segmento, dias, limite] });
+    void qc.invalidateQueries({ queryKey: ["ventas-historial", segmento, busqueda] });
   }
 
   // Incremental, no directo al máximo: con volumen real (miles de órdenes en
@@ -570,20 +794,54 @@ export default function VentasAstroKillerPanel() {
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          Últimos
-          <select
-            value={dias}
-            onChange={(e) => setDias(Number(e.target.value))}
-            className="rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
-          >
-            {DIAS_OPCIONES.map((d) => (
-              <option key={d} value={d}>
-                {d} días
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="flex rounded-lg border border-border bg-surface p-0.5">
+          {(["vivo", "historico"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setModo(m)}
+              title={
+                m === "vivo"
+                  ? "Consulta MeLi en el momento: siempre al día, pero lento y topado en 150 ventas"
+                  : "Histórico guardado en la aplicación: miles de ventas al instante, con la fecha del último estado conocido"
+              }
+              className={`rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
+                modo === m ? "bg-accent text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {m === "vivo" ? "En vivo" : "Histórico"}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setSoloPendientes((v) => !v)}
+          aria-pressed={soloPendientes}
+          title="Mostrar solo las ventas que requieren acción (facturación incompleta, sin facturar vencida, PDF sin subir, cancelada sin nota crédito)"
+          className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+            soloPendientes
+              ? "border-danger/50 bg-danger/10 text-danger"
+              : "border-border bg-surface text-muted hover:text-ink"
+          }`}
+        >
+          {soloPendientes ? "● Solo pendientes" : "○ Solo pendientes"}
+        </button>
+        {modo === "vivo" && (
+          <label className="flex items-center gap-1.5 text-xs text-muted">
+            Últimos
+            <select
+              value={dias}
+              onChange={(e) => setDias(Number(e.target.value))}
+              className="rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+            >
+              {DIAS_OPCIONES.map((d) => (
+                <option key={d} value={d}>
+                  {d} días
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <input
           type="text"
           value={busqueda}
@@ -623,7 +881,7 @@ export default function VentasAstroKillerPanel() {
               ? `Mostrando ${ventas.length} de ${totalEnRango} en el rango`
               : `${ventas.length} venta(s)`}
         </span>
-        {hayMas && !busqueda && (
+        {modo === "vivo" && hayMas && !busqueda && (
           <button
             type="button"
             onClick={cargarMas}
@@ -634,6 +892,11 @@ export default function VentasAstroKillerPanel() {
               ? "Cargando…"
               : `Cargar ${Math.min(PASO_CARGA, totalEnRango - ventas.length)} más — puede tardar ~${Math.min(PASO_CARGA, totalEnRango - ventas.length) * 2}s`}
           </button>
+        )}
+        {modo === "vivo" && limite >= 150 && hayMas && (
+          <span className="text-xs text-muted">
+            Tope del modo en vivo (150). Pasa a <span className="font-bold">Histórico</span> para ver todo lo ya cargado.
+          </span>
         )}
       </div>
 
@@ -703,6 +966,15 @@ export default function VentasAstroKillerPanel() {
                       ⚠️ Monto no coincide
                     </span>
                   )}
+                  {(venta.ordenes_del_pack ?? 1) > 1 && (
+                    <span
+                      className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted"
+                      title="Carrito con varias órdenes MeLi: la factura debe cubrir todos los productos"
+                    >
+                      🛒 Pack de {venta.ordenes_del_pack}
+                    </span>
+                  )}
+                  <RefrescarBoton orderId={venta.order_id} actualizadoEn={venta.cache_actualizado_en} onListo={refrescar} />
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted">{formatFecha(venta.fecha)}</span>
@@ -720,6 +992,11 @@ export default function VentasAstroKillerPanel() {
                 <div className="min-w-0">
                   <p className="border-b border-border/60 bg-surface px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-muted">
                     Vendido en {venta.es_meli ? "MeLi" : "la web"}
+                    {(venta.ordenes_del_pack ?? 1) > 1 && (
+                      <span className="ml-1 normal-case text-[10px] font-normal">
+                        — carrito completo ({venta.ordenes_del_pack} órdenes MeLi, se facturan juntas)
+                      </span>
+                    )}
                   </p>
                   {venta.venta_original ? (
                     <div className="overflow-x-auto">
@@ -736,17 +1013,46 @@ export default function VentasAstroKillerPanel() {
                   </p>
                   {venta.facturas.length === 0 && !venta.factura_legado && (
                     <div className="px-3 py-2">
-                      <p className="text-xs text-muted">Sin factura.</p>
-                      {venta.es_meli && venta.estado_facturacion === "sin_facturar" && (
+                      {/* El "por qué" explícito: sin esto, una venta recién
+                          entregada y una que lleva días sin facturar se veían
+                          igual ("Sin factura") y el operador no sabía si tenía
+                          que actuar o solo esperar. */}
+                      <p className="text-xs text-muted">
+                        {venta.estado_facturacion === "en_transito" ? (
+                          <>Aún sin factura: el pedido no ha sido entregado. Se factura al entregarse.</>
+                        ) : venta.estado_facturacion === "en_margen_entrega" ? (
+                          <>
+                            Aún sin factura: se entregó hace poco y está dentro del{" "}
+                            <span className="font-semibold text-ink">margen de espera de 48h</span>. No hay nada
+                            pendiente por hacer, pero puedes facturarla ya si el cliente la necesita.
+                          </>
+                        ) : venta.estado_facturacion === "sin_facturar" ? (
+                          <span className="font-semibold text-danger">
+                            Sin factura y ya pasó el margen de 48h desde la entrega: hay que facturarla.
+                          </span>
+                        ) : (
+                          <>Sin factura.</>
+                        )}
+                      </p>
+                      {/* El botón se ofrece apenas la venta está ENTREGADA, sin
+                          esperar el margen de 48h: ese margen existía para darle
+                          turno a la autofactura automática, que hoy está apagada
+                          (MELI_AUTOFACTURA_ENTREGA_ACTIVO=0). Con el margen, el
+                          operador no podía facturar nada durante los dos primeros
+                          días. El backend igual valida que el envío esté
+                          'delivered' antes de emitir. */}
+                      {venta.es_meli && FACTURABLE.has(venta.estado_facturacion) && (
                         <div className="mt-1.5">
                           <button
                             type="button"
                             onClick={() => void facturarAhora(venta.order_id)}
                             disabled={facturando === venta.order_id}
                             className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
-                            title="Emite la factura electrónica en Alegra sin salir de la aplicación"
+                            title={`Emite UNA factura electrónica en Alegra con todos los productos del carrito (${venta.venta_original?.items.length ?? "?"}) por ${pesos(venta.total ?? venta.venta_original?.total_pagado)}`}
                           >
-                            {facturando === venta.order_id ? "Facturando…" : "🧾 Facturar ahora"}
+                            {facturando === venta.order_id
+                              ? "Facturando…"
+                              : `🧾 Facturar ahora${(venta.ordenes_del_pack ?? 1) > 1 ? ` (${venta.ordenes_del_pack} productos, una factura)` : ""}`}
                           </button>
                           {facturarMsg[venta.order_id] && (
                             <p
@@ -831,6 +1137,12 @@ export default function VentasAstroKillerPanel() {
                   </div>
                 </div>
               </div>
+
+              {venta.cruce && (
+                <div className="px-3 pb-3">
+                  <CruceFacturacionBloque cruce={venta.cruce} estado={venta.estado_facturacion} />
+                </div>
+              )}
             </div>
           );
         })}

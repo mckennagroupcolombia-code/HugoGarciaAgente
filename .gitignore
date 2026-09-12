@@ -47,6 +47,13 @@ app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)
 app/data/empaque_uploads/
 app/data/empaque_evidencia.db
+# Agente de ventas WA v2: pedidos en curso, pausas y bitácora de turnos (runtime)
+app/data/ventas_wa.db
+app/data/ventas_wa.db-*
+app/data/ventas_wa_sombra.db
+app/data/ventas_wa_sombra.db-*
+# Estado del auditor de canales (runtime)
+app/data/auditor_canales.json
 
 # Bases de datos y cache
 mckenna_business.db
@@ -142,6 +149,7 @@ app/data/wa_interactions.json
 app/data/sync_schedule_state.json
 app/data/facturas_gmail_descargadas.json
 app/data/plantillas_visuales.json
+app/data/etiquetas_fichas.json
 app/data/facturas_compra_pendientes.json
 app/data/wa_alertas_intencion.json
 app/data/extractos_bancarios/
@@ -172,3 +180,7 @@ app/data/verificacion_formulario_manteca/
 /cafeina_test.png
 /cafeina_test2.png
 /preview_audit.png
+
+# PDFs de préstamos (contratos y certificados) — se regeneran desde la BD,
+# son binarios que crecen con cada emisión y no aportan nada en el historial.
+app/data/prestamos_documentos/

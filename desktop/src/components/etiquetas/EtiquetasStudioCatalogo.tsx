@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
 import {
   targetEscaneoDesdeFila,
   targetEscaneoDesdePlantilla,
@@ -9,6 +10,12 @@ import {
 } from "../../lib/etiquetasStudioHelpers";
 import { mmParaTipoEtiqueta, TIPOS_ETIQUETA_DEFAULT } from "../../lib/etiquetasTipos";
 import { puedeEliminarPngEtiquetas } from "../../lib/studioVisualAccess";
+import {
+  useCategoriasEtiqueta,
+  etiquetaCategoriaEn,
+  CATEGORIAS_ETIQUETA,
+  CATEGORIA_ETIQUETA_OTROS,
+} from "../../lib/categoriasEtiqueta";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { descargarBlob } from "../../lib/plantillasVisualesExport";
@@ -55,6 +62,9 @@ interface CatalogoStudioResponse {
 
 export interface RecursoPngCatalogo extends FormatoPngAsociado {
   nombre: string;
+  /** Categoría de producto (id de CATEGORIAS_ETIQUETA), resuelta en el servidor
+   *  por corrección manual → subcarpeta → nombre del archivo. */
+  categoria_producto?: string;
 }
 
 function normalizarPngCatalogo(item: string | RecursoPngCatalogo): RecursoPngCatalogo {
@@ -170,6 +180,20 @@ export function EtiquetasStudioCatalogo({
   const [pngEliminandoUno, setPngEliminandoUno] = useState<string | null>(null);
 
   const qc = useQueryClient();
+  const { data: catsData } = useCategoriasEtiqueta();
+  const categoriasEtiqueta = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
+  const [recategorizando, setRecategorizando] = useState<string | null>(null);
+
+  /** Corrige a mano la categoría de una etiqueta; el servidor la deja fija. */
+  const recategorizarPngMut = useMutation({
+    mutationFn: (v: { nombre: string; categoria: string }) =>
+      api.post<{ ok: boolean }>("/api/etiquetas/recursos-png/categoria", v),
+    onSettled: () => {
+      setRecategorizando(null);
+      void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    },
+  });
   const ticketsUser = useTicketsAuth((s) => s.user);
   const puedeEliminarPng = puedeEliminarPngEtiquetas(ticketsUser);
 
@@ -290,6 +314,7 @@ export function EtiquetasStudioCatalogo({
       return api.get<CatalogoStudioResponse>(`/api/etiquetas/studio/catalogo?${p.toString()}`);
     },
     staleTime: 20_000,
+    gcTime: ETIQUETAS_GC_TIME,
     enabled: !modoListaModelo,
   });
 
@@ -346,6 +371,31 @@ export function EtiquetasStudioCatalogo({
       return hay || tipo.includes(q) || mm.includes(q);
     });
   }, [data?.plantillas_png_sin_producto, buscar, soloArchivosPng]);
+
+  // Imprimir agrupa por categoría de producto y no solo por tamaño: un mismo
+  // producto suele llevar varias etiquetas de tamaños distintos, y buscarlas en
+  // una lista plana de 90 archivos no era viable.
+  const gruposPng = useMemo(() => {
+    const porCategoria = new Map<string, RecursoPngCatalogo[]>();
+    for (const item of plantillasPngFiltradas) {
+      const cat = item.categoria_producto || CATEGORIA_ETIQUETA_OTROS;
+      const lista = porCategoria.get(cat) ?? [];
+      lista.push(item);
+      porCategoria.set(cat, lista);
+    }
+    const orden = categoriasEtiqueta.map((c) => c.id);
+    return [...porCategoria.entries()]
+      .sort((a, b) => {
+        const ia = orden.indexOf(a[0]);
+        const ib = orden.indexOf(b[0]);
+        return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib);
+      })
+      .map(([id, items]) => ({
+        id,
+        etiqueta: etiquetaCategoriaEn(categoriasEtiqueta, id),
+        items,
+      }));
+  }, [plantillasPngFiltradas, categoriasEtiqueta]);
 
   useEffect(() => {
     if (buscar.trim() && plantillasSueltasFiltradas.length > 0) {
@@ -723,10 +773,17 @@ export function EtiquetasStudioCatalogo({
           {isFetching ? "Cargando PNG…" : "Sin archivos PNG"}
         </p>
       ) : (
-        <div className={`grid grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4 lg:grid-cols-6 ${
+        <div className={`space-y-3 overflow-y-auto ${
           soloArchivosPng ? "max-h-[min(70vh,640px)]" : "max-h-80"
         }`}>
-          {plantillasPngFiltradas.map((item) => {
+          {gruposPng.map((grupo) => (
+            <section key={grupo.id}>
+              <h4 className="mb-1 flex items-baseline gap-2 px-0.5 text-[11px] font-bold text-accent-plum">
+                {grupo.etiqueta}
+                <span className="font-normal text-accent-plum/70">{grupo.items.length}</span>
+              </h4>
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 lg:grid-cols-6">
+                {grupo.items.map((item) => {
             const nombre = item.nombre;
             const activo = pngSeleccionados.has(nombre);
             const fmt = labelFormatoPng(item);
@@ -769,9 +826,31 @@ export function EtiquetasStudioCatalogo({
                 ) : (
                   <p className="px-1.5 pb-1 text-[9px] text-muted">Sin formato</p>
                 )}
+                {/* Reasignar categoría: lo deducido del nombre acierta casi siempre,
+                    pero el operador manda y la corrección queda guardada. */}
+                <select
+                  value={item.categoria_producto || CATEGORIA_ETIQUETA_OTROS}
+                  disabled={recategorizando === nombre}
+                  title="Categoría de producto"
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    setRecategorizando(nombre);
+                    recategorizarPngMut.mutate({ nombre, categoria: e.target.value });
+                  }}
+                  className="mx-1 mb-1 rounded border border-border bg-surface px-1 py-0.5 text-[9px] text-muted disabled:opacity-50"
+                >
+                  {categoriasEtiqueta.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.etiqueta}
+                    </option>
+                  ))}
+                </select>
               </div>
             );
-          })}
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>

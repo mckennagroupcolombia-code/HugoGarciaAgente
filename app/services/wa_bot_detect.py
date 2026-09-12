@@ -25,9 +25,9 @@ def parece_respuesta_bot(texto: str) -> bool:
         return True
     if "recibí su comprobante" in low and "contabilidad" in low:
         return True
-    # Respuestas largas con tono Hugo (veci + párrafo extenso)
-    if re.search(r"\bveci\b", low) and len(t) > 100:
-        return True
-    if low.count("veci") >= 2:
-        return True
+    # Antes: "veci" + párrafo largo ⇒ bot. Falso positivo grave (sep-2026): el
+    # equipo también escribe "veci" (y el reescritor del panel lo agrega), así que
+    # las respuestas del asesor quedaban como del bot y el bot creía que nadie
+    # humano atendía el chat. Las respuestas reales del bot ya llegan marcadas
+    # por el puente (marcarEnvioBot) o con su wa_id; aquí solo frases exactas.
     return False

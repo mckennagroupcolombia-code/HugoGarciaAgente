@@ -911,6 +911,131 @@ from app.services.autocorrector import (
 )
 
 
+# --- Escalación a humano (ver docs: Bloque A, sep-2026) -------------------
+#
+# Contexto: hasta sep-2026 dos interceptores de `/whatsapp` respondían
+# "déjame consultar esa información con mi equipo y le confirmo en un momento".
+# En 30 días salió 45 veces a 34 clientes y el 60% NUNCA recibió respuesta
+# humana en las 2h siguientes: es la misma promesa vacía que costó la
+# confianza en jul-2026. La frase queda prohibida (ver _PAT_PROMESA_VACIA).
+#
+# Reglas nuevas:
+#   1. Solo se escala cuando el cliente PIDE un humano de forma explícita
+#      (_PAT_PIDE_HUMANO, con límites de palabra). Antes bastaba con que el
+#      mensaje contuviera la subcadena "asesor" en cualquier contexto.
+#   2. Los temas sensibles (descuento, reclamo, garantía, devolución) avisan
+#      al grupo EN PARALELO pero NO pisan la respuesta del LLM.
+#   3. El texto que se le manda al cliente tiene que ser cumplible: no promete
+#      un plazo que nadie garantiza y aprovecha el turno para adelantar trabajo.
+
+_PAT_PIDE_HUMANO = re.compile(
+    # verbo de contacto/solicitud + referencia a una persona, en la misma frase
+    r"\b(?:hablar|comunic\w*|pasar\w*|p[aá]s\w*|contact\w*|atend\w*|transferir\w*"
+    r"|necesit\w*|quiero|requiero|solicito)"
+    r"\b[^.?!\n]{0,40}?\b(?:asesor(?:es|a|as)?|humano\w*|persona|alguien|agente|vendedor\w*|ejecutiv\w*)\b"
+    # o el mensaje ES la petición: "asesor", "con un asesor por favor", "agente humano"
+    r"|^\s*(?:con\s+)?(?:un[ao]?\s+|el\s+|la\s+)?(?:asesor(?:es|a|as)?|agente\s+humano|humano)"
+    r"(?:\s*,?\s*(?:por\s+favor|porfa\w*|pf|gracias))?\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
+
+_PAT_TEMA_SENSIBLE = re.compile(
+    r"\b(?:descuent\w*|reclamo\w*|garant[ií]a\w*|devoluci[oó]n\w*|devolver)\b"
+    r"|m[aá]s\s+barat[oa]|precio\s+especial",
+    re.IGNORECASE,
+)
+
+# Frase prohibida: promesa de seguimiento que el equipo no cumple.
+_PAT_PROMESA_VACIA = re.compile(
+    r"(?:d[ée]jame\s+(?:consultar|verificar)[^.\n]*?)?\ble\s+confirmo\s+en\s+un\s+momento\b[^.\n]*\.?\s*🙏?",
+    re.IGNORECASE,
+)
+
+
+def _grupo_escalacion_clientes() -> str:
+    """Grupo que recibe las escalaciones de clientes de WhatsApp.
+
+    Seam de configuración: hoy cae al grupo que ya venía recibiéndolas
+    (Facturacion_Compras_SIIGO vía GRUPO_FACTURACION_COMPRAS_WA), que es un
+    grupo de 2 personas y NO es el destino natural para una consulta comercial.
+    Apuntar GRUPO_ESCALACION_CLIENTES_WA al grupo que atienda ventas.
+    """
+    return _jid_limpio(
+        os.getenv("GRUPO_ESCALACION_CLIENTES_WA", "")
+        or os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
+    )
+
+
+def _texto_escalacion_cliente() -> str:
+    """Respuesta cumplible cuando el cliente pide un asesor humano.
+
+    No dice "en un momento": o el equipo está en horario y contesta por este
+    mismo chat, o está fuera de horario y se dice con todas sus letras.
+    """
+    if _fuera_horario_laboral_equipo():
+        return (
+            "Listo veci, ya le pasé su mensaje al equipo. En este momento estamos "
+            "fuera del horario de atención (lunes a viernes, 8:00 a 18:00), así que "
+            "un asesor le responde por este mismo chat apenas abramos.\n\n"
+            "Si quiere, mientras tanto dígame qué producto necesita y le voy "
+            "adelantando la cotización. 🙏"
+        )
+    return (
+        "Listo veci, ya le pasé su mensaje al equipo. Un asesor le responde por "
+        "este mismo chat.\n\n"
+        "Si quiere, mientras tanto dígame qué producto necesita y le voy "
+        "adelantando la cotización. 🙏"
+    )
+
+
+def _alertar_escalacion_cliente(sender_id: str, message_text: str, motivo: str) -> None:
+    """Avisa al grupo. Nunca bloquea ni reemplaza la respuesta al cliente."""
+    try:
+        from app.services.wa_jid import formato_display
+
+        etiqueta = formato_display(sender_id)
+    except Exception:
+        etiqueta = sender_id
+    aviso = (
+        f"🙋 *CLIENTE PIDE ASESOR* ({motivo})\n"
+        f"👤 {etiqueta} ({sender_id})\n"
+        f"💬 {message_text[:400]}\n\n"
+        f"Responder con: `resp {sender_id}: <respuesta>`"
+    )
+    try:
+        enviar_whatsapp_reporte(aviso, numero_destino=_grupo_escalacion_clientes())
+    except Exception as exc:  # nunca tumbar el turno del cliente por el aviso
+        print(f"⚠️ [ESCALACION] no se pudo avisar al grupo: {exc}")
+
+
+_adjuntos_no_descargados_avisados: dict[str, float] = {}
+
+
+def _alertar_adjunto_no_descargado(sender_id: str, tipo: str, texto: str, grupo: str) -> None:
+    """Una alerta por cliente cada 10 min: el archivo solo se puede ver en el teléfono."""
+    ahora = time.time()
+    if ahora - _adjuntos_no_descargados_avisados.get(sender_id, 0) < 600:
+        return
+    _adjuntos_no_descargados_avisados[sender_id] = ahora
+    try:
+        from app.services.wa_jid import formato_display
+
+        etiqueta = formato_display(sender_id)
+    except Exception:
+        etiqueta = sender_id
+    nombre_tipo = {"image": "una imagen", "document": "un documento/PDF", "video": "un video"}.get(tipo, "un adjunto")
+    aviso = (
+        f"📎 *ADJUNTO SIN DESCARGAR*\n"
+        f"Cliente {etiqueta} envió {nombre_tipo} que el sistema no pudo descargar.\n"
+        f"Si es un comprobante de pago, revísalo directamente en el teléfono."
+        + (f"\n💬 {texto[:300]}" if texto else "")
+    )
+    try:
+        enviar_whatsapp_reporte(aviso, numero_destino=grupo)
+    except Exception as exc:
+        print(f"⚠️ [ADJUNTO] no se pudo avisar: {exc}")
+
+
 def _normalizar_respuesta_cliente(texto: str) -> str:
     """Evita enviar mensajes legacy/confusos al cliente final."""
     if not texto:
@@ -921,6 +1046,15 @@ def _normalizar_respuesta_cliente(texto: str) -> str:
             "Veci, tuvimos un problema técnico temporal. "
             "¿Me reenvía su mensaje, por favor? 🙏"
         )
+    # Red de seguridad: la promesa vacía no sale al cliente venga de donde venga
+    # (interceptor legacy, prompt, o alucinación del modelo).
+    if _PAT_PROMESA_VACIA.search(texto):
+        limpio = _PAT_PROMESA_VACIA.sub("", texto).strip()
+        # Si al quitar la promesa solo queda el vocativo ("Veci,") o un resto
+        # sin contenido, el mensaje no dice nada: mejor la escalación honesta.
+        if len(re.sub(r"[^0-9A-Za-zÁÉÍÓÚÑáéíóúñ]", "", limpio)) < 20:
+            return _texto_escalacion_cliente()
+        texto = limpio
     return texto
 
 
@@ -2601,6 +2735,20 @@ def register_routes(app):
             except Exception:
                 pass
 
+        # --- Adjunto que el puente no pudo descargar (whatsapp-web.js roto) ---
+        # Sin esto el comprobante o el PDF del cliente se perdía en silencio.
+        if (
+            data.get("mediaError")
+            and not es_any_grupo_admin
+            and not es_grupo_sede_sur
+            and not str(sender_id).endswith("@g.us")
+        ):
+            spawn_thread(
+                _alertar_adjunto_no_descargado,
+                args=(sender_id, str(data.get("tipoMensaje") or ""), message_text, grupo_compras),
+                daemon=True,
+            )
+
         # --- Números silenciados (spam / no clientes) ---
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             _modos_sil = cargar_modos_atencion()
@@ -2611,8 +2759,26 @@ def register_routes(app):
                 _wa_log("silenciado_ignorado", sender_id, (message_text or "")[:200])
                 return jsonify({"status": "silenciado", "respuesta": None})
 
+        # --- Agente de ventas v2 (app/agent/ventas_wa, bandera WA_AGENTE_V2) ---
+        from app.agent.ventas_wa.entrada import modo as _v2_modo_fn
+
+        _v2_modo = _v2_modo_fn()
+        _v2_aplica = (
+            _v2_modo != "off"
+            and not es_any_grupo_admin
+            and not es_grupo_sede_sur
+            and not is_after_sale
+            and not str(sender_id).endswith("@g.us")
+        )
+        if _v2_aplica and _v2_modo == "sombra":
+            from app.agent.ventas_wa.entrada import atender_en_sombra
+
+            atender_en_sombra(sender_id, wa_id=data.get("wa_id"), ts_msg=data.get("ts"))
+
         # --- Solicitud explícita de humano ---
-        if not es_any_grupo_admin and not es_grupo_sede_sur:
+        # Con v2 activo lo resuelve el agente (pasar_a_asesor) sin dejar el chat
+        # en modo humano para siempre, que es lo que hace este bloque legacy.
+        if not es_any_grupo_admin and not es_grupo_sede_sur and not (_v2_aplica and _v2_modo == "activo"):
             razon_h = _detectar_solicitud_humano(message_text)
             if razon_h:
                 from app.services.wa_jid import aplicar_modo_en_relacionados
@@ -2852,7 +3018,9 @@ def register_routes(app):
                         "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
                     }
                 )
-        elif is_payment_keyword_sin_img and not has_media:
+        elif is_payment_keyword_sin_img and not has_media and not (_v2_aplica and _v2_modo == "activo"):
+            # Legacy: "transferencia"/"consign…" sin imagen → pedía la imagen aunque
+            # el cliente solo preguntara cómo pagar. Con v2 activo decide el agente.
             return jsonify(
                 {
                     "status": "missing_image",
@@ -2881,33 +3049,40 @@ def register_routes(app):
                 }
             )
 
+        if _v2_aplica and _v2_modo == "activo":
+            from app.agent.ventas_wa.entrada import atender as _v2_atender
+
+            _v2_res = _v2_atender(sender_id, wa_id=data.get("wa_id"), ts_msg=data.get("ts"))
+            if _v2_res.get("respuesta"):
+                _v2_res["respuesta"] = _normalizar_respuesta_cliente(_v2_res["respuesta"])
+            return jsonify(_v2_res)
+
         # --- Escalación al Grupo ---
-        keywords_escalacion = [
-            "quiero hablar con una persona",
-            "hablar con alguien",
-            "asesor",
-            "agente humano",
-            "devolución",
-            "reclamo",
-            "garantía",
-            "descuento",
-            "precio especial",
-            "más barato",
-            "mas barato",
-        ]
-        if any(keyword in message_text.lower() for keyword in keywords_escalacion):
-            mensaje_aprobacion = (
-                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
-                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
-            )
-            enviar_whatsapp_reporte(
-                mensaje_aprobacion, numero_destino=grupo_contabilidad
+        # Solo cuando el cliente pide un humano EXPLÍCITAMENTE. El match por
+        # subcadena anterior ("asesor" en cualquier posición) disparaba esta
+        # rama en conversaciones normales y mataba el turno del LLM.
+        if _PAT_PIDE_HUMANO.search(message_text or ""):
+            # Decisión deliberada: NO se pausa el bot aquí (existe
+            # _pausar_por_bot, y el chat web sí lo hace en app/core.py). Con el
+            # 60% de escalaciones históricamente sin respuesta humana en 2h,
+            # silenciar el bot dejaría al cliente sin nadie; además el texto de
+            # escalación se ofrece a seguir adelantando la cotización, así que
+            # tiene que poder responder. El humano toma el chat desde el panel.
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "pidió hablar con un asesor"),
             )
             return jsonify(
-                {
-                    "status": "escalated",
-                    "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏",
-                }
+                {"status": "escalated", "respuesta": _texto_escalacion_cliente()}
+            )
+
+        # Temas sensibles (descuento, reclamo, garantía, devolución): el equipo
+        # se entera EN PARALELO, pero el cliente igual recibe la respuesta del
+        # LLM en vez de un texto enlatado que no resuelve nada.
+        if _PAT_TEMA_SENSIBLE.search(message_text or ""):
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "tema sensible: requiere revisión humana"),
             )
 
         # --- Procesamiento del Mensaje por la IA ---
@@ -2944,20 +3119,15 @@ def register_routes(app):
 
         respuesta_ia = _normalizar_respuesta_cliente(respuesta_ia)
 
+        # Si el LLM expresó incertidumbre, se avisa al grupo pero NO se pisa su
+        # respuesta: una negativa honesta y contextualizada ("ese precio se lo
+        # confirma un asesor") le sirve más al cliente que la promesa enlatada
+        # que se enviaba aquí antes.
         incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]
         if any(frase in respuesta_ia.lower() for frase in incertidumbre_ia):
-            mensaje_aprobacion = (
-                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
-                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
-            )
-            enviar_whatsapp_reporte(
-                mensaje_aprobacion, numero_destino=grupo_contabilidad
-            )
-            return jsonify(
-                {
-                    "status": "escalated",
-                    "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏",
-                }
+            spawn_thread(
+                _alertar_escalacion_cliente,
+                args=(sender_id, message_text, "la IA no pudo resolverlo"),
             )
 
         # --- Gestión de la Respuesta ---
@@ -3046,6 +3216,28 @@ def register_routes(app):
                 ),
                 400,
             )
+        # --- Agente de ventas v2 en el chat web (bandera WEB_AGENTE_V2) ---
+        from app.agent.ventas_wa.entrada import atender_web, modo_web
+
+        _web_v2 = modo_web() if es_web_chat and mensaje and not adjuntos else "off"
+        if _web_v2 == "activo":
+            try:
+                r = atender_web(session_id, mensaje, pagina=page_url)
+                if r.get("respuesta"):
+                    return jsonify(
+                        {
+                            "respuesta": r["respuesta"],
+                            "acciones": r.get("acciones") or [],
+                            "timestamp": datetime.now().isoformat(),
+                            "status": "ok",
+                            "source": "agent_v2",
+                        }
+                    )
+            except Exception as e:  # si v2 falla, responde el flujo de siempre
+                log_json("web_v2_error", error=str(e)[:200])
+        elif _web_v2 == "sombra":
+            spawn_thread(atender_web, args=(session_id, mensaje), kwargs={"pagina": page_url}, daemon=True)
+
         try:
             respuesta, _ = obtener_respuesta_ia(
                 mensaje,
@@ -6823,6 +7015,53 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    @app.route("/api/facturacion/ventas-unificadas/historial", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/historial", methods=["GET"])
+    def api_facturacion_ventas_historial():
+        """Histórico extenso desde SQLite, sin llamar a MeLi ni a Alegra.
+
+        El listado en vivo está topado en 150 filas porque cada una cuesta hasta
+        3 llamadas HTTP a MeLi. Acá se sirve lo YA reconstruido (se persiste con
+        cada listado), así el operador puede revisar miles de ventas al instante.
+        El estado es una foto: cada fila trae `cache_actualizado_en` y se refresca
+        una por una con /refrescar/<order_id>.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.facturacion_ventas_cache import estadisticas, listar_historial
+
+            data = listar_historial(
+                segmento=(request.args.get("segmento") or "concretadas").strip().lower(),
+                estado=(request.args.get("estado") or "").strip() or None,
+                q=(request.args.get("q") or "").strip() or None,
+                limite=int(request.args.get("limit") or 500),
+                offset=int(request.args.get("offset") or 0),
+            )
+            data["estadisticas"] = estadisticas()
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)[:300], "ventas": []}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/refrescar/<order_id>", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/refrescar/<order_id>", methods=["POST"])
+    def api_facturacion_ventas_refrescar(order_id):
+        """Re-consulta UNA venta contra MeLi/Alegra y actualiza su fila del
+        histórico. MeLi no deja refrescar el estado de cientos de ventas de
+        golpe (cada una son varias llamadas), así que el refresco es puntual:
+        el operador corrobora la venta que le interesa, no todo el listado."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.facturacion_ventas_unificado import consultar_venta_individual
+
+            fila = consultar_venta_individual(str(order_id))
+            if not fila:
+                return jsonify({"ok": False, "error": "No se encontró esa orden/pack en MeLi."}), 404
+            return jsonify({"ok": True, "venta": fila})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
     @app.route("/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     @app.route("/app/api/facturacion/ventas-unificadas/comprador/<order_id>", methods=["GET"])
     def api_facturacion_ventas_unificadas_comprador(order_id):
@@ -6867,10 +7106,15 @@ def register_routes(app):
     @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
     def api_facturacion_ventas_unificadas_facturar_ahora():
         """Botón "Facturar ahora" del panel Ventas y NC (ver TKT-2026-1178):
-        emite en Alegra, desde la aplicación, una venta MeLi puntual marcada
-        "🔴 Sin facturar" — sin tener que ir a Alegra manualmente. Reusa la
-        misma lógica que la autofactura automática al entregarse el pedido
-        (Flujo G), pero disparada por un operador para UNA orden concreta."""
+        emite en Alegra, desde la aplicación, una venta MeLi entregada sin
+        factura — sin tener que ir a Alegra manualmente.
+
+        Factura el CARRITO COMPLETO, no la orden de la fila: un carrito de N
+        productos son N órdenes con el mismo `pack_id`, y facturar solo una deja
+        el resto sin facturar (el error que obligó a emitir notas crédito y
+        reemitir consolidado a mano en sep-2026). Ver
+        `facturar_pack_meli_manual`, que aborta sin emitir si alguna orden del
+        pack ya está facturada."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json(silent=True) or {}
@@ -6878,10 +7122,15 @@ def register_routes(app):
         if not order_id:
             return jsonify({"ok": False, "error": "order_id requerido"}), 400
         try:
-            from app.tools.meli_autofactura_entrega import facturar_orden_meli_manual
+            from app.tools.meli_autofactura_entrega import facturar_pack_meli_manual
 
-            resultado = facturar_orden_meli_manual(order_id)
-            return jsonify(resultado), (200 if resultado.get("ok") else 502)
+            resultado = facturar_pack_meli_manual(order_id)
+            # 200 siempre que el endpoint mismo respondió bien: un fallo de negocio
+            # (producto sin mapear en Alegra, datos de facturación incompletos, etc.)
+            # no es un "Bad Gateway" — antes se mapeaba a 502 y el panel lo mostraba
+            # como si el backend se hubiera caído, cuando el error real venía en
+            # `resultado["error"]` (ver TKT facturar-ahora 502 falso positivo, sep-2026).
+            return jsonify(resultado), 200
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:300]}), 500
 
@@ -7186,10 +7435,14 @@ def register_routes(app):
     @app.route("/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     @app.route("/app/api/alegra/catalogo/<path:codigo>", methods=["PUT", "PATCH"])
     def api_alegra_catalogo_editar(codigo: str):
-        """Edita nombre, precio y/o composición de kit en Alegra + espejo local.
+        """Edita SKU, nombre, precio y/o composición de kit en Alegra + espejo local.
 
         ``componentes`` solo aplica a combos/kits y solo si Alegra no tiene
         movimientos asociados (si los hay → 409 + ``bloqueado_movimientos``).
+        ``nuevo_codigo`` (cambio de SKU/reference) tiene la misma restricción y
+        aplica a productos y combos por igual; no se propaga a MeLi, la
+        sincronización de stock web ni proveedores.db — eso lo debe hacer el
+        operador aparte.
         """
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -7202,10 +7455,17 @@ def register_routes(app):
         componentes = body.get("componentes")
         if componentes is None:
             componentes = body.get("components")
-        if nombre is None and precio_raw is None and componentes is None:
+        nuevo_codigo = body.get("nuevo_codigo")
+        if nuevo_codigo is None:
+            nuevo_codigo = body.get("sku_nuevo")
+        if nuevo_codigo is not None:
+            nuevo_codigo = str(nuevo_codigo).strip()
+            if not nuevo_codigo or nuevo_codigo.upper() == codigo.upper():
+                nuevo_codigo = None
+        if nombre is None and precio_raw is None and componentes is None and nuevo_codigo is None:
             return jsonify({
                 "ok": False,
-                "error": "Enviá nombre, precio_lista y/o componentes",
+                "error": "Enviá nombre, precio_lista, componentes y/o nuevo_codigo",
             }), 400
         if componentes is not None:
             if not isinstance(componentes, list) or len(componentes) < 1:
@@ -7218,12 +7478,32 @@ def register_routes(app):
                 actualizar_combo_alegra,
                 actualizar_nombre_alegra_producto,
                 actualizar_precio_alegra_producto,
+                actualizar_referencia_alegra_producto,
             )
             from app.services import alegra_catalogo_db as cat
             from app.panel_activity import log_line
 
             cambios: dict = {}
             comps_guardados = None
+
+            # SKU primero: si cambia, todo lo demás abajo debe usar el código
+            # nuevo (Alegra ya no encuentra el ítem por el `reference` viejo).
+            if nuevo_codigo is not None:
+                log_line(f"▶ catalogo_editar_sku {codigo} → {nuevo_codigo}")
+                r_sku = actualizar_referencia_alegra_producto(codigo, nuevo_codigo)
+                if not r_sku.get("ok"):
+                    err = r_sku.get("error") or r_sku.get("msg") or "Error cambiando SKU"
+                    status = 409 if r_sku.get("bloqueado_movimientos") else 400
+                    return jsonify({
+                        "ok": False,
+                        "error": err,
+                        "bloqueado_movimientos": bool(r_sku.get("bloqueado_movimientos")),
+                    }), status
+                codigo_nuevo = r_sku.get("codigo_nuevo") or nuevo_codigo
+                cat.renombrar_referencia_local(codigo, codigo_nuevo)
+                cambios["codigo_anterior"] = codigo
+                codigo = codigo_nuevo
+                cambios["codigo"] = codigo
 
             # Composición primero: un solo PUT de kit puede llevar también
             # nombre/precio; evita dos escrituras si el operador cambia todo.
@@ -8580,6 +8860,35 @@ def register_routes(app):
             as_attachment=True,
         )
 
+    @app.route("/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro/enviar", methods=["POST"])
+    @app.route("/app/api/rentabilidad/compras-exterior/<int:compra_id>/cuenta-cobro/enviar", methods=["POST"])
+    def api_compras_exterior_enviar_cuenta_cobro(compra_id: int):
+        """Envía por correo la cuenta de cobro al emisor (el socio/familiar que la
+        expide). El destinatario sale del perfil del usuario que figura como
+        emisor, no de una lista fija. `dry_run` para revisar antes de disparar.
+
+        Body: { tipo?: "mercancia"|"flete", destinatario?, nota?, dry_run? }
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.cuenta_cobro_cuota_manejo import enviar_cuenta_cobro
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                enviar_cuenta_cobro(
+                    compra_id,
+                    tipo=str(d.get("tipo") or "mercancia"),
+                    destinatario=str(d.get("destinatario") or ""),
+                    nota=str(d.get("nota") or ""),
+                    dry_run=bool(d.get("dry_run")),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/app/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     @app.route("/api/rentabilidad/compras-exterior/cuentas-cobro/reset", methods=["POST"])
     def api_compras_exterior_cuentas_cobro_reset():
@@ -9129,6 +9438,386 @@ def register_routes(app):
             return jsonify({"ok": False, "error": "No encontrado"}), 404
         return jsonify({"ok": True})
 
+    # ── Mensajería: envíos diarios y pagos a la transportadora ────────────────
+    # Reemplaza el Excel "ENVIOS INTERRA" (TKT-2026-1219). Ver
+    # app/services/mensajeria_pagos.py.
+
+    def _mensajeria_uid():
+        u = _panel_tickets_usuario()
+        return int(u["id"]) if u else None
+
+    @app.route("/api/mensajeria/envios", methods=["GET"])
+    @app.route("/app/api/mensajeria/envios", methods=["GET"])
+    def api_mensajeria_envios_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mensajeria_pagos import listar_envios, resumen
+
+        return jsonify({
+            "envios": listar_envios(
+                (request.args.get("desde") or "").strip(),
+                (request.args.get("hasta") or "").strip(),
+                transportadora=(request.args.get("transportadora") or "").strip(),
+                solo_pendientes=(request.args.get("pendientes") or "") in ("1", "true"),
+            ),
+            "resumen": resumen(),
+        })
+
+    @app.route("/api/mensajeria/envios", methods=["POST"])
+    @app.route("/app/api/mensajeria/envios", methods=["POST"])
+    def api_mensajeria_envios_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.mensajeria_pagos import guardar_envio
+
+            envio = guardar_envio(request.get_json(silent=True) or {}, created_by=_mensajeria_uid())
+            return jsonify({"ok": True, "envio": envio})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/mensajeria/envios/<int:envio_id>", methods=["DELETE"])
+    @app.route("/app/api/mensajeria/envios/<int:envio_id>", methods=["DELETE"])
+    def api_mensajeria_envios_delete(envio_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.mensajeria_pagos import eliminar_envio
+
+            if not eliminar_envio(envio_id):
+                return jsonify({"ok": False, "error": "No encontrado"}), 404
+            return jsonify({"ok": True})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/mensajeria/importar", methods=["POST"])
+    @app.route("/app/api/mensajeria/importar", methods=["POST"])
+    def api_mensajeria_importar():
+        """Pega filas del Excel. `preview=true` solo interpreta, no guarda."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        texto = str(data.get("texto") or "")
+        if not texto.strip():
+            return jsonify({"ok": False, "error": "Pega las filas del Excel"}), 400
+        try:
+            from app.services.mensajeria_pagos import (
+                TRANSPORTADORA_DEFAULT,
+                importar_pegado,
+                parsear_pegado,
+            )
+
+            transportadora = str(data.get("transportadora") or TRANSPORTADORA_DEFAULT).strip()
+            if data.get("preview"):
+                return jsonify({"ok": True, **parsear_pegado(texto)})
+            return jsonify(
+                importar_pegado(
+                    texto, transportadora=transportadora, created_by=_mensajeria_uid()
+                )
+            )
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes", methods=["GET"])
+    @app.route("/app/api/mensajeria/lotes", methods=["GET"])
+    def api_mensajeria_lotes_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mensajeria_pagos import listar_lotes
+
+        return jsonify({"lotes": listar_lotes((request.args.get("estado") or "").strip())})
+
+    @app.route("/api/mensajeria/lotes", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes", methods=["POST"])
+    def api_mensajeria_lotes_create():
+        """Agrupa días pendientes en un lote y (por defecto) abre el ticket de
+        aprobación, el mismo trámite que antes se hacía a mano."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.mensajeria_pagos import (
+                TRANSPORTADORA_DEFAULT,
+                crear_lote,
+                solicitar_aprobacion,
+            )
+
+            uid = _mensajeria_uid()
+            lote = crear_lote(
+                data.get("envio_ids") or [],
+                transportadora=str(data.get("transportadora") or TRANSPORTADORA_DEFAULT).strip(),
+                notas=str(data.get("notas") or ""),
+                created_by=uid,
+            )
+            ticket = None
+            if data.get("solicitar_aprobacion", True):
+                try:
+                    ticket = solicitar_aprobacion(lote["id"], creado_por=uid)
+                    lote = ticket.get("lote") or lote
+                except Exception as e:
+                    ticket = {"ok": False, "error": str(e)}
+            return jsonify({"ok": True, "lote": lote, "ticket": ticket})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/aprobacion", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/aprobacion", methods=["POST"])
+    def api_mensajeria_lote_aprobacion(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.mensajeria_pagos import solicitar_aprobacion
+
+            return jsonify(solicitar_aprobacion(lote_id, creado_por=_mensajeria_uid()))
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/pagar", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/pagar", methods=["POST"])
+    def api_mensajeria_lote_pagar(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.mensajeria_pagos import marcar_lote_pagado
+
+            lote = marcar_lote_pagado(
+                lote_id,
+                fecha_pago=str(data.get("fecha_pago") or ""),
+                banco=str(data.get("banco") or ""),
+                referencia=str(data.get("referencia") or ""),
+                notas=str(data.get("notas") or ""),
+                monto=data.get("monto"),
+            )
+            return jsonify({"ok": True, "lote": lote})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/reabrir", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/reabrir", methods=["POST"])
+    def api_mensajeria_lote_reabrir(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.mensajeria_pagos import reabrir_lote
+
+            return jsonify({"ok": True, "lote": reabrir_lote(lote_id)})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>", methods=["DELETE"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>", methods=["DELETE"])
+    def api_mensajeria_lote_delete(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mensajeria_pagos import eliminar_lote
+
+        if not eliminar_lote(lote_id):
+            return jsonify({"ok": False, "error": "No encontrado"}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["POST"])
+    def api_mensajeria_comprobante_subir(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("archivo") or request.files.get("file")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe el archivo en multipart «archivo»"}), 400
+        contenido = archivo.read()
+        if len(contenido) > 15 * 1024 * 1024:
+            return jsonify({"error": "Archivo demasiado grande (máx 15 MB)"}), 400
+        try:
+            from app.services.mensajeria_pagos import guardar_comprobante
+
+            return jsonify({
+                "ok": True,
+                "lote": guardar_comprobante(
+                    lote_id, contenido, archivo.filename, archivo.mimetype or ""
+                ),
+            })
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["GET"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["GET"])
+    def api_mensajeria_comprobante_ver(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        try:
+            from app.services.mensajeria_pagos import ruta_comprobante
+
+            res = ruta_comprobante(lote_id)
+            if not res:
+                return jsonify({"error": "Este pago no tiene comprobante adjunto"}), 404
+            ruta_abs, mime, nombre = res
+            return send_file(ruta_abs, mimetype=mime, download_name=nombre, as_attachment=False)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["DELETE"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/comprobante", methods=["DELETE"])
+    def api_mensajeria_comprobante_eliminar(lote_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mensajeria_pagos import eliminar_comprobante
+
+        return jsonify({"ok": eliminar_comprobante(lote_id)})
+
+    # ── Guías / rótulos de envío para impresora térmica ───────────────────────
+    # Reemplaza el formato Excel/Word de despachos. Ver app/tools/guias_envio.py.
+
+    @app.route("/api/guias/pedidos", methods=["GET"])
+    @app.route("/app/api/guias/pedidos", methods=["GET"])
+    def api_guias_pedidos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.guias_envio import listar_pedidos
+
+            return jsonify(
+                listar_pedidos(
+                    dias=int(request.args.get("dias") or 10),
+                    q=(request.args.get("q") or "").strip(),
+                    canal=(request.args.get("canal") or "").strip(),
+                )
+            )
+        except Exception as e:
+            return jsonify({"error": str(e), "pedidos": [], "total": 0}), 500
+
+    @app.route("/api/guias/remitente", methods=["GET"])
+    @app.route("/app/api/guias/remitente", methods=["GET"])
+    def api_guias_remitente_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.guias_envio import leer_remitente
+
+        return jsonify({"remitente": leer_remitente()})
+
+    @app.route("/api/guias/remitente", methods=["PUT", "POST"])
+    @app.route("/app/api/guias/remitente", methods=["PUT", "POST"])
+    def api_guias_remitente_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.guias_envio import guardar_remitente
+
+            return jsonify({"ok": True, "remitente": guardar_remitente(request.get_json(silent=True) or {})})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/guias/rotulos", methods=["POST"])
+    @app.route("/app/api/guias/rotulos", methods=["POST"])
+    def api_guias_rotulos_crear():
+        """Registra los rótulos a imprimir y devuelve la URL del PDF."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.tools.guias_envio import (
+                TAMANO_DEFAULT,
+                datos_de_pedido,
+                normalizar_datos,
+                registrar_rotulo,
+            )
+
+            u = _panel_tickets_usuario()
+            uid = int(u["id"]) if u else None
+            copias = max(1, min(5, int(data.get("copias") or 1)))
+            tamano = str(data.get("tamano") or TAMANO_DEFAULT)
+            pendientes: list[dict] = []
+
+            for ref in data.get("pedidos") or []:
+                canal = str((ref or {}).get("canal") or "")
+                pedido_id = str((ref or {}).get("id") or (ref or {}).get("pedido_id") or "")
+                datos = datos_de_pedido(canal, pedido_id)
+                if not datos:
+                    return jsonify({"ok": False, "error": f"No encontré el pedido {pedido_id}"}), 404
+                # Campos que el operador pudo ajustar en el panel (guía, peso, piezas…)
+                extra = (ref or {}).get("ajustes") or {}
+                pendientes.append({**datos, **{k: v for k, v in extra.items() if v not in (None, "")}})
+
+            if data.get("manual"):
+                pendientes.append({**(data.get("manual") or {}), "canal": "manual"})
+
+            if not pendientes:
+                return jsonify({"ok": False, "error": "Elige al menos un pedido"}), 400
+
+            ids = []
+            for datos in pendientes:
+                normal = normalizar_datos(datos)
+                ids.append(registrar_rotulo(normal, copias=copias, creado_por=uid))
+
+            query = ",".join(str(i) for i in ids)
+            return jsonify({
+                "ok": True,
+                "ids": ids,
+                "pdf_url": f"/api/guias/rotulos.pdf?ids={query}&tamano={tamano}",
+            })
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/guias/rotulos.pdf", methods=["GET"])
+    @app.route("/app/api/guias/rotulos.pdf", methods=["GET"])
+    def api_guias_rotulos_pdf():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import Response
+
+        try:
+            from app.tools.guias_envio import TAMANO_DEFAULT, generar_desde_ids
+
+            ids = [
+                int(x) for x in (request.args.get("ids") or "").split(",") if x.strip().isdigit()
+            ]
+            if not ids:
+                return jsonify({"error": "Falta ids"}), 400
+            pdf = generar_desde_ids(ids, tamano=str(request.args.get("tamano") or TAMANO_DEFAULT))
+            return Response(
+                pdf,
+                mimetype="application/pdf",
+                headers={"Content-Disposition": 'inline; filename="rotulos_envio.pdf"'},
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/guias/historial", methods=["GET"])
+    @app.route("/app/api/guias/historial", methods=["GET"])
+    def api_guias_historial():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.guias_envio import historial
+
+        return jsonify({"rotulos": historial(int(request.args.get("dias") or 15))})
+
+    @app.route("/api/guias/conteo", methods=["GET"])
+    @app.route("/app/api/guias/conteo", methods=["GET"])
+    def api_guias_conteo():
+        """Rótulos impresos en un día — sugerencia para Operativos → Mensajería."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.guias_envio import conteo_por_dia
+
+        return jsonify(conteo_por_dia((request.args.get("fecha") or "").strip()))
+
     # ── Créditos adquiridos (préstamos / leasing) ─────────────────────────────
 
     @app.route("/api/contabilidad/creditos", methods=["GET"])
@@ -9251,7 +9940,7 @@ def register_routes(app):
             data = obtener_dolar_hora(force=force)
         except Exception as e:
             return jsonify({"error": f"No se pudo obtener la TRM: {e}", "unidad": "COP"}), 502
-        if data.get("error"):
+        if data.get("error") and not data.get("spot_valor"):
             return jsonify(data), 502
         return jsonify(data)
 
@@ -9429,6 +10118,28 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/extractos/<int:extracto_id>/archivo", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/<int:extracto_id>/archivo", methods=["GET"])
+    def api_contabilidad_extractos_archivo(extracto_id: int):
+        """Sirve el archivo original (CSV/Excel/PDF) subido para un extracto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+
+        try:
+            from app.services.extracto_bancario import ruta_archivo_extracto
+
+            info = ruta_archivo_extracto(extracto_id)
+            if not info:
+                return jsonify({"error": "Archivo no encontrado"}), 404
+            return send_file(
+                info["path"],
+                as_attachment=False,
+                download_name=info["nombre_descarga"],
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/extractos/<int:extracto_id>", methods=["DELETE"])
     @app.route("/app/api/contabilidad/extractos/<int:extracto_id>", methods=["DELETE"])
     def api_contabilidad_extractos_delete(extracto_id: int):
@@ -9562,6 +10273,53 @@ def register_routes(app):
             except ValueError:
                 limit = 200
             return jsonify({"pendientes": pendientes_por_clasificar(desde, hasta, limit=limit)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/clasificacion", methods=["GET"])
+    @app.route("/app/api/contabilidad/extractos/clasificacion", methods=["GET"])
+    def api_contabilidad_extractos_clasificacion():
+        """Propuesta de cuenta PUC y tercero para cada línea sin clasificar.
+
+        Solo propone: no escribe un asiento ni vincula nada. `resumen=1` devuelve
+        el consolidado por concepto — cuánto se puede aplicar en lote y cuánto
+        necesita que alguien decida.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import extracto_clasificador as ec
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            if request.args.get("resumen") in ("1", "true", "si"):
+                return jsonify(ec.resumen(desde, hasta))
+            return jsonify({"propuestas": ec.proponer(desde, hasta)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/extractos/clasificacion/aplicar", methods=["POST"])
+    @app.route("/app/api/contabilidad/extractos/clasificacion/aplicar", methods=["POST"])
+    def api_contabilidad_extractos_clasificacion_aplicar():
+        """Crea el asiento de las líneas de confianza ALTA y las vincula.
+
+        `simular` por defecto en true: este endpoint escribe en el Libro Mayor,
+        y el que solo quiere mirar no debe poder hacerlo sin decirlo.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import extracto_clasificador as ec
+
+            body = request.get_json(silent=True) or {}
+            simular = bool(body.get("simular", True))
+            r = ec.aplicar(
+                (body.get("desde") or "").strip() or None,
+                (body.get("hasta") or "").strip() or None,
+                simular=simular,
+                created_by=_cc_uid(),
+            )
+            return jsonify(r)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -10182,6 +10940,640 @@ def register_routes(app):
             payload = request.get_json(silent=True) or {}
             mov = fn(payload, created_by=_cc_uid())
             return jsonify({"ok": True, "movimiento": mov})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Préstamos recibidos de terceros ────────────────────────────────────
+    # Producto de captación con prestamistas particulares (sep-2026): tasa
+    # efectiva anual, amortización por tramos, retención del 7% y documentos
+    # al prestamista. Ver app/services/prestamos.py y Flujo M en CLAUDE.md.
+
+    @app.route("/api/contabilidad/esquema-terceros", methods=["GET"])
+    @app.route("/app/api/contabilidad/esquema-terceros", methods=["GET"])
+    def api_esquema_terceros():
+        """Saldos vivos para el apartado «Cómo funciona el esquema»: lo que se
+        les debe a los socios, la retención por declarar del período y la tabla
+        de cuantías mínimas. Ver docs/agentic/modules/relaciones-socios-terceros.md."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            import app.services.contabilidad_core as cc
+            from app.services.retenciones import resumen_conceptos, resumen_periodo, uvt
+
+            cc._ensure()
+            with cc._conn() as con:
+                socios = [
+                    {
+                        "tercero": r["tercero"] or "(sin tercero)",
+                        "identificacion": r["identificacion"] or "",
+                        "saldo": round(float(r["saldo"] or 0), 2),
+                    }
+                    for r in con.execute(
+                        """
+                        SELECT t.nombre AS tercero, t.identificacion,
+                               SUM(l.credito - l.debito) AS saldo
+                          FROM cc_movimiento_lineas l
+                          JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
+                          JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
+                          LEFT JOIN cc_terceros t ON t.id = l.tercero_id
+                         WHERE c.codigo = '2380'
+                         GROUP BY t.id
+                        HAVING ROUND(SUM(l.credito - l.debito), 2) <> 0
+                         ORDER BY saldo DESC
+                        """
+                    )
+                ]
+                fila = con.execute(
+                    """
+                    SELECT SUM(l.credito - l.debito) AS saldo
+                      FROM cc_movimiento_lineas l
+                      JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
+                      JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
+                     WHERE c.codigo = '2365'
+                    """
+                ).fetchone()
+
+            hoy = _date.today()
+            # El período relevante es el mes ANTERIOR: es el que está por declararse.
+            anio, mes = (hoy.year - 1, 12) if hoy.month == 1 else (hoy.year, hoy.month - 1)
+            periodo = resumen_periodo(anio, mes)
+            return jsonify({
+                "socios": socios,
+                "retencion_por_pagar": round(float(fila["saldo"] or 0), 2) if fila else 0.0,
+                "periodo_retencion": {
+                    "periodo": periodo["periodo"],
+                    "total_retencion": periodo["total_retencion"],
+                    "por_concepto": periodo["por_concepto"],
+                    "vencimiento": periodo["vencimiento"],
+                },
+                "uvt": uvt(hoy.year),
+                "minimos": resumen_conceptos(hoy.year),
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/alegra/espejo", methods=["GET"])
+    @app.route("/app/api/alegra/espejo", methods=["GET"])
+    def api_alegra_espejo_previsualizar():
+        """Qué asientos del Libro Mayor se espejarían a Alegra en un rango.
+        Incluye si la cuenta tiene tipo de comprobante configurado — sin eso no
+        se puede postear. Ver app/services/alegra_espejo.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra_espejo import previsualizar_periodo
+
+            desde = (request.args.get("desde") or "").strip()
+            hasta = (request.args.get("hasta") or "").strip()
+            if not desde or not hasta:
+                return jsonify({"error": "desde y hasta son requeridos (YYYY-MM-DD)"}), 400
+            tipos = (request.args.get("tipos_origen") or "").strip()
+            return jsonify(
+                previsualizar_periodo(
+                    desde, hasta, tuple(t for t in tipos.split(",") if t) or None
+                )
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/alegra/espejo/<int:movimiento_id>", methods=["POST"])
+    @app.route("/app/api/alegra/espejo/<int:movimiento_id>", methods=["POST"])
+    def api_alegra_espejo_postear(movimiento_id: int):
+        """Postea un asiento del Libro Mayor como comprobante contable en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra_espejo import espejar_movimiento
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(espejar_movimiento(movimiento_id, forzar=bool(d.get("forzar"))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Solicitudes de pago (wizard) ───────────────────────────────────
+    # El asiento nace del acto de pagar, no de un paso posterior que se olvida.
+    # Ver app/services/pagos_wizard.py.
+
+    @app.route("/api/pagos/categorias", methods=["GET"])
+    @app.route("/app/api/pagos/categorias", methods=["GET"])
+    def api_pagos_categorias():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import CATEGORIAS
+
+            return jsonify({"categorias": [
+                {"id": k, "label": v["label"], "ayuda": v["ayuda"], "icono": v["icono"],
+                 "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
+                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios"}
+                for k, v in CATEGORIAS.items()
+            ]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/opciones/<string:categoria>", methods=["GET"])
+    @app.route("/app/api/pagos/opciones/<string:categoria>", methods=["GET"])
+    def api_pagos_opciones(categoria: str):
+        """Qué se puede pagar en esa categoría — sale de los saldos reales."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import opciones
+
+            return jsonify(opciones(categoria))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/previsualizar", methods=["POST"])
+    @app.route("/app/api/pagos/previsualizar", methods=["POST"])
+    def api_pagos_previsualizar():
+        """El asiento que se crearía, sin guardar nada."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import previsualizar
+
+            return jsonify(previsualizar(request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes", methods=["GET"])
+    def api_pagos_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import listar, resumen
+
+            estado = (request.args.get("estado") or "").strip() or None
+            return jsonify({"solicitudes": listar(estado), "resumen": resumen()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes", methods=["POST"])
+    def api_pagos_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import crear_solicitud
+
+            return jsonify(crear_solicitud(request.get_json(silent=True) or {}, created_by=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/registrar", methods=["POST"])
+    @app.route("/app/api/pagos/registrar", methods=["POST"])
+    def api_pagos_registrar_directo():
+        """Registra el pago YA aprobado, en un paso. Solo administradores.
+
+        Los socios montan y aprueban sus propios pagos: pedirles auto-aprobarse
+        en dos pasos es burocracia sin control real. Lo que NO se salta es ver
+        el asiento antes de confirmar, y queda anotado quién lo registró."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import registrar_pago_directo
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(registrar_pago_directo(
+                d, _panel_tickets_usuario(), espejar=bool(d.get("espejar", True))
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/puedo-registrar", methods=["GET"])
+    @app.route("/app/api/pagos/puedo-registrar", methods=["GET"])
+    def api_pagos_puedo_registrar():
+        """Si el usuario de la sesión puede registrar sin aprobación — el panel
+        lo usa para mostrar u ocultar esa opción."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import puede_registrar_directo
+
+            u = _panel_tickets_usuario()
+            return jsonify({
+                "puede": puede_registrar_directo(u),
+                "usuario": (u or {}).get("nombre") or "",
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
+    def api_pagos_aprobar(sid: int):
+        """Aprueba y **ahí** crea el asiento + el comprobante en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import aprobar
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(aprobar(sid, aprobada_por=_cc_uid(), espejar=bool(d.get("espejar", True))))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
+    def api_pagos_rechazar(sid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import rechazar
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(rechazar(sid, str(d.get("motivo") or ""), por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/saldos", methods=["GET"])
+    @app.route("/app/api/socios/saldos", methods=["GET"])
+    def api_socios_saldos():
+        """Lo que McKenna le debe a cada socio por mercancía comprada con su
+        tarjeta personal (cuenta 2380)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import saldo_socios
+
+            return jsonify({"socios": saldo_socios()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/<int:tercero_id>/pendiente", methods=["GET"])
+    @app.route("/app/api/socios/<int:tercero_id>/pendiente", methods=["GET"])
+    def api_socios_pendiente(tercero_id: int):
+        """Qué compone el saldo de un socio: compras que lo cargaron y
+        reintegros ya girados."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import detalle_pendiente_socio
+
+            return jsonify(detalle_pendiente_socio(tercero_id))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/socios/reintegro", methods=["POST"])
+    @app.route("/app/api/socios/reintegro", methods=["POST"])
+    def api_socios_reintegro():
+        """Registra el giro al socio. Es **la línea que aparece en el extracto
+        bancario** — la compra no, porque salió de su tarjeta personal.
+        Body: tercero_id, monto, fecha, medio_pago_id, referencia,
+        permitir_exceso (opcional)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.compras_socios import registrar_reintegro
+
+            return jsonify(
+                registrar_reintegro(request.get_json(silent=True) or {}, created_by=_cc_uid())
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/simular", methods=["POST"])
+    @app.route("/app/api/prestamos/simular", methods=["POST"])
+    def api_prestamos_simular():
+        """Cronograma de prueba sin guardar nada: el panel lo usa para que el
+        operador vea, antes de comprometerse, cuánto recibe el prestamista y
+        cuánto le cuesta a McKenna con cada combinación de tasa y reparto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import calcular_cronograma
+
+            d = request.get_json(silent=True) or {}
+            crono = calcular_cronograma(
+                float(d.get("capital") or 0),
+                tasa_ea=float(d.get("tasa_ea", 0.25)),
+                plazo_meses=int(d.get("plazo_meses", 24)),
+                meses_tramo1=int(d.get("meses_tramo1", 12)),
+                pct_capital_tramo1=float(d.get("pct_capital_tramo1", 0.30)),
+                retencion_pct=float(d.get("retencion_pct", 0.07)),
+                gross_up=bool(d.get("gross_up")),
+                fecha_desembolso=d.get("fecha_desembolso") or None,
+                dia_pago=int(d.get("dia_pago") or 0) or None,
+            )
+            return jsonify({"ok": True, **crono})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos", methods=["GET"])
+    @app.route("/app/api/prestamos", methods=["GET"])
+    def api_prestamos_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import listar_prestamos
+
+            estado = (request.args.get("estado") or "").strip() or None
+            return jsonify({"prestamos": listar_prestamos(estado)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos", methods=["POST"])
+    @app.route("/app/api/prestamos", methods=["POST"])
+    def api_prestamos_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import crear_prestamo
+
+            payload = request.get_json(silent=True) or {}
+            return jsonify({"ok": True, "prestamo": crear_prestamo(payload, created_by=_cc_uid())})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>", methods=["GET"])
+    def api_prestamos_detalle(prestamo_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import obtener_prestamo
+
+            p = obtener_prestamo(prestamo_id)
+            if not p:
+                return jsonify({"error": "Préstamo no encontrado"}), 404
+            return jsonify({"prestamo": p})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
+    def api_prestamos_pagar_cuota(prestamo_id: int, numero: int):
+        """Marca la cuota como pagada y crea el asiento (capital / interés /
+        retención / banco). Lo hace quien ya montó la transferencia."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import registrar_pago_cuota
+
+            payload = request.get_json(silent=True) or {}
+            p = registrar_pago_cuota(prestamo_id, numero, payload, created_by=_cc_uid())
+            return jsonify({"ok": True, "prestamo": p})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/documento", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/documento", methods=["GET"])
+    def api_prestamos_documento(prestamo_id: int):
+        """Descarga el PDF (contrato o certificado). Generar no envía nada al
+        tercero — para eso está /enviar."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from flask import send_file
+
+            from app.services.prestamos import generar_documento
+
+            doc = generar_documento(
+                prestamo_id,
+                (request.args.get("tipo") or "contrato"),
+                corte=(request.args.get("corte") or None),
+            )
+            return send_file(
+                doc["ruta"], mimetype="application/pdf",
+                as_attachment=True, download_name=doc["nombre"],
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/enviar", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/enviar", methods=["POST"])
+    def api_prestamos_enviar_documento(prestamo_id: int):
+        """Envía el documento al correo del prestamista. Acción explícita a
+        propósito: es correspondencia financiera a un tercero y un PDF
+        equivocado ya enviado no se puede recoger."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import enviar_documento
+
+            d = request.get_json(silent=True) or {}
+            r = enviar_documento(
+                prestamo_id,
+                (d.get("tipo") or "contrato"),
+                corte=(d.get("corte") or None),
+                destinatario=(d.get("destinatario") or None),
+            )
+            return jsonify(r)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/alegra", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/alegra", methods=["GET"])
+    def api_prestamos_alegra(prestamo_id: int):
+        """Si el prestamista ya existe como contacto en Alegra (solo lectura)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import estado_alegra
+
+            return jsonify(estado_alegra(prestamo_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/documento-soporte", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/documento-soporte", methods=["POST"])
+    def api_prestamos_documento_soporte(prestamo_id: int, numero: int):
+        """Emite (o simula, según PRESTAMOS_DOC_SOPORTE_ACTIVO) el documento
+        soporte a la DIAN por los intereses de una cuota. Se dispara solo tras
+        pagar; esto sirve para reintentar si Alegra falló, o para previsualizar
+        el payload en modo sombra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import emitir_documento_soporte_cuota
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                emitir_documento_soporte_cuota(prestamo_id, numero, forzar=bool(d.get("forzar")))
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas", methods=["POST"])
+    @app.route("/app/api/prestamos/prestamistas", methods=["POST"])
+    def api_prestamos_crear_prestamista():
+        """Da de alta un prestamista (tercero) con sus datos de contacto y
+        bancarios, y lo inscribe como contacto en Alegra. No duplica: si ya
+        existe uno con esa cédula/NIT completa lo que falte."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import crear_prestamista
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(
+                crear_prestamista(d, inscribir_en_alegra=bool(d.get("inscribir_en_alegra", True)))
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas/<int:tercero_id>", methods=["PATCH"])
+    @app.route("/app/api/prestamos/prestamistas/<int:tercero_id>", methods=["PATCH"])
+    def api_prestamos_actualizar_prestamista(tercero_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import actualizar_prestamista
+
+            return jsonify(actualizar_prestamista(tercero_id, request.get_json(silent=True) or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/prestamistas/<int:tercero_id>/alegra", methods=["POST"])
+    @app.route("/app/api/prestamos/prestamistas/<int:tercero_id>/alegra", methods=["POST"])
+    def api_prestamos_inscribir_alegra(tercero_id: int):
+        """Inscribe (o reintenta inscribir) al prestamista en Alegra."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import sincronizar_prestamista_alegra
+
+            return jsonify(sincronizar_prestamista_alegra(tercero_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/<int:prestamo_id>/reporte-mensual", methods=["POST"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/reporte-mensual", methods=["POST"])
+    def api_prestamos_reporte_mensual(prestamo_id: int):
+        """Envía al prestamista el reporte del mes con el certificado adjunto."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import enviar_reporte_mensual
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            return jsonify(
+                enviar_reporte_mensual(
+                    prestamo_id,
+                    int(d.get("anio") or hoy.year),
+                    int(d.get("mes") or hoy.month),
+                    destinatario=(d.get("destinatario") or None),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/retenciones", methods=["GET"])
+    @app.route("/app/api/prestamos/retenciones", methods=["GET"])
+    def api_prestamos_retenciones():
+        """Retención practicada sobre intereses en un mes, con el detalle por
+        tercero que necesita el formulario 350 y la cifra de control de 2365."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import resumen_retenciones_mes
+
+            hoy = _date.today()
+            return jsonify(
+                resumen_retenciones_mes(
+                    int(request.args.get("anio") or hoy.year),
+                    int(request.args.get("mes") or hoy.month),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/retenciones/ticket", methods=["POST"])
+    @app.route("/app/api/prestamos/retenciones/ticket", methods=["POST"])
+    def api_prestamos_retenciones_ticket():
+        """Crea (o previsualiza) el ticket para declarar la retención del mes.
+        El cron lo hace solo el día configurado; esto sirve para adelantarlo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import crear_ticket_retenciones_mes
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            return jsonify(
+                crear_ticket_retenciones_mes(
+                    int(d.get("anio") or hoy.year),
+                    int(d.get("mes") or hoy.month),
+                    dry_run=bool(d.get("dry_run")),
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/prestamos/recordatorio", methods=["POST"])
+    @app.route("/app/api/prestamos/recordatorio", methods=["POST"])
+    def api_prestamos_recordatorio():
+        """Crea (o previsualiza) el ticket mensual de pagos a despachos. El cron
+        lo hace solo el día configurado; esto sirve para adelantarlo."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from datetime import date as _date
+
+            from app.services.prestamos import crear_recordatorio_pagos_mes
+
+            d = request.get_json(silent=True) or {}
+            hoy = _date.today()
+            r = crear_recordatorio_pagos_mes(
+                int(d.get("anio") or hoy.year),
+                int(d.get("mes") or hoy.month),
+                dry_run=bool(d.get("dry_run")),
+            )
+            return jsonify(r)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:
@@ -12861,6 +14253,62 @@ def register_routes(app):
         cancelar(jid, razon="panel")
         return jsonify({"ok": True})
 
+    # ── Pedidos armados por el agente de ventas WA v2 (app/agent/ventas_wa) ───
+
+    @app.route("/api/bot/pedidos-wa", methods=["GET"])
+    def api_bot_pedidos_wa():
+        """Pedidos del agente IA agrupables por estado. ?modo=activo|sombra (default: el vigente)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+        from app.agent.ventas_wa.entrada import modo as _modo_v2
+        from app.services.wa_jid import formato_display
+
+        vigente = _modo_v2()
+        modo = (request.args.get("modo") or "").strip().lower()
+        if modo not in ("activo", "sombra"):
+            modo = "sombra" if vigente == "sombra" else "activo"
+        dias = min(int(request.args.get("dias", 7)), 30)
+        pedidos = _ped.listar_para_panel(modo, dias=dias)
+        for p in pedidos:
+            p["display"] = formato_display(p["jid"])
+        return jsonify({"modo": modo, "modo_vigente": vigente, "pedidos": pedidos})
+
+    @app.route("/api/bot/pedidos-wa/<int:pedido_id>/estado", methods=["POST"])
+    def api_bot_pedidos_wa_estado(pedido_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+
+        body = request.get_json(silent=True) or {}
+        modo = "sombra" if str(body.get("modo") or "") == "sombra" else "activo"
+        if not _ped.cambiar_estado(modo, pedido_id, str(body.get("estado") or "")):
+            return jsonify({"error": "Pedido o estado inválido"}), 400
+        return jsonify({"ok": True})
+
+    @app.route("/api/bot/auditoria", methods=["GET"])
+    def api_bot_auditoria():
+        """Último reporte del auditor de canales y la última auditoría diaria con IA."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.auditor_canales import ultimo_reporte
+
+        return jsonify(ultimo_reporte())
+
+    @app.route("/api/bot/turnos-wa", methods=["GET"])
+    def api_bot_turnos_wa():
+        """Bitácora de turnos del agente v2 (en sombra: lo que habría respondido)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.agent.ventas_wa import pedido as _ped
+        from app.services.wa_jid import formato_display
+
+        modo = "sombra" if request.args.get("modo") == "sombra" else "activo"
+        turnos = _ped.listar_turnos(modo, limite=min(int(request.args.get("limit", 100)), 300))
+        for t in turnos:
+            t["display"] = formato_display(t["jid"])
+        return jsonify({"modo": modo, "turnos": turnos})
+
     # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
 
     @app.route("/api/bot/chats", methods=["GET"])
@@ -13603,11 +15051,24 @@ def register_routes(app):
 
     _ETIQUETAS = {
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
-        "250 g": (76, 66), "1 Lt": (108, 76),
+        "250 / 500 g": (76, 66), "1 Lt": (108, 76),
         "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
-        "Circular 50": (50, 50), "Circle 50": (50, 50), "CIRCLE": (53.9, 53.9),
-        "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
+        "Circular 50": (50, 50), "CIRCLE": (53.9, 53.9),
+        "Circular 70": (70, 70), "5 g": (50, 42), "Pastillero": (54, 58),
+        "1 kg": (102, 76),
     }
+    # Nombres viejos de formatos con las mismas medidas, fusionados en uno solo
+    # (2026-09-11). Lo guardado con el nombre viejo sigue resolviendo al nuevo.
+    # 125 g y Circular 70 miden igual pero NO se fusionan: Circular es troquel
+    # redondo (se detecta por el nombre).
+    _ETIQUETAS_ALIAS = {
+        "250 g": "250 / 500 g", "500 g": "250 / 500 g",
+        "54mm": "Pastillero", "1000 g": "1 kg", "Circle 50": "Circular 50",
+    }
+
+    def _canon_tipo_etiqueta(nombre):
+        n = (nombre or "").strip()
+        return _ETIQUETAS_ALIAS.get(n, n)
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}
     _ETIQUETAS_MAX_MM = (108.0, 406.4)  # CW-C4000u: ancho × avance (PPD)
@@ -13631,7 +15092,7 @@ def register_routes(app):
         for it in items:
             if not isinstance(it, dict):
                 continue
-            nombre = (it.get("nombre") or "").strip()
+            nombre = _canon_tipo_etiqueta(it.get("nombre"))
             if not nombre or nombre in seen:
                 continue
             try:
@@ -13652,6 +15113,25 @@ def register_routes(app):
             return out
         return _default_etiquetas_tipos() if fallback_default else []
 
+    def _load_etiquetas_tipos_eliminados() -> set:
+        """Formatos de fábrica que el operador borró a propósito.
+
+        Sin esta lista, `_load_etiquetas_tipos` volvía a inyectar cada formato de
+        `_ETIQUETAS` con setdefault y borrar uno de fábrica era imposible: el PUT
+        lo quitaba del JSON y el GET siguiente lo devolvía otra vez.
+        """
+        try:
+            with open(_ETIQUETAS_TIPOS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except (FileNotFoundError, ValueError, OSError):
+            return set()
+        if not isinstance(data, dict):
+            return set()
+        items = data.get("eliminados")
+        if not isinstance(items, list):
+            return set()
+        return {n.strip() for n in items if isinstance(n, str) and n.strip()}
+
     def _load_etiquetas_tipos() -> list:
         loaded: list = []
         try:
@@ -13666,9 +15146,13 @@ def register_routes(app):
             pass
         if not loaded:
             return _default_etiquetas_tipos()
-        # Formatos nuevos (p. ej. Circular 50) aunque el JSON aún no los tenga.
+        # Formatos nuevos (p. ej. Circular 50) aunque el JSON aún no los tenga,
+        # salvo los que el operador eliminó explícitamente.
+        eliminados = _load_etiquetas_tipos_eliminados()
         by_name = {t["nombre"]: t for t in loaded}
         for t in _default_etiquetas_tipos():
+            if t["nombre"] in eliminados:
+                continue
             by_name.setdefault(t["nombre"], t)
         return sorted(by_name.values(), key=lambda t: str(t["nombre"]).lower())
 
@@ -13682,9 +15166,19 @@ def register_routes(app):
                 f"Ningún formato válido. Nombre obligatorio; "
                 f"ancho 1–{max_ancho:g} mm y alto 1–{max_alto:g} mm."
             )
+        # El PUT trae la lista completa que debe quedar: todo formato de fábrica
+        # que no venga en ella queda marcado como eliminado (y uno que vuelva a
+        # aparecer se desmarca, para poder recuperarlo).
+        presentes = {t["nombre"] for t in normalizados}
+        eliminados = sorted(
+            {t["nombre"] for t in _default_etiquetas_tipos() if t["nombre"] not in presentes},
+        )
         os.makedirs(os.path.dirname(_ETIQUETAS_TIPOS_PATH), exist_ok=True)
         with open(_ETIQUETAS_TIPOS_PATH, "w", encoding="utf-8") as f:
-            json.dump({"tipos": normalizados}, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {"tipos": normalizados, "eliminados": eliminados},
+                f, ensure_ascii=False, indent=2,
+            )
         return normalizados, None
 
     def _etiquetas_tipos_map() -> dict:
@@ -13700,6 +15194,7 @@ def register_routes(app):
         except (TypeError, ValueError):
             pass
         mp = _etiquetas_tipos_map()
+        producto = _canon_tipo_etiqueta(producto)
         if producto in mp:
             return mp[producto]
         return _ETIQUETAS.get(producto)
@@ -13868,7 +15363,7 @@ def register_routes(app):
 
         def _fallo_backend_sin_error_lcd(salida_elpu: str) -> tuple:
             """CUPS/epsonUSB falló pero ELPU no reporta Status_ER_* (LCD puede estar en Listo)."""
-            tam = _ETIQUETAS.get(producto, (102, 38))
+            tam = _ETIQUETAS.get(_canon_tipo_etiqueta(producto), (102, 38))
             sensor = {
                 "Diecut_Gap": "troquelada con gap (separación entre etiquetas)",
                 "Diecut_Blackmark": "troquelada con marca negra",
@@ -19344,7 +20839,11 @@ def register_routes(app):
         if request.method == "GET":
             q = (request.args.get("q") or "").strip()
             carpeta = (request.args.get("carpeta") or "").strip().strip("/")
-            items = listar_plantillas(q=q, carpeta=carpeta)
+            # ?todas=1 ignora la carpeta y devuelve el catálogo completo: lo usan
+            # las vistas por categoría de Studio, que cuentan y agrupan todo sin
+            # importar en qué carpeta esté cada plantilla.
+            todas = (request.args.get("todas") or "").strip() == "1"
+            items = listar_plantillas(q=q, carpeta=None if todas else carpeta)
             carpetas = listar_carpetas_plantillas(carpeta)
             return jsonify({
                 "plantillas": items,
@@ -19434,6 +20933,59 @@ def register_routes(app):
             return jsonify({"error": "No encontrada"}), 404
         return jsonify({"ok": True})
 
+    # ── Ficha de etiqueta: fichas guardadas ──────────────────────────────────
+    # Persistencia del formulario ProductLabelForm.tsx (antes solo vivía en
+    # memoria de React y se perdía al recargar). 'nombre' lo escribe el
+    # operador a mano — nunca se deriva de data.productName.
+
+    @app.route("/api/etiquetas/fichas", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/fichas", methods=["GET", "POST"])
+    def api_etiquetas_fichas():
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_fichas import guardar_ficha, listar_fichas
+
+        if request.method == "GET":
+            q = (request.args.get("q") or "").strip()
+            items = listar_fichas(q=q)
+            return jsonify({"fichas": items, "total": len(items)})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = guardar_ficha(body)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "ficha": entry})
+
+    @app.route("/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
+    @app.route("/app/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
+    def api_etiquetas_fichas_id(ficha_id: str):
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_fichas import eliminar_ficha, guardar_ficha, obtener_ficha
+
+        if request.method == "GET":
+            f = obtener_ficha(ficha_id)
+            if not f:
+                return jsonify({"error": "No encontrada"}), 404
+            return jsonify({"ficha": f})
+
+        if request.method == "DELETE":
+            ok = eliminar_ficha(ficha_id)
+            if not ok:
+                return jsonify({"error": "No encontrada"}), 404
+            return jsonify({"ok": True})
+
+        body = request.get_json(silent=True) or {}
+        body["id"] = ficha_id
+        try:
+            entry = guardar_ficha(body)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "ficha": entry})
+
     @app.route("/api/plantillas-visuales/exportar", methods=["POST"])
     @app.route("/app/api/plantillas-visuales/exportar", methods=["POST"])
     def api_plantillas_visuales_exportar():
@@ -19502,6 +21054,64 @@ def register_routes(app):
             return jsonify({"error": str(exc)}), 400
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
+
+        # Publicar en la biblioteca: hasta ahora el lote solo escribía en
+        # renders_etiquetas/, una carpeta que ningún panel lista — las etiquetas
+        # quedaban invisibles. Se copian a "ETIQUETAS STUDIO/<Categoría>" para que
+        # aparezcan agrupadas en Studio → Etiquetas y en Diseño → Imprimir.
+        try:
+            from app.tools.etiquetas_categorias import detectar_categoria, listar_categorias
+            from app.tools.plantillas_visuales import obtener_plantilla
+
+            _REPO_DIR_ETIQUETAS_LOTE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+            plantilla = obtener_plantilla(plantilla_id) or {}
+            cats = listar_categorias()
+            cat_id = (plantilla.get("categoria_producto") or "").strip()
+            etiqueta_cat = next(
+                (c["etiqueta"] for c in cats if c["id"] == cat_id),
+                None,
+            ) or next(
+                (c["etiqueta"] for c in cats
+                 if c["id"] == detectar_categoria(plantilla.get("nombre") or "", cats)),
+                "Otros",
+            )
+            sub = os.path.join("ETIQUETAS STUDIO", _nombre_carpeta_png_seguro(etiqueta_cat))
+            destino_dir = os.path.join(_carpeta_png_recursos_etiquetas(), sub)
+            os.makedirs(destino_dir, exist_ok=True)
+            fmt = (plantilla.get("formato") or {})
+            import shutil as _shutil_lote
+            for r in resultados:
+                if not r.get("ok") or not r.get("ruta"):
+                    continue
+                origen = os.path.realpath(os.path.join(_REPO_DIR_ETIQUETAS_LOTE, r["ruta"]))
+                if not os.path.isfile(origen):
+                    continue
+                ext = os.path.splitext(origen)[1] or ".png"
+                base = _nombre_png_recurso_seguro(f"{r.get('sku') or 'etiqueta'}{ext}")
+                destino = os.path.join(destino_dir, base)
+                # Regenerar el mismo SKU pisa su etiqueta anterior en vez de dejar
+                # copias _2 _5 _7 como las que ensuciaron la biblioteca. Solo se
+                # renombra si el nombre ya está tomado por OTRO archivo del árbol
+                # (los nombres son únicos globalmente, ver _nombre_png_disponible).
+                if not os.path.exists(destino) and not _nombre_png_disponible(base):
+                    stem = base[: -len(ext)]
+                    base = _nombre_png_recurso_seguro(f"{stem}_{_nombre_carpeta_png_seguro(etiqueta_cat)}{ext}")
+                    destino = os.path.join(destino_dir, base)
+                _shutil_lote.copyfile(origen, destino)
+                entry = _registrar_png_recurso(
+                    f"{sub}/{base}".replace("\\", "/"),
+                    destino,
+                    os.path.getsize(destino),
+                    {
+                        "tipo_etiqueta": fmt.get("nombre"),
+                        "ancho_mm": fmt.get("ancho_mm"),
+                        "alto_mm": fmt.get("alto_mm"),
+                    },
+                )
+                r["biblioteca"] = entry.get("nombre")
+        except Exception as exc:  # la etiqueta ya se generó: no invalidar el lote
+            print(f"⚠️ aplicar-lote: no se pudo publicar en la biblioteca: {exc}")
 
         exitosos = sum(1 for r in resultados if r.get("ok"))
         con_revision = sum(1 for r in resultados if r.get("requiere_revision"))
@@ -20095,13 +21705,15 @@ REGLAS:
             "thumb_b64": thumb_b64,
             "thumb_mime": thumb_mime or "image/png",
         }
-        # Conserva formato previo si el nuevo upload no lo trae.
+        # Conserva formato previo si el nuevo upload no lo trae. `categoria_producto`
+        # va aquí a propósito: es una corrección manual del operador y volver a
+        # subir la imagen no debe borrarla.
         if isinstance(prev, dict):
-            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala"):
+            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala", "categoria_producto"):
                 if prev.get(k) not in (None, "") and (not meta or meta.get(k) in (None, "")):
                     entry[k] = prev[k]
         if meta:
-            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala"):
+            for k in ("tipo_etiqueta", "ancho_mm", "alto_mm", "dpi", "escala", "categoria_producto"):
                 if meta.get(k) not in (None, ""):
                     entry[k] = meta[k]
         items.insert(0, entry)
@@ -20158,19 +21770,42 @@ REGLAS:
             except OSError:
                 entradas = []
             carpetas = sorted((e.name for e in entradas if e.is_dir()), key=str.lower)
+            # ?recursivo=1 incluye las subcarpetas. Studio agrupa las etiquetas por
+            # categoría usando la subcarpeta ETIQUETAS STUDIO/<Categoría>/, y sin
+            # esto las que están dentro no se veían por ningún lado.
+            recursivo = (request.args.get("recursivo") or "").strip() == "1"
+            base_png = os.path.realpath(_carpeta_png_recursos_etiquetas())
+            if recursivo:
+                candidatos = []
+                for dirpath, _dirs, files in os.walk(destino):
+                    for nombre_f in files:
+                        if _extension_imagen_recurso_ok(nombre_f):
+                            candidatos.append((os.path.realpath(os.path.join(dirpath, nombre_f)), nombre_f))
+            else:
+                candidatos = [
+                    (os.path.realpath(e.path), e.name)
+                    for e in entradas
+                    if e.is_file() and _extension_imagen_recurso_ok(e.name)
+                ]
             archivos = []
-            for e in entradas:
-                if not e.is_file() or not _extension_imagen_recurso_ok(e.name):
-                    continue
-                ruta_abs = os.path.realpath(e.path)
+            for ruta_abs, nombre_base in candidatos:
                 registrado = indice.get(ruta_abs)
                 if registrado:
                     item = dict(registrado)
                 else:
-                    st = e.stat()
+                    try:
+                        st = os.stat(ruta_abs)
+                    except OSError:
+                        continue
+                    # Nombre relativo a la raíz de Recursos PNG: es la clave con la
+                    # que el resto del panel identifica cada imagen.
+                    try:
+                        nombre_rel = os.path.relpath(ruta_abs, base_png).replace("\\", "/")
+                    except ValueError:
+                        nombre_rel = nombre_base
                     item = {
                         "id": None,
-                        "nombre": e.name,
+                        "nombre": nombre_rel,
                         "ruta_completa": ruta_abs,
                         "bytes": st.st_size,
                         "subido_at": _dt.fromtimestamp(st.st_mtime).isoformat(timespec="seconds"),
@@ -20179,7 +21814,7 @@ REGLAS:
                     }
                 # Completa formato (mm) si falta en el índice.
                 if not (item.get("ancho_mm") and item.get("alto_mm")):
-                    meta_inf = _meta_formato_png_de_indice(ruta_abs, e.name)
+                    meta_inf = _meta_formato_png_de_indice(ruta_abs, nombre_base)
                     for k, v in meta_inf.items():
                         item.setdefault(k, v)
                 archivos.append(item)
@@ -20227,6 +21862,119 @@ REGLAS:
             meta = {**_meta_formato_png_de_indice(destino, nombre), **meta}
         entry = _registrar_png_recurso(nombre, destino, len(raw), meta=meta or None)
         return jsonify({"ok": True, **entry})
+
+    # ── Logos corporativos (carpeta DISENO CORPORATIVO del repo) ─────────
+    # Usados por la "Ficha de etiqueta" (botón del logo): el operador elige
+    # el logo desde el panel y el color de acento de la ficha se toma del
+    # logo elegido (cálculo en el navegador, ver lib/colorDominante.ts).
+    @app.route("/api/etiquetas/logos-corporativos", methods=["GET"])
+    @app.route("/app/api/etiquetas/logos-corporativos", methods=["GET"])
+    def api_etiquetas_logos_corporativos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import carpeta_logos, listar_logos
+
+        base = carpeta_logos()
+        logos = listar_logos()
+        return jsonify({
+            "logos": logos,
+            "carpeta": str(base) if base else None,
+            "total": len(logos),
+        })
+
+    @app.route("/api/etiquetas/logos-corporativos", methods=["POST"])
+    @app.route("/app/api/etiquetas/logos-corporativos", methods=["POST"])
+    def api_etiquetas_logos_corporativos_subir():
+        """Agrega una imagen del ordenador a la carpeta DISENO CORPORATIVO
+        (botón "+ Agregar imágenes a la carpeta" del menú del logo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import guardar_logo
+
+        archivo = request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Falta archivo de imagen"}), 400
+        try:
+            logo = guardar_logo(archivo.filename, archivo.read())
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify({"ok": True, "logo": logo})
+
+    @app.route("/api/etiquetas/logos-corporativos/eliminar", methods=["POST"])
+    @app.route("/app/api/etiquetas/logos-corporativos/eliminar", methods=["POST"])
+    def api_etiquetas_logos_corporativos_eliminar():
+        """Quita uno o varios logos de la galería (los mueve a `.papelera/`
+        dentro de la carpeta, no los borra)."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.logos_corporativos import enviar_a_papelera
+
+        body = request.get_json(silent=True) or {}
+        nombres = [str(n) for n in (body.get("nombres") or []) if str(n).strip()]
+        if not nombres:
+            return jsonify({"error": "Falta 'nombres'"}), 400
+        eliminados, errores = [], {}
+        for nombre in nombres:
+            try:
+                enviar_a_papelera(nombre)
+                eliminados.append(nombre)
+            except (ValueError, OSError) as e:
+                errores[nombre] = str(e)
+        return jsonify({"ok": not errores, "eliminados": eliminados, "errores": errores})
+
+    @app.route("/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])
+    @app.route("/app/api/etiquetas/logos-corporativos/archivo/<path:nombre>", methods=["GET"])
+    def api_etiquetas_logo_corporativo_archivo(nombre: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.logos_corporativos import ruta_logo
+
+        ruta, mime = ruta_logo(nombre)
+        if ruta is None:
+            return jsonify({"error": "Logo no encontrado"}), 404
+        from flask import send_file
+        return send_file(ruta, mimetype=mime, conditional=True)
+
+    @app.route("/api/etiquetas/recursos-png/categoria", methods=["POST"])
+    @app.route("/app/api/etiquetas/recursos-png/categoria", methods=["POST"])
+    def api_etiquetas_recursos_png_categoria():
+        """Corrige a mano la categoría de producto de una etiqueta de la biblioteca.
+
+        Lo guardado aquí manda sobre lo que deduce `_categoria_producto_png`
+        (subcarpeta o nombre del archivo) — ver app/tools/etiquetas_studio.py."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip().replace("\\", "/").lstrip("/")
+        categoria = (body.get("categoria") or "").strip()
+        if not nombre:
+            return jsonify({"error": "Falta 'nombre'"}), 400
+
+        items = _load_png_recursos_etiquetas()
+        objetivo = next(
+            (a for a in items if (a.get("nombre") or "").replace("\\", "/") == nombre),
+            None,
+        )
+        if objetivo is None:
+            # La biblioteca tiene archivos nunca indexados (legacy): se crea la
+            # entrada mínima para poder guardarles la categoría.
+            ruta, err = _ruta_png_recurso_ok(nombre)
+            if err or not ruta:
+                return jsonify({"error": err or "Imagen no encontrada"}), 404
+            objetivo = _registrar_png_recurso(nombre, ruta, os.path.getsize(ruta))
+            items = _load_png_recursos_etiquetas()
+            objetivo = next(
+                (a for a in items if (a.get("nombre") or "").replace("\\", "/") == nombre),
+                objetivo,
+            )
+        if categoria:
+            objetivo["categoria_producto"] = categoria
+        else:
+            objetivo.pop("categoria_producto", None)
+        _save_png_recursos_etiquetas(items)
+        return jsonify({"ok": True, "nombre": nombre, "categoria": categoria})
 
     @app.route("/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/recursos-png/carpetas", methods=["GET", "POST"])
@@ -20570,6 +22318,33 @@ REGLAS:
         if err:
             return jsonify({"error": err}), 400
         return jsonify({"ok": True, "tipos": tipos})
+
+    # ── Etiquetas: categorías de producto (Studio visual) ────────────────────
+
+    @app.route("/api/etiquetas/categorias", methods=["GET", "PUT"])
+    @app.route("/app/api/etiquetas/categorias", methods=["GET", "PUT"])
+    def api_etiquetas_categorias():
+        """Catálogo de categorías de producto (aceites, frutos secos, conservantes…).
+
+        Primer nivel de Studio visual: cada categoría agrupa su plantilla, sus
+        diseños y las etiquetas hechas con ella. El PUT reemplaza la lista completa;
+        lo que no venga queda eliminado y NO se resucita en la lectura siguiente
+        (ver app/tools/etiquetas_categorias.py)."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_categorias import guardar_categorias, listar_categorias
+
+        if request.method == "GET":
+            cats = listar_categorias()
+            return jsonify({"categorias": cats, "total": len(cats)})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            cats = guardar_categorias(body.get("categorias"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "categorias": cats, "total": len(cats)})
 
     # ── Etiquetas: colores guardados ─────────────────────────────────────────
 
@@ -21617,7 +23392,7 @@ REGLAS:
 
         body = request.get_json(silent=True) or {}
         archivo_ai = (body.get("archivo_ai") or "").strip() or None
-        tipo_etiqueta = (body.get("tipo_etiqueta") or "500 g").strip()
+        tipo_etiqueta = (body.get("tipo_etiqueta") or "250 / 500 g").strip()
         ancho_mm = body.get("ancho_mm")
         alto_mm = body.get("alto_mm")
         guardar = body.get("guardar", True) not in (False, 0, "0", "false")
@@ -21678,7 +23453,7 @@ REGLAS:
         try:
             result = preview_diagramacion_plantilla(
                 archivo_ai=archivo_ai,
-                tipo_etiqueta=(body.get("tipo_etiqueta") or "500 g").strip(),
+                tipo_etiqueta=(body.get("tipo_etiqueta") or "250 / 500 g").strip(),
                 diagramacion=body.get("diagramacion"),
                 diagramacion_graficos=body.get("diagramacion_graficos"),
                 textos_campo=body.get("textos_campo"),

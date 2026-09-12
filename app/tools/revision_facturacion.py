@@ -128,6 +128,42 @@ def _get_creator_user_id(db_path: str) -> int | None:
     return None
 
 
+def cerrar_tickets_revision_completados() -> list[int]:
+    """Marca como resuelto todo ticket con el marcador `MARCADOR` cuyos pasos
+    estén TODOS completados. Antes quedaban abiertos para siempre (#1267 llevaba
+    12/12 pasos hechos y seguía "en proceso" contando como solicitud pendiente
+    de la operadora). Devuelve los ids cerrados."""
+    db_path = _db_path()
+    cerrados: list[int] = []
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    try:
+        rows = db.execute(
+            """
+            SELECT t.id
+            FROM tickets t
+            WHERE t.titulo LIKE ?
+              AND t.estado IN ('pendiente','en_proceso','esperando_aprobacion')
+              AND EXISTS (SELECT 1 FROM ticket_pasos p WHERE p.ticket_id = t.id)
+              AND NOT EXISTS (
+                    SELECT 1 FROM ticket_pasos p
+                    WHERE p.ticket_id = t.id AND p.completado_en IS NULL
+              )
+            """,
+            (f"{MARCADOR}%",),
+        ).fetchall()
+        for r in rows:
+            db.execute(
+                "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
+                (r["id"],),
+            )
+            cerrados.append(int(r["id"]))
+        db.commit()
+    finally:
+        db.close()
+    return cerrados
+
+
 def crear_o_actualizar_ticket_revision_facturacion(items: list[dict]) -> tuple[bool, str]:
     """
     `items`: [{"order_id": str, "tipo": str, "motivo_sugerido": str}]

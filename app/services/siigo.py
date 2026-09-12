@@ -3434,6 +3434,56 @@ def _tokens_distintivos_combo(consulta_norm: str) -> list[str]:
     return [w for w in _tokens_busqueda_combo(consulta_norm) if len(w) >= 4]
 
 
+# Variantes morfológicas del español: el cliente escribe "creatina monohidratADA"
+# y el catálogo dice "CREATINA MONOHIDRATO". Antes la comparación era substring
+# pura, así que ese mensaje no encontraba nada mientras "precio creatina" sí
+# (caso real del 2026-09-09: el cliente preguntó 5 veces y el bot respondió
+# "no me figura el precio en el sistema" sobre un producto con stock 9).
+_SUFIJOS_FLEXION_ES = (
+    "adas", "ados", "ada", "ado",
+    "icas", "icos", "ica", "ico",
+    "osas", "osos", "osa", "oso",
+    "as", "os", "es", "a", "o", "e",
+)
+
+# Raíz mínima: por debajo de esto recortar genera falsos positivos entre
+# productos distintos ("sales" y "salicílico" no deben colapsar).
+_LONGITUD_MINIMA_RAIZ = 5
+
+
+def _raiz_token_combo(palabra: str) -> str:
+    """Raíz aproximada de un token, para tolerar género/número y sufijos químicos.
+
+    monohidratada / monohidrato -> monohidrat
+    ascorbica     / ascorbico   -> ascorbic
+
+    Solo actúa sobre tokens largos y nunca deja una raíz de menos de
+    _LONGITUD_MINIMA_RAIZ caracteres.
+    """
+    if len(palabra) < 6:
+        return palabra
+    for suf in _SUFIJOS_FLEXION_ES:
+        if palabra.endswith(suf) and len(palabra) - len(suf) >= _LONGITUD_MINIMA_RAIZ:
+            return palabra[: -len(suf)]
+    return palabra
+
+
+def _token_en_blob(token: str, blob: str) -> bool:
+    """¿El token del cliente aparece en el nombre/código del producto?
+
+    Primero substring exacto (comportamiento histórico) y, si falla, se compara
+    por raíz contra cada palabra del producto. Deliberadamente asimétrico: la
+    raíz del cliente tiene que ser prefijo de una palabra real del catálogo, no
+    al revés, para que "acido" no se coma "ácido tánico".
+    """
+    if token in blob:
+        return True
+    raiz = _raiz_token_combo(token)
+    if raiz == token or len(raiz) < _LONGITUD_MINIMA_RAIZ:
+        return False
+    return any(palabra.startswith(raiz) for palabra in blob.split())
+
+
 def _combo_item_desde_raw(raw: dict) -> dict:
     code = (raw.get("code") or "").strip()
     name = (raw.get("name") or "").strip()
@@ -3503,10 +3553,16 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
             continue
         blob = _normalizar_texto_busqueda_combo(f"{name} {code}")
         score = 0
+        nombre_norm = _normalizar_texto_busqueda_combo(name)
         for w in palabras:
             if w in blob:
                 score += 3
-            elif len(w) >= 4 and w in _normalizar_texto_busqueda_combo(name):
+            elif len(w) >= 4 and w in nombre_norm:
+                score += 2
+            elif _token_en_blob(w, blob):
+                # Coincidencia por raíz: puntúa menos que la literal para que,
+                # a igualdad de tokens, gane el producto que el cliente nombró
+                # exactamente.
                 score += 2
         if consulta_norm in blob or blob in consulta_norm:
             score += 5
@@ -3522,7 +3578,9 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
     filtro_relajado = False
     if distintivos:
         estrictos = [
-            (s, r, b) for s, r, b in scored if all(d in b for d in distintivos)
+            (s, r, b)
+            for s, r, b in scored
+            if all(_token_en_blob(d, b) for d in distintivos)
         ]
         if estrictos:
             scored = estrictos
@@ -3535,7 +3593,8 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
             # tokens genéricos ("acido", "aceite") solos NO bastan — así
             # "ácido tánico" sigue sin ofrecer otros ácidos.
             df = {
-                d: sum(1 for _, _, b in scored if d in b) for d in distintivos
+                d: sum(1 for _, _, b in scored if _token_en_blob(d, b))
+                for d in distintivos
             }
             secuencia = consulta_norm.split()
 
@@ -3555,7 +3614,7 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
 
             candidatos: list[tuple[int, int, dict, str]] = []
             for s, r, b in scored:
-                matched = [d for d in distintivos if d in b]
+                matched = [d for d in distintivos if _token_en_blob(d, b)]
                 if len(matched) >= 2 or (
                     len(matched) == 1
                     and df[matched[0]] <= 3
@@ -3580,7 +3639,11 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
 
     if not filtro_relajado:
         scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
-        if distintivos and scored[0][0] < len(distintivos) * 3:
+        # El umbral usa 2 (no 3) porque un distintivo puede quedar cubierto por
+        # raíz — "monohidratada" sobre "MONOHIDRATO" puntúa 2, no 3. Con el
+        # umbral en 3 por token, todo match morfológico moría aquí aunque el
+        # filtro estricto de arriba ya hubiera confirmado que están todos.
+        if distintivos and scored[0][0] < len(distintivos) * 2:
             return [], (
                 f"No encontré combo SIIGO activo para '{consulta}'. "
                 "Solo vendemos presentaciones tipo combo registradas en SIIGO."

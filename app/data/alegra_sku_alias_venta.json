@@ -1,0 +1,12 @@
+{
+  "_doc": "SKU de venta (MeLi/web) → reference del MISMO producto en Alegra, cuando entró al ERP con otro código. Lo lee alegra.resolver_producto_venta_alegra (solo facturación de ventas). Agregar aquí en vez de renombrar la reference en Alegra: las compras buscan por el código de compra.",
+  "alias": {
+    "C-CAPVACGEL0AZUBLA1000UN": "CAPGELVAC0AZUBLA",
+    "C-CAPGELVAC0VERBLA1000UN": "CAPGELVAC0VERBLA",
+    "C-CAPGELVAC0TRA1000UN": "CAPGELVAC0TRA",
+    "C-CAPVACGEL00TRA1000Un": "CAPGELVAC00TRA",
+    "OILESNRMR5mL": "C-ACEESEROM5mL",
+    "C-ACEESENMAN5mL": "C-ACEESNMAN5mL",
+    "C-ACEESEYLA5mL": "C-ACEESEYLAYLA5mL"
+  }
+}

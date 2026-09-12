@@ -1,0 +1,56 @@
+{"pack_id": "2000014851002245", "tipo": "duplicado", "ok": false, "anuladas": [], "nueva": null, "total_carrito": 110241, "ts": "2026-09-09T15:07:33", "fallos": ["item inactivo en Alegra (code 9053)"], "nota_correccion": "corregido: se habia marcado ok sin anular nada"}
+{"pack_id": "2000014851002245", "tipo": "duplicado", "ok": true, "anuladas": ["NC58"], "nueva": null, "fallos": [], "total_carrito": 110241, "ts": "2026-09-09T15:49:33"}
+{"pack_id": "2000014850258021", "tipo": "duplicado", "ok": true, "anuladas": ["NC59"], "nueva": null, "fallos": [], "total_carrito": 76624, "ts": "2026-09-09T15:51:40"}
+{"pack_id": "2000014849645535", "tipo": "duplicado", "ok": true, "anuladas": ["NC60"], "nueva": null, "fallos": [], "total_carrito": 63175, "ts": "2026-09-09T15:53:41"}
+{"pack_id": "2000014846469859", "tipo": "duplicado", "ok": true, "anuladas": ["NC61"], "nueva": null, "fallos": [], "total_carrito": 103940, "ts": "2026-09-09T15:55:41"}
+{"pack_id": "2000014845693393", "tipo": "duplicado", "ok": true, "anuladas": ["NC62"], "nueva": null, "fallos": [], "total_carrito": 30005, "ts": "2026-09-09T15:57:41"}
+{"pack_id": "2000014845535089", "tipo": "duplicado", "ok": true, "anuladas": ["NC63"], "nueva": null, "fallos": [], "total_carrito": 34680, "ts": "2026-09-09T15:59:36"}
+{"pack_id": "2000014842395401", "tipo": "duplicado", "ok": true, "anuladas": ["NC64"], "nueva": null, "fallos": [], "total_carrito": 63665, "ts": "2026-09-09T16:01:38"}
+{"pack_id": "2000014840640995", "tipo": "duplicado", "ok": true, "anuladas": ["NC65"], "nueva": null, "fallos": [], "total_carrito": 94650, "ts": "2026-09-09T16:03:39"}
+{"pack_id": "2000014836019209", "tipo": "duplicado", "ok": true, "anuladas": ["NC66"], "nueva": null, "fallos": [], "total_carrito": 65960, "ts": "2026-09-09T16:05:42"}
+{"pack_id": "2000014825014213", "tipo": "duplicado", "ok": true, "anuladas": ["NC67"], "nueva": null, "fallos": [], "total_carrito": 64500, "ts": "2026-09-09T16:07:41"}
+{"pack_id": "2000014824820907", "tipo": "duplicado", "ok": true, "anuladas": ["NC68"], "nueva": null, "fallos": [], "total_carrito": 94128, "ts": "2026-09-09T16:09:48"}
+{"pack_id": "2000014823879235", "tipo": "duplicado", "ok": true, "anuladas": ["NC69"], "nueva": null, "fallos": [], "total_carrito": 65755, "ts": "2026-09-09T16:11:50"}
+{"pack_id": "2000014823563983", "tipo": "duplicado", "ok": true, "anuladas": ["NC70"], "nueva": null, "fallos": [], "total_carrito": 70611, "ts": "2026-09-09T16:13:52"}
+{"pack_id": "2000014928684769", "tipo": "regularizar", "ok": true, "anuladas": ["NC71"], "nueva": "FE203", "fallos": [], "total_carrito": 63833, "ts": "2026-09-09T16:21:15"}
+{"pack_id": "2000014919620357", "tipo": "regularizar", "ok": true, "anuladas": ["NC72"], "nueva": "FE204", "fallos": [], "total_carrito": 29097, "ts": "2026-09-09T16:21:52"}
+{"pack_id": "2000014919007085", "tipo": "regularizar", "ok": true, "anuladas": ["NC73"], "nueva": "FE205", "fallos": [], "total_carrito": 46637, "ts": "2026-09-09T16:22:23"}
+{"pack_id": "2000014914764425", "tipo": "regularizar", "ok": true, "anuladas": ["NC74"], "nueva": "FE206", "fallos": [], "total_carrito": 33057, "ts": "2026-09-09T16:22:57"}
+{"pack_id": "2000014912906973", "tipo": "regularizar", "ok": true, "anuladas": ["NC75"], "nueva": "FE207", "fallos": [], "total_carrito": 25840, "ts": "2026-09-09T16:23:36"}
+{"pack_id": "2000014912248331", "tipo": "regularizar", "ok": true, "anuladas": ["NC76"], "nueva": "FE208", "fallos": [], "total_carrito": 28072, "ts": "2026-09-09T16:25:35"}
+{"pack_id": "2000014908516775", "tipo": "regularizar", "ok": true, "anuladas": ["NC77"], "nueva": "FE209", "fallos": [], "total_carrito": 140472, "ts": "2026-09-09T16:26:26"}
+{"pack_id": "2000014908150535", "tipo": "regularizar", "ok": true, "anuladas": ["NC78"], "nueva": "FE210", "fallos": [], "total_carrito": 67849, "ts": "2026-09-09T16:26:55"}
+{"pack_id": "2000014907510161", "tipo": "regularizar", "ok": true, "anuladas": ["NC79"], "nueva": "FE211", "fallos": [], "total_carrito": 68898, "ts": "2026-09-09T16:27:24"}
+{"pack_id": "2000014902387943", "tipo": "regularizar", "ok": true, "anuladas": ["NC80"], "nueva": "FE212", "fallos": [], "total_carrito": 67760, "ts": "2026-09-09T16:27:54"}
+{"pack_id": "2000014902016457", "tipo": "regularizar", "ok": true, "anuladas": ["NC81"], "nueva": "FE213", "fallos": [], "total_carrito": 67765, "ts": "2026-09-09T16:28:38"}
+{"pack_id": "2000014898185267", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014895762483", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014889773011", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014889555841", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014888693953", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014887246013", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014885022597", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014883074095", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014881185099", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014879452357", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014878086851", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014877099603", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014874444995", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014869441191", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014854789003", "tipo": "regularizar", "ok": false, "motivo": "factura ya no vigente", "ts": "2026-09-09T16:29:26"}
+{"pack_id": "2000014898185267", "tipo": "regularizar", "ok": true, "anuladas": ["NC82"], "nueva": "FE214", "fallos": [], "total_carrito": 54319, "ts": "2026-09-09T16:38:41"}
+{"pack_id": "2000014895762483", "tipo": "regularizar", "ok": true, "anuladas": ["NC83"], "nueva": "FE215", "fallos": [], "total_carrito": 90810, "ts": "2026-09-09T16:39:12"}
+{"pack_id": "2000014889773011", "tipo": "regularizar", "ok": true, "anuladas": ["NC84"], "nueva": "FE216", "fallos": [], "total_carrito": 83895, "ts": "2026-09-09T16:39:40"}
+{"pack_id": "2000014889555841", "tipo": "regularizar", "ok": true, "anuladas": ["NC85"], "nueva": "FE217", "fallos": [], "total_carrito": 65915, "ts": "2026-09-09T16:40:10"}
+{"pack_id": "2000014888693953", "tipo": "regularizar", "ok": true, "anuladas": ["NC86"], "nueva": "FE218", "fallos": [], "total_carrito": 88364, "ts": "2026-09-09T16:40:40"}
+{"pack_id": "2000014887246013", "tipo": "regularizar", "ok": true, "anuladas": ["NC87"], "nueva": "FE219", "fallos": [], "total_carrito": 59585, "ts": "2026-09-09T16:41:13"}
+{"pack_id": "2000014885022597", "tipo": "regularizar", "ok": true, "anuladas": ["NC88"], "nueva": "FE220", "fallos": [], "total_carrito": 48430, "ts": "2026-09-09T16:43:56"}
+{"pack_id": "2000014883074095", "tipo": "regularizar", "ok": true, "anuladas": ["NC89"], "nueva": "FE221", "fallos": [], "total_carrito": 101299, "ts": "2026-09-09T16:44:30"}
+{"pack_id": "2000014881185099", "tipo": "regularizar", "ok": true, "anuladas": ["NC90"], "nueva": "FE222", "fallos": [], "total_carrito": 58800, "ts": "2026-09-09T16:45:01"}
+{"pack_id": "2000014879452357", "tipo": "regularizar", "ok": true, "anuladas": ["NC91"], "nueva": "FE223", "fallos": [], "total_carrito": 46020, "ts": "2026-09-09T16:45:30"}
+{"pack_id": "2000014878086851", "tipo": "regularizar", "ok": true, "anuladas": ["NC92"], "nueva": "FE224", "fallos": [], "total_carrito": 71224, "ts": "2026-09-09T16:46:01"}
+{"pack_id": "2000014877099603", "tipo": "regularizar", "ok": true, "anuladas": ["NC93"], "nueva": "FE225", "fallos": [], "total_carrito": 68739, "ts": "2026-09-09T16:46:31"}
+{"pack_id": "2000014874444995", "tipo": "regularizar", "ok": true, "anuladas": ["NC94"], "nueva": "FE226", "fallos": [], "total_carrito": 41515, "ts": "2026-09-09T16:49:05"}
+{"pack_id": "2000014869441191", "tipo": "regularizar", "ok": true, "anuladas": ["NC95"], "nueva": "FE227", "fallos": [], "total_carrito": 44475, "ts": "2026-09-09T16:49:37"}
+{"pack_id": "2000014854789003", "tipo": "regularizar", "ok": true, "anuladas": ["NC96"], "nueva": "FE228", "fallos": [], "total_carrito": 45645, "ts": "2026-09-09T16:50:07"}
+{"pack_id": "2000014816067223", "tipo": "duplicado", "ok": true, "anuladas": ["NC97"], "nueva": null, "fallos": [], "total_carrito": 87775, "ts": "2026-09-09T17:09:37"}

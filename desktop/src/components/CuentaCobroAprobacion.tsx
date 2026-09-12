@@ -8,6 +8,12 @@ import CuentaCobroAccentPicker, {
 } from "./CuentaCobroAccentPicker";
 import { datos_emisor_documento, datos_emisor_label } from "./cuentaCobroLabels";
 
+// NIT de McKenna. Hasta el 2026-09-10 acá decía "901.952.087-1", que no es el de
+// la empresa — el correcto es 901.316.016-3 (verificado contra GET /company de
+// Alegra). El backend lo toma de app/services/empresa.py; acá es solo texto de
+// presentación, pero debe coincidir con el que sale en el PDF.
+const NIT_MCKENNA = "901.316.016-3";
+
 export type CuentaCobroTipo = "mercancia" | "flete";
 
 export type LineaCuentaCobro = {
@@ -119,9 +125,8 @@ export default function CuentaCobroAprobacion({
   const [pdfAccentRgb, setPdfAccentRgb] = useState(() =>
     leerAccentCuentaCobro(themeAccentRgb),
   );
-  const [pctEdit, setPctEdit] = useState(() =>
-    String(compra.cuota_pct != null && compra.cuota_pct > 0 ? compra.cuota_pct : 5),
-  );
+  // Cuota fija (5% desde el 11-sep-2026): se muestra la guardada, no se edita.
+  const pctEdit = String(compra.cuota_pct != null && compra.cuota_pct > 0 ? compra.cuota_pct : 5);
   const [emisorId, setEmisorId] = useState<number | "">(() => {
     if (compra.emisor_usuario_id) return compra.emisor_usuario_id;
     return emisorUser?.id ?? "";
@@ -310,7 +315,7 @@ export default function CuentaCobroAprobacion({
           <div className="rounded-lg border border-border px-3 py-2">
             <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Dirigida a</p>
             <p className="font-semibold">McKenna Group S.A.S.</p>
-            <p className="text-[11px] text-muted">NIT 901.952.087-1</p>
+            <p className="text-[11px] text-muted">NIT {NIT_MCKENNA}</p>
           </div>
         </div>
 
@@ -364,26 +369,6 @@ export default function CuentaCobroAprobacion({
                 </>
               )}
             </p>
-            {(pendiente || aprobada) && (
-              <label className="mt-2 flex items-center gap-2 text-[11px]">
-                <span className="font-bold text-muted">Cuota manejo %</span>
-                <input
-                  type="number"
-                  min={0.01}
-                  max={100}
-                  step="0.1"
-                  value={pctEdit}
-                  disabled={busy}
-                  onChange={(e) => setPctEdit(e.target.value)}
-                  onBlur={() => {
-                    const v = Number(String(pctEdit).replace(",", "."));
-                    if (!Number.isFinite(v) || v <= 0) setPctEdit("5");
-                    else if (v > 100) setPctEdit("100");
-                  }}
-                  className="w-20 rounded-lg border border-border bg-surface-input px-2 py-1 font-mono text-xs"
-                />
-              </label>
-            )}
           </div>
         )}
 

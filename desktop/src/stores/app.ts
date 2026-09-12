@@ -22,6 +22,7 @@ export type Panel =
   | "fichas"
   | "pedidos"
   | "empaque"
+  | "guias-envio"
   | "publicaciones"
   | "vitrina-web"
   | "facturacion"
@@ -45,6 +46,7 @@ export type Panel =
   | "contabilidad-inicio"
   | "anulaciones"
   | "prestamos"
+  | "pagos"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
@@ -65,6 +67,10 @@ export type Panel =
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
 export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
+
+/** Sub-pestaña dentro de Studio visual. La portada es "categorias": la unidad de
+ *  trabajo es la categoría de producto, no la biblioteca de imágenes. */
+export type StudioSubvista = "categorias" | "etiquetas" | "disenos" | "recursos";
 
 export type MobileHubTab = "home" | "chat" | "mensajes" | "acciones" | "yo";
 
@@ -187,6 +193,11 @@ interface AppState {
   /** Vista interna al abrir Facturas desde el menú Facturación. */
   facturasBootVista: "pendientes" | "historial" | "consultar" | null;
   setFacturasBootVista: (v: "pendientes" | "historial" | "consultar" | null) => void;
+  /** Abrir Facturación → Ventas con contexto: una venta concreta (desde un
+   * paso de ticket) o el filtro "solo pendientes" (desde el checklist de
+   * Contabilidad). Se consume y se limpia al montar el panel. */
+  ventasBoot: { busqueda?: string; soloPendientes?: boolean } | null;
+  setVentasBoot: (v: { busqueda?: string; soloPendientes?: boolean } | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -195,6 +206,11 @@ interface AppState {
   /** Studio visual en vista de lienzo (editor): Layout usa fill sin padding. */
   etiquetasStudioInmersivo: boolean;
   setEtiquetasStudioInmersivo: (v: boolean) => void;
+  studioSubvista: StudioSubvista;
+  setStudioSubvista: (v: StudioSubvista) => void;
+  /** Categoría a la que se entró desde una tarjeta de la portada; "" = todas. */
+  studioCategoriaFiltro: string;
+  setStudioCategoriaFiltro: (v: string) => void;
   etiquetasHandoff: EtiquetasHandoff | null;
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
@@ -279,6 +295,8 @@ export const useAppStore = create<AppState>()(
       setFacturasBootSufijo: (facturasBootSufijo) => set({ facturasBootSufijo }),
       facturasBootVista: null,
       setFacturasBootVista: (facturasBootVista) => set({ facturasBootVista }),
+      ventasBoot: null,
+      setVentasBoot: (ventasBoot) => set({ ventasBoot }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;
@@ -298,6 +316,13 @@ export const useAppStore = create<AppState>()(
         });
         queueMicrotask(() => notifyNavChange());
       },
+      studioSubvista: "categorias",
+      setStudioSubvista: (studioSubvista) => {
+        if (get().studioSubvista === studioSubvista) return;
+        set({ studioSubvista });
+      },
+      studioCategoriaFiltro: "",
+      setStudioCategoriaFiltro: (studioCategoriaFiltro) => set({ studioCategoriaFiltro }),
       etiquetasStudioInmersivo: false,
       setEtiquetasStudioInmersivo: (etiquetasStudioInmersivo) => {
         if (get().etiquetasStudioInmersivo === etiquetasStudioInmersivo) return;
@@ -318,6 +343,7 @@ export const useAppStore = create<AppState>()(
         mobileTab: s.mobileTab,
         mobileShell: s.mobileShell,
         etiquetasTab: s.etiquetasTab,
+        studioSubvista: s.studioSubvista,
       }),
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Record<string, unknown>;

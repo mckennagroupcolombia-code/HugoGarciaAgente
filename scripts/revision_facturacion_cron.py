@@ -175,6 +175,12 @@ def main() -> int:
     ok, mensaje = crear_o_actualizar_ticket_revision_facturacion(items)
     print(f"   {mensaje}")
 
+    from app.tools.revision_facturacion import cerrar_tickets_revision_completados
+
+    cerrados = cerrar_tickets_revision_completados()
+    if cerrados:
+        print(f"   ✅ Ticket(s) de revisión con todos los pasos hechos, cerrados: {cerrados}")
+
     comentados = 0
     if ok and nuevos and not _sin_ia():
         comentados = _sugerir_y_comentar(nuevos, limite=25)

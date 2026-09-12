@@ -215,9 +215,29 @@ def _crear_ticket_revision(errores: list[dict]) -> None:
         for e in errores:
             partes.append(f"- Factura {e['factura']} (pack {e['pack']}): {e['error']}")
 
+        titulo = "Notas crédito automáticas: error al emitir"
+        # Reusar el ticket abierto en vez de crear uno nuevo por corrida: el
+        # mismo error (p. ej. Siigo en solo lectura) generaba un ticket NUEVO a
+        # la operadora cada día (#1280, #1295, #1312… en sep-2026) sin aportar
+        # nada. Un solo ticket vivo, con un comentario por corrida, deja el
+        # historial sin multiplicar el ruido.
+        with sqlite3.connect(tdb.DB_PATH) as db:
+            db.row_factory = sqlite3.Row
+            abierto = db.execute(
+                "SELECT id FROM tickets WHERE titulo=? AND estado IN ('pendiente','en_proceso','esperando_aprobacion') "
+                "ORDER BY id DESC LIMIT 1",
+                (titulo,),
+            ).fetchone()
+        if abierto:
+            tdb.agregar_comentario(
+                abierto["id"], admin_id,
+                f"Corrida {datetime.now():%Y-%m-%d %H:%M}:\n" + "\n".join(partes), es_interno=False,
+            )
+            return
+
         data = {
             "tipo": "accion",
-            "titulo": "Notas crédito automáticas: error al emitir",
+            "titulo": titulo,
             "categoria": "contabilidad",
             "descripcion": "El cron de notas crédito automáticas encontró error(es) al emitir.\n\n" + "\n".join(partes),
             "prioridad": "alta",
@@ -299,6 +319,7 @@ def main() -> int:
     emitidas: list[dict] = []
     duplicados: list[dict] = []
     errores: list[dict] = []
+    siigo_pendientes: list[dict] = []  # facturas Siigo canceladas: solo lectura, decisión del contador
 
     for orden in canceladas:
         pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
@@ -356,28 +377,22 @@ def main() -> int:
                 ),
             )
         else:
-            items = [
-                {
-                    "code": it["code"],
-                    "description": it.get("description", ""),
-                    "quantity": it["quantity"],
-                    "price": it["price"],
-                    "tax_ids": [t["id"] for t in (it.get("taxes") or [])],
-                }
-                for it in factura.get("items", [])
-            ]
-            payments = [{"id": p["id"], "value": p["value"]} for p in factura.get("payments", [])]
-
-            resultado = crear_nota_credito_siigo(
-                invoice_id=factura_id,
-                items=items,
-                payments=payments,
-                reason=2,
-                observaciones=(
-                    f"Nota crédito por cancelación de orden Mercado Libre (pack {pack_id}). "
-                    f"Factura ya emitida antes de la cancelación. Generada automáticamente por cron."
-                ),
-            )
+            # Factura de la era Siigo. Siigo quedó en SOLO LECTURA tras la
+            # migración a Alegra (error `read_only` confirmado en log_cron desde
+            # el 6-sep-2026), así que emitir la NC allá es imposible, y Alegra no
+            # puede anular una factura que no es suya. Antes este cron lo
+            # intentaba cada día, fallaba cada día y abría un ticket nuevo cada
+            # día a la operadora (FV-2-71049). Ahora se registra UNA vez como
+            # "requiere contador" y no se vuelve a intentar: la decisión de cómo
+            # cerrar esas facturas (ajuste interno / reactivar Siigo puntualmente)
+            # es contable, no del sistema — ver docs/agentic/modules/facturacion-meli-alegra.md.
+            procesadas[pack_id] = {
+                "estado": "siigo_solo_lectura", "factura": factura_numero, "proveedor": "Siigo",
+                "actualizado_en": datetime.now().isoformat(timespec="seconds"),
+            }
+            siigo_pendientes.append({"pack": pack_id, "factura": factura_numero, "total": factura.get("total")})
+            print(f"   ⏸  {factura_numero} (Siigo, solo lectura): queda para el contador, no se reintenta.")
+            continue
 
         if resultado.get("ok"):
             subida_ok, subida_error = _subir_nota_credito_a_meli(pack_id, resultado.get("credit_note_id"), es_alegra=es_alegra)
@@ -404,6 +419,9 @@ def main() -> int:
     registrar_ejecucion(JOB_ID)
 
     print(f"Resumen: {len(emitidas)} emitidas, {len(duplicados)} ya tenían NC (sin acción), {len(errores)} errores.")
+    if siigo_pendientes:
+        print(f"   {len(siigo_pendientes)} factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): "
+              + ", ".join(f"{s['factura']} (${(s['total'] or 0):,.0f})" for s in siigo_pendientes))
 
     # "ya tenía NC" es el caso normal (alguien ya la resolvió, a mano o en una
     # corrida anterior) — no es una anomalía y no debe generar ruido. Solo

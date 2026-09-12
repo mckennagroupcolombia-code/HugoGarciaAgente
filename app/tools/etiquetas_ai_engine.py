@@ -3024,8 +3024,10 @@ _ESCALA_BASE_CAMPO: dict[str, float] = {
 }
 
 _FORMATO_DIM_MM: dict[str, tuple[int, int]] = {
+    "250 / 500 g": (76, 66),
     "500 g": (76, 66),
     "250 g": (76, 66),
+    "Pastillero": (54, 58),
     "50g": (101, 32),
     "50 g": (101, 32),
     "30 mL": (101, 38),

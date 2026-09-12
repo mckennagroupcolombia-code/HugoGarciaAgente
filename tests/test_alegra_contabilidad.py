@@ -360,3 +360,85 @@ def test_actualizar_combo_alegra_no_es_kit(monkeypatch):
     out = ag.actualizar_combo_alegra("P1", [{"codigo": "A", "cantidad": 1}])
     assert out["ok"] is False
     assert "combo" in out["error"].lower() or "kit" in out["error"].lower()
+
+
+def test_actualizar_referencia_alegra_producto_ok(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+    puts = []
+
+    def _get(url, headers=None, params=None, timeout=None):
+        ref = (params or {}).get("reference")
+        if ref == "P1":
+            return _Resp(200, [{
+                "id": "5",
+                "name": "Producto",
+                "reference": "P1",
+                "type": "product",
+                "inventory": {"unit": "unit", "initialQuantity": 10, "availableQuantity": 10},
+            }])
+        return _Resp(200, [])  # P1-NUEVO libre
+
+    def _put(url, headers=None, json=None, timeout=None):
+        puts.append({"url": url, "json": json})
+        return _Resp(200, {"id": "5"})
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", _put)
+
+    out = ag.actualizar_referencia_alegra_producto("P1", "P1-NUEVO")
+    assert out["ok"] is True
+    assert out["codigo_anterior"] == "P1"
+    assert out["codigo_nuevo"] == "P1-NUEVO"
+    assert puts[0]["url"].endswith("/items/5")
+    assert puts[0]["json"] == {"reference": "P1-NUEVO"}
+
+
+def test_actualizar_referencia_alegra_producto_bloqueado_por_movimientos(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+
+    def _get(url, headers=None, params=None, timeout=None):
+        return _Resp(200, [{
+            "id": "5",
+            "name": "Producto",
+            "reference": "P1",
+            "type": "product",
+            "inventory": {"unit": "unit", "initialQuantity": 10, "availableQuantity": 3},
+        }])
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no debería llamar PUT")))
+
+    out = ag.actualizar_referencia_alegra_producto("P1", "P1-NUEVO")
+    assert out["ok"] is False
+    assert out.get("bloqueado_movimientos") is True
+
+
+def test_actualizar_referencia_alegra_producto_sku_duplicado(monkeypatch):
+    from app.services import alegra as ag
+
+    monkeypatch.setattr(ag, "_alegra_headers", lambda: {"Authorization": "Basic x"})
+
+    def _get(url, headers=None, params=None, timeout=None):
+        ref = (params or {}).get("reference")
+        if ref == "P1":
+            return _Resp(200, [{
+                "id": "5",
+                "name": "Producto",
+                "reference": "P1",
+                "type": "product",
+                "inventory": {"unit": "unit", "initialQuantity": 0, "availableQuantity": 0},
+            }])
+        if ref == "P2":
+            return _Resp(200, [{"id": "6", "reference": "P2"}])
+        return _Resp(200, [])
+
+    monkeypatch.setattr(ag.requests, "get", _get)
+    monkeypatch.setattr(ag.requests, "put", lambda *a, **k: (_ for _ in ()).throw(AssertionError("no debería llamar PUT")))
+
+    out = ag.actualizar_referencia_alegra_producto("P1", "P2")
+    assert out["ok"] is False
+    assert "ya existe" in out["error"].lower()
