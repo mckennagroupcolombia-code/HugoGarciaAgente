@@ -930,6 +930,91 @@ def _guardar_pdf_fallido(contenido: bytes, nombre: str, motivo: str) -> str:
         return ""
 
 
+def _es_consolidado_bancolombia(matrix: list[list]) -> bool:
+    """¿Es el CSV consolidado de Bancolombia, sin encabezados y por posición?
+
+    Forma: fecha AAAAMMDD · cuenta · secuencia · … · código · descripción · … ·
+    monto · … · C/D. Se reconoce porque la primera columna es una fecha de 8
+    dígitos y entre las descripciones aparecen las líneas de saldo, que ningún
+    otro formato trae.
+    """
+    if not matrix:
+        return False
+    fechas_ok = descripciones = 0
+    for fila in matrix[:20]:
+        if len(fila) < 11:
+            continue
+        f = str(fila[0]).strip()
+        if len(f) == 8 and f.isdigit():
+            fechas_ok += 1
+        if "SALDO" in str(fila[6]).upper():
+            descripciones += 1
+    return fechas_ok >= 5 and descripciones >= 1
+
+
+def _parse_consolidado_bancolombia(matrix: list[list]) -> list[dict[str, Any]]:
+    """Movimientos del consolidado, verificados contra los SALDO DIA del archivo.
+
+    Esa verificación es el motivo de existir de este parser. El mismo agosto de
+    2026 se había cargado antes desde el PDF del banco y quedó con 150
+    movimientos en vez de 162, con fechas corridas un día y montos alterados —
+    y nadie se enteró hasta que aparecieron 21 asientos contra líneas que en el
+    banco no existían. El consolidado trae el saldo de cada día, así que se
+    puede comprobar que lo leído reproduce exactamente lo que el banco dice:
+    si no cuadra, es mejor fallar que importar datos que parecen buenos.
+    """
+    movs: list[dict[str, Any]] = []
+    saldos: dict[str, float] = {}
+    saldo_inicial = None
+
+    for n_fila, fila in enumerate(matrix, start=1):
+        if len(fila) < 11:
+            continue
+        f = str(fila[0]).strip()
+        if len(f) != 8 or not f.isdigit():
+            continue
+        fecha = f"{f[:4]}-{f[4:6]}-{f[6:]}"
+        desc = str(fila[6]).strip()
+        try:
+            monto = float(str(fila[8]).strip())
+        except ValueError:
+            continue
+        if desc.upper().startswith("SALDO INICIAL"):
+            saldo_inicial = monto
+            continue
+        if desc.upper().startswith("SALDO"):
+            saldos[fecha] = monto
+            continue
+        ref = str(fila[5]).strip()
+        tipo = "debito" if str(fila[10]).strip().upper() == "D" else "credito"
+        movs.append({
+            "fecha": fecha,
+            "descripcion": desc,
+            "referencia": ref,
+            "monto": abs(monto),
+            "tipo": tipo,
+            "saldo": None,
+            "fila_origen": n_fila,
+            "hash_linea": _hash_linea(fecha, tipo, abs(monto), desc, ref, n_fila),
+        })
+
+    if saldo_inicial is not None and saldos:
+        corriente = saldo_inicial
+        for fecha in sorted({m["fecha"] for m in movs}):
+            for m in movs:
+                if m["fecha"] == fecha:
+                    corriente += -m["monto"] if m["tipo"] == "debito" else m["monto"]
+            esperado = saldos.get(fecha)
+            # El último día puede no traer saldo (archivo generado a mitad del día).
+            if esperado is not None and abs(corriente - esperado) > 0.01:
+                raise ValueError(
+                    f"El archivo no cuadra con sus propios saldos: al {fecha} "
+                    f"los movimientos dan {corriente:,.2f} y el banco dice {esperado:,.2f}. "
+                    "No se importa: los datos leídos no reproducen el extracto."
+                )
+    return movs
+
+
 def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
     """Parsea CSV, XLSX o PDF a lista de movimientos normalizados."""
     name = (nombre or "").lower()
@@ -971,6 +1056,9 @@ def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
 
     reader = csv.reader(io.StringIO(text), delimiter=delim)
     matrix = [list(r) for r in reader]
+
+    if _es_consolidado_bancolombia(matrix):
+        return _parse_consolidado_bancolombia(matrix)
     return _rows_from_matrix(matrix)
 
 

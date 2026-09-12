@@ -73,9 +73,18 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
      "Pago de impuestos / retenciones a la DIAN", ALTA,
      "Confirmar contra qué período se abonó antes de descargar 2365."),
 
-    # Personas naturales por Llave o QR. Acá vive lo que hay que separar: pagos a
-    # socios, servicios, fletes y compras pequeñas van todos con el mismo formato.
-    (r"^PAGO LLAVE |^PAGO QR |^TRANSFERENCIA DESDE NEQUI|^PAGO NEQUI", None, None,
+    # Llave y QR van en los DOS sentidos y significan cosas opuestas: un crédito
+    # es un cliente pagando (la venta casi siempre ya está en el libro por
+    # Alegra/MeLi y solo falta vincular la línea), un débito es plata que sale.
+    # Tratarlos igual —como se hizo al principio— hacía aparecer 42 cobros de
+    # clientes bajo la etiqueta «Pago a persona natural», o sea del lado
+    # contrario del que estaban.
+    (r"^PAGO LLAVE |^PAGO QR |^TRANSFERENCIA DESDE NEQUI|^PAGO NEQUI", "credito", None,
+     "Cobro de cliente por QR o Llave", REVISAR,
+     "Es un cliente pagando, no un egreso. La venta suele estar YA registrada "
+     "(Alegra/MeLi): hay que VINCULAR la línea al asiento existente, no crear uno "
+     "nuevo — si no, el ingreso se cuenta dos veces."),
+    (r"^PAGO LLAVE |^PAGO QR |^PAGO NEQUI", "debito", None,
      "Pago a persona natural", REVISAR,
      "El banco solo trae el nombre de pila. Hay que decir si es servicio (5135, "
      "con retención), flete (513550), compra o reintegro a socio (2380)."),

@@ -112,3 +112,49 @@ def test_nit_sin_dv_maneja_los_formatos_del_repo(monkeypatch, crudo, base):
     # 10 dígitos corridos = base(9) + DV; con guion, la base es lo de antes.
     monkeypatch.setenv("EMPRESA_NIT", crudo)
     assert empresa.nit_sin_dv() == base
+
+
+# ── Dígito de verificación ────────────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    "nit_con_dv",
+    [
+        "901.316.016-3",   # McKenna Group S.A.S.
+        "830.067.394-6",   # Mercado Libre Colombia Ltda.
+        "9013160163".replace("3", "3", 1)[:9] + "-3",
+    ],
+)
+def test_nit_real_pasa_la_verificacion(nit_con_dv):
+    from app.services import empresa
+
+    assert empresa.nit_valido(nit_con_dv) is True
+
+
+def test_detecta_el_nit_que_causo_el_incidente():
+    """«901.952.087-1» estuvo escrito a mano en el repo y salieron 41 cuentas de
+    cobro con él. No es el NIT de McKenna, y además su DV ni siquiera cuadra."""
+    from app.services import empresa
+
+    assert empresa.nit_valido("901.952.087-1") is False
+
+
+@pytest.mark.parametrize("malo", ["830.067.394-9", "901.316.016-0", "830.067.349-6"])
+def test_detecta_digito_cambiado_o_transpuesto(malo):
+    from app.services import empresa
+
+    assert empresa.nit_valido(malo) is False
+
+
+@pytest.mark.parametrize("sin_dv", ["19477735", "21102893", "", None])
+def test_sin_dv_devuelve_none_y_no_falso(sin_dv):
+    """Un tercero registrado sin DV no es un tercero con DV equivocado: tratarlos
+    igual haría rechazar cédulas, que no llevan dígito de verificación."""
+    from app.services import empresa
+
+    assert empresa.nit_valido(sin_dv) is None
+
+
+def test_el_dv_ignora_puntos_y_espacios():
+    from app.services import empresa
+
+    assert empresa.digito_verificacion("830.067.394") == empresa.digito_verificacion("830067394") == 6

@@ -639,7 +639,11 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         try:
             from app.services.alegra_espejo import espejar_movimiento
 
-            espejo = espejar_movimiento(mov["id"])
+            # `forzar`: aprobar ES la autorización explícita, con el asiento a la
+            # vista. ALEGRA_ESPEJO_ACTIVO protege los posteos masivos; sin forzar,
+            # cada pago aprobado quedaba en sombra y el panel —que promete el
+            # comprobante en Alegra— lo marcaba «sin espejar».
+            espejo = espejar_movimiento(mov["id"], forzar=True)
             if espejo.get("status") == "success":
                 with _conn() as con:
                     con.execute("UPDATE cc_solicitudes_pago SET alegra_journal_id=? WHERE id=?",
@@ -647,7 +651,34 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         except Exception as e:
             espejo = {"status": "error", "message": str(e)}
 
+    _comentar_ticket(
+        s.get("ticket_id"), aprobada_por,
+        f"✅ Pago aprobado (solicitud #{sid}). Asiento #{mov.get('id')} en el Libro Mayor"
+        + (f" · comprobante Alegra #{espejo.get('id')}" if espejo.get("status") == "success"
+           else f" · Alegra: {espejo.get('status')}")
+        + f". Girar {_fmt(s['girado'])} a {(s.get('tercero') or {}).get('nombre') or 'el beneficiario'}"
+        f" desde {prev['medio_pago']} — ese es el valor que debe aparecer en el extracto.",
+    )
     return {**obtener(sid), "movimiento": mov, "alegra": espejo}
+
+
+def _comentar_ticket(ticket_id, usuario_id, texto: str) -> None:
+    """Deja en el ticket de la solicitud lo que pasó con ella.
+
+    Aprobar desde el panel de pagos no tocaba el ticket: quedaba «pendiente» en
+    la bandeja aunque el pago ya estuviera contabilizado, y quien tiene que girar
+    no se enteraba. Best-effort — el asiento ya quedó y no depende de esto.
+    """
+    if not ticket_id:
+        return
+    try:
+        from app.services import tickets_db as _tdb
+
+        uid = usuario_id or _usuario_id(_tdb.DB_PATH, "admin")
+        if uid:
+            _tdb.agregar_comentario(int(ticket_id), int(uid), texto)
+    except Exception as e:
+        print(f"⚠️ No se pudo comentar el ticket {ticket_id}: {e}", flush=True)
 
 
 def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
@@ -665,6 +696,9 @@ def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
             " notas = TRIM(notas || ' | Rechazada: ' || ?), aprobada_por=? WHERE id=?",
             (motivo or "sin motivo", por, int(sid)),
         )
+    _comentar_ticket(s.get("ticket_id"), por,
+                     f"❌ Solicitud de pago #{sid} rechazada: {motivo or 'sin motivo'}. "
+                     "No quedó ningún asiento contable.")
     return obtener(sid)
 
 

@@ -1125,7 +1125,7 @@ def _persistir_overrides_pedido_web(reference: str, order: dict, data: dict) -> 
 
 
 def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict], str | None]:
-    from app.services.alegra import buscar_producto_alegra_por_referencia
+    from app.services.alegra import buscar_producto_alegra_por_referencia, resolver_producto_venta_alegra
 
     items = data.get("items") or []
     if not items:
@@ -1148,7 +1148,7 @@ def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict],
         if price < 0:
             missing.append(f"{code}: precio inválido")
             continue
-        alegra_prod = buscar_producto_alegra_por_referencia(code)
+        alegra_prod = resolver_producto_venta_alegra(code)
         if not alegra_prod:
             missing.append(f"{code}: no existe en Alegra")
             continue

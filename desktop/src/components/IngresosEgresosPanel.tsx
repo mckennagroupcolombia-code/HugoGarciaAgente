@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchAuthBlobUrl } from "../api/client";
 import TerceroSelect from "./TerceroSelect";
+import ClasificadorBancoPanel from "./ClasificadorBancoPanel";
 
 const EXTRACTO_EXTS = [".csv", ".xlsx", ".xlsm", ".txt", ".tsv", ".pdf"];
 
@@ -1229,46 +1230,19 @@ export default function IngresosEgresosPanel({
               registrado a qué correspondió el movimiento y con qué cuenta contable.
             </p>
           </div>
-          {pendientesQ.isLoading && <p className="text-xs text-muted">Buscando pendientes…</p>}
-          {pendientesQ.isError && (
-            <p className="text-xs text-rose-600">{(pendientesQ.error as Error).message}</p>
-          )}
-          {!pendientesQ.isLoading && (pendientesQ.data?.pendientes?.length ?? 0) === 0 && (
-            <p className="text-xs text-emerald-700">
-              Todo lo que llegó en los extractos de este rango ya está clasificado. ✅
-            </p>
-          )}
-          <ul className="space-y-1.5">
-            {(pendientesQ.data?.pendientes ?? []).map((p) => (
-              <li
-                key={p.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface px-3 py-2"
-              >
-                <div className="min-w-0 text-xs">
-                  <div className="font-semibold text-ink">
-                    {p.fecha} · {p.tipo === "credito" ? "Entró" : "Salió"} · {formatCop(p.monto)}
-                  </div>
-                  <div className="truncate text-muted" title={p.descripcion}>
-                    {p.descripcion || "(sin descripción)"}
-                    {p.referencia ? ` · ref ${p.referencia}` : ""} · {p.extracto_nombre}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setClasificarLinea(p);
-                    setClasificarTipo("prestamo");
-                    setClasificarSub("nuevo");
-                    setClasificarForm({ tercero_id: "", cuenta_id: "", medio_pago_id: "", concepto: "" });
-                    setClasificarErr(null);
-                  }}
-                  className="shrink-0 rounded-lg border-2 border-amber-600 bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white"
-                >
-                  Clasificar
-                </button>
-              </li>
-            ))}
-          </ul>
+          <ClasificadorBancoPanel
+            desde={desde}
+            hasta={hasta}
+            onClasificar={(id: number) => {
+              const linea = (pendientesQ.data?.pendientes ?? []).find((x) => x.id === id);
+              if (!linea) return;
+              setClasificarLinea(linea);
+              setClasificarTipo("prestamo");
+              setClasificarSub("nuevo");
+              setClasificarForm({ tercero_id: "", cuenta_id: "", medio_pago_id: "", concepto: "" });
+              setClasificarErr(null);
+            }}
+          />
         </div>
       )}
 

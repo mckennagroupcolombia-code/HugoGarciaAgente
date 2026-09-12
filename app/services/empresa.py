@@ -100,3 +100,46 @@ def ciudad(override_env: str = "") -> str:
         or os.getenv("EMPRESA_CIUDAD")
         or CIUDAD_DEFAULT
     ).strip()
+
+
+# ── Dígito de verificación ────────────────────────────────────────────────
+# Pesos del algoritmo de la DIAN, de derecha a izquierda sobre el NIT sin DV.
+_PESOS_DV = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71]
+
+
+def digito_verificacion(nit: str) -> int | None:
+    """DV que le corresponde a un NIT, calculado con el algoritmo de la DIAN.
+
+    Nace de un incidente real: en sep-2026 el NIT de McKenna estaba escrito a
+    mano en cuatro archivos y en dos decía uno que no era el de la empresa;
+    salieron 41 cuentas de cobro mal. Un DV no detecta que el NIT sea de otra
+    empresa, pero sí detecta el dígito cambiado o transpuesto, que es el error
+    de digitación más común — y cuesta una línea comprobarlo antes de guardar.
+
+    Devuelve None si lo que entra no tiene dígitos o excede los 15 del algoritmo.
+    """
+    base = "".join(c for c in str(nit or "") if c.isdigit())
+    if not base or len(base) > len(_PESOS_DV):
+        return None
+    # El peso menor va contra el dígito de más a la derecha.
+    suma = sum(int(d) * _PESOS_DV[i] for i, d in enumerate(reversed(base)))
+    resto = suma % 11
+    return resto if resto < 2 else 11 - resto
+
+
+def nit_valido(nit_con_dv: str) -> bool | None:
+    """¿El DV que trae el NIT es el que le corresponde?
+
+    Espera el formato «830.067.394-6» (o sin puntos). Devuelve None cuando no
+    hay DV que comprobar — no es lo mismo «viene mal» que «no vino», y tratar
+    ambos como falso haría fallar a los terceros que se registran sin DV.
+    """
+    texto = str(nit_con_dv or "").strip()
+    if "-" not in texto:
+        return None
+    base, _, dv = texto.rpartition("-")
+    dv = "".join(c for c in dv if c.isdigit())
+    if not dv:
+        return None
+    esperado = digito_verificacion(base)
+    return None if esperado is None else esperado == int(dv)

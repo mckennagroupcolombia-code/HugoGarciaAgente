@@ -17,10 +17,16 @@ def mods(monkeypatch, tmp_path):
     db = str(tmp_path / "contabilidad_test.db")
     import app.services.contabilidad_core as cc
     import app.services.pagos_wizard as w
+    from app.services import tickets_db
 
     for mod in (cc, w):
         monkeypatch.setattr(mod, "_DB_PATH", db)
         monkeypatch.setattr(mod, "_initialized", False)
+    # `crear_solicitud` abre un ticket de aprobación. Sin esto, cada corrida de
+    # la suite dejaba ~10 tickets «Aprobar pago — Flete o transporte: $850.000»
+    # en la bandeja REAL de Armando (69 el 11-sep-2026), apuntando a solicitudes
+    # que solo existían en la base temporal del test.
+    monkeypatch.setattr(tickets_db, "DB_PATH", str(tmp_path / "tickets_test.db"))
     w.init_db()
     with cc._conn() as con:
         banco = cc._cuenta_id_por_codigo(con, "1110")
@@ -77,6 +83,51 @@ def test_crear_solicitud_NO_crea_asiento(mods):
     w.crear_solicitud(_pago(t, m))
     n = sqlite3.connect(db).execute("SELECT COUNT(*) FROM cc_movimientos").fetchone()[0]
     assert n == 0
+
+
+def test_la_suite_no_abre_tickets_en_la_base_real(mods):
+    import os
+    import uuid
+
+    from app.services import tickets_db
+
+    _cc, w, t, m, _ = mods
+    marca = f"test-{uuid.uuid4().hex}"
+    w.crear_solicitud(_pago(t, m, concepto=marca))
+
+    real = os.path.join(os.path.dirname(tickets_db.__file__), "..", "data", "tickets.db")
+    if not os.path.isfile(real):
+        return
+    con = sqlite3.connect(f"file:{real}?mode=ro", uri=True)
+    try:
+        n = con.execute("SELECT COUNT(*) FROM tickets WHERE descripcion LIKE ?",
+                        (f"%{marca}%",)).fetchone()[0]
+    finally:
+        con.close()
+    assert n == 0
+
+
+def test_aprobar_deja_constancia_en_el_ticket(mods):
+    """Quien gira se entera por el ticket, con el valor exacto que verá el extracto."""
+    from app.services import tickets_db
+
+    _cc, w, t, m, _ = mods
+    tickets_db.init_db()
+    tickets_db.init_db()   # 2ª pasada: migraciones que se saltan en BD nueva
+    with tickets_db._conn() as db:
+        db.execute("INSERT OR IGNORE INTO roles (id, nombre, nivel) VALUES (1,'Admin',3)")
+        db.execute("INSERT INTO usuarios (id, username, nombre, password_hash, rol_id, activo)"
+                   " VALUES (8,'armando','Armando','x',1,1)")
+        db.execute("INSERT INTO tickets (id, numero, titulo, descripcion, categoria, estado, creado_por)"
+                   " VALUES (1,'TKT-T-0001','PAGO','PAGO','logistica','pendiente',8)")
+        db.commit()
+    s = w.crear_solicitud({**_pago(t, m), "_sin_ticket": True})
+    with w._conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET ticket_id=1 WHERE id=?", (s["id"],))
+    w.aprobar(s["id"], aprobada_por=8, espejar=False)
+    with tickets_db._conn() as db:
+        textos = [r["texto"] for r in db.execute("SELECT texto FROM comentarios_tickets WHERE ticket_id=1")]
+    assert any("aprobado" in x and "$850.000" in x for x in textos)
 
 
 def test_aprobar_crea_el_asiento_y_cuadra(mods):
