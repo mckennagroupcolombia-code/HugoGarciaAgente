@@ -3224,9 +3224,18 @@ def buscar_contenido_relacionado(nombre_producto: str) -> dict:
     técnico disponible, no solo FT/COA. Match conservador (palabras clave del
     contenido deben estar TODAS en el nombre del producto) para evitar sugerir
     contenido de otro ingrediente."""
-    from app.services.drive_documentos import _palabras_clave
+    from app.services.drive_documentos import _palabras_clave, normalizar_nombre_producto
 
-    claves_producto = set(_palabras_clave(nombre_producto))
+    def _claves(nombre: str) -> set[str]:
+        # Igual que _palabras_clave, pero conservando las letras sueltas:
+        # "Vitamina C" y "Vitamina E" solo se distinguen por ellas (sin esto,
+        # la receta del sérum de vitamina C enlazaba la guía de vitamina E).
+        # Se excluyen las conjunciones de una letra ("magnesio y potasio").
+        base = set(_palabras_clave(nombre))
+        sueltas = {p for p in normalizar_nombre_producto(nombre).split() if len(p) == 1 and p.isalpha() and p not in {"y", "o", "u"}}
+        return base | sueltas
+
+    claves_producto = _claves(nombre_producto)
     salida: dict[str, list[dict]] = {"guias": [], "manuales": [], "recetas": []}
     if not claves_producto:
         return salida
@@ -3239,11 +3248,19 @@ def buscar_contenido_relacionado(nombre_producto: str) -> dict:
             if not g.get("publicada", True):
                 continue
             candidato = g.get("title_short") or g.get("producto_nombre") or ""
-            claves_g = set(_palabras_clave(candidato))
+            claves_g = _claves(candidato)
             if claves_g and claves_g.issubset(claves_producto):
+                v = g.get("viva") or {}
                 salida["guias"].append({
                     "titulo": g.get("title_short") or candidato,
                     "url": f"/guias/{g.get('slug')}",
+                    "slug": g.get("slug"),
+                    "desc": g.get("desc") or "",
+                    "viva": bool(v.get("incorporacion")),
+                    "conc_max_pct": v.get("conc_max_pct"),
+                    "ph": v.get("ph"),
+                    "temp_max_c": v.get("temp_max_c"),
+                    "n_faq": len(v.get("faq") or []),
                 })
     except Exception:
         pass
@@ -3268,15 +3285,26 @@ def buscar_contenido_relacionado(nombre_producto: str) -> dict:
         for r in recetas:
             ings = r.get("ings") or []
             usa_producto = any(
-                set(_palabras_clave(ing.get("n") or "")) & claves_producto
-                and set(_palabras_clave(ing.get("n") or "")).issubset(claves_producto)
+                _claves(ing.get("n") or "") & claves_producto
+                and _claves(ing.get("n") or "").issubset(claves_producto)
                 for ing in ings
                 if isinstance(ing, dict)
             )
             if usa_producto:
+                pasos = r.get("pasos") or []
+                p1 = pasos[0] if pasos else None
                 salida["recetas"].append({
                     "titulo": r.get("title") or "",
-                    "url": "/recetario",
+                    "titulo2": r.get("title2") or "",
+                    "url": f"/recetario/{r['slug']}" if r.get("slug") else "/recetario",
+                    "slug": r.get("slug") or "",
+                    "cat": r.get("cat") or "",
+                    "desc": r.get("desc") or "",
+                    "base": r.get("base"),
+                    "unidad": r.get("unidad") or "",
+                    "n_ings": len(ings),
+                    "n_pasos": len(pasos),
+                    "paso1": (p1.get("texto") if isinstance(p1, dict) else str(p1 or "")),
                 })
     except Exception:
         pass
@@ -4141,12 +4169,14 @@ def producto(slug):
         doc_completo = buscar_documento_completo_web(n, ref)
         if doc_completo:
             break
+    contenido = contenido_para_producto(nombres)
     return render_template("producto.html",
         p=p,
         fotos=fotos,
         relacionados=relacionados,
         wa=wa_link(p),
-        doc_completo=doc_completo)
+        doc_completo=doc_completo,
+        contenido=contenido)
 
 
 # ── Cotizar: oferta cotizable de la red de proveedores (sin stock) ─────────
@@ -4383,6 +4413,8 @@ def sitemap():
     for p in posts:
         fecha = p.get("fecha", today)
         urls.append(f'<url><loc>{SITE_URL}/blog/{p["slug"]}</loc><lastmod>{fecha}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>')
+    for r in _cargar_recetas():
+        urls.append(f'<url><loc>{SITE_URL}/recetario/{r["slug"]}</loc><lastmod>{today}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>')
     for slug in sorted(set(prod_slugs + combo_slugs)):
         urls.append(
             f"<url><loc>{SITE_URL}/producto/{slug}</loc>"
@@ -4498,14 +4530,144 @@ def verificar_lote():
     )
 
 
+_RECETAS_JSON = Path(__file__).parent / "data/recetas.json"
+
+
+def _cargar_recetas() -> list:
+    """Recetas del recetario (data/recetas.json, modelo v2 de
+    scripts/migrar_recetas_v2.py). Tolera el modelo viejo: pasos como texto."""
+    try:
+        recetas = json.loads(_RECETAS_JSON.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    for r in recetas:
+        r["pasos"] = [p if isinstance(p, dict) else {"texto": str(p), "accion": "mezclar"} for p in r.get("pasos") or []]
+        if not r.get("slug"):
+            r["slug"] = f"receta-{r.get('id', '')}"
+    return recetas
+
+
+def _receta_jsonld(r: dict) -> dict:
+    """schema.org/Recipe para que la receta indexe con pasos e ingredientes."""
+    return {
+        "@context": "https://schema.org",
+        "@type": "Recipe",
+        "name": f"{r.get('title', '')} {r.get('title2', '')}".strip(),
+        "description": r.get("desc", ""),
+        "recipeCategory": r.get("cat", ""),
+        "recipeYield": f"{r.get('base', '')} {r.get('unidad', '')}".strip(),
+        "keywords": ", ".join(r.get("tags") or []),
+        "recipeIngredient": [f"{i.get('q', '')} {i.get('u', '')} {i.get('n', '')}".strip() for i in r.get("ings") or []],
+        "recipeInstructions": [{"@type": "HowToStep", "text": p.get("texto", "")} for p in r.get("pasos") or []],
+        "author": {"@type": "Organization", "name": "McKenna Group S.A.S."},
+        "url": f"{SITE_URL}/recetario/{r.get('slug', '')}",
+    }
+
+
+def contenido_para_producto(nombres: list[str]) -> dict:
+    """Guía viva y recetas para la ficha de producto. Prueba cada nombre
+    (presentación elegida, familia, nombre original) y une sin repetir."""
+    guias: dict[str, dict] = {}
+    recetas: dict[str, dict] = {}
+    for n in nombres:
+        if not n:
+            continue
+        rel = buscar_contenido_relacionado(n)
+        for g in rel["guias"]:
+            guias.setdefault(g["url"], g)
+        for r in rel["recetas"]:
+            recetas.setdefault(r["url"], r)
+    return {"guias": list(guias.values())[:2], "recetas": list(recetas.values())[:6]}
+
+
+def guias_para_receta(r: dict) -> list[dict]:
+    """Guías vivas de los activos de una receta: se cruza por el nombre del
+    ingrediente y por el nombre del producto enlazado (si lo hay)."""
+    vistos: dict[str, dict] = {}
+    for ing in r.get("ings") or []:
+        if not isinstance(ing, dict) or ing.get("propio"):
+            continue
+        for n in (ing.get("n"), ing.get("producto")):
+            if not n:
+                continue
+            for g in buscar_contenido_relacionado(n)["guias"]:
+                if g["url"] not in vistos:
+                    g = dict(g)
+                    g["ingrediente"] = ing.get("n")
+                    vistos[g["url"]] = g
+    return list(vistos.values())
+
+
+def recetas_para_guia(g: dict) -> list[dict]:
+    """Recetas del recetario que usan el ingrediente de la guía."""
+    vistos: dict[str, dict] = {}
+    for n in (g.get("title_short"), g.get("producto_nombre")):
+        if not n:
+            continue
+        for r in buscar_contenido_relacionado(n)["recetas"]:
+            vistos.setdefault(r["url"], r)
+    return list(vistos.values())[:6]
+
+
+# ── Métricas de uso del contenido (Fase 4, sep-2026) ───────────────────────
+_EVENTOS_RATE: dict[str, list[float]] = {}
+_EVENTOS_RATE_MAX = 120  # por IP y minuto: una sesión real manda unos 10-20
+
+
+@app.route("/api/eventos-contenido", methods=["POST"])
+def api_eventos_contenido():
+    """Recibe los eventos de uso de recetas y guías vivas (sendBeacon desde
+    static/js/contenido-eventos.js). Sin auth: solo acepta los nombres de la
+    lista cerrada de app/services/metricas_contenido.py, recorta todo y limita
+    por IP. Responde 204 siempre que el evento sea válido."""
+    import time as _t
+
+    from app.services import metricas_contenido as mc
+
+    ip = (request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or request.remote_addr or "?")
+    ahora = _t.time()
+    ventana = [t for t in _EVENTOS_RATE.get(ip, []) if ahora - t < 60]
+    if len(ventana) >= _EVENTOS_RATE_MAX:
+        _EVENTOS_RATE[ip] = ventana
+        return ("", 429)
+    ventana.append(ahora)
+    _EVENTOS_RATE[ip] = ventana
+    if len(_EVENTOS_RATE) > 5000:  # no dejar crecer el dict sin límite
+        _EVENTOS_RATE.clear()
+
+    body = request.get_json(silent=True, force=True) or {}
+    evento = str(body.get("evento") or "")[:40]
+    if evento not in mc.EVENTOS:
+        return jsonify({"ok": False, "error": "evento no válido"}), 400
+    slug = re.sub(r"[^a-z0-9\-_/.]", "", str(body.get("slug") or "").lower())[:120]
+    sesion = re.sub(r"[^a-z0-9]", "", str(body.get("sesion") or "").lower())[:64]
+    detalle = str(body.get("detalle") or "")[:200]
+    try:
+        mc.registrar(evento, slug=slug, sesion=sesion, detalle=detalle)
+    except Exception:
+        log.warning("eventos-contenido: no se pudo registrar %s", evento, exc_info=True)
+    return ("", 204)
+
+
 @app.route("/recetario")
 def recetario():
-    recetas_file = Path(__file__).parent / "data/recetas.json"
-    try:
-        recetas = json.loads(recetas_file.read_text(encoding="utf-8"))
-    except Exception:
-        recetas = []
-    return render_template("recetario.html", recetas=recetas)
+    return render_template("recetario.html", recetas=_cargar_recetas())
+
+
+@app.route("/recetario/<slug>")
+def receta_detalle(slug):
+    """Receta en modo laboratorio (wizard): un paso por pantalla, cantidades
+    escalables y lista de compra. Ver templates/receta_detalle.html."""
+    receta = next((r for r in _cargar_recetas() if r.get("slug") == slug), None)
+    if not receta:
+        abort(404)
+    return render_template(
+        "receta_detalle.html",
+        r=receta,
+        jsonld=_receta_jsonld(receta),
+        guias_ings=guias_para_receta(receta),
+        WA_NUMBER=WA_NUMBER,
+    )
 
 
 @app.route("/guias")
@@ -4531,7 +4693,23 @@ def guia_detalle(slug):
         guia = None
     if not guia:
         abort(404)
+    if _guia_es_viva(guia):
+        return render_template("guia_viva.html", g=guia, recetas_guia=recetas_para_guia(guia), WA_NUMBER=WA_NUMBER)
     return render_template("guia_detalle.html", g=guia, WA_NUMBER=WA_NUMBER)
+
+
+def _guia_es_viva(guia: dict) -> bool:
+    """La guia viva (modulos interactivos) se usa solo si el extractor
+    (scripts/extraer_ficha_rapida_guias.py) dejo datos suficientes: pasos de
+    incorporacion y al menos la tabla de concentraciones o la compatibilidad.
+    Si no, se sirve la plantilla de texto de siempre. `viva.desactivar: true`
+    fuerza la plantilla clasica para una guia puntual."""
+    v = guia.get("viva") or {}
+    if not isinstance(v, dict) or v.get("desactivar"):
+        return False
+    if not v.get("incorporacion"):
+        return False
+    return bool(v.get("concentraciones") or v.get("compatibles") or v.get("incompatibles") or v.get("compat_texto"))
 
 
 @app.route("/blog")
@@ -4650,6 +4828,46 @@ def carrito():
     return render_template("carrito.html", cart=cart, total=total)
 
 
+def _precio_producto(p: dict) -> float:
+    price = float(p.get("precio_num") or 0)
+    if price <= 0:
+        price_str = str(p.get("precio", "")).replace("$", "").replace(".", "").replace(",", "").strip()
+        try:
+            price = float(price_str)
+        except ValueError:
+            price = 0.0
+    return price
+
+
+def _sumar_al_carrito(cart: dict, p: dict, qty: int) -> tuple[int, str | None]:
+    """Mete `qty` unidades de `p` en `cart` respetando el stock. Devuelve
+    (unidades agregadas, aviso para el usuario o None). No toca la sesión:
+    lo comparten /carrito/agregar (formulario) y /carrito/agregar-lote (JSON)
+    para que un mismo producto entre igual por los dos caminos."""
+    cart_key = (p.get("slug") or "").strip().lower()
+    stock = p.get("stock")
+    ya_en_carrito = cart.get(cart_key, {}).get("qty", 0)
+    aviso = None
+    if stock is not None and ya_en_carrito + qty > stock:
+        qty = max(0, stock - ya_en_carrito)
+        if qty <= 0:
+            return 0, f"Ya tienes en el carrito todo el stock disponible de {p.get('name', '')} ({stock} uds)."
+        aviso = f"Solo quedan {stock} unidades de {p.get('name', '')}; se ajustó la cantidad."
+    if cart_key in cart:
+        cart[cart_key]["qty"] += qty
+    else:
+        cart[cart_key] = {
+            "name":  p["name"],
+            "ref":   p["ref"],
+            "price": _precio_producto(p),
+            "qty":   qty,
+            "photo": p.get("photo", ""),
+            "slug":  cart_key,
+            "envio_gratis_web": bool(p.get("envio_gratis_web", False)),
+        }
+    return qty, aviso
+
+
 @app.route("/carrito/agregar", methods=["POST"])
 def carrito_agregar():
     slug = request.form.get("slug", "")
@@ -4665,42 +4883,56 @@ def carrito_agregar():
         flash(f"{p.get('name', 'Ese producto')} está agotado temporalmente.", "error")
         return redirect(request.form.get("next", url_for("catalogo")))
 
-    price = float(p.get("precio_num") or 0)
-    if price <= 0:
-        price_str = p.get("precio", "").replace("$", "").replace(".", "").replace(",", "").strip()
-        try:
-            price = float(price_str)
-        except ValueError:
-            price = 0.0
-
-    cart_key = p.get("slug", slug).strip().lower()
     cart = session.get("cart", {})
-    stock = p.get("stock")
-    ya_en_carrito = cart.get(cart_key, {}).get("qty", 0)
-    if stock is not None and ya_en_carrito + qty > stock:
-        qty = max(0, stock - ya_en_carrito)
-        if qty <= 0:
-            flash(f"Ya tienes en el carrito todo el stock disponible de {p.get('name', '')} ({stock} uds).", "error")
-            return redirect(request.form.get("next", url_for("carrito")))
-        flash(f"Solo quedan {stock} unidades de {p.get('name', '')}; se ajustó la cantidad.", "error")
-
-    if cart_key in cart:
-        cart[cart_key]["qty"] += qty
-    else:
-        cart[cart_key] = {
-            "name":  p["name"],
-            "ref":   p["ref"],
-            "price": price,
-            "qty":   qty,
-            "photo": p.get("photo", ""),
-            "slug":  cart_key,
-            "envio_gratis_web": bool(p.get("envio_gratis_web", False)),
-        }
+    agregados, aviso = _sumar_al_carrito(cart, p, qty)
+    if aviso:
+        flash(aviso, "error")
+    if agregados <= 0:
+        return redirect(request.form.get("next", url_for("carrito")))
     session["cart"] = cart
     session.modified = True
 
     next_url = request.form.get("next", url_for("carrito"))
     return redirect(next_url)
+
+
+@app.route("/carrito/agregar-lote", methods=["POST"])
+def carrito_agregar_lote():
+    """Varios productos de una vez (lista de compra del recetario). Body JSON:
+    {"items": [{"slug": "...", "qty": 1}, ...]}. Responde JSON con cuántos
+    entraron y los avisos (agotado, familia sin presentación, stock corto);
+    nunca aborta por un ítem malo, sigue con los demás."""
+    body = request.get_json(silent=True) or {}
+    items = body.get("items") or []
+    if not isinstance(items, list) or not items:
+        return jsonify({"ok": False, "agregados": 0, "avisos": ["No llegó ningún producto."]}), 400
+    cart = session.get("cart", {})
+    agregados, avisos = 0, []
+    for it in items[:40]:
+        slug = str((it or {}).get("slug") or "").strip()
+        try:
+            qty = max(1, int((it or {}).get("qty") or 1))
+        except (TypeError, ValueError):
+            qty = 1
+        p = find_product(slug)
+        if not p:
+            avisos.append(f"{slug}: no existe en la tienda.")
+            continue
+        if p.get("is_family"):
+            avisos.append(f"{p.get('name', slug)}: elige una presentación en la ficha del producto.")
+            continue
+        if not p.get("buyable"):
+            avisos.append(f"{p.get('name', slug)} está agotado temporalmente.")
+            continue
+        n, aviso = _sumar_al_carrito(cart, p, qty)
+        agregados += n
+        if aviso:
+            avisos.append(aviso)
+    if agregados:
+        session["cart"] = cart
+        session.modified = True
+        log.info("Carrito lote: %s unidades desde %s", agregados, body.get("origen") or "?")
+    return jsonify({"ok": agregados > 0, "agregados": agregados, "avisos": avisos, "en_carrito": len(cart)})
 
 
 @app.route("/carrito/actualizar", methods=["POST"])

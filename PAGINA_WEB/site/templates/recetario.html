@@ -25,9 +25,6 @@
 
 </div>
 
-<div class="rec-overlay" id="rec-overlay">
-  <div class="rec-modal" id="rec-modal"></div>
-</div>
 
 {% endblock %}
 
@@ -35,7 +32,7 @@
 <script>
 var RECETAS = {{ recetas | tojson }};
 var CAT_LABELS = {cosmetica:'Cosmética',nutricion:'Nutrición',perfumeria:'Perfumería',hogar:'Hogar'};
-var CAT_ACCENTS = {cosmetica:'#143D36',nutricion:'#1E5C51',perfumeria:'#2E8B7A',hogar:'#0C6069'};
+var CAT_ACCENTS = {cosmetica:'var(--green-deep)',nutricion:'var(--green-dark)',perfumeria:'var(--green)',hogar:'var(--green-dark)'};  // tonos del tema activo, no la paleta vieja
 var CAT_ICONS = {cosmetica:'sparkle',nutricion:'leaf',perfumeria:'flower',hogar:'house'};
 
 function initials(s){
@@ -52,9 +49,9 @@ function renderCards(list){
     return;
   }
   g.innerHTML = list.map(function(r){
-    var accent = CAT_ACCENTS[r.cat] || '#143D36';
+    var accent = CAT_ACCENTS[r.cat] || 'var(--green)';
     var icon = CAT_ICONS[r.cat] || 'flask';
-    return '<div class="guide-card rec-card reveal" data-id="'+r.id+'" style="--guide-accent:'+accent+';">'
+    return '<a class="guide-card rec-card reveal" href="/recetario/'+(r.slug||'')+'" data-id="'+r.id+'" style="--guide-accent:'+accent+';">'
       +'<div class="guide-card-body">'
         +'<div class="guide-card-head">'
           +'<div class="guide-card-icon-wrap"><i class="ph ph-'+icon+'"></i></div>'
@@ -67,21 +64,16 @@ function renderCards(list){
         +'<p class="guide-card-desc">'+r.desc+'</p>'
         +'<div class="guide-card-footer">'
           +'<span class="guide-card-products"><i class="ph ph-scales"></i> '+r.base+' '+r.unidad+'</span>'
-          +'<span class="guide-card-cta">Ver receta <i class="ph ph-arrow-right"></i></span>'
+          +'<span class="guide-card-cta">Preparar paso a paso <i class="ph ph-arrow-right"></i></span>'
         +'</div>'
       +'</div>'
-    +'</div>';
+    +'</a>';
   }).join('');
 
   document.querySelectorAll('.rec-card.reveal').forEach(function(el,i){
     setTimeout(function(){ el.classList.add('visible'); }, i * 50);
   });
 
-  document.querySelectorAll('.rec-card').forEach(function(el){
-    el.addEventListener('click', function(){
-      openModal(parseInt(el.dataset.id));
-    });
-  });
 }
 
 document.querySelectorAll('.rec-pill').forEach(function(pill){
@@ -93,87 +85,7 @@ document.querySelectorAll('.rec-pill').forEach(function(pill){
   });
 });
 
-var curReceta = null, curScale = 1;
-
-function openModal(id){
-  curReceta = RECETAS.find(function(r){ return r.id === id; });
-  curScale = 1;
-  buildModal();
-  document.getElementById('rec-overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeModal(){
-  document.getElementById('rec-overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-function rescale(val){
-  curScale = (parseFloat(val) / curReceta.base) || 1;
-  buildModal();
-}
-
-function buildModal(){
-  var r = curReceta, s = curScale;
-  var accent = CAT_ACCENTS[r.cat] || '#143D36';
-  var modal = document.getElementById('rec-modal');
-  modal.style.setProperty('--rec-accent', accent);
-
-  var ings = r.ings.map(function(i){
-    return '<div class="rec-ing-row">'
-      +'<div class="rec-ing-avatar">'+initials(i.n)+'</div>'
-      +'<div class="rec-ing-info">'
-        +'<div class="rec-ing-name">'+i.n+'</div>'
-        +'<div class="rec-ing-src">'+i.src+'</div>'
-      +'</div>'
-      +'<div class="rec-ing-qty-wrap">'
-        +'<div class="rec-ing-qty">'+fmtQ(i.q * s)+'</div>'
-        +'<span class="rec-ing-u">'+i.u+'</span>'
-      +'</div>'
-    +'</div>';
-  }).join('');
-
-  var pasos = r.pasos.map(function(p, i){
-    return '<div class="rec-step">'
-      +'<div class="rec-step-num">'+ String(i+1).padStart(2,'0') +'</div>'
-      +'<div class="rec-step-text">'+p+'</div>'
-    +'</div>';
-  }).join('');
-
-  modal.innerHTML =
-    '<div class="rec-modal-hero">'
-      +'<button class="rec-modal-close" id="rec-close-btn"><i class="ph ph-x"></i></button>'
-      +'<div class="rec-modal-eyebrow">'+CAT_LABELS[r.cat]+' · McKenna Group</div>'
-      +'<div class="rec-modal-title">'+r.title+' <em>'+r.title2+'</em></div>'
-    +'</div>'
-    +'<div class="rec-modal-body">'
-      +'<div class="rec-scale-box">'
-        +'<label class="rec-scale-label">Cantidad a preparar</label>'
-        +'<input class="rec-scale-input" type="number" min="1" value="'+Math.round(r.base * s)+'" id="rec-scale-input">'
-        +'<span class="rec-scale-unit">'+r.unidad+'</span>'
-      +'</div>'
-      +'<div class="rec-section-label">Ingredientes</div>'
-      + ings
-      +'<div class="rec-section-label">Preparación</div>'
-      + pasos
-      +'<div class="rec-section-label">Consejo profesional</div>'
-      +'<div class="rec-tip-box">'
-        +'<span class="rec-tip-icon"><i class="ph ph-lightbulb"></i></span>'
-        +'<div class="rec-tip-text">'+r.tip+'</div>'
-      +'</div>'
-    +'</div>';
-
-  document.getElementById('rec-close-btn').addEventListener('click', closeModal);
-  document.getElementById('rec-scale-input').addEventListener('change', function(){ rescale(this.value); });
-}
-
-document.getElementById('rec-overlay').addEventListener('click', function(e){
-  if(e.target === this) closeModal();
-});
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape') closeModal();
-});
-
+/* El modal se reemplazo por /recetario/<slug> (modo laboratorio, sep-2026). */
 renderCards(RECETAS);
 </script>
 {% endblock %}

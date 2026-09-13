@@ -6,6 +6,7 @@ import {
   useCrearBanner,
   useEliminarBanner,
   useGuardarOrigenMaterias,
+  useMetricasContenido,
   useOrigenMaterias,
   type Banner,
   type BannerInput,
@@ -13,7 +14,7 @@ import {
 } from "../hooks/useVitrinaWeb";
 import { AddIconButton } from "./AddIconButton";
 
-type Tab = "banners" | "origen";
+type Tab = "banners" | "origen" | "uso";
 
 const LINK_TIPO_LABEL: Record<BannerLinkTipo, string> = {
   catalogo: "Catálogo",
@@ -414,6 +415,153 @@ function OrigenTab() {
   );
 }
 
+function Cifra({ label, valor, sub }: { label: string; valor: number; sub?: string }) {
+  return (
+    <div className="rounded-paper border border-border bg-surface-panel px-3 py-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-xl font-bold tabular-nums text-ink dark:text-white">{valor.toLocaleString("es-CO")}</div>
+      {sub ? <div className="text-[11px] text-muted">{sub}</div> : null}
+    </div>
+  );
+}
+
+function pct(parte: number, total: number): string {
+  if (!total) return "—";
+  return `${Math.round((parte / total) * 100)} %`;
+}
+
+function UsoTab() {
+  const [dias, setDias] = useState(14);
+  const { data, isLoading, isError } = useMetricasContenido(dias);
+
+  if (isLoading) return <p className="text-sm text-muted">Cargando…</p>;
+  if (isError || !data) return <p className="text-sm text-red-500">No se pudieron leer las métricas de contenido.</p>;
+
+  const e = data.embudo;
+  const sinDatos = Object.keys(data.totales).length === 0;
+  const maxSerie = Math.max(1, ...data.serie.map((d) => Math.max(d.recetas, d.guias, d.carrito)));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted">Uso de recetas paso a paso y guías vivas en mckennagroup.co. Cuenta sesiones reales (con JavaScript); los robots quedan fuera.</span>
+        <div className="ml-auto flex gap-1">
+          {[7, 14, 30, 90].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDias(d)}
+              className={`min-h-8 rounded-paper border px-2 text-xs font-bold ${dias === d ? "border-accent bg-accent text-white" : "border-border text-ink"}`}
+            >
+              {d} días
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {sinDatos ? (
+        <p className="rounded-paper border border-dashed border-border p-3 text-sm text-muted">
+          Todavía no hay eventos en estos {dias} días. Los eventos empiezan a llegar cuando alguien abre una receta o una guía viva en la web.
+        </p>
+      ) : null}
+
+      <section>
+        <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Embudo del recetario</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Cifra label="Abrieron una receta" valor={e.abrieron} />
+          <Cifra label="Empezaron los pasos" valor={e.empezaron} sub={pct(e.empezaron, e.abrieron)} />
+          <Cifra label="Terminaron" valor={e.terminaron} sub={pct(e.terminaron, e.abrieron)} />
+          <Cifra label="Mandaron al carrito" valor={e.al_carrito} sub={`${e.unidades_al_carrito} unidades · ${pct(e.al_carrito, e.abrieron)}`} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Guías vivas</h2>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Cifra label="Abrieron una guía" valor={data.sesiones.guia_abierta ?? 0} />
+          <Cifra label="Usaron el dosificador" valor={data.sesiones.guia_dosificador ?? 0} sub={pct(data.sesiones.guia_dosificador ?? 0, data.sesiones.guia_abierta ?? 0)} />
+          <Cifra label="Movieron el pH" valor={data.sesiones.guia_ph ?? 0} sub={pct(data.sesiones.guia_ph ?? 0, data.sesiones.guia_abierta ?? 0)} />
+          <Cifra label="Saltaron a una receta" valor={data.sesiones.guia_receta_click ?? 0} />
+        </div>
+      </section>
+
+      {data.serie.length ? (
+        <section>
+          <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Por día (sesiones)</h2>
+          <div className="flex h-24 items-end gap-1 rounded-paper border border-border bg-surface-panel p-2">
+            {data.serie.map((d) => (
+              <div key={d.dia} className="flex flex-1 flex-col items-center justify-end gap-0.5" title={`${d.dia}: ${d.recetas} recetas · ${d.guias} guías · ${d.carrito} al carrito`}>
+                <div className="flex w-full items-end justify-center gap-px">
+                  <div className="w-1/3 rounded-t bg-accent" style={{ height: `${(d.recetas / maxSerie) * 72}px` }} />
+                  <div className="w-1/3 rounded-t bg-accent/50" style={{ height: `${(d.guias / maxSerie) * 72}px` }} />
+                  <div className="w-1/3 rounded-t bg-emerald-500" style={{ height: `${(d.carrito / maxSerie) * 72}px` }} />
+                </div>
+                <span className="text-[9px] text-muted">{d.dia.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-1 flex gap-3 text-[11px] text-muted">
+            <span><i className="inline-block h-2 w-2 rounded-sm bg-accent" /> recetas</span>
+            <span><i className="inline-block h-2 w-2 rounded-sm bg-accent/50" /> guías</span>
+            <span><i className="inline-block h-2 w-2 rounded-sm bg-emerald-500" /> al carrito</span>
+          </div>
+        </section>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        <section>
+          <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Recetas más usadas</h2>
+          {data.recetas.length ? (
+            <table className="w-full text-xs">
+              <thead><tr className="text-left text-muted"><th className="py-1">Receta</th><th className="py-1 text-right">Abiertas</th><th className="py-1 text-right">Terminadas</th><th className="py-1 text-right">Carrito</th></tr></thead>
+              <tbody>
+                {data.recetas.map((r) => (
+                  <tr key={r.slug} className="border-t border-border/60">
+                    <td className="py-1"><a className="text-accent hover:underline" href={`https://mckennagroup.co/recetario/${r.slug}`} target="_blank" rel="noreferrer">{r.slug}</a></td>
+                    <td className="py-1 text-right tabular-nums">{r.abiertas}</td>
+                    <td className="py-1 text-right tabular-nums">{r.terminadas}</td>
+                    <td className="py-1 text-right tabular-nums">{r.carrito}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="text-xs text-muted">Sin recetas abiertas en el período.</p>}
+        </section>
+        <section>
+          <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Guías más usadas</h2>
+          {data.guias.length ? (
+            <table className="w-full text-xs">
+              <thead><tr className="text-left text-muted"><th className="py-1">Guía</th><th className="py-1 text-right">Abiertas</th><th className="py-1 text-right">Dosificador</th><th className="py-1 text-right">pH</th><th className="py-1 text-right">A receta</th></tr></thead>
+              <tbody>
+                {data.guias.map((g) => (
+                  <tr key={g.slug} className="border-t border-border/60">
+                    <td className="py-1"><a className="text-accent hover:underline" href={`https://mckennagroup.co/guias/${g.slug}`} target="_blank" rel="noreferrer">{g.slug}</a></td>
+                    <td className="py-1 text-right tabular-nums">{g.abiertas}</td>
+                    <td className="py-1 text-right tabular-nums">{g.dosificador}</td>
+                    <td className="py-1 text-right tabular-nums">{g.ph}</td>
+                    <td className="py-1 text-right tabular-nums">{g.a_receta}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <p className="text-xs text-muted">Sin guías abiertas en el período.</p>}
+        </section>
+      </div>
+
+      {data.productos.length ? (
+        <section>
+          <h2 className="mb-1 text-sm font-bold text-ink dark:text-white">Desde la ficha de producto ("Aprende a usarlo")</h2>
+          <ul className="flex flex-wrap gap-2 text-xs">
+            {data.productos.map((p) => (
+              <li key={p.slug} className="rounded-full border border-border px-2 py-1">{p.slug} <b className="tabular-nums">{p.clics}</b></li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 export default function VitrinaWebPanel() {
   const [tab, setTab] = useState<Tab>("banners");
 
@@ -427,6 +575,7 @@ export default function VitrinaWebPanel() {
         {([
           ["banners", "Banners"],
           ["origen", "Origen de materias"],
+          ["uso", "Uso de guías y recetas"],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
@@ -443,7 +592,7 @@ export default function VitrinaWebPanel() {
         ))}
       </div>
 
-      {tab === "banners" ? <BannersTab /> : <OrigenTab />}
+      {tab === "banners" ? <BannersTab /> : tab === "origen" ? <OrigenTab /> : <UsoTab />}
     </div>
   );
 }

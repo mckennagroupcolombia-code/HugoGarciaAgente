@@ -1,3 +1,58 @@
+### 2026-09-12 22:45 - Métricas de uso de recetas y guías vivas (Fase 4, cierre del plan)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (medición)
+- **Qué se implementó:**
+  - **Nueve eventos con lista cerrada** en `app/services/metricas_contenido.py`: receta abierta / paso / terminada / al carrito (con unidades), guía abierta / dosificador / pH / clic a receta, y clic en "Aprende a usarlo" desde la ficha de producto. Cualquier otro nombre se descarta.
+  - **Captura en el navegador** (`static/js/contenido-eventos.js`, `sendBeacon`, nunca bloquea): solo cuenta sesiones con JavaScript, así que los robots quedan fuera. La sesión es un id aleatorio en `sessionStorage` (muere al cerrar la pestaña, no identifica a nadie). El wizard y la guía viva lo llaman una sola vez por evento y sesión.
+  - **Ingesta:** `POST /api/eventos-contenido` en website.py (:8083), sin auth, sanea slug y sesión, limita a 120 eventos por IP y minuto, responde 204. **Almacén:** SQLite `app/data/metricas_contenido.db` en modo WAL (escribe :8083, lee :8081), en `.gitignore`.
+  - **Lectura para el panel:** `GET /api/web/metricas-contenido?dias=N` en agente_pro (:8081, Bearer): embudo del recetario por sesiones (abrieron → empezaron → terminaron → al carrito), ranking de recetas y guías, clics desde producto y serie diaria.
+  - **Panel:** /app → Vitrina Web → pestaña **"Uso de guías y recetas"** (7/14/30/90 días) con el embudo, cifras de guías, barras por día y dos tablas. Panel recompilado y `agente-pro` reiniciado.
+  - **Por qué sesiones y no eventos:** una persona que repite un paso tres veces no son tres usos; el embudo cuenta sesiones distintas por etapa. Los tests fijan ese criterio.
+  - **Cierre del plan UX del 12-sep:** las cuatro fases quedan hechas el mismo día. Lo que sigue es leer estas cifras en dos semanas y decidir con datos si el wizard vende o solo entretiene.
+- **Archivos Modificados:** `app/services/metricas_contenido.py` (nuevo), `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/static/js/{contenido-eventos.js (nuevo),recetario-wizard.js,guia-viva.js}`, `PAGINA_WEB/site/templates/{receta_detalle.html,guia_viva.html,producto.html}`, `app/routes.py`, `desktop/src/hooks/useVitrinaWeb.ts`, `desktop/src/components/VitrinaWebPanel.tsx`, `desktop/dist/*`, `.gitignore`, `tests/test_metricas_contenido.py` (nuevo), `docs/agentic/modules/guias-vivas-recetario.md`
+
+
+### 2026-09-12 22:35 - Cruces producto ↔ guía viva ↔ receta (Fase 3)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - **Ficha de producto → "Aprende a usarlo":** sección nueva entre la documentación técnica y los relacionados, con la tarjeta de la guía viva (KPIs: concentración máx., pH, temperatura, dosificador, nº de preguntas) y tarjetas de las recetas que usan el producto con el **paso 1 visible**, ingredientes, pasos y rendimiento. Se muestra en 65 de los 179 productos con guía y en 61 con recetas; en el resto no aparece nada (no hay relleno).
+  - **Receta terminada → guías de sus activos:** el panel "Listo" del wizard enlaza la guía viva de cada ingrediente (46 de 48 recetas tienen al menos una). También en el bloque de texto plano.
+  - **Guía viva → recetas que la usan:** módulo "Recetas con <ingrediente>" y entrada en la nav pegajosa (50 de 61 guías).
+  - **Un solo cruce, tres direcciones:** todo sale de `buscar_contenido_relacionado()` (el que ya usaba `/verificar`), enriquecido con los campos que las tarjetas necesitan, más tres helpers: `contenido_para_producto(nombres)`, `guias_para_receta(r)` y `recetas_para_guia(g)`.
+  - **Trampa corregida antes de publicar:** el cruce descartaba las letras sueltas y la receta del sérum de vitamina C enlazaba la **guía de vitamina E**. Ahora `_claves()` conserva las letras sueltas (salvo conjunciones y/o/u), igual que ya se había corregido en el migrador de recetas. `tests/test_cruces_producto_guia_receta.py` fija ese caso.
+  - **Pendiente (Fase 4):** métricas de uso (dosificador usado, paso completado, "me falta" al carrito).
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/{producto.html,receta_detalle.html,guia_viva.html}`, `tests/test_cruces_producto_guia_receta.py` (nuevo), `docs/agentic/modules/guias-vivas-recetario.md`
+
+
+### 2026-09-12 22:05 - Guía viva: las 61 guías de uso pasan a módulos interactivos (Fase 2)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - **Extractor sin IA** `scripts/extraer_ficha_rapida_guias.py`: lee el HTML de las siete secciones de cada guía en `guias.json` y deja en `viva` los datos que los módulos necesitan: filas de la tabla de concentraciones (aplicación, mín, máx, tipo), rango de pH, temperatura que no se debe superar, pares Estado/Solubilidad/INCI, compatibles e incompatibles (lista o prosa), pasos de incorporación con fase y temperatura, condiciones de almacenamiento, FAQ y normativa. Cobertura real: concentraciones 58/61, incorporación 61/61, FAQ 61/61, compatibilidad 57/61, pH 33/61, temperatura 26/61. **Lo que no aparece explícito no se inventa**: ese módulo no se muestra. `--confirmar` para escribir, deja `.bak`; `viva.manual: true` protege correcciones a mano.
+  - **Plantilla `guia_viva.html`** con ficha rápida (foto, KPIs), nav pegajosa por módulo y seis módulos: **dosificador** (aplicación → rango; % × lote → gramos, con aviso si se sale del rango), **medidor de pH** con la zona de trabajo marcada, **compatibilidad** a dos columnas, **cadena de incorporación** con el mismo trazo animado de "Del origen a tu fórmula" (recorrido automático que se detiene al tocar), conservación, FAQ, normativa y CTA al producto. El texto completo original y la bibliografía quedan en un bloque plegable al final (SEO y respaldo).
+  - **Ruta:** `guia_detalle()` sirve la guía viva solo si `_guia_es_viva()` ve pasos de incorporación y además concentraciones o compatibilidad; si no, la plantilla clásica. `viva.desactivar: true` fuerza la clásica para una guía puntual. Hoy las 61 cumplen.
+  - **Tres correcciones tras verla en pantalla:** el fondo hexagonal se pintaba como banda arriba (una regla `.gv > *` le ponía `position: relative` al SVG absoluto); "iones de Fe y Cu (catalizan…)" se partía en dos por el " y "; los títulos de los nodos salían como "Disolver el" (ahora el verbo solo).
+  - **Codificación:** `guia-viva.js` es ASCII puro con escapes `\uXXXX`; la plantilla usa entidades HTML para ≤, °, –.
+  - **Pendiente (Fases 3-4):** cruces producto ↔ guía ↔ receta en `producto.html` y métricas de uso (dosificador usado, paso completado, "me falta" al carrito).
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/guia_viva.html` (nuevo), `PAGINA_WEB/site/static/js/guia-viva.js` (nuevo), `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/data/guias.json`, `scripts/extraer_ficha_rapida_guias.py` (nuevo), `tests/test_guia_viva.py` (nuevo), `docs/agentic/modules/guias-vivas-recetario.md`
+
+
+### 2026-09-12 21:50 - Guías vivas y recetario paso a paso (Fase 0 + Fase 1 del plan UX de la web)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección de marca
+- **Qué se implementó:**
+  - **Plan UX publicado** (artefacto "Guías Vivas McKenna") con diagnóstico de la web en vivo y dos prototipos funcionales: receta tipo wizard y guía interactiva (dosificador, medidor de pH, compatibilidad, cadena de incorporación). Cinco fases; esta sesión cubre la 0 y la 1.
+  - **Fase 0, marca:** `guia_detalle.html` fijaba su propia paleta verde (`#2E8B7A`/`#143D36`) en un `:root` propio y la guía cambiaba de marca frente a la portada (teal `#0c6069`). Ahora hereda `--green*` del tema activo; el `color` por guía de `guias.json` (paleta vieja) se traduce a tonos del tema en `guias.html` y `guia_detalle.html`. Las tarjetas del recetario usaban los mismos hex viejos: pasan a `var(--green*)`.
+  - **Fase 0, contenido en reposo:** los bloques `.reveal` nacían en `opacity: 0` y las capturas/previews de la portada mostraban un hueco de ~1.000 px. Ahora son visibles por defecto y solo se ocultan bajo `html.js-reveal`, que un script inline en `<head>` marca antes del primer pintado si hay `IntersectionObserver` y no hay `prefers-reduced-motion`. Versiones de `main.css`/`main.js` subidas a `20260912a`.
+  - **Fase 1, recetas v2:** `scripts/migrar_recetas_v2.py` (sin IA, `--confirmar` para escribir, deja `.bak`) añade `slug`, convierte cada paso a `{texto, accion, min}` (acción por el verbo que aparece primero en el texto; `min` solo si el texto trae tiempo explícito) y cruza ingrediente → producto de `cache.json` con el criterio conservador de `/verificar` (todas las palabras clave presentes; se prefiere el nombre con menos palabras de sobra, se excluyen kits con `+`, y la presentación comprable más pequeña; familia → `familia: true`). Resultado: 193 de 219 ingredientes vendibles enlazados, 40 de uso propio, 26 sin producto (bergamota, sándalo, DMSO, arcillas, B12: no están en la tienda). **Trampa corregida antes de guardar:** las letras sueltas se descartaban y "Vitamina C" cruzaba con "VITAMINA E".
+  - **Ruta `/recetario/<slug>`** (`receta_detalle.html` + `static/js/recetario-wizard.js`): un paso por pantalla con riel, barra de progreso, pictograma SVG animado por acción (8 verbos), parámetros del paso, temporizador, cantidades escaladas por paso, Wake Lock (pantalla encendida), lectura en voz alta (SpeechSynthesis), teclado y gestos. Paso 0 escala la receta y marca "me falta"; JSON-LD `Recipe`; bloque `<details>` con el texto completo para SEO y sin JS. Las tarjetas de `/recetario` ahora son enlaces; el modal desapareció. Sitemap con las 48 recetas y `buscar_contenido_relacionado` apunta a la URL propia.
+  - **`POST /carrito/agregar-lote`** (JSON `{items:[{slug,qty}]}`): mete varios productos de una vez, reporta avisos por ítem (agotado, familia, stock corto) sin abortar. Comparte `_sumar_al_carrito()` con `/carrito/agregar` y un test verifica que ambos caminos dejan el mismo ítem.
+  - **Codificación:** el JS del wizard es ASCII puro (símbolos como `\u2713`) y el artefacto del plan se publicó con entidades HTML, tras un reporte de caracteres raros.
+  - **Pendiente (Fases 2-4):** guía viva con `ficha_rapida` extraída de las secciones, cruces producto ↔ guía ↔ receta en `producto.html`, y métricas de uso del wizard. Los 26 ingredientes sin producto se pueden fijar a mano en `recetas.json` con `"slug": "...", "manual": true`.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/{base.html,guias.html,guia_detalle.html,recetario.html,receta_detalle.html (nuevo)}`, `PAGINA_WEB/site/static/{css/main.css,js/main.js,js/recetario-wizard.js (nuevo)}`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/data/recetas.json`, `scripts/migrar_recetas_v2.py` (nuevo), `tests/test_recetario_wizard.py` (nuevo), `docs/agentic/modules/guias-vivas-recetario.md` (nuevo)
+
+
 ### 2026-09-12 17:04 - Etiqueta circular 53 x 53 mm (Ceras y mantecas)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad

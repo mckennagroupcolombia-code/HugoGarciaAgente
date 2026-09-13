@@ -33,7 +33,9 @@
   }
 
   /* ── Scroll reveal ──────────────────────────────────── */
-  if ('IntersectionObserver' in window) {
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if ('IntersectionObserver' in window && !reduceMotion) {
+    document.documentElement.classList.add('js-reveal');
     const obs = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) {

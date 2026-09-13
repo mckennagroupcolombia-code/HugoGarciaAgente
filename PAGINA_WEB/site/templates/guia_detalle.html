@@ -11,18 +11,21 @@
 
 {% block content %}
 <style>
+  /* Paleta heredada del tema activo (base.html define --green, --green-dark, ...).
+     Antes esta plantilla fijaba su propio verde (#2E8B7A / #143D36) y la guia
+     cambiaba de marca respecto a la portada. */
   :root {
-    --gd-green:      #2E8B7A;
-    --gd-dark:       #1E5C51;
-    --gd-deep:       #143D36;
-    --gd-light:      #4DB3A0;
-    --gd-pale:       #E8F5F3;
-    --gd-ultra:      #F2FAF9;
-    --gd-border:     rgba(46,139,122,0.18);
-    --gd-text:       #111111;
-    --gd-mid:        #333333;
-    --gd-soft:       #555555;
-    --gd-muted:      #888888;
+    --gd-green:      var(--green);
+    --gd-dark:       var(--green-dark);
+    --gd-deep:       var(--green-deep);
+    --gd-light:      var(--green-light);
+    --gd-pale:       color-mix(in srgb, var(--green) 10%, #ffffff);
+    --gd-ultra:      color-mix(in srgb, var(--green) 4%, #ffffff);
+    --gd-border:     color-mix(in srgb, var(--green) 18%, transparent);
+    --gd-text:       var(--text-dark);
+    --gd-mid:        var(--text-mid);
+    --gd-soft:       var(--text-soft);
+    --gd-muted:      var(--text-muted);
   }
 
   /* ══════════════════════════════
@@ -413,7 +416,8 @@
 <!-- ═══════════════════════════════════════════════════
      HERO
 ════════════════════════════════════════════════════ -->
-<section class="gd-hero" style="--gd-accent: {{ g.color }};">
+{% set GD_ACENTOS = {'#143D36': 'var(--green-deep)', '#1E5C51': 'var(--green-dark)', '#2E8B7A': 'var(--green)'} %}
+<section class="gd-hero" style="--gd-accent: {{ GD_ACENTOS.get(g.color, 'var(--green)') }};">
   <div class="gd-hero-inner">
     <div>
       <a href="/guias" class="gd-back"><i class="ph ph-arrow-left"></i> Todas las guías</a>

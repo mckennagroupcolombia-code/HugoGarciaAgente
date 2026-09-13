@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}{{ r.title }} {{ r.title2 }} — Receta paso a paso — McKenna Group{% endblock %}
+{% block description %}{{ r.desc }} Receta en modo laboratorio: un paso por pantalla, cantidades escalables y lista de compra.{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">{{ jsonld | tojson }}</script>
+{% endblock %}
+
+{% block content %}
+{#
+  Receta en "modo laboratorio" (Fase 1 del plan de guías vivas, sep-2026).
+  Datos: data/recetas.json v2 (scripts/migrar_recetas_v2.py) -> objeto `r`.
+  Interacción: static/js/recetario-wizard.js (lee #receta-data).
+  Paleta y tipografía: tokens del tema activo (base.html / main.css).
+#}
+<style>
+  .rw-page { background: var(--off-white); padding: 32px var(--page-inline) 72px; }
+  .rw-top { max-width: var(--page-max); margin: 0 auto 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .rw-back { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: .74rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; text-decoration: none; }
+  .rw-back::before { content: ''; width: 26px; height: 2px; background: var(--green-light); transition: width .3s; }
+  .rw-back:hover::before { width: 40px; }
+  .rw-share { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 700; color: var(--green); text-decoration: none; border: 1.5px solid var(--green-light); border-radius: 999px; padding: 7px 14px; background: #fff; }
+  .rw-share:hover { border-color: var(--green); }
+
+  .rw { max-width: var(--page-max); margin: 0 auto; background: #fff; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: grid; grid-template-columns: 260px 1fr; min-height: 560px; }
+
+  /* ── Riel de pasos ── */
+  .rw-rail { background: var(--green-deep); color: #fff; padding: 28px 22px; display: flex; flex-direction: column; gap: 6px; }
+  .rw-rail-eyebrow { font-size: .66rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--green-light); }
+  .rw-rail h1 { font-size: 1.3rem; font-weight: 800; line-height: 1.15; margin: 8px 0 4px; color: #fff; letter-spacing: -.3px; }
+  .rw-rail h1 em { font-style: italic; font-weight: 300; color: var(--green-light); }
+  .rw-rail-meta { font-size: .72rem; color: rgba(255,255,255,.55); margin-bottom: 16px; }
+  .rw-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; position: relative; }
+  .rw-steps::before { content: ''; position: absolute; left: 13px; top: 14px; bottom: 14px; width: 2px; background: rgba(255,255,255,.14); }
+  .rw-step { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: center; padding: 8px 0; color: rgba(255,255,255,.5); font-size: .8rem; font-weight: 600; cursor: pointer; border: 0; background: none; text-align: left; font-family: inherit; position: relative; width: 100%; }
+  .rw-step .n { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,.25); display: grid; place-items: center; font-size: .68rem; background: var(--green-deep); transition: .25s; font-variant-numeric: tabular-nums; }
+  .rw-step.done .n { background: var(--green-light); border-color: var(--green-light); color: var(--green-deep); }
+  .rw-step.done .n span { display: none; }
+  .rw-step.done .n::before { content: '\2713'; font-weight: 800; }
+  .rw-step.current { color: #fff; }
+  .rw-step.current .n { border-color: #fff; color: #fff; box-shadow: 0 0 0 4px rgba(106,172,179,.28); }
+  .rw-step:focus-visible { outline: 2px solid var(--green-light); outline-offset: 2px; border-radius: 6px; }
+  .rw-rail-foot { margin-top: auto; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.12); display: grid; gap: 10px; font-size: .74rem; color: rgba(255,255,255,.65); }
+  .rw-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .rw-sw { width: 36px; height: 20px; border-radius: 12px; background: rgba(255,255,255,.2); position: relative; border: 0; cursor: pointer; padding: 0; flex-shrink: 0; }
+  .rw-sw::after { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .2s; }
+  .rw-sw[aria-checked="true"] { background: var(--green-light); }
+  .rw-sw[aria-checked="true"]::after { left: 19px; }
+  .rw-sw:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+  /* ── Escenario ── */
+  .rw-stage { position: relative; padding: 28px clamp(18px, 4vw, 40px) 24px; display: grid; grid-template-rows: auto 1fr auto; gap: 18px; }
+  .rw-hex { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; color: color-mix(in srgb, var(--green) 9%, transparent); }
+  .rw-stage > * { position: relative; }
+  .rw-stage-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .rw-stepof { font-size: .72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .rw-progress { flex: 1; min-width: 120px; height: 4px; background: color-mix(in srgb, var(--green) 12%, #fff); border-radius: 2px; overflow: hidden; }
+  .rw-progress i { display: block; height: 100%; background: var(--green); width: 0; transition: width .45s cubic-bezier(.2,.7,.2,1); }
+  .rw-panel { display: none; }
+  .rw-panel.active { display: grid; gap: 18px; align-content: start; animation: rw-in .35s ease both; }
+  @keyframes rw-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .rw-kicker { font-size: .7rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+  .rw-panel h2 { font-size: clamp(1.25rem, 2.4vw, 1.7rem); font-weight: 800; color: var(--text-dark); line-height: 1.25; margin: 0; letter-spacing: -.3px; }
+  .rw-panel h2.rw-step-text { font-weight: 600; max-width: 46ch; }
+
+  /* Preparar */
+  .rw-scale { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--off-white); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .rw-scale label { font-size: .7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+  .rw-scale input { width: 100px; font: 700 1.1rem var(--font-primary); padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 6px; color: var(--text-dark); background: #fff; font-variant-numeric: tabular-nums; }
+  .rw-scale input:focus { outline: 2px solid var(--green-light); outline-offset: 1px; }
+  .rw-scale .u { color: var(--text-muted); font-size: .85rem; }
+  .rw-presets { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .rw-chip { border: 1.5px solid var(--border); background: #fff; color: var(--text-soft); font: 700 .72rem var(--font-primary); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+  .rw-chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .rw-ings { display: grid; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .rw-ing { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 14px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border); background: #fff; font-size: .9rem; }
+  .rw-ing:last-child { border-bottom: 0; }
+  .rw-ing input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
+  .rw-ing .nm { display: grid; }
+  .rw-ing .nm label { font-weight: 600; color: var(--text-dark); cursor: pointer; }
+  .rw-ing .nm small { color: var(--text-muted); font-size: .72rem; }
+  .rw-ing .nm small a { color: var(--green); text-decoration: none; }
+  .rw-ing .q { font-weight: 800; font-size: 1rem; color: var(--green); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rw-ing .q small { color: var(--text-muted); font-weight: 400; font-size: .72rem; margin-left: 2px; }
+  .rw-ing .buy { font-size: .64rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--green); border: 1.5px solid var(--green); background: transparent; padding: 5px 10px; border-radius: 999px; cursor: pointer; font-family: inherit; visibility: hidden; text-decoration: none; white-space: nowrap; }
+  .rw-ing.missing { background: color-mix(in srgb, #f2c94c 14%, #fff); }
+  .rw-ing.missing .buy { visibility: visible; }
+  .rw-ing.propio .buy, .rw-ing.sin-producto .buy { visibility: hidden; }
+  .rw-carthint { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .84rem; color: var(--text-soft); min-height: 36px; }
+
+  /* Paso */
+  .rw-step-layout { display: grid; grid-template-columns: 1fr 240px; gap: 24px; align-items: start; }
+  .rw-params { display: flex; gap: 8px; flex-wrap: wrap; }
+  .rw-param { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 600; color: var(--text-soft); background: var(--off-white); border: 1px solid var(--border); padding: 5px 11px; border-radius: 999px; }
+  .rw-param b { color: var(--green); font-variant-numeric: tabular-nums; }
+  .rw-timer { display: flex; align-items: center; gap: 12px; }
+  .rw-timer .t { font-size: 1.6rem; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+  .rw-qtys { font-size: .84rem; color: var(--text-muted); }
+  .rw-lab { background: color-mix(in srgb, var(--green-light) 22%, #fff); border-radius: 12px; aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; position: relative; overflow: hidden; }
+  .rw-lab svg { width: 76%; height: auto; overflow: visible; }
+  .rw-lab .cap { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: .64rem; letter-spacing: 2px; text-transform: uppercase; color: var(--green); font-weight: 700; }
+  .rw-glass { fill: none; stroke: var(--green); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .rw-liquid { fill: var(--green-light); opacity: .8; transform-origin: 50% 100%; }
+  .rw-rod { stroke: var(--green-deep); stroke-width: 3; stroke-linecap: round; transform-origin: 60px 40px; }
+  .rw-particle { fill: #fff; stroke: var(--green); stroke-width: 1; }
+  .rw-drop { fill: var(--green-dark); opacity: 0; }
+  .rw-wave { fill: none; stroke: #fff; stroke-width: 1.5; opacity: .7; }
+  .rw-flame { fill: #f2994a; transform-origin: 60px 116px; }
+  .rw-bubble { fill: #fff; opacity: .8; }
+  .rw-snow { fill: #fff; stroke: var(--green); stroke-width: .8; }
+  .rw-clock { fill: none; stroke: var(--green-deep); stroke-width: 2.5; stroke-linecap: round; transform-origin: 60px 60px; }
+  .rw-weight { fill: var(--green-deep); }
+  .act-verter .rw-liquid { animation: rw-rise 1.6s ease-out forwards; }
+  .act-verter .rw-stream { animation: rw-stream 1.6s ease-out forwards; }
+  .act-disolver .rw-particle { animation: rw-sink 2.2s ease-in forwards; }
+  .act-disolver .rw-rod, .act-mezclar .rw-rod { animation: rw-stir 1.1s ease-in-out infinite; }
+  .act-mezclar .rw-wave { animation: rw-ripple 1s ease-in-out infinite; }
+  .act-mezclar .rw-drop { animation: rw-dropfall 2.4s ease-in infinite; }
+  .act-calentar .rw-flame { animation: rw-flame .5s ease-in-out infinite alternate; }
+  .act-calentar .rw-bubble { animation: rw-bubble 1.8s ease-in infinite; }
+  .act-enfriar .rw-snow { animation: rw-snow 2.4s linear infinite; }
+  .act-reposar .rw-clock-hand { animation: rw-clock 4s linear infinite; }
+  .act-envasar .rw-liquid { animation: rw-rise 1.8s ease-out forwards; }
+  .act-pesar .rw-weight { animation: rw-weigh 1.4s ease-out forwards; }
+  @keyframes rw-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  @keyframes rw-stream { 0% { opacity: 0; } 15% { opacity: .9; } 85% { opacity: .9; } 100% { opacity: 0; } }
+  @keyframes rw-stir { 0% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } 100% { transform: rotate(-14deg); } }
+  @keyframes rw-ripple { 0%,100% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
+  @keyframes rw-sink { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(46px); opacity: 0; } }
+  @keyframes rw-dropfall { 0% { transform: translateY(-30px); opacity: 0; } 20% { opacity: 1; } 60% { transform: translateY(26px); opacity: 1; } 70% { opacity: 0; } 100% { opacity: 0; } }
+  @keyframes rw-flame { from { transform: scale(1, .9); } to { transform: scale(1.06, 1.1); } }
+  @keyframes rw-bubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .9; } 100% { transform: translateY(-38px); opacity: 0; } }
+  @keyframes rw-snow { 0% { transform: translateY(-10px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(50px); opacity: 0; } }
+  @keyframes rw-clock { to { transform: rotate(360deg); } }
+  @keyframes rw-weigh { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .rw-caution { border-left: 3px solid #d9a441; background: color-mix(in srgb, #f2c94c 18%, #fff); padding: 10px 14px; font-size: .84rem; color: var(--text-dark); border-radius: 0 8px 8px 0; }
+  .rw-caution b { color: #9a6b12; }
+
+  /* Listo */
+  .rw-done { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .rw-box { background: var(--off-white); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; display: grid; gap: 6px; font-size: .9rem; color: var(--text-soft); }
+  .rw-box b { font-size: .68rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+  .rw-tip { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; background: color-mix(in srgb, var(--green) 9%, #fff); border-radius: 8px; padding: 14px 16px; font-size: .92rem; color: var(--text-dark); }
+  .rw-tip .ic { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: 1.1rem; }
+  .rw-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Navegación */
+  .rw-nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--border); padding-top: 16px; flex-wrap: wrap; }
+  .rw-nav .hint { font-size: .72rem; color: var(--text-muted); }
+  .rw-btn { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid var(--green); background: var(--green); color: #fff; font: 700 .74rem var(--font-primary); letter-spacing: 1px; text-transform: uppercase; padding: 9px 18px; border-radius: 999px; cursor: pointer; text-decoration: none; transition: transform .15s, background .2s; }
+  .rw-btn:hover { background: var(--green-dark); transform: translateY(-1px); }
+  .rw-btn:focus-visible { outline: 2px solid var(--green-light); outline-offset: 2px; }
+  .rw-btn.ghost { background: transparent; color: var(--green); }
+  .rw-btn.ghost:hover { background: color-mix(in srgb, var(--green) 8%, #fff); }
+  .rw-btn.wa { background: #25D366; border-color: #25D366; }
+  .rw-btn.wa:hover { background: #1ebe5c; }
+  .rw-btn[disabled] { opacity: .4; cursor: default; transform: none; }
+
+  /* Texto completo (SEO / lectura sin JS) */
+  .rw-plain { max-width: var(--page-max); margin: 28px auto 0; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 0 22px; }
+  .rw-plain summary { cursor: pointer; padding: 16px 0; font-weight: 700; color: var(--text-dark); list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  .rw-plain summary::after { content: '+'; color: var(--green); font-weight: 800; }
+  .rw-plain[open] summary::after { content: '\2212'; }
+  .rw-plain-body { padding: 0 0 20px; display: grid; gap: 14px; color: var(--text-soft); font-size: .92rem; }
+  .rw-plain-body h3 { font-size: .7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin: 8px 0 0; }
+  .rw-plain-body ol, .rw-plain-body ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+
+  @media (max-width: 900px) {
+    .rw { grid-template-columns: 1fr; }
+    .rw-rail { padding: 18px; }
+    .rw-steps { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .rw-steps::before { display: none; }
+    .rw-step { grid-template-columns: 28px; width: auto; }
+    .rw-step .lb { display: none; }
+    .rw-rail-foot { grid-template-columns: 1fr 1fr; }
+    .rw-step-layout { grid-template-columns: 1fr; }
+    .rw-lab { max-width: 240px; }
+    .rw-done { grid-template-columns: 1fr; }
+    .rw-ing { grid-template-columns: 26px 1fr auto; }
+    .rw-ing .buy { grid-column: 2 / -1; justify-self: start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rw-lab *, .rw-panel.active { animation: none !important; }
+    .rw-liquid { transform: none !important; }
+  }
+</style>
+
+{% set CAT_LABELS = {'cosmetica': 'Cosmética', 'nutricion': 'Nutrición', 'perfumeria': 'Perfumería', 'hogar': 'Hogar'} %}
+<div class="rw-page">
+  <div class="rw-top">
+    <a href="/recetario" class="rw-back"><i class="ph ph-arrow-left"></i> Todas las recetas</a>
+    <a class="rw-share" href="https://wa.me/?text={{ (r.title ~ ' ' ~ r.title2 ~ ' — receta paso a paso: ' ~ SITE_URL ~ '/recetario/' ~ r.slug) | urlencode }}" target="_blank" rel="noopener"><i class="ph ph-share-network"></i> Compartir</a>
+  </div>
+
+  <div class="rw" id="rw" data-slug="{{ r.slug }}">
+    <aside class="rw-rail">
+      <span class="rw-rail-eyebrow">{{ CAT_LABELS.get(r.cat, r.cat) }} · {{ r.base }} {{ r.unidad }}</span>
+      <h1>{{ r.title }} <em>{{ r.title2 }}</em></h1>
+      <div class="rw-rail-meta">{{ r.ings | length }} ingredientes · {{ r.pasos | length }} pasos</div>
+      <ol class="rw-steps" id="rw-rail"></ol>
+      <div class="rw-rail-foot">
+        <div class="rw-toggle"><span>Pantalla encendida</span><button class="rw-sw" id="rw-wake" type="button" role="switch" aria-checked="false" aria-label="Mantener la pantalla encendida"></button></div>
+        <div class="rw-toggle"><span>Leer en voz alta</span><button class="rw-sw" id="rw-voice" type="button" role="switch" aria-checked="false" aria-label="Leer cada paso en voz alta"></button></div>
+      </div>
+    </aside>
+
+    <div class="rw-stage">
+      <svg class="rw-hex" width="100%" height="100%" aria-hidden="true" preserveAspectRatio="xMidYMid slice"><defs><pattern id="rw-hexp" width="52" height="60" patternUnits="userSpaceOnUse" patternTransform="scale(1.1)"><path d="M26 2 L48 15 L48 41 L26 54 L4 41 L4 15 Z" fill="none" stroke="currentColor" stroke-width=".7"/></pattern></defs><rect width="100%" height="100%" fill="url(#rw-hexp)"/></svg>
+      <div class="rw-stage-top">
+        <span class="rw-stepof" id="rw-stepof">Preparación</span>
+        <div class="rw-progress"><i id="rw-prog"></i></div>
+      </div>
+
+      <div id="rw-panels">
+        <div class="rw-panel active" data-p="0">
+          <div>
+            <div class="rw-kicker">Antes de empezar</div>
+            <h2>¿Cuánto vas a preparar y qué tienes a la mano?</h2>
+          </div>
+          <div class="rw-scale">
+            <label for="rw-qty">Cantidad</label>
+            <input type="number" id="rw-qty" min="1" step="1" value="{{ r.base }}" inputmode="numeric">
+            <span class="u">{{ r.unidad }}</span>
+            <div class="rw-presets" id="rw-presets"></div>
+          </div>
+          <div class="rw-ings" id="rw-ings"></div>
+          <div class="rw-carthint" id="rw-carthint"></div>
+        </div>
+        {% for p in r.pasos %}<div class="rw-panel" data-p="{{ loop.index }}"></div>{% endfor %}
+        <div class="rw-panel" data-p="{{ r.pasos | length + 1 }}">
+          <div>
+            <div class="rw-kicker">Listo</div>
+            <h2>{{ r.title }} {{ r.title2 }} terminado. Así se conserva y se usa.</h2>
+          </div>
+          <div class="rw-done">
+            {% if r.envase %}<div class="rw-box"><b>Envase</b><span>{{ r.envase }}</span></div>{% endif %}
+            {% if r.caducidad_dias %}<div class="rw-box"><b>Caducidad</b><span>{{ r.caducidad_dias }} días desde la elaboración. Etiqueta el envase con la fecha.</span></div>{% endif %}
+            <div class="rw-box"><b>Rendimiento</b><span id="rw-rendimiento">{{ r.base }} {{ r.unidad }}</span></div>
+            <div class="rw-box"><b>Categoría</b><span>{{ CAT_LABELS.get(r.cat, r.cat) }}</span></div>
+          </div>
+          {% if r.tip %}<div class="rw-tip"><div class="ic"><i class="ph ph-lightbulb"></i></div><div><b>Consejo profesional.</b> {{ r.tip }}</div></div>{% endif %}
+          {% if guias_ings %}
+          <div class="rw-box" style="background:#fff">
+            <b>Guías vivas de los activos</b>
+            <div class="rw-actions" style="margin-top:6px">
+              {% for g in guias_ings %}<a class="rw-btn ghost" href="{{ g.url }}"><i class="ph ph-flask"></i> {{ g.titulo }}</a>{% endfor %}
+            </div>
+            <span style="font-size:.78rem;color:var(--text-muted)">Dosificador, pH de trabajo y compatibilidad de cada ingrediente.</span>
+          </div>
+          {% endif %}
+          <div class="rw-actions">
+            <a class="rw-btn wa" href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, hice la receta ' ~ r.title ~ ' ' ~ r.title2 ~ ' y tengo una pregunta') | urlencode }}" target="_blank" rel="noopener"><i class="ph ph-whatsapp-logo"></i> Consultar al equipo</a>
+            <a class="rw-btn ghost" href="/recetario"><i class="ph ph-books"></i> Más recetas</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="rw-nav">
+        <button class="rw-btn ghost" id="rw-prev" type="button" disabled><i class="ph ph-arrow-left"></i> Anterior</button>
+        <span class="hint">Flechas del teclado o deslizar en el celular</span>
+        <button class="rw-btn" id="rw-next" type="button">Empezar <i class="ph ph-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  {# Texto completo: legible sin JS, indexable, y respaldo si el wizard falla #}
+  <details class="rw-plain">
+    <summary>Ver la receta completa en texto</summary>
+    <div class="rw-plain-body">
+      <p>{{ r.desc }}</p>
+      <h3>Ingredientes para {{ r.base }} {{ r.unidad }}</h3>
+      <ul>
+        {% for i in r.ings %}<li>{{ i.q }} {{ i.u }} de {{ i.n }}{% if i.slug %} — <a href="/producto/{{ i.slug }}">{{ i.producto or 'ver producto' }}</a>{% elif i.propio %} (uso propio){% endif %}</li>{% endfor %}
+      </ul>
+      <h3>Preparación</h3>
+      <ol>{% for p in r.pasos %}<li>{{ p.texto }}</li>{% endfor %}</ol>
+      {% if r.tip %}<h3>Consejo</h3><p>{{ r.tip }}</p>{% endif %}
+      {% if guias_ings %}<h3>Guías de los activos</h3><ul>{% for g in guias_ings %}<li><a href="{{ g.url }}">{{ g.titulo }}</a> ({{ g.ingrediente }})</li>{% endfor %}</ul>{% endif %}
+    </div>
+  </details>
+</div>
+
+<script type="application/json" id="receta-data">{{ r | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260912a"></script>
+<script src="{{ url_for('static', filename='js/recetario-wizard.js') }}?v=20260912a" defer></script>
+{% endblock %}

@@ -1477,12 +1477,16 @@ button { cursor: pointer; }
 /* ══════════════════════════════════════════════════════════
    SCROLL REVEAL
 ══════════════════════════════════════════════════════════ */
-.reveal {
+/* En reposo el contenido es visible (sin JS, en previews, en capturas y con
+   prefers-reduced-motion). main.js marca <html class="js-reveal"> solo cuando
+   puede observar el scroll, y ahi si arranca oculto y aparece al entrar. */
+.reveal { opacity: 1; transform: none; }
+html.js-reveal .reveal {
   opacity: 0;
   transform: translateY(28px);
   transition: opacity .7s ease, transform .7s ease;
 }
-.reveal.visible { opacity: 1; transform: translateY(0); }
+html.js-reveal .reveal.visible { opacity: 1; transform: translateY(0); }
 .reveal-delay-1 { transition-delay: .1s; }
 .reveal-delay-2 { transition-delay: .2s; }
 .reveal-delay-3 { transition-delay: .3s; }

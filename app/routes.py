@@ -19067,6 +19067,22 @@ def register_routes(app):
 
     # ── Vitrina Web (banners promo + origen de materias primas) ───────────────
 
+    @app.route("/api/web/metricas-contenido")
+    @app.route("/app/api/web/metricas-contenido")
+    def api_web_metricas_contenido():
+        """Uso de recetas paso a paso y guías vivas (Fase 4 del plan de guías
+        vivas): embudo del recetario, ranking de recetas/guías y serie diaria.
+        Lee app/data/metricas_contenido.db, que escribe website.py (:8083)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services import metricas_contenido as mc
+
+            dias = min(max(int(request.args.get("dias", 14)), 1), 365)
+            return jsonify(mc.resumen(dias))
+        except Exception as e:
+            return jsonify({"error": str(e)[:200]}), 500
+
     @app.route("/api/web/banners", methods=["GET", "POST"])
     @app.route("/app/api/web/banners", methods=["GET", "POST"])
     def api_web_banners():

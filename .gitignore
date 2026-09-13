@@ -42,6 +42,8 @@ app/data/webhook_meli_incidents.jsonl
 # Telemetría interna (runtime, cambia a diario)
 app/data/telemetria_errores.jsonl
 app/data/telemetria_metricas.json
+app/data/metricas_contenido.db
+app/data/metricas_contenido.db-*
 # Audio alertas 5S (subidas .wav)
 app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)

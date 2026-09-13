@@ -3,6 +3,8 @@
 {% block description %}Guías técnicas y protocolos de uso para materias primas farmacéuticas y cosméticas McKenna Group.{% endblock %}
 
 {% block content %}
+{# g.color trae la paleta vieja de guias.json; se traduce a tonos del tema activo #}
+{% set GD_ACENTOS = {'#143D36': 'var(--green-deep)', '#1E5C51': 'var(--green-dark)', '#2E8B7A': 'var(--green)'} %}
 
 <div class="page-hero page-hero--guides">
   <div class="inner">
@@ -16,7 +18,7 @@
   <div class="guides-grid">
 
     {% for g in guides %}
-    <a href="{{ g.url }}" class="guide-card" style="--guide-accent: {{ g.color }};"
+    <a href="{{ g.url }}" class="guide-card" style="--guide-accent: {{ GD_ACENTOS.get(g.color, 'var(--green)') }};"
        target="{{ '_blank' if g.external else '_self' }}">
       <div class="guide-card-body">
         <div class="guide-card-head">
@@ -40,7 +42,7 @@
     </a>
     {% endfor %}
 
-    <div class="guide-card guide-card-soon" style="--guide-accent: #1E5C51;">
+    <div class="guide-card guide-card-soon" style="--guide-accent: var(--green-dark);">
       <div class="guide-card-body">
         <div class="guide-card-head">
           <div class="guide-card-icon-wrap"><i class="ph ph-drop"></i></div>
@@ -54,7 +56,7 @@
       </div>
     </div>
 
-    <div class="guide-card guide-card-soon" style="--guide-accent: #2E8B7A;">
+    <div class="guide-card guide-card-soon" style="--guide-accent: var(--green);">
       <div class="guide-card-body">
         <div class="guide-card-head">
           <div class="guide-card-icon-wrap"><i class="ph ph-sun"></i></div>

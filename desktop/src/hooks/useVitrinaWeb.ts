@@ -98,3 +98,31 @@ export function useGuardarOrigenMaterias() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vitrina-web", "origen-materias"] }),
   });
 }
+
+// ── Uso de guías vivas y recetas (Fase 4 del plan de guías vivas) ──────────
+
+export interface MetricasContenido {
+  dias: number;
+  desde: string;
+  totales: Record<string, number>;
+  sesiones: Record<string, number>;
+  embudo: {
+    abrieron: number;
+    empezaron: number;
+    terminaron: number;
+    al_carrito: number;
+    unidades_al_carrito: number;
+  };
+  recetas: { slug: string; abiertas: number; terminadas: number; carrito: number }[];
+  guias: { slug: string; abiertas: number; dosificador: number; ph: number; a_receta: number }[];
+  productos: { slug: string; clics: number; sesiones: number }[];
+  serie: { dia: string; recetas: number; guias: number; carrito: number }[];
+}
+
+export function useMetricasContenido(dias: number) {
+  return useQuery<MetricasContenido>({
+    queryKey: ["vitrina-web", "metricas-contenido", dias],
+    queryFn: () => api.get<MetricasContenido>(`/api/web/metricas-contenido?dias=${dias}`),
+    staleTime: 60_000,
+  });
+}

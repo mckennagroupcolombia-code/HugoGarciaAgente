@@ -429,6 +429,66 @@
 </div>
 {% endif %}
 
+<!-- Aprende a usarlo: guia viva + recetas que lo usan (Fase 3, sep-2026) -->
+{% if contenido and (contenido.guias or contenido.recetas) %}
+<style>
+  .pa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .pa-card { display: grid; gap: 8px; align-content: start; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; text-decoration: none; color: var(--text-dark); transition: border-color .2s, transform .15s; }
+  .pa-card:hover { border-color: var(--green); transform: translateY(-2px); }
+  .pa-card.guia { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; background: color-mix(in srgb, var(--green-light) 16%, #fff); }
+  .pa-eyebrow { font-size: .62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--green); }
+  .pa-card h3 { margin: 0; font-size: 1.02rem; font-weight: 800; line-height: 1.25; }
+  .pa-card h3 em { font-style: italic; font-weight: 300; color: var(--green); }
+  .pa-card p { margin: 0; font-size: .84rem; color: var(--text-soft); line-height: 1.6; }
+  .pa-kpis { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pa-kpi { font-size: .74rem; font-weight: 700; color: var(--green); background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-variant-numeric: tabular-nums; }
+  .pa-step { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; background: var(--off-white); border-radius: 8px; padding: 10px 12px; font-size: .82rem; color: var(--text-soft); }
+  .pa-step b { width: 26px; height: 26px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-size: .66rem; }
+  .pa-cta { font-size: .7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .pa-meta { font-size: .72rem; color: var(--text-muted); }
+  @media (max-width: 700px) { .pa-card.guia { grid-template-columns: 1fr; } }
+</style>
+<div style="border-top:2px solid var(--green-pale);background:#fff;">
+  <div class="section">
+    <div style="margin-bottom:28px;">
+      <span class="section-eyebrow">Aprende a usarlo</span>
+      <h2 class="section-title">Guía viva y <em>recetas paso a paso</em></h2>
+    </div>
+    <div class="pa-grid" data-producto-slug="{{ p.slug }}">
+      {% for g in contenido.guias %}
+      <a class="pa-card guia" href="{{ g.url }}">
+        <div style="display:grid;gap:8px">
+          <span class="pa-eyebrow">Guía de uso{% if g.viva %} interactiva{% endif %}</span>
+          <h3>{{ g.titulo }} <em>guía viva</em></h3>
+          <p>{{ g.desc | truncate(150) }}</p>
+          {% if g.viva %}
+          <div class="pa-kpis">
+            {% if g.conc_max_pct %}<span class="pa-kpi">&le; {{ g.conc_max_pct }} %</span>{% endif %}
+            {% if g.ph %}<span class="pa-kpi">pH {{ g.ph.min }} &ndash; {{ g.ph.max }}</span>{% endif %}
+            {% if g.temp_max_c %}<span class="pa-kpi">&lt; {{ g.temp_max_c }} &deg;C</span>{% endif %}
+            <span class="pa-kpi">Dosificador</span>
+            {% if g.n_faq %}<span class="pa-kpi">{{ g.n_faq }} preguntas</span>{% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <span class="pa-cta">Abrir guía <i class="ph ph-arrow-right"></i></span>
+      </a>
+      {% endfor %}
+      {% for r in contenido.recetas %}
+      <a class="pa-card" href="{{ r.url }}">
+        <span class="pa-eyebrow">Receta &middot; {{ {'cosmetica': 'Cosmética', 'nutricion': 'Nutrición', 'perfumeria': 'Perfumería', 'hogar': 'Hogar'}.get(r.cat, r.cat) }}</span>
+        <h3>{{ r.titulo }} <em>{{ r.titulo2 }}</em></h3>
+        <p>{{ r.desc | truncate(110) }}</p>
+        {% if r.paso1 %}<div class="pa-step"><b>1</b><span>{{ r.paso1 | truncate(120) }}</span></div>{% endif %}
+        <span class="pa-meta">{{ r.n_ings }} ingredientes &middot; {{ r.n_pasos }} pasos &middot; {{ r.base }} {{ r.unidad }}</span>
+        <span class="pa-cta">Preparar paso a paso <i class="ph ph-arrow-right"></i></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Productos relacionados -->
 {% if relacionados %}
 <div style="border-top:2px solid var(--green-pale);background:var(--green-ultra);">
@@ -465,6 +525,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% if contenido and (contenido.guias or contenido.recetas) %}<script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260912a" defer></script>{% endif %}
 <script>
 function prodSyncGallery(g, idx) {
   if (!g) return;
