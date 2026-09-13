@@ -166,16 +166,12 @@
 {% endif %}
 
 {% if sec == 'ruta_origen' and Sec.ruta_origen != false and not LAYOUT_CLASICO.nodos.get('ruta_origen', {}).get('hidden') %}
-<div style="order:{{ LAYOUT_CLASICO.orden_map.ruta_origen | default(3) }};">
-  {% include "_ruta_origen.html" %}
+<div style="order:{{ LAYOUT_CLASICO.orden_map.ruta_origen | default(8) }};{{ nodo_style('ruta_origen') }}">
+  {% include "_trazabilidad_condensada.html" %}
 </div>
 {% endif %}
 
-{% if sec == 'cobertura' and Sec.cobertura != false and not LAYOUT_CLASICO.nodos.get('cobertura', {}).get('hidden') %}
-<div style="order:{{ LAYOUT_CLASICO.orden_map.cobertura | default(4) }};">
-  {% include "_cobertura.html" %}
-</div>
-{% endif %}
+{# 'cobertura' ya no es sección propia en el Clásico: va como pestaña dentro de la trazabilidad condensada (Fase D) #}
 
 {% if sec == 'confianza' and Sec.confianza != false and not LAYOUT_CLASICO.nodos.get('confianza', {}).get('hidden') and confianza %}
 <!-- BARRA DE CONFIANZA (cifras del servidor) -->
@@ -455,5 +451,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/portada.js') }}?v=20260913b" defer></script>
+<script src="{{ url_for('static', filename='js/portada.js') }}?v=20260913c" defer></script>
 {% endblock %}

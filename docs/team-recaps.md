@@ -1,3 +1,17 @@
+### 2026-09-13 03:20 - Trazabilidad condensada en la portada y página /trazabilidad (Fase D, cierre del plan de portada)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Rediseño de sección
+- **Qué se implementó:**
+  - **Una sola sección en la portada** (`_trazabilidad_condensada.html`): cabecera, cuatro KPI (países, referencias, fichas técnicas + COA, departamentos) y un escenario con pestañas **Mundo · origen / Colombia · destino**. Antes eran dos secciones seguidas de 1.634 + 1.263 px; ahora 1.029 px en escritorio.
+  - **Los parciales existentes aprenden el modo `compacto`:** `_ruta_origen.html` y `_cobertura.html` reciben `compacto=true` y rinden solo filtros + mapa + panel (sin cabecera, cadena de custodia, documentos, banda ni "territorio por impactar"). Sin la bandera siguen igual, así que el tema Pureza no cambia.
+  - **`/trazabilidad`:** página nueva con las dos experiencias completas (la que antes estaba en la portada), enlazada desde la sección condensada y en el sitemap.
+  - **Celular:** el escenario nace plegado con un botón "Ver el mapa"; los KPI y las pestañas se ven siempre. Portada de **9.479 px en celular (antes 14.171 con los bloques nuevos, 8.842 en la original) y 5.427 en escritorio (antes 7.294 / 5.114)**, ahora con buscador, confianza, más vendidos, aprende, cómo comprar y blog incluidos.
+  - **Tema:** `cobertura` sale de `_ORDEN_CLASICO` y de `tema_web.json` (va como pestaña dentro de `ruta_origen`); si un JSON viejo la trae, no se rompe.
+  - **Trampa corregida:** el cargador diferido de mapas guardaba un solo `<g>` por sección, y con Mundo y Colombia en la misma sección solo cargaba el último; ahora guarda una lista por anfitrión. Verificado en vivo: tierra y 33 departamentos cargan, el panel de país abre y la pestaña Colombia colorea 25 departamentos.
+  - **Cierre del plan de portada:** las cuatro fases (orden, peso, bloques nuevos, trazabilidad) quedan hechas entre el 12 y el 13 de septiembre.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/{_trazabilidad_condensada.html,trazabilidad.html}` (nuevos), `PAGINA_WEB/site/templates/{_ruta_origen.html,_cobertura.html,index.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/static/js/{portada.js,trazabilidad.js}`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/data/tema_web.json`, `app/tools/tema_web.py`, `tests/{test_trazabilidad_condensada.py (nuevo),test_portada_orden.py}`
+
+
 ### 2026-09-13 02:30 - Portada: buscador, confianza con cifras, más vendidos reales, recetas y guías, cómo comprar y blog (Fase C)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad

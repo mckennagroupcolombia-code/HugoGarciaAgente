@@ -5,8 +5,14 @@
   bodega). Geometría: _colombia_map.svg.html (@svg-maps/colombia, MIT).
   Interacción en static/js/trazabilidad.js (tooltip, panel, pulsos).
 #}
+{% set compacto = compacto | default(false) %}
+{% if compacto %}
+<div class="co-compact" data-co-root>
+{% else %}
 <section class="co-section" id="cobertura" data-co-root>
   <div class="section co-inner">
+{% endif %}
+    {% if not compacto %}
     <div class="co-head reveal">
       <span class="section-eyebrow">Distribución nacional en tiempo real</span>
       <h2 class="section-title">Colombia, <em>de punta a punta</em></h2>
@@ -15,6 +21,7 @@
         para ver los municipios con pedidos entregados, y descubre a dónde todavía no hemos llegado.
       </p>
     </div>
+    {% endif %}
 
     <div class="co-stage reveal">
       <div class="co-map-wrap">
@@ -88,7 +95,7 @@
           </ol>
         </div>
 
-        {% if colombia.pendientes %}
+        {% if colombia.pendientes and not compacto %}
         <div class="co-pending">
           <span class="co-panel-eyebrow">Territorio por impactar · {{ colombia.pendientes | length }}</span>
           <p>Aún no despachamos a estos departamentos. Si formulas desde alguno de ellos, queremos ser tu primer proveedor.</p>
@@ -107,5 +114,9 @@
       'departamentos': colombia.departamentos,
       'deps_semana': colombia.deps_semana
     } | tojson }}</script>
+{% if compacto %}
+</div>
+{% else %}
   </div>
 </section>
+{% endif %}

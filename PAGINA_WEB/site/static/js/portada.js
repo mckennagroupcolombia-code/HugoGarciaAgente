@@ -50,6 +50,32 @@
     form.addEventListener('submit', function (e) { if (input.value.trim().length < 2) e.preventDefault(); });
   }
 
+  /* -- Trazabilidad condensada: pestanas Mundo / Colombia + plegado en celular -- */
+  var tzc = $('[data-tzc-tabs]');
+  if (tzc) {
+    var tzPaneles = $$('[data-tzc-panel]');
+    $$('[data-tzc-tab]', tzc).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-tzc-tab');
+        $$('[data-tzc-tab]', tzc).forEach(function (x) { var on = x === b; x.classList.toggle('is-active', on); x.setAttribute('aria-selected', String(on)); });
+        tzPaneles.forEach(function (p) { p.hidden = p.getAttribute('data-tzc-panel') !== id; });
+        var st = $('[data-tzc-stage]'); if (st) st.removeAttribute('data-collapsed');
+        var tg = $('[data-tzc-toggle]'); if (tg) { tg.setAttribute('aria-expanded', 'true'); $('span', tg).textContent = 'Ocultar el mapa'; }
+      });
+    });
+    var stage = $('[data-tzc-stage]'), toggle = $('[data-tzc-toggle]');
+    if (stage && toggle) {
+      var movil = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+      if (movil) { stage.setAttribute('data-collapsed', ''); toggle.setAttribute('aria-expanded', 'false'); }
+      else { $('span', toggle).textContent = 'Ocultar el mapa'; }
+      toggle.addEventListener('click', function () {
+        var abierto = !stage.hasAttribute('data-collapsed');
+        if (abierto) { stage.setAttribute('data-collapsed', ''); toggle.setAttribute('aria-expanded', 'false'); $('span', toggle).textContent = 'Ver el mapa'; }
+        else { stage.removeAttribute('data-collapsed'); toggle.setAttribute('aria-expanded', 'true'); $('span', toggle).textContent = 'Ocultar el mapa'; stage.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      });
+    }
+  }
+
   /* -- Pestanas de productos -- */
   var tabs = $('[data-dest-tabs]');
   if (tabs) {

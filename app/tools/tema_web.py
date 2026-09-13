@@ -70,8 +70,7 @@ _ORDEN_CLASICO = [
     "destacados",     # pestañas: más vendidos (30 días) / en oferta
     "aprende",        # guía viva del más vendido + recetas paso a paso
     "como_comprar",
-    "ruta_origen",
-    "cobertura",
+    "ruta_origen",    # trazabilidad condensada: pestañas Mundo / Colombia (Fase D)
     "blog",
     "cta",
 ]

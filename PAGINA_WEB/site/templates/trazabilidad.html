@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Trazabilidad — Del origen a tu fórmula — McKenna Group{% endblock %}
+{% block description %}De dónde viene cada materia prima de McKenna Group y hasta dónde la llevamos: países de origen, tránsito, control de calidad en Bogotá y cobertura de despachos en Colombia.{% endblock %}
+{% block content %}
+{# Versión completa de las dos experiencias que antes ocupaban la mitad de la portada (Fase D, sep-2026) #}
+<div class="page-hero page-hero--guides">
+  <div class="inner">
+    <h1>Del origen a <em>tu fórmula</em></h1>
+    <p>Trazabilidad de extremo a extremo: origen declarado, tránsito documentado, certificado de análisis por lote y despachos a todo el país.</p>
+  </div>
+</div>
+{% include "_ruta_origen.html" %}
+{% include "_cobertura.html" %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/portada.js') }}?v=20260913c" defer></script>
+{% endblock %}

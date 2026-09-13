@@ -38,12 +38,15 @@
   var lazySvgs = $$('[data-lazy-svg]');
   if (lazySvgs.length) {
     if ('IntersectionObserver' in window) {
+      // Varios mapas pueden compartir la misma sección (portada condensada:
+      // Mundo y Colombia en pestañas): se guardan todos por anfitrión.
       var lobs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) { if (e.isIntersecting) { lobs.unobserve(e.target); cargarSvg(e.target.__lazyG); } });
+        entries.forEach(function (e) { if (e.isIntersecting) { lobs.unobserve(e.target); (e.target.__lazyGs || []).forEach(cargarSvg); } });
       }, { rootMargin: '900px 0px' });
       lazySvgs.forEach(function (g) {
         var host = g.closest('section') || g.ownerSVGElement || g;
-        host.__lazyG = g; lobs.observe(host);
+        (host.__lazyGs = host.__lazyGs || []).push(g);
+        if (host.__lazyGs.length === 1) lobs.observe(host);
       });
     } else {
       lazySvgs.forEach(cargarSvg);

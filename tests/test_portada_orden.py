@@ -16,7 +16,7 @@ import website  # noqa: E402
 def test_orden_clasico_comercial_antes_que_trazabilidad_y_cta_al_final():
     o = tw._ORDEN_CLASICO
     assert o.index("categorias") < o.index("ruta_origen")
-    assert o.index("destacados") < o.index("cobertura")
+    assert o.index("destacados") < o.index("ruta_origen")  # cobertura va como pestaña dentro de ruta_origen (Fase D)
     assert o[-1] == "cta"
 
 

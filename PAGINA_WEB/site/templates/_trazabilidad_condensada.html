@@ -1,0 +1,56 @@
+{#
+  Trazabilidad condensada (portada, Fase D del plan de portada, sep-2026):
+  una sola sección con cabecera, cuatro KPI y un solo escenario con pestañas
+  Mundo / Colombia. Los mapas completos (documentos, banda, territorio por
+  impactar, cadena de custodia) viven en /trazabilidad. La geometría de los
+  mapas se carga al acercarse (data-lazy-svg); en celular el escenario nace
+  plegado y se abre con "Ver el mapa".
+#}
+<section class="tz-section tzc" id="trazabilidad">
+  <svg class="tz-molecules" viewBox="0 0 1200 600" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <pattern id="tz-hex" width="52" height="60" patternUnits="userSpaceOnUse" patternTransform="scale(1.6)">
+        <path d="M26 2 L48 15 L48 41 L26 54 L4 41 L4 15 Z" fill="none" stroke="currentColor" stroke-width=".7"/>
+      </pattern>
+    </defs>
+    <rect width="1200" height="600" fill="url(#tz-hex)"/>
+  </svg>
+  <div class="section tz-inner tzc-inner">
+    <div class="tzc-head reveal">
+      <div>
+        <span class="section-eyebrow">Trazabilidad de extremo a extremo</span>
+        <h2 class="section-title">Del origen a <em>tu fórmula</em></h2>
+        <p class="section-lead">Cada materia prima tiene un origen declarado, un tránsito documentado y un certificado de análisis por lote. De {{ ruta_origen.n_paises }} países a {{ colombia.n_alcanzados }} departamentos.</p>
+      </div>
+      <a href="{{ url_for('trazabilidad') }}" class="dest-all">Ver la trazabilidad completa</a>
+    </div>
+
+    {% if ruta_origen.tiene_datos %}
+    <div class="tzc-kpis reveal">
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">{{ ruta_origen.n_paises }}</span><span class="tz-kpi-label">países de origen</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="200">200</span>+</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_tds }}">{{ ruta_origen.n_tds }}</span><span class="tz-kpi-label">fichas técnicas y {{ ruta_origen.n_coa }} COA</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="{{ colombia.n_alcanzados }}">{{ colombia.n_alcanzados }}</span><span class="tz-kpi-of">/{{ colombia.total_departamentos }}</span></span><span class="tz-kpi-label">departamentos con despachos</span></div>
+    </div>
+
+    <div class="tzc-bar reveal">
+      <div class="tzc-tabs" role="tablist" data-tzc-tabs>
+        <button type="button" class="dest-tab is-active" role="tab" aria-selected="true" data-tzc-tab="mundo"><i class="ph ph-globe-hemisphere-west"></i> Mundo · origen</button>
+        <button type="button" class="dest-tab" role="tab" aria-selected="false" data-tzc-tab="colombia"><i class="ph ph-map-trifold"></i> Colombia · destino</button>
+      </div>
+      <button type="button" class="tzc-toggle" data-tzc-toggle aria-expanded="true"><i class="ph ph-map-pin"></i> <span>Ver el mapa</span></button>
+    </div>
+
+    <div class="tzc-stage" data-tzc-stage>
+      <div data-tzc-panel="mundo">
+        {% with compacto=true %}{% include "_ruta_origen.html" %}{% endwith %}
+      </div>
+      <div data-tzc-panel="colombia" hidden>
+        {% with compacto=true %}{% include "_cobertura.html" %}{% endwith %}
+      </div>
+    </div>
+    {% else %}
+    <div class="route-empty reveal"><i class="ph ph-map-trifold" aria-hidden="true"></i><p>Estamos documentando el país de origen de cada materia prima.</p></div>
+    {% endif %}
+  </div>
+</section>

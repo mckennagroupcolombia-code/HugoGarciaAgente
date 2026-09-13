@@ -4206,6 +4206,20 @@ def index():
         cobertura=obtener_cobertura())
 
 
+@app.route("/trazabilidad")
+def trazabilidad():
+    """Versión completa de la trazabilidad (mapamundi + Colombia con documentos,
+    cadena de custodia y territorio por impactar). La portada muestra la
+    versión condensada con pestañas (Fase D, sep-2026)."""
+    catalog = get_catalog()
+    return render_template(
+        "trazabilidad.html",
+        ruta_origen=_construir_ruta_origen(catalog),
+        colombia=_construir_colombia_mapa(),
+        actividad=obtener_actividad(),
+    )
+
+
 @app.route("/tienda")
 @app.route("/tienda/")
 def tienda():
@@ -4628,6 +4642,7 @@ def sitemap():
         ("/recetario", "0.8", "weekly"),
         ("/blog", "0.9", "daily"),
         ("/cotizar", "0.85", "weekly"),
+        ("/trazabilidad", "0.7", "weekly"),
         ("/nosotros", "0.6", "monthly"),
         ("/contacto", "0.6", "monthly"),
     ]

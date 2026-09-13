@@ -11,6 +11,12 @@
 {% set COL = ruta_origen.colombia if ruta_origen.colombia else {'x_pct': 29.4, 'y_pct': 47.4} %}
 {% set CX = COL.x_pct / 100 * 1000 %}
 {% set CY = VB.y + COL.y_pct / 100 * VB.h %}
+{% set compacto = compacto | default(false) %}
+{% if compacto %}
+{# Modo compacto (portada, Fase D): solo filtros + mapa + panel. Cabecera, KPIs,
+   cadena, documentos y banda viven en _trazabilidad_condensada.html o en /trazabilidad #}
+<div class="tz-compact" data-tz-root>
+{% else %}
 <section class="tz-section" id="trazabilidad" data-tz-root>
   <svg class="tz-molecules" viewBox="0 0 1200 600" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <defs>
@@ -25,6 +31,8 @@
   </svg>
 
   <div class="section tz-inner">
+{% endif %}
+    {% if not compacto %}
     <div class="tz-head reveal">
       <span class="section-eyebrow">Trazabilidad de extremo a extremo</span>
       <h2 class="section-title">Del origen a <em>tu fórmula</em></h2>
@@ -34,7 +42,10 @@
       </p>
     </div>
 
+    {% endif %}
+
     {% if ruta_origen.tiene_datos %}
+    {% if not compacto %}
     <div class="tz-kpis reveal">
       <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">{{ ruta_origen.n_paises }}</span><span class="tz-kpi-label">países de origen</span></div>
       <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="200">200</span>+</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
@@ -70,6 +81,7 @@
         <span class="tz-node-sub">{{ colombia.n_municipios }} municipios con pedidos ya entregados</span>
       </li>
     </ol>
+    {% endif %}
 
     {# ── Filtro por línea ── #}
     <div class="tz-filters reveal" role="group" aria-label="Filtrar por línea comercial">
@@ -174,6 +186,7 @@
       </aside>
     </div>
 
+    {% if not compacto %}
     {# ── Documentación de trazabilidad ── #}
     <div class="tz-docs reveal" id="trazabilidad-docs">
       <div class="tz-doc">
@@ -205,6 +218,7 @@
       </div>
       <a href="{{ url_for('cotizar') }}" class="btn btn-primary"><i class="ph ph-globe-hemisphere-west"></i> Conoce nuestra oferta</a>
     </div>
+    {% endif %}
 
     <script type="application/json" data-tz-data>{{ {
       'rutas': ruta_origen.rutas,
@@ -218,5 +232,9 @@
       <p>Estamos documentando el país de origen de cada materia prima. Muy pronto verás aquí la ruta completa.</p>
     </div>
     {% endif %}
+{% if compacto %}
+</div>
+{% else %}
   </div>
 </section>
+{% endif %}

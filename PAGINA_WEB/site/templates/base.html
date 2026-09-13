@@ -45,7 +45,7 @@ fbq('track','PageView');
    (sin JS, reduced-motion, previews) todo el contenido queda visible. */
 (function(){try{if('IntersectionObserver' in window&&!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){document.documentElement.classList.add('js-reveal');}}catch(e){}})();
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260913c">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260913d">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -396,7 +396,7 @@ fbq('track','PageView');
 </a>
 
 <script src="{{ url_for('static', filename='js/main.js') }}?v=20260912a"></script>
-<script src="{{ url_for('static', filename='js/trazabilidad.js') }}?v=20260913a" defer></script>
+<script src="{{ url_for('static', filename='js/trazabilidad.js') }}?v=20260913b" defer></script>
 {% block scripts %}{% endblock %}
 
 {% if META_PIXEL_ID %}
