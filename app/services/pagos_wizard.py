@@ -145,8 +145,13 @@ CATEGORIAS: dict[str, dict] = {
         "icono": "🏢",
     },
     "nomina": {
-        "label": "Nómina",
-        "ayuda": "Sueldos y salarios del personal.",
+        "label": "Nómina (contrato laboral)",
+        "ayuda": (
+            "Sueldos de personal con contrato laboral. ⚠️ McKenna NO tiene trabajadores "
+            "formales: lo que se paga cada quincena es prestación de servicios y va en esa "
+            "categoría, a 5135 con retención de servicios. Usar 5105 dice que hay una "
+            "relación laboral que no existe."
+        ),
         "cuenta_debito": "5105",
         "origen": "libre",
         "requiere_tercero": True,
@@ -856,14 +861,47 @@ def crear_borrador_idempotente(payload: dict, created_by: int | None = None) -> 
     return crear_solicitud({**payload, "estado": "borrador"}, created_by=created_by)
 
 
-def listar_plantillas() -> list[dict]:
+def listar_plantillas(origen_sistema: str | None = None) -> list[dict]:
     """Pagos recurrentes guardados, para ofrecerlos al montar un pago del mes."""
     _ensure()
+    sql = "SELECT id FROM cc_solicitudes_pago WHERE es_plantilla=1"
+    args: tuple = ()
+    if origen_sistema:
+        sql += " AND origen_sistema=?"
+        args = (origen_sistema,)
     with _conn() as con:
-        ids = [int(r["id"]) for r in con.execute(
-            "SELECT id FROM cc_solicitudes_pago WHERE es_plantilla=1 ORDER BY concepto"
-        )]
+        ids = [int(r["id"]) for r in con.execute(sql + " ORDER BY concepto", args)]
     return [obtener(i) for i in ids if obtener(i)]
+
+
+def instanciar_plantillas_de(
+    origen_sistema: str, periodo: str, fecha: str | None = None, created_by: int | None = None
+) -> list[dict]:
+    """Monta los borradores del período para todas las plantillas de un origen.
+
+    Lo usan los crons recurrentes (quincena, mes): la lista de a quién se le
+    paga vive en las plantillas, que un humano creó una vez, no dentro del
+    script. Así el cron no tiene que saber nombres ni montos, y agregar a
+    alguien no es un cambio de código.
+
+    Best-effort por plantilla: que una falle no puede dejar sin montar a las
+    demás ni impedir el aviso.
+    """
+    out: list[dict] = []
+    for plan in listar_plantillas(origen_sistema):
+        try:
+            out.append(
+                instanciar_plantilla(
+                    plan["id"], periodo, {"fecha": fecha} if fecha else None, created_by=created_by
+                )
+            )
+        except Exception as e:
+            print(
+                f"⚠️ [PAGOS] no se pudo instanciar la plantilla {plan['id']} "
+                f"«{plan.get('concepto')}» para {periodo}: {e}",
+                flush=True,
+            )
+    return out
 
 
 def _fmt(n) -> str:

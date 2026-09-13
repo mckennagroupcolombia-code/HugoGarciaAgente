@@ -155,7 +155,7 @@ export default function PagosWizardPanel() {
       )}
 
       <div className="flex gap-1 text-[11px]">
-        {[["", "Todas"], ["borrador", "Borradores"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"]].map(([v, l]) => (
+        {[["", "Todas"], ["borrador", "Borradores"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"], ["plantilla", "Recurrentes"]].map(([v, l]) => (
           <button
             key={v} type="button" onClick={() => setFiltro(v)}
             className={`rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
@@ -163,18 +163,24 @@ export default function PagosWizardPanel() {
         ))}
       </div>
 
-      {listaQ.isLoading && <p className="text-xs text-muted">Cargando…</p>}
-      {!listaQ.isLoading && !solicitudes.length && (
-        <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted">
-          No hay solicitudes {filtro ? `en estado «${filtro}»` : "todavía"}.
-        </p>
-      )}
+      {filtro === "plantilla" ? (
+        <ListaPlantillas onMensaje={setMsg} />
+      ) : (
+        <>
+          {listaQ.isLoading && <p className="text-xs text-muted">Cargando…</p>}
+          {!listaQ.isLoading && !solicitudes.length && (
+            <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted">
+              No hay solicitudes {filtro ? `en estado «${filtro}»` : "todavía"}.
+            </p>
+          )}
 
-      <div className="space-y-2">
-        {solicitudes.map((s) => (
-          <FichaSolicitud key={s.id} s={s} onMensaje={setMsg} />
-        ))}
-      </div>
+          <div className="space-y-2">
+            {solicitudes.map((s) => (
+              <FichaSolicitud key={s.id} s={s} onMensaje={setMsg} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -314,6 +320,24 @@ function Wizard({
     onSuccess: (s) => {
       if (s.error) return onError(s.error);
       onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)}. Ya le llegó el ticket al aprobador.`);
+    },
+    onError: (e) => onError((e as Error).message),
+  });
+
+  // Pago que se repite (quincena, arriendo, contador): se guarda una vez y de
+  // ahí en adelante el cron monta el borrador de cada período. No es un pago:
+  // por eso no abre ticket ni se puede aprobar.
+  const [frecuencia, setFrecuencia] = useState("");
+  const plantillaMut = useMutation({
+    mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", {
+      ...extra(), es_plantilla: true, frecuencia,
+    }),
+    onSuccess: (s) => {
+      if (s.error) return onError(s.error);
+      onCreada(
+        `Plantilla «${s.concepto}» guardada (${frecuencia}). ` +
+        "Cada período se montará sola como borrador; nada se gira sin que la revises.",
+      );
     },
     onError: (e) => onError((e as Error).message),
   });
@@ -537,6 +561,32 @@ function Wizard({
             Al enviar, el aprobador recibe el ticket con los productos, el cotejo de la factura y el asiento.
             {puedeDirecto && ` Como ${puedeQ.data?.usuario || "administrador"} también puedes registrarlo directo; queda anotado quién lo hizo.`}
           </p>
+
+          <div className="rounded-lg border border-dashed border-border p-2">
+            <p className="text-[11px] font-bold text-ink">¿Este pago se repite?</p>
+            <p className="mb-2 text-[10px] leading-relaxed text-muted">
+              Guárdalo como recurrente y cada período se montará solo como borrador, con
+              estos mismos datos. Sigue pasando por tu revisión y por aprobación: lo que se
+              ahorra es volver a teclearlo, no el control.
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <Campo label="Cada cuánto">
+                <select value={frecuencia} onChange={(e) => setFrecuencia(e.target.value)} className={inputCls}>
+                  <option value="">No se repite</option>
+                  <option value="quincenal">Quincenal</option>
+                  <option value="mensual">Mensual</option>
+                  <option value="bimestral">Bimestral</option>
+                  <option value="trimestral">Trimestral</option>
+                  <option value="semestral">Semestral</option>
+                </select>
+              </Campo>
+              <button type="button" onClick={() => plantillaMut.mutate()}
+                      disabled={!frecuencia || !prevQ.data?.cuadra || plantillaMut.isPending}
+                      className="rounded-lg border border-border px-3 py-2 text-[11px] font-bold text-ink hover:border-accent disabled:opacity-40">
+                {plantillaMut.isPending ? "Guardando…" : "Guardar como recurrente"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1111,6 +1161,86 @@ function AsientoEnVivo({ sid }: { sid: number }) {
         {p.retencion > 0 ? ` Se gira ${cop(p.girado)}; ${cop(p.retencion)} van a la DIAN.` : ""}
         {" "}Nace en el Libro Mayor al aprobar, no ahora.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Pagos recurrentes guardados: lo que se repite cada período.
+ *
+ * Una plantilla no es un pago — no tiene ticket, no se aprueba y no mueve
+ * nada. Es la respuesta a «a quién le pagamos cada quincena», que antes vivía
+ * en la cabeza del operador o dentro de un script.
+ */
+function ListaPlantillas({ onMensaje }: { onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void }) {
+  const qc = useQueryClient();
+  const [ocupada, setOcupada] = useState<number | null>(null);
+  const q = useQuery<{ plantillas: Solicitud[] }>({
+    queryKey: ["pagos-plantillas"],
+    queryFn: () => api.get("/api/pagos/plantillas"),
+  });
+
+  async function montar(p: Solicitud) {
+    const periodo = window.prompt(
+      `¿Para qué período montas «${p.concepto}»?\n\nEj. 2026-10 (mensual) o 2026-10-Q1 (quincena).`,
+      new Date().toISOString().slice(0, 7),
+    );
+    if (!periodo) return;
+    setOcupada(p.id);
+    try {
+      const r = await api.post<Solicitud & { error?: string; ya_existia?: boolean }>(
+        `/api/pagos/plantillas/${p.id}/instanciar`, { periodo },
+      );
+      if (r.error) onMensaje({ tipo: "error", texto: r.error });
+      else if (r.ya_existia)
+        onMensaje({ tipo: "ok", texto: `Ese período ya estaba montado (borrador #${r.id}).` });
+      else
+        onMensaje({ tipo: "ok", texto: `Borrador #${r.id} montado para ${periodo}. Revísalo en «Borradores».` });
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setOcupada(null);
+    }
+  }
+
+  const plantillas = q.data?.plantillas ?? [];
+  if (q.isLoading) return <p className="text-xs text-muted">Cargando…</p>;
+  if (!plantillas.length)
+    return (
+      <p className="rounded-xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted">
+        Todavía no hay pagos recurrentes. Al crear una solicitud, marca «¿Este pago se
+        repite?» en el último paso y quedará acá.
+      </p>
+    );
+
+  return (
+    <div className="space-y-2">
+      {plantillas.map((p) => (
+        <article key={p.id} className="rounded-xl border border-border bg-surface-panel p-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-ink">{p.icono} {p.concepto}</p>
+              <p className="mt-0.5 text-[11px] text-muted">
+                {p.categoria_label}
+                {p.frecuencia ? ` · ${p.frecuencia}` : ""}
+                {p.tercero ? ` · ${p.tercero.nombre}` : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-extrabold tabular-nums text-ink">{cop(p.monto)}</p>
+              <button type="button" onClick={() => void montar(p)} disabled={ocupada === p.id}
+                      className="rounded-lg bg-accent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40">
+                {ocupada === p.id ? "…" : "Montar un período"}
+              </button>
+            </div>
+          </div>
+          <p className="mt-2 text-[10px] text-muted">
+            Monto de referencia: al montar el período queda como borrador y ahí se corrige
+            contra el documento real antes de enviarlo a aprobación.
+          </p>
+        </article>
+      ))}
     </div>
   );
 }

@@ -92,6 +92,59 @@ def _guardar_estado(data: dict) -> None:
     os.replace(tmp, ESTADO_PATH)
 
 
+def _tercero_contador():
+    """El contador en el Libro Mayor, o None si nadie lo ha registrado.
+
+    No se crea solo: un tercero nace con cédula, correo y cuenta, y un cron que
+    los invente deja datos maestros equivocados que después nadie corrige.
+    """
+    try:
+        import app.services.contabilidad_core as cc
+
+        for t in cc.listar_terceros():
+            n = (t.get("nombre") or "").lower()
+            if "novoa" in n and "william" in n:
+                return t
+    except Exception as e:
+        print(f"⚠️ No se pudo buscar al contador entre los terceros: {e}")
+    return None
+
+
+def _borrador_honorarios(periodo: str, monto: float, cobro: dict, creado_por) -> int | None:
+    """Deja la cuenta de cobro del contador como borrador de pago. Idempotente."""
+    tercero = _tercero_contador()
+    if not tercero or monto <= 0:
+        return None
+    try:
+        from app.services import pagos_wizard as _pw
+        import app.services.contabilidad_core as cc
+
+        activos = [m for m in cc.listar_medios_pago() if m.get("activo")]
+        bancos = [m for m in activos if m.get("tipo") == "banco"] or activos
+        sol = _pw.crear_borrador_idempotente(
+            {
+                "categoria": "honorarios",
+                "concepto": f"Honorarios contador — {periodo}",
+                "monto": monto,
+                "fecha": datetime.now().strftime("%Y-%m-%d"),
+                "tercero_id": tercero["id"],
+                "medio_pago_id": bancos[0]["id"] if bancos else None,
+                "origen_ref": f"contador:{periodo}",
+                "origen_sistema": "contador",
+                "periodo": periodo,
+                "notas": (
+                    f"{cobro.get('concepto', '')} · Cuenta: Bancolombia ahorros "
+                    "No 24178692751 a nombre William Novoa"
+                ),
+            },
+            created_by=creado_por,
+        )
+        return int(sol["id"])
+    except Exception as e:
+        print(f"⚠️ No se pudo montar el borrador de honorarios: {e}")
+        return None
+
+
 def _crear_ticket_pago(periodo: str, cobro: dict) -> int | None:
     from app.services import tickets_db as tdb
     import sqlite3
@@ -115,16 +168,37 @@ def _crear_ticket_pago(periodo: str, cobro: dict) -> int | None:
             f"vigente acordada (${TARIFA_VIGENTE:,.0f} = 23% sobre $466.051, "
             f"corrección ago-2026) — revisar antes de aprobar."
         )
-    descripcion = (
-        f"Cuenta de cobro de William Fernando Novoa Molano (contador) — periodo {periodo}.\n"
-        f"Valor a girar: ${monto:,.0f} COP\n"
-        f"Concepto: {cobro.get('concepto', '')}\n"
-        f"Cuenta: Bancolombia ahorros No 24178692751 a nombre William Novoa"
-        f"{aviso_tarifa}"
-    )
+
+    # El monto va en la SOLICITUD, no en el texto del ticket: ahí se recalcula
+    # el asiento (5110 honorarios, con su retención) y se puede corregir contra
+    # la cuenta de cobro real. Un valor escrito en un ticket se congela.
+    sid = _borrador_honorarios(periodo, monto, cobro, creado_por)
+
+    if sid:
+        descripcion = (
+            f"Cuenta de cobro del contador — periodo {periodo}.\n\n"
+            f"Ya quedó como **borrador #{sid}** en **Contabilidad → Solicitudes de "
+            "pago**, filtro «Borradores».\n\n"
+            "Ábrelo, coteja contra la cuenta de cobro que él envió, verifica el asiento "
+            "(honorarios con su retención) y envíalo a aprobación."
+            f"{aviso_tarifa}"
+        )
+    else:
+        descripcion = (
+            f"Cuenta de cobro de William Fernando Novoa Molano (contador) — periodo {periodo}.\n"
+            f"Valor a girar: ${monto:,.0f} COP\n"
+            f"Concepto: {cobro.get('concepto', '')}\n"
+            f"Cuenta: Bancolombia ahorros No 24178692751 a nombre William Novoa\n\n"
+            "⚠️ No se pudo montar la solicitud de pago automáticamente: **el contador no "
+            "está registrado como tercero** en el Libro Mayor. Créalo una vez en "
+            "Contabilidad → Terceros (persona natural, con su cédula) y de ahí en "
+            "adelante el borrador se monta solo, con su asiento y su retención."
+            f"{aviso_tarifa}"
+        )
+
     data = {
         "tipo": "solicitud",
-        "titulo": "APROBAR PAGO CONTADOR",
+        "titulo": f"Pago contador — {periodo}",
         "categoria": "logistica",
         "descripcion": descripcion,
         "prioridad": "urgente",

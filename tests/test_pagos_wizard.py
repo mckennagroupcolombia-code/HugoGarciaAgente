@@ -420,3 +420,35 @@ def test_una_plantilla_no_se_manda_a_aprobacion(mods):
     plan = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="mensual"))
     with pytest.raises(ValueError, match="plantilla"):
         w.enviar_a_aprobacion(plan["id"])
+
+
+def test_plantillas_se_filtran_e_instancian_por_origen(mods):
+    # El cron de la quincena no sabe a quién se le paga: eso vive en las
+    # plantillas, que un humano creó una vez. Agregar a alguien no es un
+    # cambio de código.
+    _cc, w, t, m, _ = mods
+    quincena = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="quincenal",
+                                       origen_sistema="nomina", concepto="Servicios — Persona A"))
+    otra = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="mensual",
+                                   origen_sistema="contador", concepto="Honorarios"))
+    assert [p["id"] for p in w.listar_plantillas("nomina")] == [quincena["id"]]
+    assert [p["id"] for p in w.listar_plantillas("contador")] == [otra["id"]]
+    assert len(w.listar_plantillas()) == 2
+
+    creados = w.instanciar_plantillas_de("nomina", "2026-10-Q1")
+    assert len(creados) == 1
+    assert creados[0]["estado"] == "borrador"
+    assert creados[0]["plantilla_id"] == quincena["id"]
+    # Volver a correr el cron no duplica la quincena
+    assert w.instanciar_plantillas_de("nomina", "2026-10-Q1")[0]["id"] == creados[0]["id"]
+
+
+def test_la_categoria_nomina_advierte_que_no_hay_contrato_laboral(mods):
+    # McKenna no tiene trabajadores formales: lo que se paga cada quincena es
+    # prestación de servicios. 5105 afirmaría una relación laboral que no existe.
+    _cc, w, _t, _m, _ = mods
+    ayuda = w.CATEGORIAS["nomina"]["ayuda"].lower()
+    assert "no tiene trabajadores formales" in ayuda
+    assert "prestación de servicios" in ayuda
+    assert w.CATEGORIAS["prestacion_servicios"]["cuenta_debito"] == "5135"
+    assert w.CATEGORIAS["prestacion_servicios"]["concepto_retencion"] == "servicios"
