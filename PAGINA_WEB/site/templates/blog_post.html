@@ -112,7 +112,7 @@
   <h1 class="bp-title">{{ post.titulo }}</h1>
 
   <div class="post-body">
-    {{ post.contenido | limpiar_ia | safe }}
+    {{ post.contenido | limpiar_ia | sin_titulo_repetido(post.titulo) | safe }}
   </div>
 
   <div class="bp-cta">

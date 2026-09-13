@@ -186,3 +186,4 @@ app/data/verificacion_formulario_manteca/
 # PDFs de préstamos (contratos y certificados) — se regeneran desde la BD,
 # son binarios que crecen con cada emisión y no aportan nada en el historial.
 app/data/prestamos_documentos/
+PAGINA_WEB/site/data/borradores_blog/

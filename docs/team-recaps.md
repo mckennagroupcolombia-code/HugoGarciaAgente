@@ -1,3 +1,18 @@
+### 2026-09-13 04:10 - Ocho artículos nuevos en el blog, con citas de PubMed verificadas una por una
+- **Autor:** Armando García
+- **Tipo de Cambio:** Contenido + herramienta
+- **Qué se implementó:**
+  - **La fuente propuesta se cambió.** Se pidió usar sci-bot.ru, que es un asistente construido **sobre Sci-Hub** (redistribuye artículos de pago sin licencia) y que además estaba en modo de solo lectura por mantenimiento. Se usó en su lugar **PubMed vía E-utilities de la NCBI**: API pública, gratuita, sin clave, y con enlaces que el lector puede abrir de forma legítima.
+  - **`scripts/generar_articulos_blog.py`:** busca la evidencia, **verifica cada cita contra `esummary`** (título, revista, año, primer autor y DOI salen de la respuesta oficial, no del modelo) y **descarta el artículo completo si el texto menciona un autor/año que no esté en esa lista**. Pasa por `llm_budget` (`permitir_llamada` + `registrar_llamada` con tokens reales), cosa que `generar_posts_masivos.py` y `knowledge_agent.py` nunca hicieron. Guarda borradores en disco para poder revisarlos sin repetir llamadas.
+  - **Ocho artículos publicados**, elegidos por hueco real (productos que se venden y no tenían artículo): glicerina vegetal, conservación cosmética (Sharomix 705), citrato de potasio, lanolina, D-pantenol, manteca de karité, aceite de árbol de té y ácido cítrico. Entre 754 y 953 palabras, 5 referencias con PubMed y DOI cada uno, todos enlazan a su producto y 7 de 8 a su guía viva.
+  - **Coste real:** 8 llamadas a gemini-2.5-pro, **US$ 0,48 en total** (unos 4 centavos por artículo), dentro del límite automático del repositorio (25 llamadas / US$1) y muy por debajo del tope diario de US$5.
+  - **Tres cosas que se corrigieron sobre la marcha:** (a) seis de las ocho consultas a PubMed devolvían **cero resultados** por encadenar demasiados términos con Y lógico ("tea tree oil terpinen-4-ol antimicrobial acne randomized" → 0 artículos); se acortaron y ahora traen entre 33 y 255. (b) El verificador marcaba como inventada la cita "Chikuma (2005)" cuando el autor real es "Hara-Chikuma": ahora acepta apellidos compuestos. (c) Cinco artículos quedaron sin enlace al producto porque el cruce exigía una presentación comprable; ahora cae a la ficha de familia.
+  - **Arreglo que alcanza a todo el blog:** 21 de 36 entradas repetían el título como primer `<h2>` debajo del `<h1>` de la plantilla. Filtro `sin_titulo_repetido` en `website.py`: quita ese encabezado solo cuando repite el título, así que los posts viejos con subtítulo editorial se conservan intactos.
+  - **Auditoría de compliance:** ningún artículo afirma curar, tratar ni prevenir enfermedades; los cuatro avisos del barrido eran falsos positivos ("piel sana", "prevenir la desestabilización" de una membrana, "elimina el color" al refinar). Todos cierran con el descargo de materia prima. `tests/test_articulos_blog.py` fija estas reglas.
+  - **Nota:** al agregar `unicodedata` para el filtro se rompió el blog unos minutos (NameError en las 36 entradas) porque el import iba en una línea agrupada; corregido y verificado con las 36 respondiendo 200.
+- **Archivos Modificados:** `scripts/generar_articulos_blog.py` (nuevo), `PAGINA_WEB/site/data/posts.json`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/blog_post.html`, `tests/test_articulos_blog.py` (nuevo), `.gitignore`
+
+
 ### 2026-09-13 03:20 - Trazabilidad condensada en la portada y página /trazabilidad (Fase D, cierre del plan de portada)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Rediseño de sección

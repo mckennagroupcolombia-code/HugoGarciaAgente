@@ -5,7 +5,7 @@ Fuente de datos: Google Sheets + MeLi API (fotos vía CDN)
 Puerto: 8082
 """
 
-import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets, hmac
+import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets, hmac, unicodedata
 from typing import Any
 from pathlib import Path
 from collections import defaultdict, Counter
@@ -3360,6 +3360,25 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=site_auth.session_cookie_secure(),
 )
+
+
+@app.template_filter("sin_titulo_repetido")
+def _jinja_sin_titulo_repetido(html: str, titulo: str) -> str:
+    """Quita el <h2> inicial del contenido cuando repite el título del post:
+    la plantilla ya lo pinta como <h1> y el lector lo veía dos veces (pasaba en
+    21 de 36 entradas, generadas por distintos scripts a lo largo del tiempo)."""
+    def clave(t: str) -> str:
+        t = "".join(c for c in unicodedata.normalize("NFD", t or "") if unicodedata.category(c) != "Mn")
+        return re.sub(r"[^a-z0-9]", "", t.lower())
+
+    m = re.match(r"\s*<h2[^>]*>(.*?)</h2>", html or "", re.S)
+    if not m:
+        return html
+    encabezado = clave(re.sub(r"<[^>]+>", "", m.group(1)))
+    t = clave(titulo)
+    if encabezado and t and (encabezado == t or encabezado[:35] == t[:35]):
+        return (html[:m.start()] + html[m.end():]).lstrip()
+    return html
 
 
 @app.template_filter("limpiar_ia")
