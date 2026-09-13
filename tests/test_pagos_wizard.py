@@ -112,8 +112,7 @@ def test_aprobar_deja_constancia_en_el_ticket(mods):
     from app.services import tickets_db
 
     _cc, w, t, m, _ = mods
-    tickets_db.init_db()
-    tickets_db.init_db()   # 2ª pasada: migraciones que se saltan en BD nueva
+    tickets_db.init_db()   # una sola pasada: init_db ya migra después de crear
     with tickets_db._conn() as db:
         db.execute("INSERT OR IGNORE INTO roles (id, nombre, nivel) VALUES (1,'Admin',3)")
         db.execute("INSERT INTO usuarios (id, username, nombre, password_hash, rol_id, activo)"

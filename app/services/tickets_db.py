@@ -910,44 +910,6 @@ def _safe_migrate(fn):
 
 
 def init_db():
-    _safe_migrate(_repair_broken_fk)
-    _safe_migrate(_migrate_categorias)
-    _safe_migrate(_migrate_materiales_tipo)
-    _safe_migrate(_migrate_zonas_subareas)
-    _safe_migrate(_migrate_mision_zona_id)
-    _safe_migrate(_migrate_zonas_tipo)
-    _safe_migrate(_migrate_mision_frecuencia)
-    _safe_migrate(_migrate_mision_modo_ciclo)
-    _safe_migrate(_migrate_ticket_frecuencia)
-    _safe_migrate(_migrate_ticket_paso_notas)
-    _safe_migrate(_migrate_ticket_paso_duracion)
-    from app.services.misiones_timing import _migrate_mision_corridas
-    from app.services.ticket_timing import _migrate_ticket_corridas
-    from app.services.recetas_ops import _migrate_recetas_ops
-    _safe_migrate(_migrate_mision_corridas)
-    _safe_migrate(_migrate_ticket_corridas)
-    _safe_migrate(_migrate_recetas_ops)
-    _safe_migrate(_migrate_dependencias_prerequisitos)
-    _safe_migrate(_migrate_ticket_tipo)
-    _safe_migrate(_migrate_ticket_fecha_inicio)
-    _safe_migrate(_migrate_usuario_google)
-    _safe_migrate(_migrate_usuario_permisos)
-    _safe_migrate(_migrate_usuario_preferencias_ui)
-    _safe_migrate(_migrate_usuario_departamentos)
-    _safe_migrate(_migrate_usuario_telefono)
-    _safe_migrate(_migrate_usuario_documento_identidad)
-    _safe_migrate(_migrate_ticket_protocolo_id)
-    _safe_migrate(_migrate_protocolos_alcance)
-    _safe_migrate(_migrate_ticket_subtipo)
-    from app.services.panel_presencia import _migrate_panel_presencia
-    _safe_migrate(_migrate_panel_presencia)
-    _safe_migrate(_migrate_adjunto_paso_id)
-    _safe_migrate(_migrate_pendientes)
-    _safe_migrate(_migrate_recordatorios)
-    _safe_migrate(_migrate_recordatorios_hora)
-    _safe_migrate(_migrate_recordatorios_bimestral)
-    _safe_migrate(_migrate_recordatorios_asignado)
-    _safe_migrate(_migrate_protocolo_accesos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -1010,8 +972,10 @@ def init_db():
                 color               TEXT DEFAULT '#0c6069',
                 tipo                TEXT NOT NULL DEFAULT 'secuencial'
                                         CHECK(tipo IN ('secuencial','paralelo')),
-                categoria           TEXT DEFAULT 'logistica'
-                                        CHECK(categoria IN ('rrhh','logistica','mantenimiento')),
+                -- Sin CHECK a propósito: las categorías viven en la tabla
+                -- `categorias`, que el usuario administra. Una lista quemada acá
+                -- quedó obsoleta el día que se creó la cuarta.
+                categoria           TEXT DEFAULT 'logistica',
                 estado              TEXT NOT NULL DEFAULT 'borrador'
                                         CHECK(estado IN ('borrador','activa','completada','cancelada')),
                 total_etapas        INTEGER DEFAULT 0,
@@ -1035,7 +999,9 @@ def init_db():
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero          TEXT NOT NULL UNIQUE,
                 titulo          TEXT NOT NULL,
-                categoria       TEXT NOT NULL CHECK(categoria IN ('rrhh','logistica','mantenimiento')),
+                -- Sin CHECK: ver la nota en `misiones`. Producción ya usa nueve
+                -- categorías y esta lista solo permitía tres.
+                categoria       TEXT NOT NULL DEFAULT 'logistica',
                 descripcion     TEXT NOT NULL,
                 estado          TEXT NOT NULL DEFAULT 'pendiente'
                                     CHECK(estado IN ('pendiente','en_proceso','esperando_aprobacion','resuelto','rechazado')),
@@ -1314,6 +1280,53 @@ def init_db():
             );
         """)
         db.commit()
+
+    # Las migraciones corren DESPUÉS de crear el esquema, no antes. Cada una
+    # empieza preguntando si una tabla o columna ya existe, así que en una
+    # base nueva todas se saltaban calladas (`_safe_migrate` traga
+    # OperationalError) y la base quedaba a medias hasta que alguien llamara
+    # init_db por segunda vez: de ahí el «2ª pasada» que los tests hacían a
+    # mano. En una instalación nueva eso dejaba `tickets` sin la columna
+    # `tipo` y rechazando categorías válidas.
+    _safe_migrate(_repair_broken_fk)
+    _safe_migrate(_migrate_categorias)
+    _safe_migrate(_migrate_materiales_tipo)
+    _safe_migrate(_migrate_zonas_subareas)
+    _safe_migrate(_migrate_mision_zona_id)
+    _safe_migrate(_migrate_zonas_tipo)
+    _safe_migrate(_migrate_mision_frecuencia)
+    _safe_migrate(_migrate_mision_modo_ciclo)
+    _safe_migrate(_migrate_ticket_frecuencia)
+    _safe_migrate(_migrate_ticket_paso_notas)
+    _safe_migrate(_migrate_ticket_paso_duracion)
+    from app.services.misiones_timing import _migrate_mision_corridas
+    from app.services.ticket_timing import _migrate_ticket_corridas
+    from app.services.recetas_ops import _migrate_recetas_ops
+    _safe_migrate(_migrate_mision_corridas)
+    _safe_migrate(_migrate_ticket_corridas)
+    _safe_migrate(_migrate_recetas_ops)
+    _safe_migrate(_migrate_dependencias_prerequisitos)
+    _safe_migrate(_migrate_ticket_tipo)
+    _safe_migrate(_migrate_ticket_fecha_inicio)
+    _safe_migrate(_migrate_usuario_google)
+    _safe_migrate(_migrate_usuario_permisos)
+    _safe_migrate(_migrate_usuario_preferencias_ui)
+    _safe_migrate(_migrate_usuario_departamentos)
+    _safe_migrate(_migrate_usuario_telefono)
+    _safe_migrate(_migrate_usuario_documento_identidad)
+    _safe_migrate(_migrate_ticket_protocolo_id)
+    _safe_migrate(_migrate_protocolos_alcance)
+    _safe_migrate(_migrate_ticket_subtipo)
+    from app.services.panel_presencia import _migrate_panel_presencia
+    _safe_migrate(_migrate_panel_presencia)
+    _safe_migrate(_migrate_adjunto_paso_id)
+    _safe_migrate(_migrate_pendientes)
+    _safe_migrate(_migrate_recordatorios)
+    _safe_migrate(_migrate_recordatorios_hora)
+    _safe_migrate(_migrate_recordatorios_bimestral)
+    _safe_migrate(_migrate_recordatorios_asignado)
+    _safe_migrate(_migrate_protocolo_accesos)
+
     print("✅ Centro de Mando (tickets DB) inicializado")
 
 

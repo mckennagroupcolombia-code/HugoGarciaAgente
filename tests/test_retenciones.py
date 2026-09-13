@@ -157,3 +157,74 @@ def test_el_pago_del_350_no_resta_de_la_retencion_practicada(monkeypatch, tmp_pa
         {"cuenta_id": ids["1110"], "debito": 0, "credito": 598_000},
     ])
     assert resumen_periodo(2026, 8)["total_retencion"] == pytest.approx(100_512)
+
+
+# ── El pago a la DIAN se excluye; la retención practicada al pagar NO ───────
+# El filtro descartaba el asiento COMPLETO si tocaba una cuenta 11%. Pero toda
+# retención que se practica al momento de pagar acredita 2365 y el banco en el
+# mismo asiento (cuota de préstamo, cualquier pago del wizard), así que se
+# borraban todas y el período quedaba en cero. Con los cuatro préstamos
+# vigentes eso escondía la retención desde octubre-2026 y el ticket mensual de
+# la DIAN no se creaba: `crear_ticket_retenciones_mes` se gatea con ese total.
+
+
+def _base_temporal(monkeypatch, tmp_path):
+    import app.services.contabilidad_core as cc
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "c.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc.init_db()
+    with cc._conn() as con:
+        return cc, {
+            "banco": cc._cuenta_id_por_codigo(con, "1110"),
+            "ret": cc._cuenta_id_por_codigo(con, "2365"),
+            "gasto": cc._cuenta_id_por_codigo(con, "5135"),
+        }
+
+
+def test_retencion_practicada_al_pagar_cuenta_aunque_toque_el_banco(monkeypatch, tmp_path):
+    from app.services.retenciones import resumen_periodo
+
+    cc, ids = _base_temporal(monkeypatch, tmp_path)
+    t = cc.crear_tercero({"nombre": "Quien Presta Servicios", "tipo": "otro",
+                          "tipo_persona": "natural", "identificacion": "123"})
+    cc.crear_movimiento(
+        fecha="2026-10-15", concepto="Pago de servicios con retención",
+        lineas=[
+            {"cuenta_id": ids["gasto"], "debito": 1_000_000, "credito": 0, "tercero_id": t["id"],
+             "descripcion": "Servicios de octubre"},
+            {"cuenta_id": ids["ret"], "debito": 0, "credito": 40_000, "tercero_id": t["id"],
+             "descripcion": "Retención servicios 4%"},
+            {"cuenta_id": ids["banco"], "debito": 0, "credito": 960_000,
+             "descripcion": "Salida vía banco"},
+        ],
+    )
+    assert resumen_periodo(2026, 10)["total_retencion"] == 40_000
+
+
+def test_el_pago_del_formulario_350_no_resta(monkeypatch, tmp_path):
+    from app.services.retenciones import resumen_periodo
+
+    cc, ids = _base_temporal(monkeypatch, tmp_path)
+    t = cc.crear_tercero({"nombre": "Tercero", "tipo": "otro",
+                          "tipo_persona": "natural", "identificacion": "9"})
+    cc.crear_movimiento(
+        fecha="2026-10-05", concepto="Retención causada en compra",
+        lineas=[
+            {"cuenta_id": ids["gasto"], "debito": 500_000, "credito": 0, "tercero_id": t["id"],
+             "descripcion": "Compra"},
+            {"cuenta_id": ids["ret"], "debito": 0, "credito": 12_500, "tercero_id": t["id"],
+             "descripcion": "Retención compras"},
+            {"cuenta_id": cc._cuenta_id_por_codigo.__self__ if False else ids["gasto"],
+             "debito": 0, "credito": 487_500, "descripcion": "Por pagar"},
+        ],
+    )
+    # Pagarle a la DIAN extingue la deuda; no es retención "des-practicada"
+    cc.crear_movimiento(
+        fecha="2026-10-20", concepto="Pago formulario 350",
+        lineas=[
+            {"cuenta_id": ids["ret"], "debito": 12_500, "credito": 0, "descripcion": "Pago DIAN"},
+            {"cuenta_id": ids["banco"], "debito": 0, "credito": 12_500, "descripcion": "PSE"},
+        ],
+    )
+    assert resumen_periodo(2026, 10)["total_retencion"] == 12_500

@@ -198,13 +198,24 @@ def resumen_periodo(anio: int, mes: int) -> dict:
                   LEFT JOIN cc_terceros t ON t.id = l.tercero_id
                  WHERE c.codigo = ?
                    AND m.fecha BETWEEN ? AND ?
-                   -- El pago del formulario 350 (débito 2365 / crédito Bancos) extingue
+                   -- El pago del formulario 350 (DÉBITO 2365 + crédito Bancos) extingue
                    -- la deuda con la DIAN; no es retención "des-practicada". Contarlo
                    -- restaba $598.000 a agosto-2026 y dejaba el período en negativo.
-                   AND NOT EXISTS (
-                       SELECT 1 FROM cc_movimiento_lineas l2
-                         JOIN cc_plan_cuentas c2 ON c2.id = l2.cuenta_id
-                        WHERE l2.movimiento_id = m.id AND c2.codigo LIKE '11%'
+                   --
+                   -- Se excluye solo esa línea, no todo asiento que toque un 11%: la
+                   -- retención que se practica AL PAGAR acredita 2365 y el banco en el
+                   -- mismo asiento (cuota de préstamo, cualquier pago del wizard), y
+                   -- excluirlos dejaba el período en cero. Con los cuatro préstamos
+                   -- vigentes eso habría escondido toda la retención desde octubre-2026
+                   -- y el ticket mensual no se habría creado.
+                   AND NOT (
+                       l.debito > 0
+                       AND EXISTS (
+                           SELECT 1 FROM cc_movimiento_lineas l2
+                             JOIN cc_plan_cuentas c2 ON c2.id = l2.cuenta_id
+                            WHERE l2.movimiento_id = m.id
+                              AND c2.codigo LIKE '11%' AND l2.credito > 0
+                       )
                    )
                  ORDER BY m.fecha, t.nombre
                 """,
