@@ -4615,7 +4615,7 @@ body *:not(.ph):not([class^="ph-"]) {
 .hero-search-sug { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; background: #fff; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 16px 40px rgba(2,45,51,.14); z-index: 30; max-height: 360px; overflow-y: auto; }
 .hero-search-sug li a { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center; padding: 8px 10px; border-radius: 10px; text-decoration: none; color: var(--text-dark); font-size: .88rem; }
 .hero-search-sug li a:hover, .hero-search-sug li a.is-active { background: var(--off-white); }
-.hero-search-sug img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: var(--off-white); }
+.hero-search-sug img { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: #fff; mix-blend-mode: multiply; }
 .hero-search-sug .sug-ph { width: 40px; height: 40px; border-radius: 6px; background: var(--off-white); display: grid; place-items: center; color: var(--green-light); }
 .hero-search-sug .sug-name { font-weight: 600; line-height: 1.25; }
 .hero-search-sug .sug-cat { display: block; font-size: .7rem; color: var(--text-muted); font-weight: 500; }
@@ -4713,3 +4713,9 @@ body *:not(.ph):not([class^="ph-"]) {
   .tzc-toggle { display: inline-flex; }
   .tzc-stage[data-collapsed] { display: none; }
 }
+
+/* Fotos de producto siempre sobre blanco puro (sep-2026): la guía viva las
+   pintaba sobre un tinte verde y, con mix-blend-mode: multiply, el tinte se
+   veía a través de la foto. */
+.gv-photo, .shop-card-img, .product-card-mini-img, .prod-gallery,
+.cart-img, .checkout-item-img, .product-img-wrap, .acid-img-wrap { background-color: #fff; }

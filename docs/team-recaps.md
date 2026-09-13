@@ -1,3 +1,16 @@
+### 2026-09-13 04:40 - Las fotos de producto van sobre blanco puro
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección visual
+- **Qué se implementó:**
+  - **Causa:** la foto de producto de la guía viva (`.gv-photo`) se pintaba sobre `color-mix(in srgb, var(--green-light) 22%, #fff)`, un verde translúcido. Como la imagen lleva `mix-blend-mode: multiply` —igual que en el catálogo, para que el blanco del fondo de la foto se funda con el contenedor—, ese tinte se veía **a través** de la foto. Afectaba a las 61 guías.
+  - `.gv-photo` pasa a `#fff` con borde de 1 px para que no flote sobre la tarjeta; el icono de respaldo (guías sin foto) sube de un verde casi blanco a `--green-light` para que se siga viendo.
+  - La miniatura de producto de las **sugerencias del buscador** iba sobre `--off-white`: ahora blanco, con el mismo `multiply` que el resto.
+  - **Regla de cierre** en `main.css`: `background-color: #fff` para los ocho contenedores de foto de producto del sitio (tarjeta de tienda, tarjeta mini, galería de ficha, carrito, checkout, guía viva y los dos envoltorios heredados). Así un tinte futuro en una sección no vuelve a filtrarse por el blend.
+  - **Verificado en vivo** recorriendo `/`, `/catalogo`, `/producto/<slug>`, `/carrito` y dos guías: ninguna foto de producto queda sobre un fondo que no sea blanco.
+  - **No se tocó** `.rw-lab` del recetario: ese recuadro con tinte no es una foto de producto sino el pictograma animado del paso (vaso, gotero, frasco).
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/{guia_viva.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`
+
+
 ### 2026-09-13 04:10 - Ocho artículos nuevos en el blog, con citas de PubMed verificadas una por una
 - **Autor:** Armando García
 - **Tipo de Cambio:** Contenido + herramienta

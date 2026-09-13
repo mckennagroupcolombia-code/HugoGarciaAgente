@@ -34,9 +34,10 @@
 
   /* Ficha rapida */
   .gv-hero { display: grid; grid-template-columns: 220px 1fr; gap: 28px; padding: 30px clamp(18px, 4vw, 40px); border-bottom: 1px solid var(--border); align-items: center; border-left: 6px solid var(--gv-accent); }
-  .gv-photo { background: color-mix(in srgb, var(--green-light) 22%, #fff); border-radius: 12px; aspect-ratio: 1; display: grid; place-items: center; max-width: 100%; }
+  /* Fondo blanco puro: la foto de producto no debe ir sobre un tinte (sep-2026) */
+  .gv-photo { background: #fff; border: 1px solid var(--border); border-radius: 12px; aspect-ratio: 1; display: grid; place-items: center; max-width: 100%; }
   .gv-photo img { width: 72%; height: auto; mix-blend-mode: multiply; }
-  .gv-photo .ph-ico { font-size: 5rem; color: color-mix(in srgb, var(--green) 40%, #fff); }
+  .gv-photo .ph-ico { font-size: 5rem; color: var(--green-light); }
   .gv-tags { display: flex; gap: 6px; flex-wrap: wrap; }
   .gv-tag { font-size: .62rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gv-accent); border: 1.5px solid var(--gv-accent); padding: 3px 10px; border-radius: 999px; }
   .gv-hero h1 { font-size: clamp(1.7rem, 3.4vw, 2.6rem); font-weight: 800; color: var(--text-dark); line-height: 1.1; margin: 12px 0 8px; letter-spacing: -.5px; }
