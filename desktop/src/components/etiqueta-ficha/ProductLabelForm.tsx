@@ -89,6 +89,7 @@ import {
   esFormatoCircular,
   reticulaCircular,
 } from "../etiqueta-circular/etiquetaCircularTypes";
+import { nombreArchivoSvg, svgEtiquetaCircular } from "../etiqueta-circular/exportarSvgCircular";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -173,6 +174,11 @@ function ProductLabelFormInner({
   const esSimple = esFormatoSimple(tipoNombre, tipo);
   /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
   const esCircular = esFormatoCircular(tipoNombre, tipo);
+  /** Diámetro final de impresión de la etiqueta redonda, en mm (§14). Es lo
+   *  único físico que el operador puede mover: el diseño se maqueta siempre
+   *  1:1 a `DIAMETRO_CIRCULAR` y solo cambia a cuántos milímetros se rasteriza
+   *  o se vectoriza. `null` = el del Formato elegido. */
+  const [diametroMm, setDiametroMm] = useState<number | null>(null);
   const anchoDiseno = es30ml
     ? ANCHO_30ML
     : esSimple
@@ -180,6 +186,10 @@ function ProductLabelFormInner({
       : esCircular
         ? DIAMETRO_CIRCULAR
         : ANCHO_DISENO;
+  /** Medidas físicas con las que se imprime: las del Formato, salvo que en la
+   *  redonda se haya fijado otro diámetro. Cuadrada siempre, nunca se deforma. */
+  const anchoImpresionMm = esCircular ? (diametroMm ?? tipo?.ancho_mm) : tipo?.ancho_mm;
+  const altoImpresionMm = esCircular ? (diametroMm ?? tipo?.alto_mm ?? tipo?.ancho_mm) : tipo?.alto_mm;
 
   // "inicio": elegir Formato + SKU (o abrir una ficha guardada) — la ficha
   // no se muestra ni carga nada hasta entonces. "formulario": la ficha.
@@ -632,8 +642,8 @@ function ProductLabelFormInner({
       if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
 
       const DPI_IMPRESION = 300;
-      const anchoMm = tipo?.ancho_mm;
-      const altoMm = tipo?.alto_mm;
+      const anchoMm = anchoImpresionMm;
+      const altoMm = altoImpresionMm;
       // Con Formato elegido: escala para que el PNG mida exactamente
       // ancho_mm a 300dpi. Sin Formato ("tamaño libre"): escala fija alta
       // (960px de diseño × 3 ≈ 2880px), suficiente para imprimir bien sin
@@ -742,8 +752,8 @@ function ProductLabelFormInner({
     const el = fichaRef.current;
     if (!el) throw new Error("La ficha no está montada");
     if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
-    const anchoMm = tipo?.ancho_mm;
-    const altoMm = tipo?.alto_mm;
+    const anchoMm = anchoImpresionMm;
+    const altoMm = altoImpresionMm;
     const ratio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / anchoDiseno : 3;
     const { toBlob } = await import("html-to-image");
     const blob = await toBlob(el, { pixelRatio: ratio, backgroundColor: "#ffffff", cacheBust: true });
@@ -771,6 +781,54 @@ function ProductLabelFormInner({
     } finally {
       if (estabaEditando) setEditMode(true);
       setImprimiendo(false);
+    }
+  };
+
+  /** Exporta la etiqueta redonda como SVG VECTORIAL (§16): los textos siguen
+   *  siendo texto —los curvos con su `textPath`—, las barras siguen siendo
+   *  barras y el archivo trae sus milímetros escritos, así que la imprenta lo
+   *  abre a tamaño real sin escalar nada. No se rasteriza nada: el PNG sigue
+   *  existiendo aparte para lo que sí necesita un mapa de bits.
+   *
+   *  Se captura en modo vista, como el PNG: en edición saldrían los bordes
+   *  punteados de las casillas y los ejemplos grises. */
+  const [exportandoSvg, setExportandoSvg] = useState(false);
+  const exportarSvg = async () => {
+    const el = fichaRef.current;
+    if (!el || exportandoSvg || guardando || imprimiendo) return;
+    setExportandoSvg(true);
+    setGuardarMsg(null);
+    const estabaEditando = editMode;
+    try {
+      if (estabaEditando) {
+        setEditMode(false);
+        await esperarRepintado();
+      }
+      // Fuentes incrustadas: sin esto, la máquina que abra el SVG cae a su
+      // sans-serif y Montserrat —que es parte del diseño— se pierde.
+      let fuentesCss = "";
+      try {
+        const { getFontEmbedCSS } = await import("html-to-image");
+        fuentesCss = await getFontEmbedCSS(el);
+      } catch {
+        fuentesCss = "";
+      }
+      const mm = anchoImpresionMm ?? 53;
+      const svg = await svgEtiquetaCircular(el, { diametroMm: mm, fuentesCss });
+      const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nombreArchivoSvg(data.barcodeTitle || data.productName || nombreFicha);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      setGuardarMsg({ ok: true, texto: `SVG vectorial descargado, ${mm} mm de diámetro.` });
+    } catch (e) {
+      setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo exportar el SVG" });
+    } finally {
+      if (estabaEditando) setEditMode(true);
+      setExportandoSvg(false);
     }
   };
 
@@ -1227,6 +1285,41 @@ function ProductLabelFormInner({
           </select>
         </label>
 
+        {/* Diámetro de impresión (§14): solo la redonda. Cambia el tamaño
+            FÍSICO del PNG, del SVG y de la impresión; el diseño en pantalla se
+            maqueta 1:1 y no se mueve. */}
+        {esCircular && (
+          <label
+            className="flex items-center gap-1.5 text-xs text-muted"
+            title="Diámetro final impreso. El diseño no cambia: cambia a cuántos milímetros se exporta e imprime."
+          >
+            Diámetro:
+            <input
+              type="number"
+              min={20}
+              max={200}
+              step={1}
+              value={diametroMm ?? tipo?.ancho_mm ?? 53}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                setDiametroMm(Number.isFinite(n) && n >= 20 && n <= 200 ? n : null);
+              }}
+              className="w-16 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
+            />
+            mm
+            {diametroMm !== null && diametroMm !== tipo?.ancho_mm && (
+              <button
+                type="button"
+                onClick={() => setDiametroMm(null)}
+                title={`Volver al diámetro del Formato (${tipo?.ancho_mm ?? 53} mm)`}
+                className="rounded border border-border px-1.5 py-0.5 font-semibold text-ink hover:bg-surface-hover"
+              >
+                ↺
+              </button>
+            )}
+          </label>
+        )}
+
         <div className="ml-auto flex items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-muted">
             <input
@@ -1268,6 +1361,17 @@ function ProductLabelFormInner({
           >
             {imprimiendo ? "Preparando…" : "Imprimir"}
           </button>
+          {esCircular && (
+            <button
+              type="button"
+              onClick={() => void exportarSvg()}
+              disabled={exportandoSvg || guardando || imprimiendo}
+              title="Descarga la etiqueta como SVG vectorial: los textos siguen siendo texto (también los curvos) y el archivo trae sus milímetros, para la imprenta"
+              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
+            >
+              {exportandoSvg ? "Exportando…" : "Exportar SVG"}
+            </button>
+          )}
         </div>
       </header>
 
@@ -1493,6 +1597,15 @@ function ProductLabelFormInner({
             etiqueta redonda: el nombre y los datos del borde van sobre arcos (se editan con un clic)
             y el bloque central se apila dentro del círculo. En edición, lo gris es un ejemplo de
             referencia y no se imprime.
+            {diametroMm !== null && diametroMm !== tipo?.ancho_mm && (
+              <>
+                {" "}
+                <span className="font-semibold text-ink">
+                  Se exportará e imprimirá a {diametroMm} mm de diámetro
+                </span>
+                , no a los del Formato.
+              </>
+            )}
           </p>
           <Marco30ml reticula={{ ancho: retCircular.diametro, alto: retCircular.diametro }}>
             <EtiquetaCircular

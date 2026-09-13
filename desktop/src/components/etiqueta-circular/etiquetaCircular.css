@@ -132,28 +132,38 @@
   gap: 4px;
 }
 
-/* Viñeta a la izquierda y el texto centrado al lado, como en la referencia:
-   la viñeta no se mueve aunque el texto ocupe uno o tres renglones. */
+/* Texto centrado con la viñeta al comienzo, como en la referencia.
+ *
+ * La viñeta y el texto son UNA pareja centrada, no una columna de viñetas más
+ * una columna de texto: con dos columnas fijas, un renglón corto se centraba
+ * en su columna y dejaba la viñeta suelta al margen, lejos de su texto. Aquí
+ * la casilla mide lo que mide su texto (`flex: 0 1 auto`), así que en un
+ * renglón corto la viñeta viaja pegada a él y la pareja entera queda al
+ * centro; en un texto largo la casilla crece hasta el ancho de la banda y la
+ * viñeta se queda donde tiene que estar, al principio del primer renglón. */
 .ec-item {
-  display: grid;
-  grid-template-columns: calc(var(--ec-vineta) * 2.4) minmax(0, 1fr);
-  align-items: start;
-  column-gap: 6px;
+  display: flex;
   width: 100%;
+  align-items: flex-start;
+  justify-content: center;
+  column-gap: calc(var(--ec-vineta) * 1.2);
 }
 .ec-item-vineta {
   margin-top: 0.42em;
+  flex: 0 0 auto;
   width: var(--ec-vineta);
   height: var(--ec-vineta);
   border-radius: 50%;
   background: #111111;
-  justify-self: center;
 }
-/* Alineado a la izquierda, no centrado como el resto del bloque: centrado,
-   un renglón corto se despega de su viñeta y la deja suelta al margen. */
 .ec-item-texto,
 .ec-item-caja :where(.e30-campo) {
-  text-align: left;
+  text-align: center;
+}
+/* En edición la casilla es un <textarea>: si midiera lo que su texto, escribir
+   sería imposible (la caja se encogería con cada borrado). Ocupa la banda. */
+.ec-editando .ec-item-caja {
+  flex: 1 1 auto;
 }
 
 .ec-item-texto {
