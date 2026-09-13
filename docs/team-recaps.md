@@ -1,3 +1,15 @@
+### 2026-09-13 01:20 - Los mapas de la portada salen del HTML y se cargan al acercarse (cierre del pendiente de peso)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Rendimiento
+- **Qué se implementó:**
+  - La geometría del mapamundi (`_world_land.svg.html`, 59 KB) y de Colombia (`_colombia_map.svg.html`, 53 KB) viajaba dentro del HTML de la portada en cada visita. Ahora son archivos estáticos en `static/maps/` (sin el comentario Jinja) y los `<g>` que las contenían nacen vacíos con `data-lazy-svg`.
+  - `trazabilidad.js` observa la sección de cada mapa con un margen de 900 px, trae el fragmento por `fetch`, lo inyecta y dispara `lazysvg:loaded`. La inicialización de Colombia (colorear departamentos, tooltips, pulsos, "ir a") se envolvió en `initColombia()` y arranca recién cuando llega la geometría; el mapamundi no necesitaba cambio porque sus pines y rutas son marcado del servidor y la tierra se usa por referencia (`<use href="#tz-land">`).
+  - Los datos de interacción (rutas por país 42 KB, departamentos 7 KB) siguen en línea: el JS los necesita al arrancar y comprimen bien.
+  - **Medido:** HTML de la portada de **260 KB a 150 KB**; primera carga sin los mapas **488 KB propios**. Verificado en vivo que al hacer scroll los 33 departamentos aparecen (25 coloreados, 7 con pulso semanal), el panel de país abre al tocar un pin y el "ir a" del panel de Colombia sigue mostrando el tooltip.
+  - Con esto queda cerrado lo pendiente de la Fase B. La Fase D (una sola sección de trazabilidad con pestañas y página propia) sigue siendo trabajo de diseño, no de peso.
+- **Archivos Modificados:** `PAGINA_WEB/site/static/maps/{world_land,colombia_map}.svg.html` (nuevos), `PAGINA_WEB/site/templates/{_ruta_origen.html,_cobertura.html,base.html}`, `PAGINA_WEB/site/static/js/trazabilidad.js`, `tests/test_mapas_lazy.py` (nuevo)
+
+
 ### 2026-09-13 00:40 - Web más liviana: logo, fuentes, ilustración e iconos (Fase B del plan de portada)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Rendimiento (sin cambios de diseño)

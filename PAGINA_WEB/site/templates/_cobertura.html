@@ -27,9 +27,9 @@
               <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#022D33" flood-opacity=".14"/>
             </filter>
           </defs>
-          <g class="co-deps" filter="url(#co-shadow)">
-            {% include "_colombia_map.svg.html" %}
-          </g>
+          {# Departamentos (53 KB de paths) fuera del HTML: trazabilidad.js los trae
+             por fetch al acercarse la sección y recién entonces colorea y enlaza #}
+          <g class="co-deps" filter="url(#co-shadow)" data-lazy-svg="{{ url_for('static', filename='maps/colombia_map.svg.html') }}?v=20260913a"></g>
           <g class="co-routes">
             {% for pu in colombia.puertos %}
             <path class="co-route co-route-{{ pu.tipo }}" d="M {{ pu.x }} {{ pu.y }} Q {{ (pu.x + colombia.bodega.x) / 2 }} {{ ([pu.y, colombia.bodega.y] | min) - 28 }} {{ colombia.bodega.x }} {{ colombia.bodega.y }}"/>

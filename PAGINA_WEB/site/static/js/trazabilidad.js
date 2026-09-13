@@ -18,6 +18,42 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function readJSON(sel) { var el = $(sel); if (!el) return null; try { return JSON.parse(el.textContent); } catch (e) { return null; } }
 
+  /* ── Geometría de los mapas fuera del HTML ──
+     Los <g data-lazy-svg="url"> nacen vacíos; cuando la sección se acerca a la
+     pantalla se trae el fragmento SVG por fetch y se inyecta. Al terminar se
+     dispara 'lazysvg:loaded' sobre el <g> para que quien dependa de esa
+     geometría (Colombia colorea .co-dep) arranque recién entonces. */
+  function cargarSvg(g) {
+    if (g.getAttribute('data-lazy-state')) return;
+    g.setAttribute('data-lazy-state', 'loading');
+    fetch(g.getAttribute('data-lazy-svg'), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
+      .then(function (txt) {
+        g.innerHTML = txt;
+        g.setAttribute('data-lazy-state', 'loaded');
+        g.dispatchEvent(new CustomEvent('lazysvg:loaded', { bubbles: true }));
+      })
+      .catch(function () { g.setAttribute('data-lazy-state', 'error'); });
+  }
+  var lazySvgs = $$('[data-lazy-svg]');
+  if (lazySvgs.length) {
+    if ('IntersectionObserver' in window) {
+      var lobs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { lobs.unobserve(e.target); cargarSvg(e.target.__lazyG); } });
+      }, { rootMargin: '900px 0px' });
+      lazySvgs.forEach(function (g) {
+        var host = g.closest('section') || g.ownerSVGElement || g;
+        host.__lazyG = g; lobs.observe(host);
+      });
+    } else {
+      lazySvgs.forEach(cargarSvg);
+    }
+  }
+  function cuandoHayaGeometria(g, fn) {
+    if (!g || g.getAttribute('data-lazy-state') === 'loaded' || !g.hasAttribute('data-lazy-svg')) { fn(); return; }
+    g.addEventListener('lazysvg:loaded', function () { fn(); }, { once: true });
+  }
+
   /* ── Contadores animados al entrar en pantalla ── */
   function animateCount(el) {
     var target = parseInt(el.getAttribute('data-count'), 10) || 0;
@@ -200,7 +236,8 @@
   /* ════════════════ Colombia: destino ════════════════ */
   var coRoot = $('[data-co-root]');
   var coData = readJSON('[data-co-data]');
-  if (coRoot && coData && coData.departamentos) {
+  if (coRoot && coData && coData.departamentos) cuandoHayaGeometria($('.co-deps', coRoot), initColombia);
+  function initColombia() {
     var deps = {};
     coData.departamentos.forEach(function (d) { deps[d.id] = d; });
     var svg = $('.co-map', coRoot);
