@@ -1071,6 +1071,199 @@ def crear_recordatorio_pagos_mes(
 TIPOS_DOCUMENTO = ("contrato", "certificado")
 
 
+def trazabilidad(prestamo_id: int) -> dict:
+    """Todo lo que este préstamo movió y moverá en el Libro Mayor, en forma de
+    grafo: nodos (el prestamista, los socios que recibieron plata, las cuentas
+    PUC) y flujos entre ellos (cada asiento real, más la próxima cuota como
+    proyección).
+
+    Existe porque el préstamo se ve como una tabla de cuotas, pero su efecto
+    contable está repartido en asientos que nadie cruza a mano: el desembolso,
+    los tramos que entraron por la cuenta de un socio, las reposiciones de ese
+    socio y el pago de cada cuota. Cada cuenta trae su saldo real del libro
+    completo junto a lo que aportó este préstamo, para que se vea la diferencia
+    entre «esto es lo que este préstamo puso ahí» y «esto es lo que hay».
+
+    Solo lectura: no escribe nada.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    p = obtener_prestamo(prestamo_id)
+    if not p:
+        raise ValueError("Préstamo no encontrado")
+    tercero = p.get("tercero") or {}
+
+    # ── Asientos reales de este préstamo ──────────────────────────────────
+    ids: list[int] = []
+    if p.get("movimiento_desembolso_id"):
+        ids.append(int(p["movimiento_desembolso_id"]))
+    with _conn() as con:
+        # Tramos adicionales: mismo prestamista, mismo tipo de asiento.
+        for r in con.execute(
+            "SELECT id FROM cc_movimientos WHERE tipo_origen='prestamo_recibido'"
+            " AND tercero_id=? ORDER BY fecha, id",
+            (p["tercero_id"],),
+        ):
+            if int(r["id"]) not in ids:
+                ids.append(int(r["id"]))
+    cuotas_pagadas = [c for c in p["cuotas"] if c.get("movimiento_id")]
+
+    # Quién recibió la plata sale de los asientos, no de una columna: un mismo
+    # préstamo puede haber entrado en tramos por socios distintos (Antonio Ruiz:
+    # una parte al banco y otra a Cynthia).
+    recibido_por: dict[int, float] = {}
+    for mid in ids:
+        mov = cc.obtener_movimiento(mid)
+        for l in (mov or {}).get("lineas", []):
+            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["debito"]:
+                recibido_por[int(l["tercero_id"])] = recibido_por.get(
+                    int(l["tercero_id"]), 0.0
+                ) + float(l["debito"])
+    repos: list[int] = []
+    if recibido_por:
+        marcas = ",".join("?" for _ in recibido_por)
+        with _conn() as con:
+            for r in con.execute(
+                "SELECT DISTINCT m.id FROM cc_movimientos m"
+                " JOIN cc_movimiento_lineas l ON l.movimiento_id = m.id"
+                " JOIN cc_plan_cuentas c ON c.id = l.cuenta_id"
+                f" WHERE m.tipo_origen='reposicion_socio' AND c.codigo='1355'"
+                f"   AND l.tercero_id IN ({marcas}) ORDER BY m.fecha, m.id",
+                tuple(recibido_por),
+            ):
+                repos.append(int(r["id"]))
+
+    def _clasificar(mid: int) -> str:
+        if mid == p.get("movimiento_desembolso_id"):
+            return "desembolso"
+        if mid in repos:
+            return "reposicion"
+        if any(c["movimiento_id"] == mid for c in cuotas_pagadas):
+            return "cuota"
+        return "tramo"
+
+    asientos: list[dict] = []
+    for mid in ids + repos + [int(c["movimiento_id"]) for c in cuotas_pagadas]:
+        mov = cc.obtener_movimiento(mid)
+        if not mov:
+            continue
+        asientos.append(
+            {
+                "id": mid,
+                "clase": _clasificar(mid),
+                "fecha": mov["fecha"],
+                "concepto": mov["concepto"],
+                "lineas": [
+                    {
+                        "cuenta_codigo": l["cuenta_codigo"],
+                        "cuenta_nombre": l["cuenta_nombre"],
+                        "tercero_id": l.get("tercero_id"),
+                        "debito": float(l["debito"] or 0),
+                        "credito": float(l["credito"] or 0),
+                        "descripcion": l.get("descripcion") or "",
+                    }
+                    for l in mov["lineas"]
+                ],
+            }
+        )
+    asientos.sort(key=lambda a: (a["fecha"], a["id"]))
+
+    # ── Cuentas tocadas: aporte de este préstamo vs. saldo real del libro ──
+    aporte: dict[str, dict] = {}
+    for a in asientos:
+        for l in a["lineas"]:
+            d = aporte.setdefault(
+                l["cuenta_codigo"],
+                {
+                    "codigo": l["cuenta_codigo"],
+                    "nombre": l["cuenta_nombre"],
+                    "debito": 0.0,
+                    "credito": 0.0,
+                },
+            )
+            d["debito"] += l["debito"]
+            d["credito"] += l["credito"]
+    saldos_libro = {
+        c["codigo"]: c for c in cc.balance_comprobacion().get("cuentas", [])
+    }
+    cuentas = []
+    for cod, d in sorted(aporte.items()):
+        fila = saldos_libro.get(cod) or {}
+        cuentas.append(
+            {
+                **d,
+                "debito": round(d["debito"], 2),
+                "credito": round(d["credito"], 2),
+                "saldo_prestamo": round(
+                    (d["credito"] - d["debito"])
+                    if fila.get("naturaleza") == "credito"
+                    else (d["debito"] - d["credito"]),
+                    2,
+                ),
+                "tipo": fila.get("tipo", ""),
+                "naturaleza": fila.get("naturaleza", ""),
+                "saldo_libro": round(float(fila.get("saldo_final") or 0), 2),
+            }
+        )
+
+    # ── Lo que falta: reposición del socio y la próxima cuota ─────────────
+    repuesto_por: dict[int, float] = {}
+    for a in asientos:
+        if a["clase"] != "reposicion":
+            continue
+        for l in a["lineas"]:
+            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["credito"]:
+                tid = int(l["tercero_id"])
+                repuesto_por[tid] = repuesto_por.get(tid, 0.0) + float(l["credito"])
+    socios = [
+        {
+            "id": tid,
+            "nombre": (cc.obtener_tercero(tid) or {}).get("nombre", ""),
+            "recibio": round(monto, 2),
+            "repuso": round(repuesto_por.get(tid, 0.0), 2),
+            "debe": round(monto - repuesto_por.get(tid, 0.0), 2),
+        }
+        for tid, monto in sorted(recibido_por.items())
+    ]
+    por_reponer = round(sum(s_["debe"] for s_ in socios), 2)
+
+    pendientes = [c for c in p["cuotas"] if c["estado"] != "pagada"]
+    proxima = None
+    if pendientes:
+        c = pendientes[0]
+        proxima = {
+            "numero": c["numero"],
+            "fecha": c["fecha_vencimiento"],
+            "lineas": [
+                {"cuenta_codigo": "2295" if tercero.get("tipo") != "socio" else "2380",
+                 "concepto": "Abono a capital", "debito": c["abono_capital"], "credito": 0.0},
+                {"cuenta_codigo": "5305", "concepto": "Interés bruto",
+                 "debito": c["interes_bruto"], "credito": 0.0},
+                {"cuenta_codigo": "2365", "concepto": "Retención practicada",
+                 "debito": 0.0, "credito": c["retencion"]},
+                {"cuenta_codigo": "1110", "concepto": "Girado al prestamista",
+                 "debito": 0.0, "credito": c["cuota_girada"]},
+            ],
+        }
+
+    return {
+        "prestamo_id": prestamo_id,
+        "prestamista": {
+            "id": p["tercero_id"],
+            "nombre": tercero.get("nombre", ""),
+            "identificacion": tercero.get("identificacion", ""),
+        },
+        "socios": socios,
+        "capital": p["capital"],
+        "meses_gracia": int(p.get("meses_gracia") or 0),
+        "asientos": asientos,
+        "cuentas": cuentas,
+        "por_reponer": por_reponer,
+        "proxima_cuota": proxima,
+    }
+
+
 def generar_documento(prestamo_id: int, tipo: str = "contrato", corte: str | None = None) -> dict:
     """Genera el PDF del préstamo y devuelve {"ruta", "nombre", "tipo"}.
 

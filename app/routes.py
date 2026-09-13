@@ -11325,6 +11325,20 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/prestamos/<int:prestamo_id>/trazabilidad", methods=["GET"])
+    @app.route("/app/api/prestamos/<int:prestamo_id>/trazabilidad", methods=["GET"])
+    def api_prestamos_trazabilidad(prestamo_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.prestamos import trazabilidad
+
+            return jsonify(trazabilidad(prestamo_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
     @app.route("/app/api/prestamos/<int:prestamo_id>/cuotas/<int:numero>/pagar", methods=["POST"])
     def api_prestamos_pagar_cuota(prestamo_id: int, numero: int):

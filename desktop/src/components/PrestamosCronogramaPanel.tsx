@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
+import PrestamoFlujoPanel from "./PrestamoFlujoPanel";
 import TerceroSelect from "./TerceroSelect";
 
 /**
@@ -530,6 +531,7 @@ function TarjetaPrestamo({
 }) {
   const qc = useQueryClient();
   const [enviando, setEnviando] = useState<string | null>(null);
+  const [vista, setVista] = useState<"cronograma" | "flujo">("cronograma");
   const t = prestamo.tercero;
   const r = prestamo.resumen;
   const progreso = r.cuotas ? (r.cuotas_pagadas / r.cuotas) * 100 : 0;
@@ -724,23 +726,50 @@ function TarjetaPrestamo({
           </div>
 
           <div>
-            <p className="mb-2 text-[10px] font-bold uppercase text-muted">
-              Cronograma — {r.cuotas_pagadas} pagadas, {r.cuotas - r.cuotas_pagadas} pendientes
-            </p>
-            <AvisoDocSoporte prestamo={detalleQ.data?.prestamo ?? prestamo} />
-            {detalleQ.isLoading ? (
-              <p className="text-xs text-muted">Cargando cronograma…</p>
+            <div className="mb-2 flex gap-1 rounded-lg bg-black/20 p-1">
+              <button
+                type="button"
+                onClick={() => setVista("cronograma")}
+                className={`flex-1 rounded-md px-3 py-1 text-[11px] font-bold ${
+                  vista === "cronograma" ? "bg-accent text-white" : "text-muted"
+                }`}
+              >
+                Cronograma
+              </button>
+              <button
+                type="button"
+                onClick={() => setVista("flujo")}
+                className={`flex-1 rounded-md px-3 py-1 text-[11px] font-bold ${
+                  vista === "flujo" ? "bg-accent text-white" : "text-muted"
+                }`}
+              >
+                Flujo contable
+              </button>
+            </div>
+
+            {vista === "cronograma" ? (
+              <>
+                <p className="mb-2 text-[10px] font-bold uppercase text-muted">
+                  {r.cuotas_pagadas} pagadas, {r.cuotas - r.cuotas_pagadas} pendientes
+                </p>
+                <AvisoDocSoporte prestamo={detalleQ.data?.prestamo ?? prestamo} />
+                {detalleQ.isLoading ? (
+                  <p className="text-xs text-muted">Cargando cronograma…</p>
+                ) : (
+                  <TablaCuotas
+                    cuotas={cuotas}
+                    medios={medios}
+                    onPagar={
+                      prestamo.estado === "vigente"
+                        ? (numero, body) => pagarMut.mutate({ numero, body })
+                        : undefined
+                    }
+                    pagando={pagarMut.isPending}
+                  />
+                )}
+              </>
             ) : (
-              <TablaCuotas
-                cuotas={cuotas}
-                medios={medios}
-                onPagar={
-                  prestamo.estado === "vigente"
-                    ? (numero, body) => pagarMut.mutate({ numero, body })
-                    : undefined
-                }
-                pagando={pagarMut.isPending}
-              />
+              <PrestamoFlujoPanel prestamoId={prestamo.id} />
             )}
           </div>
         </div>

@@ -826,3 +826,69 @@ def test_ampliar_capital_mantiene_un_solo_cronograma(mods):
     # Dos asientos distintos: uno por cada vía de entrada, cada uno conciliable
     assert ampliado["movimiento_ampliacion_id"] != ampliado["movimiento_desembolso_id"]
     assert cc.balance_comprobacion()["cuadra"]
+
+
+# ── Trazabilidad: el préstamo visto como grafo contable ─────────────────────
+
+
+def test_trazabilidad_enlaza_asientos_cuentas_y_socio(mods):
+    cc, pr, tercero, medio = mods
+    socio = cc.crear_tercero(
+        {"nombre": "Socio X", "tipo": "socio", "identificacion": "55", "email": "x@e.com"}
+    )
+    with cc._conn() as con:
+        c1355 = cc._cuenta_id_por_codigo(con, "1355")
+        c1110 = cc._cuenta_id_por_codigo(con, "1110")
+    p = pr.crear_prestamo(
+        {
+            "tercero_id": tercero["id"],
+            "capital": CAPITAL,
+            "cuenta_contrapartida_id": c1355,
+            "tercero_contrapartida_id": socio["id"],
+            "fecha_desembolso": "2026-08-19",
+            "meses_gracia": 1,
+        }
+    )
+    # El socio repone la mitad
+    cc.crear_movimiento(
+        fecha="2026-09-11",
+        concepto="Abono del socio",
+        lineas=[
+            {"cuenta_id": c1110, "debito": CAPITAL / 2, "credito": 0},
+            {"cuenta_id": c1355, "debito": 0, "credito": CAPITAL / 2, "tercero_id": socio["id"]},
+        ],
+        tercero_id=socio["id"],
+        tipo_origen="reposicion_socio",
+    )
+
+    t = pr.trazabilidad(p["id"])
+    assert t["prestamista"]["nombre"] == tercero["nombre"]
+    assert [a["clase"] for a in t["asientos"]] == ["desembolso", "reposicion"]
+    # Quién recibió la plata se deduce de los asientos, no de una columna
+    assert t["socios"] == [
+        {
+            "id": socio["id"],
+            "nombre": "Socio X",
+            "recibio": CAPITAL,
+            "repuso": CAPITAL / 2,
+            "debe": CAPITAL / 2,
+        }
+    ]
+    assert t["por_reponer"] == CAPITAL / 2
+
+    cuentas = {c["codigo"]: c for c in t["cuentas"]}
+    # Signo por naturaleza, igual que el balance: un pasivo acreditado es positivo
+    assert cuentas["2295"]["saldo_prestamo"] == CAPITAL
+    assert cuentas["1355"]["saldo_prestamo"] == CAPITAL / 2
+    # El saldo del libro es el global, no el de este préstamo
+    assert "saldo_libro" in cuentas["2295"]
+    # La próxima cuota se proyecta sin escribir nada
+    assert t["proxima_cuota"]["numero"] == 1
+    assert t["proxima_cuota"]["fecha"] == "2026-10-19"
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_trazabilidad_de_prestamo_inexistente(mods):
+    _cc, pr, _t, _m = mods
+    with pytest.raises(ValueError, match="no encontrado"):
+        pr.trazabilidad(9999)
