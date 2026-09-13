@@ -2564,6 +2564,36 @@
       "timestamp": "2026-09-11T21:28:08.126200",
       "respondida": true,
       "borrador_ia": "Hola veci, con gusto le colaboro.\n\nEl producto no caduca, sin embargo se recomienda consumir dentro de los primeros 24 meses a partir de su fecha de fabricación, para garantizar todas sus propiedades. Se debe guardar bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad.\n\nSi tiene alguna otra duda, con gusto le ayudo."
+    },
+    {
+      "question_id": "13657785790",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Cuál es la dosis recomendada? La cuchara dosificadora cumple con esa dosis?",
+      "timestamp": "2026-09-12T11:19:56.948888",
+      "respondida": true
+    },
+    {
+      "question_id": "13657045801",
+      "titulo_producto": "Ácido Glicólico 50%  30 Ml Todas",
+      "pregunta": "Hola , con que puedo mezclar el ácido glicolico para que sea más suave",
+      "timestamp": "2026-09-12T11:00:59.920615",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nLa ficha no especifica una mezcla concreta con otros ingredientes, ya que este ácido glicólico al 50% es una concentración alta pensada para uso profesional en exfoliación. Lo que sí le recomendamos para suavizar la experiencia es cuidar bien la frecuencia de aplicación (empezando una vez por semana si su piel es sensible) y aplicarlo siempre sobre piel limpia y seca.\n\nSi busca algo de entrada más suave, contamos con nuestra presentación de Ácido Láctico + Glicólico 30 Ml para todo tipo de piel, que combina ambos ácidos y puede resultar más gentil. Se la dejo por aquí: https://articulo.mercadolibre.com.co/MCO-2040973292-acido-lactico-glicolico-30-ml-todo-tipo-de-piel-_JM\n\nRecuerde que después de cada aplicación es clave hidratar bien la piel con una crema suave sin fragancia y usar protector solar a diario. Cualquier otra duda, con gusto le ayudo. 😊"
+    },
+    {
+      "question_id": "13657911336",
+      "titulo_producto": "Ácido Glicólico 50%  30 Ml Todas",
+      "pregunta": "Si mi pregunta es por el porcentaje que es alto entonces con que otro elemento lo puedo mezclar para bajar el %",
+      "timestamp": "2026-09-12T11:02:07.013851",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nLa ficha de este ácido glicólico al 50% no especifica una mezcla con otro elemento para diluirlo, ya que está formulado como una concentración alta pensada para uso profesional en exfoliación. No le recomendamos diluirlo por cuenta propia con otros productos, pues podría alterar su composición y afectar los resultados esperados.\n\nSi busca algo de entrada más suave para su piel, contamos con nuestro Ácido Láctico + Glicólico 30 Ml, apto para todo tipo de piel, que puede ser una excelente opción: https://articulo.mercadolibre.com.co/MCO-2040973292-acido-lactico-glicolico-30-ml-todo-tipo-de-piel-_JM\n\nCon el ácido al 50% actual, la forma segura de \"suavizar\" el efecto es ajustando la frecuencia de aplicación (empezando una vez por semana) y siempre hidratando bien la piel después de cada uso. 😊"
+    },
+    {
+      "question_id": "13657063041",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Venden. Bigliscinato de mg?",
+      "timestamp": "2026-09-12T11:35:58.438807",
+      "respondida": true
     }
   ]
 }

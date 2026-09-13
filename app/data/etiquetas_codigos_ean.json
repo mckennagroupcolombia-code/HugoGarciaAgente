@@ -1642,14 +1642,15 @@
     },
     {
       "id": "f79b9f21d472",
-      "sku": "C-DATSAY250g",
-      "nombre_producto": "DATILES SAYED 250g",
+      "sku": "C-DATSINHUE250g",
+      "nombre_producto": "DATILES SIN HUESO 250g",
       "numero_producto": 148,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701482502640",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-12T13:21:55"
     },
     {
       "id": "aaedcd4b9987",
@@ -1676,14 +1677,15 @@
     },
     {
       "id": "1435ea1ea37d",
-      "sku": "C-DATSAY500g",
-      "nombre_producto": "DATILES SAYED 500g",
+      "sku": "C-DATSINHUE500g",
+      "nombre_producto": "DATILES SIN HUESO 500g",
       "numero_producto": 151,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701515002642",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-12T13:22:26"
     },
     {
       "id": "e654a129b102",
