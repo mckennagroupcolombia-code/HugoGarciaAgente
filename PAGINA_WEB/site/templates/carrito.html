@@ -136,3 +136,8 @@
 </div>
 
 {% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260913a"></script>
+<script>(function(){ try { if (window.mckEvento && {{ 'true' if cart else 'false' }}) window.mckEvento('carrito_visto', '', innerWidth < 640 ? 'movil' : 'escritorio', true); } catch (e) {} })();</script>
+{% endblock %}

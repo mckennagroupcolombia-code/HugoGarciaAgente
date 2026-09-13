@@ -44,10 +44,15 @@
       <h1 style="font-size:2rem;font-weight:800;letter-spacing:-1px;margin-bottom:16px;">
         El pago no fue procesado
       </h1>
-      <p style="color:var(--text-soft);font-size:1rem;line-height:1.8;margin-bottom:32px;">
-        Tu tarjeta o método de pago fue rechazado. Puedes intentarlo de nuevo
-        o contactarnos directamente por WhatsApp.
+      <p style="color:var(--text-soft);font-size:1rem;line-height:1.8;margin-bottom:16px;">
+        {% if motivo %}MercadoPago reportó: <strong>{{ motivo }}</strong>.{% else %}Tu tarjeta o método de pago fue rechazado.{% endif %}
+        No se hizo ningún cobro y tu carrito sigue armado.
       </p>
+      <ul style="text-align:left;display:inline-block;margin:0 auto 28px;color:var(--text-soft);font-size:.92rem;line-height:1.8;">
+        <li>Prueba con <strong>PSE</strong> (débito desde tu banco) o <strong>Nequi</strong>: no dependen del cupo de la tarjeta.</li>
+        <li>Si fue una tarjeta, revisa fecha, código de seguridad y que esté habilitada para compras en línea.</li>
+        <li>También puedes pagar en efectivo en <strong>Efecty</strong> eligiéndolo en MercadoPago.</li>
+      </ul>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
         <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-sm">Intentar de nuevo</a>
         <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener" class="btn btn-wa btn-sm">
@@ -75,4 +80,9 @@
 
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260913a"></script>
+<script>(function(){ try { if (window.mckEvento) window.mckEvento('pago_respuesta', '{{ ref }}', '{{ status }}', true); } catch (e) {} })();</script>
 {% endblock %}

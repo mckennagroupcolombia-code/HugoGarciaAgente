@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Correos de McKenna Group{% endblock %}
+{% block content %}
+<div class="section" style="max-width:640px;text-align:center;padding-top:64px;padding-bottom:80px;">
+  {% if ok %}
+  <span class="section-eyebrow">Listo</span>
+  <h1 class="section-title">No te volveremos a <em>escribir</em></h1>
+  <p class="section-lead" style="margin:0 auto 24px;">Quitamos <strong>{{ email }}</strong> de los recordatorios de compra. Seguirás recibiendo los correos de tus pedidos (confirmación, guía de envío y factura), que sí necesitas.</p>
+  {% else %}
+  <span class="section-eyebrow">Enlace no válido</span>
+  <h1 class="section-title">No pudimos procesar la <em>baja</em></h1>
+  <p class="section-lead" style="margin:0 auto 24px;">El enlace está incompleto o ya venció. Escríbenos y lo hacemos a mano.</p>
+  {% endif %}
+  <a href="{{ url_for('index') }}" class="btn btn-primary">Volver a la tienda</a>
+</div>
+{% endblock %}

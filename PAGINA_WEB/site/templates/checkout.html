@@ -135,6 +135,7 @@
               </p>
               {% else %}
               <input type="email" name="buyer_email" id="buyer_email" class="form-input" required
+                     value="{{ session.get('checkout_prefill_email', '') }}"
                      placeholder="tu@correo.com">
               {% endif %}
             </div>
@@ -265,6 +266,24 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260913a"></script>
+<script>
+(function(){
+  // Embudo de compra para el diagnóstico de abandono (Pedidos web → Abandono)
+  var disp = innerWidth < 640 ? 'movil' : 'escritorio';
+  function ev(n, d, u) { try { if (window.mckEvento) window.mckEvento(n, '{{ ref }}', d == null ? '' : d, !!u); } catch (e) {} }
+  ev('checkout_visto', disp, true);
+  var f = document.getElementById('checkout-form'), b = document.getElementById('btn-pagar');
+  if (b) b.addEventListener('click', function () {
+    ev('checkout_pagar_click', disp, true);
+    if (f && !f.checkValidity()) {
+      var inv = f.querySelector(':invalid');
+      ev('checkout_error', inv ? (inv.getAttribute('name') || inv.id || 'campo') : 'formulario', false);
+    }
+  });
+  window.__mckEvento = ev;
+})();
+</script>
 <script>
 (function(){
 
@@ -374,6 +393,7 @@ function updateShipping(ciudad, depto){
       info.innerHTML = `Envío a ${dest}: <strong style="color:var(--green-dark)">${fmtCOP(shippingCost)}</strong> — entrega estimada en <strong>${diaTxt}</strong> vía Interrapidísimo (pedido de ${pesoTxt}, tarifa 2026).`;
     })
     .catch(() => {
+      try { window.__mckEvento && window.__mckEvento('checkout_envio_error', 'cotizar', false); } catch (e) {}
       if (reqId !== shippingReqId) return;
       info.textContent = 'No pudimos estimar el envío en línea; se calculará y confirmará al procesar el pedido.';
     });

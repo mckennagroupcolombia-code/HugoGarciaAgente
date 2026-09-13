@@ -6,7 +6,11 @@
 
 [Unit]
 Description=McKenna sitio web nativo (Flask :8083)
-After=network.target
+After=network.target mckenna-website-mantenimiento.service
+# Mientras esta unidad está detenida, mckenna-website-mantenimiento sirve la
+# página "estamos en mantenimiento" en el mismo puerto; al arrancar esta, la
+# otra se detiene antes (Conflicts + After), así el 8083 nunca queda ocupado.
+Conflicts=mckenna-website-mantenimiento.service
 StartLimitIntervalSec=120
 StartLimitBurst=5
 
@@ -19,6 +23,12 @@ EnvironmentFile=-/home/mckg/mi-agente/.env
 ExecStart=/home/mckg/mi-agente/venv/bin/python3 -u /home/mckg/mi-agente/PAGINA_WEB/site/website.py
 Restart=on-failure
 RestartSec=10
+# Al detenerse (stop, restart o caída) programa, 8 s después y FUERA de esta
+# transacción, un chequeo: si la web sigue sin estar activa ni arrancando, enciende
+# la página de mantenimiento. Arrancarla de inmediato cancelaba el propio
+# `systemctl restart` (dos jobs en conflicto en la misma transacción) y la web
+# quedaba apagada. El "+" corre el comando como root aunque el servicio sea mckg.
+ExecStopPost=+/usr/bin/systemd-run --quiet --on-active=8 /bin/sh /home/mckg/mi-agente/scripts/systemd/mckenna_web_respaldo_check.sh
 
 [Install]
 WantedBy=multi-user.target

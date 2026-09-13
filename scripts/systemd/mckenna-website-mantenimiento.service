@@ -1,0 +1,30 @@
+# Página de mantenimiento en :8083 mientras la web (mckenna-website.service) está
+# detenida. NO se habilita: la arranca mckenna-website al pararse (ExecStopPost)
+# y la apaga la propia web al volver (Conflicts= + After= en mckenna-website).
+#
+#   sudo cp scripts/systemd/mckenna-website-mantenimiento.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#
+# Para mantenimiento planeado sin apagar la web, mejor el modo bandera:
+#   touch PAGINA_WEB/site/data/MANTENIMIENTO   (la web responde 503 con la página)
+#   rm    PAGINA_WEB/site/data/MANTENIMIENTO   (vuelve a la normalidad, sin reiniciar)
+
+[Unit]
+Description=McKenna web: página de mantenimiento (:8083 mientras la web está detenida)
+After=network.target
+# El Conflicts= vive solo en mckenna-website.service (arrancar la web apaga esta);
+# ponerlo en los dos lados hacía que systemd cancelara jobs cruzados.
+
+[Service]
+Type=simple
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente
+ExecStart=/home/mckg/mi-agente/venv/bin/python3 -u /home/mckg/mi-agente/scripts/servidor_mantenimiento.py --puerto 8083
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

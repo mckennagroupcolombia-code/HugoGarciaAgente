@@ -40,6 +40,11 @@ EVENTOS = {
     "receta_abierta", "receta_paso", "receta_terminada", "receta_carrito",
     "guia_abierta", "guia_dosificador", "guia_ph", "guia_receta_click",
     "producto_aprende",
+    # embudo de compra (diagnóstico de abandono, app/tools/recuperacion_compra.py):
+    # detalle = 'movil' | 'escritorio' en los de vista/clic, el mensaje en los errores,
+    # y el estado (approved/declined/pending) en pago_respuesta
+    "carrito_visto", "checkout_visto", "checkout_pagar_click", "checkout_error",
+    "checkout_envio_error", "pago_respuesta",
 }
 TIPO_DE_EVENTO = {e: e.split("_")[0] for e in EVENTOS}  # receta | guia | producto
 

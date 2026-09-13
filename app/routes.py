@@ -12198,6 +12198,21 @@ def register_routes(app):
 
     # ── Pedidos tienda web ──────────────────────────────────────────────────
 
+    @app.route("/app/api/pedidos/web/abandono")
+    @app.route("/api/pedidos/web/abandono")
+    def api_pedidos_web_abandono():
+        """Diagnóstico de por qué no se terminan las compras (Pedidos web → Abandono).
+        Lee orders.db y las métricas del navegador; solo lectura."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools import recuperacion_compra as _rc
+
+            dias = min(max(int(request.args.get("dias", 30) or 30), 1), 365)
+            return jsonify(_rc.diagnostico_abandono(dias))
+        except Exception as e:
+            return jsonify({"error": str(e)[:200]}), 500
+
     @app.route("/app/api/pedidos/web")
     @app.route("/api/pedidos/web")
     def api_pedidos_web():

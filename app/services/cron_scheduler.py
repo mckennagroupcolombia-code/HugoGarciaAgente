@@ -41,6 +41,11 @@ DEFAULT_INTERVALO_HORAS = 168  # una vez por semana — estas operaciones no son
 _MARGEN_TOLERANCIA_MIN = 15
 
 JOBS: dict[str, dict[str, str]] = {
+    "recuperacion_compra": {
+        "nombre": "Correos de recuperación de compra",
+        "descripcion": "Escribe a quien dejó un pedido web sin pagar (máximo dos correos por pedido, con enlace que rearma el carrito). RECUPERACION_COMPRA_ACTIVO=0 lo apaga.",
+        "script": "scripts/recuperacion_compra_cron.py",
+    },
     "auditoria_scripts": {
         "nombre": "Auditoría de scripts",
         "descripcion": "py_compile de los scripts del manifiesto; alerta por WhatsApp si algo falla.",

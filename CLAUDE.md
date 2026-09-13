@@ -88,7 +88,7 @@ git pull origin main    # o: git pull origin master
 |--------|---------|---------------------------------------------------|
 | 8080 | `webhook_meli.py` | `webhook-meli.service` |
 | 8081 | `agente_pro.py` | `agente-pro.service` — **la unidad viva**; `mckenna-agente.service` hace lo mismo y está deshabilitada a propósito (12-sep-2026: tener ambas enabled la dejó en `failed` por `Address already in use` desde el 8-sep, sin que nadie lo notara). Nunca habilitar las dos. |
-| 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service` |
+| 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service`. Al detenerse (stop, restart o caída) programa un chequeo 8 s después (`scripts/systemd/mckenna_web_respaldo_check.sh`): si sigue apagada, `mckenna-website-mantenimiento.service` (no habilitada; `scripts/servidor_mantenimiento.py`) sirve `PAGINA_WEB/site/mantenimiento/index.html` con **503 + Retry-After** en el mismo puerto (Cloudflare la deja pasar). Arrancar la web la apaga (`Conflicts=` + `After=`, solo en la unidad de la web). Mantenimiento planeado sin apagar: `touch PAGINA_WEB/site/data/MANTENIMIENTO` / `rm`. |
 | túnel | `cloudflared` | `cloudflared.service` u otra unidad que gestione el túnel |
 
 - **`mantener_servicios.sh`** y **`start_services.sh`** cargan `scripts/lib/mckenna_nohup_guard.sh`: si la unidad está **active** o brevemente **activating** (`_mckenna_unit_controls_service`), **no** lanzan ese servicio con `nohup`. **No** basta con `is-enabled`: una unidad **failed** pero enabled dejaba bloqueado el nohup y un `webhook_meli.py` huérfano. Evita un segundo `webhook_meli.py` mientras reinicias con `normalizar_webhook_meli.sh`. **No** mezclar **system** `agente-pro` / `webhook-meli` con **user** `mckenna-agente` / `mckenna-webhook-meli` (doble proceso y reinicios en bucle en el mismo puerto).
@@ -262,6 +262,11 @@ COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra
 ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra (default 0 = sombra)
 PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
 ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
+
+# Recuperación de compra (app/tools/recuperacion_compra.py + scripts/recuperacion_compra_cron.py)
+RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar (el cron sigue instalado)
+RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
+RECUPERACION_COMPRA_MAX_POR_CORRIDA # Tope de correos por corrida del cron (default 20)
 
 # Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
 LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA

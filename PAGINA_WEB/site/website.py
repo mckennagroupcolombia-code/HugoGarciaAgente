@@ -3402,6 +3402,79 @@ app.jinja_env.globals.update(
 )
 
 
+# ── Modo mantenimiento con bandera (sin apagar el proceso) ──────────────────
+# `touch PAGINA_WEB/site/data/MANTENIMIENTO` → todo responde 503 con la página de
+# mantenimiento (Cloudflare la deja pasar); `rm` → normalidad, sin reiniciar.
+# Si el proceso está apagado, la misma página la sirve
+# mckenna-website-mantenimiento.service (scripts/servidor_mantenimiento.py).
+_MANTENIMIENTO_FLAG = Path(__file__).parent / "data" / "MANTENIMIENTO"
+_MANTENIMIENTO_HTML = Path(__file__).parent / "mantenimiento" / "index.html"
+
+
+@app.before_request
+def _modo_mantenimiento():
+    if not _MANTENIMIENTO_FLAG.exists():
+        return None
+    if request.path.startswith("/static/") or request.path in ("/status", "/api/status", "/health"):
+        if request.path.startswith("/static/"):
+            return None
+        return jsonify({"ok": False, "estado": "mantenimiento"}), 503
+    if request.path == "/pago/confirmacion":
+        return None  # el IPN de MercadoPago se procesa igual: es dinero ya cobrado
+    try:
+        cuerpo = _MANTENIMIENTO_HTML.read_text(encoding="utf-8")
+    except OSError:
+        cuerpo = "<p>Estamos en mantenimiento. Vuelve en unos minutos.</p>"
+    from flask import Response
+
+    return Response(cuerpo, status=503, mimetype="text/html", headers={"Retry-After": "120", "Cache-Control": "no-store"})
+
+
+@app.route("/checkout/reanudar/<token>")
+def checkout_reanudar(token):
+    """Enlace del correo de recuperación: rearma el carrito del pedido abandonado
+    en la sesión (solo lo que sigue comprable) y lleva al checkout."""
+    from app.tools import recuperacion_compra as _rc
+
+    pedido = _rc.pedido_por_token(token)
+    if not pedido:
+        flash("Ese enlace ya no es válido. Tu carrito sigue disponible en la tienda.", "error")
+        return redirect(url_for("catalogo"))
+    if pedido["status"] == "approved":
+        flash("Ese pedido ya quedó pagado. ¡Gracias!", "info")
+        return redirect(url_for("catalogo"))
+    cart: dict = {}
+    faltantes: list[str] = []
+    for it in pedido["items"]:
+        p = find_product(str(it.get("slug") or it.get("ref") or ""))
+        if not p or p.get("is_family") or not p.get("buyable", True):
+            faltantes.append(str(it.get("name") or it.get("slug") or ""))
+            continue
+        _sumar_al_carrito(cart, p, max(1, int(it.get("qty") or 1)))
+    if not cart:
+        flash("Los productos de ese pedido ya no están disponibles. Escríbenos y te ayudamos.", "error")
+        return redirect(url_for("catalogo"))
+    session["cart"] = cart
+    session["checkout_prefill_email"] = pedido.get("email") or ""
+    session["checkout_reanudado_de"] = pedido["reference"]
+    session.modified = True
+    if faltantes:
+        flash("Rearmamos tu carrito; quedaron fuera por agotados: " + ", ".join(faltantes[:4]) + ".", "info")
+    else:
+        flash("Tu carrito quedó tal como lo dejaste. Solo falta el pago.", "info")
+    return redirect(url_for("checkout"))
+
+
+@app.route("/correos/baja/<token>")
+def correos_baja(token):
+    """Baja de un clic de los correos de recuperación (Ley 1581/2012)."""
+    from app.tools import recuperacion_compra as _rc
+
+    email = (request.args.get("e") or "").strip().lower()
+    ok = _rc.baja_valida(email, token) and _rc.dar_de_baja(email)
+    return render_template("correos_baja.html", ok=ok, email=email), (200 if ok else 400)
+
+
 @app.context_processor
 def _inject_site_auth():
     return {
@@ -5400,8 +5473,11 @@ def _actualizar_pago_orden(
     payment_id: str = "",
     payment_method: str = "",
     payment_type: str = "",
+    status_detail: str = "",
 ) -> None:
-    """Actualiza estado y datos de pago MP en orders (reference en mayúsculas)."""
+    """Actualiza estado y datos de pago MP en orders (reference en mayúsculas).
+    `status_detail` es el motivo real de MercadoPago (cc_rejected_insufficient_amount,
+    pending_contingency…): es lo que explica un rechazo, y antes no se guardaba."""
     rup = (reference or "").strip().upper()
     if not rup:
         return
@@ -5419,6 +5495,9 @@ def _actualizar_pago_orden(
     if payment_type:
         sets.append("payment_type=?")
         params.append(payment_type)
+    if status_detail:
+        sets.append("payment_status_detail=?")
+        params.append(status_detail[:80])
     if not sets:
         return
     params.append(rup)
@@ -5480,8 +5559,20 @@ def pago_respuesta():
                 daemon=True,
             ).start()
 
+    motivo = ""
+    if status == "declined" and ref:
+        try:
+            from app.tools import recuperacion_compra as _rc
+
+            _rc.migrar()
+            con = sqlite3.connect(DB_PATH)
+            row = con.execute("SELECT payment_status_detail FROM orders WHERE reference = ?", (ref.strip().upper(),)).fetchone()
+            con.close()
+            motivo = _rc.MOTIVOS_MP.get((row[0] if row else "") or "", "")
+        except Exception:
+            motivo = ""
     return render_template("pago_respuesta.html",
-        status=status, ref=ref, tx_id=payment_id, amount="")
+        status=status, ref=ref, tx_id=payment_id, amount="", motivo=motivo)
 
 
 @app.route("/pago/confirmacion", methods=["GET", "POST"])
@@ -5512,6 +5603,7 @@ def pago_confirmacion():
                     payment_id=str(payment_id),
                     payment_method=pay_method,
                     payment_type=pay_type,
+                    status_detail=(data.get("status_detail") or "").strip(),
                 )
             log.info(
                 f"MP IPN: payment={payment_id} ref={ref} status={new_status} "

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import AbandonoCompraPanel from "./AbandonoCompraPanel";
 
 /** Prefill desde `?q=` / `?ref=` en la URL (p. ej. /app/?q=Alejandra#/pedidos). */
 function initialPedidosSearch(): string {
@@ -994,6 +995,7 @@ function OrderRow({
 
 export default function PedidosWebPanel() {
   const qc = useQueryClient();
+  const [verAbandono, setVerAbandono] = useState(false);
   const [search, setSearch] = useState(initialPedidosSearch);
   const [statusFilter, setStatusFilter] = useState("");
   const [shipFilter, setShipFilter] = useState("");
@@ -1115,7 +1117,7 @@ export default function PedidosWebPanel() {
   return (
     <div className="mx-auto max-w-6xl space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-ink">Pedidos Tienda Web</h2>
           <p className="text-xs text-muted">
@@ -1128,7 +1130,23 @@ export default function PedidosWebPanel() {
         >
           🔄 Actualizar
         </button>
+        <button
+          type="button"
+          onClick={() => setVerAbandono((v) => !v)}
+          className={`min-h-9 rounded-paper border-2 px-3 py-1.5 text-xs font-bold transition ${
+            verAbandono ? "border-accent bg-accent text-white" : "border-border bg-surface-panel text-ink hover:border-accent"
+          }`}
+          title="Por qué la gente no termina la compra: rechazos de MercadoPago, embudo del checkout, correos de recuperación"
+        >
+          {verAbandono ? "Ocultar diagnóstico" : "Diagnóstico de abandono"}
+        </button>
       </div>
+
+      {verAbandono ? (
+        <section className="rounded-paper border border-border bg-surface p-3">
+          <AbandonoCompraPanel />
+        </section>
+      ) : null}
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
