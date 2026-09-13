@@ -64,11 +64,15 @@ _ORDEN_PUREZA = [
 _ORDEN_CLASICO = [
     "hero",
     "banners_promo",
+    "confianza",      # barra de confianza con cifras (Fase C)
     "features",
     "categorias",
-    "destacados",
+    "destacados",     # pestañas: más vendidos (30 días) / en oferta
+    "aprende",        # guía viva del más vendido + recetas paso a paso
+    "como_comprar",
     "ruta_origen",
     "cobertura",
+    "blog",
     "cta",
 ]
 
@@ -210,9 +214,11 @@ TEMA_WEB_DEFAULTS: dict = {
         },
         "destacados": {
             "eyebrow": "Productos",
-            "titulo": "Selección",
-            "titulo_em": "Destacada",
-            "texto": "Una muestra de nuestro portafolio con 10% de descuento frente al precio de catálogo.",
+            "titulo": "Lo que más",
+            "titulo_em": "se lleva este mes",
+            "texto": "Unidades reales de los últimos 30 días entre la tienda y MercadoLibre, y una selección con 10 % frente al precio de catálogo.",
+            "tab_vendidos": "Más vendidos",
+            "tab_oferta": "En oferta",
         },
         "cta": {
             "eyebrow": "Atención Personalizada",
@@ -225,7 +231,33 @@ TEMA_WEB_DEFAULTS: dict = {
             "boton_wa": "Cotizar por WhatsApp",
             "boton_contacto": "Formulario de Contacto",
         },
+        "aprende": {
+            "eyebrow": "Recetario y guías",
+            "titulo": "Del ingrediente",
+            "titulo_em": "a la fórmula",
+            "texto": "Recetas paso a paso con cantidades escalables y guías vivas con dosificador, pH y compatibilidad.",
+        },
+        "como_comprar": {
+            "eyebrow": "Así de simple",
+            "titulo": "Cómo comprar",
+            "titulo_em": "en cuatro pasos",
+            "pasos": [
+                {"icono": "magnifying-glass", "titulo": "Busca y elige", "texto": "Catálogo en línea o cotización para volumen e importación."},
+                {"icono": "lock", "titulo": "Paga seguro", "texto": "PSE, tarjeta, Nequi o Mercado Pago. Sin datos de pago por chat."},
+                {"icono": "truck", "titulo": "Te despachamos", "texto": "Guía de Interrapidísimo el mismo día hábil, a todo el país."},
+                {"icono": "file-text", "titulo": "Factura y documentos", "texto": "Factura electrónica, ficha técnica y COA del lote."},
+            ],
+        },
+        "blog": {
+            "eyebrow": "Blog científico",
+            "titulo": "Lo último que",
+            "titulo_em": "publicamos",
+        },
         "secciones": {
+            "confianza": True,
+            "aprende": True,
+            "como_comprar": True,
+            "blog": True,
             "features": True,
             "categorias": True,
             "destacados": True,

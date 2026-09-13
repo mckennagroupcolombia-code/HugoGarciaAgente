@@ -3964,6 +3964,217 @@ def api_cobertura():
     return jsonify(obtener_cobertura())
 
 
+# ── Portada: bloques con datos reales (Fase C del plan de portada, sep-2026) ──
+MAS_VENDIDOS_MIN_UNIDADES = 5   # por debajo no se muestra la cifra: resta más de lo que suma
+_MAS_VENDIDOS_CACHE: dict = {"ts": 0.0, "data": []}
+
+
+def _unidades_30d_por_producto(catalog: list) -> dict[str, int]:
+    """Unidades vendidas en los últimos 30 días por slug de FAMILIA (la ficha que
+    se muestra), sumando MeLi (app/data/meli_ventas_30d_cache.json, por MCO)
+    y pedidos web aprobados (orders.db, por slug/ref)."""
+    por_meli: dict[str, int] = {}
+    try:
+        cache = json.loads((ROOT / "app" / "data" / "meli_ventas_30d_cache.json").read_text(encoding="utf-8"))
+        for mco, v in (cache.get("por_item") or {}).items():
+            por_meli[str(mco)] = int((v or {}).get("unidades") or 0)
+    except Exception:
+        pass
+    unidades: dict[str, int] = {}
+    familia_de: dict[str, str] = {}
+    for sec in catalog or []:
+        for prod in sec.get("products") or []:
+            fam = (prod.get("family_slug") or prod.get("slug") or "").lower()
+            for c in [prod] + list(prod.get("combos") or []):
+                sl = (c.get("slug") or "").lower()
+                if sl:
+                    familia_de[sl] = fam
+                if c.get("ref"):
+                    familia_de[str(c["ref"]).lower()] = fam
+                mco = c.get("meli_id")
+                if mco and por_meli.get(mco):
+                    unidades[fam] = unidades.get(fam, 0) + por_meli[mco]
+    try:
+        con = sqlite3.connect(DB_PATH)
+        filas = con.execute(
+            "SELECT items_json FROM orders WHERE status = 'approved' AND created_at >= datetime('now', '-30 days')"
+        ).fetchall()
+        con.close()
+        for (items_json,) in filas:
+            try:
+                items = json.loads(items_json or "{}").get("items") or []
+            except Exception:
+                continue
+            for it in items:
+                clave = str(it.get("slug") or it.get("ref") or "").lower()
+                fam = familia_de.get(clave)
+                if fam:
+                    unidades[fam] = unidades.get(fam, 0) + int(it.get("qty") or 0)
+    except Exception:
+        log.warning("mas_vendidos: no se pudo leer orders.db", exc_info=True)
+    return unidades
+
+
+def mas_vendidos_portada(catalog: list, n: int = 5) -> list[dict]:
+    """Los productos con más unidades en 30 días (MeLi + web), comprables
+    primero. Cada uno trae `unidades_30d` y `mostrar_unidades` (solo si
+    supera MAS_VENDIDOS_MIN_UNIDADES). Cache de 10 minutos."""
+    import time as _t
+
+    if _t.time() - _MAS_VENDIDOS_CACHE["ts"] < 600 and _MAS_VENDIDOS_CACHE["data"]:
+        return _MAS_VENDIDOS_CACHE["data"][:n]
+    unidades = _unidades_30d_por_producto(catalog)
+    fichas: dict[str, dict] = {}
+    for sec in catalog or []:
+        for prod in sec.get("products") or []:
+            fam = (prod.get("family_slug") or prod.get("slug") or "").lower()
+            if fam and fam not in fichas:
+                fichas[fam] = prod
+    ranking = sorted(unidades.items(), key=lambda kv: -kv[1])
+    out = []
+    for fam, u in ranking:
+        prod = fichas.get(fam)
+        if not prod or prod.get("solo_vitrina"):
+            continue
+        comprable = bool(prod.get("buyable", True)) or any(c.get("buyable", True) for c in prod.get("combos") or [])
+        if not comprable:
+            continue
+        item = dict(prod)
+        item["unidades_30d"] = u
+        item["mostrar_unidades"] = u >= MAS_VENDIDOS_MIN_UNIDADES
+        stock = prod.get("stock")
+        item["stock_estado"] = "pocas" if isinstance(stock, int) and 0 < stock <= 5 else "ok"
+        out.append(item)
+        if len(out) >= 12:
+            break
+    _MAS_VENDIDOS_CACHE.update(ts=_t.time(), data=out)
+    return out[:n]
+
+
+def chips_portada(mas_vendidos: list[dict], tema_chips: list | None = None, n: int = 6) -> list[dict]:
+    """Atajos de búsqueda del hero: los definidos en el tema mandan; si no hay,
+    salen de los más vendidos (nombre corto, sin presentación)."""
+    if tema_chips:
+        return [{"label": str(c), "q": str(c)} for c in tema_chips if str(c).strip()][:n]
+    out, vistos = [], set()
+    for p in mas_vendidos:
+        nombre = re.sub(r"\s+\d+([.,]\d+)?\s*(g|gr|kg|ml|l|lt|mL|oz)\b.*$", "", p.get("name") or "", flags=re.I).strip()
+        nombre = re.sub(r"\s+\d+\s*%.*$", "", nombre).strip()
+        clave = nombre.lower()
+        if not nombre or clave in vistos:
+            continue
+        vistos.add(clave)
+        out.append({"label": nombre.title() if nombre.isupper() else nombre, "q": nombre})
+        if len(out) >= n:
+            break
+    return out
+
+
+def buscar_productos(q: str, limite: int = 8) -> list[dict]:
+    """Sugerencias del buscador: todas las palabras de la consulta deben estar
+    en nombre, título MeLi o categoría. Sin IA; catálogo en memoria."""
+    from app.services.drive_documentos import normalizar_nombre_producto
+
+    palabras = [w for w in normalizar_nombre_producto(q or "").split() if len(w) > 1]
+    if not palabras:
+        return []
+    out = []
+    for p in get_all_products():
+        if p.get("is_combo") and p.get("family_slug") and p.get("family_slug") != p.get("slug"):
+            continue  # presentaciones repetidas: se sugiere la familia
+        texto = normalizar_nombre_producto(" ".join(str(p.get(k) or "") for k in ("name", "meli_title", "cat")))
+        if all(w in texto for w in palabras):
+            out.append({
+                "name": p.get("name"), "slug": p.get("slug"), "precio": p.get("precio"),
+                "photo": p.get("photo") or "", "cat": p.get("cat") or "",
+                "buyable": bool(p.get("buyable", True)) or bool(p.get("is_family")),
+            })
+            if len(out) >= limite:
+                break
+    return out
+
+
+@app.route("/api/buscar")
+def api_buscar():
+    q = (request.args.get("q") or "").strip()[:80]
+    return jsonify({"q": q, "productos": buscar_productos(q)})
+
+
+def aprende_portada(mas_vendidos: list[dict], n_recetas: int = 3) -> dict:
+    """Guía viva del producto más vendido que tenga guía, y N recetas rotadas
+    por día del año, una por categoría cuando se puede."""
+    from datetime import date
+
+    guia = None
+    for p in mas_vendidos:
+        rel = contenido_para_producto([p.get("name")])
+        vivas = [g for g in rel["guias"] if g.get("viva")]
+        if vivas:
+            guia = vivas[0]
+            guia["producto"] = p.get("name")
+            break
+    recetas = [r for r in _cargar_recetas() if r.get("slug")]
+    elegidas: list[dict] = []
+    if recetas:
+        cats = ["cosmetica", "nutricion", "hogar", "perfumeria"]
+        desplazamiento = date.today().timetuple().tm_yday
+        for i in range(n_recetas):
+            cat = cats[(desplazamiento + i) % len(cats)]
+            del_cat = [r for r in recetas if r.get("cat") == cat] or recetas
+            r = del_cat[(desplazamiento // len(cats) + i) % len(del_cat)]
+            if any(x["slug"] == r["slug"] for x in elegidas):
+                continue
+            p1 = (r.get("pasos") or [{}])[0]
+            elegidas.append({
+                "slug": r["slug"], "titulo": r.get("title") or "", "titulo2": r.get("title2") or "",
+                "cat": r.get("cat") or "", "desc": r.get("desc") or "", "base": r.get("base"), "unidad": r.get("unidad") or "",
+                "n_ings": len(r.get("ings") or []), "n_pasos": len(r.get("pasos") or []),
+                "paso1": p1.get("texto") if isinstance(p1, dict) else str(p1 or ""),
+            })
+    return {"guia": guia, "recetas": elegidas}
+
+
+def blog_reciente(n: int = 3) -> list[dict]:
+    try:
+        posts = json.loads((Path(__file__).parent / "data" / "posts.json").read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    pub = [p for p in posts if str(p.get("publicado", True)).lower() not in ("false", "0", "")]
+    pub.sort(key=lambda p: str(p.get("fecha") or ""), reverse=True)
+    out = []
+    for p in pub[:n]:
+        # el campo `extracto` trae restos de etiquetas ("h2Zinc: ...");
+        # se arma desde el contenido: primer párrafo real que no repita el título
+        texto = re.sub(r"<[^>]+>", " ", str(p.get("contenido") or ""))
+        texto = re.sub(r"\s+", " ", texto).strip()
+        titulo = str(p.get("titulo") or "").strip()
+        if titulo and texto.lower().startswith(titulo.lower()):
+            texto = texto[len(titulo):].lstrip(" :.-–")
+        palabras = len(texto.split())
+        out.append({
+            "slug": p.get("slug"), "titulo": titulo, "fecha": p.get("fecha") or "",
+            "categoria": p.get("categoria") or "", "extracto": texto[:170],
+            "minutos": max(1, round(palabras / 200)),
+        })
+    return out
+
+
+def confianza_portada(ruta_origen: dict, colombia: dict) -> list[dict]:
+    """Cinco hechos con número para la barra de confianza. Los números salen
+    de los mismos cálculos (cacheados) que alimentan trazabilidad y cobertura."""
+    n_tds = int((ruta_origen or {}).get("n_tds") or 0)
+    n_coa = int((ruta_origen or {}).get("n_coa") or 0)
+    n_dep = int((colombia or {}).get("n_alcanzados") or 0)
+    tot_dep = int((colombia or {}).get("total_departamentos") or 33)
+    return [
+        {"icono": "certificate", "titulo": "Importación legal", "cifra": "VUCE + COA por lote", "texto": "Visto bueno INVIMA"},
+        {"icono": "file-text", "titulo": "Documentación", "cifra": f"{n_tds} fichas técnicas · {n_coa} COA", "texto": "Publicadas en la web"},
+        {"icono": "truck", "titulo": "Despachos", "cifra": f"{n_dep} de {tot_dep} departamentos", "texto": "Interrapidísimo con guía"},
+        {"icono": "lock", "titulo": "Pago seguro", "cifra": "PSE · tarjetas · Nequi", "texto": "Mercado Pago"},
+        {"icono": "headset", "titulo": "Asesoría técnica", "cifra": "Lun–Vie 8:00–17:30", "texto": "Un químico responde por WhatsApp"},
+    ]
+
+
 @app.route("/")
 def index():
     catalog   = get_catalog()
@@ -3974,13 +4185,22 @@ def index():
         if len(featured) >= 12:
             break
     plantilla = "index_pureza.html" if tema_web_activo() == "pureza" else "index.html"
+    ruta_origen = _construir_ruta_origen(catalog)
+    colombia = _construir_colombia_mapa()
+    mas_vendidos = mas_vendidos_portada(catalog)
+    tc = (_cfg_tema_request() or {}).get("clasico") or {}
     return render_template(plantilla,
         catalog=catalog,
         cats=cats,
         lineas=lineas_para_portada(catalog),
         featured=featured[:12],
-        ruta_origen=_construir_ruta_origen(catalog),
-        colombia=_construir_colombia_mapa(),
+        mas_vendidos=mas_vendidos,
+        chips=chips_portada(mas_vendidos, (tc.get("hero") or {}).get("chips")),
+        aprende=aprende_portada(mas_vendidos),
+        blog=blog_reciente(),
+        confianza=confianza_portada(ruta_origen, colombia),
+        ruta_origen=ruta_origen,
+        colombia=colombia,
         banners=banners_vigentes(),
         actividad=obtener_actividad(),
         cobertura=obtener_cobertura())

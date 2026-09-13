@@ -54,6 +54,10 @@
 {% set Cat = TC.categorias if TC else {} %}
 {% set Dest = TC.destacados if TC else {} %}
 {% set Cta = TC.cta if TC else {} %}
+{% set Apr = TC.aprende if TC and TC.aprende else {} %}
+{% set Cmp = TC.como_comprar if TC and TC.como_comprar else {} %}
+{% set Blg = TC.blog if TC and TC.blog else {} %}
+{% set CAT_LABELS = {'cosmetica': 'Cosmética', 'nutricion': 'Nutrición', 'perfumeria': 'Perfumería', 'hogar': 'Hogar'} %}
 {% set Sec = TC.secciones if TC and TC.secciones else {} %}
 
 <div class="pz-home-stack" style="display:flex;flex-direction:column;">
@@ -95,6 +99,23 @@
     {% endif %}
     </div>
 
+    {% if not LAYOUT_CLASICO.nodos.get('hero.buscador', {}).get('hidden') %}
+    <form class="hero-search" action="{{ url_for('tienda') }}" method="get" role="search" data-buscador style="{{ nodo_style('hero.buscador') }}">
+      <div class="hero-search-box">
+        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+        <input type="search" name="q" placeholder="{{ H.buscador_placeholder or 'Busca por nombre, INCI o uso: niacinamida, ácido hialurónico, conservante…' }}"
+               autocomplete="off" aria-label="Buscar materia prima" data-buscador-input>
+        <button type="submit" class="btn btn-primary hero-search-btn">Buscar</button>
+      </div>
+      <ul class="hero-search-sug" data-buscador-sug hidden></ul>
+    </form>
+    {% if chips %}
+    <div class="hero-chips" aria-label="Búsquedas frecuentes">
+      {% for c in chips %}<a class="hero-chip" href="{{ url_for('tienda', q=c.q) }}">{{ c.label }}</a>{% endfor %}
+    </div>
+    {% endif %}
+    {% endif %}
+
     <div class="hero-cta">
       {% if not LAYOUT_CLASICO.nodos.get('hero.cta_principal', {}).get('hidden') %}
       <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg" style="{{ nodo_style('hero.cta_principal') }}">
@@ -115,6 +136,11 @@
         {% if not LAYOUT_CLASICO.nodos.get('hero.cta_secundario.texto', {}).get('hidden') %}
         <span style="{{ nodo_style('hero.cta_secundario.texto') }}">{{ H.cta_secundario or 'Pedir cotización' }}</span>
         {% endif %}
+      </a>
+      {% endif %}
+      {% if not LAYOUT_CLASICO.nodos.get('hero.cta_wa', {}).get('hidden') %}
+      <a href="{{ url_for('cotizar') }}" class="btn btn-ghost btn-lg" style="{{ nodo_style('hero.cta_wa') }}">
+        <i class="ph ph-globe-hemisphere-west"></i> {{ H.cta_cotizar or 'Cotizar importación' }}
       </a>
       {% endif %}
     </div>
@@ -148,6 +174,110 @@
 {% if sec == 'cobertura' and Sec.cobertura != false and not LAYOUT_CLASICO.nodos.get('cobertura', {}).get('hidden') %}
 <div style="order:{{ LAYOUT_CLASICO.orden_map.cobertura | default(4) }};">
   {% include "_cobertura.html" %}
+</div>
+{% endif %}
+
+{% if sec == 'confianza' and Sec.confianza != false and not LAYOUT_CLASICO.nodos.get('confianza', {}).get('hidden') and confianza %}
+<!-- BARRA DE CONFIANZA (cifras del servidor) -->
+<div class="confianza" style="order:{{ LAYOUT_CLASICO.orden_map.confianza | default(1) }};{{ nodo_style('confianza') }}">
+  <div class="section confianza-inner">
+    {% for c in confianza %}
+    <div class="confianza-item">
+      <i class="ph ph-{{ c.icono }}" aria-hidden="true"></i>
+      <div><strong>{{ c.titulo }}</strong><span class="confianza-cifra">{{ c.cifra }}</span><span class="confianza-txt">{{ c.texto }}</span></div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if sec == 'aprende' and Sec.aprende != false and not LAYOUT_CLASICO.nodos.get('aprende', {}).get('hidden') and (aprende.guia or aprende.recetas) %}
+<!-- APRENDE A FORMULAR: guía viva + recetas paso a paso -->
+<div class="aprende" style="order:{{ LAYOUT_CLASICO.orden_map.aprende | default(6) }};{{ nodo_style('aprende') }}">
+  <div class="section aprende-inner">
+    <div class="section-header reveal">
+      <div>
+        <span class="section-eyebrow" style="{{ nodo_style('aprende.eyebrow') }}">{{ Apr.eyebrow or 'Recetario y guías' }}</span>
+        <h2 class="section-title"><span style="{{ nodo_style('aprende.titulo') }}">{{ Apr.titulo or 'Del ingrediente' }}</span> <em style="{{ nodo_style('aprende.titulo_em') }}">{{ Apr.titulo_em or 'a la fórmula' }}</em></h2>
+        <p class="section-lead" style="{{ nodo_style('aprende.texto') }}">{{ Apr.texto or '' }}</p>
+      </div>
+      <div class="aprende-links"><a href="{{ url_for('recetario') }}" class="dest-all">Todas las recetas</a><a href="{{ url_for('guias') }}" class="dest-all">Todas las guías</a></div>
+    </div>
+    <div class="aprende-grid">
+      {% if aprende.guia %}
+      <a class="ap-card ap-guia reveal" href="{{ aprende.guia.url }}">
+        <span class="ap-eyebrow">Guía viva · {{ aprende.guia.producto }}</span>
+        <h3>{{ aprende.guia.titulo }} <em>guía viva</em></h3>
+        <p>{{ aprende.guia.desc | truncate(140) }}</p>
+        <div class="ap-kpis">
+          {% if aprende.guia.conc_max_pct %}<span>&le; {{ aprende.guia.conc_max_pct | round(1) | string | replace('.0', '') }} %</span>{% endif %}
+          {% if aprende.guia.ph %}<span>pH {{ aprende.guia.ph.min }} &ndash; {{ aprende.guia.ph.max }}</span>{% endif %}
+          <span>Dosificador</span>
+          {% if aprende.guia.n_faq %}<span>{{ aprende.guia.n_faq }} preguntas</span>{% endif %}
+        </div>
+        <span class="ap-cta">Abrir guía <i class="ph ph-arrow-right"></i></span>
+      </a>
+      {% endif %}
+      {% for r in aprende.recetas %}
+      <a class="ap-card reveal reveal-delay-{{ loop.index }}" href="{{ url_for('receta_detalle', slug=r.slug) }}">
+        <span class="ap-eyebrow">Receta · {{ CAT_LABELS.get(r.cat, r.cat) }}</span>
+        <h3>{{ r.titulo }} <em>{{ r.titulo2 }}</em></h3>
+        {% if r.paso1 %}<div class="ap-step"><b>1</b><span>{{ r.paso1 | truncate(110) }}</span></div>{% endif %}
+        <span class="ap-meta">{{ r.n_ings }} ingredientes &middot; {{ r.n_pasos }} pasos &middot; {{ r.base }} {{ r.unidad }}</span>
+        <span class="ap-cta">Preparar paso a paso <i class="ph ph-arrow-right"></i></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if sec == 'como_comprar' and Sec.como_comprar != false and not LAYOUT_CLASICO.nodos.get('como_comprar', {}).get('hidden') %}
+<!-- CÓMO COMPRAR EN CUATRO PASOS -->
+<div class="como-comprar" style="order:{{ LAYOUT_CLASICO.orden_map.como_comprar | default(7) }};{{ nodo_style('como_comprar') }}">
+  <div class="section como-inner">
+    <div class="section-header reveal">
+      <div>
+        <span class="section-eyebrow" style="{{ nodo_style('como_comprar.eyebrow') }}">{{ Cmp.eyebrow or 'Así de simple' }}</span>
+        <h2 class="section-title"><span style="{{ nodo_style('como_comprar.titulo') }}">{{ Cmp.titulo or 'Cómo comprar' }}</span> <em style="{{ nodo_style('como_comprar.titulo_em') }}">{{ Cmp.titulo_em or 'en cuatro pasos' }}</em></h2>
+      </div>
+    </div>
+    <ol class="tz-chain como-chain reveal" aria-label="Pasos para comprar">
+      {% for paso in (Cmp.pasos or []) %}
+      <li class="tz-node">
+        <span class="tz-node-icon"><i class="ph ph-{{ paso.icono or 'check' }}"></i></span>
+        <span class="tz-node-step">Paso {{ '%02d' % loop.index }}</span>
+        <strong>{{ paso.titulo }}</strong>
+        <span class="tz-node-sub">{{ paso.texto }}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+{% endif %}
+
+{% if sec == 'blog' and Sec.blog != false and not LAYOUT_CLASICO.nodos.get('blog', {}).get('hidden') and blog %}
+<!-- BLOG: últimos artículos -->
+<div class="blog-home" style="order:{{ LAYOUT_CLASICO.orden_map.blog | default(10) }};{{ nodo_style('blog') }}">
+  <div class="section blog-home-inner">
+    <div class="section-header reveal">
+      <div>
+        <span class="section-eyebrow" style="{{ nodo_style('blog.eyebrow') }}">{{ Blg.eyebrow or 'Blog científico' }}</span>
+        <h2 class="section-title"><span style="{{ nodo_style('blog.titulo') }}">{{ Blg.titulo or 'Lo último que' }}</span> <em style="{{ nodo_style('blog.titulo_em') }}">{{ Blg.titulo_em or 'publicamos' }}</em></h2>
+      </div>
+      <a href="{{ url_for('blog') }}" class="dest-all">Ver el blog</a>
+    </div>
+    <div class="blog-home-grid">
+      {% for b in blog %}
+      <a class="bl-card reveal reveal-delay-{{ loop.index0 }}" href="{{ url_for('blog_post', slug=b.slug) }}">
+        <span class="bl-meta">{{ b.categoria | capitalize }} &middot; {{ b.fecha }} &middot; {{ b.minutos }} min</span>
+        <h3>{{ b.titulo }}</h3>
+        <p>{{ b.extracto | truncate(120) }}</p>
+        <span class="ap-cta">Leer <i class="ph ph-arrow-right"></i></span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
 </div>
 {% endif %}
 
@@ -224,7 +354,7 @@
 
 {% if sec == 'destacados' and Sec.destacados != false and not LAYOUT_CLASICO.nodos.get('destacados', {}).get('hidden') %}
 <!-- PRODUCTOS DESTACADOS -->
-<div class="dest-section" style="background: var(--white);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
+<div class="dest-section{% if mas_vendidos %} is-vendidos{% endif %}" style="background: var(--white);order:{{ LAYOUT_CLASICO.orden_map.destacados | default(3) }};{{ nodo_style('destacados') }}">
   <div class="section dest-inner" data-carousel>
     <div class="dest-head reveal">
       <div class="dest-head-copy">
@@ -248,7 +378,25 @@
       </div>
     </div>
 
-    <div class="dest-track" data-carousel-track>
+    {% if mas_vendidos %}
+    <div class="dest-tabs" role="tablist" data-dest-tabs>
+      <button type="button" class="dest-tab is-active" role="tab" aria-selected="true" data-dest-tab="vendidos">{{ Dest.tab_vendidos or 'Más vendidos' }}</button>
+      <button type="button" class="dest-tab" role="tab" aria-selected="false" data-dest-tab="oferta">{{ Dest.tab_oferta or 'En oferta' }}</button>
+    </div>
+    <div class="dest-grid" data-dest-panel="vendidos">
+      {% for p in mas_vendidos %}
+      <div class="dest-slide dest-slide--grid">
+        {% if p.mostrar_unidades %}<span class="dest-sold"><i class="ph ph-package"></i> {{ p.unidades_30d }} vendidos este mes</span>{% endif %}
+        {% if p.stock_estado == 'pocas' %}<span class="dest-stock">Quedan pocas</span>{% endif %}
+        {% with show_trust_tema=false, check_buyable=false, card_delay=(loop.index0 % 4) %}
+        {% include "_shop_card.html" %}
+        {% endwith %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="dest-track" data-carousel-track data-dest-panel="oferta"{% if mas_vendidos %} hidden{% endif %}>
       {% for p in featured %}
       <div class="dest-slide">
         {% with show_trust_tema=false, check_buyable=false, card_delay=(loop.index0 % 4) %}
@@ -304,4 +452,8 @@
 {% endfor %}
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/portada.js') }}?v=20260913b" defer></script>
 {% endblock %}

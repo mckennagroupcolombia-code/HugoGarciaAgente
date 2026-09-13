@@ -1,3 +1,18 @@
+### 2026-09-13 02:30 - Portada: buscador, confianza con cifras, más vendidos reales, recetas y guías, cómo comprar y blog (Fase C)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - **Hero con buscador:** formulario a `/tienda?q=` con sugerencias en vivo desde `GET /api/buscar` (todas las palabras deben estar en nombre, título MeLi o categoría; catálogo en memoria, sin IA; una sugerencia por familia), chips de búsqueda que salen de los más vendidos (o de `hero.chips` en el tema si se definen) y tres botones en fila: comprar, cotizar por WhatsApp, cotizar importación. Una regla del Studio apilaba los botones en columna con ancho fijo; se anula para el hero.
+  - **Barra de confianza** (`confianza_portada`): cinco hechos con número calculado en el servidor: fichas técnicas y COA publicados, departamentos con despachos, medios de pago y horario. Sección nueva `confianza`, reemplaza en la práctica a `features` (que sigue apagada).
+  - **Más vendidos reales:** `mas_vendidos_portada()` cruza `meli_ventas_30d_cache.json` (por MCO, incluidas las presentaciones) con los pedidos web aprobados de 30 días (`orders.db`, por slug/ref), agrupa por familia y descarta agotados y solo-vitrina. La tarjeta muestra "N vendidos este mes" solo si N ≥ 5 (`MAS_VENDIDOS_MIN_UNIDADES`) y "Quedan pocas" si el stock es de 1 a 5. Pestañas Más vendidos / En oferta (la lista de 10 % de siempre); cache de 10 minutos. Hoy: aceite de ricino 202, citrato de magnesio 107, glicerina 91, Sharomix 66, creatina 56.
+  - **Aprende a formular** (`aprende_portada`): la guía viva del primer producto más vendido que tenga guía y tres recetas rotadas por día del año, una por categoría, con el paso 1 visible.
+  - **Cómo comprar en cuatro pasos** con la cadena animada de la trazabilidad; textos editables en el tema (`como_comprar.pasos`). **Blog:** los tres últimos posts, extracto armado desde el contenido (el campo `extracto` traía restos de etiquetas: "h2Zinc...").
+  - **Tema:** secciones nuevas `confianza`, `aprende`, `como_comprar`, `blog` registradas en `_ORDEN_CLASICO`, `secciones` y textos por defecto; `tema_web.json` actualizado. `destacados` cambia su título a "Lo que más se lleva este mes" y gana `tab_vendidos` / `tab_oferta`.
+  - **Tres correcciones tras verla en pantalla:** el carrusel "En oferta" se mostraba debajo del grid aunque estuviera `hidden` (`.dest-track` forzaba `display:flex`); las etiquetas de vendidos y stock se pisaban; el paso de "cómo comprar" repetía el título.
+  - **Medido:** portada de 7.294 px en escritorio con cuatro bloques más de contenido. Lo que sigue pesando en alto es trazabilidad + cobertura (2.900 px en escritorio, 5.000 en celular): eso es la Fase D.
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/{index.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`, `PAGINA_WEB/site/static/js/portada.js` (nuevo), `PAGINA_WEB/site/data/tema_web.json`, `app/tools/tema_web.py`, `tests/test_portada_bloques.py` (nuevo)
+
+
 ### 2026-09-13 01:20 - Los mapas de la portada salen del HTML y se cargan al acercarse (cierre del pendiente de peso)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Rendimiento

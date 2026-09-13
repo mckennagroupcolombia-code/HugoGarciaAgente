@@ -23,11 +23,15 @@
     "orden": [
       "hero",
       "banners_promo",
+      "confianza",
       "features",
       "categorias",
       "destacados",
+      "aprende",
+      "como_comprar",
       "ruta_origen",
       "cobertura",
+      "blog",
       "cta"
     ],
     "nodos": {
@@ -127,9 +131,9 @@
     },
     "destacados": {
       "eyebrow": "Productos",
-      "titulo": "Selección",
-      "titulo_em": "Destacada",
-      "texto": "Una muestra de nuestro portafolio con 10% de descuento frente al precio de catálogo."
+      "titulo": "Lo que más",
+      "titulo_em": "se lleva este mes",
+      "texto": "Unidades reales de los últimos 30 días entre la tienda y MercadoLibre, y una selección con 10 % frente al precio de catálogo."
     },
     "cta": {
       "eyebrow": "Atención Personalizada",
@@ -143,7 +147,11 @@
       "features": false,
       "categorias": true,
       "destacados": true,
-      "cta": true
+      "cta": true,
+      "confianza": true,
+      "aprende": true,
+      "como_comprar": true,
+      "blog": true
     }
   },
   "pureza": {
