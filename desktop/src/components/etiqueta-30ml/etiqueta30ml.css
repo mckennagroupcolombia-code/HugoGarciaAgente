@@ -42,7 +42,8 @@
 }
 
 /* ── Edición en el sitio (CampoEtiqueta), mismo trato que EditableField (la
-      comparten la etiqueta 30 mL y la de 69 × 51 mm, `.es-etiqueta`):
+      comparten la etiqueta 30 mL, la de 69 × 51 mm (`.es-etiqueta`) y la
+      circular de 53 × 53 (`.ec-etiqueta`):
       el texto se vuelve casilla sin cambiar de tamaño ni de sitio. Va antes
       que las reglas de cada texto (misma especificidad baja) para que el
       color, peso y tamaño de cada una sigan mandando. ────────────────────── */
@@ -53,7 +54,7 @@
   min-width: 0;
 }
 
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo {
   display: block;
   width: 100%;
   min-width: 0;
@@ -76,25 +77,25 @@
   resize: none;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo:hover {
   border-color: var(--acento-50);
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo:focus {
   border-color: var(--acento);
   background: var(--acento-suave);
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo::placeholder {
   color: #a8a8a8;
   opacity: 1;
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro:hover {
   border-color: rgba(255, 255, 255, 0.6);
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro:focus {
   border-color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
 }
-:where(.e30-etiqueta, .es-etiqueta) .e30-campo-oscuro::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 

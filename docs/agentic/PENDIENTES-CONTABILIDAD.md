@@ -1,4 +1,4 @@
-# Pendientes de contabilidad — corte 2026-09-10
+# Pendientes de contabilidad — corte 2026-09-13
 
 Estado al cierre de la sesión que arrancó por el módulo de préstamos y terminó
 tocando retenciones, documento soporte, el espejo a Alegra y la conciliación de
@@ -7,6 +7,12 @@ compras. Cada punto dice **qué falta, por qué importa y quién puede resolverl
 Documentos relacionados:
 `modules/prestamos.md` · `modules/relaciones-socios-terceros.md` ·
 `modules/contabilidad.md`
+
+Soportes del contador (declaraciones DIAN/SDH bajadas del correo, fuera de git):
+`docs/contabilidad/<año>/Soportes_Contador/<AAAA-MM>/<tipo>/` — se regeneran con
+`scripts/descargar_soportes_contador.py`; los valores extraídos quedan en
+`docs/contabilidad/<año>/declaraciones_contador.json` y el cruce 350 ↔ 2365 en
+`docs/contabilidad/comparacion_350_vs_2365.json` (`scripts/extraer_declaraciones_contador.py --comparar`).
 
 ---
 
@@ -84,6 +90,69 @@ factura completa, o sea que McKenna la asumió; (d) estos asientos **no** se esp
 Alegra a propósito: allá todavía no están las compras (punto 6), y subir solo la
 retención dejaría la cuenta por pagar del proveedor en negativo. Van juntos. Los 350 descargados están en el correo de McKenna, remitente
 williamfer94@hotmail.com, asunto «RTF periodo N».
+
+**Actualización 2026-09-13 — cruce automático de los 350 contra la 2365.** Se bajaron
+del Gmail de la empresa los 85 adjuntos que William envió entre ene-2025 y sep-2026
+(350 + recibos 490 de cada mes, IVA 300, renta 110 de 2024, ICA anual, RTICA
+bimestral y 20 certificados de retención) y se leyeron renglón por renglón. Resultado
+para 2026, mes a mes (PJ = renglón 49, PN = renglón 102; «LM» = Libro Mayor por
+`tipo_persona` del tercero):
+
+| Mes 2026 | 350 PJ | LM PJ | dif PJ | 350 PN base | 350 PN ret | LM PN | 490 pagado (fecha) | pago en LM |
+|---|---|---|---|---|---|---|---|---|
+| ene | 326.000 | 339.877 | −13.877 | 4.629.000 | 116.000 | 0 | 442.000 (16-feb) | no |
+| feb | 40.000 | 39.916 | +84 | 1.037.000 | 26.000 | 0 | 66.000 (17-mar) | no |
+| mar | 318.000 | 339.760 | −21.760 | 1.898.000 | 47.000 | 0 | 365.000 (21-abr) | no |
+| abr | 361.000 | 360.579 | +421 | 11.204.000 | 280.000 | 0 | 641.000 (20-may) | no |
+| may | 213.000 | 213.077 | −77 | 9.497.000 | 237.000 | 0 | 450.000 (18-jun) | no |
+| jun | 410.000 | 415.746 | −5.746 | 3.765.000 | 94.000 | 0 | 504.000 (17-jul) | sí (#1389) |
+| jul | 488.000 | 461.199 | +26.801 | 4.409.000 | 110.000 | 0 | 598.000 (20-ago) | sí (#1555) |
+| **ene-jul** | **2.156.000** | **2.170.154** | **−14.154** | **36.439.000** | **910.000** | **0** | **3.066.000** | 1.102.000 |
+| ago | (sin 350 aún) | 664.887 | | | | 96.251 | vence 16-sep | |
+
+Cuatro conclusiones:
+
+1. **La columna de personas jurídicas cuadra.** Diferencia acumulada de −$14.154 en
+   siete meses; las mensuales (±$27k) son redondeo a miles más, en julio, una base de
+   ≈$1,07M que William tiene y el Libro Mayor no (o una factura que el LM causó en
+   junio y él en julio). No hay $3,1M "no practicados": el 350 los declara y el 490
+   los paga cada mes.
+2. **La columna de personas naturales ($910.000 ene-jul sobre una base de $36,4M) son
+   las compras a los socios y a Alexandra Benavides, no facturas de proveedores
+   perdidas.** Lo prueban los certificados de 2024 que envió William: compras al 2,5%
+   por $122,5M a Armando (CC 1013630698), $47,7M a Cynthia (CC 1019044839) y $16,7M a
+   Alexandra (CC 1026262496). En el Libro Mayor de 2026 solo están las tres facturas
+   FE de Alexandra ($153.556, y **marcada como jurídica** — su `tipo_persona` en
+   `cc_terceros` id 7 debe pasar a `natural`; por eso la columna «LM PN» sale en 0) y
+   las compras a socios **solo desde agosto** ($96.251). `compras_exterior` apenas
+   tiene ene $3,2M, feb $159k y jun $792k contra los ≈$30M de base que declaró
+   William para los socios entre enero y julio. Corregido el tipo de Alexandra, el
+   faltante real de PN es **$756.444** y es todo compras a socios. **TKT-2026-1301
+   cambia de sentido:** no pedirle a William «facturas que no llegaron», sino el detalle
+   por tercero de los renglones 86/102 (que serán las cuentas de cobro de Cynthia y
+   Armando) para cargarlas en Préstamos → Compras de socios y que la 2380 y la 2365
+   queden completas hacia atrás.
+3. **Faltan los pagos de enero a junio en la 2365.** Los cinco recibos 490 de esos
+   meses suman **$1.964.000** con fecha exacta (tabla), pero el Libro Mayor solo tiene
+   los débitos de jul-17 y ago-20 que salieron del extracto. Por eso la cuenta muestra
+   hoy un saldo de **$1.829.292** cuando lo único pendiente de verdad es agosto. Se
+   resuelve al cargar el extracto de ene-jun (punto 1) o registrando los cinco pagos
+   con la fecha del 490 (`extracto_clasificado` / egreso contra 2365).
+4. **Agosto (periodo 8, vence 16-sep):** el LM lleva $664.887 de proveedores + $96.251
+   de socios = **$761.138**, y William aún no ha enviado el 350. La cifra que él
+   declare debería salir cerca de eso más las compras a socios que él tenga y el LM no.
+
+**Lo que no llegó por correo (pedir):** 350 de los periodos 3, 5 y 6 de 2025; la
+declaración RTICA del bimestre 2 de 2026 (solo llegó el recibo: $403.000 el 22-may);
+la renta del año gravable 2025; ninguna exógena (1001 y demás) ni auxiliares /
+balance de prueba de ningún periodo — William no los manda por iniciativa propia.
+
+*Otros valores ya extraídos, para referencia rápida:* IVA cuatrimestre 3-2025 con saldo
+a favor de $1.817.000 (retenciones de IVA a McKenna $2.962.000); ICA anual 2025 base
+$733,9M, impuesto $3.038.000, retenido $642.000, pagados $2.396.000 el 27-feb-2026;
+RTICA 2026: B1 $356.000, B2 $403.000, B3 $412.000; Renta 2024: ingresos $827,9M, renta
+líquida $23,8M, impuesto $8.323.000, retenciones a favor $7.711.000, pagado $612.000.
+Retefuente total 2025: PJ $3.268.000 + PN $1.700.000 = $4.968.000 (faltan 3 periodos).
 
 *Texto original (superado), para la historia:*
 
@@ -217,7 +286,8 @@ Flags en sombra, listos para encender cuando lo anterior esté:
 1110  Bancos                          -17.130.398   ← falta saldo inicial
 1435  Inventarios - Mercancías        142.670.089
 2205  Proveedores nacionales          -87.880.072   ← ver puntos 2 y 6
-2365  Retención en la fuente             -96.251    ← declarar antes del 16-sep
+2365  Retención en la fuente          -1.829.292    ← 13-sep: incluye $1.964.000 de pagos ene-jun ya hechos
+                                                     (490 en el correo) pero no registrados; real pendiente ≈ agosto
 2380  Cuentas por pagar - socios      -8.030.722    (Cynthia 4,3M · Armando 3,7M)
 4135  Ingresos por ventas             -32.708.733
 5195  Gastos diversos                   3.176.086

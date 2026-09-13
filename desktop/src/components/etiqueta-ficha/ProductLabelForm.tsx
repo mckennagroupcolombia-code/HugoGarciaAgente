@@ -121,8 +121,10 @@ const PATRON_RETICULA: CSSProperties = {
  *  composición (un jarrón casi cuadrado y una etiqueta de 5 mL muy
  *  apaisada no pueden compartir el mismo layout interno). */
 const ANCHO_DISENO = 960;
-/** Ancho máximo del marco de formato en pantalla. */
-const MARCO_MAX_ANCHO = 640;
+/** Ancho del marco de formato en pantalla: el mismo del diseño, o sea el
+ *  100 %. No se encoge para caber en la ventana — sobre un lienzo reducido
+ *  no se puede trabajar; si no cabe, el marco se recorre en horizontal. */
+const MARCO_MAX_ANCHO = ANCHO_DISENO;
 /** Filas del cuerpo (atributos + columna derecha). Alto mínimo = ícono 64 +
  *  título ~26 + 3 renglones de texto (~51 px a 14 px) + relleno 20 → 160 px:
  *  las tres filas miden lo mismo aunque una tenga 1 renglón y otra 3, y solo
@@ -596,7 +598,10 @@ function ProductLabelFormInner({
     const ratio = tipo.ancho_mm / tipo.alto_mm;
     const ancho = MARCO_MAX_ANCHO;
     const alto = ancho / ratio;
-    const escala = Math.min(ancho / ANCHO_DISENO, alto / Math.max(altoDiseno, 1));
+    // A tamaño completo la escala es 1; solo baja si la ficha creció más
+    // alto de lo que el formato permite —y eso es justo lo que el marco
+    // tiene que enseñar—, nunca por el tamaño de la ventana.
+    const escala = Math.min(1, alto / Math.max(altoDiseno, 1));
     return { ancho, alto, escala };
   }, [tipo, altoDiseno]);
 
@@ -1502,6 +1507,7 @@ function ProductLabelFormInner({
           </Marco30ml>
         </>
       ) : marco ? (
+        <div className="w-full overflow-x-auto pb-1">
         <div
           className="relative mx-auto overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
           style={{ width: marco.ancho, height: marco.alto }}
@@ -1512,6 +1518,7 @@ function ProductLabelFormInner({
           >
             {ficha}
           </div>
+        </div>
         </div>
       ) : (
         ficha

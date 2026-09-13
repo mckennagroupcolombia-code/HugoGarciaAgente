@@ -187,3 +187,8 @@ app/data/verificacion_formulario_manteca/
 # son binarios que crecen con cada emisión y no aportan nada en el historial.
 app/data/prestamos_documentos/
 PAGINA_WEB/site/data/borradores_blog/
+
+# Soportes del contador bajados de Gmail (PDF con NIT y declaraciones; se regeneran con scripts/descargar_soportes_contador.py)
+docs/contabilidad/*/Soportes_Contador/
+docs/contabilidad/**/declaraciones_contador.json
+docs/contabilidad/comparacion_350_vs_2365.json

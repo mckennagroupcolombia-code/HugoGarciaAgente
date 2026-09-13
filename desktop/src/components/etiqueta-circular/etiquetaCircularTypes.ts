@@ -29,8 +29,14 @@ export function esFormatoCircular(
   return sonMedidas(medidas, MEDIDAS_CIRCULAR_POR_DEFECTO);
 }
 
-/** Diámetro de diseño en px. */
-export const DIAMETRO_CIRCULAR = 900;
+/** Diámetro de diseño en px — es también el tamaño al que se dibuja en
+ *  pantalla, porque el lienzo va siempre al 100 %. Se eligió para que la
+ *  etiqueta quepa entera sin desplazarse: al ser cuadrada es la más alta de
+ *  todos los formatos (el de 69 × 51 mide 665 px de alto y la ficha de
+ *  76 × 66, 833). Todo lo demás —bandas, tamaños de letra, separaciones— se
+ *  calcula como fracción de este número, así que cambiarlo reescala el
+ *  diseño entero sin tocar ninguna otra constante. */
+export const DIAMETRO_CIRCULAR = 680;
 
 export interface ReticulaCircular {
   /** Lado del cuadrado = diámetro (relación 1:1, siempre). */
@@ -46,6 +52,77 @@ export interface ReticulaCircular {
   rTitulo: number;
   linea: number;
   lineaFina: number;
+  /** Separación entre los dos renglones del costado izquierdo. */
+  sepArco: number;
+  /** Bandas del bloque central, ya en px para este diámetro. */
+  bandas: Record<ClaveBanda, BandaCircular>;
+  /** Tamaños de letra (máximo, mínimo), ya en px para este diámetro. */
+  tam: Record<ClaveTexto, readonly [number, number]>;
+}
+
+export interface BandaCircular {
+  top: number;
+  alto: number;
+  ancho: number;
+}
+
+/**
+ * Bandas del bloque central como fracción del diámetro. Cada una es tan
+ * ancha como quepa a su altura dentro del círculo naranja: por eso la lista
+ * de aplicaciones, que va por el centro, es la más ancha.
+ */
+const BANDAS_REL = {
+  descripcion: { top: 0.3162, alto: 0.1176, ancho: 0.5882 },
+  aplicacionesTitulo: { top: 0.4441, alto: 0.0353, ancho: 0.4412 },
+  aplicaciones: { top: 0.4882, alto: 0.2029, ancho: 0.6912 },
+  barras: { top: 0.7029, alto: 0.1029, ancho: 0.4412 },
+  neto: { top: 0.8118, alto: 0.0441, ancho: 0.2941 },
+} as const;
+export type ClaveBanda = keyof typeof BANDAS_REL;
+
+/** Tamaños de letra (máximo, mínimo) como fracción del diámetro. El texto se
+ *  encoge hasta el mínimo y, si aún no cabe, se marca en rojo (nunca
+ *  desborda, nunca se vuelve ilegible). */
+const TAM_REL = {
+  titulo: [0.07333, 0.03778],
+  descripcion: [0.02111, 0.01444],
+  aplicacionesTitulo: [0.02222, 0.01556],
+  aplicacion: [0.01667, 0.01111],
+  neto: [0.02444, 0.01556],
+  control: [0.01667, 0.01111],
+  registro: [0.01778, 0.01222],
+  empresa: [0.01889, 0.01333],
+} as const satisfies Record<string, readonly [number, number]>;
+export type ClaveTexto = keyof typeof TAM_REL;
+
+function bandasCirculares(d: number): Record<ClaveBanda, BandaCircular> {
+  const px = (r: { top: number; alto: number; ancho: number }): BandaCircular => ({
+    top: Math.round(d * r.top),
+    alto: Math.round(d * r.alto),
+    ancho: Math.round(d * r.ancho),
+  });
+  return {
+    descripcion: px(BANDAS_REL.descripcion),
+    aplicacionesTitulo: px(BANDAS_REL.aplicacionesTitulo),
+    aplicaciones: px(BANDAS_REL.aplicaciones),
+    barras: px(BANDAS_REL.barras),
+    neto: px(BANDAS_REL.neto),
+  };
+}
+
+function tamanosCirculares(d: number): Record<ClaveTexto, readonly [number, number]> {
+  const px = ([max, min]: readonly [number, number]) =>
+    [Math.round(d * max * 10) / 10, Math.round(d * min * 10) / 10] as const;
+  return {
+    titulo: px(TAM_REL.titulo),
+    descripcion: px(TAM_REL.descripcion),
+    aplicacionesTitulo: px(TAM_REL.aplicacionesTitulo),
+    aplicacion: px(TAM_REL.aplicacion),
+    neto: px(TAM_REL.neto),
+    control: px(TAM_REL.control),
+    registro: px(TAM_REL.registro),
+    empresa: px(TAM_REL.empresa),
+  };
 }
 
 export function reticulaCircular(anchoMm?: number, altoMm?: number): ReticulaCircular {
@@ -64,8 +141,11 @@ export function reticulaCircular(anchoMm?: number, altoMm?: number): ReticulaCir
     rInterior,
     rAnillo: (rExterior + rInterior) / 2,
     rTitulo: rInterior - diametro * 0.06,
-    linea: 1.75,
-    lineaFina: 1.25,
+    linea: Math.max(1.2, diametro * 0.0019),
+    lineaFina: Math.max(0.9, diametro * 0.0014),
+    sepArco: Math.round(diametro * 0.01222),
+    bandas: bandasCirculares(diametro),
+    tam: tamanosCirculares(diametro),
   };
 }
 
@@ -107,8 +187,10 @@ export function arcoTexto(
  * porque ahí manda el título.
  */
 export const TRAMOS_CIRCULAR = {
-  /** Título, dentro del círculo naranja (no en el anillo). */
-  titulo: { desde: -62, hasta: 62, haciaAfuera: true },
+  /** Título, dentro del círculo naranja (no en el anillo). El tramo llega
+   *  hasta ±55°: más abierto, las puntas del arco bajan tanto que se meten
+   *  en la banda de la descripción (a ±62° caían 25 px más abajo). */
+  titulo: { desde: -55, hasta: 55, haciaAfuera: true },
   /** Aviso de control de calidad: arranca arriba a la derecha y baja. */
   control: { desde: 28, hasta: 152, haciaAfuera: true },
   /** Registro sanitario: abajo a la izquierda, se lee del derecho. */
@@ -116,33 +198,6 @@ export const TRAMOS_CIRCULAR = {
   /** Razón social y ciudad: costado izquierdo, en dos renglones. */
   empresa: { desde: 238, hasta: 302, haciaAfuera: true },
 } as const;
-
-/**
- * Bandas del bloque central, en px de diseño (borde superior y alto). Cada
- * una es tan ancha como quepa a esa altura dentro del círculo naranja: por
- * eso la lista de aplicaciones, que va en el centro, es la más ancha.
- */
-export const BANDAS_CIRCULAR = {
-  descripcion: { top: 212, alto: 122, ancho: 540 },
-  aplicacionesTitulo: { top: 342, alto: 30, ancho: 420 },
-  aplicaciones: { top: 378, alto: 224, ancho: 650 },
-  barras: { top: 612, alto: 96, ancho: 320 },
-  neto: { top: 714, alto: 34, ancho: 240 },
-} as const;
-
-/** Tamaños de letra (máximo, mínimo) del ajuste automático, en px de diseño.
- *  El texto se encoge hasta el mínimo y, si aún no cabe, se marca en rojo
- *  (§7 y §15: nunca desborda, nunca se vuelve ilegible). */
-export const TAM_CIRCULAR = {
-  titulo: [66, 34],
-  descripcion: [19, 13],
-  aplicacionesTitulo: [20, 14],
-  aplicacion: [15, 10],
-  neto: [22, 14],
-  control: [15, 10],
-  registro: [16, 11],
-  empresa: [17, 12],
-} as const satisfies Record<string, readonly [number, number]>;
 
 /** Franja decorativa sobre el código de barras (§8). */
 export const COLORES_FRANJA_BARRAS = [
@@ -174,6 +229,9 @@ export function variablesCirculares(r: ReticulaCircular, accentColor?: string): 
     "--acento-suave": mezclarHex(acento, "#FFFFFF", 0.88),
     "--ec-diametro": `${r.diametro}px`,
     "--ec-linea": `${r.linea}px`,
+    // Adornos que no son texto y también siguen al diámetro.
+    "--ec-vineta": `${Math.max(3, Math.round(r.diametro * 0.00667))}px`,
+    "--ec-franja": `${Math.max(5, Math.round(r.diametro * 0.01))}px`,
     // La franja de contacto y las casillas reutilizan reglas de la 30 mL.
     "--e30-linea": `${r.linea}px`,
   } as CSSProperties;

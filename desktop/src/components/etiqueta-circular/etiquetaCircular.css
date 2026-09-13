@@ -136,19 +136,26 @@
    la viñeta no se mueve aunque el texto ocupe uno o tres renglones. */
 .ec-item {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr);
+  grid-template-columns: calc(var(--ec-vineta) * 2.4) minmax(0, 1fr);
   align-items: start;
   column-gap: 6px;
   width: 100%;
 }
 .ec-item-vineta {
   margin-top: 0.42em;
-  width: 6px;
-  height: 6px;
+  width: var(--ec-vineta);
+  height: var(--ec-vineta);
   border-radius: 50%;
   background: #111111;
   justify-self: center;
 }
+/* Alineado a la izquierda, no centrado como el resto del bloque: centrado,
+   un renglón corto se despega de su viñeta y la deja suelta al margen. */
+.ec-item-texto,
+.ec-item-caja :where(.e30-campo) {
+  text-align: left;
+}
+
 .ec-item-texto {
   min-width: 0;
   font-size: 15px;
@@ -209,7 +216,7 @@
 .ec-franja-color {
   display: flex;
   width: 78%;
-  height: 9px;
+  height: var(--ec-franja);
   overflow: hidden;
   border-radius: 1px;
 }

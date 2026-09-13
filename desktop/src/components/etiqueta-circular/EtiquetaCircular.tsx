@@ -16,10 +16,8 @@ import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
   arcoTexto,
-  BANDAS_CIRCULAR,
   COLORES_FRANJA_BARRAS,
   lineasAplicaciones,
-  TAM_CIRCULAR,
   TRAMOS_CIRCULAR,
   unirAplicaciones,
   variablesCirculares,
@@ -81,7 +79,10 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
 ) {
   const uid = useId().replace(/:/g, "");
   const editable = editMode && Boolean(onChange);
-  const { centro, diametro, rExterior, rInterior, rAnillo, rTitulo } = reticula;
+  const { centro, diametro, rExterior, rInterior, rAnillo, rTitulo, sepArco } = reticula;
+  // Bandas y tamaños salen de la retícula: siguen al diámetro, no son px sueltos.
+  const bandas = reticula.bandas;
+  const tam = reticula.tam;
 
   const bandaDescRef = useRef<HTMLDivElement>(null);
   const bandaListaRef = useRef<HTMLDivElement>(null);
@@ -118,8 +119,8 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           <path id={idTitulo} fill="none" d={arcoTexto(centro, rTitulo, TRAMOS_CIRCULAR.titulo.desde, TRAMOS_CIRCULAR.titulo.hasta, true)} />
           <path id={idControl} fill="none" d={arcoTexto(centro, rAnillo, TRAMOS_CIRCULAR.control.desde, TRAMOS_CIRCULAR.control.hasta, true)} />
           <path id={idRegistro} fill="none" d={arcoTexto(centro, rAnillo, TRAMOS_CIRCULAR.registro.desde, TRAMOS_CIRCULAR.registro.hasta, false)} />
-          <path id={idEmpresa} fill="none" d={arcoTexto(centro, rAnillo + 11, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
-          <path id={idCiudad} fill="none" d={arcoTexto(centro, rAnillo - 11, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
+          <path id={idEmpresa} fill="none" d={arcoTexto(centro, rAnillo + sepArco, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
+          <path id={idCiudad} fill="none" d={arcoTexto(centro, rAnillo - sepArco, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
         </defs>
 
         <circle className="ec-borde-exterior" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
@@ -130,7 +131,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           arco={{ r: rTitulo, ...TRAMOS_CIRCULAR.titulo }}
           valor={data.productName || ""}
           ejemplo={EJEMPLO_CIRCULAR.productName}
-          tam={TAM_CIRCULAR.titulo}
+          tam={tam.titulo}
           rotulo="Nombre del producto"
           clase="ec-curvo ec-curvo-titulo"
           editable={editable}
@@ -142,7 +143,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           arco={{ r: rAnillo, ...TRAMOS_CIRCULAR.control }}
           valor={data.controlCalidad || ""}
           ejemplo={EJEMPLO_CIRCULAR.controlCalidad}
-          tam={TAM_CIRCULAR.control}
+          tam={tam.control}
           rotulo="Aviso de control de calidad"
           clase="ec-curvo ec-curvo-gris"
           editable={editable}
@@ -155,7 +156,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           arco={{ r: rAnillo, ...TRAMOS_CIRCULAR.registro }}
           valor={data.registro || ""}
           ejemplo={EJEMPLO_CIRCULAR.registro}
-          tam={TAM_CIRCULAR.registro}
+          tam={tam.registro}
           rotulo="Número de registro"
           clase="ec-curvo"
           editable={editable}
@@ -164,10 +165,10 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         />
         <TextoCurvo
           idPath={idEmpresa}
-          arco={{ r: rAnillo + 11, ...TRAMOS_CIRCULAR.empresa }}
+          arco={{ r: rAnillo + sepArco, ...TRAMOS_CIRCULAR.empresa }}
           valor={data.empresa || ""}
           ejemplo={EJEMPLO_CIRCULAR.empresa}
-          tam={TAM_CIRCULAR.empresa}
+          tam={tam.empresa}
           rotulo="Razón social"
           clase="ec-curvo"
           editable={editable}
@@ -176,10 +177,10 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         />
         <TextoCurvo
           idPath={idCiudad}
-          arco={{ r: rAnillo - 11, ...TRAMOS_CIRCULAR.empresa }}
+          arco={{ r: rAnillo - sepArco, ...TRAMOS_CIRCULAR.empresa }}
           valor={data.city || ""}
           ejemplo={EJEMPLO_ETIQUETA.city}
-          tam={TAM_CIRCULAR.empresa}
+          tam={tam.empresa}
           rotulo="Ciudad y país"
           clase="ec-curvo"
           editable={editable}
@@ -200,7 +201,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         <div
           ref={bandaDescRef}
           className="ec-banda"
-          style={{ top: BANDAS_CIRCULAR.descripcion.top, height: BANDAS_CIRCULAR.descripcion.alto, width: BANDAS_CIRCULAR.descripcion.ancho }}
+          style={{ top: bandas.descripcion.top, height: bandas.descripcion.alto, width: bandas.descripcion.ancho }}
         >
           <CampoEtiqueta
             valor={data.descripcionProducto || ""}
@@ -208,7 +209,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
             editMode={editMode}
             styleKey="ec_descripcion"
             ejemplo={EJEMPLO_CIRCULAR.descripcionProducto}
-            tam={TAM_CIRCULAR.descripcion}
+            tam={tam.descripcion}
             maxLineas={5}
             cajaRef={bandaDescRef}
             multilinea
@@ -218,7 +219,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
 
         <div
           className="ec-banda"
-          style={{ top: BANDAS_CIRCULAR.aplicacionesTitulo.top, height: BANDAS_CIRCULAR.aplicacionesTitulo.alto, width: BANDAS_CIRCULAR.aplicacionesTitulo.ancho }}
+          style={{ top: bandas.aplicacionesTitulo.top, height: bandas.aplicacionesTitulo.alto, width: bandas.aplicacionesTitulo.ancho }}
         >
           <CampoEtiqueta
             valor={data.aplicacionesTitulo || ""}
@@ -226,7 +227,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
             editMode={editMode}
             styleKey="ec_aplicacionesTitulo"
             ejemplo={EJEMPLO_CIRCULAR.aplicacionesTitulo}
-            tam={TAM_CIRCULAR.aplicacionesTitulo}
+            tam={tam.aplicacionesTitulo}
             maxLineas={1}
             className="ec-aplicaciones-titulo"
           />
@@ -235,7 +236,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         <div
           ref={bandaListaRef}
           className="ec-banda"
-          style={{ top: BANDAS_CIRCULAR.aplicaciones.top, height: BANDAS_CIRCULAR.aplicaciones.alto, width: BANDAS_CIRCULAR.aplicaciones.ancho }}
+          style={{ top: bandas.aplicaciones.top, height: bandas.aplicaciones.alto, width: bandas.aplicaciones.ancho }}
         >
           <ul className="ec-lista">
             {filas.map((linea, i) => (
@@ -248,7 +249,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
                     editMode={editMode}
                     styleKey="ec_aplicacion"
                     ejemplo={EJEMPLO_CIRCULAR.aplicacion}
-                    tam={TAM_CIRCULAR.aplicacion}
+                    tam={tam.aplicacion}
                     maxLineas={4}
                     cajaRef={bandaListaRef}
                     multilinea
@@ -277,7 +278,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
 
         <div
           className="ec-banda"
-          style={{ top: BANDAS_CIRCULAR.barras.top, height: BANDAS_CIRCULAR.barras.alto, width: BANDAS_CIRCULAR.barras.ancho }}
+          style={{ top: bandas.barras.top, height: bandas.barras.alto, width: bandas.barras.ancho }}
         >
           <div className="ec-barras-caja">
             <div className="ec-franja-color" aria-hidden="true">
@@ -296,7 +297,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
 
         <div
           className="ec-banda"
-          style={{ top: BANDAS_CIRCULAR.neto.top, height: BANDAS_CIRCULAR.neto.alto, width: BANDAS_CIRCULAR.neto.ancho }}
+          style={{ top: bandas.neto.top, height: bandas.neto.alto, width: bandas.neto.ancho }}
         >
           <CampoEtiqueta
             valor={data.netContent || ""}
@@ -305,7 +306,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
             styleKey="ec_netContent"
             ejemplo={EJEMPLO_CIRCULAR.netContent}
             mostrar={textoContenidoNeto}
-            tam={TAM_CIRCULAR.neto}
+            tam={tam.neto}
             maxLineas={1}
             className="ec-neto"
           />

@@ -1,3 +1,12 @@
+### 2026-09-13 - Soportes del contador desde Gmail y ajustes de etiquetas (trabajo en curso de otra sesión)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Herramienta + ajustes (snapshot de trabajo en curso)
+- **Qué se implementó:** (recap reconstruido al hacer el commit; los cambios venían de una sesión paralela del mismo día)
+  - `scripts/descargar_soportes_contador.py`: baja del Gmail de la empresa los adjuntos que envía el contador (declaraciones DIAN/SDH, auxiliares) y los organiza en `docs/contabilidad/<año>/Soportes_Contador/<AAAA-MM>/<tipo>/` (fuera de git). `scripts/extraer_declaraciones_contador.py` extrae los valores a `declaraciones_contador.json` y cruza el formulario 350 contra la cuenta 2365 (`--comparar`). Documentado en `docs/agentic/PENDIENTES-CONTABILIDAD.md` (corte 2026-09-13) y rutas excluidas en `.gitignore`.
+  - Etiquetas: ajustes en el formato circular (`EtiquetaCircular.tsx`, tipos y CSS), en `Marco30ml` y en `ProductLabelForm.tsx`. El panel compila con estos cambios.
+- **Archivos Modificados:** `scripts/{descargar_soportes_contador.py,extraer_declaraciones_contador.py}` (nuevos), `docs/agentic/PENDIENTES-CONTABILIDAD.md`, `.gitignore`, `desktop/src/components/{etiqueta-30ml/*,etiqueta-circular/*,etiqueta-ficha/ProductLabelForm.tsx}`
+
+
 ### 2026-09-13 12:40 - Correos de recuperación de compra, diagnóstico de abandono y página de mantenimiento
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (tienda web + operación)
