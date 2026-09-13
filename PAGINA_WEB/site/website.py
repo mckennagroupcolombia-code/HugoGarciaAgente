@@ -3872,6 +3872,123 @@ _ACTIVIDAD_CACHE: dict = {"ts": 0.0, "data": None}
 _ACTIVIDAD_TTL = 60  # seg — evita golpear sqlite en cada request del ticker
 
 
+def _hace(dt: datetime | None) -> str:
+    """'hace 25 min', 'hace 3 h', 'ayer', 'hace 4 días' — para señales de frescura."""
+    if not dt:
+        return ""
+    seg = (datetime.now() - dt).total_seconds()
+    if seg < 90:
+        return "hace un momento"
+    if seg < 3600:
+        return f"hace {int(seg // 60)} min"
+    if dt.date() == datetime.now().date():
+        return f"hace {int(seg // 3600)} h"
+    dias = (datetime.now().date() - dt.date()).days
+    if dias <= 1:
+        return "ayer"
+    return f"hace {dias} días"
+
+
+def _tiempo_respuesta_wa(dias: int = 30) -> dict:
+    """Mediana de minutos entre el primer mensaje de un cliente y la primera
+    respuesta de una PERSONA (enviado_por='humano'), en horario laboral. Se
+    excluye el bot a propósito: responde en segundos y haría ver "0 min", que
+    no es lo que el cliente experimenta cuando necesita a un asesor."""
+    ruta = ROOT / "app" / "data" / "wa_chats.db"
+    if not ruta.exists():
+        return {}
+    try:
+        con = sqlite3.connect(ruta, timeout=5)
+        desde = (datetime.now() - timedelta(days=dias)).timestamp()
+        filas = con.execute(
+            "SELECT jid, ts, direccion, enviado_por FROM mensajes WHERE ts >= ? AND COALESCE(eliminado,0)=0 ORDER BY jid, ts",
+            (desde,),
+        ).fetchall()
+        con.close()
+    except Exception:
+        log.warning("actividad: no se pudo leer wa_chats.db", exc_info=True)
+        return {}
+    pendientes: dict[str, float] = {}
+    deltas: list[float] = []
+    for jid, ts, direccion, quien in filas:
+        if direccion == "entrada":
+            pendientes.setdefault(jid, ts)
+        elif quien == "humano" and jid in pendientes:
+            t0 = pendientes.pop(jid)
+            d0 = datetime.fromtimestamp(t0)
+            if 0 < ts - t0 < 24 * 3600 and d0.weekday() < 5 and 8 <= d0.hour < 18:
+                deltas.append((ts - t0) / 60)
+    if len(deltas) < 20:
+        return {}
+    deltas.sort()
+    mediana = deltas[len(deltas) // 2]
+    return {"mediana_min": round(mediana, 1), "muestra": len(deltas),
+            "pct_15min": round(100 * sum(1 for x in deltas if x <= 15) / len(deltas))}
+
+
+def _ultimo_despacho() -> dict:
+    """Último despacho real (web o MeLi) con ciudad y antigüedad; nunca el nombre."""
+    mejor = None
+    try:
+        con = sqlite3.connect(DB_PATH)
+        fila = con.execute(
+            "SELECT buyer_city, COALESCE(shipped_email_sent_at, delivered_at) FROM orders "
+            "WHERE shipping_status IN ('shipped','delivered') AND buyer_city IS NOT NULL AND buyer_city != '' "
+            "ORDER BY 2 DESC LIMIT 1"
+        ).fetchone()
+        con.close()
+        if fila and fila[1]:
+            mejor = (datetime.fromisoformat(str(fila[1])[:19]), str(fila[0]).strip().title())
+    except Exception:
+        pass
+    try:
+        raw = json.loads(_COBERTURA_MELI_FILE.read_text(encoding="utf-8"))
+        for entry in (raw.get("municipios") or {}).values():
+            f, m = entry.get("ultima_vez") or "", entry.get("municipio") or ""
+            if f and m:
+                # MeLi solo guarda el día: se toma el fin de la jornada para no decir "hace 0 min"
+                dt = datetime.strptime(f[:10], "%Y-%m-%d").replace(hour=17)
+                if dt > datetime.now():
+                    dt = datetime.now()
+                if not mejor or dt > mejor[0]:
+                    mejor = (dt, m.strip().title())
+    except Exception:
+        pass
+    if not mejor:
+        return {}
+    return {"ciudad": mejor[1], "hace": _hace(mejor[0]), "ts": mejor[0].isoformat(timespec="seconds")}
+
+
+def _ultima_consulta_respondida() -> dict:
+    """Última pregunta técnica respondida en MeLi (app/training/casos_preventa.json)."""
+    try:
+        data = json.loads((ROOT / "app" / "training" / "casos_preventa.json").read_text(encoding="utf-8"))
+        casos = data.get("casos") if isinstance(data, dict) else data
+        ts = max((c.get("timestamp") or "") for c in casos if isinstance(c, dict))
+        if not ts:
+            return {}
+        dt = datetime.fromisoformat(ts[:19])
+        return {"hace": _hace(dt), "ts": dt.isoformat(timespec="seconds")}
+    except Exception:
+        return {}
+
+
+def _pedidos_30d() -> int:
+    n = 0
+    try:
+        con = sqlite3.connect(DB_PATH)
+        n += int(con.execute("SELECT COUNT(*) FROM orders WHERE status='approved' AND created_at >= datetime('now','-30 days')").fetchone()[0] or 0)
+        con.close()
+    except Exception:
+        pass
+    try:
+        cache = json.loads((ROOT / "app" / "data" / "meli_ventas_30d_cache.json").read_text(encoding="utf-8"))
+        n += int(cache.get("ordenes") or 0)
+    except Exception:
+        pass
+    return n
+
+
 def _calcular_actividad() -> dict:
     """Actividad real agregada (sin PII) para el ticker 'en este momento' del inicio.
 
@@ -3930,14 +4047,31 @@ def _calcular_actividad() -> dict:
 
     ciudades_semana_lista = sorted(ciudades_semana)
 
+    # Señales que nunca bajan a cero de madrugada y que le importan a quien compra
+    # (sep-2026): último despacho, respuesta humana en WhatsApp, pedidos del mes.
+    # Los campos "hoy" se conservan para el tema Pureza (_actividad_vivo.html).
+    despacho = _ultimo_despacho()
+    wa = _tiempo_respuesta_wa()
+    consulta = _ultima_consulta_respondida()
+    pedidos_30d = _pedidos_30d()
+    if wa and wa["mediana_min"] <= 60:
+        m = wa["mediana_min"]
+        respuesta_wa_txt = "en menos de 1 min" if m < 1 else f"en {int(round(m))} min"
+    else:
+        respuesta_wa_txt = ""  # si no es buena, no se presume
+
     return {
         "pedidos_hoy": pedidos_web_hoy + ordenes_meli_hoy,
         "ciudades_semana": ciudades_semana_lista[:12],
         "n_ciudades_semana": len(ciudades_semana_lista),
-        # WhatsApp + MeLi: antes solo se contaban las preguntas de MeLi aunque
-        # la etiqueta ya decía "por WhatsApp y MercadoLibre" — ahora sí suma
-        # ambos canales reales.
         "consultas_hoy": mensajes_wa + preguntas_meli,
+        "ultimo_despacho_ciudad": despacho.get("ciudad", ""),
+        "ultimo_despacho_hace": despacho.get("hace", ""),
+        "respuesta_wa_txt": respuesta_wa_txt,
+        "respuesta_wa_pct15": (wa or {}).get("pct_15min", 0),
+        "ultima_consulta_hace": consulta.get("hace", ""),
+        "pedidos_30d": pedidos_30d,
+        "pedidos_30d_txt": f"{pedidos_30d:,}".replace(",", "."),
         "actualizado": datetime.now().isoformat(timespec="seconds"),
     }
 

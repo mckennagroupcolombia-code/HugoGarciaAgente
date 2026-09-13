@@ -4682,7 +4682,9 @@ body *:not(.ph):not([class^="ph-"]) {
 
 /* Ajustes tras verla en pantalla (13-sep-2026) */
 .hero { min-height: auto; }
-.hero.hero--foto { grid-template-columns: minmax(0, 1.45fr) minmax(140px, .7fr) minmax(250px, .85fr); }
+/* Solo escritorio: sin el guard, esta regla (posterior en el archivo) le ganaba a la
+   media query de 900px y el hero seguía a 3 columnas en el celular (caja de 250px). */
+@media (min-width: 901px) { .hero.hero--foto { grid-template-columns: minmax(0, 1.45fr) minmax(140px, .7fr) minmax(250px, .85fr); } }
 .hero-left { padding: 56px 28px 44px 0; gap: 22px; justify-content: flex-start; }
 .hero-cta .btn { padding: var(--studio-pad-y, 14px) var(--studio-pad-x, 26px); }
 .dest-track[hidden], .dest-grid[hidden] { display: none !important; }
@@ -4719,3 +4721,16 @@ body *:not(.ph):not([class^="ph-"]) {
    veía a través de la foto. */
 .gv-photo, .shop-card-img, .product-card-mini-img, .prod-gallery,
 .cart-img, .checkout-item-img, .product-img-wrap, .acid-img-wrap { background-color: #fff; }
+
+/* Caja "En este momento": valores en texto (hace 2 h, en 4 min) e icono de check */
+/* Caja "En este momento" (portada): filas compactas que no se parten. Los
+   valores ya no son cifras de dos dígitos ("4", "77") sino "1.724", "en 2 min"
+   o un check, así que dejan de ir en versalitas espaciadas. */
+.hero-kit-box .kit-item { gap: 14px; flex-wrap: nowrap; }
+.hero-kit-box .kit-dot { width: 42px; height: 42px; }
+.hero-kit-box .kit-info { min-width: 0; }
+.hero-kit-box .kit-info h3 { font-size: 15px; line-height: 1.25; }
+.hero-kit-box .kit-info p { font-size: 12.5px; }
+.hero-kit-box .kit-val { font-size: 18px; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+.hero-kit-box .kit-val--txt { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.hero-kit-box .kit-val--icon { font-size: 20px; line-height: 1; color: var(--green); }

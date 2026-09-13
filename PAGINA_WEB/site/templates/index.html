@@ -12,37 +12,60 @@
 
 {% macro caja_por_que_elegirnos(actividad) -%}
 {#
-  Antes mostraba "Por qué elegirnos" (bullets estáticos). Ahora usa el mismo
-  espacio para actividad real en vivo — único lugar donde se muestra en el
-  tema Clásico (antes se repetía además en una tira aparte más abajo,
-  _actividad_vivo.html; esa tira solo la usa el tema Pureza, ver tema_web.py).
+  Actividad real en vivo (tema Clásico). Desde sep-2026 muestra señales que no
+  se reinician a medianoche ni bajan a cero de madrugada (antes "Pedidos hoy" y
+  "Consultas hoy" amanecían en 0): último despacho con ciudad y antigüedad,
+  tiempo de respuesta HUMANA por WhatsApp (solo si es bueno; si no, la última
+  consulta técnica respondida), pedidos del último mes en todos los canales y
+  ciudades con envío en la semana. Fuentes en website.py::_calcular_actividad.
 #}
 <div class="hero-kit-box">
   <div class="hero-right-label"><span class="live-dot" aria-hidden="true"></span> En este momento</div>
   <div class="kit-items" data-live-actividad>
+    {% if actividad.ultimo_despacho_ciudad %}
+    <div class="kit-item">
+      <div class="kit-dot dot-1"><i class="ph ph-truck"></i></div>
+      <div class="kit-info">
+        <h3>Último despacho</h3>
+        <p><span data-live="ultimo_despacho_ciudad">{{ actividad.ultimo_despacho_ciudad }}</span> · <span data-live="ultimo_despacho_hace">{{ actividad.ultimo_despacho_hace }}</span></p>
+      </div>
+      <span class="kit-val kit-val--icon"><i class="ph ph-check"></i></span>
+    </div>
+    {% endif %}
+    {% if actividad.respuesta_wa_txt %}
+    <div class="kit-item">
+      <div class="kit-dot dot-3"><i class="ph ph-chat-circle-dots"></i></div>
+      <div class="kit-info">
+        <h3>Asesor humano</h3>
+        <p>Te responde por WhatsApp</p>
+      </div>
+      <span class="kit-val kit-val--txt" data-live="respuesta_wa_txt">{{ actividad.respuesta_wa_txt }}</span>
+    </div>
+    {% elif actividad.ultima_consulta_hace %}
+    <div class="kit-item">
+      <div class="kit-dot dot-3"><i class="ph ph-chat-circle-dots"></i></div>
+      <div class="kit-info">
+        <h3>Última consulta técnica</h3>
+        <p>Respondida en MercadoLibre</p>
+      </div>
+      <span class="kit-val kit-val--txt" data-live="ultima_consulta_hace">{{ actividad.ultima_consulta_hace }}</span>
+    </div>
+    {% endif %}
     <div class="kit-item">
       <div class="kit-dot dot-1"><i class="ph ph-package"></i></div>
       <div class="kit-info">
-        <h3>Pedidos hoy</h3>
-        <p>Todos los canales</p>
+        <h3>Pedidos del mes</h3>
+        <p>Web y MercadoLibre</p>
       </div>
-      <span class="kit-val" data-live="pedidos_hoy">{{ actividad.pedidos_hoy }}</span>
+      <span class="kit-val" data-live="pedidos_30d_txt">{{ actividad.pedidos_30d_txt }}</span>
     </div>
     <div class="kit-item">
       <div class="kit-dot dot-2"><i class="ph ph-map-pin"></i></div>
       <div class="kit-info">
         <h3>Ciudades con envío</h3>
-        <p>Cobertura activa esta semana</p>
+        <p>Despachos esta semana</p>
       </div>
       <span class="kit-val" data-live="n_ciudades_semana">{{ actividad.n_ciudades_semana }}</span>
-    </div>
-    <div class="kit-item">
-      <div class="kit-dot dot-3"><i class="ph ph-chat-circle-dots"></i></div>
-      <div class="kit-info">
-        <h3>Consultas atendidas hoy</h3>
-        <p>Por WhatsApp y MercadoLibre</p>
-      </div>
-      <span class="kit-val" data-live="consultas_hoy">{{ actividad.consultas_hoy }}</span>
     </div>
   </div>
 </div>

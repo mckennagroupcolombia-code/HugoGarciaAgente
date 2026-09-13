@@ -1,3 +1,19 @@
+### 2026-09-13 14:30 - La caja "En este momento" de la portada deja de amanecer en cero
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de portada (datos + plantilla + CSS)
+- **Qué se implementó:**
+  - **Problema:** la caja mostraba "Pedidos hoy 4", "Ciudades con envío 77" y "Consultas atendidas hoy". Las dos cifras de "hoy" se reinician a medianoche y de madrugada valen 0 (justo lo contrario de "movimiento real"); además "4 pedidos" salía del webhook de MeLi, que cuenta muy por debajo de las ~57 órdenes/día reales de la caché de 30 días, y "consultas atendidas" sumaba mensajes del bot.
+  - **Señales nuevas** (`website.py::_calcular_actividad`, con helpers `_hace`, `_ultimo_despacho`, `_tiempo_respuesta_wa`, `_ultima_consulta_respondida`, `_pedidos_30d`):
+    1. **Último despacho** — ciudad y antigüedad ("Cali · ayer"): el pedido web enviado/entregado más reciente o la cobertura MeLi (`cobertura_meli.json`, que solo guarda el día: se toma a las 17:00 para no decir "hace 0 min"). Nunca nombre del cliente.
+    2. **Asesor humano, te responde por WhatsApp — en 2 min**: mediana de los últimos 30 días entre el primer mensaje del cliente y la primera respuesta con `enviado_por='humano'` en `wa_chats.db`, solo lunes a viernes de 8 a 18. **El bot queda fuera a propósito**: con él la mediana da 0,1 min y no es lo que vive quien necesita a una persona. Hoy: 2,3 min sobre 579 conversaciones, 76 % en menos de 15 min. Necesita ≥20 muestras y solo se muestra si la mediana es ≤60 min; si no, la fila cae a "Última consulta técnica respondida — hace 4 h" (`casos_preventa.json`). No se presume lo que no está bien.
+    3. **Pedidos del mes** (web aprobados + `meli_ventas_30d_cache.json`): 1.724, una cifra que se mueve cada día y no depende de la hora.
+    4. **Ciudades con envío** se conserva (77, despachos de la semana).
+  - Los campos viejos (`pedidos_hoy`, `consultas_hoy`) siguen en `/api/actividad` para el tema Pureza (`_actividad_vivo.html`); el refresco en vivo de `main.js` por `data-live` sirve igual para las claves nuevas.
+  - **Bug de móvil encontrado al verificar:** una regla del 13-sep al final de `main.css` (`.hero.hero--foto` a 3 columnas) le ganaba a la media query de 900 px por venir después en el archivo, así que en el celular el hero seguía a tres columnas y la caja medía 250 px. Ahora va dentro de `@media (min-width: 901px)`. Verificado con Chromium a 1280 y 400 px: una columna, caja a todo el ancho, ninguna fila partida.
+  - Valores de la caja sin versalitas espaciadas (ya no son cifras de dos dígitos): 18 px tabulares para números, 13 px para "en 2 min", check para el despacho. Copia corta para que quepa en la columna de 335 px.
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/{index.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`, `tests/test_actividad_portada.py` (nuevo: `_hace`, mediana humana con DB temporal, sin muestra suficiente → nada, claves del API, la caja no usa "hoy")
+
+
 ### 2026-09-13 - Soportes del contador desde Gmail y ajustes de etiquetas (trabajo en curso de otra sesión)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Herramienta + ajustes (snapshot de trabajo en curso)

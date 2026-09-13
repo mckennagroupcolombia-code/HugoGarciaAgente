@@ -45,7 +45,7 @@ fbq('track','PageView');
    (sin JS, reduced-motion, previews) todo el contenido queda visible. */
 (function(){try{if('IntersectionObserver' in window&&!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){document.documentElement.classList.add('js-reveal');}}catch(e){}})();
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260913e">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260913h">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
