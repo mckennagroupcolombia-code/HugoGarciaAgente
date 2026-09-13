@@ -59,12 +59,12 @@
             <circle class="co-ring-fg" cx="60" cy="60" r="52" pathLength="100"/>
           </svg>
           <div class="co-ring-txt">
-            <span class="co-ring-val"><span data-count="{{ colombia.n_alcanzados }}">0</span><small>/{{ colombia.total_departamentos }}</small></span>
+            <span class="co-ring-val"><span data-count="{{ colombia.n_alcanzados }}">{{ colombia.n_alcanzados }}</span><small>/{{ colombia.total_departamentos }}</small></span>
             <span class="co-ring-label">departamentos</span>
           </div>
         </div>
         <div class="co-stats">
-          <div><span class="co-stat-val" data-count="{{ colombia.n_municipios }}">0</span><span class="co-stat-label">municipios con pedidos entregados</span></div>
+          <div><span class="co-stat-val" data-count="{{ colombia.n_municipios }}">{{ colombia.n_municipios }}</span><span class="co-stat-label">municipios con pedidos entregados</span></div>
           <div><span class="co-stat-val" data-live="pedidos_hoy">{{ colombia.pedidos_hoy }}</span><span class="co-stat-label">pedidos hoy (web + MercadoLibre)</span></div>
         </div>
 

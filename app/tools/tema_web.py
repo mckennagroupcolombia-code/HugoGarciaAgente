@@ -57,14 +57,18 @@ _ORDEN_PUREZA = [
     "destacados",
     "cta",
 ]
+# Portada Clásico (Fase A del plan de portada, sep-2026): primero lo comercial
+# (categorías, destacados), después el argumento de trazabilidad, y se cierra
+# con la llamada a la acción. Antes trazabilidad + cobertura (2.900 px) iban
+# antes que el catálogo y la cta estaba oculta: la página terminaba en el pie.
 _ORDEN_CLASICO = [
     "hero",
     "banners_promo",
     "features",
-    "ruta_origen",
-    "cobertura",
     "categorias",
     "destacados",
+    "ruta_origen",
+    "cobertura",
     "cta",
 ]
 
@@ -128,7 +132,7 @@ TEMA_WEB_DEFAULTS: dict = {
     },
     "layout_clasico": {
         "orden": list(_ORDEN_CLASICO),
-        "nodos": {"hero.badge": {"hidden": True}, "cta": {"hidden": True}},
+        "nodos": {"hero.badge": {"hidden": True}},  # la cta ya no nace oculta (sep-2026)
     },
     "clasico": {
         "colores": copy.deepcopy(COLORES_CLASICO_DEFAULT),
@@ -225,7 +229,7 @@ TEMA_WEB_DEFAULTS: dict = {
             "features": True,
             "categorias": True,
             "destacados": True,
-            "cta": False,
+            "cta": True,
             "banners_promo": True,
             "ruta_origen": True,
             "cobertura": True,
@@ -567,9 +571,9 @@ def _normalizar_layout(layout: dict | None, orden_default: list[str] | None = No
     # Inicio Clásico: el recuadro «Materias primas certificadas» no se muestra.
     if orden_base == _ORDEN_CLASICO and "hero.badge" not in nodos_out:
         nodos_out["hero.badge"] = {"hidden": True}
-    # Inicio Clásico: sin banner «¿Necesitas una cotización?».
-    if orden_base == _ORDEN_CLASICO and "cta" not in nodos_out:
-        nodos_out["cta"] = {"hidden": True}
+    # La cta del Clásico ya no se oculta a la fuerza (sep-2026): la portada
+    # debe terminar en una decisión, no en el pie. Si alguien la quiere fuera,
+    # la apaga desde el Studio (nodos.cta.hidden) y eso sí se respeta.
     return {"orden": orden, "nodos": nodos_out}
 
 

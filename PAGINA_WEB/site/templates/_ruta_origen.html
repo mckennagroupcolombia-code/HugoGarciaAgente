@@ -36,11 +36,11 @@
 
     {% if ruta_origen.tiene_datos %}
     <div class="tz-kpis reveal">
-      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">0</span><span class="tz-kpi-label">países de origen</span></div>
-      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="200">0</span>+</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
-      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_tds }}">0</span><span class="tz-kpi-label">fichas técnicas (TDS)</span></div>
-      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_coa }}">0</span><span class="tz-kpi-label">certificados de análisis (COA)</span></div>
-      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="{{ colombia.n_alcanzados }}">0</span><span class="tz-kpi-of">/{{ colombia.total_departamentos }}</span></span><span class="tz-kpi-label">departamentos con despachos</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_paises }}">{{ ruta_origen.n_paises }}</span><span class="tz-kpi-label">países de origen</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="200">200</span>+</span><span class="tz-kpi-label">referencias con origen declarado</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_tds }}">{{ ruta_origen.n_tds }}</span><span class="tz-kpi-label">fichas técnicas (TDS)</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val" data-count="{{ ruta_origen.n_coa }}">{{ ruta_origen.n_coa }}</span><span class="tz-kpi-label">certificados de análisis (COA)</span></div>
+      <div class="tz-kpi"><span class="tz-kpi-val"><span data-count="{{ colombia.n_alcanzados }}">{{ colombia.n_alcanzados }}</span><span class="tz-kpi-of">/{{ colombia.total_departamentos }}</span></span><span class="tz-kpi-label">departamentos con despachos</span></div>
     </div>
 
     {# ── Cadena de custodia ilustrada ── #}

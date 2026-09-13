@@ -341,6 +341,15 @@ def linea_id_de_categoria(cat: str | None) -> str:
     return "industria"
 
 
+LINEAS_MINIMO_PORTADA = 3  # una línea con 1 producto ("Agro") no merece tarjeta en la portada
+
+
+def lineas_para_portada(catalog: list) -> list[dict]:
+    """Líneas con al menos LINEAS_MINIMO_PORTADA productos; el resto sigue
+    existiendo en /catalogo y en la nav de la tienda."""
+    return [L for L in lineas_desde_catalogo(catalog) if L["n_productos"] >= LINEAS_MINIMO_PORTADA]
+
+
 def lineas_desde_catalogo(catalog: list) -> list[dict]:
     """Las 6 líneas con conteo de fichas (para home y nav de tienda)."""
     counts: dict[str, int] = {nombre: 0 for _, nombre, _ in LINEAS_OFICIALES}
@@ -3968,7 +3977,7 @@ def index():
     return render_template(plantilla,
         catalog=catalog,
         cats=cats,
-        lineas=lineas_desde_catalogo(catalog),
+        lineas=lineas_para_portada(catalog),
         featured=featured[:12],
         ruta_origen=_construir_ruta_origen(catalog),
         colombia=_construir_colombia_mapa(),

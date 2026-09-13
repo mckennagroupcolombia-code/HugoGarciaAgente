@@ -1,3 +1,17 @@
+### 2026-09-12 23:30 - Portada: orden comercial primero, cta de cierre encendida, categorías con mínimo y contadores reales (Fase A del plan de portada)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de estructura (sin código nuevo de peso)
+- **Qué se implementó:**
+  - **Plan de portada publicado** (artefacto "Portada McKenna") medido en vivo con Chromium: 8.842 px de alto en celular, 2,15 MB en 24 peticiones, HTML de 260 KB, sin buscador en el hero, sin cierre. Nueve bloques propuestos y cuatro fases; esta es la A.
+  - **Orden del tema Clásico:** `hero → banners → features → categorías → destacados → trazabilidad → cobertura → cta`. Antes trazabilidad y cobertura (2.900 px) iban antes que el catálogo. Cambiado el default en `tema_web.py` y el estado persistido en `tema_web.json`.
+  - **La cta de cierre existía pero nacía oculta** por tres vías distintas: `secciones.cta: False` en los defaults, `nodos.cta.hidden` en el layout por defecto y una regla en `_normalizar_layout` que la volvía a ocultar aunque el JSON no la tuviera. Se quitan las tres; si alguien la apaga desde el Studio, se respeta.
+  - **Categorías:** `lineas_para_portada()` omite líneas con menos de 3 productos ("Agro" tenía 1). Siguen en /catalogo y en la nav de la tienda.
+  - **Contadores con valor real en reposo:** los KPI de trazabilidad y cobertura imprimían "0" y solo subían al entrar en pantalla; en previews y capturas la empresa tenía "0 países de origen". Ahora el HTML trae el número y el JS solo lo anima.
+  - **Efecto medido tras publicar:** el orden en el HTML servido es el nuevo, "Agro" desapareció, los contadores traen 25 / 200 / 117 / 56 / 25 / 153, y la página cierra con "¿Necesitas una cotización?". El alto subió unos 460 px por la cta; la reducción grande (mapas fuera del HTML, trazabilidad condensada) es la Fase D.
+  - Se reiniciaron `mckenna-website` y `agente-pro` (el Studio del panel usa el mismo `tema_web.py` y habría vuelto a ocultar la cta al guardar).
+- **Archivos Modificados:** `app/tools/tema_web.py`, `PAGINA_WEB/site/data/tema_web.json`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/templates/{_ruta_origen.html,_cobertura.html}`, `tests/test_portada_orden.py` (nuevo)
+
+
 ### 2026-09-12 - Alegra: medio de pago real ante la DIAN, notificación FAZ09 y alérgenos en la ficha técnica
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + herramienta
