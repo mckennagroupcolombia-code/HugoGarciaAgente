@@ -7,8 +7,8 @@
   - La miniatura de producto de las **sugerencias del buscador** iba sobre `--off-white`: ahora blanco, con el mismo `multiply` que el resto.
   - **Regla de cierre** en `main.css`: `background-color: #fff` para los ocho contenedores de foto de producto del sitio (tarjeta de tienda, tarjeta mini, galería de ficha, carrito, checkout, guía viva y los dos envoltorios heredados). Así un tinte futuro en una sección no vuelve a filtrarse por el blend.
   - **Verificado en vivo** recorriendo `/`, `/catalogo`, `/producto/<slug>`, `/carrito` y dos guías: ninguna foto de producto queda sobre un fondo que no sea blanco.
-  - **No se tocó** `.rw-lab` del recetario: ese recuadro con tinte no es una foto de producto sino el pictograma animado del paso (vaso, gotero, frasco).
-- **Archivos Modificados:** `PAGINA_WEB/site/templates/{guia_viva.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`
+  - **`.rw-lab` del recetario** (el pictograma animado del paso: vaso, gotero, frasco) también pasa a blanco con borde, a pedido del usuario: queda un solo criterio para todos los recuadros de imagen del sitio.
+- **Archivos Modificados:** `PAGINA_WEB/site/templates/{guia_viva.html,receta_detalle.html,base.html}`, `PAGINA_WEB/site/static/css/main.css`
 
 
 ### 2026-09-13 04:10 - Ocho artículos nuevos en el blog, con citas de PubMed verificadas una por una

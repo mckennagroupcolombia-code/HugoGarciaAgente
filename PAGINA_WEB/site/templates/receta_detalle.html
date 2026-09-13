@@ -96,7 +96,9 @@
   .rw-timer { display: flex; align-items: center; gap: 12px; }
   .rw-timer .t { font-size: 1.6rem; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; letter-spacing: 1px; }
   .rw-qtys { font-size: .84rem; color: var(--text-muted); }
-  .rw-lab { background: color-mix(in srgb, var(--green-light) 22%, #fff); border-radius: 12px; aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; position: relative; overflow: hidden; }
+  /* Fondo blanco, igual que las fotos de producto (sep-2026); el borde evita
+     que el pictograma flote sobre la tarjeta */
+  .rw-lab { background: #fff; border: 1px solid var(--border); border-radius: 12px; aspect-ratio: 1; max-width: 100%; display: grid; place-items: center; position: relative; overflow: hidden; }
   .rw-lab svg { width: 76%; height: auto; overflow: visible; }
   .rw-lab .cap { position: absolute; bottom: 10px; left: 0; right: 0; text-align: center; font-size: .64rem; letter-spacing: 2px; text-transform: uppercase; color: var(--green); font-weight: 700; }
   .rw-glass { fill: none; stroke: var(--green); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
@@ -286,5 +288,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/contenido-eventos.js') }}?v=20260912a"></script>
-<script src="{{ url_for('static', filename='js/recetario-wizard.js') }}?v=20260912a" defer></script>
+<script src="{{ url_for('static', filename='js/recetario-wizard.js') }}?v=20260913a" defer></script>
 {% endblock %}
