@@ -11269,6 +11269,63 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/pagos/solicitudes/<int:sid>/previsualizacion", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/previsualizacion", methods=["GET"])
+    def api_pagos_previsualizacion(sid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import previsualizacion_de
+
+            return jsonify(previsualizacion_de(sid))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/enviar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/enviar", methods=["POST"])
+    def api_pagos_enviar_aprobacion(sid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import enviar_a_aprobacion
+
+            datos = request.get_json(silent=True) or {}
+            return jsonify(enviar_a_aprobacion(sid, datos, por=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/plantillas", methods=["GET"])
+    @app.route("/app/api/pagos/plantillas", methods=["GET"])
+    def api_pagos_plantillas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import listar_plantillas
+
+            return jsonify({"plantillas": listar_plantillas()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/plantillas/<int:pid>/instanciar", methods=["POST"])
+    @app.route("/app/api/pagos/plantillas/<int:pid>/instanciar", methods=["POST"])
+    def api_pagos_instanciar_plantilla(pid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_wizard import instanciar_plantilla
+
+            datos = request.get_json(silent=True) or {}
+            periodo = str(datos.get("periodo") or "").strip()
+            return jsonify(instanciar_plantilla(pid, periodo, datos, created_by=_cc_uid()))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
     def api_pagos_aprobar(sid: int):

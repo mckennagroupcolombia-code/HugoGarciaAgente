@@ -324,3 +324,99 @@ def test_pago_de_servicios_arma_gasto_retencion_y_banco(mods):
     assert por_cuenta["2365"]["credito"] == 50_000   # 4% declarante
     assert por_cuenta["1110"]["credito"] == 1_200_000
     assert prev["cuadra"] is True
+
+
+# ── Borradores del sistema y plantillas recurrentes (sep-2026) ──────────────
+# Nacen del caso TKT-2026-1252: el cron escribía las cifras dentro del texto
+# del ticket, el cronograma cambió y el ticket siguió pidiendo girar un valor
+# que ya no existía. Ahora el cron deja un borrador y los montos se leen del
+# origen cada vez que se abre.
+
+
+def test_borrador_no_abre_ticket_ni_contabiliza(mods):
+    _cc, w, t, m, _ = mods
+    sol = w.crear_solicitud(_pago(t, m, estado="borrador"))
+    assert sol["estado"] == "borrador"
+    assert not sol["ticket_id"]
+    assert not sol["movimiento_id"]
+
+
+def test_borrador_del_sistema_no_se_duplica(mods):
+    # El cron puede correr dos veces, o pueden correr dos crons: la idempotencia
+    # vive en el índice único de origen_ref, no en la buena suerte del cron.
+    _cc, w, t, m, _ = mods
+    uno = w.crear_borrador_idempotente(_pago(t, m, origen_ref="prestamo:7:cuota:3"))
+    dos = w.crear_borrador_idempotente(_pago(t, m, origen_ref="prestamo:7:cuota:3"))
+    assert dos["id"] == uno["id"]
+    assert dos.get("ya_existia")
+    assert len([s for s in w.listar() if s["origen_ref"] == "prestamo:7:cuota:3"]) == 1
+
+
+def test_enviar_a_aprobacion_abre_el_ticket_y_el_asiento_nace_al_aprobar(mods, monkeypatch):
+    cc, w, t, m, _ = mods
+    # El ticket se verifica espiando la llamada, no contra la BD de tickets: en
+    # una base nueva el CHECK de `categoria` todavía no incluye 'contabilidad'
+    # y `crear_ticket` falla en silencio, que es un problema aparte del wizard.
+    llamadas = []
+    monkeypatch.setattr(
+        w, "_abrir_ticket", lambda sid, prev, cb: llamadas.append((sid, prev)) or 99
+    )
+    sol = w.crear_solicitud(_pago(t, m, estado="borrador"))
+    assert llamadas == []                    # un borrador no molesta al aprobador
+
+    enviado = w.enviar_a_aprobacion(sol["id"])
+    assert enviado["estado"] == "pendiente"
+    assert enviado["ticket_id"] == 99
+    assert len(llamadas) == 1
+    # El aprobador ve el asiento que va a quedar, no solo el monto
+    assert llamadas[0][1]["lineas"]
+    assert not enviado["movimiento_id"]      # todavía no
+
+    aprobada = w.aprobar(sol["id"], espejar=False)
+    assert aprobada["movimiento_id"]
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_no_se_envia_dos_veces_ni_se_envia_lo_ya_aprobado(mods):
+    _cc, w, t, m, _ = mods
+    sol = w.crear_solicitud(_pago(t, m, estado="borrador"))
+    w.enviar_a_aprobacion(sol["id"])
+    with pytest.raises(ValueError, match="pendiente"):
+        w.enviar_a_aprobacion(sol["id"])
+
+
+def test_el_operador_puede_corregir_el_monto_al_enviar(mods):
+    # Es el trabajo del operador: cotejar contra el documento real. Si el
+    # sistema propuso 850.000 y la factura dice 910.000, manda lo que dice la
+    # factura, no lo que adivinó el cron.
+    _cc, w, t, m, _ = mods
+    sol = w.crear_solicitud(_pago(t, m, estado="borrador"))
+    enviado = w.enviar_a_aprobacion(sol["id"], {"monto": 910_000, "referencia": "FV-77"})
+    assert enviado["monto"] == 910_000
+    assert enviado["referencia"] == "FV-77"
+
+
+def test_plantilla_recurrente_se_instancia_una_vez_por_periodo(mods):
+    _cc, w, t, m, _ = mods
+    plan = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="mensual",
+                                   concepto="Guías Interrapidísimo"))
+    assert plan["es_plantilla"] == 1
+    assert plan["estado"] == "borrador"     # una plantilla no es un pago
+    assert not plan["ticket_id"]
+    assert [p["id"] for p in w.listar_plantillas()] == [plan["id"]]
+
+    oct1 = w.instanciar_plantilla(plan["id"], "2026-10")
+    oct2 = w.instanciar_plantilla(plan["id"], "2026-10")
+    nov = w.instanciar_plantilla(plan["id"], "2026-11")
+    assert oct2["id"] == oct1["id"] and oct2.get("ya_existia")
+    assert nov["id"] != oct1["id"]
+    assert oct1["estado"] == "borrador" and oct1["plantilla_id"] == plan["id"]
+    assert oct1["concepto"] == "Guías Interrapidísimo"
+
+
+def test_una_plantilla_no_se_manda_a_aprobacion(mods):
+    # Aprobar la plantilla giraría un pago que nadie pidió, todos los meses.
+    _cc, w, t, m, _ = mods
+    plan = w.crear_solicitud(_pago(t, m, es_plantilla=True, frecuencia="mensual"))
+    with pytest.raises(ValueError, match="plantilla"):
+        w.enviar_a_aprobacion(plan["id"])

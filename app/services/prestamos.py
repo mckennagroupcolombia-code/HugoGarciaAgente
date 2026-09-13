@@ -972,6 +972,58 @@ def _ticket_del_mes_existe(db_path: str, marca_completa: str) -> int | None:
             pass
 
 
+def _borradores_de_cuotas(cuotas: list[dict], creador_id: int | None) -> list[dict]:
+    """Deja cada cuota del mes como borrador de pago en el wizard.
+
+    Best-effort por cuota: que una falle (un tercero sin cuenta, un medio de
+    pago que no existe) no puede impedir que las demás queden montadas ni que
+    se cree el ticket que avisa. Idempotente por `origen_ref`.
+    """
+    from app.services import pagos_wizard as _pw
+
+    medio_defecto = None
+    try:
+        import app.services.contabilidad_core as cc
+
+        activos = [m for m in cc.listar_medios_pago() if m.get("activo")]
+        bancos = [m for m in activos if m.get("tipo") == "banco"] or activos
+        medio_defecto = bancos[0]["id"] if bancos else None
+    except Exception:
+        pass
+
+    out: list[dict] = []
+    for c in cuotas:
+        try:
+            sol = _pw.crear_borrador_idempotente(
+                {
+                    "categoria": "cuota_prestamo",
+                    "concepto": (
+                        f"Cuota {c['numero']}/{c['plazo_meses']} — {c['tercero_nombre']}"
+                    ),
+                    "monto": float(c["cuota_girada"]),
+                    "fecha": c["fecha_vencimiento"],
+                    "tercero_id": c.get("tercero_id"),
+                    "medio_pago_id": c.get("medio_pago_id") or medio_defecto,
+                    "origen_ref": f"prestamo:{c['prestamo_id']}:cuota:{c['numero']}",
+                    "origen_sistema": "prestamos",
+                    "periodo": str(c["fecha_vencimiento"])[:7],
+                    "notas": (
+                        f"Cuenta del prestamista: {c.get('cuenta_bancaria') or 'sin registrar'}. "
+                        "El valor a girar ya trae descontada la retención del 7%."
+                    ),
+                },
+                created_by=creador_id,
+            )
+            out.append(sol)
+        except Exception as e:
+            print(
+                f"⚠️ [PRESTAMOS] no se pudo montar el borrador de la cuota "
+                f"{c.get('numero')} del préstamo {c.get('prestamo_id')}: {e}",
+                flush=True,
+            )
+    return out
+
+
 def crear_recordatorio_pagos_mes(
     anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False
 ) -> dict:
@@ -1006,28 +1058,29 @@ def crear_recordatorio_pagos_mes(
     total_girar = sum(float(c["cuota_girada"]) for c in cuotas)
     total_retencion = sum(float(c["retencion"]) for c in cuotas)
 
-    filas = []
-    for c in cuotas:
-        filas.append(
-            f"- **{c['tercero_nombre']}** (CC/NIT {c['identificacion'] or '—'}) — "
-            f"cuota {c['numero']}/{c['plazo_meses']}, vence {c['fecha_vencimiento']}\n"
-            f"  - Cuenta: {c['cuenta_bancaria'] or '⚠️ sin cuenta registrada'}\n"
-            f"  - **Girar: {_fmt_cop(c['cuota_girada'])}** "
-            f"(capital {_fmt_cop(c['abono_capital'])} + interés neto {_fmt_cop(c['interes_girado'])})\n"
-            f"  - Retención practicada: {_fmt_cop(c['retencion'])} — NO se le gira, va a la DIAN"
-        )
+    filas = [
+        f"- **{c['tercero_nombre']}** — cuota {c['numero']}/{c['plazo_meses']}, "
+        f"vence {c['fecha_vencimiento']}"
+        for c in cuotas
+    ]
 
+    # El ticket NO lleva las cifras. Un valor copiado en un texto se congela el
+    # día que se escribió: TKT-2026-1252 pedía girar $390.590 de un capital que
+    # después se corrigió y de una cuota que el mes de gracia corrió a octubre,
+    # y nadie se enteró. Los montos viven en la solicitud de pago, que los lee
+    # del cronograma cada vez que se abre.
     descripcion = (
-        f"Pagos de préstamos a terceros del período **{periodo}**.\n\n"
-        f"Montar en Sucursal Negocios **{len(cuotas)} transferencia(s)** por un total de "
-        f"**{_fmt_cop(total_girar)}**.\n\n"
+        f"Cuotas de préstamos que vencen en **{periodo}**: **{len(cuotas)}**.\n\n"
         + "\n".join(filas)
-        + "\n\n**Importante:** el valor a girar ya viene con la retención en la fuente del 7% "
-        "descontada (rendimientos financieros). Ese descuento lo asume el prestamista y McKenna "
-        f"lo consigna a la DIAN — total retenido este mes: {_fmt_cop(total_retencion)}.\n\n"
-        "Al terminar, **comenta en este ticket** confirmando qué se giró (fecha y "
-        "referencia de cada transferencia). Con eso, quien lleva el Libro Mayor marca "
-        "las cuotas como pagadas y queda el asiento contable.\n\n"
+        + "\n\nYa quedaron como **borrador** en el panel: **Contabilidad → "
+        "Solicitudes de pago**, filtro «Borradores».\n\n"
+        "Para cada una: verifica que hay que pagarla, confirma la cuenta del "
+        "prestamista y envíala a aprobación. Ahí se ve el asiento exacto "
+        "(capital, interés y retención por separado) antes de confirmar, y el "
+        "asiento nace al aprobar.\n\n"
+        "**Los montos no están en este ticket a propósito**: se leen del "
+        "cronograma en vivo, así que si una cuota cambia, cambia el borrador. "
+        "Un número copiado acá envejecería sin avisar.\n\n"
         f"{MARCA_TICKET} {periodo}"
     )
 
@@ -1037,6 +1090,8 @@ def crear_recordatorio_pagos_mes(
             "cuotas": len(cuotas), "total_girar": round(total_girar, 2),
             "asignado_a": asignado_a, "descripcion": descripcion,
         }
+
+    borradores = _borradores_de_cuotas(cuotas, creador_id)
 
     ticket, err = _tdb.crear_ticket(
         {
@@ -1063,6 +1118,7 @@ def crear_recordatorio_pagos_mes(
     return {
         "ok": True, "creado": True, "ticket_id": ticket_id, "periodo": periodo,
         "cuotas": len(cuotas), "total_girar": round(total_girar, 2), "asignado_a": asignado_a,
+        "borradores": [s_["id"] for s_ in borradores],
     }
 
 

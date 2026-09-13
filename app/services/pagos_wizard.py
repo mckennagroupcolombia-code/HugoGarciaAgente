@@ -245,9 +245,23 @@ def init_db() -> None:
             ("factura_archivo", "TEXT NOT NULL DEFAULT ''"),
             ("factura_nombre", "TEXT NOT NULL DEFAULT ''"),
             ("verificacion_json", "TEXT NOT NULL DEFAULT '{}'"),
+            # Pagos recurrentes: una solicitud puede guardarse como plantilla y
+            # el cron la instancia cada período con los datos ya cargados.
+            ("es_plantilla", "INTEGER NOT NULL DEFAULT 0"),
+            ("frecuencia", "TEXT NOT NULL DEFAULT ''"),
+            ("plantilla_id", "INTEGER"),
+            ("periodo", "TEXT NOT NULL DEFAULT ''"),
+            ("origen_sistema", "TEXT NOT NULL DEFAULT ''"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
+        # Un mismo pago no puede entrar dos veces. La idempotencia vive en la
+        # base, no en el cron: si el cron corre dos veces, o corren dos crons,
+        # el segundo choca contra el índice en vez de duplicar la solicitud.
+        con.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_solicitudes_origen"
+            " ON cc_solicitudes_pago(origen_ref) WHERE origen_ref <> ''"
+        )
     _initialized = True
 
 
@@ -417,6 +431,10 @@ def previsualizar(payload: dict) -> dict:
         cuenta_debito = _cuenta_servicio(payload.get("tipo_servicio"))
     if not cuenta_debito:
         cuenta_debito = str(payload.get("cuenta_debito") or "").strip()
+    if not cuenta_debito and categoria == "cuota_prestamo":
+        # La arma el módulo de préstamos más abajo, con las cuatro líneas
+        # reales; esta es solo la que encabeza el asiento.
+        cuenta_debito = "2295"
     if not cuenta_debito:
         raise ValueError("Falta elegir la cuenta contable del gasto")
 
@@ -452,24 +470,38 @@ def previsualizar(payload: dict) -> dict:
 
     nombre_tercero = (tercero or {}).get("nombre") or ""
     girado = round(monto - retencion, 2)
-    lineas = [{
-        "cuenta_codigo": cuenta_debito,
-        "cuenta_id": id_debito,
-        "debito": monto, "credito": 0,
-        "tercero_id": tercero_id,
-        "descripcion": concepto or cat["label"],
-    }]
-    if retencion > 0:
+
+    # Una cuota de préstamo no es un gasto contra una sola cuenta: separa
+    # capital (baja el pasivo), interés (gasto financiero) y retención. Mostrar
+    # el asiento genérico «débito X / crédito banco» sería enseñarle al operador
+    # un asiento que no es el que se va a crear.
+    lineas_cuota = _lineas_cuota_prestamo(payload, cc, medio, tercero_id, nombre_tercero)
+    if lineas_cuota is not None:
+        lineas = lineas_cuota
+        retencion = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "2365"), 2)
+        girado = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "1110"), 2)
+        monto = round(sum(l["debito"] for l in lineas), 2)
+        ret_info = ret_info or {"motivo": "Retención de rendimientos financieros del cronograma"}
+    else:
+        lineas = [{
+            "cuenta_codigo": cuenta_debito,
+            "cuenta_id": id_debito,
+            "debito": monto, "credito": 0,
+            "tercero_id": tercero_id,
+            "descripcion": concepto or cat["label"],
+        }]
+    if lineas_cuota is None:
+        if retencion > 0:
+            lineas.append({
+                "cuenta_codigo": "2365", "cuenta_id": id_retencion,
+                "debito": 0, "credito": retencion, "tercero_id": tercero_id,
+                "descripcion": f"Retención {concepto_ret} {ret_info.get('tarifa_pct')}% — {nombre_tercero}",
+            })
         lineas.append({
-            "cuenta_codigo": "2365", "cuenta_id": id_retencion,
-            "debito": 0, "credito": retencion, "tercero_id": tercero_id,
-            "descripcion": f"Retención {concepto_ret} {ret_info.get('tarifa_pct')}% — {nombre_tercero}",
+            "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
+            "debito": 0, "credito": girado,
+            "descripcion": f"Salida vía {medio['nombre']}" + (f" — {nombre_tercero}" if nombre_tercero else ""),
         })
-    lineas.append({
-        "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
-        "debito": 0, "credito": girado,
-        "descripcion": f"Salida vía {medio['nombre']}" + (f" — {nombre_tercero}" if nombre_tercero else ""),
-    })
 
     nombres = {c["codigo"]: c["nombre"] for c in cc.listar_plan_cuentas(solo_activas=False)}
     for l in lineas:
@@ -497,13 +529,75 @@ def previsualizar(payload: dict) -> dict:
     }
 
 
+def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_tercero: str):
+    """Las cuatro líneas reales de una cuota de préstamo, o None si no aplica.
+
+    Las cifras se leen del cronograma **en vivo** por (préstamo, número), no de
+    lo que venga en el payload: una cuota recalculada —un mes de gracia, un
+    capital corregido— cambia el asiento, y el operador tiene que ver el de hoy.
+    """
+    if str(payload.get("categoria") or "") != "cuota_prestamo":
+        return None
+    ref = str(payload.get("origen_ref") or payload.get("opcion_id") or "")
+    partes = ref.replace("prestamo:", "").replace("cuota:", "").split(":")
+    partes = [x for x in partes if x.strip().isdigit()]
+    if len(partes) < 2:
+        return None
+    from app.services.prestamos import obtener_prestamo
+
+    prestamo = obtener_prestamo(int(partes[0]))
+    if not prestamo:
+        return None
+    cuota = next((c for c in prestamo["cuotas"] if c["numero"] == int(partes[1])), None)
+    if not cuota:
+        return None
+
+    codigo_pasivo = "2380" if (prestamo.get("tercero") or {}).get("tipo") == "socio" else "2295"
+    gasto = cuota["interes_bruto"] + (cuota["retencion"] if prestamo.get("gross_up") else 0)
+    with cc._conn() as con:
+        id_pasivo = cc._cuenta_id_por_codigo(con, codigo_pasivo)
+        id_gasto = cc._cuenta_id_por_codigo(con, "5305")
+        id_ret = cc._cuenta_id_por_codigo(con, "2365")
+    n, total = cuota["numero"], prestamo["plazo_meses"]
+    lineas = [
+        {"cuenta_codigo": codigo_pasivo, "cuenta_id": id_pasivo,
+         "debito": cuota["abono_capital"], "credito": 0, "tercero_id": tercero_id,
+         "descripcion": f"Abono a capital cuota {n}/{total}"},
+        {"cuenta_codigo": "5305", "cuenta_id": id_gasto,
+         "debito": round(gasto, 2), "credito": 0, "tercero_id": tercero_id,
+         "descripcion": f"Intereses cuota {n}/{total}"},
+    ]
+    if cuota["retencion"] > 0:
+        lineas.append({
+            "cuenta_codigo": "2365", "cuenta_id": id_ret,
+            "debito": 0, "credito": cuota["retencion"], "tercero_id": tercero_id,
+            "descripcion": f"Retención 7% rendimientos — {nombre_tercero}",
+        })
+    lineas.append({
+        "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
+        "debito": 0, "credito": cuota["cuota_girada"],
+        "descripcion": f"Salida vía {medio['nombre']} — {nombre_tercero}",
+    })
+    return lineas
+
+
 # ─── Paso 3: crear la solicitud (todavía sin asiento) ───────────────────────
 
 def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
-    """Guarda la solicitud en estado `pendiente` y abre el ticket de aprobación.
+    """Guarda la solicitud y abre el ticket de aprobación.
 
     **No crea el asiento todavía**: se crea al aprobar. Una solicitud rechazada
     no debe dejar rastro contable.
+
+    `estado="borrador"` la deja en la bandeja del operador sin abrir ticket ni
+    exigir la factura todavía: es lo que dejan los crons con los pagos que el
+    mes trae (cuotas, nómina, contador). El operador la coteja contra el
+    documento real y la manda a aprobación con `enviar_a_aprobacion()`, que es
+    donde se aplican las validaciones completas. Nada se contabiliza sin que un
+    humano lo haya mirado.
+
+    `es_plantilla=True` la guarda como pago recurrente reutilizable en vez de
+    como un pago del mes; `instanciar_plantilla()` la copia cada período.
     """
     _ensure()
     prev = previsualizar(payload)   # valida todo antes de guardar
@@ -516,7 +610,15 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
     # que evita que un pago a proveedor entre como texto libre por el Centro de Mando.
     verificacion = payload.get("verificacion") if isinstance(payload.get("verificacion"), dict) else {}
     archivo_tmp = str(payload.get("archivo_tmp") or "").strip()
-    if cat.get("con_productos") and not payload.get("_sin_ticket"):
+    estado = str(payload.get("estado") or "pendiente").strip()
+    if estado not in ("pendiente", "borrador"):
+        raise ValueError("estado debe ser 'pendiente' o 'borrador' al crear")
+    es_plantilla = bool(payload.get("es_plantilla"))
+    if es_plantilla:
+        estado = "borrador"   # una plantilla no es un pago: no se aprueba ni se gira
+    # Un borrador todavía no tiene la factura: el operador la adjunta al
+    # cotejarla. Las exigencias completas corren en enviar_a_aprobacion().
+    if cat.get("con_productos") and not payload.get("_sin_ticket") and estado == "pendiente":
         if not prev["items"]:
             raise ValueError("Agrega al menos un producto con su SKU")
         if cat.get("requiere_factura"):
@@ -537,17 +639,24 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
             """INSERT INTO cc_solicitudes_pago
                  (categoria, concepto, monto, fecha, tercero_id, cuenta_debito,
                   medio_pago_id, referencia, origen_ref, retencion, retencion_concepto,
-                  estado, notas, creada_por, items_json, factura_numero, verificacion_json)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,'pendiente',?,?,?,?,?)""",
+                  estado, notas, creada_por, items_json, factura_numero, verificacion_json,
+                  es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
                 int(payload.get("medio_pago_id") or 0) or None,
                 str(payload.get("referencia") or factura_numero or ""), str(payload.get("origen_ref") or ""),
                 prev["retencion"], str(cat.get("concepto_retencion") or ""),
+                estado,
                 str(payload.get("notas") or ""), created_by,
                 json.dumps(prev["items"], ensure_ascii=False), factura_numero,
                 json.dumps(verificacion_guardar, ensure_ascii=False),
+                1 if es_plantilla else 0,
+                str(payload.get("frecuencia") or ""),
+                int(payload.get("plantilla_id") or 0) or None,
+                str(payload.get("periodo") or ""),
+                str(payload.get("origen_sistema") or ""),
             ),
         )
         sid = int(cur.lastrowid)
@@ -564,11 +673,197 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
 
     # El registro directo se aprueba solo: un ticket de aprobación que nace
     # resuelto es ruido en la bandeja de alguien.
-    ticket_id = None if payload.get("_sin_ticket") else _abrir_ticket(sid, prev, created_by)
+    ticket_id = (
+        None
+        if (payload.get("_sin_ticket") or estado == "borrador")
+        else _abrir_ticket(sid, prev, created_by)
+    )
     if ticket_id:
         with _conn() as con:
             con.execute("UPDATE cc_solicitudes_pago SET ticket_id=? WHERE id=?", (ticket_id, sid))
     return {**obtener(sid), "previsualizacion": prev}
+
+
+def previsualizacion_de(sid: int) -> dict:
+    """El asiento que dejaría esta solicitud, recalculado ahora.
+
+    No devuelve lo que se guardó al crearla: lo vuelve a calcular desde el
+    origen. Para una cuota de préstamo eso significa releer el cronograma, así
+    que si la cuota cambió —un mes de gracia, un capital corregido— el operador
+    ve el asiento de hoy y no el del día en que el cron montó el borrador.
+    """
+    _ensure()
+    sol = obtener(sid)
+    if not sol:
+        raise ValueError("Solicitud no encontrada")
+    prev = previsualizar(
+        {
+            "categoria": sol["categoria"],
+            "monto": sol["monto"],
+            "fecha": sol["fecha"],
+            "tercero_id": sol.get("tercero_id"),
+            "concepto": sol["concepto"],
+            "medio_pago_id": sol.get("medio_pago_id"),
+            "cuenta_debito": sol.get("cuenta_debito"),
+            "origen_ref": sol.get("origen_ref"),
+        }
+    )
+    # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
+    # viejo y hay que mirarlo, no aprobarlo de corrido.
+    prev["difiere_de_lo_guardado"] = (
+        abs(float(prev["monto"]) - float(sol["monto"])) > 0.5
+        or abs(float(prev["retencion"]) - float(sol["retencion"])) > 0.5
+    )
+    prev["monto_guardado"] = sol["monto"]
+    return prev
+
+
+def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None = None) -> dict:
+    """Pasa un borrador a `pendiente` y abre el ticket de aprobación.
+
+    Es el punto donde el operador dice «verifiqué que esto hay que pagarlo»:
+    acá corren las exigencias que el borrador no pedía todavía (productos con
+    SKU, factura adjunta y cotejada) y acá nace el ticket. Antes de esto la
+    solicitud es una propuesta del sistema, no una petición de nadie.
+    """
+    _ensure()
+    sol = obtener(sid)
+    if not sol:
+        raise ValueError("Solicitud no encontrada")
+    if sol.get("es_plantilla"):
+        raise ValueError(
+            "Esto es una plantilla de pago recurrente, no un pago: "
+            "instánciala para el período y envía esa copia"
+        )
+    if sol["estado"] != "borrador":
+        raise ValueError(f"La solicitud ya está en estado «{sol['estado']}»")
+
+    datos = dict(payload or {})
+    cat = CATEGORIAS.get(sol["categoria"]) or {}
+    items = sol.get("items") or []
+    if cat.get("con_productos"):
+        if not items:
+            raise ValueError("Agrega al menos un producto con su SKU")
+        if cat.get("requiere_factura") and not (
+            sol.get("factura_archivo") or datos.get("archivo_tmp")
+        ):
+            raise ValueError("Adjunta la factura o cotización del proveedor antes de enviar")
+
+    campos, valores = [], []
+    for col, clave in (
+        ("monto", "monto"),
+        ("fecha", "fecha"),
+        ("medio_pago_id", "medio_pago_id"),
+        ("referencia", "referencia"),
+        ("notas", "notas"),
+    ):
+        if clave in datos:
+            campos.append(f"{col}=?")
+            valores.append(datos[clave])
+    campos.append("estado='pendiente'")
+    with _conn() as con:
+        con.execute(
+            f"UPDATE cc_solicitudes_pago SET {', '.join(campos)} WHERE id=?", (*valores, sid)
+        )
+
+    sol = obtener(sid)
+    prev = previsualizar(
+        {
+            "categoria": sol["categoria"],
+            "monto": sol["monto"],
+            "fecha": sol["fecha"],
+            "tercero_id": sol.get("tercero_id"),
+            "concepto": sol["concepto"],
+            "medio_pago_id": sol.get("medio_pago_id"),
+        }
+    )
+    ticket_id = _abrir_ticket(sid, prev, por)
+    if ticket_id:
+        with _conn() as con:
+            con.execute("UPDATE cc_solicitudes_pago SET ticket_id=? WHERE id=?", (ticket_id, sid))
+    return {**obtener(sid), "previsualizacion": prev}
+
+
+def instanciar_plantilla(
+    plantilla_id: int, periodo: str, payload: dict | None = None, created_by: int | None = None
+) -> dict:
+    """Copia una plantilla de pago recurrente como borrador de un período.
+
+    Idempotente por `origen_ref`: si el cron corre dos veces, o corren dos
+    crons a la vez, el segundo choca contra el índice único y devuelve la
+    solicitud que ya existía en vez de duplicar el pago.
+    """
+    _ensure()
+    plan = obtener(plantilla_id)
+    if not plan:
+        raise ValueError("Plantilla no encontrada")
+    if not plan.get("es_plantilla"):
+        raise ValueError("Esa solicitud no es una plantilla de pago recurrente")
+    periodo = str(periodo or "").strip()
+    if not periodo:
+        raise ValueError("periodo requerido (ej. 2026-10)")
+
+    origen_ref = f"plantilla:{plantilla_id}:{periodo}"
+    ya = _por_origen_ref(origen_ref)
+    if ya:
+        return {**ya, "ya_existia": True}
+
+    datos = dict(payload or {})
+    return crear_solicitud(
+        {
+            "categoria": plan["categoria"],
+            "concepto": datos.get("concepto") or plan["concepto"],
+            "monto": datos.get("monto", plan["monto"]),
+            "fecha": datos.get("fecha") or f"{periodo}-01",
+            "tercero_id": plan.get("tercero_id"),
+            "medio_pago_id": plan.get("medio_pago_id"),
+            "notas": plan.get("notas") or "",
+            "estado": "borrador",
+            "origen_ref": origen_ref,
+            "plantilla_id": plantilla_id,
+            "periodo": periodo,
+            "origen_sistema": plan.get("origen_sistema") or "plantilla",
+        },
+        created_by=created_by,
+    )
+
+
+def _por_origen_ref(origen_ref: str) -> dict | None:
+    """La solicitud que ya cubre ese origen, si existe."""
+    if not origen_ref:
+        return None
+    with _conn() as con:
+        row = con.execute(
+            "SELECT id FROM cc_solicitudes_pago WHERE origen_ref=?", (origen_ref,)
+        ).fetchone()
+    return obtener(int(row["id"])) if row else None
+
+
+def crear_borrador_idempotente(payload: dict, created_by: int | None = None) -> dict:
+    """Borrador de un pago que el sistema detectó, sin duplicar si ya existe.
+
+    Lo usan los crons: `origen_ref` identifica el pago concreto (una cuota, una
+    quincena) y no el momento en que se generó, así que volver a correr el cron
+    no crea una segunda solicitud.
+    """
+    _ensure()
+    origen_ref = str(payload.get("origen_ref") or "").strip()
+    if not origen_ref:
+        raise ValueError("origen_ref requerido para un borrador del sistema")
+    ya = _por_origen_ref(origen_ref)
+    if ya:
+        return {**ya, "ya_existia": True}
+    return crear_solicitud({**payload, "estado": "borrador"}, created_by=created_by)
+
+
+def listar_plantillas() -> list[dict]:
+    """Pagos recurrentes guardados, para ofrecerlos al montar un pago del mes."""
+    _ensure()
+    with _conn() as con:
+        ids = [int(r["id"]) for r in con.execute(
+            "SELECT id FROM cc_solicitudes_pago WHERE es_plantilla=1 ORDER BY concepto"
+        )]
+    return [obtener(i) for i in ids if obtener(i)]
 
 
 def _fmt(n) -> str:

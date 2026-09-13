@@ -39,6 +39,8 @@ type Previsualizacion = {
   medio_pago: string; lineas: LineaAsiento[]; cuadra: boolean;
   items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; subtotal: number; iva: number; total: number }>;
   total_items?: number; base_sin_iva?: number; iva_items?: number;
+  // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
+  difiere_de_lo_guardado?: boolean; monto_guardado?: number;
 };
 
 type Solicitud = {
@@ -50,6 +52,8 @@ type Solicitud = {
   items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; total?: number }>;
   factura_numero?: string; factura_nombre?: string; factura_archivo?: string;
   verificacion?: { fiel?: boolean; advertencias?: string[]; motivo_diferencia?: string; numero_documento?: string };
+  es_plantilla?: number; frecuencia?: string; plantilla_id?: number | null;
+  periodo?: string; origen_sistema?: string; origen_ref?: string;
 };
 
 type MedioPago = { id: number; nombre: string; cuenta_id: number; activo: number };
@@ -151,7 +155,7 @@ export default function PagosWizardPanel() {
       )}
 
       <div className="flex gap-1 text-[11px]">
-        {[["", "Todas"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"]].map(([v, l]) => (
+        {[["", "Todas"], ["borrador", "Borradores"], ["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"]].map(([v, l]) => (
           <button
             key={v} type="button" onClick={() => setFiltro(v)}
             className={`rounded-lg px-2.5 py-1 font-bold ${filtro === v ? "bg-accent text-white" : "bg-surface text-muted"}`}
@@ -908,7 +912,26 @@ function FichaSolicitud({
   s, onMensaje,
 }: { s: Solicitud; onMensaje: (m: { tipo: "ok" | "error"; texto: string }) => void }) {
   const qc = useQueryClient();
-  const [ocupado, setOcupado] = useState<"aprobar" | "rechazar" | null>(null);
+  const [ocupado, setOcupado] = useState<"aprobar" | "rechazar" | "enviar" | null>(null);
+  const [verAsiento, setVerAsiento] = useState(false);
+
+  // El operador confirma que el pago procede; las validaciones completas
+  // (productos, factura cotejada) corren en el backend, no acá.
+  async function enviarAprobacion() {
+    setOcupado("enviar");
+    try {
+      const r = await api.post<{ error?: string; estado?: string }>(
+        `/api/pagos/solicitudes/${s.id}/enviar`, {},
+      );
+      if (r.error) onMensaje({ tipo: "error", texto: r.error });
+      else onMensaje({ tipo: "ok", texto: "Enviada a aprobación — todavía sin asiento" });
+      void qc.invalidateQueries({ queryKey: ["pagos-solicitudes"] });
+    } catch (e) {
+      onMensaje({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setOcupado(null);
+    }
+  }
   const badge = ESTADO_BADGE[s.estado] ?? { label: s.estado, cls: "bg-surface text-muted" };
 
   async function accion(tipo: "aprobar" | "rechazar") {
@@ -1004,6 +1027,19 @@ function FichaSolicitud({
           <span className="italic">{s.notas}</span>
         )}
 
+        {s.estado === "borrador" && !s.es_plantilla && (
+          <span className="ml-auto flex gap-1.5">
+            <button type="button" onClick={() => setVerAsiento((v) => !v)}
+                    className="rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted hover:border-accent hover:text-accent">
+              {verAsiento ? "Ocultar asiento" : "Ver asiento"}
+            </button>
+            <button type="button" onClick={() => void enviarAprobacion()} disabled={!!ocupado}
+                    className="rounded-lg bg-accent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-40">
+              {ocupado === "enviar" ? "…" : "Verificado — enviar a aprobación"}
+            </button>
+          </span>
+        )}
+
         {NECESITA_ACCION.has(s.estado) && (
           <span className="ml-auto flex gap-1.5">
             <button type="button" onClick={() => void accion("rechazar")} disabled={!!ocupado}
@@ -1017,7 +1053,65 @@ function FichaSolicitud({
           </span>
         )}
       </div>
+
+      {verAsiento && <AsientoEnVivo sid={s.id} />}
     </article>
+  );
+}
+
+/**
+ * El asiento que dejaría esta solicitud, recalculado ahora contra su origen.
+ *
+ * No muestra lo que se guardó cuando el cron montó el borrador: vuelve a
+ * pedirlo. Para una cuota de préstamo eso significa releer el cronograma, así
+ * que si la cuota cambió el operador ve el asiento de hoy. Es la lección de
+ * TKT-2026-1252, donde un valor copiado en un texto sobrevivió al cambio que
+ * lo invalidaba.
+ */
+function AsientoEnVivo({ sid }: { sid: number }) {
+  const q = useQuery<Previsualizacion>({
+    queryKey: ["pago-previsualizacion", sid],
+    queryFn: () => api.get(`/api/pagos/solicitudes/${sid}/previsualizacion`),
+  });
+  if (q.isLoading) return <p className="mt-2 text-[11px] text-muted">Calculando el asiento…</p>;
+  if (q.error || !q.data)
+    return <p className="mt-2 text-[11px] text-red-400">No se pudo calcular el asiento.</p>;
+  const p = q.data;
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-surface-input/40 p-2">
+      {p.difiere_de_lo_guardado && (
+        <p className="mb-2 rounded bg-amber-500/10 px-2 py-1 text-[11px] text-amber-500">
+          ⚠️ Las cifras cambiaron desde que se montó el borrador
+          {typeof p.monto_guardado === "number" ? ` (era ${cop(p.monto_guardado)})` : ""}.
+          Lo que vale es lo de abajo.
+        </p>
+      )}
+      <table className="w-full text-[11px]">
+        <thead>
+          <tr className="text-[9px] uppercase text-muted">
+            <th className="py-0.5 text-left font-semibold">Cuenta</th>
+            <th className="py-0.5 text-left font-semibold">Concepto</th>
+            <th className="py-0.5 text-right font-semibold">Débito</th>
+            <th className="py-0.5 text-right font-semibold">Crédito</th>
+          </tr>
+        </thead>
+        <tbody>
+          {p.lineas.map((l, i) => (
+            <tr key={`${l.cuenta_codigo}-${i}`} className="border-t border-border/40">
+              <td className="py-0.5 font-mono text-accent">{l.cuenta_codigo}</td>
+              <td className="py-0.5 text-muted">{l.descripcion || l.cuenta_nombre}</td>
+              <td className="py-0.5 text-right tabular-nums">{l.debito ? cop(l.debito) : "—"}</td>
+              <td className="py-0.5 text-right tabular-nums">{l.credito ? cop(l.credito) : "—"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-1 text-[10px] text-muted">
+        {p.cuadra ? "✅ El asiento cuadra." : "⚠️ El asiento NO cuadra."}
+        {p.retencion > 0 ? ` Se gira ${cop(p.girado)}; ${cop(p.retencion)} van a la DIAN.` : ""}
+        {" "}Nace en el Libro Mayor al aprobar, no ahora.
+      </p>
+    </div>
   );
 }
 
