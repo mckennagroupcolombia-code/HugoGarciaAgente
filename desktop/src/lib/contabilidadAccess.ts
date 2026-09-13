@@ -35,6 +35,7 @@ export const CONTABILIDAD_PANELS = [
   "compras-exterior",
   "prestamos",
   "pagos",
+  "conciliacion-contador",
   "productos-siigo",
   "costos-productos",
   "catalogo-alegra",
@@ -225,6 +226,12 @@ export function puedeVerModuloContabilidad(
     // Solicitar y aprobar pagos mueve plata y crea asientos. Mismo criterio que
     // libro-mayor: permiso explícito, no heredado de facturación/sync.
     return Boolean(p.pagos || p["libro-mayor"]);
+  }
+  if (seccion === "conciliacion-contador") {
+    // Cruce declaraciones del contador ↔ 2365: expone retenciones por tercero y
+    // saldos con socios, misma sensibilidad que el Libro Mayor. Debe coincidir con
+    // `_usuario_puede` en app/routes_conciliacion.py.
+    return Boolean(p["conciliacion-contador"] || p["libro-mayor"]);
   }
   if (seccion === "prestamos") {
     // Permiso propio y explícito, con el mismo criterio que libro-mayor: el

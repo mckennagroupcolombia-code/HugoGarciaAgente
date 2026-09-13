@@ -623,6 +623,20 @@ pagos, y Bancos quedaba descuadrado. Es el mismo patrón que ya falló con las
 notas crédito (6 semanas) y las compras Gmail (96 sin postear): **lo que se deja
 como paso manual posterior, no se hace**.
 
+**Pago a proveedor = solo por aquí (13-sep-2026).** Las categorías `compra_proveedor` (1435) y
+`factura_proveedor` (2205) llevan `con_productos` + `requiere_factura`: el wizard pasa por
+**proveedor** (terceros del libro + contactos «provider» de Alegra, `app/services/pagos_proveedor.py`;
+un contacto se adopta como tercero al elegirlo), **productos con SKU** del catálogo espejo de Alegra
+(precio sin IVA, IVA por línea; el monto es la suma con IVA y la retención va sobre la base), y
+**factura o cotización cotejada** (`POST /api/pagos/verificar-factura`: XML DIAN, PDF o ZIP; NIT,
+número, total y cada producto; sin LLM) antes de «Enviar a aprobación». Sin productos o sin cotejo
+el backend rechaza la solicitud; si el cotejo no es fiel, exige una explicación que viaja al ticket.
+El Centro de Mando ofrece «💸 Solicitud de pago a proveedor», que redirige a este wizard, y
+`POST /api/tickets` rechaza (400 + `redirigir: "pagos"`) una solicitud de texto libre que parezca
+un pago a proveedor (`routes_tickets._parece_solicitud_de_pago`). El aprobador sale del aliado
+`pagos_aprobador` (Sistemas → Aliados) o de `PAGOS_APROBADOR`; al aprobar, la factura queda como
+soporte del asiento.
+
 **Dos caminos, un solo motor:**
 - **Solicitar** (cualquiera con permiso `pagos`): crea la solicitud → ticket al
   aprobador → al aprobar nace el asiento.
@@ -813,6 +827,17 @@ app/services/extracto_bancario.py   Conciliación bancaria (ya existente): impor
                                      funcionan igual.
 ```
 
+**Conciliación con el contador (13-sep-2026):** `scripts/descargar_soportes_contador.py` baja del
+Gmail los adjuntos del contador (350, 490, 300, 110, ICA, RTICA, certificados) a
+`docs/contabilidad/<año>/Soportes_Contador/` (gitignored) y `scripts/extraer_declaraciones_contador.py`
+los lee con pdftotext. `app/services/conciliacion_contador.py` cruza eso contra la 2365 y guarda cada
+inconsistencia como **hallazgo** (`cc_conciliacion_hallazgos`, clave determinista, idempotente) que el
+usuario recorre en /app → Contabilidad → **Conciliación contador** (wizard: un hallazgo por pantalla,
+decidir → TKT del Centro de Mando asignado al aliado `conciliacion_contador`). Lo que deja de detectarse
+se cierra solo. Única mutación directa: marcar un tercero como natural / **Régimen SIMPLE**
+(`cc_terceros.regimen_simple`, Art. 911 ET: no se le retiene; el XML DIAN dice `R-99-PN` igual, se sabe
+por el pie de la factura o el RUT). Nunca crea ni anula asientos — eso va por ticket. Sin LLM.
+
 Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Préstamos**
 (`PrestamosPanel.tsx`, permiso propio no heredado — datos sensibles de socios). Contabilidad →
 **Ingresos y Egresos** fusiona `armar_libro()` con los asientos manuales y agrega la bandeja
@@ -943,8 +968,9 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
-| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar — ver `app/services/pagos_wizard.py` y Flujo O |
+| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar; `proveedores` (libro + Alegra), `proveedores/adoptar`, `productos` (catálogo Alegra), `verificar-factura` (multipart, cotejo sin LLM), `solicitudes/<id>/factura` — ver `app/services/pagos_wizard.py`, `pagos_proveedor.py` y Flujo O |
 | `/api/prestamos/*` | GET/POST | Bearer | Préstamos de terceros con cronograma: simular, crear, cuotas, pagar, documento PDF (contrato/certificado), envío al prestamista, contacto Alegra y ticket mensual — ver `app/services/prestamos.py` y Flujo M |
+| `/api/conciliacion/*` | GET/POST | Bearer / permiso `libro-mayor` o `conciliacion-contador` | Cruce declaraciones del contador (350/490 bajados de Gmail) ↔ cuenta 2365: hallazgos con clave estable, decisiones del wizard y TKT — ver `app/services/conciliacion_contador.py` y Flujo J |
 | `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
 | `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |

@@ -47,6 +47,7 @@ export type Panel =
   | "anulaciones"
   | "prestamos"
   | "pagos"
+  | "conciliacion-contador"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
@@ -198,6 +199,10 @@ interface AppState {
    * Contabilidad). Se consume y se limpia al montar el panel. */
   ventasBoot: { busqueda?: string; soloPendientes?: boolean } | null;
   setVentasBoot: (v: { busqueda?: string; soloPendientes?: boolean } | null) => void;
+  /** Abrir Contabilidad → Solicitudes de pago con el wizard ya abierto en una
+   * categoría (desde «Solicitud de pago a proveedor» del Centro de Mando). */
+  pagosBoot: { abrir: boolean; categoria?: string } | null;
+  setPagosBoot: (v: { abrir: boolean; categoria?: string } | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -297,6 +302,8 @@ export const useAppStore = create<AppState>()(
       setFacturasBootVista: (facturasBootVista) => set({ facturasBootVista }),
       ventasBoot: null,
       setVentasBoot: (ventasBoot) => set({ ventasBoot }),
+      pagosBoot: null,
+      setPagosBoot: (pagosBoot) => set({ pagosBoot }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;

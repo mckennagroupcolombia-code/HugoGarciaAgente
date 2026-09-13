@@ -30,6 +30,8 @@ Panel React de operaciones servido en `/app`, con API Flask en `/api/*` y chat e
 - Inicio (Agenda y Métricas): gadget USD/COP — cifra TRM BanRep (`GET /api/inicio/dolar-hora`) + mini TradingView; clic amplía gráfico horario TV.
 - Logística Internacional → **Proveedores** (`ProveedoresPanel.tsx`, `useProveedores.ts`): `/api/proveedores/*`; pestañas Directorio / ¿Quién vende…? / Catálogos (Gmail, sin LLM) / Oferta web (publica `oferta_proveedores.json` para `/cotizar`) / Cotizaciones. Permiso `logistica-internacional`.
 - Contabilidad → **Catálogo Alegra**: `GET /api/alegra/catalogo` incluye precio MeLi por SKU (`precio_meli`, `meli_sincronizado`); `POST /api/alegra/catalogo/igualar-meli` copia ese precio al lista Alegra.
+- Contabilidad → **Solicitudes de pago** (`PagosWizardPanel.tsx`): categorías con `con_productos` recorren 5 pasos (proveedor → productos SKU → factura cotejada → asiento); `useAppStore.pagosBoot` abre el wizard en una categoría desde el Centro de Mando (variante «pago» de `NuevaSolicitudWizard`). `api.upload` a `/api/pagos/verificar-factura`.
+- Contabilidad → **Conciliación contador** (`ConciliacionContadorPanel.tsx`): `GET /api/conciliacion/resumen|hallazgos|job`, `POST /api/conciliacion/analizar` (202 + job en hilo; el panel hace poll al resumen), `POST /api/conciliacion/hallazgos/<id>/decidir` (`crear_ticket|resolver|descartar|marcar_natural|marcar_simple|reabrir`). Permiso `libro-mayor` o `conciliacion-contador` (misma regla en `app/routes_conciliacion.py`). Ítem `conciliacion_contador` en el checklist de Inicio.
 - Contabilidad → **Créditos adquiridos**: `GET/POST /api/contabilidad/creditos*`; tasa EA o N.A.M.V., cuota y amortización.
 
 ## Riesgos

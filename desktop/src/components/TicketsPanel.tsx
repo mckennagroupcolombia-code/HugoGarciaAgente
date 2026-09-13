@@ -19222,7 +19222,7 @@ function ProtocolosView({
 // ── NuevaSolicitudWizard ──────────────────────────────────────────────────────
 
 type FaseSolicWizard = "tipo" | "descripcion" | "compras" | "elegir_proc" | "asignados" | "confirmar";
-type VarianteSolicitud = "nueva" | "etiqueta" | "compra" | "protocolo";
+type VarianteSolicitud = "nueva" | "etiqueta" | "compra" | "protocolo" | "pago";
 
 const PLANTILLA_SOLICITUD_ETIQUETAS =
   "Indica producto, presentación y cantidad de etiquetas que necesitas:\n\n• \n• \n";
@@ -19374,6 +19374,15 @@ function NuevaSolicitudWizard({
   }
 
   function elegirVariante(v: VarianteSolicitud) {
+    if (v === "pago") {
+      // Regla (sep-2026): un pago a proveedor no se pide en texto libre. Va al wizard de
+      // Contabilidad → Solicitudes de pago (proveedor, productos con SKU, factura cotejada);
+      // desde allá sale el ticket al aprobador.
+      useAppStore.getState().setPagosBoot({ abrir: true, categoria: "compra_proveedor" });
+      useAppStore.getState().setPanel("pagos");
+      onCancel();
+      return;
+    }
     setVariante(v);
     setProtocoloId(null);
     setAdjuntoFile(null);
@@ -19609,9 +19618,15 @@ function NuevaSolicitudWizard({
 
       <SttBanner stt={stt} />
       {error && (
-        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           {error}
-        </p>
+          {/Solicitudes de pago/.test(error) && (
+            <button type="button" onClick={() => elegirVariante("pago")}
+              className="mt-2 block rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white">
+              Ir a Solicitudes de pago →
+            </button>
+          )}
+        </div>
       )}
 
       {/* Paso 1: Tipo */}
@@ -19637,6 +19652,18 @@ function NuevaSolicitudWizard({
               </p>
               <p className="mt-1 text-sm text-muted">
                 Pedir impresión de etiquetas: producto, presentación y unidades.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => elegirVariante("pago")}
+              className="w-full text-left rounded-2xl border-2 border-accent/60 bg-accent/5 px-5 py-5 transition hover:border-accent hover:bg-accent/10 group"
+            >
+              <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
+                💸 Solicitud de pago a proveedor
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                Elegir el proveedor, los productos con su SKU y cotejar la factura. Llega al aprobador como ticket.
               </p>
             </button>
             <button

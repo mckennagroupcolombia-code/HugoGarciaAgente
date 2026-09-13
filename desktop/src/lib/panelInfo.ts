@@ -474,6 +474,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "contabilidad",
   },
+  "conciliacion-contador": {
+    emoji: "🧭",
+    label: "Conciliación contador",
+    description:
+      "Cruce de lo que el contador declaró (formularios 350 y recibos 490 bajados del correo) contra la cuenta 2365 del Libro Mayor. Cada diferencia es un paso del wizard: se decide, y si hay que resolverla con el contador se vuelve TKT del Centro de Mando.",
+    tips: [
+      "«Bajar del correo y analizar» trae los PDF del contador desde el Gmail de la empresa y los cruza; no usa IA.",
+      "Un hallazgo que deja de detectarse se cierra solo — no hay que marcarlo.",
+      "Marcar a un tercero como Régimen SIMPLE cambia sus datos en el Libro Mayor; crear el TKT no cambia nada hasta que alguien lo resuelva.",
+      "Historial muestra quién decidió qué, con el número de ticket y su estado.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
   prestamos: {
     emoji: "🤝",
     label: "Préstamos",

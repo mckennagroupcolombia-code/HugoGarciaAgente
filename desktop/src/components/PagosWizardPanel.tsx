@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { api } from "../api/client";
+import { api, fetchAuthBlobUrl } from "../api/client";
+import { useAppStore } from "../stores/app";
 import TerceroSelect from "./TerceroSelect";
 
 /**
@@ -18,6 +19,7 @@ import TerceroSelect from "./TerceroSelect";
 type Categoria = {
   id: string; label: string; ayuda: string; icono: string;
   origen: string; requiere_tercero: boolean; elige_cuenta: boolean;
+  con_productos?: boolean; requiere_factura?: boolean;
 };
 
 type Opcion = {
@@ -35,6 +37,8 @@ type Previsualizacion = {
   monto: number; retencion: number; retencion_motivo: string; girado: number;
   tercero: { id: number; nombre: string } | null;
   medio_pago: string; lineas: LineaAsiento[]; cuadra: boolean;
+  items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; subtotal: number; iva: number; total: number }>;
+  total_items?: number; base_sin_iva?: number; iva_items?: number;
 };
 
 type Solicitud = {
@@ -43,6 +47,9 @@ type Solicitud = {
   fecha: string; estado: string; referencia: string; notas: string;
   tercero: { id: number; nombre: string; identificacion: string } | null;
   movimiento_id: number | null; alegra_journal_id: string; ticket_id: number | null;
+  items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; total?: number }>;
+  factura_numero?: string; factura_nombre?: string; factura_archivo?: string;
+  verificacion?: { fiel?: boolean; advertencias?: string[]; motivo_diferencia?: string; numero_documento?: string };
 };
 
 type MedioPago = { id: number; nombre: string; cuenta_id: number; activo: number };
@@ -69,6 +76,16 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 export default function PagosWizardPanel() {
   const qc = useQueryClient();
   const [abierto, setAbierto] = useState(false);
+  // Llegada desde el Centro de Mando: abrir el wizard ya en la categoría pedida.
+  const pagosBoot = useAppStore((s) => s.pagosBoot);
+  const setPagosBoot = useAppStore((s) => s.setPagosBoot);
+  const [catInicial, setCatInicial] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pagosBoot?.abrir) return;
+    setCatInicial(pagosBoot.categoria ?? null);
+    setAbierto(true);
+    setPagosBoot(null);
+  }, [pagosBoot, setPagosBoot]);
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [filtro, setFiltro] = useState<string>("");
 
@@ -93,7 +110,8 @@ export default function PagosWizardPanel() {
           <h2 className="text-base font-bold text-ink">Solicitudes de pago</h2>
           <p className="mt-1 max-w-2xl text-xs text-muted">
             Cada pago aprobado genera su asiento en el Libro Mayor y su comprobante en Alegra.
-            El asiento se muestra antes de aprobar, para que quien firma vea contra qué cuenta va.
+            Un pago a proveedor se arma solo aquí: proveedor del listado, productos con su SKU y la
+            factura o cotización cotejada antes de enviarla al aprobador.
           </p>
         </div>
         <button
@@ -121,7 +139,8 @@ export default function PagosWizardPanel() {
 
       {abierto && (
         <Wizard
-          onCerrar={() => setAbierto(false)}
+          categoriaInicial={catInicial}
+          onCerrar={() => { setAbierto(false); setCatInicial(null); }}
           onCreada={(texto) => {
             setMsg({ tipo: "ok", texto });
             setAbierto(false);
@@ -156,16 +175,57 @@ export default function PagosWizardPanel() {
   );
 }
 
-// ─── El wizard: 3 pasos ────────────────────────────────────────────────────
+// ─── El wizard ─────────────────────────────────────────────────────────────
+//
+// Dos recorridos según la categoría:
+//   · Proveedor con productos (compra_proveedor / factura_proveedor): 5 pasos —
+//     ¿qué se paga? → proveedor (libro + Alegra) → productos con SKU (catálogo
+//     Alegra) → factura o cotización cotejada → asiento y envío.
+//   · Cualquier otra categoría: los 3 pasos de siempre.
+//
+// Regla (sep-2026): un pago a proveedor no existe fuera de acá. El Centro de
+// Mando redirige aquí y el backend rechaza la solicitud de texto libre.
+
+type ItemLinea = { sku: string; nombre: string; cantidad: string; precio: string; iva_pct: string; unidad?: string };
+type Proveedor = {
+  id: number | null; nombre: string; identificacion: string; saldo_2205: number;
+  en_libro: boolean; alegra_id: string | null; regimen_simple?: number; tipo_persona?: string;
+};
+type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string };
+type CotejoItem = { sku: string; nombre: string; encontrado: boolean; por?: string; cantidad_ok: boolean; precio_ok: boolean };
+type Verificacion = {
+  fiel: boolean; legible: boolean; origen: string; advertencias: string[]; numero_documento: string;
+  fecha_documento?: string; nit_ok: boolean | null; total_ok: boolean; total_detectado: number | null;
+  proveedor_documento?: string; items: CotejoItem[]; archivo_tmp: string; archivo_nombre: string;
+};
+
+const PASOS_PRODUCTOS = ["¿Qué se paga?", "Proveedor", "Productos", "Factura", "Revisar y enviar"];
+const PASOS_SIMPLE = ["¿Qué se paga?", "Detalles", "Revisar el asiento"];
+
+function num(s: string): number {
+  const v = parseFloat(String(s ?? "").replace(",", "."));
+  return Number.isFinite(v) ? v : 0;
+}
+
+function totalesItems(items: ItemLinea[]) {
+  let subtotal = 0, iva = 0;
+  for (const it of items) {
+    const st = num(it.cantidad) * num(it.precio);
+    subtotal += st;
+    iva += st * (num(it.iva_pct) / 100);
+  }
+  return { subtotal: Math.round(subtotal * 100) / 100, iva: Math.round(iva * 100) / 100, total: Math.round((subtotal + iva) * 100) / 100 };
+}
 
 function Wizard({
-  onCerrar, onCreada, onError,
+  onCerrar, onCreada, onError, categoriaInicial,
 }: {
   onCerrar: () => void;
   onCreada: (texto: string) => void;
   onError: (texto: string) => void;
+  categoriaInicial?: string | null;
 }) {
-  const [paso, setPaso] = useState<1 | 2 | 3>(1);
+  const [paso, setPaso] = useState(1);
   const [cat, setCat] = useState<Categoria | null>(null);
   const [f, setF] = useState({
     monto: "", concepto: "", fecha: hoy(), tercero_id: "",
@@ -173,22 +233,34 @@ function Wizard({
     referencia: "", origen_ref: "", notas: "",
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const [proveedor, setProveedor] = useState<Proveedor | null>(null);
+  const [items, setItems] = useState<ItemLinea[]>([]);
+  const [verif, setVerif] = useState<Verificacion | null>(null);
+  const [motivoDif, setMotivoDif] = useState("");
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
     queryFn: () => api.get("/api/pagos/categorias"),
   });
+  const conProductos = Boolean(cat?.con_productos);
+  const pasos = conProductos ? PASOS_PRODUCTOS : PASOS_SIMPLE;
+
+  // Llegada desde el Centro de Mando («Solicitud de pago a proveedor»): categoría ya elegida.
+  useEffect(() => {
+    if (!categoriaInicial || cat || !catsQ.data) return;
+    const c = catsQ.data.categorias.find((x) => x.id === categoriaInicial);
+    if (c) { setCat(c); setPaso(2); }
+  }, [categoriaInicial, cat, catsQ.data]);
+
   const opcionesQ = useQuery<{ tipo: string; opciones: Opcion[] }>({
     queryKey: ["pagos-opciones", cat?.id],
     queryFn: () => api.get(`/api/pagos/opciones/${cat!.id}`),
-    enabled: !!cat && cat.origen !== "libre",
+    enabled: !!cat && cat.origen !== "libre" && !conProductos,
   });
   const mediosQ = useQuery<{ medios_pago: MedioPago[] }>({
     queryKey: ["cc-medios-pago"],
     queryFn: () => api.get("/api/contabilidad/cc/medios-pago"),
   });
-  // Los socios montan y aprueban sus propios pagos: si el usuario es admin, se
-  // le ofrece registrar sin pasar por el ciclo de aprobación.
   const puedeQ = useQuery<{ puede: boolean; usuario: string }>({
     queryKey: ["pagos-puedo-registrar"],
     queryFn: () => api.get("/api/pagos/puedo-registrar"),
@@ -201,37 +273,50 @@ function Wizard({
   });
   const medios = (mediosQ.data?.medios_pago ?? []).filter((m) => m.activo);
 
+  const tot = useMemo(() => totalesItems(items), [items]);
+  const itemsCuerpo = useMemo(() => items.map((it) => ({
+    sku: it.sku, nombre: it.nombre, cantidad: num(it.cantidad), precio: num(it.precio),
+    iva_pct: num(it.iva_pct), unidad: it.unidad || "",
+  })), [items]);
+
   // Previsualización en vivo: el asiento se ve mientras se llena el formulario.
   const cuerpo = useMemo(() => ({
-    categoria: cat?.id, monto: parseFloat(f.monto.replace(",", ".")) || 0,
+    categoria: cat?.id,
+    monto: conProductos ? tot.total : (parseFloat(f.monto.replace(",", ".")) || 0),
     concepto: f.concepto, fecha: f.fecha,
     tercero_id: f.tercero_id ? Number(f.tercero_id) : null,
     medio_pago_id: f.medio_pago_id ? Number(f.medio_pago_id) : null,
     cuenta_debito: f.cuenta_debito, tipo_servicio: f.tipo_servicio,
-  }), [cat, f]);
+    items: conProductos ? itemsCuerpo : undefined,
+  }), [cat, f, conProductos, tot.total, itemsCuerpo]);
 
+  const pasoFinal = pasos.length;
   const prevQ = useQuery<Previsualizacion>({
     queryKey: ["pagos-previsualizar", cuerpo],
     queryFn: () => api.post("/api/pagos/previsualizar", cuerpo),
-    enabled: paso === 3 && !!cat && cuerpo.monto > 0,
+    enabled: paso === pasoFinal && !!cat && cuerpo.monto > 0,
     retry: false,
   });
 
+  const extra = () => ({
+    ...cuerpo, referencia: f.referencia || verif?.numero_documento || "", origen_ref: f.origen_ref, notas: f.notas,
+    archivo_tmp: verif?.archivo_tmp, archivo_nombre: verif?.archivo_nombre,
+    verificacion: verif ? { ...verif, archivo_tmp: undefined } : undefined,
+    verificacion_motivo: motivoDif, factura_numero: verif?.numero_documento || "",
+  });
+
   const crearMut = useMutation({
-    mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", {
-      ...cuerpo, referencia: f.referencia, origen_ref: f.origen_ref, notas: f.notas,
-    }),
+    mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/solicitudes", extra()),
     onSuccess: (s) => {
       if (s.error) return onError(s.error);
-      onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)}. Queda esperando aprobación.`);
+      onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)}. Ya le llegó el ticket al aprobador.`);
     },
     onError: (e) => onError((e as Error).message),
   });
 
   const directoMut = useMutation({
     mutationFn: () => api.post<Solicitud & { error?: string; alegra?: { status: string; message?: string } }>(
-      "/api/pagos/registrar",
-      { ...cuerpo, referencia: f.referencia, origen_ref: f.origen_ref, notas: f.notas },
+      "/api/pagos/registrar", extra(),
     ),
     onSuccess: (s2) => {
       if (s2.error) return onError(s2.error);
@@ -249,19 +334,24 @@ function Wizard({
 
   const cats = catsQ.data?.categorias ?? [];
   const ops = opcionesQ.data?.opciones ?? [];
+  const datosPagoOk = !!f.medio_pago_id && !!f.fecha;
+  const facturaOk = !cat?.requiere_factura || (!!verif && (verif.fiel || motivoDif.trim().length > 3));
 
   return (
     <div className="space-y-4 rounded-xl border border-accent/40 bg-surface-panel p-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
-              paso === n ? "bg-accent text-white" : paso > n ? "bg-emerald-500/20 text-emerald-500" : "bg-surface text-muted"
-            }`}>{paso > n ? "✓" : n}</div>
-          ))}
-          <span className="ml-1 text-xs font-bold text-ink">
-            {paso === 1 ? "¿Qué se paga?" : paso === 2 ? "Detalles" : "Revisar el asiento"}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {pasos.map((label, i) => {
+            const n = i + 1;
+            return (
+              <div key={label} className="flex items-center gap-1">
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+                  paso === n ? "bg-accent text-white" : paso > n ? "bg-emerald-500/20 text-emerald-500" : "bg-surface text-muted"
+                }`}>{paso > n ? "✓" : n}</div>
+                <span className={`hidden text-[11px] sm:inline ${paso === n ? "font-bold text-ink" : "text-muted"}`}>{label}</span>
+              </div>
+            );
+          })}
         </div>
         <button type="button" onClick={onCerrar} className="text-xs text-muted">✕</button>
       </div>
@@ -272,18 +362,44 @@ function Wizard({
           {cats.map((c) => (
             <button
               key={c.id} type="button"
-              onClick={() => { setCat(c); setPaso(2); }}
-              className="rounded-lg border border-border p-3 text-left hover:border-accent"
+              onClick={() => { setCat(c); setPaso(2); setItems([]); setVerif(null); setProveedor(null); }}
+              className={`rounded-lg border p-3 text-left hover:border-accent ${c.con_productos ? "border-accent/50 bg-accent/5" : "border-border"}`}
             >
               <p className="text-sm font-bold text-ink">{c.icono} {c.label}</p>
               <p className="mt-0.5 text-[10px] leading-snug text-muted">{c.ayuda}</p>
+              {c.con_productos && <p className="mt-1 text-[10px] font-bold text-accent">Proveedor · productos con SKU · factura cotejada</p>}
             </button>
           ))}
         </div>
       )}
 
-      {/* PASO 2 — detalles */}
-      {paso === 2 && cat && (
+      {/* ── Recorrido con productos ── */}
+      {conProductos && cat && paso === 2 && (
+        <PasoProveedor
+          cat={cat} proveedor={proveedor}
+          onElegir={(p) => { setProveedor(p); set("tercero_id", p.id ? String(p.id) : ""); if (!f.concepto) set("concepto", `Compra a ${p.nombre}`); }}
+          f={f} set={set} medios={medios}
+          onAtras={() => setPaso(1)}
+          onSiguiente={() => setPaso(3)}
+          puedeSeguir={!!f.tercero_id && datosPagoOk}
+        />
+      )}
+      {conProductos && cat && paso === 3 && (
+        <PasoProductos
+          items={items} setItems={(v) => { setItems(v); setVerif(null); }} tot={tot}
+          onAtras={() => setPaso(2)} onSiguiente={() => setPaso(4)}
+        />
+      )}
+      {conProductos && cat && paso === 4 && (
+        <PasoFactura
+          items={itemsCuerpo} monto={tot.total} terceroId={f.tercero_id} verif={verif} setVerif={setVerif}
+          motivo={motivoDif} setMotivo={setMotivoDif} requiere={Boolean(cat.requiere_factura)}
+          onAtras={() => setPaso(3)} onSiguiente={() => setPaso(5)} puedeSeguir={facturaOk}
+        />
+      )}
+
+      {/* ── Recorrido simple: PASO 2 detalles ── */}
+      {!conProductos && paso === 2 && cat && (
         <div className="space-y-3">
           <p className="text-xs font-bold text-accent">{cat.icono} {cat.label}</p>
 
@@ -371,9 +487,12 @@ function Wizard({
         </div>
       )}
 
-      {/* PASO 3 — revisar el asiento */}
-      {paso === 3 && cat && (
+      {/* PASO FINAL — revisar el asiento y enviar */}
+      {paso === pasoFinal && cat && (
         <div className="space-y-3">
+          {conProductos && (
+            <ResumenPedido proveedor={proveedor} items={items} tot={tot} verif={verif} motivo={motivoDif} />
+          )}
           {prevQ.isLoading && <p className="text-xs text-muted">Armando el asiento…</p>}
           {prevQ.error && (
             <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500">
@@ -381,11 +500,15 @@ function Wizard({
             </p>
           )}
           {prevQ.data && <AsientoPreview p={prevQ.data} />}
+          <Campo label="Notas para el aprobador (opcional)">
+            <input value={f.notas} onChange={(e) => set("notas", e.target.value)} className={inputCls}
+                   placeholder="Urgencia, condiciones de pago, a quién se le confirmó…" />
+          </Campo>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setPaso(2)}
+            <button type="button" onClick={() => setPaso(pasoFinal - 1)}
                     className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink">← Corregir</button>
             <button type="button" onClick={() => crearMut.mutate()}
-                    disabled={!prevQ.data?.cuadra || crearMut.isPending || directoMut.isPending}
+                    disabled={!prevQ.data?.cuadra || crearMut.isPending || directoMut.isPending || !facturaOk}
                     className="rounded-lg border-2 border-accent px-4 py-2 text-xs font-bold text-accent disabled:opacity-40">
               {crearMut.isPending ? "Enviando…" : "Enviar a aprobación"}
             </button>
@@ -406,14 +529,318 @@ function Wizard({
               </button>
             )}
           </div>
-          {puedeDirecto && (
-            <p className="text-[10px] leading-relaxed text-muted">
-              Como {puedeQ.data?.usuario || "administrador"} puedes registrarlo directamente: el asiento
-              queda al confirmar, sin ciclo de aprobación. Se anota quién lo hizo, para poder
-              distinguirlo después de un pago que sí pasó por otro par de ojos.
-            </p>
+          <p className="text-[10px] leading-relaxed text-muted">
+            Al enviar, el aprobador recibe el ticket con los productos, el cotejo de la factura y el asiento.
+            {puedeDirecto && ` Como ${puedeQ.data?.usuario || "administrador"} también puedes registrarlo directo; queda anotado quién lo hizo.`}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Paso: proveedor (terceros del libro + contactos Alegra) ───────────────
+
+function PasoProveedor({
+  cat, proveedor, onElegir, f, set, medios, onAtras, onSiguiente, puedeSeguir,
+}: {
+  cat: Categoria; proveedor: Proveedor | null; onElegir: (p: Proveedor) => void;
+  f: { fecha: string; medio_pago_id: string; concepto: string; referencia: string };
+  set: (k: "fecha" | "medio_pago_id" | "concepto" | "referencia", v: string) => void;
+  medios: MedioPago[]; onAtras: () => void; onSiguiente: () => void; puedeSeguir: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const [adoptando, setAdoptando] = useState<string | null>(null);
+  const [err, setErr] = useState("");
+  const provQ = useQuery<{ proveedores: Proveedor[] }>({
+    queryKey: ["pagos-proveedores", q],
+    queryFn: () => api.get(`/api/pagos/proveedores?q=${encodeURIComponent(q)}`),
+  });
+  const lista = provQ.data?.proveedores ?? [];
+
+  async function elegir(p: Proveedor) {
+    setErr("");
+    if (p.en_libro && p.id) return onElegir(p);
+    // Contacto de Alegra que aún no es tercero: se adopta al Libro Mayor al elegirlo.
+    setAdoptando(p.alegra_id);
+    try {
+      const r = await api.post<{ tercero?: { id: number; nombre: string; identificacion: string }; error?: string }>(
+        "/api/pagos/proveedores/adoptar", { alegra_id: p.alegra_id },
+      );
+      if (r.error || !r.tercero) throw new Error(r.error || "No se pudo adoptar el contacto");
+      onElegir({ ...p, id: r.tercero.id, en_libro: true });
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setAdoptando(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold text-accent">{cat.icono} {cat.label} · ¿A qué proveedor?</p>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nombre o NIT…" className={inputCls} autoFocus />
+      {err && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500">{err}</p>}
+      <div className="grid max-h-64 gap-1.5 overflow-y-auto sm:grid-cols-2">
+        {provQ.isLoading && <p className="text-xs text-muted">Buscando…</p>}
+        {lista.map((p) => {
+          const activo = proveedor && ((p.id && proveedor.id === p.id) || (p.alegra_id && proveedor.alegra_id === p.alegra_id));
+          return (
+            <button key={p.id ?? `a${p.alegra_id}`} type="button" onClick={() => void elegir(p)} disabled={adoptando !== null}
+              className={`rounded-lg border p-2 text-left text-[11px] ${activo ? "border-accent bg-accent/10" : "border-border hover:border-accent"}`}>
+              <p className="font-bold text-ink">{p.nombre}</p>
+              <p className="text-[10px] text-muted">
+                {p.identificacion || "sin identificación"}
+                {p.en_libro ? " · en el Libro Mayor" : " · contacto Alegra (se adopta al elegir)"}
+                {p.regimen_simple ? " · Régimen SIMPLE, sin retención" : ""}
+              </p>
+              {p.saldo_2205 ? <p className="mt-0.5 font-bold tabular-nums text-amber-600">debe {cop(p.saldo_2205)}</p> : null}
+              {adoptando === p.alegra_id && <p className="text-[10px] text-accent">Adoptando…</p>}
+            </button>
+          );
+        })}
+        {!provQ.isLoading && !lista.length && <p className="text-xs text-muted">Nada con ese nombre. Créalo en Libro Mayor → Terceros o en Alegra.</p>}
+      </div>
+
+      <p className="text-[10px] font-bold uppercase text-muted">Datos del pago</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Campo label="Fecha">
+          <input type="date" value={f.fecha} onChange={(e) => set("fecha", e.target.value)} className={inputCls} />
+        </Campo>
+        <Campo label="De qué cuenta sale">
+          <select value={f.medio_pago_id} onChange={(e) => set("medio_pago_id", e.target.value)} className={inputCls}>
+            <option value="">Selecciona…</option>
+            {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+          </select>
+        </Campo>
+        <Campo label="Concepto">
+          <input value={f.concepto} onChange={(e) => set("concepto", e.target.value)} placeholder="Qué se compra" className={inputCls} />
+        </Campo>
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={onAtras} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink">← Atrás</button>
+        <button type="button" onClick={onSiguiente} disabled={!puedeSeguir}
+                className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40">
+          Productos →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Paso: productos con SKU del catálogo Alegra ───────────────────────────
+
+function PasoProductos({
+  items, setItems, tot, onAtras, onSiguiente,
+}: {
+  items: ItemLinea[]; setItems: (v: ItemLinea[]) => void; tot: { subtotal: number; iva: number; total: number };
+  onAtras: () => void; onSiguiente: () => void;
+}) {
+  const [q, setQ] = useState("");
+  const prodQ = useQuery<{ productos: ProductoCat[] }>({
+    queryKey: ["pagos-productos", q],
+    queryFn: () => api.get(`/api/pagos/productos?q=${encodeURIComponent(q)}`),
+    enabled: q.trim().length >= 2,
+  });
+  const resultados = prodQ.data?.productos ?? [];
+
+  function agregar(p: ProductoCat) {
+    if (items.some((it) => it.sku === p.sku)) return;
+    setItems([...items, {
+      sku: p.sku, nombre: p.nombre, cantidad: "1",
+      precio: p.costo_unitario ? String(p.costo_unitario) : "", iva_pct: "19", unidad: p.unidad,
+    }]);
+    setQ("");
+  }
+  function editar(i: number, k: keyof ItemLinea, v: string) {
+    setItems(items.map((it, j) => (j === i ? { ...it, [k]: v } : it)));
+  }
+  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && it.sku);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold text-accent">¿Qué productos se compran? (SKU del catálogo Alegra)</p>
+      <div className="relative">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto por SKU o nombre…" className={inputCls} autoFocus />
+        {q.trim().length >= 2 && (
+          <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
+            {prodQ.isLoading && <p className="px-3 py-2 text-xs text-muted">Buscando…</p>}
+            {resultados.map((p) => (
+              <button key={p.sku} type="button" onClick={() => agregar(p)}
+                className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs hover:bg-accent/10">
+                <span><span className="font-mono text-accent">{p.sku}</span> <span className="text-ink">{p.nombre}</span></span>
+                <span className="text-[10px] text-muted">{p.costo_unitario ? `costo ${cop(p.costo_unitario)}` : ""}</span>
+              </button>
+            ))}
+            {!prodQ.isLoading && !resultados.length && (
+              <p className="px-3 py-2 text-xs text-muted">Sin resultados en el catálogo Alegra. Si es un producto nuevo, créalo primero en Catálogo Alegra.</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {items.length > 0 && (
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="min-w-full text-left text-[11px]">
+            <thead className="bg-surface text-[10px] uppercase text-muted">
+              <tr>
+                <th className="px-2 py-1.5">SKU</th><th className="px-2 py-1.5">Producto</th>
+                <th className="px-2 py-1.5 text-right">Cant.</th><th className="px-2 py-1.5 text-right">Precio sin IVA</th>
+                <th className="px-2 py-1.5 text-right">IVA %</th><th className="px-2 py-1.5 text-right">Subtotal</th><th />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={it.sku + i} className="border-t border-border/40">
+                  <td className="px-2 py-1 font-mono text-accent">{it.sku}</td>
+                  <td className="px-2 py-1 text-ink">{it.nombre}{it.unidad ? <span className="text-muted"> · {it.unidad}</span> : null}</td>
+                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.cantidad} onChange={(e) => editar(i, "cantidad", e.target.value)} className="w-20 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
+                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.precio} onChange={(e) => editar(i, "precio", e.target.value)} className="w-28 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
+                  <td className="px-2 py-1 text-right">
+                    <select value={it.iva_pct} onChange={(e) => editar(i, "iva_pct", e.target.value)} className="rounded border border-border bg-surface-input px-1 py-0.5">
+                      <option value="19">19</option><option value="5">5</option><option value="0">0</option>
+                    </select>
+                  </td>
+                  <td className="px-2 py-1 text-right tabular-nums text-ink">{cop(num(it.cantidad) * num(it.precio))}</td>
+                  <td className="px-2 py-1"><button type="button" onClick={() => setItems(items.filter((_, j) => j !== i))} className="text-muted hover:text-red-500">✕</button></td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="text-[11px]">
+              <tr className="border-t border-border"><td colSpan={5} className="px-2 py-1 text-right text-muted">Subtotal</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.subtotal)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1 text-right text-muted">IVA</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.iva)}</td><td /></tr>
+              <tr className="font-bold"><td colSpan={5} className="px-2 py-1 text-right">Total a pagar</td><td className="px-2 py-1 text-right tabular-nums text-ink">{cop(tot.total)}</td><td /></tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+      {!items.length && <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-xs text-muted">Busca y agrega los productos de la compra. Cada línea lleva su SKU.</p>}
+
+      <div className="flex gap-2">
+        <button type="button" onClick={onAtras} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink">← Atrás</button>
+        <button type="button" onClick={onSiguiente} disabled={!listo}
+                className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40">
+          Cotejar la factura →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Paso: factura o cotización del proveedor, cotejada contra lo pedido ───
+
+function PasoFactura({
+  items, monto, terceroId, verif, setVerif, motivo, setMotivo, requiere, onAtras, onSiguiente, puedeSeguir,
+}: {
+  items: Array<Record<string, unknown>>; monto: number; terceroId: string;
+  verif: Verificacion | null; setVerif: (v: Verificacion | null) => void;
+  motivo: string; setMotivo: (v: string) => void; requiere: boolean;
+  onAtras: () => void; onSiguiente: () => void; puedeSeguir: boolean;
+}) {
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [err, setErr] = useState("");
+  const cotejar = useMutation({
+    mutationFn: async () => {
+      if (!archivo) throw new Error("Adjunta la factura o cotización");
+      const fd = new FormData();
+      fd.append("archivo", archivo);
+      fd.append("items", JSON.stringify(items));
+      fd.append("monto", String(monto));
+      if (terceroId) fd.append("tercero_id", terceroId);
+      return api.upload<Verificacion & { error?: string }>("/api/pagos/verificar-factura", fd, { timeoutMs: 90_000 });
+    },
+    onSuccess: (r) => { if (r.error) { setErr(r.error); setVerif(null); } else { setErr(""); setVerif(r); } },
+    onError: (e) => setErr((e as Error).message),
+  });
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold text-accent">¿La factura o cotización dice lo mismo que pediste?</p>
+      <p className="text-[11px] text-muted">
+        Adjunta el PDF, el XML de la DIAN o el ZIP que manda el proveedor. Se coteja NIT, número, total ({cop(monto)}) y cada
+        producto. No usa inteligencia artificial: si el archivo es una foto sin texto, lo dirá.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <input type="file" accept=".pdf,.xml,.zip" onChange={(e) => { setArchivo(e.target.files?.[0] ?? null); setVerif(null); }}
+               className="text-xs text-ink" />
+        <button type="button" onClick={() => cotejar.mutate()} disabled={!archivo || cotejar.isPending}
+                className="rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
+          {cotejar.isPending ? "Cotejando…" : "Cotejar"}
+        </button>
+      </div>
+      {err && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500">{err}</p>}
+
+      {verif && (
+        <div className={`space-y-2 rounded-xl border p-3 ${verif.fiel ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+          <p className={`text-sm font-bold ${verif.fiel ? "text-emerald-600" : "text-amber-600"}`}>
+            {verif.fiel ? "✅ Fiel copia de lo solicitado" : verif.legible ? "⚠️ Hay diferencias con lo solicitado" : "⚠️ No se pudo leer el archivo"}
+            {verif.numero_documento ? <span className="ml-2 font-mono text-xs text-muted">{verif.numero_documento}</span> : null}
+          </p>
+          <div className="grid gap-1 text-[11px] sm:grid-cols-3">
+            <Check ok={verif.nit_ok} label="NIT del proveedor" nulo="sin NIT para cotejar" />
+            <Check ok={verif.total_ok} label={`Total ${cop(monto)}`} />
+            <Check ok={verif.items.length > 0 && verif.items.every((i) => i.encontrado)} label="Todos los productos aparecen" />
+          </div>
+          {verif.items.length > 0 && (
+            <ul className="space-y-0.5 text-[11px]">
+              {verif.items.map((i) => (
+                <li key={i.sku + i.nombre} className="flex flex-wrap items-center gap-2">
+                  <span>{i.encontrado ? "✓" : "✗"}</span>
+                  <span className="font-mono text-accent">{i.sku}</span>
+                  <span className="text-ink">{i.nombre}</span>
+                  <span className="text-[10px] text-muted">
+                    {i.encontrado ? `encontrado por ${i.por}` : "no aparece"}
+                    {i.encontrado && !i.precio_ok ? " · precio distinto" : ""}
+                    {i.encontrado && !i.cantidad_ok ? " · cantidad no vista" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {verif.advertencias.length > 0 && (
+            <ul className="list-disc pl-4 text-[11px] text-amber-700">
+              {verif.advertencias.map((a) => <li key={a}>{a}</li>)}
+            </ul>
+          )}
+          {!verif.fiel && (
+            <Campo label="Si la diferencia es correcta, explícala (el aprobador la verá)">
+              <textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={2} className={inputCls}
+                        placeholder="Ej.: la cotización no incluye el flete que sí se paga; o: el proveedor cambió el precio y se aceptó." />
+            </Campo>
           )}
         </div>
+      )}
+      {!requiere && !verif && <p className="text-[11px] text-muted">Esta categoría no exige factura; puedes seguir sin cotejar.</p>}
+
+      <div className="flex gap-2">
+        <button type="button" onClick={onAtras} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink">← Atrás</button>
+        <button type="button" onClick={onSiguiente} disabled={!puedeSeguir}
+                className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40">
+          Ver el asiento →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Check({ ok, label, nulo }: { ok: boolean | null; label: string; nulo?: string }) {
+  if (ok === null) return <span className="text-muted">— {label} ({nulo || "no aplica"})</span>;
+  return <span className={ok ? "text-emerald-600" : "text-red-500"}>{ok ? "✓" : "✗"} {label}</span>;
+}
+
+function ResumenPedido({ proveedor, items, tot, verif, motivo }: {
+  proveedor: Proveedor | null; items: ItemLinea[]; tot: { subtotal: number; iva: number; total: number };
+  verif: Verificacion | null; motivo: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-surface p-3 text-[11px]">
+      <p className="font-bold text-ink">{proveedor?.nombre ?? "—"} <span className="font-normal text-muted">· {items.length} producto(s)</span></p>
+      <p className="text-muted">Subtotal {cop(tot.subtotal)} · IVA {cop(tot.iva)} · <span className="font-bold text-ink">Total {cop(tot.total)}</span></p>
+      {verif && (
+        <p className={`mt-1 font-bold ${verif.fiel ? "text-emerald-600" : "text-amber-600"}`}>
+          {verif.fiel ? "✅ Factura cotejada: fiel copia" : "⚠️ Factura con diferencias"}{verif.numero_documento ? ` · ${verif.numero_documento}` : ""}
+          {!verif.fiel && motivo ? <span className="block font-normal text-muted">Explicación: {motivo}</span> : null}
+        </p>
       )}
     </div>
   );
@@ -553,6 +980,19 @@ function FichaSolicitud({
           <span className="text-amber-500">sin espejar en Alegra</span>
         )}
         {s.ticket_id && <span>🎫 ticket #{s.ticket_id}</span>}
+        {s.items && s.items.length > 0 && <span>📦 {s.items.length} producto(s)</span>}
+        {s.factura_archivo && (
+          <button type="button" className="text-accent hover:underline"
+            onClick={() => { void fetchAuthBlobUrl(`/api/pagos/solicitudes/${s.id}/factura`).then((u) => { if (u) window.open(u, "_blank"); }); }}>
+            📎 {s.factura_numero || s.factura_nombre || "factura"}
+          </button>
+        )}
+        {s.verificacion && typeof s.verificacion.fiel === "boolean" && (
+          <span className={`rounded px-1.5 py-0.5 font-bold ${s.verificacion.fiel ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}
+                title={(s.verificacion.advertencias || []).join(" · ") + (s.verificacion.motivo_diferencia ? ` · ${s.verificacion.motivo_diferencia}` : "")}>
+            {s.verificacion.fiel ? "factura fiel" : "factura con diferencias"}
+          </span>
+        )}
         {/* Un pago auto-aprobado es válido, pero tuvo un solo par de ojos:
             en una revisión hay que poder distinguirlo de uno aprobado por otro. */}
         {s.notas?.includes("Registrado directamente") && (

@@ -42,6 +42,7 @@ from app.services.tickets_db import (
     get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
     set_producto_resultante,
     get_aliados_asignaciones, set_aliado_asignacion, TAREA_RECLAMO_MELI_ANULAR_FACTURA, TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
+    TAREA_PRESTAMOS_DECLARAR_RETENCIONES, TAREA_CONCILIACION_CONTADOR, TAREA_PAGOS_APROBADOR,
     listar_compras_ticket, agregar_compra_ticket, actualizar_compra_ticket, eliminar_compra_ticket,
     buscar_productos_para_compra,
     listar_notas, crear_nota, actualizar_nota, eliminar_nota,
@@ -267,6 +268,18 @@ def _puede_crear_protocolos():
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
+def _parece_solicitud_de_pago(texto: str) -> bool:
+    """«pagar la factura de Interkrol», «transferencia al proveedor», «girar cotización»…
+    Exige verbo de pago Y objeto de compra, para no atrapar «pago de nómina» ni «pagué el arriendo»."""
+    import re as _re
+    import unicodedata as _u
+
+    t = "".join(ch for ch in _u.normalize("NFKD", texto or "") if not _u.combining(ch)).lower()
+    verbo = _re.search(r"\b(pag(o|os|ar|ue|uen|uemos|ar[a-z]*|ando)|transferir|transferencia|girar|giro|consign\w*|abon(o|ar)\w*)\b", t)
+    objeto = _re.search(r"\b(proveedor\w*|factura\w*|cotizaci\w*|remisi\w*|proforma|pedido de (materia|insumo|mercanc)\w*)\b", t)
+    return bool(verbo and objeto)
 
 
 def register_tickets_routes(app):
@@ -793,6 +806,18 @@ def register_tickets_routes(app):
                         "slug": TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
                         "nombre": "Facturas faltantes MeLi↔Alegra → Sincronizar (Alegra)",
                     },
+                    {
+                        "slug": TAREA_PRESTAMOS_DECLARAR_RETENCIONES,
+                        "nombre": "Retenciones de préstamos → Declarar con el contador (formulario 350)",
+                    },
+                    {
+                        "slug": TAREA_CONCILIACION_CONTADOR,
+                        "nombre": "Conciliación contador → Hallazgos del cruce declaraciones ↔ Libro Mayor",
+                    },
+                    {
+                        "slug": TAREA_PAGOS_APROBADOR,
+                        "nombre": "Solicitudes de pago → Aprobar pagos a proveedores y demás (Contabilidad)",
+                    },
                 ],
                 "asignaciones": get_aliados_asignaciones(),
             }
@@ -1005,6 +1030,18 @@ def register_tickets_routes(app):
                 f.save(os.path.join(UPLOADS_DIR, archivo_nombre))
         elif data.get("categoria") in ("rrhh", "contratos"):
             return jsonify({"error": "Este trámite requiere soporte documental (multipart)"}), 400
+
+        # Regla (sep-2026): un pago a proveedor NO entra como solicitud de texto libre. Va por
+        # Contabilidad → Solicitudes de pago, donde se elige el proveedor, los productos con SKU y se
+        # coteja la factura. Las solicitudes que crea ese módulo llegan con subtipo 'pago'.
+        if tipo_ticket == "solicitud" and (data.get("subtipo") or "") not in ("pago", "compra", "etiqueta", "pregunta", "procedimiento"):
+            texto = f"{data.get('titulo') or ''} {data.get('descripcion') or ''}".lower()
+            if _parece_solicitud_de_pago(texto):
+                return jsonify({
+                    "error": "Las solicitudes de pago a proveedores se hacen en Contabilidad → Solicitudes de pago "
+                             "(proveedor, productos con SKU y factura cotejada). Ahí llega al aprobador con su ticket.",
+                    "redirigir": "pagos",
+                }), 400
 
         ticket, err = crear_ticket(data, usuario["id"], archivo_nombre)
         if err:

@@ -204,6 +204,36 @@ def _item_facturacion_pendiente() -> dict[str, Any] | None:
     return _item("facturacion_pendiente", "Facturación MeLi pendiente", detalle, n, "alta", "facturacion_ventas")
 
 
+def _item_conciliacion_contador() -> dict[str, Any] | None:
+    try:
+        from app.services.conciliacion_contador import resumen
+    except Exception:
+        return None
+    try:
+        r = resumen()
+    except Exception:
+        return None
+    n = int(r.get("pendientes") or 0)
+    if r.get("total", 0) == 0 and not r.get("ultima_corrida"):
+        return _item(
+            "conciliacion_contador", "Cruce con el contador sin correr",
+            "Todavía no se ha cruzado lo declarado (350/490) contra la 2365 del Libro Mayor.",
+            0, "media", "conciliacion_contador",
+        )
+    if n == 0:
+        return _item(
+            "conciliacion_contador", "Cruce con el contador al día",
+            f"{r.get('con_ticket', 0)} hallazgo(s) en ticket, {r.get('resueltos', 0)} resuelto(s).",
+            0, "ok", "conciliacion_contador",
+        )
+    return _item(
+        "conciliacion_contador", f"{n} hallazgo(s) del cruce con el contador por decidir",
+        f"Suman ${r.get('monto_pendiente', 0):,} COP.".replace(",", ".")
+        + " Cada uno se decide en el wizard y, si hace falta, se vuelve TKT.",
+        n, "alta" if n >= 5 else "media", "conciliacion_contador",
+    )
+
+
 def resumen_checklist() -> dict[str, Any]:
     """Lista de pendientes accionables del hub Contabilidad, en un solo lugar.
 
@@ -219,6 +249,7 @@ def resumen_checklist() -> dict[str, Any]:
             _item_extracto_reciente(),
             _item_prestamos_pendientes(),
             _item_facturacion_pendiente(),
+            _item_conciliacion_contador(),
         )
         if it is not None
     ]

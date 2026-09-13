@@ -66,13 +66,30 @@ def _conn():
 # `None` en cuenta_debito significa que la elige el usuario (categoría "otro").
 
 CATEGORIAS: dict[str, dict] = {
+    # Las dos categorías de proveedor llevan el flujo completo del wizard (sep-2026):
+    # proveedor del listado (libro + Alegra), productos con SKU del catálogo Alegra y la
+    # factura/cotización cotejada contra lo pedido antes de enviar. `con_productos` es lo que
+    # lo activa en el panel; `requiere_factura` obliga a adjuntar y cotejar el documento.
+    "compra_proveedor": {
+        "label": "Compra a proveedor",
+        "ayuda": "Pagar una compra de productos a un proveedor: se eligen los productos con su SKU y se coteja la factura o cotización.",
+        "cuenta_debito": "1435",
+        "origen": "proveedores",
+        "requiere_tercero": True,
+        "icono": "🧾",
+        "con_productos": True,
+        "requiere_factura": True,
+        "concepto_retencion": "compras",
+    },
     "factura_proveedor": {
-        "label": "Factura de proveedor",
-        "ayuda": "Paga una factura ya registrada. Baja la deuda con el proveedor.",
+        "label": "Factura de proveedor ya registrada",
+        "ayuda": "Paga una factura que ya está en el libro (baja la deuda en 2205). También pide productos y factura.",
         "cuenta_debito": "2205",
         "origen": "saldos_proveedores",
         "requiere_tercero": True,
         "icono": "📄",
+        "con_productos": True,
+        "requiere_factura": True,
     },
     "flete_transporte": {
         "label": "Flete o transporte",
@@ -221,6 +238,16 @@ def init_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_cc_solicitudes_estado
             ON cc_solicitudes_pago(estado, fecha);
         """)
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_solicitudes_pago)")}
+        for col, ddl in (
+            ("items_json", "TEXT NOT NULL DEFAULT '[]'"),
+            ("factura_numero", "TEXT NOT NULL DEFAULT ''"),
+            ("factura_archivo", "TEXT NOT NULL DEFAULT ''"),
+            ("factura_nombre", "TEXT NOT NULL DEFAULT ''"),
+            ("verificacion_json", "TEXT NOT NULL DEFAULT '{}'"),
+        ):
+            if col not in cols:
+                con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
     _initialized = True
 
 
@@ -242,6 +269,18 @@ def opciones(categoria: str) -> dict:
     if not cat:
         raise ValueError(f"Categoría desconocida: {categoria}")
     origen = cat["origen"]
+
+    if origen == "proveedores":
+        from app.services.pagos_proveedor import proveedores
+
+        return {"tipo": "proveedores", "opciones": [
+            {"id": p["id"] or f"alegra:{p['alegra_id']}", "label": p["nombre"],
+             "identificacion": p["identificacion"], "monto_sugerido": p["saldo_2205"] or None,
+             "detalle": ("saldo pendiente " + f"{p['saldo_2205']:,}".replace(",", ".")) if p["saldo_2205"] else
+                        ("en el Libro Mayor" if p["en_libro"] else "contacto de Alegra (se adopta al elegirlo)"),
+             "en_libro": p["en_libro"], "alegra_id": p["alegra_id"]}
+            for p in proveedores()
+        ]}
 
     if origen == "saldos_proveedores":
         import app.services.contabilidad_core as cc
@@ -351,9 +390,21 @@ def previsualizar(payload: dict) -> dict:
     if not cat:
         raise ValueError(f"Categoría desconocida: {categoria}")
 
+    from app.services.pagos_proveedor import normalizar_items
+
+    items = normalizar_items(payload.get("items")) if cat.get("con_productos") else []
+    total_items = round(sum(i["total"] for i in items), 2)          # con IVA: lo que cobra la factura
+    base_sin_iva = round(sum(i["subtotal"] for i in items), 2)     # base de la retención
+    iva_items = round(sum(i["iva"] for i in items), 2)
     monto = round(float(payload.get("monto") or 0), 2)
+    if items and monto <= 0:
+        monto = total_items
     if monto <= 0:
         raise ValueError("El monto debe ser mayor que cero")
+    if items and abs(total_items - monto) > 1:
+        raise ValueError(
+            f"El monto ({monto:,.0f}) no coincide con la suma de los productos ({total_items:,.0f})".replace(",", ".")
+        )
     fecha = str(payload.get("fecha") or date.today().isoformat())[:10]
     concepto = str(payload.get("concepto") or "").strip()
     tercero_id = int(payload.get("tercero_id") or 0) or None
@@ -386,7 +437,11 @@ def previsualizar(payload: dict) -> dict:
         from app.services.retenciones import calcular
 
         declarante = bool(tercero.get("declarante", 1)) if tercero else True
-        ret_info = calcular(concepto_ret, monto, anio=int(fecha[:4]), declarante=declarante)
+        if tercero and int(tercero.get("regimen_simple") or 0):
+            # Art. 911 ET: a un contribuyente del SIMPLE no se le practica retención.
+            ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
+        else:
+            ret_info = calcular(concepto_ret, base_sin_iva if items else monto, anio=int(fecha[:4]), declarante=declarante)
         retencion = round(float(ret_info.get("retencion") or 0), 2)
 
     with cc._conn() as con:
@@ -432,6 +487,12 @@ def previsualizar(payload: dict) -> dict:
         "tercero": {"id": tercero_id, "nombre": nombre_tercero} if tercero_id else None,
         "medio_pago": medio["nombre"],
         "lineas": lineas,
+        "items": items,
+        "total_items": total_items,
+        "base_sin_iva": base_sin_iva,
+        "iva_items": iva_items,
+        "con_productos": bool(cat.get("con_productos")),
+        "requiere_factura": bool(cat.get("requiere_factura")),
         "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
     }
 
@@ -448,24 +509,58 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
     prev = previsualizar(payload)   # valida todo antes de guardar
 
     categoria = prev["categoria"]
+    cat = CATEGORIAS[categoria]
     cuenta_debito = prev["lineas"][0]["cuenta_codigo"]
+
+    # Proveedor con productos: sin líneas y sin factura cotejada no hay solicitud. Es la regla
+    # que evita que un pago a proveedor entre como texto libre por el Centro de Mando.
+    verificacion = payload.get("verificacion") if isinstance(payload.get("verificacion"), dict) else {}
+    archivo_tmp = str(payload.get("archivo_tmp") or "").strip()
+    if cat.get("con_productos") and not payload.get("_sin_ticket"):
+        if not prev["items"]:
+            raise ValueError("Agrega al menos un producto con su SKU")
+        if cat.get("requiere_factura"):
+            if not archivo_tmp:
+                raise ValueError("Adjunta la factura o cotización del proveedor y cotéjala antes de enviar")
+            if not verificacion:
+                raise ValueError("Falta cotejar la factura contra lo solicitado")
+            if not verificacion.get("fiel") and not str(payload.get("verificacion_motivo") or "").strip():
+                raise ValueError(
+                    "La factura no es fiel copia de lo solicitado. Corrige los productos o explica la diferencia "
+                    "para que el aprobador la vea"
+                )
+    factura_numero = str(payload.get("factura_numero") or verificacion.get("numero_documento") or "").strip()
+    verificacion_guardar = {**verificacion, "motivo_diferencia": str(payload.get("verificacion_motivo") or "").strip()} if verificacion else {}
+
     with _conn() as con:
         cur = con.execute(
             """INSERT INTO cc_solicitudes_pago
                  (categoria, concepto, monto, fecha, tercero_id, cuenta_debito,
                   medio_pago_id, referencia, origen_ref, retencion, retencion_concepto,
-                  estado, notas, creada_por)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,'pendiente',?,?)""",
+                  estado, notas, creada_por, items_json, factura_numero, verificacion_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,'pendiente',?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
                 int(payload.get("medio_pago_id") or 0) or None,
-                str(payload.get("referencia") or ""), str(payload.get("origen_ref") or ""),
-                prev["retencion"], str(CATEGORIAS[categoria].get("concepto_retencion") or ""),
+                str(payload.get("referencia") or factura_numero or ""), str(payload.get("origen_ref") or ""),
+                prev["retencion"], str(cat.get("concepto_retencion") or ""),
                 str(payload.get("notas") or ""), created_by,
+                json.dumps(prev["items"], ensure_ascii=False), factura_numero,
+                json.dumps(verificacion_guardar, ensure_ascii=False),
             ),
         )
         sid = int(cur.lastrowid)
+    if archivo_tmp:
+        from app.services.pagos_proveedor import consolidar_archivo
+
+        res = consolidar_archivo(archivo_tmp, sid, str(payload.get("archivo_nombre") or ""))
+        if res:
+            with _conn() as con:
+                con.execute("UPDATE cc_solicitudes_pago SET factura_archivo=?, factura_nombre=? WHERE id=?",
+                            (res[0], res[1], sid))
+    prev["factura_numero"] = factura_numero
+    prev["verificacion"] = verificacion_guardar
 
     # El registro directo se aprueba solo: un ticket de aprobación que nace
     # resuelto es ruido en la bandeja de alguien.
@@ -495,6 +590,25 @@ def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
             f"D {_fmt(l['debito']):>14}  C {_fmt(l['credito']):>14}"
             for l in prev["lineas"]
         )
+        productos = ""
+        if prev.get("items"):
+            productos = "\n**Productos solicitados (precios sin IVA):**\n" + "\n".join(
+                f"- {i['sku'] or '(sin SKU)'} · {i['nombre']} × {i['cantidad']:g} @ {_fmt(i['precio'])} = {_fmt(i['subtotal'])}"
+                + (f" + IVA {i['iva_pct']:g}%" if i.get('iva_pct') else " (sin IVA)")
+                for i in prev["items"]
+            ) + (f"\nSubtotal {_fmt(prev.get('base_sin_iva'))} · IVA {_fmt(prev.get('iva_items'))} · "
+                 f"**Total {_fmt(prev.get('total_items'))}**\n")
+        ver = prev.get("verificacion") or {}
+        cotejo = ""
+        if ver:
+            cotejo = (
+                "\n**Factura / cotización cotejada:** "
+                + ("✅ fiel copia de lo solicitado" if ver.get("fiel") else "⚠️ CON DIFERENCIAS")
+                + (f" · documento {ver.get('numero_documento')}" if ver.get("numero_documento") else "")
+                + "\n" + "\n".join(f"  - {a}" for a in (ver.get("advertencias") or []))
+                + (f"\n  Explicación de quien solicita: {ver.get('motivo_diferencia')}" if ver.get("motivo_diferencia") else "")
+                + "\n"
+            )
         desc = (
             f"**Solicitud de pago #{sid} — {prev['categoria_label']}**\n\n"
             f"Concepto: {prev['concepto']}\n"
@@ -503,6 +617,7 @@ def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
             + f"\n**Monto: {_fmt(prev['monto'])}**"
             + (f" · retención {_fmt(prev['retencion'])} → **se gira {_fmt(prev['girado'])}**"
                if prev["retencion"] > 0 else "")
+            + productos + cotejo
             + "\n\n**Asiento contable que va a quedar al aprobar:**\n```\n"
             + filas + "\n```\n"
             + (f"\n_{prev['retencion_motivo']}_\n" if prev.get("retencion_motivo") else "")
@@ -512,7 +627,7 @@ def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
         creador = created_by or _usuario_id(_tdb.DB_PATH, "admin")
         if not creador:
             return None
-        aprobador = _usuario_id(_tdb.DB_PATH, os.getenv("PAGOS_APROBADOR", "armando"))
+        aprobador = _aprobador_id(_tdb)
         t, err = _tdb.crear_ticket(
             {"tipo": "solicitud", "subtipo": "pago",
              "titulo": f"Aprobar pago — {prev['categoria_label']}: {_fmt(prev['monto'])}",
@@ -527,6 +642,18 @@ def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
 
 
 MARCA_SOLICITUD = "SYS_SOLICITUD_PAGO:"
+
+
+def _aprobador_id(_tdb) -> int | None:
+    """Quien aprueba: el aliado asignado a «Solicitudes de pago» en Sistemas → Aliados; si no,
+    PAGOS_APROBADOR (default armando)."""
+    try:
+        uid = (_tdb.get_aliados_asignaciones().get(getattr(_tdb, "TAREA_PAGOS_APROBADOR", "pagos_aprobador")) or {}).get("usuario_id")
+        if uid:
+            return int(uid)
+    except Exception:
+        pass
+    return _usuario_id(_tdb.DB_PATH, os.getenv("PAGOS_APROBADOR", "armando"))
 
 
 def _usuario_id(db_path: str, username: str) -> int | None:
@@ -553,6 +680,14 @@ def obtener(sid: int) -> dict | None:
     d["categoria_label"] = CATEGORIAS.get(d["categoria"], {}).get("label", d["categoria"])
     d["icono"] = CATEGORIAS.get(d["categoria"], {}).get("icono", "📌")
     d["girado"] = round(float(d["monto"] or 0) - float(d["retencion"] or 0), 2)
+    try:
+        d["items"] = json.loads(d.pop("items_json", None) or "[]")
+    except Exception:
+        d["items"] = []
+    try:
+        d["verificacion"] = json.loads(d.pop("verificacion_json", None) or "{}")
+    except Exception:
+        d["verificacion"] = {}
     if d.get("tercero_id"):
         t = cc.obtener_tercero(d["tercero_id"])
         d["tercero"] = {"id": t["id"], "nombre": t["nombre"], "identificacion": t["identificacion"]} if t else None
@@ -633,6 +768,17 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             " aprobada_por=?, aprobada_at=datetime('now') WHERE id=?",
             (mov.get("id"), aprobada_por, int(sid)),
         )
+    # La factura/cotización del proveedor queda como soporte del asiento.
+    if s.get("factura_archivo"):
+        try:
+            from pathlib import Path as _P
+
+            ruta = _P(__file__).resolve().parents[2] / s["factura_archivo"]
+            if ruta.exists():
+                mime = "application/pdf" if ruta.suffix.lower() == ".pdf" else "application/octet-stream"
+                cc.guardar_comprobante(int(mov["id"]), ruta.read_bytes(), s.get("factura_nombre") or ruta.name, mime)
+        except Exception as e:
+            print(f"⚠️ Solicitud {sid}: no se pudo adjuntar la factura al asiento: {e}", flush=True)
 
     espejo = {"status": "omitido"}
     if espejar:

@@ -1582,6 +1582,12 @@ TAREA_SYNC_FACTURAS_FALTANTES_SIIGO = "meli_sync_facturas_faltantes_siigo"
 # El contador suele ser externo, así que el ticket va a quien coordina con él
 # (asignable en Sistemas → Aliados). Ver app/services/prestamos.py.
 TAREA_PRESTAMOS_DECLARAR_RETENCIONES = "prestamos_declarar_retenciones"
+# Hallazgos del cruce declaraciones del contador ↔ Libro Mayor (Contabilidad →
+# Conciliación contador). Cae al mismo usuario que coordina retenciones si no se asigna.
+TAREA_CONCILIACION_CONTADOR = "conciliacion_contador"
+# Quién aprueba las solicitudes de pago (Contabilidad → Solicitudes de pago). Si no se asigna,
+# cae a PAGOS_APROBADOR (default armando). Ver app/services/pagos_wizard.py::_aprobador_id.
+TAREA_PAGOS_APROBADOR = "pagos_aprobador"
 
 # Marker line embedded in ticket.descripcion for automated re-sync on resolution.
 # Example:

@@ -13,6 +13,9 @@ Soportes del contador (declaraciones DIAN/SDH bajadas del correo, fuera de git):
 `scripts/descargar_soportes_contador.py`; los valores extraídos quedan en
 `docs/contabilidad/<año>/declaraciones_contador.json` y el cruce 350 ↔ 2365 en
 `docs/contabilidad/comparacion_350_vs_2365.json` (`scripts/extraer_declaraciones_contador.py --comparar`).
+**Desde el 13-sep todo este cruce vive en /app → Contabilidad → Conciliación contador** (wizard de
+hallazgos con TKT; `app/services/conciliacion_contador.py`). Este archivo queda como narrativa; el
+estado vivo de cada inconsistencia está allá.
 
 ---
 
@@ -123,7 +126,8 @@ Cuatro conclusiones:
    por $122,5M a Armando (CC 1013630698), $47,7M a Cynthia (CC 1019044839) y $16,7M a
    Alexandra (CC 1026262496). En el Libro Mayor de 2026 solo están las tres facturas
    FE de Alexandra ($153.556, y **marcada como jurídica** — su `tipo_persona` en
-   `cc_terceros` id 7 debe pasar a `natural`; por eso la columna «LM PN» sale en 0) y
+   `cc_terceros` id 7 debe pasar a `natural`; por eso la columna «LM PN» sale en 0;
+   **ver además el punto 4-bis: esas tres retenciones no debieron practicarse**) y
    las compras a socios **solo desde agosto** ($96.251). `compras_exterior` apenas
    tiene ene $3,2M, feb $159k y jun $792k contra los ≈$30M de base que declaró
    William para los socios entre enero y julio. Corregido el tipo de Alexandra, el
@@ -141,6 +145,54 @@ Cuatro conclusiones:
 4. **Agosto (periodo 8, vence 16-sep):** el LM lleva $664.887 de proveedores + $96.251
    de socios = **$761.138**, y William aún no ha enviado el 350. La cifra que él
    declare debería salir cerca de eso más las compras a socios que él tenga y el LM no.
+
+**4-bis. Alexandra Benavides está en el Régimen SIMPLE → no se le retiene (13-sep).**
+Sus facturas lo dicen en el pie de página: «Contribuyente al Regimen SIMPLE de
+Tributación», desde FE28486 (2-dic-2025) y en todas las de 2026 (FE30232, FE32480,
+FE34332, FE36170, FE38029; numeración autorizada FE 30001-60000, **vence 31-ago-2026**,
+así que la próxima factura debe traer resolución nueva). El XML DIAN trae `R-99-PN`,
+el mismo código genérico que ya engañó con Duque — la responsabilidad SIMPLE (código
+47 del RUT) no viaja en el XML. Consecuencias:
+
+- **Art. 911 E.T.:** los contribuyentes del SIMPLE no están sujetos a retención en la
+  fuente a título de renta (solo pagos laborales) y tampoco a reteICA, porque el ICA va
+  consolidado dentro del SIMPLE. Las tres retenciones de 2026 que el Libro Mayor le
+  causó (#1462 ene $63.858, #1466 mar $47.454, #1449 jun $42.244 = **$153.556**) y que
+  William declaró en la columna PN del 350 (marzo cuadra al peso: 47.000) **no
+  correspondían**. Lo mismo aplicaría a los $416.687 de retefuente y $69.003 de reteICA
+  que se le certificaron por 2024 si ya era SIMPLE ese año (no consta; preguntarle).
+- **McKenna no se lo descontó a ella:** FE30232 se pagó $3.039.566 y FE32480 $2.258.809,
+  o sea el total de cada factura. La "retención" salió del bolsillo de McKenna hacia la
+  DIAN. En el Libro Mayor eso aparece como si ella debiera menos: su 2205 muestra
+  $3.283.048 por pagar cuando lo real, sin las retenciones, es **$3.436.511**
+  (FE34332 $1.425.680 + FE36170 $2.010.831, confirmar que no se pagaron por fuera).
+- **Qué hacer:** (1) que William descuente los $153.556 como retención practicada en
+  exceso o indebida (renglón 129 del 350; Art. 1.2.4.16 DUR 1625 — como a ella nunca
+  se le descontó, no hay reintegro que hacerle, solo la corrección); (2) anular
+  #1462, #1466 y #1449 en el Libro Mayor y poner a Alexandra como `natural` con nota
+  «Régimen SIMPLE» — **no está hecho, requiere autorización**; (3) revisar si sus compras
+  entraron en la base de los RTICA bimestrales de 2026; (4) el motor de retenciones
+  (`retenciones.calcular`, `cc_terceros`) no tiene forma de marcar un tercero como
+  SIMPLE — hace falta una bandera para que el auto-post no vuelva a retenerle, y la
+  regla general: ante un proveedor persona natural con FE, mirar el pie de la factura
+  o pedir el RUT antes de causar retención. `R-99-PN` no dice nada.
+
+**Dónde se registra un pago a la DIAN (verificado en Alegra el 13-sep):** Alegra no tiene nada
+anterior al 2-sep-2026 (primera factura FE1), Banco 1 con saldo inicial 0 y sin movimientos, cero
+facturas de compra, cero pagos, y los únicos comprobantes contables son los que espejó el Libro
+Mayor en septiembre. William **tiene usuario administrador en Alegra** (junto con Armando y
+Jenniffer) pero **no ha registrado nada ahí**: ni compras, ni pagos, ni comprobantes propios;
+trabaja con lo que le llega por correo y declara desde su propio sistema. Por eso el pago de la retención
+de diciembre 2025 ($795.000, recibo 490 del 19-ene-2026) se registró en el **Libro Mayor interno**
+(asiento #1663, soporte adjunto) y **no** se espejó a Alegra: allá caería como crédito en Banco 1
+sin saldo inicial y como débito en «Retenciones compra 2,5% por pagar» sin la causación de enero,
+o sea, Alegra quedaría más torcida, no más completa (mismo motivo del punto 4-d). Decisión
+pendiente con el contador — **fecha de corte de Alegra**: o arranca el 1-sep-2026 con saldos
+iniciales (Bancos, 2205, 2365, 2380) y todo lo anterior vive en el libro interno + sus
+declaraciones, o se le carga ene-ago completo (compras + retenciones + pagos, juntos). Alegra
+ya trae las cuentas para ambos casos: 5297 Banco 1, 5120 retención compras por pagar, 5109
+retefuente por pagar genérica, 5146 «Ajustes iniciales en bancos» y **5263 «Retención en la
+fuente asumida»** (donde iría lo de Alexandra si McKenna la asume).
 
 **Lo que no llegó por correo (pedir):** 350 de los periodos 3, 5 y 6 de 2025; la
 declaración RTICA del bimestre 2 de 2026 (solo llegó el recibo: $403.000 el 22-may);

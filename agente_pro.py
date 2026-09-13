@@ -111,6 +111,12 @@ def create_app():
         print(f"⚠️ Anulaciones / notas crédito: {e}")
 
     try:
+        from app.routes_conciliacion import register_conciliacion_routes
+        register_conciliacion_routes(app)
+    except Exception as e:
+        print(f"⚠️ Conciliación contador: {e}")
+
+    try:
         from app.routes_cron import register_cron_routes
         register_cron_routes(app)
     except Exception as e:

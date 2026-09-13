@@ -11071,7 +11071,9 @@ def register_routes(app):
             return jsonify({"categorias": [
                 {"id": k, "label": v["label"], "ayuda": v["ayuda"], "icono": v["icono"],
                  "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
-                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios"}
+                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios",
+                 "con_productos": bool(v.get("con_productos")),
+                 "requiere_factura": bool(v.get("requiere_factura"))}
                 for k, v in CATEGORIAS.items()
             ]})
         except Exception as e:
@@ -11091,6 +11093,99 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/proveedores", methods=["GET"])
+    @app.route("/app/api/pagos/proveedores", methods=["GET"])
+    def api_pagos_proveedores():
+        """Listado único de proveedores: terceros del Libro Mayor (con saldo 2205) + contactos
+        proveedor de Alegra que aún no son terceros. Ver app/services/pagos_proveedor.py."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_proveedor import proveedores
+            return jsonify({"proveedores": proveedores(request.args.get("q") or "")})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/proveedores/adoptar", methods=["POST"])
+    @app.route("/app/api/pagos/proveedores/adoptar", methods=["POST"])
+    def api_pagos_proveedor_adoptar():
+        """Convierte un contacto de Alegra en tercero del Libro Mayor (o devuelve el existente)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_proveedor import adoptar_contacto_alegra
+            d = request.get_json(silent=True) or {}
+            return jsonify({"tercero": adoptar_contacto_alegra(str(d.get("alegra_id") or ""))})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/productos", methods=["GET"])
+    @app.route("/app/api/pagos/productos", methods=["GET"])
+    def api_pagos_productos():
+        """Productos del catálogo espejo de Alegra (SKU, nombre, costo) para las líneas de la solicitud."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.pagos_proveedor import productos
+            return jsonify({"productos": productos(request.args.get("q") or "")})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/verificar-factura", methods=["POST"])
+    @app.route("/app/api/pagos/verificar-factura", methods=["POST"])
+    def api_pagos_verificar_factura():
+        """Multipart: `archivo` (PDF/XML/ZIP) + `items` (JSON) + `monto` + `tercero_id`.
+        Coteja el documento del proveedor contra lo solicitado y guarda el archivo de forma
+        temporal (`archivo_tmp`) para adjuntarlo al crear la solicitud. Sin LLM."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            import json as _json
+            from app.services.pagos_proveedor import guardar_temporal, normalizar_items, verificar_factura
+            f = request.files.get("archivo")
+            if not f or not f.filename:
+                return jsonify({"error": "Adjunta la factura o cotización"}), 400
+            contenido = f.read()
+            if len(contenido) > 15 * 1024 * 1024:
+                return jsonify({"error": "Archivo mayor a 15 MB"}), 400
+            try:
+                items = normalizar_items(_json.loads(request.form.get("items") or "[]"))
+            except Exception as e:
+                return jsonify({"error": f"Productos inválidos: {e}"}), 400
+            monto = float(str(request.form.get("monto") or 0).replace(",", ".") or 0)
+            if monto <= 0 and items:
+                monto = sum(i["total"] for i in items)   # con IVA: lo que cobra la factura
+            tercero = None
+            tid = request.form.get("tercero_id")
+            if tid:
+                from app.services.contabilidad_core import obtener_tercero
+                tercero = obtener_tercero(int(tid))
+            ver = verificar_factura(contenido, f.filename, items, monto, tercero)
+            ver["archivo_tmp"] = guardar_temporal(contenido, f.filename)
+            ver["archivo_nombre"] = f.filename
+            return jsonify(ver)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/factura", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/factura", methods=["GET"])
+    def api_pagos_factura(sid: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.pagos_wizard import obtener
+        s_ = obtener(sid)
+        if not s_ or not s_.get("factura_archivo"):
+            return jsonify({"error": "Sin factura adjunta"}), 404
+        from flask import send_file
+        ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), s_["factura_archivo"])
+        if not os.path.exists(ruta):
+            return jsonify({"error": "Archivo no encontrado"}), 404
+        return send_file(ruta, download_name=s_.get("factura_nombre") or os.path.basename(ruta))
 
     @app.route("/api/pagos/previsualizar", methods=["POST"])
     @app.route("/app/api/pagos/previsualizar", methods=["POST"])

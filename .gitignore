@@ -192,3 +192,4 @@ PAGINA_WEB/site/data/borradores_blog/
 docs/contabilidad/*/Soportes_Contador/
 docs/contabilidad/**/declaraciones_contador.json
 docs/contabilidad/comparacion_350_vs_2365.json
+app/data/alegra_contactos_cache.json

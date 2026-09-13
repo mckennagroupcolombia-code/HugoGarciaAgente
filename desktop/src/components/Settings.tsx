@@ -687,6 +687,7 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "catalogo-alegra", label: "Catálogo Alegra — productos y combos (espejo local)" },
   { id: "libro-mayor",   label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos, cuentas T (permiso propio, no heredado)" },
+  { id: "conciliacion-contador", label: "Conciliación contador — cruce 350/490 ↔ 2365 con tickets (también vía Libro Mayor)" },
   { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería (avanzado)" },
   { id: "rrhh",          label: "RRHH · Compensaciones (también vía Operativos)" },
   { id: "impuestos",     label: "Pagos de impuestos (vía Operativos)" },
