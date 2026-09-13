@@ -1025,18 +1025,34 @@ def _borradores_de_cuotas(cuotas: list[dict], creador_id: int | None) -> list[di
 
 
 def crear_recordatorio_pagos_mes(
-    anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False
+    anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False,
+    forzar_futuro: bool = False,
 ) -> dict:
     """Crea el ticket mensual con las cuotas de préstamos a pagar en el mes.
 
     Idempotente: si ya existe el ticket de ese período no crea otro. Si no hay
     cuotas pendientes no crea nada (un ticket vacío cada mes entrena a la gente
     a ignorarlos).
+
+    **No crea el ticket de un mes que todavía no empieza** salvo `forzar_futuro`.
+    El cron lo llama con el mes en curso, pero una llamada a mano con el mes
+    siguiente le metía a despachos, tres semanas antes, un ticket que no puede
+    trabajar — y al quedarse ahí compite por atención con lo que sí es de hoy.
+    Pasó el 2026-09-13 con el ticket de octubre.
     """
     _ensure()
     from app.services import tickets_db as _tdb
 
     periodo = f"{int(anio):04d}-{int(mes):02d}"
+    if not forzar_futuro and periodo > date.today().strftime("%Y-%m") and not dry_run:
+        return {
+            "ok": True, "creado": False, "periodo": periodo,
+            "motivo": (
+                f"El período {periodo} todavía no empieza: el ticket se crea cuando "
+                "llegue el mes. Usa dry_run para verlo, o forzar_futuro=True si de "
+                "verdad quieres adelantarlo."
+            ),
+        }
     cuotas = cuotas_del_mes(anio, mes)
     if not cuotas:
         return {"ok": True, "creado": False, "motivo": "sin cuotas pendientes", "periodo": periodo}

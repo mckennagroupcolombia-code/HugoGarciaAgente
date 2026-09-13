@@ -892,3 +892,22 @@ def test_trazabilidad_de_prestamo_inexistente(mods):
     _cc, pr, _t, _m = mods
     with pytest.raises(ValueError, match="no encontrado"):
         pr.trazabilidad(9999)
+
+
+def test_no_se_crea_el_ticket_de_un_mes_que_no_ha_empezado(mods):
+    # El 2026-09-13 se montó a mano el ticket de octubre y le quedó a despachos
+    # tres semanas en la bandeja, compitiendo con lo que sí era de ese día.
+    # El cron llama siempre con el mes en curso; el guard es para las llamadas
+    # a mano.
+    from datetime import date
+
+    _cc, pr, tercero, medio = mods
+    _crear(pr, tercero, medio, fecha_desembolso="2026-08-19", dia_pago=None)
+    futuro = date.today().year + 1
+
+    r = pr.crear_recordatorio_pagos_mes(futuro, 1)
+    assert not r["creado"]
+    assert "todavía no empieza" in r["motivo"]
+
+    # dry_run sí deja mirar hacia adelante, y forzar_futuro es la puerta explícita
+    assert pr.crear_recordatorio_pagos_mes(futuro, 1, dry_run=True)["dry_run"]
