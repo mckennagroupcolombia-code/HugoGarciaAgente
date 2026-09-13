@@ -1363,7 +1363,7 @@ SUBCATEGORIAS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
       "palmiste", "mct", "escualano", "rosa mosqueta", "aguacate", "chia", "sesamo", "ajonjoli", "calendula", "onagra",
       "borraja", "canola", "soya", "maiz", "palma", "cañamo", "moringa", "nuez")),
     # ── Industria ──
-    ("industria", "solventes", "Solventes", "beaker",
+    ("industria", "solventes", "Solventes", "test-tube",
      ("alcohol etilico", "etanol", "isopropilico", "isopropanol", "acetona", "tolueno", "xileno", "hexano", "metanol",
       "butanol", "thinner", "varsol", "trementina", "glicol", "limoneno", "acetato de etilo", "acetato de butilo", "solvente",
       "disolvente", "mek", "metil etil", "cloruro de metileno", "diclorometano", "alcohol", "percloroetileno",

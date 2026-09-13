@@ -97,7 +97,10 @@ fbq('track','PageView');
     font-style: normal !important;
   }
 </style>
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="preload" href="{{ url_for('static', filename='fonts/montserrat/Montserrat-Regular.woff2') }}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{ url_for('static', filename='fonts/montserrat/Montserrat-Bold.woff2') }}" as="font" type="font/woff2" crossorigin>
+{# Iconos Phosphor autoalojados (antes unpkg.com: un origen externo más por visita) #}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/phosphor/regular/phosphor-subset.css') }}?v=20260913a">
 {% block head %}{% endblock %}
 {% block jsonld %}
 <script type="application/ld+json">
@@ -142,7 +145,7 @@ fbq('track','PageView');
     <!-- Logo -->
     {% if not LCHROME.nodos.get('header.logo', {}).get('hidden') %}
     <a href="{{ url_for('index') }}" class="site-logo" style="{{ LCHROME.estilos.get('header.logo', '') }}">
-      <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group" class="site-logo-img">
+      <img src="{{ url_for('static', filename='img/isotipo-web.png') }}" alt="McKenna Group" class="site-logo-img" width="320" height="238">
       <div class="brand-text">
         MCKENNA GROUP S.A.S
         <span>{{ DISENO_CSS.tagline | default('Proveemos a tus ideas') }}</span>

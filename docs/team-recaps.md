@@ -1,3 +1,16 @@
+### 2026-09-13 00:40 - Web más liviana: logo, fuentes, ilustración e iconos (Fase B del plan de portada)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Rendimiento (sin cambios de diseño)
+- **Qué se implementó:**
+  - **Medición previa honesta:** Cloudflare ya comprime HTML y CSS con brotli (la portada de 260 KB viaja en 72 KB), así que el peso real estaba en lo que no se comprime: el logo `isotipo.png` de **584 KB** (1200×894 para un header de 54 px), 13 Montserrat en **TTF de 280 KB** cada una, la ilustración del hero en **PNG de 230 KB** y los iconos Phosphor desde **unpkg.com** (origen externo, 143 KB de fuente con 1.530 glifos).
+  - **`scripts/optimizar_assets_web.py`** (reproducible, pasos saltables con `--sin-*`): logo a `isotipo-web.png` de 320 px y 15 KB (el original queda para PDF, correo y pipelines de Facebook); fuentes a **woff2 con subconjunto latino, ~23 KB cada una** (`fonts-montserrat.css` reescrito con el TTF de respaldo); ilustración a **WebP sin pérdida de 1000 px y 64 colores, 54 KB** (es dibujo de línea: pesa menos que el WebP con pérdida y no ensucia los trazos) y `tema_web.json` apuntando al .webp; Phosphor autoalojado en `static/vendor/phosphor/regular/` y **subconjunto con solo los 148 iconos que usa el sitio: 17 KB + 7 KB de CSS**.
+  - **`base.html`:** iconos locales, logo liviano, `preload` de Montserrat Regular y Bold. `_documento_tecnico.html` (propiedad de cynthia, editado con sudo) usa el logo liviano en sus tres cabeceras.
+  - **Resultado medido en la portada:** de 2.152 KB sin comprimir en 24 peticiones a **976 KB**, y **612 KB reales transferidos**; un solo origen propio (mlstatic para fotos de producto sigue igual). LCP en torno a 1,1 s en la misma red.
+  - **Dos trampas encontradas:** (a) el primer rastreo de iconos solo veía `ph-*` y dejó en blanco `bowl-food`, `plant` y `grains`, que viven como nombres sueltos en dicts de Jinja; ahora el rastreo toma cualquier literal entre comillas y lo cruza contra el mapa real de Phosphor, y `tests/test_assets_web.py` falla si alguien agrega un icono sin regenerar el subconjunto. (b) `beaker` no existe en Phosphor 2.1.1: la subcategoría "Solventes" de /cotizar salía sin icono desde antes; pasa a `test-tube`.
+  - **Pendiente:** el HTML de la portada sigue trayendo los dos mapas SVG embebidos (260 KB, 72 KB brotli); salen del HTML en la Fase D con la trazabilidad condensada. `main.css` (163 KB, 32 KB brotli) se podría partir por página, no urgente.
+- **Archivos Modificados:** `scripts/optimizar_assets_web.py` (nuevo), `PAGINA_WEB/site/templates/{base.html,_documento_tecnico.html}`, `PAGINA_WEB/site/static/css/fonts-montserrat.css`, `PAGINA_WEB/site/static/fonts/montserrat/*.woff2` (13 nuevos), `PAGINA_WEB/site/static/img/{isotipo-web.png,isotipo-web.webp}` (nuevos), `PAGINA_WEB/site/static/uploads/fondos/*.webp` (nuevo), `PAGINA_WEB/site/static/vendor/phosphor/regular/*` (nuevo), `PAGINA_WEB/site/data/tema_web.json`, `app/services/proveedores_db.py`, `tests/test_assets_web.py` (nuevo)
+
+
 ### 2026-09-12 23:30 - Portada: orden comercial primero, cta de cierre encendida, categorías con mínimo y contadores reales (Fase A del plan de portada)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de estructura (sin código nuevo de peso)
