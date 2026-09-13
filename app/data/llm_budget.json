@@ -1,12 +1,15 @@
 {
  "fecha": "2026-09-13",
- "gasto_usd": 0.481144,
- "llamadas": 11,
+ "gasto_usd": 0.506788,
+ "llamadas": 15,
  "por_modelo": {
-  "gemini-2.5-pro": 0.481144
+  "gemini-2.5-pro": 0.481144,
+  "claude-sonnet-5": 0.025644
  },
  "por_contexto": {
-  "blog_articulos": 0.481144
+  "blog_articulos": 0.481144,
+  "meli_preventa": 0.02395,
+  "revision_facturacion": 0.001694
  },
  "alerta_enviada": false,
  "historial": [
