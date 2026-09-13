@@ -68,9 +68,14 @@ export function puedeVerTabEtiquetas(
   return puedeVerEtiquetasAvanzado(user);
 }
 
-/** Eliminar PNG de la biblioteca de etiquetas — solo Cynthia. */
+/**
+ * Eliminar PNG de la biblioteca de etiquetas: Cynthia o los usuarios de
+ * ETIQUETAS_AVANZADO_* (Armando). Coincide con lo que ya autoriza el backend
+ * (_require_cynthia_etiquetas → puede_ver_etiquetas_avanzado): si aquí fuera
+ * más estricto, el botón no aparecería aunque el servidor sí dejara borrar.
+ */
 export function puedeEliminarPngEtiquetas(user: TicketsUser | null | undefined): boolean {
-  return esCynthiaEtiquetas(user);
+  return puedeVerEtiquetasAvanzado(user);
 }
 
 /** Lista de pestañas visibles para el usuario actual. */

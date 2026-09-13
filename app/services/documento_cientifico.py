@@ -433,6 +433,7 @@ _CAMPOS_PERMITIDOS = {
     "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor", "sabor",
     "formula_quimica", "solubilidad",
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
+    "alergenos", "conservacion",
     "recomendaciones", "nombre_comercial",
     "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
     "coa_einecs", "coa_grado", "coa_parametros",
@@ -449,7 +450,8 @@ _PROMPT_BASE = (
 # Gemini (ninguna de las dos fuentes lo garantiza de forma confiable).
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
-    "modo_uso", "sds_clasificacion_ghs", "sds_manipulacion",
+    "modo_uso", "alergenos", "conservacion",
+    "sds_clasificacion_ghs", "sds_manipulacion",
 }
 
 
@@ -743,6 +745,21 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             f'Indica el nombre comercial o de marca más reconocido de "{nombre}" en la industria farmacéutica y cosmética latinoamericana.\n'
             f"PubChem: {pc_info or 'sin datos'}\n"
             "Responde en UNA sola línea con el nombre comercial. Sin markdown."
+        ),
+        "alergenos": (
+            f'Indica los alergenos alimentarios presentes en "{nombre}" segun la Resolucion 810 de 2021 '
+            'del Ministerio de Salud de Colombia y el Codex Alimentarius.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            'Formato: "Contiene: ..." y, si aplica, "Puede contener trazas de ...".\n'
+            'Si el producto no contiene ni puede contener alergenos declarables, responde exactamente '
+            '"No contiene alergenos declarables.".\n'
+            "UNA o dos lineas. Sin markdown."
+        ),
+        "conservacion": (
+            f'Indica las condiciones de conservacion y almacenamiento de "{nombre}".\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Incluye: temperatura, humedad, luz, tipo de envase y vida util si se conoce.\n"
+            "1-2 oraciones tecnicas en espanol. Sin markdown, sin listas."
         ),
         "sds_clasificacion_ghs": (
             f'Genera la clasificación GHS/CLP de "{nombre}" según el Sistema Globalmente Armonizado (SGA/GHS).\n'

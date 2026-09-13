@@ -1512,7 +1512,7 @@ function DocumentoCompletoTabContent({
   const [sugiriendoVacios, setSugiriendoVacios] = useState(false);
   const [sugerirVaciosError, setSugerirVaciosError] = useState<string | null>(null);
 
-  const FT_CAMPOS_AUTOSUGERIR = ["descripcion", "apariencia", "olor", "ph", "solubilidad", "propiedades_lista", "aplicaciones", "modo_uso", "sinonimos"] as const;
+  const FT_CAMPOS_AUTOSUGERIR = ["descripcion", "apariencia", "olor", "ph", "solubilidad", "propiedades_lista", "aplicaciones", "modo_uso", "alergenos", "conservacion", "sinonimos"] as const;
 
   /* ── Campos compartidos (una sola vez en el formulario) ── */
   const [nombre, setNombre] = useState("");

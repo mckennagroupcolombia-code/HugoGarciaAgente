@@ -529,6 +529,84 @@ def _resolver_o_crear_contacto_alegra(
     return cid, ""
 
 
+
+# ── Medio de pago DIAN ────────────────────────────────────────────────────────
+# Hasta el 2026-09-12 el `paymentMethod` de TODA factura salía literalmente
+# "CASH" (efectivo): las 150 facturas electrónicas emitidas — FE1..FE359 —
+# declaran efectivo ante la DIAN cuando el 100% del cobro fue digital
+# (Mercado Pago `account_money`, PSE, botón Bancolombia, tarjetas). Era un
+# default heredado del arranque de Alegra ("TODO: confirmar" en el docstring
+# de arriba) que nadie volvió a mirar.
+#
+# Valores válidos: catálogo de medios de pago DIAN v2.1 de Alegra
+# (https://developer.alegra.com/reference/colombia). `paymentForm` es cosa
+# aparte y sí es CASH — significa "de contado" (vs. CREDIT, a plazo), y para
+# una venta ya cobrada está bien.
+MEDIO_PAGO_ALEGRA_DEFECTO = "CREDIT_TRANSFER"  # transferencia — el caso normal de McKenna
+
+# Identificadores tal como los devuelven las pasarelas:
+#   - MeLi: orden["payments"][i]["payment_type"] / ["payment_method_id"]
+#   - Web:  orders.payment_method (payment_method_id de Mercado Pago)
+_MEDIOS_PAGO_PASARELA = {
+    # Efectivo de verdad (lo único que justifica "CASH")
+    "efecty": "CASH", "baloto": "CASH", "ticket": "CASH", "atm": "CASH",
+    "efectivo": "CASH", "cash": "CASH", "gana": "CASH", "puntored": "CASH",
+    # Débito bancario en línea: PSE y los botones de banco
+    "pse": "DEBIT_TRANSFER", "boton_bancolombia": "DEBIT_TRANSFER",
+    "bancolombia_transfer": "DEBIT_TRANSFER", "bank_transfer": "DEBIT_TRANSFER",
+    # Billeteras y saldo de pasarela → transferencia crédito
+    "account_money": "CREDIT_TRANSFER", "digital_wallet": "CREDIT_TRANSFER",
+    "digital_currency": "CREDIT_TRANSFER", "nequi": "CREDIT_TRANSFER",
+    "daviplata": "CREDIT_TRANSFER", "transfer": "CREDIT_TRANSFER",
+    "transferencia": "CREDIT_TRANSFER",
+    # Consignación en banco
+    "consignacion": "BANK_DEPOSIT", "deposit": "BANK_DEPOSIT",
+    # Tarjetas
+    "credit_card": "CREDIT_CARD", "prepaid_card": "CREDIT_CARD",
+    "visa": "CREDIT_CARD", "master": "CREDIT_CARD", "amex": "CREDIT_CARD",
+    "diners": "CREDIT_CARD", "codensa": "CREDIT_CARD", "naranja": "CREDIT_CARD",
+    "debit_card": "DEBIT_CARD", "debvisa": "DEBIT_CARD",
+    "debmaster": "DEBIT_CARD", "debcabal": "DEBIT_CARD", "maestro": "DEBIT_CARD",
+    # Cheque
+    "cheque": "CHECK", "check": "CHECK",
+}
+
+# El `paymentMethod` de un pago registrado (`payments[]`) usa OTRO catálogo, el
+# interno de Alegra, no el de la DIAN. Solo se mapea a valores ya probados en
+# vivo ("transfer" es el que viene usando producción); cualquier otra cosa cae
+# a transferencia antes que arriesgar un 400 que tumbe la factura completa.
+_MEDIO_COBRO_POR_DIAN = {"CASH": "cash", "CHECK": "check"}
+
+
+def medio_pago_alegra(identificador: str, por_defecto: str = "") -> str:
+    """Traduce el medio de pago de la pasarela al código DIAN que espera Alegra.
+
+    `identificador` es lo que reporta MeLi/Mercado Pago ("account_money", "pse",
+    "visa"…). Desconocido → `por_defecto` (o el default del módulo): nunca se
+    asume efectivo, que es justamente el error que se está corrigiendo.
+    """
+    clave = str(identificador or "").strip().lower().replace("-", "_")
+    if not clave:
+        return por_defecto or MEDIO_PAGO_ALEGRA_DEFECTO
+    if clave in _MEDIOS_PAGO_PASARELA:
+        return _MEDIOS_PAGO_PASARELA[clave]
+    # Ya viene en código DIAN (ej. lo pasó el call-site a mano)
+    if clave.upper() in {v for v in _MEDIOS_PAGO_PASARELA.values()} | {"CREDIT_TRANSFER"}:
+        return clave.upper()
+    return por_defecto or MEDIO_PAGO_ALEGRA_DEFECTO
+
+
+def medio_pago_meli_desde_orden(orden: dict) -> str:
+    """Código DIAN a partir de los pagos de una orden de MercadoLibre."""
+    for pago in (orden or {}).get("payments") or []:
+        if str(pago.get("status") or "").lower() not in ("approved", "accredited", ""):
+            continue
+        for campo in ("payment_type", "payment_method_id"):
+            valor = pago.get(campo)
+            if valor and str(valor).strip().lower() in _MEDIOS_PAGO_PASARELA:
+                return _MEDIOS_PAGO_PASARELA[str(valor).strip().lower()]
+    return MEDIO_PAGO_ALEGRA_DEFECTO
+
 def crear_factura_venta_alegra(
     *,
     nombre_cliente: str,
@@ -544,6 +622,7 @@ def crear_factura_venta_alegra(
     enviar_dian: bool = True,
     enviar_correo: bool = False,
     tipo_documento: str = "",
+    medio_pago: str = "",
     **_compat,  # absorbe kwargs propios de Siigo (document_id, seller_id, payment_id, customer_*_code)
 ) -> dict:
     """
@@ -634,15 +713,24 @@ def crear_factura_venta_alegra(
     hoy = datetime.now().strftime("%Y-%m-%d")
     vence = (datetime.now() + timedelta(days=int(os.getenv("ALEGRA_DUE_DAYS", "0") or 0))).strftime("%Y-%m-%d")
 
+    medio_pago_dian = medio_pago_alegra(
+        medio_pago, por_defecto=os.getenv("ALEGRA_PAYMENT_METHOD", MEDIO_PAGO_ALEGRA_DEFECTO)
+    )
+
     payload = {
         "date": hoy,
         "dueDate": vence,
         "client": {"id": contacto_id},
         "items": items,
+        # `paymentForm` = forma de pago: CASH es "de contado" (vs CREDIT, a plazo).
+        # Correcto para MeLi/web, que llegan acá ya cobrados.
         "paymentForm": os.getenv("ALEGRA_PAYMENT_FORM", "CASH"),
+        # `paymentMethod` = medio de pago que se declara a la DIAN. NO es lo mismo
+        # que lo anterior: acá CASH significa "billetes", y el cobro de McKenna es
+        # digital. Sale de lo que informe la pasarela; ver medio_pago_alegra().
         # Confirmado en vivo (2026-09-02): debe ir en mayúsculas, "cash" minúscula da
         # 400 "El método de pago no es válido".
-        "paymentMethod": os.getenv("ALEGRA_PAYMENT_METHOD", "CASH"),
+        "paymentMethod": medio_pago_dian,
         "stamp": {"generateStamp": bool(enviar_dian)},
     }
     template_id = _env_int("ALEGRA_NUMBER_TEMPLATE_ID")  # TODO: confirmar talonario real
@@ -664,7 +752,9 @@ def crear_factura_venta_alegra(
             "date": hoy,
             "account": {"id": os.getenv("ALEGRA_CUENTA_COBRO_ID", "3")},
             "amount": round(float(total), 2),
-            "paymentMethod": os.getenv("ALEGRA_PAYMENT_METHOD_COBRO", "transfer"),
+            "paymentMethod": _MEDIO_COBRO_POR_DIAN.get(
+                medio_pago_dian, os.getenv("ALEGRA_PAYMENT_METHOD_COBRO", "transfer")
+            ),
         }]
 
     try:
@@ -682,7 +772,10 @@ def crear_factura_venta_alegra(
         factura_numero = factura.get("numberTemplate", {}).get("fullNumber") or factura.get("number")
 
         stamp = factura.get("stamp") or {}
-        estado = (stamp.get("status") or factura.get("status") or "").strip()
+        # OJO: el stamp de Alegra trae `legalStatus`, no `status` — leyendo la clave
+        # equivocada toda factura reportaba "closed" y las notificaciones de la DIAN
+        # (ej. FAZ09) quedaban invisibles para el panel y los reportes de WhatsApp.
+        estado = (stamp.get("legalStatus") or stamp.get("status") or factura.get("status") or "").strip()
         cufe = stamp.get("cufe") or stamp.get("uuid") or ""
 
         pdf_path = None
@@ -707,6 +800,9 @@ def crear_factura_venta_alegra(
             "status": estado,
             "cufe": cufe,
             "stamp": stamp,
+            # Notificaciones DIAN: la factura es válida pero trae observaciones
+            # (ej. FAZ09 por ítems sin código UNSPSC). No es un error de emisión.
+            "avisos_dian": list(stamp.get("warnings") or []),
             "url": f"https://app.alegra.com/invoice/view/id/{factura_id}" if factura_id else "",
             "pdf_path": pdf_path,
             # Base64 crudo (mismo que queda en pdf_path) — para call-sites que necesitan

@@ -1185,6 +1185,12 @@ def _contexto_html(
     # Modo de uso (sección propia después de Aplicaciones)
     modo_uso = _asegurar_punto_final((d.get("modo_uso") or "").strip())
 
+    # Alérgenos y conservación (casillas propias de la ficha técnica)
+    alergenos = _asegurar_punto_final((d.get("alergenos") or "").strip())
+    conservacion = _asegurar_punto_final(
+        (d.get("conservacion") or d.get("almacenamiento") or "").strip()
+    )
+
     # Recomendaciones GHS
     recomendaciones_raw = (d.get("recomendaciones") or "").strip()
     recomendaciones = [
@@ -1253,6 +1259,8 @@ def _contexto_html(
         "propiedades_extra": propiedades_extra,
         "aplicaciones": apps,
         "modo_uso": modo_uso,
+        "alergenos": alergenos,
+        "conservacion": conservacion,
         "recomendaciones": recomendaciones,
         "lote": lote,
         "concentracion": concentracion,
@@ -1617,11 +1625,11 @@ def generar_pdf_completo(
 
     # GHS/SGA pertenece a SDS: migrar recomendaciones históricas guardadas en FT
     recs_ft = list(ft_ctx.get("recomendaciones") or [])
-    ft_ctx["recomendaciones"] = []
-    if recs_ft:
-        if sds_ctx is None:
-            sds_ctx = _contexto_sds(datos_sds or {"titulo": titulo})
-        if not (sds_ctx.get("recomendaciones") or []):
+    if sds_ctx is not None:
+        # Solo se mueven si el documento ya tiene una SDS propia. Crear una SDS
+        # para alojarlas producia una hoja de seguridad sin clasificacion GHS.
+        ft_ctx["recomendaciones"] = []
+        if recs_ft and not (sds_ctx.get("recomendaciones") or []):
             sds_ctx["recomendaciones"] = recs_ft
 
     if sds_ctx and not _sds_diligenciado(sds_ctx):

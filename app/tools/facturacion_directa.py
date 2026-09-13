@@ -136,6 +136,7 @@ def generar_y_enviar_factura_directa(
     productos: list[dict],
     telefono: str,
     referencia: str = "",
+    medio_pago: str = "",
 ) -> dict:
     """
     Factura electrónica real en Alegra para una venta directa. `cliente` debe
@@ -184,6 +185,9 @@ def generar_y_enviar_factura_directa(
         telefono=telefono,
         observaciones=f"Venta directa (WhatsApp/app){f' — {referencia}' if referencia else ''}.",
         purchase_order=referencia,
+        # Venta directa por WhatsApp: se paga por transferencia/Nequi salvo que
+        # el asesor indique otra cosa — el default del módulo ya no es efectivo.
+        medio_pago=medio_pago,
         descargar_pdf=True,
         enviar_dian=True,
         enviar_correo=False,

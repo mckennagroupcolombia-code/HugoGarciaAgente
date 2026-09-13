@@ -1,3 +1,13 @@
+### 2026-09-12 - Alegra: medio de pago real ante la DIAN, notificación FAZ09 y alérgenos en la ficha técnica
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + herramienta
+- **Qué se implementó:** (recap reconstruido desde los comentarios del código al hacer el commit)
+  - **Medio de pago DIAN:** hasta el 12-sep-2026 toda factura salía con `paymentMethod: CASH` (efectivo) aunque el cobro fuera digital; las 150 facturas FE1..FE359 lo declararon así. `app/services/alegra.py` mapea ahora el medio real de la pasarela (Mercado Pago, PSE, botón Bancolombia, tarjetas, Efecty) y el default pasa a `CREDIT_TRANSFER`. Lo usan `facturacion_directa.py`, `meli_autofactura_entrega.py` y `web_pedidos.py`. Variables documentadas en `.env.example`.
+  - **FAZ09 no es un fallo:** la DIAN acepta con notificación cuando los ítems no traen código UNSPSC; en Alegra se ve con alerta y parecía emisión fallida. Los reportes a WhatsApp ahora lo dicen. `scripts/alegra_codigos_unspsc.py` asigna `productKey` a los ítems (548 sin código). `tests/test_alegra_medio_pago.py`.
+  - **Ficha técnica:** casillas propias de alérgenos y conservación en `ficha_tecnica.py`, `documento_cientifico.py`, las plantillas PDF y `FichaTecnicaForm.tsx`; ajustes de acceso y catálogo en Studio visual (`studioVisualAccess.ts`, `EtiquetasStudioCatalogo.tsx`).
+- **Archivos Modificados:** `app/services/{alegra.py,documento_cientifico.py,ficha_tecnica.py}`, `app/templates/{documento_completo_pdf.html,ficha_tecnica_pdf.html}`, `app/tools/{facturacion_directa.py,meli_autofactura_entrega.py,web_pedidos.py}`, `desktop/src/components/{FichasTecnicasPanel.tsx,documentos/FichaTecnicaForm.tsx,etiquetas/EtiquetasStudioCatalogo.tsx}`, `desktop/src/lib/studioVisualAccess.ts`, `docs/agentic/modules/facturacion-meli-alegra.md`, `scripts/alegra_codigos_unspsc.py` (nuevo), `tests/test_alegra_medio_pago.py` (nuevo), `.env.example`
+
+
 ### 2026-09-12 22:45 - Métricas de uso de recetas y guías vivas (Fase 4, cierre del plan)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (medición)

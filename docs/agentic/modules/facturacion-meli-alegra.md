@@ -160,3 +160,34 @@ Siigo parcial). Re-verifica contra Alegra justo antes de cada emisión, registra
 - `MELI_AUTOFACTURA_ENTREGA_ACTIVO=0` (manual con botón, hasta validar catálogo y cierre del empalme).
 - `webhook-meli` y `agente-pro` bajo systemd (un solo proceso cada uno). **Reiniciar tras cambiar
   código** de `app/tools/meli_autofactura_entrega.py` o `app/services/facturacion_ventas_unificado.py`.
+
+## 9. Medio de pago DIAN y notificación FAZ09 (12-sep-2026)
+
+Dos cosas distintas que se veían como "la factura FE357 falló":
+
+**(a) FAZ09 — no falló nada.** Las 150 facturas emitidas hasta esa fecha quedaron
+`STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS` con la notificación *"Regla FAZ09: debe existir el
+grupo de información de identificación del bien o servicio"*. Es una **notificación**, no un
+rechazo: la factura tiene CUFE y es 100% válida. La causa: los 548 ítems de Alegra tenían
+`productKey` (código UNSPSC) en `null`. Corregido con `scripts/alegra_codigos_unspsc.py`
+(códigos a nivel segmento: 12000000 químicos, 24000000 envases, 50000000 alimentos,
+51000000 farma, 78000000 fletes). Aplica de la siguiente emisión en adelante — el código
+viaja en el XML, las ya emitidas no se pueden corregir.
+
+Dos síntomas lo enmascaraban: el panel leía `stamp["status"]` (no existe; el campo es
+`legalStatus`) y caía a `"closed"`, y los `warnings` de la DIAN no se propagaban a ningún
+lado. Ambos arreglados: `crear_factura_venta_alegra` devuelve el `legalStatus` real y una
+lista `avisos_dian`, que el reporte de WhatsApp muestra.
+
+**(b) El medio de pago sí estaba mal.** `paymentMethod` era el literal `"CASH"` — efectivo
+ante la DIAN — en todas las facturas, cuando el cobro es 100% digital: FE357 se pagó con
+saldo de Mercado Pago (`account_money`), y en la web el reparto real es PSE 36, botón
+Bancolombia 18, tarjetas 14, Efecty 4. Ahora sale de la pasarela:
+`alegra.medio_pago_alegra()` / `medio_pago_meli_desde_orden()` traducen el identificador de
+MeLi/Mercado Pago al catálogo DIAN v2.1, y los call-sites (MeLi, pedidos web, facturación
+directa) pasan `medio_pago=`. Un medio desconocido cae a `CREDIT_TRANSFER`, **nunca** a
+efectivo. `paymentForm` sí se queda en `CASH`: ahí significa "de contado", no "billetes".
+
+Las facturas ya emitidas conservan el medio equivocado; corregirlo exigiría nota crédito +
+reexpedición. Es decisión del contador si vale la pena (el medio de pago no altera bases ni
+impuestos).

@@ -25,6 +25,8 @@ export interface FichaTecnicaFormState {
   olor: string;
   sabor: string;
   modoUso: string;
+  alergenos: string;
+  conservacion: string;
   formulaQuimica: string;
   solubilidad: string;
   propiedadesLista: string;
@@ -261,6 +263,8 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
       solubilidad: state.solubilidad,
     },
     modo_uso: state.modoUso,
+    alergenos: state.alergenos,
+    conservacion: state.conservacion,
     propiedades_lista: listaDesdeTexto(state.propiedadesLista),
     aplicaciones: listaDesdeTexto(state.aplicaciones),
     composicion: state.composicion
@@ -347,6 +351,12 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     modoUso:
       flat("modo_uso", "usage", "directions", "incorporation") ||
       valorEnFilas(props, "modo de uso", "modo uso", "usage"),
+    alergenos:
+      flat("alergenos", "allergens", "alergenos_declarables") ||
+      valorEnFilas(props, "alergenos", "allergens"),
+    conservacion:
+      flat("conservacion", "almacenamiento", "storage", "conservation") ||
+      valorEnFilas(props, "conservacion", "almacenamiento", "storage"),
     formulaQuimica: formatearFormulaMolecular(
       flat("formula_quimica", "molecular_formula", "formula") ||
       cf.formula_quimica ||
@@ -487,6 +497,12 @@ export default function FichaTecnicaForm({
         case "usage":
         case "directions":
           updates.modoUso = val; break;
+        case "alergenos":
+        case "allergens":
+          updates.alergenos = val; break;
+        case "conservacion":
+        case "conservation":
+          updates.conservacion = val; break;
         case "propiedades_lista":
         case "properties":
           updates.propiedadesLista = val; break;
@@ -522,7 +538,7 @@ export default function FichaTecnicaForm({
           updates.presentacion = val; break;
         case "almacenamiento":
         case "storage":
-          updates.recomendaciones = val; break;
+          updates.conservacion = val; break;
       }
     }
     if (Object.keys(updates).length) patch(updates);
@@ -584,6 +600,8 @@ export default function FichaTecnicaForm({
         case "formula_quimica":      patch({ formulaQuimica: formatearFormulaMolecular(v) }); break;
         case "solubilidad":          patch({ solubilidad: v }); break;
         case "modo_uso":             patch({ modoUso: v }); break;
+        case "alergenos":            patch({ alergenos: v }); break;
+        case "conservacion":         patch({ conservacion: v }); break;
         case "propiedades_lista":    patch({ propiedadesLista: v }); break;
         case "aplicaciones":         patch({ aplicaciones: v }); break;
         case "recomendaciones":      patch({ recomendaciones: v }); break;
@@ -812,6 +830,26 @@ export default function FichaTecnicaForm({
           rows={3}
           placeholder="Concentración típica, forma de incorporación, temperatura, orden de adición…"
           actions={<IaBtn label="IA" {...ia("modo_uso")} />}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <SectionTitle>Alérgenos y conservación</SectionTitle>
+        <Field
+          label="Alérgenos"
+          value={state.alergenos}
+          onChange={(v) => patch({ alergenos: v })}
+          rows={2}
+          placeholder="Ej. Contiene: frutos secos. Puede contener trazas de maní."
+          actions={<IaBtn label="IA" {...ia("alergenos")} />}
+        />
+        <Field
+          label="Conservación y almacenamiento"
+          value={state.conservacion}
+          onChange={(v) => patch({ conservacion: v })}
+          rows={3}
+          placeholder="Ej. Conservar en lugar fresco y seco, en envase bien cerrado, protegido de la luz solar directa."
+          actions={<IaBtn label="IA" {...ia("conservacion")} />}
         />
       </section>
 

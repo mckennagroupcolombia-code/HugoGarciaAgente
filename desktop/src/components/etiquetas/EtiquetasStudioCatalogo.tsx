@@ -209,11 +209,16 @@ export function EtiquetasStudioCatalogo({
   const eliminarPngMut = useMutation({
     mutationFn: (nombre: string) =>
       api.delete<{ ok: boolean }>(`/api/etiquetas/recursos-png/${codificarRutaRecursoPng(nombre)}`),
-    onMutate: (nombre) => setPngEliminandoUno(nombre),
+    onMutate: (nombre) => {
+      setPngEliminandoUno(nombre);
+      setPngErrorLote(null);
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
       void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
     },
+    // Sin esto un 403/404 se veía como "no pasó nada" al pulsar eliminar.
+    onError: (e: Error) => setPngErrorLote(e.message || "No se pudo eliminar la imagen"),
     onSettled: () => setPngEliminandoUno(null),
   });
 
@@ -802,6 +807,25 @@ export function EtiquetasStudioCatalogo({
                     className="h-3.5 w-3.5"
                   />
                 </label>
+                {/* Eliminar directo: en Imprimir el clic en la miniatura abre el
+                    archivo para imprimir, así que el botón del lightbox nunca se
+                    alcanza y el checkbox de lote es demasiado discreto. */}
+                {puedeEliminarPng && (
+                  <button
+                    type="button"
+                    title={`Eliminar ${nombre} de la biblioteca`}
+                    aria-label={`Eliminar ${nombre}`}
+                    disabled={pngEliminandoUno === nombre}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!window.confirm(`¿Eliminar "${nombre}" de la biblioteca?`)) return;
+                      eliminarPngMut.mutate(nombre);
+                    }}
+                    className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded border border-danger/40 bg-white/95 text-[11px] leading-none text-danger shadow-sm transition hover:bg-danger hover:text-white disabled:opacity-50"
+                  >
+                    {pngEliminandoUno === nombre ? "…" : "🗑"}
+                  </button>
+                )}
                 <button
                   type="button"
                   title={fmt ? `${nombre} · ${fmt}` : nombre}

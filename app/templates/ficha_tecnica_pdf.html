@@ -523,6 +523,22 @@ sub { font-size: 0.72em; vertical-align: sub; }
 </div>
 {% endif %}
 
+<!-- ── Alérgenos ── -->
+{% if alergenos %}
+<div class="sec">
+  <div class="sec-title">Alérgenos</div>
+  <div class="desc-text">{{ alergenos }}</div>
+</div>
+{% endif %}
+
+<!-- ── Conservación ── -->
+{% if conservacion %}
+<div class="sec">
+  <div class="sec-title">Conservación y almacenamiento</div>
+  <div class="desc-text">{{ conservacion }}</div>
+</div>
+{% endif %}
+
 <!-- ── Lote ── -->
 <div class="lote-box">
   <span class="lote-label">Lote:</span>

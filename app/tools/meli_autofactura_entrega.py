@@ -44,6 +44,7 @@ from app.services.alegra import (
     _alias_sku_venta,
     buscar_producto_alegra_por_referencia,
     crear_factura_venta_alegra,
+    medio_pago_meli_desde_orden,
 )
 from app.tools.revision_facturacion import crear_o_actualizar_ticket_revision_facturacion
 from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
@@ -501,6 +502,7 @@ def _facturar_orden_entregada(
             email=datos_comprador["email"],
             observaciones=f"Venta MercadoLibre — Orden {order_id} — Envío {shipping_id} (entregado).",
             purchase_order=order_id,
+            medio_pago=medio_pago_meli_desde_orden(orden),
             descargar_pdf=True,
             enviar_dian=True,
             enviar_correo=False,
@@ -562,11 +564,16 @@ def _facturar_orden_entregada(
                 siigo_invoice_cufe=result.get("cufe") or None,
                 pdf_subido_meli=pdf_subido,
             )
+            # La DIAN puede aceptar la factura CON notificaciones (ej. FAZ09 por
+            # ítems sin código UNSPSC). Es válida, pero si no se dice, en Alegra
+            # se ve con alerta y parece que la emisión falló.
+            avisos = result.get("avisos_dian") or []
+            aviso_dian = ("\n⚠️ DIAN la aceptó con notificación: " + "; ".join(avisos)[:300]) if avisos else ""
             enviar_whatsapp_reporte(
                 f"✅ *Autofactura MeLi*: orden {order_id} (envío {shipping_id}) entregada y facturada en Alegra.\n"
                 f"Factura: {numero}\n"
                 f"{result.get('url') or ''}"
-                f"{aviso_pdf}",
+                f"{aviso_pdf}{aviso_dian}",
                 numero_destino=jid_grupo_facturacion_ventas_wa(),
             )
             return {
@@ -698,6 +705,7 @@ def facturar_pack_meli_manual(order_id: str) -> dict:
         # El pack_id como referencia: es lo que identifica al carrito completo, y
         # permite que el panel reconozca la consolidada desde cualquiera de sus órdenes.
         purchase_order=pack_id,
+        medio_pago=medio_pago_meli_desde_orden(orden),
         descargar_pdf=True,
         enviar_dian=True,
         enviar_correo=False,

@@ -1417,6 +1417,9 @@ def emitir_factura_siigo_pedido_web(
             telefono=order.get("buyer_phone") or "",
             observaciones=observations,
             purchase_order=ref,
+            # Medio de pago real del checkout (PSE, botón Bancolombia, tarjeta,
+            # Efecty…) para que la factura no declare "efectivo" a la DIAN.
+            medio_pago=str(order.get("payment_method") or ""),
             descargar_pdf=True,
             enviar_dian=True,
             enviar_correo=_env_bool("WEB_SIIGO_SIIGO_MAIL", False),

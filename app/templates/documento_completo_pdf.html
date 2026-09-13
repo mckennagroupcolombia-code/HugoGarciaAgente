@@ -282,7 +282,8 @@ sub { font-size: 0.72em; vertical-align: sub; }
 ═══════════════════════════════════════════════════════ #}
 {% if not seccion_sola or seccion_sola == 'ft' %}
 <div class="doc-section">
-  <div class="section-banner">Ficha Técnica · Certificado de Análisis · Hoja de Seguridad</div>
+  {# el cintillo anuncia solo las secciones que el documento trae #}
+  <div class="section-banner">Ficha Técnica{% if coa %} · Certificado de Análisis{% endif %}{% if sds %} · Hoja de Seguridad{% endif %}</div>
 
   <div class="hdr">
     <div class="hdr-left">
@@ -399,6 +400,35 @@ sub { font-size: 0.72em; vertical-align: sub; }
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Modo de uso</span></div>
     <div class="desc-text">{{ ft.modo_uso }}</div>
+  </div>
+  {% endif %}
+
+  {% if ft.alergenos %}
+  {% set nft.i = nft.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Alérgenos</span></div>
+    <div class="desc-text">{{ ft.alergenos }}</div>
+  </div>
+  {% endif %}
+
+  {% if ft.conservacion %}
+  {% set nft.i = nft.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Conservación y almacenamiento</span></div>
+    <div class="desc-text">{{ ft.conservacion }}</div>
+  </div>
+  {% endif %}
+
+  {# Solo cuando el documento no lleva SDS: si la lleva, van en su seccion 16. #}
+  {% if ft.recomendaciones and not sds %}
+  {% set nft.i = nft.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Recomendaciones</span></div>
+    <ul class="apps">
+      {% for linea in ft.recomendaciones %}
+      <li>{{ linea }}</li>
+      {% endfor %}
+    </ul>
   </div>
   {% endif %}
 
