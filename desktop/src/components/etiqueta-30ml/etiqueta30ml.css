@@ -688,6 +688,49 @@
   object-fit: contain;
 }
 
+/* ── Fila del código de barras: timbre a la izquierda ────────────────────
+      Activos cosméticos (30 mL) reserva a la izquierda del código un hueco
+      en blanco para el timbre físico. El código se va a la derecha con el
+      mismo margen del 3 % que tiene el bloque de información técnica de
+      arriba (que va al 94 % centrado), así los dos cierran en la misma
+      vertical. El rótulo «Timbre» es solo una ayuda de edición. */
+
+.e30-timbre-fila {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.e30-timbre {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.e30-timbre-nota {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b4b4b4;
+}
+
+/* La caja del código ocupa el 60 % derecho de la fila: su borde izquierdo
+   arranca un 15 % más a la derecha que en el primer reparto (75 %), que es
+   lo que ensancha el hueco del timbre hasta el 40 % de la fila. El código
+   se ajusta a esa caja, así que encoge en la misma proporción. */
+.e30-timbre-fila .e30-barras {
+  flex: 0 0 60%;
+  justify-content: flex-end;
+  padding-right: 3%;
+}
+.e30-timbre-fila .e30-barras-boton {
+  width: 100%;
+}
+
 /* ── Guías de la retícula (casilla «Retícula», solo en edición: el PNG y la
       impresión se generan en modo vista y no las llevan). ───────────────── */
 

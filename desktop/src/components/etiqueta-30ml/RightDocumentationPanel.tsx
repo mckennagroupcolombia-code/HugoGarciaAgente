@@ -148,13 +148,23 @@ export default function RightDocumentationPanel({
         </div>
       </div>
 
-      <BarcodeSection
-        value={data.barcode}
-        editMode={editable}
-        onChange={(v) => onChange?.({ barcode: v })}
-        onElegirCodigo={onElegirCodigo}
-        franja={{ alto: ALTO_FRANJA_30ML }}
-      />
+      {/* El código no va centrado en su fila: se corre a la derecha, a ras
+          del bloque de información técnica de arriba, y deja libre a su
+          izquierda la zona donde se estampa el timbre físico (lote, fecha).
+          El hueco se queda en blanco en la impresión — el rótulo solo se ve
+          mientras se edita, para que nadie lo tome por un descuadre. */}
+      <div className="e30-timbre-fila">
+        <div className="e30-timbre">
+          {editMode && <span className="e30-timbre-nota">Timbre</span>}
+        </div>
+        <BarcodeSection
+          value={data.barcode}
+          editMode={editable}
+          onChange={(v) => onChange?.({ barcode: v })}
+          onElegirCodigo={onElegirCodigo}
+          franja={{ alto: ALTO_FRANJA_30ML }}
+        />
+      </div>
 
       <ContactFooter
         editMode={editMode}
