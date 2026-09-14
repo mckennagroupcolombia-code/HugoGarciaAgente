@@ -14,7 +14,13 @@ import ContactFooter from "../etiqueta-30ml/ContactFooter";
 import { GradoInsumo } from "../etiqueta-30ml/CenterProductPanel";
 import { PREFIJO_SUBTITULO, textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useAjusteTexto } from "../etiqueta-30ml/useAjusteTexto";
-import { GRADO_SIMPLE_POR_DEFECTO, TAM_SIMPLE, variablesSimple, type ReticulaSimple } from "./etiquetaSimpleTypes";
+import {
+  ALTO_FRANJA_SIMPLE,
+  GRADO_SIMPLE_POR_DEFECTO,
+  TAM_SIMPLE,
+  variablesSimple,
+  type ReticulaSimple,
+} from "./etiquetaSimpleTypes";
 import "../etiqueta-30ml/etiqueta30ml.css";
 import "./etiquetaSimple.css";
 
@@ -311,6 +317,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
           <BarcodeSection
             value={data.barcode}
             editMode={editable}
+            franja={{ alto: ALTO_FRANJA_SIMPLE }}
             onChange={(v) => onChange?.({ barcode: v })}
             onElegirCodigo={onElegirCodigo}
           />

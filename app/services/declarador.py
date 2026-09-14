@@ -58,6 +58,8 @@ CATEGORIAS_DOC: list[tuple[str, str]] = [
     ("exogena", "Información exógena DIAN"),
     ("extracto_banco", "Extracto bancario"),
     ("extracto_tarjeta", "Extracto tarjeta de crédito"),
+    ("credito", "Crédito bancario (cuotas / obligaciones)"),
+    ("certificado_banco", "Certificado bancario anual (retención, GMF, créditos, costos)"),
     ("binance_csv", "Historial Binance (CSV)"),
     ("binance_snapshot", "Snapshot de tenencia Binance"),
     ("binance_api", "Evidencia API Binance"),
@@ -69,7 +71,7 @@ CATEGORIAS_DOC: list[tuple[str, str]] = [
 ]
 _CATS = {c for c, _ in CATEGORIAS_DOC}
 
-ESTADOS_ANIO = ("sin_datos", "presentada", "borrador", "por_corregir", "corregida", "no_obligado")
+ESTADOS_ANIO = ("sin_datos", "presentada", "borrador", "por_corregir", "corregida", "no_obligado", "no_presentada")
 ESTADOS_HALLAZGO = ("pendiente", "en_curso", "resuelto", "descartado")
 SEVERIDADES = ("alta", "media", "baja")
 
@@ -169,6 +171,13 @@ def _ensure() -> None:
             CREATE INDEX IF NOT EXISTS idx_dl_chat_tercero ON dl_chat(tercero_id);
             """
         )
+        cols_docs = {r[1] for r in con.execute("PRAGMA table_info(dl_documentos)").fetchall()}
+        if "ano_hasta" not in cols_docs:
+            con.execute("ALTER TABLE dl_documentos ADD COLUMN ano_hasta INTEGER")
+        cols_anios = {r[1] for r in con.execute("PRAGMA table_info(dl_anios)").fetchall()}
+        for col in ("cripto_costo_cierre_usd", "cripto_costo_cierre_cop", "trm_cierre"):
+            if col not in cols_anios:
+                con.execute(f"ALTER TABLE dl_anios ADD COLUMN {col} REAL")
         cols = {r[1] for r in con.execute("PRAGMA table_info(dl_expedientes)").fetchall()}
         if "cuestionario_json" not in cols:
             # Respuestas del cuestionario inicial (¿tiene cripto?, ¿declaró antes?,
@@ -290,7 +299,7 @@ _ANO_RE = re.compile(r"(?<!\d)(20[12]\d)(?!\d)")
 
 _REGLAS_CATEGORIA: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"declaracion\s*(19|20)\d{2}\.pdf$", re.I), "declaracion_f210"),
-    (re.compile(r"reporte\s*exogena", re.I), "exogena"),
+    (re.compile(r"exogena|exógena", re.I), "exogena"),
     (re.compile(r"accountstatementsnapshot|declaracion_sin_clave", re.I), "binance_snapshot"),
     (re.compile(r"evidencia_binance|binance_api_export|api_export|_trades\.json$|p2p_orders|withdrawals\.json|deposits\.json|spot_trades|spot_balances|fiat_pagos|dividendos_airdrops|conversiones\.csv|depositos\.csv|retiros\.csv", re.I), "binance_api"),
     (re.compile(r"declaracion binance|binance.*\.csv$|[0-9a-f]{8}-[0-9a-f]{4}-.*\.csv$", re.I), "binance_csv"),
@@ -300,14 +309,113 @@ _REGLAS_CATEGORIA: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"ledger|eventos_realizados|trm_|precios_externos|ahorros_\d{4}|_klines|ganancia_perdida|libro_maestro", re.I), "calculo"),
     # Tarjetas antes que "extractos bancarios": los xlsx de tarjeta viven en la
     # misma carpeta «Extractos Bancarios <año>» y se distinguen por el nombre.
+    # Bancolombia: «<cédula>_DIC<año>» = reporte anual de costos; «<cédula>-1-B_» =
+    # certificado de operaciones de crédito; «<cédula>-1-B1_» = certificado de
+    # retención en la fuente y GMF. «<9 dígitos>_MES<año>» = cuota de un crédito
+    # de consumo (310154706, 310158870); «<11 dígitos>_» = cuenta de ahorros.
+    (re.compile(r"^\d{10}(-1-B1?)?_[A-Z]{3}\d{4}\.xlsx$", re.I), "certificado_banco"),
+    (re.compile(r"certificado", re.I), "certificado_banco"),
+    (re.compile(r"^\d{9}_[A-Z]{3}\d{4}\.xlsx$", re.I), "credito"),
+    (re.compile(r"^\d{11}_[A-Z]{3}\d{4}\.xlsx$", re.I), "extracto_banco"),
     (re.compile(r"^(1343|8017|3894)_", re.I), "extracto_tarjeta"),
     (re.compile(r"extractos? bancarios|documento_\d{6}_|estado de cuenta", re.I), "extracto_banco"),
     (re.compile(r"hugo armando garcia velandia\d?\.pdf$", re.I), "extracto_banco"),
 ]
 
 
+def _clasificar_zip(path: str) -> str | None:
+    """Categoría mayoritaria de los archivos dentro de un zip (los «Documento_
+    YYYYMM_…zip» de Bancolombia traen tarjetas, créditos, certificados o la
+    cuenta de ahorros, y solo se sabe mirando adentro)."""
+    import zipfile
+    from collections import Counter
+
+    try:
+        with zipfile.ZipFile(path) as z:
+            nombres = [os.path.basename(n) for n in z.namelist() if not n.endswith("/")]
+    except Exception:  # noqa: BLE001
+        return None
+    cuenta: Counter[str] = Counter()
+    for n in nombres:
+        cat = "soporte"
+        for patron, c in _REGLAS_CATEGORIA:
+            if patron.search(n):
+                cat = c
+                break
+        cuenta[cat] += 1
+    if not cuenta:
+        return None
+    # La cuenta de ahorros manda si viene: es lo que el plan exige mes a mes.
+    if cuenta.get("extracto_banco"):
+        return "extracto_banco"
+    return cuenta.most_common(1)[0][0]
+
+
+def _ano_exogena_por_contenido(path: str) -> int | None:
+    """Año real de un reporte de exógena de la DIAN, leído de la fila «Año al
+    que se refiere la consulta». El nombre del archivo lo pone quien descarga y
+    se equivoca (reporte_Exogena2020.xls que por dentro era 2022)."""
+    ext = os.path.splitext(path)[1].lower()
+    texto = ""
+    try:
+        if ext in {".xlsx", ".xlsm"}:
+            import openpyxl
+
+            wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+            for i, fila in enumerate(wb.worksheets[0].iter_rows(values_only=True)):
+                if i > 15:
+                    break
+                texto += " | ".join("" if c is None else str(c) for c in fila) + "\n"
+        elif ext == ".xls":
+            import shutil
+            import tempfile
+
+            soffice = shutil.which("soffice") or shutil.which("libreoffice")
+            if not soffice:
+                return None
+            with tempfile.TemporaryDirectory() as tmp:
+                subprocess.run([soffice, "--headless", "--convert-to", "csv", "--outdir", tmp, path], capture_output=True, timeout=60)
+                csvs = [f for f in os.listdir(tmp) if f.lower().endswith(".csv")]
+                if csvs:
+                    with open(os.path.join(tmp, csvs[0]), encoding="utf-8", errors="replace") as fh:
+                        texto = fh.read(4000)
+        else:
+            return None
+    except Exception:  # noqa: BLE001
+        return None
+    m = re.search(r"a[ñn]o al que se refiere la consulta[^0-9]{0,20}(20\d{2})", texto, re.I)
+    return int(m.group(1)) if m else None
+
+
+_RANGO_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})\s*[-_–]\s*((?:19|20)\d{2})(?!\d)")
+
+
+def rango_anios_en_nombre(path: str) -> tuple[int, int] | None:
+    """«2020-2025.zip», «ahorros_2019_2024.csv», «Historial_2020-2024»: un solo
+    archivo que cubre varios años. Sin esto, el archivo quedaba en el primer año
+    y los demás salían en rojo en el mapa."""
+    for parte in (os.path.basename(path), path.replace("\\", "/")):
+        m = _RANGO_RE.search(parte)
+        if m:
+            a, b = int(m.group(1)), int(m.group(2))
+            if 2000 <= a <= b <= 2100 and b - a <= 15:
+                return a, b
+    return None
+
+
+def clasificar_archivo_rango(path: str) -> tuple[str, int | None, int | None]:
+    """Como `clasificar_archivo`, pero devuelve también el último año cubierto
+    cuando el nombre trae un rango (None si es de un solo año)."""
+    cat, ano = clasificar_archivo(path)
+    r = rango_anios_en_nombre(path)
+    if r:
+        return cat, r[0], r[1]
+    return cat, ano, None
+
+
 def clasificar_archivo(path: str) -> tuple[str, int | None]:
-    """Categoría y año gravable inferidos del nombre/ruta (sin abrir el archivo)."""
+    """Categoría y año gravable inferidos del nombre/ruta (un zip se mira por
+    dentro; un reporte de exógena se lee para sacar el año real)."""
     nombre = os.path.basename(path)
     rel = path.replace("\\", "/")
     categoria = "soporte"
@@ -315,6 +423,8 @@ def clasificar_archivo(path: str) -> tuple[str, int | None]:
         if patron.search(nombre) or patron.search(rel):
             categoria = cat
             break
+    if nombre.lower().endswith(".zip") and re.search(r"documento_\d{6}_", nombre, re.I):
+        categoria = _clasificar_zip(path) or categoria
     ano: int | None = None
     m = _ANO_RE.search(nombre) or _ANO_RE.search(rel)
     if m:
@@ -327,6 +437,11 @@ def clasificar_archivo(path: str) -> tuple[str, int | None]:
     m3 = re.search(r"_(20\d{2})0101_", nombre)
     if categoria == "binance_snapshot" and m3:
         ano = int(m3.group(1)) - 1
+    # El año del nombre lo pone quien descarga; el reporte de exógena trae el real.
+    if categoria == "exogena" and os.path.isfile(path):
+        real = _ano_exogena_por_contenido(path)
+        if real:
+            ano = real
     return categoria, ano
 
 
@@ -360,18 +475,32 @@ def registrar_documento_existente(
     path = os.path.abspath(path)
     if not os.path.isfile(path):
         return None
-    cat_auto, ano_auto = clasificar_archivo(path)
-    cat = categoria if categoria in _CATS else cat_auto
     with _conn() as con:
         _tercero(con, tercero_id)
+        # Un zip descomprimido a mano junto a su carpeta original (Littio.zip →
+        # Littio/ además de Littio_capturas/) duplicaba cada captura: mismo
+        # nombre y tamaño en otra ruta que sigue en disco = el mismo archivo.
+        gemelo = con.execute(
+            """SELECT * FROM dl_documentos
+               WHERE tercero_id=? AND archivo_nombre=? AND tamano=? AND archivo_path<>?""",
+            (int(tercero_id), os.path.basename(path)[:200], os.path.getsize(path), path),
+        ).fetchone()
+        if gemelo and os.path.isfile(gemelo["archivo_path"]):
+            d = dict(gemelo)
+            d["nuevo"] = False
+            return d
+    cat_auto, ano_auto, hasta_auto = clasificar_archivo_rango(path)
+    cat = categoria if categoria in _CATS else cat_auto
+    with _conn() as con:
         cur = con.execute(
             """INSERT OR IGNORE INTO dl_documentos
-                 (tercero_id, categoria, ano, archivo_nombre, archivo_path, origen, tamano, notas)
-               VALUES (?, ?, ?, ?, ?, 'carpeta', ?, ?)""",
+                 (tercero_id, categoria, ano, ano_hasta, archivo_nombre, archivo_path, origen, tamano, notas)
+               VALUES (?, ?, ?, ?, ?, ?, 'carpeta', ?, ?)""",
             (
                 int(tercero_id),
                 cat,
                 ano if ano is not None else ano_auto,
+                None if ano is not None else hasta_auto,
                 os.path.basename(path)[:200],
                 path,
                 os.path.getsize(path),
@@ -433,6 +562,11 @@ def actualizar_documento(tercero_id: int, doc_id: int, payload: dict) -> dict[st
     if "ano" in payload:
         try:
             campos["ano"] = int(payload["ano"]) if payload["ano"] not in (None, "") else None
+        except (TypeError, ValueError):
+            pass
+    if "ano_hasta" in payload:
+        try:
+            campos["ano_hasta"] = int(payload["ano_hasta"]) if payload["ano_hasta"] not in (None, "") else None
         except (TypeError, ValueError):
             pass
     if "notas" in payload:
@@ -525,7 +659,25 @@ def leer_documento_texto(tercero_id: int, doc_id: int, max_chars: int = 12000) -
                 lineas.append(" | ".join("" if c is None else str(c) for c in fila))
             return "\n".join(lineas)[:max_chars]
         if ext == ".xls":
-            return "(Excel .xls antiguo: conviértelo a .xlsx o CSV para poder leerlo)"
+            # Excel antiguo (los reportes de exógena de la DIAN de 2021/2022
+            # llegan así): se convierte a CSV con LibreOffice en un temporal.
+            import shutil
+            import tempfile
+
+            soffice = shutil.which("soffice") or shutil.which("libreoffice")
+            if not soffice:
+                return "(Excel .xls antiguo y LibreOffice no está instalado: conviértelo a .xlsx o CSV)"
+            with tempfile.TemporaryDirectory() as tmp:
+                subprocess.run(
+                    [soffice, "--headless", "--convert-to", "csv", "--outdir", tmp, path],
+                    capture_output=True,
+                    timeout=60,
+                )
+                csvs = [f for f in os.listdir(tmp) if f.lower().endswith(".csv")]
+                if not csvs:
+                    return "(no se pudo convertir el .xls con LibreOffice)"
+                with open(os.path.join(tmp, csvs[0]), "r", encoding="utf-8", errors="replace") as fh:
+                    return fh.read(max_chars)
     except Exception as e:  # noqa: BLE001
         return f"(no se pudo leer: {e})"
     return "(formato no legible como texto — imagen o binario)"
@@ -544,6 +696,9 @@ _CAMPOS_ANIO_NUM = (
     "cripto_renta_ordinaria",
     "cripto_ganancia_ocasional",
     "cripto_sin_costo",
+    "cripto_costo_cierre_usd",
+    "cripto_costo_cierre_cop",
+    "trm_cierre",
 )
 
 
@@ -748,6 +903,130 @@ _SALTAR_EXT = {".pyc"}
 _EXT_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
 
 
+_STABLE = {"USDT", "USDC", "BUSD", "DAI", "FDUSD", "TUSD", "USDP"}
+_OPS_TRANSFERENCIA_INTERNA = {
+    "Transfer Between Main and Funding Wallet",
+    "Transfer Between Spot Account and UM Futures Account",
+    "Transfer Between Main Account And Mining Account",
+    "Transfer Between Main And Mining Account",
+    "Asset - Transfer",
+}
+
+
+def tenencia_fifo_por_anio(ruta_ledger: str, ruta_trm: str) -> dict[int, dict[str, Any]]:
+    """Costo fiscal (FIFO) de lo que quedaba en Binance al 31 de diciembre de
+    cada año, en USD y en COP a la TRM de esa fecha. Es el «activo omitido»
+    que va al patrimonio bruto (renglón 29) de cada corrección. Misma lógica
+    de lotes que `Calculos/scripts/12_valor_tenencia_actual.py`, que solo lo
+    hacía para el último cierre; las stablecoins sin precio en el ledger
+    valen 1 USD (igual que en `08_price_engine_v2.py`).
+
+    Solo cuenta lo que está EN Binance: lo retirado a otra billetera o a
+    Littio no aparece aquí aunque siga siendo del titular."""
+    if not (ruta_ledger and os.path.isfile(ruta_ledger)):
+        return {}
+    trm: dict[str, float] = {}
+    if ruta_trm and os.path.isfile(ruta_trm):
+        with open(ruta_trm, newline="", encoding="utf-8", errors="replace") as fh:
+            for r in csv.DictReader(fh):
+                try:
+                    trm[(r.get("fecha") or "")[:10]] = float(r.get("trm") or 0)
+                except ValueError:
+                    continue
+    filas: list[tuple[str, str, float, float]] = []
+    with open(ruta_ledger, newline="", encoding="utf-8", errors="replace") as fh:
+        for r in csv.DictReader(fh):
+            if r.get("Operation") in _OPS_TRANSFERENCIA_INTERNA or r.get("Coin") == "COP":
+                continue
+            try:
+                ch = float(r.get("Change") or 0)
+                px = float(r.get("price_usd") or 0)
+            except ValueError:
+                continue
+            if r.get("Coin") in _STABLE and not px:
+                px = 1.0
+            filas.append((r.get("UTC_Time") or "", r.get("Coin") or "", ch, px))
+    if not filas:
+        return {}
+    filas.sort()
+    primer = int(filas[0][0][:4])
+    ultimo = int(filas[-1][0][:4])
+    from collections import deque
+
+    lotes: dict[str, deque] = defaultdict(deque)
+    out: dict[int, dict[str, Any]] = {}
+
+    def foto(ano: int) -> None:
+        total = 0.0
+        det = []
+        for coin, dq in lotes.items():
+            q = sum(l[0] for l in dq)
+            c = sum(l[0] * l[1] for l in dq)
+            if q > 1e-6:
+                total += c
+                det.append({"coin": coin, "cantidad": round(q, 6), "costo_usd": round(c, 2)})
+        det.sort(key=lambda x: -x["costo_usd"])
+        t = trm.get(f"{ano}-12-31") or trm.get(f"{ano}-12-30") or trm.get(f"{ano}-12-29")
+        out[ano] = {
+            "cripto_costo_cierre_usd": round(total, 2),
+            "trm_cierre": t,
+            "cripto_costo_cierre_cop": round(total * t) if t else None,
+            "detalle": det[:8],
+        }
+
+    ano_corte = primer
+    for t, coin, ch, px in filas:
+        while int(t[:4]) > ano_corte:
+            foto(ano_corte)
+            ano_corte += 1
+        if ch > 0:
+            lotes[coin].append([ch, px])
+        elif ch < 0:
+            resto = -ch
+            while resto > 1e-12 and lotes[coin]:
+                l = lotes[coin][0]
+                take = min(l[0], resto)
+                l[0] -= take
+                resto -= take
+                if l[0] <= 1e-12:
+                    lotes[coin].popleft()
+    while ano_corte <= ultimo:
+        foto(ano_corte)
+        ano_corte += 1
+    return out
+
+
+# Tabla del Art. 241 ET (personas naturales residentes), en UVT: (desde, hasta,
+# tarifa marginal, impuesto acumulado en UVT al inicio del rango). Vigente sin
+# cambios para los años gravables 2019 en adelante (Ley 2010/2019; la Ley
+# 2277/2022 no la modificó).
+_TABLA_ART_241 = [
+    (0, 1090, 0.00, 0),
+    (1090, 1700, 0.19, 0),
+    (1700, 4100, 0.28, 116),
+    (4100, 8670, 0.33, 788),
+    (8670, 18970, 0.35, 2296),
+    (18970, 31000, 0.37, 5901),
+    (31000, float("inf"), 0.39, 10352),
+]
+
+
+def impuesto_renta_art241(renta_liquida_gravable_cop: float, ano: int) -> float | None:
+    """Impuesto de renta de una persona natural sobre la renta líquida gravable
+    de la cédula general (Art. 241 ET). Devuelve None si la UVT del año no
+    está cargada — nunca se extrapola."""
+    from app.services.retenciones import uvt
+
+    u = uvt(int(ano))
+    if not u or renta_liquida_gravable_cop is None:
+        return None
+    rlg_uvt = max(0.0, float(renta_liquida_gravable_cop)) / u
+    for lo, hi, tarifa, base in _TABLA_ART_241:
+        if lo < rlg_uvt <= hi:
+            return round(((rlg_uvt - lo) * tarifa + base) * u)
+    return 0.0
+
+
 def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, Any]:
     """Trae al expediente lo que ya existe en la carpeta del Declarador.
 
@@ -866,9 +1145,16 @@ def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, A
         actualizar_anio(tercero_id, ano, campos)
         cripto_anios += 1
 
+    tenencias = 0
+    if calc:
+        for ano, campos in tenencia_fifo_por_anio(os.path.join(calc, "ledger_final.csv"), os.path.join(calc, "trm_diaria.csv")).items():
+            actualizar_anio(tercero_id, ano, {k: campos[k] for k in ("cripto_costo_cierre_usd", "cripto_costo_cierre_cop", "trm_cierre")})
+            tenencias += 1
+
     _sembrar_hallazgos_automaticos(tercero_id)
     return {
         "carpeta": carpeta,
+        "tenencias_cierre": tenencias,
         "documentos": docs_total,
         "documentos_nuevos": docs_nuevos,
         "imagenes": imagenes,
@@ -896,8 +1182,14 @@ def _sembrar_hallazgos_automaticos(tercero_id: int) -> None:
                     "detalle": (
                         f"El motor FIFO arroja {a.get('cripto_total'):,.0f} COP de efecto en {ano} "
                         f"(renta ordinaria {a.get('cripto_renta_ordinaria') or 0:,.0f}; ganancia ocasional "
-                        f"{a.get('cripto_ganancia_ocasional') or 0:,.0f}) y la declaración presentada no lo incluye. "
-                        "Decidir con el contador si se corrige (Art. 588/644 ET) o se maneja por comparación patrimonial."
+                        f"{a.get('cripto_ganancia_ocasional') or 0:,.0f}) y la declaración presentada no lo incluye."
+                        + (
+                            f" Activo omitido a 31-dic-{ano} (costo fiscal de lo que quedaba en Binance): "
+                            f"{a.get('cripto_costo_cierre_cop'):,.0f} COP."
+                            if a.get("cripto_costo_cierre_cop") is not None
+                            else ""
+                        )
+                        + " Decidir con el contador si se corrige (Art. 588/644 ET) o se maneja por comparación patrimonial."
                     ),
                 },
                 origen="auto",
@@ -1103,9 +1395,9 @@ REQUISITOS: list[dict[str, Any]] = [
     {
         "id": "f210",
         "categoria": "declaracion_f210",
-        "titulo": "Declaración de renta presentada (Formulario 210)",
-        "por_que": "Es la base: lo que la DIAN ya sabe de ti. Se compara renglón por renglón con la realidad.",
-        "como": "DIAN → Muisca → «Consultar documentos» → Renta personas naturales → descargar el PDF firmado de cada año.",
+        "titulo": "Declaración de renta ya presentada (Formulario 210), si la hubo",
+        "por_que": "No es la meta, es el punto de partida: lo que la DIAN ya tiene de ese año SIN los criptoactivos. Sobre ese F210 se arma la corrección que los incluye. Si ese año no presentaste declaración, márcalo así en la casilla y el año pasa a «presentar» en vez de «corregir».",
+        "como": "DIAN → Muisca → «Consultar documentos» → Renta personas naturales → descargar el PDF firmado de cada año presentado.",
         "aplica": "declaro_antes",
         "por_anio": True,
     },
@@ -1134,6 +1426,15 @@ REQUISITOS: list[dict[str, Any]] = [
         "titulo": "Extractos de tarjetas de crédito",
         "por_que": "Compras en Amazon o cripto con tarjeta y avances en efectivo: deuda que va en el patrimonio y origen de fondos.",
         "como": "Sucursal virtual → Tarjetas → Estado de cuenta → descargar Excel de cada mes.",
+        "aplica": None,
+        "por_anio": True,
+    },
+    {
+        "id": "certificado_banco",
+        "categoria": "certificado_banco",
+        "titulo": "Certificados bancarios anuales (retención y GMF, créditos, costos)",
+        "por_que": "Dan las cifras a 31 de diciembre que van en el F210: saldo de los créditos (deudas), retenciones que te practicó el banco y el 4x1000 (50 % deducible). También sustentan los préstamos de consumo ante la DIAN.",
+        "como": "Bancolombia sucursal virtual → Documentos → Certificados tributarios → año → descargar (salen como Documento_<año>12_….zip con el certificado de retención/GMF, el de operaciones de crédito y el reporte anual de costos).",
         "aplica": None,
         "por_anio": True,
     },
@@ -1191,6 +1492,7 @@ CARPETAS_SOCIO = [
     ("04_Binance", "CSV del historial por año + snapshot PDF a 31-dic"),
     ("05_Otras_Plataformas", "Capturas de Nequi, Littio, MoonPay…"),
     ("06_Soportes", "Contratos de préstamo, comprobantes, chats"),
+    ("07_Certificados_Bancarios", "Por año: certificado de retención/GMF, de operaciones de crédito y reporte anual de costos (Documento_<año>12_….zip de Bancolombia)"),
 ]
 
 
@@ -1369,7 +1671,7 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
     # El F210 del año gravable anterior se presenta entre agosto y octubre del
     # año siguiente: hasta noviembre no se le exige a nadie tenerlo.
     hasta_f210 = hasta if hoy.month >= 11 else hasta - 1
-    omitidos = set(cq.get("omitidos") or [])
+    omitidos = {str(x) for x in (cq.get("omitidos") or [])}
     if cobertura is None:
         try:
             from app.services.extracto_bancario import cobertura_mensual
@@ -1378,8 +1680,21 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
         except Exception:
             cobertura = {"anios": {}}
     mios = defaultdict(lambda: defaultdict(int))
+    zips = defaultdict(lambda: defaultdict(int))
     for d in docs:
-        mios[d["categoria"]][str(d.get("ano") or "")] += 1
+        a0 = d.get("ano")
+        a1 = d.get("ano_hasta") or a0
+        claves = [str(a) for a in range(int(a0), int(a1) + 1)] if a0 else [""]
+        destino = zips if str(d.get("archivo_nombre") or "").lower().endswith(".zip") else mios
+        for k in claves:
+            destino[d["categoria"]][k] += 1
+    # Un zip solo cuenta cuando no hay nada descomprimido de esa categoría y año
+    # (si ya se extrajo, contarlo duplica: «2 archivos» por un solo certificado).
+    for cat, por in zips.items():
+        for k, n in por.items():
+            if not mios[cat].get(k):
+                mios[cat][k] += n
+    estado_anio = {int(a["ano"]): a.get("estado") for a in listar_anios(tercero_id)}
     out = []
     for r in REQUISITOS:
         aplica = r["aplica"] is None or bool(cq.get(r["aplica"]))
@@ -1394,6 +1709,14 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
                     m = int((cobertura.get("anios") or {}).get(str(a), {}).get("meses_con") or 0)
                     mref = int(((ref or {}).get("extractos_meses") or {}).get(str(a)) or 0) if ref else 0
                     por_anio.append({"ano": a, "mios": m, "ref": mref, "unidad": "meses", "ok": m >= 12})
+                elif f"{r['id']}:{a}" in omitidos:
+                    # «No aplica ese año» (p. ej. la DIAN no tiene exógena de 2020):
+                    # no cuenta como faltante, se pinta en gris y se puede deshacer.
+                    por_anio.append({"ano": a, "mios": mios[cat].get(str(a), 0), "ref": 0, "unidad": "archivos", "ok": True, "nota": "no_aplica"})
+                elif r["id"] == "f210" and estado_anio.get(a) in ("no_presentada", "no_obligado"):
+                    # Ese año no hubo declaración: no hay F210 que cargar. No es
+                    # un faltante, es un año que se PRESENTA (ver objetivo_declaraciones).
+                    por_anio.append({"ano": a, "mios": 0, "ref": 0, "unidad": "archivos", "ok": True, "nota": "no_presentada"})
                 else:
                     n = mios[cat].get(str(a), 0)
                     nref = (ref or {}).get("por_categoria", {}).get(cat, {}).get(str(a), 0) if ref else 0
@@ -1425,11 +1748,138 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
         "cuestionario": cq,
         "preguntas": CUESTIONARIO,
         "anios": anios,
+        "hasta_f210": hasta_f210,
         "requisitos": out,
         "referencia": ref,
         "progreso": {"hechos": hechos, "total": len(aplicables)},
         "carpeta": perfil.get("carpeta") or carpeta_socio_default(perfil["tercero"]),
         "carpeta_existe": bool(perfil.get("carpeta") and os.path.isdir(perfil["carpeta"])),
+    }
+
+
+# ── Meta del expediente: qué declaración se presenta o corrige por año ──────
+
+VIAS_ACTIVOS_OMITIDOS = [
+    {
+        "id": "correccion",
+        "titulo": "Corrección voluntaria de la declaración presentada",
+        "detalle": "Art. 588 ET: se presenta de nuevo el F210 del año incluyendo los criptoactivos (patrimonio a 31-dic al costo fiscal y el efecto realizado). Lleva sanción por corrección (Art. 644 ET) e intereses si aumenta el impuesto. Aplica mientras el año siga siendo revisable.",
+    },
+    {
+        "id": "activos_omitidos",
+        "titulo": "Renta líquida por activos omitidos (Art. 239-1 ET)",
+        "detalle": "Si el año ya no es revisable, los activos omitidos se incluyen como renta líquida gravable en la declaración del año en curso o en una corrección. Si la DIAN los detecta primero, la sanción por inexactitud sube al 200 % (Art. 648 ET).",
+    },
+    {
+        "id": "extemporanea",
+        "titulo": "Declaración extemporánea",
+        "detalle": "Para el año que nunca se declaró estando obligado: se presenta ahora incluyendo los activos, con sanción por extemporaneidad (Art. 641 ET) e intereses.",
+    },
+    {
+        "id": "normalizacion",
+        "titulo": "Impuesto de normalización tributaria",
+        "detalle": "Solo existe cuando una ley lo habilita (la última fue la Ley 2155 de 2021, para 2022). Hoy no está vigente; si vuelve a abrirse, suele ser la vía más barata para activos omitidos.",
+    },
+]
+
+
+def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> dict[str, Any]:
+    """Qué hay que presentar o corregir por año para regularizar los
+    criptoactivos que nunca se incluyeron. Es la meta que justifica cada
+    documento del plan de carga: sin esto el socio ve una lista de archivos y
+    no sabe para qué son."""
+    cq = plan["cuestionario"]
+    if not cq.get("cripto"):
+        return {"aplica": False, "anios": [], "resumen": {}, "vias": VIAS_ACTIVOS_OMITIDOS}
+    por_ano = {int(a["ano"]): a for a in anios}
+    hasta_f210 = int(plan.get("hasta_f210") or 0)
+    f210 = {int(d["ano"]) for d in docs if d["categoria"] == "declaracion_f210" and d.get("ano")}
+    snapshot = {int(d["ano"]) for d in docs if d["categoria"] == "binance_snapshot" and d.get("ano")}
+    csv = {int(d["ano"]) for d in docs if d["categoria"] == "binance_csv" and d.get("ano")}
+    out = []
+    for ano in plan["anios"]:
+        a = por_ano.get(ano) or {}
+        estado = a.get("estado") or "sin_datos"
+        total = a.get("cripto_total")
+        tiene_f210 = ano in f210
+        efecto = total is not None
+        tenencia = a.get("tenencia_cierre_usd") is not None or ano in snapshot
+        if ano > hasta_f210:
+            situacion, accion, via = (
+                "futura",
+                f"Presentar la declaración de {ano} en su fecha (ago–oct {ano + 1}) incluyendo los criptoactivos desde el inicio.",
+                None,
+            )
+        elif estado == "corregida":
+            situacion, accion, via = "corregida", "Ya corregida con los criptoactivos incluidos.", None
+        elif estado in ("presentada", "por_corregir") or (estado == "sin_datos" and tiene_f210):
+            if efecto and abs(total or 0) < 1000:
+                situacion, accion, via = "presentada_sin_efecto", "Presentada sin criptoactivos, pero el motor no arroja efecto ese año: confirmar con el contador si basta con incluir la tenencia a 31-dic.", "correccion"
+            elif efecto:
+                situacion, accion, via = "corregir", "Corregir el F210 presentado para incluir los criptoactivos omitidos (tenencia a 31-dic y efecto del año).", "correccion"
+            else:
+                situacion, accion, via = "corregir_sin_calculo", "Presentada sin criptoactivos; falta calcular el efecto del año (historial Binance) antes de armar la corrección.", "correccion"
+        elif estado == "borrador":
+            situacion, accion, via = "presentar", "En borrador: presentarla incluyendo la tenencia de criptoactivos a 31-dic y el efecto del año.", None
+        elif estado in ("no_presentada", "no_obligado"):
+            situacion, accion, via = "presentar_extemporanea", "Ese año no se presentó declaración: presentarla ahora incluyendo los criptoactivos (extemporánea si estabas obligado).", "extemporanea"
+        else:
+            situacion, accion, via = "por_definir", "Falta saber si ese año presentaste declaración: sube el F210 o marca «no presenté».", None
+        # Recálculo del año con el efecto cripto (Art. 241) y el activo omitido a 31-dic.
+        rlg = a.get("renta_liquida")
+        imp_pag = a.get("impuesto_pagado")
+        correccion = None
+        if efecto and rlg is not None and situacion not in ("futura",):
+            rlg_corr = max(0.0, float(rlg) + float(total or 0))
+            imp_decl_calc = impuesto_renta_art241(float(rlg), ano)
+            imp_corr = impuesto_renta_art241(rlg_corr, ano)
+            mayor = (imp_corr - float(imp_pag or 0)) if imp_corr is not None else None
+            correccion = {
+                "rlg_declarada": rlg,
+                "ajuste_cripto": total,
+                "rlg_corregida": round(rlg_corr),
+                "impuesto_pagado": imp_pag,
+                "impuesto_declarado_recalculado": imp_decl_calc,
+                "impuesto_corregido": imp_corr,
+                "mayor_valor": round(mayor) if mayor is not None else None,
+                "sancion_correccion_10": round(mayor * 0.10) if mayor is not None and mayor > 0 else 0,
+                "uvt_cargada": imp_corr is not None,
+            }
+        out.append(
+            {
+                "ano": ano,
+                "estado": estado,
+                "situacion": situacion,
+                "accion": accion,
+                "via": via,
+                "cripto_total": total,
+                "tenencia_cierre_usd": a.get("tenencia_cierre_usd"),
+                "cripto_costo_cierre_usd": a.get("cripto_costo_cierre_usd"),
+                "cripto_costo_cierre_cop": a.get("cripto_costo_cierre_cop"),
+                "trm_cierre": a.get("trm_cierre"),
+                "patrimonio_bruto_declarado": a.get("patrimonio_bruto"),
+                "correccion": correccion,
+                "insumos": {
+                    "f210": tiene_f210,
+                    "f210_aplica": situacion not in ("presentar_extemporanea", "futura"),
+                    "efecto_cripto": efecto,
+                    "historial": ano in csv,
+                    "tenencia": tenencia,
+                },
+            }
+        )
+    resumen = defaultdict(int)
+    for x in out:
+        resumen[x["situacion"]] += 1
+    mayor_total = sum((x["correccion"] or {}).get("mayor_valor") or 0 for x in out if (x["correccion"] or {}).get("mayor_valor", 0) and x["correccion"]["mayor_valor"] > 0)
+    sancion_total = sum((x["correccion"] or {}).get("sancion_correccion_10") or 0 for x in out)
+    a_favor = sum(-(x["correccion"] or {}).get("mayor_valor") or 0 for x in out if (x["correccion"] or {}).get("mayor_valor") is not None and x["correccion"]["mayor_valor"] < 0)
+    return {
+        "aplica": True,
+        "anios": out,
+        "resumen": dict(resumen),
+        "totales": {"mayor_valor": round(mayor_total), "sancion_correccion_10": round(sancion_total), "a_favor_no_reclamable": round(a_favor)},
+        "vias": VIAS_ACTIVOS_OMITIDOS,
     }
 
 
@@ -1467,6 +1917,7 @@ def obtener_expediente(tercero_id: int) -> dict[str, Any]:
     return {
         "perfil": perfil,
         "plan": plan,
+        "objetivo": objetivo_declaraciones(anios, docs, plan),
         "documentos": docs,
         "documentos_por_categoria": dict(por_cat),
         "categorias": [{"id": c, "label": l} for c, l in CATEGORIAS_DOC],
@@ -1573,7 +2024,7 @@ def _estado_pasos(perfil, extractos, cobertura, saldo, cruces_res, anios, docs, 
         )
 
     n_docs = len(docs)
-    n_rev = sum(1 for a in anios if a.get("requiere_revision") or a.get("estado") in ("borrador", "por_corregir"))
+    n_rev = sum(1 for a in anios if a.get("requiere_revision") or a.get("estado") in ("borrador", "por_corregir", "no_presentada"))
     if not cq.get("cripto") and not cq.get("declaro_antes") and cq.get("_completo"):
         add("declarador", "hecho", "Sin criptoactivos ni declaraciones previas: este paso no aplica", 0)
     elif not anios and not n_docs:

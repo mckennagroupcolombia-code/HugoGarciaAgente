@@ -240,3 +240,42 @@ def test_cuestionario_plan_y_carpeta(db, tmp_path, monkeypatch):
     dl.guardar_documento(socio["id"], b"x", "2024.csv", categoria="binance_csv", ano=2024)
     cq = dl.cuestionario_efectivo(socio["id"])
     assert cq["cripto"] is True and cq["declaro_antes"] is True and "cripto" in cq["_inferido"]
+
+
+def test_impuesto_art241_reproduce_lo_declarado():
+    """La tabla del Art. 241 con la UVT de cada año debe reproducir el impuesto
+    que la DIAN liquidó en los F210 ya presentados (tolerancia: redondeo a miles)."""
+    from app.services.declarador import impuesto_renta_art241
+
+    assert abs(impuesto_renta_art241(50_045_000, 2022) - 1_638_000) < 1_000
+    assert abs(impuesto_renta_art241(61_408_000, 2023) - 2_884_000) < 1_000
+    assert impuesto_renta_art241(10_255_000, 2020) == 0  # bajo 1.090 UVT
+    assert impuesto_renta_art241(55_249_729, 2021) == 2_978_062
+    assert impuesto_renta_art241(1_000_000, 1999) is None  # UVT no cargada: nunca se extrapola
+
+
+def test_tenencia_fifo_por_anio(tmp_path):
+    """Lo que queda al 31-dic se valora al costo FIFO de los lotes vivos; las
+    stablecoins sin precio valen 1 USD; los traslados internos no cuentan."""
+    from app.services.declarador import tenencia_fifo_por_anio
+
+    ledger = tmp_path / "ledger_final.csv"
+    ledger.write_text(
+        "row_id,User_ID,UTC_Time,Account,Operation,Coin,Change,Remark,price_usd,fuente,trm\n"
+        "1,1,2023-03-01 10:00:00,Spot,Buy,BTC,1.0,,20000,x,4000\n"
+        "2,1,2023-06-01 10:00:00,Spot,Buy,BTC,1.0,,30000,x,4000\n"
+        "3,1,2023-09-01 10:00:00,Spot,Sell,BTC,-1.0,,35000,x,4000\n"
+        "4,1,2023-10-01 10:00:00,Spot,Deposit,USDC,100,,,x,4000\n"
+        "5,1,2023-11-01 10:00:00,Spot,Transfer Between Main and Funding Wallet,BTC,-1.0,,36000,x,4000\n"
+        "6,1,2024-02-01 10:00:00,Spot,Sell,BTC,-1.0,,40000,x,4000\n",
+        encoding="utf-8",
+    )
+    trm = tmp_path / "trm_diaria.csv"
+    trm.write_text("fecha,trm\n2023-12-31,4000\n2024-12-31,4400\n", encoding="utf-8")
+    t = tenencia_fifo_por_anio(str(ledger), str(trm))
+    # 2023: queda el lote de 30.000 (FIFO consumió el de 20.000) + 100 USDC a 1 USD
+    assert t[2023]["cripto_costo_cierre_usd"] == 30_100.0
+    assert t[2023]["cripto_costo_cierre_cop"] == 30_100 * 4000
+    # 2024: se vendió el BTC; solo quedan los USDC
+    assert t[2024]["cripto_costo_cierre_usd"] == 100.0
+    assert t[2024]["trm_cierre"] == 4400

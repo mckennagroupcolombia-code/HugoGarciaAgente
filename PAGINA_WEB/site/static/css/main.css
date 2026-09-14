@@ -4734,3 +4734,74 @@ body *:not(.ph):not([class^="ph-"]) {
 .hero-kit-box .kit-val { font-size: 18px; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
 .hero-kit-box .kit-val--txt { font-size: 13px; font-weight: 700; white-space: nowrap; }
 .hero-kit-box .kit-val--icon { font-size: 20px; line-height: 1; color: var(--green); }
+
+/* ══════════════════════════════════════════════════════════
+   HERO COMPACTO (13-sep-2026)
+   En 1748×933 con la barra del navegador el viewport real queda en ~830 px y
+   «Comprar ahora» / «Pedir cotización» caían por debajo del pliegue. Se recorta
+   ~140 px de aire vertical (paddings, gap, interlineado y márgenes sueltos del
+   buscador) sin tocar la ilustración ni la caja de actividad, que siguen a los
+   lados. Va al final del archivo a propósito: gana a las reglas del Studio.
+══════════════════════════════════════════════════════════ */
+@media (min-width: 901px) {
+  .hero-left { padding: 28px 28px 28px 0; gap: 16px; justify-content: flex-start; }
+  .hero-mid { padding: 28px 0 24px; }
+  .hero-right { padding: 28px 0 28px 20px; }
+  .hero--foto .hero-right { padding: 24px 0 24px 12px; }
+  .hero-title { font-size: clamp(32px, 3.1vw, 44px); margin-bottom: 10px; }
+  .hero-subtitle { line-height: 1.55; max-width: 30rem; }
+  .hero-right-label { margin-bottom: 10px; }
+  .hero-kit-box { padding: 16px 22px 8px; }
+  .hero-kit-box .kit-item { padding: 9px 0; }
+  /* Tres CTAs en una sola fila: el tercero («Cotizar importación») añadía
+     ~60 px al bajar a una segunda línea. */
+  .hero-cta .btn,
+  .hero-cta .btn-lg { padding: var(--studio-pad-y, 13px) var(--studio-pad-x, 24px); }
+}
+
+/* El buscador: el margen propio se sumaba al gap del flex (44 px arriba). */
+.hero-search { margin: 0; max-width: 34rem; }
+.hero-chips { margin-bottom: 0; }
+
+/* El placeholder quedaba tapado por el botón «Buscar»: se reserva ancho para el
+   texto, el botón no se encoge y lo que sobre se corta con puntos suspensivos. */
+.hero-search-box { gap: 10px; padding-right: 5px; }
+.hero-search-box input { min-width: 6rem; text-overflow: ellipsis; padding-right: 4px; }
+.hero-search-btn { flex: 0 0 auto; white-space: nowrap; padding: 13px 26px; }
+
+/* Móvil y tablet: el orden del DOM ya es título → buscador → acciones →
+   ilustración → caja, solo hay que evitar cortes y botones pequeños. */
+@media (max-width: 900px) {
+  .hero-left { padding: 28px 0 22px; gap: 16px; }
+  .hero-mid { min-height: 30vh; }
+  .hero-search { max-width: none; }
+}
+@media (max-width: 640px) {
+  /* el nowrap de la tercera línea desbordaba la pantalla */
+  .hero-title-l2 { white-space: normal; }
+  .hero-title { font-size: clamp(28px, 7.5vw, 40px); }
+  .hero-subtitle { max-width: none; }
+  .hero .hero-cta .btn { padding: 15px 20px; min-height: 48px; }
+}
+@media (max-width: 430px) {
+  .hero-search-box { padding-left: 14px; }
+  .hero-search-btn { padding: 13px 16px; }
+  .hero-kit-box { padding: 14px 16px 6px; }
+  .hero-kit-box .kit-val--txt { white-space: normal; text-align: right; }
+}
+
+/* Repaso de la portada en 390 y 820 px (13-sep-2026) */
+@media (max-width: 900px) {
+  /* La ilustración se dimensionaba solo en vh: en tablet alta se comía la
+     pantalla y empujaba la caja de actividad muy abajo. */
+  .hero-mid { min-height: min(30vh, 260px); padding: 18px 0 8px; }
+  .hero-right, .hero--foto .hero-right { padding: 8px 0 32px; }
+}
+@media (max-width: 560px) {
+  /* Con la lupa a la izquierda + el botón, el placeholder no cabía entero
+     («Busca por nombre, …»). La lupa sobra: el botón ya dice qué hace. */
+  .hero-search-box > .ph { display: none; }
+  .hero-search-box { padding-left: 16px; gap: 8px; }
+  .hero-search-box input { font-size: .9rem; }
+  .hero-search-btn { padding: 13px 18px; font-size: 10px; letter-spacing: 1.5px; }
+}

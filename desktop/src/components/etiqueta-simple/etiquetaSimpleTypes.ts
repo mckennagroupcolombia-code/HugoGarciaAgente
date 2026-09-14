@@ -24,6 +24,11 @@ export function esFormatoSimple(
 /** Ancho de diseño en px: la etiqueta se maqueta a este ancho y se escala. */
 export const ANCHO_SIMPLE = 900;
 
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_SIMPLE = 11;
+
 /** Grado del subtítulo cuando la etiqueta no trae uno: son alimentos. */
 export const GRADO_SIMPLE_POR_DEFECTO = "ALIMENTARIO";
 

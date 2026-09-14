@@ -63,6 +63,44 @@ interface RequisitoAnio {
   ref: number;
   unidad: "meses" | "archivos";
   ok: boolean;
+  /** "no_presentada": ese año no hubo declaración, no hay F210 que cargar. */
+  nota?: string;
+}
+
+interface CorreccionAnio {
+  rlg_declarada: number | null;
+  ajuste_cripto: number | null;
+  rlg_corregida: number;
+  impuesto_pagado: number | null;
+  impuesto_declarado_recalculado: number | null;
+  impuesto_corregido: number | null;
+  mayor_valor: number | null;
+  sancion_correccion_10: number;
+  uvt_cargada: boolean;
+}
+
+interface ObjetivoAnio {
+  ano: number;
+  estado: string;
+  situacion: string;
+  accion: string;
+  via: string | null;
+  cripto_total: number | null;
+  tenencia_cierre_usd: number | null;
+  cripto_costo_cierre_usd: number | null;
+  cripto_costo_cierre_cop: number | null;
+  trm_cierre: number | null;
+  patrimonio_bruto_declarado: number | null;
+  correccion: CorreccionAnio | null;
+  insumos: { f210: boolean; f210_aplica: boolean; efecto_cripto: boolean; historial: boolean; tenencia: boolean };
+}
+
+interface Objetivo {
+  aplica: boolean;
+  anios: ObjetivoAnio[];
+  resumen: Record<string, number>;
+  totales?: { mayor_valor: number; sancion_correccion_10: number; a_favor_no_reclamable: number };
+  vias: { id: string; titulo: string; detalle: string }[];
 }
 
 interface Requisito {
@@ -90,12 +128,15 @@ interface Plan {
   progreso: { hechos: number; total: number };
   carpeta: string;
   carpeta_existe: boolean;
+  hasta_f210: number;
 }
 
 interface Documento {
   id: number;
   categoria: string;
   ano: number | null;
+  /** Último año cubierto cuando un solo archivo abarca varios (historial 2020-2025). */
+  ano_hasta: number | null;
   archivo_nombre: string;
   archivo_path: string;
   origen: "subido" | "carpeta";
@@ -117,6 +158,9 @@ interface Anio {
   ganancia_ocasional: number | null;
   estado: string;
   tenencia_cierre_usd: number | null;
+  cripto_costo_cierre_usd: number | null;
+  cripto_costo_cierre_cop: number | null;
+  trm_cierre: number | null;
   cripto_renta_ordinaria: number | null;
   cripto_ganancia_ocasional: number | null;
   cripto_sin_costo: number | null;
@@ -157,6 +201,7 @@ interface Cobertura {
 interface Expediente {
   perfil: Perfil;
   plan: Plan;
+  objetivo: Objetivo;
   documentos: Documento[];
   documentos_por_categoria: Record<string, number>;
   categorias: { id: string; label: string }[];
@@ -224,6 +269,7 @@ const ESTADO_ANIO_LABEL: Record<string, string> = {
   por_corregir: "Por corregir",
   corregida: "Corregida",
   no_obligado: "No obligado",
+  no_presentada: "No presentada",
 };
 
 const MESES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -281,6 +327,17 @@ async function abrirArchivo(path: string, onError: (t: string) => void) {
   }
   window.open(url, "_blank", "noopener,noreferrer");
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+/** Un documento cubre el año si es su año o cae dentro de su rango (ano → ano_hasta). */
+function docCubre(d: Documento, ano: number): boolean {
+  if (d.ano === null) return false;
+  return d.ano <= ano && ano <= (d.ano_hasta ?? d.ano);
+}
+
+function etiquetaAnos(d: Documento): string {
+  if (d.ano === null) return "sin año";
+  return d.ano_hasta && d.ano_hasta !== d.ano ? `${d.ano}–${d.ano_hasta}` : String(d.ano);
 }
 
 function pasoKey(tid: number) {
@@ -446,8 +503,9 @@ function Wizard({ terceroId }: { terceroId: number }) {
             {exp.perfil.cedula ? `CC ${exp.perfil.cedula}` : "Sin cédula"}
             {exp.perfil.binance_uid ? ` · Binance ${exp.perfil.binance_uid}` : ""}
             {" · "}
-            {exp.anios.length} año(s) gravable(s) · {exp.documentos.length} documento(s) · {exp.hallazgos_abiertos} pendiente(s)
+            {exp.anios.length} año(s) gravable(s) · {exp.hallazgos_abiertos} pendiente(s)
           </p>
+          <ResumenDocsLinea exp={exp} onIr={irA} />
         </div>
         <div className="flex items-center gap-2">
           <div className="h-1.5 w-28 overflow-hidden rounded-full bg-surface-hover">
@@ -511,7 +569,7 @@ function Wizard({ terceroId }: { terceroId: number }) {
           </Suspense>
         )}
         {paso === "cruces" && <PasoCruces terceroId={terceroId} />}
-        {paso === "declarador" && <PasoDeclarador terceroId={terceroId} exp={exp} onChanged={refrescar} />}
+        {paso === "declarador" && <PasoDeclarador terceroId={terceroId} exp={exp} onChanged={refrescar} onIr={irA} />}
         {paso === "cierre" && <PasoCierre terceroId={terceroId} exp={exp} onChanged={refrescar} onIr={irA} />}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
@@ -689,22 +747,512 @@ function PasoEmpecemos({ terceroId, exp, onSaved, onSiguiente }: { terceroId: nu
   );
 }
 
-/* ─── Paso 2: Plan de carga (guiado, con referencia del otro socio) ───────── */
+/* ─── Paso 2: Plan de carga (matriz documento × año + qué falta + ya cargado) ─ */
 
-const ESTILO_REQ: Record<Requisito["estado"], { wrap: string; badge: string; label: string }> = {
-  hecho: { wrap: "border-emerald-600/30", badge: "bg-emerald-600 text-white", label: "Completo" },
-  parcial: { wrap: "border-amber-600/40", badge: "bg-amber-500 text-white", label: "A medias" },
-  pendiente: { wrap: "border-danger/40", badge: "bg-danger text-white", label: "Falta" },
-  no_aplica: { wrap: "border-border opacity-60", badge: "bg-surface-hover text-muted", label: "No aplica" },
-  omitido: { wrap: "border-border opacity-60", badge: "bg-surface-hover text-muted", label: "Omitido" },
+const MESES_CORTO = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+interface Faltante {
+  req: Requisito;
+  ano: number | null;
+  /** Para extractos: meses del año sin extracto ("2025-03"). */
+  meses: string[];
+  mios: number;
+  /** Para extractos: archivos de ese año que están en el expediente pero no se importaron como extracto. */
+  sinImportar: number;
+}
+
+/**
+ * Resumen calculable del plan: cuántas "casillas" (documento × año, o un
+ * documento suelto) están cubiertas y cuáles faltan. Es lo que se pinta en
+ * la cabecera del wizard, en el paso «Plan de carga» y en la pestaña
+ * «Documentos» del Declarador, para que las tres digan lo mismo.
+ */
+function resumenPlan(exp: Expediente): { total: number; cargadas: number; faltantes: Faltante[]; noAplican: Requisito[] } {
+  const plan = exp.plan;
+  const aplicables = plan.requisitos.filter((r) => r.aplica && !r.omitido);
+  const noAplican = plan.requisitos.filter((r) => !r.aplica || r.omitido);
+  let total = 0;
+  let cargadas = 0;
+  const faltantes: Faltante[] = [];
+  for (const r of aplicables) {
+    if (r.por_anio) {
+      for (const a of r.anios) {
+        if (a.nota === "no_presentada" || a.nota === "no_aplica") continue;
+        total += 1;
+        if (a.ok) cargadas += 1;
+        else {
+          const meses = r.es_extracto ? exp.cobertura.anios[String(a.ano)]?.faltan ?? MESES_CORTO.map((_, i) => `${a.ano}-${String(i + 1).padStart(2, "0")}`) : [];
+          const sinImportar = r.es_extracto ? exp.documentos.filter((d) => d.categoria === r.categoria && d.ano === a.ano).length : 0;
+          faltantes.push({ req: r, ano: a.ano, meses, mios: a.mios, sinImportar });
+        }
+      }
+    } else {
+      total += 1;
+      if (r.estado === "hecho") cargadas += 1;
+      else faltantes.push({ req: r, ano: null, meses: [], mios: r.mios, sinImportar: 0 });
+    }
+  }
+  return { total, cargadas, faltantes, noAplican };
+}
+
+function mesesTexto(meses: string[]): string {
+  const n = meses.map((m) => MESES_CORTO[Number(m.slice(5, 7)) - 1] ?? m).filter(Boolean);
+  if (n.length === 12) return "todo el año";
+  if (n.length <= 4) return n.join(", ");
+  return `${n.slice(0, 3).join(", ")} y ${n.length - 3} más`;
+}
+
+/** Nombre corto para las cabeceras/lista (el título completo va en el tooltip). */
+const TITULO_CORTO: Record<string, string> = {
+  f210: "Declaración de renta (F210)",
+  exogena: "Información exógena DIAN",
+  extracto_banco: "Extractos bancarios",
+  extracto_tarjeta: "Extractos tarjeta de crédito",
+  certificado_banco: "Certificados bancarios anuales",
+  binance_csv: "Historial Binance (CSV)",
+  binance_snapshot: "Tenencia Binance a 31-dic",
+  binance_api: "Evidencia API Binance",
+  otra_plataforma: "Otras plataformas",
+  soporte: "Soportes de préstamos",
 };
+
+/** Línea corta para la cabecera del wizard: cargado / falta, con salto al plan. */
+function ResumenDocsLinea({ exp, onIr }: { exp: Expediente; onIr: (p: PasoId) => void }) {
+  const r = useMemo(() => resumenPlan(exp), [exp]);
+  const completo = r.total > 0 && r.faltantes.length === 0;
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+      <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400">
+        <span className="inline-block h-2 w-2 rounded-full bg-emerald-600" /> {r.cargadas} de {r.total} documentos cargados
+      </span>
+      {completo ? (
+        <span className="font-semibold text-muted">· expediente completo</span>
+      ) : (
+        <button type="button" className="inline-flex items-center gap-1 font-bold text-danger underline" onClick={() => onIr("plan")}>
+          <span className="inline-block h-2 w-2 rounded-full bg-danger" /> faltan {r.faltantes.length} · ver cuáles
+        </button>
+      )}
+    </p>
+  );
+}
+
+/** Aviso en la pestaña «Documentos» del Declarador: aquí se ven los archivos, en el plan lo que falta. */
+function ResumenDocsBanner({ exp, onIr }: { exp: Expediente; onIr: (p: PasoId) => void }) {
+  const r = useMemo(() => resumenPlan(exp), [exp]);
+  if (r.total === 0) return null;
+  if (r.faltantes.length === 0) {
+    return (
+      <p className="rounded-lg bg-emerald-600/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+        Los {r.total} documentos que pide tu caso están cargados. Aquí ves y abres los archivos.
+      </p>
+    );
+  }
+  const primeros = r.faltantes.slice(0, 3).map((f) => `${TITULO_CORTO[f.req.id] ?? f.req.titulo}${f.ano ? ` ${f.ano}` : ""}`);
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs">
+      <span className="font-bold text-danger">Faltan {r.faltantes.length} de {r.total}:</span>
+      <span className="min-w-0 flex-1 text-ink-secondary">
+        {primeros.join(" · ")}
+        {r.faltantes.length > 3 ? ` y ${r.faltantes.length - 3} más` : ""}
+      </span>
+      <button type="button" className={btnSec} onClick={() => onIr("plan")}>
+        <Icon name="listChecks" size={14} weight="bold" /> Ver qué falta y cómo conseguirlo
+      </button>
+    </div>
+  );
+}
+
+/* ─── Meta del expediente: qué se presenta o corrige por año ─────────────── */
+
+const SITUACION_META: Record<string, { label: string; cls: string }> = {
+  corregir: { label: "Corregir", cls: "bg-danger text-white" },
+  corregir_sin_calculo: { label: "Corregir · falta cálculo", cls: "bg-amber-500 text-white" },
+  presentada_sin_efecto: { label: "Revisar con contador", cls: "bg-amber-500 text-white" },
+  presentar: { label: "Presentar", cls: "bg-amber-500 text-white" },
+  presentar_extemporanea: { label: "Presentar (no declarada)", cls: "bg-danger text-white" },
+  por_definir: { label: "¿Declaraste?", cls: "bg-surface-hover text-ink" },
+  corregida: { label: "Corregida ✓", cls: "bg-emerald-600 text-white" },
+  futura: { label: "Aún no vence", cls: "bg-surface-hover text-muted" },
+};
+
+function Insumo({ ok, label, aplica = true }: { ok: boolean; label: string; aplica?: boolean }) {
+  if (!aplica) return <span className="text-[10px] text-muted">{label}: n/a</span>;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${ok ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}>
+      <span className={`inline-block h-2 w-2 rounded-full ${ok ? "bg-emerald-600" : "bg-danger"}`} /> {label}
+    </span>
+  );
+}
+
+function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendienteEstado }: {
+  objetivo: Objetivo;
+  onEstadoAnio: (ano: number, estado: string) => void;
+  onSubirF210: (ano: number) => void;
+  onIr: (p: PasoId) => void;
+  pendienteEstado: boolean;
+}) {
+  const [verVias, setVerVias] = useState(false);
+  if (!objetivo.aplica) return null;
+  const r = objetivo.resumen;
+  const nCorregir = (r.corregir ?? 0) + (r.corregir_sin_calculo ?? 0) + (r.presentada_sin_efecto ?? 0);
+  const nPresentar = (r.presentar ?? 0) + (r.presentar_extemporanea ?? 0);
+  const nDefinir = r.por_definir ?? 0;
+  return (
+    <div className={`${card} overflow-hidden border-accent/40`}>
+      <div className="flex flex-wrap items-start justify-between gap-2 bg-accent/10 px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-bold text-ink">
+            <Icon name="target" size={16} weight="bold" className="text-accent" /> La meta: declarar los criptoactivos que nunca se incluyeron
+          </p>
+          <p className="text-[11px] text-ink-secondary">
+            Cada documento del plan sirve para esto. Los F210 que ya existen se presentaron <b>sin</b> los criptoactivos: no son la meta, son la base de la corrección.
+            {nCorregir > 0 && <> <b className="text-danger">{nCorregir} año{nCorregir !== 1 ? "s" : ""} por corregir</b>.</>}
+            {nPresentar > 0 && <> <b className="text-danger">{nPresentar} por presentar</b>.</>}
+            {nDefinir > 0 && <> <b>{nDefinir} sin definir</b> si hubo declaración.</>}
+          </p>
+        </div>
+        <button type="button" className={btnSec} onClick={() => setVerVias((v) => !v)}>
+          <Icon name="book" size={13} weight="bold" /> {verVias ? "Ocultar vías" : "¿Por qué vía se hace?"}
+        </button>
+      </div>
+      {verVias && (
+        <ul className="grid gap-2 border-b border-border px-3 py-3 sm:grid-cols-2">
+          {objetivo.vias.map((v) => (
+            <li key={v.id} className="rounded-lg border border-border bg-surface-panel px-2.5 py-2">
+              <p className="text-xs font-bold text-ink">{v.titulo}</p>
+              <p className="text-[11px] leading-snug text-ink-secondary">{v.detalle}</p>
+            </li>
+          ))}
+          <li className="text-[10px] text-muted sm:col-span-2">La vía concreta y la sanción la define el contador; aquí solo se deja claro qué corresponde a cada año.</li>
+        </ul>
+      )}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted">
+              <th className="px-3 py-2 text-left font-bold">Año</th>
+              <th className="px-3 py-2 text-left font-bold">Lo que la DIAN tiene</th>
+              <th className="px-3 py-2 text-right font-bold">Efecto cripto del año</th>
+              <th className="px-3 py-2 text-right font-bold">Activo omitido a 31-dic</th>
+              <th className="px-3 py-2 text-right font-bold">Impuesto: pagado → corregido</th>
+              <th className="px-3 py-2 text-left font-bold">Insumos</th>
+              <th className="px-3 py-2 text-left font-bold">Qué hay que hacer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {objetivo.anios.map((a) => {
+              const st = SITUACION_META[a.situacion] ?? { label: a.situacion, cls: "bg-surface-hover text-ink" };
+              const dian = a.situacion === "futura"
+                ? "Todavía no se presenta"
+                : a.situacion === "presentar_extemporanea"
+                  ? "Nada: no se declaró"
+                  : a.situacion === "por_definir"
+                    ? "Sin saber"
+                    : a.situacion === "presentar"
+                      ? "Borrador, sin presentar"
+                      : a.situacion === "corregida"
+                        ? "F210 corregido con cripto"
+                        : "F210 presentado SIN cripto";
+              return (
+                <tr key={a.ano} className="border-b border-border align-top last:border-b-0">
+                  <td className="px-3 py-2 font-bold tabular-nums text-ink">{a.ano}</td>
+                  <td className="px-3 py-2 text-ink-secondary">{dian}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {a.cripto_total === null ? <span className="text-danger">sin calcular</span> : cop(a.cripto_total)}
+                    {a.cripto_total !== null && <p className="text-[10px] text-muted">→ renglón 74 (no laborales)</p>}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {a.cripto_costo_cierre_cop === null ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      <>
+                        {cop(a.cripto_costo_cierre_cop)}
+                        <p className="text-[10px] text-muted">
+                          {usd(a.cripto_costo_cierre_usd)} a costo · TRM {a.trm_cierre?.toLocaleString("es-CO") ?? "—"} → renglón 29
+                        </p>
+                        {a.patrimonio_bruto_declarado !== null && <p className="text-[10px] text-muted">declarado {cop(a.patrimonio_bruto_declarado)}</p>}
+                      </>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {a.correccion ? (
+                      a.correccion.uvt_cargada ? (
+                        <>
+                          {cop(a.correccion.impuesto_pagado ?? 0)} → {cop(a.correccion.impuesto_corregido)}
+                          {a.correccion.mayor_valor !== null && a.correccion.mayor_valor > 0 && (
+                            <p className="text-[10px] font-bold text-danger">
+                              +{cop(a.correccion.mayor_valor)} · sanción 10 % {cop(a.correccion.sancion_correccion_10)}
+                            </p>
+                          )}
+                          {a.correccion.mayor_valor !== null && a.correccion.mayor_valor < 0 && (
+                            <p className="text-[10px] text-muted">a favor {cop(-a.correccion.mayor_valor)} (ver vía)</p>
+                          )}
+                          {a.correccion.mayor_valor === 0 && <p className="text-[10px] text-emerald-700 dark:text-emerald-400">sin mayor impuesto</p>}
+                          <p className="text-[10px] text-muted">RLG {cop(a.correccion.rlg_declarada)} → {cop(a.correccion.rlg_corregida)}</p>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-muted">UVT {a.ano} no cargada</span>
+                      )
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex flex-col gap-0.5">
+                      <Insumo ok={a.insumos.f210} label="F210 presentado" aplica={a.insumos.f210_aplica} />
+                      <Insumo ok={a.insumos.historial} label="Historial Binance" aplica={a.situacion !== "futura" || a.insumos.historial} />
+                      <Insumo ok={a.insumos.efecto_cripto} label="Efecto calculado (FIFO)" />
+                      <Insumo ok={a.insumos.tenencia} label="Tenencia a 31-dic" />
+                    </div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${st.cls}`}>{st.label}</span>
+                    <p className="mt-1 max-w-[320px] text-[11px] leading-snug text-ink-secondary">{a.accion}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {a.situacion === "por_definir" && (
+                        <>
+                          <button type="button" className={btnPrimario} onClick={() => onSubirF210(a.ano)}><Icon name="paperclip" size={12} weight="bold" /> Sí, subir F210 {a.ano}</button>
+                          <button type="button" className={btnSec} disabled={pendienteEstado} onClick={() => onEstadoAnio(a.ano, "no_presentada")}>No presenté ese año</button>
+                        </>
+                      )}
+                      {a.situacion === "presentar_extemporanea" && (
+                        <button type="button" className={btnSec} disabled={pendienteEstado} onClick={() => onEstadoAnio(a.ano, "sin_datos")}>Sí presenté (deshacer)</button>
+                      )}
+                      {(a.situacion === "corregir" || a.situacion === "corregir_sin_calculo" || a.situacion === "presentar" || a.situacion === "presentada_sin_efecto") && (
+                        <button type="button" className={btnSec} onClick={() => onIr("declarador")}>Ver cifras del año</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {objetivo.totales && (objetivo.totales.mayor_valor > 0 || objetivo.totales.a_favor_no_reclamable > 0) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface px-3 py-2 text-[11px]">
+          <span className="font-bold text-ink">Total estimado de las correcciones:</span>
+          <span className="text-ink">mayor impuesto <b className="text-danger">{cop(objetivo.totales.mayor_valor)}</b></span>
+          <span className="text-ink">+ sanción por corrección (Art. 644, 10 %) <b>{cop(objetivo.totales.sancion_correccion_10)}</b></span>
+          {objetivo.totales.a_favor_no_reclamable > 0 && <span className="text-muted">· a favor en años con pérdida: {cop(objetivo.totales.a_favor_no_reclamable)} (solo si el contador confirma que aún se puede pedir, Art. 589)</span>}
+          <span className="text-muted">· intereses de mora aparte, con el liquidador de la DIAN</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Panel bajo la matriz con el contenido de la casilla (documento × año) seleccionada. */
+function DetalleCasilla({
+  req: r,
+  ano,
+  exp,
+  terceroId,
+  subiendo,
+  onSubir,
+  onCerrar,
+  onError,
+  onEstadoAnio,
+  onOmitirAno,
+  onRango,
+}: {
+  req: Requisito;
+  ano: number | null;
+  exp: Expediente;
+  terceroId: number;
+  subiendo: string | null;
+  onSubir: (ano?: number) => void;
+  onCerrar: () => void;
+  onError: (t: string) => void;
+  onEstadoAnio: (ano: number, estado: string) => void;
+  onOmitirAno: (ano: number, omitir: boolean) => void;
+  onRango: (docId: number, hasta: number) => void;
+}) {
+  const [previewId, setPreviewId] = useState<number | null>(null);
+  const previewQ = useQuery<{ texto: string }>({
+    queryKey: ["socio-doc-texto", terceroId, previewId],
+    queryFn: () => api.get(`/api/socios/${terceroId}/documentos/${previewId}/texto?max_chars=6000`),
+    enabled: previewId != null,
+  });
+  const titulo = TITULO_CORTO[r.id] ?? r.titulo;
+  const celda = ano !== null ? r.anios.find((a) => a.ano === ano) : null;
+  const ok = ano !== null ? Boolean(celda?.ok) : r.estado === "hecho";
+  const todosCat = exp.documentos.filter((d) => d.categoria === r.categoria);
+  const enRango = ano !== null ? todosCat.filter((d) => docCubre(d, ano)) : todosCat;
+  const sinZip = enRango.filter((d) => !d.archivo_nombre.toLowerCase().endsWith(".zip"));
+  const archivos = sinZip.length ? sinZip : enRango;
+  const anosPlan = exp.plan.anios;
+  const cob = ano !== null ? exp.cobertura.anios[String(ano)] : undefined;
+  const mesesFaltan = new Set(cob?.faltan ?? []);
+  const cargando = subiendo === `${r.categoria}:${ano ?? ""}`;
+  const noPresentada = celda?.nota === "no_presentada";
+
+  if (celda?.nota === "no_aplica" && ano !== null) {
+    return (
+      <div className="border-t-2 border-border bg-surface px-3 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-ink">
+              {titulo} · {ano}
+              <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-bold text-ink">No aplica este año</span>
+            </p>
+            <p className="text-[11px] text-ink-secondary">Lo marcaste como no aplicable para {ano}: no cuenta como faltante. Si sí existe, deshaz y súbelo.</p>
+          </div>
+          <button type="button" className={btnSec} onClick={onCerrar}><Icon name="close" size={12} weight="bold" /> cerrar</button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button type="button" className={btnSec} onClick={() => onOmitirAno(ano, false)}>Sí aplica (deshacer)</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (noPresentada && ano !== null) {
+    return (
+      <div className="border-t-2 border-border bg-surface px-3 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-ink">
+              {titulo} · {ano}
+              <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-bold text-ink">No se declaró</span>
+            </p>
+            <p className="text-[11px] text-ink-secondary">
+              Ese año no se presentó declaración, así que no hay F210 que cargar. Lo que corresponde es <b>presentarla ahora incluyendo los criptoactivos</b> (ver «La meta» arriba).
+            </p>
+          </div>
+          <button type="button" className={btnSec} onClick={onCerrar}><Icon name="close" size={12} weight="bold" /> cerrar</button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button type="button" className={btnSec} onClick={() => onEstadoAnio(ano, "sin_datos")}>Sí presenté ese año (deshacer)</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border-t-2 ${ok ? "border-emerald-600/50 bg-emerald-600/5" : "border-danger/50 bg-danger/5"} px-3 py-3`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-ink">
+            {titulo}
+            {ano !== null ? ` · ${ano}` : ""}
+            <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${ok ? "bg-emerald-600" : celda && celda.mios > 0 ? "bg-amber-500" : "bg-danger"}`}>
+              {ok ? "Cargado" : celda && celda.mios > 0 ? "Incompleto" : "Falta"}
+            </span>
+          </p>
+          <p className="text-[11px] text-ink-secondary"><b className="text-ink">Para qué sirve:</b> {r.por_que}</p>
+        </div>
+        <button type="button" className={btnSec} onClick={onCerrar}><Icon name="close" size={12} weight="bold" /> cerrar</button>
+      </div>
+
+      {r.es_extracto ? (
+        <div className="mt-2 space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {MESES_CORTO.map((m, i) => {
+              const clave = `${ano}-${String(i + 1).padStart(2, "0")}`;
+              const tiene = cob ? !mesesFaltan.has(clave) : false;
+              return (
+                <span key={m} className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${tiene ? "bg-emerald-600 text-white" : "bg-danger/15 text-danger"}`} title={tiene ? `${m} ${ano}: con extracto` : `${m} ${ano}: sin extracto`}>
+                  {m}
+                </span>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-ink-secondary">
+            {cob ? `${cob.meses_con} de 12 meses con extracto importado.` : "Ningún mes con extracto importado."}
+            {archivos.length > 0 && ` Hay ${archivos.length} archivo${archivos.length !== 1 ? "s" : ""} de ${ano} en el expediente que no se importaron como extracto (no cuentan aquí).`}
+          </p>
+          {!ok && <p className="text-[11px] text-ink-secondary"><b className="text-ink">Cómo conseguirlo:</b> {r.como}</p>}
+          <button type="button" className={btnPrimario} onClick={() => onSubir(ano ?? undefined)}>
+            <Icon name="receipt" size={14} weight="bold" /> {ok ? "Ver extractos" : `Cargar extractos ${ano}`}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-2 space-y-2">
+          {archivos.length > 0 ? (
+            <ul className="space-y-1">
+              {archivos.map((d) => (
+                <li key={d.id} className="rounded-lg border border-border bg-surface-panel px-2.5 py-1.5">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                    <Icon name="file" size={13} weight="bold" className="shrink-0 text-emerald-600" />
+                    <span className="min-w-0 flex-1 truncate font-semibold text-ink" title={d.archivo_nombre}>{d.archivo_nombre}</span>
+                    <span className="text-[10px] text-muted">
+                      {d.ano_hasta && d.ano_hasta !== d.ano ? <b className="text-ink">cubre {etiquetaAnos(d)}</b> : etiquetaAnos(d)} · {kb(d.tamano)} · {d.origen === "carpeta" ? "carpeta Declarador" : "subido"}
+                    </span>
+                    {r.por_anio && d.ano !== null && (
+                      <label className="inline-flex items-center gap-1 text-[10px] text-muted" title="Si este archivo abarca varios años, indica hasta cuál: contará en cada uno">
+                        hasta
+                        <select
+                          className="rounded border border-border bg-surface-panel px-1 py-0.5 text-[10px] text-ink"
+                          value={d.ano_hasta ?? d.ano}
+                          onChange={(e) => onRango(d.id, Number(e.target.value))}
+                        >
+                          {anosPlan.filter((y) => y >= (d.ano ?? y)).map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    {!d.existe && <span className="text-[10px] font-bold text-danger">no está en disco</span>}
+                    {d.legible && (
+                      <button type="button" className="font-bold text-accent underline" onClick={() => setPreviewId(previewId === d.id ? null : d.id)}>
+                        {previewId === d.id ? "ocultar" : "leer"}
+                      </button>
+                    )}
+                    {d.existe && (
+                      <button type="button" className="font-bold text-accent underline" onClick={() => void abrirArchivo(`/api/socios/${terceroId}/documentos/${d.id}/archivo`, onError)}>
+                        abrir
+                      </button>
+                    )}
+                  </div>
+                  {previewId === d.id && (
+                    <pre className="mt-1 max-h-60 overflow-auto whitespace-pre-wrap rounded-lg bg-surface p-2 text-[10px] text-ink">
+                      {previewQ.isLoading ? "Leyendo…" : previewQ.data?.texto}
+                    </pre>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-ink-secondary"><b className="text-ink">Cómo conseguirlo:</b> {r.como}</p>
+          )}
+          <div className="flex flex-wrap gap-1.5">
+            {ok ? (
+              <button type="button" className={btnSec} disabled={cargando} onClick={() => onSubir(ano ?? undefined)}>
+                <Icon name="plus" size={13} weight="bold" /> {cargando ? "Subiendo…" : "Añadir otro archivo"}
+              </button>
+            ) : (
+              <button type="button" className={btnPrimario} disabled={cargando} onClick={() => onSubir(ano ?? undefined)}>
+                <Icon name="paperclip" size={14} weight="bold" /> {cargando ? "Subiendo…" : ano !== null ? `Subir ${titulo} ${ano}` : `Subir ${titulo}`}
+              </button>
+            )}
+            {!ok && ano !== null && r.por_anio && (
+              <button type="button" className={btnSec} onClick={() => onOmitirAno(ano, true)} title="Solo este año deja de pedirse; los demás siguen igual">
+                No aplica en {ano}
+              </button>
+            )}
+            {r.id === "f210" && !ok && ano !== null && (
+              <button type="button" className={btnSec} onClick={() => onEstadoAnio(ano, "no_presentada")} title="Ese año no presentaste declaración: deja de pedirse el F210 y el año pasa a «presentar»">
+                No presenté declaración ese año
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp: Expediente; onChanged: () => void; onIr: (p: PasoId) => void }) {
   const plan = exp.plan;
   const ref = plan.referencia;
-  const [abierto, setAbierto] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [subiendo, setSubiendo] = useState<string | null>(null);
+  const [compararRef, setCompararRef] = useState(false);
+  const [verCargados, setVerCargados] = useState(false);
+  const [verNoAplican, setVerNoAplican] = useState(false);
+  const [abiertoFalta, setAbiertoFalta] = useState<string | null>(null);
+  const [sel, setSel] = useState<{ reqId: string; ano: number | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const pendienteRef = useRef<{ categoria: string; ano?: number } | null>(null);
 
@@ -716,6 +1264,22 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
       return api.post(`/api/socios/${terceroId}/perfil`, { cuestionario: { omitidos: [...set] } });
     },
     onSuccess: onChanged,
+  });
+  const rango = useMutation({
+    mutationFn: (v: { docId: number; hasta: number }) => api.patch<{ error?: string }>(`/api/socios/${terceroId}/documentos/${v.docId}`, { ano_hasta: v.hasta }),
+    onSuccess: (r) => {
+      if (r.error) return setMsg({ tipo: "error", texto: r.error });
+      onChanged();
+    },
+    onError: (e: Error) => setMsg({ tipo: "error", texto: e.message }),
+  });
+  const estadoAnio = useMutation({
+    mutationFn: (v: { ano: number; estado: string }) => api.patch<{ error?: string }>(`/api/socios/${terceroId}/anios/${v.ano}`, { estado: v.estado }),
+    onSuccess: (r) => {
+      if (r.error) return setMsg({ tipo: "error", texto: r.error });
+      onChanged();
+    },
+    onError: (e: Error) => setMsg({ tipo: "error", texto: e.message }),
   });
   const carpeta = useMutation({
     mutationFn: () => api.post<{ error?: string; carpeta?: string; creadas?: string[]; existia?: boolean }>(`/api/socios/${terceroId}/carpeta`, {}),
@@ -743,7 +1307,7 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
   const subir = async (file: File) => {
     const p = pendienteRef.current;
     if (!p) return;
-    setSubiendo(p.categoria);
+    setSubiendo(`${p.categoria}:${p.ano ?? ""}`);
     try {
       const fd = new FormData();
       fd.append("archivo", file);
@@ -761,30 +1325,437 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
     }
   };
 
-  const aplicables = plan.requisitos.filter((r) => r.aplica);
-  const primeroPendiente = aplicables.find((r) => r.estado === "pendiente" || r.estado === "parcial");
+  const resumen = useMemo(() => resumenPlan(exp), [exp]);
+  const aplicables = plan.requisitos.filter((r) => r.aplica && !r.omitido);
+  const anios = plan.anios;
+  const pct = resumen.total ? Math.round((resumen.cargadas / resumen.total) * 100) : 0;
+
+  // Archivos ya cargados por categoría y año (un archivo con rango cuenta en cada año que cubre).
+  const docsDe = useMemo(() => {
+    const porCat = new Map<string, Documento[]>();
+    for (const d of exp.documentos) porCat.set(d.categoria, [...(porCat.get(d.categoria) ?? []), d]);
+    return (cat: string, ano: number | null): Documento[] => {
+      const lista = porCat.get(cat) ?? [];
+      const sinZip = lista.filter((d) => !d.archivo_nombre.toLowerCase().endsWith(".zip"));
+      const base = ano === null ? lista.filter((d) => d.ano === null) : lista.filter((d) => docCubre(d, ano));
+      // un zip ya descomprimido no se lista dos veces
+      const conArchivos = base.filter((d) => !d.archivo_nombre.toLowerCase().endsWith(".zip"));
+      return conArchivos.length ? conArchivos : base.length ? base : ano === null ? [] : sinZip.filter((d) => docCubre(d, ano));
+    };
+  }, [exp.documentos]);
+
+  // Faltantes agrupados por requisito, en el orden del plan.
+  const faltaPorReq = useMemo(() => {
+    const m = new Map<string, Faltante[]>();
+    for (const f of resumen.faltantes) m.set(f.req.id, [...(m.get(f.req.id) ?? []), f]);
+    return aplicables.filter((r) => m.has(r.id)).map((r) => ({ req: r, items: m.get(r.id)! }));
+  }, [resumen.faltantes, aplicables]);
+
+  const selReq = sel ? plan.requisitos.find((r) => r.id === sel.reqId) ?? null : null;
+
+  const accion = (r: Requisito, ano?: number) => {
+    if (r.es_extracto) onIr("extractos");
+    else pedirArchivo(r.categoria, ano);
+  };
 
   return (
     <div className="space-y-4">
       <input ref={fileRef} type="file" className="hidden" onChange={(e) => e.target.files?.[0] && void subir(e.target.files[0])} />
 
-      {/* Referencia + carpeta */}
-      <div className="grid gap-2 lg:grid-cols-2">
+      {/* 0. Meta: qué se presenta o corrige por año */}
+      <MetaDeclaraciones
+        objetivo={exp.objetivo}
+        pendienteEstado={estadoAnio.isPending}
+        onEstadoAnio={(ano, estado) => estadoAnio.mutate({ ano, estado })}
+        onSubirF210={(ano) => pedirArchivo("declaracion_f210", ano)}
+        onIr={onIr}
+      />
+
+      {/* 1. Resumen en tres cifras */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <div className={`${card} border-emerald-600/30 bg-emerald-600/5 px-3 py-2.5`}>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">Ya cargado</p>
+          <p className="text-2xl font-extrabold tabular-nums text-ink">
+            {resumen.cargadas}
+            <span className="text-sm font-bold text-muted"> de {resumen.total}</span>
+          </p>
+          <p className="text-[11px] text-muted">documentos por año que pide tu caso</p>
+        </div>
+        <div className={`${card} ${resumen.faltantes.length ? "border-danger/40 bg-danger/10" : "border-emerald-600/30 bg-emerald-600/5"} px-3 py-2.5`}>
+          <p className={`text-[10px] font-bold uppercase tracking-wide ${resumen.faltantes.length ? "text-danger" : "text-emerald-700 dark:text-emerald-400"}`}>Falta</p>
+          <p className="text-2xl font-extrabold tabular-nums text-ink">{resumen.faltantes.length}</p>
+          <p className="text-[11px] text-muted">
+            {resumen.faltantes.length
+              ? `en ${faltaPorReq.length} tipo${faltaPorReq.length !== 1 ? "s" : ""} de documento · lista abajo`
+              : "nada pendiente: el expediente está completo"}
+          </p>
+        </div>
         <div className={`${card} px-3 py-2.5`}>
-          {ref ? (
-            <>
-              <p className="text-xs font-bold text-ink">Así lo hizo {ref.nombre}</p>
-              <p className="text-[11px] text-muted">
-                {ref.documentos} documentos organizados{ref.desde ? ` desde ${ref.desde}` : ""}: en cada renglón de abajo verás «{ref.nombre}: n» para
-                comparar con lo tuyo. Solo se muestran cantidades, no cifras ni archivos.
-              </p>
-            </>
-          ) : (
-            <p className="text-[11px] text-muted">Eres el primer socio en organizar el expediente; tu carpeta servirá de referencia para el otro.</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Avance</p>
+          <p className="text-2xl font-extrabold tabular-nums text-ink">{pct}%</p>
+          <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-hover">
+            <div className="h-full rounded-full bg-emerald-600 transition-all" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+      </div>
+      <Msg m={msg} />
+
+      {/* 2. Matriz documento × año */}
+      <div className={`${card} overflow-hidden`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-2">
+          <p className="text-xs font-bold text-ink">Mapa del expediente: qué hay de cada documento en cada año</p>
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted">
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-600" /> cargado</span>
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500" /> incompleto</span>
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-danger" /> falta</span>
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-surface-hover" /> no se exige aún</span>
+            {ref && (
+              <label className="inline-flex cursor-pointer items-center gap-1 font-semibold text-ink">
+                <input type="checkbox" checked={compararRef} onChange={(e) => setCompararRef(e.target.checked)} /> comparar con {ref.nombre}
+              </label>
+            )}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted">
+                <th className="sticky left-0 z-10 w-[240px] min-w-[240px] bg-surface px-3 py-2 text-left font-bold">Documento</th>
+                {anios.map((a) => (
+                  <th key={a} className="w-[6.75rem] px-1.5 py-2 text-center font-bold tabular-nums">{a}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {aplicables.map((r) => {
+                const porAno = new Map(r.anios.map((a) => [a.ano, a]));
+                const exigidos = r.anios.filter((a) => a.nota !== "no_presentada" && a.nota !== "no_aplica");
+                const oks = exigidos.filter((a) => a.ok).length;
+                const resumenFila = r.por_anio
+                  ? oks === exigidos.length
+                    ? `${oks} de ${exigidos.length} años · completo`
+                    : `${oks} de ${exigidos.length} años · faltan ${exigidos.length - oks}`
+                  : r.estado === "hecho"
+                    ? `${r.mios} archivo${r.mios !== 1 ? "s" : ""} · completo`
+                    : "sin archivos · falta";
+                const filaOk = r.por_anio ? oks === exigidos.length : r.estado === "hecho";
+                return (
+                  <tr key={r.id} className="border-b border-border last:border-b-0">
+                    <th scope="row" className="sticky left-0 z-10 w-[240px] min-w-[240px] max-w-[240px] bg-surface-panel px-3 py-2 text-left align-top" title={r.titulo}>
+                      <p className="text-xs font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</p>
+                      <p className={`text-[10px] font-bold ${filaOk ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}>{resumenFila}</p>
+                      <p className="text-[10px] font-normal leading-snug text-muted">{r.por_que}</p>
+                    </th>
+                    {r.por_anio ? (
+                      anios.map((ano) => {
+                        const a = porAno.get(ano);
+                        const seleccionada = sel?.reqId === r.id && sel.ano === ano;
+                        if (!a) {
+                          return (
+                            <td key={ano} className="px-1.5 py-2 text-center align-top">
+                              <span className="inline-block rounded-md bg-surface-hover px-2 py-1 text-[10px] font-semibold text-muted" title="Este año todavía no se exige (se presenta el año siguiente)">
+                                aún no
+                              </span>
+                            </td>
+                          );
+                        }
+                        if (a.nota === "no_aplica") {
+                          return (
+                            <td key={ano} className="px-1.5 py-2 text-center align-top">
+                              <button
+                                type="button"
+                                title={`${ano}: marcado como «no aplica este año» · clic para ver o deshacer`}
+                                aria-pressed={seleccionada}
+                                onClick={() => setSel(seleccionada ? null : { reqId: r.id, ano })}
+                                className={`flex w-[6.25rem] flex-col items-center rounded-md border border-border bg-surface-hover px-1.5 py-1 text-ink transition hover:border-accent ${seleccionada ? "ring-2 ring-accent ring-offset-1" : ""}`}
+                              >
+                                <span className="text-[11px] font-bold">no aplica</span>
+                                <span className="w-full truncate text-[9px] font-normal text-muted">{a.mios > 0 ? `${a.mios} archivo(s)` : "este año"}</span>
+                              </button>
+                            </td>
+                          );
+                        }
+                        if (a.nota === "no_presentada") {
+                          return (
+                            <td key={ano} className="px-1.5 py-2 text-center align-top">
+                              <button
+                                type="button"
+                                title={`${ano}: no se presentó declaración · el año pasa a «presentar con los activos»`}
+                                aria-pressed={seleccionada}
+                                onClick={() => setSel(seleccionada ? null : { reqId: r.id, ano })}
+                                className={`flex w-[6.25rem] flex-col items-center rounded-md border border-border bg-surface-hover px-1.5 py-1 text-ink transition hover:border-accent ${seleccionada ? "ring-2 ring-accent ring-offset-1" : ""}`}
+                              >
+                                <span className="text-[11px] font-bold">no declaró</span>
+                                <span className="w-full truncate text-[9px] font-normal text-muted">se presenta con cripto</span>
+                              </button>
+                            </td>
+                          );
+                        }
+                        const incompleto = !a.ok && a.mios > 0;
+                        const cls = a.ok ? "bg-emerald-600 text-white" : incompleto ? "bg-amber-500 text-white" : "bg-danger text-white";
+                        const archivos = r.es_extracto ? [] : docsDe(r.categoria, ano);
+                        const texto = a.unidad === "meses" ? `${a.mios}/12 m` : a.ok ? `✓ ${a.mios} arch.` : "falta";
+                        const sub = a.unidad === "meses"
+                          ? a.ok ? "todos los meses" : a.mios > 0 ? `faltan ${12 - a.mios} meses` : "sin extractos"
+                          : archivos.length === 1
+                            ? (archivos[0].ano_hasta && archivos[0].ano_hasta !== archivos[0].ano ? `cubre ${etiquetaAnos(archivos[0])}: ` : "") + archivos[0].archivo_nombre
+                            : archivos.length > 1 ? `${archivos[0].archivo_nombre} +${archivos.length - 1}` : "sin archivo";
+                        const tip = a.ok ? `${ano}: ${sub} · clic para ver qué hay` : `${ano}: ${sub} · clic para ver qué falta`;
+                        return (
+                          <td key={ano} className="px-1.5 py-2 text-center align-top">
+                            <button
+                              type="button"
+                              title={tip}
+                              aria-pressed={seleccionada}
+                              onClick={() => setSel(seleccionada ? null : { reqId: r.id, ano })}
+                              className={`flex w-[6.25rem] flex-col items-center rounded-md px-1.5 py-1 transition hover:opacity-90 ${cls} ${seleccionada ? "ring-2 ring-accent ring-offset-1" : ""}`}
+                            >
+                              <span className="text-[11px] font-bold tabular-nums">{texto}</span>
+                              <span className="w-full truncate text-[9px] font-normal opacity-90" title={sub}>{sub}</span>
+                            </button>
+                            {compararRef && ref && (
+                              <p className="mt-0.5 text-[9px] tabular-nums text-muted">{ref.nombre}: {a.unidad === "meses" ? `${a.ref}/12` : a.ref}</p>
+                            )}
+                          </td>
+                        );
+                      })
+                    ) : (
+                      <td colSpan={anios.length} className="px-1.5 py-2 align-top">
+                        {(() => {
+                          const seleccionada = sel?.reqId === r.id && sel.ano === null;
+                          const archivos = docsDe(r.categoria, null);
+                          const todos = exp.documentos.filter((d) => d.categoria === r.categoria);
+                          const n = todos.length || archivos.length;
+                          return (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                aria-pressed={seleccionada}
+                                onClick={() => setSel(seleccionada ? null : { reqId: r.id, ano: null })}
+                                title={r.estado === "hecho" ? "clic para ver qué hay" : "clic para ver qué falta"}
+                                className={`flex min-w-[5.5rem] flex-col items-start rounded-md px-2 py-1 text-left transition hover:opacity-90 ${r.estado === "hecho" ? "bg-emerald-600 text-white" : "bg-danger text-white"} ${seleccionada ? "ring-2 ring-accent ring-offset-1" : ""}`}
+                              >
+                                <span className="text-[11px] font-bold">{r.estado === "hecho" ? `✓ ${n} archivo${n !== 1 ? "s" : ""}` : "falta"}</span>
+                                <span className="text-[9px] font-normal opacity-90">{r.estado === "hecho" ? (todos[0]?.archivo_nombre ?? "") + (n > 1 ? ` +${n - 1}` : "") : "sin archivos"}</span>
+                              </button>
+                              <span className="text-[10px] text-muted">no va por año: un solo bloque de archivos</span>
+                              {compararRef && ref && <span className="text-[9px] tabular-nums text-muted">· {ref.nombre}: {r.ref}</span>}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Detalle de la casilla seleccionada */}
+        {selReq ? (
+          <DetalleCasilla
+            req={selReq}
+            ano={sel?.ano ?? null}
+            exp={exp}
+            terceroId={terceroId}
+            subiendo={subiendo}
+            onSubir={(ano) => accion(selReq, ano)}
+            onCerrar={() => setSel(null)}
+            onError={(t) => setMsg({ tipo: "error", texto: t })}
+            onEstadoAnio={(ano, estado) => estadoAnio.mutate({ ano, estado })}
+            onOmitirAno={(ano, om) => omitir.mutate({ id: `${selReq.id}:${ano}`, omitir: om })}
+            onRango={(docId, hasta) => rango.mutate({ docId, hasta })}
+          />
+        ) : (
+          <p className="border-t border-border px-3 py-1.5 text-[10px] text-muted">
+            Haz clic en una casilla: si está en verde verás los archivos cargados; si está en rojo, qué falta, para qué sirve y el botón para subirlo.
+          </p>
+        )}
+      </div>
+      {/* 3. Qué falta y cómo conseguirlo */}
+      <div className="space-y-2">
+        <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-ink">
+          <Icon name="warning" size={14} weight="bold" className={resumen.faltantes.length ? "text-danger" : "text-emerald-600"} />
+          {resumen.faltantes.length ? `Qué falta y cómo conseguirlo (${resumen.faltantes.length})` : "No falta nada"}
+        </h4>
+        {faltaPorReq.length === 0 && (
+          <p className="rounded-lg bg-emerald-600/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            Todos los documentos que pide tu caso están cargados. Sigue con el siguiente paso.
+          </p>
+        )}
+        {faltaPorReq.map(({ req: r, items }, i) => {
+          const open = abiertoFalta === r.id || (abiertoFalta === null && i === 0);
+          return (
+            <div key={r.id} className={`${card} border-danger/30`}>
+              <button type="button" className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-left" onClick={() => setAbiertoFalta(open ? "" : r.id)}>
+                <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{i + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</span>
+                  <span className="block text-[11px] text-danger">
+                    {r.por_anio
+                      ? `Falta: ${items.map((f) => (f.req.es_extracto && f.mios > 0 ? `${f.ano} (${mesesTexto(f.meses)})` : String(f.ano))).join(" · ")}`
+                      : "Falta el bloque completo"}
+                  </span>
+                </span>
+                <Icon name="caretDown" size={14} weight="bold" className={`text-muted transition ${open ? "rotate-180" : ""}`} />
+              </button>
+              {open && (
+                <div className="space-y-2.5 border-t border-border px-3 py-3">
+                  <p className="text-xs text-ink-secondary"><b className="text-ink">Para qué sirve:</b> {r.por_que}</p>
+                  <p className="text-xs text-ink-secondary"><b className="text-ink">Cómo conseguirlo:</b> {r.como}</p>
+                  {r.es_extracto && items.some((f) => f.sinImportar > 0) && (
+                    <p className="rounded-lg bg-amber-600/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                      Ojo: {items.filter((f) => f.sinImportar > 0).map((f) => `${f.sinImportar} archivo${f.sinImportar !== 1 ? "s" : ""} de ${f.ano}`).join(" y ")} ya están en el
+                      expediente como documentos, pero no se han importado como extracto, así que no cuentan para la cobertura mensual. Súbelos en «Extractos personales».
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1.5">
+                    {r.por_anio ? (
+                      items.map((f) => (
+                        <button
+                          key={f.ano ?? "x"}
+                          type="button"
+                          className={btnPrimario}
+                          disabled={subiendo === `${r.categoria}:${f.ano}`}
+                          onClick={() => accion(r, f.ano ?? undefined)}
+                        >
+                          <Icon name={r.es_extracto ? "receipt" : "paperclip"} size={14} weight="bold" />
+                          {r.es_extracto ? `Cargar extractos ${f.ano}` : subiendo === `${r.categoria}:${f.ano}` ? "Subiendo…" : `Subir ${f.ano}`}
+                        </button>
+                      ))
+                    ) : (
+                      <button type="button" className={btnPrimario} disabled={subiendo === `${r.categoria}:`} onClick={() => accion(r)}>
+                        <Icon name="paperclip" size={14} weight="bold" /> {subiendo === `${r.categoria}:` ? "Subiendo…" : "Subir archivo"}
+                      </button>
+                    )}
+                    <button type="button" className={btnSec} disabled={omitir.isPending} onClick={() => omitir.mutate({ id: r.id, omitir: true })}>
+                      No aplica en mi caso
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 4. Ya cargado: archivos reales por documento y año */}
+      <div className={card}>
+        <button type="button" className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-left" onClick={() => setVerCargados((v) => !v)}>
+          <Icon name="check" size={14} weight="bold" className="text-emerald-600" />
+          <span className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wide text-ink">
+            Ya cargado: {exp.documentos.length} archivo{exp.documentos.length !== 1 ? "s" : ""}
+            {exp.extractos.length ? ` y ${exp.extractos.length} extracto${exp.extractos.length !== 1 ? "s" : ""}` : ""}
+          </span>
+          <span className="text-[11px] text-muted">{verCargados ? "ocultar" : "ver la lista"}</span>
+          <Icon name="caretDown" size={14} weight="bold" className={`text-muted transition ${verCargados ? "rotate-180" : ""}`} />
+        </button>
+        {verCargados && (
+          <div className="space-y-3 border-t border-border px-3 py-3">
+            {aplicables.map((r) => {
+              if (r.es_extracto) {
+                const cuentas = exp.cobertura.cuentas;
+                if (!cuentas.length) return null;
+                return (
+                  <div key={r.id}>
+                    <p className="text-xs font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {cuentas.map((c) => (
+                        <li key={`${c.banco}:${c.cuenta}`} className="text-[11px] text-ink-secondary">
+                          {c.banco} {c.cuenta ? `· ${c.cuenta}` : ""}: {c.meses.length} mes{c.meses.length !== 1 ? "es" : ""} ({c.desde} → {c.hasta}), {c.extractos} extracto{c.extractos !== 1 ? "s" : ""}, {c.lineas} movimientos
+                        </li>
+                      ))}
+                    </ul>
+                    <button type="button" className="mt-1 text-[11px] font-bold text-accent underline" onClick={() => onIr("extractos")}>ver o cargar extractos</button>
+                    {(() => {
+                      const archivos = exp.documentos.filter((d) => d.categoria === r.categoria);
+                      if (!archivos.length) return null;
+                      return (
+                        <p className="mt-1 text-[10px] text-muted">
+                          Además hay {archivos.length} archivo{archivos.length !== 1 ? "s" : ""} de extracto en el expediente (carpeta o subidos) que no se importaron como
+                          extracto y no cuentan en la cobertura: se ven en «Activos digitales → Documentos».
+                        </p>
+                      );
+                    })()}
+                  </div>
+                );
+              }
+              const anosConDocs = r.por_anio ? r.anios.filter((a) => a.mios > 0).map((a) => a.ano) : [];
+              const sueltos = docsDe(r.categoria, null);
+              const yaListados = new Set<number>();
+              if (!anosConDocs.length && !sueltos.length) return null;
+              return (
+                <div key={r.id}>
+                  <p className="text-xs font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {anosConDocs.map((ano) =>
+                      docsDe(r.categoria, ano).filter((d) => !yaListados.has(d.id) && yaListados.add(d.id)).map((d) => (
+                        <li key={d.id} className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
+                          <span className="w-16 shrink-0 font-bold tabular-nums text-ink">{etiquetaAnos(d)}</span>
+                          <span className="min-w-0 flex-1 truncate">{d.archivo_nombre}</span>
+                          {!d.existe && <span className="text-[10px] text-danger">(no está en disco)</span>}
+                          {d.existe && (
+                            <button type="button" className="font-bold text-accent underline" onClick={() => void abrirArchivo(`/api/socios/${terceroId}/documentos/${d.id}/archivo`, (t) => setMsg({ tipo: "error", texto: t }))}>
+                              abrir
+                            </button>
+                          )}
+                        </li>
+                      )),
+                    )}
+                    {sueltos.map((d) => (
+                      <li key={d.id} className="flex flex-wrap items-center gap-2 text-[11px] text-ink-secondary">
+                        <span className="w-10 shrink-0 text-[10px] text-muted">s/año</span>
+                        <span className="min-w-0 flex-1 truncate">{d.archivo_nombre}</span>
+                        {!d.existe && <span className="text-[10px] text-danger">(no está en disco)</span>}
+                        {d.existe && (
+                          <button type="button" className="font-bold text-accent underline" onClick={() => void abrirArchivo(`/api/socios/${terceroId}/documentos/${d.id}/archivo`, (t) => setMsg({ tipo: "error", texto: t }))}>
+                            abrir
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+            {exp.documentos.length === 0 && exp.extractos.length === 0 && <p className="text-xs text-muted">Todavía no hay nada cargado.</p>}
+          </div>
+        )}
+      </div>
+
+      {/* 5. No aplica / omitidos */}
+      {resumen.noAplican.length > 0 && (
+        <div className={card}>
+          <button type="button" className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-left" onClick={() => setVerNoAplican((v) => !v)}>
+            <Icon name="minus" size={14} weight="bold" className="text-muted" />
+            <span className="min-w-0 flex-1 text-xs font-bold uppercase tracking-wide text-muted">No se pide en tu caso ({resumen.noAplican.length})</span>
+            <Icon name="caretDown" size={14} weight="bold" className={`text-muted transition ${verNoAplican ? "rotate-180" : ""}`} />
+          </button>
+          {verNoAplican && (
+            <ul className="space-y-1.5 border-t border-border px-3 py-3">
+              {resumen.noAplican.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="min-w-0 flex-1 text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</span>
+                  {r.omitido ? (
+                    <>
+                      <span className="text-[10px] text-muted">lo marcaste como «no aplica»</span>
+                      <button type="button" className={btnSec} disabled={omitir.isPending} onClick={() => omitir.mutate({ id: r.id, omitir: false })}>Volver a pedirlo</button>
+                    </>
+                  ) : (
+                    <span className="text-[10px] text-muted">según tus respuestas no hace falta · cámbialas en «Empecemos» si sí aplica</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+      )}
+
+      {/* 6. Otras formas de cargar: carpeta del servidor + referencia */}
+      <div className="grid gap-2 lg:grid-cols-2">
         <div className={`${card} space-y-1.5 px-3 py-2.5`}>
-          <p className="text-xs font-bold text-ink">Tu carpeta en el servidor</p>
+          <p className="text-xs font-bold text-ink">Otra forma de cargar: tu carpeta en el servidor</p>
           <p className="break-all font-mono text-[11px] text-ink-secondary">{plan.carpeta}</p>
           <div className="flex flex-wrap gap-1.5">
             {!plan.carpeta_existe ? (
@@ -798,84 +1769,23 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
             )}
           </div>
           <p className="text-[10px] text-muted">
-            Puedes dejar los archivos en esa carpeta (hay un LEEME con qué va dónde) o subirlos aquí renglón por renglón. Da igual: el expediente queda igual.
+            Puedes dejar los archivos en esa carpeta (hay un LEEME con qué va dónde) o subirlos desde la matriz de arriba. El expediente queda igual.
           </p>
         </div>
+        <div className={`${card} px-3 py-2.5`}>
+          {ref ? (
+            <>
+              <p className="text-xs font-bold text-ink">Referencia: así lo hizo {ref.nombre}</p>
+              <p className="text-[11px] text-muted">
+                {ref.documentos} documentos organizados{ref.desde ? ` desde ${ref.desde}` : ""}. Activa «comparar con {ref.nombre}» en el mapa para ver sus cantidades
+                junto a las tuyas. Solo se muestran cantidades, nunca cifras ni archivos.
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-muted">Eres el primer socio en organizar el expediente; tu carpeta servirá de referencia para el otro.</p>
+          )}
+        </div>
       </div>
-      <Msg m={msg} />
-
-      {primeroPendiente && (
-        <p className="rounded-lg bg-amber-600/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
-          Siguiente cosa por conseguir: <b>{primeroPendiente.titulo}</b>. Abre el renglón para ver cómo.
-        </p>
-      )}
-
-      {/* Requisitos */}
-      <ol className="space-y-2">
-        {plan.requisitos.map((r) => {
-          const st = ESTILO_REQ[r.estado];
-          const open = abierto === r.id;
-          return (
-            <li key={r.id} className={`${card} ${st.wrap}`}>
-              <button type="button" className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-left" onClick={() => setAbierto(open ? null : r.id)}>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.badge}`}>{st.label}</span>
-                <span className="min-w-0 flex-1 text-sm font-bold text-ink">{r.titulo}</span>
-                {r.aplica && !r.omitido && (
-                  <span className="text-[11px] tabular-nums text-muted">
-                    tú: <b className="text-ink">{r.mios}</b>
-                    {ref ? <> · {ref.nombre}: <b className="text-ink">{r.ref}</b></> : null}
-                  </span>
-                )}
-                <Icon name={open ? "caretDown" : "caretDown"} size={14} weight="bold" className={`text-muted transition ${open ? "rotate-180" : ""}`} />
-              </button>
-              {open && (
-                <div className="space-y-3 border-t border-border px-3 py-3">
-                  <p className="text-xs text-ink-secondary"><b>Para qué:</b> {r.por_que}</p>
-                  <p className="text-xs text-ink-secondary"><b>Cómo conseguirlo:</b> {r.como}</p>
-                  {r.aplica && !r.omitido && r.por_anio && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {r.anios.map((a) => (
-                        <div key={a.ano} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] ${a.ok ? "border-emerald-600/40 bg-emerald-600/5" : "border-border"}`}>
-                          <span className="font-bold tabular-nums text-ink">{a.ano}</span>
-                          <span className="text-muted">
-                            {a.mios}{a.unidad === "meses" ? "/12 m" : ""}
-                            {ref ? ` · ${ref.nombre} ${a.ref}${a.unidad === "meses" ? "/12" : ""}` : ""}
-                          </span>
-                          {r.es_extracto ? (
-                            <button type="button" className="font-bold text-accent underline" onClick={() => onIr("extractos")}>cargar</button>
-                          ) : (
-                            <button type="button" className="font-bold text-accent underline" disabled={subiendo === r.categoria} onClick={() => pedirArchivo(r.categoria, a.ano)}>
-                              {a.ok ? "+1" : "subir"}
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2">
-                    {r.aplica && !r.omitido && !r.por_anio && (
-                      <button type="button" className={btnPrimario} disabled={subiendo === r.categoria} onClick={() => pedirArchivo(r.categoria)}>
-                        <Icon name="paperclip" size={14} weight="bold" /> {subiendo === r.categoria ? "Subiendo…" : "Subir archivo"}
-                      </button>
-                    )}
-                    {r.aplica && !r.omitido && r.por_anio && !r.es_extracto && (
-                      <button type="button" className={btnSec} disabled={subiendo === r.categoria} onClick={() => pedirArchivo(r.categoria)}>
-                        <Icon name="paperclip" size={14} weight="bold" /> Subir sin año
-                      </button>
-                    )}
-                    {r.aplica && (
-                      <button type="button" className={btnSec} disabled={omitir.isPending} onClick={() => omitir.mutate({ id: r.id, omitir: !r.omitido })}>
-                        {r.omitido ? "Volver a pedirlo" : "No aplica en mi caso"}
-                      </button>
-                    )}
-                    {!r.aplica && <span className="text-[11px] text-muted">Según tus respuestas no hace falta. Cambia la respuesta en «Empecemos» si sí aplica.</span>}
-                  </div>
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
     </div>
   );
 }
@@ -897,30 +1807,61 @@ function PasoExtractos({ terceroId, exp, onChanged }: { terceroId: number; exp: 
     onChanged();
   };
 
-  const subir = async (file: File) => {
+  const subirUno = async (file: File, aplicarNombre: boolean) => {
+    const fd = new FormData();
+    fd.append("archivo", file);
+    fd.append("tercero_id", String(terceroId));
+    if (banco.trim()) fd.append("banco", banco.trim());
+    if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
+    if (aplicarNombre && nombre.trim()) fd.append("nombre", nombre.trim());
+    const r = await api.upload<{ ok?: boolean; error?: string; extracto?: ExtractoResumen }>(
+      "/api/contabilidad/extractos",
+      fd,
+      { timeoutMs: 180_000 },
+    );
+    if (r.error) throw new Error(r.error);
+    return r.extracto;
+  };
+
+  /** Sube uno o varios extractos, en orden: el nombre manual solo aplica cuando es un solo archivo. */
+  const subir = async (archivos: File[]) => {
+    if (archivos.length === 0) return;
+    const varios = archivos.length > 1;
     setBusy(true);
-    setMsg(null);
+    setMsg(varios ? { tipo: "ok", texto: `Subiendo 1 de ${archivos.length}…` } : null);
+    const hechos: string[] = [];
+    const fallos: string[] = [];
     try {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      fd.append("tercero_id", String(terceroId));
-      if (banco.trim()) fd.append("banco", banco.trim());
-      if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
-      if (nombre.trim()) fd.append("nombre", nombre.trim());
-      const r = await api.upload<{ ok?: boolean; error?: string; extracto?: ExtractoResumen }>(
-        "/api/contabilidad/extractos",
-        fd,
-        { timeoutMs: 180_000 },
-      );
-      if (r.error) throw new Error(r.error);
-      setMsg({
-        tipo: "ok",
-        texto: `Extracto «${r.extracto?.nombre}» guardado: ${r.extracto?.lineas_count ?? 0} líneas (${r.extracto?.periodo_desde} → ${r.extracto?.periodo_hasta}).`,
-      });
-      setNombre("");
-      invalidar();
-    } catch (e) {
-      setMsg({ tipo: "error", texto: (e as Error).message || "No se pudo subir" });
+      for (let i = 0; i < archivos.length; i++) {
+        const file = archivos[i];
+        if (varios) setMsg({ tipo: "ok", texto: `Subiendo ${i + 1} de ${archivos.length}: «${file.name}»…` });
+        try {
+          const ex = await subirUno(file, !varios);
+          hechos.push(
+            `«${ex?.nombre ?? file.name}»: ${ex?.lineas_count ?? 0} líneas (${ex?.periodo_desde} → ${ex?.periodo_hasta})`,
+          );
+        } catch (e) {
+          fallos.push(`«${file.name}»: ${(e as Error).message || "no se pudo subir"}`);
+        }
+      }
+      if (!varios) {
+        setMsg(
+          hechos.length
+            ? { tipo: "ok", texto: `Extracto ${hechos[0]}.` }
+            : { tipo: "error", texto: fallos[0] ?? "No se pudo subir" },
+        );
+      } else {
+        const partes = [
+          `${hechos.length} de ${archivos.length} extractos guardados.`,
+          ...(hechos.length ? [hechos.join(" · ")] : []),
+          ...(fallos.length ? [`No se pudieron subir: ${fallos.join(" · ")}`] : []),
+        ];
+        setMsg({ tipo: fallos.length ? "error" : "ok", texto: partes.join(" ") });
+      }
+      if (hechos.length) {
+        if (!varios) setNombre("");
+        invalidar();
+      }
     } finally {
       setBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -950,8 +1891,9 @@ function PasoExtractos({ terceroId, exp, onChanged }: { terceroId: number; exp: 
     <div className="space-y-4">
       <div className={`${card} space-y-3 p-3`}>
         <p className="text-xs text-muted">
-          Sube el extracto del banco <b>del socio</b> (CSV, Excel o PDF). Queda marcado como personal: no entra a la
-          conciliación de McKenna, solo se cruza con ella en el paso «Cruces».
+          Sube los extractos del banco <b>del socio</b> (CSV, Excel o PDF); puedes marcar varios con Shift o Ctrl y se
+          suben uno tras otro. Quedan marcados como personales: no entran a la conciliación de McKenna, solo se cruzan
+          con ella en el paso «Cruces».
         </p>
         <div className="flex flex-wrap items-end gap-2">
           <Campo label="Banco">
@@ -960,22 +1902,29 @@ function PasoExtractos({ terceroId, exp, onChanged }: { terceroId: number; exp: 
           <Campo label="Cuenta">
             <input className={`${input} w-40`} value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="912-004312-49" />
           </Campo>
-          <Campo label="Nombre (opcional)">
+          <Campo label="Nombre (opcional, solo si subes uno)">
             <input className={`${input} w-52`} value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ahorros 2025 T1" />
           </Campo>
           <input
             ref={fileRef}
             type="file"
             accept=".csv,.xlsx,.xlsm,.txt,.tsv,.pdf"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void subir(f);
+              const files = Array.from(e.target.files ?? []);
+              if (files.length) void subir(files);
             }}
           />
-          <button type="button" className={btnPrimario} disabled={busy} onClick={() => fileRef.current?.click()}>
+          <button
+            type="button"
+            className={btnPrimario}
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+            title="Puedes marcar varios archivos con Shift o Ctrl"
+          >
             <Icon name="download" size={14} weight="bold" />
-            {busy ? "Subiendo…" : "Subir extracto"}
+            {busy ? "Subiendo…" : "Subir extractos"}
           </button>
         </div>
         <Msg m={msg} />
@@ -1231,7 +2180,7 @@ function TablaCruces({ titulo, filas }: { titulo: string; filas: Cruces["empresa
 
 type SubDecl = "anios" | "documentos" | "pendientes" | "agente";
 
-function PasoDeclarador({ terceroId, exp, onChanged }: { terceroId: number; exp: Expediente; onChanged: () => void }) {
+function PasoDeclarador({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp: Expediente; onChanged: () => void; onIr: (p: PasoId) => void }) {
   const [sub, setSub] = useState<SubDecl>("anios");
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const importar = useMutation({
@@ -1292,7 +2241,7 @@ function PasoDeclarador({ terceroId, exp, onChanged }: { terceroId: number; exp:
       </div>
       <Msg m={msg} />
       {sub === "anios" && <TablaAnios terceroId={terceroId} anios={exp.anios} onChanged={onChanged} />}
-      {sub === "documentos" && <Documentos terceroId={terceroId} exp={exp} onChanged={onChanged} />}
+      {sub === "documentos" && <Documentos terceroId={terceroId} exp={exp} onChanged={onChanged} onIr={onIr} />}
       {sub === "pendientes" && <Hallazgos terceroId={terceroId} hallazgos={exp.hallazgos} onChanged={onChanged} />}
       {sub === "agente" && <Agente terceroId={terceroId} onChanged={onChanged} />}
     </div>
@@ -1352,6 +2301,7 @@ function TablaAnios({ terceroId, anios, onChanged }: { terceroId: number; anios:
               <th className="px-3 py-2 text-right font-bold">Cripto renta ord.</th>
               <th className="px-3 py-2 text-right font-bold">Cripto gan. ocas.</th>
               <th className="px-3 py-2 text-right font-bold">Tenencia cierre</th>
+              <th className="px-3 py-2 text-right font-bold">Costo cripto 31-dic</th>
               <th className="px-3 py-2 font-bold"></th>
             </tr>
           </thead>
@@ -1376,6 +2326,7 @@ function TablaAnios({ terceroId, anios, onChanged }: { terceroId: number; anios:
                 </td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-ink">{cop(a.cripto_ganancia_ocasional)}</td>
                 <td className="px-3 py-1.5 text-right tabular-nums text-ink">{usd(a.tenencia_cierre_usd)}</td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-ink" title={a.cripto_costo_cierre_usd !== null ? `${usd(a.cripto_costo_cierre_usd)} · TRM ${a.trm_cierre ?? "—"}` : ""}>{cop(a.cripto_costo_cierre_cop)}</td>
                 <td className="px-3 py-1.5">
                   <button type="button" className={btnSec} onClick={() => (edit === a.ano ? setEdit(null) : abrir(a))}>
                     {edit === a.ano ? "Cerrar" : "Editar"}
@@ -1466,7 +2417,7 @@ function TablaAnios({ terceroId, anios, onChanged }: { terceroId: number; anios:
   );
 }
 
-function Documentos({ terceroId, exp, onChanged }: { terceroId: number; exp: Expediente; onChanged: () => void }) {
+function Documentos({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp: Expediente; onChanged: () => void; onIr: (p: PasoId) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [categoria, setCategoria] = useState("declaracion_f210");
   const [ano, setAno] = useState("");
@@ -1516,6 +2467,7 @@ function Documentos({ terceroId, exp, onChanged }: { terceroId: number; exp: Exp
 
   return (
     <div className="space-y-3">
+      <ResumenDocsBanner exp={exp} onIr={onIr} />
       <div className={`${card} space-y-2 p-3`}>
         <div className="flex flex-wrap items-end gap-2">
           <Campo label="Categoría">
@@ -1568,7 +2520,7 @@ function Documentos({ terceroId, exp, onChanged }: { terceroId: number; exp: Exp
                     {!d.existe && <span className="ml-1 text-[10px] text-danger">(no está en disco)</span>}
                   </p>
                   <p className="text-[10px] text-muted">
-                    {d.ano ?? "sin año"} · {kb(d.tamano)} · {d.origen === "carpeta" ? "carpeta Declarador" : "subido"}
+                    {etiquetaAnos(d)} · {kb(d.tamano)} · {d.origen === "carpeta" ? "carpeta Declarador" : "subido"}
                   </p>
                 </div>
                 <div className="flex gap-1">

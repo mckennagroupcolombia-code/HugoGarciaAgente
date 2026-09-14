@@ -27,6 +27,11 @@ import os
 # Valor de la UVT por año (Resolución DIAN anual). Cargar el año nuevo acá
 # cuando salga la resolución, o pasarlo por `UVT_<año>` en el entorno.
 _UVT: dict[int, float] = {
+    # Históricas (para recalcular renta de años ya presentados — Art. 241 ET):
+    # Res. 000084/2019 → 2020; Res. 000111/2020 → 2021; Res. 000140/2021 → 2022.
+    2020: 35_607.0,
+    2021: 36_308.0,
+    2022: 38_004.0,
     2023: 42_412.0,
     2024: 47_065.0,
     2025: 49_799.0,

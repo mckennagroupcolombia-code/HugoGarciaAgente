@@ -20,8 +20,8 @@ function esArchivoExtracto(file: File): boolean {
   );
 }
 
-function primerArchivoExtracto(files: FileList | File[]): File | null {
-  return Array.from(files).find(esArchivoExtracto) ?? null;
+function archivosExtracto(files: FileList | File[]): File[] {
+  return Array.from(files).filter(esArchivoExtracto);
 }
 
 function hayArchivosArrastrados(dt: DataTransfer): boolean {
@@ -762,36 +762,66 @@ export default function IngresosEgresosPanel({
     }
   };
 
-  const onUpload = async (file: File) => {
+  const subirUnExtracto = async (file: File, aplicarNombre: boolean) => {
+    const fd = new FormData();
+    fd.append("archivo", file);
+    if (aplicarNombre && nombreExtracto.trim()) fd.append("nombre", nombreExtracto.trim());
+    if (banco.trim()) fd.append("banco", banco.trim());
+    if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
+    const r = await api.upload<{
+      ok?: boolean;
+      extracto?: {
+        id?: number;
+        nombre?: string;
+        lineas_count?: number;
+        periodo_desde?: string;
+        periodo_hasta?: string;
+      };
+      error?: string;
+    }>("/api/contabilidad/extractos", fd, { timeoutMs: 180_000 });
+    if (r.error) throw new Error(r.error);
+    return r.extracto;
+  };
+
+  /** Sube uno o varios extractos, en orden: el nombre manual solo aplica cuando es un solo archivo. */
+  const onUpload = async (archivos: File[]) => {
+    if (archivos.length === 0) return;
+    const varios = archivos.length > 1;
     setUploadBusy(true);
-    setUploadMsg(null);
+    setUploadMsg(varios ? `Subiendo 1 de ${archivos.length}…` : null);
+    const hechos: string[] = [];
+    const fallos: string[] = [];
     try {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      if (nombreExtracto.trim()) fd.append("nombre", nombreExtracto.trim());
-      if (banco.trim()) fd.append("banco", banco.trim());
-      if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
-      const r = await api.upload<{
-        ok?: boolean;
-        extracto?: {
-          id?: number;
-          nombre?: string;
-          lineas_count?: number;
-          periodo_desde?: string;
-          periodo_hasta?: string;
-        };
-        error?: string;
-      }>("/api/contabilidad/extractos", fd, { timeoutMs: 180_000 });
-      if (r.error) throw new Error(r.error);
-      const ex = r.extracto;
-      const etiqueta = ex?.nombre ? ` «${ex.nombre}»` : "";
-      setUploadMsg(
-        `Extracto${etiqueta} guardado (#${ex?.id ?? "?"}): ${ex?.lineas_count ?? 0} líneas (${ex?.periodo_desde ?? "?"} → ${ex?.periodo_hasta ?? "?"}). Queda en la base de datos.`,
-      );
-      setNombreExtracto("");
-      await refreshAll();
-    } catch (e) {
-      setUploadMsg((e as Error).message || "Error al subir extracto");
+      for (let i = 0; i < archivos.length; i++) {
+        const file = archivos[i];
+        if (varios) setUploadMsg(`Subiendo ${i + 1} de ${archivos.length}: «${file.name}»…`);
+        try {
+          const ex = await subirUnExtracto(file, !varios);
+          hechos.push(
+            `«${ex?.nombre ?? file.name}» (#${ex?.id ?? "?"}): ${ex?.lineas_count ?? 0} líneas (${ex?.periodo_desde ?? "?"} → ${ex?.periodo_hasta ?? "?"})`,
+          );
+        } catch (e) {
+          fallos.push(`«${file.name}»: ${(e as Error).message || "no se pudo subir"}`);
+        }
+      }
+      if (!varios) {
+        setUploadMsg(
+          hechos.length
+            ? `Extracto ${hechos[0]}. Queda en la base de datos.`
+            : fallos[0] ?? "Error al subir extracto",
+        );
+      } else {
+        const partes = [
+          `${hechos.length} de ${archivos.length} extractos guardados.`,
+          ...(hechos.length ? [hechos.join(" · ")] : []),
+          ...(fallos.length ? [`No se pudieron subir: ${fallos.join(" · ")}`] : []),
+        ];
+        setUploadMsg(partes.join(" "));
+      }
+      if (hechos.length) {
+        if (!varios) setNombreExtracto("");
+        await refreshAll();
+      }
     } finally {
       setUploadBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -829,12 +859,12 @@ export default function IngresosEgresosPanel({
     e.stopPropagation();
     setDropActivo(false);
     if (uploadBusy) return;
-    const file = primerArchivoExtracto(e.dataTransfer.files);
-    if (!file) {
-      setUploadMsg("Arrastre un CSV, Excel o PDF de extracto bancario.");
+    const files = archivosExtracto(e.dataTransfer.files);
+    if (files.length === 0) {
+      setUploadMsg("Arrastre uno o varios CSV, Excel o PDF de extracto bancario.");
       return;
     }
-    void onUpload(file);
+    void onUpload(files);
   };
 
   const onConsultarExtracto = async () => {
@@ -873,8 +903,9 @@ export default function IngresosEgresosPanel({
         <div>
           <h2 className="text-base font-bold text-ink">Tabla de contabilidad</h2>
           <p className="text-xs text-muted">
-            Ingresos y egresos por fecha. Arrastra el extracto bancario (CSV/Excel/PDF) a esta
-            pantalla o elige el archivo, y vincula cada movimiento contable con la línea del banco.
+            Ingresos y egresos por fecha. Arrastra los extractos bancarios (CSV/Excel/PDF) a esta
+            pantalla o elígelos con el botón — puedes marcar varios con Shift o Ctrl — y vincula cada
+            movimiento contable con la línea del banco.
           </p>
         </div>
 
@@ -1009,18 +1040,19 @@ export default function IngresosEgresosPanel({
               ref={fileRef}
               type="file"
               accept=".csv,.xlsx,.xlsm,.txt,.tsv,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onUpload(f);
+                const files = archivosExtracto(e.target.files ?? []);
+                if (files.length) void onUpload(files);
               }}
             />
             <div
               role="button"
               tabIndex={uploadBusy ? -1 : 0}
               aria-disabled={uploadBusy}
-              aria-label="Arrastrar o elegir extracto bancario"
-              title="Arrastra el CSV, Excel o PDF, o haz clic para elegirlo"
+              aria-label="Arrastrar o elegir extractos bancarios"
+              title="Arrastra uno o varios CSV, Excel o PDF, o haz clic para elegirlos (Shift o Ctrl para seleccionar varios)"
               onClick={() => {
                 if (!uploadBusy) fileRef.current?.click();
               }}

@@ -126,7 +126,7 @@
     <form class="hero-search" action="{{ url_for('tienda') }}" method="get" role="search" data-buscador style="{{ nodo_style('hero.buscador') }}">
       <div class="hero-search-box">
         <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-        <input type="search" name="q" placeholder="{{ H.buscador_placeholder or 'Busca por nombre, INCI o uso: niacinamida, ácido hialurónico, conservante…' }}"
+        <input type="search" name="q" placeholder="{{ H.buscador_placeholder or 'Busca por nombre, INCI o uso' }}"
                autocomplete="off" aria-label="Buscar materia prima" data-buscador-input>
         <button type="submit" class="btn btn-primary hero-search-btn">Buscar</button>
       </div>

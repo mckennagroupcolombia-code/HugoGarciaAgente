@@ -28,6 +28,7 @@ import BarcodeBlock from "./BarcodeBlock";
 import ContactFooter from "./ContactFooter";
 import { TextStyleProvider, useTextStyleCtx } from "./TextStyleContext";
 import {
+  ALTO_FRANJA_FICHA,
   CAMPOS_PLANTILLA,
   PRODUCTO_VACIO,
   RETICULA_MAESTRA,
@@ -1083,6 +1084,7 @@ function ProductLabelFormInner({
             onChange={(v) => onChange({ barcode: v })}
             onElegirCodigo={(c) => void onElegirCodigo(c)}
             editMode={editMode}
+            franja={{ alto: ALTO_FRANJA_FICHA }}
           />
         </div>
 

@@ -8,6 +8,7 @@ import CampoEtiqueta from "./CampoEtiqueta";
 import BarcodeSection from "./BarcodeSection";
 import ContactFooter from "./ContactFooter";
 import {
+  ALTO_FRANJA_30ML,
   CLASIFICACION_NO_PELIGROSO,
   EJEMPLO_30ML,
   TAM_30ML,
@@ -152,6 +153,7 @@ export default function RightDocumentationPanel({
         editMode={editable}
         onChange={(v) => onChange?.({ barcode: v })}
         onElegirCodigo={onElegirCodigo}
+        franja={{ alto: ALTO_FRANJA_30ML }}
       />
 
       <ContactFooter

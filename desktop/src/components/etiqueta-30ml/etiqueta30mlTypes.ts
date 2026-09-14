@@ -41,6 +41,11 @@ export function sonMedidas(
  *  escala entera (vista previa, PNG, impresión): el contenido nunca reflua. */
 export const ANCHO_30ML = 1200;
 
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_30ML = 17;
+
 /** Medidas de la retícula, en px de diseño. Todas salen de aquí: ningún
  *  panel define alturas propias, así las líneas de los tres coinciden. */
 export interface Reticula30ml {

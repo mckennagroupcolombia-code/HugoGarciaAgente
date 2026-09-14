@@ -87,6 +87,11 @@ export interface ProductLabelData {
  *  bloque inferior la usan por igual para que todas las líneas verticales
  *  de la ficha coincidan exactamente. No definir anchos independientes
  *  (2fr/1fr, %, px) en cada sección: siempre esta misma clase. */
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_FICHA = 10;
+
 export const RETICULA_MAESTRA = "grid grid-cols-3";
 
 /** Naranja corporativo — acento por defecto mientras no se elija un logo. */

@@ -4393,7 +4393,7 @@ def confianza_portada(ruta_origen: dict, colombia: dict) -> list[dict]:
     n_dep = int((colombia or {}).get("n_alcanzados") or 0)
     tot_dep = int((colombia or {}).get("total_departamentos") or 33)
     return [
-        {"icono": "certificate", "titulo": "Importación legal", "cifra": "VUCE + COA por lote", "texto": "Visto bueno INVIMA"},
+        {"icono": "certificate", "titulo": "Importación legal", "cifra": "COA y ficha técnica de lote", "texto": "Permisos según el producto"},
         {"icono": "file-text", "titulo": "Documentación", "cifra": f"{n_tds} fichas técnicas · {n_coa} COA", "texto": "Publicadas en la web"},
         {"icono": "truck", "titulo": "Despachos", "cifra": f"{n_dep} de {tot_dep} departamentos", "texto": "Interrapidísimo con guía"},
         {"icono": "lock", "titulo": "Pago seguro", "cifra": "PSE · tarjetas · Nequi", "texto": "Mercado Pago"},

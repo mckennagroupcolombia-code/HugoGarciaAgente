@@ -64,7 +64,7 @@
 }
 .ec-curvo-titulo {
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.012em;
   text-transform: uppercase;
 }
 /* El aviso de control de calidad es informativo, no de marca. */
@@ -112,14 +112,14 @@
 
 .ec-descripcion {
   width: 100%;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
   line-height: 1.26;
   color: #111111;
 }
 
 .ec-aplicaciones-titulo {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #333333;
 }
@@ -129,7 +129,7 @@
   width: 100%;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 3px;
 }
 
 /* Texto centrado con la viñeta al comienzo, como en la referencia.
@@ -168,7 +168,7 @@
 
 .ec-item-texto {
   min-width: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.22;
   color: #111111;
@@ -219,19 +219,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
-}
-
-/* Franja decorativa de segmentos de color sobre las barras (§8). */
-.ec-franja-color {
-  display: flex;
-  width: 78%;
-  height: var(--ec-franja);
-  overflow: hidden;
-  border-radius: 1px;
-}
-.ec-franja-color span {
-  flex: 1 1 0;
+  gap: 2px;
 }
 
 .ec-etiqueta .e30-barras {
@@ -244,7 +232,7 @@
 
 .ec-neto {
   width: 100%;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
   line-height: 1;
   color: var(--acento);

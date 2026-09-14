@@ -15,8 +15,8 @@ import { textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
+  ALTO_FRANJA_CIRCULAR,
   arcoTexto,
-  COLORES_FRANJA_BARRAS,
   lineasAplicaciones,
   TRAMOS_CIRCULAR,
   unirAplicaciones,
@@ -193,7 +193,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         {/* Lupa de fichas técnicas: fuera del recorrido de los textos, en el
             hueco que queda arriba a la derecha del anillo. */}
         {editable && onChange && (
-          <div style={{ position: "absolute", top: diametro * 0.09, right: diametro * 0.3 }}>
+          <div style={{ position: "absolute", top: diametro * 0.345, right: diametro * 0.115 }}>
             <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
           </div>
         )}
@@ -281,16 +281,12 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           style={{ top: bandas.barras.top, height: bandas.barras.alto, width: bandas.barras.ancho }}
         >
           <div className="ec-barras-caja">
-            <div className="ec-franja-color" aria-hidden="true">
-              {COLORES_FRANJA_BARRAS.map((c) => (
-                <span key={c} style={{ background: c }} />
-              ))}
-            </div>
             <BarcodeSection
               value={data.barcode}
               editMode={editable}
               onChange={(v) => onChange?.({ barcode: v })}
               onElegirCodigo={onElegirCodigo}
+              franja={{ alto: ALTO_FRANJA_CIRCULAR }}
             />
           </div>
         </div>
