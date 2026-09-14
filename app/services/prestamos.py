@@ -1872,21 +1872,36 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
         if r["total_retencion"] > 0
         else "_Este período no tuvo retención por intereses de préstamos._"
     )
+    # El ticket NO lleva las cifras. Un monto escrito acá se congela el día que
+    # se escribió: TKT-2026-1223 decía $96.251 de agosto-2026 y el mismo día
+    # entró el backfill de 29 asientos de retención sobre compras que lo subió
+    # a $761.138, con la declaración venciendo nueve días después. Las cifras
+    # vivas están en el panel, que las lee de la cuenta 2365 cada vez que se
+    # abre. Lo que sí va acá es lo que no cambia: el período, el vencimiento y
+    # qué hay que hacer.
+    conteo = len(unificado["terceros"])
     descripcion = (
         f"Retención en la fuente practicada en **{periodo}**, para la declaración "
         f"mensual (formulario 350).\n\n"
-        f"**TOTAL A DECLARAR Y PAGAR: {_fmt_cop(unificado['total_retencion'])}**\n\n"
-        f"Por concepto: {conceptos_txt}\n\n"
-        + encabezado_prestamos
-        + otros_texto
-        + "\n\n"
+        f"Hay **{conteo} tercero(s)** con retención en el período"
+        + (f", en {len(unificado['por_concepto'])} concepto(s): "
+           + ", ".join(c.replace("_", " ") for c in sorted(unificado["por_concepto"]))
+           if unificado.get("por_concepto") else "")
+        + ".\n\n"
+        "**El detalle con los montos está en el panel:** Contabilidad → Préstamos → "
+        "Retenciones, con la base y el valor por tercero y por concepto.\n\n"
         + ("\n\n".join(avisos) + "\n\n" if avisos else "")
         + _texto_vencimiento(r)
         + "**Qué hay que hacer:**\n"
-        "- Pasarle este detalle al contador para incluirlo en la declaración mensual de retención "
-        "en la fuente.\n"
+        "- Pedirle al contador el formulario 350 del período. **La cifra que se declara "
+        "es la de él**, que incluye todas las compras sobre la cuantía mínima: lo del "
+        "panel sirve para contrastar, no para reemplazarlo.\n"
+        "- Si el 350 y el panel no se parecen, hay compras sin registrar en el Libro "
+        "Mayor (o al revés) — eso es lo que hay que resolver antes de declarar.\n"
         "- Al pagar, comentar acá la fecha y el comprobante: quien lleva el Libro Mayor "
         "registra el egreso contra 2365 para que deje de figurar como deuda con la DIAN.\n\n"
+        "_Los montos no van en este ticket a propósito: se leen del libro en vivo, así "
+        "que un asiento que entre mañana cambia el panel y no este texto._\n\n"
         f"{MARCA_TICKET_RETENCIONES} {periodo}"
     )
 

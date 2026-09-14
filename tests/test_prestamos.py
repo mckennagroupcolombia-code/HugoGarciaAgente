@@ -447,20 +447,26 @@ def test_resumen_solo_cuenta_el_mes_pedido(mods):
     assert pr.resumen_retenciones_mes(2026, 9)["pagos"] == 0
 
 
-def test_ticket_retenciones_lleva_base_total_y_detalle(mods):
+def test_ticket_retenciones_lleva_periodo_vencimiento_y_donde_mirar(mods):
+    # Antes este ticket traía el total y el detalle por tercero escritos en su
+    # texto. Se quitaron (sep-2026): un monto copiado se congela, y con
+    # TKT-2026-1223 la declaración de agosto estuvo a punto de presentarse por
+    # $96.251 cuando el libro ya iba en $761.138. Lo que queda es lo que NO
+    # cambia — período, vencimiento, qué hacer — más dónde está la cifra viva.
     cc, pr, tercero, medio = mods
     _pagar_primera_cuota(pr, cc, tercero, medio)
     r = pr.crear_ticket_retenciones_mes(2026, 10, dry_run=True)
     d = r["descripcion"]
-    assert "$13.138" in d              # retención practicada
-    assert "$187.693" in d             # base (interés bruto)
-    assert "79123456" in d             # identificación del tercero
+    assert "2026-10" in d
     assert "formulario 350" in d
-    assert "rendimientos financieros" in d
+    assert "Contabilidad → Préstamos → Retenciones" in d
     # Desde que se cargó el calendario 2026 (DUR 1625) el ticket da la fecha
-    # exacta según el último dígito del NIT de McKenna (7), no pide adivinarla.
+    # exacta según el último dígito del NIT de McKenna, no pide adivinarla.
     assert "2026-11-19" in d
     assert "último dígito 6" in d
+    # Y ningún monto quemado
+    assert "$13.138" not in d
+    assert "$187.693" not in d
 
 
 def test_ticket_retenciones_avisa_documentos_soporte_pendientes(mods):
@@ -911,3 +917,30 @@ def test_no_se_crea_el_ticket_de_un_mes_que_no_ha_empezado(mods):
 
     # dry_run sí deja mirar hacia adelante, y forzar_futuro es la puerta explícita
     assert pr.crear_recordatorio_pagos_mes(futuro, 1, dry_run=True)["dry_run"]
+
+
+def test_el_ticket_de_retenciones_no_lleva_cifras_en_el_texto(mods, monkeypatch):
+    # TKT-2026-1223 decía $96.251 de agosto-2026; el mismo día entró el backfill
+    # de 29 asientos de retención sobre compras y el real pasó a $761.138, con
+    # la declaración venciendo nueve días después. Las cifras viven en el panel,
+    # que las lee de la 2365 cada vez que se abre.
+    cc, pr, tercero, medio = mods
+    monkeypatch.setenv("PRESTAMOS_USUARIO_CONTABILIDAD", "armando")
+    p = _crear(pr, tercero, medio, fecha_desembolso="2026-08-19", dia_pago=None)
+    pr.registrar_pago_cuota(p["id"], 1)
+
+    r = pr.crear_ticket_retenciones_mes(2026, 9, dry_run=True)
+    d = r["descripcion"]
+    assert "2026-09" in d
+    assert "Contabilidad → Préstamos → Retenciones" in d
+    # Ni el total ni el valor de ninguna retención aparecen escritos
+    cuota = p["cuotas"][0]
+    for monto in (cuota["retencion"], cuota["interes_bruto"]):
+        assert _fmt_cop_aprox(monto) not in d, f"{monto} quedó congelado en el texto"
+    assert "no van en este ticket a propósito" in d
+    # La cifra que manda es la del contador, no la del sistema
+    assert "La cifra que se declara es la de él" in d
+
+
+def _fmt_cop_aprox(n: float) -> str:
+    return "$" + f"{round(float(n or 0)):,}".replace(",", ".")
