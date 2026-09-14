@@ -25,6 +25,7 @@ import TechnicalIdentity from "./TechnicalIdentity";
 import CucharaMedidora from "./CucharaMedidora";
 import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
+import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
 import ContactFooter from "./ContactFooter";
 import { TextStyleProvider, useTextStyleCtx } from "./TextStyleContext";
 import {
@@ -123,9 +124,11 @@ const PATRON_RETICULA: CSSProperties = {
  *  composición (un jarrón casi cuadrado y una etiqueta de 5 mL muy
  *  apaisada no pueden compartir el mismo layout interno). */
 const ANCHO_DISENO = 960;
-/** Ancho del marco de formato en pantalla: el mismo del diseño, o sea el
- *  100 %. No se encoge para caber en la ventana — sobre un lienzo reducido
- *  no se puede trabajar; si no cabe, el marco se recorre en horizontal. */
+/** Ancho del marco de formato: el mismo del diseño, o sea el 100 %. La
+ *  etiqueta se MAQUETA siempre a esta medida —encogerla cambiando medidas
+ *  rompía la edición— y, si no cabe en la ventana, se DIBUJA escalada con un
+ *  `transform` sobre el lienzo entero (`useEscalaAjuste`), que no altera ni
+ *  la maquetación ni dónde caen los clics. */
 const MARCO_MAX_ANCHO = ANCHO_DISENO;
 /** Filas del cuerpo (atributos + columna derecha). Alto mínimo = ícono 64 +
  *  título ~26 + 3 renglones de texto (~51 px a 14 px) + relleno 20 → 160 px:
@@ -615,6 +618,11 @@ function ProductLabelFormInner({
     const escala = Math.min(1, alto / Math.max(altoDiseno, 1));
     return { ancho, alto, escala };
   }, [tipo, altoDiseno]);
+
+  // Y encima de esa escala, la que haga falta para que el marco entero quepa
+  // en el hueco disponible (el mismo criterio que usa `Marco30ml` para los
+  // demás formatos): la etiqueta se ve completa, sin barras que recorrer.
+  const ajusteFicha = useEscalaAjuste(marco?.ancho ?? 0, marco?.alto ?? 0);
 
   /** Renderiza el PNG listo para imprimir (300 DPI si hay Formato elegido;
    *  si no, una escala fija alta) y lo muestra en una vista previa. La
@@ -1622,18 +1630,33 @@ function ProductLabelFormInner({
           </Marco30ml>
         </>
       ) : marco ? (
-        <div className="w-full overflow-x-auto pb-1">
         <div
-          className="relative mx-auto overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
-          style={{ width: marco.ancho, height: marco.alto }}
+          ref={ajusteFicha.ref}
+          className={`w-full pb-1 ${ajusteFicha.escala <= ESCALA_MINIMA ? "overflow-x-auto" : ""}`}
         >
+          {/* Caja del tamaño YA escalado: un `transform` no cambia el hueco
+              que el elemento reserva en la maqueta. */}
           <div
-            className="absolute left-0 top-0"
-            style={{ width: ANCHO_DISENO, transform: `scale(${marco.escala})`, transformOrigin: "top left" }}
+            className="mx-auto"
+            style={{ width: marco.ancho * ajusteFicha.escala, height: marco.alto * ajusteFicha.escala }}
           >
-            {ficha}
+            <div
+              className="relative overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
+              style={{
+                width: marco.ancho,
+                height: marco.alto,
+                transform: `scale(${ajusteFicha.escala})`,
+                transformOrigin: "top left",
+              }}
+            >
+              <div
+                className="absolute left-0 top-0"
+                style={{ width: ANCHO_DISENO, transform: `scale(${marco.escala})`, transformOrigin: "top left" }}
+              >
+                {ficha}
+              </div>
+            </div>
           </div>
-        </div>
         </div>
       ) : (
         ficha

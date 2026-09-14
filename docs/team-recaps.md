@@ -1,3 +1,13 @@
+### 2026-09-14 11:50 - Etiquetas: la plantilla se ve entera al abrirla, sin barras de desplazamiento
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (vista previa de los cuatro formatos)
+- **Qué se implementó:**
+  - **Cada plantilla se dibuja a la escala que haga falta para caber entera** en el hueco disponible, por ancho y por alto, en vez de abrirse a tamaño de diseño con barras. Cada formato tiene la suya: medido en un hueco de 660 px, el 30 mL sale al 55 %, el 69 × 51 al 73 % y el circular al 96 %. Nunca se agranda por encima del 100 %, y por debajo del 30 % deja de encoger y el marco vuelve a recorrerse (una ventana muy angosta no debe volver la etiqueta ilegible).
+  - **Se revierte a propósito una decisión anterior**, que era abrir siempre al 100 % y desplazarse. Aquella se tomó porque encoger la etiqueta rompía la edición; pero lo que la rompía era cambiar las medidas, no escalar. Aquí se aplica `transform: scale()` sobre el **lienzo completo**: el ajuste automático de texto sigue midiendo a tamaño de diseño (`scrollWidth`/`clientWidth`, que no ven transformaciones), los textos curvos miden en unidades del SVG y el navegador transforma las coordenadas de los clics. La ficha de 76 × 66 ya venía escalando así.
+  - **Comprobado con edición real, no solo mirando:** sobre un lienzo al 64 %, un clic en el centro en pantalla de la casilla del nombre enfocó esa casilla y lo tecleado llegó al estado del componente. Es justo lo que falló en el intento anterior, así que se probó antes de dar el cambio por bueno.
+  - `useEscalaAjuste` (nuevo) concentra el cálculo y lo usan tanto `Marco30ml` (30 mL, 69 × 51, circular) como el marco de la ficha de 76 × 66. No recalcula al desplazarse: la escala cambiando bajo el cursor sería peor que la barra.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/useEscalaAjuste.ts` (nuevo), `desktop/src/components/etiqueta-30ml/Marco30ml.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 11:50 - Socios: la carpeta de Cynthia organizada igual que la de Armando, y el expediente unificado en un solo sitio
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora técnica + organización de archivos
