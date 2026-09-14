@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 import requests
 
@@ -150,10 +151,20 @@ def tipos_comprobante(*, refrescar: bool = False) -> tuple[list, str]:
     if _TIPOS_CACHE and not refrescar and (time.time() - _TIPOS_CACHE[2]) < 600 and _TIPOS_CACHE[0]:
         return _TIPOS_CACHE[0], _TIPOS_CACHE[1]
     try:
-        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=20)
+        # 90 s: este endpoint devuelve los comprobantes con todas sus líneas, así
+        # que tarda más cuanto más se ha espejado. Con 20 s empezó a dar timeout
+        # apenas pasó de 100 comprobantes y tumbaba el lote entero.
+        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=90)
     except Exception as e:
+        # Si ya se leyó antes en este proceso, seguir con eso: los tipos de
+        # comprobante no cambian en mitad de un lote, y rendirse aquí deja el
+        # reespejo a medias.
+        if _TIPOS_CACHE and _TIPOS_CACHE[0]:
+            return _TIPOS_CACHE[0], ""
         return [], str(e)
     if r.status_code != 200:
+        if _TIPOS_CACHE and _TIPOS_CACHE[0]:
+            return _TIPOS_CACHE[0], ""
         return [], f"HTTP {r.status_code}: {r.text[:200]}"
     d = r.json()
     tipos = d if isinstance(d, list) else (d.get("data") or [])
@@ -402,6 +413,10 @@ def retenciones_visibles_en_alegra(anio: int) -> dict[str, Any]:
         "journals": 0,
         "bills": 0,
         "error": "",
+        # True si la lectura se cortó a mitad: el total es un piso, no la cifra
+        # real. Sin esta marca, una caída de Alegra se leería como «al contador
+        # le faltan $X» y se le mandaría una alerta falsa.
+        "parcial": False,
     }
     try:
         from app.services.alegra import _ALEGRA_BASE, _alegra_headers, creds_alegra_configuradas
@@ -415,14 +430,21 @@ def retenciones_visibles_en_alegra(anio: int) -> dict[str, Any]:
         headers = _alegra_headers()
         inicio = 0
         while True:
-            r = requests.get(
-                f"{_ALEGRA_BASE}/journals",
-                headers=headers,
-                params={"limit": 30, "start": inicio},
-                timeout=40,
-            )
+            r = None
+            for intento in range(3):
+                r = requests.get(
+                    f"{_ALEGRA_BASE}/journals",
+                    headers=headers,
+                    params={"limit": 30, "start": inicio},
+                    timeout=40,
+                )
+                if r.ok:
+                    break
+                # Alegra devuelve 503 esporádicos; reintentar antes de rendirse.
+                time.sleep(2 * (intento + 1))
             if not r.ok:
-                out["error"] = f"GET /journals devolvió {r.status_code}"
+                out["error"] = f"GET /journals devolvió {r.status_code} (página desde {inicio})"
+                out["parcial"] = True
                 break
             lote = r.json()
             if isinstance(lote, dict):

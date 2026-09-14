@@ -207,7 +207,7 @@ def test_cuestionario_plan_y_carpeta(db, tmp_path, monkeypatch):
     assert binance["aplica"] is False and binance["estado"] == "no_aplica"
 
     # Responder: solo lo que cambia lo que se pide
-    dl.guardar_perfil(otra["id"], {"cedula": "1019044839", "cuestionario": {"cripto": True, "declaro_antes": False, "desde": 2023, "otras_plataformas": False, "prestamos_familia": False, "telefono": "no-se-guarda"}})
+    dl.guardar_perfil(otra["id"], {"cedula": "1019044839", "cuestionario": {"cripto": True, "declaro_antes": False, "desde": 2023, "otras_plataformas": False, "inversiones_bolsa": False, "prestamos_familia": False, "telefono": "no-se-guarda"}})
     perfil = dl.obtener_perfil(otra["id"])
     assert "telefono" not in perfil["cuestionario"] and perfil["cuestionario"]["desde"] == 2023
     exp = dl.obtener_expediente(otra["id"])

@@ -536,6 +536,25 @@ def _det_alegra_vs_libro(decls: list[dict]) -> list[dict]:
     if total_libro <= 0:
         return []
     visible = alegra_espejo.retenciones_visibles_en_alegra(anio)
+    if visible.get("parcial"):
+        # Lectura incompleta (Alegra cortó la paginación con un 503): comparar
+        # contra un total a medias acusaría de un faltante que no existe.
+        return [
+            _h(
+                f"alegra_lectura_parcial_{anio}",
+                "alegra",
+                f"La lectura de Alegra quedó incompleta ({anio}): no se puede comparar todavía",
+                resumen=f"{visible.get('error')}. Se alcanzaron a leer {visible.get('journals', 0)} comprobantes.",
+                por_que=(
+                    "Comparar el libro contra una lectura a medias daría un faltante inventado. Se prefiere no "
+                    "afirmar nada antes que mandarle al contador una cifra equivocada."
+                ),
+                accion="Volver a analizar en unos minutos; suele ser un 503 pasajero de Alegra.",
+                periodo=str(anio),
+                severidad="baja",
+                acciones=["resolver", "descartar"],
+            )
+        ]
     if visible.get("error"):
         return [
             _h(
@@ -647,7 +666,10 @@ def _det_retencion_prestamos(decls: list[dict]) -> list[dict]:
         _h(
             "prestamos_retencion_invisible",
             "alegra",
-            f"La retención de los préstamos ({_cop(ret_mes)} desde {primera}) no llegará a Alegra",
+            (
+                f"La retención de los préstamos ({_cop(ret_mes)} desde {primera}) "
+                + ("aún no tiene documento soporte" if espejo_activo else "no llegará a Alegra")
+            ),
             resumen=(
                 f"Hay {len(pendientes)} cuotas por pagar con retención del 7 % sobre intereses, {_cop(total)} en total, "
                 f"a {len(terceros)} prestamistas. La primera vence el {primera} y ese mes suma {_cop(ret_mes)}. "
@@ -661,8 +683,8 @@ def _det_retencion_prestamos(decls: list[dict]) -> list[dict]:
             ),
             accion=(
                 "Antes del primer pago: avisarle al contador que estas retenciones existen y acordar por dónde las va "
-                "a ver (espejo a Alegra, acceso de solo lectura al Libro Mayor, o el detalle mensual que ya envía el "
-                "cron del día 3). Crear en Alegra el ítem INTERES-MUTUO si se va a emitir documento soporte."
+                "a ver (con el espejo encendido el asiento llega solo a Alegra; el detalle por tercero lo manda el cron "
+                "del día 3). Para emitir documento soporte hay que crear antes en Alegra el ítem INTERES-MUTUO."
             ),
             periodo=mes_primera,
             severidad="alta",

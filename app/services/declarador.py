@@ -64,6 +64,7 @@ CATEGORIAS_DOC: list[tuple[str, str]] = [
     ("binance_snapshot", "Snapshot de tenencia Binance"),
     ("binance_api", "Evidencia API Binance"),
     ("otra_plataforma", "Otra plataforma (Littio, MoonPay…)"),
+    ("inversiones", "Inversiones y comisionista de bolsa"),
     ("calculo", "Cálculo / motor de costo"),
     ("informe", "Informe para el contador"),
     ("formulario_ref", "Formulario 210 de referencia"),
@@ -306,6 +307,7 @@ _REGLAS_CATEGORIA: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"accountstatementsnapshot|declaracion_sin_clave", re.I), "binance_snapshot"),
     (re.compile(r"evidencia_binance|binance_api_export|api_export|_trades\.json$|p2p_orders|withdrawals\.json|deposits\.json|spot_trades|spot_balances|fiat_pagos|dividendos_airdrops|conversiones\.csv|depositos\.csv|retiros\.csv", re.I), "binance_api"),
     (re.compile(r"declaracion binance|binance.*\.csv$|[0-9a-f]{8}-[0-9a-f]{4}-.*\.csv$", re.I), "binance_csv"),
+    (re.compile(r"acciones.?(y|&).?valores|accival|bursatil|burs[áa]til|comisionista|certificado.?tributario", re.I), "inversiones"),
     (re.compile(r"littio|moonpay|pexto", re.I), "otra_plataforma"),
     (re.compile(r"formulario\s*210", re.I), "formulario_ref"),
     (re.compile(r"informe|bitacora|leeme|balance_cripto", re.I), "informe"),
@@ -1320,6 +1322,7 @@ CARPETAS_ORGANIZADAS: dict[str, str] = {
     "binance_snapshot": "08_Binance_Tenencia_31_Diciembre",
     "binance_api": "09_Binance_Evidencia_API",
     "otra_plataforma": "10_Otras_Plataformas_Littio",
+    "inversiones": "15_Inversiones_Acciones_y_Valores",
     "calculo": "11_Calculos_Motor_FIFO",
     "informe": "12_Informes",
     "soporte": "13_Soportes_Varios",
@@ -1383,6 +1386,8 @@ def _nombre_legible(doc: dict, indice: int = 0) -> str:
         m2 = re.match(r"^Documento_(\d{4})(\d{2})_", base)
         if m2:
             return f"{m2.group(1)}_Certificados_original_del_banco{ext}"
+    if cat == "inversiones":
+        return nombre  # ya vienen con nombre explícito al organizarlos
     if cat == "otra_plataforma" and re.match(r"^WhatsApp Image", base):
         return f"Littio_Captura_{indice:02d}{ext}"
     if cat == "formulario_ref":
@@ -1530,6 +1535,7 @@ def _escribir_leeme(raiz: str, tercero_id: int) -> None:
         "11_Calculos_Motor_FIFO": "Motor de costo fiscal FIFO, TRM diaria y resultados por año",
         "12_Informes": "Informe técnico y bitácora del proceso de conciliación",
         "13_Soportes_Varios": "Scripts del motor y otros soportes",
+        "15_Inversiones_Acciones_y_Valores": "Certificados de la comisionista por año: retención sobre rendimientos, portafolio de acciones y movimientos bursátiles",
         "14_Referencia_Formulario_210": "Capturas del Formulario 210 en el portal DIAN, para ubicar cada renglón",
     }
     for carpeta in [CARPETA_INFORME, *CARPETAS_ORGANIZADAS.values()]:
@@ -2077,6 +2083,12 @@ CUESTIONARIO: list[dict[str, Any]] = [
         "tipo": "sino",
     },
     {
+        "id": "inversiones_bolsa",
+        "pregunta": "¿Tienes inversiones en una comisionista de bolsa o fondos de inversión colectiva?",
+        "ayuda": "Acciones, CDT o fondos administrados por una comisionista. Sus certificados traen el patrimonio a 31-dic y la retención que ya te practicaron.",
+        "tipo": "sino",
+    },
+    {
         "id": "prestamos_familia",
         "pregunta": "¿Recibiste o diste préstamos a familiares o a McKenna?",
         "ayuda": "Un préstamo no es ingreso, pero hay que poder probarlo (contrato, transferencia, mensaje).",
@@ -2192,6 +2204,17 @@ REQUISITOS: list[dict[str, Any]] = [
         "por_anio": False,
     },
     {
+        "id": "inversiones",
+        "rol": "soporte",
+        "impacto": "Sin él faltan en el patrimonio las acciones y el saldo en la comisionista, y se pierden las retenciones que ya te practicaron (son un menor impuesto a pagar).",
+        "categoria": "inversiones",
+        "titulo": "Certificados de la comisionista de bolsa",
+        "por_que": "El portafolio de acciones y el saldo en caja van al patrimonio bruto a 31-dic; los rendimientos y dividendos son ingreso; y la retención que ya te practicaron se resta del impuesto.",
+        "como": "Acciones & Valores → oficina virtual → Certificados tributarios → año → descargar (llega un ZIP con «Fondos» y «Bursátil»; los PDF vienen con clave: es la cédula).",
+        "aplica": "inversiones_bolsa",
+        "por_anio": True,
+    },
+    {
         "id": "soporte",
         "rol": "soporte",
         "impacto": "Prueba que un préstamo no es ingreso; no cambia el cálculo cripto.",
@@ -2241,6 +2264,8 @@ def cuestionario_inferido(tercero_id: int) -> dict[str, Any]:
         out["desde"] = min(a for a in anios_docs if a >= 2015)
     if "otra_plataforma" in cats:
         out["otras_plataformas"] = True
+    if "inversiones" in cats:
+        out["inversiones_bolsa"] = True
     return out
 
 

@@ -852,6 +852,7 @@ const TITULO_CORTO: Record<string, string> = {
   binance_snapshot: "Tenencia Binance a 31-dic",
   binance_api: "Evidencia API Binance",
   otra_plataforma: "Otras plataformas",
+  inversiones: "Comisionista de bolsa",
   soporte: "Soportes de préstamos",
 };
 
