@@ -133,7 +133,9 @@ def test_importar_carpeta_declarador(db):
     assert a2021["cripto_renta_ordinaria"] == 19860862 and a2021["cripto_eventos"] == 3
     assert a2021["requiere_revision"] is True
     claves = {h["clave"] for h in exp["hallazgos"]}
-    assert {"p2p_2021", "auto_omision_2021", "auto_borrador_2025"} <= claves
+    assert {"p2p_2021", "auto_omision_2021"} <= claves
+    # El borrador de un año solo es pendiente cuando su ventana de presentación ya cerró.
+    assert ("auto_borrador_2025" in claves) == (dl.ventana_f210(2025)["estado"] == "vencida")
 
     # Reimportar no duplica
     r2 = dl.importar_carpeta(socio["id"])

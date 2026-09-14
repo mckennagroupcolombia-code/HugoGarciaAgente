@@ -77,6 +77,15 @@ interface CorreccionAnio {
   mayor_valor: number | null;
   sancion_correccion_10: number;
   uvt_cargada: boolean;
+  intereses_mora: number;
+  intereses_dias: number;
+  intereses_desde: string;
+  total_estimado: number;
+}
+
+interface Tenencia {
+  anios?: Record<string, { cripto_costo_cierre_usd: number; cripto_costo_cierre_cop: number | null; trm_cierre: number | null; detalle: { coin: string; cantidad: number; costo_usd: number }[] }>;
+  mensual?: { mes: string; costo_usd: number; costo_cop: number | null }[];
 }
 
 interface ObjetivoAnio {
@@ -92,6 +101,8 @@ interface ObjetivoAnio {
   trm_cierre: number | null;
   patrimonio_bruto_declarado: number | null;
   correccion: CorreccionAnio | null;
+  presentacion: { estado: string; ventana: string; turno_habitual: string | null; nota: string } | null;
+  bloqueos: string[];
   insumos: { f210: boolean; f210_aplica: boolean; efecto_cripto: boolean; historial: boolean; tenencia: boolean };
 }
 
@@ -99,7 +110,10 @@ interface Objetivo {
   aplica: boolean;
   anios: ObjetivoAnio[];
   resumen: Record<string, number>;
-  totales?: { mayor_valor: number; sancion_correccion_10: number; a_favor_no_reclamable: number };
+  totales?: { mayor_valor: number; sancion_correccion_10: number; intereses_mora: number; total_estimado: number; a_favor_no_reclamable: number };
+  parametros?: { tasa_mora_anual: number; hoy: string; tasa_default: number };
+  calculable: boolean;
+  anios_bloqueados: number[];
   vias: { id: string; titulo: string; detalle: string }[];
 }
 
@@ -109,6 +123,9 @@ interface Requisito {
   titulo: string;
   por_que: string;
   como: string;
+  /** calculo = sin esto no hay cifras · base = F210 sobre el que se corrige · soporte = justifica, no cambia el cálculo */
+  rol: "calculo" | "base" | "soporte";
+  impacto: string;
   por_anio: boolean;
   es_extracto: boolean;
   aplica: boolean;
@@ -202,6 +219,7 @@ interface Expediente {
   perfil: Perfil;
   plan: Plan;
   objetivo: Objetivo;
+  tenencia: Tenencia;
   documentos: Documento[];
   documentos_por_categoria: Record<string, number>;
   categorias: { id: string; label: string }[];
@@ -265,7 +283,7 @@ const SEV_BADGE: Record<string, string> = {
 const ESTADO_ANIO_LABEL: Record<string, string> = {
   sin_datos: "Sin datos",
   presentada: "Presentada",
-  borrador: "Borrador",
+  borrador: "Borrador (en preparación)",
   por_corregir: "Por corregir",
   corregida: "Corregida",
   no_obligado: "No obligado",
@@ -872,11 +890,21 @@ const SITUACION_META: Record<string, { label: string; cls: string }> = {
   presentar_extemporanea: { label: "Presentar (no declarada)", cls: "bg-danger text-white" },
   por_definir: { label: "¿Declaraste?", cls: "bg-surface-hover text-ink" },
   corregida: { label: "Corregida ✓", cls: "bg-emerald-600 text-white" },
-  futura: { label: "Aún no vence", cls: "bg-surface-hover text-muted" },
+  en_preparacion: { label: "En preparación", cls: "bg-sky-600 text-white" },
+  futura: { label: "Aún no abre", cls: "bg-surface-hover text-muted" },
 };
 
+const MES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+function turnoTexto(mmdd: string | null): string | null {
+  if (!mmdd || mmdd.length < 5) return null;
+  const m = Number(mmdd.slice(0, 2));
+  const d = Number(mmdd.slice(3, 5));
+  return Number.isFinite(m) && Number.isFinite(d) ? `${d} de ${MES_LARGO[m - 1]}` : null;
+}
+
 function Insumo({ ok, label, aplica = true }: { ok: boolean; label: string; aplica?: boolean }) {
-  if (!aplica) return <span className="text-[10px] text-muted">{label}: n/a</span>;
+  if (!aplica) return null;
   return (
     <span className={`inline-flex items-center gap-1 text-[10px] font-semibold ${ok ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}>
       <span className={`inline-block h-2 w-2 rounded-full ${ok ? "bg-emerald-600" : "bg-danger"}`} /> {label}
@@ -884,19 +912,116 @@ function Insumo({ ok, label, aplica = true }: { ok: boolean; label: string; apli
   );
 }
 
-function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendienteEstado }: {
+function Tile({ label, valor, sub, tono }: { label: string; valor: string; sub?: string; tono?: "rojo" | "verde" | "neutro" }) {
+  const cls = tono === "rojo" ? "border-danger/40 bg-danger/10" : tono === "verde" ? "border-emerald-600/30 bg-emerald-600/5" : "";
+  return (
+    <div className={`${card} ${cls} px-3 py-2`}>
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-lg font-extrabold tabular-nums text-ink">{valor}</p>
+      {sub && <p className="text-[10px] text-muted">{sub}</p>}
+    </div>
+  );
+}
+
+/** Evolución de la tenencia en Binance (costo fiscal FIFO): barras por mes y tabla moneda × cierre de año. */
+function EvolucionTenencia({ tenencia, anios }: { tenencia: Tenencia; anios: number[] }) {
+  const mensual = tenencia.mensual ?? [];
+  const max = Math.max(1, ...mensual.map((m) => m.costo_cop ?? 0));
+  const porAno = tenencia.anios ?? {};
+  const coins = useMemo(() => {
+    const maxCosto = new Map<string, number>();
+    for (const y of Object.keys(porAno)) for (const d of porAno[y].detalle ?? []) maxCosto.set(d.coin, Math.max(maxCosto.get(d.coin) ?? 0, d.costo_usd));
+    return [...maxCosto.entries()].filter(([, c]) => c >= 50).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([c]) => c);
+  }, [porAno]);
+  if (!mensual.length && !Object.keys(porAno).length) return <p className="text-[11px] text-muted">Sin ledger de Binance importado: no hay tenencia que mostrar.</p>;
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-[11px] font-bold text-ink">Costo fiscal de lo que había en Binance, mes a mes (COP a la TRM de cada cierre)</p>
+        <div className="mt-1 flex h-28 items-stretch gap-px overflow-x-auto rounded-lg border border-border bg-surface px-1 pt-1">
+          {mensual.map((m) => {
+            const h = Math.max(1, Math.round(((m.costo_cop ?? 0) / max) * 100));
+            const dic = m.mes.endsWith("-12");
+            return (
+              <div key={m.mes} className="flex h-full min-w-[6px] flex-1 flex-col items-center justify-end" title={`${m.mes}: ${cop(m.costo_cop)} (${usd(m.costo_usd)})`}>
+                <div className={`w-full rounded-t-sm ${dic ? "bg-accent" : "bg-emerald-600/60"}`} style={{ height: `${h}%`, minHeight: 2 }} />
+                {dic && <span className="mt-0.5 text-[8px] font-bold text-ink">{m.mes.slice(0, 4)}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-0.5 text-[10px] text-muted">Barra oscura = cierre de año (31-dic), que es lo que va al patrimonio bruto. Pasa el cursor para ver el mes.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse text-[11px]">
+          <thead>
+            <tr className="border-b border-border bg-surface text-[10px] uppercase text-muted">
+              <th className="px-2 py-1 text-left font-bold">Al 31-dic</th>
+              {anios.map((y) => (
+                <th key={y} className="px-2 py-1 text-right font-bold tabular-nums">{y}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {coins.map((c) => (
+              <tr key={c} className="border-b border-border/60">
+                <td className="px-2 py-1 font-bold text-ink">{c}</td>
+                {anios.map((y) => {
+                  const d = (porAno[String(y)]?.detalle ?? []).find((x) => x.coin === c);
+                  return (
+                    <td key={y} className="px-2 py-1 text-right tabular-nums text-ink-secondary" title={d ? `costo ${usd(d.costo_usd)}` : ""}>
+                      {d ? d.cantidad.toLocaleString("es-CO", { maximumFractionDigits: 4 }) : <span className="text-muted">—</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            <tr className="bg-surface font-bold">
+              <td className="px-2 py-1 text-ink">Costo fiscal total</td>
+              {anios.map((y) => {
+                const a = porAno[String(y)];
+                return (
+                  <td key={y} className="px-2 py-1 text-right tabular-nums text-ink" title={a ? `${usd(a.cripto_costo_cierre_usd)} · TRM ${a.trm_cierre ?? "—"}` : ""}>
+                    {a ? cop(a.cripto_costo_cierre_cop) : "—"}
+                  </td>
+                );
+              })}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-muted">
+        Cantidades = lotes vivos según el ledger de Binance (FIFO, stablecoins a 1 USD). Solo cuenta lo que estaba EN Binance a esa fecha; lo que estuviera en Littio o en billetera propia se suma aparte.
+        El motor coincide con el snapshot oficial del 31-dic-2025 (BTC 0,1599 vs 0,1597).
+      </p>
+    </div>
+  );
+}
+
+function MetaDeclaraciones({ objetivo, tenencia, anios, onEstadoAnio, onSubirF210, onIr, onTasa, pendienteEstado }: {
   objetivo: Objetivo;
+  tenencia: Tenencia;
+  anios: number[];
   onEstadoAnio: (ano: number, estado: string) => void;
   onSubirF210: (ano: number) => void;
   onIr: (p: PasoId) => void;
+  onTasa: (tasa: number) => void;
   pendienteEstado: boolean;
 }) {
   const [verVias, setVerVias] = useState(false);
+  const [verTenencia, setVerTenencia] = useState(false);
+  const [tasaTxt, setTasaTxt] = useState<string>(() => String(Math.round((objetivo.parametros?.tasa_mora_anual ?? 0.23) * 1000) / 10));
+  useEffect(() => {
+    setTasaTxt(String(Math.round((objetivo.parametros?.tasa_mora_anual ?? 0.23) * 1000) / 10));
+  }, [objetivo.parametros?.tasa_mora_anual]);
   if (!objetivo.aplica) return null;
-  const r = objetivo.resumen;
-  const nCorregir = (r.corregir ?? 0) + (r.corregir_sin_calculo ?? 0) + (r.presentada_sin_efecto ?? 0);
-  const nPresentar = (r.presentar ?? 0) + (r.presentar_extemporanea ?? 0);
-  const nDefinir = r.por_definir ?? 0;
+  const t = objetivo.totales;
+  const corregir = objetivo.anios.filter((a) => a.situacion.startsWith("corregir") || a.situacion === "presentada_sin_efecto");
+  const conMayor = objetivo.anios.filter((a) => (a.correccion?.mayor_valor ?? 0) > 0);
+  const ultimoCierre = [...objetivo.anios].reverse().find((a) => a.situacion !== "en_preparacion" && a.situacion !== "futura" && a.cripto_costo_cierre_cop !== null);
+  const enPrep = objetivo.anios.find((a) => a.situacion === "en_preparacion");
+  const turno = turnoTexto(enPrep?.presentacion?.turno_habitual ?? null);
+
   return (
     <div className={`${card} overflow-hidden border-accent/40`}>
       <div className="flex flex-wrap items-start justify-between gap-2 bg-accent/10 px-3 py-2.5">
@@ -905,18 +1030,59 @@ function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendient
             <Icon name="target" size={16} weight="bold" className="text-accent" /> La meta: declarar los criptoactivos que nunca se incluyeron
           </p>
           <p className="text-[11px] text-ink-secondary">
-            Cada documento del plan sirve para esto. Los F210 que ya existen se presentaron <b>sin</b> los criptoactivos: no son la meta, son la base de la corrección.
-            {nCorregir > 0 && <> <b className="text-danger">{nCorregir} año{nCorregir !== 1 ? "s" : ""} por corregir</b>.</>}
-            {nPresentar > 0 && <> <b className="text-danger">{nPresentar} por presentar</b>.</>}
-            {nDefinir > 0 && <> <b>{nDefinir} sin definir</b> si hubo declaración.</>}
+            Los F210 ya presentados van sin criptoactivos. Hay que corregir {corregir.length} año{corregir.length !== 1 ? "s" : ""} ({corregir.map((a) => a.ano).join(", ")})
+            {conMayor.length > 0 && <>; en {conMayor.map((a) => a.ano).join(" y ")} la corrección genera impuesto adicional</>}.
+            {enPrep && <> La de {enPrep.ano} no falta: está en preparación y se presenta ahora.</>}
           </p>
         </div>
-        <button type="button" className={btnSec} onClick={() => setVerVias((v) => !v)}>
-          <Icon name="book" size={13} weight="bold" /> {verVias ? "Ocultar vías" : "¿Por qué vía se hace?"}
-        </button>
+        <div className="flex flex-wrap gap-1.5">
+          <button type="button" className={btnSec} onClick={() => setVerTenencia((v) => !v)}>
+            <Icon name="chartBar" size={13} weight="bold" /> {verTenencia ? "Ocultar tenencia" : "Evolución de la tenencia"}
+          </button>
+          <button type="button" className={btnSec} onClick={() => setVerVias((v) => !v)}>
+            <Icon name="book" size={13} weight="bold" /> {verVias ? "Ocultar vías" : "¿Por qué vía se hace?"}
+          </button>
+        </div>
       </div>
+
+      {/* Veredicto: ¿se puede calcular con lo cargado? */}
+      <div className={`px-3 py-2 text-xs font-semibold ${objetivo.calculable ? "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400" : "bg-danger/10 text-danger"}`}>
+        {objetivo.calculable
+          ? "Con lo que ya está cargado el cálculo está completo para todos los años: activos omitidos a cada 31 de diciembre, efecto en renta, impuesto, sanción e intereses. Lo que falta en el mapa de abajo es soporte, no bloquea."
+          : `Falta el historial de Binance de ${objetivo.anios_bloqueados.join(", ")}: sin él no se puede calcular el efecto cripto de ese año.`}
+      </div>
+
+      {/* Cifras grandes */}
+      <div className="grid gap-2 px-3 py-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Tile
+          label={`Activos omitidos al 31-dic-${ultimoCierre?.ano ?? "—"}`}
+          valor={cop(ultimoCierre?.cripto_costo_cierre_cop ?? null)}
+          sub={ultimoCierre ? `costo fiscal ${usd(ultimoCierre.cripto_costo_cierre_usd)} · no estaba en el patrimonio bruto declarado` : undefined}
+          tono="rojo"
+        />
+        <Tile label="Mayor impuesto (todos los años)" valor={cop(t?.mayor_valor ?? 0)} sub={conMayor.map((a) => `${a.ano}: ${cop(a.correccion?.mayor_valor)}`).join(" · ") || "ningún año paga más"} tono="rojo" />
+        <Tile label="Sanción por corrección (10 %)" valor={cop(t?.sancion_correccion_10 ?? 0)} sub="Art. 644 ET, antes de emplazamiento" />
+        <Tile label="Intereses de mora (estimado)" valor={cop(t?.intereses_mora ?? 0)} sub={`al ${Math.round((objetivo.parametros?.tasa_mora_anual ?? 0) * 1000) / 10} % anual, desde cada vencimiento hasta hoy`} />
+        <Tile label="Total estimado si se corrige hoy" valor={cop(t?.total_estimado ?? 0)} sub={t && t.a_favor_no_reclamable > 0 ? `sin contar ${cop(t.a_favor_no_reclamable)} a favor de 2022 (Art. 589)` : undefined} tono="rojo" />
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-1.5 text-[10px] text-muted">
+        <span>Tasa de mora usada (Art. 635 ET: usura de consumo menos 2 puntos, la publica la Superfinanciera cada mes):</span>
+        <input className="w-16 rounded border border-border bg-surface-panel px-1 py-0.5 text-right text-[11px] text-ink" value={tasaTxt} onChange={(e) => setTasaTxt(e.target.value)} />
+        <span>% anual</span>
+        <button type="button" className={btnSec} disabled={pendienteEstado} onClick={() => { const v = Number(tasaTxt.replace(",", ".")); if (Number.isFinite(v) && v > 0 && v < 100) onTasa(v / 100); }}>
+          Recalcular
+        </button>
+        <span>· los intereses definitivos los da el liquidador de la DIAN.</span>
+      </div>
+
+      {verTenencia && (
+        <div className="border-t border-border px-3 py-3">
+          <EvolucionTenencia tenencia={tenencia} anios={anios} />
+        </div>
+      )}
+
       {verVias && (
-        <ul className="grid gap-2 border-b border-border px-3 py-3 sm:grid-cols-2">
+        <ul className="grid gap-2 border-t border-border px-3 py-3 sm:grid-cols-2">
           {objetivo.vias.map((v) => (
             <li key={v.id} className="rounded-lg border border-border bg-surface-panel px-2.5 py-2">
               <p className="text-xs font-bold text-ink">{v.titulo}</p>
@@ -926,88 +1092,46 @@ function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendient
           <li className="text-[10px] text-muted sm:col-span-2">La vía concreta y la sanción la define el contador; aquí solo se deja claro qué corresponde a cada año.</li>
         </ul>
       )}
-      <div className="overflow-x-auto">
+
+      {/* Año por año */}
+      <div className="overflow-x-auto border-t border-border">
         <table className="min-w-full border-collapse text-xs">
           <thead>
             <tr className="border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted">
               <th className="px-3 py-2 text-left font-bold">Año</th>
-              <th className="px-3 py-2 text-left font-bold">Lo que la DIAN tiene</th>
-              <th className="px-3 py-2 text-right font-bold">Efecto cripto del año</th>
-              <th className="px-3 py-2 text-right font-bold">Activo omitido a 31-dic</th>
-              <th className="px-3 py-2 text-right font-bold">Impuesto: pagado → corregido</th>
-              <th className="px-3 py-2 text-left font-bold">Insumos</th>
               <th className="px-3 py-2 text-left font-bold">Qué hay que hacer</th>
+              <th className="px-3 py-2 text-right font-bold">Activo omitido a 31-dic</th>
+              <th className="px-3 py-2 text-right font-bold">Efecto cripto del año</th>
+              <th className="px-3 py-2 text-right font-bold">Impuesto: pagado → corregido</th>
+              <th className="px-3 py-2 text-right font-bold">Costo de corregir hoy</th>
             </tr>
           </thead>
           <tbody>
             {objetivo.anios.map((a) => {
               const st = SITUACION_META[a.situacion] ?? { label: a.situacion, cls: "bg-surface-hover text-ink" };
-              const dian = a.situacion === "futura"
-                ? "Todavía no se presenta"
-                : a.situacion === "presentar_extemporanea"
-                  ? "Nada: no se declaró"
-                  : a.situacion === "por_definir"
-                    ? "Sin saber"
-                    : a.situacion === "presentar"
-                      ? "Borrador, sin presentar"
-                      : a.situacion === "corregida"
-                        ? "F210 corregido con cripto"
-                        : "F210 presentado SIN cripto";
+              const c = a.correccion;
+              const faltanInsumos = [
+                !a.insumos.f210 && a.insumos.f210_aplica ? "F210 presentado" : null,
+                !a.insumos.historial && a.situacion !== "futura" ? "historial Binance" : null,
+                !a.insumos.efecto_cripto ? "efecto calculado" : null,
+                !a.insumos.tenencia ? "snapshot 31-dic" : null,
+              ].filter(Boolean) as string[];
               return (
-                <tr key={a.ano} className="border-b border-border align-top last:border-b-0">
+                <tr key={a.ano} className={`border-b border-border align-top last:border-b-0 ${a.situacion === "en_preparacion" ? "bg-sky-500/5" : ""}`}>
                   <td className="px-3 py-2 font-bold tabular-nums text-ink">{a.ano}</td>
-                  <td className="px-3 py-2 text-ink-secondary">{dian}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">
-                    {a.cripto_total === null ? <span className="text-danger">sin calcular</span> : cop(a.cripto_total)}
-                    {a.cripto_total !== null && <p className="text-[10px] text-muted">→ renglón 74 (no laborales)</p>}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">
-                    {a.cripto_costo_cierre_cop === null ? (
-                      <span className="text-muted">—</span>
-                    ) : (
-                      <>
-                        {cop(a.cripto_costo_cierre_cop)}
-                        <p className="text-[10px] text-muted">
-                          {usd(a.cripto_costo_cierre_usd)} a costo · TRM {a.trm_cierre?.toLocaleString("es-CO") ?? "—"} → renglón 29
-                        </p>
-                        {a.patrimonio_bruto_declarado !== null && <p className="text-[10px] text-muted">declarado {cop(a.patrimonio_bruto_declarado)}</p>}
-                      </>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">
-                    {a.correccion ? (
-                      a.correccion.uvt_cargada ? (
-                        <>
-                          {cop(a.correccion.impuesto_pagado ?? 0)} → {cop(a.correccion.impuesto_corregido)}
-                          {a.correccion.mayor_valor !== null && a.correccion.mayor_valor > 0 && (
-                            <p className="text-[10px] font-bold text-danger">
-                              +{cop(a.correccion.mayor_valor)} · sanción 10 % {cop(a.correccion.sancion_correccion_10)}
-                            </p>
-                          )}
-                          {a.correccion.mayor_valor !== null && a.correccion.mayor_valor < 0 && (
-                            <p className="text-[10px] text-muted">a favor {cop(-a.correccion.mayor_valor)} (ver vía)</p>
-                          )}
-                          {a.correccion.mayor_valor === 0 && <p className="text-[10px] text-emerald-700 dark:text-emerald-400">sin mayor impuesto</p>}
-                          <p className="text-[10px] text-muted">RLG {cop(a.correccion.rlg_declarada)} → {cop(a.correccion.rlg_corregida)}</p>
-                        </>
-                      ) : (
-                        <span className="text-[10px] text-muted">UVT {a.ano} no cargada</span>
-                      )
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-col gap-0.5">
-                      <Insumo ok={a.insumos.f210} label="F210 presentado" aplica={a.insumos.f210_aplica} />
-                      <Insumo ok={a.insumos.historial} label="Historial Binance" aplica={a.situacion !== "futura" || a.insumos.historial} />
-                      <Insumo ok={a.insumos.efecto_cripto} label="Efecto calculado (FIFO)" />
-                      <Insumo ok={a.insumos.tenencia} label="Tenencia a 31-dic" />
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
+                  <td className="max-w-[340px] px-3 py-2">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${st.cls}`}>{st.label}</span>
-                    <p className="mt-1 max-w-[320px] text-[11px] leading-snug text-ink-secondary">{a.accion}</p>
+                    <p className="mt-1 text-[11px] leading-snug text-ink-secondary">{a.accion}</p>
+                    {a.situacion === "en_preparacion" && a.presentacion && (
+                      <p className="mt-1 text-[10px] text-ink-secondary">
+                        Ventana: {a.presentacion.ventana}.{turno ? ` Tu turno en años anteriores fue el ${turno}.` : ""} {a.presentacion.nota}
+                      </p>
+                    )}
+                    {a.bloqueos.length > 0 && <p className="mt-1 text-[10px] font-bold text-danger">Bloquea el cálculo: falta {a.bloqueos.join(", ")}.</p>}
+                    {a.bloqueos.length === 0 && faltanInsumos.length > 0 && (
+                      <p className="mt-1 text-[10px] text-muted">Soporte pendiente (no bloquea): {faltanInsumos.join(", ")}.</p>
+                    )}
+                    {a.bloqueos.length === 0 && faltanInsumos.length === 0 && <p className="mt-1 text-[10px]"><Insumo ok label="insumos completos" /></p>}
                     <div className="mt-1 flex flex-wrap gap-1">
                       {a.situacion === "por_definir" && (
                         <>
@@ -1018,10 +1142,56 @@ function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendient
                       {a.situacion === "presentar_extemporanea" && (
                         <button type="button" className={btnSec} disabled={pendienteEstado} onClick={() => onEstadoAnio(a.ano, "sin_datos")}>Sí presenté (deshacer)</button>
                       )}
-                      {(a.situacion === "corregir" || a.situacion === "corregir_sin_calculo" || a.situacion === "presentar" || a.situacion === "presentada_sin_efecto") && (
+                      {(a.situacion.startsWith("corregir") || a.situacion === "presentar" || a.situacion === "presentada_sin_efecto" || a.situacion === "en_preparacion") && (
                         <button type="button" className={btnSec} onClick={() => onIr("declarador")}>Ver cifras del año</button>
                       )}
                     </div>
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {a.cripto_costo_cierre_cop === null ? (
+                      <span className="text-muted">—</span>
+                    ) : (
+                      <>
+                        <span className="font-bold">{cop(a.cripto_costo_cierre_cop)}</span>
+                        <p className="text-[10px] text-muted">{usd(a.cripto_costo_cierre_usd)} · TRM {a.trm_cierre?.toLocaleString("es-CO") ?? "—"} → renglón 29</p>
+                        {a.patrimonio_bruto_declarado !== null && <p className="text-[10px] text-muted">declarado: {cop(a.patrimonio_bruto_declarado)}</p>}
+                      </>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {a.cripto_total === null ? <span className="text-danger">sin calcular</span> : <span className="font-bold">{cop(a.cripto_total)}</span>}
+                    {a.cripto_total !== null && <p className="text-[10px] text-muted">→ renglón 74</p>}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {c ? (
+                      c.uvt_cargada ? (
+                        <>
+                          {cop(c.impuesto_pagado ?? 0)} → <span className="font-bold">{cop(c.impuesto_corregido)}</span>
+                          <p className="text-[10px] text-muted">renta líquida {cop(c.rlg_declarada)} → {cop(c.rlg_corregida)}</p>
+                          {c.mayor_valor !== null && c.mayor_valor < 0 && <p className="text-[10px] text-muted">queda a favor {cop(-c.mayor_valor)} (Art. 589, ver vía)</p>}
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-muted">UVT {a.ano} no cargada</span>
+                      )
+                    ) : a.situacion === "en_preparacion" ? (
+                      <span className="text-[10px] text-muted">se liquida en la declaración que se presenta ahora</span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums text-ink">
+                    {c && (c.mayor_valor ?? 0) > 0 ? (
+                      <>
+                        <span className="font-bold text-danger">{cop(c.total_estimado)}</span>
+                        <p className="text-[10px] text-muted">
+                          impuesto {cop(c.mayor_valor)} + sanción {cop(c.sancion_correccion_10)} + intereses {cop(c.intereses_mora)} ({c.intereses_dias} días desde {c.intereses_desde})
+                        </p>
+                      </>
+                    ) : c ? (
+                      <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">$ 0 · sin mayor impuesto</span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </td>
                 </tr>
               );
@@ -1029,15 +1199,6 @@ function MetaDeclaraciones({ objetivo, onEstadoAnio, onSubirF210, onIr, pendient
           </tbody>
         </table>
       </div>
-      {objetivo.totales && (objetivo.totales.mayor_valor > 0 || objetivo.totales.a_favor_no_reclamable > 0) && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface px-3 py-2 text-[11px]">
-          <span className="font-bold text-ink">Total estimado de las correcciones:</span>
-          <span className="text-ink">mayor impuesto <b className="text-danger">{cop(objetivo.totales.mayor_valor)}</b></span>
-          <span className="text-ink">+ sanción por corrección (Art. 644, 10 %) <b>{cop(objetivo.totales.sancion_correccion_10)}</b></span>
-          {objetivo.totales.a_favor_no_reclamable > 0 && <span className="text-muted">· a favor en años con pérdida: {cop(objetivo.totales.a_favor_no_reclamable)} (solo si el contador confirma que aún se puede pedir, Art. 589)</span>}
-          <span className="text-muted">· intereses de mora aparte, con el liquidador de la DIAN</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -1249,6 +1410,7 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [subiendo, setSubiendo] = useState<string | null>(null);
   const [compararRef, setCompararRef] = useState(false);
+  const [verCompletos, setVerCompletos] = useState(false);
   const [verCargados, setVerCargados] = useState(false);
   const [verNoAplican, setVerNoAplican] = useState(false);
   const [abiertoFalta, setAbiertoFalta] = useState<string | null>(null);
@@ -1264,6 +1426,14 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
       return api.post(`/api/socios/${terceroId}/perfil`, { cuestionario: { omitidos: [...set] } });
     },
     onSuccess: onChanged,
+  });
+  const tasa = useMutation({
+    mutationFn: (t: number) => api.post<{ error?: string }>(`/api/socios/${terceroId}/perfil`, { cuestionario: { tasa_mora_anual: t } }),
+    onSuccess: (r) => {
+      if (r.error) return setMsg({ tipo: "error", texto: r.error });
+      onChanged();
+    },
+    onError: (e: Error) => setMsg({ tipo: "error", texto: e.message }),
   });
   const rango = useMutation({
     mutationFn: (v: { docId: number; hasta: number }) => api.patch<{ error?: string }>(`/api/socios/${terceroId}/documentos/${v.docId}`, { ano_hasta: v.hasta }),
@@ -1348,7 +1518,11 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
   const faltaPorReq = useMemo(() => {
     const m = new Map<string, Faltante[]>();
     for (const f of resumen.faltantes) m.set(f.req.id, [...(m.get(f.req.id) ?? []), f]);
-    return aplicables.filter((r) => m.has(r.id)).map((r) => ({ req: r, items: m.get(r.id)! }));
+    const peso = (r: Requisito) => (r.rol === "calculo" ? 0 : r.rol === "base" ? 1 : 2);
+    return aplicables
+      .filter((r) => m.has(r.id))
+      .sort((a, b) => peso(a) - peso(b))
+      .map((r) => ({ req: r, items: m.get(r.id)! }));
   }, [resumen.faltantes, aplicables]);
 
   const selReq = sel ? plan.requisitos.find((r) => r.id === sel.reqId) ?? null : null;
@@ -1365,7 +1539,10 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
       {/* 0. Meta: qué se presenta o corrige por año */}
       <MetaDeclaraciones
         objetivo={exp.objetivo}
-        pendienteEstado={estadoAnio.isPending}
+        tenencia={exp.tenencia}
+        anios={plan.anios}
+        onTasa={(t) => tasa.mutate(t)}
+        pendienteEstado={estadoAnio.isPending || tasa.isPending}
         onEstadoAnio={(ano, estado) => estadoAnio.mutate({ ano, estado })}
         onSubirF210={(ano) => pedirArchivo("declaracion_f210", ano)}
         onIr={onIr}
@@ -1409,6 +1586,9 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500" /> incompleto</span>
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-danger" /> falta</span>
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-surface-hover" /> no se exige aún</span>
+            <label className="inline-flex cursor-pointer items-center gap-1 font-semibold text-ink">
+              <input type="checkbox" checked={verCompletos} onChange={(e) => setVerCompletos(e.target.checked)} /> desplegar los completos
+            </label>
             {ref && (
               <label className="inline-flex cursor-pointer items-center gap-1 font-semibold text-ink">
                 <input type="checkbox" checked={compararRef} onChange={(e) => setCompararRef(e.target.checked)} /> comparar con {ref.nombre}
@@ -1443,10 +1623,29 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
                   <tr key={r.id} className="border-b border-border last:border-b-0">
                     <th scope="row" className="sticky left-0 z-10 w-[240px] min-w-[240px] max-w-[240px] bg-surface-panel px-3 py-2 text-left align-top" title={r.titulo}>
                       <p className="text-xs font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</p>
-                      <p className={`text-[10px] font-bold ${filaOk ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}>{resumenFila}</p>
-                      <p className="text-[10px] font-normal leading-snug text-muted">{r.por_que}</p>
+                      <p className={`text-[10px] font-bold ${filaOk ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}>
+                        {resumenFila}
+                        {!filaOk && (
+                          <span className={`ml-1 rounded px-1 py-px text-[9px] font-bold ${r.rol === "calculo" ? "bg-danger text-white" : "bg-surface-hover text-muted"}`}>
+                            {r.rol === "calculo" ? "bloquea el cálculo" : "soporte, no bloquea"}
+                          </span>
+                        )}
+                      </p>
+                      {!filaOk && <p className="text-[10px] font-normal leading-snug text-muted">{r.por_que}</p>}
                     </th>
-                    {r.por_anio ? (
+                    {filaOk && !verCompletos ? (
+                      <td colSpan={anios.length} className="px-1.5 py-2 align-top">
+                        <button
+                          type="button"
+                          onClick={() => setVerCompletos(true)}
+                          className="inline-flex items-center gap-2 rounded-md bg-emerald-600/15 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-600/25 dark:text-emerald-300"
+                          title="Desplegar año por año"
+                        >
+                          ✓ Completo{r.por_anio ? ` · ${exigidos[0]?.ano}–${exigidos[exigidos.length - 1]?.ano}` : ""} · {r.mios} archivo{r.mios !== 1 ? "s" : ""}
+                          {compararRef && ref ? ` · ${ref.nombre}: ${r.ref}` : ""}
+                        </button>
+                      </td>
+                    ) : r.por_anio ? (
                       anios.map((ano) => {
                         const a = porAno.get(ano);
                         const seleccionada = sel?.reqId === r.id && sel.ano === ano;
@@ -1579,6 +1778,13 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
           <Icon name="warning" size={14} weight="bold" className={resumen.faltantes.length ? "text-danger" : "text-emerald-600"} />
           {resumen.faltantes.length ? `Qué falta y cómo conseguirlo (${resumen.faltantes.length})` : "No falta nada"}
         </h4>
+        {faltaPorReq.length > 0 && (
+          <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${faltaPorReq.some((g) => g.req.rol === "calculo") ? "bg-danger/10 text-danger" : "bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"}`}>
+            {faltaPorReq.some((g) => g.req.rol === "calculo")
+              ? "Hay documentos que bloquean el cálculo (primero en la lista). El resto es soporte."
+              : "Nada de lo que falta bloquea el cálculo: son soportes para justificar origen de fondos y cifras del resto del F210. Se pueden conseguir en paralelo a la corrección."}
+          </p>
+        )}
         {faltaPorReq.length === 0 && (
           <p className="rounded-lg bg-emerald-600/10 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
             Todos los documentos que pide tu caso están cargados. Sigue con el siguiente paso.
@@ -1587,11 +1793,16 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
         {faltaPorReq.map(({ req: r, items }, i) => {
           const open = abiertoFalta === r.id || (abiertoFalta === null && i === 0);
           return (
-            <div key={r.id} className={`${card} border-danger/30`}>
+            <div key={r.id} className={`${card} ${r.rol === "calculo" ? "border-danger/50" : "border-amber-600/30"}`}>
               <button type="button" className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-left" onClick={() => setAbiertoFalta(open ? "" : r.id)}>
-                <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-bold text-white">{i + 1}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${r.rol === "calculo" ? "bg-danger" : "bg-amber-500"}`}>{i + 1}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-ink">{TITULO_CORTO[r.id] ?? r.titulo}</span>
+                  <span className="block text-sm font-bold text-ink">
+                    {TITULO_CORTO[r.id] ?? r.titulo}
+                    <span className={`ml-2 rounded px-1.5 py-px text-[9px] font-bold ${r.rol === "calculo" ? "bg-danger text-white" : "bg-surface-hover text-muted"}`}>
+                      {r.rol === "calculo" ? "bloquea el cálculo" : "soporte, no bloquea"}
+                    </span>
+                  </span>
                   <span className="block text-[11px] text-danger">
                     {r.por_anio
                       ? `Falta: ${items.map((f) => (f.req.es_extracto && f.mios > 0 ? `${f.ano} (${mesesTexto(f.meses)})` : String(f.ano))).join(" · ")}`
@@ -1603,6 +1814,7 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
               {open && (
                 <div className="space-y-2.5 border-t border-border px-3 py-3">
                   <p className="text-xs text-ink-secondary"><b className="text-ink">Para qué sirve:</b> {r.por_que}</p>
+                  {r.impacto && <p className="text-xs text-ink-secondary"><b className="text-ink">Si no se consigue:</b> {r.impacto}</p>}
                   <p className="text-xs text-ink-secondary"><b className="text-ink">Cómo conseguirlo:</b> {r.como}</p>
                   {r.es_extracto && items.some((f) => f.sinImportar > 0) && (
                     <p className="rounded-lg bg-amber-600/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300">

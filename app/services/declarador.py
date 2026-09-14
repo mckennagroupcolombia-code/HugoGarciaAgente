@@ -38,7 +38,7 @@ import re
 import subprocess
 import sqlite3
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 # Misma base que el Libro Mayor (cc_*): usar el mismo módulo garantiza que en
@@ -178,6 +178,9 @@ def _ensure() -> None:
         for col in ("cripto_costo_cierre_usd", "cripto_costo_cierre_cop", "trm_cierre"):
             if col not in cols_anios:
                 con.execute(f"ALTER TABLE dl_anios ADD COLUMN {col} REAL")
+        cols_exp = {r[1] for r in con.execute("PRAGMA table_info(dl_expedientes)").fetchall()}
+        if "tenencia_json" not in cols_exp:
+            con.execute("ALTER TABLE dl_expedientes ADD COLUMN tenencia_json TEXT NOT NULL DEFAULT '{}'")
         cols = {r[1] for r in con.execute("PRAGMA table_info(dl_expedientes)").fetchall()}
         if "cuestionario_json" not in cols:
             # Respuestas del cuestionario inicial (¿tiene cripto?, ¿declaró antes?,
@@ -956,6 +959,15 @@ def tenencia_fifo_por_anio(ruta_ledger: str, ruta_trm: str) -> dict[int, dict[st
     lotes: dict[str, deque] = defaultdict(deque)
     out: dict[int, dict[str, Any]] = {}
 
+    mensual: list[dict[str, Any]] = []
+
+    def _trm_fin_de(y: int, m: int) -> float | None:
+        for dd in (31, 30, 29, 28):
+            v = trm.get(f"{y}-{m:02d}-{dd:02d}")
+            if v:
+                return v
+        return None
+
     def foto(ano: int) -> None:
         total = 0.0
         det = []
@@ -966,19 +978,31 @@ def tenencia_fifo_por_anio(ruta_ledger: str, ruta_trm: str) -> dict[int, dict[st
                 total += c
                 det.append({"coin": coin, "cantidad": round(q, 6), "costo_usd": round(c, 2)})
         det.sort(key=lambda x: -x["costo_usd"])
-        t = trm.get(f"{ano}-12-31") or trm.get(f"{ano}-12-30") or trm.get(f"{ano}-12-29")
+        t = _trm_fin_de(ano, 12)
         out[ano] = {
             "cripto_costo_cierre_usd": round(total, 2),
             "trm_cierre": t,
             "cripto_costo_cierre_cop": round(total * t) if t else None,
-            "detalle": det[:8],
+            "detalle": det,
         }
 
+    def foto_mes(y: int, m: int) -> None:
+        total = sum(l[0] * l[1] for dq in lotes.values() for l in dq if l[0] > 1e-6)
+        t = _trm_fin_de(y, m)
+        mensual.append({"mes": f"{y}-{m:02d}", "costo_usd": round(total, 2), "costo_cop": round(total * t) if t else None})
+
     ano_corte = primer
+    mes_corte = int(filas[0][0][5:7])
     for t, coin, ch, px in filas:
-        while int(t[:4]) > ano_corte:
-            foto(ano_corte)
-            ano_corte += 1
+        y, m = int(t[:4]), int(t[5:7])
+        while (ano_corte, mes_corte) < (y, m):
+            foto_mes(ano_corte, mes_corte)
+            if mes_corte == 12:
+                foto(ano_corte)
+                ano_corte += 1
+                mes_corte = 1
+            else:
+                mes_corte += 1
         if ch > 0:
             lotes[coin].append([ch, px])
         elif ch < 0:
@@ -991,8 +1015,14 @@ def tenencia_fifo_por_anio(ruta_ledger: str, ruta_trm: str) -> dict[int, dict[st
                 if l[0] <= 1e-12:
                     lotes[coin].popleft()
     while ano_corte <= ultimo:
-        foto(ano_corte)
-        ano_corte += 1
+        foto_mes(ano_corte, mes_corte)
+        if mes_corte == 12:
+            foto(ano_corte)
+            ano_corte += 1
+            mes_corte = 1
+        else:
+            mes_corte += 1
+    out["_mensual"] = mensual  # type: ignore[index]
     return out
 
 
@@ -1147,9 +1177,17 @@ def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, A
 
     tenencias = 0
     if calc:
-        for ano, campos in tenencia_fifo_por_anio(os.path.join(calc, "ledger_final.csv"), os.path.join(calc, "trm_diaria.csv")).items():
+        ten = tenencia_fifo_por_anio(os.path.join(calc, "ledger_final.csv"), os.path.join(calc, "trm_diaria.csv"))
+        mensual = ten.pop("_mensual", [])
+        for ano, campos in ten.items():
             actualizar_anio(tercero_id, ano, {k: campos[k] for k in ("cripto_costo_cierre_usd", "cripto_costo_cierre_cop", "trm_cierre")})
             tenencias += 1
+        if ten:
+            with _conn() as con:
+                con.execute(
+                    "UPDATE dl_expedientes SET tenencia_json=? WHERE tercero_id=?",
+                    (json.dumps({"anios": {str(k): v for k, v in ten.items()}, "mensual": mensual}, ensure_ascii=False), int(tercero_id)),
+                )
 
     _sembrar_hallazgos_automaticos(tercero_id)
     return {
@@ -1194,7 +1232,7 @@ def _sembrar_hallazgos_automaticos(tercero_id: int) -> None:
                 },
                 origen="auto",
             )
-        if a.get("estado") == "borrador":
+        if a.get("estado") == "borrador" and ventana_f210(ano)["estado"] == "vencida":
             crear_hallazgo(
                 tercero_id,
                 {
@@ -1394,6 +1432,8 @@ CUESTIONARIO_CLAVES = {q["id"] for q in CUESTIONARIO}
 REQUISITOS: list[dict[str, Any]] = [
     {
         "id": "f210",
+        "rol": "base",
+        "impacto": "Sin él no se sabe qué se declaró; la corrección se arma sobre ese F210.",
         "categoria": "declaracion_f210",
         "titulo": "Declaración de renta ya presentada (Formulario 210), si la hubo",
         "por_que": "No es la meta, es el punto de partida: lo que la DIAN ya tiene de ese año SIN los criptoactivos. Sobre ese F210 se arma la corrección que los incluye. Si ese año no presentaste declaración, márcalo así en la casilla y el año pasa a «presentar» en vez de «corregir».",
@@ -1403,6 +1443,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "exogena",
+        "rol": "soporte",
+        "impacto": "No cambia el cálculo cripto: sirve para anticipar qué le va a cruzar la DIAN.",
         "categoria": "exogena",
         "titulo": "Información exógena (lo que terceros reportaron de ti)",
         "por_que": "Bancos, McKenna, exchanges y comisionistas le cuentan a la DIAN tus movimientos; aquí se ve qué le van a cruzar.",
@@ -1412,6 +1454,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "extracto_banco",
+        "rol": "soporte",
+        "impacto": "Justifica el origen de los fondos de cada compra; no cambia el cálculo.",
         "categoria": "extracto_banco",
         "titulo": "Extractos de cuentas de ahorro / corriente",
         "por_que": "Justifican de dónde salió la plata de cada compra y a dónde llegó cada venta. Se cargan en el paso «Extractos personales», mes a mes.",
@@ -1422,6 +1466,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "extracto_tarjeta",
+        "rol": "soporte",
+        "impacto": "Justifica origen de fondos (avances) y la deuda a 31-dic; no cambia el cálculo cripto.",
         "categoria": "extracto_tarjeta",
         "titulo": "Extractos de tarjetas de crédito",
         "por_que": "Compras en Amazon o cripto con tarjeta y avances en efectivo: deuda que va en el patrimonio y origen de fondos.",
@@ -1431,6 +1477,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "certificado_banco",
+        "rol": "soporte",
+        "impacto": "Da deudas, retenciones y GMF a 31-dic para el resto del F210; no toca el cálculo cripto.",
         "categoria": "certificado_banco",
         "titulo": "Certificados bancarios anuales (retención y GMF, créditos, costos)",
         "por_que": "Dan las cifras a 31 de diciembre que van en el F210: saldo de los créditos (deudas), retenciones que te practicó el banco y el 4x1000 (50 % deducible). También sustentan los préstamos de consumo ante la DIAN.",
@@ -1440,6 +1488,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "binance_csv",
+        "rol": "calculo",
+        "impacto": "BLOQUEA: sin el historial de ese año no se puede calcular el efecto cripto ni la tenencia.",
         "categoria": "binance_csv",
         "titulo": "Historial de transacciones de Binance (CSV)",
         "por_que": "Con él se reconstruye el costo fiscal de cada moneda (FIFO) y la ganancia o pérdida realizada por año.",
@@ -1449,6 +1499,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "binance_snapshot",
+        "rol": "soporte",
+        "impacto": "Valida la tenencia calculada; si Binance no da snapshots pasados, vale la tenencia del motor.",
         "categoria": "binance_snapshot",
         "titulo": "Snapshot de tenencia al 31 de diciembre",
         "por_que": "Es el patrimonio bruto en criptoactivos que va en el F210 de cada año.",
@@ -1458,6 +1510,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "binance_api",
+        "rol": "soporte",
+        "impacto": "Evidencia oficial para la DIAN; no cambia el cálculo.",
         "categoria": "binance_api",
         "titulo": "Evidencia oficial por API de Binance (opcional)",
         "por_que": "Órdenes P2P con el monto exacto en COP, depósitos y retiros: la prueba más fuerte ante la DIAN.",
@@ -1467,6 +1521,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "otra_plataforma",
+        "rol": "soporte",
+        "impacto": "Cierra huecos de trazabilidad; no cambia el cálculo.",
         "categoria": "otra_plataforma",
         "titulo": "Historial de otras plataformas (Nequi, Littio, MoonPay…)",
         "por_que": "Cierra los huecos: plata que salió de Binance a Littio, o compras de cripto fuera de Binance.",
@@ -1476,6 +1532,8 @@ REQUISITOS: list[dict[str, Any]] = [
     },
     {
         "id": "soporte",
+        "rol": "soporte",
+        "impacto": "Prueba que un préstamo no es ingreso; no cambia el cálculo cripto.",
         "categoria": "soporte",
         "titulo": "Soportes de préstamos y otros",
         "por_que": "Un préstamo recibido no es ingreso y uno dado no es gasto, pero sin soporte la DIAN lo trata como lo que más impuesto genere.",
@@ -1733,6 +1791,8 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
         out.append(
             {
                 **{k: r[k] for k in ("id", "categoria", "titulo", "por_que", "como", "por_anio")},
+                "rol": r.get("rol", "soporte"),
+                "impacto": r.get("impacto", ""),
                 "es_extracto": bool(r.get("es_extracto")),
                 "aplica": aplica,
                 "omitido": omitido,
@@ -1783,6 +1843,45 @@ VIAS_ACTIVOS_OMITIDOS = [
 ]
 
 
+def ventana_f210(ano_gravable: int, presentadas: list[str] | None = None, hoy: date | None = None) -> dict[str, Any]:
+    """En qué momento está la declaración del año gravable: «futuro» (aún no
+    abre), «en_ventana» (agosto–octubre del año siguiente: se está preparando,
+    NO falta), «vencida». No se inventa el día exacto: el calendario de personas
+    naturales cambia cada año por decreto; se muestra el turno de años anteriores
+    (fechas de presentación reales) como referencia."""
+    hoy = hoy or date.today()
+    apertura = date(ano_gravable + 1, 8, 1)
+    cierre = date(ano_gravable + 1, 10, 31)
+    if hoy < apertura:
+        estado = "futuro"
+    elif hoy <= cierre:
+        estado = "en_ventana"
+    else:
+        estado = "vencida"
+    turnos = sorted({p[5:] for p in (presentadas or []) if p and len(p) >= 10 and p[5:7] in ("08", "09", "10")})
+    return {
+        "estado": estado,
+        "ventana": f"agosto–octubre de {ano_gravable + 1}",
+        "turno_habitual": turnos[-1] if turnos else None,  # "MM-DD" de la última presentación en ventana
+        "nota": "Confirmar el día exacto en el calendario tributario de la DIAN para ese año (depende de los dos últimos dígitos de la cédula).",
+    }
+
+
+def intereses_mora(capital: float, desde: date, hasta: date, tasa_anual: float) -> dict[str, Any]:
+    """Intereses de mora del Art. 635 ET, liquidados con la tasa efectiva anual
+    equivalente día a día (como el liquidador de la DIAN), desde el vencimiento
+    hasta `hasta`. La tasa (usura de consumo menos 2 puntos) la fija la
+    Superfinanciera cada mes: aquí es un parámetro editable, no un dato."""
+    dias = max(0, (hasta - desde).days)
+    if capital <= 0 or dias == 0 or tasa_anual <= 0:
+        return {"dias": dias, "valor": 0}
+    factor = (1.0 + float(tasa_anual)) ** (dias / 365.0) - 1.0
+    return {"dias": dias, "valor": round(float(capital) * factor)}
+
+
+TASA_MORA_DEFAULT = 0.23  # ilustrativa: usura de consumo (~25 %) menos 2 puntos, Art. 635 ET
+
+
 def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> dict[str, Any]:
     """Qué hay que presentar o corregir por año para regularizar los
     criptoactivos que nunca se incluyeron. Es la meta que justifica cada
@@ -1793,6 +1892,20 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
         return {"aplica": False, "anios": [], "resumen": {}, "vias": VIAS_ACTIVOS_OMITIDOS}
     por_ano = {int(a["ano"]): a for a in anios}
     hasta_f210 = int(plan.get("hasta_f210") or 0)
+    hoy = date.today()
+    try:
+        tasa_mora = float(cq.get("tasa_mora_anual") or TASA_MORA_DEFAULT)
+    except (TypeError, ValueError):
+        tasa_mora = TASA_MORA_DEFAULT
+    presentadas = [a.get("presentada_en") or "" for a in anios]
+    # ¿qué bloquea el cálculo? solo los requisitos con rol «calculo» que falten en un año
+    bloqueos: dict[int, list[str]] = defaultdict(list)
+    for r in plan["requisitos"]:
+        if r.get("rol") != "calculo" or not r["aplica"] or r["omitido"]:
+            continue
+        for x in r["anios"]:
+            if not x["ok"]:
+                bloqueos[int(x["ano"])].append(r["titulo"])
     f210 = {int(d["ano"]) for d in docs if d["categoria"] == "declaracion_f210" and d.get("ano")}
     snapshot = {int(d["ano"]) for d in docs if d["categoria"] == "binance_snapshot" and d.get("ano")}
     csv = {int(d["ano"]) for d in docs if d["categoria"] == "binance_csv" and d.get("ano")}
@@ -1804,12 +1917,21 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
         tiene_f210 = ano in f210
         efecto = total is not None
         tenencia = a.get("tenencia_cierre_usd") is not None or ano in snapshot
+        ventana = None
         if ano > hasta_f210:
-            situacion, accion, via = (
-                "futura",
-                f"Presentar la declaración de {ano} en su fecha (ago–oct {ano + 1}) incluyendo los criptoactivos desde el inicio.",
-                None,
-            )
+            ventana = ventana_f210(ano, presentadas, hoy)
+            if ventana["estado"] == "en_ventana":
+                situacion, accion, via = (
+                    "en_preparacion",
+                    f"Se presenta ahora ({ventana['ventana']}), incluyendo los criptoactivos desde el inicio: no es una corrección ni un faltante.",
+                    None,
+                )
+            else:
+                situacion, accion, via = (
+                    "futura",
+                    f"Se presenta en {ventana['ventana']}, incluyendo los criptoactivos desde el inicio.",
+                    None,
+                )
         elif estado == "corregida":
             situacion, accion, via = "corregida", "Ya corregida con los criptoactivos incluidos.", None
         elif estado in ("presentada", "por_corregir") or (estado == "sin_datos" and tiene_f210):
@@ -1829,12 +1951,26 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
         rlg = a.get("renta_liquida")
         imp_pag = a.get("impuesto_pagado")
         correccion = None
-        if efecto and rlg is not None and situacion not in ("futura",):
+        if efecto and rlg is not None and situacion not in ("futura", "en_preparacion"):
             rlg_corr = max(0.0, float(rlg) + float(total or 0))
             imp_decl_calc = impuesto_renta_art241(float(rlg), ano)
             imp_corr = impuesto_renta_art241(rlg_corr, ano)
             mayor = (imp_corr - float(imp_pag or 0)) if imp_corr is not None else None
+            # Los intereses corren desde el vencimiento original. Si se presentó en
+            # su turno, la fecha de presentación ES el vencimiento; si no hay fecha,
+            # se toma el 31-oct del año siguiente (cierre de la ventana).
+            pres = a.get("presentada_en") or ""
+            try:
+                desde = date.fromisoformat(pres[:10]) if pres else date(ano + 1, 10, 31)
+            except ValueError:
+                desde = date(ano + 1, 10, 31)
+            mora = intereses_mora(mayor or 0, desde, hoy, tasa_mora) if mayor and mayor > 0 else {"dias": 0, "valor": 0}
+            sancion = round(mayor * 0.10) if mayor is not None and mayor > 0 else 0
             correccion = {
+                "intereses_mora": mora["valor"],
+                "intereses_dias": mora["dias"],
+                "intereses_desde": desde.isoformat(),
+                "total_estimado": (round(mayor) + sancion + mora["valor"]) if mayor is not None and mayor > 0 else 0,
                 "rlg_declarada": rlg,
                 "ajuste_cripto": total,
                 "rlg_corregida": round(rlg_corr),
@@ -1842,7 +1978,7 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
                 "impuesto_declarado_recalculado": imp_decl_calc,
                 "impuesto_corregido": imp_corr,
                 "mayor_valor": round(mayor) if mayor is not None else None,
-                "sancion_correccion_10": round(mayor * 0.10) if mayor is not None and mayor > 0 else 0,
+                "sancion_correccion_10": sancion,
                 "uvt_cargada": imp_corr is not None,
             }
         out.append(
@@ -1859,6 +1995,8 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
                 "trm_cierre": a.get("trm_cierre"),
                 "patrimonio_bruto_declarado": a.get("patrimonio_bruto"),
                 "correccion": correccion,
+                "presentacion": ventana,
+                "bloqueos": bloqueos.get(ano, []),
                 "insumos": {
                     "f210": tiene_f210,
                     "f210_aplica": situacion not in ("presentar_extemporanea", "futura"),
@@ -1874,16 +2012,38 @@ def objetivo_declaraciones(anios: list[dict], docs: list[dict], plan: dict) -> d
     mayor_total = sum((x["correccion"] or {}).get("mayor_valor") or 0 for x in out if (x["correccion"] or {}).get("mayor_valor", 0) and x["correccion"]["mayor_valor"] > 0)
     sancion_total = sum((x["correccion"] or {}).get("sancion_correccion_10") or 0 for x in out)
     a_favor = sum(-(x["correccion"] or {}).get("mayor_valor") or 0 for x in out if (x["correccion"] or {}).get("mayor_valor") is not None and x["correccion"]["mayor_valor"] < 0)
+    intereses_total = sum((x["correccion"] or {}).get("intereses_mora") or 0 for x in out)
+    total_est = round(mayor_total) + round(sancion_total) + round(intereses_total)
+    con_bloqueo = [x["ano"] for x in out if x["bloqueos"]]
     return {
         "aplica": True,
         "anios": out,
         "resumen": dict(resumen),
-        "totales": {"mayor_valor": round(mayor_total), "sancion_correccion_10": round(sancion_total), "a_favor_no_reclamable": round(a_favor)},
+        "totales": {
+            "mayor_valor": round(mayor_total),
+            "sancion_correccion_10": round(sancion_total),
+            "intereses_mora": round(intereses_total),
+            "total_estimado": total_est,
+            "a_favor_no_reclamable": round(a_favor),
+        },
+        "parametros": {"tasa_mora_anual": tasa_mora, "hoy": hoy.isoformat(), "tasa_default": TASA_MORA_DEFAULT},
+        "calculable": not con_bloqueo,
+        "anios_bloqueados": con_bloqueo,
         "vias": VIAS_ACTIVOS_OMITIDOS,
     }
 
 
 # ── Expediente completo + pasos del wizard ──────────────────────────────────
+
+
+def _tenencia_guardada(tercero_id: int) -> dict[str, Any]:
+    _ensure()
+    with _conn() as con:
+        row = con.execute("SELECT tenencia_json FROM dl_expedientes WHERE tercero_id=?", (int(tercero_id),)).fetchone()
+    try:
+        return json.loads(row["tenencia_json"]) if row and row["tenencia_json"] else {}
+    except (TypeError, ValueError):
+        return {}
 
 
 def obtener_expediente(tercero_id: int) -> dict[str, Any]:
@@ -1918,6 +2078,7 @@ def obtener_expediente(tercero_id: int) -> dict[str, Any]:
         "perfil": perfil,
         "plan": plan,
         "objetivo": objetivo_declaraciones(anios, docs, plan),
+        "tenencia": _tenencia_guardada(tercero_id),
         "documentos": docs,
         "documentos_por_categoria": dict(por_cat),
         "categorias": [{"id": c, "label": l} for c, l in CATEGORIAS_DOC],
@@ -2024,7 +2185,13 @@ def _estado_pasos(perfil, extractos, cobertura, saldo, cruces_res, anios, docs, 
         )
 
     n_docs = len(docs)
-    n_rev = sum(1 for a in anios if a.get("requiere_revision") or a.get("estado") in ("borrador", "por_corregir", "no_presentada"))
+    n_rev = sum(
+        1
+        for a in anios
+        if a.get("requiere_revision")
+        or a.get("estado") in ("por_corregir", "no_presentada")
+        or (a.get("estado") == "borrador" and ventana_f210(int(a["ano"]))["estado"] == "vencida")
+    )
     if not cq.get("cripto") and not cq.get("declaro_antes") and cq.get("_completo"):
         add("declarador", "hecho", "Sin criptoactivos ni declaraciones previas: este paso no aplica", 0)
     elif not anios and not n_docs:
