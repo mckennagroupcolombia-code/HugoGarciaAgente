@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-13T07:26:27"
+    "ultima_ejecucion": "2026-09-14T07:26:39"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -25,7 +25,7 @@
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-07T08:15:52"
+    "ultima_ejecucion": "2026-09-14T08:16:01"
   },
   "informe_reposicion_mensual": {
     "intervalo_horas": 168,
@@ -33,47 +33,47 @@
   },
   "archivar_gasto_ads": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-07T08:21:29"
+    "ultima_ejecucion": "2026-09-14T08:23:48"
   },
   "resumen_costos_llm": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-07T07:45:01"
+    "ultima_ejecucion": "2026-09-14T07:45:01"
   },
   "recordatorio_inventario": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-07T08:32:23"
+    "ultima_ejecucion": "2026-09-14T08:32:01"
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-13T07:05:20"
+    "ultima_ejecucion": "2026-09-14T07:06:22"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-13T06:51:08"
+    "ultima_ejecucion": "2026-09-14T06:51:28"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-07T09:00:01"
+    "ultima_ejecucion": "2026-09-14T09:00:01"
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-13T09:01:52"
+    "ultima_ejecucion": "2026-09-14T09:02:18"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-13T09:05:01"
+    "ultima_ejecucion": "2026-09-14T09:05:01"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-14T01:30:01"
+    "ultima_ejecucion": "2026-09-14T11:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-09-14T00:10:14"
+    "ultima_ejecucion": "2026-09-14T06:10:14"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-13T07:36:06"
+    "ultima_ejecucion": "2026-09-14T07:36:10"
   },
   "anulaciones_ra": {
     "intervalo_horas": 168,
@@ -81,6 +81,6 @@
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-09-14T01:10:01"
+    "ultima_ejecucion": "2026-09-14T11:10:01"
   }
 }

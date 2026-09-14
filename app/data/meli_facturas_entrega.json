@@ -23400,6 +23400,124 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018420385780": {
+      "shipping_id": "47996616087",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T08:21:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIMAL100g",
+            "nombre": "Acido Málico 100 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 6630.0
+          }
+        ],
+        "total": 6630.0,
+        "nombre_cliente": "Emiliano Antonio González Santiago",
+        "identificacion": "8731524",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 1EW #64-30, Chicala, Neiva, Huila",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018412580856": {
+      "shipping_id": "47992976093",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T09:19:55",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "Jose Eduardo Lamadrid Tenorio",
+        "identificacion": "1052096265",
+        "tipo_documento": "CC",
+        "direccion_envio": "Via Fagua SN, Samaria, Chía, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018249927630": {
+      "shipping_id": "47917915298",
+      "estado": "ya_facturada_legado",
+      "actualizado_en": "2026-09-14T09:58:43",
+      "pack_id": "2000018249927630",
+      "legado_factura_numero": "FV-2-71360",
+      "legado_integracion": "astroselling"
+    },
+    "2000018396151952": {
+      "shipping_id": "47985118433",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T10:43:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 24542.0
+          }
+        ],
+        "total": 24542.0,
+        "nombre_cliente": "John Fredy Lopez Naranjo",
+        "identificacion": "15356520",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018396157646": {
+      "shipping_id": "47985118433",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T10:43:54",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-PISTOS250g",
+            "nombre": "Pistachos Tostados 250g",
+            "cantidad": 1.0,
+            "precio_unitario": 20825.0
+          }
+        ],
+        "total": 20825.0,
+        "nombre_cliente": "John Fredy Lopez Naranjo",
+        "identificacion": "15356520",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018396151954": {
+      "shipping_id": "47985118433",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T10:43:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITPOT500g",
+            "nombre": "Citrato De Potasio 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 23798.0
+          }
+        ],
+        "total": 23798.0,
+        "nombre_cliente": "John Fredy Lopez Naranjo",
+        "identificacion": "15356520",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   },
   "2000018272473696": {
