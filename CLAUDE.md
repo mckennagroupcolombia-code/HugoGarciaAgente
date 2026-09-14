@@ -693,6 +693,14 @@ Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
          documentos por categoría, pendientes con clave estable, agente con herramientas
        7 Cierre: resumen copiable para el contador
 
+       7 Cierre: **expediente para el contador** — línea de tiempo año por año (qué se
+         declaró · qué pasó · qué cuesta corregir · soportes con su ruta) y **descarga en PDF**
+         (`GET /api/socios/<id>/informe.pdf`, `app/tools/declarador_pdf.py`). La carpeta del
+         socio se normaliza con `organizar_carpeta()`: subcarpetas numeradas
+         (`01_Declaraciones_Renta_F210/`, `05_Certificados_Tributarios_Banco/2024/`…),
+         nombres legibles (`F210_2021.pdf`, `Tarjeta_8017_2025-04.xlsx`) y `LEEME.md`;
+         nunca toca `Calculos/` ni `Para_Contador/`.
+
 app/services/declarador.py     tablas dl_* en contabilidad.db; importar_carpeta() lee SOLO
                                /home/mckg/Declarador/<Nombre>/ (DECLARADOR_DIR; Calculos/ y
                                Para_Contador/ de Armando están enlazados dentro de Armando/); agente

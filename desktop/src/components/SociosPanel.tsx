@@ -3087,6 +3087,7 @@ interface DocCrono {
   categoria: string;
   categoria_label: string;
   archivo_nombre: string;
+  ruta: string;
   ano?: number | null;
   ano_hasta?: number | null;
   existe?: boolean;
@@ -3128,6 +3129,7 @@ interface AnioCrono {
 }
 
 interface Cronologia {
+  carpeta: string;
   titular: { nombre: string; cedula: string; binance_uid: string };
   anios: AnioCrono[];
   sin_ano: DocCrono[];
@@ -3328,7 +3330,10 @@ function BloqueAnio({ a, terceroId, onError }: { a: AnioCrono; terceroId: number
                 className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1 text-left hover:border-accent disabled:opacity-50"
               >
                 <span className="rounded bg-surface-hover px-1.5 py-px text-[9px] font-bold text-muted">{doc.categoria_label}</span>
-                <span className="min-w-0 flex-1 truncate text-[11px] text-ink">{doc.archivo_nombre}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] text-ink">{doc.archivo_nombre}</span>
+                  <span className="block truncate font-mono text-[9px] text-muted" title={doc.ruta}>{doc.ruta}</span>
+                </span>
                 {doc.ano_hasta && doc.ano_hasta !== doc.ano && <span className="text-[9px] text-muted">{doc.ano}–{doc.ano_hasta}</span>}
               </button>
             ))}
@@ -3357,6 +3362,29 @@ function BloqueAnio({ a, terceroId, onError }: { a: AnioCrono; terceroId: number
 function PasoCierre({ terceroId, exp, onIr }: { terceroId: number; exp: Expediente; onIr: (p: PasoId) => void }) {
   const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [bajando, setBajando] = useState(false);
+
+  /** El PDF se regenera en cada descarga y queda también en la carpeta del socio. */
+  const descargarPdf = async () => {
+    setBajando(true);
+    setMsg(null);
+    try {
+      const url = await fetchAuthBlobUrl(`/api/socios/${terceroId}/informe.pdf`);
+      if (!url) throw new Error("No se pudo generar el PDF");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Expediente_Criptoactivos.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      setMsg({ tipo: "ok", texto: "PDF descargado. También quedó guardado en 00_Informe_Para_El_Contador/ dentro de la carpeta del expediente." });
+    } catch (e) {
+      setMsg({ tipo: "error", texto: (e as Error).message });
+    } finally {
+      setBajando(false);
+    }
+  };
   const cronoQ = useQuery<Cronologia>({
     queryKey: ["socio-cronologia", terceroId],
     queryFn: () => api.get(`/api/socios/${terceroId}/cronologia`),
@@ -3402,8 +3430,16 @@ function PasoCierre({ terceroId, exp, onIr }: { terceroId: number; exp: Expedien
             Un bloque por año gravable, en orden: qué se declaró, qué pasó de verdad, qué cuesta corregirlo y con qué documento se prueba.
             {c.titular.binance_uid && ` Cuenta Binance ${c.titular.binance_uid}.`}
           </p>
+          {c.carpeta && (
+            <p className="mt-0.5 font-mono text-[10px] text-muted" title="Los soportes citados están aquí, en subcarpetas numeradas">
+              {c.carpeta}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-1.5">
+          <button type="button" className={btnPrimario} disabled={bajando} onClick={() => void descargarPdf()}>
+            <Icon name="download" size={13} weight="bold" /> {bajando ? "Generando…" : "Descargar informe en PDF"}
+          </button>
           <button
             type="button"
             className={btnSec}

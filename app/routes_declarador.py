@@ -11,6 +11,7 @@ tienen para lo operativo y no deben verse la declaración de renta entre sí.
 
 from __future__ import annotations
 
+import tempfile
 from functools import wraps
 
 from flask import jsonify, request, send_file
@@ -291,6 +292,44 @@ def register_declarador_routes(app):
         cifra contra su soporte. Va aparte del expediente porque lee los CSV de
         evidencia y los certificados del disco."""
         return jsonify(dl.cronologia(tercero_id))
+
+    @app.route("/api/socios/<int:tercero_id>/informe.pdf", methods=["GET"])
+    @app.route("/app/api/socios/<int:tercero_id>/informe.pdf", methods=["GET"])
+    @_auth_tercero
+    def api_socio_informe_pdf(tercero_id: int):
+        """El expediente en PDF para entregarle al contador. Se regenera en cada
+        descarga (las cifras de intereses cambian con los días) y queda guardado
+        en la propia carpeta del socio, junto a los soportes que cita."""
+        import os
+
+        from app.tools import declarador_pdf
+
+        crono = dl.cronologia(tercero_id)
+        carpeta = crono.get("carpeta") or ""
+        nombre = "Informe_Expediente_Criptoactivos.pdf"
+        destino = (
+            os.path.join(carpeta, dl.CARPETA_INFORME, nombre)
+            if carpeta and os.path.isdir(carpeta)
+            else os.path.join(tempfile.gettempdir(), f"informe_socio_{tercero_id}.pdf")
+        )
+        try:
+            declarador_pdf.generar_informe(crono, destino)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"No se pudo generar el PDF: {e}"}), 500
+        apellido = (crono["titular"]["nombre"] or "socio").split()[0]
+        return send_file(destino, mimetype="application/pdf", as_attachment=True, download_name=f"Expediente_Criptoactivos_{apellido}.pdf")
+
+    @app.route("/api/socios/<int:tercero_id>/organizar-carpeta", methods=["GET", "POST"])
+    @app.route("/app/api/socios/<int:tercero_id>/organizar-carpeta", methods=["GET", "POST"])
+    @_auth_tercero
+    def api_socio_organizar_carpeta(tercero_id: int):
+        """GET: qué se movería. POST: lo mueve y actualiza las rutas."""
+        try:
+            if request.method == "GET":
+                return jsonify(dl.plan_organizar_carpeta(tercero_id))
+            return jsonify({"ok": True, **dl.organizar_carpeta(tercero_id)})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     @app.route("/api/socios/<int:tercero_id>/cruces", methods=["GET"])
     @app.route("/app/api/socios/<int:tercero_id>/cruces", methods=["GET"])

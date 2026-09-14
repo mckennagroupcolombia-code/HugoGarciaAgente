@@ -1305,6 +1305,233 @@ def hitos_binance(carpeta_calculos: str) -> list[dict[str, Any]]:
     return sorted(out, key=lambda x: x["fecha"])
 
 
+# Carpetas del paquete que recorre el contador: número + nombre que dice qué hay
+# dentro, para que el PDF pueda citarlas y cruzarlas sin explicación adicional.
+CARPETAS_ORGANIZADAS: dict[str, str] = {
+    "declaracion_f210": "01_Declaraciones_Renta_F210",
+    "exogena": "02_Informacion_Exogena_DIAN",
+    "extracto_banco": "03_Extractos_Cuenta_Ahorros",
+    "extracto_tarjeta": "04_Extractos_Tarjetas_Credito",
+    "certificado_banco": "05_Certificados_Tributarios_Banco",
+    "credito": "06_Cuotas_de_Creditos",
+    "binance_csv": "07_Binance_Historial_Transacciones",
+    "binance_snapshot": "08_Binance_Tenencia_31_Diciembre",
+    "binance_api": "09_Binance_Evidencia_API",
+    "otra_plataforma": "10_Otras_Plataformas_Littio",
+    "calculo": "11_Calculos_Motor_FIFO",
+    "informe": "12_Informes",
+    "soporte": "13_Soportes_Varios",
+    "formulario_ref": "14_Referencia_Formulario_210",
+}
+CARPETA_INFORME = "00_Informe_Para_El_Contador"
+
+# Carpetas que no se tocan: son enlaces o paquetes ya armados.
+_NO_MOVER = ("/Calculos/", "/Para_Contador/", "/00_Informe_Para_El_Contador/")
+
+_MESES_ABR = ("ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC")
+
+
+def _nombre_legible(doc: dict, indice: int = 0) -> str:
+    """Nombre de archivo que se entiende sin abrirlo. Los originales del banco y
+    de Binance vienen con números de radicado y UUID («a7577428-fca7-11f0-…csv»,
+    «1013630698-1-B1_DIC2024.xlsx»), imposibles de cruzar a ojo."""
+    nombre = doc.get("archivo_nombre") or ""
+    base, ext = os.path.splitext(nombre)
+    cat = doc.get("categoria") or ""
+    ano = doc.get("ano")
+    hasta = doc.get("ano_hasta")
+    rango = f"{ano}-{hasta}" if hasta and hasta != ano else str(ano or "")
+
+    if cat == "declaracion_f210":
+        return f"F210_{ano}{ext}" if ano else nombre
+    if cat == "exogena":
+        return f"Exogena_{ano}{ext}" if ano else nombre
+    if cat == "binance_csv":
+        if re.match(r"^[0-9a-f]{8}-[0-9a-f]{4}-", base, re.I):
+            return f"Binance_Historial_{rango or ano}{ext}"
+        return f"Binance_Historial_{base}{ext}"
+    if cat == "binance_snapshot":
+        if "sinclave" in base.lower().replace("_", ""):
+            return f"Binance_Tenencia_31dic{ano or ''}_sin_clave{ext}"
+        return f"Binance_Tenencia_31dic{ano or ''}{ext}"
+    if cat == "certificado_banco":
+        if "-1-B1_" in base:
+            return f"Certificado_Retencion_y_GMF_{ano}{ext}"
+        if "-1-B_" in base:
+            return f"Certificado_Operaciones_Credito_{ano}{ext}"
+        m = re.match(r"^\d{6,}_[A-Z]{3}(\d{4})$", base)
+        if m:
+            return f"Reporte_Anual_Costos_{m.group(1)}{ext}"
+    if cat in ("extracto_tarjeta", "extracto_banco", "credito"):
+        m = re.match(r"^(\d+)_([A-Z]{3})(\d{4})$", base)
+        if m:
+            num, mes, anio = m.group(1), m.group(2), m.group(3)
+            mm = _MESES_ABR.index(mes) + 1 if mes in _MESES_ABR else 0
+            etiqueta = {"extracto_tarjeta": "Tarjeta", "extracto_banco": "Cuenta_Ahorros", "credito": "Credito"}[cat]
+            # La tarjeta se identifica por los 4 últimos; un crédito por su número completo.
+            sufijo = f"_{num}" if cat == "credito" else (f"_{num[-4:]}" if cat == "extracto_tarjeta" else "")
+            return f"{etiqueta}{sufijo}_{anio}-{mm:02d}{ext}"
+        if cat == "extracto_banco" and "garcia velandia" in base.lower():
+            return f"Cuenta_Ahorros_Historial_{rango or ano or 'completo'}{ext}"
+        m2 = re.match(r"^Documento_(\d{4})(\d{2})_", base)
+        if m2:
+            etiqueta = {"extracto_tarjeta": "Tarjetas", "extracto_banco": "Cuenta_Ahorros", "credito": "Creditos"}[cat]
+            return f"{m2.group(1)}-{m2.group(2)}_{etiqueta}_original_del_banco{ext}"
+    if cat == "certificado_banco":
+        m2 = re.match(r"^Documento_(\d{4})(\d{2})_", base)
+        if m2:
+            return f"{m2.group(1)}_Certificados_original_del_banco{ext}"
+    if cat == "otra_plataforma" and re.match(r"^WhatsApp Image", base):
+        return f"Littio_Captura_{indice:02d}{ext}"
+    if cat == "formulario_ref":
+        m3 = re.match(r"^Formulario 210-(\d+)$", base)
+        if m3:
+            return f"Formulario210_Referencia_{int(m3.group(1)):02d}{ext}"
+    return nombre
+
+
+def plan_organizar_carpeta(tercero_id: int) -> dict[str, Any]:
+    """Adónde debería ir cada archivo del expediente. No mueve nada: devuelve el
+    plan para revisarlo antes (y para que el PDF cite la ruta final)."""
+    perfil = obtener_perfil(tercero_id)
+    raiz = os.path.abspath(perfil.get("carpeta") or "")
+    docs = listar_documentos(tercero_id)
+    movimientos: list[dict[str, Any]] = []
+    usados: set[str] = set()
+    contador_littio = 0
+    for d in sorted(docs, key=lambda x: (x.get("categoria") or "", x.get("ano") or 0, x.get("archivo_nombre") or "")):
+        origen = d.get("archivo_path") or ""
+        if d.get("origen") != "carpeta" or not origen.startswith(raiz + os.sep):
+            continue
+        if any(x in origen for x in _NO_MOVER) or os.path.islink(origen):
+            continue
+        cat = d.get("categoria") or "soporte"
+        carpeta = CARPETAS_ORGANIZADAS.get(cat, CARPETAS_ORGANIZADAS["soporte"])
+        # Los que van por año llevan subcarpeta de año; el resto, no.
+        if cat in ("extracto_banco", "extracto_tarjeta", "certificado_banco", "credito") and d.get("ano"):
+            carpeta = os.path.join(carpeta, str(d["ano"]))
+        if cat == "otra_plataforma":
+            contador_littio += 1
+        nombre = _nombre_legible(d, contador_littio)
+        destino = os.path.join(raiz, carpeta, nombre)
+        # Dos archivos distintos con el mismo nombre nuevo: se numeran.
+        base, ext = os.path.splitext(destino)
+        n = 2
+        while destino in usados:
+            destino = f"{base}_{n}{ext}"
+            n += 1
+        usados.add(destino)
+        if os.path.abspath(destino) != os.path.abspath(origen):
+            movimientos.append(
+                {
+                    "id": d["id"],
+                    "categoria": cat,
+                    "desde": origen,
+                    "hacia": destino,
+                    "desde_rel": os.path.relpath(origen, raiz),
+                    "hacia_rel": os.path.relpath(destino, raiz),
+                    "renombrado": os.path.basename(origen) != nombre,
+                }
+            )
+    return {"carpeta": raiz, "movimientos": movimientos, "total_documentos": len(docs)}
+
+
+def organizar_carpeta(tercero_id: int) -> dict[str, Any]:
+    """Aplica el plan: crea las carpetas, mueve cada archivo y actualiza su ruta
+    en el expediente. Nunca sobrescribe un archivo existente ni toca `Calculos/`
+    ni `Para_Contador/` (enlaces y paquetes compartidos)."""
+    plan = plan_organizar_carpeta(tercero_id)
+    raiz = plan["carpeta"]
+    if not raiz or not os.path.isdir(raiz):
+        raise ValueError("La carpeta del socio no existe")
+    movidos, saltados = 0, []
+    for mv in plan["movimientos"]:
+        if not os.path.isfile(mv["desde"]):
+            saltados.append({**mv, "motivo": "el origen ya no existe"})
+            continue
+        if os.path.exists(mv["hacia"]):
+            saltados.append({**mv, "motivo": "ya hay un archivo con ese nombre en el destino"})
+            continue
+        os.makedirs(os.path.dirname(mv["hacia"]), exist_ok=True)
+        os.replace(mv["desde"], mv["hacia"])
+        with _conn() as con:
+            con.execute(
+                "UPDATE dl_documentos SET archivo_path=?, archivo_nombre=? WHERE id=? AND tercero_id=?",
+                (mv["hacia"], os.path.basename(mv["hacia"]), int(mv["id"]), int(tercero_id)),
+            )
+        movidos += 1
+    # Carpetas vacías que quedaron atrás
+    vacias = 0
+    for actual, dirs, archivos in os.walk(raiz, topdown=False):
+        if any(x in actual + os.sep for x in _NO_MOVER) or actual == raiz:
+            continue
+        if not archivos and not dirs and not os.path.islink(actual):
+            try:
+                os.rmdir(actual)
+                vacias += 1
+            except OSError:
+                pass
+    os.makedirs(os.path.join(raiz, CARPETA_INFORME), exist_ok=True)
+    _escribir_leeme(raiz, tercero_id)
+    return {"carpeta": raiz, "movidos": movidos, "saltados": saltados, "carpetas_vacias_borradas": vacias}
+
+
+def _escribir_leeme(raiz: str, tercero_id: int) -> None:
+    perfil = obtener_perfil(tercero_id)
+    docs = listar_documentos(tercero_id)
+    por_carpeta: dict[str, int] = defaultdict(int)
+    for d in docs:
+        p = d.get("archivo_path") or ""
+        if p.startswith(raiz + os.sep):
+            rel = os.path.relpath(p, raiz)
+            por_carpeta[rel.split(os.sep)[0]] += 1
+    lineas = [
+        f"# Expediente fiscal — {perfil['tercero']['nombre']}"
+        + (f" (CC {perfil.get('cedula') or perfil['tercero'].get('identificacion')})" if perfil.get("cedula") or perfil["tercero"].get("identificacion") else ""),
+        "",
+        "Criptoactivos no incluidos en las declaraciones de renta ya presentadas.",
+        "",
+        f"**Empiece por `{CARPETA_INFORME}/`**: ahí está el informe en PDF con la línea de tiempo año por año.",
+        "Cada cifra del informe dice de qué archivo salió y en qué carpeta está.",
+        "",
+        "| Carpeta | Qué contiene | Archivos |",
+        "|---|---|---|",
+    ]
+    descripciones = {
+        CARPETA_INFORME: "El informe en PDF para el contador (generado desde el panel)",
+        "01_Declaraciones_Renta_F210": "Un PDF por año: la declaración presentada a la DIAN, firmada",
+        "02_Informacion_Exogena_DIAN": "Lo que terceros (bancos, empresas) reportaron a la DIAN por año",
+        "03_Extractos_Cuenta_Ahorros": "Extractos de la cuenta de ahorros, por año, más el historial completo",
+        "04_Extractos_Tarjetas_Credito": "Estados de cuenta mensuales de las tarjetas, por año",
+        "05_Certificados_Tributarios_Banco": "Por año: reporte anual de costos, certificado de retención y GMF, certificado de operaciones de crédito",
+        "06_Cuotas_de_Creditos": "Comprobantes de cuota de los créditos de consumo",
+        "07_Binance_Historial_Transacciones": "Exportación oficial de Binance con todas las operaciones",
+        "08_Binance_Tenencia_31_Diciembre": "Account Statement: el saldo real por criptoactivo al cierre",
+        "09_Binance_Evidencia_API": "Extraído por API de solo lectura: operaciones spot, órdenes P2P con monto en COP, depósitos y retiros",
+        "10_Otras_Plataformas_Littio": "Historial de Littio (se fondeaba desde Binance)",
+        "11_Calculos_Motor_FIFO": "Motor de costo fiscal FIFO, TRM diaria y resultados por año",
+        "12_Informes": "Informe técnico y bitácora del proceso de conciliación",
+        "13_Soportes_Varios": "Scripts del motor y otros soportes",
+        "14_Referencia_Formulario_210": "Capturas del Formulario 210 en el portal DIAN, para ubicar cada renglón",
+    }
+    for carpeta in [CARPETA_INFORME, *CARPETAS_ORGANIZADAS.values()]:
+        ruta = os.path.join(raiz, carpeta)
+        if not os.path.exists(ruta):
+            continue
+        n = por_carpeta.get(carpeta, 0)
+        lineas.append(f"| `{carpeta}/` | {descripciones.get(carpeta, '')} | {n or '—'} |")
+    lineas += [
+        "",
+        "Los nombres de archivo se normalizaron para poder cruzarlos a ojo:",
+        "`F210_2021.pdf`, `Exogena_2023.xlsx`, `Tarjeta_8017_2025-04.xlsx`, `Certificado_Retencion_y_GMF_2024.xlsx`,",
+        "`Binance_Historial_2020-2025.csv`. Los originales del banco venían con números de radicado.",
+        "",
+        f"_Generado por el panel McKenna · Contabilidad · Socios · {datetime.now():%Y-%m-%d %H:%M}._",
+    ]
+    with open(os.path.join(raiz, "LEEME.md"), "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lineas) + "\n")
+
+
 def cronologia(tercero_id: int) -> dict[str, Any]:
     """El expediente como línea de tiempo: un bloque por año gravable con lo que
     se declaró, lo que realmente pasó, los hitos fechados y los documentos que
@@ -1321,6 +1548,14 @@ def cronologia(tercero_id: int) -> dict[str, Any]:
     creditos = creditos_desde_certificados(docs)
     ten = _tenencia_guardada(tercero_id)
     labels = dict(CATEGORIAS_DOC)
+    raiz = os.path.abspath(perfil.get("carpeta") or "")
+
+    def _rel(p: str) -> str:
+        try:
+            return os.path.relpath(p, raiz) if raiz and p.startswith(raiz + os.sep) else os.path.basename(p)
+        except ValueError:
+            return os.path.basename(p)
+
     try:
         from app.services.extracto_bancario import cobertura_mensual
 
@@ -1369,6 +1604,7 @@ def cronologia(tercero_id: int) -> dict[str, Any]:
                 "categoria": d["categoria"],
                 "categoria_label": labels.get(d["categoria"], d["categoria"]),
                 "archivo_nombre": d["archivo_nombre"],
+                "ruta": _rel(d.get("archivo_path") or ""),
                 "ano": d.get("ano"),
                 "ano_hasta": d.get("ano_hasta"),
                 "existe": d.get("existe"),
@@ -1428,6 +1664,7 @@ def cronologia(tercero_id: int) -> dict[str, Any]:
             "categoria": d["categoria"],
             "categoria_label": labels.get(d["categoria"], d["categoria"]),
             "archivo_nombre": d["archivo_nombre"],
+            "ruta": _rel(d.get("archivo_path") or ""),
             "existe": d.get("existe"),
             "legible": d.get("legible"),
         }
@@ -1435,6 +1672,7 @@ def cronologia(tercero_id: int) -> dict[str, Any]:
         if not d.get("ano")
     ]
     return {
+        "carpeta": raiz,
         "titular": {
             "nombre": perfil["tercero"]["nombre"],
             "cedula": perfil.get("cedula") or perfil["tercero"].get("identificacion") or "",
