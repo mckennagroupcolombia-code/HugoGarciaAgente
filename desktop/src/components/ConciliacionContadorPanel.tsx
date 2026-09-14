@@ -49,6 +49,7 @@ const TIPO_META: Record<string, { emoji: string; label: string }> = {
   por_vencer: { emoji: "⏰", label: "Vence pronto" },
   faltantes: { emoji: "📭", label: "No llegó por correo" },
   tercero_tipo: { emoji: "🪪", label: "Tercero" },
+  alegra: { emoji: "👁️", label: "Lo que el contador NO ve" },
   ret_simple: { emoji: "🚫", label: "Régimen SIMPLE" },
 };
 

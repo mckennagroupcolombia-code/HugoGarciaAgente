@@ -1,3 +1,15 @@
+### 2026-09-14 12:30 - Conciliación contador: alertar de las retenciones que el contador no puede ver en Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (dos detectores) + hallazgo medido
+- **Qué se implementó:**
+  - **Se midió el hueco y es grande.** El contador arma el 350 con lo que ve en Alegra. Contrastando las dos fuentes: el Libro Mayor tiene **$2.931.292** acreditados en la cuenta 2365 durante 2026; en Alegra hay **$310.067**. Son **$2.621.225 de retención practicada que él no puede ver**, y los meses de enero a junio están en cero al otro lado. En Alegra hay **0 facturas de compra** de 2026 y solo 11 comprobantes contables, de los cuales 4 tocan retención.
+  - **`retenciones_visibles_en_alegra(año)`** (en `alegra_espejo.py`, solo lectura) suma lo que el contador vería: líneas de comprobante contable que acreditan una cuenta de retención por pagar (5108 a 5123) más las retenciones aplicadas dentro de facturas de compra. Si faltan credenciales o la API falla lo dice; no devuelve ceros en silencio, que se leerían como «Alegra está al día».
+  - **Dos detectores nuevos** en Conciliación contador, tipo «👁️ Lo que el contador NO ve»: `_det_alegra_vs_libro` (compara mes a mes y propone las dos salidas: encender el espejo `ALEGRA_ESPEJO_ACTIVO=1` o dar acceso de solo lectura al Libro Mayor) y `_det_retencion_prestamos`, que es preventivo.
+  - **La retención de los préstamos es el caso más delicado** y todavía no ha ocurrido: 96 cuotas por pagar con retención del 7 % sobre intereses, **$1.604.281 en total**, a los cuatro prestamistas. La primera vence el **9 de octubre** y ese mes suma **$85.400**. Nace de un pago de McKenna, no de una factura de proveedor: no llega al contador por ninguna otra vía, y hoy están apagados tanto el espejo a Alegra como el documento soporte. Si se practica y nadie la declara, el dinero queda retenido sin consignar, que es lo que sanciona el Art. 402 del Código Penal.
+  - **Contexto de TKT-2026-1301:** ese ticket pide a William el detalle por tercero de los 350 de 2026 porque el contador tiene compras que nunca llegaron al sistema. Esto es el espejo del mismo problema en la dirección contraria: el sistema tiene retenciones que el contador no tiene. Los dos huecos se cierran con el mismo acuerdo.
+  - **Verificado:** los dos detectores corridos contra los datos reales y registrados por `analizar()` (21 hallazgos pendientes, 2 nuevos), leídos por el endpoint del panel. Tests de declarador y smoke (85) pasan; los cinco fallos de `test_precios_canales` son anteriores y ajenos.
+- **Archivos Modificados:** `app/services/alegra_espejo.py`, `app/services/conciliacion_contador.py`, `desktop/src/components/ConciliacionContadorPanel.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 11:50 - Etiquetas: la plantilla se ve entera al abrirla, sin barras de desplazamiento
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de interfaz (vista previa de los cuatro formatos)

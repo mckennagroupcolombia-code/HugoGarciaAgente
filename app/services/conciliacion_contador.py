@@ -520,7 +520,178 @@ def _det_terceros(decls: list[dict]) -> list[dict]:
     return out
 
 
-DETECTORES = (_det_sin_soportes, _det_350_vs_libro, _det_pagos_490, _det_declaraciones_faltantes, _det_terceros)
+def _det_alegra_vs_libro(decls: list[dict]) -> list[dict]:
+    """Retención que está en el Libro Mayor pero que el contador NO ve en Alegra.
+
+    El contador arma el 350 con lo que hay en Alegra. Si una retención solo vive
+    en el libro propio, la declara de menos y la DIAN cobra sanción e intereses
+    por el faltante. Este detector pone números a ese hueco antes de que se
+    pague la declaración, que es cuando todavía se puede corregir sin costo."""
+    from app.services import alegra_espejo
+
+    anio = date.today().year
+    libro = _libro_2365(anio)
+    causado = {m: libro[m]["pj"] + libro[m]["pn"] + libro[m]["sin_tercero"] for m in range(1, 13)}
+    total_libro = sum(causado.values())
+    if total_libro <= 0:
+        return []
+    visible = alegra_espejo.retenciones_visibles_en_alegra(anio)
+    if visible.get("error"):
+        return [
+            _h(
+                f"alegra_sin_lectura_{anio}",
+                "alegra",
+                f"No se pudo leer qué ve el contador en Alegra ({anio})",
+                resumen=visible["error"],
+                por_que=(
+                    "El contador prepara el 350 con lo que hay en Alegra. Si no se puede leer Alegra, no hay forma "
+                    "de saber si lo que él ve coincide con la retención que el Libro Mayor dice que se practicó."
+                ),
+                accion="Revisar ALEGRA_EMAIL / ALEGRA_TOKEN en el entorno y volver a analizar.",
+                periodo=str(anio),
+                severidad="media",
+                acciones=["resolver", "descartar"],
+            )
+        ]
+    en_alegra = {int(m): float(v) for m, v in (visible.get("por_mes") or {}).items()}
+    total_alegra = sum(en_alegra.values())
+    falta = round(total_libro - total_alegra)
+    if falta < 50_000:
+        return []
+    meses = [
+        {
+            "mes": m,
+            "nombre": _mes_nombre(anio, m),
+            "libro": round(causado[m]),
+            "alegra": round(en_alegra.get(m, 0)),
+            "invisible": round(causado[m] - en_alegra.get(m, 0)),
+        }
+        for m in range(1, 13)
+        if causado[m] or en_alegra.get(m)
+    ]
+    detalle = "\n".join(
+        f"  {x['nombre']}: libro {_cop(x['libro'])} · Alegra {_cop(x['alegra'])} · no ve {_cop(x['invisible'])}"
+        for x in meses
+    )
+    return [
+        _h(
+            f"alegra_vs_libro_{anio}",
+            "alegra",
+            f"El contador no ve en Alegra {_cop(falta)} de retención practicada en {anio}",
+            resumen=(
+                f"El Libro Mayor tiene {_cop(total_libro)} acreditados en la 2365 durante {anio}; en Alegra solo hay "
+                f"{_cop(total_alegra)} ({visible.get('journals', 0)} comprobantes contables y {visible.get('bills', 0)} "
+                f"facturas de compra). La diferencia es {_cop(falta)}."
+            ),
+            por_que=(
+                "El contador declara el 350 con lo que ve en Alegra. Todo lo que solo esté en el Libro Mayor queda "
+                "fuera de la declaración: se paga de menos y la DIAN lo cobra después con sanción por inexactitud e "
+                "intereses. Hay que decidir entre dos caminos, y el costo de no decidir crece cada mes."
+            ),
+            accion=(
+                "Opción A: encender el espejo a Alegra (ALEGRA_ESPEJO_ACTIVO=1) para que cada asiento del Libro Mayor "
+                "quede también como comprobante contable allá. Opción B: darle al contador acceso de solo lectura al "
+                "Libro Mayor del panel. En cualquier caso, pasarle este detalle antes de que presente el próximo 350."
+            ),
+            periodo=str(anio),
+            severidad="alta",
+            monto=falta,
+            datos={"meses": meses, "total_libro": round(total_libro), "total_alegra": round(total_alegra), "detalle_alegra": (visible.get("detalle") or [])[:40]},
+            detalle=detalle,
+        )
+    ]
+
+
+def _det_retencion_prestamos(decls: list[dict]) -> list[dict]:
+    """Retención del 7 % sobre intereses de préstamos que está por practicarse.
+
+    Es el caso más delicado: nace de un pago que hace McKenna, no de una factura
+    de proveedor, así que no aparece por ningún otro lado. Si el espejo a Alegra
+    está apagado, el contador no se enteraría de que hay que declararla."""
+    from app.services import alegra_espejo
+
+    with _conn() as con:
+        try:
+            filas = con.execute(
+                """
+                SELECT c.fecha_vencimiento, c.retencion, c.estado, t.nombre AS tercero
+                  FROM cc_prestamo_cuotas c
+                  JOIN cc_prestamos p ON p.id = c.prestamo_id
+                  LEFT JOIN cc_terceros t ON t.id = p.tercero_id
+                 WHERE c.retencion > 0 AND p.estado <> 'cancelado'
+                 ORDER BY c.fecha_vencimiento
+                """
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+    if not filas:
+        return []
+    pendientes = [dict(r) for r in filas if (r["estado"] or "") != "pagada"]
+    if not pendientes:
+        return []
+    espejo_activo = (os.getenv("ALEGRA_ESPEJO_ACTIVO", "0") or "0").strip() == "1"
+    doc_soporte = (os.getenv("PRESTAMOS_DOC_SOPORTE_ACTIVO", "0") or "0").strip() == "1"
+    if espejo_activo and doc_soporte:
+        return []
+    primera = pendientes[0]["fecha_vencimiento"][:10]
+    mes_primera = primera[:7]
+    ret_mes = sum(float(x["retencion"] or 0) for x in pendientes if (x["fecha_vencimiento"] or "")[:7] == mes_primera)
+    total = sum(float(x["retencion"] or 0) for x in pendientes)
+    terceros = sorted({x["tercero"] or "(sin tercero)" for x in pendientes})
+    apagado = []
+    if not espejo_activo:
+        apagado.append("el espejo a Alegra (ALEGRA_ESPEJO_ACTIVO=0)")
+    if not doc_soporte:
+        apagado.append("el documento soporte de los intereses (PRESTAMOS_DOC_SOPORTE_ACTIVO=0)")
+    return [
+        _h(
+            "prestamos_retencion_invisible",
+            "alegra",
+            f"La retención de los préstamos ({_cop(ret_mes)} desde {primera}) no llegará a Alegra",
+            resumen=(
+                f"Hay {len(pendientes)} cuotas por pagar con retención del 7 % sobre intereses, {_cop(total)} en total, "
+                f"a {len(terceros)} prestamistas. La primera vence el {primera} y ese mes suma {_cop(ret_mes)}. "
+                f"Está apagado {' y '.join(apagado)}."
+            ),
+            por_que=(
+                "Esta retención nace de un pago de McKenna al prestamista, no de una factura de proveedor: no aparece "
+                "en ningún documento que el contador reciba por otra vía. Si no se espeja a Alegra ni se emite el "
+                "documento soporte, la practica McKenna, la descuenta del giro y nadie la declara — el dinero queda "
+                "retenido sin consignar a la DIAN, que es justo lo que sanciona el Art. 402 del Código Penal."
+            ),
+            accion=(
+                "Antes del primer pago: avisarle al contador que estas retenciones existen y acordar por dónde las va "
+                "a ver (espejo a Alegra, acceso de solo lectura al Libro Mayor, o el detalle mensual que ya envía el "
+                "cron del día 3). Crear en Alegra el ítem INTERES-MUTUO si se va a emitir documento soporte."
+            ),
+            periodo=mes_primera,
+            severidad="alta",
+            monto=round(ret_mes),
+            datos={
+                "primera_cuota": primera,
+                "retencion_primer_mes": round(ret_mes),
+                "retencion_total_futura": round(total),
+                "cuotas_pendientes": len(pendientes),
+                "prestamistas": terceros,
+                "espejo_activo": espejo_activo,
+                "doc_soporte_activo": doc_soporte,
+            },
+            detalle="\n".join(
+                f"  {x['fecha_vencimiento'][:10]} · {x['tercero']}: {_cop(x['retencion'])}" for x in pendientes[:12]
+            ),
+        )
+    ]
+
+
+DETECTORES = (
+    _det_sin_soportes,
+    _det_350_vs_libro,
+    _det_pagos_490,
+    _det_declaraciones_faltantes,
+    _det_terceros,
+    _det_alegra_vs_libro,
+    _det_retencion_prestamos,
+)
 
 
 # ───────────────────────────────────────────── persistencia ──────────────

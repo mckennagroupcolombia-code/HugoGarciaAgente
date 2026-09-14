@@ -40,6 +40,8 @@ from __future__ import annotations
 import json
 import os
 
+import requests
+
 _MAPA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "alegra_plan_cuentas.json")
 
 # PUC del Libro Mayor propio -> cuenta contable de Alegra.
@@ -329,6 +331,144 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
         _registrar_espejo(movimiento_id, d.get("id"), mov.get("fecha"), d.get("total"))
         return {"status": "success", "id": str(d.get("id")), "numero": d.get("number"), "data": d}
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
+
+
+# Cuentas de Alegra donde vive una retención practicada (lo que el contador
+# suma para el 350). Salen de GET /categories; el prefijo 51xx es el grupo
+# «Pasivos por retenciones corrientes».
+_CUENTAS_RETENCION_ALEGRA = {
+    "5108": "Retenciones por pagar",
+    "5109": "Retención en la fuente por pagar",
+    "5111": "Retención honorarios y comisiones por pagar",
+    "5112": "Retenciones honorarios y comisiones 10% por pagar",
+    "5113": "Retenciones honorarios y comisiones 11% por pagar",
+    "5114": "Retención servicios por pagar",
+    "5115": "Retenciones servicios 4% por pagar",
+    "5116": "Retenciones servicios 6% por pagar",
+    "5117": "Retención arrendamientos por pagar",
+    "5118": "Retenciones arriendo 3.5% por pagar",
+    "5119": "Retenciones compra por pagar",
+    "5120": "Retenciones compra 2.5% por pagar",
+    "5121": "Retención de IVA por pagar",
+    "5122": "Retención de industria y comercio por pagar",
+    "5123": "Otro tipo de retención por pagar",
+}
+
+
+def retenciones_visibles_en_alegra(anio: int) -> dict[str, Any]:
+    """Qué retención practicada **vería el contador si entra a Alegra**, por mes.
+
+    Existe porque el contador arma el 350 con lo que hay en Alegra, no con el
+    Libro Mayor propio: una retención que solo está en el libro no llega a la
+    declaración, y si se paga de menos la DIAN cobra sanción e intereses.
+
+    Suma dos fuentes: las líneas de comprobante contable (`/journals`) que
+    acreditan una cuenta de retención por pagar, y las retenciones aplicadas
+    dentro de facturas de compra (`/bills`). Solo lectura; si no hay
+    credenciales o la API falla, lo dice en `error` en vez de devolver ceros
+    (un cero silencioso se leería como «Alegra está al día»)."""
+    out: dict[str, Any] = {
+        "anio": int(anio),
+        "por_mes": {m: 0.0 for m in range(1, 13)},
+        "detalle": [],
+        "journals": 0,
+        "bills": 0,
+        "error": "",
+    }
+    try:
+        from app.services.alegra import _ALEGRA_BASE, _alegra_headers, creds_alegra_configuradas
+    except Exception as e:  # noqa: BLE001
+        out["error"] = f"No se pudo cargar el cliente de Alegra: {e}"
+        return out
+    if not creds_alegra_configuradas():
+        out["error"] = "Faltan ALEGRA_EMAIL / ALEGRA_TOKEN: no se puede leer qué ve el contador en Alegra."
+        return out
+    try:
+        headers = _alegra_headers()
+        inicio = 0
+        while True:
+            r = requests.get(
+                f"{_ALEGRA_BASE}/journals",
+                headers=headers,
+                params={"limit": 30, "start": inicio},
+                timeout=40,
+            )
+            if not r.ok:
+                out["error"] = f"GET /journals devolvió {r.status_code}"
+                break
+            lote = r.json()
+            if isinstance(lote, dict):
+                lote = lote.get("data") or []
+            if not lote:
+                break
+            for j in lote:
+                fecha = (j.get("date") or "")[:10]
+                if fecha[:4] != str(anio):
+                    continue
+                out["journals"] += 1
+                for e in j.get("entries") or []:
+                    cid = str((e.get("id") or (e.get("account") or {}).get("id") or ""))
+                    credito = float(e.get("credit") or 0)
+                    if cid in _CUENTAS_RETENCION_ALEGRA and credito:
+                        out["por_mes"][int(fecha[5:7])] += credito
+                        out["detalle"].append(
+                            {
+                                "fuente": "journal",
+                                "id": j.get("id"),
+                                "fecha": fecha,
+                                "cuenta": _CUENTAS_RETENCION_ALEGRA[cid],
+                                "valor": round(credito),
+                                "observaciones": (j.get("observations") or "")[:160],
+                            }
+                        )
+            inicio += len(lote)
+            if len(lote) < 30 or inicio > 600:
+                break
+
+        inicio = 0
+        while True:
+            r = requests.get(
+                f"{_ALEGRA_BASE}/bills",
+                headers=headers,
+                params={"limit": 30, "start": inicio},
+                timeout=40,
+            )
+            if not r.ok:
+                break
+            lote = r.json()
+            if isinstance(lote, dict):
+                lote = lote.get("data") or []
+            if not lote:
+                break
+            for b in lote:
+                fecha = (b.get("date") or "")[:10]
+                if fecha[:4] != str(anio):
+                    continue
+                out["bills"] += 1
+                rets = b.get("retentions") or b.get("retention") or []
+                if isinstance(rets, dict):
+                    rets = [rets]
+                for x in rets:
+                    valor = float(x.get("amount") or 0)
+                    if valor:
+                        out["por_mes"][int(fecha[5:7])] += valor
+                        out["detalle"].append(
+                            {
+                                "fuente": "bill",
+                                "id": b.get("id"),
+                                "fecha": fecha,
+                                "cuenta": (x.get("name") or "retención en factura de compra"),
+                                "valor": round(valor),
+                                "observaciones": (b.get("observations") or b.get("numberTemplate", {}).get("fullNumber") or "")[:160],
+                            }
+                        )
+            inicio += len(lote)
+            if len(lote) < 30 or inicio > 600:
+                break
+    except Exception as e:  # noqa: BLE001
+        out["error"] = f"No se pudo consultar Alegra: {e}"
+    out["total"] = round(sum(out["por_mes"].values()))
+    return out
 
 
 def previsualizar_periodo(desde: str, hasta: str, tipos_origen: tuple[str, ...] | None = None) -> dict:
