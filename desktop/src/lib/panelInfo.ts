@@ -451,11 +451,26 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "🧮",
     label: "Libro Mayor",
     description:
-      "Contabilidad de partida doble propia: plan de cuentas, terceros (proveedores, clientes, socios), asientos con débito/crédito y cuentas T. Incluye plantillas para compras de socios (p.ej. Amazon con comisión, registradas como cuenta por pagar) y compras a proveedores/socios-proveedores (p.ej. materia prima transformada).",
+      "Contabilidad de partida doble propia, organizada en cuatro etapas: Conciliar (cargar extracto → emparejar → clasificar → verificar), Registrar (ingresos, egresos, compras y pagos de socios, asiento manual), Consultar (movimientos, cuentas T, balance, informes) y Configurar (plan de cuentas, terceros, créditos). El ámbito «Socios» abre el expediente personal de cada socio.",
     tips: [
-      "Vista Simple: acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor) y saldos pendientes con cada socio.",
-      "Vista Avanzada: plan de cuentas, terceros, cuentas T por cuenta y balance de comprobación.",
+      "Conciliar es un wizard: cada paso dice si está hecho, parcial o pendiente y lleva a la acción exacta.",
+      "Registrar reúne las acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor, aporte) y el asiento manual.",
       "Toda compra de un socio a nombre propio (p.ej. Amazon) se registra como cuenta por pagar al socio, no como gasto directo — el giro posterior salda esa cuenta.",
+      "Cambia a «Socios» arriba para ver la contabilidad personal de un socio dentro de la de la empresa.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
+  socios: {
+    emoji: "🧑‍💼",
+    label: "Socios",
+    description:
+      "Expediente fiscal de cada socio dentro de la contabilidad de McKenna: sus extractos bancarios personales, su cuenta con la empresa, los cruces banco-socio ↔ banco-empresa, y el Declarador de activos digitales (declaraciones F210 presentadas, historial de Binance, efecto por año, pendientes y un agente asesor). Es un wizard: cada paso muestra qué falta y dónde se completa.",
+    tips: [
+      "Cada socio ve SOLO su expediente; únicamente la cuenta admin ve los de todos.",
+      "«Importar carpeta del Declarador» trae los documentos, años y pendientes que ya se trabajaron en /home/mckg/Declarador sin copiarlos.",
+      "Los extractos personales nunca entran a la conciliación de la empresa: solo se cruzan con ella en el paso «Cruces».",
+      "El agente lee el expediente con herramientas y registra hallazgos; cada llamada pasa por el presupuesto LLM.",
     ],
     tier: "standard",
     category: "contabilidad",

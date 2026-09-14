@@ -234,6 +234,44 @@ def _item_conciliacion_contador() -> dict[str, Any] | None:
     )
 
 
+def _item_socios_expedientes() -> dict[str, Any] | None:
+    """Expedientes fiscales de socios (Declarador) con pendientes de severidad
+    alta o años presentados sin criptoactivos — solo lo cuenta, el detalle
+    vive en el wizard de Socios (y cada socio ve solo el suyo; este resumen
+    no expone cifras)."""
+    try:
+        from app.services.declarador import resumen_socios
+    except Exception:
+        return None
+    try:
+        socios = resumen_socios()
+    except Exception:
+        return None
+    if not socios:
+        return None
+    con_pend = [s for s in socios if s["hallazgos_abiertos"] or s["por_corregir"]]
+    n = sum(s["hallazgos_abiertos"] for s in con_pend)
+    if not con_pend:
+        return _item(
+            "socios_expedientes",
+            "Expedientes fiscales de socios",
+            "Sin pendientes abiertos en los expedientes de socios.",
+            0,
+            "ok",
+            "socios",
+        )
+    nombres = ", ".join(s["nombre"].split()[0] for s in con_pend)
+    return _item(
+        "socios_expedientes",
+        "Expedientes fiscales de socios",
+        f"{n} pendiente(s) abierto(s) y años por corregir en el expediente de {nombres}. "
+        "Cada socio completa el suyo en el wizard de Socios.",
+        n,
+        "media",
+        "socios",
+    )
+
+
 def resumen_checklist() -> dict[str, Any]:
     """Lista de pendientes accionables del hub Contabilidad, en un solo lugar.
 
@@ -250,6 +288,7 @@ def resumen_checklist() -> dict[str, Any]:
             _item_prestamos_pendientes(),
             _item_facturacion_pendiente(),
             _item_conciliacion_contador(),
+            _item_socios_expedientes(),
         )
         if it is not None
     ]

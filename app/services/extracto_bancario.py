@@ -193,8 +193,33 @@ def ensure_extracto_tables() -> None:
                 con.execute(
                     "ALTER TABLE extractos_bancarios ADD COLUMN nombre TEXT NOT NULL DEFAULT ''"
                 )
+            # Titular del extracto: NULL = la empresa (McKenna); un id de
+            # cc_terceros (tipo socio) = extracto PERSONAL de ese socio. Los
+            # extractos de socios nunca entran a la conciliación de la empresa
+            # (candidatos/sugerencias/pendientes filtran por titular) — son
+            # datos del socio para SU contabilidad y su declaración de renta,
+            # y solo se cruzan con la empresa vía declarador.cruces_socio_empresa.
+            if "tercero_id" not in cols:
+                con.execute(
+                    "ALTER TABLE extractos_bancarios ADD COLUMN tercero_id INTEGER"
+                )
+                con.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_extracto_tercero ON extractos_bancarios(tercero_id)"
+                )
         except Exception:
             pass
+
+
+def _filtro_titular(tercero_id: int | None, alias: str = "e") -> tuple[str, list[Any]]:
+    """Cláusula SQL para restringir por titular del extracto.
+
+    `tercero_id=None` → solo extractos de la empresa (`tercero_id IS NULL`);
+    un entero → solo los de ese socio. Se usa en toda consulta que agrega
+    líneas de varios extractos, para que el banco personal de un socio jamás
+    aparezca como candidato/pendiente de la contabilidad de McKenna."""
+    if tercero_id is None:
+        return f"{alias}.tercero_id IS NULL", []
+    return f"{alias}.tercero_id = ?", [int(tercero_id)]
 
 
 def _norm_header(h: str) -> str:
@@ -1081,6 +1106,7 @@ def importar_extracto(
     cuenta: str = "",
     notas: str = "",
     nombre: str = "",
+    tercero_id: int | None = None,
 ) -> dict[str, Any]:
     ensure_extracto_tables()
     lineas = parse_extracto_bytes(contenido, nombre_archivo)
@@ -1102,8 +1128,8 @@ def importar_extracto(
         cur = con.execute(
             """INSERT INTO extractos_bancarios
                  (banco, cuenta, periodo_desde, periodo_hasta,
-                  archivo_nombre, archivo_path, notas, lineas_count, nombre)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  archivo_nombre, archivo_path, notas, lineas_count, nombre, tercero_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 (banco or "").strip()[:80],
                 (cuenta or "").strip()[:40],
@@ -1114,6 +1140,7 @@ def importar_extracto(
                 (notas or "").strip()[:400],
                 len(lineas),
                 nombre_l,
+                int(tercero_id) if tercero_id else None,
             ),
         )
         extracto_id = int(cur.lastrowid)
@@ -1171,20 +1198,27 @@ def renombrar_extracto(extracto_id: int, nombre: str) -> dict[str, Any] | None:
     return obtener_extracto(int(extracto_id))
 
 
-def listar_extractos(limit: int = 50) -> list[dict[str, Any]]:
+def listar_extractos(
+    limit: int = 50, *, tercero_id: int | None = None, todos: bool = False
+) -> list[dict[str, Any]]:
+    """Extractos cargados. Por defecto SOLO los de la empresa; con
+    `tercero_id` los personales de ese socio; `todos=True` sin filtro (uso
+    administrativo/diagnóstico)."""
     ensure_extracto_tables()
+    where, params = ("1=1", []) if todos else _filtro_titular(tercero_id)
     with _conn() as con:
         rows = con.execute(
-            """SELECT e.*,
+            f"""SELECT e.*,
                       (SELECT COUNT(*) FROM extracto_movimientos m
                          WHERE m.extracto_id = e.id) AS movs,
                       (SELECT COUNT(*) FROM extracto_vinculos v
                          JOIN extracto_movimientos m ON m.id = v.extracto_mov_id
                         WHERE m.extracto_id = e.id) AS vinculados
                FROM extractos_bancarios e
+               WHERE {where}
                ORDER BY e.id DESC
                LIMIT ?""",
-            (max(1, min(int(limit), 200)),),
+            (*params, max(1, min(int(limit), 500))),
         ).fetchall()
     out = []
     for r in rows:
@@ -1204,6 +1238,7 @@ def listar_extractos(limit: int = 50) -> list[dict[str, Any]]:
                 "notas": d.get("notas") or "",
                 "lineas_count": int(d.get("movs") or d.get("lineas_count") or 0),
                 "vinculados": int(d.get("vinculados") or 0),
+                "tercero_id": d.get("tercero_id"),
             }
         )
     return out
@@ -1214,6 +1249,7 @@ def consultar_por_concepto(
     *,
     extracto_id: int | None = None,
     limit: int = 500,
+    tercero_id: int | None = None,
 ) -> dict[str, Any]:
     """
     Busca líneas de extracto cuyo concepto/descripción/referencia contenga el texto.
@@ -1239,6 +1275,10 @@ def consultar_por_concepto(
     if extracto_id is not None and int(extracto_id) > 0:
         sql += " AND m.extracto_id = ?"
         params.append(int(extracto_id))
+    else:
+        w, p = _filtro_titular(tercero_id)
+        sql += f" AND {w}"
+        params.extend(p)
     sql += " ORDER BY m.fecha DESC, m.id DESC LIMIT ?"
     params.append(lim)
 
@@ -1337,12 +1377,17 @@ def obtener_extracto(extracto_id: int, *, solo_sin_vincular: bool = False) -> di
         "notas": e.get("notas") or "",
         "lineas_count": len(movimientos),
         "vinculados": vinculados,
+        "tercero_id": e.get("tercero_id"),
         "movimientos": movimientos,
     }
 
 
 def pendientes_por_clasificar(
-    desde: str | None = None, hasta: str | None = None, *, limit: int = 200
+    desde: str | None = None,
+    hasta: str | None = None,
+    *,
+    limit: int = 200,
+    tercero_id: int | None = None,
 ) -> list[dict[str, Any]]:
     """Líneas de banco (de cualquier extracto cargado) sin ningún vínculo, en un
     rango de fechas — la bandeja "Pendientes por clasificar" de Ingresos/Egresos.
@@ -1351,8 +1396,9 @@ def pendientes_por_clasificar(
     extracto), esto cruza todos los extractos del rango — es la vista que
     responde "¿estamos contabilizando todos los movimientos del banco?"."""
     ensure_extracto_tables()
-    where = ["v.id IS NULL"]
-    params: list[Any] = []
+    w_tit, p_tit = _filtro_titular(tercero_id)
+    where = ["v.id IS NULL", w_tit]
+    params: list[Any] = list(p_tit)
     if desde:
         where.append("m.fecha >= ?")
         params.append(desde)
@@ -1456,6 +1502,7 @@ def saldo_bancario_mas_reciente() -> dict[str, Any] | None:
     with _conn() as con:
         extracto = con.execute(
             """SELECT * FROM extractos_bancarios
+               WHERE tercero_id IS NULL
                ORDER BY periodo_hasta DESC, created_at DESC, id DESC
                LIMIT 1"""
         ).fetchone()
@@ -1605,8 +1652,13 @@ def candidatos_para_movimiento(
     ventana_dias: int = 7,
     tolerancia: float = 1.0,
     limit: int = 30,
+    tercero_id: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Sugiere líneas de extracto sin vincular cerca en fecha/monto/tipo."""
+    """Sugiere líneas de extracto sin vincular cerca en fecha/monto/tipo.
+
+    Solo mira extractos del titular indicado (por defecto la empresa): una
+    línea del banco personal de un socio nunca es candidata para un asiento
+    de McKenna."""
     ensure_extracto_tables()
     f = (fecha or "")[:10]
     if not f:
@@ -1620,19 +1672,22 @@ def candidatos_para_movimiento(
     # ingreso libro ↔ crédito banco; egreso ↔ débito
     tipo_banco = "credito" if tipo_libro == "ingreso" else "debito"
     monto = abs(float(monto or 0))
+    w_tit, p_tit = _filtro_titular(tercero_id)
     with _conn() as con:
         rows = con.execute(
-            """SELECT m.*, e.banco, e.cuenta, e.archivo_nombre, e.id AS extracto_id
+            f"""SELECT m.*, e.banco, e.cuenta, e.archivo_nombre, e.id AS extracto_id
                FROM extracto_movimientos m
                JOIN extractos_bancarios e ON e.id = m.extracto_id
                LEFT JOIN extracto_vinculos v ON v.extracto_mov_id = m.id
                WHERE v.id IS NULL
+                 AND {w_tit}
                  AND m.fecha BETWEEN ? AND ?
                  AND m.tipo = ?
                  AND ABS(m.monto - ?) <= ?
                ORDER BY ABS(julianday(m.fecha) - julianday(?)), ABS(m.monto - ?)
                LIMIT ?""",
             (
+                *p_tit,
                 desde,
                 hasta,
                 tipo_banco,
@@ -1714,3 +1769,114 @@ def sugerencias_auto(
             }
         )
     return sugerencias
+
+
+# ── Titulares distintos de la empresa (socios) ──────────────────────────────
+
+
+def cobertura_mensual(tercero_id: int | None) -> dict[str, Any]:
+    """Qué meses cubren los extractos de un titular, por cuenta bancaria.
+
+    Devuelve ``{"cuentas": [{"banco", "cuenta", "meses": ["2025-01", ...],
+    "desde", "hasta", "extractos": n, "lineas": n}], "anios": {2025: {"meses_con": 12,
+    "faltan": []}}}``. Es la base del paso «Extractos» del wizard de socios:
+    muestra los huecos (meses sin extracto) en vez de dejar que el usuario
+    los descubra al declarar. Un mes cuenta como cubierto si al menos una
+    línea de esa cuenta cae en él."""
+    ensure_extracto_tables()
+    w, p = _filtro_titular(tercero_id)
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT e.banco, e.cuenta, substr(m.fecha, 1, 7) AS mes,
+                       COUNT(*) AS n, COUNT(DISTINCT e.id) AS n_ext
+                FROM extracto_movimientos m
+                JOIN extractos_bancarios e ON e.id = m.extracto_id
+                WHERE {w}
+                GROUP BY e.banco, e.cuenta, mes
+                ORDER BY e.banco, e.cuenta, mes""",
+            p,
+        ).fetchall()
+    cuentas: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in rows:
+        d = dict(r)
+        key = ((d.get("banco") or "").strip(), (d.get("cuenta") or "").strip())
+        c = cuentas.setdefault(
+            key,
+            {"banco": key[0], "cuenta": key[1], "meses": [], "lineas": 0, "extractos": 0},
+        )
+        if d["mes"]:
+            c["meses"].append(d["mes"])
+        c["lineas"] += int(d["n"] or 0)
+        c["extractos"] = max(c["extractos"], int(d["n_ext"] or 0))
+    out_cuentas = []
+    anios: dict[int, set[str]] = {}
+    for c in cuentas.values():
+        meses = sorted(set(c["meses"]))
+        c["meses"] = meses
+        c["desde"] = meses[0] if meses else ""
+        c["hasta"] = meses[-1] if meses else ""
+        for m in meses:
+            try:
+                anios.setdefault(int(m[:4]), set()).add(m)
+            except ValueError:
+                continue
+        out_cuentas.append(c)
+    resumen_anios: dict[str, Any] = {}
+    for anio, meses in sorted(anios.items()):
+        todos = {f"{anio}-{i:02d}" for i in range(1, 13)}
+        faltan = sorted(todos - meses)
+        resumen_anios[str(anio)] = {"meses_con": len(meses), "faltan": faltan}
+    return {"cuentas": out_cuentas, "anios": resumen_anios}
+
+
+def lineas_por_titular(
+    tercero_id: int | None,
+    *,
+    desde: str | None = None,
+    hasta: str | None = None,
+    tipo: str | None = None,
+    limit: int = 5000,
+) -> list[dict[str, Any]]:
+    """Todas las líneas de extracto de un titular en un rango (sin importar
+    de qué extracto vienen). Lo usa `declarador.cruces_socio_empresa` para
+    cruzar el banco personal del socio contra los asientos de McKenna."""
+    ensure_extracto_tables()
+    w, p = _filtro_titular(tercero_id)
+    where = [w]
+    params: list[Any] = list(p)
+    if desde:
+        where.append("m.fecha >= ?")
+        params.append(desde)
+    if hasta:
+        where.append("m.fecha <= ?")
+        params.append(hasta)
+    if tipo in ("debito", "credito"):
+        where.append("m.tipo = ?")
+        params.append(tipo)
+    params.append(max(1, min(int(limit), 20000)))
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT m.id, m.extracto_id, m.fecha, m.descripcion, m.referencia,
+                       m.monto, m.tipo, m.saldo, e.banco, e.cuenta
+                FROM extracto_movimientos m
+                JOIN extractos_bancarios e ON e.id = m.extracto_id
+                WHERE {" AND ".join(where)}
+                ORDER BY m.fecha, m.id
+                LIMIT ?""",
+            params,
+        ).fetchall()
+    return [
+        {
+            "id": r["id"],
+            "extracto_id": r["extracto_id"],
+            "fecha": r["fecha"],
+            "descripcion": r["descripcion"] or "",
+            "referencia": r["referencia"] or "",
+            "monto": float(r["monto"] or 0),
+            "tipo": r["tipo"],
+            "saldo": r["saldo"],
+            "banco": r["banco"] or "",
+            "cuenta": r["cuenta"] or "",
+        }
+        for r in rows
+    ]

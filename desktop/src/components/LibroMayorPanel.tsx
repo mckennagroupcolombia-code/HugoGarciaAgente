@@ -13,7 +13,7 @@ import "./libroMayor.css";
 
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
-const CuentaSocioPanel = lazy(() => import("./CuentaSocioPanel"));
+const SociosPanel = lazy(() => import("./SociosPanel"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -167,14 +167,26 @@ function TIPO_ORIGEN_LABEL(t: string): string {
   return map[t] || t;
 }
 
-const VISTA_KEY = "mckenna-libro-mayor-vista";
+const AMBITO_KEY = "mckenna-libro-mayor-ambito";
+const GRUPO_KEY = "mckenna-libro-mayor-grupo";
+const SUB_KEY = "mckenna-libro-mayor-sub";
 
-function leerVista(): "simple" | "avanzada" {
+type Ambito = "empresa" | "socios";
+
+function leerLS<T extends string>(key: string, valido: (v: string) => v is T, def: T): T {
   try {
-    const v = localStorage.getItem(VISTA_KEY);
-    return v === "avanzada" ? "avanzada" : "simple";
+    const v = localStorage.getItem(key) || "";
+    return valido(v) ? v : def;
   } catch {
-    return "simple";
+    return def;
+  }
+}
+
+function guardarLS(key: string, v: string) {
+  try {
+    localStorage.setItem(key, v);
+  } catch {
+    /* ignore */
   }
 }
 
@@ -211,22 +223,28 @@ function invalidarTodo(qc: ReturnType<typeof useQueryClient>) {
 /* ─── Panel principal ─────────────────────────────────────────────────────── */
 
 export default function LibroMayorPanel() {
-  const [vista, setVista] = useState<"simple" | "avanzada">(leerVista);
   const skin = usePanelTheme((s) => s.skin);
   const libroMayorBootTab = useAppStore((s) => s.libroMayorBootTab);
   const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
+  const [ambito, setAmbito] = useState<Ambito>(() =>
+    leerLS(AMBITO_KEY, (v): v is Ambito => v === "empresa" || v === "socios", "empresa"),
+  );
 
-  function cambiarVista(v: "simple" | "avanzada") {
-    setVista(v);
-    try {
-      localStorage.setItem(VISTA_KEY, v);
-    } catch {
-      /* ignore */
-    }
+  function cambiarAmbito(a: Ambito) {
+    setAmbito(a);
+    guardarLS(AMBITO_KEY, a);
   }
 
+  // Un atajo externo hacia «Cuenta de Socio» (o «socios») cae en el ámbito Socios;
+  // cualquier otra subvista pertenece al ámbito Empresa.
   useEffect(() => {
-    if (libroMayorBootTab) setVista("avanzada");
+    if (!libroMayorBootTab) return;
+    if (libroMayorBootTab === "cuenta-socio" || libroMayorBootTab === "socios") {
+      cambiarAmbito("socios");
+    } else {
+      cambiarAmbito("empresa");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [libroMayorBootTab]);
 
   return (
@@ -234,28 +252,49 @@ export default function LibroMayorPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 max-w-xl">
           <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
+          <p className="mt-0.5 text-xs text-muted">
+            {ambito === "empresa"
+              ? "Contabilidad de McKenna Group en cuatro etapas: conciliar el banco, registrar, consultar y configurar."
+              : "Contabilidad personal de cada socio, dentro de la de la empresa: extractos propios, cuenta con McKenna, cruces y declaración de renta."}
+          </p>
         </div>
-        <div className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm">
-          {(["simple", "avanzada"] as const).map((v) => (
+        <div
+          className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm"
+          role="tablist"
+          aria-label="Ámbito"
+        >
+          {(
+            [
+              { id: "empresa", label: "Empresa", icon: "building" },
+              { id: "socios", label: "Socios", icon: "users" },
+            ] as { id: Ambito; label: string; icon: IconName }[]
+          ).map((a) => (
             <button
-              key={v}
+              key={a.id}
               type="button"
-              title={v === "simple" ? "Simple" : "Avanzada"}
-              aria-label={v === "simple" ? "Simple" : "Avanzada"}
-              onClick={() => cambiarVista(v)}
-              className={hubTabClass(vista === v, "mck-hub-tab-etiquetado flex-col")}
+              role="tab"
+              aria-selected={ambito === a.id}
+              title={a.label}
+              aria-label={a.label}
+              onClick={() => cambiarAmbito(a.id)}
+              className={hubTabClass(ambito === a.id, "mck-hub-tab-etiquetado flex-col")}
             >
-              <Icon name={v === "simple" ? "listChecks" : "flask"} size={22} weight="bold" />
-              <span className={HUB_TAB_LABEL}>{v === "simple" ? "Simple" : "Avanzada"}</span>
+              <Icon name={a.icon} size={22} weight="bold" />
+              <span className={HUB_TAB_LABEL}>{a.label}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {vista === "simple" ? (
-        <VistaSimple />
+      {ambito === "empresa" ? (
+        <VistaEmpresa
+          bootSub={libroMayorBootTab && libroMayorBootTab !== "socios" && libroMayorBootTab !== "cuenta-socio" ? libroMayorBootTab : null}
+          onBootConsumido={() => setLibroMayorBootTab(null)}
+        />
       ) : (
-        <VistaAvanzada bootSub={libroMayorBootTab} onBootConsumido={() => setLibroMayorBootTab(null)} />
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <SociosPanel embebido />
+        </Suspense>
       )}
     </div>
   );
@@ -1156,10 +1195,11 @@ function FormCompraProveedor({
   );
 }
 
-/* ─── Vista avanzada ──────────────────────────────────────────────────────── */
+/* ─── Vista Empresa: jerarquía en cuatro etapas ──────────────────────────── */
 
 type SubvistaAvanzada =
   | "diario"
+  | "rapido"
   | "plan-cuentas"
   | "terceros"
   | "movimientos"
@@ -1171,68 +1211,120 @@ type SubvistaAvanzada =
   | "informes"
   | "cuenta-socio";
 
-/** El libro mismo: diario, plan de cuentas, terceros, asientos, cuenta en T, balance. */
-const SUBTABS_LIBRO: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  { id: "diario", label: "Diario y conciliación", icon: "receipt" },
-  { id: "plan-cuentas", label: "Plan de cuentas", icon: "book" },
-  { id: "terceros", label: "Terceros", icon: "users" },
-  { id: "movimientos", label: "Movimientos", icon: "listChecks" },
-  { id: "cuentas-t", label: "Cuentas T", icon: "receipt" },
-  { id: "balance", label: "Balance de comprobación", icon: "chartBar" },
-  { id: "asiento-manual", label: "Asiento manual", icon: "pencil" },
-  { id: "informes", label: "Informes", icon: "chartBar" },
-];
+type GrupoId = "conciliar" | "registrar" | "consultar" | "configurar";
 
-/** Sub-libros: alimentan al libro mayor pero capturan datos propios (tasa, plazo, TRM…). */
-const SUBTABS_SUBLIBROS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  // Préstamos salió de acá el 2026-09-10: ahora es sección propia de Contabilidad,
-  // al mismo nivel que Compras exterior. Tenerlo en dos sitios confundía sobre
-  // dónde registrar, y el préstamo de un tercero tiene su propio ciclo (contrato,
-  // cronograma, retención, documentos), no es un detalle del libro.
-  { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar" },
-  { id: "cuenta-socio", label: "Cuenta de Socio", icon: "users" },
-];
-
-const SUBTABS: { id: SubvistaAvanzada; label: string; icon: IconName }[] = [
-  ...SUBTABS_LIBRO,
-  ...SUBTABS_SUBLIBROS,
-];
-
-function SubtabButton({ t, activo, onClick }: { t: (typeof SUBTABS)[number]; activo: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      title={t.label}
-      aria-label={t.label}
-      onClick={onClick}
-      className={hubTabClass(activo, "mck-hub-tab-etiquetado flex-col")}
-    >
-      <Icon name={t.icon} size={22} weight="bold" />
-      <span className={HUB_TAB_LABEL}>{t.label}</span>
-    </button>
-  );
+interface Grupo {
+  id: GrupoId;
+  num: number;
+  label: string;
+  desc: string;
+  icon: IconName;
+  subs: { id: SubvistaAvanzada; label: string; icon: IconName; desc: string }[];
 }
 
-function VistaAvanzada({
+/**
+ * Antes había 10 pestañas planas al mismo nivel (diario, plan de cuentas,
+ * terceros, movimientos, cuentas T, balance, asiento manual, informes, créditos,
+ * cuenta de socio) y nadie sabía por dónde empezar. Ahora el libro se recorre
+ * en el orden en que se trabaja: 1) conciliar el banco, 2) registrar lo que
+ * falta, 3) consultar, 4) configurar. Cada etapa agrupa las vistas que ya
+ * existían — no se reescribió ninguna, solo se ordenaron.
+ */
+const GRUPOS: Grupo[] = [
+  {
+    id: "conciliar",
+    num: 1,
+    label: "Conciliar",
+    desc: "Banco ↔ libro",
+    icon: "receipt",
+    subs: [{ id: "diario", label: "Diario y conciliación", icon: "receipt", desc: "Extracto, emparejar, clasificar" }],
+  },
+  {
+    id: "registrar",
+    num: 2,
+    label: "Registrar",
+    desc: "Lo que falta por asentar",
+    icon: "pencil",
+    subs: [
+      { id: "rapido", label: "Acciones rápidas", icon: "lightning", desc: "Ingreso, egreso, socios, proveedor" },
+      { id: "asiento-manual", label: "Asiento manual", icon: "pencil", desc: "Débito / crédito libre" },
+    ],
+  },
+  {
+    id: "consultar",
+    num: 3,
+    label: "Consultar",
+    desc: "Ver y verificar",
+    icon: "search",
+    subs: [
+      { id: "movimientos", label: "Movimientos", icon: "listChecks", desc: "Todos los asientos" },
+      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Mayor por cuenta" },
+      { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
+      { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
+    ],
+  },
+  {
+    id: "configurar",
+    num: 4,
+    label: "Configurar",
+    desc: "Catálogos del libro",
+    icon: "wrench",
+    subs: [
+      { id: "plan-cuentas", label: "Plan de cuentas", icon: "book", desc: "PUC propio" },
+      { id: "terceros", label: "Terceros", icon: "users", desc: "Proveedores, socios, clientes" },
+      { id: "creditos-adquiridos", label: "Créditos adquiridos", icon: "chartBar", desc: "Sub-libro con tasa y plazo" },
+    ],
+  },
+];
+
+function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
+  for (const g of GRUPOS) if (g.subs.some((x) => x.id === sub)) return g.id;
+  return "conciliar";
+}
+
+function subValida(v: string): v is SubvistaAvanzada {
+  return GRUPOS.some((g) => g.subs.some((x) => x.id === v));
+}
+
+function grupoValido(v: string): v is GrupoId {
+  return GRUPOS.some((g) => g.id === v);
+}
+
+function VistaEmpresa({
   bootSub,
   onBootConsumido,
 }: {
   bootSub?: SubvistaAvanzada | null;
   onBootConsumido?: () => void;
 }) {
-  // Si llega una subvista que ya no existe (p.ej. "prestamos", que salió a su
-  // propia sección), caer a "diario" en vez de renderizar una pantalla vacía.
-  const [sub, setSub] = useState<SubvistaAvanzada>(() => {
-    const valido = SUBTABS.some((t) => t.id === bootSub);
-    return valido && bootSub ? bootSub : "diario";
-  });
+  const [sub, setSub] = useState<SubvistaAvanzada>(() =>
+    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "diario"),
+  );
+  const [grupo, setGrupo] = useState<GrupoId>(() =>
+    bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "conciliar"),
+  );
   const [pendientesSignal, setPendientesSignal] = useState(0);
+  const [cargaSignal, setCargaSignal] = useState(0);
+  const [sugerenciasSignal, setSugerenciasSignal] = useState(0);
   const abrirPendientesBoot = useAppStore((s) => s.libroMayorAbrirPendientes);
   const setAbrirPendientesBoot = useAppStore((s) => s.setLibroMayorAbrirPendientes);
 
+  function irA(next: SubvistaAvanzada) {
+    setSub(next);
+    setGrupo(grupoDeSub(next));
+    guardarLS(SUB_KEY, next);
+    guardarLS(GRUPO_KEY, grupoDeSub(next));
+  }
+
+  function elegirGrupo(g: GrupoId) {
+    const def = GRUPOS.find((x) => x.id === g)!.subs[0].id;
+    // Si la subvista actual ya pertenece al grupo, se conserva.
+    irA(grupoDeSub(sub) === g ? sub : def);
+  }
+
   useEffect(() => {
-    if (bootSub) {
-      setSub(bootSub);
+    if (bootSub && subValida(bootSub)) {
+      irA(bootSub);
       onBootConsumido?.();
     }
     if (bootSub === "diario" && abrirPendientesBoot) {
@@ -1243,33 +1335,87 @@ function VistaAvanzada({
   }, [bootSub, abrirPendientesBoot]);
 
   function irAPendientes() {
-    setSub("diario");
+    irA("diario");
     setPendientesSignal((n) => n + 1);
   }
 
+  const grupoActual = GRUPOS.find((g) => g.id === grupo)!;
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border pb-2">
-        {SUBTABS_LIBRO.map((t) => (
-          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
-        ))}
-        <span
-          className="mx-1 hidden h-8 w-px shrink-0 bg-border sm:block"
-          aria-hidden
-          title="Sub-libros: alimentan al libro mayor con datos propios"
-        />
-        <span className="w-full text-[10px] font-bold uppercase tracking-wide text-muted sm:hidden">
-          Sub-libros
-        </span>
-        {SUBTABS_SUBLIBROS.map((t) => (
-          <SubtabButton key={t.id} t={t} activo={sub === t.id} onClick={() => setSub(t.id)} />
-        ))}
+      {/* Nivel 1: etapas */}
+      <div className="mck-stagger grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Etapas del libro">
+        {GRUPOS.map((g) => {
+          const activo = g.id === grupo;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              role="tab"
+              aria-selected={activo}
+              onClick={() => elegirGrupo(g.id)}
+              className={`lm-card flex items-center gap-3 px-3 py-2.5 text-left transition ${
+                activo ? "border-accent bg-accent/10 shadow-paper-sm" : "hover:bg-surface-hover"
+              }`}
+            >
+              <span
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
+                  activo ? "bg-accent text-white" : "bg-surface-hover text-ink-secondary"
+                }`}
+              >
+                {g.num}
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
+                  <Icon name={g.icon} size={15} weight="bold" />
+                  {g.label}
+                </span>
+                <span className="block truncate text-[11px] text-muted">{g.desc}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
-      {sub === "diario" && (
-        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-          <IngresosEgresosPanel abrirPendientesSignal={pendientesSignal} />
-        </Suspense>
+
+      {/* Nivel 2: vistas de la etapa (solo si hay más de una) */}
+      {grupoActual.subs.length > 1 && (
+        <div className="flex flex-wrap items-center gap-1.5 border-b border-border pb-2" role="tablist" aria-label={grupoActual.label}>
+          {grupoActual.subs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={sub === t.id}
+              title={t.desc}
+              onClick={() => irA(t.id)}
+              className={hubTabClass(sub === t.id, "mck-hub-tab-etiquetado flex-col")}
+            >
+              <Icon name={t.icon} size={22} weight="bold" />
+              <span className={HUB_TAB_LABEL}>{t.label}</span>
+            </button>
+          ))}
+        </div>
       )}
+
+      {/* Nivel 3: contenido */}
+      {sub === "diario" && (
+        <>
+          <ConciliarWizard
+            onCargar={() => setCargaSignal((n) => n + 1)}
+            onEmparejar={() => setSugerenciasSignal((n) => n + 1)}
+            onClasificar={() => setPendientesSignal((n) => n + 1)}
+            onVerificar={() => irA("balance")}
+          />
+          <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+            <IngresosEgresosPanel
+              abrirPendientesSignal={pendientesSignal}
+              abrirCargaSignal={cargaSignal}
+              abrirSugerenciasSignal={sugerenciasSignal}
+            />
+          </Suspense>
+        </>
+      )}
+      {sub === "rapido" && <VistaSimple />}
       {sub === "plan-cuentas" && <PlanCuentasTab />}
       {sub === "terceros" && <TercerosTab />}
       {sub === "movimientos" && <MovimientosTab />}
@@ -1282,11 +1428,140 @@ function VistaAvanzada({
           <CreditosAdquiridosPanel />
         </Suspense>
       )}
-      {sub === "cuenta-socio" && (
-        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-          <CuentaSocioPanel />
-        </Suspense>
-      )}
+    </div>
+  );
+}
+
+/* ─── Wizard de conciliación (estado por paso, calculado en vivo) ───────── */
+
+type EstadoPaso = "hecho" | "parcial" | "pendiente" | "cargando";
+
+interface ChecklistItemApi {
+  id: string;
+  cantidad: number;
+  severidad: "ok" | "media" | "alta";
+  detalle: string;
+}
+
+const PASO_ESTILO: Record<EstadoPaso, { dot: string; wrap: string; txt: string }> = {
+  hecho: { dot: "bg-emerald-600 text-white", wrap: "border-emerald-600/30 bg-emerald-600/5", txt: "text-emerald-700 dark:text-emerald-400" },
+  parcial: { dot: "bg-amber-500 text-white", wrap: "border-amber-600/40 bg-amber-600/10", txt: "text-amber-800 dark:text-amber-300" },
+  pendiente: { dot: "bg-danger text-white", wrap: "border-danger/40 bg-danger/10", txt: "text-danger" },
+  cargando: { dot: "bg-surface-hover text-muted", wrap: "border-border bg-surface-panel", txt: "text-muted" },
+};
+
+/**
+ * Los cuatro pasos de la conciliación bancaria de la empresa, con su estado
+ * real: (1) ¿hay extracto reciente?, (2) ¿quedan emparejamientos automáticos
+ * por confirmar? — se lanza bajo demanda porque el cálculo es pesado —, (3)
+ * ¿cuántas líneas del banco siguen sin asiento?, (4) ¿cuadra el balance? Cada
+ * paso es un botón que ejecuta la acción en el Diario de abajo: el wizard no
+ * duplica nada, solo ordena y enfoca.
+ */
+function ConciliarWizard({
+  onCargar,
+  onEmparejar,
+  onClasificar,
+  onVerificar,
+}: {
+  onCargar: () => void;
+  onEmparejar: () => void;
+  onClasificar: () => void;
+  onVerificar: () => void;
+}) {
+  const checkQ = useQuery<{ items: ChecklistItemApi[] }>({
+    queryKey: ["contabilidad-checklist"],
+    queryFn: () => api.get("/api/contabilidad/checklist"),
+    staleTime: 30_000,
+  });
+  const balQ = useQuery<Balance>({
+    queryKey: ["cc-balance", "wizard"],
+    queryFn: () => api.get("/api/contabilidad/cc/balance-comprobacion"),
+    staleTime: 60_000,
+  });
+  const items = checkQ.data?.items ?? [];
+  const itExtracto = items.find((i) => i.id === "extracto_sin_cargar");
+  const itPend = items.find((i) => i.id === "extractos_pendientes");
+
+  const est = (it: ChecklistItemApi | undefined, loading: boolean): EstadoPaso => {
+    if (loading) return "cargando";
+    if (!it) return "pendiente";
+    if (it.severidad === "ok") return "hecho";
+    return it.severidad === "alta" ? "pendiente" : "parcial";
+  };
+
+  const pasos: { n: number; label: string; estado: EstadoPaso; detalle: string; accion: string; onClick: () => void }[] = [
+    {
+      n: 1,
+      label: "Cargar extracto",
+      estado: est(itExtracto, checkQ.isLoading),
+      detalle: itExtracto?.detalle ?? "Sube el CSV, Excel o PDF del banco.",
+      accion: "Elegir archivo",
+      onClick: onCargar,
+    },
+    {
+      n: 2,
+      label: "Emparejar automáticamente",
+      estado: checkQ.isLoading ? "cargando" : itPend?.severidad === "ok" ? "hecho" : "parcial",
+      detalle: "Cruza libro y banco por monto y fecha; tú confirmas en bloque.",
+      accion: "Buscar coincidencias",
+      onClick: onEmparejar,
+    },
+    {
+      n: 3,
+      label: "Clasificar pendientes",
+      estado: est(itPend, checkQ.isLoading),
+      detalle: itPend?.detalle ?? "Líneas del banco sin asiento.",
+      accion: "Abrir bandeja",
+      onClick: onClasificar,
+    },
+    {
+      n: 4,
+      label: "Verificar balance",
+      estado: balQ.isLoading ? "cargando" : balQ.data?.cuadra ? "hecho" : "pendiente",
+      detalle: balQ.data
+        ? balQ.data.cuadra
+          ? `Cuadra: ${formatCop(balQ.data.total_debito)} = ${formatCop(balQ.data.total_credito)}`
+          : `No cuadra: ${formatCop(balQ.data.total_debito)} ≠ ${formatCop(balQ.data.total_credito)}`
+        : "Débitos = créditos en todo el libro.",
+      accion: "Ver balance",
+      onClick: onVerificar,
+    },
+  ];
+  const hechos = pasos.filter((p) => p.estado === "hecho").length;
+
+  return (
+    <div className="lm-card space-y-2 px-3 py-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-sm font-bold text-ink">Conciliación paso a paso</h3>
+        <span className="text-xs font-bold text-ink-secondary">{hechos}/{pasos.length} listos</span>
+      </div>
+      <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-surface-hover">
+        <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(hechos / pasos.length) * 100}%` }} />
+      </div>
+      <ol className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {pasos.map((p) => {
+          const st = PASO_ESTILO[p.estado];
+          return (
+            <li key={p.n} className={`flex flex-col gap-1.5 rounded-xl border px-3 py-2 ${st.wrap}`}>
+              <div className="flex items-center gap-2">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${st.dot}`}>
+                  {p.estado === "hecho" ? "✓" : p.n}
+                </span>
+                <span className="text-sm font-bold text-ink">{p.label}</span>
+              </div>
+              <p className={`text-[11px] leading-snug ${st.txt}`}>{p.detalle}</p>
+              <button
+                type="button"
+                onClick={p.onClick}
+                className="mt-auto self-start rounded-md border border-border bg-surface-panel px-2 py-1 text-[11px] font-bold text-ink hover:border-accent hover:text-accent"
+              >
+                {p.accion} →
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }

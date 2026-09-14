@@ -25,6 +25,7 @@ const ICONO_POR_ID: Partial<Record<string, IconName>> = {
   prestamos_pendientes: "handshake",
   facturacion_pendiente: "listChecks",
   conciliacion_contador: "search",
+  socios_expedientes: "users",
 };
 
 /**
@@ -66,6 +67,9 @@ export default function ContabilidadInicioPanel() {
         return;
       case "conciliacion_contador":
         setPanel("conciliacion-contador");
+        return;
+      case "socios":
+        setPanel("socios");
         return;
       case "facturacion_ventas":
         // Directo al panel donde se resuelve (cruce comprado vs facturado +

@@ -9996,12 +9996,31 @@ def register_routes(app):
     def api_contabilidad_extractos_list():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        tercero_id = _tercero_id_extracto_param()
+        if tercero_id == -1:
+            return jsonify({"error": "No autorizado para ver los extractos de ese socio"}), 403
         try:
             from app.services.extracto_bancario import listar_extractos
 
-            return jsonify({"extractos": listar_extractos()})
+            return jsonify({"extractos": listar_extractos(tercero_id=tercero_id)})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    def _tercero_id_extracto_param() -> int | None:
+        """`tercero_id` (query o form) para trabajar con los extractos PERSONALES
+        de un socio en vez de los de la empresa. None = empresa; -1 = pedido pero
+        sin permiso (el llamador responde 403). Misma regla de privacidad que
+        la Cuenta de Socio: el propio socio o el admin real."""
+        raw = (request.args.get("tercero_id") or request.form.get("tercero_id") or "").strip()
+        if not raw:
+            return None
+        try:
+            tid = int(raw)
+        except ValueError:
+            return None
+        if tid <= 0:
+            return None
+        return tid if _cc_puede_ver_tercero(_panel_tickets_usuario(), tid) else -1
 
     @app.route("/api/contabilidad/extractos/consultar", methods=["GET"])
     @app.route("/app/api/contabilidad/extractos/consultar", methods=["GET"])
@@ -10063,6 +10082,9 @@ def register_routes(app):
             or request.form.get("titulo")
             or ""
         ).strip()
+        tercero_id = _tercero_id_extracto_param()
+        if tercero_id == -1:
+            return jsonify({"error": "No autorizado para cargar extractos de ese socio"}), 403
         try:
             from app.services.contabilidad_ledger import invalidar_cache_libro
             from app.services.extracto_bancario import importar_extracto
@@ -10074,8 +10096,10 @@ def register_routes(app):
                 cuenta=cuenta,
                 notas=notas,
                 nombre=nombre_extracto,
+                tercero_id=tercero_id,
             )
-            invalidar_cache_libro()
+            if tercero_id is None:
+                invalidar_cache_libro()
             return jsonify({"ok": True, "extracto": extracto})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
@@ -10272,7 +10296,12 @@ def register_routes(app):
                 limit = int(request.args.get("limit") or 200)
             except ValueError:
                 limit = 200
-            return jsonify({"pendientes": pendientes_por_clasificar(desde, hasta, limit=limit)})
+            tercero_id = _tercero_id_extracto_param()
+            if tercero_id == -1:
+                return jsonify({"error": "No autorizado para ver los extractos de ese socio"}), 403
+            return jsonify(
+                {"pendientes": pendientes_por_clasificar(desde, hasta, limit=limit, tercero_id=tercero_id)}
+            )
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

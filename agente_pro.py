@@ -117,6 +117,12 @@ def create_app():
         print(f"⚠️ Conciliación contador: {e}")
 
     try:
+        from app.routes_declarador import register_declarador_routes
+        register_declarador_routes(app)
+    except Exception as e:
+        print(f"⚠️ Declarador · socios: {e}")
+
+    try:
         from app.routes_cron import register_cron_routes
         register_cron_routes(app)
     except Exception as e:

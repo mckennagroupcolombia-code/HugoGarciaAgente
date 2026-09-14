@@ -367,11 +367,18 @@ function ExtractoCell({
  */
 export default function IngresosEgresosPanel({
   abrirPendientesSignal,
+  abrirCargaSignal,
+  abrirSugerenciasSignal,
 }: {
   /** Incrementar este número (desde fuera, ej. Libro Mayor → Informes) abre la
    * bandeja "Pendientes por clasificar" — útil para enlazar directo desde un
    * informe o atajo externo. */
   abrirPendientesSignal?: number;
+  /** Incrementar abre el selector de archivo para cargar un extracto (paso 1 del
+   * wizard «Conciliar» de Libro Mayor). */
+  abrirCargaSignal?: number;
+  /** Incrementar lanza «Vincular automáticamente» (paso 2 del wizard). */
+  abrirSugerenciasSignal?: number;
 } = {}) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -413,6 +420,13 @@ export default function IngresosEgresosPanel({
   useEffect(() => {
     if (abrirPendientesSignal) setPendientesAbierto(true);
   }, [abrirPendientesSignal]);
+  useEffect(() => {
+    if (abrirCargaSignal) fileRef.current?.click();
+  }, [abrirCargaSignal]);
+  useEffect(() => {
+    if (abrirSugerenciasSignal) void abrirAutoVincular();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirSugerenciasSignal]);
   const [clasificarLinea, setClasificarLinea] = useState<PendienteLinea | null>(null);
   const [clasificarTipo, setClasificarTipo] = useState<ClasifTipo>("prestamo");
   const [clasificarSub, setClasificarSub] = useState<ClasifSub>("nuevo");

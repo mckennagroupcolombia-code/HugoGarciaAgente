@@ -145,6 +145,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
 │   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
 │   │   ├── mensajeria_pagos.py   Envíos diarios + lotes de pago a transportadoras (ex Excel «ENVIOS INTERRA»)
+│   │   ├── declarador.py          Socios: expediente fiscal + Declarador de activos digitales (Flujo Q)
 │   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
 │   │
 │   ├── tools/
@@ -246,6 +247,9 @@ AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía What
 AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
 
 # Préstamos de terceros (app/services/prestamos.py — ver Flujo M)
+DECLARADOR_DIR               # Carpeta raíz del Declarador (default /home/mckg/Declarador; una subcarpeta por socio)
+DECLARADOR_MODELO            # Modelo del agente del expediente de socios (default claude-sonnet-5)
+
 PRESTAMOS_DIA_RECORDATORIO   # Día del mes del ticket de pagos a despachos (default 5)
 PRESTAMOS_USUARIO_PAGOS      # Username que monta los pagos en Sucursal Negocios (default jerry)
 PRESTAMOS_RECORDATORIO_ACTIVO # 0 = desactiva el cron sin tocar el crontab
@@ -666,6 +670,46 @@ códigos PUC reales — 513550 Transporte/fletes, 513530 Energía, 5110 Honorari
 5120 Arrendamientos… — y **las 35 cuentas están mapeadas a Alegra** una a una.
 Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
 
+### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
+
+```
+/app → Contabilidad → Libro Mayor  (LibroMayorPanel.tsx, reorganizado sep-2026)
+  ├─ Ámbito EMPRESA — cuatro etapas, en el orden en que se trabaja:
+  │    1 Conciliar   wizard de 4 pasos con estado real (cargar extracto → emparejar → clasificar
+  │                  pendientes → verificar balance) sobre el Diario (IngresosEgresosPanel)
+  │    2 Registrar   acciones rápidas (ingreso, egreso, compra/pago socio, proveedor, aporte) + asiento manual
+  │    3 Consultar   movimientos · cuentas T · balance · informes
+  │    4 Configurar  plan de cuentas · terceros · créditos adquiridos
+  └─ Ámbito SOCIOS (= sección Contabilidad → Socios; SociosPanel.tsx) — wizard de 7 pasos por socio:
+       1 Empecemos: cuestionario interactivo de 5 preguntas (cripto, declaró antes, desde qué año,
+         otras plataformas, préstamos con familia) + cédula. No pide nada más; lo ya cargado se deduce
+       2 Plan de carga: qué documentos pide ESE caso, cómo conseguirlos, cuántos tiene vs. el socio de
+         referencia («así lo hizo Armando», solo conteos), carga por renglón/año, «no aplica»,
+         y botón para crear la carpeta del socio en el Declarador con la estructura de Armando
+       3 Extractos personales (tercero_id en extractos_bancarios; cobertura por mes con huecos)
+       4 Cuenta con McKenna (CuentaSocioPanel embebido)
+       5 Cruces socio ↔ empresa (banco personal vs banco/libro de McKenna, ±1 COP, ±3 días)
+       6 Activos digitales — Declarador: años gravables (F210 declarado vs efecto cripto FIFO),
+         documentos por categoría, pendientes con clave estable, agente con herramientas
+       7 Cierre: resumen copiable para el contador
+
+app/services/declarador.py     tablas dl_* en contabilidad.db; importar_carpeta() lee SOLO
+                               /home/mckg/Declarador/<Nombre>/ (DECLARADOR_DIR; Calculos/ y
+                               Para_Contador/ de Armando están enlazados dentro de Armando/); agente
+                               Claude tool-use con llm_budget (contexto «declarador»)
+app/routes_declarador.py       /api/socios/* — cada socio ve SOLO su expediente; solo la cuenta
+                               `admin` real (o CHAT_API_TOKEN crudo) ve todos
+```
+
+**Por qué existe:** la conciliación de criptoactivos de Armando (Binance 2020-2025, F210 2020-2024,
+exógena, extractos) se hizo en agosto de 2026 con un agente de terminal en `/home/mckg/Declarador`
+y quedó en markdown y CSV. La contabilidad del socio está pegada a la de la empresa (reintegros
+de compras con tarjeta personal, préstamos, cuota de manejo), así que ahora vive **dentro** del
+Libro Mayor: el socio carga sus extractos aquí (más datos para cruzar) y la declaración se sigue
+construyendo en el panel. **El banco personal de un socio nunca entra a la conciliación de la
+empresa** (`_filtro_titular` en `extracto_bancario.py`); solo se cruza con ella en el paso 4.
+Ficha: `docs/agentic/modules/contabilidad.md` → «Socios dentro de la contabilidad».
+
 ### P. Agente de ventas v2 (WhatsApp + chat web) con supervisión
 
 Reemplaza, detrás de banderas, la cadena de ~70 interceptores regex + LLM sin herramientas
@@ -973,7 +1017,8 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/conciliacion/*` | GET/POST | Bearer / permiso `libro-mayor` o `conciliacion-contador` | Cruce declaraciones del contador (350/490 bajados de Gmail) ↔ cuenta 2365: hallazgos con clave estable, decisiones del wizard y TKT — ver `app/services/conciliacion_contador.py` y Flujo J |
 | `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
-| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |
+| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (extractos de la empresa) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar". Con `tercero_id` (también en GET/POST `/extractos`) opera sobre los extractos PERSONALES de ese socio |
+| `/api/socios/*` | GET/POST/PATCH/DELETE | Bearer / propio socio o admin real | Expediente fiscal de socios (Declarador): perfil, documentos, años gravables, hallazgos, cruces banco socio ↔ empresa, agente con herramientas — ver `app/routes_declarador.py` y Flujo Q |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 

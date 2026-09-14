@@ -31,6 +31,7 @@ import { esAdminPanel } from "./adminAccess";
 export const CONTABILIDAD_PANELS = [
   "contabilidad-inicio",
   "libro-mayor",
+  "socios",
   "anulaciones",
   "compras-exterior",
   "prestamos",
@@ -128,7 +129,9 @@ export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
       || p.impuestos
       || p.servicios
       || p.mensajeria
-      || p["libro-mayor"],
+      || p["libro-mayor"]
+      || p.socios
+      || p.prestamos,
   );
 }
 
@@ -240,6 +243,14 @@ export function puedeVerModuloContabilidad(
     // Quien tenga libro-mayor también lo ve, porque el Diario ya muestra esos
     // mismos movimientos y negarlo acá no protegería nada.
     return Boolean(p.prestamos || p["libro-mayor"]);
+  }
+  if (seccion === "socios") {
+    // Expediente fiscal de cada socio (extractos personales, F210, cripto).
+    // El backend (app/routes_declarador.py) garantiza que cada socio vea SOLO
+    // el suyo; acá solo decidimos si la sección aparece en el menú. Un socio
+    // con cuenta de login vinculada a su tercero entra aunque no tenga
+    // libro-mayor — es SU declaración de renta, no la contabilidad de la empresa.
+    return Boolean(p.socios || p["libro-mayor"] || p.prestamos);
   }
   if (seccion === "libro-mayor") {
     // Permiso propio y explícito: partida doble, plan de cuentas y saldos con

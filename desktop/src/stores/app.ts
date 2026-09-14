@@ -43,6 +43,7 @@ export type Panel =
   | "ingresos-egresos"
   | "creditos-adquiridos"
   | "libro-mayor"
+  | "socios"
   | "contabilidad-inicio"
   | "anulaciones"
   | "prestamos"
@@ -141,6 +142,7 @@ export type AccionesBootTab =
 export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "cobros-meli" | "ganancia";
 /** Subvistas de Libro Mayor → Vista Avanzada a las que se puede abrir directo (ver LibroMayorPanel.tsx). */
 export type LibroMayorBootTab =
+  | "socios"
   | "diario"
   | "plan-cuentas"
   | "terceros"

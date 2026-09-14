@@ -126,6 +126,7 @@ function PanelRouterInner() {
     case "pagos":
     case "conciliacion-contador":
     case "libro-mayor":
+    case "socios":
       return <ContabilidadPanel />;
     case "rentabilidad":
     case "publicidad":

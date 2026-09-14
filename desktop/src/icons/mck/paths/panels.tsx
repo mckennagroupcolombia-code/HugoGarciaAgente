@@ -211,6 +211,16 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M4 9h16" />
     </>
   ),
+  // Dos personas (los socios) sobre una carpeta abierta: el expediente
+  // fiscal personal de cada socio, dentro de la contabilidad de la empresa.
+  socios: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3 20v-1.5a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4V20" />
+      <path d="M15 14.5h1.5a3.5 3.5 0 0 1 3.5 3.5v2" />
+    </>
+  ),
   // Documento con el borde inferior dentado (comprobante) y una flecha de
   // retorno: una nota crédito devuelve el valor de una factura ya emitida.
   anulaciones: (

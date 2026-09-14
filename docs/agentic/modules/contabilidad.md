@@ -41,6 +41,65 @@ bancario.
 - `desktop/src/lib/contabilidadAccess.ts` — permisos `libro-mayor` y `prestamos` son EXPLICITOS,
   no se heredan de facturacion/sync (datos sensibles de socios).
 
+## Socios dentro de la contabilidad (sep-2026)
+
+La contabilidad personal de cada socio vive **dentro** de la de la empresa, en `contabilidad.db`,
+como un wizard de seis pasos (`/app` → Contabilidad → Libro Mayor → ámbito **Socios**, o la
+sección **Socios** del hub): perfil fiscal → extractos personales → cuenta con McKenna → cruces
+socio ↔ empresa → activos digitales (Declarador) → cierre para el contador.
+
+- `app/services/extracto_bancario.py` — `extractos_bancarios.tercero_id` (NULL = empresa; id de
+  `cc_terceros` tipo socio = extracto PERSONAL). `_filtro_titular()` se aplica en `listar_extractos`,
+  `pendientes_por_clasificar`, `candidatos_para_movimiento` (y por ende `sugerencias_auto`),
+  `consultar_por_concepto` y `saldo_bancario_mas_reciente`: **el banco de un socio jamás entra a la
+  conciliación de McKenna**. Nuevos: `cobertura_mensual(tercero_id)` (meses con/sin extracto por
+  cuenta) y `lineas_por_titular()`.
+- `app/services/declarador.py` — tablas `dl_expedientes`, `dl_documentos`, `dl_anios`, `dl_hallazgos`,
+  `dl_chat`. `importar_carpeta(tercero_id, carpeta)` trae la carpeta del Declarador original
+  (`DECLARADOR_DIR`, default `/home/mckg/Declarador/<PrimerNombre>/`) SIN copiar archivos: registra
+  documentos por categoría/año (reglas por nombre en `_REGLAS_CATEGORIA`), lee
+  `declarado_f210.json` (años declarados + perfil + pendientes conocidos) y agrega
+  `Calculos/eventos_realizados_fifo.csv` por año y cédula (renta ordinaria / ganancia ocasional /
+  sin costo base). Idempotente. `cruces_socio_empresa()` empareja banco-socio ↔ banco-empresa por
+  monto ±1 y fecha ±3 días y marca si el lado empresa ya tiene asiento. `responder_agente()` es el
+  agente de terminal del Declarador llevado al panel: Claude con tool-use (`listar_documentos`,
+  `leer_documento` —md/csv/pdf vía pdftotext/xlsx—, `consultar_extracto_personal`,
+  `cruces_con_empresa`, `registrar_hallazgo`, `actualizar_anio`), Gemini sin herramientas como red de
+  seguridad, todo por `llm_budget` (contexto `declarador`, modelo `DECLARADOR_MODELO`, default
+  `claude-sonnet-5`).
+- `app/routes_declarador.py` — `/api/socios`, `/api/socios/<id>/{expediente,perfil,pasos/<paso>,
+  documentos,importar-carpeta,anios/<ano>,hallazgos,cruces,agente}`. **Privacidad:** cada socio ve
+  SOLO su expediente (`cc_terceros.usuario_id`); únicamente la cuenta `admin` real o el
+  CHAT_API_TOKEN crudo ven todos — tener nivel 3 no basta (los dos socios lo tienen). Misma regla
+  que los gastos personales de Cuenta de Socio. `/api/contabilidad/extractos` (GET/POST) y
+  `/extractos/pendientes` aceptan `tercero_id` con esa misma validación.
+- `desktop/src/components/SociosPanel.tsx` (wizard) y `LibroMayorPanel.tsx` reorganizado en
+  cuatro etapas —Conciliar (wizard de 4 pasos con estado real sobre el Diario), Registrar,
+  Consultar, Configurar— más el ámbito Empresa/Socios. `IngresosEgresosPanel` recibe
+  `abrirCargaSignal` / `abrirSugerenciasSignal`; `CuentaSocioPanel` acepta `terceroId` fijo.
+- Datos personales que NO van al repo: la carpeta del Declarador (fuera del repo) y
+  `comprobantes/socios/<tercero_id>/` (documentos subidos, gitignored vía `comprobantes/`).
+  `Declarador/Armando/declarado_f210.json` es el seed editable de lo declarado en cada F210.
+- **Wizard interactivo (14-sep):** el paso 1 «Empecemos» es un cuestionario de 5 preguntas
+  (`CUESTIONARIO`: cripto, declaró antes, desde qué año, otras plataformas, préstamos con familia) +
+  cédula; NO se pide teléfono, cuenta bancaria, UID Binance ni carpeta. Las respuestas se guardan en
+  `dl_expedientes.cuestionario_json` y se deducen de lo ya cargado (`cuestionario_inferido`) para no
+  volver a preguntar. El paso 2 «Plan de carga» (`plan_carga`, `REQUISITOS`) lista por categoría y
+  año qué documentos pide ese caso, cómo conseguirlos, cuántos tiene el socio y cuántos tiene el
+  **socio de referencia** (`socio_referencia`: el otro con más documentos — solo conteos, nunca
+  cifras), con carga directa por renglón/año y «No aplica en mi caso» (`omitidos`).
+  `crear_carpeta_socio` crea `DECLARADOR_DIR/<Nombre>/` con la estructura numerada (01_Declaraciones_Renta
+  … 06_Soportes), `LEEME.md` y la plantilla `declarado_f210.json`.
+- **Layout del Declarador por socio:** `importar_carpeta` solo recorre la carpeta del socio
+  (`followlinks=True`). `Calculos/`, `Para_Contador/` y `balance_cripto_dian.md` son de Armando y están
+  enlazados dentro de `Armando/`; `Para_Contador/` se salta (son copias) salvo `01_Informe_Principal`.
+  La primera importación de Cynthia se trajo los cálculos cripto de Armando por estar en la raíz —
+  se limpió y se cambió el importador.
+- Estado al 2026-09-14: expediente de Armando importado (123 archivos + 94 capturas, 6 años
+  gravables 2020-2025 con efecto cripto, 18 pendientes abiertos, historial bancario 2019-2024 como
+  extracto personal #10 con 5.116 líneas). Cynthia: carpeta creada con la estructura de Armando y su
+  export de la API de Binance copiado a `Cynthia/04_Binance/api_export/` (10 documentos); le falta todo lo demás.
+
 ## Invariantes
 
 - `crear_movimiento` siempre valida suma(debitos) == suma(creditos); nunca se persiste un
@@ -52,6 +111,9 @@ bancario.
   `armar_libro()`; incluirlos ahi los duplicaria en la vista.
 - Dedupe del auto-posteo es por `referencia`, no por fecha/monto — reprocesar el mismo rango
   (cron o backfill) nunca crea asientos repetidos.
+- `extractos_bancarios.tercero_id IS NULL` es la empresa. Toda consulta que agregue líneas de varios
+  extractos pasa por `_filtro_titular()`; una función nueva que lea `extracto_movimientos` sin ese
+  filtro mezclaría el banco personal de un socio con el de McKenna.
 - Cuentas PUC de socios vs terceros no se mezclan: `2380`/`1355` son de socios,
   `2295`/`1290` de terceros — la eleccion depende de `tercero.tipo`.
 - Migraciones de esquema (`_migrar_cuentas_v2`, `_migrar_columnas_v3`) deben ser idempotentes
