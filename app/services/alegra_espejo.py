@@ -127,23 +127,38 @@ def plan_cuentas_alegra() -> dict:
         return {}
 
 
-def tipos_comprobante() -> tuple[list, str]:
+_TIPOS_CACHE: tuple[list, str, float] | None = None
+
+
+def tipos_comprobante(*, refrescar: bool = False) -> tuple[list, str]:
     """Tipos de comprobante contable configurados en Alegra.
 
     Vacío significa que hay que crear uno **desde la interfaz** — por API da 403.
+
+    Cacheado 10 minutos en memoria: `espejar_movimiento` lo consulta en cada
+    asiento y esta respuesta trae todos los comprobantes con sus líneas, así que
+    sin caché el reespejo de un semestre se vuelve cuadrático — el primer intento
+    (14-sep-2026) iba a ~1 minuto por asiento y creciendo.
     """
+    global _TIPOS_CACHE
+    import time
+
     import requests
 
     from app.services.alegra import _ALEGRA_BASE, _alegra_headers
 
+    if _TIPOS_CACHE and not refrescar and (time.time() - _TIPOS_CACHE[2]) < 600 and _TIPOS_CACHE[0]:
+        return _TIPOS_CACHE[0], _TIPOS_CACHE[1]
     try:
-        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=15)
+        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=20)
     except Exception as e:
         return [], str(e)
     if r.status_code != 200:
         return [], f"HTTP {r.status_code}: {r.text[:200]}"
     d = r.json()
-    return (d if isinstance(d, list) else (d.get("data") or [])), ""
+    tipos = d if isinstance(d, list) else (d.get("data") or [])
+    _TIPOS_CACHE = (tipos, "", time.time())
+    return tipos, ""
 
 
 def cuenta_alegra(codigo_puc: str) -> str | None:
@@ -188,6 +203,9 @@ def _entradas_desde_movimiento(mov: dict) -> tuple[list, list]:
     return entries, faltantes
 
 
+_CONTACTOS_CACHE: dict[int, str | None] = {}
+
+
 def _contacto_alegra(tercero_id) -> str | None:
     """Id del contacto en Alegra para un tercero del Libro Mayor, o None.
 
@@ -195,19 +213,29 @@ def _contacto_alegra(tercero_id) -> str | None:
     nunca reciban un documento. Si no existe, la línea va sin `client` y el
     comprobante se postea igual — perder el detalle del tercero es mejor que no
     postear la retención.
+
+    Cacheado por proceso: es una llamada HTTP por línea, y un semestre son ~200
+    líneas sobre apenas unas decenas de terceros distintos. Sin el caché, el
+    reespejo de enero a junio (14-sep-2026) se quedaba media hora solo armando
+    la previsualización.
     """
     if not tercero_id:
         return None
+    if int(tercero_id) in _CONTACTOS_CACHE:
+        return _CONTACTOS_CACHE[int(tercero_id)]
     try:
         import app.services.contabilidad_core as cc
         from app.services.alegra import consultar_contacto_alegra
 
         t = cc.obtener_tercero(int(tercero_id))
         if not t or not (t.get("identificacion") or "").strip():
+            _CONTACTOS_CACHE[int(tercero_id)] = None
             return None
         tipo_doc = "NIT" if t.get("tipo_persona") == "juridica" else "CC"
         r = consultar_contacto_alegra(t["identificacion"], tipo_doc)
-        return r.get("id") if r.get("existe") else None
+        cid = r.get("id") if r.get("existe") else None
+        _CONTACTOS_CACHE[int(tercero_id)] = cid
+        return cid
     except Exception:
         return None
 

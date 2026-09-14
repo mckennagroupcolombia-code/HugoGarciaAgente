@@ -263,7 +263,13 @@ UVT_<año>                    # Valor de la UVT si no está cargado en retencion
 EMAIL_CONTADOR               # Correo del contador para el detalle mensual de retenciones
 COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real de compras a socios (default 0 = sombra)
 COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra (default MERCANCIA-SOCIO)
-ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra (default 0 = sombra)
+ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra como comprobantes
+                             # contables (default 0 = sombra). **En 1 desde el 2026-09-14**: el
+                             # contador arma el 350 con lo que ve en Alegra, y había $2.621.225 de
+                             # retención practicada en 2026 que solo estaba en el libro. Enero–junio
+                             # quedó reespejado; MercadoPago (111010) y publicidad en plataformas
+                             # (529505) siguen sin cuenta en MAPA_PUC, así que las 3 facturas
+                             # mensuales de MercadoLibre no se espejan todavía.
 PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
 ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
 
