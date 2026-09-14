@@ -1,3 +1,14 @@
+### 2026-09-14 05:05 - Socios: el expediente como línea de tiempo, un documento que el contador recorre año por año
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (paso 7 del wizard de Socios)
+- **Qué se implementó:**
+  - **El paso «Listo para el contador» dejó de ser una lista de pendientes y pasó a ser el documento del expediente.** Se llama ahora **«Expediente para el contador»** y presenta, en orden cronológico, un bloque por año gravable con la misma estructura en los seis: **1 · Lo que dice la declaración** (patrimonio, deudas, renta líquida, impuesto, con el aviso de que va sin criptoactivos) · **2 · Lo que realmente pasó** (tenencia en Binance al 31-dic con el detalle por moneda, ganancia o pérdida realizada, y el patrimonio bruto real del año = declarado + cripto) · **3 · Efecto de corregir** (renta e impuesto corregidos, mayor valor, sanción, intereses con sus días, total) más el respaldo bancario del año (meses de extracto y cifras de la tarjeta).
+  - **Línea de tiempo real dentro de cada año,** con hitos fechados que el contador puede cruzar contra el banco: cada **compra y venta P2P** completada (monto exacto en COP, tasa implícita, método de pago y número de orden, de `evidencia_binance_p2p.csv`), cada **desembolso de crédito** con su fecha, plazo y tasa (leídos de los certificados de Bancolombia), los **retiros y depósitos** de cripto con su red, y el cierre del año con la **presentación de la declaración**. Por defecto se ven solo los relevantes (declaración, créditos y P2P sobre $1M); un clic despliega los traslados y retiros.
+  - **Los soportes cuelgan del año al que pertenecen.** Cada bloque lista sus documentos con categoría, nombre y rango de años cuando uno cubre varios, y se abren con un clic; los cálculos e informes que cubren todo el período quedan en una sección aparte al final. Arriba, el total a regularizar y un índice de años que salta al bloque.
+  - **Backend:** `declarador.cronologia()` (endpoint `GET /api/socios/<id>/cronologia`, aparte del expediente porque lee los CSV de evidencia y los certificados del disco), más `creditos_desde_certificados()` y `hitos_binance()`. «Copiar como texto» genera el mismo documento en texto plano para pegarlo en un correo al contador.
+  - **Verificado:** 8 tests de declarador + smoke (85), `tsc`, build y recorrido en Chromium de los seis años de Armando (32 hitos en 2021, 42 soportes en 2024).
+- **Archivos Modificados:** `app/services/declarador.py`, `app/routes_declarador.py`, `desktop/src/components/SociosPanel.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 04:35 - Socios: el certificado anual de Bancolombia cubre los extractos de tarjeta que el banco ya no entrega
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora técnica (plan de carga) + lectura de fuentes alternativas

@@ -283,6 +283,15 @@ def register_declarador_routes(app):
         return jsonify(h)
 
     # ── Cruces banco socio ↔ empresa ─────────────────────────────────────
+    @app.route("/api/socios/<int:tercero_id>/cronologia", methods=["GET"])
+    @app.route("/app/api/socios/<int:tercero_id>/cronologia", methods=["GET"])
+    @_auth_tercero
+    def api_socio_cronologia(tercero_id: int):
+        """Expediente en línea de tiempo, para que el contador verifique cada
+        cifra contra su soporte. Va aparte del expediente porque lee los CSV de
+        evidencia y los certificados del disco."""
+        return jsonify(dl.cronologia(tercero_id))
+
     @app.route("/api/socios/<int:tercero_id>/cruces", methods=["GET"])
     @app.route("/app/api/socios/<int:tercero_id>/cruces", methods=["GET"])
     @_auth_tercero

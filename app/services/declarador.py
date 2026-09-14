@@ -58,8 +58,8 @@ CATEGORIAS_DOC: list[tuple[str, str]] = [
     ("exogena", "Información exógena DIAN"),
     ("extracto_banco", "Extracto bancario"),
     ("extracto_tarjeta", "Extracto tarjeta de crédito"),
-    ("credito", "Crédito bancario (cuotas / obligaciones)"),
-    ("certificado_banco", "Certificado bancario anual (retención, GMF, créditos, costos)"),
+    ("credito", "Cuota de crédito"),
+    ("certificado_banco", "Certificado bancario anual"),
     ("binance_csv", "Historial Binance (CSV)"),
     ("binance_snapshot", "Snapshot de tenencia Binance"),
     ("binance_api", "Evidencia API Binance"),
@@ -82,7 +82,7 @@ PASOS_WIZARD: list[tuple[str, str]] = [
     ("mckenna", "Cuenta con McKenna"),
     ("cruces", "Cruces socio ↔ empresa"),
     ("declarador", "Activos digitales"),
-    ("cierre", "Listo para el contador"),
+    ("cierre", "Expediente para el contador"),
 ]
 
 
@@ -1188,6 +1188,264 @@ def tarjeta_por_anio(docs: list[dict]) -> dict[int, dict[str, Any]]:
                 acum[k] = v
         acum["fuentes"].append(d["archivo_nombre"])
     return out
+
+
+def _cantidad(x: float) -> str:
+    """Cantidad de cripto legible: sin ceros de relleno, pero sin truncar un BTC
+    a «0.00» (que fue lo que pasó al formatear todo con 2 decimales)."""
+    if x == 0:
+        return "0"
+    txt = f"{x:,.8f}".rstrip("0").rstrip(".") if abs(x) < 1000 else f"{x:,.2f}".rstrip("0").rstrip(".")
+    return txt
+
+
+def creditos_desde_certificados(docs: list[dict]) -> list[dict[str, Any]]:
+    """Préstamos y cupos de tarjeta con su fecha de desembolso, monto, plazo y
+    tasa, leídos de los certificados anuales de Bancolombia. Son los hitos que
+    explican de dónde salió la plata en la línea de tiempo."""
+    vistos: dict[tuple, dict[str, Any]] = {}
+    for d in docs:
+        if d.get("categoria") != "certificado_banco" or not (d.get("archivo_nombre") or "").lower().endswith((".xlsx", ".xlsm")):
+            continue
+        try:
+            filas = _filas_xlsx(d["archivo_path"])
+        except Exception:  # noqa: BLE001
+            continue
+        producto = ""
+        for fila in filas:
+            primera = (fila[0] if fila else "").strip()
+            up = primera.upper()
+            # Reporte anual de costos: «Prestamo de Consumo Nro.: 310154706» + «VALOR DEL DESEMBOLSO»
+            if up.startswith("PRESTAMO"):
+                producto = primera
+                continue
+            if up.startswith("VALOR DEL DESEMBOLSO") and producto:
+                fecha = next((c for c in fila[1:] if re.fullmatch(r"\d{4}-\d{2}-\d{2}", c or "")), "")
+                monto = next((_num(c) for c in reversed(fila) if _num(c) is not None), None)
+                num = re.search(r"(\d{6,})", producto)
+                if fecha and monto:
+                    vistos[("prestamo", num.group(1) if num else producto, fecha)] = {
+                        "fecha": fecha,
+                        "tipo": "credito",
+                        "producto": producto.split("Nro.")[0].strip(" :"),
+                        "numero": num.group(1) if num else "",
+                        "monto": monto,
+                        "moneda": "COP",
+                        "fuente": d["archivo_nombre"],
+                    }
+                continue
+            # Certificado de operaciones de crédito: tabla con fecha de originación
+            if len(fila) >= 7 and re.fullmatch(r"\d{2}/\d{2}/\d{4}", (fila[2] or "").strip()):
+                dd, mm, yy = fila[2].split("/")
+                monto = _num(fila[3])
+                if monto is None:
+                    continue
+                vistos[("cred", (fila[1] or "").strip(), f"{yy}-{mm}-{dd}")] = {
+                    "fecha": f"{yy}-{mm}-{dd}",
+                    "tipo": "credito",
+                    "producto": (fila[0] or "").strip(),
+                    "numero": (fila[1] or "").strip(),
+                    "monto": monto,
+                    "moneda": (fila[6] or "COP").strip(),
+                    "plazo": (fila[4] or "").strip(),
+                    "tasa": (fila[5] or "").strip(),
+                    "fuente": d["archivo_nombre"],
+                }
+    return sorted(vistos.values(), key=lambda x: x["fecha"])
+
+
+def hitos_binance(carpeta_calculos: str) -> list[dict[str, Any]]:
+    """Operaciones de Binance que dejan rastro verificable fuera del exchange:
+    compras y ventas P2P (tienen contraparte bancaria en COP) y los retiros y
+    depósitos de cripto. Son las que el contador puede cruzar contra el banco."""
+    out: list[dict[str, Any]] = []
+    p2p = os.path.join(carpeta_calculos or "", "evidencia_binance_p2p.csv")
+    if os.path.isfile(p2p):
+        with open(p2p, newline="", encoding="utf-8", errors="replace") as fh:
+            for r in csv.DictReader(fh):
+                if (r.get("orderStatus") or "").upper() != "COMPLETED":
+                    continue
+                fecha = (r.get("fecha_utc") or "")[:10]
+                if not fecha:
+                    continue
+                compra = (r.get("tradeType") or "").upper() == "BUY"
+                out.append(
+                    {
+                        "fecha": fecha,
+                        "tipo": "p2p",
+                        "titulo": f"{'Compra' if compra else 'Venta'} P2P de {_cantidad(float(r.get('amount') or 0))} {r.get('asset')}",
+                        "detalle": f"{'Pagó' if compra else 'Recibió'} {float(r.get('totalPrice') or 0):,.0f} COP a {r.get('unitPrice')} COP/{r.get('asset')} · {r.get('payMethodName') or 'sin método'} · orden {r.get('orderNumber')}",
+                        "monto": float(r.get("totalPrice") or 0),
+                        "entrada": compra,
+                        "fuente": "evidencia_binance_p2p.csv",
+                    }
+                )
+    for archivo, etiqueta in (("evidencia_binance_retiros.csv", "Retiro"), ("evidencia_binance_depositos.csv", "Depósito")):
+        ruta = os.path.join(carpeta_calculos or "", archivo)
+        if not os.path.isfile(ruta):
+            continue
+        with open(ruta, newline="", encoding="utf-8", errors="replace") as fh:
+            for r in csv.DictReader(fh):
+                fecha = (r.get("applyTime") or r.get("insertTime") or r.get("completeTime") or "")[:10]
+                cant = float(r.get("amount") or 0)
+                if not fecha or not cant:
+                    continue
+                out.append(
+                    {
+                        "fecha": fecha,
+                        "tipo": "movimiento",
+                        "titulo": f"{etiqueta} de {_cantidad(cant)} {r.get('coin')}",
+                        "detalle": f"red {r.get('network') or '—'}"
+                        + (f" · dirección {(r.get('address') or '')[:14]}…" if r.get("address") else ""),
+                        "monto": None,
+                        "entrada": etiqueta == "Depósito",
+                        "fuente": archivo,
+                    }
+                )
+    return sorted(out, key=lambda x: x["fecha"])
+
+
+def cronologia(tercero_id: int) -> dict[str, Any]:
+    """El expediente como línea de tiempo: un bloque por año gravable con lo que
+    se declaró, lo que realmente pasó, los hitos fechados y los documentos que
+    lo prueban. Es la vista que recorre el contador para verificar cifra por
+    cifra contra su soporte."""
+    perfil = obtener_perfil(tercero_id)
+    docs = listar_documentos(tercero_id)
+    anios_db = {int(a["ano"]): a for a in listar_anios(tercero_id)}
+    plan = plan_carga(tercero_id, perfil, docs)
+    objetivo = objetivo_declaraciones(list(anios_db.values()), docs, plan)
+    obj_por_ano = {int(x["ano"]): x for x in objetivo.get("anios", [])}
+    hallazgos = listar_hallazgos(tercero_id)
+    tarjetas = tarjeta_por_anio(docs)
+    creditos = creditos_desde_certificados(docs)
+    ten = _tenencia_guardada(tercero_id)
+    labels = dict(CATEGORIAS_DOC)
+    try:
+        from app.services.extracto_bancario import cobertura_mensual
+
+        cobertura = cobertura_mensual(int(tercero_id))
+    except Exception:  # noqa: BLE001
+        cobertura = {"anios": {}}
+    calc = _carpeta_calculos(perfil.get("carpeta") or "")
+    hb = hitos_binance(calc) if calc else []
+
+    anios = sorted(set(plan["anios"]) | set(anios_db))
+    bloques = []
+    for ano in anios:
+        a = anios_db.get(ano, {})
+        obj = obj_por_ano.get(ano, {})
+        hitos: list[dict[str, Any]] = []
+        if a.get("presentada_en"):
+            hitos.append(
+                {
+                    "fecha": a["presentada_en"][:10],
+                    "tipo": "declaracion",
+                    "titulo": f"Declaración de renta {ano} presentada a la DIAN",
+                    "detalle": f"Formulario {a.get('formulario') or '—'} · patrimonio bruto {a.get('patrimonio_bruto') or 0:,.0f} · renta líquida {a.get('renta_liquida') or 0:,.0f} · impuesto {a.get('impuesto_pagado') or 0:,.0f}. Sin criptoactivos.",
+                    "monto": None,
+                    "fuente": "F210",
+                }
+            )
+        for c in creditos:
+            if c["fecha"][:4] == str(ano):
+                hitos.append(
+                    {
+                        "fecha": c["fecha"],
+                        "tipo": "credito",
+                        "titulo": f"{c['producto']} desembolsado: {c['monto']:,.2f} {c['moneda']}",
+                        "detalle": " · ".join(x for x in [f"obligación {c['numero']}" if c.get("numero") else "", c.get("plazo", ""), c.get("tasa", "")] if x),
+                        "monto": c["monto"] if c["moneda"] == "COP" else None,
+                        "fuente": c["fuente"],
+                    }
+                )
+        for h in hb:
+            if h["fecha"][:4] == str(ano):
+                hitos.append(h)
+        hitos.sort(key=lambda x: (x["fecha"], x["tipo"] != "declaracion"))
+        docs_ano = [
+            {
+                "id": d["id"],
+                "categoria": d["categoria"],
+                "categoria_label": labels.get(d["categoria"], d["categoria"]),
+                "archivo_nombre": d["archivo_nombre"],
+                "ano": d.get("ano"),
+                "ano_hasta": d.get("ano_hasta"),
+                "existe": d.get("existe"),
+                "legible": d.get("legible"),
+            }
+            for d in docs
+            if d.get("ano") and int(d["ano"]) <= ano <= int(d.get("ano_hasta") or d["ano"])
+        ]
+        cob = (cobertura.get("anios") or {}).get(str(ano)) or {}
+        tenencia = (ten.get("anios") or {}).get(str(ano)) or {}
+        bloques.append(
+            {
+                "ano": ano,
+                "estado": a.get("estado") or "sin_datos",
+                "situacion": obj.get("situacion"),
+                "accion": obj.get("accion"),
+                "presentacion": obj.get("presentacion"),
+                "declarado": {
+                    "formulario": a.get("formulario") or "",
+                    "presentada_en": a.get("presentada_en") or "",
+                    "patrimonio_bruto": a.get("patrimonio_bruto"),
+                    "deudas": a.get("deudas"),
+                    "patrimonio_liquido": a.get("patrimonio_liquido"),
+                    "renta_liquida": a.get("renta_liquida"),
+                    "impuesto_pagado": a.get("impuesto_pagado"),
+                },
+                "cripto": {
+                    "efecto": a.get("cripto_total"),
+                    "renta_ordinaria": a.get("cripto_renta_ordinaria"),
+                    "ganancia_ocasional": a.get("cripto_ganancia_ocasional"),
+                    "sin_costo": a.get("cripto_sin_costo"),
+                    "eventos": a.get("cripto_eventos"),
+                    "tenencia_usd": tenencia.get("cripto_costo_cierre_usd", a.get("cripto_costo_cierre_usd")),
+                    "tenencia_cop": tenencia.get("cripto_costo_cierre_cop", a.get("cripto_costo_cierre_cop")),
+                    "trm": tenencia.get("trm_cierre", a.get("trm_cierre")),
+                    "detalle": (tenencia.get("detalle") or [])[:8],
+                    "snapshot_usd": a.get("tenencia_cierre_usd"),
+                },
+                "correccion": obj.get("correccion"),
+                "banco": {
+                    "meses_extracto": cob.get("meses_con", 0),
+                    "meses_faltan": cob.get("faltan", []),
+                    "tarjeta": tarjetas.get(ano),
+                },
+                "hitos": hitos,
+                "documentos": docs_ano,
+                "hallazgos": [
+                    {"id": h["id"], "titulo": h["titulo"], "severidad": h["severidad"], "estado": h["estado"], "detalle": h["detalle"]}
+                    for h in hallazgos
+                    if h.get("ano") == ano and h["estado"] in ("pendiente", "en_curso")
+                ],
+            }
+        )
+    sin_ano = [
+        {
+            "id": d["id"],
+            "categoria": d["categoria"],
+            "categoria_label": labels.get(d["categoria"], d["categoria"]),
+            "archivo_nombre": d["archivo_nombre"],
+            "existe": d.get("existe"),
+            "legible": d.get("legible"),
+        }
+        for d in docs
+        if not d.get("ano")
+    ]
+    return {
+        "titular": {
+            "nombre": perfil["tercero"]["nombre"],
+            "cedula": perfil.get("cedula") or perfil["tercero"].get("identificacion") or "",
+            "binance_uid": perfil.get("binance_uid") or "",
+        },
+        "anios": bloques,
+        "sin_ano": sin_ano,
+        "totales": objetivo.get("totales"),
+        "parametros": objetivo.get("parametros"),
+        "generado": datetime.now().isoformat(timespec="seconds"),
+    }
 
 
 def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, Any]:

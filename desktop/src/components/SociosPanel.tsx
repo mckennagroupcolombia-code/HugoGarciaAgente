@@ -286,7 +286,7 @@ const PASOS_META: Record<PasoId, { icon: IconName; hint: string }> = {
   mckenna: { icon: "building", hint: "Saldos y movimientos con la empresa, y gastos personales." },
   cruces: { icon: "link", hint: "Giros entre el banco personal y el banco de McKenna." },
   declarador: { icon: "scroll", hint: "Años gravables, documentos, activos digitales, pendientes y agente." },
-  cierre: { icon: "check", hint: "Qué queda abierto antes de entregar al contador." },
+  cierre: { icon: "book", hint: "El expediente completo en orden cronológico: año por año, qué se declaró, qué pasó y con qué se prueba." },
 };
 
 const ESTILO_PASO: Record<EstadoPaso, { dot: string; wrap: string; txt: string }> = {
@@ -609,7 +609,7 @@ function Wizard({ terceroId }: { terceroId: number }) {
         )}
         {paso === "cruces" && <PasoCruces terceroId={terceroId} />}
         {paso === "declarador" && <PasoDeclarador terceroId={terceroId} exp={exp} onChanged={refrescar} onIr={irA} />}
-        {paso === "cierre" && <PasoCierre terceroId={terceroId} exp={exp} onChanged={refrescar} onIr={irA} />}
+        {paso === "cierre" && <PasoCierre terceroId={terceroId} exp={exp} onIr={irA} />}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
           <button type="button" className={btnSec} disabled={!anterior} onClick={() => anterior && irA(anterior.id)}>
@@ -3070,99 +3070,408 @@ function Agente({ terceroId, onChanged }: { terceroId: number; onChanged: () => 
 
 /* ─── Paso 6: Cierre ─────────────────────────────────────────────────────── */
 
-function PasoCierre({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp: Expediente; onChanged: () => void; onIr: (p: PasoId) => void }) {
-  const abiertos = exp.hallazgos.filter((h) => h.estado === "pendiente" || h.estado === "en_curso");
-  const porCorregir = exp.anios.filter((a) => a.requiere_revision || a.estado === "por_corregir" || a.estado === "borrador");
-  const [copiado, setCopiado] = useState(false);
+/* ─── Paso 7: Expediente para el contador (línea de tiempo) ──────────────── */
 
-  const resumen = useMemo(() => {
-    const l: string[] = [];
-    l.push(`EXPEDIENTE FISCAL — ${exp.perfil.tercero.nombre}${exp.perfil.cedula ? ` (CC ${exp.perfil.cedula})` : ""}`);
-    l.push(`Generado ${new Date().toLocaleDateString("es-CO")} desde el panel McKenna · Contabilidad · Socios`);
-    l.push("");
-    l.push("AÑOS GRAVABLES");
-    for (const a of exp.anios) {
-      l.push(
-        `- ${a.ano} [${ESTADO_ANIO_LABEL[a.estado] ?? a.estado}]${a.formulario ? ` F${a.formulario}` : ""}: patrimonio bruto ${cop(a.patrimonio_bruto)}, deudas ${cop(a.deudas)}, renta líquida ${cop(a.renta_liquida)}, impuesto ${cop(a.impuesto_pagado)} · cripto: renta ord. ${cop(a.cripto_renta_ordinaria)}, gan. ocas. ${cop(a.cripto_ganancia_ocasional)}${a.tenencia_cierre_usd ? `, tenencia 31-dic ${usd(a.tenencia_cierre_usd)}` : ""}${a.requiere_revision ? " ⚠ presentada sin cripto" : ""}`,
-      );
-    }
-    l.push("");
-    l.push(`DOCUMENTOS (${exp.documentos.length})`);
-    for (const c of exp.categorias) {
-      const n = exp.documentos_por_categoria[c.id];
-      if (n) l.push(`- ${c.label}: ${n}`);
-    }
-    l.push("");
-    l.push(`EXTRACTOS PERSONALES: ${exp.extractos.length}`);
-    for (const [a, info] of Object.entries(exp.cobertura.anios)) {
-      l.push(`- ${a}: ${info.meses_con}/12 meses${info.faltan.length ? ` (faltan ${info.faltan.join(", ")})` : ""}`);
-    }
-    l.push("");
-    l.push(`PENDIENTES ABIERTOS (${abiertos.length})`);
-    for (const h of abiertos) l.push(`- [${h.severidad}]${h.ano ? ` ${h.ano}` : ""} ${h.titulo}: ${h.detalle}`);
-    return l.join("\n");
-  }, [exp, abiertos]);
+interface HitoCrono {
+  fecha: string;
+  tipo: "declaracion" | "credito" | "p2p" | "movimiento";
+  titulo: string;
+  detalle: string;
+  monto: number | null;
+  entrada?: boolean;
+  fuente: string;
+}
+
+interface DocCrono {
+  id: number;
+  categoria: string;
+  categoria_label: string;
+  archivo_nombre: string;
+  ano?: number | null;
+  ano_hasta?: number | null;
+  existe?: boolean;
+  legible?: boolean;
+}
+
+interface AnioCrono {
+  ano: number;
+  estado: string;
+  situacion: string | null;
+  accion: string | null;
+  presentacion: { estado: string; ventana: string; turno_habitual: string | null; nota: string } | null;
+  declarado: {
+    formulario: string;
+    presentada_en: string;
+    patrimonio_bruto: number | null;
+    deudas: number | null;
+    patrimonio_liquido: number | null;
+    renta_liquida: number | null;
+    impuesto_pagado: number | null;
+  };
+  cripto: {
+    efecto: number | null;
+    renta_ordinaria: number | null;
+    ganancia_ocasional: number | null;
+    sin_costo: number | null;
+    eventos: number | null;
+    tenencia_usd: number | null;
+    tenencia_cop: number | null;
+    trm: number | null;
+    detalle: { coin: string; cantidad: number; costo_usd: number }[];
+    snapshot_usd: number | null;
+  };
+  correccion: CorreccionAnio | null;
+  banco: { meses_extracto: number; meses_faltan: string[]; tarjeta?: TarjetaAnio };
+  hitos: HitoCrono[];
+  documentos: DocCrono[];
+  hallazgos: { id: number; titulo: string; severidad: string; estado: string; detalle: string }[];
+}
+
+interface Cronologia {
+  titular: { nombre: string; cedula: string; binance_uid: string };
+  anios: AnioCrono[];
+  sin_ano: DocCrono[];
+  totales?: Objetivo["totales"];
+  parametros?: Objetivo["parametros"];
+  generado: string;
+}
+
+const ICONO_HITO: Record<HitoCrono["tipo"], { icon: IconName; cls: string; label: string }> = {
+  declaracion: { icon: "scroll", cls: "bg-accent text-white", label: "Declaración" },
+  credito: { icon: "handshake", cls: "bg-amber-500 text-white", label: "Crédito" },
+  p2p: { icon: "arrowSub", cls: "bg-sky-600 text-white", label: "P2P" },
+  movimiento: { icon: "package", cls: "bg-surface-hover text-ink", label: "Movimiento" },
+};
+
+function fechaLarga(iso: string): string {
+  const [y, m, d] = (iso || "").split("-");
+  if (!y || !m || !d) return iso;
+  return `${Number(d)} ${MES_LARGO[Number(m) - 1]?.slice(0, 3) ?? m} ${y}`;
+}
+
+function Dato({ label, valor, nota, fuerte }: { label: string; valor: ReactNode; nota?: string; fuerte?: boolean }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/50 py-1 last:border-b-0">
+      <span className="text-[11px] text-muted">{label}</span>
+      <span className={`text-right tabular-nums ${fuerte ? "text-sm font-extrabold text-ink" : "text-[11px] font-bold text-ink"}`}>
+        {valor}
+        {nota && <span className="block text-[10px] font-normal text-muted">{nota}</span>}
+      </span>
+    </div>
+  );
+}
+
+function BloqueAnio({ a, terceroId, onError }: { a: AnioCrono; terceroId: number; onError: (t: string) => void }) {
+  const [verHitos, setVerHitos] = useState(false);
+  const [verDocs, setVerDocs] = useState(false);
+  const st = SITUACION_META[a.situacion ?? ""] ?? { label: ESTADO_ANIO_LABEL[a.estado] ?? a.estado, cls: "bg-surface-hover text-ink" };
+  const d = a.declarado;
+  const c = a.cripto;
+  const patrimonioReal = d.patrimonio_bruto !== null && c.tenencia_cop !== null ? d.patrimonio_bruto + c.tenencia_cop : null;
+  const hitosClave = a.hitos.filter((h) => h.tipo === "declaracion" || h.tipo === "credito" || (h.tipo === "p2p" && (h.monto ?? 0) >= 1_000_000));
+  const mostrados = verHitos ? a.hitos : hitosClave;
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-3">
-        <Kpi label="Pasos listos" valor={`${exp.progreso.hechos}/${exp.progreso.total}`} tono={exp.progreso.hechos === exp.progreso.total ? "ok" : undefined} />
-        <Kpi label="Años por corregir o presentar" valor={String(porCorregir.length)} tono={porCorregir.length ? "warn" : "ok"} />
-        <Kpi label="Pendientes abiertos" valor={String(abiertos.length)} tono={abiertos.length ? "warn" : "ok"} />
+    <section id={`crono-${a.ano}`} className={`${card} scroll-mt-4 overflow-hidden`}>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-surface px-4 py-2.5">
+        <h3 className="text-2xl font-extrabold tabular-nums text-ink">{a.ano}</h3>
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${st.cls}`}>{st.label}</span>
+        {d.presentada_en && <span className="text-[11px] text-muted">Declarada el {fechaLarga(d.presentada_en)} · F{d.formulario || "—"}</span>}
+        {a.correccion && (a.correccion.mayor_valor ?? 0) > 0 && (
+          <span className="ml-auto text-[11px] font-bold text-danger">Corregir cuesta {cop(a.correccion.total_estimado)}</span>
+        )}
+      </header>
+
+      {a.accion && (
+        <p className="border-b border-border bg-surface-panel px-4 py-2 text-xs text-ink-secondary">
+          <b className="text-ink">Qué hacer con este año:</b> {a.accion}
+          {a.situacion === "en_preparacion" && a.presentacion && <> Ventana: {a.presentacion.ventana}.</>}
+        </p>
+      )}
+
+      <div className="grid gap-x-6 gap-y-3 px-4 py-3 lg:grid-cols-3">
+        <div>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">1 · Lo que dice la declaración</p>
+          {d.presentada_en || d.patrimonio_bruto !== null ? (
+            <>
+              <Dato label="Patrimonio bruto (r. 29)" valor={cop(d.patrimonio_bruto)} />
+              <Dato label="Deudas (r. 30)" valor={cop(d.deudas)} />
+              <Dato label="Renta líquida gravable" valor={cop(d.renta_liquida)} />
+              <Dato label="Impuesto a cargo" valor={cop(d.impuesto_pagado)} />
+              <p className="mt-1 text-[10px] text-danger">Sin criptoactivos: ni en el patrimonio ni en los ingresos.</p>
+            </>
+          ) : (
+            <p className="text-[11px] text-muted">{a.situacion === "en_preparacion" ? "Todavía no se presenta; se está preparando." : "No hay declaración registrada para este año."}</p>
+          )}
+        </div>
+
+        <div>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">2 · Lo que realmente pasó</p>
+          <Dato
+            label="Tenencia en Binance al 31-dic"
+            valor={c.tenencia_cop === null ? "—" : cop(c.tenencia_cop)}
+            nota={c.tenencia_usd !== null ? `${usd(c.tenencia_usd)} a costo fiscal · TRM ${c.trm?.toLocaleString("es-CO") ?? "—"}` : undefined}
+            fuerte
+          />
+          {c.detalle.length > 0 && (
+            <p className="py-1 text-[10px] leading-relaxed text-ink-secondary">
+              {c.detalle.map((x) => `${x.coin} ${x.cantidad.toLocaleString("es-CO", { maximumFractionDigits: 4 })}`).join(" · ")}
+            </p>
+          )}
+          <Dato
+            label="Ganancia o pérdida realizada"
+            valor={c.efecto === null ? "sin calcular" : cop(c.efecto)}
+            nota={c.eventos ? `${c.eventos.toLocaleString("es-CO")} operaciones de disposición` : undefined}
+            fuerte
+          />
+          {patrimonioReal !== null && (
+            <p className="mt-1 rounded bg-danger/10 px-2 py-1 text-[10px] font-semibold text-danger">
+              Patrimonio bruto real del año: {cop(patrimonioReal)} ({cop(d.patrimonio_bruto)} declarado + {cop(c.tenencia_cop)} en cripto).
+            </p>
+          )}
+          {c.snapshot_usd !== null && <p className="mt-1 text-[10px] text-muted">Snapshot oficial de Binance: {usd(c.snapshot_usd)}.</p>}
+        </div>
+
+        <div>
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">3 · Efecto de corregir</p>
+          {a.correccion && a.correccion.uvt_cargada ? (
+            <>
+              <Dato label="Renta líquida corregida" valor={cop(a.correccion.rlg_corregida)} nota={`declarada ${cop(a.correccion.rlg_declarada)}`} />
+              <Dato label="Impuesto corregido" valor={cop(a.correccion.impuesto_corregido)} nota={`pagado ${cop(a.correccion.impuesto_pagado ?? 0)}`} />
+              {(a.correccion.mayor_valor ?? 0) > 0 ? (
+                <>
+                  <Dato label="Mayor impuesto" valor={<span className="text-danger">{cop(a.correccion.mayor_valor)}</span>} />
+                  <Dato label="Sanción (10 %)" valor={cop(a.correccion.sancion_correccion_10)} />
+                  <Dato label="Intereses de mora" valor={cop(a.correccion.intereses_mora)} nota={`${a.correccion.intereses_dias} días desde ${fechaLarga(a.correccion.intereses_desde)}`} />
+                  <Dato label="Total" valor={<span className="text-danger">{cop(a.correccion.total_estimado)}</span>} fuerte />
+                </>
+              ) : (a.correccion.mayor_valor ?? 0) < 0 ? (
+                <p className="mt-1 text-[11px] text-ink-secondary">La corrección da <b>{cop(-(a.correccion.mayor_valor ?? 0))} a favor</b>; evaluar si el término del Art. 589 sigue abierto.</p>
+              ) : (
+                <p className="mt-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">Incluir la cripto no genera impuesto adicional este año.</p>
+              )}
+            </>
+          ) : (
+            <p className="text-[11px] text-muted">{a.situacion === "en_preparacion" ? "Se liquida directamente en la declaración que se presenta ahora." : "Sin cálculo para este año."}</p>
+          )}
+          <div className="mt-2 space-y-0.5 border-t border-border pt-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Respaldo bancario</p>
+            <p className="text-[11px] text-ink-secondary">
+              Cuenta de ahorros: <b className={a.banco.meses_extracto >= 12 ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}>{a.banco.meses_extracto}/12 meses</b>
+              {a.banco.meses_faltan.length > 0 && ` (faltan ${mesesTexto(a.banco.meses_faltan)})`}
+            </p>
+            {a.banco.tarjeta && (
+              <p className="text-[11px] text-ink-secondary">
+                Tarjeta: consumos {cop(a.banco.tarjeta.consumos?.COP?.valor ?? 0)}
+                {a.banco.tarjeta.consumos?.USD ? ` + ${usd(a.banco.tarjeta.consumos.USD.valor)}` : ""} ·{" "}
+                {a.banco.tarjeta.avances ? <b className="text-danger">{a.banco.tarjeta.avances.operaciones} avance(s) en efectivo</b> : "sin avances"}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        {exp.pasos.filter((p) => p.id !== "cierre").map((p) => {
-          const st = ESTILO_PASO[p.estado];
-          return (
-            <button key={p.id} type="button" onClick={() => onIr(p.id)} className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left ${st.wrap}`}>
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${st.dot}`}>{p.estado === "hecho" ? "✓" : "!"}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-ink">{p.label}</span>
-                <span className={`block text-[11px] ${st.txt}`}>{p.detalle}</span>
-              </span>
-              <span className="text-[11px] font-bold text-ink-secondary">Ir →</span>
-            </button>
-          );
-        })}
+      {/* Línea de tiempo del año */}
+      {a.hitos.length > 0 && (
+        <div className="border-t border-border px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+              Movimientos del año: declaración, créditos y operaciones con contraparte bancaria ({mostrados.length}{verHitos || mostrados.length === a.hitos.length ? "" : ` de ${a.hitos.length}`})
+            </p>
+            {mostrados.length !== a.hitos.length || verHitos ? (
+              <button type="button" className="text-[11px] font-bold text-accent underline" onClick={() => setVerHitos((v) => !v)}>
+                {verHitos ? "ver solo los relevantes" : `ver también los ${a.hitos.length - hitosClave.length} traslados y retiros`}
+              </button>
+            ) : null}
+          </div>
+          <ol className="mt-2 space-y-0">
+            {mostrados.map((h, i) => {
+              const ic = ICONO_HITO[h.tipo] ?? ICONO_HITO.movimiento;
+              return (
+                <li key={`${h.fecha}-${i}`} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${ic.cls}`} title={ic.label}>
+                      <Icon name={ic.icon} size={12} weight="bold" />
+                    </span>
+                    {i < mostrados.length - 1 && <span className="w-px flex-1 bg-border" />}
+                  </div>
+                  <div className="min-w-0 flex-1 pb-3">
+                    <p className="text-[11px] font-bold text-ink">
+                      <span className="tabular-nums text-muted">{fechaLarga(h.fecha)}</span> · {h.titulo}
+                      {h.monto ? <span className="ml-1 tabular-nums text-ink-secondary">({cop(h.monto)})</span> : null}
+                    </p>
+                    <p className="text-[10px] leading-snug text-muted">{h.detalle} · fuente: {h.fuente}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
+
+      {/* Soportes */}
+      <div className="border-t border-border px-4 py-2.5">
+        <button type="button" className="flex w-full flex-wrap items-center gap-2 text-left" onClick={() => setVerDocs((v) => !v)}>
+          <Icon name="paperclip" size={13} weight="bold" className="text-muted" />
+          <span className="text-[11px] font-bold uppercase tracking-wide text-ink">Soportes de {a.ano} ({a.documentos.length})</span>
+          <span className="text-[10px] text-muted">{verDocs ? "ocultar" : "ver y abrir"}</span>
+          <Icon name="caretDown" size={12} weight="bold" className={`text-muted transition ${verDocs ? "rotate-180" : ""}`} />
+        </button>
+        {verDocs && (
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {a.documentos.map((doc) => (
+              <button
+                key={doc.id}
+                type="button"
+                disabled={!doc.existe}
+                onClick={() => void abrirArchivo(`/api/socios/${terceroId}/documentos/${doc.id}/archivo`, onError)}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1 text-left hover:border-accent disabled:opacity-50"
+              >
+                <span className="rounded bg-surface-hover px-1.5 py-px text-[9px] font-bold text-muted">{doc.categoria_label}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] text-ink">{doc.archivo_nombre}</span>
+                {doc.ano_hasta && doc.ano_hasta !== doc.ano && <span className="text-[9px] text-muted">{doc.ano}–{doc.ano_hasta}</span>}
+              </button>
+            ))}
+            {a.documentos.length === 0 && <p className="text-[11px] text-muted">Sin documentos fechados en este año.</p>}
+          </div>
+        )}
       </div>
 
-      {porCorregir.length > 0 && (
-        <div className={`${card} p-3`}>
-          <p className="text-xs font-bold text-ink">Años que necesitan decisión del contador</p>
-          <ul className="mt-1 list-disc pl-5 text-xs text-ink-secondary">
-            {porCorregir.map((a) => (
-              <li key={a.ano}>
-                {a.ano}: {ESTADO_ANIO_LABEL[a.estado] ?? a.estado}
-                {a.cripto_total != null ? ` · efecto cripto ${cop(a.cripto_total)}` : ""}
+      {a.hallazgos.length > 0 && (
+        <div className="border-t border-border bg-amber-600/5 px-4 py-2.5">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">Preguntas abiertas de este año ({a.hallazgos.length})</p>
+          <ul className="mt-1 space-y-1">
+            {a.hallazgos.map((h) => (
+              <li key={h.id} className="text-[11px] text-ink-secondary">
+                <span className={`mr-1 rounded px-1 py-px text-[9px] font-bold ${SEV_BADGE[h.severidad] ?? ""}`}>{h.severidad}</span>
+                <b className="text-ink">{h.titulo}.</b> {h.detalle.slice(0, 260)}{h.detalle.length > 260 ? "…" : ""}
               </li>
             ))}
           </ul>
         </div>
       )}
+    </section>
+  );
+}
 
-      <div className={`${card} space-y-2 p-3`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-bold text-ink">Resumen para el contador</p>
+function PasoCierre({ terceroId, exp, onIr }: { terceroId: number; exp: Expediente; onIr: (p: PasoId) => void }) {
+  const [msg, setMsg] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const cronoQ = useQuery<Cronologia>({
+    queryKey: ["socio-cronologia", terceroId],
+    queryFn: () => api.get(`/api/socios/${terceroId}/cronologia`),
+  });
+  const abiertos = exp.hallazgos.filter((h) => h.estado === "pendiente" || h.estado === "en_curso");
+
+  const texto = useMemo(() => {
+    const c = cronoQ.data;
+    if (!c) return "";
+    const l: string[] = [];
+    l.push(`EXPEDIENTE FISCAL — ${c.titular.nombre}${c.titular.cedula ? ` (CC ${c.titular.cedula})` : ""}`);
+    l.push(`Criptoactivos omitidos en las declaraciones de renta. Generado ${new Date(c.generado).toLocaleString("es-CO")} desde el panel McKenna.`);
+    if (c.totales) {
+      l.push("");
+      l.push(`TOTAL A REGULARIZAR: impuesto ${cop(c.totales.mayor_valor)} + sanción ${cop(c.totales.sancion_correccion_10)} + intereses ${cop(c.totales.intereses_mora)} = ${cop(c.totales.total_estimado)}`);
+      l.push(`(intereses estimados al ${Math.round((c.parametros?.tasa_mora_anual ?? 0) * 1000) / 10} % anual; liquidar con la herramienta oficial de la DIAN)`);
+    }
+    for (const a of c.anios) {
+      l.push("");
+      l.push(`── ${a.ano} · ${SITUACION_META[a.situacion ?? ""]?.label ?? a.estado} ──`);
+      if (a.declarado.presentada_en) l.push(`Declarada ${a.declarado.presentada_en} · F${a.declarado.formulario}`);
+      l.push(`Declarado: patrimonio ${cop(a.declarado.patrimonio_bruto)} · deudas ${cop(a.declarado.deudas)} · renta líquida ${cop(a.declarado.renta_liquida)} · impuesto ${cop(a.declarado.impuesto_pagado)}`);
+      l.push(`Cripto: tenencia 31-dic ${cop(a.cripto.tenencia_cop)} (${usd(a.cripto.tenencia_usd)}) · efecto del año ${cop(a.cripto.efecto)}`);
+      if (a.correccion?.uvt_cargada && (a.correccion.mayor_valor ?? 0) > 0) {
+        l.push(`Corregir: impuesto ${cop(a.correccion.mayor_valor)} + sanción ${cop(a.correccion.sancion_correccion_10)} + intereses ${cop(a.correccion.intereses_mora)} = ${cop(a.correccion.total_estimado)}`);
+      }
+      l.push(`Soportes (${a.documentos.length}): ${a.documentos.map((d) => d.archivo_nombre).join(", ") || "—"}`);
+      if (a.hallazgos.length) l.push(`Pendientes: ${a.hallazgos.map((h) => h.titulo).join(" · ")}`);
+    }
+    return l.join("\n");
+  }, [cronoQ.data]);
+
+  if (cronoQ.isLoading) return <p className="text-sm text-muted">Armando la línea de tiempo…</p>;
+  if (cronoQ.isError || !cronoQ.data) return <p className="text-sm font-semibold text-danger">{(cronoQ.error as Error)?.message || "No se pudo cargar la cronología"}</p>;
+  const c = cronoQ.data;
+
+  return (
+    <div className="space-y-3">
+      <div className={`${card} flex flex-wrap items-start justify-between gap-3 px-4 py-3`}>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-ink">Expediente de {c.titular.nombre}{c.titular.cedula ? ` · CC ${c.titular.cedula}` : ""}</p>
+          <p className="text-[11px] text-ink-secondary">
+            Un bloque por año gravable, en orden: qué se declaró, qué pasó de verdad, qué cuesta corregirlo y con qué documento se prueba.
+            {c.titular.binance_uid && ` Cuenta Binance ${c.titular.binance_uid}.`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             className={btnSec}
             onClick={() => {
-              void navigator.clipboard?.writeText(resumen).then(() => {
+              void navigator.clipboard.writeText(texto).then(() => {
                 setCopiado(true);
-                window.setTimeout(() => setCopiado(false), 2000);
+                window.setTimeout(() => setCopiado(false), 2500);
               });
             }}
           >
-            {copiado ? "Copiado ✓" : "Copiar"}
+            <Icon name="file" size={13} weight="bold" /> {copiado ? "¡Copiado!" : "Copiar como texto"}
           </button>
+          {abiertos.length > 0 && (
+            <button type="button" className={btnSec} onClick={() => onIr("declarador")}>
+              <Icon name="warning" size={13} weight="bold" /> {abiertos.length} pendiente{abiertos.length !== 1 ? "s" : ""}
+            </button>
+          )}
         </div>
-        <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-lg bg-surface p-2 text-[11px] text-ink">{resumen}</pre>
-        <p className="text-[10px] text-muted">
-          Los soportes completos siguen en la carpeta del Declarador (`Para_Contador/`) y en los documentos del paso 5.
-        </p>
       </div>
-      <MarcarHechoInline terceroId={terceroId} onChanged={onChanged} />
+
+      {c.totales && c.totales.total_estimado > 0 && (
+        <div className={`${card} border-danger/40 bg-danger/5 px-4 py-3`}>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-danger">Total a regularizar por los años ya presentados</p>
+          <p className="text-2xl font-extrabold tabular-nums text-ink">{cop(c.totales.total_estimado)}</p>
+          <p className="text-[11px] text-ink-secondary">
+            impuesto {cop(c.totales.mayor_valor)} + sanción por corrección {cop(c.totales.sancion_correccion_10)} + intereses de mora {cop(c.totales.intereses_mora)} (estimados al{" "}
+            {Math.round((c.parametros?.tasa_mora_anual ?? 0) * 1000) / 10} % anual; los definitivos los liquida la DIAN).
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {c.anios.map((a) => {
+          const st = SITUACION_META[a.situacion ?? ""] ?? { label: a.estado, cls: "bg-surface-hover text-ink" };
+          return (
+            <a key={a.ano} href={`#crono-${a.ano}`} className={`rounded-lg px-2.5 py-1 text-[11px] font-bold ${st.cls}`}>
+              {a.ano} · {st.label}
+            </a>
+          );
+        })}
+      </div>
+
+      {c.anios.map((a) => (
+        <BloqueAnio key={a.ano} a={a} terceroId={terceroId} onError={(t) => setMsg({ tipo: "error", texto: t })} />
+      ))}
+
+      {c.sin_ano.length > 0 && (
+        <details className={`${card} px-4 py-2.5`}>
+          <summary className="cursor-pointer text-[11px] font-bold uppercase tracking-wide text-muted">
+            Soportes sin año asignado ({c.sin_ano.length}) — cálculos, informes y evidencia que cubre todo el período
+          </summary>
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
+            {c.sin_ano.map((doc) => (
+              <button
+                key={doc.id}
+                type="button"
+                disabled={!doc.existe}
+                onClick={() => void abrirArchivo(`/api/socios/${terceroId}/documentos/${doc.id}/archivo`, (t) => setMsg({ tipo: "error", texto: t }))}
+                className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1 text-left hover:border-accent disabled:opacity-50"
+              >
+                <span className="rounded bg-surface-hover px-1.5 py-px text-[9px] font-bold text-muted">{doc.categoria_label}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] text-ink">{doc.archivo_nombre}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
+      <Msg m={msg} />
     </div>
   );
 }
