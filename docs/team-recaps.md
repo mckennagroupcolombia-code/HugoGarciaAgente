@@ -1,3 +1,14 @@
+### 2026-09-14 15:40 - No se encendió la emisión de documentos soporte: Alegra no los transmite a la DIAN todavía
+- **Autor:** Armando García
+- **Tipo de Cambio:** Verificación previa a una acción fiscal + ticket de trámite
+- **Qué se implementó:**
+  - **Se iba a encender `PRESTAMOS_DOC_SOPORTE_ACTIVO=1` y la verificación previa lo frenó.** Contra la API de Alegra: la plantilla 15 de **factura** electrónica está habilitada (`isElectronic: true`, resolución 18764115063321, rango 1-20.000, vence 2028-09-02), pero la plantilla 10 de **documento soporte** tiene `isElectronic: false`, sin resolución de numeración y sin rango. Son dos habilitaciones distintas ante la DIAN.
+  - **Qué habría pasado si se enciende:** los documentos de las cuotas se crearían en Alegra pero **no se transmitirían a la DIAN**. No servirían como soporte de la deducción del gasto financiero —que es exactamente para lo que se emiten— y además consumirían numeración de una plantilla que después habría que rehacer. Por eso se dejó en sombra y se documentó en el propio código, en `_doc_soporte_activo()`.
+  - **TKT-2026-1323** con los pasos: pedir a la DIAN la resolución de numeración para documento soporte en adquisiciones a no obligados a facturar (Res. 000167 de 2021), cargarla en Alegra y habilitar el electrónico en la plantilla 10. No se puede por API. Plazo: la primera cuota con retención vence el **9 de octubre** ($21.022 de Antonio Ruiz; $85.400 ese mes entre los cuatro prestamistas).
+  - **Lo que sí quedó listo y no hay que volver a revisar:** el ítem INTERES-MUTUO existe (id 624) aunque el documento no lo usa —va por cuenta contable 5252—; la retención «Rendimientos financieros 7 %» se creó en Alegra (id 14) y está mapeada; los cuatro prestamistas ya son contactos con correo (ids 112, 32, 29, 33); y el ensayo en seco de la cuota 1 sale correcto con la retención de $21.021,58.
+  - **Mientras tanto la retención no queda invisible:** con el espejo encendido, el asiento del Libro Mayor de cada pago llega solo a Alegra como comprobante contable, así que el contador la ve aunque el documento soporte todavía no se emita.
+- **Archivos Modificados:** `app/services/prestamos.py`, `CLAUDE.md`, `docs/team-recaps.md`; fuera del repo: TKT-2026-1323
+
 ### 2026-09-14 15:05 - Trii en el expediente (la venta de 2025 dio pérdida) y la retención del 7 % creada en Alegra
 - **Autor:** Armando García
 - **Tipo de Cambio:** Datos nuevos en el expediente + configuración en Alegra

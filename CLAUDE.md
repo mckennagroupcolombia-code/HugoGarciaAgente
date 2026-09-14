@@ -962,8 +962,11 @@ id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca e
 (5252), porque Alegra rechaza `purchases.items` con error 11034 en esta cuenta; y la
 retención de rendimientos financieros al 7 % se creó en Alegra (id 14) y está mapeada en
 `RETENCIONES_ALEGRA`, así que el documento ya sale con la retención incluida (verificado en
-dry run con la cuota 1 del préstamo #1: $21.022). Lo único que falta para encenderlo es la
-decisión: un documento soporte emitido ya viajó a la DIAN y solo se corrige con nota de ajuste.
+dry run con la cuota 1 del préstamo #1: $21.022). **Lo que falta es un trámite, no código
+(TKT-2026-1323):** la plantilla 10 (`supportDocument`) tiene `isElectronic: false` y sin
+resolución de numeración, así que hoy los documentos quedarían en Alegra sin transmitirse a la
+DIAN. Hay que pedir la resolución de documento soporte (Res. 000167/2021) y habilitarlo en
+Alegra antes de encender la bandera.
 
 **Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
 (DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito

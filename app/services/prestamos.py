@@ -1502,9 +1502,17 @@ CUENTA_ALEGRA_INTERESES_DEFAULT = "5252"   # Gastos por Intereses financieros
 
 def _doc_soporte_activo() -> bool:
     """Modo sombra por defecto. No es duda legal (el Concepto 000112 de 2024 la
-    resolvió), sino que un documento soporte emitido ya viajó a la DIAN y solo
-    se corrige con nota de ajuste: no se prende sin que alguien lo decida y sin
-    que exista el ítem de intereses en Alegra."""
+    resolvió), sino que un documento soporte emitido no se borra: se corrige con
+    nota de ajuste.
+
+    ⚠️ Estado al 2026-09-14 (TKT-2026-1323): **falta habilitar el documento
+    soporte ELECTRÓNICO en Alegra**. La plantilla 10 (`supportDocument`) tiene
+    `isElectronic: false` y sin resolución de numeración, mientras que la de
+    factura (15) sí está habilitada con resolución. Encender esta bandera hoy
+    crearía documentos que quedan en Alegra pero **no se transmiten a la DIAN**:
+    no sirven como soporte de la deducción y gastan numeración que después habría
+    que rehacer. Lo demás ya está listo (retención del 7 % id 14, cuenta 5252,
+    los cuatro prestamistas como contactos)."""
     return (os.getenv("PRESTAMOS_DOC_SOPORTE_ACTIVO", "0") or "0").strip() == "1"
 
 
