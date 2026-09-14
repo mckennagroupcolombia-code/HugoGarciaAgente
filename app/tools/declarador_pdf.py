@@ -54,6 +54,7 @@ SITUACION_TEXTO = {
     "corregida": "Ya corregida",
     "en_preparacion": "En preparación, se presenta ahora",
     "futura": "Aún no abre el plazo",
+    "fuera_alcance": "Fuera del período elegido",
 }
 
 

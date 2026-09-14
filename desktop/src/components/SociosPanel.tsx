@@ -913,6 +913,7 @@ const SITUACION_META: Record<string, { label: string; cls: string }> = {
   corregida: { label: "Corregida ✓", cls: "bg-emerald-600 text-white" },
   en_preparacion: { label: "En preparación", cls: "bg-sky-600 text-white" },
   futura: { label: "Aún no abre", cls: "bg-surface-hover text-muted" },
+  fuera_alcance: { label: "Fuera del período elegido", cls: "bg-surface-hover text-muted" },
 };
 
 const MES_LARGO = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];

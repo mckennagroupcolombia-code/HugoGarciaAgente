@@ -901,7 +901,9 @@ def resumen_cripto_fifo(ruta_csv: str) -> dict[int, dict[str, Any]]:
 # Para_Contador/ es el paquete armado para el contador: COPIAS de los mismos
 # archivos organizadas por tema. Solo se registra su informe principal; si se
 # recorriera entera, cada extracto y cada F210 quedaría dos veces.
-_SALTAR_DIRS = {"__pycache__", ".claude", "node_modules", ".git", "binance_klines", "coingecko", "binance_api_export", "Para_Contador"}
+# `00_Informe_Para_El_Contador/` guarda el PDF que genera el propio panel: si se
+# importara, el informe terminaría citándose a sí mismo como soporte.
+_SALTAR_DIRS = {"__pycache__", ".claude", "node_modules", ".git", "binance_klines", "coingecko", "binance_api_export", "Para_Contador", "00_Informe_Para_El_Contador"}
 _SALTAR_EXT = {".pyc"}
 _EXT_IMAGEN = {".png", ".jpg", ".jpeg", ".webp"}
 
@@ -1401,10 +1403,18 @@ def plan_organizar_carpeta(tercero_id: int) -> dict[str, Any]:
     contador_littio = 0
     for d in sorted(docs, key=lambda x: (x.get("categoria") or "", x.get("ano") or 0, x.get("archivo_nombre") or "")):
         origen = d.get("archivo_path") or ""
-        if d.get("origen") != "carpeta" or not origen.startswith(raiz + os.sep):
+        if not origen or not os.path.isfile(origen):
             continue
-        if any(x in origen for x in _NO_MOVER) or os.path.islink(origen):
+        en_carpeta = origen.startswith(raiz + os.sep)
+        # Los subidos por el panel viven en comprobantes/socios/<id>/ con nombre
+        # de timestamp; también se llevan a la carpeta para que el contador tenga
+        # todo el expediente en un solo sitio.
+        if not en_carpeta and d.get("origen") != "subido":
             continue
+        if en_carpeta and (any(x in origen for x in _NO_MOVER) or os.path.islink(origen)):
+            continue
+        if os.path.dirname(origen) == raiz and os.path.basename(origen).upper() == "LEEME.MD":
+            continue  # el índice de la carpeta, no un soporte
         cat = d.get("categoria") or "soporte"
         carpeta = CARPETAS_ORGANIZADAS.get(cat, CARPETAS_ORGANIZADAS["soporte"])
         # Los que van por año llevan subcarpeta de año; el resto, no.
@@ -1460,17 +1470,25 @@ def organizar_carpeta(tercero_id: int) -> dict[str, Any]:
                 (mv["hacia"], os.path.basename(mv["hacia"]), int(mv["id"]), int(tercero_id)),
             )
         movidos += 1
-    # Carpetas vacías que quedaron atrás
+    # Carpetas vacías que quedaron atrás. Se repite hasta que no quede ninguna:
+    # al borrar una hoja, su padre puede quedar vacío en la misma corrida.
     vacias = 0
-    for actual, dirs, archivos in os.walk(raiz, topdown=False):
-        if any(x in actual + os.sep for x in _NO_MOVER) or actual == raiz:
-            continue
-        if not archivos and not dirs and not os.path.islink(actual):
-            try:
-                os.rmdir(actual)
-                vacias += 1
-            except OSError:
-                pass
+    for _ in range(6):
+        borradas = 0
+        for actual, dirs, archivos in os.walk(raiz, topdown=False):
+            if any(x in actual + os.sep for x in _NO_MOVER) or actual == raiz:
+                continue
+            if os.path.basename(actual) in {c for c, _ in CARPETAS_SOCIO}:
+                continue  # las de la estructura oficial se conservan aunque estén vacías
+            if not os.listdir(actual) and not os.path.islink(actual):
+                try:
+                    os.rmdir(actual)
+                    borradas += 1
+                except OSError:
+                    pass
+        vacias += borradas
+        if not borradas:
+            break
     os.makedirs(os.path.join(raiz, CARPETA_INFORME), exist_ok=True)
     _escribir_leeme(raiz, tercero_id)
     return {"carpeta": raiz, "movidos": movidos, "saltados": saltados, "carpetas_vacias_borradas": vacias}
@@ -1570,6 +1588,17 @@ def cronologia(tercero_id: int) -> dict[str, Any]:
     for ano in anios:
         a = anios_db.get(ano, {})
         obj = obj_por_ano.get(ano, {})
+        if not obj and ano not in plan["anios"]:
+            # Año con declaración cargada pero fuera del período que eligió el
+            # socio en «Empecemos»: se muestra para que el contador lo vea, con
+            # la razón, en vez de dejarlo en blanco.
+            obj = {
+                "situacion": "fuera_alcance",
+                "accion": (
+                    f"Está fuera del período elegido para organizar (desde {min(plan['anios'])}). "
+                    "La declaración está cargada; si ese año también tuvo criptoactivos, cambia «¿desde qué año?» en el paso «Empecemos» para incluirlo en el análisis."
+                ),
+            }
         hitos: list[dict[str, Any]] = []
         if a.get("presentada_en"):
             hitos.append(
@@ -1719,7 +1748,8 @@ def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, A
         dirs[:] = [d for d in dirs if d not in _SALTAR_DIRS]
         for a in archivos:
             ext = os.path.splitext(a)[1].lower()
-            if ext in _SALTAR_EXT or a == "declarado_f210.json":
+            # LEEME.md es el índice de la carpeta, no un soporte del expediente.
+            if ext in _SALTAR_EXT or a == "declarado_f210.json" or (a.upper() == "LEEME.MD" and raiz == carpeta):
                 continue
             if ext in _EXT_IMAGEN:
                 # Capturas (F210 del portal DIAN, historial de Littio) sí son
@@ -2174,14 +2204,21 @@ REQUISITOS: list[dict[str, Any]] = [
     },
 ]
 
+# Estructura con la que nace la carpeta de un socio. Es la misma a la que lleva
+# `organizar_carpeta()`, para que todos los expedientes se vean igual.
 CARPETAS_SOCIO = [
-    ("01_Declaraciones_Renta", "Un PDF por año: Declaracion2021.pdf, Declaracion2022.pdf…"),
-    ("02_Exogena", "Excel de la DIAN por año: reporteExogena2023.xlsx…"),
-    ("03_Extractos_Bancarios", "Una subcarpeta por año y por mes: 2025/01_ENERO/…"),
-    ("04_Binance", "CSV del historial por año + snapshot PDF a 31-dic"),
-    ("05_Otras_Plataformas", "Capturas de Nequi, Littio, MoonPay…"),
-    ("06_Soportes", "Contratos de préstamo, comprobantes, chats"),
-    ("07_Certificados_Bancarios", "Por año: certificado de retención/GMF, de operaciones de crédito y reporte anual de costos (Documento_<año>12_….zip de Bancolombia)"),
+    ("00_Informe_Para_El_Contador", "El informe en PDF, generado desde el panel"),
+    ("01_Declaraciones_Renta_F210", "Un PDF por año: la declaración presentada, firmada"),
+    ("02_Informacion_Exogena_DIAN", "Excel de la DIAN por año con lo que terceros reportaron"),
+    ("03_Extractos_Cuenta_Ahorros", "Una subcarpeta por año con los extractos de la cuenta"),
+    ("04_Extractos_Tarjetas_Credito", "Una subcarpeta por año con los estados de cuenta de las tarjetas"),
+    ("05_Certificados_Tributarios_Banco", "Por año: reporte anual de costos, certificado de retención y GMF, certificado de operaciones de crédito"),
+    ("06_Cuotas_de_Creditos", "Comprobantes de cuota de los créditos"),
+    ("07_Binance_Historial_Transacciones", "CSV del historial exportado de Binance"),
+    ("08_Binance_Tenencia_31_Diciembre", "Account Statement: saldo por criptoactivo al cierre de cada año"),
+    ("09_Binance_Evidencia_API", "Export por API de solo lectura: spot, P2P, depósitos y retiros"),
+    ("10_Otras_Plataformas_Littio", "Capturas de Nequi, Littio, MoonPay…"),
+    ("13_Soportes_Varios", "Contratos de préstamo, comprobantes, chats"),
 ]
 
 

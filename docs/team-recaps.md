@@ -1,3 +1,15 @@
+### 2026-09-14 11:50 - Socios: la carpeta de Cynthia organizada igual que la de Armando, y el expediente unificado en un solo sitio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica + organización de archivos
+- **Qué se implementó:**
+  - **La carpeta de Cynthia quedó con la misma estructura y los mismos nombres** que la de Armando: `01_Declaraciones_Renta_F210/F210_2019.pdf` … `F210_2024.pdf`, `02_Informacion_Exogena_DIAN/Exogena_2021.xls` … `Exogena_2025.xlsx`, `09_Binance_Evidencia_API/` con el export por API. Su `LEEME.md` y su informe en PDF (9 páginas) ya están generados.
+  - **El organizador ahora también recoge lo que se subió por el panel.** Los 11 documentos principales de Cynthia (seis F210 y cinco exógenas) vivían en `comprobantes/socios/1/` con nombre de timestamp (`20260913205356_2019.pdf`), fuera de su carpeta: el contador no los habría encontrado. Ahora se llevan a la carpeta del socio y se renombran, así que el expediente completo queda en un solo sitio, sin importar por dónde entró cada archivo.
+  - **Un socio nuevo nace con la estructura final.** `CARPETAS_SOCIO` (lo que crea el botón «Crear carpeta») se unificó con las carpetas a las que lleva `organizar_carpeta()`; antes eran dos nomenclaturas distintas y el socio nuevo empezaba con una que luego cambiaba.
+  - **Años fuera del período elegido.** Cynthia subió sus F210 de 2019 y 2020 pero pidió organizar desde 2021, así que esos años salían en blanco en el informe. Ahora se marcan «Fuera del período elegido» y explican cómo incluirlos.
+  - **Dos arreglos del importador:** `LEEME.md` (el índice de la carpeta) y `00_Informe_Para_El_Contador/` (el PDF que genera el propio panel) dejaron de registrarse como soportes; el informe estaba llegando a citarse a sí mismo.
+  - **Verificado:** 85 tests (uno actualizado por la estructura unificada), `tsc`, build, los dos PDF regenerados y revisados página por página.
+- **Archivos Modificados:** `app/services/declarador.py`, `app/tools/declarador_pdf.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Cynthia/` reorganizada
+
 ### 2026-09-14 11:30 - Etiquetas: la franja de color en los cuatro formatos, dentro del SVG del código, y zona de timbre en Activos Cosméticos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de diseño (4 formatos) + corrección de fondo en el generador EAN-13

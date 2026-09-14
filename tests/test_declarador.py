@@ -232,7 +232,10 @@ def test_cuestionario_plan_y_carpeta(db, tmp_path, monkeypatch):
     # Carpeta con la misma estructura que Armando, LEEME y plantilla; idempotente
     r = dl.crear_carpeta_socio(otra["id"])
     assert r["carpeta"].endswith("/Cynthia") and "LEEME.md" in r["creadas"] and "declarado_f210.json" in r["creadas"]
-    assert os.path.isdir(os.path.join(r["carpeta"], "04_Binance"))
+    # La estructura es la misma a la que lleva organizar_carpeta(), para que
+    # todos los expedientes se vean igual (ver CARPETAS_SOCIO).
+    assert os.path.isdir(os.path.join(r["carpeta"], "07_Binance_Historial_Transacciones"))
+    assert os.path.isdir(os.path.join(r["carpeta"], "01_Declaraciones_Renta_F210"))
     seed = json.load(open(os.path.join(r["carpeta"], "declarado_f210.json")))
     assert seed["titular"]["cedula"] == "1019044839" and seed["anios"][0]["ano"] == 2023
     r2 = dl.crear_carpeta_socio(otra["id"])
