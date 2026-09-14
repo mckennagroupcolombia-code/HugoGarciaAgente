@@ -106,13 +106,20 @@ export default function ProductAttribute({
         // separación silábica (lang="es" en la raíz de la ficha) evita
         // huecos grandes entre palabras — justificado sin deformarse.
         //
-        // min-h de 3 renglones (3 × line-height 1.22, en em para seguir al
-        // tamaño de letra elegido): el cuadro reserva ese alto siempre, así
-        // la ficha no crece —ni se encoge dentro del marco de formato— al
-        // pasar de 1 a 3 renglones; la letra se mantiene. Ancho completo de
-        // la celda (antes 92 % con tope 320 px) para que quepan más palabras
-        // por renglón.
-        className="w-full min-h-[3.7em] break-words text-justify [text-align-last:center] hyphens-auto font-medium leading-[1.22] text-[#111111]"
+        // min-h de 3 renglones al tamaño por defecto (3 × 14 px × 1.22 ≈ 52):
+        // el cuadro reserva ese alto siempre, así la ficha no crece —ni se
+        // encoge dentro del marco de formato— al pasar de 1 a 3 renglones.
+        //
+        // En px y NO en em: con `3.7em` el suelo seguía al tamaño de letra,
+        // de modo que bajar la fuente de un campo (menú de tipografía)
+        // encogía su cuadro y descuadraba la fila entera —es lo que pasaba
+        // en Olor y Conservación de Sales minerales—. En px el cuadro
+        // conserva su tamaño se elija la letra que se elija, y sigue
+        // creciendo solo si el texto pide más de tres renglones.
+        //
+        // Ancho completo de la celda (antes 92 % con tope 320 px) para que
+        // quepan más palabras por renglón.
+        className="w-full min-h-[52px] break-words text-justify [text-align-last:center] hyphens-auto font-medium leading-[1.22] text-[#111111]"
       />
     </div>
   );

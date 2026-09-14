@@ -1,3 +1,13 @@
+### 2026-09-14 12:20 - Etiquetas: el cuadro de los atributos deja de encoger al bajar la letra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha 76 × 66 · módulos de atributo)
+- **Qué se implementó:**
+  - En la plantilla de Sales minerales, bajar el tamaño de letra de un atributo desde el menú de tipografía **encogía también su cuadro** y descuadraba la fila. Se veía sobre todo en Olor y Conservación.
+  - La causa: el alto mínimo del cuadro estaba escrito en `em` (`min-h-[3.7em]`), y `em` sigue al tamaño de letra. Al bajar la fuente de 14 a 9 px, el suelo del cuadro pasaba de 51,8 a 33,3 px. Ahora está en px (`min-h-[52px]`, los mismos tres renglones al tamaño por defecto): el cuadro conserva su alto se elija la letra que se elija, y sigue creciendo solo si el texto pide más de tres renglones.
+  - **Comprobado por el camino real:** se montó la retícula de atributos en modo edición y se bajó la letra de Olor y Conservación a 9 px con la misma llamada que hace el menú de tipografía. Medido en el navegador: la fuente pasa de 14 a 9 px y el cuadro se queda en 52 px, antes y después.
+  - Afecta a los seis módulos (Origen, Apariencia, Olor, Composición, Grado, Conservación) de todos los formatos que usan la ficha de 76 × 66, no solo a Sales minerales.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 12:30 - Conciliación contador: alertar de las retenciones que el contador no puede ver en Alegra
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (dos detectores) + hallazgo medido
