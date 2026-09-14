@@ -57,6 +57,23 @@
       ]
     },
     {
+      "id": "sales-minerales",
+      "etiqueta": "Sales minerales",
+      "claves": [
+        "citrato",
+        "gluconato",
+        "bisglicinato",
+        "quelato",
+        "lactato de",
+        "sulfato de magnesio",
+        "cloruro de magnesio",
+        "carbonato de calcio",
+        "oxido de zinc",
+        "oxido de magnesio",
+        "mineral"
+      ]
+    },
+    {
       "id": "aminoacidos-proteinas",
       "etiqueta": "Aminoácidos & Proteínas",
       "claves": []
