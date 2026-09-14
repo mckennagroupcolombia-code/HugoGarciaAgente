@@ -1,6 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
+import { NAV_SECTIONS, NAV_CATEGORY_LABEL } from "../lib/navStructure";
+import { itemsVisiblesHub } from "../lib/hubNav";
+import { PANEL_INFO } from "../lib/panelInfo";
+import { modoAvanzadoEfectivo } from "../lib/adminAccess";
+import { useUiMode } from "../stores/uiMode";
 import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { useConversaciones } from "../hooks/useConversaciones";
@@ -551,6 +556,19 @@ const QUICK_ACTIONS: QuickAction[] = [
 function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user: TicketsUser | null; onNavigateTo: (p: Panel) => void }) {
   const [results, setResults] = useState<Record<number, ActionResult | "loading">>({});
   const [preventa, setPreventa] = useState<number | null>(null);
+  const advancedToggle = useUiMode((st) => st.advanced);
+  const advanced = modoAvanzadoEfectivo(user, advancedToggle);
+
+  const seccionesIrA = useMemo(
+    () =>
+      NAV_SECTIONS.filter((sec) => !sec.advancedOnly || advanced)
+        .map((sec) => ({
+          id: sec.id,
+          items: itemsVisiblesHub(sec.items, user, advanced, puedeVerSeccionPanel, sec.id),
+        }))
+        .filter((sec) => sec.items.length > 0),
+    [user, advanced],
+  );
 
   useEffect(() => {
     if (!apiToken) return;
@@ -633,29 +651,32 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
         })}
       </div>
 
-      {/* Direct panel shortcuts */}
-      <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-muted">Ir a panel</p>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-        {([
-          { panel: "preventa" as Panel, label: "Preventa MeLi" },
-          { panel: "postventa" as Panel, label: "Postventa" },
-          { panel: "stock" as Panel, label: "Stock" },
-          { panel: "control-inventario" as Panel, label: "Inventario" },
-          { panel: "etiquetas" as Panel, label: "Diseño" },
-          { panel: "fichas" as Panel, label: "Docs técnicos" },
-          { panel: "facturacion" as Panel, label: "Contabilidad" },
-        ]).filter((s) => puedeVerSeccionPanel(user, s.panel)).map((s) => (
-          <button
-            key={s.panel}
-            type="button"
-            onClick={() => onNavigateTo(s.panel)}
-            className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-panel px-3 py-3 text-sm font-semibold text-ink transition-all active:scale-95 hover:border-accent/40"
-          >
-            <PanelIcon panel={s.panel} size={24} />
-            {s.label}
-          </button>
-        ))}
-      </div>
+      {/* Accesos a paneles — salen de NAV_SECTIONS (la misma estructura y las
+          mismas reglas de permisos del menú de escritorio). Escribir aquí una
+          lista a mano dejaba paneles inalcanzables desde el celular: pasó con
+          Guías de envío (TKT-2026-1307), visible en escritorio e invisible aquí. */}
+      {seccionesIrA.map((sec) => (
+        <div key={sec.id}>
+          <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-muted">
+            {NAV_CATEGORY_LABEL[sec.id]}
+          </p>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+            {sec.items.map((item) => (
+              <button
+                key={item.panel}
+                type="button"
+                onClick={() => onNavigateTo(item.panel)}
+                className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-panel px-3 py-3 text-left text-sm font-semibold text-ink transition-all active:scale-95 hover:border-accent/40"
+              >
+                <PanelIcon panel={item.panel} size={24} />
+                <span className="min-w-0 flex-1 leading-tight">
+                  {PANEL_INFO[item.panel]?.label ?? item.panel}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
