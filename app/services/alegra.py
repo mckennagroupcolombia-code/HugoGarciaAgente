@@ -3196,10 +3196,11 @@ RETENCIONES_ALEGRA: dict[tuple[str, float], int] = {
     ("servicios", 6.0): 10,
     ("honorarios", 10.0): 5,
     ("honorarios", 11.0): 6,
-    # ⚠️ FALTA en la cuenta: retención de rendimientos financieros al 7%
-    # (Art. 395 E.T.), la de los intereses de préstamos. Hay que crearla en
-    # Alegra (Configuración → Retenciones) antes de poder incluirla en un
-    # documento soporte.
+    # Retención de rendimientos financieros al 7 % (Art. 395 ET), la de los
+    # intereses de préstamos de terceros. Creada en la cuenta el 2026-09-14 vía
+    # POST /retentions (id 14): sin ella el documento soporte de una cuota se
+    # emitía SIN retención y el contador no la veía por esa vía.
+    ("rendimientos_financieros", 7.0): 14,
 }
 
 

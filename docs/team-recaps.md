@@ -1,3 +1,15 @@
+### 2026-09-14 15:05 - Trii en el expediente (la venta de 2025 dio pérdida) y la retención del 7 % creada en Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos nuevos en el expediente + configuración en Alegra
+- **Qué se implementó:**
+  - **Trii es la plataforma y Acciones & Valores la comisionista que la respalda:** las cifras de los tres CSV que subió Armando cuadran al peso con los certificados ya cargados (compras 2024 por $2.757.985, 2025 por $3.685.445, ventas 2025 por $6.568.820, dividendos $761.088). Lo que Trii agrega y el certificado no tenía es el **detalle operación por operación con fechas, precios y comisiones**, que es lo que permite calcular la ganancia real.
+  - **Resultado del cálculo FIFO, con las comisiones dentro del costo: la venta de acciones de 2025 dio PÉRDIDA de $227.651, no ganancia.** La venta del 27-abr-2025 de 3.254 ECOPETROL por $5.954.820 pierde $330.401; las 50 BVC por $614.000 ganan $102.750. Tenencia menor a dos años, así que es renta ordinaria, no ganancia ocasional. Las 185 ECOPETROL que quedaban se vendieron el 6-ene-2026 con ganancia de $27.600, que va en el año gravable 2026 y no en 2025.
+  - **El flujo con el banco quedó documentado** para la justificación patrimonial: $6.450.000 en depósitos aprobados y $7.001.969 en retiros, con la advertencia de que hay cinco depósitos RECHAZADOS por $6.500.000 que no son salida de dinero aunque aparezcan en el archivo.
+  - **Sobre el ítem INTERES-MUTUO: ya existía** en Alegra (id 624) y además **no se usa** — el documento soporte va por cuenta contable (5252) porque Alegra rechaza los ítems en esta cuenta con el error 11034. Lo que sí faltaba, y era el bloqueo real, es que **la retención de rendimientos financieros al 7 % (Art. 395 ET) no estaba configurada**: de las 13 retenciones de la cuenta ninguna era esa, así que el documento soporte de una cuota habría salido SIN retención y el contador no la habría visto por esa vía. Se creó por API (id 14, `POST /retentions` responde 201) y se mapeó en el código.
+  - **Verificado en dry run con la cuota 1 real del préstamo #1:** el documento ahora sale con `retentions: [{id 14, amount 21.021,58}]`. Ya no falta nada técnico para emitirlo; falta la decisión de encender `PRESTAMOS_DOC_SOPORTE_ACTIVO=1`, que no se tocó porque un documento soporte emitido viaja a la DIAN y solo se corrige con nota de ajuste.
+  - **Verificado:** 85 tests, PDF del expediente regenerado (301 documentos), cálculo FIFO contrastado contra los certificados de la comisionista.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/declarador.py`, `app/services/conciliacion_contador.py`, `CLAUDE.md`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Armando/15_Inversiones_Acciones_y_Valores/` y la retención nueva en Alegra
+
 ### 2026-09-14 14:10 - Espejo a Alegra encendido, 2026 cuadrado al peso, y los certificados de la comisionista en el expediente
 - **Autor:** Armando García
 - **Tipo de Cambio:** Operación sobre datos + categoría nueva en el expediente de socios

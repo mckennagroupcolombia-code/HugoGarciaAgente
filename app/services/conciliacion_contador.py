@@ -684,7 +684,9 @@ def _det_retencion_prestamos(decls: list[dict]) -> list[dict]:
             accion=(
                 "Antes del primer pago: avisarle al contador que estas retenciones existen y acordar por dónde las va "
                 "a ver (con el espejo encendido el asiento llega solo a Alegra; el detalle por tercero lo manda el cron "
-                "del día 3). Para emitir documento soporte hay que crear antes en Alegra el ítem INTERES-MUTUO."
+                "del día 3). Para el documento soporte ya no falta nada técnico —la retención del 7 % está creada en "
+                "Alegra y el documento sale con ella—: falta decidir encenderlo (PRESTAMOS_DOC_SOPORTE_ACTIVO=1), "
+                "sabiendo que una vez emitido viaja a la DIAN y solo se corrige con nota de ajuste."
             ),
             periodo=mes_primera,
             severidad="alta",

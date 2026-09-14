@@ -957,8 +957,13 @@ los **intereses** SÍ, pero solo si el prestamista es persona natural **no** obl
 facturar — si es jurídica u obligado, la factura la expide él. Se emite por el interés bruto
 de cada cuota vía `POST /bills` con plantilla `supportDocument` (id=10 en la cuenta; ⚠️ la
 id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca en modo sombra**
-(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`): antes de encender hay que crear en Alegra el ítem
-`INTERES-MUTUO` (hoy no existe).
+(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`). Al 2026-09-14 ya no falta nada técnico: el ítem
+`INTERES-MUTUO` existe (id 624) pero **no se usa** — el documento va por cuenta contable
+(5252), porque Alegra rechaza `purchases.items` con error 11034 en esta cuenta; y la
+retención de rendimientos financieros al 7 % se creó en Alegra (id 14) y está mapeada en
+`RETENCIONES_ALEGRA`, así que el documento ya sale con la retención incluida (verificado en
+dry run con la cuota 1 del préstamo #1: $21.022). Lo único que falta para encenderlo es la
+decisión: un documento soporte emitido ya viajó a la DIAN y solo se corrige con nota de ajuste.
 
 **Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
 (DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito
