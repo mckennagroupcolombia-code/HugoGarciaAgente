@@ -63,8 +63,27 @@ interface RequisitoAnio {
   ref: number;
   unidad: "meses" | "archivos";
   ok: boolean;
-  /** "no_presentada": ese año no hubo declaración, no hay F210 que cargar. */
+  /** "no_presentada": ese año no hubo declaración · "no_aplica" · "alternativa": lo cubre otro documento. */
   nota?: string;
+  alternativa_en?: string;
+}
+
+interface MontoMoneda {
+  operaciones: number | null;
+  valor: number;
+}
+
+interface TarjetaAnio {
+  tarjetas?: string[];
+  consumos?: Record<string, MontoMoneda>;
+  pagos_capital?: Record<string, MontoMoneda>;
+  intereses_pagados?: Record<string, MontoMoneda>;
+  avances?: { operaciones: number; comision: number };
+  cuota_manejo?: number;
+  intereses_causados?: number;
+  saldo_31dic?: { capital: number; interes: number | null; otros: number | null };
+  saldo_ahorros_31dic?: number;
+  fuentes?: string[];
 }
 
 interface CorreccionAnio {
@@ -128,6 +147,7 @@ interface Requisito {
   impacto: string;
   por_anio: boolean;
   es_extracto: boolean;
+  alternativa_nota: string;
   aplica: boolean;
   omitido: boolean;
   estado: "hecho" | "parcial" | "pendiente" | "no_aplica" | "omitido";
@@ -220,6 +240,7 @@ interface Expediente {
   plan: Plan;
   objetivo: Objetivo;
   tenencia: Tenencia;
+  tarjeta: Record<string, TarjetaAnio>;
   documentos: Documento[];
   documentos_por_categoria: Record<string, number>;
   categorias: { id: string; label: string }[];
@@ -825,7 +846,7 @@ const TITULO_CORTO: Record<string, string> = {
   f210: "Declaración de renta (F210)",
   exogena: "Información exógena DIAN",
   extracto_banco: "Extractos bancarios",
-  extracto_tarjeta: "Extractos tarjeta de crédito",
+  extracto_tarjeta: "Tarjetas de crédito",
   certificado_banco: "Certificados bancarios anuales",
   binance_csv: "Historial Binance (CSV)",
   binance_snapshot: "Tenencia Binance a 31-dic",
@@ -1203,6 +1224,58 @@ function MetaDeclaraciones({ objetivo, tenencia, anios, onEstadoAnio, onSubirF21
   );
 }
 
+/** Lo que el certificado anual de Bancolombia dice de la tarjeta ese año. */
+function CifrasTarjeta({ datos, ano }: { datos: TarjetaAnio; ano: number }) {
+  const fila = (label: string, m?: Record<string, MontoMoneda>) => {
+    if (!m) return null;
+    const partes = Object.entries(m).map(([mon, v]) => `${mon === "USD" ? usd(v.valor) : cop(v.valor)}${v.operaciones ? ` (${v.operaciones} ops)` : ""}`);
+    return (
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 py-1">
+        <span className="text-[11px] text-muted">{label}</span>
+        <span className="text-[11px] font-bold tabular-nums text-ink">{partes.join(" + ")}</span>
+      </div>
+    );
+  };
+  return (
+    <div className="mt-2 grid gap-x-6 gap-y-0 sm:grid-cols-2">
+      <div>
+        {fila("Consumos del año", datos.consumos)}
+        {fila("Pagos a capital", datos.pagos_capital)}
+        {fila("Intereses pagados", datos.intereses_pagados)}
+      </div>
+      <div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 py-1">
+          <span className="text-[11px] text-muted">Avances en efectivo</span>
+          <span className={`text-[11px] font-bold tabular-nums ${datos.avances ? "text-danger" : "text-ink"}`}>
+            {datos.avances ? `${datos.avances.operaciones} avance${datos.avances.operaciones !== 1 ? "s" : ""} · comisión ${cop(datos.avances.comision)}` : "ninguno"}
+          </span>
+        </div>
+        {datos.saldo_31dic && (
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 py-1">
+            <span className="text-[11px] text-muted">Saldo al 31-dic (deuda, renglón 30)</span>
+            <span className="text-[11px] font-bold tabular-nums text-ink">{cop(datos.saldo_31dic.capital)}</span>
+          </div>
+        )}
+        {datos.cuota_manejo !== undefined && (
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border/60 py-1">
+            <span className="text-[11px] text-muted">Cuotas de manejo</span>
+            <span className="text-[11px] font-bold tabular-nums text-ink">{cop(datos.cuota_manejo)}</span>
+          </div>
+        )}
+        <div className="flex flex-wrap items-baseline justify-between gap-2 py-1">
+          <span className="text-[11px] text-muted">Tarjetas</span>
+          <span className="text-[11px] font-bold tabular-nums text-ink">{(datos.tarjetas ?? []).join(" · ") || "—"}</span>
+        </div>
+      </div>
+      <p className="mt-1 text-[10px] text-muted sm:col-span-2">
+        Fuente: {(datos.fuentes ?? []).join(", ")} ({ano}).
+        {!datos.avances && " Sin avances en efectivo ese año: ninguna compra de cripto se fondeó con la tarjeta por esa vía."}
+        {datos.saldo_31dic === undefined && " El saldo a 31-dic sale del certificado de retención o de la exógena de ese año."}
+      </p>
+    </div>
+  );
+}
+
 /** Panel bajo la matriz con el contenido de la casilla (documento × año) seleccionada. */
 function DetalleCasilla({
   req: r,
@@ -1247,6 +1320,8 @@ function DetalleCasilla({
   const mesesFaltan = new Set(cob?.faltan ?? []);
   const cargando = subiendo === `${r.categoria}:${ano ?? ""}`;
   const noPresentada = celda?.nota === "no_presentada";
+  const tarjetaAno = ano !== null ? exp.tarjeta?.[String(ano)] : undefined;
+  const porAlternativa = celda?.nota === "alternativa";
 
   if (celda?.nota === "no_aplica" && ano !== null) {
     return (
@@ -1263,6 +1338,32 @@ function DetalleCasilla({
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5">
           <button type="button" className={btnSec} onClick={() => onOmitirAno(ano, false)}>Sí aplica (deshacer)</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (porAlternativa && ano !== null) {
+    return (
+      <div className="border-t-2 border-emerald-600/50 bg-emerald-600/5 px-3 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-ink">
+              {titulo} · {ano}
+              <span className="ml-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">Cubierto por certificado anual</span>
+            </p>
+            <p className="text-[11px] text-ink-secondary">
+              El banco ya no entrega extractos mensuales de ese año, pero el certificado anual trae las cifras que el expediente necesita.
+              Lo que no da es el detalle comercio por comercio.
+            </p>
+          </div>
+          <button type="button" className={btnSec} onClick={onCerrar}><Icon name="close" size={12} weight="bold" /> cerrar</button>
+        </div>
+        {tarjetaAno ? <CifrasTarjeta datos={tarjetaAno} ano={ano} /> : <p className="mt-2 text-[11px] text-muted">Sin cifras legibles en el certificado de {ano}.</p>}
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <button type="button" className={btnSec} disabled={cargando} onClick={() => onSubir(ano)}>
+            <Icon name="paperclip" size={13} weight="bold" /> Subir extracto mensual de {ano} si lo consigues
+          </button>
         </div>
       </div>
     );
@@ -1585,6 +1686,7 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-emerald-600" /> cargado</span>
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500" /> incompleto</span>
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-danger" /> falta</span>
+            <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm border-2 border-dashed border-emerald-600/70 bg-emerald-600/15" /> cubierto por certificado anual</span>
             <span className="inline-flex items-center gap-1"><i className="inline-block h-2.5 w-2.5 rounded-sm bg-surface-hover" /> no se exige aún</span>
             <label className="inline-flex cursor-pointer items-center gap-1 font-semibold text-ink">
               <input type="checkbox" checked={verCompletos} onChange={(e) => setVerCompletos(e.target.checked)} /> desplegar los completos
@@ -1686,6 +1788,22 @@ function PasoPlan({ terceroId, exp, onChanged, onIr }: { terceroId: number; exp:
                               >
                                 <span className="text-[11px] font-bold">no declaró</span>
                                 <span className="w-full truncate text-[9px] font-normal text-muted">se presenta con cripto</span>
+                              </button>
+                            </td>
+                          );
+                        }
+                        if (a.nota === "alternativa") {
+                          return (
+                            <td key={ano} className="px-1.5 py-2 text-center align-top">
+                              <button
+                                type="button"
+                                title={`${ano}: ${r.alternativa_nota || "cubierto por otro documento"} · clic para ver las cifras`}
+                                aria-pressed={seleccionada}
+                                onClick={() => setSel(seleccionada ? null : { reqId: r.id, ano })}
+                                className={`flex w-[6.25rem] flex-col items-center rounded-md border-2 border-dashed border-emerald-600/70 bg-emerald-600/15 px-1.5 py-1 text-emerald-800 transition hover:bg-emerald-600/25 dark:text-emerald-300 ${seleccionada ? "ring-2 ring-accent ring-offset-1" : ""}`}
+                              >
+                                <span className="text-[11px] font-bold">✓ cubierto</span>
+                                <span className="w-full truncate text-[9px] font-normal">por certificado</span>
                               </button>
                             </td>
                           );

@@ -1057,6 +1057,139 @@ def impuesto_renta_art241(renta_liquida_gravable_cop: float, ano: int) -> float 
     return 0.0
 
 
+_CERT_CACHE: dict[tuple[str, float], dict[str, Any]] = {}
+
+_ENCABEZADOS_PRODUCTO = ("TARJETA MASTERCARD", "MASTER CARD", "CUENTA DE AHORROS", "DEPOSITO DE BAJO MONTO", "NEQUI", "PRESTAMO", "PRESTAMO COMERCIAL")
+
+
+def _filas_xlsx(path: str, max_filas: int = 400) -> list[list[str]]:
+    import openpyxl
+
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out = []
+    for ws in wb.worksheets:
+        for i, fila in enumerate(ws.iter_rows(values_only=True)):
+            if i > max_filas:
+                break
+            out.append(["" if c is None else str(c).strip() for c in fila])
+    return out
+
+
+def _num(txt: str) -> float | None:
+    t = (txt or "").replace("$", "").replace(" ", "").replace(",", "")
+    try:
+        return float(t)
+    except ValueError:
+        return None
+
+
+def resumen_tarjeta_certificado(path: str) -> dict[str, Any]:
+    """Lo que el «Reporte anual de costos totales» y el «Certificado anual de
+    retención» de Bancolombia dicen de la TARJETA DE CRÉDITO de ese año.
+
+    Existe porque los extractos mensuales de tarjeta anteriores a ago-2024 ya no
+    se pueden descargar: el banco solo conserva los últimos 12-24 meses. Estos
+    certificados son la fuente oficial que sí cubre los años viejos, con cifras
+    agregadas (no el detalle comercio por comercio)."""
+    if not os.path.isfile(path):
+        return {}
+    clave = (path, os.path.getmtime(path))
+    if clave in _CERT_CACHE:
+        return _CERT_CACHE[clave]
+    out: dict[str, Any] = {}
+    try:
+        filas = _filas_xlsx(path)
+    except Exception:  # noqa: BLE001
+        return {}
+    en_tarjeta = False
+    for fila in filas:
+        texto = " | ".join(fila)
+        primera = fila[0] if fila else ""
+        up = primera.upper()
+        # ── Reporte anual de costos: secciones por producto ──
+        if up.startswith("TARJETA MASTERCARD") or up.startswith("MASTER CARD"):
+            en_tarjeta = True
+            m = re.search(r"(\d{12,19})", primera)
+            if m:
+                tarjetas = out.setdefault("tarjetas", [])
+                etiqueta_t = f"****{m.group(1)[-4:]}"
+                if etiqueta_t not in tarjetas:
+                    tarjetas.append(etiqueta_t)
+            continue
+        if en_tarjeta and any(up.startswith(h) for h in _ENCABEZADOS_PRODUCTO):
+            en_tarjeta = False
+        if en_tarjeta:
+            etiqueta = primera.upper()
+            ops = int(_num(fila[1]) or 0) if len(fila) > 1 and _num(fila[1]) is not None else None
+            moneda = next((c for c in fila if c in ("COP", "USD")), "")
+            valor = next((_num(c) for c in reversed(fila) if _num(c) is not None and c not in ("COP", "USD")), None)
+            if valor is None:
+                continue
+            def _acum(campo: str) -> None:
+                # Un año puede traer dos tarjetas (8017 y 3894): se suman.
+                celda = out.setdefault(campo, {}).setdefault(moneda or "COP", {"operaciones": 0, "valor": 0.0})
+                celda["operaciones"] = (celda["operaciones"] or 0) + (ops or 0)
+                celda["valor"] = round((celda["valor"] or 0) + valor, 2)
+
+            if etiqueta.startswith("UTILIZACIONES"):
+                _acum("consumos")
+            elif etiqueta.startswith("PAGOS A CAPITAL"):
+                _acum("pagos_capital")
+            elif etiqueta.startswith("PAGOS A INTERES"):
+                _acum("intereses_pagados")
+            elif "AVANCE" in etiqueta:
+                av = out.setdefault("avances", {"operaciones": 0, "comision": 0.0})
+                av["operaciones"] += ops or 0
+                av["comision"] = round(av["comision"] + valor, 2)
+            elif "CUOTA" in etiqueta and "MANEJO" in etiqueta:
+                out["cuota_manejo"] = round((out.get("cuota_manejo") or 0) + valor, 2)
+        # ── Certificado de retención (B1): saldo e intereses causados ──
+        if "SALDO TARJETA DE CR" in primera.upper():
+            nums = [_num(c) for c in fila[1:] if _num(c) is not None]
+            if nums:
+                out["saldo_31dic"] = {
+                    "capital": nums[0],
+                    "interes": nums[1] if len(nums) > 1 else None,
+                    "otros": nums[2] if len(nums) > 2 else None,
+                }
+        if "INTERESES CAUSADOS TARJETA" in texto.upper():
+            v = next((_num(c) for c in reversed(fila) if _num(c) is not None), None)
+            if v is not None:
+                out["intereses_causados"] = v
+        if "SALDO CUENTA AHORROS" in primera.upper():
+            v = next((_num(c) for c in reversed(fila) if _num(c) is not None), None)
+            if v is not None:
+                out["saldo_ahorros_31dic"] = v
+    _CERT_CACHE[clave] = out
+    return out
+
+
+def tarjeta_por_anio(docs: list[dict]) -> dict[int, dict[str, Any]]:
+    """Consolida, por año gravable, lo que dicen los certificados anuales sobre
+    la tarjeta de crédito. Es lo que sustituye a los extractos mensuales que el
+    banco ya no entrega."""
+    out: dict[int, dict[str, Any]] = {}
+    for d in docs:
+        if d.get("categoria") != "certificado_banco" or not d.get("ano"):
+            continue
+        nombre = (d.get("archivo_nombre") or "").lower()
+        if not nombre.endswith((".xlsx", ".xlsm")):
+            continue
+        datos = resumen_tarjeta_certificado(d["archivo_path"])
+        if not datos:
+            continue
+        ano = int(d["ano"])
+        acum = out.setdefault(ano, {"fuentes": []})
+        for k, v in datos.items():
+            if k == "tarjetas":
+                lista = acum.setdefault("tarjetas", [])
+                lista.extend(t for t in v if t not in lista)
+            elif k not in acum or not acum.get(k):
+                acum[k] = v
+        acum["fuentes"].append(d["archivo_nombre"])
+    return out
+
+
 def importar_carpeta(tercero_id: int, carpeta: str | None = None) -> dict[str, Any]:
     """Trae al expediente lo que ya existe en la carpeta del Declarador.
 
@@ -1469,11 +1602,13 @@ REQUISITOS: list[dict[str, Any]] = [
         "rol": "soporte",
         "impacto": "Justifica origen de fondos (avances) y la deuda a 31-dic; no cambia el cálculo cripto.",
         "categoria": "extracto_tarjeta",
-        "titulo": "Extractos de tarjetas de crédito",
+        "titulo": "Movimientos de tarjetas de crédito",
         "por_que": "Compras en Amazon o cripto con tarjeta y avances en efectivo: deuda que va en el patrimonio y origen de fondos.",
-        "como": "Sucursal virtual → Tarjetas → Estado de cuenta → descargar Excel de cada mes.",
+        "como": "Sucursal virtual → Tarjetas → Estado de cuenta → descargar Excel de cada mes. El banco solo conserva los últimos 12-24 meses: para años anteriores el sustituto oficial es el «Reporte anual de costos totales» (Certificados tributarios), que ya trae por año los consumos en COP y USD, los pagos, los intereses y cuántos avances en efectivo hubo.",
         "aplica": None,
         "por_anio": True,
+        "alternativas": ["certificado_banco"],
+        "alternativa_nota": "cubierto por el certificado anual de Bancolombia (cifras del año, sin el detalle comercio por comercio)",
     },
     {
         "id": "certificado_banco",
@@ -1778,7 +1913,13 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
                 else:
                     n = mios[cat].get(str(a), 0)
                     nref = (ref or {}).get("por_categoria", {}).get(cat, {}).get(str(a), 0) if ref else 0
-                    por_anio.append({"ano": a, "mios": n, "ref": nref, "unidad": "archivos", "ok": n > 0})
+                    celda = {"ano": a, "mios": n, "ref": nref, "unidad": "archivos", "ok": n > 0}
+                    if not n:
+                        # Sin el documento propio, ¿lo cubre una fuente equivalente?
+                        alt = next((c for c in (r.get("alternativas") or []) if mios[c].get(str(a))), None)
+                        if alt:
+                            celda.update({"ok": True, "nota": "alternativa", "alternativa_en": alt})
+                    por_anio.append(celda)
         if not aplica:
             estado = "no_aplica"
         elif omitido:
@@ -1794,6 +1935,7 @@ def plan_carga(tercero_id: int, perfil: dict | None = None, docs: list[dict] | N
                 "rol": r.get("rol", "soporte"),
                 "impacto": r.get("impacto", ""),
                 "es_extracto": bool(r.get("es_extracto")),
+                "alternativa_nota": r.get("alternativa_nota", ""),
                 "aplica": aplica,
                 "omitido": omitido,
                 "estado": estado,
@@ -2079,6 +2221,7 @@ def obtener_expediente(tercero_id: int) -> dict[str, Any]:
         "plan": plan,
         "objetivo": objetivo_declaraciones(anios, docs, plan),
         "tenencia": _tenencia_guardada(tercero_id),
+        "tarjeta": {str(k): v for k, v in tarjeta_por_anio(docs).items()},
         "documentos": docs,
         "documentos_por_categoria": dict(por_cat),
         "categorias": [{"id": c, "label": l} for c, l in CATEGORIAS_DOC],

@@ -1,3 +1,14 @@
+### 2026-09-14 04:35 - Socios: el certificado anual de Bancolombia cubre los extractos de tarjeta que el banco ya no entrega
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (plan de carga) + lectura de fuentes alternativas
+- **Qué se implementó:**
+  - **El mapa pedía extractos mensuales de tarjeta de 2021-2023 que Bancolombia ya no entrega** (solo conserva los últimos 12-24 meses), y los pintaba en rojo como si faltara algo conseguible. Al abrir los certificados que Armando ya había cargado se confirmó que el **«Reporte anual de costos totales»** trae, por año y por tarjeta, los consumos en COP y USD con número de operaciones, los pagos a capital e intereses, **cuántos avances en efectivo hubo** y las cuotas de manejo; y el **certificado anual de retención** trae el saldo de la tarjeta a 31 de diciembre y los intereses causados.
+  - **Requisitos con `alternativas`.** Un tipo de documento puede declarar qué otra fuente lo sustituye: si falta el extracto de tarjeta de un año pero hay certificado anual, la casilla queda **«✓ cubierto · por certificado»** (verde con borde punteado, con su propia entrada en la leyenda) en vez de roja, y deja de contar como faltante.
+  - **Las cifras se leen de verdad, no se asumen.** `resumen_tarjeta_certificado()` parsea el xlsx (sin LLM; suma las secciones cuando el año trae dos tarjetas) y el detalle de la casilla muestra consumos, pagos, intereses, avances, cuota de manejo, saldo a 31-dic, tarjetas y de qué archivo salió cada cifra. Dato útil que salió de ahí: **en 2021 y 2022 no hubo ningún avance en efectivo**, así que ninguna compra de cripto de esos años se fondeó por esa vía; los avances aparecen en 2023 (3), 2024 (2) y 2025 (1).
+  - El renglón pasó a llamarse «Movimientos de tarjetas de crédito» y su «cómo conseguirlo» explica la ruta real: extracto mensual mientras exista, certificado tributario para lo viejo. El plan de Armando pasó de 13 faltantes a **7**, y de 25/38 a **36/43** documentos cubiertos (84 %); lo único que queda de tarjeta es 2020.
+  - **Verificado:** 8 tests de declarador + smoke (85), `tsc`, build y revisión en Chromium de la fila del mapa y del detalle con las cifras de 2022.
+- **Archivos Modificados:** `app/services/declarador.py`, `desktop/src/components/SociosPanel.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 04:15 - Socios: plan de carga con matriz por año, meta calculable (activos omitidos, impuesto, sanción e intereses) y tenencias en el tiempo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Remasterización del paso «Plan de carga» + cálculo de la corrección por activos omitidos
