@@ -25,7 +25,11 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 DESPACHOS_DB = os.path.join(_ROOT, "app", "data", "despachos.db")
 ORDERS_WEB_DB = os.path.join(_ROOT, "PAGINA_WEB", "site", "data", "orders.db")
 REMITENTE_PATH = os.path.join(_ROOT, "app", "data", "remitente_envios.json")
-_LOGO = os.path.join(_ROOT, "DISENO CORPORATIVO ", "isotipo_final.png")
+# Logotipo horizontal (con el nombre). La térmica es monocroma, así que se
+# imprime en negro puro usando el canal alfa como máscara — ver `_logo_negro()`.
+_LOGO = os.path.join(_ROOT, "DISENO CORPORATIVO ", "LOGOTIPO TURQUESA.png")
+_LOGO_ISOTIPO = os.path.join(_ROOT, "DISENO CORPORATIVO ", "isotipo_final.png")
+LEMA = "Proveemos a tus ideas"
 
 # Tamaños de rollo soportados (ancho x alto en mm). El de la Vretti es 10x15.
 TAMANOS: dict[str, tuple[float, float]] = {
@@ -35,14 +39,24 @@ TAMANOS: dict[str, tuple[float, float]] = {
 }
 TAMANO_DEFAULT = "10x15"
 
+def _empresa_default(campo: str, alterno: str) -> str:
+    """Identidad fiscal desde app/services/empresa.py (fuente única, decisión 8)."""
+    try:
+        from app.services import empresa
+
+        return str(getattr(empresa, campo)())
+    except Exception:
+        return alterno
+
+
 _REMITENTE_DEFAULT = {
-    "nombre": "McKenna Group S.A.S.",
-    "nit": "",
+    "nombre": _empresa_default("razon_social", "McKenna Group S.A.S.").upper(),
+    "nit": _empresa_default("nit", "901.316.016-3"),
     "direccion": "",
-    "ciudad": "Bogotá D.C.",
-    "telefono": "",
-    "correo": "",
-    "nota": "Materias primas farmacéuticas y cosméticas",
+    "ciudad": _empresa_default("ciudad", "Bogotá D.C."),
+    "telefono": "319 518 35 96",
+    "correo": "www.mckennagroup.co",
+    "nota": LEMA,
 }
 
 
@@ -318,10 +332,13 @@ def datos_de_pedido(canal: str, pedido_id: str) -> dict[str, Any] | None:
 
 
 def normalizar_datos(data: dict[str, Any]) -> dict[str, Any]:
-    """Deja un rótulo listo para dibujar (manual o desde pedido)."""
-    contenido = data.get("contenido")
-    if isinstance(contenido, str):
-        contenido = [c.strip() for c in contenido.splitlines() if c.strip()]
+    """Deja un rótulo listo para dibujar (manual o desde pedido).
+
+    El rótulo **no** lleva contenido ni valor declarado: va pegado por fuera de
+    la caja, a la vista de cualquiera, y detallar qué hay dentro y cuánto vale
+    es justo lo que no conviene en un paquete que viaja. Si el pedido trae esos
+    campos (los usa el listado del panel), se descartan aquí a propósito.
+    """
     nombre = str(data.get("nombre") or "").strip()
     if not nombre:
         raise ValueError("El rótulo necesita el nombre del destinatario")
@@ -329,10 +346,6 @@ def normalizar_datos(data: dict[str, Any]) -> dict[str, Any]:
     direccion = str(data.get("direccion") or "").strip()
     if not (ciudad and direccion):
         raise ValueError("El rótulo necesita dirección y ciudad de destino")
-    try:
-        valor = float(data.get("valor_declarado") or 0)
-    except (TypeError, ValueError):
-        valor = 0.0
     return {
         "canal": str(data.get("canal") or "manual"),
         "pedido_id": str(data.get("pedido_id") or "").strip(),
@@ -343,11 +356,8 @@ def normalizar_datos(data: dict[str, Any]) -> dict[str, Any]:
         "ciudad": ciudad[:50],
         "departamento": str(data.get("departamento") or "").strip()[:40],
         "observaciones": str(data.get("observaciones") or "").strip()[:160],
-        "contenido": [str(c)[:60] for c in (contenido or [])][:6],
         "piezas": max(1, int(data.get("piezas") or 1)),
         "peso_kg": str(data.get("peso_kg") or "").strip()[:10],
-        "valor_declarado": round(valor, 2),
-        "contra_entrega": bool(data.get("contra_entrega")),
         "guia": str(data.get("guia") or "").strip()[:40],
         "transportadora": str(data.get("transportadora") or "Interrapidísimo").strip()[:40],
     }
@@ -355,8 +365,38 @@ def normalizar_datos(data: dict[str, Any]) -> dict[str, Any]:
 
 # ─── PDF del rótulo ─────────────────────────────────────────────────────────
 
-def _cop(n: float) -> str:
-    return "$ " + f"{int(round(n or 0)):,}".replace(",", ".")
+_LOGO_CACHE: dict[str, Any] = {}
+
+
+def _logo_negro():
+    """Logotipo en negro puro sobre transparente, para la térmica monocroma.
+
+    Usa el canal alfa del PNG corporativo como máscara: lo que está pintado
+    queda negro y el fondo sigue transparente. Se cachea en memoria porque el
+    archivo pesa ~0,5 MB y convertirlo por cada PDF no tiene sentido.
+    """
+    if "reader" in _LOGO_CACHE:
+        return _LOGO_CACHE["reader"]
+    _LOGO_CACHE["reader"] = None
+    ruta = _LOGO if os.path.isfile(_LOGO) else _LOGO_ISOTIPO
+    try:
+        import io
+
+        from PIL import Image
+        from reportlab.lib.utils import ImageReader
+
+        img = Image.open(ruta).convert("RGBA")
+        alpha = img.getchannel("A")
+        negro = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        negro.putalpha(alpha)
+        buf = io.BytesIO()
+        negro.save(buf, format="PNG")
+        buf.seek(0)
+        _LOGO_CACHE["reader"] = ImageReader(buf)
+        _LOGO_CACHE["aspect"] = img.size[0] / max(1, img.size[1])
+    except Exception:
+        pass
+    return _LOGO_CACHE["reader"]
 
 
 def _wrap(texto: str, ancho_mm: float, font: str, size: float, canvas_obj, max_lineas: int = 3) -> list[str]:
@@ -380,171 +420,193 @@ def _wrap(texto: str, ancho_mm: float, font: str, size: float, canvas_obj, max_l
     return lineas or [""]
 
 
+def _ajustar(texto: str, ancho_mm: float, font: str, size: float, canvas_obj, minimo: float) -> float:
+    """Baja el cuerpo de letra hasta que el texto quepa en una línea."""
+    from reportlab.lib.units import mm
+
+    while size > minimo and canvas_obj.stringWidth(texto, font, size) > ancho_mm * mm:
+        size -= 0.5
+    return size
+
+
 def generar_pdf(rotulos: list[dict[str, Any]], *, tamano: str = TAMANO_DEFAULT) -> bytes:
-    """Un rótulo por página, listo para mandar a la térmica sin escalar."""
+    """Un rótulo por página, listo para mandar a la térmica sin escalar.
+
+    El rótulo se dibuja por bandas de altura fija (encabezado · destinatario ·
+    remitente · pie), no en flujo continuo: así dos paquetes con datos de
+    distinto largo salen con la misma pinta y el mensajero encuentra siempre la
+    dirección en el mismo sitio. No lleva contenido ni valor declarado.
+    """
     import io
 
     from reportlab.graphics.barcode import code128
     from reportlab.lib.units import mm
-    from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen import canvas as rl_canvas
 
     if not rotulos:
         raise ValueError("No hay rótulos para imprimir")
     ancho_mm, alto_mm = TAMANOS.get(tamano, TAMANOS[TAMANO_DEFAULT])
     remitente = leer_remitente()
-    # Un solo ImageReader para todas las páginas: así el PNG del isotipo se
-    # incrusta una vez y no una copia por rótulo (un lote de 20 pesaba ~16 MB).
-    logo = None
-    if os.path.isfile(_LOGO):
-        try:
-            logo = ImageReader(_LOGO)
-        except Exception:
-            logo = None
+    logo = _logo_negro()
+    aspect = float(_LOGO_CACHE.get("aspect") or 2.9)
     buf = io.BytesIO()
     c = rl_canvas.Canvas(buf, pagesize=(ancho_mm * mm, alto_mm * mm))
     # Escala: el diseño está pensado para 10x15; en rollos menores se reduce
     # proporcionalmente el tamaño de letra para que todo siga cabiendo.
     k = min(ancho_mm / 100.0, alto_mm / 150.0)
-    margen = 4.0
+    m = 4.0
+    util = ancho_mm - 2 * m
+
+    # Bandas, como fracción del alto: el rótulo se lee siempre igual.
+    y_top = alto_mm - m
+    y_head = y_top - 0.135 * alto_mm          # fin del encabezado
+    y_remit = m + 0.355 * alto_mm             # inicio del bloque remitente
+    y_pie = m + 0.205 * alto_mm               # inicio del pie (guía y barras)
 
     for datos in rotulos:
         d = normalizar_datos(datos)
-        c.setLineWidth(1.0)
-        c.rect(
-            (margen - 2) * mm,
-            (margen - 2) * mm,
-            (ancho_mm - 2 * (margen - 2)) * mm,
-            (alto_mm - 2 * (margen - 2)) * mm,
-        )
-        y = alto_mm - margen
 
-        # Encabezado: isotipo + remitente corto + referencia del pedido
-        alto_head = 14.0 * k
+        c.setLineWidth(1.0)
+        c.rect((m - 2) * mm, (m - 2) * mm, (ancho_mm - 2 * (m - 2)) * mm, (alto_mm - 2 * (m - 2)) * mm)
+
+        # ── Encabezado: logotipo + lema, y la referencia del pedido a la derecha
+        logo_h = 0.075 * alto_mm
+        logo_w = min(logo_h * aspect, util * 0.56)
+        logo_h = logo_w / aspect
         if logo is not None:
             try:
                 c.drawImage(
-                    logo,
-                    margen * mm,
-                    (y - alto_head) * mm,
-                    width=alto_head * mm,
-                    height=alto_head * mm,
-                    mask="auto",
-                    preserveAspectRatio=True,
+                    logo, m * mm, (y_top - logo_h) * mm,
+                    width=logo_w * mm, height=logo_h * mm,
+                    mask="auto", preserveAspectRatio=True, anchor="sw",
                 )
             except Exception:
                 pass
-        c.setFont("Helvetica-Bold", 10 * k)
-        c.drawString((margen + alto_head + 2) * mm, (y - 5 * k) * mm, remitente["nombre"][:34])
+        else:
+            c.setFont("Helvetica-Bold", 13 * k)
+            c.drawString(m * mm, (y_top - logo_h * 0.75) * mm, remitente["nombre"].upper()[:24])
+        c.setFont("Helvetica-Oblique", 7.5 * k)
+        c.drawString(m * mm, (y_head + 2.2 * k) * mm, LEMA)
+
+        c.setFont("Helvetica", 6 * k)
+        c.drawRightString((ancho_mm - m) * mm, (y_top - 3.4 * k) * mm, "PEDIDO")
+        ref = d["pedido_id"][:22] or "ENVÍO"
+        size_ref = _ajustar(ref, util * 0.45, "Helvetica-Bold", 11 * k, c, 6 * k)
+        c.setFont("Helvetica-Bold", size_ref)
+        c.drawRightString((ancho_mm - m) * mm, (y_top - 8.4 * k) * mm, ref)
         c.setFont("Helvetica", 6.5 * k)
-        c.drawString((margen + alto_head + 2) * mm, (y - 9 * k) * mm, remitente.get("nota", "")[:46])
-        c.setFont("Helvetica-Bold", 8 * k)
         c.drawRightString(
-            (ancho_mm - margen) * mm, (y - 5 * k) * mm, d["pedido_id"][:22] or "ENVÍO"
-        )
-        c.setFont("Helvetica", 6.5 * k)
-        c.drawRightString(
-            (ancho_mm - margen) * mm,
-            (y - 9 * k) * mm,
+            (ancho_mm - m) * mm, (y_head + 2.2 * k) * mm,
             datetime.now().strftime("%d/%m/%Y %H:%M"),
         )
-        y -= alto_head + 2
 
         c.setLineWidth(1.2)
-        c.line(margen * mm, y * mm, (ancho_mm - margen) * mm, y * mm)
-        y -= 5 * k
+        c.line(m * mm, y_head * mm, (ancho_mm - m) * mm, y_head * mm)
 
-        # Destinatario — el bloque que lee el mensajero
+        # ── Destinatario: lo primero que busca el mensajero
+        y = y_head - 5.5 * k
         c.setFont("Helvetica-Bold", 7 * k)
-        c.drawString(margen * mm, y * mm, "DESTINATARIO")
-        y -= 6 * k
+        c.drawString(m * mm, y * mm, "DESTINATARIO")
+        y -= 7 * k
         c.setFont("Helvetica-Bold", 14 * k)
-        for linea in _wrap(d["nombre"], ancho_mm - 2 * margen, "Helvetica-Bold", 14 * k, c, 2):
-            c.drawString(margen * mm, y * mm, linea)
-            y -= 6 * k
-        if d["documento"]:
-            c.setFont("Helvetica", 8 * k)
-            c.drawString(margen * mm, y * mm, f"CC/NIT {d['documento']}")
-            y -= 4.5 * k
-        if d["telefono"]:
-            c.setFont("Helvetica-Bold", 12 * k)
-            c.drawString(margen * mm, y * mm, f"Tel. {d['telefono']}")
+        for linea in _wrap(d["nombre"], util, "Helvetica-Bold", 14 * k, c, 2):
+            c.drawString(m * mm, y * mm, linea)
             y -= 6 * k
 
+        sub = []
+        if d["documento"]:
+            sub.append(f"CC/NIT {d['documento']}")
+        if d["telefono"]:
+            sub.append(f"Tel. {d['telefono']}")
+        if sub:
+            c.setFont("Helvetica-Bold", 10.5 * k)
+            c.drawString(m * mm, y * mm, "   ".join(sub)[:52])
+            y -= 6.5 * k
+
+        y -= 1.5 * k
+        c.setFont("Helvetica", 6.5 * k)
+        c.drawString(m * mm, y * mm, "DIRECCIÓN")
+        y -= 5.5 * k
         c.setFont("Helvetica-Bold", 12 * k)
-        for linea in _wrap(d["direccion"], ancho_mm - 2 * margen, "Helvetica-Bold", 12 * k, c, 3):
-            c.drawString(margen * mm, y * mm, linea)
+        for linea in _wrap(d["direccion"], util, "Helvetica-Bold", 12 * k, c, 3):
+            c.drawString(m * mm, y * mm, linea)
             y -= 5.5 * k
         if d["observaciones"]:
             c.setFont("Helvetica-Oblique", 8 * k)
-            for linea in _wrap(
-                d["observaciones"], ancho_mm - 2 * margen, "Helvetica-Oblique", 8 * k, c, 2
-            ):
-                c.drawString(margen * mm, y * mm, linea)
-                y -= 4 * k
-        y -= 1 * k
+            for linea in _wrap(d["observaciones"], util, "Helvetica-Oblique", 8 * k, c, 2):
+                c.drawString(m * mm, y * mm, linea)
+                y -= 4.2 * k
+
+        # Ciudad anclada al pie de la banda: el destino queda siempre a la misma
+        # altura, aunque la dirección sea de una línea o de tres.
         ciudad = d["ciudad"] + (f" · {d['departamento']}" if d["departamento"] else "")
-        c.setFont("Helvetica-Bold", 15 * k)
-        for linea in _wrap(ciudad.upper(), ancho_mm - 2 * margen, "Helvetica-Bold", 15 * k, c, 2):
-            c.drawString(margen * mm, y * mm, linea)
-            y -= 6.5 * k
+        ciudad = ciudad.upper()
+        size_ciudad = _ajustar(ciudad, util, "Helvetica-Bold", 16 * k, c, 9 * k)
+        c.setFont("Helvetica-Bold", size_ciudad)
+        c.drawString(m * mm, (y_remit + 5 * k) * mm, ciudad)
 
-        # El bloque inferior (remitente/contenido) arranca a una altura fija para
-        # que un destinatario corto no deje un hueco en la mitad del rótulo; si
-        # la dirección fue larga, sigue justo debajo de donde quedó.
-        y = min(y - 2 * k, alto_mm * 0.46)
         c.setLineWidth(0.7)
-        c.line(margen * mm, y * mm, (ancho_mm - margen) * mm, y * mm)
-        y -= 5 * k
+        c.line(m * mm, y_remit * mm, (ancho_mm - m) * mm, y_remit * mm)
 
-        # Remitente
+        # ── Remitente
+        y = y_remit - 5 * k
         c.setFont("Helvetica-Bold", 7 * k)
-        c.drawString(margen * mm, y * mm, "REMITENTE")
-        y -= 4.5 * k
+        c.drawString(m * mm, y * mm, "REMITENTE")
+        y -= 5 * k
+        c.setFont("Helvetica-Bold", 9 * k)
+        c.drawString(m * mm, y * mm, remitente["nombre"].upper()[:46])
+        y -= 4.6 * k
         c.setFont("Helvetica", 8 * k)
-        partes = [remitente["nombre"]]
-        if remitente.get("nit"):
-            partes.append(f"NIT {remitente['nit']}")
-        c.drawString(margen * mm, y * mm, " · ".join(partes)[:60])
-        y -= 4 * k
-        linea_rem = " · ".join(
-            p for p in (remitente.get("direccion"), remitente.get("ciudad"), remitente.get("telefono")) if p
-        )
-        if linea_rem:
-            c.drawString(margen * mm, y * mm, linea_rem[:60])
-            y -= 4 * k
+        # Dos renglones, no cuatro: la banda del remitente es estrecha y lo que
+        # importa es que quepa completo, no que cada dato tenga su línea.
+        for linea in [
+            " · ".join(
+                p for p in (
+                    f"NIT: {remitente['nit']}" if remitente.get("nit") else "",
+                    f"Teléfono: {remitente['telefono']}" if remitente.get("telefono") else "",
+                ) if p
+            ),
+            " · ".join(
+                p for p in (
+                    remitente.get("direccion"),
+                    remitente.get("ciudad"),
+                    remitente.get("correo"),
+                ) if p
+            ),
+        ]:
+            if not linea:
+                continue
+            c.drawString(m * mm, y * mm, linea[:66])
+            y -= 4.4 * k
 
-        # Contenido — solo las líneas que caben sin invadir el pie
-        base = margen + 2
-        tope_pie = base + 26 * k
-        if d["contenido"]:
-            y -= 1.5 * k
-            c.setFont("Helvetica-Bold", 7 * k)
-            c.drawString(margen * mm, y * mm, "CONTENIDO")
-            y -= 4 * k
-            c.setFont("Helvetica", 7.5 * k)
-            restantes = list(d["contenido"])
-            while restantes and y - 3.6 * k > tope_pie:
-                linea = restantes.pop(0)
-                if restantes and y - 7.2 * k <= tope_pie:
-                    c.drawString(margen * mm, y * mm, f"• …y {len(restantes) + 1} ítem(s) más")
-                    y -= 3.6 * k
-                    restantes = []
-                    break
-                c.drawString(margen * mm, y * mm, f"• {linea}")
-                y -= 3.6 * k
+        c.setLineWidth(0.7)
+        c.line(m * mm, y_pie * mm, (ancho_mm - m) * mm, y_pie * mm)
 
-        # Piezas / peso / valor — anclado justo encima del pie
-        c.setFont("Helvetica-Bold", 8.5 * k)
-        resumen = [f"Piezas: {d['piezas']}"]
+        # ── Pie: piezas, transportadora y código de barras
+        resumen = f"Piezas: {d['piezas']}"
         if d["peso_kg"]:
-            resumen.append(f"Peso: {d['peso_kg']} kg")
-        if d["valor_declarado"] > 0:
-            etiqueta = "A COBRAR" if d["contra_entrega"] else "Valor declarado"
-            resumen.append(f"{etiqueta}: {_cop(d['valor_declarado'])}")
-        c.drawString(margen * mm, (tope_pie + 1.5 * k) * mm, "   ".join(resumen)[:64])
+            resumen += f"   Peso: {d['peso_kg']} kg"
+        pie = d["transportadora"] + (f" · Guía {d['guia']}" if d["guia"] else "")
+        # Los dos textos comparten renglón: si no caben (rollos chicos, guías
+        # largas) se achica la letra y, en último caso, se deja solo la guía —
+        # antes se montaban uno encima del otro y no se leía ninguno.
+        size_pie = 8.5 * k
+        while size_pie > 6 * k and (
+            c.stringWidth(resumen, "Helvetica-Bold", size_pie)
+            + c.stringWidth(pie, "Helvetica-Bold", size_pie)
+            + 3 * mm
+        ) > util * mm:
+            size_pie -= 0.4
+        if (
+            c.stringWidth(resumen, "Helvetica-Bold", size_pie)
+            + c.stringWidth(pie, "Helvetica-Bold", size_pie)
+            + 3 * mm
+        ) > util * mm and d["guia"]:
+            pie = f"Guía {d['guia']}"
+        c.setFont("Helvetica-Bold", size_pie)
+        c.drawString(m * mm, (y_pie - 5 * k) * mm, resumen)
+        c.drawRightString((ancho_mm - m) * mm, (y_pie - 5 * k) * mm, pie[:40])
 
-        # Pie: transportadora, guía y código de barras
         codigo = d["guia"] or d["pedido_id"]
         if codigo:
             try:
@@ -552,16 +614,11 @@ def generar_pdf(rotulos: list[dict[str, Any]], *, tamano: str = TAMANO_DEFAULT) 
                     codigo, barHeight=13 * k * mm, barWidth=0.38 * k * mm, humanReadable=False
                 )
                 ancho_barra = barra.width / mm
-                barra.drawOn(
-                    c, max(margen, (ancho_mm - ancho_barra) / 2) * mm, (base + 5 * k) * mm
-                )
+                barra.drawOn(c, max(m, (ancho_mm - ancho_barra) / 2) * mm, (m + 5.5 * k) * mm)
             except Exception:
                 pass
             c.setFont("Helvetica-Bold", 8 * k)
-            c.drawCentredString((ancho_mm / 2) * mm, (base + 1.5 * k) * mm, codigo[:30])
-        c.setFont("Helvetica-Bold", 8 * k)
-        pie = d["transportadora"] + (f" · Guía {d['guia']}" if d["guia"] else "")
-        c.drawString(margen * mm, (base + 20 * k) * mm, pie[:52])
+            c.drawCentredString((ancho_mm / 2) * mm, (m + 1.5 * k) * mm, codigo[:30])
 
         c.showPage()
 

@@ -98,6 +98,36 @@ export async function fetchAuthBlobUrl(path: string): Promise<string | null> {
   }
 }
 
+/** Igual que `fetchAuthBlobUrl` pero enviando un cuerpo JSON: para endpoints
+ * que devuelven un archivo calculado a partir de lo que se manda (p. ej. la
+ * vista previa de un rótulo). Devuelve el mensaje de error del backend cuando
+ * la respuesta no es un archivo. */
+export async function postAuthBlobUrl(
+  path: string,
+  body: unknown,
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const token = panelBearerToken(path);
+    const url = resolvePanelApiUrl(path, "POST");
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...ticketsSessionHeaders(),
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      return { error: (j as { error?: string }).error || `HTTP ${res.status}` };
+    }
+    return { url: URL.createObjectURL(await res.blob()) };
+  } catch (e) {
+    return { error: (e as Error).message || "No se pudo generar la vista previa" };
+  }
+}
+
 async function request<T>(
   path: string,
   opts: RequestInit = {},

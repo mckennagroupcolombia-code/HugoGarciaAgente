@@ -810,14 +810,23 @@ impresora es una **Vretti térmica, rollo de 10x15 cm** (también hay 10x10 y 5x
 
 POST /api/guias/rotulos → registra los rótulos y devuelve la URL del PDF
 GET  /api/guias/rotulos.pdf?ids=1,2&tamano=10x15 → PDF, una página por paquete
+POST /api/guias/previsualizar → PDF de prueba (no registra nada) para la vista previa
 GET  /api/guias/conteo?fecha=YYYY-MM-DD → rótulos impresos ese día
 ```
 
-El PDF lo arma ReportLab (`generar_pdf`): encabezado con isotipo, bloque grande de
-destinatario (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor y
-código de barras Code128 con la guía o la referencia del pedido. Todo en negro sobre blanco —
-la térmica es monocromo — y el `ImageReader` del logo se crea **una sola vez** por PDF (si se
-crea dentro del bucle, un lote de 20 rótulos pesa ~16 MB).
+El PDF lo arma ReportLab (`generar_pdf`) en **bandas de altura fija** (encabezado ·
+destinatario · remitente · pie), no en flujo continuo: dos paquetes con datos de distinto largo
+salen iguales y la dirección queda siempre a la misma altura. Encabezado con el **logotipo**
+(`LOGOTIPO TURQUESA.png` pasado a negro con su canal alfa, cacheado en `_logo_negro()` — si se
+convierte por rótulo, un lote de 20 pesa ~16 MB) y el lema **«Proveemos a tus ideas»**;
+destinatario; remitente con la identidad fiscal de `app/services/empresa.py`; pie con piezas,
+peso, transportadora y código de barras Code128 (guía o referencia del pedido).
+
+**No lleva contenido ni valor declarado** (`normalizar_datos` los descarta a propósito): el
+rótulo va pegado por fuera de la caja y detallar qué hay dentro y cuánto vale es justo lo que no
+conviene en un paquete que viaja. `POST /api/guias/previsualizar` devuelve el mismo PDF **sin
+registrar el rótulo** — es lo que muestra la vista previa del panel, así que no puede divergir de
+lo que se imprime.
 
 **MeLi queda fuera a propósito:** esas ventas viajan con la etiqueta que genera Mercado Libre
 (Colecta/Flex); un rótulo propio no la reemplaza.

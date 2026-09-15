@@ -9915,6 +9915,52 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/guias/previsualizar", methods=["POST"])
+    @app.route("/app/api/guias/previsualizar", methods=["POST"])
+    def api_guias_previsualizar():
+        """PDF de prueba SIN registrar el rótulo — para ver antes de imprimir.
+
+        Comparte el mismo generador que la impresión real, así que lo que se ve
+        aquí es exactamente lo que sale de la térmica; si fuera una maqueta
+        aparte, cualquier cambio en el rótulo la dejaría mintiendo.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import Response
+
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.tools.guias_envio import (
+                TAMANO_DEFAULT,
+                datos_de_pedido,
+                generar_pdf,
+            )
+
+            tamano = str(data.get("tamano") or TAMANO_DEFAULT)
+            pendientes: list[dict] = []
+            for ref in (data.get("pedidos") or [])[:20]:
+                canal = str((ref or {}).get("canal") or "")
+                pedido_id = str((ref or {}).get("id") or (ref or {}).get("pedido_id") or "")
+                datos = datos_de_pedido(canal, pedido_id)
+                if not datos:
+                    return jsonify({"error": f"No encontré el pedido {pedido_id}"}), 404
+                extra = (ref or {}).get("ajustes") or {}
+                pendientes.append({**datos, **{k: v for k, v in extra.items() if v not in (None, "")}})
+            if data.get("manual"):
+                pendientes.append({**(data.get("manual") or {}), "canal": "manual"})
+            if not pendientes:
+                return jsonify({"error": "Elige al menos un pedido"}), 400
+
+            return Response(
+                generar_pdf(pendientes, tamano=tamano),
+                mimetype="application/pdf",
+                headers={"Content-Disposition": 'inline; filename="vista_previa_rotulo.pdf"'},
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/guias/historial", methods=["GET"])
     @app.route("/app/api/guias/historial", methods=["GET"])
     def api_guias_historial():
