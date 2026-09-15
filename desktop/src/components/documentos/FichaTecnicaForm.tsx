@@ -11,6 +11,7 @@ export interface FichaTecnicaFormState {
   referencia: string;
   sinonimos: string;
   cas: string;
+  pureza: string;
   paisOrigen: string;
   fabricante: string;
   fechaRevision: string;
@@ -245,6 +246,9 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
     referencia: state.referencia,
     sinonimos: state.sinonimos,
     cas: state.cas,
+    // Clave `concentracion`: la que el PDF imprime y la que la etiqueta
+    // lee para su casilla PUREZA. El rotulo visible es "Pureza".
+    concentracion: state.pureza,
     pais_origen: state.paisOrigen,
     fabricante: state.fabricante,
     fecha_revision: state.fechaRevision,
@@ -288,6 +292,7 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
   const fisicasKeys = new Set([
     "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "aroma",
     "formula quimica", "solubilidad", "humedad", "inercia quimica",
+    "pureza", "concentracion",
   ]);
   const extraProps = props
     .filter(([k]) => !fisicasKeys.has(k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
@@ -315,6 +320,12 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     referencia: String(datos.referencia || "") || valorEnFilas(identidad, "referencia siigo", "referencia"),
     sinonimos: flat("sinonimos", "synonyms") || valorEnFilas(identidad, "sinonimos", "sinonimo", "synonyms"),
     cas: String(datos.cas || "") || valorEnFilas(identidad, "cas", "cas #", "cas number"),
+    // Muchas fichas traen la pureza como fila suelta de `propiedades`
+    // ("Pureza" o "Concentracion"): se recoge para que no se pierda.
+    pureza:
+      flat("concentracion", "pureza", "purity")
+      || valorEnFilas(identidad, "concentracion", "pureza")
+      || valorEnFilas(props, "pureza", "concentracion"),
     paisOrigen:
       flat("pais_origen", "country_of_origin", "origin") ||
       valorEnFilas(identidad, "pais de origen", "pais origen", "origen", "country of origin"),
@@ -719,6 +730,13 @@ export default function FichaTecnicaForm({
             value={state.presentacion}
             onChange={(v) => patch({ presentacion: v })}
             placeholder="Ej. 75.000 PCS · 10 kg"
+          />
+          <Field
+            label="Pureza"
+            value={state.pureza}
+            onChange={(v) => patch({ pureza: v })}
+            placeholder="Ej. ≥ 99 %, 98.5 ~ 101.0 %, 20 % en solución"
+            mono
           />
         </div>
 

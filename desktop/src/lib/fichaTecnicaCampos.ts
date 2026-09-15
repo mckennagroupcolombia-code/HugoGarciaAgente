@@ -192,7 +192,15 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     texto(sds.recomendaciones),
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
   );
-  const concentracionRaw = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
+  // Pureza. Muchas fichas la guardaron como fila suelta de `propiedades`
+  // ("Pureza" / "Concentracion") en vez del campo propio: se lee tambien de
+  // ahi para que la casilla PUREZA de la etiqueta no salga vacia.
+  const concentracionRaw = pick(
+    datos.concentracion,
+    ident.concentracion,
+    coaIdent.concentracion,
+    valorEnFilas(datos.propiedades, "pureza", "concentracion"),
+  );
   const pesoRaw = pick(datos.presentacion, ident.presentacion, lote.tamano_lote);
   // El GHS solo puede venir de un campo dedicado a clasificación de peligro
   // (nunca de "recomendaciones" de uso). Sin campo explícito, el valor

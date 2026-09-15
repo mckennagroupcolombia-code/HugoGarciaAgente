@@ -308,7 +308,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
     <tr>
       <td>{% if ft.cas %}<b class="mono-lbl">N° CAS</b> <span class="mono-val">{{ ft.cas }}</span>{% endif %}</td>
       <td>{% if ft.grado %}<b class="mono-lbl">Grado</b> <span class="mono-val">{{ ft.grado }}</span>{% endif %}</td>
-      <td>{% if ft.concentracion %}<b class="mono-lbl">Concentración</b> <span class="mono-val">{{ ft.concentracion }}</span>{% endif %}</td>
+      <td>{% if ft.concentracion %}<b class="mono-lbl">Pureza</b> <span class="mono-val">{{ ft.concentracion }}</span>{% endif %}</td>
     </tr>
     <tr>
       <td>{% if ft.pais_origen %}<b class="mono-lbl">Origen</b> <span class="mono-val">{{ ft.pais_origen }}</span>{% endif %}</td>
@@ -459,7 +459,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if coa.cas %}<div class="kv-row"><div class="kv-key">N.º CAS</div><div class="kv-val mono">{{ coa.cas }}</div></div>{% endif %}
       {% if coa.formula %}<div class="kv-row"><div class="kv-key">Fórmula molecular</div><div class="kv-val mono">{{ coa.formula | formula_sub | safe }}</div></div>{% endif %}
       {% if coa.einces %}<div class="kv-row"><div class="kv-key">EINECS</div><div class="kv-val mono">{{ coa.einces }}</div></div>{% endif %}
-      {% if coa.concentracion %}<div class="kv-row"><div class="kv-key">Concentración</div><div class="kv-val mono">{{ coa.concentracion }}</div></div>{% endif %}
+      {% if coa.concentracion %}<div class="kv-row"><div class="kv-key">Pureza</div><div class="kv-val mono">{{ coa.concentracion }}</div></div>{% endif %}
       {% if coa.grado %}<div class="kv-row"><div class="kv-key">Grado</div><div class="kv-val">{{ coa.grado }}</div></div>{% endif %}
       {% if coa.presentacion %}<div class="kv-row"><div class="kv-key">Presentación</div><div class="kv-val">{{ coa.presentacion }}</div></div>{% endif %}
       {% if coa.incluye %}<div class="kv-row"><div class="kv-key">Incluye</div><div class="kv-val">{{ coa.incluye }}</div></div>{% endif %}

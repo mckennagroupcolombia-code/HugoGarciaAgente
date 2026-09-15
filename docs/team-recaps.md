@@ -3006,3 +3006,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Los formatos 30 mL, 69×51 y circular no se tocan: tienen su propio lienzo y `altoMarcoFicha` queda `undefined` para ellos, igual que cuando no hay formato elegido (ahí sigue el `FILAS_CUERPO` de siempre).
   - **Sin verificar visualmente:** `bot.mckennagroup.co/app` pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`, pero el encuadre lo tiene que revisar el usuario.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-09-15 - Casilla de Pureza en la ficha técnica, asociada a la etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Fichas técnicas + Etiquetas)
+- **Qué se implementó:**
+  - Reporte: la ficha técnica no tenía casilla de Pureza para asociarla a la etiqueta. Confirmado: el dato existía de punta a punta (la etiqueta lo lee como `concentracionValor` → casilla PUREZA; el PDF lo imprimía) **menos la casilla para diligenciarlo** — `FichaTecnicaForm.tsx` no tenía ningún campo de pureza ni concentración.
+  - Barrido de las 192 fichas: 32 tenían el dato donde la etiqueta lo lee, **36 lo tenían en una fila suelta de `propiedades`** titulada "Pureza"/"Concentración" que la extracción no miraba, y 124 no lo tenían.
+  - `FichaTecnicaForm.tsx`: nuevo campo **Pureza** en el estado, junto a "Presentación / cantidad". Se guarda en la clave `concentracion` (la que ya usan el PDF y la etiqueta, así que las 32 fichas existentes se siguen leyendo). Al abrir una ficha el valor se recoge de `concentracion`, de `identidad` o de la fila de `propiedades`, por ese orden. "pureza" y "concentracion" se añaden a `fisicasKeys` para que la fila no se duplique en "Propiedades funcionales". Sin botón de IA: la pureza sale del certificado de análisis, no se sugiere.
+  - `fichaTecnicaCampos.ts`: `concentracionRaw` añade como último respaldo `valorEnFilas(datos.propiedades, "pureza", "concentracion")`. Con eso las 36 fichas viejas llegan a la etiqueta **sin migrar ningún dato**. Verificadas las 30 con valor numérico: todas cargan (ÁCIDO BENZOICO 99%, HIDROQUINONA 98.5 ~ 101.05 %, SULFATO DE CONDROITINA ≥ 90%…).
+  - `documento_completo_pdf.html`: el rótulo pasa de "Concentración" a **"Pureza"** en la FT (línea 311) y en el COA (línea 462), para que se llame igual en los tres sitios. La clave interna no cambia. No hace falta reiniciar: el `Environment` de Jinja se crea en cada generación (`ficha_tecnica.py:1304`, `:1621`).
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`; el encuadre de la casilla nueva lo revisa el usuario.
+  - **Detectado de paso:** dos fichas distintas con el título "SORBATO DE POTASIO" — otro duplicado como el de glicerina.
+- **Archivos Modificados:** `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/fichaTecnicaCampos.ts`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md`
