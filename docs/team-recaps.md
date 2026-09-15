@@ -3111,3 +3111,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Creada la plantilla **«Plantilla de Aceites Esenciales 38×102 mm»** (id `276fa3d3d001`) en `app/data/etiquetas_fichas.json`, clonando el **diseño** de la plantilla de 5 mL de esa misma categoría — logo, acento, contacto, web y documentos técnicos — y dejando en blanco todos los datos de producto, incluidos los tres beneficios. Respaldo en `/tmp/etiquetas_fichas.bak_*.json`.
   - La categoría `aceites-esenciales` queda con dos plantillas: 5 mL (66 × 22 mm) y 38×102 mm.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVerticalTypes.ts`, `app/data/etiquetas_tipos.json`, `app/data/etiquetas_fichas.json` (los dos últimos fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Retirada la plantilla de 5 mL de Aceites & Grasas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Etiquetas)
+- **Qué se implementó:**
+  - Retirada «Plantilla de Aceites & Grasas tamaño 5 mL» (id `fe5837a6a367`, formato 5 mL = 66 × 22 mm) de `app/data/etiquetas_fichas.json`. 28 → 27 fichas.
+  - Comprobado antes de tocarla: ninguna etiqueta guardada se creó a partir de ella (`plantilla_origen_id` / `plantillaOrigenId`) y no había otras referencias en `app/data/`.
+  - **No se destruyó**: la ficha completa quedó en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/fe5837a6a367.json`, más una copia íntegra del JSON anterior en esa misma carpeta. Es el mismo criterio de las fichas retiradas del 2026-09-11: mover fuera, no borrar.
+  - `aceites` (Aceites & Grasas) queda con 250 / 500 g y 30 mL. El formato 5 mL sigue existiendo y su plantilla de `aceites-esenciales` no se tocó.
+- **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
