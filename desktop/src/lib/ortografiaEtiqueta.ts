@@ -52,6 +52,7 @@ const CAMPOS_SIN_CORRECTOR = new Set<string>([
   "technicalDocuments",
   "cucharaCantidad",
   "cucharaUnidad",
+  "cucharaUtensilio",
   "esloganLogo",
 ]);
 

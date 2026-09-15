@@ -3019,3 +3019,17 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`; el encuadre de la casilla nueva lo revisa el usuario.
   - **Detectado de paso:** dos fichas distintas con el título "SORBATO DE POTASIO" — otro duplicado como el de glicerina.
 - **Archivos Modificados:** `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/fichaTecnicaCampos.ts`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla de la cuchara deja escoger cuchara o copa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → ficha 76×66)
+- **Qué se implementó:**
+  - Petición: donde dice "Incluye cuchara medidora de:" debe poder escogerse entre cuchara y copa, con desplegable.
+  - `productLabelTypes.ts`: nuevo campo `cucharaUtensilio` en `ProductLabelData` y `TITULOS_CUCHARA = ["Incluye cuchara medidora de:", "Incluye copa medidora de:"]`, con `tituloCuchara(data)` que valida el valor guardado contra la lista. Mismo patrón que `TITULOS_CAS` (CAS/EINECS) y `TITULOS_COMPOSICION`.
+  - `CucharaMedidora.tsx`: el rótulo deja de ser texto fijo y pasa a `EditableLabel` con `opciones` / `valorOpcion` / `onElegirOpcion` — el menú del título que ese componente ya soportaba, así que el desplegable se abre igual que el de CAS/EINECS, sin interfaz nueva.
+  - El campo se llama `cucharaUtensilio` y no `cucharaTitulo` a propósito: `cucharaTitulo` ya estaba ocupado como `styleKey` de los estilos de texto de esa misma casilla.
+  - `cucharaUtensilio` entra en `CAMPOS_PLANTILLA` (es del diseño de la familia, como `cucharaCantidad` y `cucharaUnidad`, así que no se vacía al cambiar de SKU) y en `CAMPOS_SIN_CORRECTOR` de `ortografiaEtiqueta.ts` (es un título de menú, no texto escrito a mano).
+  - Las fichas guardadas sin el campo ven "Incluye cuchara medidora de:", el primero de la lista — nada cambia hasta que se escoja copa.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+  - **Nota:** el motor SVG (`app/tools/etiquetas_svg_engine.py:169`) tiene su propio texto por defecto "Incluye cuchara medidora." y ya admite `texto_cuchara` personalizado; es otra ruta de generación y no se tocó.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/lib/ortografiaEtiqueta.ts`, `docs/team-recaps.md`

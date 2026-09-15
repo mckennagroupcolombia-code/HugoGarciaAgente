@@ -41,6 +41,8 @@ export interface ProductLabelData {
   /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
   cucharaCantidad?: string;
   cucharaUnidad?: string;
+  /** Rótulo de la casilla: cuchara o copa (ver `TITULOS_CUCHARA`). */
+  cucharaUtensilio?: string;
   /** Formato 30 mL: grado del subtítulo "INSUMO GRADO …" (sin dato = COSMÉTICO). */
   gradoInsumo?: string;
   /** Formato 30 mL: texto de clasificación SGA (vacío = frase por defecto si
@@ -198,6 +200,7 @@ export const CAMPOS_PLANTILLA = [
   "casTitulo",
   "cucharaCantidad",
   "cucharaUnidad",
+  "cucharaUtensilio",
   "gradoInsumo",
   "alergenos",
   "aplicacionesTitulo",
@@ -217,6 +220,18 @@ export function tituloComposicion(data: ProductLabelData): string {
   return (TITULOS_COMPOSICION as readonly string[]).includes(t) ? t : TITULOS_COMPOSICION[0];
 }
 export const TITULOS_CAS = ["CAS", "EINECS"] as const;
+/** Rótulos elegibles de la casilla del utensilio de medida (menú del
+ *  título), igual que `TITULOS_CAS` y `TITULOS_COMPOSICION`. Se guarda
+ *  en `cucharaUtensilio`; las fichas que no lo traen ven el primero. */
+export const TITULOS_CUCHARA = [
+  "Incluye cuchara medidora de:",
+  "Incluye copa medidora de:",
+] as const;
+
+export function tituloCuchara(data: ProductLabelData): string {
+  const t = data.cucharaUtensilio || "";
+  return (TITULOS_CUCHARA as readonly string[]).includes(t) ? t : TITULOS_CUCHARA[0];
+}
 export const UNIDADES_CUCHARA = ["g", "mL"] as const;
 
 /** Ficha vacía: sin información de producto. Los campos fijos traen el

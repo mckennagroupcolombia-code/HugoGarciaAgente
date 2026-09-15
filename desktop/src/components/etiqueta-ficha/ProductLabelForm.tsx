@@ -1101,8 +1101,10 @@ function ProductLabelFormInner({
               <CucharaMedidora
                 cantidad={data.cucharaCantidad ?? ""}
                 unidad={data.cucharaUnidad || UNIDADES_CUCHARA[0]}
+                titulo={data.cucharaUtensilio}
                 onCantidadChange={(v) => onChange({ cucharaCantidad: v })}
                 onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
+                onTituloChange={(v) => onChange({ cucharaUtensilio: v })}
                 editMode={editMode}
               />
             </div>
