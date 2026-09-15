@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
-import { TITULOS_COMPOSICION, type ProductLabelData } from "./productLabelTypes";
+import { TITULOS_COMPOSICION, tituloComposicion, type ProductLabelData } from "./productLabelTypes";
 
 export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
 
@@ -68,7 +68,7 @@ export default function ProductAttributeGrid({
       ["Origen", "origin"],
       ["Apariencia", "appearance"],
       ["Aroma", "odor"],
-      [data.compositionTitulo || TITULOS_COMPOSICION[0], "composition"],
+      [tituloComposicion(data), "composition"],
       ["Grado", "grade"],
       ["Conservación", "storage"],
     ] as [string, AttributeKey][]

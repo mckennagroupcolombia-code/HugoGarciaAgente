@@ -2909,3 +2909,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Las claves internas (`olor`, `odor`) se conservan para no romper plantillas ni el enlace con las fichas técnicas.
   - **Fuera de alcance:** las fichas técnicas, COA y SDS (`ficha_tecnica.py`, `documento_traducir_es.py`, `FichaTecnicaForm.tsx`, `plantillaFichaTecnicaMp.ts`) siguen diciendo "Olor", que es el término normativo de propiedades físico-químicas.
 - **Archivos Modificados:** `desktop/src/lib/etiquetaFormulario.ts`, `desktop/src/lib/plantillasVisuales.ts`, `desktop/src/lib/ortografiaEtiqueta.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `app/data/plantillas_visuales.json`, `docs/team-recaps.md`
+
+### 2026-09-15 - Composición: el desplegable ofrece "Fórmula química"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas)
+- **Qué se implementó:**
+  - El desplegable del título de la casilla de composición ya existía, pero las opciones no coincidían entre formatos: la ficha 76×66 daba `Composición · Fórmula molecular` y el formato 30 mL `Fórmula química · Composición`, aunque los dos guardan el mismo dato (`compositionTitulo`). Elegir "Fórmula molecular" en la ficha se veía como "Fórmula química" en 30 mL.
+  - Decisión del usuario: **reemplazar** "Fórmula molecular" por "Fórmula química". `TITULOS_COMPOSICION` queda `["Composición", "Fórmula química"]` — las mismas dos opciones que 30 mL, cada formato con su orden (y por tanto su valor por defecto).
+  - `productLabelTypes.ts`: nueva `tituloComposicion(data)`, espejo de `tituloFormula30ml`, que valida el dato guardado contra la lista. `ProductAttributeGrid.tsx` la usa en vez de `data.compositionTitulo || TITULOS_COMPOSICION[0]`, así una ficha antigua con "Fórmula molecular" cae a "Composición" en vez de mostrar un título que ya no está en el menú.
+  - No hizo falta migrar datos: las 4 fichas guardadas en `app/data/etiquetas_fichas.json` con `compositionTitulo` traen "Composición", ninguna "Fórmula molecular".
+  - **Nota:** los 133 SVG del catálogo antiguo en `app/data/etiquetas_ai_cache/` sí dicen "Fórmula molecular", pero son renders del .ai original, no plantillas editables, y el desplegable no los toca.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`

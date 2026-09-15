@@ -205,7 +205,16 @@ export const CAMPOS_PLANTILLA = [
   "controlCalidad",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
-export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
+/** Títulos elegibles de la casilla de composición (menú del título). Se
+ *  guarda en `compositionTitulo`, el mismo dato que usa el formato de
+ *  30 mL; si una ficha antigua trae un título que ya no está en la lista
+ *  ("Fórmula molecular"), se ve el primero. */
+export const TITULOS_COMPOSICION = ["Composición", "Fórmula química"] as const;
+
+export function tituloComposicion(data: ProductLabelData): string {
+  const t = data.compositionTitulo || "";
+  return (TITULOS_COMPOSICION as readonly string[]).includes(t) ? t : TITULOS_COMPOSICION[0];
+}
 export const TITULOS_CAS = ["CAS", "EINECS"] as const;
 export const UNIDADES_CUCHARA = ["g", "mL"] as const;
 

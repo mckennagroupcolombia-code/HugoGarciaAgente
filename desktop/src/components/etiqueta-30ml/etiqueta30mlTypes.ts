@@ -133,9 +133,9 @@ export const CELDAS_30ML: readonly Celda30ml[] = [
 ];
 
 /** Títulos elegibles de la primera celda (menú del título). Se guarda en
- *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66; si trae un
- *  título de esa ficha que aquí no aplica ("Fórmula molecular"), se ve el
- *  primero de esta lista. */
+ *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66 — las mismas
+ *  dos opciones, en el orden propio de este formato. Si trae un título
+ *  antiguo que ya no está en la lista, se ve el primero. */
 export const TITULOS_FORMULA_30ML = ["Fórmula química", "Composición"] as const;
 
 export function tituloFormula30ml(data: ProductLabelData): string {
