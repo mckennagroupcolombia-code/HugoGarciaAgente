@@ -23518,6 +23518,1689 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018359733730": {
+      "shipping_id": "47968303570",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T11:37:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "PLVSLCpH",
+            "nombre": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
+            "cantidad": 2.0,
+            "precio_unitario": 9450.0
+          }
+        ],
+        "total": 18900.0,
+        "nombre_cliente": "Elder Antonio Cardona",
+        "identificacion": "8465188",
+        "tipo_documento": "CC",
+        "direccion_envio": "3B 93-120 120, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418199026": {
+      "shipping_id": "47995542703",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T11:45:16",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANNATTOS500g",
+            "nombre": "Maní Tostado Natural 500 G",
+            "cantidad": 4.0,
+            "precio_unitario": 7650.0
+          }
+        ],
+        "total": 30600.0,
+        "nombre_cliente": "Mario Andres Garcia Martinez",
+        "identificacion": "79913670",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 8 #127C-83, Bella Suiza, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018399281704": {
+      "shipping_id": "47986554465",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T12:03:50",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDSAL20P30mL",
+            "nombre": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+            "cantidad": 2.0,
+            "precio_unitario": 25684.0
+          }
+        ],
+        "total": 51368.0,
+        "nombre_cliente": "Natalia Andrea Mazo Lozano",
+        "identificacion": "1112148578",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 16 #28-97, San antonio, Tuluá, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018399281706": {
+      "shipping_id": "47986554465",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T12:03:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITC30P30mL",
+            "nombre": "Vitamina C Solución Al 30% 30ml Mixta Noche",
+            "cantidad": 1.0,
+            "precio_unitario": 15782.0
+          }
+        ],
+        "total": 15782.0,
+        "nombre_cliente": "Natalia Andrea Mazo Lozano",
+        "identificacion": "1112148578",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 16 #28-97, San antonio, Tuluá, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414065184": {
+      "shipping_id": "47993676717",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T13:16:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDSAL20P30mL",
+            "nombre": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 25684.0
+          }
+        ],
+        "total": 25684.0,
+        "nombre_cliente": "Yadir Rubiel Alarcon Tibocha",
+        "identificacion": "74083389",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 46 #10B bis -36, juan jose rondon, Sogamoso, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414011166": {
+      "shipping_id": "47993955080",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:22:56",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAPVACGEL00TRA1000Un",
+            "nombre": "Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente",
+            "cantidad": 3.0,
+            "precio_unitario": 30600.0
+          }
+        ],
+        "total": 91800.0,
+        "nombre_cliente": "Natalia Gomez Ruiz",
+        "identificacion": "1053869171",
+        "tipo_documento": "CC",
+        "direccion_envio": "Portal de los Cámbulos Portal de los Cambulos PH Cra. 43 66-74, Comuna Universitaria, Manizales, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418098750": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:29:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLIVEG250mL",
+            "nombre": "Glicerina Vegetal Usp 250 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 8767.0
+          }
+        ],
+        "total": 8767.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418093814": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:30:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418102314": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:30:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITE30mL",
+            "nombre": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
+            "cantidad": 1.0,
+            "precio_unitario": 18203.0
+          }
+        ],
+        "total": 18203.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418102312": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:30:10",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANCACREF500g",
+            "nombre": "Manteca De Cacao 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 14365.0
+          }
+        ],
+        "total": 14365.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418102318": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:30:12",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BTMS250g",
+            "nombre": "Btms 50 Emulsionante 250 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 38250.0
+          }
+        ],
+        "total": 38250.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418102316": {
+      "shipping_id": "47995800170",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:30:17",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACISAL50g",
+            "nombre": "Ácido Salicílico 50gr Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 4938.0
+          }
+        ],
+        "total": 4938.0,
+        "nombre_cliente": "Daniel Perez Martinez",
+        "identificacion": "1020712662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018413113858": {
+      "shipping_id": "47993544466",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:37:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 20792.0
+          }
+        ],
+        "total": 20792.0,
+        "nombre_cliente": "Sharon Michelle Diaz Joven",
+        "identificacion": "1006507669",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 33D Bis Samaria I manzana 23 casa 4 SN, Samaria I, Pereira, Risaralda",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415774418": {
+      "shipping_id": "47994762074",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:44:26",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANNATTOS500g",
+            "nombre": "Maní Tostado Natural 500 G",
+            "cantidad": 10.0,
+            "precio_unitario": 7650.0
+          }
+        ],
+        "total": 76500.0,
+        "nombre_cliente": "Diego Alexander Montoya Bedoya",
+        "identificacion": "1040039592",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 47 43-29, Santa Ana, Rionegro, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018420996708": {
+      "shipping_id": "47996896823",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T14:45:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 20792.0
+          }
+        ],
+        "total": 20792.0,
+        "nombre_cliente": "Karen Juliana Saavedra Montoya",
+        "identificacion": "1001021615",
+        "tipo_documento": "CC",
+        "direccion_envio": "Simón Bolívar MZ 37 casa 31 SN, Ciudadela Simón Bolívar, Armenia, Quindio",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415595798": {
+      "shipping_id": "47994687264",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:24:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC250mL",
+            "nombre": "Aceite Ricino Castor Puro 250ml",
+            "cantidad": 2.0,
+            "precio_unitario": 11422.0
+          }
+        ],
+        "total": 22844.0,
+        "nombre_cliente": "Laura Michlle Mesa Otalvaro",
+        "identificacion": "1039460881",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 B #20-66, el tambo, La Ceja, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018409840496": {
+      "shipping_id": "47991918910",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:26:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "DAVID PEREZ",
+        "identificacion": "1000118513",
+        "tipo_documento": "CC",
+        "direccion_envio": "CALLE 49A SUR 88C, Bosa, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415251544": {
+      "shipping_id": "47994527366",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:48:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LACCAL250g",
+            "nombre": "Lactato De Calcio Polvo 250gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 19956.0
+          }
+        ],
+        "total": 19956.0,
+        "nombre_cliente": "Cubillos Rodriguez Angela Gabriela",
+        "identificacion": "1003565835",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415258164": {
+      "shipping_id": "47994527366",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:48:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SORPOT250g",
+            "nombre": "Sorbato De Potasio 250 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 10520.0
+          }
+        ],
+        "total": 10520.0,
+        "nombre_cliente": "Cubillos Rodriguez Angela Gabriela",
+        "identificacion": "1003565835",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415258162": {
+      "shipping_id": "47994527366",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:48:47",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-EXTTEMATVER100g",
+            "nombre": "Té Matcha  Polvo 100 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 22865.0
+          }
+        ],
+        "total": 22865.0,
+        "nombre_cliente": "Cubillos Rodriguez Angela Gabriela",
+        "identificacion": "1003565835",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415243718": {
+      "shipping_id": "47994527366",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:48:49",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "PLVSLCpH",
+            "nombre": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
+            "cantidad": 1.0,
+            "precio_unitario": 9450.0
+          }
+        ],
+        "total": 9450.0,
+        "nombre_cliente": "Cubillos Rodriguez Angela Gabriela",
+        "identificacion": "1003565835",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414513074": {
+      "shipping_id": "47994191128",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:50:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF500g",
+            "nombre": "Cafeina Anhidra 500 Gr  Cafeína",
+            "cantidad": 1.0,
+            "precio_unitario": 153159.0
+          }
+        ],
+        "total": 153159.0,
+        "nombre_cliente": "Cardona Osorio Esteban",
+        "identificacion": "1060655869",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 6 #5-50, villamaria vieja, Villamaria, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018422260890": {
+      "shipping_id": "47997791918",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:58:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "AS-84",
+            "nombre": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+            "cantidad": 1.0,
+            "precio_unitario": 32642.0
+          }
+        ],
+        "total": 32642.0,
+        "nombre_cliente": "Laura Elizabeth Gutierrez Ortiz",
+        "identificacion": "31486436",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 52 #22-39, Salitre, Teusaquillo, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440267808": {
+      "shipping_id": "48005794272",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T15:59:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEARGAN50mL",
+            "nombre": "Aceite De Argán 50 Ml 100% Puro",
+            "cantidad": 1.0,
+            "precio_unitario": 24825.0
+          }
+        ],
+        "total": 24825.0,
+        "nombre_cliente": "Ana Cecilia Giraldo Wingler",
+        "identificacion": "1125789581",
+        "tipo_documento": "CC",
+        "direccion_envio": "Cra. 2a 72-50, Los Rosales, Chapinero, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414628236": {
+      "shipping_id": "47994236840",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:02:24",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AZUMMET30mL",
+            "nombre": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+            "cantidad": 10.0,
+            "precio_unitario": 6914.0
+          }
+        ],
+        "total": 69140.0,
+        "nombre_cliente": "LPT PET COMPANY S.A.S",
+        "identificacion": "9017843917",
+        "tipo_documento": "NIT",
+        "direccion_envio": "CL 11 A # 40 - 20 # 72A-40, Bogotá:D.C., Bogotá",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440479002": {
+      "shipping_id": "48005878254",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:22:38",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "Cielo Marlen",
+        "identificacion": "52409589",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 66 2219, Barrios Unidos, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018446516064": {
+      "shipping_id": "48008176421",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:27:50",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VASPRE100mL",
+            "nombre": "Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado",
+            "cantidad": 2.0,
+            "precio_unitario": 20610.0
+          }
+        ],
+        "total": 41220.0,
+        "nombre_cliente": "Blanca Chavarria",
+        "identificacion": "281866",
+        "tipo_documento": "CE",
+        "direccion_envio": "68d 24b, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018446228650": {
+      "shipping_id": "48008357660",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:33:05",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 24542.0
+          }
+        ],
+        "total": 24542.0,
+        "nombre_cliente": "LIZETH CAMILA BERMUDEZ QUIROGA",
+        "identificacion": "1026289414",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 73 D  35 B 19SUR, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432438538": {
+      "shipping_id": "48002015631",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:38:09",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDLAC85P30mL",
+            "nombre": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 17117.0
+          }
+        ],
+        "total": 17117.0,
+        "nombre_cliente": "Lizeth Contreras",
+        "identificacion": "7565637",
+        "tipo_documento": "CE",
+        "direccion_envio": "Carrera 29 40a53 #40a-53, La Soledad, Teusaquillo, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018417815594": {
+      "shipping_id": "47995382727",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:42:26",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 20888.0
+          }
+        ],
+        "total": 20888.0,
+        "nombre_cliente": "SRI BAHJI Sas",
+        "identificacion": "9013555501",
+        "tipo_documento": "NIT",
+        "direccion_envio": "Carrera 53 #115-20, alhambra, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018435810496": {
+      "shipping_id": "48003519587",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:49:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON500g",
+            "nombre": "Creatina Monohidrato 500g N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 55800.0
+          }
+        ],
+        "total": 55800.0,
+        "nombre_cliente": "Jhonatan Esneider Villamil Vasquez",
+        "identificacion": "1030610712",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 22 #22C-04, Samper Mendoza, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018427938324": {
+      "shipping_id": "48000374752",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T16:52:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAPVACGEL00TRA1000Un",
+            "nombre": "Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente",
+            "cantidad": 1.0,
+            "precio_unitario": 30600.0
+          }
+        ],
+        "total": 30600.0,
+        "nombre_cliente": "Oscar Ricardo Patiño Vargas",
+        "identificacion": "91110533",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 6 carrera 2 manzana H SN, Buenos Aires, Piedecuesta, Santander",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414923328": {
+      "estado": "error",
+      "error": "No se pudo obtener la orden de MeLi.",
+      "actualizado_en": "2026-09-14T17:02:22"
+    },
+    "2000018447336346": {
+      "shipping_id": "48008529591",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:12:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPG500mL",
+            "nombre": "Dipropilengicol Usp Dpg 500 Ml",
+            "cantidad": 3.0,
+            "precio_unitario": 22015.0
+          }
+        ],
+        "total": 66045.0,
+        "nombre_cliente": "Juan la de Cruz Lozano Cubides",
+        "identificacion": "6668445",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 51a #145a-34 SN, Prado Pinzón, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018419918154": {
+      "shipping_id": "47996682812",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:15:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LPRO100g",
+            "nombre": "L Prolina Aminoácido 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 36125.0
+          }
+        ],
+        "total": 36125.0,
+        "nombre_cliente": "Gomez Cortes Jose Frank",
+        "identificacion": "80069333",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018419911770": {
+      "shipping_id": "47996682812",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:15:12",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TAU250g",
+            "nombre": "Taurina Polvo Pura 250gr",
+            "cantidad": 1.0,
+            "precio_unitario": 34485.0
+          }
+        ],
+        "total": 34485.0,
+        "nombre_cliente": "Gomez Cortes Jose Frank",
+        "identificacion": "80069333",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018419916338": {
+      "shipping_id": "47996682812",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:15:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AMIBCA250g",
+            "nombre": "Bcaa Aminoácidos 250gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 40287.0
+          }
+        ],
+        "total": 40287.0,
+        "nombre_cliente": "Gomez Cortes Jose Frank",
+        "identificacion": "80069333",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018452632174": {
+      "shipping_id": "48011392748",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:23:08",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACISAL100g",
+            "nombre": "Ácido Salicílico 100gr Todo Tipo De Piel",
+            "cantidad": 2.0,
+            "precio_unitario": 9769.0
+          }
+        ],
+        "total": 19538.0,
+        "nombre_cliente": "Laura Valentina Rivera Leon",
+        "identificacion": "1000794550",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 128b #21-93, La Calleja, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018445042192": {
+      "shipping_id": "48007850656",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:39:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITE30mL",
+            "nombre": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
+            "cantidad": 1.0,
+            "precio_unitario": 18203.0
+          }
+        ],
+        "total": 18203.0,
+        "nombre_cliente": "Doris Yaneth Rodriguez Rojas",
+        "identificacion": "51787234",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 11bis #123-80, Santa Bárbara Central, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018443843588": {
+      "shipping_id": "48007038359",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:46:04",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF100g",
+            "nombre": "Cafeina Anhidra 100gr Cafeína",
+            "cantidad": 1.0,
+            "precio_unitario": 47930.0
+          }
+        ],
+        "total": 47930.0,
+        "nombre_cliente": "Juan Sebastian Pinto Betancourt",
+        "identificacion": "1110514134",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 79A #11C-05, Paseo de San Francisco, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018429580674": {
+      "shipping_id": "48001096980",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:53:46",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ARCVRT250g",
+            "nombre": "Arcilla Verde 250 Gr Todo Tipo De Piel",
+            "cantidad": 2.0,
+            "precio_unitario": 12400.0
+          }
+        ],
+        "total": 24800.0,
+        "nombre_cliente": "Claudia Julieth Restrepo Ayala",
+        "identificacion": "66865685",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018429582194": {
+      "shipping_id": "48001096980",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:53:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-NUEBRA250g",
+            "nombre": "Nuez Del Brasil Partida 250g",
+            "cantidad": 1.0,
+            "precio_unitario": 21930.0
+          }
+        ],
+        "total": 21930.0,
+        "nombre_cliente": "Claudia Julieth Restrepo Ayala",
+        "identificacion": "66865685",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018429571378": {
+      "shipping_id": "48001096980",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T17:54:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 7915.0
+          }
+        ],
+        "total": 7915.0,
+        "nombre_cliente": "Claudia Julieth Restrepo Ayala",
+        "identificacion": "66865685",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415165540": {
+      "shipping_id": "47994486774",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:23:57",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACETEATRE30mL",
+            "nombre": "Aceite Esencial Árbol De Té 30ml",
+            "cantidad": 2.0,
+            "precio_unitario": 30728.0
+          }
+        ],
+        "total": 61456.0,
+        "nombre_cliente": "Julio Cesar Arcila Vasquez",
+        "identificacion": "71376998",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 30a 67-53, Fátima, Manizales, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018415161744": {
+      "shipping_id": "47994486774",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:24:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BICSOD500g",
+            "nombre": "Bicarbonato De Sodio  500 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 3825.0
+          }
+        ],
+        "total": 3825.0,
+        "nombre_cliente": "Julio Cesar Arcila Vasquez",
+        "identificacion": "71376998",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 30a 67-53, Fátima, Manizales, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432229884": {
+      "shipping_id": "48002235784",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:31:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 26138.0
+          }
+        ],
+        "total": 26138.0,
+        "nombre_cliente": "Ligia Patricia Peña Clavijo",
+        "identificacion": "1013588726",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 12 #140-53, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432234966": {
+      "shipping_id": "48002235784",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:32:03",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANTKARAMA125g",
+            "nombre": "Manteca De Karité Orgánica Amarilla Sin - G A $191",
+            "cantidad": 1.0,
+            "precio_unitario": 27115.0
+          }
+        ],
+        "total": 27115.0,
+        "nombre_cliente": "Ligia Patricia Peña Clavijo",
+        "identificacion": "1013588726",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 12 #140-53, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018394274790": {
+      "shipping_id": "47984196091",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:32:54",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AGUDES250mL",
+            "nombre": "Agua Destilada  250 Ml",
+            "cantidad": 4.0,
+            "precio_unitario": 5220.0
+          }
+        ],
+        "total": 20880.0,
+        "nombre_cliente": "Miguel Angel Carvajal Rojas",
+        "identificacion": "1099734802",
+        "tipo_documento": "CC",
+        "direccion_envio": "Diagonal 2n # 10 - 03 barrio brisas SN, San Alberto, San Alberto, Cesar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018452360048": {
+      "shipping_id": "48011262616",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:43:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "ARCRJ250g",
+            "nombre": "Arcilla Roja 250 Gr Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 22950.0
+          }
+        ],
+        "total": 22950.0,
+        "nombre_cliente": "Gomez Lopez Miguelangel",
+        "identificacion": "80101199",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 135 #17A-77, El Contador, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414011364": {
+      "shipping_id": "47993652525",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:48:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AGUDES250mL",
+            "nombre": "Agua Destilada  250 Ml",
+            "cantidad": 6.0,
+            "precio_unitario": 5102.0
+          }
+        ],
+        "total": 30612.0,
+        "nombre_cliente": "Marta Margarita del Valdelamar Castillo",
+        "identificacion": "45429513",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 42B #25Asur 151-SN, La Magnolia, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018418405844": {
+      "shipping_id": "47995951978",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T18:57:04",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLIVEGLt",
+            "nombre": "Glicerina Vegetal Usp Lt",
+            "cantidad": 1.0,
+            "precio_unitario": 31430.0
+          }
+        ],
+        "total": 31430.0,
+        "nombre_cliente": "Juan Fernando Martinez Mejia",
+        "identificacion": "71737347",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera  20 # 23 SUR - 25, Sector San Lucas, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438567442": {
+      "shipping_id": "48005036952",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:17:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BICSOD500g",
+            "nombre": "Bicarbonato De Sodio  500 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 3825.0
+          }
+        ],
+        "total": 3825.0,
+        "nombre_cliente": "Juan Camilo Diaz Buitrago",
+        "identificacion": "1019020104",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438572540": {
+      "shipping_id": "48005036952",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:17:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CITMAG500g",
+            "nombre": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 24542.0
+          }
+        ],
+        "total": 24542.0,
+        "nombre_cliente": "Juan Camilo Diaz Buitrago",
+        "identificacion": "1019020104",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438572538": {
+      "shipping_id": "48005036952",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:17:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIHIAALTPES85P30mL",
+            "nombre": "Ácido Hialurónico Solución 85% Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 17452.0
+          }
+        ],
+        "total": 17452.0,
+        "nombre_cliente": "Juan Camilo Diaz Buitrago",
+        "identificacion": "1019020104",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018454821412": {
+      "shipping_id": "48012135083",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:17:49",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 27800.0
+          }
+        ],
+        "total": 27800.0,
+        "nombre_cliente": "Lorena Patricia Mendoza Medina",
+        "identificacion": "1023963847",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 28 sur #20-04, Olaya, Rafael Uribe Uribe, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018442471072": {
+      "shipping_id": "48006441561",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:50:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 26138.0
+          }
+        ],
+        "total": 26138.0,
+        "nombre_cliente": "Bibiana Lucia Barragán Barragán",
+        "identificacion": "1070585083",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 78k #73b 78 sur, Villa Anny I, Bosa, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018442467200": {
+      "shipping_id": "48006441561",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:50:05",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SEMCAL500g",
+            "nombre": "Semilla De Calabaza 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 22865.0
+          }
+        ],
+        "total": 22865.0,
+        "nombre_cliente": "Bibiana Lucia Barragán Barragán",
+        "identificacion": "1070585083",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 78k #73b 78 sur, Villa Anny I, Bosa, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432185870": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:55:28",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GELSINSAB500g",
+            "nombre": "Gelatina Sin Sabor 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24132.0
+          }
+        ],
+        "total": 24132.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432185868": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:55:32",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLU100g",
+            "nombre": "L Glutamina 100 Gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 16235.0
+          }
+        ],
+        "total": 16235.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432189054": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:55:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESECLA5mL",
+            "nombre": "Aceite Esencial Clavo Mckenna Group 5ml AnaLGésico Dental Y Difusor",
+            "cantidad": 1.0,
+            "precio_unitario": 14875.0
+          }
+        ],
+        "total": 14875.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432189052": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:55:50",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LTEA100g",
+            "nombre": "L Teanina 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 33150.0
+          }
+        ],
+        "total": 33150.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432189056": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:55:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AZUMMET30mL",
+            "nombre": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+            "cantidad": 2.0,
+            "precio_unitario": 6914.0
+          }
+        ],
+        "total": 13828.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432192458": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:56:10",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BICSOD500g",
+            "nombre": "Bicarbonato De Sodio  500 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 3825.0
+          }
+        ],
+        "total": 3825.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432192460": {
+      "shipping_id": "48002217668",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T19:56:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VITC30P30mL",
+            "nombre": "Vitamina C Solución Al 30% 30ml Mixta Noche",
+            "cantidad": 1.0,
+            "precio_unitario": 15782.0
+          }
+        ],
+        "total": 15782.0,
+        "nombre_cliente": "Edison Galeano Guerrero",
+        "identificacion": "79796507",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018420652008": {
+      "shipping_id": "47997041674",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:10:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 2.0,
+            "precio_unitario": 26138.0
+          }
+        ],
+        "total": 52276.0,
+        "nombre_cliente": "William Alejandro Hernandez Parra",
+        "identificacion": "1032452662",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 55 160-63, Mazuren, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018412123010": {
+      "shipping_id": "47992753791",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:20:37",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TEGBET500mL",
+            "nombre": "Betaina De Coco 500ml",
+            "cantidad": 1.0,
+            "precio_unitario": 21420.0
+          }
+        ],
+        "total": 21420.0,
+        "nombre_cliente": "Carolina Gomez Ortiz",
+        "identificacion": "53153525",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 41 Sur #4-58, San Cristóbal Sur, San Cristobal Sur, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018447231468": {
+      "shipping_id": "48008789928",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:33:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF100g",
+            "nombre": "Cafeina Anhidra 100gr Cafeína",
+            "cantidad": 1.0,
+            "precio_unitario": 47930.0
+          }
+        ],
+        "total": 47930.0,
+        "nombre_cliente": "Angel Miguel Cardona Aristizabal",
+        "identificacion": "1013258317",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 167 #74-32, Portales del Norte, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440594628": {
+      "shipping_id": "48005926538",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:34:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 2.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 21936.0,
+        "nombre_cliente": "Natalia Ospina",
+        "identificacion": "1025361066",
+        "tipo_documento": "CC",
+        "direccion_envio": "45a 81c, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440594630": {
+      "shipping_id": "48005926538",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:35:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SORPOT250g",
+            "nombre": "Sorbato De Potasio 250 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 10520.0
+          }
+        ],
+        "total": 10520.0,
+        "nombre_cliente": "Natalia Ospina",
+        "identificacion": "1025361066",
+        "tipo_documento": "CC",
+        "direccion_envio": "45a 81c, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018439916182": {
+      "shipping_id": "48005326403",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:38:46",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SEMCAL500g",
+            "nombre": "Semilla De Calabaza 500g",
+            "cantidad": 2.0,
+            "precio_unitario": 22865.0
+          }
+        ],
+        "total": 45730.0,
+        "nombre_cliente": "Samuel Lopez Pedraza",
+        "identificacion": "1072649038",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 83a 115-39, El Cortijo, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018439909334": {
+      "shipping_id": "48005326403",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T20:38:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALMNAT500g",
+            "nombre": "Almendra Natural 500g",
+            "cantidad": 2.0,
+            "precio_unitario": 26138.0
+          }
+        ],
+        "total": 52276.0,
+        "nombre_cliente": "Samuel Lopez Pedraza",
+        "identificacion": "1072649038",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 83a 115-39, El Cortijo, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018446736030": {
+      "shipping_id": "48008571578",
+      "estado": "error",
+      "actualizado_en": "2026-09-14T21:00:33",
+      "error": "No puedo emitir factura automática: Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente (MCO2153719165): sin SKU (seller_custom_field) en MeLi"
+    },
+    "2000018423494798": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:21",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
+    },
+    "2000018423496190": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:25",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIAZE10g",
+            "nombre": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 15290.0
+          }
+        ],
+        "total": 15290.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
+    },
+    "2000018423498094": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:30",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANNATTOS500g",
+            "nombre": "Maní Tostado Natural 500 G",
+            "cantidad": 1.0,
+            "precio_unitario": 7650.0
+          }
+        ],
+        "total": 7650.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
+    },
+    "2000018423498096": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:38",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 20792.0
+          }
+        ],
+        "total": 20792.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
+    },
+    "2000018423487398": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:41",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIMAL100g",
+            "nombre": "Acido Málico 100 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 6630.0
+          }
+        ],
+        "total": 6630.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
+    },
+    "2000018423496188": {
+      "shipping_id": "47998347292",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-14T21:13:55",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19309.0
+          }
+        ],
+        "total": 19309.0,
+        "nombre_cliente": "Chavez Heredia Jose Rafael",
+        "identificacion": "496620",
+        "tipo_documento": "CE",
+        "direccion_envio": "Calle 132D #105C-22, Suba, Bogotá D.C.",
+        "telefono": "",
+        "email": ""
+      }
     }
   },
   "2000018272473696": {

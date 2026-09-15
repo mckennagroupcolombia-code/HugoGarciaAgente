@@ -7136,3 +7136,183 @@ recuperacion_compra: candidatos=1 enviados=1 activo=True
 [auditor_canales 2026-09-14T11:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (174 min), +57 310 498 3277 (41 min), +57 311 739 5636 (36 min), +57 313 400 1072 (25 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 3 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
 ✅ Reporte enviado a WhatsApp con éxito.
 [auditor_canales 2026-09-14T11:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (174 min), +57 310 498 3277 (41 min), +57 311 739 5636 (36 min), +57 313 400 1072 (25 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 3 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T12:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (204 min), +57 310 498 3277 (71 min), +57 311 739 5636 (66 min), +57 313 400 1072 (55 min), +57 312 306 8370 (38 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 22 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T12:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (204 min), +57 310 498 3277 (71 min), +57 311 739 5636 (66 min), +57 313 400 1072 (55 min), +57 312 306 8370 (38 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 22 veces en 30 min.
+🔎 Auto-posteando contabilidad 2026-09-04 → 2026-09-14…
+✅ Token de Mercado Libre refrescado exitosamente.
+   19 creado(s), 597 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T12:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (234 min), +57 311 739 5636 (96 min), +57 313 400 1072 (85 min), +57 312 306 8370 (68 min), +57 317 576 4579 (66 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T12:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (234 min), +57 311 739 5636 (96 min), +57 313 400 1072 (85 min), +57 312 306 8370 (68 min), +57 317 576 4579 (66 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-14T13:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (264 min), +57 311 739 5636 (126 min), +57 313 400 1072 (115 min), +57 312 306 8370 (98 min), +57 317 576 4579 (96 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 120 veces en 30 min.
+[auditor_canales 2026-09-14T13:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (264 min), +57 311 739 5636 (126 min), +57 313 400 1072 (115 min), +57 312 306 8370 (98 min), +57 317 576 4579 (96 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 120 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T13:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (294 min), +57 311 739 5636 (156 min), +57 313 400 1072 (145 min), +57 312 306 8370 (128 min), +57 317 576 4579 (126 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T13:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (294 min), +57 311 739 5636 (156 min), +57 313 400 1072 (145 min), +57 312 306 8370 (128 min), +57 317 576 4579 (126 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T14:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (324 min), +57 311 739 5636 (186 min), +57 313 400 1072 (175 min), +57 312 306 8370 (158 min), +57 317 576 4579 (156 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T14:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (324 min), +57 311 739 5636 (186 min), +57 313 400 1072 (175 min), +57 312 306 8370 (158 min), +57 317 576 4579 (156 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+recuperacion_compra: candidatos=2 enviados=2 activo=True
+  OK  recordatorio MCKG-01ED5ED43A → jorgealejandropastranao@gmail.com · Dejaste tu pedido a un paso: te lo guardamos
+  OK  recordatorio MCKG-E90E987C72 → dianayanir@gmail.com · Dejaste tu pedido a un paso: te lo guardamos
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T14:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (354 min), +57 311 739 5636 (216 min), +57 313 400 1072 (205 min), +57 312 306 8370 (188 min), +57 317 576 4579 (186 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T14:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (354 min), +57 311 739 5636 (216 min), +57 313 400 1072 (205 min), +57 312 306 8370 (188 min), +57 317 576 4579 (186 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T15:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (384 min), +57 311 739 5636 (246 min), +57 313 400 1072 (235 min), +57 312 306 8370 (218 min), +57 317 576 4579 (216 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T15:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (384 min), +57 311 739 5636 (246 min), +57 313 400 1072 (235 min), +57 312 306 8370 (218 min), +57 317 576 4579 (216 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T15:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (414 min), +57 311 739 5636 (276 min), +57 313 400 1072 (265 min), +57 317 576 4579 (246 min), +57 316 884 8780 (31 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+[auditor_canales 2026-09-14T15:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (414 min), +57 311 739 5636 (276 min), +57 313 400 1072 (265 min), +57 317 576 4579 (246 min), +57 316 884 8780 (31 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T16:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (444 min), +57 311 739 5636 (306 min), +57 313 400 1072 (295 min), +57 317 576 4579 (276 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 3 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T16:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 378 6261 (444 min), +57 311 739 5636 (306 min), +57 313 400 1072 (295 min), +57 317 576 4579 (276 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 3 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T16:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (336 min), +57 313 400 1072 (325 min), +57 318 243 2463 (30 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T16:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (336 min), +57 313 400 1072 (325 min), +57 318 243 2463 (30 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T17:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (366 min), +57 313 400 1072 (355 min), +57 318 243 2463 (60 min), +57 312 306 8370 (40 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T17:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (366 min), +57 313 400 1072 (355 min), +57 318 243 2463 (60 min), +57 312 306 8370 (40 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T17:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (396 min), +57 313 400 1072 (385 min), +57 318 243 2463 (90 min), +57 312 306 8370 (70 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T17:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (396 min), +57 313 400 1072 (385 min), +57 318 243 2463 (90 min), +57 312 306 8370 (70 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-14T18:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (426 min), +57 313 400 1072 (415 min), +57 318 243 2463 (120 min), +57 312 306 8370 (100 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T18:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (426 min), +57 313 400 1072 (415 min), +57 318 243 2463 (120 min), +57 312 306 8370 (100 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[2026-09-14T18:00:01] resumen_actividad_sede_sur: 38 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 10 nuevas · 10 completadas · 11 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 5 nuevas, 5 completadas
+• Victor Garcia: 4 nuevas, 4 completadas
+• Gloria Stella: 1 nueva, 1 completada
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-09-04 → 2026-09-14…
+✅ Token de Mercado Libre refrescado exitosamente.
+   29 creado(s), 615 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T18:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (456 min), +57 313 400 1072 (445 min), +57 318 243 2463 (150 min), +57 312 306 8370 (130 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T18:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (456 min), +57 313 400 1072 (445 min), +57 318 243 2463 (150 min), +57 312 306 8370 (130 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T19:00:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (486 min), +57 313 400 1072 (475 min), +57 318 243 2463 (180 min), +57 312 306 8370 (160 min), Contacto WA · …52220557 (37 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T19:00:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (486 min), +57 313 400 1072 (475 min), +57 318 243 2463 (180 min), +57 312 306 8370 (160 min), Contacto WA · …52220557 (37 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+# Auditoría de calidad — Agente Hugo (McKenna Group)
+
+## 1. Problemas principales detectados
+
+**A. Promesas de acción futura prohibidas**
+Ejemplo [1] y [3]: Hugo dice "voy a consultarle a un asesor" o "le paso el caso a la asesora Jenniffer", prometiendo gestiones futuras que no puede garantizar.
+
+**B. Contradicción de precios con asesores humanos**
+Ejemplo [3] y [4]: Jenniffer cotizó "$29.000 por libra" de citrato de magnesio, pero Hugo presenta precios distintos por gramos/kg sin reconciliar la unidad, generando desconfianza y confusión comercial.
+
+**C. Alucinación de precios no verificados con herramientas**
+Ejemplo [5]: Hugo menciona "$75.510" sin que ese valor provenga de `buscar_producto` ni `ver_pedido` en el turno.
+
+**D. Conversión arbitraria de unidades no confirmada con el cliente**
+Ejemplo [4]: Hugo asume que "500g" es "lo más cercano a una libra" sin aclarar la diferencia real (453,6g) ni confirmar con el cliente, y en otro caso directamente niega manejar libras contradiciendo al asesor.
+
+**E. Ofrecer productos sin respaldo de catálogo/evidencia**
+Ejemplo [2]: Hugo sugiere buscar "aceite de almendras, oliva, girasol" cuando la evidencia de búsqueda no confirma que existan en catálogo.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+- **A:** Ajustar instrucciones para que, ante productos no encontrados, el agente diga siempre la fórmula fija: *"No aparece en catálogo, un asesor continúa por este mismo chat"* — nunca prometer "voy a consultar" ni nombrar asesores específicos.
+- **B:** Agregar regla de supervisor: si hay precio previo de un asesor humano en el hilo, el agente debe citarlo tal cual o aclarar que "el precio vigente en catálogo web puede diferir del cotizado antes; para confirmar, pasa con un asesor" — nunca sobreescribir sin contexto.
+- **C:** Reforzar regla dura: todo precio mencionado debe provenir literalmente de la salida de `buscar_producto` o `ver_pedido` del turno actual; prohibir cálculos o cifras derivadas no verificadas.
+- **D:** Instrucción explícita: cuando el cliente pide unidades no estándar (libras, onzas) y el catálogo solo maneja gramos/kg, el agente debe presentar las presentaciones disponibles y preguntar cuál prefiere, sin asumir equivalencias ni negar la existencia de la unidad.
+- **E:** Reforzar regla de catálogo: solo mencionar productos que hayan sido confirmados por `buscar_producto` en ese turno; si no hay evidencia, no sugerir nombres de productos "probables".
+
+## 3. Calificación general
+
+**5/10** — Buen manejo conversacional y tono, pero fallas recurrentes en manejo de precios/unidades y promesas prohibidas que afectan la confianza comercial.
+✅ Reporte enviado a WhatsApp con éxito.
+# Auditoría de calidad – Agentes McKenna Group
+
+## 1. Problemas principales detectados
+
+**A. Promesas de acción futura ("voy a consultar", "le paso el caso a...", "en cuanto me confirme se lo dejo listo")**
+Ejemplo [1] y [3]: Hugo dice "voy a consultarle a un asesor" y "le paso el caso a la asesora Jenniffer", prometiendo acciones que no puede garantizar en el momento.
+
+**B. Contradicción de precios entre Hugo y asesores humanos, y precios inventados sin respaldo de herramienta**
+Ejemplo [3] y [4]: Jenniffer cotizó "libra citrato de magnesio: $29.000" y Hugo presenta rangos distintos en g/kg sin conciliar. Ejemplo [5]: Hugo menciona $75.510 sin que salga de buscar_producto/ver_pedido.
+
+**C. Conversión arbitraria de unidades no presentes en catálogo (libras → gramos) sin confirmar con el cliente**
+Ejemplo [4]: Hugo asume que 500g "es la más cercana a la libra" sin aclarar que no es equivalente real (453,6g) ni preguntar al cliente qué presentación prefiere.
+
+**D. Pedir confirmaciones/repeticiones innecesarias cuando el cliente ya fue claro**
+Ejemplo [5]: el cliente detalla cantidades exactas (3 libras, 1 libra, etc.) y Hugo pide que "confirme cuántas presentaciones", violando la regla de no repetir preguntas ya respondidas.
+
+**E. Ofrecer o insinuar productos/variantes sin evidencia de catálogo (aceites de almendras, oliva, girasol, coco)**
+Ejemplo [2]: Hugo sugiere revisar "otras opciones" y menciona vitamina E como si complementara la fórmula, pero varios de esos ítems no están en catálogo web, generando expectativa falsa.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+- **A →** Ajustar instrucciones: reemplazar cualquier frase de "voy a consultar/le paso el caso a X" por el texto fijo aprobado: *"Ya le avisé al equipo, un asesor continúa por este mismo chat."* Prohibir mencionar nombres de asesores o acciones futuras propias.
+
+- **B →** Regla de supervisor: si existe una cotización previa de un asesor humano en el historial, Hugo debe citarla textualmente o callar y derivar a asesor, nunca presentar cifras distintas del catálogo web sin aclarar la discrepancia. Además, reforzar instrucción: "todo precio mencionado debe provenir literalmente de la salida de buscar_producto/ver_pedido de ese turno".
+
+- **C →** Instrucción: cuando el cliente pida presentación en libras/onzas u otra unidad no listada en catálogo, Hugo debe informar las presentaciones disponibles en el sistema (gramos/kg) **sin asumir equivalencia**, y preguntar explícitamente cuál prefiere el cliente, o derivar a asesor si requiere conversión exacta.
+
+- **D →** Regla de supervisor: si el cliente ya especificó producto + cantidad + presentación en su mensaje, Hugo no debe volver a preguntarlas; debe pasar directo a buscar_producto y presentar el precio o derivar si no hay match.
+
+- **E →** Catálogo/instrucción: Hugo solo puede nombrar productos que aparezcan en la respuesta de buscar_producto de ese turno; prohibir sugerir "otras opciones" genéricas (aceites, activos) sin verificar antes con la herramienta que existen en el catálogo web.
+
+## 3. Calificación general: **5/10**
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T19:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (516 min), +57 313 400 1072 (505 min), +57 318 243 2463 (210 min), +57 312 306 8370 (190 min), Contacto WA · …52220557 (67 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T19:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (516 min), +57 313 400 1072 (505 min), +57 318 243 2463 (210 min), +57 312 306 8370 (190 min), Contacto WA · …52220557 (67 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-14) no es el último día del mes.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T20:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (546 min), +57 318 243 2463 (240 min), +57 312 306 8370 (220 min), Contacto WA · …52220557 (97 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T20:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (546 min), +57 318 243 2463 (240 min), +57 312 306 8370 (220 min), Contacto WA · …52220557 (97 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T20:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (576 min), +57 318 243 2463 (270 min), +57 312 306 8370 (250 min), Contacto WA · …52220557 (127 min), +57 313 400 1072 (42 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T20:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (576 min), +57 318 243 2463 (270 min), +57 312 306 8370 (250 min), Contacto WA · …52220557 (127 min), +57 313 400 1072 (42 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-14T21:00:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (606 min), +57 318 243 2463 (300 min), +57 312 306 8370 (280 min), Contacto WA · …52220557 (157 min), +57 313 400 1072 (72 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T21:00:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (606 min), +57 318 243 2463 (300 min), +57 312 306 8370 (280 min), Contacto WA · …52220557 (157 min), +57 313 400 1072 (72 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T21:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (636 min), +57 318 243 2463 (330 min), +57 312 306 8370 (310 min), Contacto WA · …52220557 (187 min), +57 313 400 1072 (102 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T21:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (636 min), +57 318 243 2463 (330 min), +57 312 306 8370 (310 min), Contacto WA · …52220557 (187 min), +57 313 400 1072 (102 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T22:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (666 min), +57 318 243 2463 (360 min), +57 312 306 8370 (340 min), +57 320 627 4849 (55 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T22:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (666 min), +57 318 243 2463 (360 min), +57 312 306 8370 (340 min), +57 320 627 4849 (55 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T22:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (696 min), +57 318 243 2463 (390 min), +57 312 306 8370 (370 min), +57 320 627 4849 (85 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T22:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (696 min), +57 318 243 2463 (390 min), +57 312 306 8370 (370 min), +57 320 627 4849 (85 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
