@@ -4451,6 +4451,48 @@
         }
       ],
       "updated_at": "2026-09-12T19:15:56+00:00"
+    },
+    "C-GLI250G": {
+      "ref": "C-GLI250G",
+      "nombre": "Glicina",
+      "lotes": [
+        {
+          "lote_numero": "23121802055",
+          "estado": "sin_cambios",
+          "fabricante": "HEBEI HUAYANG BIOLOGICAL TECHNOLOGY CO.,LTD.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-18",
+          "fecha_vencimiento": "2027-12-17",
+          "fecha_recepcion": "2026-09-15",
+          "codigo_verificacion": "WCKQ3V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-15T04:45:41+00:00"
+        }
+      ],
+      "updated_at": "2026-09-15T04:45:41+00:00"
+    },
+    "C-GLI500G": {
+      "ref": "C-GLI500G",
+      "nombre": "Glicina",
+      "lotes": [
+        {
+          "lote_numero": "23121802055",
+          "estado": "sin_cambios",
+          "fabricante": "HEBEI HUAYANG BIOLOGICAL TECHNOLOGY CO.,LTD.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2025-12-18",
+          "fecha_vencimiento": "2027-12-17",
+          "fecha_recepcion": "2026-09-15",
+          "codigo_verificacion": "WCKQ3V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-15T04:45:41+00:00"
+        }
+      ],
+      "updated_at": "2026-09-15T04:45:41+00:00"
     }
   }
 }

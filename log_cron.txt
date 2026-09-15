@@ -7316,3 +7316,35 @@ Ejemplo [2]: Hugo sugiere revisar "otras opciones" y menciona vitamina E como si
 [auditor_canales 2026-09-14T22:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (696 min), +57 318 243 2463 (390 min), +57 312 306 8370 (370 min), +57 320 627 4849 (85 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-14T22:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 311 739 5636 (696 min), +57 318 243 2463 (390 min), +57 312 306 8370 (370 min), +57 320 627 4849 (85 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 16c25ce] Auto-commit: actualizacion diaria 2026-09-14 23:00
+ 18 files changed, 2940 insertions(+), 581 deletions(-)
+ create mode 100644 PAGINA_WEB/site/static/js/hero-parallax.js
+[2026-09-14 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-14 23:00'
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T23:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (420 min), +57 312 306 8370 (400 min), +57 320 627 4849 (115 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-14T23:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (420 min), +57 312 306 8370 (400 min), +57 320 627 4849 (115 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-14T23:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (450 min), +57 312 306 8370 (430 min), +57 320 627 4849 (145 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-14T23:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (450 min), +57 312 306 8370 (430 min), +57 320 627 4849 (145 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T00:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (480 min), +57 312 306 8370 (460 min), +57 320 627 4849 (175 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T00:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (480 min), +57 312 306 8370 (460 min), +57 320 627 4849 (175 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-05 → 2026-09-15…
+✅ Token de Mercado Libre refrescado exitosamente.
+   15 creado(s), 603 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T00:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (510 min), +57 312 306 8370 (490 min), +57 320 627 4849 (205 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T00:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (510 min), +57 312 306 8370 (490 min), +57 320 627 4849 (205 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T01:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (540 min), +57 312 306 8370 (520 min), +57 320 627 4849 (235 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T01:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (540 min), +57 312 306 8370 (520 min), +57 320 627 4849 (235 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T01:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (570 min), +57 312 306 8370 (550 min), +57 320 627 4849 (265 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T01:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (570 min), +57 312 306 8370 (550 min), +57 320 627 4849 (265 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T02:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (600 min), +57 312 306 8370 (580 min), +57 320 627 4849 (295 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T02:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (600 min), +57 312 306 8370 (580 min), +57 320 627 4849 (295 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.

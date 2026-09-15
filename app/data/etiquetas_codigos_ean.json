@@ -2371,6 +2371,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "68e6b27738ee",
+      "sku": "C-GLI250g",
+      "nombre_producto": "GLICINA 250g",
+      "numero_producto": 214,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702142502642",
+      "creado_at": "2026-09-14T23:42:41"
+    },
+    {
       "id": "0eebd13e7fe5",
       "sku": "C-SORPOT250g",
       "nombre_producto": "SORBATO POTASIO 250g",
@@ -2545,6 +2556,17 @@
       "bimestre": 3,
       "codigo": "7702305002637",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "8c40ef561591",
+      "sku": "C-GLI500g",
+      "nombre_producto": "GLICINA 500g",
+      "numero_producto": 231,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702315002641",
+      "creado_at": "2026-09-14T23:43:09"
     },
     {
       "id": "3f31600bab2b",
