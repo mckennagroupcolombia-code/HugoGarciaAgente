@@ -83,7 +83,9 @@ export function reticulaVertical(anchoMm?: number, altoMm?: number): ReticulaVer
   };
 }
 
-/** Azul del formato. Es fijo: la etiqueta se imprime siempre así. */
+/** Azul con el que nace el formato. NO es fijo: el color de la etiqueta
+ *  es el acento de la plantilla (el que se elige junto al logo), igual que
+ *  en los demás formatos; este es solo el valor por defecto. */
 export const AZUL_VERTICAL = "#087CE0";
 
 /** Ícono por defecto de cada casilla, de la galería de íconos químicos (los

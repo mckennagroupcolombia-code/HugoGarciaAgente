@@ -22,7 +22,7 @@
   flex-direction: column;
   min-height: 0;
   box-sizing: border-box;
-  border-bottom: var(--ev-linea) solid var(--ev-azul);
+  border-bottom: var(--ev-linea) solid var(--acento);
 }
 .ev-bloque:last-child { border-bottom: 0; }
 
@@ -36,7 +36,7 @@
 .ev-nombre {
   width: 100%;
   margin: 0;
-  color: var(--ev-azul);
+  color: var(--acento);
   font-size: 37px;          /* ~12,5 pt a 12 px/mm */
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -51,7 +51,7 @@
   align-items: center;
   justify-content: center;
   padding: 3px 6px;
-  background: var(--ev-azul);
+  background: var(--acento);
   color: #ffffff;
   font-size: 22px;          /* ~7,5 pt */
   font-weight: 700;
@@ -73,18 +73,18 @@
   text-align: center;
 }
 /* Solo la columna izquierda lleva divisoria: sin línea doble en el centro. */
-.ev-col + .ev-col { border-left: var(--ev-linea) solid var(--ev-azul); }
+.ev-col + .ev-col { border-left: var(--ev-linea) solid var(--acento); }
 
 .ev-icono {
   display: block;
   flex: 0 0 auto;
-  color: var(--ev-azul);
+  color: var(--acento);
 }
 .ev-icono svg { display: block; width: 100%; height: 100%; }
 
 .ev-titulo {
   margin: 3px 0 3px;
-  color: var(--ev-azul);
+  color: var(--acento);
   font-size: 19px;          /* ~6,5 pt */
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -98,7 +98,7 @@
   justify-content: center;
   min-height: 0;
   padding: 3px 4px;
-  border: 1px dashed var(--ev-azul);
+  border: 1px dashed var(--acento);
   border-radius: 4px;
   box-sizing: border-box;
   color: #111111;
@@ -113,7 +113,7 @@
 .ev-beneficios { padding: 4px 0 5px; }
 .ev-beneficios-titulo {
   margin-bottom: 3px;
-  color: var(--ev-azul);
+  color: var(--acento);
   font-size: 19px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -138,7 +138,7 @@
 }
 /* Línea vertical corta entre columnas, no de bloque a bloque. */
 .ev-beneficio + .ev-beneficio {
-  border-left: var(--ev-linea) solid var(--ev-azul);
+  border-left: var(--ev-linea) solid var(--acento);
 }
 .ev-beneficio-texto {
   width: 100%;
@@ -156,7 +156,7 @@
   padding: 4px 6px 5px;
 }
 .ev-neto-titulo {
-  color: var(--ev-azul);
+  color: var(--acento);
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -217,7 +217,7 @@
   justify-content: center;
   gap: 2px;
   padding: 4px 5px;
-  background: var(--ev-azul);
+  background: var(--acento);
   color: #ffffff;
 }
 .ev-pie-linea {

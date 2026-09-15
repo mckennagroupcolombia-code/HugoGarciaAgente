@@ -3132,3 +3132,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `aceites-esenciales` queda solo con la plantilla de 5 mL. `aceites` queda con 250/500 g, 30 mL y 38×102.
   - Respaldo del JSON previo en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/`.
 - **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - El formato 38×102 respeta el acento de la plantilla
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - El acento no cambiaba al escoger el color junto al logo. Causa: el lienzo se escribió con el azul **fijo** `#087CE0` que pedía el brief y nunca aplicaba `variablesAcento`, a diferencia de los otros cuatro formatos. Los 11 usos del color en el CSS apuntaban a una variable propia (`--ev-azul`) que se fijaba en el componente.
+  - `EtiquetaVertical.tsx` publica ahora `variablesAcento(data.accentColor || AZUL_VERTICAL)` en el lienzo, y el CSS usa `var(--acento)` en sus 11 usos: títulos, divisorias, recuadros punteados, iconos, barra de grado y pie. `AZUL_VERTICAL` queda solo como valor por defecto cuando la plantilla no trae acento.
+  - Con esto el formato se comporta como los demás: el color se elige por plantilla y la familia puede llevar su propio tono (las otras dos de `aceites` usan el naranja #F9A72B).
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `etiquetaVerticalTypes.ts`, `docs/team-recaps.md`

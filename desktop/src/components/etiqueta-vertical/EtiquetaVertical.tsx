@@ -13,7 +13,7 @@
 import { forwardRef, useRef, useState } from "react";
 import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
-import { type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
+import { variablesAcento, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 import { ESLOGAN } from "../etiqueta-ficha/ProductHeader";
 import BarcodeBlock from "../etiqueta-ficha/BarcodeBlock";
 import type { IconoKey } from "../etiqueta-ficha/ProductAttributeGrid";
@@ -169,9 +169,11 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
       ref={ref}
       className={`ev-etiqueta ${guias ? "ev-guias" : ""}`}
       style={{
+        // El color lo pone el acento de la plantilla (el que se escoge con el
+        // logo); `AZUL_VERTICAL` solo entra si la plantilla no trae ninguno.
+        ...variablesAcento(data.accentColor || AZUL_VERTICAL),
         width: reticula.ancho,
         height: reticula.alto,
-        ["--ev-azul" as string]: AZUL_VERTICAL,
         ["--ev-linea" as string]: `${linea}px`,
       }}
     >
