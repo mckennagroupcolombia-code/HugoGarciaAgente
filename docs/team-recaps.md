@@ -3121,3 +3121,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **No se destruyó**: la ficha completa quedó en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/fe5837a6a367.json`, más una copia íntegra del JSON anterior en esa misma carpeta. Es el mismo criterio de las fichas retiradas del 2026-09-11: mover fuera, no borrar.
   - `aceites` (Aceites & Grasas) queda con 250 / 500 g y 30 mL. El formato 5 mL sigue existiendo y su plantilla de `aceites-esenciales` no se tocó.
 - **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - La plantilla 38×102 pasa a Aceites & Grasas como «250 mL envase PET»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Etiquetas)
+- **Qué se implementó:**
+  - El formato `38x102` ya existía del turno anterior; lo que cambió es dónde vive su plantilla. La única que hay (id `276fa3d3d001`) pasó de `aceites-esenciales` a **`aceites`** (Aceites & Grasas, donde van los vegetales) y se retituló **«Plantilla de Aceites Vegetales 250 mL envase PET»**. Los datos de producto siguen en blanco.
+  - Corregido un arrastre del clonado: la plantilla traía `accentColor: #1C71D8`, heredado de la de Aceites Esenciales 5 mL, que no correspondía ni a lo que imprime el lienzo (#087CE0, fijo en `AZUL_VERTICAL`) ni al acento de la categoría (#F9A72B). Se puso en **#087CE0**, el azul real del formato.
+  - **Pendiente de decisión:** el lienzo 38×102 usa un azul fijo por pedido del brief, así que ignora el `accentColor` de la plantilla — a diferencia de los demás formatos. Las otras dos plantillas de `aceites` usan el naranja #F9A72B. Si la familia debe verse naranja, hay que cambiar `AZUL_VERTICAL` por `var(--acento)` en `etiquetaVertical.css`.
+  - `aceites-esenciales` queda solo con la plantilla de 5 mL. `aceites` queda con 250/500 g, 30 mL y 38×102.
+  - Respaldo del JSON previo en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/`.
+- **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
