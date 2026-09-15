@@ -44,7 +44,7 @@ export function labelCampoEtiqueta(id: string): string {
     casNumero: "CAS",
     origen: "ORIGEN",
     apariencia: "APARIENCIA",
-    olor: "OLOR",
+    olor: "AROMA",
     composicion: "COMPOSICIÓN",
     grado: "GRADO",
     almacenamiento: "CONSERVACIÓN",
@@ -91,7 +91,7 @@ export const PAISES_ORIGEN_SUGERIDOS = [
 export const BLOQUES_FICHA_GRID: readonly BloqueFormularioEtiqueta[] = [
   { id: "origen", titulo: "ORIGEN", campo: "origen", sugerencias: PAISES_ORIGEN_SUGERIDOS },
   { id: "apariencia", titulo: "APARIENCIA", campo: "apariencia", largo: true },
-  { id: "olor", titulo: "OLOR", campo: "olor" },
+  { id: "olor", titulo: "AROMA", campo: "olor" },
   { id: "composicion", titulo: "COMPOSICIÓN", campo: "composicion", largo: true },
   { id: "grado", titulo: "GRADO", campo: "grado", sugerencias: GRADOS_MATERIA_PRIMA },
   { id: "conservacion", titulo: "CONSERVACIÓN", campo: "almacenamiento", largo: true, maxPalabras: 10 },

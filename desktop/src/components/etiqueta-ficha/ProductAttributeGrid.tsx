@@ -67,7 +67,7 @@ export default function ProductAttributeGrid({
     [
       ["Origen", "origin"],
       ["Apariencia", "appearance"],
-      ["Olor", "odor"],
+      ["Aroma", "odor"],
       [data.compositionTitulo || TITULOS_COMPOSICION[0], "composition"],
       ["Grado", "grade"],
       ["Conservación", "storage"],

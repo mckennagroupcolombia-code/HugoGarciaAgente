@@ -129,7 +129,7 @@ export const CELDAS_30ML: readonly Celda30ml[] = [
   { campo: "storage", titulo: "Conservación", icono: "conservacion_termometro" },
   { campo: "origin", titulo: "Origen", icono: "origen_globo_meridianos" },
   { campo: "appearance", titulo: "Apariencia", icono: "apariencia_escamas" },
-  { campo: "odor", titulo: "Olor", icono: "aroma_nariz_percepcion" },
+  { campo: "odor", titulo: "Aroma", icono: "aroma_nariz_percepcion" },
 ];
 
 /** Títulos elegibles de la primera celda (menú del título). Se guarda en

@@ -2894,3 +2894,18 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `appBackNavigation.ts`: `onPopState` ahora consulta los manejadores anidados antes de cambiar de panel y reancla el historial, así el botón atrás del navegador de escritorio también respeta las vistas anidadas (antes solo lo hacía el bridge de Android).
   - El botón pequeño junto a la vista previa del PNG queda como "← Archivos" con el mismo tooltip.
 - **Archivos Modificados:** `desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx`, `desktop/src/components/EtiquetasPanel.tsx`, `desktop/src/lib/appBackNavigation.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla OLOR pasa a llamarse AROMA
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas)
+- **Qué se implementó:**
+  - Petición del usuario: en las casillas de todas las plantillas de etiqueta, donde decía **OLOR** ahora dice **AROMA**.
+  - `etiquetaFormulario.ts`: `labelCampoEtiqueta` y el bloque de `BLOQUES_FICHA_GRID` pasan a `AROMA`.
+  - `plantillasVisuales.ts`: el nombre de capa del campo en el editor visual pasa a `AROMA`.
+  - `ProductAttributeGrid.tsx` (etiqueta ficha) y `etiqueta30mlTypes.ts` (formato 30 mL): el título de la casilla pasa a `Aroma`.
+  - `ortografiaEtiqueta.ts`: el revisor ortográfico reporta el campo como `Aroma`.
+  - `productLabelTypes.ts`: el texto de muestra queda "Aroma dulce y cremoso…".
+  - Datos: en `app/data/plantillas_visuales.json` una sola plantilla tenía el título ya escrito a mano (`ALCOHOL CETILICO 500g` → `OLOR:` → `AROMA:`). Las 201 plantillas quedan idénticas salvo ese texto. La prosa descriptiva que menciona "olor" (ACEITE DE RICINO, LANOLINA, AGUA DESTILADA, etc.) **no** se tocó: no son casillas.
+  - Las claves internas (`olor`, `odor`) se conservan para no romper plantillas ni el enlace con las fichas técnicas.
+  - **Fuera de alcance:** las fichas técnicas, COA y SDS (`ficha_tecnica.py`, `documento_traducir_es.py`, `FichaTecnicaForm.tsx`, `plantillaFichaTecnicaMp.ts`) siguen diciendo "Olor", que es el término normativo de propiedades físico-químicas.
+- **Archivos Modificados:** `desktop/src/lib/etiquetaFormulario.ts`, `desktop/src/lib/plantillasVisuales.ts`, `desktop/src/lib/ortografiaEtiqueta.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `app/data/plantillas_visuales.json`, `docs/team-recaps.md`

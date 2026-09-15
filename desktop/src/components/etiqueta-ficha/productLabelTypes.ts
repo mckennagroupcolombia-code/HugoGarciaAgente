@@ -131,7 +131,7 @@ export const PRODUCTO_EJEMPLO: ProductLabelData = {
   origin: "Colombia",
   appearance:
     "Sólido, blanco a blanco amarillento, pálido, de textura suave y untuosa, presentándose en bloques o piezas.",
-  odor: "Olor dulce y cremoso, con un trasfondo sutil de cacao.",
+  odor: "Aroma dulce y cremoso, con un trasfondo sutil de cacao.",
   composition: "Ácido Esteárico, Ácido Oleico, Ácido Palmítico, Ácido Linoleico",
   grade: "Cosmético — Refinada",
   storage: "Guardar en lugar fresco, seco y bien cerrado.",
