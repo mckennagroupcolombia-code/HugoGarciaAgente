@@ -1,3 +1,16 @@
+### 2026-09-15 12:20 - El guard de permisos se extendió a todo el hub Contabilidad
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de control de acceso (continuación del cambio anterior)
+- **Qué se implementó:**
+  - **Mismo hueco, más módulos.** Tras cerrar `/api/pagos/*`, con la sesión de `jerry` (nivel operario, sin ningún permiso contable) seguían respondiendo 200: `/api/contabilidad/cc/*` (Libro Mayor completo, terceros, balances), `/api/prestamos` (cédula, correo y **cuenta bancaria** de cada prestamista y socio), `/api/socios/saldos`, `/api/contabilidad/extractos/*`, `/creditos`, `/ingresos-egresos`, `/checklist` y `/api/alegra/espejo`. Todos son módulos cuyo propio código dice "permiso propio, no heredado — datos sensibles", y eso solo lo aplicaba el frontend.
+  - **Se hizo por prefijo, no ruta por ruta.** Un `before_request` en `app/routes.py` (`_guard_permisos_contabilidad`) resuelve qué permisos exige cada ruta y responde 401 sin sesión / 403 sin permiso. Así una ruta contable nueva **nace protegida** en vez de nacer abierta — que es exactamente cómo se abrieron estas — y el alias `/app/api/...` del proxy queda cubierto por el mismo camino.
+  - **Cuatro grupos, calcados de `lib/contabilidadAccess.ts`** para no romper a quien sí tiene el permiso: catálogos compartidos (plan de cuentas, terceros, medios de pago) abiertos a `libro-mayor`/`prestamos`/`socios`/`pagos` —el wizard de pagos crea terceros desde TerceroSelect—; Libro Mayor, extractos y créditos a `libro-mayor`/`prestamos`/`socios` —el panel de Préstamos lee `/cc/movimientos` para su cronograma—; Préstamos a `prestamos`/`libro-mayor`; y cuenta de socios a `socios`/`libro-mayor`/`prestamos`. Rol administrador entra siempre; `CHAT_API_TOKEN` también, para crons y procesos internos.
+  - **El expediente fiscal del Declarador (`/api/socios/<id>/…`) quedó intacto**, con su propio control de que cada socio ve solo el suyo.
+  - **Verificado en vivo** tras reiniciar `agente-pro`, con sesiones reales de `jerry` y de Armando: 13 rutas dan **403** para ella y **200** para él y para el token de sistema; su sesión de tickets sigue normal. En tests, `tests/test_permisos_api_contabilidad.py` (renombrado desde `test_pagos_permisos_api.py`) pasó de 10 a **37 casos**, incluido uno que comprueba que una ruta contable inventada también queda cerrada.
+  - **Nota para quien siga:** ningún usuario activo tiene hoy permisos contables explícitos — quienes usan el hub (Cynthia, Armando, admin) entran por rol administrador. Si mañana se le da Contabilidad a alguien de nivel operario, hay que marcarle la casilla correspondiente en Gestión de usuarios; antes de este cambio "funcionaba" sin marcarla porque nadie estaba mirando.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_permisos_api_contabilidad.py`, `docs/team-recaps.md`
+
 ### 2026-09-15 11:30 - Jenniffer no debe ver las solicitudes de pago: en el menú no las veía, por API sí
 
 - **Autor:** Armando García

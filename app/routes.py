@@ -3639,6 +3639,107 @@ def register_routes(app):
             pass
         return None
 
+    # ── Contabilidad: el backend dice lo mismo que el panel ──────────────────
+    #
+    # `_api_token_valido()` acepta la sesión de CUALQUIER usuario del panel, no
+    # solo el CHAT_API_TOKEN. Durante meses eso convivió con un frontend que sí
+    # filtraba por permiso (`desktop/src/lib/contabilidadAccess.ts`), así que
+    # secciones marcadas "permiso propio, no heredado — datos sensibles" estaban
+    # ocultas en el menú pero abiertas por API: el 15-sep-2026 se comprobó que el
+    # usuario de despachos (nivel operario, sin ningún permiso contable) leía con
+    # su propia sesión el Libro Mayor completo, la cédula y cuenta bancaria de
+    # cada prestamista y los saldos con socios. Ocultar no es restringir.
+    #
+    # Se aplica por prefijo y no ruta por ruta a propósito: así una ruta nueva
+    # bajo /api/contabilidad/ nace protegida en vez de nacer abierta. Los grupos
+    # replican exactamente lo que el panel exige para abrir cada sección.
+
+    #: Catálogos que TODOS los paneles contables leen (plan de cuentas, terceros,
+    #: medios de pago). El wizard de pagos también los necesita — TerceroSelect
+    #: crea terceros desde ahí — así que `pagos` entra en este grupo y no en los
+    #: demás.
+    _PERM_CC_REFERENCIA = ("libro-mayor", "prestamos", "socios", "pagos")
+    #: Asientos, balances, extractos, créditos: el corazón del Libro Mayor.
+    #: Préstamos y Socios leen los mismos movimientos en sus propios paneles.
+    _PERM_CC_LIBRO = ("libro-mayor", "prestamos", "socios")
+    #: Préstamos de terceros: cédula, correo, cuenta bancaria y saldos.
+    _PERM_CC_PRESTAMOS = ("prestamos", "libro-mayor")
+    #: Cuenta corriente de cada socio con la empresa.
+    _PERM_CC_SOCIOS = ("socios", "libro-mayor", "prestamos")
+
+    def _permisos_exigidos_para(path: str):
+        """(permisos, etiqueta) para esa ruta, o None si no se controla acá."""
+        if path.startswith("/app/"):
+            path = path[4:]
+        if not (
+            path.startswith("/api/contabilidad/")
+            or path.startswith("/api/prestamos")
+            or path.startswith("/api/socios/")
+            or path.startswith("/api/alegra/espejo")
+            or path.startswith("/api/pagos/")
+        ):
+            return None
+        if path.startswith("/api/pagos/"):
+            return ("pagos", "libro-mayor"), "Solicitudes de pago"
+        if path.startswith("/api/prestamos"):
+            return _PERM_CC_PRESTAMOS, "Préstamos"
+        # Cuenta del socio con la empresa: vive bajo /cc/ pero es del socio.
+        if (
+            path.startswith("/api/contabilidad/cc/mi-tercero")
+            or path.startswith("/api/contabilidad/cc/gastos-personales")
+            or path.endswith("/cuenta-socio")
+        ):
+            return _PERM_CC_SOCIOS, "Cuenta de socios"
+        if path.startswith("/api/socios/"):
+            # Solo los saldos/reintegros que viven en este archivo. El expediente
+            # fiscal (/api/socios/<id>/…, app/routes_declarador.py) tiene su
+            # propio control: cada socio ve SOLO el suyo.
+            if path.startswith("/api/socios/saldos") or path.startswith("/api/socios/reintegro"):
+                return _PERM_CC_SOCIOS, "Saldos con socios"
+            if path.endswith("/pendiente"):
+                return _PERM_CC_SOCIOS, "Saldos con socios"
+            return None
+        for pref in (
+            "/api/contabilidad/cc/plan-cuentas",
+            "/api/contabilidad/cc/terceros",
+            "/api/contabilidad/cc/medios-pago",
+        ):
+            if path.startswith(pref):
+                return _PERM_CC_REFERENCIA, "Contabilidad"
+        return _PERM_CC_LIBRO, "Contabilidad"
+
+    def _sesion_tiene_permiso(claves) -> bool:
+        usuario = _panel_tickets_usuario()
+        if usuario is None:
+            return True  # CHAT_API_TOKEN / proceso interno (crons, agente)
+        try:
+            from app.services.tickets_db import es_admin_efectivo
+
+            if es_admin_efectivo(usuario):
+                return True
+        except Exception:
+            if int((usuario.get("rol") or {}).get("nivel") or 0) >= 3:
+                return True
+        permisos = usuario.get("permisos_secciones") or {}
+        return any(bool(permisos.get(k)) for k in claves)
+
+    @app.before_request
+    def _guard_permisos_contabilidad():
+        if request.method == "OPTIONS":
+            return None
+        exigido = _permisos_exigidos_para(request.path or "")
+        if exigido is None:
+            return None
+        claves, etiqueta = exigido
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _sesion_tiene_permiso(claves):
+            return jsonify({
+                "error": f"{etiqueta} requiere rol administrador o alguno de estos permisos: "
+                         + ", ".join(f"'{k}'" for k in claves)
+            }), 403
+        return None
+
     def _api_lanzar_en_hilo(fn, *args, job: str | None = None):
         """Ejecuta fn(*args) en hilo daemon y registra resultado en panel_activity."""
         from app.panel_activity import run_logged_job
