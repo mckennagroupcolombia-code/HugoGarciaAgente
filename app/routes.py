@@ -12,6 +12,29 @@ import requests as _requests_lib
 _ROUTES_DIR = os.path.dirname(os.path.abspath(__file__))
 PENDIENTES_PATH = os.path.join(_ROUTES_DIR, "data", "preguntas_pendientes_preventa.json")
 
+#: Permisos que exige el guard de contabilidad, por grupo (ver
+#: `_permisos_exigidos_para` en `register_routes`). Vive a nivel de módulo, y no
+#: dentro de la función, para que sea legible desde fuera: el QA del panel
+#: (`desktop/scripts/qa-panel-access.mjs`) comprueba que **cada clave tenga
+#: casilla en Gestión de usuarios**. Si el backend exige un permiso que la UI no
+#: sabe otorgar, el endpoint queda cerrado para siempre — nadie puede conceder
+#: lo que no aparece. Los grupos replican `desktop/src/lib/contabilidadAccess.ts`.
+PERMISOS_CONTABILIDAD = {
+    # Catálogos que todos los paneles contables leen (plan de cuentas, terceros,
+    # medios de pago). El wizard de pagos también los necesita: TerceroSelect
+    # crea terceros desde ahí.
+    "referencia": ("libro-mayor", "prestamos", "socios", "pagos"),
+    # Asientos, balances, extractos, créditos: el corazón del Libro Mayor.
+    # Préstamos y Socios leen esos mismos movimientos en sus propios paneles.
+    "libro": ("libro-mayor", "prestamos", "socios"),
+    # Préstamos de terceros: cédula, correo, cuenta bancaria y saldos.
+    "prestamos": ("prestamos", "libro-mayor"),
+    # Cuenta corriente de cada socio con la empresa.
+    "socios": ("socios", "libro-mayor", "prestamos"),
+    # Solicitar y aprobar pagos mueve plata y crea asientos.
+    "pagos": ("pagos", "libro-mayor"),
+}
+
 
 def _normalizar_comando_grupo(texto: str) -> str:
     """Normaliza comandos que WhatsApp puede entregar con markdown o espacios raros."""
@@ -3654,18 +3677,10 @@ def register_routes(app):
     # bajo /api/contabilidad/ nace protegida en vez de nacer abierta. Los grupos
     # replican exactamente lo que el panel exige para abrir cada sección.
 
-    #: Catálogos que TODOS los paneles contables leen (plan de cuentas, terceros,
-    #: medios de pago). El wizard de pagos también los necesita — TerceroSelect
-    #: crea terceros desde ahí — así que `pagos` entra en este grupo y no en los
-    #: demás.
-    _PERM_CC_REFERENCIA = ("libro-mayor", "prestamos", "socios", "pagos")
-    #: Asientos, balances, extractos, créditos: el corazón del Libro Mayor.
-    #: Préstamos y Socios leen los mismos movimientos en sus propios paneles.
-    _PERM_CC_LIBRO = ("libro-mayor", "prestamos", "socios")
-    #: Préstamos de terceros: cédula, correo, cuenta bancaria y saldos.
-    _PERM_CC_PRESTAMOS = ("prestamos", "libro-mayor")
-    #: Cuenta corriente de cada socio con la empresa.
-    _PERM_CC_SOCIOS = ("socios", "libro-mayor", "prestamos")
+    _PERM_CC_REFERENCIA = PERMISOS_CONTABILIDAD["referencia"]
+    _PERM_CC_LIBRO = PERMISOS_CONTABILIDAD["libro"]
+    _PERM_CC_PRESTAMOS = PERMISOS_CONTABILIDAD["prestamos"]
+    _PERM_CC_SOCIOS = PERMISOS_CONTABILIDAD["socios"]
 
     def _permisos_exigidos_para(path: str):
         """(permisos, etiqueta) para esa ruta, o None si no se controla acá."""
@@ -3680,7 +3695,7 @@ def register_routes(app):
         ):
             return None
         if path.startswith("/api/pagos/"):
-            return ("pagos", "libro-mayor"), "Solicitudes de pago"
+            return PERMISOS_CONTABILIDAD["pagos"], "Solicitudes de pago"
         if path.startswith("/api/prestamos"):
             return _PERM_CC_PRESTAMOS, "Préstamos"
         # Cuenta del socio con la empresa: vive bajo /cc/ pero es del socio.
@@ -11208,7 +11223,7 @@ def register_routes(app):
             if int((u.get("rol") or {}).get("nivel") or 0) >= 3:
                 return True
         permisos = u.get("permisos_secciones") or {}
-        return bool(permisos.get("pagos") or permisos.get("libro-mayor"))
+        return any(bool(permisos.get(k)) for k in PERMISOS_CONTABILIDAD["pagos"])
 
     def _pagos_rechazo():
         """None si puede entrar; si no, la respuesta 401/403 lista para devolver."""

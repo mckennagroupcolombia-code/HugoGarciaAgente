@@ -58,10 +58,8 @@ import {
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
-import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
-import { puedeVerModuloLogistica } from "./lib/logisticaAccess";
-import { esAdminPanel } from "./lib/adminAccess";
-import { puedeVerGuiasEnvio } from "./lib/panelAccess";
+import { esPanelContabilidad } from "./lib/contabilidadAccess";
+import { puedeVerSeccionPanel } from "./lib/panelAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -282,28 +280,17 @@ function AppLoginView({
 const NAV_ORDER: Panel[] = NAV_PANEL_ORDER;
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  // "perfil" no es una sección con permiso: es la ficha del propio usuario.
   if (panel === "perfil") return true;
-  const logistica = puedeVerModuloLogistica(user, panel);
-  if (logistica !== null) return logistica;
-  const contab = puedeVerModuloContabilidad(user, panel);
-  if (contab !== null) return contab;
-  if (panel === "etiquetas") return true;
-  if (panel === "empaque") return true;
-  // Rótulos de envío: los hace quien despacha (pedidos/empaque). Regla
-  // compartida con el menú (lib/panelAccess) para que no diverjan.
-  if (panel === "guias-envio") return puedeVerGuiasEnvio(user);
-  if (panel === "hugo" || panel === "tickets") {
-    if (esAdminPanel(user)) return true;
-    const p = user.permisos_secciones;
-    if (!p) return true;
-    return Boolean(p.tickets);
-  }
-  if (esAdminPanel(user)) return true;
-  const p = user.permisos_secciones;
-  if (!p) return panel === "settings";
-  if (panel === "postventa" && p.preventa) return true;
-  if (panel === "vitrina-web" && p.publicaciones) return true;
-  return Boolean(p[panel]);
+  // Fuente de verdad ÚNICA con el menú (lib/panelAccess). No duplicar la
+  // escalera de permisos acá: si divergen, un panel que el menú muestra rebota
+  // al abrirse — y como HubNavTabs guarda el último subpanel visitado del hub
+  // (guardarUltimoPanelHub), el hub COMPLETO queda inaccesible desde el
+  // launcher. Pasó con "Correo Ventas" (ventas-email, heredado de `preventa`
+  // solo en panelAccess): al usuario jerry se le cerró toda la sección
+  // Atención — preventa, postventa, pedidos web, empaque, guías y agente WA —
+  // aunque tenía los permisos.
+  return puedeVerSeccionPanel(user, panel);
 }
 
 const OAUTH_BOOTSTRAP_MS = 4000;

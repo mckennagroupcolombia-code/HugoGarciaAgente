@@ -10,7 +10,8 @@
     "qa:smoke": "npm run build && node scripts/qa-smoke.mjs",
     "qa:alegra-nombre": "node scripts/qa-alegra-nombre.mjs",
     "qa:behavior": "node scripts/qa-behavior.mjs",
-    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior"
+    "qa:panel-access": "node scripts/qa-panel-access.mjs",
+    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior && npm run qa:panel-access"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.75.0",

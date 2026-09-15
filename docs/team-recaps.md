@@ -1,3 +1,16 @@
+### 2026-09-15 13:10 - Las casillas de permisos ya se pueden dar desde Gestión de usuarios, y no vuelven a quedarse cortas
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (cierre del ciclo permisos ↔ UI ↔ backend)
+- **Qué se implementó:**
+  - **El problema de fondo:** la lista de casillas de «Accesos al panel» estaba escrita a mano y ofrecía **22 de los 48 permisos** que el código honra. Faltaban justo los que hacían falta hoy —`pagos` (Solicitudes de pago), `prestamos`, `socios`, `conciliacion-contador`, `whatsapp` (Agente WA), `guias-envio`—: el permiso existía en el código y en la base, pero **no había forma de otorgarlo desde el panel**. Un operario como Jenniffer no podía recibir Solicitudes de pago aunque se quisiera.
+  - **Las casillas ahora se derivan, no se escriben** (`desktop/src/lib/permisosCatalogo.ts`): salen de `NAV_SECTIONS` —las secciones reales del menú— y cada clave se **verifica contra `puedeVerSeccionPanel`** antes de ofrecerse, así que marcarla abre de verdad ese panel. Un apartado nuevo aparece como casilla sin que nadie se acuerde de agregarlo. Se agrupan como el menú, con la nota de qué hereda cada permiso, y las claves guardadas que ya no controlan nada se listan aparte en vez de desaparecer sin avisar.
+  - **`App.tsx` dejó de tener su propia escalera de permisos** y delega en `panelAccess`. Tenerla por duplicado ya había costado caro: «Correo Ventas» se heredaba de `preventa` solo en el menú, así que el panel aparecía y rebotaba al abrirse — y como el hub recuerda el último subpanel visitado, **a Jenniffer se le cerró toda la sección Atención** teniendo los permisos.
+  - **El backend entra al mismo circuito.** Los grupos del guard de contabilidad salieron a `PERMISOS_CONTABILIDAD`, a nivel de módulo en `app/routes.py`, y el QA comprueba que **cada clave que el backend exige tenga casilla en Gestión de usuarios**. Sin eso, proteger un endpoint con un permiso que la UI no sabe dar lo deja cerrado para siempre: es el mismo error de antes, visto desde el otro lado.
+  - **Y esto ya no depende de que alguien se acuerde:** `desktop/scripts/qa-panel-access.mjs` corre ahora dentro de `pytest` (`tests/test_qa_panel_access.py`) además de `npm run qa:panel-access`. Comprobado a propósito con un permiso inventado en el guard: la suite falla nombrándolo.
+  - **Verificado de punta a punta, en vivo:** con Jenniffer en 403 sobre Solicitudes de pago, se marcó su casilla desde la API de administración → pasa a **200** en el wizard y en los catálogos que necesita, y **sigue en 403** en Libro Mayor y Préstamos. Al desmarcarla, vuelve a 403. 158 tests en verde.
+- **Archivos Modificados:** `desktop/src/lib/permisosCatalogo.ts` (nuevo), `desktop/src/components/TicketsPanel.tsx`, `desktop/src/App.tsx`, `desktop/scripts/qa-panel-access.mjs` (nuevo), `desktop/package.json`, `app/routes.py`, `tests/test_qa_panel_access.py` (nuevo), `docs/team-recaps.md`
+
 ### 2026-09-15 12:20 - El guard de permisos se extendió a todo el hub Contabilidad
 
 - **Autor:** Armando García

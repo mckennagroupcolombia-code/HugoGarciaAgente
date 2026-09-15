@@ -43,6 +43,7 @@ import {
 import MaterialCalculadora from "./MaterialCalculadora";
 import PlacasConcretoModal from "./PlacasConcretoModal";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
+import { catalogoPermisos, permisosDesconocidos } from "../lib/permisosCatalogo";
 import {
   esSolicitudEtiqueta,
   irAImprimirDesdeSolicitud,
@@ -3354,7 +3355,7 @@ function uidEq(a: number | null | undefined, b: number | null | undefined): bool
 }
 
 /** Solicitud delegada solo para ir de compras (checklist); no va en pestaña Acciones. */
-function esSolicitudCompraDelegada(t: Ticket): boolean {
+export function esSolicitudCompraDelegada(t: Ticket): boolean {
   if ((t.subtipo || "").trim() === "compra") return true;
   const tit = (t.titulo || "").trim().toLowerCase();
   if (tit.startsWith("compras:") && (t.ticket_padre_id || (t.tipo || "") === "solicitud")) return true;
@@ -6475,70 +6476,61 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                 )}
                 {/* Accesos al panel — solo admin editando otro usuario */}
                 {editItem && nivel >= 3 && (() => {
-                  const SECCIONES: { id: string; label: string }[] = [
-                    { id: "dashboard", label: "Dashboard" },
-                    { id: "chat",      label: "Chat IA" },
-                    { id: "voz",       label: "Voz IA" },
-                    { id: "webchat",   label: "Chat web" },
-                    { id: "preventa",  label: "Preventa MeLi" },
-                    { id: "stock",     label: "Stock" },
-                    { id: "control-inventario", label: "Control de Inventario" },
-                    { id: "fichas",    label: "Fichas técnicas" },
-                    { id: "publicaciones", label: "Publicaciones" },
-                    { id: "pedidos",   label: "Pedidos Web" },
-                    { id: "empaque",   label: "Empaque · Evidencia" },
-                    { id: "logistica-internacional", label: "Logística Internacional" },
-                    { id: "etiquetas", label: "Impresora · Etiquetas" },
-                    { id: "tickets",   label: "Agenda" },
-                  ];
-                  const SECCIONES_CONTABILIDAD: { id: string; label: string }[] = [
-                    { id: "facturas",      label: "Facturas de compra" },
-                    { id: "sync",          label: "Sincronización" },
-                    { id: "rentabilidad",  label: "Rentabilidad (con Facturas/Sync)" },
-                    { id: "libro-mayor", label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos (permiso propio, no heredado)" },
-                    { id: "compras-exterior", label: "Compras exterior (con Facturas/Sync/Rentabilidad)" },
-                    { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería" },
-                    { id: "rrhh",          label: "RRHH · Compensaciones" },
-                    { id: "impuestos",     label: "Pagos de impuestos" },
-                    { id: "servicios",     label: "Servicios" },
-                    { id: "mensajeria",    label: "Pagos de mensajería / envíos" },
-                  ];
+                  // Las casillas salen de `catalogoPermisos()` — derivado de las
+                  // secciones reales del menú y verificado contra la función que
+                  // decide el acceso. No volver a escribir la lista a mano: la
+                  // anterior listaba 22 de los 48 permisos que el código honra, y
+                  // no había forma de otorgar Solicitudes de pago, Préstamos,
+                  // Socios, Conciliación contador, Agente WA ni Guías de envío.
+                  const grupos = catalogoPermisos();
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;
                   if (editRolNivel >= 3) return null; // admin siempre tiene todo
+                  const legado = permisosDesconocidos(permisos);
                   function toggleSeccion(id: string) {
                     setForm({ ...form, permisos_secciones: { ...permisos, [id]: !permisos[id] } });
                   }
                   return (
                     <div className="rounded-paper border border-border p-3">
                       <p className="mb-2 text-xs font-bold text-muted uppercase tracking-wide">Accesos al panel</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {SECCIONES.map((s) => (
-                          <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(permisos[s.id])}
-                              onChange={() => toggleSeccion(s.id)}
-                              className="h-3.5 w-3.5 accent-accent"
-                            />
-                            {s.label}
-                          </label>
+                      <p className="mb-2 text-[10px] leading-snug text-muted">
+                        Etiquetas, Empaque y Ajustes están abiertos para todo el equipo: no llevan casilla.
+                      </p>
+                      <div className="space-y-2.5">
+                        {grupos.map((grupo) => (
+                          <div key={grupo.id}>
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">{grupo.label}</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {grupo.permisos.map((s) => (
+                                <label
+                                  key={s.id}
+                                  title={s.nota ? `${s.label} — ${s.nota}` : s.label}
+                                  className="flex cursor-pointer items-start gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(permisos[s.id])}
+                                    onChange={() => toggleSeccion(s.id)}
+                                    className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-accent"
+                                  />
+                                  <span className="min-w-0">
+                                    {s.label}
+                                    {s.nota && (
+                                      <span className="block text-[10px] font-normal leading-tight text-muted">{s.nota}</span>
+                                    )}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      <p className="mb-1 mt-2 text-[10px] font-bold uppercase tracking-wide text-muted">Contabilidad</p>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {SECCIONES_CONTABILIDAD.map((s) => (
-                          <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(permisos[s.id])}
-                              onChange={() => toggleSeccion(s.id)}
-                              className="h-3.5 w-3.5 accent-accent"
-                            />
-                            {s.label}
-                          </label>
-                        ))}
-                      </div>
+                      {legado.length > 0 && (
+                        <p className="mt-2 text-[10px] leading-snug text-muted">
+                          Permisos guardados que ya no corresponden a ninguna sección:{" "}
+                          <span className="font-mono">{legado.join(", ")}</span>. Se conservan tal cual; desmárcalos si ya no aplican.
+                        </p>
+                      )}
                     </div>
                   );
                 })()}
@@ -13127,6 +13119,8 @@ function SolicitudListaChecklist({
   const [facturaFile, setFacturaFile] = useState<File | null>(null);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoCantidad, setNuevoCantidad] = useState("1");
+  const [motivoPara, setMotivoPara] = useState<number | null>(null);
+  const [motivoTexto, setMotivoTexto] = useState("");
   const [estadoLocal, setEstadoLocal] = useState(ticket.estado);
   const [faseLogro, setFaseLogro] = useState(false);
   const resolviendoRef = useRef(false);
@@ -13135,7 +13129,12 @@ function SolicitudListaChecklist({
   const puedeOperar = esAsignado && !supervision;
   const resuelta = estadoLocal === "resuelto" || estadoLocal === "rechazado";
   const itemsActivos = items.filter((i) => i.nombre.trim());
-  const todosMarcados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
+  // Un ítem queda resuelto de dos formas: comprado, o "no se consiguió" con el
+  // motivo escrito. Sin la segunda, un producto agotado dejaba la solicitud
+  // imposible de cerrar y el asignado no tenía dónde explicar qué pasó.
+  const itemResuelto = (i: ItemCompra) => !!i.comprado || !!i.no_conseguido;
+  const todosMarcados = itemsActivos.length > 0 && itemsActivos.every(itemResuelto);
+  const noConseguidos = itemsActivos.filter((i) => !i.comprado && !!i.no_conseguido);
   const tieneProductos = itemsActivos.length > 0;
   const comentarioPedido = extraerComentarioPedido(ticket.descripcion || "");
 
@@ -13206,6 +13205,36 @@ function SolicitudListaChecklist({
     } catch { /* ignore */ }
   }
 
+  async function guardarNoConseguido(item: ItemCompra) {
+    const motivo = motivoTexto.trim();
+    if (!puedeOperar || resuelta || !motivo) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await asegurarEnProceso();
+      const data = await tapi(`/lista-compras/${item.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ no_conseguido: 1, motivo_no_compra: motivo }),
+      });
+      setItems(Array.isArray(data) ? mapItemsCompra(data) : items);
+      setMotivoPara(null);
+      setMotivoTexto("");
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo guardar el motivo");
+    } finally { setBusy(false); }
+  }
+
+  async function deshacerNoConseguido(item: ItemCompra) {
+    if (!puedeOperar || resuelta) return;
+    try {
+      const data = await tapi(`/lista-compras/${item.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ no_conseguido: 0 }),
+      });
+      setItems(Array.isArray(data) ? mapItemsCompra(data) : items);
+    } catch { /* ignore */ }
+  }
+
   async function agregarItem() {
     const nombre = nuevoNombre.trim();
     if (!nombre || !puedeOperar || resuelta) return;
@@ -13246,19 +13275,25 @@ function SolicitudListaChecklist({
       }
       const nombre = user.nombre || "Operador";
       const n = itemsActivos.length;
-      const textoComentario = esEtiqueta
+      // Lo que no se consiguió tiene que quedar escrito en el hilo: es lo único
+      // que le dice a quien pidió la compra qué sigue pendiente y por qué.
+      const detallePendientes = noConseguidos.length
+        ? "\n" + (esEtiqueta ? "No se imprimió:" : "No se consiguió:") + "\n"
+          + noConseguidos.map((i) => `• ${i.nombre} — ${i.motivo_no_compra || "sin motivo"}`).join("\n")
+        : "";
+      const textoComentario = (esEtiqueta
         ? `✅ Pedido de etiquetas completado por ${nombre} (${n} ítem${n !== 1 ? "s" : ""}).`
         : facturaFile
           ? `✅ Compras terminadas por ${nombre} — factura adjunta.`
-          : `✅ Compras terminadas por ${nombre}.`;
+          : `✅ Compras terminadas por ${nombre}.`) + detallePendientes;
       await tapi(`/${ticket.id}/comentarios`, token, {
         method: "POST",
         body: JSON.stringify({ texto: textoComentario, es_interno: false }),
       });
       if (ticket.ticket_padre_id) {
-        const padreTxt = esEtiqueta
+        const padreTxt = (esEtiqueta
           ? `🏷️ **Etiquetas listas** (${ticket.numero})\nPor: ${nombre}`
-          : `🛒 **Compras delegadas listas** (${ticket.numero})\nPor: ${nombre}`;
+          : `🛒 **Compras delegadas listas** (${ticket.numero})\nPor: ${nombre}`) + detallePendientes;
         await tapi(`/${ticket.ticket_padre_id}/comentarios`, token, {
           method: "POST",
           body: JSON.stringify({ texto: padreTxt, es_interno: false }),
@@ -13365,28 +13400,90 @@ function SolicitudListaChecklist({
           </button>
         </div>
       )}
-      {!loading && tieneProductos && itemsActivos.map((it) => (
-        <button
-          key={it.id}
-          type="button"
-          disabled={resuelta || !puedeOperar}
-          onClick={() => void toggleItem(it)}
-          className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition
-            ${it.comprado ? "border-accent bg-accent/10" : "border-border bg-surface-panel hover:border-accent/40"}
-            disabled:opacity-60`}
-        >
-          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold
-            ${it.comprado ? "border-accent bg-accent text-white" : "border-border text-muted"}`}>
-            {it.comprado ? "✓" : ""}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className={`text-sm font-bold ${it.comprado ? "text-accent line-through" : "text-ink"}`}>
-              {it.nombre}
-            </p>
-            {fmtItem(it) && <p className="text-xs text-muted">{fmtItem(it)}</p>}
+      {!loading && tieneProductos && itemsActivos.map((it) => {
+        const sinConseguir = !it.comprado && !!it.no_conseguido;
+        const editandoMotivo = motivoPara === it.id;
+        return (
+          <div key={it.id} className="space-y-1">
+            <div
+              className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition
+                ${it.comprado
+                  ? "border-accent bg-accent/10"
+                  : sinConseguir
+                    ? "border-amber-500/60 bg-amber-500/10"
+                    : "border-border bg-surface-panel"}`}
+            >
+              <button
+                type="button"
+                disabled={resuelta || !puedeOperar}
+                onClick={() => void toggleItem(it)}
+                title={it.comprado ? "Desmarcar" : "Marcar como comprado"}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold transition
+                  ${it.comprado ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent"}
+                  disabled:opacity-60`}
+              >
+                {it.comprado ? "✓" : ""}
+              </button>
+              <button
+                type="button"
+                disabled={resuelta || !puedeOperar}
+                onClick={() => void toggleItem(it)}
+                className="min-w-0 flex-1 text-left disabled:opacity-60"
+              >
+                <p className={`text-sm font-bold ${it.comprado ? "text-accent line-through" : "text-ink"}`}>
+                  {it.nombre}
+                </p>
+                {fmtItem(it) && <p className="text-xs text-muted">{fmtItem(it)}</p>}
+                {sinConseguir && it.motivo_no_compra && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {esEtiqueta ? "No se imprimió" : "No se compró"}: {it.motivo_no_compra}
+                  </p>
+                )}
+              </button>
+              {!resuelta && puedeOperar && !it.comprado && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (sinConseguir) { void deshacerNoConseguido(it); return; }
+                    setMotivoPara(editandoMotivo ? null : it.id);
+                    setMotivoTexto(it.motivo_no_compra || "");
+                  }}
+                  className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold transition
+                    ${sinConseguir
+                      ? "border-amber-500 text-amber-600 dark:text-amber-400"
+                      : "border-border text-muted hover:border-amber-500 hover:text-amber-600"}`}
+                >
+                  {sinConseguir ? "Deshacer" : esEtiqueta ? "No se imprimió" : "No se consiguió"}
+                </button>
+              )}
+            </div>
+            {editandoMotivo && !sinConseguir && !resuelta && puedeOperar && (
+              <div className="flex gap-2 px-1">
+                <input
+                  type="text"
+                  autoFocus
+                  value={motivoTexto}
+                  onChange={(e) => setMotivoTexto(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && motivoTexto.trim()) { e.preventDefault(); void guardarNoConseguido(it); }
+                    if (e.key === "Escape") { setMotivoPara(null); setMotivoTexto(""); }
+                  }}
+                  placeholder="¿Por qué no se pudo? (agotado, muy caro, no lo tenían…)"
+                  className="flex-1 rounded-xl border-2 border-amber-500/60 bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  disabled={busy || !motivoTexto.trim()}
+                  onClick={() => void guardarNoConseguido(it)}
+                  className="rounded-xl border-2 border-amber-500 px-3 py-2 text-xs font-bold text-amber-600 disabled:opacity-40"
+                >
+                  Guardar
+                </button>
+              </div>
+            )}
           </div>
-        </button>
-      ))}
+        );
+      })}
 
       {!resuelta && puedeOperar && (
         <div className="space-y-2">
@@ -13429,7 +13526,7 @@ function SolicitudListaChecklist({
           <p className="text-[10px] text-center text-muted">
             {esEtiqueta
               ? "Espacio o Enter agrega el ítem · indica cuántas etiquetas imprimir"
-              : "Espacio o Enter agrega un ítem · marca todo y confirma con el botón de abajo"}
+              : "Espacio o Enter agrega un ítem · marca lo comprado y, lo que no conseguiste, con “No se consiguió” y el motivo"}
           </p>
           {!esEtiqueta && tieneProductos && (
             <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition
@@ -13461,7 +13558,11 @@ function SolicitudListaChecklist({
               onClick={() => void resolverLista()}
               className="w-full rounded-2xl bg-accent py-3.5 text-base font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
             >
-              {busy ? "Cerrando solicitud…" : "✅ Todo listo — cerrar solicitud"}
+              {busy
+                ? "Cerrando solicitud…"
+                : noConseguidos.length
+                  ? `✅ Cerrar solicitud (${noConseguidos.length} sin conseguir)`
+                  : "✅ Todo listo — cerrar solicitud"}
             </button>
           )}
           {esEtiqueta && puedeVerSeccionPanel(user, "etiquetas") && (
@@ -13492,7 +13593,7 @@ function SolicitudListaChecklist({
   );
 }
 
-function SolicitudCompraChecklist(props: Omit<React.ComponentProps<typeof SolicitudListaChecklist>, "variant">) {
+export function SolicitudCompraChecklist(props: Omit<React.ComponentProps<typeof SolicitudListaChecklist>, "variant">) {
   return <SolicitudListaChecklist {...props} variant="compra" />;
 }
 
@@ -13567,6 +13668,8 @@ interface ItemCompra {
   unidad: string;
   precio_estimado: number | null;
   comprado: number;
+  no_conseguido?: number | null;
+  motivo_no_compra?: string | null;
   notas: string | null;
   creado_por_nombre: string | null;
   material_nombre: string | null;
@@ -16033,6 +16136,11 @@ function SolicitudCard({
                     <span className="ml-1 text-muted">{item.cantidad} {item.unidad}</span>
                     {item.precio_estimado && <span className="ml-1 text-muted">${item.precio_estimado.toLocaleString("es-CO")}</span>}
                     {item.notas && <p className="text-[10px] text-muted">{item.notas}</p>}
+                    {!item.comprado && !!item.no_conseguido && (
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                        No se compró: {item.motivo_no_compra || "sin motivo"}
+                      </p>
+                    )}
                   </div>
                   {!supervision && (
                     <button type="button" onClick={() => void eliminarCompra(item.id)}
