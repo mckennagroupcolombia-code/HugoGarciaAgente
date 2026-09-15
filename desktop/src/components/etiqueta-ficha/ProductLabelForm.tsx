@@ -136,6 +136,13 @@ const MARCO_MAX_ANCHO = ANCHO_DISENO;
  *  las tres filas miden lo mismo aunque una tenga 1 renglón y otra 3, y solo
  *  crecen pasados los 3. */
 const FILAS_CUERPO = "repeat(3, minmax(160px, auto))";
+/** Con un formato elegido el lienzo mide al menos el alto del marco, así que
+ *  las tres filas se reparten a partes iguales lo que sobra tras cabecera,
+ *  código de barras y pie — normalmente más que los 160 px mínimos de
+ *  `FILAS_CUERPO`. El mínimo es `min-content` y no 0: la fila reparte el
+ *  sobrante pero nunca queda por debajo de lo que su texto necesita, así no
+ *  se recorta ningún renglón cuando el contenido es largo. */
+const FILAS_CUERPO_REPARTIDAS = "repeat(3, minmax(min-content, 1fr))";
 
 export interface EntradaFormularioEtiqueta {
   /** Abrir una plantilla o etiqueta guardada por su id. */
@@ -1011,16 +1018,26 @@ function ProductLabelFormInner({
     descargarBlob(previa.blob, nombreArchivoPng());
   };
 
+  // Alto exacto del marco del formato (mismo cálculo que `marco`, pero hace
+  // falta ANTES de maquetar la ficha): el lienzo se fija a esa medida y las
+  // filas del cuerpo se reparten el alto sobrante, así la etiqueta llena el
+  // marco en vez de quedarse corta —hueco abajo— o pasarse y dibujarse
+  // escalada, que dejaba una banda vacía a la derecha.
+  const altoMarcoFicha =
+    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !esSimple && !esCircular
+      ? MARCO_MAX_ANCHO / (tipo.ancho_mm / tipo.alto_mm)
+      : undefined;
+
   const ficha = (
     <div
       ref={fichaRef}
       lang="es"
       className="relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white text-[#111111] shadow-none"
-      style={{ width: ANCHO_DISENO, ...variablesAcento(data.accentColor) }}
+      style={{ width: ANCHO_DISENO, minHeight: altoMarcoFicha, ...variablesAcento(data.accentColor) }}
     >
       {showGrid && <div className="pointer-events-none absolute inset-0" style={PATRON_RETICULA} />}
 
-      <div className="relative">
+      <div className={altoMarcoFicha ? "relative flex h-full flex-col" : "relative"}>
         {/* 1-2. Cabecera */}
         <ProductHeader
           data={data}
@@ -1030,8 +1047,10 @@ function ProductLabelFormInner({
 
         {/* 4. Cuerpo principal + 7. columna derecha */}
         <div
-          className={`${RETICULA_MAESTRA} border-t-[1.5px] border-[color:var(--acento)]`}
-          style={{ gridTemplateRows: FILAS_CUERPO }}
+          className={`${RETICULA_MAESTRA} border-t-[1.5px] border-[color:var(--acento)]${
+            altoMarcoFicha ? " min-h-0 flex-1" : ""
+          }`}
+          style={{ gridTemplateRows: altoMarcoFicha ? FILAS_CUERPO_REPARTIDAS : FILAS_CUERPO }}
         >
           <ProductAttributeGrid
             data={data}

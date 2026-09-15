@@ -2994,3 +2994,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Sin cambios de código. Respaldos de los dos YAML en `/tmp/glicerina_cierre_20260915_1339/`, fuera del repo.
   - **Nota:** si aparecen más productos con ficha parcial + completo, el síntoma se repite. El aviso de candidatas añadido en `e6f7c1a` lo hace visible en el mensaje de enlace.
 - **Archivos Modificados:** `fichas_word/datos/ft_coa_sds_glicerina.yaml`, `fichas_word/datos_archivados/glicerina_vegetal.yaml` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - La ficha de etiqueta llena el marco del formato
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → ficha 76×66)
+- **Qué se implementó:**
+  - Síntoma: al cargar el SKU la etiqueta "se comprimía" y quedaba una banda lateral vacía.
+  - Causa: la ficha se maqueta a `ANCHO_DISENO = 960` con alto libre, y `marco.escala = Math.min(1, alto / altoDiseno)` la dibujaba escalada entera cuando el contenido crecía más que el marco. Con las filas en `minmax(160px, auto)`, los textos largos del SKU hacían crecer `altoDiseno` y la escala caía (76×66 → marco de 960×834; a ~1000 px de contenido, escala ≈ 0.83, banda de ~160 px). Y como el lienzo se ancla `absolute left-0 top-0` con `transformOrigin: "top left"`, la banda quedaba toda junta a la derecha y abajo en vez de repartida.
+  - Arreglo: nuevo `altoMarcoFicha` (mismo cálculo que `marco`, pero disponible antes de maquetar). El lienzo lleva `minHeight: altoMarcoFicha`, el contenedor pasa a `flex h-full flex-col` y el cuerpo a `min-h-0 flex-1` con `FILAS_CUERPO_REPARTIDAS = "repeat(3, minmax(min-content, 1fr))"`. Cabecera, código de barras y pie conservan su alto natural; las tres filas de atributos se reparten el resto, así la ficha mide exactamente el marco y no queda hueco.
+  - `minHeight` y no `height`, y `min-content` y no `0`, a propósito: si algún contenido llegara a pasarse del marco, la ficha crece y `marco.escala` la dibuja completa como hasta ahora, en vez de que el `overflow-hidden` del lienzo recorte un renglón de la etiqueta.
+  - Los formatos 30 mL, 69×51 y circular no se tocan: tienen su propio lienzo y `altoMarcoFicha` queda `undefined` para ellos, igual que cuando no hay formato elegido (ahí sigue el `FILAS_CUERPO` de siempre).
+  - **Sin verificar visualmente:** `bot.mckennagroup.co/app` pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`, pero el encuadre lo tiene que revisar el usuario.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
