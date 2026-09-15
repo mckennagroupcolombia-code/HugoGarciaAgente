@@ -1,5 +1,5 @@
 /**
- * Formato 38 × 102 mm vertical ("Vertical 38"): etiqueta alta y estrecha
+ * Formato 38 × 102 mm vertical ("38x102"): etiqueta alta y estrecha
  * para frascos de Aceites & Grasas. Siete bloques apilados cuyas alturas en
  * milímetros suman exactamente el alto de la etiqueta, así que no hay
  * sobrante ni recorte: la retícula los reparte en píxeles a escala fija.
@@ -17,7 +17,7 @@ export function esFormatoVertical(
   tipoNombre?: string | null,
   medidas?: { ancho_mm?: number; alto_mm?: number } | null,
 ): boolean {
-  if (/^vertical\s*38$/i.test((tipoNombre || "").trim())) return true;
+  if (/^38\s*[x\u00d7]\s*102$/i.test((tipoNombre || "").trim())) return true;
   return sonMedidas(medidas, MEDIDAS_VERTICAL_POR_DEFECTO);
 }
 

@@ -3101,3 +3101,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - De paso: los textos de ayuda de este formato y del Vertical 38 tenían escapes `\uXXXX` en texto JSX plano, donde no los interpreta nadie y salían literales en pantalla ("matriz t\u00e9cnica"). Convertidos a carácter real.
   - **Falta:** crear la plantilla de la categoría Aceites Esenciales con este formato, desde Studio → Categorías → Nueva plantilla (el logo y el color de la categoría los elige el usuario).
 - **Archivos Modificados:** `desktop/src/components/etiqueta-5ml/` (3 archivos nuevos), `desktop/src/components/etiqueta-30ml/TechnicalCell.tsx`, `ContactFooter.tsx`, `etiqueta30ml.css`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-09-15 - El formato 38×102 pasa a llamarse por su tamaño y su plantilla va a Aceites Esenciales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas)
+- **Qué se implementó:**
+  - Corrección del recap anterior: la plantilla va en **`aceites-esenciales`** (Aceites Esenciales), no en `aceites`. No hubo nada que mover: la plantilla estaba pendiente de crear.
+  - El formato se llamaba **"Vertical 38"**, incumpliendo la regla de que los formatos nuevos toman como nombre su tamaño (ver [[formatos-por-tamano]]). Renombrado a **`38x102`** en `app/data/etiquetas_tipos.json`, y `esFormatoVertical` ajustada a ese nombre. La detección por medidas (38 × 102 mm) ya funcionaba sola, así que el formato se reconoce aunque se lo vuelva a renombrar.
+  - Creada la plantilla **«Plantilla de Aceites Esenciales 38×102 mm»** (id `276fa3d3d001`) en `app/data/etiquetas_fichas.json`, clonando el **diseño** de la plantilla de 5 mL de esa misma categoría — logo, acento, contacto, web y documentos técnicos — y dejando en blanco todos los datos de producto, incluidos los tres beneficios. Respaldo en `/tmp/etiquetas_fichas.bak_*.json`.
+  - La categoría `aceites-esenciales` queda con dos plantillas: 5 mL (66 × 22 mm) y 38×102 mm.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVerticalTypes.ts`, `app/data/etiquetas_tipos.json`, `app/data/etiquetas_fichas.json` (los dos últimos fuera del repo), `docs/team-recaps.md`
