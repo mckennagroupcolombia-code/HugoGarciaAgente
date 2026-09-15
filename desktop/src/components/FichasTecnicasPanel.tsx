@@ -677,7 +677,8 @@ function CoaTabContent({
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
           <Field label="EINECS" value={einces} onChange={setEinces} />
-          <Field label="Concentración" value={concentracion} onChange={setConcentracion} />
+          <Field label="Pureza" value={concentracion} onChange={setConcentracion}
+            placeholder="Ej. ≥ 99 %, 98.5 ~ 101.0 %" />
           <Field label="Presentación" value={presentacion} onChange={setPresentacion} />
           <Field label="Incluye" value={incluye} onChange={setIncluye} />
         </div>

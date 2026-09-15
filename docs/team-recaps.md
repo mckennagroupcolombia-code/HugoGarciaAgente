@@ -3033,3 +3033,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
   - **Nota:** el motor SVG (`app/tools/etiquetas_svg_engine.py:169`) tiene su propio texto por defecto "Incluye cuchara medidora." y ya admite `texto_cuchara` personalizado; es otra ruta de generación y no se tocó.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/lib/ortografiaEtiqueta.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - La Pureza no se veía en el documento completo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Fichas técnicas)
+- **Qué se implementó:**
+  - La casilla de Pureza añadida en `47e6926` solo se veía en la **FT sola**. `FichaTecnicaForm` se monta dos veces: en `FichasTecnicasPanel.tsx:460` completa, y en `:2360` con `hideIdentificacion` para el **documento completo FT+COA+SDS**, donde la identificación es compartida por las tres secciones. La casilla nueva cayó dentro de ese bloque oculto.
+  - En la identificación compartida el campo ya existía, pero rotulado **"Concentración"** (`FichasTecnicasPanel.tsx:680`) y dentro del bloque del COA, así que no se reconocía como la pureza. Renombrado a **"Pureza"**, con ejemplo en el marcador. Se sigue guardando en `_coa.identificacion.concentracion`, que la etiqueta ya leía vía `coaIdent.concentracion`.
+  - `ficha_tecnica.py`: `_contexto_html` leía la pureza solo de `concentracion` top-level, así que lo escrito en la identificación compartida salía en el COA pero **no** en la fila de la FT. Ahora toma también `_coa.identificacion.concentracion`. Verificado: con el dato solo en el COA, `ft.concentracion` devuelve `'99.5 %'`.
+  - **Requiere reiniciar el servicio:** el cambio es Python. `sudo systemctl restart agente-pro` — el clasificador de permisos impide hacerlo desde aquí, lo ejecuta el usuario. El renombrado del rótulo es frontend y ya está desplegado.
+  - **Pendiente análogo:** `grado` tiene el mismo patrón (se edita en la identificación compartida pero el PDF de la FT lo lee solo de top-level). No se tocó para no ampliar el alcance.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/services/ficha_tecnica.py`, `docs/team-recaps.md`

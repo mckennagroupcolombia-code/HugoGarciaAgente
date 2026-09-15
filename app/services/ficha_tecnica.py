@@ -1217,7 +1217,15 @@ def _contexto_html(
     lote = (d.get("lote") or "").strip()
 
     # Info clave normativa/etiqueta (opcional; solo se muestra si viene diligenciada)
-    concentracion = (d.get("concentracion") or "").strip()
+    # La pureza puede venir del campo propio de la FT o de la identificación
+    # compartida del documento completo (FT+COA+SDS), que se guarda bajo
+    # `_coa.identificacion`. Se leen las dos para que la fila salga en la FT
+    # aunque se haya escrito en la identificación de arriba.
+    _coa_ident = ((d.get("_coa") or {}).get("identificacion") or {})
+    concentracion = (
+        (d.get("concentracion") or "").strip()
+        or str(_coa_ident.get("concentracion") or "").strip()
+    )
     grado = (d.get("grado") or "").strip()
     hs_code = (d.get("hs_code") or d.get("codigo_arancelario") or "").strip()
     documento_id = (d.get("documento_id") or "").strip()
