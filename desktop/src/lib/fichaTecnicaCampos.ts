@@ -213,8 +213,13 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     olor: olorRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
     grado,
+    // La casilla es una síntesis de máximo 15 palabras, venga de donde venga:
+    // también se resume lo que una persona escribió en "Conservación y
+    // almacenamiento" (si el resumen sale vacío se respeta su texto tal cual).
     almacenamiento:
-      conservacionFicha
+      (conservacionFicha
+        ? sintetizarConservacion(conservacionFicha) || conservacionFicha
+        : "")
       || (almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : "")
       || FICHA_SIN_DATO,
     // Declaración de alérgenos del formulario FT+COA+SDS ("Contiene: …").
@@ -310,6 +315,38 @@ const CLAVES_CADUCIDAD =
 const COLA_CADUCIDAD = /\s*,?\s*(hasta por|durante|por un per[ií]odo de|por)\s+\d+\s*(meses|años)[^.;]*/gi;
 /** ~3 renglones de 14 px en la celda de la ficha (≈ 45-50 caracteres por renglón). */
 const MAX_CARACTERES_CONSERVACION = 150;
+/** Regla del usuario: la casilla Conservación es una SÍNTESIS concreta, nunca
+ *  el párrafo de la ficha. Tope duro de 15 palabras — lo que cabe leer de un
+ *  vistazo en la etiqueta. */
+export const MAX_PALABRAS_CONSERVACION = 15;
+
+function contarPalabras(t: string): number {
+  return (t.trim().match(/\S+/g) || []).length;
+}
+
+/** Recorta una frase a `max` palabras cortando por cláusulas (comas y punto
+ *  y coma), para que el resultado siga siendo una instrucción completa:
+ *  "Guardar en empaques bien cerrados en un lugar fresco y seco, alejado de
+ *  la luz, el calor y la humedad." → "Guardar en empaques bien cerrados en un
+ *  lugar fresco y seco". Solo si la primera cláusula ya se pasa se corta a
+ *  mitad de cláusula (nunca a mitad de palabra). */
+function recortarAPalabras(frase: string, max: number): string {
+  if (contarPalabras(frase) <= max) return frase;
+  const clausulas = frase.split(/(?<=[,;])\s+/);
+  let out = "";
+  for (const c of clausulas) {
+    const cand = out ? `${out} ${c}` : c;
+    if (contarPalabras(cand) > max) break;
+    out = cand;
+  }
+  if (!out) {
+    const palabras = frase.match(/\S+/g) || [];
+    out = palabras.slice(0, max).join(" ");
+  }
+  const paren = out.lastIndexOf("(");
+  if (paren > 0 && !out.slice(paren).includes(")")) out = out.slice(0, paren);
+  return out.replace(/[,;\s]+$/, "");
+}
 
 function limpiarFrase(f: string): string {
   const sin = f
@@ -327,12 +364,17 @@ function limpiarFrase(f: string): string {
 
 /** Resume el texto de almacenamiento de la ficha técnica a lo esencial de
  *  CÓMO conservar el producto — ambiente, humedad, temperatura, luz,
- *  envase — en no más de ~3 renglones. Se descartan las frases de modo de
- *  uso, caducidad o fecha de fabricación, se quitan las muletillas ("Se
- *  recomienda…") y van primero las frases con verbo de almacenar. Si el
- *  texto no dice nada de conservación (solo modo de uso), devuelve "" para
- *  que el operador lo escriba. */
-export function sintetizarConservacion(texto: string, maxChars = MAX_CARACTERES_CONSERVACION): string {
+ *  envase — en una síntesis concreta de máximo 15 palabras (regla del
+ *  usuario). Se descartan las frases de modo de uso, caducidad o fecha de
+ *  fabricación, se quitan las muletillas ("Se recomienda…") y van primero
+ *  las frases con verbo de almacenar. Si el texto no dice nada de
+ *  conservación (solo modo de uso), devuelve "" para que el operador lo
+ *  escriba. */
+export function sintetizarConservacion(
+  texto: string,
+  maxPalabras = MAX_PALABRAS_CONSERVACION,
+  maxChars = MAX_CARACTERES_CONSERVACION,
+): string {
   const limpio = (texto || "").replace(/\s+/g, " ").trim();
   if (!limpio) return "";
   const frases = limpio
@@ -349,22 +391,20 @@ export function sintetizarConservacion(texto: string, maxChars = MAX_CARACTERES_
   if (candidatas.length === 0) candidatas = frases.filter((f) => CLAVES_ALMACENAR.test(f) && !CLAVES_USO.test(f));
   if (candidatas.length === 0) return "";
 
+  // Se van sumando frases mientras quepan en el tope de palabras; la primera
+  // se recorta por cláusulas si ella sola ya se pasa.
   let out = "";
   for (const f of candidatas) {
     const frase = limpiarFrase(f);
     if (!frase) continue;
-    if (!out) out = frase;
-    else if (`${out} ${frase}`.length <= maxChars) out = `${out} ${frase}`;
-    else break;
-  }
-  if (out.length > maxChars) {
-    // Cortar en la última coma o espacio antes del límite, nunca a mitad
-    // de palabra ni dejando un paréntesis abierto.
-    let corte = out.slice(0, maxChars);
-    const paren = corte.lastIndexOf("(");
-    if (paren > 0 && !corte.slice(paren).includes(")")) corte = corte.slice(0, paren);
-    const idx = Math.max(corte.lastIndexOf(","), corte.lastIndexOf(";"), corte.lastIndexOf(" "));
-    out = corte.slice(0, idx > 40 ? idx : corte.length);
+    if (!out) {
+      out = recortarAPalabras(frase, maxPalabras);
+      if (contarPalabras(out) >= maxPalabras) break;
+    } else {
+      const cand = `${out} ${frase}`;
+      if (contarPalabras(cand) <= maxPalabras && cand.length <= maxChars) out = cand;
+      else break;
+    }
   }
   out = out.replace(/[,;\s]+$/, "");
   if (!out) return "";

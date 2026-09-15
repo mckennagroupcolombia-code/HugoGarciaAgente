@@ -448,6 +448,35 @@ _PROMPT_BASE = (
 # lista multilínea): deben terminar siempre en punto para verse consistentes
 # en la casilla del formulario, sin importar si el valor vino de PubChem o de
 # Gemini (ninguna de las dos fuentes lo garantiza de forma confiable).
+#: La casilla Conservacion de la etiqueta es una sintesis concreta, no un
+#: parrafo: tope de 15 palabras (regla del usuario). El mismo tope vive en
+#: `desktop/src/lib/fichaTecnicaCampos.ts` (MAX_PALABRAS_CONSERVACION).
+MAX_PALABRAS_CONSERVACION = 15
+
+
+def recortar_a_palabras(texto: str, maximo: int = MAX_PALABRAS_CONSERVACION) -> str:
+    """Recorta a `maximo` palabras cortando por clausulas (comas y punto y
+    coma) para que el resultado siga siendo una instruccion completa. Solo si
+    la primera clausula ya se pasa se corta a mitad de clausula, nunca a mitad
+    de palabra."""
+    t = re.sub(r"\s+", " ", (texto or "").strip())
+    if not t or len(t.split(" ")) <= maximo:
+        return t
+    clausulas = re.split(r"(?<=[,;])\s+", t.split(". ")[0] if ". " in t else t)
+    out = ""
+    for c in clausulas:
+        cand = f"{out} {c}".strip()
+        if len(cand.split(" ")) > maximo:
+            break
+        out = cand
+    if not out:
+        out = " ".join(t.split(" ")[:maximo])
+    paren = out.rfind("(")
+    if paren > 0 and ")" not in out[paren:]:
+        out = out[:paren]
+    return out.rstrip(" ,;")
+
+
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
@@ -756,10 +785,14 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "UNA o dos lineas. Sin markdown."
         ),
         "conservacion": (
-            f'Indica las condiciones de conservacion y almacenamiento de "{nombre}".\n'
+            f'Resume las condiciones de conservacion y almacenamiento de "{nombre}".\n'
             f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: temperatura, humedad, luz, tipo de envase y vida util si se conoce.\n"
-            "1-2 oraciones tecnicas en espanol. Sin markdown, sin listas."
+            "Va impreso en la casilla Conservacion de la etiqueta, que es muy pequena.\n"
+            f"Formato OBLIGATORIO: UNA sola oracion de MAXIMO {MAX_PALABRAS_CONSERVACION} palabras, "
+            "empezando por un verbo en infinitivo (Guardar / Almacenar / Conservar / Mantener).\n"
+            "Concreta: envase, lugar y las condiciones que importen (temperatura, humedad, luz).\n"
+            "NADA de vida util, fechas, modo de uso ni advertencias. Sin markdown, sin listas, "
+            "sin preambulo: responde solo la oracion."
         ),
         "sds_clasificacion_ghs": (
             f'Genera la clasificación GHS/CLP de "{nombre}" según el Sistema Globalmente Armonizado (SGA/GHS).\n'
@@ -809,6 +842,10 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         raise ValueError(f"Campo no tiene prompt configurado: {campo}")
 
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    if campo == "conservacion":
+        # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
+        # impone aqui aunque el modelo devuelva un parrafo.
+        valor = recortar_a_palabras(valor)
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":

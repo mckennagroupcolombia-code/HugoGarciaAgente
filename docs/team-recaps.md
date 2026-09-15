@@ -2873,3 +2873,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Ahora, si no hay esa sección, se usa el bloque `recomendaciones` completo (FT y SDS) y `sintetizarConservacion` saca las frases de conservar, descartando modo de uso y caducidad como ya hacía.
   - Verificado contra las 194 fichas de `fichas_word/datos`: la Conservación pasa de 134 a 157 fichas con dato (+23), sin cambiar ninguna de las que ya venía bien.
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - Conservación: síntesis de máximo 15 palabras
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas + Fichas técnicas)
+- **Qué se implementó:**
+  - Regla del usuario: la casilla **Conservación** es una síntesis concreta, nunca el párrafo de la ficha. Tope duro de **15 palabras** en los dos extremos.
+  - Etiqueta (`fichaTecnicaCampos.ts`): `sintetizarConservacion` ahora corta por palabras, no por caracteres, recortando **por cláusulas** para que quede una instrucción completa ("Guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz"). El resumen se aplica también a lo que una persona escribió en "Conservación y almacenamiento" (si el resumen saliera vacío se respeta su texto tal cual).
+  - IA (`documento_cientifico.py`): el prompt de `conservacion` pide UNA oración de máximo 15 palabras que empiece por verbo en infinitivo, concreta (envase, lugar, temperatura/humedad/luz) y sin vida útil, fechas ni modo de uso. `recortar_a_palabras` impone el tope aunque el modelo devuelva un párrafo.
+  - Verificado contra las 194 fichas: 157 con Conservación, **ninguna pasa de 15 palabras**.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `app/services/documento_cientifico.py`, `docs/team-recaps.md`
