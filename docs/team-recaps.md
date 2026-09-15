@@ -2968,3 +2968,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Descartados:** BÓRAX (la única mención es "capacidad para eliminar olores", que describe su función) y `vaselina.yaml` (título roto `titulo: SEGURIDAD`, apariencia vacía, duplicado del completo de vaselina — decidir aparte si se arregla o se archiva).
   - Sin cambios de código. Respaldos de los 13 YAML en `/tmp/aroma_bak_20260915_1324/`, fuera del repo.
 - **Archivos Modificados:** 13 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Las fichas guardadas seguían mostrando la fila "Olor"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Reporte: la casilla de la ficha técnica seguía titulada "Olor". El código ya estaba bien desde `abb62dd` (`ficha_tecnica.py:669` y `:1170`, `FichaTecnicaForm.tsx:766`, `plantillaFichaTecnicaMp.ts:211`), el servicio se reinició a las 13:13:26 y `_contexto_html` devuelve `('Aroma', 'Inodoro.')`.
+  - Causa: **121 de las 193 fichas tenían la fila guardada como `- - Olor` dentro de `propiedades`** en su propio YAML. `normalizar_datos_ficha` la reescribe a "Aroma", pero solo al normalizar o guardar; en disco seguía el título viejo, así que cualquier vista que lea los datos tal cual mostraba "Olor".
+  - Migradas las 121 fichas (122 filas): solo se renombró el **título** de esa fila, nunca su valor. Verificado ficha por ficha que la lista de propiedades conserva longitud, orden y valores, y que el resto de claves del YAML queda idéntico. Quedan 0 filas "Olor" y 127 "Aroma".
+  - No se tocó `- - Olor y sabor neutros` (1 caso): ahí "Olor" es parte de un valor, no un título.
+  - **Fuera de alcance a propósito:** la **SDS** conserva "Olor" en la sección 9 (`fichas_word/plantillas/SDS PLANTILLA.docx`, placeholder `{{PF_OLOR}}`) porque es el término del formato GHS, igual que decidió `abb62dd`.
+  - **Pendiente análogo:** 101 fichas guardan todavía la fila `- - Fórmula química`, que `b1382f6` renombró a "Fórmula molecular" en la normalización. Mismo patrón: el título viejo sigue en disco. Solo 1 ficha tiene ya la fila nueva.
+  - Sin cambios de código. Respaldos de los 121 YAML en `/tmp/olor_a_aroma_bak_20260915_1333/`, fuera del repo.
+- **Archivos Modificados:** 121 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
