@@ -1,0 +1,245 @@
+/* Formato 38 × 102 mm vertical. Todas las medidas van en px de diseño
+   (12 px = 1 mm); quien la muestra la escala desde afuera, así que la
+   proporción de impresión se conserva sea cual sea el zoom.
+   Las divisorias son siempre `border-bottom` del bloque de arriba: los
+   bloques comparten borde y nunca se dibuja una línea doble. */
+
+.ev-etiqueta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: #ffffff;
+  color: #111111;
+  font-family: Montserrat, ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.15;
+}
+
+.ev-bloque {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  border-bottom: var(--ev-linea) solid var(--ev-azul);
+}
+.ev-bloque:last-child { border-bottom: 0; }
+
+/* ── 1. Cabecera ─────────────────────────────────────────────────────── */
+.ev-cabecera {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px 7px;
+}
+.ev-nombre {
+  width: 100%;
+  margin: 0;
+  color: var(--ev-azul);
+  font-size: 37px;          /* ~12,5 pt a 12 px/mm */
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.02;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;      /* una sola línea, como pide el formato */
+}
+.ev-grado {
+  display: flex;
+  width: calc(100% - 16px);
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  background: var(--ev-azul);
+  color: #ffffff;
+  font-size: 22px;          /* ~7,5 pt */
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ── 2 y 3. Filas de dos columnas ────────────────────────────────────── */
+.ev-fila { flex-direction: row; }
+.ev-col {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 5px 5px 6px;
+  text-align: center;
+}
+/* Solo la columna izquierda lleva divisoria: sin línea doble en el centro. */
+.ev-col + .ev-col { border-left: var(--ev-linea) solid var(--ev-azul); }
+
+.ev-icono {
+  display: block;
+  flex: 0 0 auto;
+  color: var(--ev-azul);
+}
+.ev-icono svg { display: block; width: 100%; height: 100%; }
+
+.ev-titulo {
+  margin: 3px 0 3px;
+  color: var(--ev-azul);
+  font-size: 19px;          /* ~6,5 pt */
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.ev-valor {
+  display: flex;
+  width: 100%;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 3px 4px;
+  border: 1px dashed var(--ev-azul);
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: #111111;
+  font-size: 17px;          /* ~5,8 pt */
+  font-weight: 500;
+  line-height: 1.18;
+  overflow: hidden;         /* sin barras de desplazamiento */
+  text-align: center;
+}
+
+/* ── 4. Beneficios ───────────────────────────────────────────────────── */
+.ev-beneficios { padding: 4px 0 5px; }
+.ev-beneficios-titulo {
+  margin-bottom: 3px;
+  color: var(--ev-azul);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.ev-beneficios-cols {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.ev-beneficio {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 0 3px;
+  text-align: center;
+}
+/* Línea vertical corta entre columnas, no de bloque a bloque. */
+.ev-beneficio + .ev-beneficio {
+  border-left: var(--ev-linea) solid var(--ev-azul);
+}
+.ev-beneficio-texto {
+  width: 100%;
+  color: #111111;
+  font-size: 16px;          /* ~5,5 pt */
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+/* ── 5. Contenido neto ───────────────────────────────────────────────── */
+.ev-neto {
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 4px 6px 5px;
+}
+.ev-neto-titulo {
+  color: var(--ev-azul);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.ev-neto-valor {
+  color: #111111;
+  font-size: 42px;          /* ~14 pt */
+  font-weight: 800;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+/* ── 6. Logo, lema, franja y código de barras ────────────────────────── */
+.ev-marca {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  padding: 5px 6px 4px;
+}
+.ev-logo {
+  display: flex;
+  max-width: 78%;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+.ev-logo img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;       /* completo, sin deformar ni recortar */
+}
+.ev-lema {
+  color: #111111;
+  font-size: 15px;
+  font-weight: 500;
+  font-style: italic;
+  text-align: center;
+}
+.ev-codigo {
+  display: flex;
+  width: 100%;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+  /* Zona blanca de seguridad a los lados del código. */
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+.ev-codigo img,
+.ev-codigo svg { display: block; max-width: 100%; height: auto; }
+
+/* ── 7. Pie de contacto ──────────────────────────────────────────────── */
+.ev-pie {
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 5px;
+  background: var(--ev-azul);
+  color: #ffffff;
+}
+.ev-pie-linea {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;       /* la web cabe completa */
+}
+.ev-pie-linea svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+/* Ejemplo de referencia en edición: se ve gris y no se imprime. */
+.ev-ejemplo { color: #9ca3af !important; font-weight: 500 !important; }
+
+/* Guías de la retícula, solo en edición. */
+.ev-guias .ev-bloque { outline: 1px dashed rgba(8, 124, 224, 0.28); outline-offset: -1px; }

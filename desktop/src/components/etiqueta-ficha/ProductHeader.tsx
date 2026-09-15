@@ -13,7 +13,7 @@ import { RETICULA_MAESTRA, type ProductLabelData } from "./productLabelTypes";
 const LOGO_ANCHO = 210 * 1.3;
 const LOGO_ALTO = 65 * 1.3;
 /** Eslogan fijo bajo el logo. */
-const ESLOGAN = "Proveemos a tus ideas";
+export const ESLOGAN = "Proveemos a tus ideas";
 
 /** Tamaño del nombre según su longitud — nunca por debajo de 22px. Sin
  *  clamp() (nada de responsive aquí): la escala se resuelve en JS contra

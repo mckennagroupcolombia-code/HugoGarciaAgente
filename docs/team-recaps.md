@@ -3057,3 +3057,19 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Drive: no se subió nada.** `configuracion_drive()` devuelve `delegacion_configurada: False`, `folder_pdf_id: None`, `impersonate_email: None`. Falta compartir las carpetas con `agente-sheets@mi-agente-ubuntu.iam.gserviceaccount.com` como Editor, definir `TDS_DRIVE_IMPERSONATE` en `.env` y activar la delegación de dominio en Admin Google.
   - No se tocaron los 137 de `pdf/` (FT simples): el usuario eligió solo los completos.
 - **Archivos Modificados:** 75 PDF en `fichas_word/completo/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Formato nuevo 38 × 102 mm vertical (Aceites & Grasas)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → formato nuevo)
+- **Qué se implementó:**
+  - Formato **"Vertical 38"** (38 × 102 mm), quinto lienzo de Studio Visual junto a la ficha 76×66, el 30 mL, el 69×51 y el circular. Ojo: el formato "30 mL" ya era 102 × 38 — el mismo tamaño acostado —, así que `esFormatoVertical` compara ancho con ancho (`sonMedidas`) y no se confunden.
+  - `etiqueta-vertical/etiquetaVerticalTypes.ts`: medidas, detección por nombre o por medidas, y `reticulaVertical`. Los siete bloques se declaran en **milímetros** (11 · 16 · 18,5 · 16 · 9 · 21,5 · 10 = 102) y se convierten a px a 12 px/mm (456 × 1224); el último absorbe el redondeo, así que la suma es exactamente el alto de la etiqueta y no hay sobrante ni recorte. Si el formato se renombra a otras medidas, los bloques se reparten proporcionalmente.
+  - `etiquetaVertical.css`: azul #087CE0 fijo, Montserrat, divisorias de 0,15 mm. Los bloques comparten borde (`border-bottom` del de arriba, `border-left` de la segunda columna) para que no salgan líneas dobles. Sin sombras ni degradados.
+  - `EtiquetaVertical.tsx`: cabecera con nombre y barra de grado, dos filas de dos casillas con el valor en recuadro punteado, beneficios en tres columnas, contenido neto, marca con el **código de barras debajo del logo y del lema**, y pie azul con ubicación y web.
+  - **Se edita en el sitio**, como el resto de la app — no con formulario lateral, que era lo que pedía el brief pero contradice la regla fijada (ver [[interfaz-unificada-etiquetas]]). Reutiliza `CampoEtiqueta` (el texto se encoge para caber sin mover la retícula), `EditableLabel`, `BarcodeBlock` (EAN-13 real de `lib/ean13`, con dígito de control y zonas blancas), `MenuLogoCorporativo`, `GaleriaIconosQuimicosModal` y `Marco30ml` (zoom conservando proporción).
+  - Iconos: ojo, gota de aroma, matraz y escudo salen de la galería existente; gota, copo de nieve, rostro con hoja, pin y globo se dibujaron como SVG de contorno con `currentColor` y trazo uniforme.
+  - Campos nuevos: `beneficio1`, `beneficio2`, `beneficio3` en `ProductLabelData`. El resto reutiliza los de siempre (productName, gradoInsumo, appearance, odor, composition, storage, netContent, barcode, logoUrl, city, website), así que el enlace con la ficha técnica funciona igual.
+  - El lema "Proveemos a tus ideas" usa la constante `ESLOGAN` de `ProductHeader` (ahora exportada): no es dato de producto.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y el usuario no adjuntó la imagen de referencia, así que la diagramación se hizo solo desde la descripción escrita. Compila y pasa `tsc`; hay que revisarla en pantalla y a la impresión.
+  - **Falta:** crear la plantilla de la categoría `aceites` (Aceites & Grasas) con este formato, desde Studio → Categorías → Nueva plantilla.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/` (3 archivos nuevos), `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `ProductHeader.tsx`, `app/data/etiquetas_tipos.json` (fuera del repo), `docs/team-recaps.md`

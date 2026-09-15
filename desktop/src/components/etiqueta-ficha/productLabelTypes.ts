@@ -39,6 +39,10 @@ export interface ProductLabelData {
   /** Rótulo del número de registro del cuadro técnico (sin dato = "CAS"). */
   casTitulo?: string;
   /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
+  /** Beneficios del formato vertical 38 × 102: tres textos cortos. */
+  beneficio1?: string;
+  beneficio2?: string;
+  beneficio3?: string;
   cucharaCantidad?: string;
   cucharaUnidad?: string;
   /** Rótulo de la casilla: cuchara o copa (ver `TITULOS_CUCHARA`). */

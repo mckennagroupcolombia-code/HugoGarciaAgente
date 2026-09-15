@@ -23,6 +23,11 @@ import GhsBadge from "./GhsBadge";
 import TechnicalDocuments from "./TechnicalDocuments";
 import TechnicalIdentity from "./TechnicalIdentity";
 import CucharaMedidora from "./CucharaMedidora";
+import EtiquetaVertical from "../etiqueta-vertical/EtiquetaVertical";
+import {
+  esFormatoVertical,
+  reticulaVertical,
+} from "../etiqueta-vertical/etiquetaVerticalTypes";
 import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
 import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
@@ -186,6 +191,7 @@ function ProductLabelFormInner({
   const esSimple = esFormatoSimple(tipoNombre, tipo);
   /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
   const esCircular = esFormatoCircular(tipoNombre, tipo);
+  const esVertical = esFormatoVertical(tipoNombre, tipo);
   /** Diámetro final de impresión de la etiqueta redonda, en mm (§14). Es lo
    *  único físico que el operador puede mover: el diseño se maqueta siempre
    *  1:1 a `DIAMETRO_CIRCULAR` y solo cambia a cuántos milímetros se rasteriza
@@ -883,6 +889,7 @@ function ProductLabelFormInner({
   const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retSimple = useMemo(() => reticulaSimple(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retCircular = useMemo(() => reticulaCircular(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  const retVertical = useMemo(() => reticulaVertical(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
     esPeligrosoGhs(data.ghs) && /no\s+est[aá]\s+clasificad/i.test(data.clasificacionTexto || "");
   const restablecerDatos = () => {
@@ -1024,7 +1031,7 @@ function ProductLabelFormInner({
   // marco en vez de quedarse corta —hueco abajo— o pasarse y dibujarse
   // escalada, que dejaba una banda vacía a la derecha.
   const altoMarcoFicha =
-    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !esSimple && !esCircular
+    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !esSimple && !esCircular && !esVertical
       ? MARCO_MAX_ANCHO / (tipo.ancho_mm / tipo.alto_mm)
       : undefined;
 
@@ -1576,7 +1583,7 @@ function ProductLabelFormInner({
         </p>
       )}
 
-      {marco && !es30ml && !esSimple && !esCircular && (
+      {marco && !es30ml && !esSimple && !esCircular && !esVertical && (
         <p className="mb-2 text-[11px] text-muted">
           Ajustada a {tipo && etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm)} — el marco
           punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
@@ -1624,6 +1631,29 @@ function ProductLabelFormInner({
               ref={fichaRef}
               data={data}
               reticula={retSimple}
+              editMode={editMode}
+              guias={showGrid && editMode}
+              onChange={onChange}
+              onElegirCodigo={(c) => void onElegirCodigo(c)}
+              attributeIcons={attributeIcons}
+              onIconChange={onIconChange}
+            />
+          </Marco30ml>
+        </>
+      ) : esVertical ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted">
+            Ajustada a{" "}
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "1.5\u00d74.02 in \u00b7 38\u00d7102 mm"} —
+            etiqueta vertical de siete bloques: cabecera, dos filas de casillas, beneficios, contenido
+            neto, marca con el c\u00f3digo de barras debajo del logo y pie de contacto. En edici\u00f3n, lo gris
+            es un ejemplo de referencia y no se imprime.
+          </p>
+          <Marco30ml reticula={retVertical}>
+            <EtiquetaVertical
+              ref={fichaRef}
+              data={data}
+              reticula={retVertical}
               editMode={editMode}
               guias={showGrid && editMode}
               onChange={onChange}
