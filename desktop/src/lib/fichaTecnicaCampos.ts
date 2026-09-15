@@ -6,6 +6,7 @@
  * removido) porque estas funciones no dependen de nada de ese sistema.
  */
 import { clasificacionSgaDesdeSds, codigosGhs } from "./ghsIconos";
+import { formatearFormulaMolecular } from "./formulaMolecular";
 
 interface CodigoEanBuscable {
   nombre_producto: string;
@@ -151,6 +152,22 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   );
   const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
   const composicionRaw = flattenComposicion(datos.composicion);
+  // Fórmula molecular: la casilla de la etiqueta muestra el MISMO dato que la
+  // fila "Fórmula molecular" del documento técnico (`caracteristicas_fisicas.
+  // formula_quimica`; en el COA/SDS viaja como `formula_molecular`). Se
+  // formatea para que se lea como química: los subíndices bajan y los
+  // coeficientes (·2H₂O) se quedan en tamaño normal.
+  const formulaRaw = formatearFormulaMolecular(
+    pick(
+      cf.formula_quimica,
+      cf.formula_molecular,
+      datos.formula_quimica,
+      datos.formula_molecular,
+      ident.formula_molecular,
+      coaIdent.formula_molecular,
+      valorEnFilas(datos.propiedades, "formula molecular", "formula quimica", "formula"),
+    ),
+  );
   // "Conservación y almacenamiento" del formulario FT+COA+SDS: es lo que
   // escribió una persona para ESTE producto, así que va tal cual y manda
   // sobre cualquier cosa que se deduzca de la SDS.
@@ -212,6 +229,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     apariencia: aparienciaRaw || FICHA_SIN_DATO,
     olor: olorRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
+    formulaMolecular: formulaRaw || FICHA_SIN_DATO,
     grado,
     // La casilla es una síntesis de máximo 15 palabras, venga de donde venga:
     // también se resume lo que una persona escribió en "Conservación y

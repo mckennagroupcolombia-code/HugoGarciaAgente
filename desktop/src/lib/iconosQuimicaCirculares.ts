@@ -210,7 +210,7 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
   // --- COMPOSICIÓN ---
   {
     id: "composicion_matraz",
-    nombre: "Matraz / Fórmula Química",
+    nombre: "Matraz / Fórmula molecular",
     categoria: "composicion",
     tags: ["composicion", "formula", "quimica", "matraz", "laboratorio", "erlenmeyer", "lineal"],
     // Matraz Erlenmeyer lineal con nivel de líquido y dos burbujas (etiqueta 30 mL).

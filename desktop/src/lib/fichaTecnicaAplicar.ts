@@ -83,6 +83,24 @@ export async function cargarPatchDesdeFichaTecnica(fichaId: string): Promise<Par
     if (!tieneValor && ES_CAMPO_PLANTILLA.has(destino)) continue;
     destinoTexto[destino] = tieneValor ? (valor as string) : "";
   }
+  // Casilla de composición: si la ficha trae fórmula molecular, la casilla
+  // MUESTRA esa fórmula y se titula "Fórmula molecular" — es el mismo dato de
+  // la fila del documento técnico, ya con subíndices. Sin fórmula (mezclas,
+  // alimentos) vuelve a ser la lista de componentes bajo "Composición".
+  const formula = mapeado.formulaMolecular;
+  // "No aplica" es la respuesta correcta para alimentos y mezclas, pero en la
+  // etiqueta no se imprime como si fuera una fórmula: esa casilla vuelve a ser
+  // la Composición.
+  const hayFormula =
+    Boolean(formula)
+    && !formula.toLowerCase().includes(FICHA_SIN_DATO.toLowerCase())
+    && !/^\s*no\s+aplica/i.test(formula);
+  if (hayFormula) {
+    patch.composition = formula;
+    patch.compositionTitulo = "Fórmula molecular";
+  } else if (patch.composition) {
+    patch.compositionTitulo = "Composición";
+  }
   // El pictograma lo decide el código GHS de ESTA ficha: se quita el que se
   // hubiera elegido a mano en la galería (podía ser de otro producto).
   patch.ghsIconSvg = "";

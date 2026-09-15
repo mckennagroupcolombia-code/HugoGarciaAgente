@@ -660,12 +660,17 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         ("ph", "pH"),
         ("olor", "Olor"),
         ("sabor", "Sabor"),
-        ("formula_quimica", "Fórmula química"),
+        ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
     ):
         val = (cf.get(key) or "").strip() if cf else ""
         if not val:
-            val = _valor_en_filas(filas_prop_legacy, label.lower(), _normalizar(label))
+            # Las fichas viejas guardaron la fila como "Fórmula química": se
+            # buscan los dos títulos, se imprime siempre el nuevo.
+            titulos = [label.lower(), _normalizar(label)]
+            if key == "formula_quimica":
+                titulos += ["fórmula química", "formula quimica"]
+            val = _valor_en_filas(filas_prop_legacy, *titulos)
         if val:
             propiedades.append([label, val])
 
@@ -690,6 +695,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "olor",
         "sabor",
         "formula quimica",
+        "formula molecular",
         "solubilidad",
     }
     existentes = {_normalizar(p[0]) for p in propiedades}
@@ -1144,7 +1150,7 @@ def _contexto_html(
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
         "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "sabor",
-        "formula quimica", "solubilidad",
+        "formula quimica", "formula molecular", "solubilidad",
     }
     cf = d.get("caracteristicas_fisicas") or {}
     propiedades_fijas: list[tuple[str, str]] = []
@@ -1155,13 +1161,16 @@ def _contexto_html(
         ("ph", "pH"),
         ("olor", "Olor"),
         ("sabor", "Sabor"),
-        ("formula_quimica", "Fórmula química"),
+        ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
     ]
     for key, label in etiquetas:
         val = (cf.get(key) or "").strip()
         if not val:
-            val = _valor_en_filas(_filas_tabla(d.get("propiedades")), label.lower(), _normalizar(label))
+            titulos = [label.lower(), _normalizar(label)]
+            if key == "formula_quimica":
+                titulos += ["fórmula química", "formula quimica"]
+            val = _valor_en_filas(_filas_tabla(d.get("propiedades")), *titulos)
         if val:
             propiedades_fijas.append((label, val))
 
@@ -1913,6 +1922,8 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
         "olor": "olor",
         "formula quimica": "formula_quimica",
         "fórmula química": "formula_quimica",
+        "formula molecular": "formula_quimica",
+        "fórmula molecular": "formula_quimica",
         "solubilidad": "solubilidad",
         "humedad": "humedad",
         "inercia quimica": "inercia_quimica",

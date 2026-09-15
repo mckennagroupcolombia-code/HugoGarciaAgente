@@ -207,9 +207,10 @@ export const CAMPOS_PLANTILLA = [
 
 /** Títulos elegibles de la casilla de composición (menú del título). Se
  *  guarda en `compositionTitulo`, el mismo dato que usa el formato de
- *  30 mL; si una ficha antigua trae un título que ya no está en la lista
- *  ("Fórmula molecular"), se ve el primero. */
-export const TITULOS_COMPOSICION = ["Composición", "Fórmula química"] as const;
+ *  30 mL; si una ficha antigua trae un título que ya no está en la lista,
+ *  se ve el primero. El título es "Fórmula molecular" (no "química"), igual
+ *  que en el documento técnico — es el mismo dato. */
+export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
 
 export function tituloComposicion(data: ProductLabelData): string {
   const t = data.compositionTitulo || "";

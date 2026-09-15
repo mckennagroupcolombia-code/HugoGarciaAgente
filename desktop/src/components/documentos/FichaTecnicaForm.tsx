@@ -781,7 +781,7 @@ export default function FichaTecnicaForm({
             { label: "Punto de fusión",           campo: "punto_fusion",          val: state.puntoFusion,           set: (v: string) => patch({ puntoFusion: v }),           ph: "Ej. 58-62 °C", formula: false },
             { label: "Índice de saponificación",  campo: "indice_saponificacion", val: state.indiceSaponificacion,  set: (v: string) => patch({ indiceSaponificacion: v }),  ph: "Ej. 190-200 mg KOH/g", formula: false },
             { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0", formula: false },
-            { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆", formula: true },
+            { label: "Fórmula molecular",         campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆", formula: true },
             { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría", formula: false },
           ].map(({ label, campo, val, set, ph: placeholder, formula }) => (
             <Field

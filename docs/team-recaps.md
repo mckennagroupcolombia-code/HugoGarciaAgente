@@ -2920,3 +2920,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - No hizo falta migrar datos: las 4 fichas guardadas en `app/data/etiquetas_fichas.json` con `compositionTitulo` traen "Composición", ninguna "Fórmula molecular".
   - **Nota:** los 133 SVG del catálogo antiguo en `app/data/etiquetas_ai_cache/` sí dicen "Fórmula molecular", pero son renders del .ai original, no plantillas editables, y el desplegable no los toca.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - "Fórmula molecular" en el documento técnico y enlazada a la etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas técnicas + Etiquetas)
+- **Qué se implementó:**
+  - La fila se titula **Fórmula molecular** (antes "Fórmula química") en el formulario FT, en el PDF de la ficha y en el documento completo. La clave interna sigue siendo `formula_quimica`: no hay que tocar ningún YAML.
+  - Compatibilidad con lo ya guardado: las fichas viejas traen la fila como "Fórmula química" en `propiedades`; se buscan los dos títulos y se imprime siempre el nuevo, sin duplicar la fila en "propiedades extra". El lector de Word/PDF reconoce los dos encabezados.
+  - **Etiqueta enlazada:** la casilla de composición ahora toma el MISMO dato de la ficha. Si la ficha trae fórmula, la casilla muestra la fórmula y se titula "Fórmula molecular"; si no (o si dice "No aplica", como en alimentos y mezclas), vuelve a ser la lista de componentes bajo "Composición". El menú del título de la etiqueta y el formato de 30 mL dicen "Fórmula molecular".
+  - **Lectura química:** el valor se formatea con `formatearFormulaMolecular` / `formula_a_html_sub` — los subíndices bajan y los coeficientes se quedan en tamaño normal: `C6H5K3O7` → C₆H₅K₃O₇, `MgCl2·6H2O` → MgCl₂·6H₂O, `Ca(OH)2` → Ca(OH)₂.
+  - Verificado contra las 194 fichas: 106 tienen fórmula y todas salen con subíndices correctos.
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `desktop/src/lib/{fichaTecnicaCampos.ts,fichaTecnicaAplicar.ts,iconosQuimicaCirculares.ts}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`

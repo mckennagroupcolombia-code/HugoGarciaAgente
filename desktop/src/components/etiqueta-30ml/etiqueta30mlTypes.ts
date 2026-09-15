@@ -124,7 +124,7 @@ export interface Celda30ml {
 
 /** Matriz 2 × 3 del panel izquierdo, en orden de lectura. */
 export const CELDAS_30ML: readonly Celda30ml[] = [
-  { campo: "composition", titulo: "Fórmula química", icono: "composicion_matraz" },
+  { campo: "composition", titulo: "Fórmula molecular", icono: "composicion_matraz" },
   { campo: "grade", titulo: "Grado", icono: "calidad_medalla_lineal" },
   { campo: "storage", titulo: "Conservación", icono: "conservacion_termometro" },
   { campo: "origin", titulo: "Origen", icono: "origen_globo_meridianos" },
@@ -136,7 +136,7 @@ export const CELDAS_30ML: readonly Celda30ml[] = [
  *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66 — las mismas
  *  dos opciones, en el orden propio de este formato. Si trae un título
  *  antiguo que ya no está en la lista, se ve el primero. */
-export const TITULOS_FORMULA_30ML = ["Fórmula química", "Composición"] as const;
+export const TITULOS_FORMULA_30ML = ["Fórmula molecular", "Composición"] as const;
 
 export function tituloFormula30ml(data: ProductLabelData): string {
   const t = data.compositionTitulo || "";
