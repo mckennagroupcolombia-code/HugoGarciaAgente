@@ -2955,3 +2955,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **No se tocó la SDS:** en la sección 9 "Olor" es el término del formato GHS.
   - Verificado: fila vieja `[['Olor','Característico']]` sale como `[['Aroma','Característico']]`, y las 194 fichas siguen entregando el dato a la etiqueta (129 con aroma).
 - **Archivos Modificados:** `app/services/{ficha_tecnica.py,ficha_tecnica_word.py,documento_traducir_es.py}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/{fichaTecnicaCampos.ts,plantillaFichaTecnicaMp.ts}`, `docs/team-recaps.md`
+
+### 2026-09-15 - Aroma: el enlace funciona, faltaba el dato en 64 fichas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Reporte: "en AROMA no está asociando la información de la ficha técnica". Verificado ejecutando `camposDesdeFichaTecnica` contra las 193 fichas: **el enlace sí funciona** (CITRATO DE POTASIO → "Inodoro.", GLICERINA VEGETAL → "Olor característico muy tenue…"). Lo que pasa es que **64 fichas no tienen el dato**: ni `caracteristicas_fisicas.olor` ni fila "Olor"/"Aroma" en `propiedades`. Para comparar, Apariencia solo falta en 5 — Aroma era el campo peor diligenciado.
+  - En Sales minerales estaban vacías 6 de 20: CITRATO DE ZINC, CLORURO DE MAGNESIO, ESTEARATO DE MAGNESIO, ÓXIDO DE ZINC, SAL ROSADA DEL HIMALAYA, SORBATO DE POTASIO.
+  - Se llenaron 12 fichas en las que el aroma ya estaba escrito **dentro de la Apariencia o la Descripción**, pasándolo a su casilla sin inventar nada: ÁCIDO ASCÓRBICO y CARBÓN ACTIVADO y PROPILENGLICOL ("Inodoro."), VASELINA BLANCA ("Inodora."), ÁCIDO LÁCTICO, ÁCIDO SALICÍLICO 20 % SOLUCIÓN, ALCANFOR, ALOE VERA, BETAÍNA DE COCO, COCOAMIDA DEA, DMSO, EMBRIÓN DE PATO. La Apariencia se dejó intacta.
+  - Corregido SULFATO DE CONDROITINA: el Aroma traía `≤ 0,35`, un dato de otra fila. Se vació `caracteristicas_fisicas.olor` y se quitó la fila `Olor` de `propiedades` (la etiqueta leía esa fila como respaldo y seguía mostrando el valor).
+  - Quedan 52 fichas sin Aroma, a diligenciar desde el panel de Fichas técnicas.
+  - **Descartados:** BÓRAX (la única mención es "capacidad para eliminar olores", que describe su función) y `vaselina.yaml` (título roto `titulo: SEGURIDAD`, apariencia vacía, duplicado del completo de vaselina — decidir aparte si se arregla o se archiva).
+  - Sin cambios de código. Respaldos de los 13 YAML en `/tmp/aroma_bak_20260915_1324/`, fuera del repo.
+- **Archivos Modificados:** 13 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
