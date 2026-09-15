@@ -2931,3 +2931,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Lectura química:** el valor se formatea con `formatearFormulaMolecular` / `formula_a_html_sub` — los subíndices bajan y los coeficientes se quedan en tamaño normal: `C6H5K3O7` → C₆H₅K₃O₇, `MgCl2·6H2O` → MgCl₂·6H₂O, `Ca(OH)2` → Ca(OH)₂.
   - Verificado contra las 194 fichas: 106 tienen fórmula y todas salen con subíndices correctos.
 - **Archivos Modificados:** `app/services/ficha_tecnica.py`, `desktop/src/lib/{fichaTecnicaCampos.ts,fichaTecnicaAplicar.ts,iconosQuimicaCirculares.ts}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - GLICERINA VEGETAL: la etiqueta enlazaba la ficha sin datos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → enlace con ficha técnica)
+- **Qué se implementó:**
+  - Síntoma: abrir una plantilla de Sales minerales, elegir el código de barras de GLICERINA VEGETAL y ver Origen, Grado y Conservación vacías, aunque el documento **completo** de glicerina las tiene.
+  - Causa: hay dos fichas del mismo producto. `glicerina_vegetal.yaml` (parcial, 18 claves) se titula "GLICERINA VEGETAL" y puntúa **1.00** contra el título del EAN; `ft_coa_sds_glicerina.yaml` (`_tipo: completo`, 30 claves) se titula solo "GLICERINA" y puntúa **0.48**. El enlace automático elige por parecido de título, así que ganaba la parcial.
+  - Verificado ejecutando `camposDesdeFichaTecnica` sobre las dos: la parcial dejaba vacías `origin`, `grade`, `storage` y `classification`; el completo las trae todas.
+  - Arreglo de datos: a `glicerina_vegetal.yaml` se le añadieron `pais_origen: Colombia`, `grado: USP` y `conservacion` (tomados del completo; `grado` sale de `_coa.identificacion.grado`). La clasificación "MATERIA PRIMA GRADO USP" se deriva sola del grado. Respaldo en `/tmp/glicerina_vegetal.bak_20260915_1305.yaml`, fuera del repo. Las otras 18 claves quedaron intactas.
+  - Arreglo de interfaz: nueva `candidatasParaTitulo` en `fichaTecnicaMatch.ts` (ranking de las fichas que llegan al umbral) y el mensaje de enlace en `ProductLabelForm.tsx` ahora nombra las otras candidatas: "Ficha técnica enlazada: X (100 %). También coincide «Y» (48 %) — usa la lupa junto al nombre si esa es la correcta." Antes el problema era invisible.
+  - **Descartado:** preferir automáticamente el documento `completo`. Barridos los 232 EAN contra las 193 fichas, solo hay 4 casos donde el enlace se salta un completo; 3 son las glicerinas y el cuarto ("SUERO LECHE DULCE" → `SUERO DE LECHE` en vez de `PROTEÍNA DE SUERO DE LECHE`) el enlace lo hace bien. La regla acertaría 3 veces y fallaría 1.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `fichas_word/datos/glicerina_vegetal.yaml`, `docs/team-recaps.md`

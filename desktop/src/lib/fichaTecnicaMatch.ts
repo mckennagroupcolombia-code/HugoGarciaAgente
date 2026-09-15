@@ -126,6 +126,25 @@ export function mejorFichaParaTitulo<T extends CandidataFicha>(
   return mejor;
 }
 
+/** Todas las fichas que llegan al umbral, de mayor a menor puntaje. La
+ *  primera no tiene por qué ser la de `mejorFichaParaTitulo` (que desempata
+ *  aparte); sirve para avisar de que hay más de una candidata — típico de un
+ *  producto con dos fichas ("GLICERINA" y "GLICERINA VEGETAL"), donde la del
+ *  título más parecido puede no ser la que tiene los datos. */
+export function candidatasParaTitulo<T extends CandidataFicha>(
+  fichas: T[],
+  titulo: string,
+  minimo = UMBRAL_ENLACE_AUTOMATICO,
+): { ficha: T; puntaje: number }[] {
+  const claves = palabrasClave(titulo);
+  if (claves.length === 0) return [];
+  const peso = pesosPorRareza(fichas.map((f) => f.titulo));
+  return fichas
+    .map((ficha) => ({ ficha, puntaje: puntuarTitulo(claves, ficha.titulo, peso) }))
+    .filter((c) => c.puntaje >= minimo)
+    .sort((a, b) => b.puntaje - a.puntaje);
+}
+
 /** ¿El producto del código de barras es otro que el de la etiqueta? Compara
  *  el título del código con la ficha técnica enlazada o, sin enlace, con el
  *  nombre escrito en la etiqueta. null = coinciden o no hay con qué comparar.

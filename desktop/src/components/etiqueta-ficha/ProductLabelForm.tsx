@@ -43,6 +43,7 @@ import { useCodigosEan, type CodigoEan } from "../../lib/etiquetasCodigosEan";
 import { cargarPatchDesdeFichaTecnica, listarFichasTecnicas } from "../../lib/fichaTecnicaAplicar";
 import { contenidoNetoDesdeCodigo, filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
 import {
+  candidatasParaTitulo,
   discrepanciaProducto,
   mejorFichaParaTitulo,
   nombreArchivoDesdeTitulo,
@@ -580,9 +581,21 @@ function ProductLabelFormInner({
         fichaTecnicaId: mejor.ficha.id,
         fichaTecnicaTitulo: mejor.ficha.titulo,
       });
+      // Hay productos con dos fichas (p. ej. "GLICERINA" y "GLICERINA
+      // VEGETAL"): la del título más parecido gana, pero puede no ser la que
+      // tiene los datos. Se nombran las otras para poder corregir con la lupa.
+      const otras = candidatasParaTitulo(fichas, titulo)
+        .filter((c) => c.ficha.id !== mejor.ficha.id)
+        .slice(0, 2);
       setEnlace({
         tipo: "ok",
-        texto: `Ficha técnica enlazada: ${mejor.ficha.titulo} (coincidencia ${Math.round(mejor.puntaje * 100)} % por: ${claves.join(", ")}).`,
+        texto:
+          `Ficha técnica enlazada: ${mejor.ficha.titulo} (coincidencia ${Math.round(mejor.puntaje * 100)} % por: ${claves.join(", ")}).`
+          + (otras.length > 0
+            ? ` También coincide${otras.length > 1 ? "n" : ""} ${otras
+                .map((c) => `«${c.ficha.titulo}» (${Math.round(c.puntaje * 100)} %)`)
+                .join(" y ")} — usa la lupa junto al nombre si esa es la correcta.`
+            : ""),
       });
     } catch (e) {
       setEnlace({ tipo: "error", texto: e instanceof Error ? e.message : "No se pudo enlazar la ficha técnica" });
