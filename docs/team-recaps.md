@@ -2863,3 +2863,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **MeLi no se incluye a propósito:** esas ventas van con la etiqueta de Mercado Libre (Colecta/Flex).
   - Detalle de implementación: el `ImageReader` del isotipo se crea una vez por PDF; dentro del bucle, un lote de 20 rótulos pesaba ~16 MB.
 - **Archivos Modificados:** `app/tools/guias_envio.py` (nuevo), `app/routes.py`, `desktop/src/components/GuiasEnvioPanel.tsx` (nuevo), `MensajeriaPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-15 - Conservación de la etiqueta enlazada con la ficha técnica
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → Ficha de etiqueta)
+- **Qué se implementó:**
+  - La casilla **Conservación** de la etiqueta (Sales minerales y todas las demás) salía vacía aunque la ficha técnica sí dijera cómo guardar el producto.
+  - Causa: `camposDesdeFichaTecnica` solo leía el almacenamiento cuando el bloque `recomendaciones` traía el encabezado `ALMACENAMIENTO:` (estilo SDS). La mayoría de las fichas — CITRATO DE POTASIO entre ellas — lo tienen como párrafo corrido ("Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco…"), así que el campo quedaba en `— completar —` y el enlace lo trataba como vacío.
+  - Ahora, si no hay esa sección, se usa el bloque `recomendaciones` completo (FT y SDS) y `sintetizarConservacion` saca las frases de conservar, descartando modo de uso y caducidad como ya hacía.
+  - Verificado contra las 194 fichas de `fichas_word/datos`: la Conservación pasa de 134 a 157 fichas con dato (+23), sin cambiar ninguna de las que ya venía bien.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `docs/team-recaps.md`

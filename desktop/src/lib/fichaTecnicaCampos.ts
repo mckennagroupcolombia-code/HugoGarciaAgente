@@ -158,9 +158,17 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   // Sin ese campo, lo que la ficha diga sobre conservar el producto vive
   // dentro del bloque de recomendaciones de la SDS, bajo el encabezado
   // "ALMACENAMIENTO:", mezclado con las frases P. De ahí hay que resumirlo.
+  // La mayoría de las fichas (CITRATO DE POTASIO y el resto de Sales
+  // minerales entre ellas) NO traen ese encabezado: "recomendaciones" es un
+  // párrafo corrido ("Se recomienda guardar en empaques bien cerrados…").
+  // Por eso, si no hay sección, se usa el bloque entero — `sintetizarConservacion`
+  // ya se queda solo con las frases de conservar y descarta modo de uso y
+  // caducidad. Sin este respaldo la casilla Conservación salía vacía.
   const almacenamientoRaw = pick(
     seccionRecomendaciones(sds.recomendaciones, "ALMACENAMIENTO"),
     seccionRecomendaciones(datos.recomendaciones, "ALMACENAMIENTO"),
+    texto(datos.recomendaciones),
+    texto(sds.recomendaciones),
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
   );
   const concentracionRaw = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
