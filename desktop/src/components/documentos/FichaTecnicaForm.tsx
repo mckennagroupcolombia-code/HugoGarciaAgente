@@ -286,7 +286,7 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     valorEnFilas(identidad, "nombre del producto");
 
   const fisicasKeys = new Set([
-    "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor",
+    "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "aroma",
     "formula quimica", "solubilidad", "humedad", "inercia quimica",
   ]);
   const extraProps = props
@@ -346,7 +346,8 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
       cf.indice_saponificacion ||
       valorEnFilas(props, "indice de saponificacion", "indice saponificacion", "saponification value"),
     ph: flat("ph") || cf.ph || valorEnFilas(props, "ph"),
-    olor: flat("olor", "odour", "odor") || cf.olor || valorEnFilas(props, "olor", "odour", "odor"),
+    olor: flat("olor", "aroma", "odour", "odor") || cf.olor
+      || valorEnFilas(props, "aroma", "olor", "odour", "odor"),
     sabor: flat("sabor", "taste") || cf.sabor || valorEnFilas(props, "sabor", "taste"),
     modoUso:
       flat("modo_uso", "usage", "directions", "incorporation") ||
@@ -480,6 +481,7 @@ export default function FichaTecnicaForm({
         case "ph":
           updates.ph = val; break;
         case "olor":
+        case "aroma":
         case "odour":
         case "odor":
           updates.olor = val; break;
@@ -761,7 +763,7 @@ export default function FichaTecnicaForm({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
-            label="Olor"
+            label="Aroma"
             value={state.olor}
             onChange={(v) => patch({ olor: v })}
             placeholder="Ej. Inodoro o ligero aroma"

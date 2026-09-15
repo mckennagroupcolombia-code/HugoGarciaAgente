@@ -150,7 +150,11 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     cf.apariencia,
     valorEnFilas(datos.propiedades, "apariencia", "appearance"),
   );
-  const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
+  // La fila de la ficha se titula "Aroma"; las guardadas antes dicen "Olor".
+  const olorRaw = pick(
+    cf.olor,
+    valorEnFilas(datos.propiedades, "aroma", "olor", "odour", "odor"),
+  );
   const composicionRaw = flattenComposicion(datos.composicion);
   // Fórmula molecular: la casilla de la etiqueta muestra el MISMO dato que la
   // fila "Fórmula molecular" del documento técnico (`caracteristicas_fisicas.

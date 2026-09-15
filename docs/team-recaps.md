@@ -2943,3 +2943,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Arreglo de interfaz: nueva `candidatasParaTitulo` en `fichaTecnicaMatch.ts` (ranking de las fichas que llegan al umbral) y el mensaje de enlace en `ProductLabelForm.tsx` ahora nombra las otras candidatas: "Ficha técnica enlazada: X (100 %). También coincide «Y» (48 %) — usa la lupa junto al nombre si esa es la correcta." Antes el problema era invisible.
   - **Descartado:** preferir automáticamente el documento `completo`. Barridos los 232 EAN contra las 193 fichas, solo hay 4 casos donde el enlace se salta un completo; 3 son las glicerinas y el cuarto ("SUERO LECHE DULCE" → `SUERO DE LECHE` en vez de `PROTEÍNA DE SUERO DE LECHE`) el enlace lo hace bien. La regla acertaría 3 veces y fallaría 1.
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `fichas_word/datos/glicerina_vegetal.yaml`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla Olor de la ficha técnica se titula "Aroma"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas técnicas)
+- **Qué se implementó:**
+  - En el formulario FT, en el PDF de la ficha y en el documento completo la fila pasa de **Olor** a **Aroma** — el mismo título que ya usaba la etiqueta. Clave interna `olor` sin cambios: no se toca ningún YAML.
+  - Los títulos anteriores quedan en `_TITULOS_VIEJOS` (un solo lugar, junto a "Fórmula química" → "Fórmula molecular"): las fichas ya guardadas traen la fila como "Olor" dentro de `propiedades`, se siguen leyendo y se imprimen con el título nuevo, sin duplicar la fila en "propiedades extra".
+  - Reconocen los dos encabezados: el lector de Word/PDF, el traductor de documentos en inglés (`odor`/`odour` → Aroma), el escáner del formulario y el paso ficha → etiqueta.
+  - La capa "Olor" de la plantilla visual «Ficha técnica MP» también se llama Aroma.
+  - **No se tocó la SDS:** en la sección 9 "Olor" es el término del formato GHS.
+  - Verificado: fila vieja `[['Olor','Característico']]` sale como `[['Aroma','Característico']]`, y las 194 fichas siguen entregando el dato a la etiqueta (129 con aroma).
+- **Archivos Modificados:** `app/services/{ficha_tecnica.py,ficha_tecnica_word.py,documento_traducir_es.py}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/{fichaTecnicaCampos.ts,plantillaFichaTecnicaMp.ts}`, `docs/team-recaps.md`

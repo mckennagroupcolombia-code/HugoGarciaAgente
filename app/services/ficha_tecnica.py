@@ -569,6 +569,14 @@ def _formatear_fecha_revision(fecha: str) -> str:
     return t
 
 
+#: Títulos con los que las fichas ya guardadas escribieron esas filas dentro
+#: de `propiedades`. Se siguen leyendo, pero siempre se imprime el nuevo.
+_TITULOS_VIEJOS: dict[str, list[str]] = {
+    "formula_quimica": ["fórmula química", "formula quimica"],
+    "olor": ["olor"],
+}
+
+
 def _valor_en_filas(filas: list[list[str]], *claves: str) -> str:
     claves_n = {_normalizar(c) for c in claves}
     for label, val in filas:
@@ -658,7 +666,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         ("punto_fusion", "Punto de fusión"),
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
-        ("olor", "Olor"),
+        ("olor", "Aroma"),
         ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
@@ -668,8 +676,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
             # Las fichas viejas guardaron la fila como "Fórmula química": se
             # buscan los dos títulos, se imprime siempre el nuevo.
             titulos = [label.lower(), _normalizar(label)]
-            if key == "formula_quimica":
-                titulos += ["fórmula química", "formula quimica"]
+            titulos += _TITULOS_VIEJOS.get(key, [])
             val = _valor_en_filas(filas_prop_legacy, *titulos)
         if val:
             propiedades.append([label, val])
@@ -693,6 +700,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "indice de saponificacion",
         "ph",
         "olor",
+        "aroma",
         "sabor",
         "formula quimica",
         "formula molecular",
@@ -1149,8 +1157,8 @@ def _contexto_html(
 
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
-        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "sabor",
-        "formula quimica", "formula molecular", "solubilidad",
+        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "aroma",
+        "sabor", "formula quimica", "formula molecular", "solubilidad",
     }
     cf = d.get("caracteristicas_fisicas") or {}
     propiedades_fijas: list[tuple[str, str]] = []
@@ -1159,7 +1167,7 @@ def _contexto_html(
         ("punto_fusion", "Punto de fusión"),
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
-        ("olor", "Olor"),
+        ("olor", "Aroma"),
         ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
@@ -1168,8 +1176,7 @@ def _contexto_html(
         val = (cf.get(key) or "").strip()
         if not val:
             titulos = [label.lower(), _normalizar(label)]
-            if key == "formula_quimica":
-                titulos += ["fórmula química", "formula quimica"]
+            titulos += _TITULOS_VIEJOS.get(key, [])
             val = _valor_en_filas(_filas_tabla(d.get("propiedades")), *titulos)
         if val:
             propiedades_fijas.append((label, val))
@@ -1920,6 +1927,7 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
         "índice de saponificación": "indice_saponificacion",
         "ph": "ph",
         "olor": "olor",
+        "aroma": "olor",
         "formula quimica": "formula_quimica",
         "fórmula química": "formula_quimica",
         "formula molecular": "formula_quimica",
