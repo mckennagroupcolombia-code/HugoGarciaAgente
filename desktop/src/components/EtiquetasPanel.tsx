@@ -72,6 +72,7 @@ import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
 import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
 import { precargarDiseno, ETIQUETAS_GC_TIME } from "../lib/etiquetasPrefetch";
+import { registerNestedBackHandler } from "../lib/appBackNavigation";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -5473,6 +5474,30 @@ function TabImprimir({
     setVistaImpresion("catalogo");
   }
 
+  // Atrás del navegador / botón atrás de Android y tecla Esc: desde la ventana de
+  // impresión se vuelve a la biblioteca de archivos, no se sale del panel.
+  useEffect(() => {
+    if (vistaImpresion !== "documento") return;
+    return registerNestedBackHandler(() => {
+      volverACatalogoPng();
+      return true;
+    });
+  }, [vistaImpresion]);
+
+  useEffect(() => {
+    if (vistaImpresion !== "documento" || mostrarPedidoEtiquetas || mostrarInstalador) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
+      if (el?.closest('[role="dialog"]')) return;
+      volverACatalogoPng();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [vistaImpresion, mostrarPedidoEtiquetas, mostrarInstalador]);
+
   const productoListo = !!pngImpresion
     || !!pdfStudioRuta
     || (!!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim());
@@ -5829,9 +5854,10 @@ function TabImprimir({
                   <button
                     type="button"
                     onClick={volverACatalogoPng}
+                    title="Volver a la biblioteca de archivos (Esc)"
                     className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:border-accent hover:text-accent"
                   >
-                    Archivos
+                    ← Archivos
                   </button>
                 </div>
                 {matchEanPng === "sin-match" ? (

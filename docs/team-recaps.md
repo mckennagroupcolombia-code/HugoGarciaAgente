@@ -2883,3 +2883,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - IA (`documento_cientifico.py`): el prompt de `conservacion` pide UNA oración de máximo 15 palabras que empiece por verbo en infinitivo, concreta (envase, lugar, temperatura/humedad/luz) y sin vida útil, fechas ni modo de uso. `recortar_a_palabras` impone el tope aunque el modelo devuelva un párrafo.
   - Verificado contra las 194 fichas: 157 con Conservación, **ninguna pasa de 15 palabras**.
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
+### 2026-09-15 - Volver a la biblioteca desde la ventana de impresión
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Diseño → Imprimir)
+- **Qué se implementó:**
+  - Al elegir una etiqueta en la biblioteca de impresión se abría la ventana de impresión sin una forma clara de regresar: el único enlace era un "← Archivos" de 9 px perdido entre los chips del cabezote, y ni el botón atrás del navegador ni el de Android volvían al catálogo (se salía del panel).
+  - Cabezote (`ImpresionEtiquetasHeader.tsx`): en la vista de documento el ícono de impresora se reemplaza por un botón **← Volver** destacado en el extremo izquierdo, con `aria-label` y tooltip "Volver a la biblioteca de archivos (Esc)".
+  - `EtiquetasPanel.tsx` (`TabImprimir`): la vista de documento registra un `registerNestedBackHandler` que ejecuta `volverACatalogoPng`, y escucha **Esc** (ignorando inputs, textareas, selects, contenteditable y diálogos, y desactivado mientras están abiertos el modal de pedidos o el instalador).
+  - `appBackNavigation.ts`: `onPopState` ahora consulta los manejadores anidados antes de cambiar de panel y reancla el historial, así el botón atrás del navegador de escritorio también respeta las vistas anidadas (antes solo lo hacía el bridge de Android).
+  - El botón pequeño junto a la vista previa del PNG queda como "← Archivos" con el mismo tooltip.
+- **Archivos Modificados:** `desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx`, `desktop/src/components/EtiquetasPanel.tsx`, `desktop/src/lib/appBackNavigation.ts`, `docs/team-recaps.md`

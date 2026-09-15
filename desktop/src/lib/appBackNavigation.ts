@@ -214,6 +214,15 @@ export function initAppBackNavigation() {
   }
 
   const onPopState = (event: PopStateEvent) => {
+    // Vistas anidadas (p. ej. la ventana de impresión dentro de Imprimir) consumen
+    // el "atrás" antes de cambiar de panel: se vuelve a la pantalla anterior de la
+    // vista y se reancla el historial en el punto donde estaba.
+    if (runNestedBackHandlers()) {
+      const current = captureNavState();
+      window.history.pushState(current, "", urlForNavState(current));
+      return;
+    }
+
     if (isMckState(event.state)) {
       navDepth = Math.max(1, navDepth - 1);
       applyNavState({
