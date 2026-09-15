@@ -1,3 +1,13 @@
+### 2026-09-14 12:40 - Etiquetas: los cuadros de texto de la ficha ya no cortan el último renglón
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha 76 × 66 · campos editables)
+- **Qué se implementó:**
+  - Algunos campos de la ficha —se veía en Conservación de Sales minerales— mostraban el texto cortado con barra de desplazamiento en lugar de estirarse hasta caberlo.
+  - **Causa: dos píxeles de borde.** El cuadro se estira poniendo `height = scrollHeight`, pero `scrollHeight` mide contenido más relleno y NO el borde, mientras que el campo es `box-sizing: border-box`, de modo que la altura asignada sí incluye el borde. El borde punteado de 1 px arriba y 1 px abajo se comía 2 px por dentro y el texto se quedaba siempre ese pelo corto. Medido: Conservación tenía 66 px de cuadro para 68 px de texto. Ahora se suma el grosor del borde.
+  - **Y se vuelve a medir cuando hace falta.** Antes solo se ajustaba al cambiar el valor; el texto también reflúye cuando termina de cargar la tipografía web (hasta entonces se mide con la de repuesto) y cuando cambia el ancho de la celda. Se pasó a `useLayoutEffect` —mide antes de pintar, sin parpadeo—, se añadió la versión de las fuentes como dependencia (`useVersionFuentes`, el mismo hook que ya usaban los formatos de 30 mL y circular) y un `ResizeObserver` sobre el propio campo.
+  - **Comprobado con los textos reales** de las fichas guardadas, sobre la retícula maestra de verdad (960 px, 3 columnas, filas del cuerpo): los seis módulos pasan de tener uno cortado a que cuadro y texto midan lo mismo en todos.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/EditableField.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-14 15:40 - No se encendió la emisión de documentos soporte: Alegra no los transmite a la DIAN todavía
 - **Autor:** Armando García
 - **Tipo de Cambio:** Verificación previa a una acción fiscal + ticket de trámite
