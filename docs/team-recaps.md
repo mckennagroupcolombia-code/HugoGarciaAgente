@@ -3073,3 +3073,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y el usuario no adjuntó la imagen de referencia, así que la diagramación se hizo solo desde la descripción escrita. Compila y pasa `tsc`; hay que revisarla en pantalla y a la impresión.
   - **Falta:** crear la plantilla de la categoría `aceites` (Aceites & Grasas) con este formato, desde Studio → Categorías → Nueva plantilla.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/` (3 archivos nuevos), `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `ProductHeader.tsx`, `app/data/etiquetas_tipos.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Renombrar plantillas guardadas en Studio Visual
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual → biblioteca de plantillas)
+- **Qué se implementó:**
+  - Hasta ahora el título de una plantilla se fijaba al crearla y no había forma de cambiarlo: se podían renombrar carpetas y capas, pero no la plantilla. La única salida era duplicarla o rehacerla.
+  - `renombrar_plantilla(pid, nombre_nuevo)` en `app/tools/plantillas_visuales.py` y endpoint `POST /api/plantillas-visuales/renombrar`. Va **aparte de `guardar_plantilla`** a propósito: esa reescribe la entrada completa, así que un POST que solo llevara el nombre dejaría `formato` en `{}` y `elementos` en `[]` — es decir, borraría el diseño.
+  - El nombre se normaliza (espacios colapsados, recorte a 120 caracteres) y se rechaza vacío; si no cambia, no reescribe el JSON. Actualiza `updated_at`.
+  - Front: botón **Renombrar** en la tarjeta de cada plantilla, junto a Duplicar y Eliminar, con `window.prompt` precargado con el nombre actual — el mismo patrón que ya usaba renombrar carpeta. Invalida `["plantillas-visuales"]`.
+  - El nombre es solo un rótulo: no se deriva nada de él (ver [[formatos-por-tamano]]). Ojo: `tipo_etiqueta` / `tipo_nombre` son otra cosa y **no** los toca este cambio, así que el layout 30 mL y la detección de troquel redondo siguen intactos.
+- **Archivos Modificados:** `app/tools/plantillas_visuales.py`, `app/routes.py`, `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`, `docs/team-recaps.md`

@@ -11298,7 +11298,9 @@ def register_routes(app):
                  "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
                  "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios",
                  "con_productos": bool(v.get("con_productos")),
-                 "requiere_factura": bool(v.get("requiere_factura"))}
+                 "requiere_factura": bool(v.get("requiere_factura")),
+                 "simple": bool(v.get("simple")),
+                 "pide_contrato": bool(v.get("pide_contrato"))}
                 for k, v in CATEGORIAS.items()
             ]})
         except Exception as e:
@@ -11582,6 +11584,64 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    # Aprobar contabiliza; girar es otra cosa. En Bancolombia el giro lleva dos
+    # tokens (uno monta, otro aprueba) y el ciclo cierra con el comprobante
+    # adjunto — ver app/services/pagos_wizard.py.
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/montar", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/montar", methods=["POST"])
+    def api_pagos_montar(sid: int):
+        """Queda montado en la Sucursal Virtual, esperando el segundo token."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import montar_en_banco
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(montar_en_banco(sid, por=_cc_uid(), referencia=str(d.get("referencia") or "")))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/confirmar-pago", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/confirmar-pago", methods=["POST"])
+    def api_pagos_confirmar(sid: int):
+        """Segundo token dado + comprobante del banco adjunto: ciclo cerrado."""
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import confirmar_pago
+
+            f = request.files.get("comprobante")
+            comprobante = (f.read(), f.filename or "comprobante.pdf") if f else None
+            return jsonify(confirmar_pago(
+                sid, por=_cc_uid(), comprobante=comprobante,
+                referencia=str(request.form.get("referencia") or ""),
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/comprobante", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/comprobante", methods=["GET"])
+    def api_pagos_comprobante(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        from app.services.pagos_wizard import obtener
+        s_ = obtener(sid)
+        if not s_ or not s_.get("comprobante_archivo"):
+            return jsonify({"error": "Sin comprobante adjunto"}), 404
+        from flask import send_file
+        ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), s_["comprobante_archivo"])
+        if not os.path.exists(ruta):
+            return jsonify({"error": "Archivo no encontrado"}), 404
+        return send_file(ruta, download_name=s_.get("comprobante_nombre") or os.path.basename(ruta))
 
     @app.route("/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
@@ -21352,6 +21412,23 @@ def register_routes(app):
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         return jsonify({"ok": True, "carpeta": nueva})
+
+    @app.route("/api/plantillas-visuales/renombrar", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/renombrar", methods=["POST"])
+    def api_plantillas_visuales_renombrar():
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.plantillas_visuales import renombrar_plantilla
+
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = renombrar_plantilla(
+                body.get("id") or "", body.get("nombre_nuevo") or "",
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "plantilla": entry})
 
     @app.route("/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
     @app.route("/app/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])

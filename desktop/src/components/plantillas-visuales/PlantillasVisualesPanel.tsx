@@ -820,6 +820,24 @@ export default function PlantillasVisualesPanel({
     renombrarCarpetaPlantillaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
   }
 
+  const renombrarPlantillaMut = useMutation({
+    mutationFn: ({ id, nombreNuevo }: { id: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; plantilla: PlantillaVisualDoc }>(
+        "/api/plantillas-visuales/renombrar",
+        { id, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo renombrar la plantilla"),
+  });
+
+  function renombrarPlantilla(id: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la plantilla:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarPlantillaMut.mutate({ id, nombreNuevo: nombreNuevo.trim() });
+  }
+
   const moverPlantillasMut = useMutation({
     mutationFn: ({ ids, destino }: { ids: string[]; destino: string }) =>
       api.post<{ ok: boolean; movidos: string[]; errores: Record<string, string> }>(
@@ -1861,6 +1879,20 @@ export default function PlantillasVisualesPanel({
                   onMouseLeave={() => setArrastreBloqueado(false)}
                   className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
+                  <button
+                    type="button"
+                    title="Renombrar"
+                    draggable={false}
+                    disabled={renombrarPlantillaMut.isPending}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      renombrarPlantilla(p.id, p.nombre);
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-accent disabled:opacity-50"
+                  >
+                    {renombrarPlantillaMut.isPending ? "…" : "Renombrar"}
+                  </button>
                   <button
                     type="button"
                     title="Duplicar"
