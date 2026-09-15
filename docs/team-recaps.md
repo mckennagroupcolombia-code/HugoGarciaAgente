@@ -1,3 +1,14 @@
+### 2026-09-15 11:30 - Jenniffer no debe ver las solicitudes de pago: en el menú no las veía, por API sí
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de control de acceso
+- **Qué se implementó:**
+  - **El hallazgo:** el usuario `jerry` (Jenniffer, despachos, nivel operario) no tiene los permisos `pagos` ni `libro-mayor`, así que el panel le ocultaba Contabilidad → Solicitudes de pago. Pero las rutas `/api/pagos/*` solo exigían `_api_token_valido()`, que acepta la sesión de **cualquier** usuario del panel. Probado con su propia sesión contra el servidor en vivo: devolvía el listado completo de solicitudes con proveedor, monto, estado y totales, el directorio de proveedores con sus saldos en 2205, la factura adjunta de cada solicitud y los endpoints de aprobar y rechazar. **Ocultar en el menú no es restringir.**
+  - **El arreglo:** las 17 rutas de `/api/pagos/*` pasan ahora por `_pagos_rechazo()`, que exige lo mismo que el panel (`lib/contabilidadAccess.ts`, sección "pagos"): permiso propio `pagos` o `libro-mayor`, o rol administrador; `CHAT_API_TOKEN` sigue entrando para crons y procesos internos. Mismo patrón que ya usaban `app/routes_anulaciones.py` y `app/routes_conciliacion.py`, que sí estaban protegidas.
+  - **Verificado en vivo tras reiniciar `agente-pro`:** con la sesión de `jerry`, las seis rutas probadas responden **403**; con el token de sistema, 200. Su sesión de tickets sigue funcionando normal (`/api/tickets/auth/me` → 200), así que no perdió nada de lo suyo.
+  - **Lo que NO quedó cubierto y hay que decidir aparte:** con esa misma sesión siguen abiertos `/api/contabilidad/cc/*` (movimientos y terceros del Libro Mayor), `/api/prestamos` (cédula, correo y cuenta bancaria de prestamistas y socios), `/api/socios/saldos` y `/api/contabilidad/extractos/*`. Son los módulos cuyo propio código dice "permiso propio, no heredado — datos sensibles", y hoy solo lo cumple el frontend. El arreglo es el mismo guard; se dejó fuera de este cambio por tocar más paneles de los que se pidió revisar.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_pagos_permisos_api.py` (nuevo, 10 casos), `docs/team-recaps.md`
+
 ### 2026-09-14 12:40 - Etiquetas: los cuadros de texto de la ficha ya no cortan el último renglón
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (ficha 76 × 66 · campos editables)

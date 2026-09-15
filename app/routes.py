@@ -11086,14 +11086,48 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     # ─── Solicitudes de pago (wizard) ───────────────────────────────────
+    # Acceso: mismo criterio que el panel (lib/contabilidadAccess.ts, sección
+    # "pagos"): permiso propio `pagos` o `libro-mayor`, nunca heredado. Hasta
+    # sep-2026 estas rutas solo pedían `_api_token_valido()`, que acepta la
+    # sesión de CUALQUIER usuario del panel: con ocultar la sección en el menú
+    # no alcanzaba — el usuario `jerry` (despachos, nivel operario) obtenía por
+    # API el listado completo de solicitudes con proveedor, monto, factura y
+    # saldos 2205. Mismo patrón que app/routes_anulaciones.py.
+
+    def _pagos_permiso_ok() -> bool:
+        u = _panel_tickets_usuario()
+        if u is None:
+            return True  # CHAT_API_TOKEN / proceso interno
+        try:
+            from app.services.tickets_db import es_admin_efectivo
+
+            if es_admin_efectivo(u):
+                return True
+        except Exception:
+            if int((u.get("rol") or {}).get("nivel") or 0) >= 3:
+                return True
+        permisos = u.get("permisos_secciones") or {}
+        return bool(permisos.get("pagos") or permisos.get("libro-mayor"))
+
+    def _pagos_rechazo():
+        """None si puede entrar; si no, la respuesta 401/403 lista para devolver."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if not _pagos_permiso_ok():
+            return jsonify(
+                {"error": "Solicitudes de pago requiere permiso 'pagos' o 'libro-mayor'"}
+            ), 403
+        return None
+
     # El asiento nace del acto de pagar, no de un paso posterior que se olvida.
     # Ver app/services/pagos_wizard.py.
 
     @app.route("/api/pagos/categorias", methods=["GET"])
     @app.route("/app/api/pagos/categorias", methods=["GET"])
     def api_pagos_categorias():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import CATEGORIAS
 
@@ -11112,8 +11146,9 @@ def register_routes(app):
     @app.route("/app/api/pagos/opciones/<string:categoria>", methods=["GET"])
     def api_pagos_opciones(categoria: str):
         """Qué se puede pagar en esa categoría — sale de los saldos reales."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import opciones
 
@@ -11128,8 +11163,9 @@ def register_routes(app):
     def api_pagos_proveedores():
         """Listado único de proveedores: terceros del Libro Mayor (con saldo 2205) + contactos
         proveedor de Alegra que aún no son terceros. Ver app/services/pagos_proveedor.py."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_proveedor import proveedores
             return jsonify({"proveedores": proveedores(request.args.get("q") or "")})
@@ -11140,8 +11176,9 @@ def register_routes(app):
     @app.route("/app/api/pagos/proveedores/adoptar", methods=["POST"])
     def api_pagos_proveedor_adoptar():
         """Convierte un contacto de Alegra en tercero del Libro Mayor (o devuelve el existente)."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_proveedor import adoptar_contacto_alegra
             d = request.get_json(silent=True) or {}
@@ -11155,8 +11192,9 @@ def register_routes(app):
     @app.route("/app/api/pagos/productos", methods=["GET"])
     def api_pagos_productos():
         """Productos del catálogo espejo de Alegra (SKU, nombre, costo) para las líneas de la solicitud."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_proveedor import productos
             return jsonify({"productos": productos(request.args.get("q") or "")})
@@ -11169,8 +11207,9 @@ def register_routes(app):
         """Multipart: `archivo` (PDF/XML/ZIP) + `items` (JSON) + `monto` + `tercero_id`.
         Coteja el documento del proveedor contra lo solicitado y guarda el archivo de forma
         temporal (`archivo_tmp`) para adjuntarlo al crear la solicitud. Sin LLM."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             import json as _json
             from app.services.pagos_proveedor import guardar_temporal, normalizar_items, verificar_factura
@@ -11204,8 +11243,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes/<int:sid>/factura", methods=["GET"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/factura", methods=["GET"])
     def api_pagos_factura(sid: int):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         from app.services.pagos_wizard import obtener
         s_ = obtener(sid)
         if not s_ or not s_.get("factura_archivo"):
@@ -11220,8 +11260,9 @@ def register_routes(app):
     @app.route("/app/api/pagos/previsualizar", methods=["POST"])
     def api_pagos_previsualizar():
         """El asiento que se crearía, sin guardar nada."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import previsualizar
 
@@ -11234,8 +11275,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes", methods=["GET"])
     @app.route("/app/api/pagos/solicitudes", methods=["GET"])
     def api_pagos_listar():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import listar, resumen
 
@@ -11247,8 +11289,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes", methods=["POST"])
     def api_pagos_crear():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import crear_solicitud
 
@@ -11266,8 +11309,9 @@ def register_routes(app):
         Los socios montan y aprueban sus propios pagos: pedirles auto-aprobarse
         en dos pasos es burocracia sin control real. Lo que NO se salta es ver
         el asiento antes de confirmar, y queda anotado quién lo registró."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import registrar_pago_directo
 
@@ -11285,8 +11329,9 @@ def register_routes(app):
     def api_pagos_puedo_registrar():
         """Si el usuario de la sesión puede registrar sin aprobación — el panel
         lo usa para mostrar u ocultar esa opción."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import puede_registrar_directo
 
@@ -11301,8 +11346,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes/<int:sid>/previsualizacion", methods=["GET"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/previsualizacion", methods=["GET"])
     def api_pagos_previsualizacion(sid: int):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import previsualizacion_de
 
@@ -11315,8 +11361,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes/<int:sid>/enviar", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/enviar", methods=["POST"])
     def api_pagos_enviar_aprobacion(sid: int):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import enviar_a_aprobacion
 
@@ -11330,8 +11377,9 @@ def register_routes(app):
     @app.route("/api/pagos/plantillas", methods=["GET"])
     @app.route("/app/api/pagos/plantillas", methods=["GET"])
     def api_pagos_plantillas():
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import listar_plantillas
 
@@ -11342,8 +11390,9 @@ def register_routes(app):
     @app.route("/api/pagos/plantillas/<int:pid>/instanciar", methods=["POST"])
     @app.route("/app/api/pagos/plantillas/<int:pid>/instanciar", methods=["POST"])
     def api_pagos_instanciar_plantilla(pid: int):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import instanciar_plantilla
 
@@ -11359,8 +11408,9 @@ def register_routes(app):
     @app.route("/app/api/pagos/solicitudes/<int:sid>/aprobar", methods=["POST"])
     def api_pagos_aprobar(sid: int):
         """Aprueba y **ahí** crea el asiento + el comprobante en Alegra."""
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import aprobar
 
@@ -11374,8 +11424,9 @@ def register_routes(app):
     @app.route("/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
     @app.route("/app/api/pagos/solicitudes/<int:sid>/rechazar", methods=["POST"])
     def api_pagos_rechazar(sid: int):
-        if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
         try:
             from app.services.pagos_wizard import rechazar
 
