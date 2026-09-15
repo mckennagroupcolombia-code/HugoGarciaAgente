@@ -1,3 +1,14 @@
+### 2026-09-15 - Reposiciones de los socios por los préstamos de familiares: Cynthia en cero, Armando con $1.001.003
+- **Autor:** Armando García
+- **Tipo de Cambio:** Registro contable
+- **Qué se implementó:**
+  - **Contexto:** el dinero de los prestamistas familiares no entró por el banco de McKenna sino a cuentas personales de los socios, así que el préstamo nace contra la cuenta **1355 (por cobrar a socios)** y cada socio lo repone después. Esas reposiciones son las únicas líneas que aparecen en el extracto.
+  - **Tres abonos nuevos:** Armando $3.998.997 el 13-sep y $5.000.000 el 14-sep (contra el préstamo de Víctor Hugo García); Cynthia $5.700.000 el 14-sep (contra el tramo adicional de Antonio Ruiz). Asiento en cada caso: débito Bancos, crédito 1355 con el tercero, `tipo_origen = reposicion_socio`, referencias REPO-VHGB-2, REPO-VHGB-3 y REPO-ARUIZ-2.
+  - **Cómo queda la 1355:** Cynthia en **$0** —completó los $16 millones de Antonio— y Armando en **$1.001.003**. Armando había dicho «$1.000.000»: hay **$1.003 de diferencia** que conviene confirmar contra el extracto, quizá un costo de transferencia o un redondeo. No se ajustó por cuenta propia.
+  - **Lo que NO cambia:** el pasivo con los prestamistas (cuenta 2295) sigue igual —Gloria Stella $29M, Víctor $20M, Lira Carmenza $16,95M, Antonio $16M— porque la reposición es entre la empresa y el socio, no un pago al prestamista. Eso solo baja cuando se pagan las cuotas, la primera el 9 de octubre.
+  - **Los tres asientos ya están en Alegra** (comprobantes 125, 126 y 127) gracias al espejo encendido ayer. Quedan pendientes de conciliar porque todavía no se ha cargado el extracto bancario de septiembre.
+- **Archivos Modificados:** ninguno de código; asientos 1796, 1797 y 1798 en `app/data/contabilidad.db` y sus comprobantes en Alegra
+
 ### 2026-09-15 13:10 - Las casillas de permisos ya se pueden dar desde Gestión de usuarios, y no vuelven a quedarse cortas
 
 - **Autor:** Armando García
