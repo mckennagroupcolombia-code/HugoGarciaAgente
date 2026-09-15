@@ -91,6 +91,8 @@ import {
   type CampoOrtografia,
 } from "../../lib/ortografiaEtiqueta";
 import { ANCHO_SIMPLE, esFormatoSimple, reticulaSimple } from "../etiqueta-simple/etiquetaSimpleTypes";
+import Etiqueta5ml from "../etiqueta-5ml/Etiqueta5ml";
+import { ANCHO_5ML, esFormato5ml, reticula5ml } from "../etiqueta-5ml/etiqueta5mlTypes";
 import EtiquetaCircular from "../etiqueta-circular/EtiquetaCircular";
 import {
   DIAMETRO_CIRCULAR,
@@ -189,6 +191,9 @@ function ProductLabelFormInner({
   const es30ml = esFormato30ml(tipoNombre, tipo);
   /** 69 × 51 mm ("100 g"): diagramación simple de dos columnas. */
   const esSimple = esFormatoSimple(tipoNombre, tipo);
+  /** 66 × 22 mm ("5 mL"): los tres paneles del 30 mL, reducidos a dos filas
+   *  (frascos de Aceites Esenciales). */
+  const es5ml = esFormato5ml(tipoNombre, tipo);
   /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
   const esCircular = esFormatoCircular(tipoNombre, tipo);
   const esVertical = esFormatoVertical(tipoNombre, tipo);
@@ -199,7 +204,9 @@ function ProductLabelFormInner({
   const [diametroMm, setDiametroMm] = useState<number | null>(null);
   const anchoDiseno = es30ml
     ? ANCHO_30ML
-    : esSimple
+    : es5ml
+      ? ANCHO_5ML
+      : esSimple
       ? ANCHO_SIMPLE
       : esCircular
         ? DIAMETRO_CIRCULAR
@@ -888,6 +895,7 @@ function ProductLabelFormInner({
   /** Retícula de la etiqueta 30 mL, calculada de las medidas del formato. */
   const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retSimple = useMemo(() => reticulaSimple(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  const ret5ml = useMemo(() => reticula5ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retCircular = useMemo(() => reticulaCircular(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retVertical = useMemo(() => reticulaVertical(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
@@ -1031,7 +1039,7 @@ function ProductLabelFormInner({
   // marco en vez de quedarse corta —hueco abajo— o pasarse y dibujarse
   // escalada, que dejaba una banda vacía a la derecha.
   const altoMarcoFicha =
-    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !esSimple && !esCircular && !esVertical
+    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !es5ml && !esSimple && !esCircular && !esVertical
       ? MARCO_MAX_ANCHO / (tipo.ancho_mm / tipo.alto_mm)
       : undefined;
 
@@ -1583,7 +1591,7 @@ function ProductLabelFormInner({
         </p>
       )}
 
-      {marco && !es30ml && !esSimple && !esCircular && !esVertical && (
+      {marco && !es30ml && !es5ml && !esSimple && !esCircular && !esVertical && (
         <p className="mb-2 text-[11px] text-muted">
           Ajustada a {tipo && etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm)} — el marco
           punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
@@ -1619,6 +1627,29 @@ function ProductLabelFormInner({
             />
           </Marco30ml>
         </>
+      ) : es5ml ? (
+        <>
+          <p className="mb-2 text-[11px] text-muted">
+            Ajustada a{" "}
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.6×0.87 in · 66×22 mm"} —
+            los tres paneles del 30 mL en dos filas: matriz técnica de 2×2, marca con el nombre y el
+            contenido neto, y pictograma GHS + Pureza/CAS sobre el código de barras. En edición, lo
+            gris es un ejemplo de referencia y no se imprime.
+          </p>
+          <Marco30ml reticula={ret5ml}>
+            <Etiqueta5ml
+              ref={fichaRef}
+              data={data}
+              reticula={ret5ml}
+              editMode={editMode}
+              guias={showGrid && editMode}
+              onChange={onChange}
+              onElegirCodigo={(c) => void onElegirCodigo(c)}
+              attributeIcons={attributeIcons}
+              onIconChange={onIconChange}
+            />
+          </Marco30ml>
+        </>
       ) : esSimple ? (
         <>
           <p className="mb-2 text-[11px] text-muted">
@@ -1644,9 +1675,9 @@ function ProductLabelFormInner({
         <>
           <p className="mb-2 text-[11px] text-muted">
             Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "1.5\u00d74.02 in \u00b7 38\u00d7102 mm"} —
+            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "1.5×4.02 in · 38×102 mm"} —
             etiqueta vertical de siete bloques: cabecera, dos filas de casillas, beneficios, contenido
-            neto, marca con el c\u00f3digo de barras debajo del logo y pie de contacto. En edici\u00f3n, lo gris
+            neto, marca con el código de barras debajo del logo y pie de contacto. En edición, lo gris
             es un ejemplo de referencia y no se imprime.
           </p>
           <Marco30ml reticula={retVertical}>
