@@ -2981,3 +2981,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Pendiente análogo:** 101 fichas guardan todavía la fila `- - Fórmula química`, que `b1382f6` renombró a "Fórmula molecular" en la normalización. Mismo patrón: el título viejo sigue en disco. Solo 1 ficha tiene ya la fila nueva.
   - Sin cambios de código. Respaldos de los 121 YAML en `/tmp/olor_a_aroma_bak_20260915_1333/`, fuera del repo.
 - **Archivos Modificados:** 121 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Glicerina: cerrado el duplicado de fichas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Síntoma: la ficha técnica decía "Aroma: Inodoro" pero al cargar el SKU en la plantilla de etiqueta salía "Olor característico muy tenue y ligeramente dulce…". El texto venía de `glicerina_vegetal.yaml` → `caracteristicas_fisicas.olor`.
+  - Raíz: dos fichas del mismo producto con **valores distintos** en Aroma, Apariencia y pH. La parcial se titulaba "GLICERINA VEGETAL" (empataba 1.00 con el EAN) y el documento completo solo "GLICERINA" (0.48), así que la etiqueta tomaba la parcial. El arreglo del recap anterior solo había llenado los campos *vacíos* (Origen, Grado, Conservación), no los que discrepaban.
+  - Decisión del usuario: dejar solo el completo. En `ft_coa_sds_glicerina.yaml` se retituló a "GLICERINA VEGETAL" `titulo`, `nombre_producto`, la fila `NOMBRE DEL PRODUCTO` de `identidad`, y `_coa.titulo` y `_sds.titulo` para que el PDF completo sea coherente. `_coa.identificacion.nombre_comercial` sigue siendo "GLICERINA REFINADA" (dato del proveedor).
+  - `glicerina_vegetal.yaml` movido a `fichas_word/datos_archivados/`. `listar_yaml_datos` usa `DATOS_DIR.glob("*.yaml")`, no recursivo, así que deja de listarse: 193 → 192 fichas, y "GLICERINA VEGETAL" queda como única candidata con puntaje 1.00.
+  - Verificado con `camposDesdeFichaTecnica`: la etiqueta ahora carga Aroma "Inodoro.", Origen "Colombia", Grado "USP", Clasificación "MATERIA PRIMA GRADO USP", Conservación, CAS, Apariencia, Descripción y fórmula C₃H₈O₃ — todo del documento completo.
+  - Sin cambios de código. Respaldos de los dos YAML en `/tmp/glicerina_cierre_20260915_1339/`, fuera del repo.
+  - **Nota:** si aparecen más productos con ficha parcial + completo, el síntoma se repite. El aviso de candidatas añadido en `e6f7c1a` lo hace visible en el mensaje de enlace.
+- **Archivos Modificados:** `fichas_word/datos/ft_coa_sds_glicerina.yaml`, `fichas_word/datos_archivados/glicerina_vegetal.yaml` (fuera del repo), `docs/team-recaps.md`
