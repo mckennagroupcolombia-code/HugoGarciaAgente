@@ -3044,3 +3044,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Requiere reiniciar el servicio:** el cambio es Python. `sudo systemctl restart agente-pro` — el clasificador de permisos impide hacerlo desde aquí, lo ejecuta el usuario. El renombrado del rótulo es frontend y ya está desplegado.
   - **Pendiente análogo:** `grado` tiene el mismo patrón (se edita en la identificación compartida pero el PDF de la FT lo lee solo de top-level). No se tocó para no ampliar el alcance.
 - **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/services/ficha_tecnica.py`, `docs/team-recaps.md`
+
+### 2026-09-15 - Regenerados los 75 documentos FT+COA+SDS con los rótulos nuevos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos / operación (Documentos técnicos)
+- **Qué se implementó:**
+  - Los PDF publicados eran del 2026-09-12, anteriores a los cambios de rótulo de hoy. Auditados con `pdftotext`: **79 de 82** en `completo/` y **137 de 154** en `pdf/` traían `Olor`, `Fórmula química` o `Concentración`.
+  - Respaldo previo obligatorio (ver [[generar-ficha-destino]]): `/home/mckg/backups_manual/completo_antes_regen_2026-09-15_1433.tar.gz`, 83 archivos, 65 MB, fuera del repo.
+  - Regenerados **75** documentos con `generar_pdf_completo(d, d.get("_coa"), d.get("_sds"), cabezote_id=d.get("_cabezote_id"), salida=<ruta existente>)`, pasando `salida` explícito para escribir sobre el mismo nombre y no tocar la raíz de `fichas_word/`. 0 fallos, 75 s. 74 sobrescribieron su PDF; 1 nuevo (CHÍA, que no tenía).
+  - Verificado con una auditoría acotada a la tabla "Especificaciones fisicoquímicas" de la FT: **71 con rótulos nuevos, 0 de los regenerados con rótulos viejos**. La primera auditoría daba 25 falsos positivos porque buscaba en todo el PDF: "Olor" aparece también en los parámetros del COA (dato del proveedor) y en la sección 9 de la SDS (término GHS, intencional), y "concentración" en prosa del modo de uso.
+  - **9 PDF quedaron huérfanos** — existen en `completo/` pero ya no tienen un YAML `_tipo: completo` que los regenere, así que 5 conservan rótulos viejos: ÁCIDO ASCÓRBICO, ÁCIDO HIALURÓNICO, ALANTOÍNA, MANTECA KARITÉ, VITAMINA B3 (+ CAOLÍN G30M, CAOLÍN USP, COCO DESECADO GRASO HILOS LARGOS, y GLICERINA por el renombrado a GLICERINA VEGETAL de hoy). Son de fichas fusionadas o retiradas el 11-12 de septiembre. No se tocaron: los retira el usuario si quiere.
+  - **Drive: no se subió nada.** `configuracion_drive()` devuelve `delegacion_configurada: False`, `folder_pdf_id: None`, `impersonate_email: None`. Falta compartir las carpetas con `agente-sheets@mi-agente-ubuntu.iam.gserviceaccount.com` como Editor, definir `TDS_DRIVE_IMPERSONATE` en `.env` y activar la delegación de dominio en Admin Google.
+  - No se tocaron los 137 de `pdf/` (FT simples): el usuario eligió solo los completos.
+- **Archivos Modificados:** 75 PDF en `fichas_word/completo/` (fuera del repo), `docs/team-recaps.md`
