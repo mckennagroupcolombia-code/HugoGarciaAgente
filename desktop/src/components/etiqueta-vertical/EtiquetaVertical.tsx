@@ -10,7 +10,7 @@
  * SKU. Es el nodo que se rasteriza para el PNG y la impresión, a su tamaño
  * de diseño; quien la muestra la escala desde afuera.
  */
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
 import { variablesAcento, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
@@ -122,6 +122,35 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
   const [iconoAbierto, setIconoAbierto] = useState<IconoKey | null>(null);
   const [menuLogo, setMenuLogo] = useState(false);
   const logoRef = useRef<HTMLDivElement>(null);
+
+  // ── El lema mide exactamente lo que el logo ───────────────────────────
+  // Se mide el texto una sola vez a un tamaño de referencia con una copia
+  // invisible (`espejoLema`) y de ahí sale la regla de tres. Medir el propio
+  // lema no serviría: cambiarle el tamaño cambiaría la medida y el cálculo
+  // oscilaría. Sin logo cargado, el lema vuelve a su tamaño por defecto.
+  const TAM_ESPEJO = 100;
+  const espejoLema = useRef<HTMLSpanElement>(null);
+  const [tamLema, setTamLema] = useState<number>(TAM.lema[0]);
+  useLayoutEffect(() => {
+    const caja = logoRef.current;
+    const img = caja?.querySelector("img");
+    const espejo = espejoLema.current;
+    if (!caja || !img || !espejo) {
+      setTamLema(TAM.lema[0]);
+      return;
+    }
+    const medir = () => {
+      const anchoLogo = img.getBoundingClientRect().width;
+      const anchoTexto = espejo.getBoundingClientRect().width;
+      if (!anchoLogo || !anchoTexto) return;
+      setTamLema((TAM_ESPEJO * anchoLogo) / anchoTexto);
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(img);
+    ro.observe(espejo);
+    return () => ro.disconnect();
+  }, [data.logoUrl, data.logoScale, reticula.ancho, reticula.bloques.marca]);
   const editable = editMode && Boolean(onChange);
   const cambio = (campo: keyof ProductLabelData) =>
     onChange ? (v: string) => onChange({ [campo]: v }) : undefined;
@@ -293,14 +322,13 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
             no es un dato de producto, así que no se edita, solo su tamaño y
             su letra. Si el logo cargado ya lo trae dibujado, se apaga desde
             el menú del logo para no repetirlo. */}
-        <EditableLabel
-          texto={ESLOGAN}
-          editMode={editMode}
-          styleKey="esloganLogo"
-          defaultFontSize={TAM.lema[0]}
-          as="p"
-          className="ev-lema"
-        />
+        {/* Copia invisible a tamaño de referencia: solo sirve para medir. */}
+        <span ref={espejoLema} className="ev-lema-espejo" aria-hidden="true">
+          {ESLOGAN}
+        </span>
+        <p className="ev-lema" style={{ fontSize: tamLema }}>
+          {ESLOGAN}
+        </p>
         <div className="ev-codigo">
           <BarcodeBlock
             value={data.barcode || ""}

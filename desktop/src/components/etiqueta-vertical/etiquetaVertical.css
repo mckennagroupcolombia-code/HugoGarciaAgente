@@ -197,12 +197,31 @@
 }
 /* Mismo trato que en la ficha de 76 × 66 (`ProductHeader`): en el color del
    acento y sin cursiva — la marca no usa cursiva en ningún formato. */
+/* El lema mide exactamente lo que el logo: el tamaño de letra lo calcula el
+   componente a partir del ancho de la imagen, así que aquí no se fija.
+   Una sola línea, para que el ancho sea el del texto completo. */
 .ev-lema {
   color: var(--acento);
-  font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  line-height: 1.1;
   text-align: center;
+  white-space: nowrap;
+}
+
+/* Copia del lema a tamaño de referencia, solo para medir: fuera del flujo,
+   invisible, sin afectar a la maqueta ni a la impresión. Mismo peso y mismo
+   espaciado que el lema real, o la regla de tres saldría desviada. */
+.ev-lema-espejo {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  font-size: 100px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  visibility: hidden;
+  pointer-events: none;
 }
 .ev-codigo {
   display: flex;

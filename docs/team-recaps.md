@@ -3153,3 +3153,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Con esto el formato se comporta como los demás: el color se elige por plantilla y la familia puede llevar su propio tono (las otras dos de `aceites` usan el naranja #F9A72B).
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `etiquetaVerticalTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-16 - El lema mide lo mismo que el logo en el formato 38×102
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - «Proveemos a tus ideas» se dimensionaba por su tamaño de letra (15 px fijos), independiente del logo, así que quedaba más ancho o más estrecho según la imagen cargada. Ahora mide **exactamente** el ancho del logo.
+  - `EtiquetaVertical.tsx`: un `useLayoutEffect` mide el ancho real de la imagen del logo y el del lema, y de ahí sale el tamaño de letra por regla de tres. La medida del texto se toma de una **copia invisible a 100 px** (`.ev-lema-espejo`), no del lema real: medir el propio lema haría que cambiarle el tamaño cambiara la medida y el cálculo oscilaría. Un `ResizeObserver` sobre la imagen y el espejo lo recalcula si el logo cambia de tamaño o se carga otro.
+  - El espejo replica peso y `letter-spacing` del lema; si no coincidieran, la regla de tres saldría desviada. Está fuera del flujo y oculto, así que no afecta a la maqueta ni a la impresión.
+  - El lema pasa a una sola línea (`white-space: nowrap`) para que el ancho medido sea el del texto completo, y deja de llevar `font-size` en el CSS. Sin logo cargado vuelve a su tamaño por defecto.
+  - **Efecto secundario:** el lema deja de ser un `EditableLabel`, así que ya no tiene menú de tamaño propio — ahora lo manda el logo, que es justo lo pedido.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
