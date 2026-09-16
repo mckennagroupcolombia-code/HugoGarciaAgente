@@ -102,7 +102,7 @@
   border-radius: 4px;
   box-sizing: border-box;
   color: #111111;
-  font-size: 17px;          /* ~5,8 pt */
+  font-size: 31px;          /* ~10,5 pt — +80 % */
   font-weight: 500;
   line-height: 1.18;
   overflow: hidden;         /* sin barras de desplazamiento */
@@ -143,7 +143,7 @@
 .ev-beneficio-texto {
   width: 100%;
   color: #111111;
-  font-size: 16px;          /* ~5,5 pt */
+  font-size: 29px;          /* ~9,9 pt — +80 % */
   font-weight: 500;
   line-height: 1.15;
 }
@@ -253,14 +253,14 @@
   justify-content: center;
   gap: 5px;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 29px;          /* ~9,9 pt — +80 % */
   font-weight: 600;
   white-space: nowrap;       /* la web cabe completa */
 }
 .ev-pie-linea svg {
   display: block;
-  width: 17px;
-  height: 17px;
+  width: 31px;
+  height: 31px;
   flex: 0 0 auto;
 }
 

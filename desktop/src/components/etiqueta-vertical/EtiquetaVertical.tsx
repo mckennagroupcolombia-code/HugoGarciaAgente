@@ -107,12 +107,12 @@ const TAM = {
   nombre: [37, 24] as const,
   grado: [22, 15] as const,
   titulo: [19, 14] as const,
-  valor: [17, 12] as const,
-  beneficio: [16, 11] as const,
+  valor: [31, 22] as const,
+  beneficio: [29, 20] as const,
   netoTitulo: [18, 13] as const,
   netoValor: [42, 26] as const,
   lema: [15, 11] as const,
-  pie: [16, 11] as const,
+  pie: [29, 20] as const,
 };
 
 const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVertical(
@@ -156,7 +156,8 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
     onChange ? (v: string) => onChange({ [campo]: v }) : undefined;
 
   const { bloques, linea } = reticula;
-  const ladoIcono = Math.round(reticula.pxPorMm * 3.6);
+  // 6,5 mm: los iconos se pidieron un 80 % mayores que los 3,6 mm iniciales.
+  const ladoIcono = Math.round(reticula.pxPorMm * 6.5);
 
   const casilla = (
     campo: "appearance" | "odor" | "composition" | "storage",

@@ -3188,3 +3188,19 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Efecto secundario:** el lema deja de ser un `EditableLabel`, así que ya no tiene menú de tamaño propio — ahora lo manda el logo, que es justo lo pedido.
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Formato 38×102: datos, iconos y pie un 80 % más grandes
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - A pedido del usuario, ×1,8 en los tres grupos que señaló. El nombre, la barra de grado y el contenido neto **no** se tocaron.
+  - `TAM.valor` 17 → 31 px (~10,5 pt), `TAM.beneficio` y `TAM.pie` 16 → 29 px (~9,9 pt), con sus mínimos de ajuste subidos en la misma proporción. Iconos de casilla y de beneficio de 3,6 → **6,5 mm**; los del pie de 17 → 31 px. Mismos valores en el CSS.
+  - Los mínimos se subieron también (y no solo los máximos) a propósito: `CampoEtiqueta` encoge el texto para caber, así que subir solo el máximo no habría cambiado nada en pantalla.
+  - Espacio que queda, calculado con la retícula real (12 px/mm):
+    - Fila Apariencia/Aroma: 75 px libres → **2,1 renglones** de 31 px, ~14 caracteres cada uno (~29 en total).
+    - Fila Composición/Conservación: 105 px → **2,9 renglones** (~40 caracteres).
+    - Beneficios: 80 px → **2,4 renglones** de 29 px, ~10 caracteres cada uno (~24 en total).
+    - Pie: dos renglones ocupan 67 px de los 120 disponibles; sobra sitio.
+  - Los textos del ejemplo entran justos ("Líquido de tonalidad rosada" 27 caracteres, "Agua destilada de rosas y conservante." 37, "Sensación refrescante" 21). Con textos más largos `CampoEtiqueta` los encoge y, si ni al mínimo caben, marca la casilla en rojo en edición.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
