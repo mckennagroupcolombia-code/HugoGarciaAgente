@@ -3236,3 +3236,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `etiquetaVertical.css`: regla explícita para `.ev-etiqueta .e30-campo`, `.e30-campo-wrap`, `.ev-valor-texto` y `.ev-grado-texto`, más `text-align: center` propio en `.ev-beneficio-texto`. Cubre los valores de las cuatro casillas, el nombre, la barra de grado, los beneficios, el contenido neto y las dos líneas del pie.
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Ficha de etiqueta: casilla "Desenfoque" para publicaciones digitales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → ficha de etiqueta, todos los formatos)
+- **Qué se implementó:**
+  - Nueva casilla **Desenfoque** en la cabecera de la ficha (junto a Retícula). Con ella marcada, al confirmar "Guardar e ir a desenfoque" en la vista previa, el PNG de impresión se guarda como siempre en `ETIQUETAS STUDIO/<Categoría>` y acto seguido se abre la ventana de selección por recuadro (la misma `DesenfoquePlantillaModal` de Studio Visual: botón "Pie McKenna", altura del pie, radio, arrastrar recuadros, preview).
+  - "Usar esta versión" sube la copia desenfocada a **`PUBLICACIONES DIGITALES/<Categoría>`**, con sufijo `_digital.png` y el mismo formato (mm, dpi, tipo). Esa carpeta está fuera de `ETIQUETAS STUDIO`, así que Diseño → Imprimir no la lista: queda solo como base para publicaciones digitales con restricciones sobre los datos impresos. Se ve en la biblioteca/galería (que recorre todo el árbol).
+  - El desenfoque se hace **en el navegador** (`lib/desenfoqueLocal.ts`, filtro `blur()` del canvas sobre cada recuadro, dos pasadas para que en los bordes de la imagen no se transparente el texto nítido). Motivo: el endpoint `/api/plantillas-visuales/desenfoque` exige permiso de Studio Visual, mientras que la ficha de etiqueta solo pide token; así no cambia Python ni hace falta reiniciar `agente-pro`.
+  - `DesenfoquePlantillaModal` gana tres props opcionales (`titulo`, `subtitulo`, `desenfocar`) sin cambiar el comportamiento en Plantillas Visuales. El modal se carga con `lazy` para no arrastrar la librería de exportación al chunk de la ficha.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/plantillas-visuales/DesenfoquePlantillaModal.tsx`, `desktop/src/lib/desenfoqueLocal.ts` (nuevo), `docs/team-recaps.md`

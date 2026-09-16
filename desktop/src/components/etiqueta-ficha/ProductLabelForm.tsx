@@ -15,7 +15,7 @@
  * VIEW MODE: se ve como la etiqueta terminada. EDIT MODE: cada valor se
  * vuelve editable in-place sin cambiar el tamaño de ningún bloque.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import ProductHeader from "./ProductHeader";
 import ProductAttributeGrid, { type IconoKey } from "./ProductAttributeGrid";
@@ -32,6 +32,7 @@ import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
 import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
 import ContactFooter from "./ContactFooter";
+import { desenfocarBlobLocal } from "../../lib/desenfoqueLocal";
 import { TextStyleProvider, useTextStyleCtx } from "./TextStyleContext";
 import {
   ALTO_FRANJA_FICHA,
@@ -164,6 +165,15 @@ export interface EntradaFormularioEtiqueta {
   nuevaPlantillaCategoria?: string | null;
 }
 
+/** Ventana de desenfoque por recuadro (la misma de Studio Visual), cargada
+ *  aparte para no arrastrar la librería de exportación al chunk de la ficha. */
+const DesenfoquePlantillaModal = lazy(() => import("../plantillas-visuales/DesenfoquePlantillaModal"));
+
+/** Carpeta de la biblioteca donde va la versión desenfocada. Está fuera de
+ *  ETIQUETAS STUDIO a propósito: Diseño → Imprimir solo lista esa, así la
+ *  etiqueta desenfocada nunca se confunde con la de impresión. */
+const CARPETA_PUBLICACIONES_DIGITALES = "PUBLICACIONES DIGITALES";
+
 export default function ProductLabelForm({
   onVolver,
   entrada,
@@ -261,6 +271,26 @@ function ProductLabelFormInner({
   } | null>(null);
   const cerrarPrevia = () => {
     setPrevia((p) => {
+      if (p) URL.revokeObjectURL(p.url);
+      return null;
+    });
+  };
+
+  /** Casilla "Desenfoque" de la cabecera: al confirmar el PNG para imprimir
+   *  se abre la ventana para marcar por recuadro los datos a ocultar, y esa
+   *  versión se guarda en PUBLICACIONES DIGITALES/<Categoría> (fuera de
+   *  impresión) como base para publicaciones digitales con restricciones. */
+  const [desenfoqueActivo, setDesenfoqueActivo] = useState(false);
+  const [desenfoqueFuente, setDesenfoqueFuente] = useState<{
+    blob: Blob;
+    url: string;
+    anchoMm?: number;
+    altoMm?: number;
+    dpi?: number;
+    pixelRatio: number;
+  } | null>(null);
+  const cerrarDesenfoque = () => {
+    setDesenfoqueFuente((p) => {
       if (p) URL.revokeObjectURL(p.url);
       return null;
     });
@@ -1062,6 +1092,17 @@ function ProductLabelFormInner({
           ? `Guardado como ${res.nombre} (${tipo.nombre}, ${previa.dpi} dpi) — ya está en Diseño → Imprimir.`
           : `Guardado como ${res.nombre} — ya está en Diseño → Imprimir.`,
       });
+      if (desenfoqueActivo) {
+        // URL propia: cerrarPrevia revoca la de la vista previa.
+        setDesenfoqueFuente({
+          blob: previa.blob,
+          url: URL.createObjectURL(previa.blob),
+          anchoMm: previa.anchoMm,
+          altoMm: previa.altoMm,
+          dpi: previa.dpi,
+          pixelRatio: previa.pixelRatio,
+        });
+      }
       cerrarPrevia();
     } catch (e) {
       setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo guardar el PNG" });
@@ -1074,6 +1115,45 @@ function ProductLabelFormInner({
     if (!previa) return;
     const { descargarBlob } = await import("../../lib/etiquetaAssets");
     descargarBlob(previa.blob, nombreArchivoPng());
+  };
+
+  /** Versión desenfocada: mismo nombre que el PNG de impresión con sufijo
+   *  "_digital" (los nombres son únicos en toda la biblioteca). */
+  const nombreArchivoPngDigital = () => `${nombreArchivoPng().replace(/\.png$/i, "")}_digital.png`;
+  const carpetaPublicacionesDigitales = () =>
+    `${CARPETA_PUBLICACIONES_DIGITALES}/${etiquetaCategoria(categoria)}`;
+
+  /** "Usar esta versión" en la ventana de desenfoque: sube el PNG desenfocado
+   *  a PUBLICACIONES DIGITALES/<Categoría>. Lleva el mismo formato (mm, dpi)
+   *  que el de impresión, pero no aparece en Diseño → Imprimir. */
+  const guardarPngDesenfocado = async (blob: Blob) => {
+    const fuente = desenfoqueFuente;
+    if (!fuente || guardando) return;
+    setGuardando(true);
+    setGuardarMsg(null);
+    try {
+      const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
+      const res = await subirImagenBlobAEtiquetas(blob, nombreArchivoPngDigital(), {
+        carpeta: carpetaPublicacionesDigitales(),
+        tipo_etiqueta: tipo?.nombre,
+        ancho_mm: fuente.anchoMm,
+        alto_mm: fuente.altoMm,
+        dpi: fuente.dpi,
+        escala: fuente.pixelRatio,
+      });
+      setGuardarMsg({
+        ok: true,
+        texto: `Versión desenfocada guardada como ${res.nombre} en ${carpetaPublicacionesDigitales()} — fuera de impresión, base para publicaciones digitales.`,
+      });
+    } catch (e) {
+      setGuardarMsg({
+        ok: false,
+        texto: e instanceof Error ? e.message : "No se pudo guardar la versión desenfocada",
+      });
+    } finally {
+      setGuardando(false);
+      cerrarDesenfoque();
+    }
   };
 
   const ficha = (
@@ -1421,6 +1501,18 @@ function ProductLabelFormInner({
               className="h-3.5 w-3.5 rounded border-border"
             />
             Retícula
+          </label>
+          <label
+            className="flex items-center gap-1.5 text-xs text-muted"
+            title={`Al guardar el PNG para imprimir se abre una ventana para marcar por recuadro los datos a desenfocar. Esa versión se guarda en ${CARPETA_PUBLICACIONES_DIGITALES}, fuera de la carpeta de impresión, como base para publicaciones digitales.`}
+          >
+            <input
+              type="checkbox"
+              checked={desenfoqueActivo}
+              onChange={(e) => setDesenfoqueActivo(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-border"
+            />
+            Desenfoque
           </label>
           <button
             type="button"
@@ -1831,6 +1923,13 @@ function ProductLabelFormInner({
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3">
                 <p className="text-[11px] text-muted">
                   Así quedará impresa. Si algo no cuadra, cierra, corrige la ficha y vuelve a generar.
+                  {desenfoqueActivo && (
+                    <>
+                      {" "}
+                      Al guardar se abre la ventana de desenfoque; esa copia va a{" "}
+                      <span className="font-semibold text-ink">{carpetaPublicacionesDigitales()}</span>.
+                    </>
+                  )}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -1853,12 +1952,35 @@ function ProductLabelFormInner({
                     disabled={guardando}
                     className="rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
                   >
-                    {guardando ? "Guardando…" : "Guardar en Diseño → Imprimir"}
+                    {guardando
+                      ? "Guardando…"
+                      : desenfoqueActivo
+                        ? "Guardar e ir a desenfoque"
+                        : "Guardar en Diseño → Imprimir"}
                   </button>
                 </div>
               </div>
             </div>
           </div>,
+          document.body,
+        )}
+
+      {desenfoqueFuente &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <Suspense fallback={null}>
+            <DesenfoquePlantillaModal
+              open
+              onClose={cerrarDesenfoque}
+              blobOriginal={desenfoqueFuente.blob}
+              imageUrl={desenfoqueFuente.url}
+              formato="png"
+              titulo="Desenfocar datos para publicaciones digitales"
+              subtitulo={`Arrastra un recuadro sobre cada dato a ocultar; se guarda en ${carpetaPublicacionesDigitales()}, fuera de impresión`}
+              desenfocar={desenfocarBlobLocal}
+              onAplicado={(b) => void guardarPngDesenfocado(b)}
+            />
+          </Suspense>,
           document.body,
         )}
 

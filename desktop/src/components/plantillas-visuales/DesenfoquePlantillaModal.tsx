@@ -15,7 +15,26 @@ type Props = {
   formato: "png" | "jpeg";
   /** Se llama con el Blob resultante cuando el usuario confirma "Usar esta versión". */
   onAplicado: (blob: Blob) => void;
+  /** Título y texto de ayuda de la cabecera (por defecto, los de MeLi). */
+  titulo?: string;
+  subtitulo?: string;
+  /** Motor alternativo: recibe el original y las zonas y devuelve la imagen
+   *  desenfocada. Sin él se usa el endpoint del servidor. */
+  desenfocar?: (
+    blob: Blob,
+    regiones: RegionDesenfoque[],
+    opts: { radio: number; formato: "png" | "jpeg" },
+  ) => Promise<Blob>;
 };
+
+function blobADataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result || ""));
+    fr.onerror = () => reject(new Error("No se pudo leer la imagen desenfocada"));
+    fr.readAsDataURL(blob);
+  });
+}
 
 function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
@@ -39,6 +58,9 @@ export default function DesenfoquePlantillaModal({
   imageUrl,
   formato,
   onAplicado,
+  titulo,
+  subtitulo,
+  desenfocar,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -166,6 +188,12 @@ export default function DesenfoquePlantillaModal({
     }
     setCargando(true);
     try {
+      if (desenfocar) {
+        const b = await desenfocar(blobOriginal, regiones, { radio, formato });
+        setPreviewUrl(await blobADataUrl(b));
+        setPreviewBlob(b);
+        return;
+      }
       const res = await desenfocarBlobPlantilla(blobOriginal, regiones, { radio, formato });
       if (!res.ok || !res.preview_base64) {
         setMsg(res.error || "No se pudo generar el preview");
@@ -199,9 +227,9 @@ export default function DesenfoquePlantillaModal({
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold text-ink">Desenfocar datos de contacto</h3>
+            <h3 className="text-sm font-bold text-ink">{titulo ?? "Desenfocar datos de contacto"}</h3>
             <p className="text-[11px] text-muted">
-              Marca teléfono, web o datos de empresa antes de subir a MeLi · radio {radio}
+              {subtitulo ?? "Marca teléfono, web o datos de empresa antes de subir a MeLi"} · radio {radio}
             </p>
           </div>
           <button
