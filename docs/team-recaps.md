@@ -1,3 +1,15 @@
+### 2026-09-16 - Salario de socios en Solicitudes de pago, con la opción de pagar solo una parte
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Contabilidad → Solicitudes de pago)
+- **Qué se implementó:**
+  - **Botón «🧑‍💼 Salario de socio»** en el formulario de pagos. Armando y Cynthia no tienen contrato laboral, así que lo que cobran por su trabajo es prestación de servicios: va a **5135 con retención de servicios** (4 % declarante / 6 % no), no a nómina. La lista de a quién pagarle sale de los terceros marcados como socio, no de un campo libre.
+  - **«¿Se paga completo?» — el 100 % o una parte.** El gasto y la retención se causan por el valor total, se gire o no, porque el mes ya se trabajó. Lo que no alcance a pagarse queda como **cuenta por pagar a la persona** (2380 si es socio, 2367 si es cualquier otro prestador) y el panel lo dice con nombre y monto antes de aprobar. Ejemplo real de la prueba: salario de $3.000.000, retención $120.000, se giran $1.000.000 y quedan **$1.880.000 por pagar**.
+  - **Botón «⏳ Saldo pendiente»** para girar después lo que quedó debiendo: baja la cuenta por pagar y **no vuelve a causar gasto ni retención**, porque eso ya se hizo. La lista de opciones sale de los saldos reales de 2380 y 2367, con el monto sugerido.
+  - **La opción de pago parcial también quedó en Servicios, Prestación de servicios y Honorarios**, no solo para socios: el problema de liquidez es el mismo con cualquier prestador.
+  - **Dos errores que aparecieron al probarlo de punta a punta y que había que arreglar igual:** `aprobar()` reconstruye las líneas a mano cuando hay impuestos, y se comía la línea del saldo —el asiento salía como si se hubiera pagado todo y la deuda con la persona desaparecía—; y el recálculo al aprobar **no pasaba el modo de retención**, así que una quincena pactada libre de retención volvía a salir con ella descontada. Es exactamente el error que costó plata en septiembre con tres quincenas.
+  - **Verificado** sobre copias de las bases, el ciclo completo: causar el salario con pago parcial, ver subir la cuenta por pagar, girar el saldo después y verla volver a cero; más un pago completo como control.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`
+
 ### 2026-09-16 13:13 - Precios que suben y bajan con la TRM oficial, con aprobación
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad

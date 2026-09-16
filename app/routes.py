@@ -10891,6 +10891,127 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/contabilidad/cc/arbol", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/arbol", methods=["GET"])
+    def api_cc_arbol_cuentas():
+        """El Libro Mayor como árbol del PUC (clase → grupo → cuenta →
+        subcuenta) con saldo inicial, débitos, créditos y saldo final en cada
+        nivel. Es la vista por la que se navega antes de pedir el extracto de
+        una cuenta concreta."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_mayor import arbol_cuentas
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            solo_mov = (request.args.get("solo_movimiento") or "1").strip() not in ("0", "false", "no")
+            return jsonify(arbol_cuentas(desde=desde, hasta=hasta, solo_con_movimiento=solo_mov))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    def _cc_extracto_desde_request(cuenta_id: int):
+        from app.services.contabilidad_mayor import extracto_cuenta
+
+        args = request.args
+        tercero = (args.get("tercero_id") or "").strip()
+        return extracto_cuenta(
+            cuenta_id,
+            desde=(args.get("desde") or "").strip() or None,
+            hasta=(args.get("hasta") or "").strip() or None,
+            incluir_subcuentas=(args.get("subcuentas") or "").strip() in ("1", "true", "si"),
+            tercero_id=int(tercero) if tercero.isdigit() else None,
+            limite=min(int(args.get("limite") or 2000), 5000),
+        )
+
+    @app.route("/api/contabilidad/cc/extracto/<int:cuenta_id>", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/extracto/<int:cuenta_id>", methods=["GET"])
+    def api_cc_extracto_cuenta(cuenta_id: int):
+        """Extracto (estado de cuenta) de una cuenta contable: saldo inicial,
+        cada línea con su contrapartida y el saldo corrido, y el resumen por
+        tercero."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            return jsonify(_cc_extracto_desde_request(cuenta_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/extracto/<int:cuenta_id>.pdf", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/extracto/<int:cuenta_id>.pdf", methods=["GET"])
+    def api_cc_extracto_cuenta_pdf(cuenta_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from flask import send_file
+
+            from app.tools.extracto_contable_pdf import generar_pdf_extracto
+
+            extracto = _cc_extracto_desde_request(cuenta_id)
+            ruta = generar_pdf_extracto(extracto)
+            codigo = extracto["cuenta"]["codigo"]
+            return send_file(
+                ruta,
+                mimetype="application/pdf",
+                as_attachment=False,
+                download_name=f"extracto_{codigo}.pdf",
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/extracto/<int:cuenta_id>.csv", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/extracto/<int:cuenta_id>.csv", methods=["GET"])
+    def api_cc_extracto_cuenta_csv(cuenta_id: int):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from flask import Response
+
+            from app.services.contabilidad_mayor import extracto_csv
+
+            extracto = _cc_extracto_desde_request(cuenta_id)
+            codigo = extracto["cuenta"]["codigo"]
+            # BOM para que Excel en Windows respete las tildes.
+            cuerpo = "\ufeff" + extracto_csv(extracto)
+            return Response(
+                cuerpo,
+                mimetype="text/csv; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="extracto_{codigo}.csv"'},
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/balance.pdf", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/balance.pdf", methods=["GET"])
+    def api_cc_balance_pdf():
+        """Balance de comprobación jerárquico en PDF, para el contador."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from flask import send_file
+
+            from app.services.contabilidad_mayor import arbol_cuentas
+            from app.tools.extracto_contable_pdf import generar_pdf_balance
+
+            desde = (request.args.get("desde") or "").strip() or None
+            hasta = (request.args.get("hasta") or "").strip() or None
+            arbol = arbol_cuentas(desde=desde, hasta=hasta, solo_con_movimiento=True)
+            ruta = generar_pdf_balance(arbol)
+            return send_file(
+                ruta,
+                mimetype="application/pdf",
+                as_attachment=False,
+                download_name="balance_comprobacion.pdf",
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/contabilidad/cc/informes", methods=["GET"])
     @app.route("/app/api/contabilidad/cc/informes", methods=["GET"])
     def api_cc_informes():
@@ -11269,6 +11390,25 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/alegra/espejo/<int:movimiento_id>", methods=["DELETE"])
+    @app.route("/app/api/alegra/espejo/<int:movimiento_id>", methods=["DELETE"])
+    def api_alegra_espejo_anular(movimiento_id: int):
+        """Anula en Alegra el comprobante que espeja este asiento.
+
+        Solo toca comprobantes que este sistema creó, y solo si el asiento ya
+        está anulado (o se pide `forzar`): ver app/services/alegra_espejo.py.
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.alegra_espejo import anular_espejo
+
+            forzar = (request.args.get("forzar") or "").strip() in ("1", "true", "si")
+            r = anular_espejo(movimiento_id, forzar=forzar)
+            return jsonify(r), (200 if r.get("status") in ("success", "sin_espejo") else 400)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     # ─── Solicitudes de pago (wizard) ───────────────────────────────────
     # Acceso: mismo criterio que el panel (lib/contabilidadAccess.ts, sección
     # "pagos"): permiso propio `pagos` o `libro-mayor`, nunca heredado. Hasta
@@ -11318,10 +11458,11 @@ def register_routes(app):
             return jsonify({"categorias": [
                 {"id": k, "label": v["label"], "ayuda": v["ayuda"], "icono": v["icono"],
                  "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
-                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] != "servicios",
+                 "elige_cuenta": v["cuenta_debito"] is None and v["origen"] not in ("servicios", "saldos_por_pagar"),
                  "con_productos": bool(v.get("con_productos")),
                  "requiere_factura": bool(v.get("requiere_factura")),
                  "simple": bool(v.get("simple")),
+                 "permite_parcial": bool(v.get("permite_parcial")),
                  "pide_contrato": bool(v.get("pide_contrato"))}
                 for k, v in CATEGORIAS.items()
             ]})

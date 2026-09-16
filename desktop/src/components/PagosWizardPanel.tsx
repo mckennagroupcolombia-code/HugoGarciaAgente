@@ -19,7 +19,7 @@ import TerceroSelect from "./TerceroSelect";
 type Categoria = {
   id: string; label: string; ayuda: string; icono: string;
   origen: string; requiere_tercero: boolean; elige_cuenta: boolean;
-  con_productos?: boolean; requiere_factura?: boolean;
+  con_productos?: boolean; requiere_factura?: boolean; permite_parcial?: boolean;
 };
 
 type Opcion = {
@@ -39,7 +39,8 @@ type Previsualizacion = {
   medio_pago: string; lineas: LineaAsiento[]; cuadra: boolean;
   items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; subtotal: number; iva: number; total: number }>;
   total_items?: number; base_sin_iva?: number; iva_items?: number;
-  valor_es_neto?: boolean;
+  valor_es_neto?: boolean; retencion_ica?: number; ica_por_mil?: number; gmf?: number; retencion_modo?: string;
+  pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
   // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
   difiere_de_lo_guardado?: boolean; monto_guardado?: number;
 };
@@ -57,6 +58,7 @@ type Solicitud = {
   periodo?: string; origen_sistema?: string; origen_ref?: string;
   montado_at?: string; montado_ref?: string; pagado_at?: string;
   comprobante_archivo?: string; comprobante_nombre?: string;
+  retencion_ica?: number; gmf?: number; retencion_modo?: string;
   creada_por?: number | null; aprobada_por?: number | null;
   montado_por?: number | null; pagado_por?: number | null;
   firmas?: { creada_por?: string; aprobada_por?: string; montado_por?: string; pagado_por?: string };
@@ -259,15 +261,25 @@ function WizardSimple({
   const [proveedor, setProveedor] = useState<Proveedor | null>(null);
   const [fecha, setFecha] = useState(hoy());
   const [medioPagoId, setMedioPagoId] = useState("");
-  const [concepto, setConcepto] = useState<"productos" | "servicios" | "flete_transporte" | "servicio_publico">("productos");
-  // Lo pactado con un prestador de servicios suele ser «te pago X libre de
-  // retención»: ese valor es lo que RECIBE, no la base. Tomarlo como base le
-  // recorta la retención al beneficiario y después la reclama.
-  const [valorEsNeto, setValorEsNeto] = useState(true);
+  const [concepto, setConcepto] = useState<
+    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "salario_socio" | "saldo_por_pagar"
+  >("productos");
+  // Quién asume la retención. Lo pactado con un prestador de servicios suele
+  // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
+  // Tomarlo como base le recorta la retención y después la reclama (pasó con
+  // tres quincenas en sep-2026).
+  const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">("mckenna");
+  const [icaActivo, setIcaActivo] = useState(false);
+  const [icaPorMil, setIcaPorMil] = useState("");
+  const [gmf, setGmf] = useState(false);
   const [tipoServicio, setTipoServicio] = useState("energia");
   const [contrato, setContrato] = useState("");
   const [monto, setMonto] = useState("");
   const [detalle, setDetalle] = useState("");
+  // Pago parcial: un salario o servicio se causa completo aunque la caja no
+  // alcance para girarlo todo; lo que falta queda como cuenta por pagar.
+  const [pagaTodo, setPagaTodo] = useState(true);
+  const [pagoAhora, setPagoAhora] = useState("");
 
   const catsQ = useQuery<{ categorias: Categoria[] }>({
     queryKey: ["pagos-categorias"],
@@ -288,7 +300,8 @@ function WizardSimple({
   }, [medios, medioPagoId]);
 
   const esPublico = concepto === "servicio_publico";
-  const llevaRetencion = concepto === "productos" || concepto === "servicios";
+  const llevaRetencion = concepto === "productos" || concepto === "servicios" || concepto === "salario_socio";
+  const permiteParcial = Boolean(cat?.permite_parcial);
   const valor = num(monto);
   const conceptoTexto = useMemo(() => {
     const quien = proveedor?.nombre ? ` — ${proveedor.nombre}` : "";
@@ -297,7 +310,9 @@ function WizardSimple({
       return `Servicios públicos · ${tipo}${contrato ? ` · contrato ${contrato}` : ""}${quien}`;
     }
     const label = concepto === "productos" ? "Productos"
-      : concepto === "flete_transporte" ? "Transporte" : "Servicios";
+      : concepto === "flete_transporte" ? "Transporte"
+      : concepto === "salario_socio" ? "Salario"
+      : concepto === "saldo_por_pagar" ? "Saldo pendiente" : "Servicios";
     return `${label}${quien}${detalle ? ` · ${detalle}` : ""}`;
   }, [concepto, esPublico, tipoServicio, contrato, proveedor, detalle]);
 
@@ -310,8 +325,12 @@ function WizardSimple({
     medio_pago_id: medioPagoId ? Number(medioPagoId) : null,
     tipo_servicio: esPublico ? tipoServicio : "",
     referencia: esPublico ? contrato : "",
-    valor_es_neto: llevaRetencion && valorEsNeto,
-  }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, tipoServicio, contrato, llevaRetencion, valorEsNeto]);
+    retencion_modo: llevaRetencion ? retencionModo : "ninguna",
+    ica_por_mil: icaActivo ? num(icaPorMil) : 0,
+    gmf,
+    ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
+  }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, tipoServicio, contrato,
+       llevaRetencion, retencionModo, icaActivo, icaPorMil, gmf, permiteParcial, pagaTodo, pagoAhora]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   const listo = valor > 0 && !!medioPagoId && !!fecha && !faltaProveedor;
@@ -369,12 +388,14 @@ function WizardSimple({
 
       <div>
         <p className="mb-1 text-xs font-bold uppercase text-muted">Concepto</p>
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {([
             ["productos", "📦 Productos", "Mercancía del proveedor"],
             ["servicios", "🧰 Servicios", "Servicios prestados a McKenna"],
             ["flete_transporte", "🚚 Transporte", "Fletes, guías, acarreos"],
             ["servicio_publico", "💡 Servicios públicos", "Con número de contrato"],
+            ["salario_socio", "🧑‍💼 Salario de socio", "Armando o Cynthia · se puede pagar parcial"],
+            ["saldo_por_pagar", "⏳ Saldo pendiente", "Girar lo que quedó debiendo de un pago anterior"],
           ] as const).map(([id, label, ayuda]) => (
             <button
               key={id} type="button" onClick={() => setConcepto(id)}
@@ -411,21 +432,104 @@ function WizardSimple({
                placeholder="0" className={inputCls} />
       </Campo>
 
-      {llevaRetencion && (
-        <div className="space-y-1 rounded-lg border border-dashed border-border p-2">
-          <p className="text-xs font-bold uppercase text-muted">Ese valor, ¿qué es?</p>
-          {([
-            [true, "Lo que recibe el beneficiario (libre de retención)", "La retención se suma al gasto y la asume McKenna. Es lo pactado con quien presta servicios."],
-            [false, "El total facturado (se le descuenta la retención)", "Recibe el valor menos la retención. Es lo normal cuando hay factura."],
-          ] as const).map(([v, label, ayuda]) => (
-            <label key={String(v)} className="flex cursor-pointer items-start gap-2 text-sm">
-              <input type="radio" checked={valorEsNeto === v} onChange={() => setValorEsNeto(v)} className="mt-0.5" />
-              <span>
-                <span className="font-bold text-ink">{label}</span>
-                <span className="block text-xs text-muted">{ayuda}</span>
+      <div className="space-y-3 rounded-xl border-2 border-dashed border-border p-4">
+        <p className="text-sm font-bold uppercase text-muted">Impuestos y retenciones</p>
+
+        {llevaRetencion && (
+          <div className="space-y-2">
+            <p className="text-sm font-bold text-ink">¿Quién asume la retención?</p>
+            {([
+              ["mckenna", "McKenna — se pagan libres de retención",
+               "El valor de arriba es lo que RECIBE el beneficiario. La retención se suma al gasto. Es lo pactado con quien presta servicios."],
+              ["beneficiario", "El beneficiario — se le descuenta",
+               "El valor de arriba es el total y recibe menos la retención. Es lo normal cuando hay factura."],
+              ["ninguna", "Nadie — no se practica retención",
+               "Autorretenedor, Régimen SIMPLE o por debajo de la cuantía mínima. Si no estás seguro, pregúntale al contador antes."],
+            ] as const).map(([v, label, ayuda]) => (
+              <label key={v} className="flex cursor-pointer items-start gap-2 text-sm">
+                <input type="radio" checked={retencionModo === v} onChange={() => setRetencionModo(v)} className="mt-1" />
+                <span>
+                  <span className="font-bold text-ink">{label}</span>
+                  <span className="block text-sm text-muted">{ayuda}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm">
+          <input type="checkbox" checked={icaActivo} onChange={(e) => setIcaActivo(e.target.checked)} className="mt-1" />
+          <span className="flex-1">
+            <span className="font-bold text-ink">Lleva retención de ICA</span>
+            <span className="block text-sm text-muted">
+              Tarifa por mil según el municipio y la actividad (Bogotá: 9,66 servicios · 11,04 comercial ·
+              4,14 industrial). Escríbela: no se adivina, y una tarifa equivocada sale del bolsillo de alguien.
+            </span>
+            {icaActivo && (
+              <span className="mt-2 flex items-center gap-2">
+                <input type="number" min="0" step="0.01" value={icaPorMil} onChange={(e) => setIcaPorMil(e.target.value)}
+                       placeholder="9.66" className="w-28 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink" />
+                <span className="text-sm text-muted">por mil · va a la cuenta 2368</span>
               </span>
-            </label>
-          ))}
+            )}
+          </span>
+        </label>
+
+        <label className="flex cursor-pointer items-start gap-2 text-sm">
+          <input type="checkbox" checked={gmf} onChange={(e) => setGmf(e.target.checked)} className="mt-1" />
+          <span>
+            <span className="font-bold text-ink">Sumar el 4x1000 (GMF)</span>
+            <span className="block text-sm text-muted">
+              Lo cobra el banco sobre lo que sale de la cuenta; no se le descuenta al beneficiario, es gasto
+              de McKenna (cuenta 530595).
+            </span>
+          </span>
+        </label>
+      </div>
+
+      {/* Pago parcial. Va antes del resumen porque cambia la cifra que se gira. */}
+      {permiteParcial && valor > 0 && (
+        <div className="rounded-lg border-2 border-border bg-surface-panel px-3 py-2.5">
+          <p className="text-xs font-bold text-ink">¿Se paga completo?</p>
+          <p className="text-[11px] text-muted">
+            El gasto y la retención se causan por el valor total, se pague o no. Lo que no se gire hoy queda
+            como cuenta por pagar a {proveedor?.nombre || "la persona"} y se le entrega después.
+          </p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => { setPagaTodo(true); setPagoAhora(""); }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${pagaTodo ? "bg-accent text-white" : "border border-border text-ink hover:border-accent"}`}
+            >
+              Sí, el 100 %
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPagaTodo(false); if (!pagoAhora && prevQ.data) setPagoAhora(String(Math.round(prevQ.data.girado))); }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${!pagaTodo ? "bg-accent text-white" : "border border-border text-ink hover:border-accent"}`}
+            >
+              No, solo una parte
+            </button>
+            {!pagaTodo && (
+              <label className="flex items-center gap-1.5 text-xs text-ink">
+                Se paga ahora
+                <input
+                  className="w-36 rounded-lg border-2 border-border bg-surface px-2 py-1 text-right text-sm text-ink outline-none focus:border-accent"
+                  value={pagoAhora}
+                  onChange={(e) => setPagoAhora(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="0"
+                />
+              </label>
+            )}
+          </div>
+          {!pagaTodo && (prevQ.data?.saldo_pendiente ?? 0) > 0 && (
+            <p className="mt-1.5 rounded bg-amber-600/10 px-2 py-1 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+              Queda debiendo {cop(prevQ.data?.saldo_pendiente)} a {proveedor?.nombre || "la persona"} en la cuenta{" "}
+              {prevQ.data?.cuenta_saldo === "2380" ? "2380 (socios)" : "2367 (costos y gastos por pagar)"}. Para girárselo
+              después, usa «Saldo pendiente de un salario o servicio».
+            </p>
+          )}
         </div>
       )}
 
@@ -433,16 +537,27 @@ function WizardSimple({
           es la cifra por la que reclama si no cuadra. */}
       {prevQ.data && (
         <p className="rounded-lg bg-surface px-3 py-2 text-sm">
-          <span className="font-bold text-ink">Se gira {cop(prevQ.data.girado)}</span>
-          {prevQ.data.retencion > 0 ? (
+          <span className="font-bold text-ink">
+            Se gira {cop(prevQ.data.pagado_ahora ?? prevQ.data.girado)}
+            {(prevQ.data.saldo_pendiente ?? 0) > 0 && (
+              <span className="font-normal text-muted"> de {cop(prevQ.data.girado)} que le corresponden</span>
+            )}
+          </span>
+          {prevQ.data.retencion > 0 || (prevQ.data.retencion_ica ?? 0) > 0 ? (
             <span className="text-muted">
-              {" · "}retención {cop(prevQ.data.retencion)}
+              {prevQ.data.retencion > 0 ? ` · retención ${cop(prevQ.data.retencion)}` : ""}
+              {(prevQ.data.retencion_ica ?? 0) > 0 ? ` · ICA ${cop(prevQ.data.retencion_ica)}` : ""}
               {prevQ.data.valor_es_neto
                 ? " que asume McKenna (el beneficiario recibe completo lo solicitado)"
-                : " descontada al beneficiario"}
+                : " descontadas al beneficiario"}
               {" · base "}{cop(prevQ.data.monto)}
             </span>
           ) : <span className="text-muted"> · sin retención</span>}
+          {(prevQ.data.gmf ?? 0) > 0 && (
+            <span className="block text-sm text-muted">
+              Del banco salen {cop((prevQ.data.pagado_ahora ?? prevQ.data.girado) + (prevQ.data.gmf ?? 0))}: el giro más {cop(prevQ.data.gmf)} de 4x1000.
+            </span>
+          )}
         </p>
       )}
 
@@ -1339,9 +1454,12 @@ function FichaSolicitud({
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-xl font-extrabold tabular-nums text-ink">{cop(s.monto)}</p>
-            {s.retencion > 0 && (
+            {(s.retencion > 0 || (s.retencion_ica ?? 0) > 0 || (s.gmf ?? 0) > 0) && (
               <p className="text-xs text-muted">
-                retención {cop(s.retencion)} · se gira {cop(s.girado)}
+                {s.retencion > 0 ? `retención ${cop(s.retencion)} · ` : ""}
+                {(s.retencion_ica ?? 0) > 0 ? `ICA ${cop(s.retencion_ica)} · ` : ""}
+                se gira {cop(s.girado)}
+                {(s.gmf ?? 0) > 0 ? ` · +${cop(s.gmf)} de 4x1000` : ""}
               </p>
             )}
           </div>

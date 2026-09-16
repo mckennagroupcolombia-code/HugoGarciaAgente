@@ -99,6 +99,7 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_tercero": True,
         "icono": "🧰",
         "concepto_retencion": "servicios",
+        "permite_parcial": True,
         "simple": True,
     },
     # Las dos categorías de proveedor llevan el flujo completo del wizard (sep-2026):
@@ -164,6 +165,7 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_tercero": True,
         "icono": "👔",
         "concepto_retencion": "honorarios",
+        "permite_parcial": True,
     },
     "prestacion_servicios": {
         "label": "Prestación de servicios",
@@ -177,6 +179,36 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_tercero": True,
         "icono": "🧰",
         "concepto_retencion": "servicios",
+        "permite_parcial": True,
+    },
+    "salario_socio": {
+        "label": "Salario de socio",
+        "ayuda": (
+            "Lo que Armando o Cynthia cobran por su trabajo en McKenna. No es nómina: "
+            "es prestación de servicios, así que va a 5135 con retención de servicios "
+            "(4% declarante / 6% no). Se puede pagar completo o solo una parte: el "
+            "saldo queda como cuenta por pagar al socio (2380) y se le gira después."
+        ),
+        "cuenta_debito": "5135",
+        "origen": "socios",
+        "requiere_tercero": True,
+        "icono": "🧑‍💼",
+        "concepto_retencion": "servicios",
+        "permite_parcial": True,
+        "simple": True,
+    },
+    "saldo_por_pagar": {
+        "label": "Saldo pendiente de un salario o servicio",
+        "ayuda": (
+            "Gira lo que quedó debiendo de un pago anterior que no se cubrió completo. "
+            "Baja la cuenta por pagar (2380 socios / 2367 terceros); no vuelve a causar "
+            "gasto ni retención, porque eso ya se hizo cuando se causó."
+        ),
+        "cuenta_debito": None,   # 2380 o 2367 según el tercero
+        "origen": "saldos_por_pagar",
+        "requiere_tercero": True,
+        "icono": "⏳",
+        "simple": True,
     },
     "arrendamiento": {
         "label": "Arrendamiento",
@@ -307,6 +339,15 @@ def init_db() -> None:
             ("pagado_at", "TEXT NOT NULL DEFAULT ''"),
             ("comprobante_archivo", "TEXT NOT NULL DEFAULT ''"),
             ("comprobante_nombre", "TEXT NOT NULL DEFAULT ''"),
+            # Quién asume la retención y qué otros impuestos lleva el pago.
+            ("retencion_modo", "TEXT NOT NULL DEFAULT ''"),
+            ("retencion_ica", "REAL NOT NULL DEFAULT 0"),
+            ("ica_por_mil", "REAL NOT NULL DEFAULT 0"),
+            ("gmf", "REAL NOT NULL DEFAULT 0"),
+            # Cuánto se gira hoy cuando no se paga todo. NULL = se paga completo;
+            # sin esta columna el asiento se recalculaba al aprobar como si fuera
+            # completo y el saldo por pagar desaparecía.
+            ("pagado_ahora", "REAL"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -317,7 +358,36 @@ def init_db() -> None:
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_cc_solicitudes_origen"
             " ON cc_solicitudes_pago(origen_ref) WHERE origen_ref <> ''"
         )
+    _asegurar_cuentas_impuestos()
     _initialized = True
+
+
+# Cuentas que los impuestos del wizard necesitan. Se crean si faltan (el plan
+# nació con las de gasto y renta, no con estas) — si el contador prefiere otro
+# código, se cambia en Libro Mayor → Plan de cuentas y esto no las duplica.
+CUENTAS_IMPUESTOS = (
+    ("2368", "Impuesto de industria y comercio retenido (ICA)", "pasivo"),
+    ("530595", "Otros gastos financieros — GMF 4x1000", "gasto"),
+)
+
+# Tarifa del gravamen a los movimientos financieros: 4 por mil (Art. 872 E.T.).
+GMF_TARIFA = 0.004
+
+
+def _asegurar_cuentas_impuestos() -> None:
+    import app.services.contabilidad_core as cc
+
+    with cc._conn() as con:
+        faltan = [(c, n, t) for c, n, t in CUENTAS_IMPUESTOS if not _cuenta_existe(con, c)]
+    for codigo, nombre, tipo in faltan:
+        try:
+            cc.crear_cuenta({"codigo": codigo, "nombre": nombre, "tipo": tipo})
+        except Exception as e:
+            print(f"⚠️ No se pudo crear la cuenta {codigo}: {e}", flush=True)
+
+
+def _cuenta_existe(con, codigo: str) -> bool:
+    return con.execute("SELECT 1 FROM cc_plan_cuentas WHERE codigo=?", (codigo,)).fetchone() is not None
 
 
 def _ensure() -> None:
@@ -373,6 +443,45 @@ def opciones(categoria: str) -> dict:
                         GROUP BY t.id HAVING ROUND(SUM(l.credito-l.debito),2) > 0
                         ORDER BY saldo DESC"""
                 )
+            ]
+        return {"tipo": "lista", "opciones": filas}
+
+    if origen == "socios":
+        import app.services.contabilidad_core as cc
+
+        return {"tipo": "lista", "opciones": [
+            {"id": t["id"], "label": t["nombre"], "identificacion": t.get("identificacion") or "",
+             "detalle": "socio — el salario va a 5135 con retención de servicios"}
+            for t in cc.listar_terceros(tipo="socio")
+        ]}
+
+    if origen == "saldos_por_pagar":
+        # Lo que quedó debiendo de pagos anteriores que no se cubrieron completos.
+        # Sale del saldo real de 2380 (socios) y 2367 (terceros), no de una lista.
+        import app.services.contabilidad_core as cc
+
+        with cc._conn() as con:
+            filas = [
+                {
+                    "id": r["tercero_id"], "label": r["nombre"],
+                    "identificacion": r["identificacion"] or "",
+                    "monto_sugerido": round(float(r["saldo"] or 0), 2),
+                    "cuenta": r["codigo"],
+                    "detalle": f"{r['nombre_cuenta']} · saldo {round(float(r['saldo'] or 0)):,}".replace(",", "."),
+                }
+                for r in con.execute(
+                    """SELECT t.id AS tercero_id, t.nombre, t.identificacion,
+                              c.codigo, c.nombre AS nombre_cuenta,
+                              SUM(COALESCE(l.credito,0) - COALESCE(l.debito,0)) AS saldo
+                         FROM cc_movimiento_lineas l
+                         JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
+                         JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
+                         JOIN cc_terceros t ON t.id = l.tercero_id
+                        WHERE c.codigo IN ('2380', '2367')
+                        GROUP BY t.id, c.codigo
+                       HAVING saldo > 0
+                        ORDER BY saldo DESC"""
+                ).fetchall()
             ]
         return {"tipo": "lista", "opciones": filas}
 
@@ -486,6 +595,13 @@ def previsualizar(payload: dict) -> dict:
         cuenta_debito = _cuenta_servicio(payload.get("tipo_servicio"))
     if not cuenta_debito:
         cuenta_debito = str(payload.get("cuenta_debito") or "").strip()
+    if categoria == "saldo_por_pagar":
+        # La cuenta la decide el tercero, no el operador: un saldo con un socio
+        # vive en 2380 y con cualquier otro prestador en 2367. Dejarlo a mano
+        # invitaba a bajar la cuenta equivocada y descuadrar las dos.
+        tid = int(payload.get("tercero_id") or 0)
+        t_tmp = cc.obtener_tercero(tid) if tid else None
+        cuenta_debito = "2380" if (t_tmp or {}).get("tipo") == "socio" else "2367"
     if not cuenta_debito and categoria == "cuota_prestamo":
         # La arma el módulo de préstamos más abajo, con las cuatro líneas
         # reales; esta es solo la que encabeza el asiento.
@@ -503,51 +619,120 @@ def previsualizar(payload: dict) -> dict:
         raise ValueError("Medio de pago no encontrado")
     tercero = cc.obtener_tercero(tercero_id) if tercero_id else None
 
-    # Retención, si la categoría la lleva y supera la cuantía mínima.
+    # ── Quién retiene y qué otros impuestos lleva el pago ──────────────────
     #
-    # `valor_es_neto`: lo pactado con un prestador de servicios suele ser «te
-    # pago 1.100.000 libres de retención» — ese valor es lo que RECIBE, no la
-    # base. Si se tomara como base, el beneficiario recibiría 1.056.000 y
-    # cobraría la diferencia. Acá se hace el camino inverso: se calcula la base
-    # que, retenida, deja exactamente lo pactado; la retención la asume McKenna
-    # como mayor gasto. El asiento sigue siendo el correcto ante la DIAN —
-    # retener sigue siendo obligatorio, lo que cambia es quién la soporta.
-    valor_es_neto = bool(payload.get("valor_es_neto")) and not items
-    retencion, ret_info = 0.0, None
+    # `retencion_modo` responde la pregunta que antes nadie hacía y que costó
+    # plata real (sep-2026: a dos personas se les giró la quincena menos la
+    # retención cuando lo pactado era libre de retención):
+    #
+    #   beneficiario — el valor es el total y la retención se le descuenta
+    #                  (lo normal cuando hay factura)
+    #   mckenna      — el valor es lo que RECIBE: la base se calcula hacia
+    #                  atrás y la retención la asume McKenna como mayor gasto
+    #   ninguna      — no se practica (autorretenedor, Régimen SIMPLE, o el
+    #                  contador dijo que no)
+    #
+    # Además del impuesto de renta puede haber **ICA** (retención municipal, la
+    # tarifa por mil depende del municipio y la actividad: la escribe quien
+    # solicita, no se adivina acá) y el **GMF 4x1000**, que no se le descuenta a
+    # nadie: lo cobra el banco y es gasto de McKenna.
+    modo = str(payload.get("retencion_modo") or "").strip().lower()
+    if categoria == "saldo_por_pagar":
+        # El gasto y la retención se causaron cuando se reconoció el salario o
+        # el servicio. Retener otra vez sería cobrarle dos veces a la persona.
+        modo = "ninguna"
+    if not modo:
+        modo = "mckenna" if payload.get("valor_es_neto") else ("ninguna" if payload.get("sin_retencion") else "beneficiario")
+    if items:
+        modo = "beneficiario" if modo == "mckenna" else modo   # con factura, el total manda
+    valor_es_neto = modo == "mckenna"
+
+    ica_por_mil = round(float(payload.get("ica_por_mil") or 0), 4)
+    t_ica = ica_por_mil / 1000 if ica_por_mil > 0 else 0.0
+    cobra_gmf = bool(payload.get("gmf"))
+
+    retencion, retencion_ica, ret_info = 0.0, 0.0, None
     concepto_ret = cat.get("concepto_retencion")
-    if concepto_ret and not payload.get("sin_retencion"):
+    base_ret = base_sin_iva if items else monto
+
+    if tercero and int(tercero.get("regimen_simple") or 0) and modo != "ninguna":
+        # Art. 911 ET: a un contribuyente del SIMPLE no se le practica retención.
+        modo = "ninguna"
+        ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
+
+    if modo != "ninguna" and (concepto_ret or t_ica > 0):
         from app.services.retenciones import calcular
 
         declarante = bool(tercero.get("declarante", 1)) if tercero else True
-        if tercero and int(tercero.get("regimen_simple") or 0):
-            # Art. 911 ET: a un contribuyente del SIMPLE no se le practica retención.
-            ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
+        if concepto_ret:
+            ret_info = calcular(concepto_ret, base_ret, anio=int(fecha[:4]), declarante=declarante)
+        t_renta = float((ret_info or {}).get("tarifa_pct") or 0) / 100 if concepto_ret else 0.0
+
+        if valor_es_neto and (t_renta + t_ica) > 0:
+            # Camino inverso: la base que, retenida, deja exactamente lo pactado.
+            bruto = round(monto / (1 - t_renta - t_ica), 2) if (t_renta + t_ica) < 1 else monto
+            r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante) if concepto_ret else {}
+            retencion = round(float(r2.get("retencion") or 0), 2)
+            retencion_ica = round(bruto * t_ica, 2)
+            if retencion or retencion_ica:
+                neto = monto
+                monto = round(neto + retencion + retencion_ica, 2)
+                ret_info = {**(r2 or {}), "retencion": retencion, "motivo": (
+                    f"Pactado libre de retención: el beneficiario recibe {_fmt(neto)} y "
+                    f"{_fmt(retencion + retencion_ica)} de retenciones los asume McKenna como mayor gasto. "
+                    f"Base gravable {_fmt(monto)}. " + str((r2 or {}).get("motivo", ""))
+                )}
         else:
-            ret_info = calcular(concepto_ret, base_sin_iva if items else monto, anio=int(fecha[:4]), declarante=declarante)
-            if valor_es_neto:
-                tarifa = float(ret_info.get("tarifa_pct") or 0) / 100
-                bruto = round(monto / (1 - tarifa), 2) if 0 < tarifa < 1 else monto
-                r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante)
-                ret2 = round(float(r2.get("retencion") or 0), 2)
-                if ret2 > 0:
-                    # Se suma la retención al valor pactado: así lo girado es
-                    # exactamente lo que se prometió, sin arrastrar redondeos.
-                    monto = round(monto + ret2, 2)
-                    ret_info = {**r2, "retencion": ret2, "motivo": (
-                        f"Pactado libre de retención: el beneficiario recibe {_fmt(monto - ret2)} y la "
-                        f"retención de {r2.get('tarifa_pct')}% ({_fmt(ret2)}) la asume McKenna como mayor "
-                        f"gasto. Base gravable {_fmt(monto)}. {r2.get('motivo', '')}"
-                    )}
-        retencion = round(float(ret_info.get("retencion") or 0), 2)
+            retencion = round(float((ret_info or {}).get("retencion") or 0), 2)
+            retencion_ica = round(base_ret * t_ica, 2)
+
+    if retencion_ica > 0:
+        motivo_ica = (f"ICA {ica_por_mil:g} por mil sobre {_fmt(base_ret if not valor_es_neto else monto)} "
+                      f"= {_fmt(retencion_ica)}.")
+        ret_info = {**(ret_info or {}), "motivo": (str((ret_info or {}).get("motivo", "")) + " " + motivo_ica).strip()}
 
     with cc._conn() as con:
         id_debito = cc._cuenta_id_por_codigo(con, cuenta_debito)
         id_retencion = cc._cuenta_id_por_codigo(con, "2365") if retencion > 0 else None
+        id_ica = cc._cuenta_id_por_codigo(con, "2368") if retencion_ica > 0 else None
+        id_gmf = cc._cuenta_id_por_codigo(con, "530595") if cobra_gmf else None
     if not id_debito:
         raise ValueError(f"La cuenta {cuenta_debito} no existe en el plan")
 
     nombre_tercero = (tercero or {}).get("nombre") or ""
-    girado = round(monto - retencion, 2)
+    girado = round(monto - retencion - retencion_ica, 2)
+
+    # ── Pago parcial ───────────────────────────────────────────────────────
+    # Un salario o un servicio se causa completo (el gasto y la retención son
+    # del mes en que se prestó), pero puede que la caja no alcance para girarlo
+    # todo. Lo que no se paga queda como cuenta por pagar al beneficiario y se
+    # gira después con la categoría «saldo_por_pagar», sin volver a causar
+    # gasto ni retención. Sin esto, la salida era pagar de menos y dejar el
+    # asiento cuadrado a la fuerza, que esconde lo que se le debe a la persona.
+    pagado_ahora = girado
+    saldo_pendiente = 0.0
+    cuenta_saldo = ""
+    if cat.get("permite_parcial") and payload.get("pagado_ahora") not in (None, ""):
+        try:
+            pagado_ahora = round(float(payload.get("pagado_ahora")), 2)
+        except (TypeError, ValueError):
+            raise ValueError("«Cuánto se paga ahora» debe ser un número") from None
+        if pagado_ahora < 0:
+            raise ValueError("Lo que se paga ahora no puede ser negativo")
+        if pagado_ahora > girado + 0.01:
+            raise ValueError(
+                f"Lo que se paga ahora ({_fmt(pagado_ahora)}) no puede superar lo que le corresponde "
+                f"recibir ({_fmt(girado)})"
+            )
+        saldo_pendiente = round(girado - pagado_ahora, 2)
+        if saldo_pendiente > 0.01:
+            # Socio → 2380; cualquier otro prestador → 2367 costos y gastos por pagar.
+            cuenta_saldo = "2380" if (tercero or {}).get("tipo") == "socio" else "2367"
+        else:
+            saldo_pendiente = 0.0
+
+    # El 4x1000 no se le descuenta a nadie: lo cobra el banco sobre lo que sale.
+    gmf = round(pagado_ahora * GMF_TARIFA, 2) if cobra_gmf else 0.0
 
     # Una cuota de préstamo no es un gasto contra una sola cuenta: separa
     # capital (baja el pasivo), interés (gasto financiero) y retención. Mostrar
@@ -559,6 +744,7 @@ def previsualizar(payload: dict) -> dict:
         retencion = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "2365"), 2)
         girado = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "1110"), 2)
         monto = round(sum(l["debito"] for l in lineas), 2)
+        retencion_ica, gmf = 0.0, 0.0
         ret_info = ret_info or {"motivo": "Retención de rendimientos financieros del cronograma"}
     else:
         lineas = [{
@@ -573,13 +759,36 @@ def previsualizar(payload: dict) -> dict:
             lineas.append({
                 "cuenta_codigo": "2365", "cuenta_id": id_retencion,
                 "debito": 0, "credito": retencion, "tercero_id": tercero_id,
-                "descripcion": f"Retención {concepto_ret} {ret_info.get('tarifa_pct')}% — {nombre_tercero}",
+                "descripcion": f"Retención {concepto_ret} {(ret_info or {}).get('tarifa_pct')}% — {nombre_tercero}",
             })
-        lineas.append({
-            "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
-            "debito": 0, "credito": girado,
-            "descripcion": f"Salida vía {medio['nombre']}" + (f" — {nombre_tercero}" if nombre_tercero else ""),
-        })
+        if retencion_ica > 0:
+            lineas.append({
+                "cuenta_codigo": "2368", "cuenta_id": id_ica,
+                "debito": 0, "credito": retencion_ica, "tercero_id": tercero_id,
+                "descripcion": f"Retención ICA {ica_por_mil:g} x mil — {nombre_tercero}",
+            })
+        if gmf > 0:
+            lineas.append({
+                "cuenta_codigo": "530595", "cuenta_id": id_gmf,
+                "debito": gmf, "credito": 0,
+                "descripcion": f"GMF 4x1000 sobre {_fmt(pagado_ahora)}",
+            })
+        if saldo_pendiente > 0:
+            with cc._conn() as con:
+                id_saldo = cc._cuenta_id_por_codigo(con, cuenta_saldo)
+            if not id_saldo:
+                raise ValueError(f"La cuenta {cuenta_saldo} no existe en el plan: hace falta para dejar el saldo por pagar")
+            lineas.append({
+                "cuenta_codigo": cuenta_saldo, "cuenta_id": id_saldo,
+                "debito": 0, "credito": saldo_pendiente, "tercero_id": tercero_id,
+                "descripcion": f"Queda por pagar a {nombre_tercero} — se gira después",
+            })
+        if pagado_ahora > 0 or gmf > 0:
+            lineas.append({
+                "cuenta_codigo": "1110", "cuenta_id": medio["cuenta_id"],
+                "debito": 0, "credito": round(pagado_ahora + gmf, 2),
+                "descripcion": f"Salida vía {medio['nombre']}" + (f" — {nombre_tercero}" if nombre_tercero else ""),
+            })
 
     nombres = {c["codigo"]: c["nombre"] for c in cc.listar_plan_cuentas(solo_activas=False)}
     for l in lineas:
@@ -592,8 +801,16 @@ def previsualizar(payload: dict) -> dict:
         "fecha": fecha,
         "monto": monto,
         "retencion": retencion,
+        "retencion_ica": retencion_ica,
+        "ica_por_mil": ica_por_mil,
+        "gmf": gmf,
+        "retencion_modo": modo,
         "retencion_motivo": (ret_info or {}).get("motivo", ""),
         "girado": girado,
+        "pagado_ahora": pagado_ahora,
+        "saldo_pendiente": saldo_pendiente,
+        "cuenta_saldo": cuenta_saldo,
+        "permite_parcial": bool(cat.get("permite_parcial")),
         "tercero": {"id": tercero_id, "nombre": nombre_tercero} if tercero_id else None,
         "medio_pago": medio["nombre"],
         "lineas": lineas,
@@ -603,7 +820,7 @@ def previsualizar(payload: dict) -> dict:
         "iva_items": iva_items,
         "con_productos": bool(cat.get("con_productos")),
         "requiere_factura": bool(cat.get("requiere_factura")),
-        "valor_es_neto": valor_es_neto and retencion > 0,
+        "valor_es_neto": valor_es_neto and (retencion + retencion_ica) > 0,
         "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
     }
 
@@ -719,8 +936,9 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                  (categoria, concepto, monto, fecha, tercero_id, cuenta_debito,
                   medio_pago_id, referencia, origen_ref, retencion, retencion_concepto,
                   estado, notas, creada_por, items_json, factura_numero, verificacion_json,
-                  es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                  es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema,
+                  retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
@@ -736,6 +954,11 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 int(payload.get("plantilla_id") or 0) or None,
                 str(payload.get("periodo") or ""),
                 str(payload.get("origen_sistema") or ""),
+                prev.get("retencion_modo") or "",
+                float(prev.get("retencion_ica") or 0),
+                float(prev.get("ica_por_mil") or 0),
+                float(prev.get("gmf") or 0),
+                (float(prev["pagado_ahora"]) if prev.get("saldo_pendiente") else None),
             ),
         )
         sid = int(cur.lastrowid)
@@ -785,6 +1008,14 @@ def previsualizacion_de(sid: int) -> dict:
             "medio_pago_id": sol.get("medio_pago_id"),
             "cuenta_debito": sol.get("cuenta_debito"),
             "origen_ref": sol.get("origen_ref"),
+            # Lo que decidió quien creó la solicitud y no se puede recalcular
+            # solo: quién asume la retención, el ICA del municipio, el 4x1000 y
+            # cuánto se gira hoy. Sin esto, aprobar cambiaba el asiento —una
+            # quincena pactada libre de retención volvía a salir con ella.
+            "retencion_modo": sol.get("retencion_modo") or "",
+            "ica_por_mil": sol.get("ica_por_mil") or 0,
+            "gmf": bool(sol.get("gmf")),
+            **({"pagado_ahora": sol["pagado_ahora"]} if sol.get("pagado_ahora") is not None else {}),
         }
     )
     # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
@@ -1086,7 +1317,11 @@ def obtener(sid: int) -> dict | None:
     d = dict(r)
     d["categoria_label"] = CATEGORIAS.get(d["categoria"], {}).get("label", d["categoria"])
     d["icono"] = CATEGORIAS.get(d["categoria"], {}).get("icono", "📌")
-    d["girado"] = round(float(d["monto"] or 0) - float(d["retencion"] or 0), 2)
+    # Lo que de verdad recibe el beneficiario: el ICA también se le descuenta
+    # (el GMF no — ese lo cobra el banco aparte y es gasto de McKenna).
+    d["girado"] = round(
+        float(d["monto"] or 0) - float(d["retencion"] or 0) - float(d.get("retencion_ica") or 0), 2
+    )
     try:
         d["items"] = json.loads(d.pop("items_json", None) or "[]")
     except Exception:
@@ -1145,6 +1380,13 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
     s = obtener(sid)
     if not s:
         raise ValueError(f"Solicitud {sid} no encontrada")
+    # Una solicitud se contabiliza UNA vez. El estado no alcanza como guarda: una
+    # ya girada («en_banco», «pagada») pasaba de largo por este control y un
+    # segundo clic —o una llamada repetida a la API— habría creado otro asiento
+    # por el mismo pago. Lo que manda es si ya tiene movimiento.
+    if s.get("movimiento_id"):
+        return {**s, "ya_aprobada": True,
+                "mensaje": f"Ya estaba contabilizada en el asiento #{s['movimiento_id']}"}
     if s["estado"] == "aprobada":
         return {**s, "ya_aprobada": True}
     if s["estado"] in ("rechazada", "anulada"):
@@ -1156,22 +1398,53 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         "categoria": s["categoria"], "monto": s["monto"], "fecha": s["fecha"],
         "concepto": s["concepto"], "tercero_id": s["tercero_id"],
         "medio_pago_id": s["medio_pago_id"], "cuenta_debito": s["cuenta_debito"],
-        "sin_retencion": True,   # la retención ya está fijada en la solicitud
+        "retencion_modo": "ninguna",   # los impuestos ya están fijados en la solicitud
+        **({"pagado_ahora": s["pagado_ahora"]} if s.get("pagado_ahora") is not None else {}),
     })
     lineas = [
         {k: v for k, v in l.items() if k in ("cuenta_id", "debito", "credito", "tercero_id", "descripcion")}
         for l in prev["lineas"]
     ]
-    # Reinyectar la retención tal como se aprobó
-    if float(s["retencion"] or 0) > 0:
+    # Reinyectar los impuestos tal como se aprobaron: lo que se contabiliza es
+    # lo que alguien firmó, no lo que las tarifas de hoy dirían.
+    ret = round(float(s["retencion"] or 0), 2)
+    ica = round(float(s.get("retencion_ica") or 0), 2)
+    gmf = round(float(s.get("gmf") or 0), 2)
+    if ret or ica or gmf:
+        nombre_t = (s.get("tercero") or {}).get("nombre", "")
         with cc._conn() as con:
             id_ret = cc._cuenta_id_por_codigo(con, "2365")
-        ret = round(float(s["retencion"]), 2)
-        lineas = [lineas[0],
-                  {"cuenta_id": id_ret, "debito": 0, "credito": ret,
-                   "tercero_id": s["tercero_id"],
-                   "descripcion": f"Retención {s['retencion_concepto']} — {(s.get('tercero') or {}).get('nombre','')}"},
-                  {**lineas[-1], "credito": round(float(s["monto"]) - ret, 2)}]
+            id_ica = cc._cuenta_id_por_codigo(con, "2368")
+            id_gmf = cc._cuenta_id_por_codigo(con, "530595")
+        medias = [lineas[0]]
+        if ret:
+            medias.append({"cuenta_id": id_ret, "debito": 0, "credito": ret,
+                           "tercero_id": s["tercero_id"],
+                           "descripcion": f"Retención {s['retencion_concepto']} — {nombre_t}"})
+        if ica:
+            medias.append({"cuenta_id": id_ica, "debito": 0, "credito": ica,
+                           "tercero_id": s["tercero_id"],
+                           "descripcion": f"Retención ICA — {nombre_t}"})
+        if gmf:
+            medias.append({"cuenta_id": id_gmf, "debito": gmf, "credito": 0,
+                           "descripcion": "GMF 4x1000"})
+        girado = round(float(s["monto"]) - ret - ica, 2)
+        # Pago parcial: lo que no se gira hoy queda como cuenta por pagar. Esta
+        # reconstrucción existe para fijar los impuestos tal como se aprobaron,
+        # y antes se comía la línea del saldo: el asiento salía como si se
+        # hubiera pagado todo y la deuda con la persona desaparecía.
+        pagado = round(float(s["pagado_ahora"]), 2) if s.get("pagado_ahora") is not None else girado
+        saldo = round(girado - pagado, 2)
+        if saldo > 0.01:
+            cod_saldo = "2380" if (cc.obtener_tercero(s["tercero_id"]) or {}).get("tipo") == "socio" else "2367"
+            with cc._conn() as con:
+                id_saldo = cc._cuenta_id_por_codigo(con, cod_saldo)
+            if not id_saldo:
+                raise ValueError(f"La cuenta {cod_saldo} no existe en el plan: hace falta para el saldo por pagar")
+            medias.append({"cuenta_id": id_saldo, "debito": 0, "credito": saldo,
+                           "tercero_id": s["tercero_id"],
+                           "descripcion": f"Queda por pagar a {nombre_t} — se gira después"})
+        lineas = medias + ([{**lineas[-1], "credito": round(pagado + gmf, 2)}] if (pagado > 0 or gmf) else [])
 
     mov = cc.crear_movimiento(
         fecha=s["fecha"],
