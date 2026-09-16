@@ -109,6 +109,18 @@
   text-align: center;
 }
 
+/* Todo el texto de esta etiqueta va centrado en su casilla, también en
+   edición: `CampoEtiqueta` dibuja un <textarea>/<input>, y los campos de
+   formulario NO heredan `text-align` del contenedor — arrancan a la
+   izquierda. Sin esta regla el texto se veía centrado en la vista y torcido
+   al editarlo. `.e30-campo` es la clase que pone CampoEtiqueta. */
+.ev-etiqueta .e30-campo,
+.ev-etiqueta .e30-campo-wrap,
+.ev-valor-texto,
+.ev-grado-texto {
+  text-align: center;
+}
+
 /* ── 4. Beneficios ───────────────────────────────────────────────────── */
 .ev-beneficios { padding: 4px 0 5px; }
 .ev-beneficios-titulo {
@@ -143,6 +155,7 @@
 .ev-beneficio-texto {
   width: 100%;
   color: #111111;
+  text-align: center;
   font-size: 29px;          /* ~9,9 pt — +80 % */
   font-weight: 500;
   line-height: 1.15;

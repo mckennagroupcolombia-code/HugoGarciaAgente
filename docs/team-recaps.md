@@ -3204,3 +3204,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Los textos del ejemplo entran justos ("Líquido de tonalidad rosada" 27 caracteres, "Agua destilada de rosas y conservante." 37, "Sensación refrescante" 21). Con textos más largos `CampoEtiqueta` los encoge y, si ni al mínimo caben, marca la casilla en rojo en edición.
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Formato 38×102: el texto editable no se centraba
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - El texto de Beneficios salía torcido. Causa: en vista es un `<p>` y hereda el `text-align: center` del contenedor, pero en edición `CampoEtiqueta` dibuja un `<textarea>`/`<input>`, y **los campos de formulario no heredan `text-align`**: arrancan a la izquierda. Por eso se veía bien en la vista terminada y mal al editar.
+  - El fallo era sistemático, no solo en beneficios: el componente pasaba las clases `ev-valor-texto` y `ev-grado-texto`, que **no existían** en el CSS, así que esos campos tampoco tenían centrado propio y dependían de una herencia que el textarea no aplica.
+  - `etiquetaVertical.css`: regla explícita para `.ev-etiqueta .e30-campo`, `.e30-campo-wrap`, `.ev-valor-texto` y `.ev-grado-texto`, más `text-align: center` propio en `.ev-beneficio-texto`. Cubre los valores de las cuatro casillas, el nombre, la barra de grado, los beneficios, el contenido neto y las dos líneas del pie.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVertical.css`, `docs/team-recaps.md`
