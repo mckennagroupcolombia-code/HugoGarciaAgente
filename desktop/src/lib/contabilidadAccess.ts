@@ -326,7 +326,9 @@ export function guardarSubtabFacturacion(id: FacturacionSubtabId): void {
 export function leerSubtabOperativos(): OperativosSubtabId {
   try {
     const v = localStorage.getItem(OPERATIVOS_SUB_KEY) || "";
-    if (v === "rrhh" || v === "impuestos" || v === "servicios") return v;
+    // "mensajeria" faltaba acá: se guardaba al elegirla pero no se leía, así que
+    // al volver al panel siempre caía en RR.HH.
+    if (OPERATIVOS_SUBTABS.some((t) => t.id === v)) return v as OperativosSubtabId;
   } catch { /* */ }
   return "rrhh";
 }
@@ -347,9 +349,8 @@ export function primerPanelContabilidad(
     if (CONTABILIDAD_TAB_OCULTAS.has(id)) return false;
     if (!puedeVerModuloContabilidad(user, id)) return false;
     if (id === "costos-productos") return advanced;
-    if (id === "operativos") {
-      return advanced || Boolean(puedeVerModuloContabilidad(user, "servicios"));
-    }
+    // Operativos ya no exige modo avanzado: basta el permiso (lo valida el
+    // filtro de arriba), porque Mensajería vive adentro y la usa despachos.
     return true;
   });
   const pref = preferido ? normalizarPanelContabilidad(preferido) : null;

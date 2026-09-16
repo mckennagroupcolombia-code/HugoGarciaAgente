@@ -633,7 +633,56 @@ pagos, y Bancos quedaba descuadrado. Es el mismo patrón que ya falló con las
 notas crédito (6 semanas) y las compras Gmail (96 sin postear): **lo que se deja
 como paso manual posterior, no se hace**.
 
-**Pago a proveedor = solo por aquí (13-sep-2026).** Las categorías `compra_proveedor` (1435) y
+**Wizard simple (15-sep-2026).** La puerta de entrada es una sola pantalla: proveedor · fecha ·
+cuenta de salida (viene puesta en **Bancolombia ahorros 42800000974**) · concepto (**Productos**
+1435 / **Servicios** 5135 / **Transporte** 513550 / **Servicios públicos** con tipo y número de
+contrato) · valor solicitado · botón **Solicitar**, uno solo: quien solicita no decide si se salta
+la aprobación (el registro directo sigue existiendo en el recorrido largo). El asiento se sigue viendo antes de solicitar — eso no se quitó,
+es lo que evita firmar a ciegas. El recorrido largo (productos con SKU + factura cotejada) sigue
+existiendo y se abre con el enlace «Compra con productos y factura cotejada» o desde el Centro de
+Mando; las categorías `productos` y `servicios` llevan retención (compras / servicios) pero **no**
+exigen SKU ni cotejo, así que una compra de mercancía con factura debe ir por el recorrido largo.
+La bandeja ya no lista los borradores de cuotas de préstamo que monta el cron (son de Préstamos y
+solo eran ruido); si una sale a aprobación, ahí sí aparece.
+
+**«Libre de retención» (15-sep-2026).** A un prestador de servicios se le pacta «te pago
+$1.100.000 libres de retención»: ese valor es **lo que recibe**, no la base gravable. Con
+`valor_es_neto` el wizard hace el camino inverso —base $1.145.833, retención $45.833 a la 2365,
+girado $1.100.000 exacto— y la retención la asume McKenna como mayor gasto. Retener sigue siendo
+obligatorio; lo que cambia es quién la soporta. Sin la bandera, el valor es el total facturado y la
+retención se descuenta (es lo correcto cuando hay factura). Transporte **no** lleva retención en el
+wizard a propósito: la tarifa de transporte (carga 1%, pasajeros 3,5%) no está en
+`retenciones.CONCEPTOS` y la mayoría de transportadoras son autorretenedoras — inventarla le sale
+del bolsillo a alguien.
+
+**Aprobar no es girar — el ciclo de los dos tokens (15-sep-2026).** En Bancolombia el giro necesita
+dos personas: una monta la transacción en la Sucursal Virtual con su token y otra la aprueba con el
+suyo. Antes eso vivía fuera del sistema y una solicitud «aprobada» podía llevar semanas sin girarse
+sin que nadie lo viera, con el comprobante en un chat. Ahora el estado lo refleja:
+
+    borrador → pendiente → aprobada → en_banco → pagada
+
+`aprobada` es contable (ya hay asiento), `pagada` es bancario (ya salió la plata **y** está el
+soporte). **Cada paso es de una persona distinta y el panel solo muestra el botón que le toca a
+quien está mirando** (15-sep-2026): el solicitante pide; el primer administrador que llegue
+(Cynthia o Armando) aprueba y contabiliza, y a **ese mismo** le aparece «Ya lo preparé en Sucursal
+Negocios»; al **otro** le aparece «La solicitud ha sido aprobada» con la captura del banco, y ahí
+cierra el ciclo (el ticket se marca resuelto y el comentario avisa a quien lo pidió). El backend lo
+exige, no solo la interfaz: `montar_en_banco()` rechaza a quien no aprobó y `confirmar_pago()`
+rechaza a quien ya aprobó o preparó — si una sola persona hiciera los tres pasos, los dos tokens del
+banco dejarían de ser dos pares de ojos. La identidad sale de `X-Tickets-Token`
+(`_panel_tickets_usuario`); con el token de sistema, sin persona identificada, se deja pasar como
+antes. Aprobar es de nivel administrador (`puede_registrar_directo`), validado también en la ruta. `montar_en_banco()` y `confirmar_pago()` en `pagos_wizard.py`; rutas
+`POST /api/pagos/solicitudes/<id>/montar`, `POST …/confirmar-pago` (multipart con el comprobante) y
+`GET …/comprobante`. El segundo visto bueno **pega la captura con Ctrl+V** (`CapturaComprobante`, también arrastrar o
+elegir archivo): quien acaba de hacer la transacción tiene la imagen en el portapapeles, no un
+archivo guardado — obligarlo a guardarla y buscarla es el paso donde el comprobante se deja «para
+después». **Confirmar exige el comprobante** — un pago marcado como hecho sin soporte es
+justo lo que después nadie concilia contra el extracto; el archivo queda en la solicitud y también
+pegado al asiento. Los KPIs de la cabecera separan «Aprobadas, falta girar» de «Giradas con
+comprobante».
+
+**Pago a proveedor con productos y factura (13-sep-2026).** Las categorías `compra_proveedor` (1435) y
 `factura_proveedor` (2205) llevan `con_productos` + `requiere_factura`: el wizard pasa por
 **proveedor** (terceros del libro + contactos «provider» de Alegra, `app/services/pagos_proveedor.py`;
 un contacto se adopta como tercero al elegirlo), **productos con SKU** del catálogo espejo de Alegra
@@ -787,9 +836,20 @@ aprobación del pago abriendo un ticket a mano. Ahora vive en el panel:
 
 app/services/mensajeria_pagos.py   tablas `mensajeria_envios` / `mensajeria_lotes` en
                                    contabilidad.db; comprobantes en comprobantes/mensajeria/
-contabilidad_ledger._egresos_mensajeria   lote pagado → fuente "mensajeria_pago" en
+contabilidad_ledger._egresos_mensajeria   lote pagado SIN solicitud → fuente "mensajeria_pago" en
                                    Ingresos/Egresos → autopost al Libro Mayor (PUC 5135)
 ```
+
+**Unificado con Solicitudes de pago (15-sep-2026):** en cada lote «solicitado» hay un selector de
+tercero (la transportadora en el Libro Mayor, creable ahí mismo) y el botón **«Pasar a Solicitudes
+de pago»** → `mensajeria_pagos.solicitar_pago_wizard()` crea la solicitud (`flete_transporte`,
+513550, `origen_ref="mensajeria:<lote>"`) y guarda `solicitud_pago_id` en el lote. Desde ahí el pago
+sigue el camino único: aprobar (nace el asiento) → montar en el banco → confirmar con el segundo
+token y el comprobante. Al confirmarlo, `pagos_wizard._avisar_al_origen()` marca el lote como pagado
+y le copia el comprobante (despachos no entra a Contabilidad). **Un lote con `solicitud_pago_id` ya
+no se postea por `_egresos_mensajeria`** — el asiento lo hace la solicitud y contarlo dos veces
+duplicaría el gasto. El ticket suelto de aprobación sigue disponible como «Solo pedir aprobación»,
+sin asiento, para casos que no pasen por contabilidad.
 
 Permiso: `mensajeria`, heredado también de `servicios`, `operativos` o `pedidos` — el registro lo
 lleva despachos y la aprobación administración (ver `desktop/src/lib/contabilidadAccess.ts`).

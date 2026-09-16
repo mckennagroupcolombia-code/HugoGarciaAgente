@@ -1279,6 +1279,12 @@ def init_db():
                 actualizado_en TEXT DEFAULT (datetime('now'))
             );
         """)
+        # Un ítem de la lista puede cerrarse de dos formas: comprado, o "no se
+        # consiguió" con el motivo escrito. Sin la segunda, una solicitud con un
+        # producto agotado quedaba imposible de cerrar (el asignado veía
+        # "Faltan N producto(s)" y no tenía cómo explicar por qué).
+        _add_col(db, "lista_compras_ticket", "no_conseguido", "INTEGER DEFAULT 0")
+        _add_col(db, "lista_compras_ticket", "motivo_no_compra", "TEXT")
         db.commit()
 
     # Las migraciones corren DESPUÉS de crear el esquema, no antes. Cada una
@@ -3901,6 +3907,15 @@ def _es_solicitud_etiqueta_ticket(t: dict) -> bool:
     return False
 
 
+def _items_lista_sin_resolver(db, ticket_id: int) -> int:
+    """Ítems de la lista que no están ni comprados ni justificados como no conseguidos."""
+    return db.execute(
+        "SELECT COUNT(*) AS n FROM lista_compras_ticket "
+        "WHERE ticket_id=? AND COALESCE(comprado,0)=0 AND COALESCE(no_conseguido,0)=0",
+        (ticket_id,),
+    ).fetchone()["n"]
+
+
 def cambiar_estado(
     ticket_id: int,
     nuevo_estado: str,
@@ -3936,27 +3951,23 @@ def cambiar_estado(
             if not is_authorized:
                 return False, "Sin autorización"
             if (t.get("subtipo") or "").strip() == "compra":
-                pend = db.execute(
-                    "SELECT COUNT(*) AS n FROM lista_compras_ticket "
-                    "WHERE ticket_id=? AND comprado=0",
-                    (ticket_id,),
-                ).fetchone()["n"]
+                pend = _items_lista_sin_resolver(db, ticket_id)
                 if pend:
-                    return False, f"Faltan {pend} producto(s) por marcar en la lista de compras"
+                    return False, (
+                        f"Faltan {pend} producto(s) por marcar: márcalos como comprados "
+                        "o indica por qué no se compraron"
+                    )
             elif _es_solicitud_etiqueta_ticket(t):
                 n_lista = db.execute(
                     "SELECT COUNT(*) AS n FROM lista_compras_ticket WHERE ticket_id=?",
                     (ticket_id,),
                 ).fetchone()["n"]
                 if n_lista > 0:
-                    pend = db.execute(
-                        "SELECT COUNT(*) AS n FROM lista_compras_ticket "
-                        "WHERE ticket_id=? AND comprado=0",
-                        (ticket_id,),
-                    ).fetchone()["n"]
+                    pend = _items_lista_sin_resolver(db, ticket_id)
                     if pend:
                         return False, (
-                            f"Faltan {pend} producto(s) por marcar como impreso en el pedido"
+                            f"Faltan {pend} producto(s) por marcar como impresos "
+                            "o por indicar por qué no se imprimieron"
                         )
             # Solicitudes con pasos: todos deben estar completados antes de resolver
             elif t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
@@ -4777,6 +4788,23 @@ def actualizar_compra_ticket(item_id: int, data: dict) -> tuple:
             campos["notas"] = (data["notas"] or "").strip() or None
         if "comprado" in data:
             campos["comprado"] = 1 if data["comprado"] in (1, True, "1", "true") else 0
+            # Comprado y "no conseguido" son excluyentes: marcar uno limpia el otro,
+            # para que no quede un ítem comprado arrastrando un motivo viejo.
+            if campos["comprado"]:
+                campos["no_conseguido"] = 0
+                campos["motivo_no_compra"] = None
+        if "no_conseguido" in data:
+            campos["no_conseguido"] = 1 if data["no_conseguido"] in (1, True, "1", "true") else 0
+            if campos["no_conseguido"]:
+                campos["comprado"] = 0
+                motivo = (data.get("motivo_no_compra") or "").strip()
+                if not motivo:
+                    return None, "Escribe por qué no se compró este producto"
+                campos["motivo_no_compra"] = motivo
+            else:
+                campos["motivo_no_compra"] = None
+        elif "motivo_no_compra" in data:
+            campos["motivo_no_compra"] = (data["motivo_no_compra"] or "").strip() or None
         if "material_id" in data:
             campos["material_id"] = int(data["material_id"]) if data["material_id"] else None
         if not campos:

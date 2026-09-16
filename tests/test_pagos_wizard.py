@@ -451,3 +451,88 @@ def test_la_categoria_nomina_advierte_que_no_hay_contrato_laboral(mods):
     assert "prestación de servicios" in ayuda
     assert w.CATEGORIAS["prestacion_servicios"]["cuenta_debito"] == "5135"
     assert w.CATEGORIAS["prestacion_servicios"]["concepto_retencion"] == "servicios"
+
+
+# ─── Pactado «libre de retención» ───────────────────────────────────────────
+#
+# A un prestador de servicios se le dice «te pago 1.100.000 libres de
+# retención»: ese valor es lo que RECIBE, no la base gravable. Tomarlo como
+# base le giraba 1.056.000 y el reclamo llegaba después.
+
+def test_valor_libre_de_retencion_gira_exactamente_lo_pactado(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_100_000, "concepto": "Quincena",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-10",
+        "valor_es_neto": True,
+    })
+    assert prev["girado"] == 1_100_000          # lo pactado, exacto
+    assert prev["retencion"] > 0                 # se retiene igual: es obligatorio
+    assert prev["monto"] == round(1_100_000 + prev["retencion"], 2)
+    assert prev["cuadra"] is True
+    assert prev["valor_es_neto"] is True
+
+
+def test_sin_la_bandera_el_valor_sigue_siendo_el_total_facturado(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_100_000, "concepto": "Factura",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-10",
+    })
+    assert prev["monto"] == 1_100_000
+    assert prev["girado"] == round(1_100_000 - prev["retencion"], 2)
+
+
+# ─── El ciclo del giro: aprobar no es girar ─────────────────────────────────
+
+def test_el_ciclo_del_giro_cierra_con_comprobante(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], espejar=False)
+
+    # Montar en el banco solo tiene sentido después de aprobar.
+    montada = w.montar_en_banco(s["id"], referencia="TRX-9001")
+    assert montada["estado"] == "en_banco"
+    assert montada["montado_ref"] == "TRX-9001"
+
+    # Sin comprobante el ciclo NO cierra: es lo que después nadie concilia.
+    with pytest.raises(ValueError):
+        w.confirmar_pago(s["id"])
+
+    pagada = w.confirmar_pago(s["id"], comprobante=(b"%PDF-1.4 comprobante", "banco.pdf"))
+    assert pagada["estado"] == "pagada"
+    assert pagada["comprobante_archivo"]
+
+
+def test_no_se_monta_en_el_banco_lo_que_no_esta_aprobado(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    with pytest.raises(ValueError):
+        w.montar_en_banco(s["id"])
+
+
+# ─── Dos personas, dos pasos ────────────────────────────────────────────────
+#
+# Los dos tokens de la Sucursal son dos pares de ojos. Si la misma persona
+# aprueba, prepara y confirma, el control es decorativo.
+
+def test_prepara_el_pago_quien_lo_aprobo(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], aprobada_por=11, espejar=False)
+    with pytest.raises(ValueError, match="le toca a esa persona"):
+        w.montar_en_banco(s["id"], por=22)
+    assert w.montar_en_banco(s["id"], por=11)["estado"] == "en_banco"
+
+
+def test_el_segundo_visto_bueno_lo_da_el_otro(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    w.aprobar(s["id"], aprobada_por=11, espejar=False)
+    w.montar_en_banco(s["id"], por=11)
+    with pytest.raises(ValueError, match="la otra persona"):
+        w.confirmar_pago(s["id"], por=11, comprobante=(b"x", "captura.png"))
+    cerrada = w.confirmar_pago(s["id"], por=22, comprobante=(b"x", "captura.png"))
+    assert cerrada["estado"] == "pagada"
+    assert cerrada["pagado_por"] == 22
+    assert cerrada["firmas"]["aprobada_por"] is not None

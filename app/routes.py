@@ -9696,6 +9696,28 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/mensajeria/lotes/<int:lote_id>/solicitud-pago", methods=["POST"])
+    @app.route("/app/api/mensajeria/lotes/<int:lote_id>/solicitud-pago", methods=["POST"])
+    def api_mensajeria_lote_solicitud_pago(lote_id: int):
+        """Manda el lote al flujo único de pagos (asiento al aprobar, giro con
+        dos tokens, comprobante) en vez de a un ticket de texto libre."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        try:
+            from app.services.mensajeria_pagos import solicitar_pago_wizard
+
+            return jsonify(solicitar_pago_wizard(
+                lote_id,
+                tercero_id=int(data.get("tercero_id") or 0) or None,
+                medio_pago_id=int(data.get("medio_pago_id") or 0) or None,
+                creado_por=_mensajeria_uid(),
+            ))
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/mensajeria/lotes/<int:lote_id>/pagar", methods=["POST"])
     @app.route("/app/api/mensajeria/lotes/<int:lote_id>/pagar", methods=["POST"])
     def api_mensajeria_lote_pagar(lote_id: int):
@@ -11503,6 +11525,10 @@ def register_routes(app):
             return jsonify({
                 "puede": puede_registrar_directo(u),
                 "usuario": (u or {}).get("nombre") or "",
+                # El panel necesita saber QUIÉN es para el ciclo de los dos
+                # tokens: quien aprueba prepara el pago y el otro lo confirma.
+                "usuario_id": (u or {}).get("id"),
+                "nivel": int(((u or {}).get("rol") or {}).get("nivel") or 0),
             })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -11576,8 +11602,14 @@ def register_routes(app):
         if _no:
             return _no
         try:
-            from app.services.pagos_wizard import aprobar
+            from app.services.pagos_wizard import aprobar, puede_registrar_directo
 
+            # Aprobar y contabilizar es de administración (Cynthia o Armando).
+            # Si la sesión no identifica a nadie (token de sistema), se deja
+            # pasar como hasta ahora: ese token ya es de administración.
+            u = _panel_tickets_usuario()
+            if u and not puede_registrar_directo(u):
+                return jsonify({"error": "Solo Administración puede aprobar y contabilizar un pago"}), 403
             d = request.get_json(silent=True) or {}
             return jsonify(aprobar(sid, aprobada_por=_cc_uid(), espejar=bool(d.get("espejar", True))))
         except ValueError as e:

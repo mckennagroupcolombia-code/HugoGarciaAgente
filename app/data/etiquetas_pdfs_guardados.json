@@ -1,6 +1,41 @@
 {
   "archivos": [
     {
+      "nombre": "SHAROMIX_705_50mL_3_20260915_111350.pdf",
+      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111350.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111350.pdf",
+      "subido_at": "2026-09-15T11:13:50",
+      "bytes": 91312
+    },
+    {
+      "nombre": "SHAROMIX_705_50mL_3_20260915_111310.pdf",
+      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111310.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111310.pdf",
+      "subido_at": "2026-09-15T11:13:10",
+      "bytes": 91312
+    },
+    {
+      "nombre": "SHAROMIX_705_50mL_3_20260915_111150.pdf",
+      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111150.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111150.pdf",
+      "subido_at": "2026-09-15T11:11:50",
+      "bytes": 91312
+    },
+    {
+      "nombre": "SHAROMIX_705_50mL_3_20260915_111137.pdf",
+      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111137.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_3_20260915_111137.pdf",
+      "subido_at": "2026-09-15T11:11:37",
+      "bytes": 91312
+    },
+    {
+      "nombre": "SHAROMIX_705_50mL_3.pdf",
+      "ruta": "Etiquetas McKenna/SHAROMIX_705_50mL_3.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SHAROMIX_705_50mL_3.pdf",
+      "subido_at": "2026-09-15T11:10:56",
+      "bytes": 91312
+    },
+    {
       "nombre": "CAPSULAS_TRANSPARENTES_00_6.25x_20260914_104601.pdf",
       "ruta": "Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260914_104601.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CAPSULAS_TRANSPARENTES_00_6.25x_20260914_104601.pdf",
@@ -1364,41 +1399,6 @@
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260805_095638.pdf",
       "subido_at": "2026-08-05T09:56:38",
       "bytes": 640586
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2_20260805_095545.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260805_095545.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2_20260805_095545.pdf",
-      "subido_at": "2026-08-05T09:55:45",
-      "bytes": 640586
-    },
-    {
-      "nombre": "CITRATO_MAGNESIO_500g_6.25x_2.pdf",
-      "ruta": "Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CITRATO_MAGNESIO_500g_6.25x_2.pdf",
-      "subido_at": "2026-08-05T09:54:34",
-      "bytes": 640586
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140719.pdf",
-      "subido_at": "2026-08-03T14:07:19",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140706.pdf",
-      "subido_at": "2026-08-03T14:07:06",
-      "bytes": 281604
-    },
-    {
-      "nombre": "SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
-      "ruta": "Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/SEMILLA_DE_CALABAZA_500g_6.25x_20260803_140649.pdf",
-      "subido_at": "2026-08-03T14:06:50",
-      "bytes": 281604
     }
   ]
 }

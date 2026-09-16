@@ -1037,6 +1037,18 @@ def register_tickets_routes(app):
         if tipo_ticket == "solicitud" and (data.get("subtipo") or "") not in ("pago", "compra", "etiqueta", "pregunta", "procedimiento"):
             texto = f"{data.get('titulo') or ''} {data.get('descripcion') or ''}".lower()
             if _parece_solicitud_de_pago(texto):
+                # Sin el permiso `pagos` no tiene sentido mandarlo al módulo: el panel
+                # lo devolvería al panel anterior. Se le dice a quién pedírselo.
+                _perm = usuario.get("permisos_secciones") or {}
+                _nivel = (usuario.get("rol") or {}).get("nivel") or 0
+                _puede_pagos = _nivel >= 3 or bool(_perm.get("pagos") or _perm.get("libro-mayor"))
+                if not _puede_pagos:
+                    return jsonify({
+                        "error": "Los pagos a proveedores se hacen en Contabilidad → Solicitudes de pago "
+                                 "(proveedor, productos con SKU y factura cotejada), y tu usuario no tiene ese "
+                                 "acceso. Pídele el permiso «Solicitudes de pago» a un administrador, o que monte "
+                                 "el pago quien ya lo tenga.",
+                    }), 400
                 return jsonify({
                     "error": "Las solicitudes de pago a proveedores se hacen en Contabilidad → Solicitudes de pago "
                              "(proveedor, productos con SKU y factura cotejada). Ahí llega al aprobador con su ticket.",

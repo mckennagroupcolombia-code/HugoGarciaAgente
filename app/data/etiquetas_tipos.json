@@ -26,6 +26,11 @@
       "alto_mm": 38.0
     },
     {
+      "nombre": "38x102",
+      "ancho_mm": 38.0,
+      "alto_mm": 102.0
+    },
+    {
       "nombre": "5 g",
       "ancho_mm": 50.0,
       "alto_mm": 42.0

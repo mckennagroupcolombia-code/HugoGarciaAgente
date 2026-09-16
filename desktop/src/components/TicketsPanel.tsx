@@ -19425,6 +19425,7 @@ function NuevaSolicitudWizard({
       }))
     : [];
   const { apiToken: chatApiToken } = useTicketsAuth();
+  const puedeSolicitarPago = puedeVerSeccionPanel(user, "pagos");
   const stt = useStt(token, chatApiToken);
   const [fase, setFase] = useState<FaseSolicWizard>(
     descripcionInicial.trim() ? "asignados" : "tipo",
@@ -19486,6 +19487,9 @@ function NuevaSolicitudWizard({
       // Regla (sep-2026): un pago a proveedor no se pide en texto libre. Va al wizard de
       // Contabilidad → Solicitudes de pago (proveedor, productos con SKU, factura cotejada);
       // desde allá sale el ticket al aprobador.
+      // Sin el permiso `pagos` no se navega: el guard de App.tsx expulsaría del
+      // panel sin explicar nada (así se veía "me saca de la pantalla").
+      if (!puedeSolicitarPago) return;
       useAppStore.getState().setPagosBoot({ abrir: true, categoria: "compra_proveedor" });
       useAppStore.getState().setPanel("pagos");
       onCancel();
@@ -19765,13 +19769,29 @@ function NuevaSolicitudWizard({
             <button
               type="button"
               onClick={() => elegirVariante("pago")}
-              className="w-full text-left rounded-2xl border-2 border-accent/60 bg-accent/5 px-5 py-5 transition hover:border-accent hover:bg-accent/10 group"
+              disabled={!puedeSolicitarPago}
+              title={
+                puedeSolicitarPago
+                  ? undefined
+                  : "Requiere el acceso «Solicitudes de pago» (Contabilidad)"
+              }
+              className={`w-full text-left rounded-2xl border-2 px-5 py-5 transition ${
+                puedeSolicitarPago
+                  ? "border-accent/60 bg-accent/5 hover:border-accent hover:bg-accent/10 group"
+                  : "cursor-not-allowed border-border bg-surface opacity-60"
+              }`}
             >
-              <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
+              <p
+                className={`text-lg font-extrabold text-ink ${
+                  puedeSolicitarPago ? "group-hover:text-accent transition-colors" : ""
+                }`}
+              >
                 💸 Solicitud de pago a proveedor
               </p>
               <p className="mt-1 text-sm text-muted">
-                Elegir el proveedor, los productos con su SKU y cotejar la factura. Llega al aprobador como ticket.
+                {puedeSolicitarPago
+                  ? "Elegir el proveedor, los productos con su SKU y cotejar la factura. Llega al aprobador como ticket."
+                  : "No tienes el acceso «Solicitudes de pago». Pídeselo a un administrador (Gestión de usuarios → Contabilidad) o que lo monte quien ya lo tenga."}
               </p>
             </button>
             <button

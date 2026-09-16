@@ -700,5 +700,11 @@
   "C-ACEESEROM5mL": {
     "meli_item_id": "1278678363",
     "updated_at": "2026-06-12T01:10:55.054039"
+  },
+  "C-SHA70550mL": {
+    "imagenes_web": [
+      "C-SHA70550mL.png"
+    ],
+    "updated_at": "2026-09-15T10:17:40.631499"
   }
 }

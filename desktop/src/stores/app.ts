@@ -205,6 +205,11 @@ interface AppState {
    * categoría (desde «Solicitud de pago a proveedor» del Centro de Mando). */
   pagosBoot: { abrir: boolean; categoria?: string } | null;
   setPagosBoot: (v: { abrir: boolean; categoria?: string } | null) => void;
+  /** Panel al que se intentó entrar sin permiso: el guard devuelve al usuario a
+   * otro panel y esto permite DECIRLE por qué (antes solo "se salía de la
+   * pantalla"). Se limpia al cerrar el aviso. */
+  accesoDenegado: string | null;
+  setAccesoDenegado: (v: string | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -306,6 +311,8 @@ export const useAppStore = create<AppState>()(
       setVentasBoot: (ventasBoot) => set({ ventasBoot }),
       pagosBoot: null,
       setPagosBoot: (pagosBoot) => set({ pagosBoot }),
+      accesoDenegado: null,
+      setAccesoDenegado: (accesoDenegado) => set({ accesoDenegado }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         if (get().sidebarOpen === sidebarOpen) return;

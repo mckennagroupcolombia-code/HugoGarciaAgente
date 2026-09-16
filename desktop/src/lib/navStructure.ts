@@ -88,11 +88,16 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "contabilidad",
     label: "Contabilidad",
     hub: true,
+    // Operativos es "standard" a propósito (15-sep-2026): adentro vive
+    // Mensajería, que la lleva despachos a diario (Flujo K). Con tier
+    // "advanced" la pestaña no aparecía hasta activar el modo avanzado, así que
+    // quien tiene el permiso no encontraba el panel — el permiso decide el
+    // acceso, el modo avanzado solo esconde lo que casi nadie usa.
     items: CONTABILIDAD_PANELS.filter((panel) => !CONTABILIDAD_TAB_OCULTAS.has(panel)).map(
       (panel) => ({
         panel,
         tier:
-          panel === "costos-productos" || panel === "rrhh" || panel === "operativos"
+          panel === "costos-productos" || panel === "rrhh"
             ? ("advanced" as PanelTier)
             : ("standard" as PanelTier),
       }),

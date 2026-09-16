@@ -7348,3 +7348,480 @@ Ejemplo [2]: Hugo sugiere revisar "otras opciones" y menciona vitamina E como si
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 [auditor_canales 2026-09-15T02:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (600 min), +57 312 306 8370 (580 min), +57 320 627 4849 (295 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-15T02:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (600 min), +57 312 306 8370 (580 min), +57 320 627 4849 (295 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T02:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (630 min), +57 312 306 8370 (610 min), +57 320 627 4849 (325 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T02:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (630 min), +57 312 306 8370 (610 min), +57 320 627 4849 (325 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T03:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (660 min), +57 312 306 8370 (640 min), +57 320 627 4849 (355 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T03:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (660 min), +57 312 306 8370 (640 min), +57 320 627 4849 (355 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T03:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (690 min), +57 312 306 8370 (670 min), +57 320 627 4849 (385 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T03:30:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (690 min), +57 312 306 8370 (670 min), +57 320 627 4849 (385 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T04:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 312 306 8370 (700 min), +57 320 627 4849 (415 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T04:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 312 306 8370 (700 min), +57 320 627 4849 (415 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T04:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (445 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T04:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (445 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T05:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (475 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T05:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (475 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T05:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (505 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T05:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (505 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T06:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (535 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T06:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (535 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-05 → 2026-09-15…
+✅ Token de Mercado Libre refrescado exitosamente.
+   0 creado(s), 618 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T06:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (565 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T06:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (565 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 619 | Envíos nuevos consultados: 60 | Resueltos: 55 | Sin resolver: 1 | Aún no despachados: 4
+   Total municipios acumulados: 151
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (595 min), +57 313 400 1072 (46 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (595 min), +57 313 400 1072 (46 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 197 exactos, 20 alias, 61 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 222/278 combos SIIGO tienen publicación (se ocultan 56)
+INFO: Catálogo listo: 21 categorías, 178 fichas (32 con varias presentaciones), 222 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+✅ Token de Mercado Libre refrescado exitosamente.
+   21 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 7 | Sospechosos (>2×): 14
+✅ Reporte enviado a WhatsApp con éxito.
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   159 órdenes canceladas en la ventana.
+   4355 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3498 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71328 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-69688 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   10 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71328 ($20,489), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71049 ($22,574), FV-2-69688 ($239,800)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T07:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (625 min), +57 313 400 1072 (76 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T07:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (625 min), +57 313 400 1072 (76 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  RA: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   9 caso(s) con problema · 9 nuevo(s) en esta corrida.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   🎫 Ticket #1448 creado en el Centro de Mando: *Revisión facturación MeLi — 2026-09-15* (9 caso(s)).
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+   🤖 9 sugerencia(s) de IA agregadas como comentario.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T08:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (655 min), +57 313 400 1072 (106 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T08:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (655 min), +57 313 400 1072 (106 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Monitor comunicaciones importaciones — ejecución real
+Tickets activos de importaciones: 0
+✅ Total hallazgos nuevos: 0
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T08:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (685 min), Contacto WA · …10270799 (38 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T08:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (685 min), Contacto WA · …10270799 (38 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+[meli_compliance_monitor] revisadas=18 activas=11 problemas=7 alertas_wa=0
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T09:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (715 min), Contacto WA · …10270799 (68 min), +57 313 400 1072 (41 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T09:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 320 627 4849 (715 min), Contacto WA · …10270799 (68 min), +57 313 400 1072 (41 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Sin novedades para 2026-09.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Ticket #1449 creado: APROBAR PAGO NOMINA (2026-09-Q1).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (98 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 32 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (98 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 32 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T10:00:04] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (128 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 80 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T10:00:04] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (128 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 80 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T10:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (158 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T10:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (158 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T11:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (188 min), +57 322 449 4944 (31 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T11:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (188 min), +57 322 449 4944 (31 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T11:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (218 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T11:30:03] 1 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (218 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T12:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (248 min), +57 305 706 4679 (29 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 199 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T12:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (248 min), +57 305 706 4679 (29 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 199 veces en 30 min.
+🔎 Auto-posteando contabilidad 2026-09-05 → 2026-09-15…
+✅ Token de Mercado Libre refrescado exitosamente.
+   18 creado(s), 618 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T12:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (278 min), +57 305 706 4679 (59 min), +57 317 456 3777 (26 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T12:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (278 min), +57 305 706 4679 (59 min), +57 317 456 3777 (26 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T13:00:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (308 min), +57 305 706 4679 (89 min), +57 317 456 3777 (56 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T13:00:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (308 min), +57 305 706 4679 (89 min), +57 317 456 3777 (56 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T13:30:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (338 min), +57 305 706 4679 (119 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T13:30:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (338 min), +57 305 706 4679 (119 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T14:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (368 min), +57 305 706 4679 (149 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T14:00:03] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (368 min), +57 305 706 4679 (149 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T14:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (398 min), +57 305 706 4679 (179 min), Contacto WA · …81106331 (30 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T14:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (398 min), +57 305 706 4679 (179 min), Contacto WA · …81106331 (30 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T15:00:04] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (428 min), +57 305 706 4679 (209 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T15:00:04] 2 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (428 min), +57 305 706 4679 (209 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T15:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (458 min), +57 305 706 4679 (239 min), +57 301 922 9626 (45 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 7 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T15:30:03] 3 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (458 min), +57 305 706 4679 (239 min), +57 301 922 9626 (45 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 7 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T16:00:03] 4 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (488 min), +57 305 706 4679 (269 min), +57 301 922 9626 (75 min), Contacto WA · …81106331 (42 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 7 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T16:00:03] 4 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (488 min), +57 305 706 4679 (269 min), +57 301 922 9626 (75 min), Contacto WA · …81106331 (42 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 7 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T16:30:03] 5 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (518 min), +57 305 706 4679 (299 min), +57 301 922 9626 (105 min), Contacto WA · …81106331 (72 min), +57 302 820 0001 (28 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 9 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T16:30:03] 5 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (518 min), +57 305 706 4679 (299 min), +57 301 922 9626 (105 min), Contacto WA · …81106331 (72 min), +57 302 820 0001 (28 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | La sincronización de chats del panel falló 9 veces en 30 min.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T17:00:03] 6 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (548 min), +57 305 706 4679 (329 min), +57 301 922 9626 (135 min), Contacto WA · …81106331 (102 min), +57 302 820 0001 (58 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T17:00:04] 6 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (548 min), +57 305 706 4679 (329 min), +57 301 922 9626 (135 min), Contacto WA · …81106331 (102 min), +57 302 820 0001 (58 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T17:30:04] 6 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (578 min), +57 305 706 4679 (359 min), +57 301 922 9626 (165 min), Contacto WA · …81106331 (132 min), +57 302 820 0001 (88 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T17:30:04] 6 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (578 min), +57 305 706 4679 (359 min), +57 301 922 9626 (165 min), Contacto WA · …81106331 (132 min), +57 302 820 0001 (88 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T18:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (608 min), +57 305 706 4679 (389 min), Contacto WA · …81106331 (162 min), +57 302 820 0001 (118 min), +57 312 306 8370 (88 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T18:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (608 min), +57 305 706 4679 (389 min), Contacto WA · …81106331 (162 min), +57 302 820 0001 (118 min), +57 312 306 8370 (88 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+[2026-09-15T18:00:01] resumen_actividad_sede_sur: 60 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 15 nuevas · 12 completadas · 8 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 9 nuevas, 3 completadas
+• Victor Garcia: 4 nuevas, 6 completadas
+• Cynthia Ruiz: 0 nuevas, 3 completadas
+• Administrador: 2 nuevas, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-09-05 → 2026-09-15…
+✅ Token de Mercado Libre refrescado exitosamente.
+   24 creado(s), 636 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T18:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (638 min), +57 305 706 4679 (419 min), Contacto WA · …81106331 (192 min), +57 302 820 0001 (148 min), +57 312 306 8370 (118 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T18:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (638 min), +57 305 706 4679 (419 min), Contacto WA · …81106331 (192 min), +57 302 820 0001 (148 min), +57 312 306 8370 (118 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T19:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (668 min), +57 305 706 4679 (449 min), Contacto WA · …81106331 (222 min), +57 302 820 0001 (178 min), +57 312 306 8370 (148 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T19:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (668 min), +57 305 706 4679 (449 min), Contacto WA · …81106331 (222 min), +57 302 820 0001 (178 min), +57 312 306 8370 (148 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+## 1. Problemas detectados
+
+**A. Inconsistencia en la política de envío gratis (ejemplos 6 y 7)**
+En el turno 6 el agente afirma "el costo se calcula según el peso y la ciudad de destino" y ofrece que el asesor confirme el valor exacto. En el turno 7, ante la misma pregunta, dice "no tengo información" y pasa directo a asesor. Son dos respuestas distintas a la misma consulta, lo que genera inconsistencia de marca y confusión.
+
+**B. Vacíos de catálogo no resueltos como tales (ejemplos 5 y 11)**
+"Olivem 1000" y "metabisulfito" son materias primas de uso común (emulsificante cosmético y conservante/antioxidante alimentario) que probablemente sí se venden pero no están cargadas en el catálogo web con ese nombre exacto. El agente los trata como "no disponibles" y deriva a asesor, cuando el problema real es falta de sinónimo/alias en la base de productos.
+
+**C. Manejo pobre de mensajes de phishing/spam de terceros (ejemplos 3, 4, 8, 9)**
+Ante notificaciones falsas de transportadoras o publicidad de planes de celular, el agente despliega el saludo completo ("Hola veci, soy Hugo...") y elabora una respuesta larga como si fuera una consulta legítima ("veo que me llegó un mensaje..."), incluso hablando en primera persona como si el mensaje le hubiera llegado a él. Debería identificarlo como spam ajeno a la conversación y responder muy breve, sin reiterar la presentación completa.
+
+**D. Afirmación no verificable sobre disponibilidad de un asesor humano (ejemplo 10)**
+El agente dice "Jenniffer está en horario" sin tener forma de confirmar esto (no hay herramienta de consulta de horarios en el log). Es un dato inventado que podría ser falso y generar expectativa incorrecta sobre atención humana.
+
+**E. Verbosidad y redundancia en las respuestas (ejemplo 7)**
+El mensaje repite dos veces la misma idea ("le voy a pasar esa consulta a un asesor... Ya avisé al equipo, veci; un asesor le confirma..."), lo cual alarga innecesariamente la respuesta y sugiere falta de una sola confirmación limpia.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+- **A:** Definir en las instrucciones una única redacción estándar para "costo de envío / envío gratis" (ej. "el envío se calcula por peso y destino, no manejamos envío gratis por monto mínimo") y prohibir variantes que sugieran que el agente "no tiene información" cuando sí existe una política conocida.
+- **B:** Agregar "Olivem 1000" y "Metabisulfito (de sodio/potasio)" al catálogo o, si no se venden, crear una tabla de sinónimos/alias que permita al agente responder con precisión si es "no disponible" vs "no encontrado por nombre distinto", antes de derivar a asesor.
+- **C:** Añadir regla de supervisor: si el mensaje recibido es una notificación externa de transportadora, banco o publicidad no relacionada (detectable por patrones: enlaces cortos, "comprobante", "plan celular", etc.), responder con una línea corta tipo "Ese mensaje no corresponde a McKenna Group. ¿En qué le ayudo con su pedido?" sin repetir la presentación completa de Hugo.
+- **D:** Prohibir en las instrucciones cualquier afirmación sobre horarios/disponibilidad de asesores específicos a menos que exista una herramienta que lo confirme; usar siempre frase neutra tipo "le comparto el precio y un asesor puede confirmarle disponibilidad cuando esté en línea".
+- **E:** Regla de estilo: una sola confirmación de "ya avisé/pasé al asesor" por turno, evitando reiterar la misma idea con distintas palabras.
+
+## 3. Calificación general
+**7.5/10** — buen manejo conversacional y de derivaciones, pero con brechas de catálogo, inconsistencias de política y un dato no verificado que deben corregirse.
+✅ Reporte enviado a WhatsApp con éxito.
+## 1-2. Problemas detectados y corrección propuesta
+
+**A. Repetición innecesaria de la presentación del bot**
+En casi todos los turnos (ej. [1],[2],[3],[4],[8],[9]) el agente abre con el mismo bloque "Hola veci, soy Hugo, el asistente virtual (IA)...". Se repite incluso ante mensajes de spam/phishing idénticos recibidos dos veces ([3] y [9]), dando sensación de guion rígido y sin memoria de turno.
+- **Corrección propuesta:** limitar la presentación completa al primer mensaje de la conversación (o cada X horas de inactividad); en turnos posteriores usar solo un saludo corto sin reintroducir identidad/IA.
+
+**B. Inconsistencia al escalar productos no encontrados en catálogo**
+En [5] (Olivem 1000) el agente sí ejecuta `pasar_a_asesor`. En [11] (metabisulfito), un caso equivalente, solo sugiere "continuar por WhatsApp" sin pasar a asesor explícitamente. La regla de negocio exige derivar a asesor cuando el producto está fuera de la web.
+- **Corrección propuesta:** estandarizar la regla: "producto no encontrado en catálogo web → siempre `pasar_a_asesor`", independientemente del canal (web o WhatsApp).
+
+**C. Afirmación no verificada sobre disponibilidad de un asesor humano por nombre**
+En [10] el agente dice "Jenniffer está en horario" sin que quede claro de dónde saca ese dato (no hay herramienta de consulta de horarios en el log). Esto es un riesgo de alucinación/promesa no verificable sobre terceros.
+- **Corrección propuesta:** prohibir mencionar nombre o estado de disponibilidad de un asesor humano salvo que provenga de una herramienta validada (ej. `consultar_horario_asesor`); si no existe esa herramienta, usar frase genérica: "un asesor le confirma en cuanto esté disponible".
+
+**D. Riesgo de sugerir productos no mencionados explícitamente por el cliente**
+En [6] el agente ofrece ejemplos concretos ("citrato de magnesio, guantes de nitrilo, glutamina") que no aparecen en el fragmento de la conversación mostrado. Si vienen de un historial no confirmado, hay riesgo de alucinar contexto o inducir un pedido no solicitado.
+- **Corrección propuesta:** regla de auditoría — el agente solo puede citar productos que consten literalmente en el historial de la sesión actual; si no hay contexto explícito, preguntar abierto ("¿qué productos desea pedir?") sin dar ejemplos inventados.
+
+**E. Manejo repetitivo ante mensajes duplicados de terceros (spam/phishing)**
+[3] y [9] son el mismo mensaje de phishing recibido dos veces y el agente responde casi idéntico, sin indicar que ya lo había visto antes. No es grave, pero denota falta de continuidad conversacional.
+- **Corrección propuesta (menor):** si se detecta un mensaje ya respondido antes en la misma sesión, variar la respuesta o simplemente confirmar brevemente sin repetir toda la explicación.
+
+## 3. Calificación general
+**8/10** — el agente cumple bien las reglas centrales (no promete tiempos, no da datos de pago, no cierra ventas, escala reclamos/COA), pero necesita ajustes de consistencia en escalamiento, reducción de repetición de la intro y control de afirmaciones no verificadas.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T19:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (698 min), +57 305 706 4679 (479 min), Contacto WA · …81106331 (252 min), +57 302 820 0001 (208 min), +57 312 306 8370 (178 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T19:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …10270799 (698 min), +57 305 706 4679 (479 min), Contacto WA · …81106331 (252 min), +57 302 820 0001 (208 min), +57 312 306 8370 (178 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-15) no es el último día del mes.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T20:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (509 min), Contacto WA · …81106331 (282 min), +57 302 820 0001 (238 min), +57 312 306 8370 (208 min), +57 320 829 9760 (141 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T20:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (509 min), Contacto WA · …81106331 (282 min), +57 302 820 0001 (238 min), +57 312 306 8370 (208 min), +57 320 829 9760 (141 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T20:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (539 min), Contacto WA · …81106331 (312 min), +57 302 820 0001 (268 min), +57 312 306 8370 (238 min), +57 320 829 9760 (171 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T20:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (539 min), Contacto WA · …81106331 (312 min), +57 302 820 0001 (268 min), +57 312 306 8370 (238 min), +57 320 829 9760 (171 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-15T21:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (569 min), Contacto WA · …81106331 (342 min), +57 302 820 0001 (298 min), +57 312 306 8370 (268 min), +57 320 829 9760 (201 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T21:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (569 min), Contacto WA · …81106331 (342 min), +57 302 820 0001 (298 min), +57 312 306 8370 (268 min), +57 320 829 9760 (201 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T21:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (599 min), Contacto WA · …81106331 (372 min), +57 302 820 0001 (328 min), +57 312 306 8370 (298 min), +57 320 829 9760 (231 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T21:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (599 min), Contacto WA · …81106331 (372 min), +57 302 820 0001 (328 min), +57 312 306 8370 (298 min), +57 320 829 9760 (231 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T22:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (629 min), Contacto WA · …81106331 (402 min), +57 302 820 0001 (358 min), +57 312 306 8370 (328 min), +57 320 829 9760 (261 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T22:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (629 min), Contacto WA · …81106331 (402 min), +57 302 820 0001 (358 min), +57 312 306 8370 (328 min), +57 320 829 9760 (261 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T22:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (659 min), Contacto WA · …81106331 (432 min), +57 302 820 0001 (388 min), +57 312 306 8370 (358 min), +57 320 829 9760 (291 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-15T22:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (659 min), Contacto WA · …81106331 (432 min), +57 302 820 0001 (388 min), +57 312 306 8370 (358 min), +57 320 829 9760 (291 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

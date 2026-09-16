@@ -35,7 +35,16 @@ from datetime import date
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "contabilidad.db")
 _initialized = False
 
-ESTADOS = ("borrador", "pendiente", "aprobada", "pagada", "rechazada", "anulada")
+# El ciclo completo, incluido lo que pasa DESPUÉS de aprobar: en Bancolombia el
+# giro necesita dos tokens —Cynthia lo monta, Armando lo aprueba— y el ciclo solo
+# cierra cuando el comprobante del banco queda adjunto a la solicitud.
+#
+#   borrador → pendiente → aprobada → en_banco → pagada
+#
+# «aprobada» es contable (ya hay asiento); «pagada» es bancario (ya salió la
+# plata y está el soporte). Confundirlas era lo que dejaba pagos aprobados que
+# nadie sabía si se habían girado.
+ESTADOS = ("borrador", "pendiente", "aprobada", "en_banco", "pagada", "rechazada", "anulada")
 
 
 @contextmanager
@@ -66,6 +75,32 @@ def _conn():
 # `None` en cuenta_debito significa que la elige el usuario (categoría "otro").
 
 CATEGORIAS: dict[str, dict] = {
+    # ── Las tres del wizard simple (sep-2026) ──
+    # El operador solicita casi siempre lo mismo: pagarle a un proveedor por
+    # productos o por servicios, o pagar un servicio público con su número de
+    # contrato. Eso son cuatro datos (proveedor, fecha, concepto, valor), no
+    # cinco pasos. El asiento igual se ve antes de solicitar — lo que se quita
+    # es el recorrido, no el control de lo que se contabiliza.
+    "productos": {
+        "label": "Productos",
+        "ayuda": "Mercancía comprada a un proveedor. Va a inventario (1435).",
+        "cuenta_debito": "1435",
+        "origen": "libre",
+        "requiere_tercero": True,
+        "icono": "📦",
+        "concepto_retencion": "compras",
+        "simple": True,
+    },
+    "servicios": {
+        "label": "Servicios",
+        "ayuda": "Servicios prestados a McKenna por un tercero (no servicios públicos).",
+        "cuenta_debito": "5135",
+        "origen": "libre",
+        "requiere_tercero": True,
+        "icono": "🧰",
+        "concepto_retencion": "servicios",
+        "simple": True,
+    },
     # Las dos categorías de proveedor llevan el flujo completo del wizard (sep-2026):
     # proveedor del listado (libro + Alegra), productos con SKU del catálogo Alegra y la
     # factura/cotización cotejada contra lo pedido antes de enviar. `con_productos` es lo que
@@ -98,6 +133,11 @@ CATEGORIAS: dict[str, dict] = {
         "origen": "libre",
         "requiere_tercero": True,
         "icono": "🚚",
+        "simple": True,
+        # Sin `concepto_retencion` a propósito: la retención de transporte
+        # (carga 1%, pasajeros 3,5%) no está cargada en retenciones.py y la
+        # mayoría de transportadoras son autorretenedoras. Inventar la tarifa
+        # acá le saldría del bolsillo a alguien.
     },
     "servicio_publico": {
         "label": "Servicio público",
@@ -106,6 +146,8 @@ CATEGORIAS: dict[str, dict] = {
         "origen": "servicios",
         "requiere_tercero": False,
         "icono": "💡",
+        "simple": True,
+        "pide_contrato": True,
         "cuentas_por_tipo": {
             "luz": "513530", "energia": "513530",
             "agua": "513525", "acueducto": "513525",
@@ -257,6 +299,14 @@ def init_db() -> None:
             ("plantilla_id", "INTEGER"),
             ("periodo", "TEXT NOT NULL DEFAULT ''"),
             ("origen_sistema", "TEXT NOT NULL DEFAULT ''"),
+            # Ciclo de giro en la Sucursal Virtual (dos tokens) y su soporte.
+            ("montado_por", "INTEGER"),
+            ("montado_at", "TEXT NOT NULL DEFAULT ''"),
+            ("montado_ref", "TEXT NOT NULL DEFAULT ''"),
+            ("pagado_por", "INTEGER"),
+            ("pagado_at", "TEXT NOT NULL DEFAULT ''"),
+            ("comprobante_archivo", "TEXT NOT NULL DEFAULT ''"),
+            ("comprobante_nombre", "TEXT NOT NULL DEFAULT ''"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -454,6 +504,15 @@ def previsualizar(payload: dict) -> dict:
     tercero = cc.obtener_tercero(tercero_id) if tercero_id else None
 
     # Retención, si la categoría la lleva y supera la cuantía mínima.
+    #
+    # `valor_es_neto`: lo pactado con un prestador de servicios suele ser «te
+    # pago 1.100.000 libres de retención» — ese valor es lo que RECIBE, no la
+    # base. Si se tomara como base, el beneficiario recibiría 1.056.000 y
+    # cobraría la diferencia. Acá se hace el camino inverso: se calcula la base
+    # que, retenida, deja exactamente lo pactado; la retención la asume McKenna
+    # como mayor gasto. El asiento sigue siendo el correcto ante la DIAN —
+    # retener sigue siendo obligatorio, lo que cambia es quién la soporta.
+    valor_es_neto = bool(payload.get("valor_es_neto")) and not items
     retencion, ret_info = 0.0, None
     concepto_ret = cat.get("concepto_retencion")
     if concepto_ret and not payload.get("sin_retencion"):
@@ -465,6 +524,20 @@ def previsualizar(payload: dict) -> dict:
             ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
         else:
             ret_info = calcular(concepto_ret, base_sin_iva if items else monto, anio=int(fecha[:4]), declarante=declarante)
+            if valor_es_neto:
+                tarifa = float(ret_info.get("tarifa_pct") or 0) / 100
+                bruto = round(monto / (1 - tarifa), 2) if 0 < tarifa < 1 else monto
+                r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante)
+                ret2 = round(float(r2.get("retencion") or 0), 2)
+                if ret2 > 0:
+                    # Se suma la retención al valor pactado: así lo girado es
+                    # exactamente lo que se prometió, sin arrastrar redondeos.
+                    monto = round(monto + ret2, 2)
+                    ret_info = {**r2, "retencion": ret2, "motivo": (
+                        f"Pactado libre de retención: el beneficiario recibe {_fmt(monto - ret2)} y la "
+                        f"retención de {r2.get('tarifa_pct')}% ({_fmt(ret2)}) la asume McKenna como mayor "
+                        f"gasto. Base gravable {_fmt(monto)}. {r2.get('motivo', '')}"
+                    )}
         retencion = round(float(ret_info.get("retencion") or 0), 2)
 
     with cc._conn() as con:
@@ -530,6 +603,7 @@ def previsualizar(payload: dict) -> dict:
         "iva_items": iva_items,
         "con_productos": bool(cat.get("con_productos")),
         "requiere_factura": bool(cat.get("requiere_factura")),
+        "valor_es_neto": valor_es_neto and retencion > 0,
         "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
     }
 
@@ -1021,12 +1095,27 @@ def obtener(sid: int) -> dict | None:
         d["verificacion"] = json.loads(d.pop("verificacion_json", None) or "{}")
     except Exception:
         d["verificacion"] = {}
+    # Quién firmó cada paso: el panel tiene que poder decir «espera a que
+    # Cynthia lo prepare» en vez de mostrarle a todos el mismo botón.
+    d["firmas"] = {k: _nombre_usuario(d.get(k)) for k in ("creada_por", "aprobada_por", "montado_por", "pagado_por")}
     if d.get("tercero_id"):
         t = cc.obtener_tercero(d["tercero_id"])
         d["tercero"] = {"id": t["id"], "nombre": t["nombre"], "identificacion": t["identificacion"]} if t else None
     else:
         d["tercero"] = None
     return d
+
+
+def _nombre_usuario(uid) -> str:
+    if not uid:
+        return ""
+    try:
+        from app.services.tickets_db import get_usuario_by_id
+
+        u = get_usuario_by_id(int(uid)) or {}
+        return str(u.get("nombre") or u.get("username") or "")
+    except Exception:
+        return ""
 
 
 def listar(estado: str | None = None, limit: int = 200) -> list[dict]:
@@ -1136,9 +1225,193 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         + (f" · comprobante Alegra #{espejo.get('id')}" if espejo.get("status") == "success"
            else f" · Alegra: {espejo.get('status')}")
         + f". Girar {_fmt(s['girado'])} a {(s.get('tercero') or {}).get('nombre') or 'el beneficiario'}"
-        f" desde {prev['medio_pago']} — ese es el valor que debe aparecer en el extracto.",
+        f" desde {prev['medio_pago']} — ese es el valor que debe aparecer en el extracto.\n\n"
+        "Siguiente: montarlo en la Sucursal Virtual con el primer token y aprobarlo con el "
+        "segundo; al confirmarlo se adjunta el comprobante del banco en la solicitud.",
     )
     return {**obtener(sid), "movimiento": mov, "alegra": espejo}
+
+
+# ─── Paso 5: el giro en el banco (dos tokens) y su comprobante ─────────────
+#
+# Aprobar contabiliza, pero no mueve plata. En Bancolombia el giro necesita dos
+# personas distintas: una lo monta en la Sucursal Virtual con su token y otra lo
+# aprueba con el suyo. Hasta sep-2026 eso vivía por fuera del sistema: una
+# solicitud «aprobada» podía llevar semanas sin girarse y nadie lo veía, y el
+# comprobante del banco quedaba en un chat.
+#
+# Por eso son dos estados propios y el ciclo no cierra sin el soporte adjunto.
+
+def montar_en_banco(sid: int, por: int | None = None, referencia: str = "") -> dict:
+    """El pago quedó montado en la Sucursal Virtual: espera el segundo token."""
+    _ensure()
+    s = obtener(sid)
+    if not s:
+        raise ValueError(f"Solicitud {sid} no encontrada")
+    if s["estado"] == "en_banco":
+        return {**s, "ya_montada": True}
+    if s["estado"] != "aprobada":
+        raise ValueError(
+            "Solo se monta en el banco un pago ya aprobado y contabilizado"
+            f" (esta esta en «{s['estado']}»)"
+        )
+    # Lo prepara en la Sucursal quien lo aprobó; el otro administrador queda
+    # libre para dar el segundo visto bueno. Si la misma persona hiciera los dos
+    # pasos, los dos tokens del banco dejarían de ser dos pares de ojos.
+    if por and s.get("aprobada_por") and int(por) != int(s["aprobada_por"]):
+        quien = _nombre_usuario(s["aprobada_por"]) or "quien aprobó"
+        raise ValueError(
+            f"Este pago lo aprobó {quien}: le toca a esa persona prepararlo en la Sucursal. "
+            "Tú das el segundo visto bueno cuando esté montado."
+        )
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_solicitudes_pago SET estado='en_banco', montado_por=?,"
+            " montado_at=datetime('now'), montado_ref=? WHERE id=?",
+            (por, str(referencia or ""), int(sid)),
+        )
+    _comentar_ticket(
+        s.get("ticket_id"), por,
+        f"🏦 Pago #{sid} montado en la Sucursal Virtual por {_fmt(s['girado'])}"
+        + (f" (ref. {referencia})" if referencia else "")
+        + ". Falta aprobarlo con el segundo token; al confirmarlo se adjunta el comprobante aca.",
+    )
+    return obtener(sid)
+
+
+def confirmar_pago(
+    sid: int,
+    por: int | None = None,
+    *,
+    comprobante: tuple[bytes, str] | None = None,
+    referencia: str = "",
+) -> dict:
+    """Se aprobo el giro con el segundo token y se adjunta el comprobante: ciclo cerrado.
+
+    **Exige el comprobante.** Un pago que se marca hecho sin soporte es
+    exactamente lo que despues nadie puede conciliar contra el extracto.
+    """
+    _ensure()
+    s = obtener(sid)
+    if not s:
+        raise ValueError(f"Solicitud {sid} no encontrada")
+    if s["estado"] == "pagada":
+        return {**s, "ya_pagada": True}
+    if s["estado"] not in ("aprobada", "en_banco"):
+        raise ValueError(
+            f"La solicitud esta en «{s['estado']}»: solo se confirma el giro de un pago aprobado"
+        )
+    if not comprobante and not s.get("comprobante_archivo"):
+        raise ValueError("Adjunta el comprobante del banco: sin soporte el ciclo no cierra")
+    # Dos personas distintas, igual que los dos tokens del banco: quien aprobó y
+    # preparó el pago no puede además confirmarlo.
+    otro = s.get("montado_por") or s.get("aprobada_por")
+    if por and otro and int(por) == int(otro):
+        raise ValueError(
+            "El segundo visto bueno lo da la otra persona: tú ya aprobaste y preparaste este pago."
+        )
+
+    ruta = nombre = ""
+    if comprobante:
+        from app.services.pagos_proveedor import consolidar_archivo, guardar_temporal
+
+        contenido, nombre_original = comprobante
+        tid = guardar_temporal(contenido, nombre_original or "comprobante.pdf")
+        res = consolidar_archivo(tid, sid, f"comprobante_{nombre_original or 'banco.pdf'}")
+        if not res:
+            raise ValueError("No se pudo guardar el comprobante")
+        ruta, nombre = res
+
+    with _conn() as con:
+        con.execute(
+            "UPDATE cc_solicitudes_pago SET estado='pagada', pagado_por=?,"
+            " pagado_at=datetime('now'),"
+            " comprobante_archivo=COALESCE(NULLIF(?,''), comprobante_archivo),"
+            " comprobante_nombre=COALESCE(NULLIF(?,''), comprobante_nombre),"
+            " referencia=COALESCE(NULLIF(?,''), referencia) WHERE id=?",
+            (por, ruta, nombre, str(referencia or ""), int(sid)),
+        )
+
+    # El comprobante tambien queda pegado al asiento: es su soporte ante el
+    # extracto, y ahi es donde lo busca quien concilia.
+    if ruta and s.get("movimiento_id"):
+        try:
+            from pathlib import Path as _P
+
+            import app.services.contabilidad_core as cc
+
+            archivo = _P(__file__).resolve().parents[2] / ruta
+            if archivo.exists():
+                mime = "application/pdf" if archivo.suffix.lower() == ".pdf" else "application/octet-stream"
+                cc.guardar_comprobante(int(s["movimiento_id"]), archivo.read_bytes(), nombre, mime)
+        except Exception as e:
+            print(f"⚠️ Solicitud {sid}: no se pudo adjuntar el comprobante al asiento: {e}", flush=True)
+
+    # Si el pago nació en otro módulo (hoy: los lotes de mensajería), ese módulo
+    # tiene que enterarse de que ya se giró. Si no, el lote se queda «en
+    # aprobación» para siempre y alguien lo vuelve a pagar.
+    _avisar_al_origen(obtener(sid))
+
+    _comentar_ticket(
+        s.get("ticket_id"), por,
+        f"✅ Pago #{sid} girado y confirmado con el segundo token — {_fmt(s['girado'])}"
+        + (f" (ref. {referencia})" if referencia else "")
+        + ". Comprobante adjunto en la solicitud; ciclo cerrado.",
+    )
+    _resolver_ticket(s.get("ticket_id"), por)
+    return obtener(sid)
+
+
+def _resolver_ticket(ticket_id, usuario_id) -> None:
+    """Cierra el ticket de la solicitud cuando el pago ya se giró.
+
+    El comentario anterior ya le avisa a quien la pidió (las notificaciones del
+    ticket llegan a los participantes); esto además saca el ticket de la bandeja
+    en vez de dejarlo «pendiente» sobre un pago que ya está hecho.
+    """
+    if not ticket_id or not usuario_id:
+        return
+    try:
+        from app.services import tickets_db as _tdb
+
+        usuario = _tdb.get_usuario_by_id(int(usuario_id))
+        if usuario:
+            _tdb.cambiar_estado(int(ticket_id), "resuelto", usuario, "Pago girado y comprobante adjunto")
+    except Exception as e:
+        print(f"⚠️ No se pudo cerrar el ticket {ticket_id}: {e}", flush=True)
+
+
+def _avisar_al_origen(s: dict) -> None:
+    """Le devuelve el resultado al módulo que originó la solicitud. Best-effort:
+    el pago ya quedó registrado y no puede deshacerse porque el origen falle."""
+    ref = str(s.get("origen_ref") or "")
+    if not ref.startswith("mensajeria:"):
+        return
+    try:
+        from app.services import mensajeria_pagos as mp
+
+        lote_id = int(ref.split(":", 1)[1])
+        lote = mp.obtener_lote(lote_id)
+        if not lote or lote.get("estado") == "pagado":
+            return
+        mp.marcar_lote_pagado(
+            lote_id,
+            fecha_pago=str(s.get("pagado_at") or "")[:10],
+            banco=str(s.get("medio_pago") or "Bancolombia"),
+            referencia=str(s.get("referencia") or f"solicitud-{s['id']}"),
+        )
+        # El comprobante del banco también queda en el lote: es donde lo busca
+        # despachos, que no entra a Contabilidad.
+        archivo = s.get("comprobante_archivo")
+        if archivo:
+            from pathlib import Path as _P
+
+            ruta = _P(__file__).resolve().parents[2] / archivo
+            if ruta.exists() and not lote.get("soporte_path"):
+                mime = "application/pdf" if ruta.suffix.lower() == ".pdf" else "application/octet-stream"
+                mp.guardar_comprobante(lote_id, ruta.read_bytes(), s.get("comprobante_nombre") or ruta.name, mime)
+    except Exception as e:
+        print(f"⚠️ Solicitud {s.get('id')}: no se pudo cerrar el lote de mensajería: {e}", flush=True)
 
 
 def _comentar_ticket(ticket_id, usuario_id, texto: str) -> None:

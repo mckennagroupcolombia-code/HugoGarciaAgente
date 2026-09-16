@@ -94,16 +94,16 @@
       "ancho_pulg": 4.016,
       "alto_pulg": 1.496,
       "unidades_por_rollo": 750,
-      "rollos": 5.0,
-      "etiquetas_sueltas": 20,
+      "rollos": 4.0,
+      "etiquetas_sueltas": 743,
       "minimo_rollos": 0.5,
       "minimo": 0.5,
       "formato_etiqueta": "30 mL",
       "notas": "",
-      "cantidad": 5.0,
+      "cantidad": 4.0,
       "unidad": "rollos",
-      "total_etiquetas": 3770,
-      "updated_at": "2026-09-07T11:56:27"
+      "total_etiquetas": 3743,
+      "updated_at": "2026-09-15T11:13:52"
     },
     {
       "id": "2f09c6c04d72",

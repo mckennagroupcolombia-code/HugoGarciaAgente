@@ -86,6 +86,7 @@ export default function Layout({
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
         {!studioEtiquetasFill && (
           <>
+            <AccesoDenegadoBanner />
             <SystemAlertsBanner />
             <TeamActivityBanner />
           </>
@@ -224,6 +225,33 @@ export default function Layout({
           </div>
         </div>
       </main>
+    </div>
+  );
+}
+
+/** Aviso cuando el guard devuelve al usuario por falta de permiso.
+ * Antes el rebote era silencioso: la persona veía que "el panel la saca de la
+ * pantalla" sin saber que le faltaba un acceso (pasó con Solicitudes de pago). */
+function AccesoDenegadoBanner() {
+  const panel = useAppStore((s) => s.accesoDenegado);
+  const setAccesoDenegado = useAppStore((s) => s.setAccesoDenegado);
+  if (!panel) return null;
+  const nombre = PANEL_INFO[panel]?.label ?? panel;
+  return (
+    <div className="flex items-start gap-2 border-b border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <Icon name="warning" size={16} weight="duotone" className="mt-0.5 shrink-0" />
+      <p className="min-w-0 flex-1 leading-snug">
+        No tienes acceso a <strong>{nombre}</strong>, así que te devolvimos al panel anterior.
+        Pídele a un administrador el permiso en Gestión de usuarios → Accesos al panel.
+      </p>
+      <button
+        type="button"
+        onClick={() => setAccesoDenegado(null)}
+        className="mck-press shrink-0 rounded px-1.5 py-0.5 font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40"
+        aria-label="Cerrar aviso"
+      >
+        ✕
+      </button>
     </div>
   );
 }

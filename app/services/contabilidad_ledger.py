@@ -278,6 +278,11 @@ def _egresos_mensajeria(desde: str, hasta: str) -> list[dict]:
         monto = float(lote.get("total") or 0)
         if monto <= 0:
             continue
+        # Si el lote se pagó por Contabilidad → Solicitudes de pago, su asiento
+        # ya lo hizo la solicitud al aprobarse. Contarlo también acá dejaría el
+        # mismo flete dos veces en el gasto.
+        if lote.get("solicitud_pago_id"):
+            continue
         dias = lote.get("dias") or []
         concepto = f"Mensajería · {lote.get('transportadora') or 'Transportadora'}"
         if dias:

@@ -333,6 +333,7 @@ export default function App() {
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
+  const setAccesoDenegado = useAppStore((s) => s.setAccesoDenegado);
   const hasHydrated = useAppStore((s) => s._hasHydrated);
   const lastAppliedPrefs = useRef<string | null>(null);
   const bootstrapUntil = useRef(0);
@@ -455,14 +456,17 @@ export default function App() {
     if (panel === "tickets") setPanel("hugo");
   }, [panel, setPanel]);
 
-  // Si el panel guardado no es visible para este usuario, ir al primero disponible
+  // Si el panel guardado no es visible para este usuario, ir al primero
+  // disponible — y DECIRLO. Sin el aviso, el rebote se ve como "el panel me
+  // saca de la pantalla" y nadie sabe que falta un permiso.
   useEffect(() => {
     if (!user || !hasHydrated) return;
     if (!puedeVerPanel(user, panel)) {
       const first = NAV_ORDER.find((p) => puedeVerPanel(user, p)) ?? "settings";
+      setAccesoDenegado(panel);
       setPanel(first);
     }
-  }, [user, panel, setPanel, hasHydrated]);
+  }, [user, panel, setPanel, setAccesoDenegado, hasHydrated]);
 
   if (!authHydrated) {
     return (
