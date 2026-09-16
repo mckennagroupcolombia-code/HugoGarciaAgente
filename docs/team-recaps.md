@@ -10,6 +10,28 @@
   - **Verificado** sobre copias de las bases, el ciclo completo: causar el salario con pago parcial, ver subir la cuenta por pagar, girar el saldo después y verla volver a cero; más un pago completo como control.
 - **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`
 
+### 2026-09-16 - El escáner del Documento Completo ya llena la tabla del COA
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Fichas técnicas → Documento completo)
+- **Qué se implementó:**
+  - Al adjuntar un pantallazo o PDF, la sección COA quedaba vacía aunque el documento trajera una tabla de resultados (caso MANÍ BRASILEÑO RUNNER - TOSTADO PARTIDO: FT llena, `_coa.parametros: []`). Causa doble: el prompt de estructuración del escáner FT (`_prompt_estructurar_ft`) no tenía ningún campo `parametros`, así que el OCR leía la tabla y el segundo paso la descartaba; y el handler `onCamposExtraidos` solo escribía en la FT, nunca llamaba a `setCoaParametros`.
+  - `documento_scan_tablas.py`: el prompt pide `parametros` (Parámetro|Especificación|Resultado, todas las filas), `einecs` y `grado`. Se añade el rescate de filas que ya tenía el COA: si el JSON trae menos filas de las que el OCR leyó, se reconstruyen desde la transcripción (`_parametros_desde_transcripcion` + `fusionar_texto_parametros`).
+  - El paso 1 ya no se traga la causa del fallo (timeout, DNS, cuota): la conserva y, si el plan B tampoco devuelve nada, lanza `No se pudo leer el documento: <causa>` en vez de un formulario a medias. Ambos pasos dejan rastro en el log.
+  - `FichasTecnicasPanel.tsx`: los `parametros` extraídos van a la tabla COA y `einecs`/`grado` a sus casillas; solo rellena lo que esté vacío. Una sola `mensajeScanLegible` traduce `JSON.parse: unexpected character` y fallos de red en los dos caminos (imagen/PDF y enlace/texto); el de enlace mostraba el error crudo del navegador.
+  - **Verificado** con un COA sintético en portugués (7 filas): 7/7 filas extraídas y traducidas, lote y fabricante correctos. Requiere reinicio de `agente-pro`; el arreglo se escribió después del último reinicio (14:38), por eso el primer intento seguía sin extraer.
+- **Archivos Modificados:** `app/services/documento_scan_tablas.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-16 - Sin casillas «Manipulación» y «Primeros auxilios» en la SDS del Documento Completo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas técnicas → Documento completo, Sección 3 — SDS)
+- **Qué se implementó:**
+  - A pedido del usuario se quitan las dos casillas del formulario y también del documento generado. `FichasTecnicasPanel.tsx` (`DocumentoCompletoTabContent`): fuera los campos, sus botones de IA, los estados `sdsPrimeros`/`sdsManipulacion`, la precarga desde borradores y las claves en `buildDatos`.
+  - `documento_completo_pdf.html`: desaparece la Sección 4 «Primeros auxilios»; la 7 pasa de «Manipulación y almacenamiento» a «Almacenamiento» (se conserva la fila de almacenamiento, que no era parte del pedido y sigue llegando de borradores antiguos).
+  - `ficha_tecnica.py`: `_contexto_sds` deja de mapear `primeros_auxilios` y `manipulacion`; salen de `_SDS_CAMPOS_EXCLUSIVOS` y de `_sds_diligenciado`. `documento_cientifico.py`: se retiran `sds_primeros_auxilios` y `sds_manipulacion` de `_CAMPOS_PERMITIDOS`, de `_CAMPOS_ORACION_CORTA` y sus prompts, que quedaban muertos.
+  - **No se tocó** la pestaña SDS suelta (`SdsTabContent`, generador DOCX `sds.py`), que conserva ambas casillas, ni la plantilla del sitio público (`PAGINA_WEB/.../_documento_tecnico.html`), que está guardada por `{% if %}` y simplemente no muestra nada.
+  - Los borradores guardados con esos datos no se pierden en disco, pero dejan de cargarse en el formulario y de salir en el PDF. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/templates/documento_completo_pdf.html`, `app/services/ficha_tecnica.py`, `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
 ### 2026-09-16 13:13 - Precios que suben y bajan con la TRM oficial, con aprobación
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad

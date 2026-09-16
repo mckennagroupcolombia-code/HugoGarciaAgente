@@ -435,7 +435,7 @@ _CAMPOS_PERMITIDOS = {
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "alergenos", "conservacion",
     "recomendaciones", "nombre_comercial",
-    "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
+    "sds_clasificacion_ghs", "sds_pictogramas",
     "coa_einecs", "coa_grado", "coa_parametros",
 }
 
@@ -480,7 +480,7 @@ def recortar_a_palabras(texto: str, maximo: int = MAX_PALABRAS_CONSERVACION) -> 
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
-    "sds_clasificacion_ghs", "sds_manipulacion",
+    "sds_clasificacion_ghs",
 }
 
 
@@ -807,22 +807,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Formato: una línea por elemento.\n"
             "Ejemplo:\nGHS07 - Nocivo\nH302: Nocivo en caso de ingestión\nP260: No respirar los vapores\n"
             "Sin markdown. Si no aplica pictograma, indicarlo."
-        ),
-        "sds_primeros_auxilios": (
-            f'Redacta las instrucciones de primeros auxilios para "{nombre}" en caso de exposición accidental.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Formato ESTRICTO: una línea por vía de exposición como \"Caso|Instrucción\".\n"
-            "Ejemplo:\nInhalación|Llevar al afectado a lugar ventilado; consultar médico si persiste\n"
-            "Contacto piel|Lavar con agua y jabón abundante durante 15 minutos\n"
-            "Contacto ojos|Enjuagar con agua limpia durante 15 minutos; consultar oftalmólogo\n"
-            "Ingestión|No inducir vómito; consultar médico inmediatamente\n"
-            "Sin markdown, sin encabezados."
-        ),
-        "sds_manipulacion": (
-            f'Redacta las instrucciones de manipulación segura de "{nombre}" para uso industrial/cosmético/farmacéutico.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: EPP recomendado, ventilación, precauciones generales, incompatibilidades a evitar.\n"
-            "2-4 oraciones técnicas en español. Sin markdown, sin listas."
         ),
         "coa_einecs": (
             f'Indica el número EINECS (European Inventory of Existing Commercial Chemical Substances) de "{nombre}".\n'

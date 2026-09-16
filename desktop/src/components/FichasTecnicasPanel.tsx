@@ -981,6 +981,17 @@ function SeccionBanner({ titulo }: { titulo: string }) {
   );
 }
 
+/** Traduce fallos de red/proxy a algo accionable; el resto pasa tal cual. */
+function mensajeScanLegible(msg: string): string {
+  if (/NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)) {
+    return "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel, luego vuelve a adjuntar la imagen.";
+  }
+  if (/JSON\.parse|unexpected character|Unexpected token|Failed to execute 'json'/i.test(msg)) {
+    return "El servidor no devolvió JSON (el agente se reinició, se cayó o el proxy respondió una página de error). Recarga el panel y vuelve a intentar; si sigue, reinicia el agente en :8081.";
+  }
+  return msg;
+}
+
 function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<string, unknown>) => void }) {
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1053,13 +1064,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       if (gen !== scanGenRef.current) return;
       if (e instanceof DOMException && e.name === "AbortError") return;
       const msg = e instanceof Error ? e.message : String(e);
-      setError(
-        /NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)
-          ? "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel, luego vuelve a adjuntar la imagen."
-          : /JSON\.parse|unexpected character|Failed to execute 'json'/i.test(msg)
-            ? "El servidor no respondió JSON (proxy o agente caído). Reinicia el agente en :8081 y recarga el panel."
-            : msg,
-      );
+      setError(mensajeScanLegible(msg));
     } finally {
       if (gen !== scanGenRef.current) return;
       setScanning(false);
@@ -1096,7 +1101,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       setOk(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      setError(mensajeScanLegible(msg));
       if (/descarga|HTTP|bloque|Cloudflare|conexión|connect|reset/i.test(msg)) {
         setMostrarPegar(true);
       }
@@ -1594,8 +1599,6 @@ function DocumentoCompletoTabContent({
   const [sdsClasificacion, setSdsClasificacion] = useState("");
   const [sdsPictogramas, setSdsPictogramas] = useState("");
   const [sdsComposicion, setSdsComposicion] = useState("");
-  const [sdsPrimeros, setSdsPrimeros] = useState("");
-  const [sdsManipulacion, setSdsManipulacion] = useState("");
   const [sdsRecomendaciones, setSdsRecomendaciones] = useState("");
 
   /* Generación */
@@ -1620,8 +1623,6 @@ function DocumentoCompletoTabContent({
         case "sds_clasificacion_ghs":  setSdsClasificacion(v); break;
         case "sds_pictogramas":        setSdsPictogramas(v); break;
         case "composicion":            setSdsComposicion(v); break;
-        case "sds_primeros_auxilios":  setSdsPrimeros(v); break;
-        case "sds_manipulacion":       setSdsManipulacion(v); break;
         case "recomendaciones":        setSdsRecomendaciones(v); break;
         case "coa_einecs":             setCoaEinces(v); break;
         case "coa_grado":              setCoaGrado(v); break;
@@ -1757,12 +1758,9 @@ function DocumentoCompletoTabContent({
 
     if (sdsData) {
       const peligros = (sdsData.peligros as Record<string, unknown>) || {};
-      const manip = (sdsData.manipulacion as Record<string, unknown>) || {};
       if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
       if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
       if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
-      if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
-      if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
       const recSds = String(sdsData.recomendaciones || peligros.recomendaciones || "");
       if (recSds.trim()) setSdsRecomendaciones(recSds);
     }
@@ -1833,13 +1831,10 @@ function DocumentoCompletoTabContent({
     },
     peligros: { clasificacion: sdsClasificacion, pictogramas: sdsPictogramas },
     composicion: filasTresDesdeTexto(sdsComposicion),
-    primeros_auxilios: filasDesdeTexto(sdsPrimeros),
-    manipulacion: { manipulacion: sdsManipulacion },
     recomendaciones: sdsRecomendaciones,
   }), [
     nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar,
-    sdsClasificacion, sdsPictogramas, sdsComposicion,
-    sdsPrimeros, sdsManipulacion, sdsRecomendaciones,
+    sdsClasificacion, sdsPictogramas, sdsComposicion, sdsRecomendaciones,
   ]);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -2155,6 +2150,19 @@ function DocumentoCompletoTabContent({
             autoCompletarFtRef.current(strCampos);
             loadFtRef.current(campos);
 
+            // Sección COA: la tabla de resultados del documento escaneado.
+            // Solo rellena lo que esté vacío, para no pisar ediciones manuales.
+            const paramsEscan = strCampos.parametros || "";
+            if (
+              paramsEscan &&
+              parseParamRows(paramsEscan).some((r) => r.parametro) &&
+              !parseParamRows(coaParametros).some((r) => r.parametro)
+            ) {
+              setCoaParametros(paramsEscan);
+            }
+            if (strCampos.einecs && !coaEinces.trim()) setCoaEinces(strCampos.einecs);
+            if (strCampos.grado && !coaGrado.trim()) setCoaGrado(strCampos.grado);
+
             const vacios = FT_CAMPOS_AUTOSUGERIR.filter((c) => !strCampos[c]);
             setCamposVaciosEscan(vacios);
             setSugerirVaciosError(null);
@@ -2420,21 +2428,6 @@ function DocumentoCompletoTabContent({
           rows={4}
           mono
           actions={<IaBtn {...ia("composicion")} />}
-        />
-        <Field
-          label="Primeros auxilios (caso|instrucción)"
-          value={sdsPrimeros}
-          onChange={setSdsPrimeros}
-          rows={4}
-          mono
-          actions={<IaBtn {...ia("sds_primeros_auxilios")} />}
-        />
-        <Field
-          label="Manipulación"
-          value={sdsManipulacion}
-          onChange={setSdsManipulacion}
-          rows={2}
-          actions={<IaBtn {...ia("sds_manipulacion")} />}
         />
         <Field
           label="Recomendaciones para manejo seguro (GHS/SGA)"

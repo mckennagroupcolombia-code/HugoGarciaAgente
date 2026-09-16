@@ -1549,8 +1549,6 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "clasificacion": (pel.get("clasificacion") or "").strip(),
         "pictogramas": (pel.get("pictogramas") or "").strip(),
         "composicion": _filas3(datos_sds.get("composicion")),
-        "primeros_auxilios": _filas2(datos_sds.get("primeros_auxilios")),
-        "manipulacion": (man.get("manipulacion") or "").strip(),
         "almacenamiento": (man.get("almacenamiento") or "").strip(),
         "propiedades": _filas2(datos_sds.get("propiedades")),
         "normativa": (reg.get("normativa") or "").strip(),
@@ -1598,7 +1596,7 @@ def _lineas_recomendaciones_sds(datos_sds: dict) -> list[str]:
 
 _SDS_CAMPOS_EXCLUSIVOS = (
     "usos", "telefono", "clasificacion", "pictogramas",
-    "manipulacion", "almacenamiento", "normativa", "observaciones",
+    "almacenamiento", "normativa", "observaciones",
     "incendios", "vertidos", "exposicion", "estabilidad", "toxicologia",
     "ecologia", "eliminacion", "transporte", "otra_info",
 )
@@ -1610,7 +1608,7 @@ def _sds_diligenciado(sds_ctx: dict) -> bool:
         return True
     if any((linea or "").strip() for linea in (sds_ctx.get("recomendaciones") or [])):
         return True
-    for clave in ("composicion", "primeros_auxilios", "propiedades"):
+    for clave in ("composicion", "propiedades"):
         for fila in sds_ctx.get(clave) or []:
             if any((celda or "").strip() for celda in fila):
                 return True

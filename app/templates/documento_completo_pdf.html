@@ -629,17 +629,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if sds.primeros_auxilios %}
-  <div class="sec">
-    <div class="sec-title"><span class="n">4</span><span class="t">Primeros auxilios</span></div>
-    <div class="framed-body">
-      {% for caso, instruccion in sds.primeros_auxilios %}
-      <div class="two-col-fila"><span class="two-col-key">{{ caso }}:</span><span class="two-col-val">{{ instruccion }}</span></div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
   {% if sds.incendios %}
   <div class="sec">
     <div class="sec-title"><span class="n">5</span><span class="t">Medidas de lucha contra incendios</span></div>
@@ -654,12 +643,11 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if sds.manipulacion or sds.almacenamiento %}
+  {% if sds.almacenamiento %}
   <div class="sec">
-    <div class="sec-title"><span class="n">7</span><span class="t">Manipulación y almacenamiento</span></div>
+    <div class="sec-title"><span class="n">7</span><span class="t">Almacenamiento</span></div>
     <div class="kv-grid">
-      {% if sds.manipulacion %}<div class="kv-row"><div class="kv-key">Manipulación</div><div class="kv-val">{{ sds.manipulacion }}</div></div>{% endif %}
-      {% if sds.almacenamiento %}<div class="kv-row"><div class="kv-key">Almacenamiento</div><div class="kv-val">{{ sds.almacenamiento }}</div></div>{% endif %}
+      <div class="kv-row"><div class="kv-key">Almacenamiento</div><div class="kv-val">{{ sds.almacenamiento }}</div></div>
     </div>
   </div>
   {% endif %}
