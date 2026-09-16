@@ -1,3 +1,14 @@
+### 2026-09-16 13:13 - Precios que suben y bajan con la TRM oficial, con aprobación
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - **Cómo se calcula:** cada producto guarda su precio y la TRM BanRep del día en que se fijó. Si la TRM se aleja más que el umbral (2 %), se propone mover el precio en `variación × traslado` (60 %): TRM 4.000 → 4.200 = +5 %, precio +3 %. Sube y baja. Los precios que terminan en 900 siguen terminando en 900 (11.900 → 12.900, al más cercano); el resto se redondea a $100. Todo se ajusta en la pestaña.
+  - **Nada cambia sin aprobación:** una tarea diaria (8:40, `precios_trm` en Tareas Programadas) calcula la propuesta para todo el catálogo (449 publicaciones de MeLi) y avisa al grupo de Facturación Ventas. Un administrador aprueba o descarta en **/app → Rentabilidad → Precios TRM**; al aprobar se escriben MeLi y Alegra, y la web se regenera una vez al final del lote.
+  - **Protecciones:** un precio cambiado a mano se toma como base nueva con la TRM de ese día; si MeLi cambió después de la propuesta, ese producto no se toca; una TRM a más de 25 % de la base se toma como dato malo y no se propone nada; un lote interrumpido por un reinicio queda marcado como error a los 30 min.
+  - **Arranque:** la primera corrida (17-sep 8:40) solo guarda la base con la TRM de ese día. Si los precios se fijaron con otro dólar, poner ese valor en «TRM de referencia inicial» antes.
+  - Sin LLM. `PRECIOS_TRM_ACTIVO=0` apaga el cron. Crontab instalado; de paso se quitó una línea duplicada de `reenvio_alertas_banco_cron.py` que quedó fuera del bloque del instalador.
+- **Archivos Modificados:** `app/services/precios_trm.py` (nuevo), `app/routes_precios_trm.py` (nuevo), `scripts/precios_trm_cron.py` (nuevo), `tests/test_precios_trm.py` (nuevo), `desktop/src/components/PreciosTrmTab.tsx` (nuevo), `desktop/src/components/RentabilidadPanel.tsx`, `agente_pro.py`, `app/services/cron_scheduler.py`, `app/data/cron_frecuencias.json`, `scripts/instalar_cron_mcKenna.sh`, `.gitignore`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-15 - Reposiciones de los socios por los préstamos de familiares: Cynthia en cero, Armando con $1.001.003
 - **Autor:** Armando García
 - **Tipo de Cambio:** Registro contable

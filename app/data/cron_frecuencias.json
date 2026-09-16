@@ -82,5 +82,9 @@
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
     "ultima_ejecucion": "2026-09-16T01:10:01"
+  },
+  "precios_trm": {
+    "intervalo_horas": 24,
+    "ultima_ejecucion": null
   }
 }

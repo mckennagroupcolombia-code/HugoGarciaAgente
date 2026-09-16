@@ -53,6 +53,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "35 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/anulaciones_cron.py >>${LOG} 2>&1"
   echo "# Sincronización de precios MeLi → Siigo/Web: precio vivo de MeLi corrige Siigo/Sheets/Web donde difieran (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "0 7,15 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reconciliar_precios_meli_cron.py >>${LOG} 2>&1"
+  echo "# Precios según TRM BanRep: propuesta diaria de ajuste (no aplica nada; se aprueba en Rentabilidad → Precios TRM)"
+  echo "40 8 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/precios_trm_cron.py >>${LOG} 2>&1"
   echo "# Publicidad MeLi: recomendaciones de ACOS por rotación → ticket + WhatsApp (lunes, frecuencia real vía Sistemas → Tareas Programadas)"
   echo "15 8 * * 1 cd ${REPO} && ${PYTHON} ${REPO}/scripts/publicidad_recomendaciones_cron.py >>${LOG} 2>&1"
   echo "# Reposición alta rotación: informe de cierre de mes a Sede Sur (corre a diario, el propio script valida que sea el último día del mes)"

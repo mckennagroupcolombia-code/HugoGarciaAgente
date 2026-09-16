@@ -46,6 +46,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Escribe a quien dejó un pedido web sin pagar (máximo dos correos por pedido, con enlace que rearma el carrito). RECUPERACION_COMPRA_ACTIVO=0 lo apaga.",
         "script": "scripts/recuperacion_compra_cron.py",
     },
+    "precios_trm": {
+        "nombre": "Precios según TRM (propuesta)",
+        "descripcion": "Compara la TRM BanRep de hoy con la TRM con la que se fijó cada precio y propone subir o bajar (traslado y umbral en Rentabilidad → Precios TRM). No cambia nada: un administrador aprueba. PRECIOS_TRM_ACTIVO=0 lo apaga.",
+        "script": "scripts/precios_trm_cron.py",
+    },
     "auditoria_scripts": {
         "nombre": "Auditoría de scripts",
         "descripcion": "py_compile de los scripts del manifiesto; alerta por WhatsApp si algo falla.",

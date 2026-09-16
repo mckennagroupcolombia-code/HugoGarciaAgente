@@ -273,6 +273,13 @@ ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra 
 PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
 ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
 
+# Precios indexados a la TRM BanRep (app/services/precios_trm.py + scripts/precios_trm_cron.py, diario 8:40)
+# Cada SKU guarda (precio, TRM del día en que se fijó); el cron PROPONE ajuste = variación TRM × traslado
+# y un admin aprueba en /app → Rentabilidad → Precios TRM (escribe MeLi + Alegra, web al final del lote).
+# Un cambio manual de precio reinicia la base de ese SKU. Traslado/umbral/redondeo en app/data/precios_trm_config.json.
+PRECIOS_TRM_ACTIVO           # 0 = apaga el cron sin tocar el crontab
+PRECIOS_TRM_QUIET            # 1 = no avisa por WhatsApp (pruebas)
+
 # Recuperación de compra (app/tools/recuperacion_compra.py + scripts/recuperacion_compra_cron.py)
 RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar (el cron sigue instalado)
 RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
@@ -1100,6 +1107,7 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
 | `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
 | `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
+| `/api/precios-trm/*` | GET/PUT/POST | Bearer / nivel administrador | Precios indexados a la TRM: estado y propuesta, config, recalcular, aplicar, descartar — ver `app/services/precios_trm.py` |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
