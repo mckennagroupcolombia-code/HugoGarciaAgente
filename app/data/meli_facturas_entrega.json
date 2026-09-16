@@ -27324,6 +27324,28 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018361505814": {
+      "shipping_id": "47968825139",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T00:33:08",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-PROCONSUE80PKg",
+            "nombre": "Proteína 80% Suero De Leche",
+            "cantidad": 1.0,
+            "precio_unitario": 88315.0
+          }
+        ],
+        "total": 88315.0,
+        "nombre_cliente": "Julian Esteban Rodriguez Cruz",
+        "identificacion": "1000515196",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 16 I Bis #110-04, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
     }
   },
   "2000018272473696": {

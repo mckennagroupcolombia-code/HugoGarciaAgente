@@ -54,7 +54,7 @@
   min-width: 0;
 }
 
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo {
   display: block;
   width: 100%;
   min-width: 0;
@@ -77,25 +77,25 @@
   resize: none;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo:hover {
   border-color: var(--acento-50);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo:focus {
   border-color: var(--acento);
   background: var(--acento-suave);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo::placeholder {
   color: #a8a8a8;
   opacity: 1;
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo-oscuro:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo-oscuro:hover {
   border-color: rgba(255, 255, 255, 0.6);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo-oscuro:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo-oscuro:focus {
   border-color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta) .e30-campo-oscuro::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) .e30-campo-oscuro::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
@@ -105,6 +105,12 @@
   outline: 1px dashed #dc2626;
   outline-offset: 1px;
 }
+
+/* OJO: toda etiqueta que use `CampoEtiqueta` tiene que estar en esa lista de
+   arriba. `.ev-etiqueta` (38 × 102 vertical) faltaba y sus casillas salían con
+   el estilo por defecto del navegador: fondo BLANCO sobre la barra de acento y
+   texto a la izquierda en vez de centrado. Si se agrega un formato nuevo, va
+   aquí también. */
 
 /* ── Paneles ─────────────────────────────────────────────────────────────── */
 
@@ -151,7 +157,8 @@
 
 /* Dato vacío en edición: ejemplo de referencia en gris (no se imprime). */
 .e30-etiqueta .e30-ejemplo,
-.es-etiqueta .e30-ejemplo {
+.es-etiqueta .e30-ejemplo,
+.ev-etiqueta .e30-ejemplo {
   color: #a8a8a8 !important;
 }
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import type { AttributeKey } from "../etiqueta-ficha/ProductAttributeGrid";
 import { normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
-import { IconoTelefono, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
+import { IconoContacto, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
 import TechnicalCell from "./TechnicalCell";
 import ContactFooter from "./ContactFooter";
 import { CELDAS_30ML, EJEMPLO_30ML, TITULOS_FORMULA_30ML, tituloFormula30ml } from "./etiqueta30mlTypes";
@@ -56,7 +56,7 @@ export default function LeftTechnicalPanel({
         editMode={editMode}
         datos={[
           { clave: "city", icono: <IconoUbicacion />, texto: data.city || "", ejemplo: EJEMPLO_30ML.city, onChange: cambio("city") },
-          { clave: "phone", icono: <IconoTelefono />, texto: data.phone || "", ejemplo: EJEMPLO_30ML.phone, onChange: cambio("phone") },
+          { clave: "phone", icono: <IconoContacto texto={data.phone || ""} />, texto: data.phone || "", ejemplo: EJEMPLO_30ML.phone, onChange: cambio("phone") },
         ]}
       />
       {onIconChange && (

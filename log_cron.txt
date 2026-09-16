@@ -7825,3 +7825,34 @@ En [6] el agente ofrece ejemplos concretos ("citrato de magnesio, guantes de nit
 ✅ Reporte enviado a WhatsApp con éxito.
 [auditor_canales 2026-09-15T22:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (659 min), Contacto WA · …81106331 (432 min), +57 302 820 0001 (388 min), +57 312 306 8370 (358 min), +57 320 829 9760 (291 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 6c3e2db] Auto-commit: actualizacion diaria 2026-09-15 23:00
+ 55 files changed, 5790 insertions(+), 1306 deletions(-)
+ create mode 100644 app/data/recordatorio_pago_nomina_log.json
+ create mode 100644 tests/test_mensajeria_solicitud_pago.py
+[2026-09-15 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-15 23:00'
+[auditor_canales 2026-09-15T23:00:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (689 min), Contacto WA · …81106331 (462 min), +57 302 820 0001 (418 min), +57 312 306 8370 (388 min), +57 320 829 9760 (321 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T23:00:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (689 min), Contacto WA · …81106331 (462 min), +57 302 820 0001 (418 min), +57 312 306 8370 (388 min), +57 320 829 9760 (321 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-15T23:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (719 min), Contacto WA · …81106331 (492 min), +57 302 820 0001 (448 min), +57 312 306 8370 (418 min), +57 320 829 9760 (351 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-15T23:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 305 706 4679 (719 min), Contacto WA · …81106331 (492 min), +57 302 820 0001 (448 min), +57 312 306 8370 (418 min), +57 320 829 9760 (351 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T00:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (522 min), +57 302 820 0001 (478 min), +57 312 306 8370 (448 min), +57 320 829 9760 (381 min), +57 301 922 9626 (381 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T00:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (522 min), +57 302 820 0001 (478 min), +57 312 306 8370 (448 min), +57 320 829 9760 (381 min), +57 301 922 9626 (381 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-06 → 2026-09-16…
+✅ Token de Mercado Libre refrescado exitosamente.
+   27 creado(s), 609 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T00:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (552 min), +57 302 820 0001 (508 min), +57 312 306 8370 (478 min), +57 320 829 9760 (411 min), +57 301 922 9626 (411 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T00:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (552 min), +57 302 820 0001 (508 min), +57 312 306 8370 (478 min), +57 320 829 9760 (411 min), +57 301 922 9626 (411 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T01:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (582 min), +57 302 820 0001 (538 min), +57 312 306 8370 (508 min), +57 320 829 9760 (441 min), +57 301 922 9626 (441 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T01:00:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (582 min), +57 302 820 0001 (538 min), +57 312 306 8370 (508 min), +57 320 829 9760 (441 min), +57 301 922 9626 (441 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T01:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (612 min), +57 302 820 0001 (568 min), +57 312 306 8370 (538 min), +57 320 829 9760 (471 min), +57 301 922 9626 (471 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T01:30:04] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (612 min), +57 302 820 0001 (568 min), +57 312 306 8370 (538 min), +57 320 829 9760 (471 min), +57 301 922 9626 (471 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (642 min), +57 302 820 0001 (598 min), +57 312 306 8370 (568 min), +57 320 829 9760 (501 min), +57 301 922 9626 (501 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (642 min), +57 302 820 0001 (598 min), +57 312 306 8370 (568 min), +57 320 829 9760 (501 min), +57 301 922 9626 (501 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.

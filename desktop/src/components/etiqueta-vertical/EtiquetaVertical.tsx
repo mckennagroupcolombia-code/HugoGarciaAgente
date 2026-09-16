@@ -167,7 +167,9 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
   return (
     <div
       ref={ref}
-      className={`ev-etiqueta ${guias ? "ev-guias" : ""}`}
+      // `e30-editando` marca en rojo el texto que no cabe: lo usan todos los
+      // formatos que comparten `CampoEtiqueta`, y este se lo estaba perdiendo.
+      className={`ev-etiqueta ${guias ? "ev-guias" : ""}${editMode ? " e30-editando" : ""}`}
       style={{
         // El color lo pone el acento de la plantilla (el que se escoge con el
         // logo); `AZUL_VERTICAL` solo entra si la plantilla no trae ninguno.

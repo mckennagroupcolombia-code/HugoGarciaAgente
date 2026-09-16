@@ -138,6 +138,10 @@ const ANCHO_DISENO = 960;
  *  `transform` sobre el lienzo entero (`useEscalaAjuste`), que no altera ni
  *  la maquetación ni dónde caen los clics. */
 const MARCO_MAX_ANCHO = ANCHO_DISENO;
+/** Tope de ensanche de la maquetación (`anchoLayout`). Al dibujarse escalada a
+ *  `ANCHO_DISENO`, ensanchar al doble es ver la etiqueta a la mitad de tamaño:
+ *  más allá el texto ya no se lee y es mejor que el marco enseñe que no cabe. */
+const ANCHO_LAYOUT_MAX = ANCHO_DISENO * 2;
 /** Filas del cuerpo (atributos + columna derecha). Alto mínimo = ícono 64 +
  *  título ~26 + 3 renglones de texto (~51 px a 14 px) + relleno 20 → 160 px:
  *  las tres filas miden lo mismo aunque una tenga 1 renglón y otra 3, y solo
@@ -202,6 +206,24 @@ function ProductLabelFormInner({
    *  1:1 a `DIAMETRO_CIRCULAR` y solo cambia a cuántos milímetros se rasteriza
    *  o se vectoriza. `null` = el del Formato elegido. */
   const [diametroMm, setDiametroMm] = useState<number | null>(null);
+  /** Formatos que se maquetan como la ficha de dos columnas dentro del marco
+   *  punteado (todo lo que no tiene composición propia). */
+  const usaMarcoFicha = Boolean(
+    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !es5ml && !esSimple && !esCircular && !esVertical,
+  );
+  /** Ancho al que se MAQUETA la ficha. Arranca en el de diseño y solo crece
+   *  cuando el texto ya no cabe en el alto del formato: al maquetar más ancho,
+   *  los párrafos ocupan menos renglones y la ficha vuelve a caber; luego se
+   *  dibuja escalada a `ANCHO_DISENO`, así que se ve más pequeña pero LLENA el
+   *  marco. Encogerla sin ensanchar la maquetación —lo que se hacía antes— la
+   *  reducía en alto y en ancho a la vez y dejaba la banda blanca a la derecha
+   *  (y el PNG salía con otra proporción que la del formato). */
+  const [anchoLayout, setAnchoLayout] = useState(ANCHO_DISENO);
+  /** Alto exacto del marco al ancho de maquetación actual: el lienzo se fija a
+   *  esa medida y las filas del cuerpo se reparten el alto sobrante, así la
+   *  etiqueta llena el marco en vez de quedarse corta (hueco abajo). */
+  const altoMarcoFicha =
+    usaMarcoFicha && tipo ? anchoLayout / (tipo.ancho_mm! / tipo.alto_mm!) : undefined;
   const anchoDiseno = es30ml
     ? ANCHO_30ML
     : es5ml
@@ -210,7 +232,7 @@ function ProductLabelFormInner({
       ? ANCHO_SIMPLE
       : esCircular
         ? DIAMETRO_CIRCULAR
-        : ANCHO_DISENO;
+        : anchoLayout;
   /** Medidas físicas con las que se imprime: las del Formato, salvo que en la
    *  redonda se haya fijado otro diámetro. Cuadrada siempre, nunca se deforma. */
   const anchoImpresionMm = esCircular ? (diametroMm ?? tipo?.ancho_mm) : tipo?.ancho_mm;
@@ -622,7 +644,7 @@ function ProductLabelFormInner({
     }
   };
 
-  // Alto real de la ficha a su ancho de diseño (varía con el texto que se
+  // Alto real de la ficha a su ancho de maquetación (varía con el texto que se
   // escriba) — se mide para poder escalarla completa dentro del marco del
   // formato sin romper la composición interna.
   const fichaRef = useRef<HTMLDivElement>(null);
@@ -635,7 +657,26 @@ function ProductLabelFormInner({
     const ro = new ResizeObserver(medir);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [data, editMode]);
+  }, [data, editMode, anchoLayout]);
+
+  // Cada edición vuelve a partir del ancho de diseño: si no, la ficha se
+  // quedaría ensanchada (y el texto pequeño) después de borrar lo que la hizo
+  // desbordar. Desde ahí se ensancha otra vez lo que haga falta.
+  useLayoutEffect(() => {
+    setAnchoLayout(ANCHO_DISENO);
+  }, [data, tipoNombre, editMode]);
+
+  // Si al ancho actual la ficha se pasa del alto del formato, se maqueta más
+  // ancha en la misma proporción: el marco crece igual pero el texto refluye
+  // en menos renglones, así que el exceso baja en cada vuelta hasta caber.
+  // El tope evita quedarse iterando con un texto imposible de encajar (ahí se
+  // dibuja escalada, como antes, y el marco enseña que no cabe).
+  useLayoutEffect(() => {
+    if (!altoMarcoFicha) return;
+    const exceso = altoDiseno / altoMarcoFicha;
+    if (exceso <= 1.005) return;
+    setAnchoLayout((w) => Math.min(ANCHO_LAYOUT_MAX, Math.round(w * exceso)));
+  }, [altoDiseno, altoMarcoFicha]);
 
   const discrepancia = discrepanciaProducto(data.barcodeTitle, data.fichaTecnicaTitulo, data.productName);
   const [confirmarDiscrepancia, setConfirmarDiscrepancia] = useState(false);
@@ -645,12 +686,14 @@ function ProductLabelFormInner({
     const ratio = tipo.ancho_mm / tipo.alto_mm;
     const ancho = MARCO_MAX_ANCHO;
     const alto = ancho / ratio;
-    // A tamaño completo la escala es 1; solo baja si la ficha creció más
-    // alto de lo que el formato permite —y eso es justo lo que el marco
-    // tiene que enseñar—, nunca por el tamaño de la ventana.
-    const escala = Math.min(1, alto / Math.max(altoDiseno, 1));
+    // A tamaño completo la escala es 1; baja cuando la ficha se maquetó más
+    // ancha para que el texto cupiera (y entonces llena el marco justo), o
+    // —último recurso, con el ancho ya en el tope— porque sigue sin caber de
+    // alto, que es lo que el marco tiene que enseñar. Nunca por el tamaño de
+    // la ventana: de eso se encarga `ajusteFicha`.
+    const escala = Math.min(1, ancho / Math.max(anchoLayout, 1), alto / Math.max(altoDiseno, 1));
     return { ancho, alto, escala };
-  }, [tipo, altoDiseno]);
+  }, [tipo, altoDiseno, anchoLayout]);
 
   // Y encima de esa escala, la que haga falta para que el marco entero quepa
   // en el hueco disponible (el mismo criterio que usa `Marco30ml` para los
@@ -1033,22 +1076,12 @@ function ProductLabelFormInner({
     descargarBlob(previa.blob, nombreArchivoPng());
   };
 
-  // Alto exacto del marco del formato (mismo cálculo que `marco`, pero hace
-  // falta ANTES de maquetar la ficha): el lienzo se fija a esa medida y las
-  // filas del cuerpo se reparten el alto sobrante, así la etiqueta llena el
-  // marco en vez de quedarse corta —hueco abajo— o pasarse y dibujarse
-  // escalada, que dejaba una banda vacía a la derecha.
-  const altoMarcoFicha =
-    tipo && tipo.ancho_mm && tipo.alto_mm && !es30ml && !es5ml && !esSimple && !esCircular && !esVertical
-      ? MARCO_MAX_ANCHO / (tipo.ancho_mm / tipo.alto_mm)
-      : undefined;
-
   const ficha = (
     <div
       ref={fichaRef}
       lang="es"
       className="relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white text-[#111111] shadow-none"
-      style={{ width: ANCHO_DISENO, minHeight: altoMarcoFicha, ...variablesAcento(data.accentColor) }}
+      style={{ width: anchoDiseno, minHeight: altoMarcoFicha, ...variablesAcento(data.accentColor) }}
     >
       {showGrid && <div className="pointer-events-none absolute inset-0" style={PATRON_RETICULA} />}
 
@@ -1746,7 +1779,7 @@ function ProductLabelFormInner({
             >
               <div
                 className="absolute left-0 top-0"
-                style={{ width: ANCHO_DISENO, transform: `scale(${marco.escala})`, transformOrigin: "top left" }}
+                style={{ width: anchoLayout, transform: `scale(${marco.escala})`, transformOrigin: "top left" }}
               >
                 {ficha}
               </div>

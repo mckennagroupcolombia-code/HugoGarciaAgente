@@ -4,7 +4,7 @@ import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import GaleriaGhsModal from "../etiqueta-ficha/GaleriaGhsModal";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
-import { IconoTelefono, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
+import { IconoContacto, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
 import type { AttributeKey } from "../etiqueta-ficha/ProductAttributeGrid";
 import {
   TITULOS_CAS,
@@ -139,7 +139,7 @@ function PanelTecnico({
         tam={TAM_5ML.franja}
         datos={[
           { clave: "city", icono: <IconoUbicacion />, texto: data.city || "", ejemplo: EJEMPLO_5ML.city, onChange: cambio("city") },
-          { clave: "phone", icono: <IconoTelefono />, texto: data.phone || "", ejemplo: EJEMPLO_5ML.phone, onChange: cambio("phone") },
+          { clave: "phone", icono: <IconoContacto texto={data.phone || ""} />, texto: data.phone || "", ejemplo: EJEMPLO_5ML.phone, onChange: cambio("phone") },
         ]}
       />
       {onIconChange && (

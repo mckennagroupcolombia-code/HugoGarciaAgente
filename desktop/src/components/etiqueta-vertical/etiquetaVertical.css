@@ -179,6 +179,7 @@
 }
 .ev-logo {
   display: flex;
+  overflow: hidden;
   max-width: 78%;
   flex: 0 0 auto;
   align-items: center;
@@ -187,14 +188,20 @@
 .ev-logo img {
   display: block;
   max-width: 100%;
+  max-height: 100%;          /* sin esto, un logo ancho se sale de su fila
+                                (alto = el que dé su proporción) y la divisoria
+                                del bloque de arriba le pasa por encima */
+  width: auto;
   height: auto;
   object-fit: contain;       /* completo, sin deformar ni recortar */
 }
+/* Mismo trato que en la ficha de 76 × 66 (`ProductHeader`): en el color del
+   acento y sin cursiva — la marca no usa cursiva en ningún formato. */
 .ev-lema {
-  color: #111111;
+  color: var(--acento);
   font-size: 15px;
-  font-weight: 500;
-  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   text-align: center;
 }
 .ev-codigo {

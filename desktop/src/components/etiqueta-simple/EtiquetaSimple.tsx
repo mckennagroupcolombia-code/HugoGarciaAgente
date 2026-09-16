@@ -3,7 +3,7 @@ import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
 import { EJEMPLO_ETIQUETA, normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
-import { IconoCorreo, IconoTelefono, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
+import { IconoCorreo, IconoContacto, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
 import type { IconoKey } from "../etiqueta-ficha/ProductAttributeGrid";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { IconoCelda } from "../etiqueta-30ml/TechnicalCell";
@@ -401,7 +401,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
           tam={TAM_SIMPLE.franja}
           datos={[
             { clave: "city", icono: <IconoUbicacion />, texto: data.city || "", ejemplo: EJEMPLO_ETIQUETA.city, onChange: cambio("city") },
-            { clave: "phone", icono: <IconoTelefono />, texto: data.phone || "", ejemplo: EJEMPLO_ETIQUETA.phone, onChange: cambio("phone") },
+            { clave: "phone", icono: <IconoContacto texto={data.phone || ""} />, texto: data.phone || "", ejemplo: EJEMPLO_ETIQUETA.phone, onChange: cambio("phone") },
             { clave: "email", icono: <IconoCorreo />, texto: data.email || "", ejemplo: EJEMPLO_ETIQUETA.email, onChange: cambio("email") },
           ]}
         />

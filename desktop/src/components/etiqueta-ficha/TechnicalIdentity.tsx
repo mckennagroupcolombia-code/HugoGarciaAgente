@@ -32,7 +32,9 @@ export default function TechnicalIdentity({
     opcion?: string;
     onOpcion?: (v: string) => void;
   }[] = [
-    { key: "concentration", label: "Pureza:", value: concentration, onChange: onConcentrationChange },
+    // En mayúscula como el resto de rótulos de la etiqueta (ORIGEN, APARIENCIA,
+    // GRADO…): era el único en caja mixta, y junto a "CAS:" se notaba.
+    { key: "concentration", label: "PUREZA:", value: concentration, onChange: onConcentrationChange },
     {
       key: "cas",
       label: `${rotuloCas}:`,
