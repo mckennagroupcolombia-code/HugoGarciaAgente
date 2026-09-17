@@ -3263,3 +3263,16 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `DesenfoquePlantillaModal` gana tres props opcionales (`titulo`, `subtitulo`, `desenfocar`) sin cambiar el comportamiento en Plantillas Visuales. El modal se carga con `lazy` para no arrastrar la librería de exportación al chunk de la ficha.
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/plantillas-visuales/DesenfoquePlantillaModal.tsx`, `desktop/src/lib/desenfoqueLocal.ts` (nuevo), `docs/team-recaps.md`
+
+### 2026-09-16 - MeLi: mensaje automático al comprador cuando se vende un SKU
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Mercado Libre → webhook `orders_v2`, posventa)
+- **Qué se implementó:**
+  - Nuevo módulo `app/meli_mensaje_venta_sku.py`: cuando entra una orden **pagada** y alguno de sus ítems tiene un SKU listado en `app/data/mensajes_venta_sku.json`, escribe el texto configurado en el chat posventa de la compra (misma `responder_mensaje_posventa` de la cola) y avisa al grupo de WhatsApp de posventa con el código de la orden para complementar con `posventa <código>: ...`.
+  - Primer caso: SKU `C-FRBSGL120mL` (fragancia cosmética 120 mL, publicación MCO576054003) → "Hola! Buen día. Por favor confírmanos qué aroma deseas para la fragancia cosmética. Quedamos atentos."
+  - **Una sola vez por orden+SKU.** MeLi manda `orders_v2` muchas veces por la misma orden (hasta 11 en un día); el módulo reserva la clave en `app/data/mensajes_venta_sku_enviados.json` bajo un `threading.Lock` **antes** de enviar, así dos hilos paralelos no duplican el mensaje (justo lo que pasó hoy con la auto-respuesta de factura del pack 2000015043063893). Si MeLi rechaza el envío, se libera la clave y la siguiente notificación de la orden reintenta.
+  - Enganche en `_procesar_orden_meli` (`webhook_meli.py`) dentro del bucle de ítems, tras leer el SKU; usa `seller_sku` de la orden como respaldo. Va envuelto en `try` para no afectar el sync de stock.
+  - Apagado global con `MELI_MENSAJE_VENTA_SKU_ACTIVO=0`. Para añadir productos basta editar el JSON (clave = SKU, `texto`, `activo`); no requiere reinicio porque se lee en cada orden.
+  - Tests: `tests/test_meli_mensaje_venta_sku.py` (config, una sola vez por orden, SKU no configurado, fallo y reintento, apagado por entorno).
+  - **Requiere `sudo systemctl restart webhook-meli`** para que el webhook cargue el módulo.
+- **Archivos Modificados:** `app/meli_mensaje_venta_sku.py` (nuevo), `app/data/mensajes_venta_sku.json` (nuevo), `webhook_meli.py`, `tests/test_meli_mensaje_venta_sku.py` (nuevo), `docs/agentic/modules/webhook-meli.md`, `docs/team-recaps.md`
