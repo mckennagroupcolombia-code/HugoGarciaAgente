@@ -723,6 +723,21 @@ justo lo que después nadie concilia contra el extracto; el archivo queda en la 
 pegado al asiento. Los KPIs de la cabecera separan «Aprobadas, falta girar» de «Giradas con
 comprobante».
 
+**Pagos de impuestos desde el recibo del contador (17-sep-2026).** Concepto «🏛️ Impuestos» en el
+wizard simple (`PagoImpuestos` en `PagosWizardPanel.tsx`, `app/services/pagos_impuestos.py`,
+`GET /api/pagos/impuestos/recibos`, `POST /api/pagos/impuestos/solicitar`, `GET …/recibos/<n>/pdf`).
+Lista los recibos que `descargar_soportes_contador.py` + `extraer_declaraciones_contador.py` dejaron en
+`docs/contabilidad/<año>/declaraciones_contador.json` y pone la cuenta sola: 490 concepto 61 de un 350 →
+**2365**, concepto 62 de un 350 → **2367** (reteIVA), 490 de un 300 → 2408, de un 110 → 2404, RTICA de
+Hacienda → 2368, ICA anual → 2412. Pagar un impuesto **no es gasto**: baja el pasivo causado. La
+solicitud lleva `referencia = dian:490:<n>` (o `sdh:<n>`, la misma de Conciliación contador) y el PDF del
+recibo como soporte; un recibo ya asentado —por referencia, solicitud o un débito del mismo valor ±7 días
+en esa cuenta (línea PSE del extracto)— no se ofrece otra vez. Avisa cuando el libro tiene causado menos de
+lo que se paga (hoy: la 2367 y la 2368 están en cero aunque se declaran cada período) y cuando el 350
+descuenta retenciones en exceso (renglón 129). ⚠️ La bitácora vieja `app/services/impuestos.py`
+(`impuestos_pagos.json`) postea como gasto **5195** (`FUENTE_MAPEO["operativos_impuestos"]`): no registrar
+ahí un pago que ya va por el wizard.
+
 **Pago a proveedor con productos y factura (13-sep-2026).** Las categorías `compra_proveedor` (1435) y
 `factura_proveedor` (2205) llevan `con_productos` + `requiere_factura`: el wizard pasa por
 **proveedor** (terceros del libro + contactos «provider» de Alegra, `app/services/pagos_proveedor.py`;
@@ -801,13 +816,14 @@ Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
 ### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
 
 ```
-/app → Contabilidad → Libro Mayor  (LibroMayorPanel.tsx, reorganizado sep-2026)
-  ├─ Ámbito EMPRESA — cuatro etapas, en el orden en que se trabaja:
-  │    1 Conciliar   wizard de 4 pasos con estado real (cargar extracto → emparejar → clasificar
-  │                  pendientes → verificar balance) sobre el Diario (IngresosEgresosPanel)
-  │    2 Registrar   acciones rápidas (ingreso, egreso, compra/pago socio, proveedor, aporte) + asiento manual
-  │    3 Consultar   movimientos · cuentas T · balance · informes
-  │    4 Configurar  plan de cuentas · terceros · créditos adquiridos
+/app → Contabilidad → Libro Mayor  (LibroMayorPanel.tsx, reorganizado sep-2026; orden cambiado 17-sep)
+  ├─ Ámbito EMPRESA — abre en el libro, no en la conciliación:
+  │    1 Libro Mayor  PUC con saldos (MayorCuentasPanel: resumen por clase, árbol con terceros
+  │                   desplegables, vista «Por tercero», extracto) · balance · asientos · cuentas T · informes
+  │    2 Registrar    acciones rápidas (ingreso, egreso, compra/pago socio, proveedor, aporte) + asiento manual
+  │    3 Conciliar banco  wizard de 4 pasos (cargar extracto → emparejar → clasificar → verificar)
+  │    4 Configurar   plan de cuentas · terceros · créditos adquiridos
+  │    (claves localStorage `-v2` para que nadie siga aterrizando en Conciliar)
   └─ Ámbito SOCIOS (= sección Contabilidad → Socios; SociosPanel.tsx) — wizard de 7 pasos por socio:
        1 Empecemos: cuestionario interactivo de 5 preguntas (cripto, declaró antes, desde qué año,
          otras plataformas, préstamos con familia) + cédula. No pide nada más; lo ya cargado se deduce
@@ -1307,6 +1323,7 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
 | `/api/contabilidad/cc/arbol` | GET | Bearer | El Libro Mayor como árbol del PUC con saldos por nivel (`solo_movimiento=0` para ver también las cuentas sin usar) — ver `app/services/contabilidad_mayor.py` |
 | `/api/contabilidad/cc/extracto/<id>` | GET | Bearer | Extracto de una cuenta: saldo inicial, cada línea con su contrapartida y saldo corrido, resumen por tercero. `subcuentas=1`, `tercero_id`, `desde`/`hasta`. Añadir `.pdf` o `.csv` para el documento |
+| `/api/contabilidad/cc/auxiliar-terceros` | GET | Bearer | Auxiliar por tercero: cada tercero con sus cuentas y saldos (`desde`/`hasta`). `cc/arbol?terceros=1` agrega el mismo desglose dentro de cada cuenta |
 | `/api/contabilidad/cc/balance.pdf` | GET | Bearer | Balance de comprobación jerárquico en PDF, con la sangría por nivel del PUC |
 | `/api/ventas-directas/*` | GET/POST/PUT | Bearer / permiso `cotizar-facturar` | Venta directa WhatsApp: calcular IVA por línea, precio sugerido, borrador, cotizar (PDF + Alegra `/estimates`), facturar (DIAN), anular, pedidos del agente IA — ver `app/services/ventas_directas.py` y Flujo R |
 | `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar; `proveedores` (libro + Alegra), `proveedores/adoptar`, `productos` (catálogo Alegra), `verificar-factura` (multipart, cotejo sin LLM), `solicitudes/<id>/factura` — ver `app/services/pagos_wizard.py`, `pagos_proveedor.py` y Flujo O |

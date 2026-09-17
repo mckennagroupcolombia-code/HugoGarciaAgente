@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { Icon } from "../icons";
 import "./libroMayor.css";
@@ -41,6 +41,42 @@ interface NodoArbol {
   saldo_final: number;
   lineas: number;
   hijos: NodoArbol[];
+  /** Auxiliar por tercero de lo asentado directamente en la cuenta. */
+  terceros?: TerceroEnCuenta[];
+}
+
+interface TerceroEnCuenta {
+  tercero_id: number | null;
+  nombre: string;
+  identificacion: string;
+  saldo_inicial: number;
+  debito: number;
+  credito: number;
+  saldo_final: number;
+  lineas: number;
+}
+
+interface AuxTercero {
+  tercero_id: number | null;
+  nombre: string;
+  identificacion: string;
+  tipo: string;
+  por_pagar: number;
+  por_cobrar: number;
+  debito: number;
+  credito: number;
+  lineas: number;
+  cuentas: {
+    cuenta_id: number;
+    codigo: string;
+    nombre: string;
+    tipo: string;
+    saldo_inicial: number;
+    debito: number;
+    credito: number;
+    saldo_final: number;
+    lineas: number;
+  }[];
 }
 
 interface Arbol {
@@ -167,10 +203,15 @@ const PRESETS: { id: string; label: string; calc: () => Periodo }[] = [
 
 /* ─── Panel ──────────────────────────────────────────────────────────────── */
 
+type CuentaSel = { id: number; codigo: string; nombre: string };
+
 export default function MayorCuentasPanel() {
-  const [preset, setPreset] = useState("mes");
-  const [rango, setRango] = useState<Periodo>(() => PRESETS[0].calc());
-  const [cuentaSel, setCuentaSel] = useState<{ id: number; codigo: string; nombre: string } | null>(null);
+  // Arranca en el año: es lo que un contador mira primero (saldos acumulados),
+  // y un mes suelto deja el balance a medias.
+  const [preset, setPreset] = useState("anio");
+  const [rango, setRango] = useState<Periodo>(() => PRESETS.find((p) => p.id === "anio")!.calc());
+  const [vista, setVista] = useState<"cuentas" | "terceros">("cuentas");
+  const [cuentaSel, setCuentaSel] = useState<CuentaSel | null>(null);
   const [subcuentas, setSubcuentas] = useState(false);
   const [terceroFiltro, setTerceroFiltro] = useState<number | null>(null);
 
@@ -179,17 +220,18 @@ export default function MayorCuentasPanel() {
   if (rango.hasta) params.set("hasta", rango.hasta);
 
   const arbolQ = useQuery<Arbol>({
-    queryKey: ["cc-arbol", rango.desde, rango.hasta],
-    queryFn: () => api.get(`/api/contabilidad/cc/arbol?${params.toString()}`),
+    queryKey: ["cc-arbol", rango.desde, rango.hasta, "terceros"],
+    queryFn: () => api.get(`/api/contabilidad/cc/arbol?${params.toString()}&terceros=1`),
     staleTime: 30_000,
   });
 
-  // Cambiar de cuenta invalida el filtro por tercero: los terceros de 2205 no
-  // son los de 1110 y dejarlo puesto mostraría un extracto vacío sin explicar
-  // por qué.
-  useEffect(() => {
-    setTerceroFiltro(null);
-  }, [cuentaSel?.id]);
+  // Elegir una cuenta fija también el tercero: los terceros de 2205 no son los
+  // de 1110 y arrastrar el filtro anterior mostraría un extracto vacío sin
+  // explicar por qué.
+  const abrirCuenta = (c: CuentaSel, tercero: number | null = null) => {
+    setCuentaSel(c);
+    setTerceroFiltro(tercero);
+  };
 
   const aplicarPreset = (id: string) => {
     setPreset(id);
@@ -199,7 +241,7 @@ export default function MayorCuentasPanel() {
 
   return (
     <div className="lm-root space-y-3">
-      <PasosMayor cuentaSel={cuentaSel} periodo={rango.etiqueta} />
+      <PasosMayor cuentaSel={cuentaSel} periodo={rango.etiqueta} vista={vista} />
 
       {/* Paso 1 — período */}
       <div className="lm-card p-3 space-y-2">
@@ -218,7 +260,7 @@ export default function MayorCuentasPanel() {
               {p.label}
             </button>
           ))}
-          <span className="ml-auto flex items-center gap-1.5">
+          <span className="ml-auto flex flex-wrap items-center gap-1.5">
             <input
               type="date"
               value={rango.desde}
@@ -253,19 +295,54 @@ export default function MayorCuentasPanel() {
         )}
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-        {/* Paso 2 — árbol del PUC */}
-        <ArbolCuentas
-          datos={arbolQ.data}
-          cargando={arbolQ.isLoading}
-          error={arbolQ.error as Error | null}
-          seleccionada={cuentaSel?.id ?? null}
-          onSeleccionar={(n) =>
-            n.cuenta_id && setCuentaSel({ id: n.cuenta_id, codigo: n.codigo, nombre: n.nombre })
-          }
-          desde={rango.desde}
-          hasta={rango.hasta}
-        />
+      {arbolQ.data && <ResumenClases arbol={arbolQ.data} />}
+
+      <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Ver el libro por">
+        {([
+          ["cuentas", "Por cuenta (PUC)", "book"],
+          ["terceros", "Por tercero", "users"],
+        ] as const).map(([id, label, icon]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={vista === id}
+            onClick={() => setVista(id)}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+              vista === id ? "bg-accent text-white" : "border border-border bg-surface-panel text-muted hover:text-ink"
+            }`}
+          >
+            <Icon name={icon} size={14} weight="bold" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className={`grid gap-3 ${cuentaSel ? "2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]" : ""}`}>
+        {/* Paso 2 — árbol del PUC o auxiliar por tercero */}
+        {vista === "cuentas" ? (
+          <ArbolCuentas
+            datos={arbolQ.data}
+            cargando={arbolQ.isLoading}
+            error={arbolQ.error as Error | null}
+            seleccionada={cuentaSel?.id ?? null}
+            terceroSel={terceroFiltro}
+            compacto={Boolean(cuentaSel)}
+            onSeleccionar={(n, tercero) =>
+              n.cuenta_id && abrirCuenta({ id: n.cuenta_id, codigo: n.codigo, nombre: n.nombre }, tercero ?? null)
+            }
+            desde={rango.desde}
+            hasta={rango.hasta}
+          />
+        ) : (
+          <AuxiliarTerceros
+            desde={rango.desde}
+            hasta={rango.hasta}
+            seleccion={cuentaSel ? { cuenta: cuentaSel.id, tercero: terceroFiltro } : null}
+            compacto={Boolean(cuentaSel)}
+            onSeleccionar={abrirCuenta}
+          />
+        )}
 
         {/* Paso 3 — extracto */}
         {cuentaSel ? (
@@ -277,18 +354,202 @@ export default function MayorCuentasPanel() {
             onSubcuentas={setSubcuentas}
             terceroFiltro={terceroFiltro}
             onTerceroFiltro={setTerceroFiltro}
-            onCerrar={() => setCuentaSel(null)}
+            onCerrar={() => {
+              setCuentaSel(null);
+              setTerceroFiltro(null);
+            }}
           />
         ) : (
-          <div className="lm-card flex min-h-[220px] flex-col items-center justify-center gap-2 p-6 text-center">
-            <Icon name="book" className="h-7 w-7 text-muted" />
-            <p className="text-sm font-bold text-ink">Elige una cuenta del árbol</p>
-            <p className="max-w-sm text-xs text-muted">
-              Baja por clase, grupo y cuenta hasta la que quieras revisar. Acá aparece su extracto:
-              saldo inicial, cada asiento con su contrapartida, el saldo corrido y el resumen por tercero.
-            </p>
-          </div>
+          <p className="text-center text-xs text-muted">
+            {vista === "cuentas"
+              ? "Toca el nombre de una cuenta (o de un tercero dentro de ella) para ver su extracto: cada causación con su contrapartida y el saldo corrido."
+              : "Abre un tercero y toca una de sus cuentas para ver cada causación a su nombre."}
+          </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Resumen por clase (lo que se ve primero) ───────────────────────────── */
+
+function ResumenClases({ arbol }: { arbol: Arbol }) {
+  const clase = (c: string) => arbol.arbol.find((n) => n.codigo === c)?.saldo_final ?? 0;
+  const ingresos = clase("4");
+  const egresos = clase("5") + clase("6") + clase("7");
+  const tarjetas = [
+    { label: "Activo", valor: clase("1"), cls: TIPO_COLOR.activo },
+    { label: "Pasivo", valor: clase("2"), cls: TIPO_COLOR.pasivo },
+    { label: "Patrimonio", valor: clase("3"), cls: TIPO_COLOR.patrimonio },
+    { label: "Ingresos", valor: ingresos, cls: TIPO_COLOR.ingreso },
+    { label: "Gastos y costos", valor: egresos, cls: TIPO_COLOR.gasto },
+    { label: "Resultado del período", valor: ingresos - egresos, cls: ingresos - egresos < 0 ? "text-danger" : "text-accent" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+      {tarjetas.map((t) => (
+        <div key={t.label} className="lm-card px-3 py-2">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{t.label}</p>
+          <p className={`mt-0.5 truncate text-base font-extrabold tabular-nums ${t.cls}`}>{cop(t.valor)}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Auxiliar por tercero ───────────────────────────────────────────────── */
+
+function AuxiliarTerceros({
+  desde,
+  hasta,
+  seleccion,
+  compacto,
+  onSeleccionar,
+}: {
+  desde: string;
+  hasta: string;
+  seleccion: { cuenta: number; tercero: number | null } | null;
+  compacto: boolean;
+  onSeleccionar: (c: CuentaSel, tercero: number | null) => void;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [abiertos, setAbiertos] = useState<Set<number>>(new Set());
+  const p = new URLSearchParams();
+  if (desde) p.set("desde", desde);
+  if (hasta) p.set("hasta", hasta);
+  const q = useQuery<{ terceros: AuxTercero[] }>({
+    queryKey: ["cc-aux-terceros", desde, hasta],
+    queryFn: () => api.get(`/api/contabilidad/cc/auxiliar-terceros?${p.toString()}`),
+    staleTime: 30_000,
+  });
+  const lista = useMemo(() => {
+    const t = busqueda.trim().toLowerCase();
+    const todos = q.data?.terceros ?? [];
+    if (!t) return todos;
+    return todos.filter((x) => x.nombre.toLowerCase().includes(t) || x.identificacion.includes(t));
+  }, [q.data, busqueda]);
+
+  const alternar = (id: number) =>
+    setAbiertos((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+
+  return (
+    <div className="lm-card overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-3 py-2">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted">Auxiliar por tercero</p>
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Nombre o NIT…"
+          className="lm-input ml-auto !w-44 !py-1 text-xs"
+        />
+      </div>
+      {q.isLoading && <p className="px-3 py-4 text-xs text-muted">Cargando terceros…</p>}
+      {q.error && <p className="px-3 py-4 text-xs font-semibold text-danger">{(q.error as Error).message}</p>}
+      <div className="max-h-[70vh] overflow-auto">
+        <table className="min-w-full text-left text-xs">
+          <thead className="sticky top-0 z-10 border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted">
+            <tr>
+              <th className="px-3 py-1.5 font-bold">Tercero / cuenta</th>
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Saldo inicial</th>}
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Débitos</th>}
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Créditos</th>}
+              <th className="px-3 py-1.5 text-right font-bold">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((t) => {
+              const clave = t.tercero_id ?? 0;
+              const abierto = abiertos.has(clave);
+              return (
+                <Fragment key={clave}>
+                  <tr className="border-t border-border/50 bg-surface-panel/60">
+                    <td className="max-w-0 px-3 py-1.5" colSpan={compacto ? 1 : 4}>
+                      <button
+                        type="button"
+                        onClick={() => alternar(clave)}
+                        className="flex w-full items-center gap-1.5 text-left"
+                      >
+                        <span className={`text-muted transition-transform ${abierto ? "rotate-90" : ""}`}>▸</span>
+                        <span className="truncate font-extrabold text-ink">{t.nombre}</span>
+                        {t.identificacion && <span className="shrink-0 text-[10px] text-muted">{t.identificacion}</span>}
+                        {t.tipo && (
+                          <span className="shrink-0 rounded bg-surface-hover px-1 text-[9px] font-bold uppercase text-muted">
+                            {t.tipo}
+                          </span>
+                        )}
+                        <span className="ml-auto shrink-0 text-[10px] text-muted">
+                          {t.cuentas.length} cuenta{t.cuentas.length === 1 ? "" : "s"} · {t.lineas} mov.
+                        </span>
+                      </button>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-right text-[10px] text-muted">
+                      {t.por_pagar ? (
+                        <span className="block font-bold text-amber-700 dark:text-amber-300">por pagar {cop(t.por_pagar)}</span>
+                      ) : null}
+                      {t.por_cobrar ? (
+                        <span className="block font-bold text-sky-700 dark:text-sky-300">por cobrar {cop(t.por_cobrar)}</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                  {abierto &&
+                    t.cuentas.map((c) => {
+                      const sel = seleccion?.cuenta === c.cuenta_id && seleccion?.tercero === t.tercero_id;
+                      return (
+                        <tr key={c.cuenta_id} className={`border-t border-border/30 ${sel ? "bg-accent/10" : ""}`}>
+                          <td className="max-w-0 py-1 pl-8 pr-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onSeleccionar({ id: c.cuenta_id, codigo: c.codigo, nombre: c.nombre }, t.tercero_id)
+                              }
+                              className="flex w-full items-center gap-1.5 text-left hover:underline"
+                            >
+                              <span className="shrink-0 tabular-nums text-muted">{c.codigo}</span>
+                              <span className={`truncate font-semibold ${TIPO_COLOR[c.tipo] ?? "text-ink"}`}>{c.nombre}</span>
+                            </button>
+                          </td>
+                          {!compacto && (
+                            <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                              {cifra(c.saldo_inicial)}
+                            </td>
+                          )}
+                          {!compacto && (
+                            <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                              {cifra(c.debito)}
+                            </td>
+                          )}
+                          {!compacto && (
+                            <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                              {cifra(c.credito)}
+                            </td>
+                          )}
+                          <td
+                            className={`whitespace-nowrap px-3 py-1 text-right font-bold tabular-nums ${
+                              c.saldo_final < 0 ? "text-danger" : "text-ink"
+                            }`}
+                          >
+                            {cop(c.saldo_final)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </Fragment>
+              );
+            })}
+            {!q.isLoading && lista.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-3 py-5 text-center text-muted">
+                  Ningún tercero con movimiento en el período.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -299,16 +560,22 @@ export default function MayorCuentasPanel() {
 function PasosMayor({
   cuentaSel,
   periodo,
+  vista,
 }: {
   cuentaSel: { codigo: string; nombre: string } | null;
   periodo: string;
+  vista: "cuentas" | "terceros";
 }) {
   const pasos = [
     { n: 1, label: "Período", detalle: periodo, hecho: true },
     {
       n: 2,
-      label: "Cuenta",
-      detalle: cuentaSel ? `${cuentaSel.codigo} · ${cuentaSel.nombre}` : "Baja por el árbol del PUC",
+      label: vista === "cuentas" ? "Cuenta" : "Tercero y cuenta",
+      detalle: cuentaSel
+        ? `${cuentaSel.codigo} · ${cuentaSel.nombre}`
+        : vista === "cuentas"
+          ? "Baja por el árbol del PUC"
+          : "Abre un tercero",
       hecho: Boolean(cuentaSel),
     },
     {
@@ -351,6 +618,8 @@ function ArbolCuentas({
   cargando,
   error,
   seleccionada,
+  terceroSel,
+  compacto,
   onSeleccionar,
   desde,
   hasta,
@@ -359,7 +628,9 @@ function ArbolCuentas({
   cargando: boolean;
   error: Error | null;
   seleccionada: number | null;
-  onSeleccionar: (n: NodoArbol) => void;
+  terceroSel: number | null;
+  compacto: boolean;
+  onSeleccionar: (n: NodoArbol, tercero?: number | null) => void;
   desde: string;
   hasta: string;
 }) {
@@ -453,9 +724,10 @@ function ArbolCuentas({
           <thead className="sticky top-0 z-10 border-b border-border bg-surface text-[10px] uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-1.5 font-bold">Cuenta</th>
-              <th className="hidden px-2 py-1.5 text-right font-bold 2xl:table-cell">Débitos</th>
-              <th className="hidden px-2 py-1.5 text-right font-bold 2xl:table-cell">Créditos</th>
-              <th className="px-3 py-1.5 text-right font-bold">Saldo</th>
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Saldo inicial</th>}
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Débitos</th>}
+              {!compacto && <th className="hidden px-2 py-1.5 text-right font-bold md:table-cell">Créditos</th>}
+              <th className="px-3 py-1.5 text-right font-bold">Saldo final</th>
             </tr>
           </thead>
           <tbody>
@@ -467,6 +739,7 @@ function ArbolCuentas({
                     profundidad={0}
                     abierto={false}
                     tieneHijos={false}
+                    compacto={compacto}
                     seleccionada={seleccionada === n.cuenta_id}
                     onAlternar={() => {}}
                     onSeleccionar={onSeleccionar}
@@ -480,12 +753,14 @@ function ArbolCuentas({
                     abiertos={abiertos}
                     onAlternar={alternar}
                     seleccionada={seleccionada}
+                    terceroSel={terceroSel}
+                    compacto={compacto}
                     onSeleccionar={onSeleccionar}
                   />
                 ))}
             {!cargando && (coincidencias?.length === 0 || (!coincidencias && !datos?.arbol.length)) && (
               <tr>
-                <td colSpan={4} className="px-3 py-5 text-center text-muted">
+                <td colSpan={5} className="px-3 py-5 text-center text-muted">
                   {coincidencias ? "Ninguna cuenta coincide." : "Sin movimientos en el período."}
                 </td>
               </tr>
@@ -503,6 +778,8 @@ function RamaArbol({
   abiertos,
   onAlternar,
   seleccionada,
+  terceroSel,
+  compacto,
   onSeleccionar,
 }: {
   nodo: NodoArbol;
@@ -510,20 +787,78 @@ function RamaArbol({
   abiertos: Set<string>;
   onAlternar: (codigo: string) => void;
   seleccionada: number | null;
-  onSeleccionar: (n: NodoArbol) => void;
+  terceroSel: number | null;
+  compacto: boolean;
+  onSeleccionar: (n: NodoArbol, tercero?: number | null) => void;
 }) {
   const abierto = abiertos.has(nodo.codigo);
+  const terceros = nodo.terceros ?? [];
   return (
     <>
       <FilaCuenta
         nodo={nodo}
         profundidad={profundidad}
         abierto={abierto}
-        tieneHijos={nodo.hijos.length > 0}
-        seleccionada={seleccionada === nodo.cuenta_id && nodo.cuenta_id !== null}
+        tieneHijos={nodo.hijos.length > 0 || terceros.length > 0}
+        compacto={compacto}
+        seleccionada={seleccionada === nodo.cuenta_id && nodo.cuenta_id !== null && terceroSel === null}
         onAlternar={() => onAlternar(nodo.codigo)}
         onSeleccionar={onSeleccionar}
       />
+      {/* Auxiliar por tercero de lo asentado en esta cuenta: quién compone el
+          saldo, que es la primera pregunta frente a un 2205 o un 2365. */}
+      {abierto &&
+        terceros.map((t) => (
+          <tr
+            key={`t-${t.tercero_id ?? 0}`}
+            className={`border-t border-border/30 ${
+              seleccionada === nodo.cuenta_id && terceroSel === t.tercero_id && t.tercero_id !== null
+                ? "bg-accent/10"
+                : ""
+            }`}
+          >
+            <td className="w-full max-w-0 py-1 pr-3">
+              <div className="flex items-center gap-1.5" style={{ paddingLeft: `${(profundidad + 1) * 14 + 20}px` }}>
+                <Icon name="user" size={11} className="shrink-0 text-muted" />
+                {t.tercero_id ? (
+                  <button
+                    type="button"
+                    onClick={() => onSeleccionar(nodo, t.tercero_id)}
+                    className="truncate text-left italic text-ink underline-offset-2 hover:underline"
+                    title={`Extracto de ${nodo.codigo} solo con ${t.nombre}`}
+                  >
+                    {t.nombre}
+                  </button>
+                ) : (
+                  <span className="truncate italic text-muted">{t.nombre}</span>
+                )}
+                {t.identificacion && <span className="shrink-0 text-[10px] text-muted">{t.identificacion}</span>}
+              </div>
+            </td>
+            {!compacto && (
+              <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                {cifra(t.saldo_inicial)}
+              </td>
+            )}
+            {!compacto && (
+              <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                {cifra(t.debito)}
+              </td>
+            )}
+            {!compacto && (
+              <td className="hidden whitespace-nowrap px-2 py-1 text-right tabular-nums text-muted md:table-cell">
+                {cifra(t.credito)}
+              </td>
+            )}
+            <td
+              className={`whitespace-nowrap px-3 py-1 text-right tabular-nums ${
+                t.saldo_final < 0 ? "text-danger" : "text-ink"
+              }`}
+            >
+              {cop(t.saldo_final)}
+            </td>
+          </tr>
+        ))}
       {abierto &&
         nodo.hijos.map((h) => (
           <RamaArbol
@@ -533,6 +868,8 @@ function RamaArbol({
             abiertos={abiertos}
             onAlternar={onAlternar}
             seleccionada={seleccionada}
+            terceroSel={terceroSel}
+            compacto={compacto}
             onSeleccionar={onSeleccionar}
           />
         ))}
@@ -545,6 +882,7 @@ function FilaCuenta({
   profundidad,
   abierto,
   tieneHijos,
+  compacto,
   seleccionada,
   onAlternar,
   onSeleccionar,
@@ -553,9 +891,10 @@ function FilaCuenta({
   profundidad: number;
   abierto: boolean;
   tieneHijos: boolean;
+  compacto: boolean;
   seleccionada: boolean;
   onAlternar: () => void;
-  onSeleccionar: (n: NodoArbol) => void;
+  onSeleccionar: (n: NodoArbol, tercero?: number | null) => void;
 }) {
   const esTitulo = profundidad <= 1;
   const clicable = nodo.cuenta_id !== null;
@@ -608,12 +947,21 @@ function FilaCuenta({
           )}
         </div>
       </td>
-      <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted 2xl:table-cell">
-        {cifra(nodo.debito)}
-      </td>
-      <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted 2xl:table-cell">
-        {cifra(nodo.credito)}
-      </td>
+      {!compacto && (
+        <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted md:table-cell">
+          {cifra(nodo.saldo_inicial)}
+        </td>
+      )}
+      {!compacto && (
+        <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted md:table-cell">
+          {cifra(nodo.debito)}
+        </td>
+      )}
+      {!compacto && (
+        <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums text-muted md:table-cell">
+          {cifra(nodo.credito)}
+        </td>
+      )}
       <td
         className={`whitespace-nowrap px-3 py-1.5 text-right font-bold tabular-nums ${
           nodo.saldo_final < 0 ? "text-danger" : "text-ink"

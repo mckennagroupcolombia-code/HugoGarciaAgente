@@ -272,7 +272,7 @@ function WizardSimple({
   const [fecha, setFecha] = useState(hoy());
   const [medioPagoId, setMedioPagoId] = useState("");
   const [concepto, setConcepto] = useState<
-    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "saldo_por_pagar"
+    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "saldo_por_pagar" | "impuestos"
   >("productos");
   // Quién asume la retención. Lo pactado con un prestador de servicios suele
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
@@ -392,7 +392,7 @@ function WizardSimple({
   const prevQ = useQuery<Previsualizacion>({
     queryKey: ["pagos-previsualizar", cuerpo],
     queryFn: () => api.post("/api/pagos/previsualizar", cuerpo),
-    enabled: listo,
+    enabled: listo && concepto !== "impuestos",
     retry: false,
   });
 
@@ -405,6 +405,46 @@ function WizardSimple({
     onError: (e) => onError((e as Error).message),
   });
   const ocupado = crearMut.isPending;
+
+  const selectorConcepto = (
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase text-muted">Concepto</p>
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {([
+            ["productos", "📦 Productos", "Mercancía del proveedor"],
+            ["servicios", "🧰 Servicios", "Servicios prestados a McKenna"],
+            ["flete_transporte", "🚚 Transporte", "Fletes, guías, acarreos"],
+            ["servicio_publico", "💡 Servicios públicos", "Con número de contrato"],
+            ["saldo_por_pagar", "⏳ Saldo pendiente", "Girar lo que quedó debiendo de un pago anterior"],
+            ["impuestos", "🏛️ Impuestos", "Retención, IVA, ICA: con el recibo del contador"],
+          ] as const).map(([id, label, ayuda]) => (
+            <button
+              key={id} type="button" onClick={() => setConcepto(id)}
+              className={`rounded-lg border p-2 text-left ${concepto === id ? "border-accent bg-accent/10" : "border-border hover:border-accent"}`}
+            >
+              <p className="text-sm font-bold text-ink">{label}</p>
+              <p className="text-xs text-muted">{ayuda}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+  );
+
+  if (concepto === "impuestos") {
+    return (
+      <div className="space-y-5 rounded-2xl border-2 border-accent/40 bg-surface-panel p-5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-bold text-accent">Nueva solicitud de pago · impuestos</p>
+          <button type="button" onClick={onCerrar} className="text-sm text-muted">✕</button>
+        </div>
+        {selectorConcepto}
+        <PagoImpuestos
+          medios={medios} medioPagoId={medioPagoId} setMedioPagoId={setMedioPagoId}
+          onCreada={onCreada} onError={onError}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 rounded-2xl border-2 border-accent/40 bg-surface-panel p-5">
@@ -440,26 +480,7 @@ function WizardSimple({
         </Campo>
       </div>
 
-      <div>
-        <p className="mb-1 text-xs font-bold uppercase text-muted">Concepto</p>
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-          {([
-            ["productos", "📦 Productos", "Mercancía del proveedor"],
-            ["servicios", "🧰 Servicios", "Servicios prestados a McKenna"],
-            ["flete_transporte", "🚚 Transporte", "Fletes, guías, acarreos"],
-            ["servicio_publico", "💡 Servicios públicos", "Con número de contrato"],
-            ["saldo_por_pagar", "⏳ Saldo pendiente", "Girar lo que quedó debiendo de un pago anterior"],
-          ] as const).map(([id, label, ayuda]) => (
-            <button
-              key={id} type="button" onClick={() => setConcepto(id)}
-              className={`rounded-lg border p-2 text-left ${concepto === id ? "border-accent bg-accent/10" : "border-border hover:border-accent"}`}
-            >
-              <p className="text-sm font-bold text-ink">{label}</p>
-              <p className="text-xs text-muted">{ayuda}</p>
-            </button>
-          ))}
-        </div>
-      </div>
+      {selectorConcepto}
 
       {esPublico ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -654,6 +675,215 @@ function WizardSimple({
           Compra con productos y factura cotejada
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─── Pagos de impuestos ─────────────────────────────────────────────────────
+//
+// Un pago de impuestos no es un gasto: extingue la deuda que nació al causar la
+// retención (o el impuesto). La cuenta la decide el recibo —el 490 de renta
+// baja la 2365, el de IVA la 2367, el RTICA la 2368— y eso no lo tiene por qué
+// saber quien solicita. Por eso se parte del recibo que mandó el contador: trae
+// valor, fecha, cuenta y soporte. Ver app/services/pagos_impuestos.py.
+
+type ReciboImpuesto = {
+  numero: string; entidad: string; recibo: string; formulario: string; formulario_numero: string;
+  cuenta: string; etiqueta: string; periodo: string; fecha_pago: string; valor: number;
+  estado: "pendiente" | "solicitado" | "registrado";
+  movimiento_id?: number; solicitud_id?: number; solicitud_estado?: string; por_otra_via?: boolean;
+  saldo_libro?: number; causado_periodo?: number; avisos: string[];
+  declaracion?: { tipo: string; numero: string; renta?: number; iva?: number; exceso_descontado?: number; total?: number } | null;
+};
+type DeclaracionSinPago = {
+  formulario: string; numero: string; periodo: string; iva_generado?: number; iva_descontable?: number;
+  retenciones_iva_que_le_practicaron?: number; saldo_a_favor?: number;
+};
+
+const CUENTA_IMPUESTO: Record<string, string> = {
+  "2365": "Retención en la fuente por pagar",
+  "2367": "IVA retenido (reteIVA) por pagar",
+  "2368": "ICA retenido por pagar",
+  "2408": "IVA por pagar",
+  "2404": "Renta por pagar",
+  "2412": "ICA por pagar",
+};
+
+function PagoImpuestos({
+  medios, medioPagoId, setMedioPagoId, onCreada, onError,
+}: {
+  medios: MedioPago[];
+  medioPagoId: string;
+  setMedioPagoId: (v: string) => void;
+  onCreada: (texto: string) => void;
+  onError: (texto: string) => void;
+}) {
+  const setPagosBoot = useAppStore((s) => s.setPagosBoot);
+  const [verTodos, setVerTodos] = useState(false);
+  const [elegido, setElegido] = useState<string | null>(null);
+  const q = useQuery<{ recibos: ReciboImpuesto[]; pendientes: number; sin_pago: DeclaracionSinPago[] }>({
+    queryKey: ["pagos-impuestos-recibos"],
+    queryFn: () => api.get("/api/pagos/impuestos/recibos"),
+  });
+  const recibos = (q.data?.recibos ?? []).filter((r) => verTodos || r.estado === "pendiente");
+  const rec = (q.data?.recibos ?? []).find((r) => r.numero === elegido) ?? null;
+
+  const prevQ = useQuery<Previsualizacion>({
+    queryKey: ["pagos-previsualizar-impuesto", rec?.numero, medioPagoId],
+    queryFn: () => api.post("/api/pagos/previsualizar", {
+      categoria: "impuestos", cuenta_debito: rec!.cuenta, monto: rec!.valor,
+      fecha: rec!.fecha_pago, concepto: `${rec!.etiqueta} — ${rec!.periodo}`,
+      medio_pago_id: Number(medioPagoId), retencion_modo: "ninguna",
+    }),
+    enabled: !!rec && rec.estado === "pendiente" && !!rec.cuenta && !!medioPagoId,
+    retry: false,
+  });
+
+  const qc = useQueryClient();
+  const crearMut = useMutation({
+    mutationFn: () => api.post<Solicitud & { error?: string }>("/api/pagos/impuestos/solicitar", {
+      numero: rec!.numero, medio_pago_id: Number(medioPagoId),
+    }),
+    onSuccess: (s) => {
+      if (s.error) return onError(s.error);
+      void qc.invalidateQueries({ queryKey: ["pagos-impuestos-recibos"] });
+      onCreada(`Solicitud #${s.id} creada — ${cop(s.monto)} a la cuenta ${rec?.cuenta}. El recibo quedó como soporte.`);
+    },
+    onError: (e) => onError((e as Error).message),
+  });
+
+  const verPdf = (numero: string) => {
+    void fetchAuthBlobUrl(`/api/pagos/impuestos/recibos/${numero}/pdf`).then((u) => { if (u) window.open(u, "_blank"); });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg bg-accent/10 px-3 py-2 text-sm text-ink">
+        <p className="font-bold">Cómo funciona</p>
+        <p className="text-muted">
+          El contador presenta la declaración y manda el recibo (490 de la DIAN o formulario de pago de
+          Hacienda). Pagar un impuesto <b>no es un gasto</b>: baja la deuda que quedó cuando se practicó la
+          retención. Elige el recibo y el sistema pone la cuenta, el valor, la fecha y el PDF como soporte.
+          Después sigue el camino de siempre: aprobar → montar en el banco → confirmar con el comprobante.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold uppercase text-muted">
+          Recibos del contador {q.data ? `· ${q.data.pendientes} sin registrar` : ""}
+        </p>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          <input type="checkbox" checked={verTodos} onChange={(e) => setVerTodos(e.target.checked)} />
+          Ver también los ya registrados
+        </label>
+      </div>
+
+      {q.isLoading && <p className="text-sm text-muted">Leyendo los soportes del contador…</p>}
+      {q.error && <p className="text-sm font-bold text-red-500">{(q.error as Error).message}</p>}
+      {q.data && !recibos.length && (
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted">
+          No hay recibos pendientes. Si el contador mandó uno hoy, bájalo en Contabilidad → Conciliación contador
+          («Bajar del correo»).
+        </p>
+      )}
+
+      <div className="space-y-2">
+        {recibos.map((r) => {
+          const activo = r.numero === elegido;
+          return (
+            <button
+              key={r.numero} type="button"
+              disabled={r.estado !== "pendiente"}
+              onClick={() => setElegido(activo ? null : r.numero)}
+              className={`w-full rounded-lg border p-3 text-left ${
+                activo ? "border-accent bg-accent/10" : "border-border hover:border-accent"
+              } ${r.estado !== "pendiente" ? "opacity-60" : ""}`}
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-bold text-ink">
+                  {r.etiqueta} <span className="font-normal text-muted">· {r.periodo}</span>
+                </p>
+                <p className="text-base font-extrabold text-ink">{cop(r.valor)}</p>
+              </div>
+              <p className="mt-0.5 text-xs text-muted">
+                {r.entidad} · recibo {r.recibo} No. {r.numero}
+                {r.formulario_numero ? ` · paga el formulario ${r.formulario} No. ${r.formulario_numero}` : ""}
+                {" · pagado "}{r.fecha_pago}
+                {r.cuenta ? <> · cuenta <b>{r.cuenta}</b> {CUENTA_IMPUESTO[r.cuenta] ?? ""}</> : null}
+              </p>
+              {r.estado === "registrado" && (
+                <p className="mt-1 text-xs font-bold text-emerald-600">
+                  ✓ Ya está en el libro (asiento #{r.movimiento_id}{r.por_otra_via ? ", registrado desde el extracto u otra vía" : ""})
+                </p>
+              )}
+              {r.estado === "solicitado" && (
+                <p className="mt-1 text-xs font-bold text-sky-600">
+                  Ya tiene la solicitud #{r.solicitud_id} ({r.solicitud_estado})
+                </p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {rec && (
+        <div className="space-y-3 rounded-xl border-2 border-dashed border-border p-4">
+          {rec.declaracion?.tipo === "350" && (
+            <div className="grid gap-2 text-sm sm:grid-cols-4">
+              <Mini label="Declaración 350" valor={`No. ${rec.declaracion.numero}`} />
+              <Mini label="A título de renta" valor={cop(rec.declaracion.renta)} />
+              <Mini label="A título de IVA" valor={cop(rec.declaracion.iva)} />
+              <Mini label="Total declarado" valor={cop(rec.declaracion.total)} />
+            </div>
+          )}
+          {rec.avisos.map((a) => (
+            <p key={a} className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">⚠️ {a}</p>
+          ))}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Campo label="De qué cuenta salió">
+              <select value={medioPagoId} onChange={(e) => setMedioPagoId(e.target.value)} className={inputCls}>
+                {medios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              </select>
+            </Campo>
+            <div className="flex items-end">
+              <button type="button" onClick={() => verPdf(rec.numero)} className="text-sm font-bold text-accent underline">
+                Ver el recibo (PDF)
+              </button>
+            </div>
+          </div>
+          {prevQ.error && <p className="text-sm font-bold text-red-500">{(prevQ.error as Error).message}</p>}
+          {prevQ.data && <AsientoPreview p={prevQ.data} />}
+          <button
+            type="button" onClick={() => crearMut.mutate()}
+            disabled={!prevQ.data?.cuadra || crearMut.isPending}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
+          >
+            {crearMut.isPending ? "Enviando…" : `Solicitar pago de ${cop(rec.valor)}`}
+          </button>
+        </div>
+      )}
+
+      {!!q.data?.sin_pago.length && (
+        <div className="space-y-1 rounded-lg border border-border p-3 text-sm">
+          <p className="text-xs font-bold uppercase text-muted">Declaraciones sin nada que pagar</p>
+          {q.data.sin_pago.map((d) => (
+            <p key={d.numero} className="text-muted">
+              <b className="text-ink">IVA {d.periodo}</b> (formulario 300 No. {d.numero}): generado {cop(d.iva_generado)},
+              descontable {cop(d.iva_descontable)}, retenciones que le practicaron a McKenna {cop(d.retenciones_iva_que_le_practicaron)}
+              {" → "}saldo a favor {cop(d.saldo_a_favor)}. No hay recibo: lo que corresponde es el cierre de IVA en
+              el libro, no un pago.
+            </p>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setPagosBoot({ abrir: true, categoria: "impuestos" })}
+        className="text-sm text-muted underline hover:text-accent"
+      >
+        ¿El recibo no está en la lista? Registrar un impuesto a mano
+      </button>
     </div>
   );
 }

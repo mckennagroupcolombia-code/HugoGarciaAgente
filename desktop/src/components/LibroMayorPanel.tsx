@@ -171,8 +171,11 @@ function TIPO_ORIGEN_LABEL(t: string): string {
 }
 
 const AMBITO_KEY = "mckenna-libro-mayor-ambito";
-const GRUPO_KEY = "mckenna-libro-mayor-grupo";
-const SUB_KEY = "mckenna-libro-mayor-sub";
+// «-v2»: hasta sep-2026 el libro abría en Conciliar y eso quedó guardado en el
+// navegador de todos; con las claves viejas nadie vería el nuevo punto de
+// partida (el PUC con saldos).
+const GRUPO_KEY = "mckenna-libro-mayor-grupo-v2";
+const SUB_KEY = "mckenna-libro-mayor-sub-v2";
 
 type Ambito = "empresa" | "socios";
 
@@ -257,7 +260,7 @@ export default function LibroMayorPanel() {
           <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
           <p className="mt-0.5 text-xs text-muted">
             {ambito === "empresa"
-              ? "Contabilidad de McKenna Group en cuatro etapas: conciliar el banco, registrar, consultar y configurar."
+              ? "Plan de cuentas con saldos, terceros y cada causación. Registrar, conciliar el banco y configurar quedan en las pestañas de al lado."
               : "Contabilidad personal de cada socio, dentro de la de la empresa: extractos propios, cuenta con McKenna, cruces y declaración de renta."}
           </p>
         </div>
@@ -1300,21 +1303,26 @@ interface Grupo {
 }
 
 /**
- * Antes había 10 pestañas planas al mismo nivel (diario, plan de cuentas,
- * terceros, movimientos, cuentas T, balance, asiento manual, informes, créditos,
- * cuenta de socio) y nadie sabía por dónde empezar. Ahora el libro se recorre
- * en el orden en que se trabaja: 1) conciliar el banco, 2) registrar lo que
- * falta, 3) consultar, 4) configurar. Cada etapa agrupa las vistas que ya
- * existían — no se reescribió ninguna, solo se ordenaron.
+ * Antes había 10 pestañas planas al mismo nivel y nadie sabía por dónde
+ * empezar; luego se ordenaron por etapa con Conciliar primero. Pero lo que se
+ * abre a diario es el libro mismo —el PUC con los saldos de cada cuenta, sus
+ * terceros y cada causación—, como lo ve el contador. Así que ese va primero y
+ * la conciliación del banco, que es un trabajo puntual, queda como apartado.
  */
 const GRUPOS: Grupo[] = [
   {
-    id: "conciliar",
+    id: "consultar",
     num: 1,
-    label: "Conciliar",
-    desc: "Banco ↔ libro",
-    icon: "receipt",
-    subs: [{ id: "diario", label: "Diario y conciliación", icon: "receipt", desc: "Extracto, emparejar, clasificar" }],
+    label: "Libro Mayor",
+    desc: "PUC, saldos y terceros",
+    icon: "book",
+    subs: [
+      { id: "mayor", label: "Plan de cuentas y saldos", icon: "book", desc: "Árbol del PUC, terceros y extracto por cuenta" },
+      { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
+      { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
+      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
+      { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
+    ],
   },
   {
     id: "registrar",
@@ -1328,18 +1336,12 @@ const GRUPOS: Grupo[] = [
     ],
   },
   {
-    id: "consultar",
+    id: "conciliar",
     num: 3,
-    label: "Consultar",
-    desc: "Ver y verificar",
-    icon: "search",
-    subs: [
-      { id: "mayor", label: "Libro Mayor", icon: "book", desc: "Árbol del PUC y extracto por cuenta" },
-      { id: "movimientos", label: "Movimientos", icon: "listChecks", desc: "Todos los asientos" },
-      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
-      { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
-      { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
-    ],
+    label: "Conciliar banco",
+    desc: "Extracto ↔ libro, paso a paso",
+    icon: "receipt",
+    subs: [{ id: "diario", label: "Diario y conciliación", icon: "receipt", desc: "Extracto, emparejar, clasificar" }],
   },
   {
     id: "configurar",
@@ -1357,7 +1359,7 @@ const GRUPOS: Grupo[] = [
 
 function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
   for (const g of GRUPOS) if (g.subs.some((x) => x.id === sub)) return g.id;
-  return "conciliar";
+  return "consultar";
 }
 
 function subValida(v: string): v is SubvistaAvanzada {
@@ -1376,10 +1378,10 @@ function VistaEmpresa({
   onBootConsumido?: () => void;
 }) {
   const [sub, setSub] = useState<SubvistaAvanzada>(() =>
-    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "diario"),
+    bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "mayor"),
   );
   const [grupo, setGrupo] = useState<GrupoId>(() =>
-    bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "conciliar"),
+    bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "consultar"),
   );
   const [pendientesSignal, setPendientesSignal] = useState(0);
   const [cargaSignal, setCargaSignal] = useState(0);

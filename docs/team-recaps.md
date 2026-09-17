@@ -1,3 +1,15 @@
+### 2026-09-17 - Pagos de impuestos desde el recibo del contador, y el Libro Mayor abre en el PUC
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Contabilidad → Solicitudes de pago, Libro Mayor)
+- **Qué se implementó:**
+  - **Concepto «🏛️ Impuestos» en Solicitudes de pago.** La categoría existía en el backend pero el formulario simple no la ofrecía. Ahora lista los recibos que manda el contador (490 de la DIAN, formulario de pago de Hacienda) y pone sola la cuenta: renta del 350 → 2365, reteIVA del 350 → 2367, RTICA → 2368, ICA anual → 2412. Pagar un impuesto **no es gasto**: baja la deuda que quedó al practicar la retención. El PDF del recibo queda como soporte y la referencia `dian:490:<n>` es la misma de Conciliación contador; un recibo ya asentado (incluso desde el extracto) no se vuelve a ofrecer.
+  - **Avisos antes de pagar:** cuando el libro tiene causado menos de lo que se paga y cuando el 350 descuenta retención en exceso (renglón 129).
+  - **Correo del contador del 16-sep:** 350 de agosto = renta $299.000 + reteIVA $242.000 (dos recibos 490, $541.000); IVA del cuatrimestre 2 con saldo a favor de $80.000, sin pago.
+  - **Libro Mayor abre en el plan de cuentas con saldos**, no en la conciliación (que pasa a la pestaña 3). Resumen por clase (activo, pasivo, patrimonio, ingresos, gastos, resultado), árbol del PUC con saldo inicial, débitos, créditos y saldo final, **terceros desplegables dentro de cada cuenta**, vista **«Por tercero»** (auxiliar) y extracto de cada causación con su contrapartida. Nuevo `GET /api/contabilidad/cc/auxiliar-terceros` y `cc/arbol?terceros=1`.
+  - **Verificado:** 151 tests (6 nuevos). No se revisó en navegador porque el panel pide login con Google.
+- **Pendiente:** la 2367 y la 2368 están en $0 en el libro aunque se declaran cada período (falta causar reteIVA y RTICA; pedir detalle por tercero a William); agosto tiene $761.138 en 2365 contra $483.000 declarados; los 490 de febrero a junio y los RTICA/ICA de 2026 no están en el libro.
+- **Archivos Modificados:** `app/services/pagos_impuestos.py`, `app/services/contabilidad_mayor.py`, `app/routes.py` (ya incluido en 36ce120), `desktop/src/components/PagosWizardPanel.tsx`, `desktop/src/components/MayorCuentasPanel.tsx`, `desktop/src/components/LibroMayorPanel.tsx`, `tests/test_pagos_impuestos.py`, `tests/test_contabilidad_mayor.py`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-16 - El libro y Alegra pasan al PUC real (Decreto 2650), y el Libro Mayor se puede leer por cuenta
 - **Autor:** Armando García
 - **Tipo de Cambio:** Migración contable + nueva funcionalidad (Contabilidad → Libro Mayor, Solicitudes de pago, Préstamos)

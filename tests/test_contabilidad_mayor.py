@@ -257,3 +257,33 @@ def test_una_cuenta_inexistente_falla_con_mensaje_claro(libro):
         cm.extracto_cuenta(999_999)
     with pytest.raises(ValueError):
         cm.extracto_cuenta(codigo="9999")
+
+
+def test_auxiliar_por_tercero_cuadra_con_el_extracto(libro):
+    cc, cm = libro[0], libro[1]
+    aux = cm.auxiliar_terceros()
+    assert aux["terceros"], "el libro de prueba tiene terceros"
+    for t in aux["terceros"]:
+        if not t["tercero_id"]:
+            continue
+        for c in t["cuentas"]:
+            e = cm.extracto_cuenta(c["cuenta_id"], tercero_id=t["tercero_id"])
+            assert round(e["saldo_final"], 2) == c["saldo_final"]
+
+
+def test_arbol_con_terceros_discrimina_la_cuenta(libro):
+    cm = libro[1]
+    arbol = cm.arbol_cuentas(con_terceros=True)
+
+    def buscar(ns, codigo):
+        for n in ns:
+            if n["codigo"] == codigo:
+                return n
+            h = buscar(n["hijos"], codigo)
+            if h:
+                return h
+        return None
+
+    prov = buscar(arbol["arbol"], "2205")
+    assert prov and prov.get("terceros")
+    assert round(sum(t["saldo_final"] for t in prov["terceros"]), 2) == prov["propio"]["saldo_final"]

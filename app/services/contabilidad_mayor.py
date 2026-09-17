@@ -155,10 +155,107 @@ def _agregados_por_cuenta(
     return out
 
 
+def _agregados_por_cuenta_tercero(
+    con: sqlite3.Connection, desde: str | None, hasta: str | None
+) -> list[dict[str, Any]]:
+    """Lo mismo que `_agregados_por_cuenta`, abierto por tercero.
+
+    El tercero puede venir en la línea o solo en la cabecera del asiento — el
+    mismo criterio que usa `extracto_cuenta`, para que el auxiliar y el
+    extracto digan lo mismo.
+    """
+    where = ["m.estado != 'anulado'"]
+    params: list = []
+    if hasta:
+        where.append("m.fecha <= ?")
+        params.append(hasta)
+    antes = "m.fecha < ?" if desde else "0"
+    durante = "m.fecha >= ?" if desde else "1"
+    sql = f"""
+        SELECT ml.cuenta_id AS cuenta_id,
+               COALESCE(ml.tercero_id, m.tercero_id) AS tercero_id,
+               t.nombre AS tercero_nombre, t.identificacion AS identificacion, t.tipo AS tercero_tipo,
+               COALESCE(SUM(CASE WHEN {antes} THEN ml.debito ELSE 0 END), 0) AS ini_d,
+               COALESCE(SUM(CASE WHEN {antes} THEN ml.credito ELSE 0 END), 0) AS ini_c,
+               COALESCE(SUM(CASE WHEN {durante} THEN ml.debito ELSE 0 END), 0) AS per_d,
+               COALESCE(SUM(CASE WHEN {durante} THEN ml.credito ELSE 0 END), 0) AS per_c,
+               COUNT(CASE WHEN {durante} THEN 1 END) AS n
+          FROM cc_movimiento_lineas ml
+          JOIN cc_movimientos m ON m.id = ml.movimiento_id
+          LEFT JOIN cc_terceros t ON t.id = COALESCE(ml.tercero_id, m.tercero_id)
+         WHERE {" AND ".join(where)}
+         GROUP BY ml.cuenta_id, COALESCE(ml.tercero_id, m.tercero_id)
+    """
+    binds = ([desde] * 5 if desde else []) + params
+    return [dict(r) for r in con.execute(sql, binds)]
+
+
+def _fila_tercero(r: dict[str, Any], naturaleza: str) -> dict[str, Any]:
+    ini = _saldo(naturaleza, r["ini_d"] or 0.0, r["ini_c"] or 0.0)
+    deb, cre = r["per_d"] or 0.0, r["per_c"] or 0.0
+    return {
+        "tercero_id": r["tercero_id"],
+        "nombre": r["tercero_nombre"] or "Sin tercero",
+        "identificacion": r.get("identificacion") or "",
+        "saldo_inicial": round(ini, 2),
+        "debito": round(deb, 2),
+        "credito": round(cre, 2),
+        "saldo_final": round(ini + _saldo(naturaleza, deb, cre), 2),
+        "lineas": int(r["n"] or 0),
+    }
+
+
+def auxiliar_terceros(desde: str | None = None, hasta: str | None = None) -> dict[str, Any]:
+    """El libro visto por tercero: cada tercero con las cuentas en que tiene
+    movimiento o saldo, y su saldo en cada una.
+
+    Es el «auxiliar por tercero» que pide un contador: cuánto se le debe a un
+    proveedor, cuánto se le retuvo, qué le queda por pagar a un socio.
+    """
+    _ensure()
+    with _conn() as con:
+        cuentas = {r["id"]: dict(r) for r in con.execute("SELECT * FROM cc_plan_cuentas")}
+        filas = _agregados_por_cuenta_tercero(con, desde, hasta)
+    por_tercero: dict[Any, dict[str, Any]] = {}
+    for r in filas:
+        c = cuentas.get(r["cuenta_id"])
+        if not c:
+            continue
+        f = _fila_tercero(r, c["naturaleza"])
+        if not f["lineas"] and not f["saldo_inicial"]:
+            continue
+        clave = r["tercero_id"] or 0
+        t = por_tercero.setdefault(clave, {
+            "tercero_id": r["tercero_id"], "nombre": f["nombre"],
+            "identificacion": f["identificacion"], "tipo": r.get("tercero_tipo") or "",
+            "cuentas": [], "debito": 0.0, "credito": 0.0, "lineas": 0,
+        })
+        t["cuentas"].append({
+            "cuenta_id": c["id"], "codigo": c["codigo"], "nombre": c["nombre"],
+            "tipo": c["tipo"], "naturaleza": c["naturaleza"],
+            **{k: f[k] for k in ("saldo_inicial", "debito", "credito", "saldo_final", "lineas")},
+        })
+        t["debito"] = round(t["debito"] + f["debito"], 2)
+        t["credito"] = round(t["credito"] + f["credito"], 2)
+        t["lineas"] += f["lineas"]
+    salida = []
+    for t in por_tercero.values():
+        t["cuentas"].sort(key=lambda x: x["codigo"])
+        # Lo que se le debe (pasivos a su nombre) y lo que debe (activos): es la
+        # cifra que se busca primero al abrir un tercero.
+        t["por_pagar"] = round(sum(x["saldo_final"] for x in t["cuentas"] if x["codigo"][:1] == "2"), 2)
+        t["por_cobrar"] = round(sum(x["saldo_final"] for x in t["cuentas"]
+                                    if x["codigo"][:2] in ("13",)), 2)
+        salida.append(t)
+    salida.sort(key=lambda t: (t["tercero_id"] is None, -abs(t["por_pagar"]), t["nombre"].lower()))
+    return {"desde": desde, "hasta": hasta, "terceros": salida}
+
+
 def arbol_cuentas(
     desde: str | None = None,
     hasta: str | None = None,
     solo_con_movimiento: bool = False,
+    con_terceros: bool = False,
 ) -> dict[str, Any]:
     """El PUC del libro como árbol, con saldo inicial / débito / crédito / saldo
     final en cada nodo.
@@ -176,6 +273,10 @@ def arbol_cuentas(
             ).fetchall()
         ]
         agregados = _agregados_por_cuenta(con, desde, hasta)
+        por_tercero: dict[int, list[dict[str, Any]]] = {}
+        if con_terceros:
+            for r in _agregados_por_cuenta_tercero(con, desde, hasta):
+                por_tercero.setdefault(r["cuenta_id"], []).append(r)
 
     nodos: dict[str, dict[str, Any]] = {}
 
@@ -230,6 +331,14 @@ def arbol_cuentas(
                 "credito": a["credito"],
                 "lineas": int(a["lineas"]),
             }
+        if con_terceros and c["id"] in por_tercero:
+            # Solo lo propio de la cuenta: el tercero de una subcuenta se ve al
+            # abrir la subcuenta, no duplicado en el padre.
+            filas_t = [_fila_tercero(r, c["naturaleza"]) for r in por_tercero[c["id"]]]
+            filas_t = [f for f in filas_t if f["lineas"] or f["saldo_inicial"]]
+            # «Sin tercero» como único renglón no discrimina nada: no se muestra.
+            if not (len(filas_t) == 1 and filas_t[0]["tercero_id"] is None):
+                n["terceros"] = sorted(filas_t, key=lambda f: (f["tercero_id"] is None, -abs(f["saldo_final"])))
 
         # Los ancestros del PUC: sin esto la 529505 no tendría de dónde colgar.
         for largo in _NIVELES:
