@@ -72,7 +72,7 @@ export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
 
 /** Sub-pestaña dentro de Studio visual. La portada es "categorias": la unidad de
  *  trabajo es la categoría de producto, no la biblioteca de imágenes. */
-export type StudioSubvista = "categorias" | "etiquetas" | "disenos" | "recursos";
+export type StudioSubvista = "categorias" | "etiquetas" | "disenos" | "recursos" | "publicaciones";
 
 export type MobileHubTab = "home" | "chat" | "mensajes" | "acciones" | "yo";
 

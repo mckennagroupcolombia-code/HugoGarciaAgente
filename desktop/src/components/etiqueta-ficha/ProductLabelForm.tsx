@@ -33,6 +33,7 @@ import BarcodeBlock from "./BarcodeBlock";
 import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
 import ContactFooter from "./ContactFooter";
 import { desenfocarBlobLocal } from "../../lib/desenfoqueLocal";
+import { CARPETA_PUBLICACIONES_DIGITALES } from "../plantillas-visuales/studioEtiquetasData";
 import { TextStyleProvider, useTextStyleCtx } from "./TextStyleContext";
 import {
   ALTO_FRANJA_FICHA,
@@ -168,11 +169,6 @@ export interface EntradaFormularioEtiqueta {
 /** Ventana de desenfoque por recuadro (la misma de Studio Visual), cargada
  *  aparte para no arrastrar la librería de exportación al chunk de la ficha. */
 const DesenfoquePlantillaModal = lazy(() => import("../plantillas-visuales/DesenfoquePlantillaModal"));
-
-/** Carpeta de la biblioteca donde va la versión desenfocada. Está fuera de
- *  ETIQUETAS STUDIO a propósito: Diseño → Imprimir solo lista esa, así la
- *  etiqueta desenfocada nunca se confunde con la de impresión. */
-const CARPETA_PUBLICACIONES_DIGITALES = "PUBLICACIONES DIGITALES";
 
 export default function ProductLabelForm({
   onVolver,

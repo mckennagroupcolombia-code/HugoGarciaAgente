@@ -29,6 +29,7 @@ import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
+import StudioPublicacionesPanel from "./StudioPublicacionesPanel";
 import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
 import { useAppStore, type StudioSubvista } from "../../stores/app";
 import {
@@ -662,6 +663,7 @@ const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
   { id: "categorias", label: "Categorías" },
   { id: "disenos", label: "Catálogo antiguo" },
   { id: "recursos", label: "Recursos" },
+  { id: "publicaciones", label: "Etiquetas para publicaciones" },
 ];
 
 export default function PlantillasVisualesPanel({
@@ -1519,6 +1521,8 @@ export default function PlantillasVisualesPanel({
           onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
         />
       )}
+
+      {subvista === "publicaciones" && <StudioPublicacionesPanel />}
 
       {subvista === "recursos" && (
         <div>

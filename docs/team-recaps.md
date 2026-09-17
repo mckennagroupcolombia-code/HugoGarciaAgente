@@ -3276,3 +3276,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Tests: `tests/test_meli_mensaje_venta_sku.py` (config, una sola vez por orden, SKU no configurado, fallo y reintento, apagado por entorno).
   - **Requiere `sudo systemctl restart webhook-meli`** para que el webhook cargue el módulo.
 - **Archivos Modificados:** `app/meli_mensaje_venta_sku.py` (nuevo), `app/data/mensajes_venta_sku.json` (nuevo), `webhook_meli.py`, `tests/test_meli_mensaje_venta_sku.py` (nuevo), `docs/agentic/modules/webhook-meli.md`, `docs/team-recaps.md`
+
+### 2026-09-16 - Studio: galería «Etiquetas para publicaciones»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual → nueva pestaña)
+- **Qué se implementó:**
+  - Nueva pestaña **Etiquetas para publicaciones** en Studio (junto a Categorías / Catálogo antiguo / Recursos). Muestra los PNG de `PUBLICACIONES DIGITALES/` (recursivo) agrupados por la subcarpeta de categoría en la que los deja la ficha; lo suelto en la raíz va a "Sin categoría", no se esconde. Buscador, contador, vista previa con descargar y eliminar, y estado vacío que explica cómo se generan (casilla «Desenfoque» de la ficha).
+  - `StudioPublicacionesPanel.tsx` (nuevo) sigue el patrón de `StudioEtiquetasPanel`. `studioEtiquetasData.ts` gana `CARPETA_PUBLICACIONES_DIGITALES`, `useEtiquetasPublicaciones` (clave `["etiquetas-recursos-png", "PUBLICACIONES DIGITALES", "lista"]`, así subir/borrar un PNG la invalida por prefijo) y `categoriaDeRutaEtiqueta` acepta la carpeta raíz como tercer parámetro.
+  - La ficha (`ProductLabelForm`) importa ahora la constante de carpeta desde `studioEtiquetasData` en vez de tener la suya.
+  - `StudioSubvista` (stores/app.ts) admite `"publicaciones"`; la pestaña persiste en localStorage como las demás.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioPublicacionesPanel.tsx` (nuevo), `studioEtiquetasData.ts`, `PlantillasVisualesPanel.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/stores/app.ts`, `docs/team-recaps.md`
