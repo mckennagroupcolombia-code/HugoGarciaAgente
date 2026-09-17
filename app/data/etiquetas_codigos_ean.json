@@ -2578,6 +2578,40 @@
       "bimestre": 3,
       "codigo": "7702320302637",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "5719974186f5",
+      "sku": "C-MANTOSPAR250g",
+      "nombre_producto": "MANI TOSTADO PARTIDO 250g",
+      "numero_producto": 233,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702332502643",
+      "creado_at": "2026-09-16T23:41:01",
+      "actualizado_at": "2026-09-17T00:00:49"
+    },
+    {
+      "id": "65cc2602287e",
+      "sku": "C-MANTOSPAR500g",
+      "nombre_producto": "",
+      "numero_producto": 234,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702345002642",
+      "creado_at": "2026-09-16T23:41:16"
+    },
+    {
+      "id": "0b8aca630e0e",
+      "sku": "C-MANTOSPAR500g",
+      "nombre_producto": "MANI TOSTADO PARTIDO  500g",
+      "numero_producto": 235,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702355002649",
+      "creado_at": "2026-09-17T00:01:25"
     }
   ]
 }

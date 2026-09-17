@@ -1058,6 +1058,20 @@ scripts/reclasificar_gastos_diversos.py  Saca de `5195 Diversos` lo que nunca fu
                                      mueve lo que tiene respuesta inequívoca **por tercero** (`REGLAS`) y
                                      deja lo demás listado: adivinar qué fue una compra suelta en D1 es
                                      como se llenó el cajón. Verifica que el total del balance no cambie.
+app/services/contabilidad_ledger.py → `factura_ya_contada()` (sep-2026): el libro toma ingresos de TRES
+                                     fuentes que se solapan —órdenes de MeLi (`meli_venta`), pedidos de la
+                                     tienda (`web_venta`) y **facturas** (`siigo_venta`), que son las
+                                     facturas de esas mismas órdenes—. Una venta MeLi facturada se contaba
+                                     dos veces, inflando ingreso y Bancos a la vez.
+                                     ⚠️ El daño estaba contenido **por accidente**: el listado de facturas
+                                     se corta a los 28 s (`_REMOTE_BUDGET_S`) y apenas traía un día. Subir
+                                     ese presupuesto habría inflado el ingreso solo, sin tocar nada, y por
+                                     un monto distinto cada vez. La marca la pone el facturador en
+                                     `observations`, con DOS grafías: Alegra escribe «Venta MercadoLibre —
+                                     Pack …» y astroselling, en Siigo, «Venta Mercado Libre #… - Facturado
+                                     desde astroselling». Cubrir una sola deja pasar el histórico del otro.
+                                     Limpieza de lo ya asentado: `scripts/anular_ventas_duplicadas.py`
+                                     (128 asientos, $7.065.505, anulados el 16-sep-2026).
 app/services/iva_ventas.py          **Reconocimiento del IVA de las ventas** (sep-2026). Las ventas se
                                      asentaban por su total contra 4135, pero McKenna es responsable de IVA:
                                      parte de ese total no es ingreso suyo. `reconocer(desde, hasta)` lo

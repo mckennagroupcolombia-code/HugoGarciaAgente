@@ -53,15 +53,65 @@ def _headers() -> dict:
     return h()
 
 
+def _facturas_siigo(desde: str, hasta: str) -> list[dict]:
+    """Facturas de Siigo del rango, con el IVA sacado de los ítems.
+
+    Siigo no da `subtotal` ni un total de impuestos en la cabecera: el IVA vive
+    en `items[].taxes[].value`. Se suma de ahí y la base es el total menos ese
+    IVA — son las cifras de la propia factura, no una tarifa aplicada por fuera.
+    """
+    from app.services.siigo import obtener_facturas_siigo_paginadas
+
+    salida = []
+    for f in obtener_facturas_siigo_paginadas(desde) or []:
+        fecha = str(f.get("date") or "")[:10]
+        if not (desde <= fecha <= hasta):
+            continue
+        total = round(float(f.get("total") or 0), 2)
+        if total <= 0:
+            continue
+        iva = 0.0
+        for it in f.get("items") or []:
+            for t in it.get("taxes") or []:
+                if str(t.get("type") or "").upper() == "IVA":
+                    iva += float(t.get("value") or 0)
+        iva = round(iva, 2)
+        salida.append({
+            "id": str(f.get("id")),
+            "numero": f"{f.get('prefix') or ''}{f.get('number') or ''}".strip() or str(f.get("id")),
+            "fecha": fecha,
+            "base": round(total - iva, 2),
+            "iva": iva,
+            "total": total,
+            "anulada": False,   # en Siigo la anulación es una nota crédito aparte
+            "cliente": str((f.get("customer") or {}).get("identification") or ""),
+            "sistema": "siigo",
+        })
+    return salida
+
+
 def facturas_del_periodo(desde: str, hasta: str, limite_paginas: int = 40) -> list[dict]:
     """Facturas de venta emitidas en el rango, con su base y su IVA.
 
-    Se lee de Alegra y no del caché local de ventas porque ese caché guarda el
-    total de la orden, que es justo el dato que no alcanza: hace falta el
+    Se lee de la facturación, no del caché local de ventas: ese caché guarda el
+    total de la orden, que es justo el dato que no alcanza — hace falta el
     desglose que solo tiene la factura.
+
+    **Dos sistemas.** McKenna migró a Alegra el 2026-09-02; antes de esa fecha
+    las facturas están en Siigo. Consultar solo Alegra devolvía cero IVA para
+    julio y agosto —meses que sí lo tuvieron— y reconocerlo así habría dejado
+    dos períodos sin declarar.
     """
-    headers = _headers()
+    from app.services.alegra import FECHA_CORTE_MIGRACION_ALEGRA
+
     salida: list[dict] = []
+    if desde < FECHA_CORTE_MIGRACION_ALEGRA:
+        salida.extend(_facturas_siigo(desde, min(hasta, FECHA_CORTE_MIGRACION_ALEGRA)))
+    if hasta < FECHA_CORTE_MIGRACION_ALEGRA:
+        return salida
+    desde = max(desde, FECHA_CORTE_MIGRACION_ALEGRA)
+
+    headers = _headers()
     start = 0
     for _ in range(limite_paginas):
         r = requests.get(
@@ -90,6 +140,7 @@ def facturas_del_periodo(desde: str, hasta: str, limite_paginas: int = 40) -> li
                 "total": round(float(f.get("total") or 0), 2),
                 "anulada": anulada,
                 "cliente": ((f.get("client") or {}).get("name") or ""),
+                "sistema": "alegra",
             })
         start += 30
         if len(lote) < 30:

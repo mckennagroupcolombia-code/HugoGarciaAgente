@@ -1,36 +1,5 @@
 {
-  "pendientes": {
-    "2000015068968031": {
-      "pack_id": "2000015068968031",
-      "codigo": "031",
-      "comprador": "Comprador 3603197257",
-      "from_id": "3603197257",
-      "texto": "Por favor & gracias",
-      "msg_id": "01a0acf8a51b767797cb4d4b10e645d2",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-09-16T20:26:16"
-    },
-    "031": {
-      "pack_id": "2000015068968031",
-      "codigo": "031",
-      "comprador": "Comprador 3603197257",
-      "from_id": "3603197257",
-      "texto": "Por favor & gracias",
-      "msg_id": "01a0acf8a51b767797cb4d4b10e645d2",
-      "productos": "",
-      "productos_detalle": [],
-      "total": "",
-      "fecha_compra": "",
-      "envio": "",
-      "sugerencia_ia": "",
-      "timestamp": "2026-09-16T20:26:16"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019e754d912373069309bf55f6e3cd38",
     "019edb4e31547384a0e655c23d98a618",

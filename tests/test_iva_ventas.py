@@ -126,3 +126,49 @@ def test_avisa_cuando_el_libro_y_las_facturas_no_cuadran(libro, monkeypatch):
     r = iva.resumen("2026-09-01", "2026-09-30")
     assert r["ingreso_en_libro"] == 500_000
     assert r["diferencia_libro_vs_facturas"] == 381_000
+
+
+def test_el_iva_de_siigo_sale_de_los_impuestos_del_item(monkeypatch):
+    """Siigo no da subtotal ni total de impuestos: el IVA vive en los ítems.
+
+    Antes del 2026-09-02 las facturas están en Siigo, y leer solo Alegra
+    devolvía cero IVA para julio y agosto — dos meses que sí lo tuvieron.
+    """
+    import app.services.iva_ventas as iva
+
+    monkeypatch.setattr(
+        "app.services.siigo.obtener_facturas_siigo_paginadas",
+        lambda fecha: [
+            {"id": "u1", "prefix": "FV", "number": 10, "date": "2026-08-15", "total": 78710.0,
+             "customer": {"identification": "900"},
+             "items": [{"price": 14214.28, "quantity": 1,
+                        "taxes": [{"type": "IVA", "percentage": 19.0, "value": 2700.71}]},
+                       {"price": 50000.0, "quantity": 1,
+                        "taxes": [{"type": "IVA", "percentage": 19.0, "value": 9500.0}]}]},
+            # Fuera de rango: no debe colarse.
+            {"id": "u2", "prefix": "FV", "number": 11, "date": "2026-07-30", "total": 1000.0,
+             "customer": {}, "items": []},
+        ],
+    )
+    fs = iva._facturas_siigo("2026-08-01", "2026-08-31")
+    assert len(fs) == 1
+    assert fs[0]["iva"] == 12200.71               # 2.700,71 + 9.500
+    assert fs[0]["base"] == round(78710.0 - 12200.71, 2)
+    assert fs[0]["sistema"] == "siigo"
+
+
+def test_un_periodo_anterior_a_la_migracion_no_consulta_alegra(monkeypatch):
+    """Alegra no existe antes del corte: preguntarle devolvería cero y el mes
+    quedaría sin IVA reconocido."""
+    import app.services.iva_ventas as iva
+
+    monkeypatch.setattr(iva, "_facturas_siigo", lambda d, h: [
+        {"id": "u1", "numero": "FV10", "fecha": "2026-08-15", "base": 66509.29,
+         "iva": 12200.71, "total": 78710.0, "anulada": False, "cliente": "900", "sistema": "siigo"},
+    ])
+    def _no_llamar(*a, **k):
+        raise AssertionError("no debería consultar Alegra para un período anterior al corte")
+    monkeypatch.setattr(iva, "_headers", _no_llamar)
+
+    fs = iva.facturas_del_periodo("2026-08-01", "2026-08-31")
+    assert [f["sistema"] for f in fs] == ["siigo"]

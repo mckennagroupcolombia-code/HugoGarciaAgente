@@ -535,6 +535,7 @@ def _facturas_alegra_rapido(
                 break
             for f in batch:
                 f["purchase_order"] = f.get("anotation") or ""
+                f["_origen_sistema"] = "alegra"
             facturas.extend(batch)
             if len(batch) < _ALEGRA_PAGE_SIZE:
                 break
@@ -676,6 +677,39 @@ def _facturas_siigo_rapido(
     return facturas, "; ".join(avisos) if avisos else None
 
 
+# Marcas que deja el facturador en `observations` cuando la factura corresponde
+# a una venta que YA entró al libro por su propio canal.
+# Ojo con las dos grafías: Alegra escribe «Venta MercadoLibre — Pack …» y
+# astroselling, en Siigo, «Venta Mercado Libre #… - Facturado desde astroselling».
+# Cubrir solo una dejaba pasar todo el histórico del otro sistema.
+_OBS_YA_CONTADA = (
+    "venta mercadolibre", "venta mercado libre", "venta meli",
+    "pedido web", "venta pagina web", "venta página web",
+)
+
+
+def factura_ya_contada(f: dict) -> bool:
+    """¿Esta factura es de una venta que el libro ya registró por su canal?
+
+    El libro toma los ingresos de TRES fuentes que se solapan: las órdenes de
+    MeLi (`meli_venta`), los pedidos de la tienda (`web_venta`) y las facturas
+    (`siigo_venta`). Una venta de MeLi facturada aparecía en dos de ellas y se
+    contaba dos veces.
+
+    Hasta sep-2026 el daño estaba contenido **por accidente**: el listado de
+    facturas se corta a los 28 s (`_REMOTE_BUDGET_S`) y apenas alcanzaba a traer
+    un día. Subir ese presupuesto —o que Alegra respondiera más rápido— habría
+    inflado el ingreso solo, sin que nadie tocara nada, y por un monto distinto
+    cada vez. Por eso el filtro va acá y no en el presupuesto de tiempo.
+
+    La marca la pone el propio facturador en `observations`
+    («Venta MercadoLibre — Pack 2000…»), que es dato de la factura y no una
+    heurística sobre el cliente o el monto.
+    """
+    obs = str(f.get("observations") or f.get("observaciones") or "").strip().lower()
+    return any(obs.startswith(m) for m in _OBS_YA_CONTADA)
+
+
 def _ingresos_siigo(
     desde: str,
     hasta: str,
@@ -685,12 +719,17 @@ def _ingresos_siigo(
     dl = deadline if deadline is not None else (time.monotonic() + _REMOTE_BUDGET_S)
     facturas, aviso = _facturas_siigo_rapido(desde, hasta, deadline=dl)
     out = []
+    omitidas = 0
     for f in facturas or []:
         fecha = _fecha10(f.get("date"))
         if not _en_rango(fecha, desde, hasta):
             continue
         monto = float(f.get("total") or 0)
         if monto <= 0:
+            continue
+        if factura_ya_contada(f):
+            # Ya entró como `meli_venta` / `web_venta`: contarla acá la duplica.
+            omitidas += 1
             continue
         num = ""
         name = f.get("name") or {}
@@ -708,13 +747,19 @@ def _ingresos_siigo(
                 tipo="ingreso",
                 fuente="siigo_venta",
                 # Concepto fijo: la UI agrupa por concepto+fecha (sumatoria del día).
-                # El número de factura va en referencia.
-                concepto="Venta Alegra",
+                # El número de factura va en referencia. Se distingue el sistema
+                # de origen porque antes del corte de migración (2026-09-02) la
+                # factura viene de Siigo, y rotular «Venta Alegra» un asiento de
+                # Siigo despista a quien revisa de dónde salió la cifra.
+                concepto=("Venta Alegra" if f.get("_origen_sistema") == "alegra" else "Venta Siigo"),
                 monto=monto,
                 referencia=num or str(f.get("id") or ""),
                 contraparte=cliente,
             )
         )
+    if omitidas:
+        nota = f"{omitidas} facturas omitidas por venir de un canal ya contado (MeLi/web)"
+        aviso = f"{aviso}; {nota}" if aviso else nota
     return out, aviso
 
 

@@ -8463,3 +8463,47 @@ Ejemplos: [8]-[12] múltiples turnos repiten la misma búsqueda y el mismo mensa
 ✅ Reporte enviado a WhatsApp con éxito.
 [auditor_canales 2026-09-16T22:30:08] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (483 min), +57 300 111 2244 (483 min), +57 300 111 2235 (483 min), +57 300 111 2233 (483 min), +57 313 681 0188 (482 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 3f06ef0] Auto-commit: actualizacion diaria 2026-09-16 23:00
+ 64 files changed, 9032 insertions(+), 2398 deletions(-)
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260916T142207.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260916T142454.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260916T142527.png
+ create mode 100644 app/data/reenvio_alertas_banco.json
+ create mode 100644 app/routes_ventas_directas.py
+ create mode 100644 app/services/iva_ventas.py
+ create mode 100644 app/services/ventas_directas.py
+ create mode 100644 app/tools/reenvio_alertas_banco.py
+ create mode 100644 scripts/reconocer_iva_ventas.py
+ create mode 100644 scripts/reenvio_alertas_banco_cron.py
+ create mode 100644 tests/test_alegra_espejo_anular.py
+ create mode 100644 tests/test_iva_ventas.py
+ create mode 100644 tests/test_perfil_tributario_tercero.py
+ create mode 100644 tests/test_reenvio_alertas_banco.py
+ create mode 100644 tests/test_ventas_directas.py
+[2026-09-16 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-16 23:00'
+[auditor_canales 2026-09-16T23:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (513 min), +57 300 111 2244 (513 min), +57 300 111 2235 (513 min), +57 300 111 2233 (513 min), +57 313 681 0188 (512 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T23:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (513 min), +57 300 111 2244 (513 min), +57 300 111 2235 (513 min), +57 300 111 2233 (513 min), +57 313 681 0188 (512 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T23:30:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (543 min), +57 300 111 2244 (543 min), +57 300 111 2235 (543 min), +57 300 111 2233 (543 min), +57 313 681 0188 (542 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T23:30:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (543 min), +57 300 111 2244 (543 min), +57 300 111 2235 (543 min), +57 300 111 2233 (543 min), +57 313 681 0188 (542 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-17T00:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (573 min), +57 300 111 2244 (573 min), +57 300 111 2235 (573 min), +57 300 111 2233 (573 min), +57 313 681 0188 (572 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-17T00:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (573 min), +57 300 111 2244 (573 min), +57 300 111 2235 (573 min), +57 300 111 2233 (573 min), +57 313 681 0188 (572 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-07 → 2026-09-17…
+✅ Token de Mercado Libre refrescado exitosamente.
+   22 creado(s), 483 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-17T00:30:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (603 min), +57 300 111 2244 (603 min), +57 300 111 2235 (603 min), +57 300 111 2233 (603 min), +57 313 681 0188 (602 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-17T00:30:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (603 min), +57 300 111 2244 (603 min), +57 300 111 2235 (603 min), +57 300 111 2233 (603 min), +57 313 681 0188 (602 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-17T01:00:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (633 min), +57 300 111 2244 (633 min), +57 300 111 2235 (633 min), +57 300 111 2233 (633 min), +57 313 681 0188 (632 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-17T01:00:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (633 min), +57 300 111 2244 (633 min), +57 300 111 2235 (633 min), +57 300 111 2233 (633 min), +57 313 681 0188 (632 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-17T01:30:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (663 min), +57 300 111 2244 (663 min), +57 300 111 2235 (663 min), +57 300 111 2233 (663 min), +57 313 681 0188 (662 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-17T01:30:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (663 min), +57 300 111 2244 (663 min), +57 300 111 2235 (663 min), +57 300 111 2233 (663 min), +57 313 681 0188 (662 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-17T02:00:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (693 min), +57 300 111 2244 (693 min), +57 300 111 2235 (693 min), +57 300 111 2233 (693 min), +57 313 681 0188 (692 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-17T02:00:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (693 min), +57 300 111 2244 (693 min), +57 300 111 2235 (693 min), +57 300 111 2233 (693 min), +57 313 681 0188 (692 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
