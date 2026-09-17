@@ -1932,43 +1932,84 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
     },
   });
 
+  /** Texto de avance mientras el servidor crea la publicación. */
+  const [progresoCrear, setProgresoCrear] = useState("");
+
   const crearMut = useMutation({
-    mutationFn: () =>
-      api.post<CrearNuevaResult>(
+    // Cloudflare corta las peticiones largas (~100 s) con HTTP 504, y crear la
+    // publicación (MeLi + IA + fotos) las supera: el servidor la crea en
+    // segundo plano y aquí se consulta el job cada pocos segundos.
+    mutationFn: async () => {
+      setProgresoCrear("");
+      const body = {
+        asincrono: true,
+        sku: sku.trim(),
+        nombre: nombre.trim(),
+        presentacion,
+        precio: parseFloat(precio) || 0,
+        perfil,
+        ficha_tecnica: fichaTecnica,
+        foto_url: fotoUrlNueva || undefined,
+        foto_urls: ordenarFotoUrls(fotosNuevas, fotoUrlNueva),
+        referencia: "citrato_magnesio",
+        category_id: categoryId || undefined,
+        domain_id: domainId || undefined,
+        line: lineMeli || undefined,
+        taxonomia_item_id: taxonomiaItemId || undefined,
+        contenido_generado:
+          generarMut.data && !generarMut.data.error
+            ? {
+                ...generarMut.data,
+                titulo: tituloEditado,
+                descripcion: descEditada,
+                // No dejar que la IA pise la categoría de la referencia
+                atributos: {
+                  ...(generarMut.data.atributos || {}),
+                  ...(categoryId ? { category_id: categoryId } : {}),
+                  ...(domainId ? { domain_id: domainId } : {}),
+                  ...(lineMeli ? { LINE: lineMeli } : {}),
+                },
+              }
+            : undefined,
+      };
+      const inicio = await api.post<{ ok?: boolean; job_id?: string; error?: string }>(
         "/api/meli/compliance/crear-nueva",
-        {
-          sku: sku.trim(),
-          nombre: nombre.trim(),
-          presentacion,
-          precio: parseFloat(precio) || 0,
-          perfil,
-          ficha_tecnica: fichaTecnica,
-          foto_url: fotoUrlNueva || undefined,
-          foto_urls: ordenarFotoUrls(fotosNuevas, fotoUrlNueva),
-          referencia: "citrato_magnesio",
-          category_id: categoryId || undefined,
-          domain_id: domainId || undefined,
-          line: lineMeli || undefined,
-          taxonomia_item_id: taxonomiaItemId || undefined,
-          contenido_generado:
-            generarMut.data && !generarMut.data.error
-              ? {
-                  ...generarMut.data,
-                  titulo: tituloEditado,
-                  descripcion: descEditada,
-                  // No dejar que la IA pise la categoría de la referencia
-                  atributos: {
-                    ...(generarMut.data.atributos || {}),
-                    ...(categoryId ? { category_id: categoryId } : {}),
-                    ...(domainId ? { domain_id: domainId } : {}),
-                    ...(lineMeli ? { LINE: lineMeli } : {}),
-                  },
-                }
-              : undefined,
-        },
-        { timeoutMs: 120_000 },
-      ),
+        body,
+        { timeoutMs: 30_000 },
+      );
+      if (!inicio.job_id) throw new Error(inicio.error || "No se pudo iniciar la publicación");
+
+      const limite = Date.now() + 20 * 60_000;
+      let fallosSeguidos = 0;
+      while (Date.now() < limite) {
+        await new Promise((r) => setTimeout(r, 3000));
+        let est: {
+          status?: string;
+          progreso?: string;
+          segundos?: number;
+          resultado?: CrearNuevaResult;
+          error?: string;
+        };
+        try {
+          est = await api.get(`/api/meli/compliance/crear-nueva/${inicio.job_id}`, { timeoutMs: 20_000 });
+          fallosSeguidos = 0;
+        } catch (e) {
+          // Un corte de red puntual no debe abandonar una publicación en curso.
+          fallosSeguidos += 1;
+          if (fallosSeguidos >= 5) throw e;
+          continue;
+        }
+        const seg = est.segundos ?? 0;
+        setProgresoCrear(`${est.progreso || "Creando en MeLi…"}${seg ? ` · ${seg} s` : ""}`);
+        if (est.status === "done" && est.resultado) return est.resultado;
+        if (est.status === "error") throw new Error(est.error || "Error al crear la publicación");
+      }
+      throw new Error(
+        "La publicación sigue en proceso en el servidor. Revisa el historial en unos minutos antes de volver a intentar, para no duplicarla.",
+      );
+    },
     onSuccess: (data) => {
+      setProgresoCrear("");
       setResultado(data);
       setStep("done");
       void queryClient.invalidateQueries({ queryKey: ["meli-compliance-watchlist"] });
@@ -2593,13 +2634,18 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
             className="w-full rounded-lg bg-teal-600 py-3 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-40"
           >
             {crearMut.isPending
-              ? "Creando en MeLi…"
+              ? progresoCrear || "Creando en MeLi…"
               : !precioValido
                 ? "Ingresa el precio"
                 : !fotoOk
                   ? "Sube al menos una foto"
                   : "✦ Crear publicación en MeLi + seguimiento"}
           </button>
+          {crearMut.isPending && (
+            <p className="text-center text-[11px] text-muted">
+              Puede tardar unos minutos (MeLi, fotos y contenido). No cierres esta pestaña.
+            </p>
+          )}
           {crearMut.isError && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
               {crearMut.error instanceof Error ? crearMut.error.message : "Error"}

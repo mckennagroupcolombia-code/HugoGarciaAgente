@@ -3287,3 +3287,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - `StudioSubvista` (stores/app.ts) admite `"publicaciones"`; la pestaña persiste en localStorage como las demás.
   - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
 - **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioPublicacionesPanel.tsx` (nuevo), `studioEtiquetasData.ts`, `PlantillasVisualesPanel.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/stores/app.ts`, `docs/team-recaps.md`
+
+### 2026-09-17 - Publicaciones → Crear desde cero: HTTP 504 al publicar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Publicaciones → Crear desde cero, MeLi)
+- **Qué se implementó:**
+  - **Causa:** `POST /api/meli/compliance/crear-nueva` hacía todo en una sola petición (búsqueda de activas y pausadas en MeLi, contenido con IA si faltaba, predicción de categoría, subida de fotos, alta del ítem, revisión inicial). Cloudflare corta los POST a ~100 s y devuelve 504; el hilo de Flask seguía, así que la publicación podía crearse igual aunque el panel mostrara error. Mismo problema que ya se había resuelto en el escáner COA (`coa_scan_jobs`).
+  - **Backend:** nuevo `app/services/meli_crear_jobs.py` (job en memoria, TTL 1 h, hilo con `spawn_thread`). El POST acepta `asincrono: true` y responde al instante `{job_id}`; nuevo `GET /api/meli/compliance/crear-nueva/<job_id>` devuelve `status/progreso/segundos/resultado/error`. Sin la bandera el endpoint sigue síncrono (scripts, dry_run).
+  - **Front (`MeliComplianceTab`):** la mutación de crear envía `asincrono: true` y consulta el job cada 3 s (hasta 20 min, tolera 5 fallos de red seguidos). El botón muestra el avance y los segundos; debajo, aviso de que puede tardar y no cerrar la pestaña. Si vence el plazo, el mensaje pide revisar el historial antes de reintentar, para no duplicar.
+  - Pendiente si se repite en «Corregir y republicar»: `republicarMut` usa el mismo tipo de flujo síncrono y puede sufrir el mismo corte.
+  - **Requiere `sudo systemctl restart agente-pro`** (cambio en Python). Front compilado y desplegado.
+- **Archivos Modificados:** `app/services/meli_crear_jobs.py` (nuevo), `app/routes.py`, `desktop/src/components/MeliComplianceTab.tsx`, `docs/team-recaps.md`

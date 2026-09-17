@@ -10907,7 +10907,25 @@ def register_routes(app):
             desde = (request.args.get("desde") or "").strip() or None
             hasta = (request.args.get("hasta") or "").strip() or None
             solo_mov = (request.args.get("solo_movimiento") or "1").strip() not in ("0", "false", "no")
-            return jsonify(arbol_cuentas(desde=desde, hasta=hasta, solo_con_movimiento=solo_mov))
+            terceros = (request.args.get("terceros") or "").strip() in ("1", "true", "si")
+            return jsonify(arbol_cuentas(desde=desde, hasta=hasta, solo_con_movimiento=solo_mov,
+                                         con_terceros=terceros))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/auxiliar-terceros", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/auxiliar-terceros", methods=["GET"])
+    def api_cc_auxiliar_terceros():
+        """Auxiliar por tercero: cada tercero con sus cuentas y saldos."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_mayor import auxiliar_terceros
+
+            return jsonify(auxiliar_terceros(
+                desde=(request.args.get("desde") or "").strip() or None,
+                hasta=(request.args.get("hasta") or "").strip() or None,
+            ))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -11508,6 +11526,59 @@ def register_routes(app):
             from app.services.pagos_wizard import opciones
 
             return jsonify(opciones(categoria))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # Pagos de impuestos: cada recibo que manda el contador (490 DIAN, pago SDH)
+    # con la cuenta que salda, si ya está en el libro y cuánto hay causado.
+    # Ver app/services/pagos_impuestos.py.
+    @app.route("/api/pagos/impuestos/recibos", methods=["GET"])
+    @app.route("/app/api/pagos/impuestos/recibos", methods=["GET"])
+    def api_pagos_impuestos_recibos():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_impuestos import recibos
+
+            return jsonify(recibos(request.args.get("desde") or None))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/impuestos/recibos/<string:numero>/pdf", methods=["GET"])
+    @app.route("/app/api/pagos/impuestos/recibos/<string:numero>/pdf", methods=["GET"])
+    def api_pagos_impuestos_recibo_pdf(numero: str):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        from pathlib import Path as _P
+
+        from flask import send_file
+
+        from app.services.pagos_impuestos import _DOCS, _declaraciones
+
+        d = next((x for x in _declaraciones() if str(x.get("numero_formulario") or "") == numero), None)
+        ruta = (_P(__file__).resolve().parents[1] / str((d or {}).get("archivo") or "")).resolve()
+        if not d or not d.get("archivo") or not str(ruta).startswith(str(_DOCS.resolve())) or not ruta.is_file():
+            return jsonify({"error": "Recibo no encontrado"}), 404
+        return send_file(str(ruta), mimetype="application/pdf", download_name=ruta.name)
+
+    @app.route("/api/pagos/impuestos/solicitar", methods=["POST"])
+    @app.route("/app/api/pagos/impuestos/solicitar", methods=["POST"])
+    def api_pagos_impuestos_solicitar():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_impuestos import crear_solicitud_desde_recibo
+
+            d = request.get_json(silent=True) or {}
+            return jsonify(crear_solicitud_desde_recibo(
+                str(d.get("numero") or ""), int(d.get("medio_pago_id") or 0),
+                created_by=_cc_uid(), fecha=d.get("fecha") or None,
+            ))
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:
@@ -20654,31 +20725,52 @@ def register_routes(app):
         precio = float(body.get("precio", 0) or 0)
         if precio <= 0 and not body.get("dry_run"):
             return jsonify({"error": "Campo 'precio' requerido"}), 400
+        params = dict(
+            sku=body.get("sku", ""),
+            nombre=nombre,
+            presentacion=body.get("presentacion", "250g"),
+            precio=precio,
+            perfil=body.get("perfil", "materia_prima_alimentaria"),
+            ficha_tecnica=body.get("ficha_tecnica", ""),
+            titulo_actual=body.get("titulo_actual", ""),
+            descripcion_actual=body.get("descripcion_actual", ""),
+            item_origen_id=body.get("item_origen_id", ""),
+            referencia=body.get("referencia", "citrato_magnesio"),
+            foto_url=body.get("foto_url") or None,
+            foto_urls=body.get("foto_urls") or None,
+            stock=int(body.get("stock", 10) or 10),
+            contenido_generado=body.get("contenido_generado"),
+            categoria_catalogo=body.get("categoria_catalogo", ""),
+            category_id=body.get("category_id") or "",
+            domain_id=body.get("domain_id") or "",
+            line=body.get("line") or "",
+            taxonomia_item_id=body.get("taxonomia_item_id") or body.get("duplicar_desde_item_id") or "",
+            dry_run=bool(body.get("dry_run", False)),
+        )
+        # asincrono=true: Cloudflare corta los POST largos (~100 s) con 504 y
+        # este flujo (MeLi + IA + fotos) los supera. El panel consulta el job
+        # en GET /crear-nueva/<job_id>. Sin la bandera sigue síncrono (scripts).
+        if body.get("asincrono"):
+            from app.services.meli_crear_jobs import iniciar_job_crear_publicacion
+
+            job_id = iniciar_job_crear_publicacion(params)
+            return jsonify({"ok": True, "status": "processing", "job_id": job_id})
         try:
-            return jsonify(crear_publicacion_nueva_compliance(
-                sku=body.get("sku", ""),
-                nombre=nombre,
-                presentacion=body.get("presentacion", "250g"),
-                precio=precio,
-                perfil=body.get("perfil", "materia_prima_alimentaria"),
-                ficha_tecnica=body.get("ficha_tecnica", ""),
-                titulo_actual=body.get("titulo_actual", ""),
-                descripcion_actual=body.get("descripcion_actual", ""),
-                item_origen_id=body.get("item_origen_id", ""),
-                referencia=body.get("referencia", "citrato_magnesio"),
-                foto_url=body.get("foto_url") or None,
-                foto_urls=body.get("foto_urls") or None,
-                stock=int(body.get("stock", 10) or 10),
-                contenido_generado=body.get("contenido_generado"),
-                categoria_catalogo=body.get("categoria_catalogo", ""),
-                category_id=body.get("category_id") or "",
-                domain_id=body.get("domain_id") or "",
-                line=body.get("line") or "",
-                taxonomia_item_id=body.get("taxonomia_item_id") or body.get("duplicar_desde_item_id") or "",
-                dry_run=bool(body.get("dry_run", False)),
-            ))
+            return jsonify(crear_publicacion_nueva_compliance(**params))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/meli/compliance/crear-nueva/<job_id>", methods=["GET"])
+    @app.route("/api/meli/compliance/crear-nueva/<job_id>", methods=["GET"])
+    def api_meli_compliance_crear_nueva_estado(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.meli_crear_jobs import estado_job_crear_publicacion
+
+        job = estado_job_crear_publicacion(job_id)
+        if not job:
+            return jsonify({"error": "Job no encontrado o vencido"}), 404
+        return jsonify({"ok": True, **job})
 
     @app.route("/app/api/meli/compliance/reemplazos", methods=["GET"])
     @app.route("/api/meli/compliance/reemplazos", methods=["GET"])
