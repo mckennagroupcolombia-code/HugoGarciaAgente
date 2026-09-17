@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template, send_from_directory, make_response
+from flask import request, jsonify, render_template, send_from_directory, make_response, g
 import os
 import json
 import re
@@ -3583,6 +3583,28 @@ def register_routes(app):
         "tauri://localhost",
         "https://tauri.localhost",
     }
+
+    # Cloudflare corta las peticiones de más de ~100 s con 504 pero el hilo de
+    # Flask sigue, así que el operador ve el error y aquí no queda rastro. Este
+    # registro deja en el journal qué ruta fue la lenta (> 30 s) y cuánto tardó.
+    _UMBRAL_PETICION_LENTA_S = 30.0
+
+    @app.before_request
+    def _marcar_inicio_peticion():
+        g._t0_peticion = time.monotonic()
+
+    @app.after_request
+    def _log_peticion_lenta(response):
+        t0 = getattr(g, "_t0_peticion", None)
+        if t0 is not None:
+            dur = time.monotonic() - t0
+            if dur >= _UMBRAL_PETICION_LENTA_S:
+                print(
+                    f"⏱ [PETICION-LENTA] {request.method} {request.path} → {response.status_code} "
+                    f"en {dur:.0f}s (Cloudflare corta a ~100 s)",
+                    flush=True,
+                )
+        return response
 
     @app.after_request
     def _cors_headers(response):
