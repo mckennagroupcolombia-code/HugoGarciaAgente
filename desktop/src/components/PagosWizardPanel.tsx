@@ -19,6 +19,8 @@ import TerceroSelect from "./TerceroSelect";
 type Categoria = {
   id: string; label: string; ayuda: string; icono: string;
   origen: string; requiere_tercero: boolean; elige_cuenta: boolean;
+  /** La categoría trae una cuenta por defecto pero se puede cambiar por la del PUC que toque. */
+  cuenta_libre?: boolean; cuenta_sugerida?: string | null;
   con_productos?: boolean; requiere_factura?: boolean; permite_parcial?: boolean;
 };
 
@@ -269,6 +271,9 @@ function WizardSimple({
   // Tomarlo como base le recorta la retención y después la reclama (pasó con
   // tres quincenas en sep-2026).
   const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">("mckenna");
+  // Cuenta del PUC a la que va el gasto. Vacía = la que propone la categoría (o
+  // la habitual del tercero, que el backend aplica solo).
+  const [cuentaDebito, setCuentaDebito] = useState("");
   const [icaActivo, setIcaActivo] = useState(false);
   const [icaPorMil, setIcaPorMil] = useState("");
   const [gmf, setGmf] = useState(false);
@@ -299,10 +304,22 @@ function WizardSimple({
     setMedioPagoId(String(banco.id));
   }, [medios, medioPagoId]);
 
+  // Catálogo del PUC para el selector de cuenta, y la que propone la categoría.
+  const cuentasPucQ = useQuery<{ cuentas: CuentaGasto[] }>({
+    queryKey: ["pagos-cuentas-gasto"],
+    queryFn: () => api.get("/api/pagos/cuentas-gasto"),
+  });
+  const cuentaSugerida = cat?.cuenta_sugerida ?? "";
+
   const esPublico = concepto === "servicio_publico";
   const llevaRetencion = concepto === "productos" || concepto === "servicios" || concepto === "salario_socio";
   const permiteParcial = Boolean(cat?.permite_parcial);
   const valor = num(monto);
+  useEffect(() => {
+    // Cambiar de concepto invalida la cuenta elegida: 513550 no tiene nada que
+    // hacer en un pago de honorarios, y dejarla puesta la aplicaría en silencio.
+    setCuentaDebito("");
+  }, [concepto]);
   const conceptoTexto = useMemo(() => {
     const quien = proveedor?.nombre ? ` — ${proveedor.nombre}` : "";
     if (esPublico) {
@@ -327,10 +344,11 @@ function WizardSimple({
     referencia: esPublico ? contrato : "",
     retencion_modo: llevaRetencion ? retencionModo : "ninguna",
     ica_por_mil: icaActivo ? num(icaPorMil) : 0,
+    cuenta_debito: cuentaDebito,
     gmf,
     ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, tipoServicio, contrato,
-       llevaRetencion, retencionModo, icaActivo, icaPorMil, gmf, permiteParcial, pagaTodo, pagoAhora]);
+       llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial, pagaTodo, pagoAhora]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
   const listo = valor > 0 && !!medioPagoId && !!fecha && !faltaProveedor;
@@ -431,6 +449,16 @@ function WizardSimple({
         <input type="number" min="0" step="1000" value={monto} onChange={(e) => setMonto(e.target.value)}
                placeholder="0" className={inputCls} />
       </Campo>
+
+      {!esPublico && (
+        <SelectorCuentaPuc
+          cuentas={cuentasPucQ.data?.cuentas ?? []}
+          value={cuentaDebito}
+          sugerida={cuentaSugerida}
+          obligatoria={false}
+          onChange={setCuentaDebito}
+        />
+      )}
 
       <div className="space-y-3 rounded-xl border-2 border-dashed border-border p-4">
         <p className="text-sm font-bold uppercase text-muted">Impuestos y retenciones</p>
@@ -674,10 +702,13 @@ function Wizard({
     queryFn: () => api.get("/api/pagos/puedo-registrar"),
   });
   const puedeDirecto = Boolean(puedeQ.data?.puede);
-  const cuentasQ = useQuery<{ cuentas: Array<{ codigo: string; nombre: string; tipo: string }> }>({
-    queryKey: ["cc-plan-cuentas"],
-    queryFn: () => api.get("/api/contabilidad/cc/plan-cuentas"),
-    enabled: !!cat?.elige_cuenta,
+  // Cuentas del PUC contra las que se puede cargar un pago. Sale de /api/pagos
+  // y no del plan completo: el backend ya excluye lo que no es gasto, costo o
+  // inventario, así que el selector no ofrece Bancos ni Ventas.
+  const cuentasQ = useQuery<{ cuentas: CuentaGasto[] }>({
+    queryKey: ["pagos-cuentas-gasto"],
+    queryFn: () => api.get("/api/pagos/cuentas-gasto"),
+    enabled: !!cat?.elige_cuenta || !!cat?.cuenta_libre,
   });
   const medios = (mediosQ.data?.medios_pago ?? []).filter((m) => m.activo);
 
@@ -890,15 +921,14 @@ function Wizard({
                            onChange={(id) => set("tercero_id", id)} />
           )}
 
-          {cat.elige_cuenta && (
-            <Campo label="Cuenta contable del gasto">
-              <select value={f.cuenta_debito} onChange={(e) => set("cuenta_debito", e.target.value)} className={inputCls}>
-                <option value="">Selecciona…</option>
-                {(cuentasQ.data?.cuentas ?? [])
-                  .filter((c) => c.tipo === "gasto" || c.tipo === "costo")
-                  .map((c) => <option key={c.codigo} value={c.codigo}>{c.codigo} — {c.nombre}</option>)}
-              </select>
-            </Campo>
+          {(cat.elige_cuenta || cat.cuenta_libre) && (
+            <SelectorCuentaPuc
+              cuentas={cuentasQ.data?.cuentas ?? []}
+              value={f.cuenta_debito}
+              sugerida={cat.cuenta_sugerida ?? ""}
+              obligatoria={Boolean(cat.elige_cuenta)}
+              onChange={(v) => set("cuenta_debito", v)}
+            />
           )}
 
           <div className="flex gap-2">
@@ -1898,6 +1928,94 @@ function ListaPlantillas({ onMensaje }: { onMensaje: (m: { tipo: "ok" | "error";
 }
 
 // ─── Piezas ────────────────────────────────────────────────────────────────
+
+interface CuentaGasto {
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  grupo: string;
+  es_subcuenta: boolean;
+}
+
+/** Nombre del grupo del PUC, para agrupar el desplegable por familias. */
+const GRUPO_PUC: Record<string, string> = {
+  "14": "Inventarios",
+  "51": "Gastos de administración",
+  "52": "Gastos de ventas",
+  "53": "Gastos no operacionales",
+  "61": "Costo de ventas",
+  "62": "Compras",
+  "72": "Costos de producción",
+};
+
+/**
+ * Selector de la cuenta del PUC a la que va el gasto.
+ *
+ * Existe porque la categoría del pago no alcanza para clasificar: «prestación de
+ * servicios» traía siempre 5135 Servicios, y la quincena de quien presta
+ * servicios va a 511095 Honorarios — otros. Antes, para llevarla a la cuenta
+ * correcta había que elegir la categoría «Otro», y con eso se perdía la
+ * retención propia de la categoría. Ahora la categoría sigue proponiendo su
+ * cuenta y el operador la cambia cuando corresponde.
+ *
+ * Las subcuentas de 6 dígitos van marcadas: es el nivel al que el contador
+ * espera ver asentado, y es el que Alegra acepta (sus cuentas de 4 dígitos son
+ * agrupadoras).
+ */
+function SelectorCuentaPuc({
+  cuentas,
+  value,
+  sugerida,
+  obligatoria,
+  onChange,
+}: {
+  cuentas: CuentaGasto[];
+  value: string;
+  sugerida: string;
+  obligatoria: boolean;
+  onChange: (v: string) => void;
+}) {
+  const grupos = useMemo(() => {
+    const m = new Map<string, CuentaGasto[]>();
+    for (const c of cuentas) {
+      const g = m.get(c.grupo) ?? [];
+      g.push(c);
+      m.set(c.grupo, g);
+    }
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [cuentas]);
+
+  const actual = value || sugerida;
+  const elegida = cuentas.find((c) => c.codigo === actual);
+
+  return (
+    <Campo label={obligatoria ? "Cuenta contable del gasto" : "Cuenta contable del gasto (PUC)"}>
+      <select value={actual} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+        {!obligatoria && sugerida && (
+          <option value={sugerida}>
+            {sugerida} — la que propone la categoría
+          </option>
+        )}
+        {obligatoria && <option value="">Selecciona…</option>}
+        {grupos.map(([g, cs]) => (
+          <optgroup key={g} label={`${g} · ${GRUPO_PUC[g] ?? "Otras"}`}>
+            {cs.map((c) => (
+              <option key={c.codigo} value={c.codigo}>
+                {c.es_subcuenta ? "   " : ""}{c.codigo} — {c.nombre}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {elegida && !elegida.es_subcuenta && (
+        <p className="mt-1 text-[11px] text-muted">
+          {elegida.codigo} es una cuenta mayor. Si existe una subcuenta de 6 dígitos que
+          encaje, el contador la prefiere — y Alegra solo acepta ese nivel.
+        </p>
+      )}
+    </Campo>
+  );
+}
 
 const inputCls = "mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-base text-ink";
 

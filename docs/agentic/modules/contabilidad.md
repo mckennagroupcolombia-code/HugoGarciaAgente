@@ -20,6 +20,16 @@ bancario.
   `registrar_abono_pasivo_tercero`), `registrar_compra_proveedor`, `registrar_ingreso`,
   `registrar_egreso`, `registrar_prestamo_recibido`/`otorgado` + sus abonos. Comprobantes:
   `guardar_comprobante`/`ruta_comprobante`/`eliminar_comprobante`.
+- `app/services/contabilidad_mayor.py` (sep-2026) — el libro **por cuenta contable**, solo
+  lectura: `arbol_cuentas()` reconstruye la jerarquia del PUC desde el codigo (clase 1 digito →
+  grupo 2 → cuenta 4 → subcuenta 6) con saldo inicial/debitos/creditos/saldo final acumulados en
+  cada nivel, y `extracto_cuenta()` devuelve el estado de cuenta: saldo corrido, **contrapartida**
+  de cada linea (contra que otras cuentas se movio el asiento) y resumen por tercero.
+  `extracto_csv()` exporta lo mismo. PDF en `app/tools/extracto_contable_pdf.py`
+  (`generar_pdf_extracto`, `generar_pdf_balance`). Endpoints: `/api/contabilidad/cc/arbol`,
+  `/api/contabilidad/cc/extracto/<id>` (+ `.pdf`, `.csv`) y `/api/contabilidad/cc/balance.pdf`.
+  Panel: `desktop/src/components/MayorCuentasPanel.tsx`, subvista **Libro Mayor** dentro de la
+  etapa 3 Consultar.
 - `app/services/contabilidad_ledger.py` — `armar_libro()` (solo lectura, YA EXISTIA: agrega
   ventas MeLi/web/Siigo, compras, compras exterior, servicios, impuestos, creditos) +
   `movimientos_manuales_como_libro()` (nuevo: los asientos de arriba, mismo formato de fila,
@@ -132,13 +142,22 @@ socio ↔ empresa → activos digitales (Declarador) → cierre para el contador
 - `movimientos_manuales_como_libro()` solo incluye asientos con una "pata" en una cuenta de
   medio de pago (Caja/Bancos); un asiento de pura reclasificacion interna (sin esa pata) no
   aparece en la vista de Ingresos/Egresos — es normal, no un bug.
+- `arbol_cuentas()` **sintetiza** los niveles del PUC que no existen como cuenta en el libro
+  (hay `529505` pero no `5295`), y los rotula con `_NOMBRES_CLASE`/`_NOMBRES_GRUPO`/
+  `_NOMBRES_CUENTA`. Si el nombre sale como «Cuenta 5295» es que falta ese codigo en el mapa —
+  no que el arbol este mal armado.
+- Un nodo del arbol distingue `propio` (asentado directo en esa cuenta) de los totales
+  (propio + descendientes). En este libro no es teorico: `1110` Bancos y `111010` MercadoPago
+  mueven las dos, y confundirlos esconde los traslados. Un hijo de naturaleza contraria a la del
+  padre (`4175` Devoluciones, debito, dentro de la clase 4 que es credito) **resta** al acumular.
 - El PUC sembrado es simplificado (subset del PUC colombiano real); antes de que el contador lo
   use como referencia final, revisar que los codigos usados no colisionen con su propio plan de
   cuentas en Alegra.
 
 ## Validacion
 
-- `pytest tests/test_smoke.py tests/test_extracto_bancario.py` (no rompe nada existente).
+- `pytest tests/test_smoke.py tests/test_extracto_bancario.py tests/test_contabilidad_mayor.py`
+  (no rompe nada existente; el ultimo cubre arbol, extracto, contrapartida, CSV y PDF).
 - Prueba manual con Flask test client (`app.routes.register_routes`) contra una COPIA de
   `app/data/contabilidad.db` — nunca contra la base real sin `--dry-run` primero.
 - `cd desktop && npm run build` (tsc + vite) antes de dar por buena cualquier cambio de panel.

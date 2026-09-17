@@ -285,6 +285,14 @@ RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar 
 RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
 RECUPERACION_COMPRA_MAX_POR_CORRIDA # Tope de correos por corrida del cron (default 20)
 
+# Copia de abonos Bancolombia a la asesora (app/tools/reenvio_alertas_banco.py + scripts/reenvio_alertas_banco_cron.py, cada 5 min)
+# Solo reenvía "Recibiste …"; OTP, claves y alertas de seguridad NUNCA (llegan al mismo buzón).
+# Clasifica por el snippet, no por el cuerpo: el pie legal de todas las alertas dice "seguridad"/"clave".
+# Dedupe con la etiqueta Gmail «Bancolombia/Reenviado asesora»; corte en app/data/reenvio_alertas_banco.json.
+REENVIO_BANCO_ACTIVO         # 0 = apaga el reenvío sin tocar el crontab
+REENVIO_BANCO_DESTINO        # Destinataria (default 23jenniffergarcia@gmail.com)
+REENVIO_BANCO_INCLUIR_SALIDAS # 1 = también pagos salientes (quincenas, proveedores). Default 0
+
 # Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
 LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
 LLM_BUDGET_TOPE_USD         # Tope duro diario (default 15.0): se bloquean nuevas llamadas LLM
@@ -662,6 +670,32 @@ wizard a propósito: la tarifa de transporte (carga 1%, pasajeros 3,5%) no está
 `retenciones.CONCEPTOS` y la mayoría de transportadoras son autorretenedoras — inventarla le sale
 del bolsillo a alguien.
 
+**Impuestos y retenciones, preguntados antes de solicitar (16-sep-2026).** El wizard simple tiene
+un bloque propio con tres cosas que antes se asumían:
+
+- **¿Quién asume la retención?** `retencion_modo` = `mckenna` (libre de retención, gross-up; es el
+  default de Productos y Servicios) · `beneficiario` (se le descuenta; lo normal con factura) ·
+  `ninguna` (autorretenedor, Régimen SIMPLE o bajo la cuantía). Nació de un error con plata real:
+  el 15-sep se le giró a dos personas la quincena **menos** la retención cuando estaba pactada
+  libre — Gloria $1.200.000 de $1.250.000 y Jenniffer $1.535.040 de $1.599.000. Corregido el
+  16-sep en dos movidas: (a) los asientos 1793 y 1795 se **anularon** y se rehicieron (1872 y 1873)
+  con la retención practicada sobre la **base completa** —Gloria base $1.302.083,33 / ret
+  $52.083,33; Jenniffer base $1.665.625 / ret $66.625— dejando en cada asiento el crédito a Bancos
+  por lo que de verdad salió ese día; (b) las solicitudes complementarias **#14 ($50.000) y #15
+  ($63.960)** giran la diferencia, **sin retención** porque ya está practicada completa. Así el
+  gasto y la base del 350 suman el total y cada asiento cuadra contra su propio movimiento de
+  banco. El espejo viejo en Alegra (comprobante 124) se anuló; los nuevos son el 128 y el 129.
+- **Retención de ICA** (`ica_por_mil` → cuenta **2368**): la tarifa la escribe quien solicita; no se
+  adivina en código porque depende del municipio y la actividad (Bogotá: 9,66 servicios · 11,04
+  comercial · 4,14 industrial). En modo `mckenna` el gross-up considera renta + ICA juntos.
+- **GMF 4x1000** (`gmf` → cuenta **530595**, `GMF_TARIFA = 0.004`): no se le descuenta a nadie —
+  lo cobra el banco sobre lo que sale y es gasto de McKenna, así que el crédito a 1110 es
+  `girado + gmf`.
+
+Las tres quedan guardadas en la solicitud (`retencion_modo`, `retencion_ica`, `ica_por_mil`, `gmf`)
+y `aprobar()` rearma el asiento con **lo que se firmó**, no con las tarifas de hoy. `girado` =
+monto − retención − ICA (el GMF no, ese no es del beneficiario).
+
 **Aprobar no es girar — el ciclo de los dos tokens (15-sep-2026).** En Bancolombia el giro necesita
 dos personas: una monta la transacción en la Sucursal Virtual con su token y otra la aprueba con el
 suyo. Antes eso vivía fuera del sistema y una solicitud «aprobada» podía llevar semanas sin girarse
@@ -717,7 +751,25 @@ soporte del asiento.
 **Tres decisiones:** (a) el asiento se muestra antes de confirmar por los dos
 caminos — firmar un monto sin ver la cuenta es firmar a ciegas; (b) el asiento
 nace al **aprobar**, no al solicitar, así una solicitud rechazada no deja rastro;
-(c) si Alegra falla, el asiento interno igual queda y el espejo se reintenta.
+(c) si Alegra falla, el asiento interno igual queda y el espejo se reintenta. `aprobar()` no
+contabiliza dos veces: la guarda es **tener `movimiento_id`**, no el estado — una solicitud ya
+girada («en_banco», «pagada») pasaba de largo por el control de estado y un segundo clic habría
+duplicado gasto y retención (16-sep-2026).
+
+**La cuenta contable la elige el operador (sep-2026).** La categoría propone una cuenta
+(`cuenta_debito`) pero ya no la impone: las categorías con `cuenta_libre` muestran el selector
+del PUC (`GET /api/pagos/cuentas-gasto`, `pagos_wizard.cuentas_gasto()`), y
+`_validar_cuenta_elegida()` solo acepta gasto, costo o inventario — un pago no se carga contra
+Bancos ni contra Ventas. Nació de un caso real: la quincena de quien presta servicios va a
+**511095** y no al saco de 5135, y antes llevarla ahí obligaba a usar la categoría «Otro», con
+lo que se perdía la retención propia de la categoría.
+
+**El perfil tributario vive en el tercero, no en el pago** (`cc_terceros.retefuente_exento`,
+`ica_por_mil`, `cuenta_gasto_default` — `_migrar_columnas_v5`). A Víctor, Stella, Jenniffer y
+Armando **no se les practica retención de renta pero sí ICA (9,66 por mil → 2368)**, y su gasto
+va a 511095. Guardarlo en la persona y no en cada pago es lo que evita que se olvide: lo que se
+olvida una vez se olvida siempre. `retefuente_exento` anula **solo la renta**; el ICA se sigue
+evaluando aparte, son dos impuestos distintos.
 
 **«Honorarios» y «Prestación de servicios» no son lo mismo** (sep-2026): quien
 presta servicios operativos a McKenna sin ser nómina —calidad, empaque, apoyo—
@@ -825,6 +877,38 @@ app/services/auditor_canales.py + scripts/auditor_canales_cron.py   nivel 3: cad
 - `wa_bot_detect.parece_respuesta_bot` ya no marca como bot los mensajes con "veci": el asesor
   también lo escribe, y ese falso positivo hacía creer que nadie humano atendía el chat.
 
+### R. Ventas directas por WhatsApp (cotizar y facturar desde /app)
+
+```
+/app → Facturación → Cotizar/Facturar   (CotizarFacturarPanel.tsx, wizard de 5 pasos)
+  1 Origen    ⚡ pedido del agente IA (ventas_wa, solo modo activo) → salta a Revisar
+              🪄 chat de WhatsApp (extracción con IA, llm_budget) · ✍️ desde cero · ventas recientes
+  2 Cliente   buscador de contactos Alegra; cédula/NIT obligatoria solo para facturar
+  3 Productos precio sugerido = WEB (decisión 11-sep), MeLi de referencia; IVA por línea; envío sin IVA
+  4 Revisar   base / IVA / total calculados en el backend
+  5 Acción    Cotizar (PDF + cotización en Alegra + WhatsApp) · Facturar (DIAN, doble confirmación)
+
+app/services/ventas_directas.py   SQLite app/data/ventas_directas.db (gitignored)
+                                  borrador → cotizada → facturando → facturada (o anulada)
+app/routes_ventas_directas.py     /api/ventas-directas/*, permiso `cotizar-facturar` o admin
+```
+
+**Por qué (16-sep-2026):** Jenniffer cotizaba en la interfaz de Alegra y el IVA salía dos veces.
+**La lista de precios de Alegra guarda el precio FINAL con IVA** (`precios_canales` y `precios_trm`
+le copian el de MeLi) y cada ítem trae además IVA 19%: la interfaz de Alegra toma ese precio como
+base y le vuelve a sumar el impuesto (LECITINA SOYA 500g: lista $19.800 → sugiere $23.562). Las
+facturas por API no sufren esto porque `crear_factura_venta_alegra` saca el IVA antes
+(`_precio_base_con_impuesto`); `ventas_directas.crear_cotizacion_alegra` hace lo mismo con
+`POST /estimates` y avisa si el total de Alegra difiere más de $5 del de la app. **No cotizar ni
+facturar a mano en Alegra mientras la lista siga con IVA incluido.** Cambiar la lista a precios
+base es la corrección de fondo, pero toca todo lo que lee `price` de Alegra como precio final
+(precios_canales, precios_trm, rentabilidad, picker del panel) — decisión pendiente.
+
+Facturar marca la venta `facturando` **antes** de llamar a Alegra (un segundo clic o una pestaña
+duplicada no emite otra factura) y la devuelve a su estado si Alegra falla. Un pedido IA facturado
+se cierra en `ventas_wa`. Los endpoints viejos `/api/facturacion/cotizar` y `/facturar-directo`
+siguen vivos (el segundo ahora sí pasa `medio_pago`), pero el panel ya no los usa.
+
 ### K. Pagos de mensajería (ex Excel «ENVIOS INTERRA»)
 
 Origen: TKT-2026-1219 — despachos (Jenniffer) llevaba en un Excel aparte un renglón por día con
@@ -913,6 +997,77 @@ app/services/contabilidad_core.py   Libro de partida doble propio: PUC, terceros
                                      balance de comprobación. Plantillas: compra_socio_amazon,
                                      pago_socio, compra_proveedor, ingreso, egreso,
                                      prestamo_recibido/otorgado + sus abonos.
+app/services/puc_colombia.py        **PUC real (Decreto 2650)**, desde sep-2026. El libro nació con
+                                     códigos escritos a ojo y varios significaban otra cosa: `2367` NO es
+                                     «costos y gastos por pagar» (es **IVA retenido**; eso es `2335`),
+                                     `2380` NO es la cuenta de socios (es «Acreedores varios»; socios es
+                                     `2355`), y `236515` NO es rendimientos financieros (es **honorarios**;
+                                     rendimientos es `236535`). `ALIAS` mapea cada código viejo al real y
+                                     `migrar(dry_run)` mueve los asientos. **`_cuenta_id_por_codigo()` resuelve
+                                     por ese alias**, así que los ~60 call-sites que aún dicen `"2380"` siguen
+                                     funcionando — la cuenta vieja no se borra, se desactiva. Ojo con el
+                                     **código reutilizado**: `529505` dejó de ser publicidad (se fue a `523560`)
+                                     y pasó a ser Comisiones (llegó desde `5299`, que en el PUC es
+                                     «Provisiones»); `_orden_migracion()` vacía un código antes de rellenarlo,
+                                     y si se invierte ese orden $105M de publicidad y $52M de comisiones
+                                     terminan revueltos. `cuenta_retencion(concepto)` da la subcuenta de 2365
+                                     por concepto (236525 servicios, 236540 compras…), que es como el
+                                     contador arma el 350.
+                                     ⚠️ **`migrar()` lleva registro** (`cc_puc_alias_aplicados`) de qué alias
+                                     ya corrió, y los salta. No es opcional: después de la primera corrida
+                                     `529505` ya no es publicidad sino Comisiones, y repetir el alias se
+                                     llevaría esos $52M a publicidad. El estado del plan NO permite
+                                     deducirlo (la cuenta queda activa, con otro nombre, idéntica a una sin
+                                     migrar), por eso el hecho se registra en vez de inferirse.
+scripts/reclasificar_gastos_diversos.py  Saca de `5195 Diversos` lo que nunca fue diverso. El
+                                     auto-posteo manda ahí toda compra que no sabe clasificar, y el cajón
+                                     llegó a $3,17M donde el 47% eran fletes y el 40% el registro mercantil.
+                                     Reclasifica **en el sitio** (UPDATE de `cuenta_id`) porque ninguno de
+                                     esos asientos estaba espejado; cuando YA lo está, la corrección va por
+                                     asiento de ajuste (`corregir_prestacion_servicios_sep2026.py`). Solo
+                                     mueve lo que tiene respuesta inequívoca **por tercero** (`REGLAS`) y
+                                     deja lo demás listado: adivinar qué fue una compra suelta en D1 es
+                                     como se llenó el cajón. Verifica que el total del balance no cambie.
+app/services/alegra_puc.py          Puente por CÓDIGO con Alegra, que desde sep-2026 está en el catálogo
+                                     **PUC** (antes NIIF). Al cambiar de catálogo Alegra reasignó TODAS sus
+                                     ids internas, así que el `MAPA_PUC` a mano de `alegra_espejo` quedó
+                                     apuntando a cuentas que ya no existen: `cuenta_alegra()` consulta primero
+                                     `construir_mapa()` y solo cae al diccionario viejo como respaldo.
+                                     El catálogo de Alegra es **parcial** y sus cuentas de 4 dígitos son
+                                     **agrupadoras**: hay que asentar contra la subcuenta, que Alegra a veces
+                                     anida hasta 8 dígitos (1435 → 143505 → **14350501**). El emparejador baja
+                                     al descendiente movible más alto y, si hay más de uno de verdad distinto
+                                     (bajo 4135 cuelgan 413505 y 41350101), **no adivina**: esa elección es
+                                     contable y se escribe a mano en `OVERRIDES`. Lo demás queda en
+                                     `sin_equivalente`, nunca resuelto a una cuenta «parecida».
+                                     ⚠️ **Alegra devuelve 503 en POST que SÍ se ejecutaron** (así se creó 5235
+                                     la primera vez) y también usa 503 cuando falta `code` en modo PUC.
+                                     Ante un 503, releer el catálogo y comprobar — nunca reintentar a ciegas,
+                                     que es como se duplican cuentas del plan. Ver
+                                     `scripts/crear_cuentas_ventas_alegra.py`.
+                                     ⚠️ `cuenta_alegra()` solo cae al `MAPA_PUC` viejo si esa id **todavía
+                                     existe** en Alegra: al cambiar de catálogo las ids se reasignaron, y sin
+                                     ese chequeo el espejo creía tener cuenta para 1435 y 4135 y posteaba
+                                     contra una id muerta en vez de negarse.
+app/services/contabilidad_mayor.py  El libro **discriminado por cuenta contable** (solo lectura).
+                                     `arbol_cuentas()`: la jerarquía del PUC reconstruida desde el
+                                     código (clase → grupo → cuenta → subcuenta) con saldo inicial,
+                                     débitos, créditos y saldo final en CADA nivel; sintetiza los
+                                     niveles que no existen como cuenta (hay 529505 pero no 5295) y
+                                     separa lo `propio` de un nodo de lo acumulado con sus hijos —
+                                     1110 Bancos y 111010 MercadoPago mueven las dos.
+                                     `extracto_cuenta()`: el estado de cuenta — saldo corrido, la
+                                     **contrapartida** de cada línea (contra qué otras cuentas se
+                                     movió ese asiento) y el resumen por tercero, acotable a un
+                                     tercero o extensible a las subcuentas. `extracto_csv()` y
+                                     `app/tools/extracto_contable_pdf.py` lo sacan en CSV y en PDF
+                                     (extracto y balance jerárquico) para el contador.
+                                     Panel: Libro Mayor → 3 Consultar → **Libro Mayor**
+                                     (`MayorCuentasPanel.tsx`): árbol a la izquierda, extracto a la
+                                     derecha, drill-down al asiento completo sin salir de la vista.
+                                     Nació porque el libro tenía los datos pero solo se veían por un
+                                     desplegable plano de 39 cuentas y un balance de una sola lista
+                                     del que no se podía entrar a nada.
 app/services/contabilidad_ledger.py armar_libro() (solo lectura: ventas MeLi/web/Siigo, compras,
                                      compras exterior, servicios, impuestos, créditos) +
                                      movimientos_manuales_como_libro() (los asientos manuales de
@@ -924,6 +1079,15 @@ app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila
                                      (scripts/contabilidad_autopost_cron.py, job
                                      "contabilidad_autopost" en Sistemas → Tareas Programadas) +
                                      backfill manual (scripts/backfill_contabilidad_autopost.py).
+app/services/alegra_espejo.py       Espeja un asiento del Libro Mayor como comprobante contable
+                                     en Alegra (`espejar_movimiento`) y **lo anula allá**
+                                     (`anular_espejo`, `DELETE /api/alegra/espejo/<mov>`, botón en
+                                     Libro Mayor → Movimientos al desplegar el asiento). Anular
+                                     existe porque el contador declara con lo que ve en Alegra: un
+                                     asiento anulado y rehecho dejaba el comprobante viejo allá con
+                                     las cifras malas (16-sep-2026). Solo borra comprobantes que
+                                     este sistema creó (`cc_alegra_espejo`) y se niega mientras el
+                                     asiento siga confirmado, salvo `?forzar=1`.
 app/services/meli_facturacion.py    La factura mensual de MeLi, desglosada por concepto y
                                      traducida al PUC. GET /billing/integration/... — **5 peticiones
                                      por minuto**, el módulo pacea solo y cachea los períodos
@@ -996,7 +1160,7 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
   ├─ Alegra: consulta de solo lectura si ya es contacto, con botón para inscribirlo
   ├─ Reporte mensual al prestamista: lo girado en el mes (capital / interés / retención)
   │    + certificado de estado adjunto. Envío manual, nunca automático tras un pago
-  └─ Pagar cuota → asiento capital(2295/2380) + interés(5305) + retención(2365) + banco
+  └─ Pagar cuota → asiento capital(2195/2355) + interés(530520) + retención(236535) + banco
 
 scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
   ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
@@ -1024,7 +1188,7 @@ McKenna es 25% E.A. en los tres casos. Descartado a propósito el "interés fijo
 capital inicial", que cuesta ~30% E.A. real por el mismo capital promedio.
 
 **Retención:** McKenna es agente retenedor; descuenta el 7% (Art. 395 ET) y lo consigna
-a la DIAN. **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
+a la DIAN, contra **236535 «Rendimientos financieros»** (no 236515, que es honorarios). **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
 la asume McKenna y el costo real sube a 26,95% E.A.
 
 **Documento soporte (DIAN Concepto 000112 int 7 de 2024):** por el **capital** NO se emite
@@ -1111,6 +1275,10 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
+| `/api/contabilidad/cc/arbol` | GET | Bearer | El Libro Mayor como árbol del PUC con saldos por nivel (`solo_movimiento=0` para ver también las cuentas sin usar) — ver `app/services/contabilidad_mayor.py` |
+| `/api/contabilidad/cc/extracto/<id>` | GET | Bearer | Extracto de una cuenta: saldo inicial, cada línea con su contrapartida y saldo corrido, resumen por tercero. `subcuentas=1`, `tercero_id`, `desde`/`hasta`. Añadir `.pdf` o `.csv` para el documento |
+| `/api/contabilidad/cc/balance.pdf` | GET | Bearer | Balance de comprobación jerárquico en PDF, con la sangría por nivel del PUC |
+| `/api/ventas-directas/*` | GET/POST/PUT | Bearer / permiso `cotizar-facturar` | Venta directa WhatsApp: calcular IVA por línea, precio sugerido, borrador, cotizar (PDF + Alegra `/estimates`), facturar (DIAN), anular, pedidos del agente IA — ver `app/services/ventas_directas.py` y Flujo R |
 | `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar; `proveedores` (libro + Alegra), `proveedores/adoptar`, `productos` (catálogo Alegra), `verificar-factura` (multipart, cotejo sin LLM), `solicitudes/<id>/factura` — ver `app/services/pagos_wizard.py`, `pagos_proveedor.py` y Flujo O |
 | `/api/prestamos/*` | GET/POST | Bearer | Préstamos de terceros con cronograma: simular, crear, cuotas, pagar, documento PDF (contrato/certificado), envío al prestamista, contacto Alegra y ticket mensual — ver `app/services/prestamos.py` y Flujo M |
 | `/api/conciliacion/*` | GET/POST | Bearer / permiso `libro-mayor` o `conciliacion-contador` | Cruce declaraciones del contador (350/490 bajados de Gmail) ↔ cuenta 2365: hallazgos con clave estable, decisiones del wizard y TKT — ver `app/services/conciliacion_contador.py` y Flujo J |

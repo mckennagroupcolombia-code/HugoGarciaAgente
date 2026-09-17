@@ -56,7 +56,7 @@ def test_el_flete_va_a_su_cuenta_y_no_al_saco_de_servicios(mods):
 @pytest.mark.parametrize(
     "tipo, cuenta",
     [("luz", "513530"), ("agua", "513525"), ("gas", "513555"),
-     ("internet", "513535"), ("saas", "513560"), ("desconocido", "513595")],
+     ("internet", "513535"), ("saas", "513520"), ("desconocido", "513595")],
 )
 def test_cada_servicio_publico_a_su_cuenta(mods, tipo, cuenta):
     _cc, w, _t, m, _ = mods
@@ -73,7 +73,9 @@ def test_honorarios_calculan_retencion_solos(mods):
                             "medio_pago_id": m["id"], "fecha": "2026-09-10"})
     assert prev["retencion"] == pytest.approx(250_000, abs=1)   # 10% declarante
     assert prev["girado"] == pytest.approx(2_250_000, abs=1)
-    assert any(l["cuenta_codigo"] == "2365" for l in prev["lineas"])
+    # Honorarios acreditan su propia subcuenta del PUC (236515), no la 2365 plana:
+    # es lo que le permite al contador armar el 350 por concepto sin desglosar a mano.
+    assert any(l["cuenta_codigo"] == "236515" for l in prev["lineas"])
     assert prev["cuadra"] is True
 
 
@@ -320,7 +322,7 @@ def test_pago_de_servicios_arma_gasto_retencion_y_banco(mods):
     })
     por_cuenta = {l["cuenta_codigo"]: l for l in prev["lineas"]}
     assert por_cuenta["5135"]["debito"] == 1_250_000
-    assert por_cuenta["2365"]["credito"] == 50_000   # 4% declarante
+    assert por_cuenta["236525"]["credito"] == 50_000  # 4% declarante, a la subcuenta de servicios
     assert por_cuenta["1110"]["credito"] == 1_200_000
     assert prev["cuadra"] is True
 

@@ -173,8 +173,37 @@ def tipos_comprobante(*, refrescar: bool = False) -> tuple[list, str]:
 
 
 def cuenta_alegra(codigo_puc: str) -> str | None:
-    """Cuenta de Alegra para un código del PUC propio."""
-    return MAPA_PUC.get(str(codigo_puc or "").strip())
+    """Cuenta de Alegra para un código del PUC propio.
+
+    Desde que la cuenta de Alegra pasó al catálogo **PUC** (sep-2026), el puente
+    es el código, no una tabla a mano: `alegra_puc.construir_mapa()` empareja por
+    código y las ids salen de Alegra. `MAPA_PUC` queda solo como respaldo para lo
+    que el catálogo de Alegra no trae.
+
+    Esto NO es un detalle cosmético: al cambiar de catálogo, Alegra reasignó
+    todas sus ids internas. Las de `MAPA_PUC` (5297 «Banco 1», 5070…) son del
+    catálogo NIIF y ya no apuntan a lo que decían. Por eso el mapa por código va
+    primero y el diccionario viejo después, y no al revés.
+    """
+    codigo = str(codigo_puc or "").strip()
+    try:
+        from app.services.alegra_puc import catalogo, construir_mapa
+
+        por_codigo = construir_mapa().get("mapa") or {}
+        ids_vivas = {c["id"] for c in catalogo().values()}
+    except Exception:
+        por_codigo, ids_vivas = {}, set()
+    if codigo in por_codigo:
+        return por_codigo[codigo]
+    # Respaldo al mapa viejo SOLO si su id todavía existe en Alegra. Al cambiar
+    # de catálogo NIIF→PUC, Alegra reasignó todas sus ids: `MAPA_PUC["1435"]`
+    # dice "5047", que hoy es otra cuenta o ninguna. Devolverla sin comprobar
+    # hacía que el espejo creyera tener cuenta para 1435 y 5135 —$144M de
+    # inventario— y posteara contra algo equivocado en vez de negarse.
+    viejo = MAPA_PUC.get(codigo)
+    if viejo and (not ids_vivas or viejo in ids_vivas):
+        return viejo
+    return None
 
 
 def cuenta_retencion_alegra(concepto: str, tarifa_pct: float) -> str | None:
@@ -328,8 +357,10 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
             "status": "error",
             "message": (
                 f"Faltan cuentas de Alegra para el PUC {', '.join(sorted(set(faltantes)))}. "
-                "Agrégalas a MAPA_PUC en alegra_espejo.py — postear el comprobante sin esas "
-                "líneas lo dejaría descuadrado."
+                "Revisa `alegra_puc.construir_mapa()['sin_equivalente']`: el catálogo PUC de "
+                "Alegra es parcial (no trae el grupo 52 de ventas, ni 1405, ni 3115) y sus "
+                "cuentas de 4 dígitos son agrupadoras, así que hay que asentar contra la "
+                "subcuenta de 6. Postear el comprobante sin esas líneas lo dejaría descuadrado."
             ),
         }
     if len(entries) < 2:

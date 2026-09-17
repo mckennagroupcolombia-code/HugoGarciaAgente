@@ -11459,6 +11459,12 @@ def register_routes(app):
                 {"id": k, "label": v["label"], "ayuda": v["ayuda"], "icono": v["icono"],
                  "origen": v["origen"], "requiere_tercero": v["requiere_tercero"],
                  "elige_cuenta": v["cuenta_debito"] is None and v["origen"] not in ("servicios", "saldos_por_pagar"),
+                 # Distinto de `elige_cuenta`: la categoría TRAE una cuenta por
+                 # defecto, pero el operador puede cambiarla por la del PUC que
+                 # corresponda (sep-2026). Sin esto, clasificar bien obligaba a
+                 # usar «Otro» y perder la retención propia de la categoría.
+                 "cuenta_libre": bool(v.get("cuenta_libre")),
+                 "cuenta_sugerida": v["cuenta_debito"],
                  "con_productos": bool(v.get("con_productos")),
                  "requiere_factura": bool(v.get("requiere_factura")),
                  "simple": bool(v.get("simple")),
@@ -11466,6 +11472,24 @@ def register_routes(app):
                  "pide_contrato": bool(v.get("pide_contrato"))}
                 for k, v in CATEGORIAS.items()
             ]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/cuentas-gasto", methods=["GET"])
+    @app.route("/app/api/pagos/cuentas-gasto", methods=["GET"])
+    def api_pagos_cuentas_gasto():
+        """Cuentas del PUC contra las que se puede cargar un pago.
+
+        Es lo que permite clasificar de verdad: llevar la quincena de quien
+        presta servicios a 511095 y no al saco de «servicios genéricos».
+        """
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.pagos_wizard import cuentas_gasto
+
+            return jsonify({"cuentas": cuentas_gasto()})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

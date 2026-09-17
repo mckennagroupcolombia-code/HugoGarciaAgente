@@ -127,7 +127,9 @@ def init_db() -> None:
     _migrar_cuentas_v2()
     _migrar_columnas_v3()
     _migrar_columnas_v4()
+    _migrar_columnas_v5()
     _ensure_gastos_personales()
+    _sembrar_puc_real()
     _initialized = True
 
 
@@ -157,6 +159,39 @@ def _migrar_columnas_v4() -> None:
         # en vez de retenerle de más a alguien y tener que devolvérselo.
         if "declarante" not in cols:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN declarante INTEGER NOT NULL DEFAULT 1")
+
+
+def _migrar_columnas_v5() -> None:
+    """cc_terceros: perfil tributario propio de cada tercero (sep-2026).
+
+    Nació de un caso concreto: a Víctor, Stella y Jenniffer se les venía
+    practicando retención de renta del 4% por prestación de servicios, y el
+    contador aclaró que a ellos NO se les practica renta pero SÍ ICA. Hasta
+    ahora eso se decidía por la categoría del pago, igual para todo el mundo, y
+    la única forma de excluir a alguien era acordarse de marcar una casilla en
+    cada pago. Lo que se olvida una vez se olvida siempre: guardarlo en el
+    tercero lo convierte en una propiedad de la persona, no en un descuido
+    posible.
+
+    - `retefuente_exento`: no se le practica retención de RENTA (el ICA se
+      sigue evaluando aparte; son dos impuestos distintos).
+    - `ica_por_mil`: tarifa de ICA que le aplica, en por mil. 0 = no se le
+      retiene ICA.
+    - `cuenta_gasto_default`: la cuenta PUC a la que suele ir su pago (511095
+      para quienes prestan servicios), para que el wizard la traiga puesta.
+    """
+    with _conn() as con:
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_terceros)")}
+        if "retefuente_exento" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN retefuente_exento INTEGER NOT NULL DEFAULT 0"
+            )
+        if "ica_por_mil" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN ica_por_mil REAL NOT NULL DEFAULT 0")
+        if "cuenta_gasto_default" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN cuenta_gasto_default TEXT NOT NULL DEFAULT ''"
+            )
 
 
 def _ensure_gastos_personales() -> None:
@@ -256,6 +291,19 @@ def _migrar_cuentas_v2() -> None:
             )
 
 
+def _sembrar_puc_real() -> None:
+    """Cuentas del Decreto 2650 que el libro usa (`puc_colombia.PUC_MCKENNA`).
+
+    Solo CREA las que falten; no mueve nada. El traslado de lo ya asentado en
+    los códigos viejos lo hace `puc_colombia.migrar()`, que es una operación
+    explícita con `dry_run` — no algo que deba pasar solo al arrancar Flask.
+    """
+    from app.services.puc_colombia import sembrar
+
+    with _conn() as con:
+        sembrar(con)
+
+
 def _ensure() -> None:
     if not _initialized:
         init_db()
@@ -316,6 +364,36 @@ def _sembrar_datos_iniciales() -> None:
 
 
 def _cuenta_id_por_codigo(con: sqlite3.Connection, codigo: str) -> int | None:
+    """Id de la cuenta por código, tolerante a los códigos viejos.
+
+    Hasta sep-2026 el libro usó códigos escritos a ojo (2380 para socios, 2367
+    para costos por pagar, 2295 para préstamos de particulares) que en el
+    Decreto 2650 significan otra cosa. `puc_colombia.migrar()` movió los datos a
+    los códigos reales, pero hay ~60 call-sites repartidos en 10 archivos que
+    todavía piden el código viejo. En vez de renombrarlos todos el mismo día —
+    y arriesgar préstamos, socios y pagos de una sola vez — el código viejo
+    resuelve acá al nuevo vía `puc_colombia.ALIAS`, y los call-sites se limpian
+    de a poco. Si el código existe tal cual, este atajo ni se consulta.
+    """
+    # Activa primero: la cuenta vieja NO se borra al migrar, se desactiva, así
+    # que buscar por código exacto sin filtrar devolvería la fila muerta y el
+    # alias no se consultaría nunca.
+    row = con.execute(
+        "SELECT id FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (codigo,)
+    ).fetchone()
+    if row:
+        return row["id"]
+    from app.services.puc_colombia import resolver
+
+    equivalente = resolver(codigo)
+    if equivalente != codigo:
+        row = con.execute(
+            "SELECT id FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (equivalente,)
+        ).fetchone()
+        if row:
+            return row["id"]
+    # Último recurso: la fila inactiva. Se devuelve en vez de None para que el
+    # error que vea quien llama sea «cuenta inactiva» y no «cuenta_id inválido».
     row = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo=?", (codigo,)).fetchone()
     return row["id"] if row else None
 
@@ -768,6 +846,18 @@ def listar_movimientos(
                  ORDER BY ml.movimiento_id, ml.orden""",
             ids,
         ).fetchall()
+        # Comprobante en Alegra de cada asiento, si el espejo ya corrió alguna
+        # vez (la tabla la crea alegra_espejo, así que puede no existir).
+        espejos: dict[int, str] = {}
+        try:
+            espejos = {
+                r["movimiento_id"]: r["alegra_journal_id"]
+                for r in con.execute(
+                    f"SELECT movimiento_id, alegra_journal_id FROM cc_alegra_espejo"
+                    f" WHERE movimiento_id IN ({placeholders})", ids)
+            }
+        except sqlite3.OperationalError:
+            pass
         terceros_ids = {m["tercero_id"] for m in movs if m["tercero_id"]}
         terceros_map: dict[int, dict] = {}
         if terceros_ids:
@@ -784,6 +874,7 @@ def listar_movimientos(
         m["total_debito"] = round(sum(x["debito"] for x in ls), 2)
         m["total_credito"] = round(sum(x["credito"] for x in ls), 2)
         m["tercero"] = terceros_map.get(m["tercero_id"]) if m["tercero_id"] else None
+        m["alegra_journal_id"] = espejos.get(m["id"], "")
         out.append(m)
     return out
 

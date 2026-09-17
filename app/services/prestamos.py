@@ -791,10 +791,18 @@ def registrar_pago_cuota(
         ).fetchone()["cuenta_por_pagar_id"] or cc._cuenta_id_por_codigo(
             con, _cuenta_pasivo_codigo(tercero)
         )
-        cuenta_gasto_id = cc._cuenta_id_por_codigo(con, "5305")
-        cuenta_ret_id = cc._cuenta_id_por_codigo(con, "2365")
+        # PUC real (sep-2026): el interés de un mutuo es 530520 «Intereses»,
+        # subcuenta de 5305 Financieros, y la retención del 7% es 236535
+        # «Rendimientos financieros». Ojo: 236515 NO es rendimientos — es
+        # honorarios; llevarla ahí le daña el renglón del 350 al contador.
+        from app.services import puc_colombia as _puc
+
+        cuenta_gasto_id = cc._cuenta_id_por_codigo(con, "530520")
+        cuenta_ret_id = cc._cuenta_id_por_codigo(
+            con, _puc.cuenta_retencion("rendimientos_financieros")
+        )
     if not cuenta_pasivo_id or not cuenta_gasto_id:
-        raise ValueError("Faltan cuentas en el plan (pasivo del préstamo o 5305 gastos financieros)")
+        raise ValueError("Faltan cuentas en el plan (pasivo del préstamo o 530520 intereses)")
 
     capital = round(float(cuota["abono_capital"]), 2)
     interes_bruto = round(float(cuota["interes_bruto"]), 2)
@@ -803,7 +811,7 @@ def registrar_pago_cuota(
     gasto_financiero = round(interes_bruto + (retencion if prestamo["gross_up"] else 0), 2)
 
     if retencion > 0 and not cuenta_ret_id:
-        raise ValueError("Falta la cuenta 2365 (Retención en la fuente por pagar) en el plan")
+        raise ValueError("Falta la cuenta 236535 (Retención — rendimientos financieros) en el plan")
 
     nombre = tercero.get("nombre") or "prestamista"
     lineas = [
@@ -1703,7 +1711,11 @@ def resumen_retenciones_mes(anio: int, mes: int) -> dict:
                   FROM cc_movimiento_lineas l
                   JOIN cc_movimientos m ON m.id = l.movimiento_id
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
-                 WHERE c.codigo = '2365'
+                 -- 2365 y sus subcuentas por concepto (236525, 236535, 236540…):
+                 -- este es el control contra el que se compara el detalle del 350,
+                 -- y mirar solo la cuenta plana lo dejaría en cero desde que la
+                 -- retención se desglosa (migración al PUC real, sep-2026).
+                 WHERE c.codigo LIKE '2365%'
                    AND m.estado <> 'anulado'
                    AND m.fecha BETWEEN ? AND ?
                 """,

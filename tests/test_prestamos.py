@@ -207,8 +207,8 @@ def test_pago_de_cuota_separa_capital_interes_y_retencion(mods):
     mov = next(m for m in cc.listar_movimientos(limit=50) if m["referencia"] == "TRF-1")
     por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
     assert por_cuenta["2295"]["debito"] == pytest.approx(250_000, abs=1)
-    assert por_cuenta["5305"]["debito"] == pytest.approx(187_693, abs=1)   # gasto = interés bruto
-    assert por_cuenta["2365"]["credito"] == pytest.approx(13_138, abs=1)   # deuda con la DIAN
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693, abs=1)  # 5305/530520 Intereses
+    assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)  # 2365/236535 Rendimientos financieros
     assert por_cuenta["1110"]["credito"] == pytest.approx(424_554, abs=1)  # lo que sale al banco
     assert cc.balance_comprobacion()["cuadra"]
 
@@ -221,9 +221,9 @@ def test_gross_up_lleva_la_retencion_al_gasto_financiero(mods):
     pr.registrar_pago_cuota(p["id"], 1, {"referencia": "GU-1"})
     mov = next(m for m in cc.listar_movimientos(limit=50) if m["referencia"] == "GU-1")
     por_cuenta = {l["cuenta_codigo"]: l for l in mov["lineas"]}
-    assert por_cuenta["5305"]["debito"] == pytest.approx(187_693 + 13_138, abs=2)
+    assert por_cuenta["530520"]["debito"] == pytest.approx(187_693 + 13_138, abs=2)
     assert por_cuenta["1110"]["credito"] == pytest.approx(437_693, abs=2)
-    assert por_cuenta["2365"]["credito"] == pytest.approx(13_138, abs=1)
+    assert por_cuenta["236535"]["credito"] == pytest.approx(13_138, abs=1)
     assert cc.balance_comprobacion()["cuadra"]
 
 
@@ -250,8 +250,8 @@ def test_pagar_todas_las_cuotas_cierra_el_prestamo_y_el_pasivo(mods):
     assert balance["cuadra"]
     saldos = {c["codigo"]: c["saldo_final"] for c in balance["cuentas"]}
     assert saldos["2295"] == pytest.approx(0, abs=1)  # pasivo extinguido
-    assert saldos["5305"] == pytest.approx(2_796_620, abs=2)  # gasto = interés bruto total
-    assert saldos["2365"] == pytest.approx(195_763, abs=2)  # pendiente de girar a la DIAN
+    assert saldos["530520"] == pytest.approx(2_796_620, abs=2)  # gasto = interés bruto total
+    assert saldos["236535"] == pytest.approx(195_763, abs=2)  # pendiente de girar a la DIAN
 
 
 def test_cuotas_del_mes_reune_todos_los_prestamos_vigentes(mods):

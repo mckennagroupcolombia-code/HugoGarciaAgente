@@ -82,6 +82,7 @@ CATEGORIAS: dict[str, dict] = {
     # cinco pasos. El asiento igual se ve antes de solicitar — lo que se quita
     # es el recorrido, no el control de lo que se contabiliza.
     "productos": {
+        "cuenta_libre": True,
         "label": "Productos",
         "ayuda": "Mercancía comprada a un proveedor. Va a inventario (1435).",
         "cuenta_debito": "1435",
@@ -92,6 +93,7 @@ CATEGORIAS: dict[str, dict] = {
         "simple": True,
     },
     "servicios": {
+        "cuenta_libre": True,
         "label": "Servicios",
         "ayuda": "Servicios prestados a McKenna por un tercero (no servicios públicos).",
         "cuenta_debito": "5135",
@@ -107,6 +109,7 @@ CATEGORIAS: dict[str, dict] = {
     # factura/cotización cotejada contra lo pedido antes de enviar. `con_productos` es lo que
     # lo activa en el panel; `requiere_factura` obliga a adjuntar y cotejar el documento.
     "compra_proveedor": {
+        "cuenta_libre": True,
         "label": "Compra a proveedor",
         "ayuda": "Pagar una compra de productos a un proveedor: se eligen los productos con su SKU y se coteja la factura o cotización.",
         "cuenta_debito": "1435",
@@ -128,6 +131,7 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_factura": True,
     },
     "flete_transporte": {
+        "cuenta_libre": True,
         "label": "Flete o transporte",
         "ayuda": "Interrapidísimo, guías, acarreos, envíos. Va a gasto, no baja ninguna deuda previa.",
         "cuenta_debito": "513550",
@@ -154,10 +158,11 @@ CATEGORIAS: dict[str, dict] = {
             "agua": "513525", "acueducto": "513525",
             "gas": "513555",
             "internet": "513535", "telefono": "513535",
-            "saas": "513560",
+            "saas": "513520",
         },
     },
     "honorarios": {
+        "cuenta_libre": True,
         "label": "Honorarios",
         "ayuda": "Contador, abogado, asesorías. Lleva retención si supera la cuantía mínima.",
         "cuenta_debito": "5110",
@@ -168,6 +173,7 @@ CATEGORIAS: dict[str, dict] = {
         "permite_parcial": True,
     },
     "prestacion_servicios": {
+        "cuenta_libre": True,
         "label": "Prestación de servicios",
         "ayuda": (
             "Personas que le prestan servicios a McKenna sin ser nómina: calidad, "
@@ -182,6 +188,7 @@ CATEGORIAS: dict[str, dict] = {
         "permite_parcial": True,
     },
     "salario_socio": {
+        "cuenta_libre": True,
         "label": "Salario de socio",
         "ayuda": (
             "Lo que Armando o Cynthia cobran por su trabajo en McKenna. No es nómina: "
@@ -211,6 +218,7 @@ CATEGORIAS: dict[str, dict] = {
         "simple": True,
     },
     "arrendamiento": {
+        "cuenta_libre": True,
         "label": "Arrendamiento",
         "ayuda": "Oficina, bodega, equipos.",
         "cuenta_debito": "5120",
@@ -219,6 +227,7 @@ CATEGORIAS: dict[str, dict] = {
         "icono": "🏢",
     },
     "nomina": {
+        "cuenta_libre": True,
         "label": "Nómina (contrato laboral)",
         "ayuda": (
             "Sueldos de personal con contrato laboral. ⚠️ McKenna NO tiene trabajadores "
@@ -242,7 +251,7 @@ CATEGORIAS: dict[str, dict] = {
     "reintegro_socio": {
         "label": "Reintegro a socio",
         "ayuda": "Devuelve al socio lo que puso con su tarjeta personal.",
-        "cuenta_debito": "2380",
+        "cuenta_debito": "2355",
         "origen": "saldos_socios",
         "requiere_tercero": True,
         "icono": "💳",
@@ -256,6 +265,7 @@ CATEGORIAS: dict[str, dict] = {
         "icono": "🏛️",
     },
     "seguros": {
+        "cuenta_libre": True,
         "label": "Seguros",
         "ayuda": "Pólizas de vida, vehículos, incendios.",
         "cuenta_debito": "5130",
@@ -264,6 +274,7 @@ CATEGORIAS: dict[str, dict] = {
         "icono": "🛡️",
     },
     "mantenimiento": {
+        "cuenta_libre": True,
         "label": "Mantenimiento y reparaciones",
         "ayuda": "Arreglos de equipos, locativos.",
         "cuenta_debito": "5145",
@@ -553,6 +564,65 @@ def _cuenta_servicio(tipo_servicio: str) -> str:
     return mapa.get(str(tipo_servicio or "").strip().lower(), "513595")
 
 
+# Clases del PUC contra las que tiene sentido cargar un pago: gastos (5),
+# costos (6, 7) e inventario (14). Cargar un pago contra Bancos o contra Ventas
+# no es una preferencia discutible, es un asiento mal hecho.
+_CLASES_CARGABLES = ("14", "5", "6", "7")
+
+
+def cuentas_gasto() -> list[dict]:
+    """Cuentas del PUC contra las que se puede cargar un pago, para el selector.
+
+    Devuelve solo cuentas activas y de movimiento, ordenadas por código, con el
+    grupo al que pertenecen para poder agruparlas en el panel. Es lo que permite
+    que el operador clasifique de verdad (511095 y no «servicios genéricos»),
+    que es de donde salen los renglones del estado de resultados.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    salida = []
+    for c in cc.listar_plan_cuentas(solo_activas=True):
+        codigo = str(c["codigo"])
+        if not c["es_movimiento"]:
+            continue
+        if not (codigo.startswith("14") or codigo[:1] in ("5", "6", "7")):
+            continue
+        salida.append({
+            "codigo": codigo,
+            "nombre": c["nombre"],
+            "tipo": c["tipo"],
+            "grupo": codigo[:2],
+            # Una subcuenta de 6 dígitos es la que el contador espera ver usada;
+            # la de 4 queda como agrupadora aunque técnicamente admita movimiento.
+            "es_subcuenta": len(codigo) >= 6,
+        })
+    salida.sort(key=lambda x: x["codigo"])
+    return salida
+
+
+def _validar_cuenta_elegida(codigo: str) -> str:
+    """La cuenta que eligió el operador, o un error que dice por qué no sirve."""
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    codigo = str(codigo or "").strip()
+    with cc._conn() as con:
+        fila = con.execute(
+            "SELECT * FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (codigo,)
+        ).fetchone()
+    if not fila:
+        raise ValueError(f"La cuenta {codigo} no existe o está inactiva en el plan")
+    if not fila["es_movimiento"]:
+        raise ValueError(f"{codigo} {fila['nombre']} es agrupadora: elige una subcuenta")
+    if not (codigo.startswith("14") or codigo[:1] in ("5", "6", "7")):
+        raise ValueError(
+            f"{codigo} {fila['nombre']} no es una cuenta de gasto, costo o inventario: "
+            "un pago no se carga contra esa cuenta"
+        )
+    return codigo
+
+
 def previsualizar(payload: dict) -> dict:
     """Arma el asiento que se crearía, **sin guardarlo**.
 
@@ -562,6 +632,8 @@ def previsualizar(payload: dict) -> dict:
     """
     _ensure()
     import app.services.contabilidad_core as cc
+
+    from app.services import puc_colombia as _puc
 
     categoria = str(payload.get("categoria") or "").strip()
     cat = CATEGORIAS.get(categoria)
@@ -595,17 +667,35 @@ def previsualizar(payload: dict) -> dict:
         cuenta_debito = _cuenta_servicio(payload.get("tipo_servicio"))
     if not cuenta_debito:
         cuenta_debito = str(payload.get("cuenta_debito") or "").strip()
+    elif cat.get("cuenta_libre"):
+        # El operador puede llevar el gasto a la cuenta PUC que corresponda en
+        # vez de aceptar la de la categoría (sep-2026). La categoría trae un
+        # default razonable, no una camisa de fuerza: «prestación de servicios»
+        # cae en 5135 por defecto, pero la de estas personas va a 511095, y
+        # antes eso obligaba a elegir «Otro» y perder la retención de la
+        # categoría. `_validar_cuenta_elegida` impide que la elección se salga
+        # de gastos/costos — un pago no se carga contra Bancos ni contra Ventas.
+        elegida = str(payload.get("cuenta_debito") or "").strip()
+        if not elegida:
+            # Sin elección explícita, manda la cuenta habitual del tercero si la
+            # tiene. Es lo que hace que «la quincena de Víctor va a 511095» sea
+            # una propiedad de Víctor y no algo que alguien deba acordarse de
+            # elegir cada quincena.
+            t_pre = cc.obtener_tercero(tercero_id) if tercero_id else None
+            elegida = str((t_pre or {}).get("cuenta_gasto_default") or "").strip()
+        if elegida and elegida != cuenta_debito:
+            cuenta_debito = _validar_cuenta_elegida(elegida)
     if categoria == "saldo_por_pagar":
         # La cuenta la decide el tercero, no el operador: un saldo con un socio
         # vive en 2380 y con cualquier otro prestador en 2367. Dejarlo a mano
         # invitaba a bajar la cuenta equivocada y descuadrar las dos.
         tid = int(payload.get("tercero_id") or 0)
         t_tmp = cc.obtener_tercero(tid) if tid else None
-        cuenta_debito = "2380" if (t_tmp or {}).get("tipo") == "socio" else "2367"
+        cuenta_debito = "2355" if (t_tmp or {}).get("tipo") == "socio" else "2335"
     if not cuenta_debito and categoria == "cuota_prestamo":
         # La arma el módulo de préstamos más abajo, con las cuatro líneas
         # reales; esta es solo la que encabeza el asiento.
-        cuenta_debito = "2295"
+        cuenta_debito = "2195"
     if not cuenta_debito:
         raise ValueError("Falta elegir la cuenta contable del gasto")
 
@@ -647,13 +737,27 @@ def previsualizar(payload: dict) -> dict:
         modo = "beneficiario" if modo == "mckenna" else modo   # con factura, el total manda
     valor_es_neto = modo == "mckenna"
 
+    # ICA: lo que mande el pago; si no, la tarifa del tercero. Que la tarifa
+    # viva en el tercero es lo que evita que se olvide en el próximo pago.
     ica_por_mil = round(float(payload.get("ica_por_mil") or 0), 4)
+    if ica_por_mil <= 0 and tercero:
+        ica_por_mil = round(float(tercero.get("ica_por_mil") or 0), 4)
     t_ica = ica_por_mil / 1000 if ica_por_mil > 0 else 0.0
     cobra_gmf = bool(payload.get("gmf"))
 
     retencion, retencion_ica, ret_info = 0.0, 0.0, None
     concepto_ret = cat.get("concepto_retencion")
     base_ret = base_sin_iva if items else monto
+
+    if tercero and int(tercero.get("retefuente_exento") or 0) and modo != "ninguna":
+        # Exento de retención de RENTA, no de ICA: son dos impuestos distintos y
+        # abajo el ICA se sigue calculando. Por eso no se toca `modo` — se anula
+        # solo el concepto de renta.
+        concepto_ret = None
+        ret_info = {"retencion": 0, "motivo": (
+            f"A {tercero.get('nombre')} no se le practica retención en la fuente de renta "
+            "(marcado como exento en su ficha de tercero)."
+        )}
 
     if tercero and int(tercero.get("regimen_simple") or 0) and modo != "ninguna":
         # Art. 911 ET: a un contribuyente del SIMPLE no se le practica retención.
@@ -693,7 +797,11 @@ def previsualizar(payload: dict) -> dict:
 
     with cc._conn() as con:
         id_debito = cc._cuenta_id_por_codigo(con, cuenta_debito)
-        id_retencion = cc._cuenta_id_por_codigo(con, "2365") if retencion > 0 else None
+        # La retención va a su subcuenta por concepto (236525 servicios,
+        # 236515 honorarios, 236540 compras…). El contador arma el 350 por
+        # concepto; con todo en 2365 plana tiene que desglosarlo a mano.
+        cod_retencion = _puc.cuenta_retencion(concepto_ret) if concepto_ret else "236595"
+        id_retencion = cc._cuenta_id_por_codigo(con, cod_retencion) if retencion > 0 else None
         id_ica = cc._cuenta_id_por_codigo(con, "2368") if retencion_ica > 0 else None
         id_gmf = cc._cuenta_id_por_codigo(con, "530595") if cobra_gmf else None
     if not id_debito:
@@ -727,7 +835,7 @@ def previsualizar(payload: dict) -> dict:
         saldo_pendiente = round(girado - pagado_ahora, 2)
         if saldo_pendiente > 0.01:
             # Socio → 2380; cualquier otro prestador → 2367 costos y gastos por pagar.
-            cuenta_saldo = "2380" if (tercero or {}).get("tipo") == "socio" else "2367"
+            cuenta_saldo = "2355" if (tercero or {}).get("tipo") == "socio" else "2335"
         else:
             saldo_pendiente = 0.0
 
@@ -741,7 +849,7 @@ def previsualizar(payload: dict) -> dict:
     lineas_cuota = _lineas_cuota_prestamo(payload, cc, medio, tercero_id, nombre_tercero)
     if lineas_cuota is not None:
         lineas = lineas_cuota
-        retencion = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "2365"), 2)
+        retencion = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"].startswith("2365")), 2)
         girado = round(sum(l["credito"] for l in lineas if l["cuenta_codigo"] == "1110"), 2)
         monto = round(sum(l["debito"] for l in lineas), 2)
         retencion_ica, gmf = 0.0, 0.0
@@ -757,7 +865,7 @@ def previsualizar(payload: dict) -> dict:
     if lineas_cuota is None:
         if retencion > 0:
             lineas.append({
-                "cuenta_codigo": "2365", "cuenta_id": id_retencion,
+                "cuenta_codigo": cod_retencion, "cuenta_id": id_retencion,
                 "debito": 0, "credito": retencion, "tercero_id": tercero_id,
                 "descripcion": f"Retención {concepto_ret} {(ret_info or {}).get('tarifa_pct')}% — {nombre_tercero}",
             })
@@ -848,24 +956,30 @@ def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_te
     if not cuota:
         return None
 
-    codigo_pasivo = "2380" if (prestamo.get("tercero") or {}).get("tipo") == "socio" else "2295"
+    codigo_pasivo = "2355" if (prestamo.get("tercero") or {}).get("tipo") == "socio" else "2195"
     gasto = cuota["interes_bruto"] + (cuota["retencion"] if prestamo.get("gross_up") else 0)
     with cc._conn() as con:
         id_pasivo = cc._cuenta_id_por_codigo(con, codigo_pasivo)
-        id_gasto = cc._cuenta_id_por_codigo(con, "5305")
-        id_ret = cc._cuenta_id_por_codigo(con, "2365")
+        # Mismas cuentas PUC que usa prestamos.registrar_pago_cuota: si la
+        # previsualización dijera 5305/2365 y el asiento quedara en 530520/236535,
+        # el operador estaría aprobando algo distinto de lo que ve.
+        from app.services import puc_colombia as _puc
+
+        id_gasto = cc._cuenta_id_por_codigo(con, "530520")
+        cod_ret = _puc.cuenta_retencion("rendimientos_financieros")
+        id_ret = cc._cuenta_id_por_codigo(con, cod_ret)
     n, total = cuota["numero"], prestamo["plazo_meses"]
     lineas = [
         {"cuenta_codigo": codigo_pasivo, "cuenta_id": id_pasivo,
          "debito": cuota["abono_capital"], "credito": 0, "tercero_id": tercero_id,
          "descripcion": f"Abono a capital cuota {n}/{total}"},
-        {"cuenta_codigo": "5305", "cuenta_id": id_gasto,
+        {"cuenta_codigo": "530520", "cuenta_id": id_gasto,
          "debito": round(gasto, 2), "credito": 0, "tercero_id": tercero_id,
          "descripcion": f"Intereses cuota {n}/{total}"},
     ]
     if cuota["retencion"] > 0:
         lineas.append({
-            "cuenta_codigo": "2365", "cuenta_id": id_ret,
+            "cuenta_codigo": cod_ret, "cuenta_id": id_ret,
             "debito": 0, "credito": cuota["retencion"], "tercero_id": tercero_id,
             "descripcion": f"Retención 7% rendimientos — {nombre_tercero}",
         })
@@ -1436,7 +1550,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         pagado = round(float(s["pagado_ahora"]), 2) if s.get("pagado_ahora") is not None else girado
         saldo = round(girado - pagado, 2)
         if saldo > 0.01:
-            cod_saldo = "2380" if (cc.obtener_tercero(s["tercero_id"]) or {}).get("tipo") == "socio" else "2367"
+            cod_saldo = "2355" if (cc.obtener_tercero(s["tercero_id"]) or {}).get("tipo") == "socio" else "2335"
             with cc._conn() as con:
                 id_saldo = cc._cuenta_id_por_codigo(con, cod_saldo)
             if not id_saldo:

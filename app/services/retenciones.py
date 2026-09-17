@@ -201,7 +201,12 @@ def resumen_periodo(anio: int, mes: int) -> dict:
                   JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
                   LEFT JOIN cc_terceros t ON t.id = l.tercero_id
-                 WHERE c.codigo = ?
+                 -- 2365 y TODAS sus subcuentas: desde la migración al PUC real
+                 -- (sep-2026) la retención se asienta por concepto —236525
+                 -- servicios, 236535 rendimientos financieros, 236540 compras—
+                 -- y preguntar solo por la 2365 plana devolvía cero justo en el
+                 -- mes en que empezó a usarse el desglose que el 350 necesita.
+                 WHERE (c.codigo = ? OR c.codigo LIKE ?)
                    AND m.fecha BETWEEN ? AND ?
                    -- El pago del formulario 350 (DÉBITO 2365 + crédito Bancos) extingue
                    -- la deuda con la DIAN; no es retención "des-practicada". Contarlo
@@ -224,7 +229,7 @@ def resumen_periodo(anio: int, mes: int) -> dict:
                    )
                  ORDER BY m.fecha, t.nombre
                 """,
-                (CUENTA_RETENCION_PUC, desde, hasta),
+                (CUENTA_RETENCION_PUC, f"{CUENTA_RETENCION_PUC}__", desde, hasta),
             )
         ]
 

@@ -14,6 +14,7 @@ import "./libroMayor.css";
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const SociosPanel = lazy(() => import("./SociosPanel"));
+const MayorCuentasPanel = lazy(() => import("./MayorCuentasPanel"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -1199,6 +1200,7 @@ function FormCompraProveedor({
 
 type SubvistaAvanzada =
   | "diario"
+  | "mayor"
   | "rapido"
   | "plan-cuentas"
   | "terceros"
@@ -1257,8 +1259,9 @@ const GRUPOS: Grupo[] = [
     desc: "Ver y verificar",
     icon: "search",
     subs: [
+      { id: "mayor", label: "Libro Mayor", icon: "book", desc: "Árbol del PUC y extracto por cuenta" },
       { id: "movimientos", label: "Movimientos", icon: "listChecks", desc: "Todos los asientos" },
-      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Mayor por cuenta" },
+      { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
       { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
       { id: "informes", label: "Informes", icon: "chartBar", desc: "Préstamos y pendientes" },
     ],
@@ -1414,6 +1417,11 @@ function VistaEmpresa({
             />
           </Suspense>
         </>
+      )}
+      {sub === "mayor" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <MayorCuentasPanel />
+        </Suspense>
       )}
       {sub === "rapido" && <VistaSimple />}
       {sub === "plan-cuentas" && <PlanCuentasTab />}
