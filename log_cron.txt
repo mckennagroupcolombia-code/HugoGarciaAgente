@@ -7856,3 +7856,610 @@ En [6] el agente ofrece ejemplos concretos ("citrato de magnesio, guantes de nit
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 [auditor_canales 2026-09-16T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (642 min), +57 302 820 0001 (598 min), +57 312 306 8370 (568 min), +57 320 829 9760 (501 min), +57 301 922 9626 (501 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-16T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (642 min), +57 302 820 0001 (598 min), +57 312 306 8370 (568 min), +57 320 829 9760 (501 min), +57 301 922 9626 (501 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T02:30:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (672 min), +57 302 820 0001 (628 min), +57 312 306 8370 (598 min), +57 320 829 9760 (531 min), +57 301 922 9626 (531 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T02:30:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (672 min), +57 302 820 0001 (628 min), +57 312 306 8370 (598 min), +57 320 829 9760 (531 min), +57 301 922 9626 (531 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T03:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (702 min), +57 302 820 0001 (658 min), +57 312 306 8370 (628 min), +57 320 829 9760 (561 min), +57 301 922 9626 (561 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T03:00:03] 7 cliente(s) de WhatsApp esperando respuesta: Contacto WA · …81106331 (702 min), +57 302 820 0001 (658 min), +57 312 306 8370 (628 min), +57 320 829 9760 (561 min), +57 301 922 9626 (561 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T03:30:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 302 820 0001 (688 min), +57 312 306 8370 (658 min), +57 320 829 9760 (591 min), +57 301 922 9626 (591 min), +57 320 477 5772 (498 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T03:30:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 302 820 0001 (688 min), +57 312 306 8370 (658 min), +57 320 829 9760 (591 min), +57 301 922 9626 (591 min), +57 320 477 5772 (498 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T04:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 302 820 0001 (718 min), +57 312 306 8370 (688 min), +57 320 829 9760 (621 min), +57 301 922 9626 (621 min), +57 320 477 5772 (528 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T04:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 302 820 0001 (718 min), +57 312 306 8370 (688 min), +57 320 829 9760 (621 min), +57 301 922 9626 (621 min), +57 320 477 5772 (528 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T04:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 312 306 8370 (718 min), +57 320 829 9760 (651 min), +57 301 922 9626 (651 min), +57 320 477 5772 (558 min), +57 316 435 1302 (399 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T04:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 312 306 8370 (718 min), +57 320 829 9760 (651 min), +57 301 922 9626 (651 min), +57 320 477 5772 (558 min), +57 316 435 1302 (399 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T05:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 320 829 9760 (681 min), +57 301 922 9626 (681 min), +57 320 477 5772 (588 min), +57 316 435 1302 (429 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T05:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 320 829 9760 (681 min), +57 301 922 9626 (681 min), +57 320 477 5772 (588 min), +57 316 435 1302 (429 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T05:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 320 829 9760 (711 min), +57 301 922 9626 (711 min), +57 320 477 5772 (618 min), +57 316 435 1302 (459 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T05:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 320 829 9760 (711 min), +57 301 922 9626 (711 min), +57 320 477 5772 (618 min), +57 316 435 1302 (459 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T06:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (648 min), +57 316 435 1302 (489 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T06:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (648 min), +57 316 435 1302 (489 min) | 18 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-06 → 2026-09-16…
+✅ Token de Mercado Libre refrescado exitosamente.
+   0 creado(s), 636 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T06:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (678 min), +57 316 435 1302 (519 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T06:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (678 min), +57 316 435 1302 (519 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 644 | Envíos nuevos consultados: 60 | Resueltos: 60 | Sin resolver: 0 | Aún no despachados: 0
+   Total municipios acumulados: 156
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (708 min), +57 316 435 1302 (549 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 477 5772 (708 min), +57 316 435 1302 (549 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 197 exactos, 20 alias, 61 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 222/278 combos SIIGO tienen publicación (se ocultan 56)
+INFO: Catálogo listo: 21 categorías, 178 fichas (32 con varias presentaciones), 222 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+   20 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 7 | Sospechosos (>2×): 13
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   159 órdenes canceladas en la ventana.
+⏳ Error de red listando facturas Siigo (página 134); reintento 1/3 en 3s: HTTPSConnectionPool(host='api.siigo.com', port=443): Read timed out. (read timeout=20)
+   4336 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3489 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71328 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-69688 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   10 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71328 ($20,489), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71049 ($22,574), FV-2-69688 ($239,800)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T07:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (579 min), +57 314 315 2907 (43 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T07:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (579 min), +57 314 315 2907 (43 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   0 caso(s) con problema · 0 nuevo(s) en esta corrida.
+   Nada que reportar.
+✅ Centro de Mando (tickets DB) inicializado
+🔎 RA: barriendo órdenes MeLi de los últimos 90 días…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   5176 órdenes en la ventana.
+   159 con reintegro al comprador.
+   4336 facturas (Siigo+Alegra) en la ventana.
+   👤 RA-2026-0030: modo sombra, no se emitió (RA_EMISION_ACTIVA=0).
+   👤 RA-2026-0034: modo sombra, no se emitió (RA_EMISION_ACTIVA=0).
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+Resumen: 0 emitidas, 127 requieren decisión, 30 bloqueadas. Deuda abierta: 128 por $4,885,422.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T08:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (609 min), +57 314 315 2907 (73 min), Contacto WA · …78644758 (27 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T08:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (609 min), +57 314 315 2907 (73 min), Contacto WA · …78644758 (27 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T08:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (639 min), +57 314 315 2907 (103 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T08:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (639 min), +57 314 315 2907 (103 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T09:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (669 min), +57 314 315 2907 (133 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T09:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (669 min), +57 314 315 2907 (133 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 16) no es día de pago de nómina (15 o fin de mes).
+recuperacion_compra: candidatos=1 enviados=1 activo=True
+  OK  ultimo       MCKG-EEFD967AA1 → kathecon1108@gmail.com · Último aviso: tu carrito en McKenna sigue disponible
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (699 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 316 435 1302 (699 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T10:00:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T10:00:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T10:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T10:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T11:00:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 5 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T11:00:05] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 5 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T11:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T11:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T12:00:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T12:00:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-06 → 2026-09-16…
+✅ Token de Mercado Libre refrescado exitosamente.
+   22 creado(s), 636 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T12:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T12:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T13:00:08] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T13:00:08] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T13:30:03] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T13:30:03] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T14:00:03] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T14:00:03] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T14:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T14:30:04] 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T15:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (33 min), +57 300 111 2244 (33 min), +57 300 111 2235 (33 min), +57 300 111 2233 (33 min), +57 313 681 0188 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T15:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (33 min), +57 300 111 2244 (33 min), +57 300 111 2235 (33 min), +57 300 111 2233 (33 min), +57 313 681 0188 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T15:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (63 min), +57 300 111 2244 (63 min), +57 300 111 2235 (63 min), +57 300 111 2233 (63 min), +57 313 681 0188 (62 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 3 turno(s) del agente con error en 30 min (2 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T15:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (63 min), +57 300 111 2244 (63 min), +57 300 111 2235 (63 min), +57 300 111 2233 (63 min), +57 313 681 0188 (62 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 3 turno(s) del agente con error en 30 min (2 frenados/corregidos por el supervisor).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T16:00:04] 9 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (93 min), +57 300 111 2244 (93 min), +57 300 111 2235 (93 min), +57 300 111 2233 (93 min), +57 313 681 0188 (92 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T16:00:04] 9 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (93 min), +57 300 111 2244 (93 min), +57 300 111 2235 (93 min), +57 300 111 2233 (93 min), +57 313 681 0188 (92 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T16:30:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (123 min), +57 300 111 2244 (123 min), +57 300 111 2235 (123 min), +57 300 111 2233 (123 min), +57 313 681 0188 (122 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T16:30:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (123 min), +57 300 111 2244 (123 min), +57 300 111 2235 (123 min), +57 300 111 2233 (123 min), +57 313 681 0188 (122 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T17:00:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (153 min), +57 300 111 2244 (153 min), +57 300 111 2235 (153 min), +57 300 111 2233 (153 min), +57 313 681 0188 (152 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T17:00:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (153 min), +57 300 111 2244 (153 min), +57 300 111 2235 (153 min), +57 300 111 2233 (153 min), +57 313 681 0188 (152 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T17:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (183 min), +57 300 111 2244 (183 min), +57 300 111 2235 (183 min), +57 300 111 2233 (183 min), +57 313 681 0188 (182 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T17:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (183 min), +57 300 111 2244 (183 min), +57 300 111 2235 (183 min), +57 300 111 2233 (183 min), +57 313 681 0188 (182 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T18:00:04] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (213 min), +57 300 111 2244 (213 min), +57 300 111 2235 (213 min), +57 300 111 2233 (213 min), +57 313 681 0188 (212 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T18:00:04] 10 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (213 min), +57 300 111 2244 (213 min), +57 300 111 2235 (213 min), +57 300 111 2233 (213 min), +57 313 681 0188 (212 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[2026-09-16T18:00:01] resumen_actividad_sede_sur: 285 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 99 nuevas · 90 completadas · 46 iniciadas
+
+*Por persona:*
+• Administrador: 84 nuevas, 0 completadas
+• Jenniffer Garcia: 8 nuevas, 71 completadas
+• Armando Garcia: 1 nueva, 13 completadas
+• Victor Garcia: 5 nuevas, 5 completadas
+• Gloria Stella: 1 nueva, 1 completada
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+🔎 Auto-posteando contabilidad 2026-09-06 → 2026-09-16…
+✅ Token de Mercado Libre refrescado exitosamente.
+   31 creado(s), 658 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T18:30:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (243 min), +57 300 111 2244 (243 min), +57 300 111 2235 (243 min), +57 300 111 2233 (243 min), +57 313 681 0188 (242 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T18:30:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (243 min), +57 300 111 2244 (243 min), +57 300 111 2235 (243 min), +57 300 111 2233 (243 min), +57 313 681 0188 (242 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T19:00:07] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (273 min), +57 300 111 2244 (273 min), +57 300 111 2235 (273 min), +57 300 111 2233 (273 min), +57 313 681 0188 (272 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T19:00:07] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (273 min), +57 300 111 2244 (273 min), +57 300 111 2235 (273 min), +57 300 111 2233 (273 min), +57 313 681 0188 (272 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+## 1. Problemas principales detectados
+
+**A. Promesas de acciones/tiempos que el agente no puede cumplir**
+Ejemplos [2], [3], [11], [12]: "Ya le avisé al equipo... un asesor le escribe por este mismo chat", "le informé al equipo... un asesor continúa". El agente da a entender que un humano actuará o llegará, cuando solo se registró un aviso.
+**Corrección propuesta:** fijar una única frase estándar tipo "Aviso enviado al equipo" y prohibir cualquier verbo que implique acción futura de terceros (escribirá, continuará, revisará, confirmará). Reforzar en instrucciones: "nunca prometas que alguien más hará algo, solo confirma que el aviso fue registrado".
+
+**B. Contradicción sobre dosis de consumo**
+Ejemplo [1]: el agente dice que no puede dar dosis, pero la ficha técnica sí trae "DOSIS SUGERIDA" y el propio supervisor marca la contradicción interna (a veces sí la da, a veces no).
+**Corrección propuesta:** aclarar regla explícita: ¿puede o no compartir la dosis sugerida que viene en ficha técnica? Definir un único criterio (ej. "puede citar textualmente la dosis sugerida de la ficha técnica, sin agregar recomendación personalizada") y eliminar la ambigüedad actual.
+
+**C. Precios no verificados con herramientas**
+Ejemplo [4]: menciona $8.800, $26.910, $35.710 sin haber llamado a buscar_producto/ver_pedido en ese turno.
+**Corrección propuesta:** regla dura: si no se invoca buscar_producto/ver_pedido en el turno, el agente no puede citar ninguna cifra numérica de precio; debe consultar antes de responder.
+
+**D. Manejo repetitivo de "producto fuera de catálogo" (DMSO) sin resolución clara**
+Ejemplos [8], [9], [11], [12]: el mismo producto (DMSO) se repite varias veces como "no disponible en catálogo web", generando respuestas casi idénticas turno tras turno, y en dos casos ofrece pasar a asesor por WhatsApp y en otros directamente pasa_a_asesor sin ese paso intermedio (inconsistencia de flujo).
+**Corrección propuesta:** unificar el flujo para productos fuera de catálogo: definir un solo camino (web→ofrecer WhatsApp; WhatsApp→pasar_a_asesor) y evitar reprocesar buscar_producto dos veces en el mismo turno (ineficiencia notada en [9],[11],[12]).
+
+**E. Frase de apertura ambigua sobre transferencia a asesor**
+"Si en algún momento prefiere hablar con un asesor humano, me dice y lo comunico" (ejemplos [5],[6],[7],[12]) es una promesa condicional de acción futura del propio agente, similar al problema A, aunque más sutil.
+**Corrección propuesta:** revisar si esta frase de bienvenida está aprobada por reglas de negocio; si no, reemplazarla por una neutra que no comprometa acción futura ("Puede pedirme hablar con un asesor cuando lo necesite").
+
+## 2. Calificación general: 6/10
+✅ Reporte enviado a WhatsApp con éxito.
+# Auditoría de calidad — Agente Hugo (McKenna Group)
+
+## 1. Problemas detectados
+
+**Problema 1: Frase estándar mal calibrada — "no puedo procesar su mensaje" quita información que sí tiene**
+Ejemplo: [1] El cliente pregunta por creatina y dosis de la cuchara medidora. La ficha técnica SÍ trae "DOSIS SUGERIDA", pero Hugo responde que no puede procesar el mensaje y deriva a asesor. Contradice la evidencia disponible y frustra una consulta simple y legítima.
+
+**Corrección propuesta:** Ajustar instrucciones para que Hugo pueda citar literalmente datos de ficha técnica (incluida "dosis sugerida" del fabricante) como dato de producto, aclarando que no es recomendación médica personalizada. Solo debe derivar a asesor si el cliente pide una recomendación personalizada (peso, objetivo, condición de salud).
+
+---
+
+**Problema 2: Promesas de acciones/tiempos que el agente no puede cumplir**
+Ejemplos: [2] "un asesor le escribe por este mismo chat"; [3] "Le informé al equipo... un asesor continúa"; [11][12] "un asesor le escribirá por este mismo chat". El supervisor marcó esto repetidamente como violación de la regla de no prometer tiempos/acciones futuras, y en WhatsApp ni siquiera existe la herramienta pasar_a_asesor.
+
+**Corrección propuesta:** Definir una única frase estándar aprobada (ej. "Aviso enviado al equipo") y prohibir explícitamente cualquier variante que implique compromiso de tiempo o certeza de respuesta ("le escribirá", "le confirmarán", "continúa por este chat"). Verificar disponibilidad real de la herramienta pasar_a_asesor por canal antes de usarla en el prompt.
+
+---
+
+**Problema 3: Precios no verificados / alucinados**
+Ejemplo: [4] Se mencionan cifras ($8.800, $26.910, $35.710) que no provienen de buscar_producto ni ver_pedido en ese turno. Viola directamente la regla de "precios solo del catálogo web".
+
+**Corrección propuesta:** Regla dura de supervisor: bloquear cualquier cifra en la respuesta que no haya sido devuelta por una herramienta en el mismo turno; si no hay tool-call previo, no se permite mencionar precio, ni siquiera aproximado.
+
+---
+
+**Problema 4: Insinuación de cierre de venta**
+Ejemplo: [6] "¿Le gustaría que registremos esa presentación en su pedido?" — el agente empuja hacia decisión de compra, lo cual está fuera de su rol (no cierra ventas).
+
+**Corrección propuesta:** Añadir instrucción explícita: tras dar precio/disponibilidad, cerrar con pregunta neutra ("¿Le sirve esta información?" / "¿Necesita algo más?"), nunca con invitación a registrar/confirmar pedido.
+
+---
+
+**Problema 5: Inconsistencia en manejo de productos fuera de catálogo (DMSO)**
+Ejemplos: [8]-[12] múltiples turnos repiten la misma búsqueda y el mismo mensaje de "no está en catálogo, pase por WhatsApp/asesor" sin quedar registrado que ya se avisó, generando dobles tool-calls (buscar_producto repetido) y respuestas casi idénticas en distintos hilos.
+
+**Corrección propuesta:** Agregar DMSO como entrada explícita en catálogo interno (aunque sea "no disponible / derivar a asesor") para evitar búsquedas redundantes, y regla de no repetir buscar_producto si ya se determinó "no encontrado" en el mismo hilo.
+
+---
+
+## 2. Calificación general
+**6.5/10** — El agente maneja bien el tono y la derivación básica, pero falla en disciplina de precios/evidencia y en promesas de tiempo, que son errores de alto riesgo regulatorio/comercial.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-16T19:30:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (303 min), +57 300 111 2244 (303 min), +57 300 111 2235 (303 min), +57 300 111 2233 (303 min), +57 313 681 0188 (302 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T19:30:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (303 min), +57 300 111 2244 (303 min), +57 300 111 2235 (303 min), +57 300 111 2233 (303 min), +57 313 681 0188 (302 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-16) no es el último día del mes.
+[auditor_canales 2026-09-16T20:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (333 min), +57 300 111 2244 (333 min), +57 300 111 2235 (333 min), +57 300 111 2233 (333 min), +57 313 681 0188 (332 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+[auditor_canales 2026-09-16T20:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (333 min), +57 300 111 2244 (333 min), +57 300 111 2235 (333 min), +57 300 111 2233 (333 min), +57 313 681 0188 (332 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T20:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (363 min), +57 300 111 2244 (363 min), +57 300 111 2235 (363 min), +57 300 111 2233 (363 min), +57 313 681 0188 (362 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T20:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (363 min), +57 300 111 2244 (363 min), +57 300 111 2235 (363 min), +57 300 111 2233 (363 min), +57 313 681 0188 (362 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T21:00:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (393 min), +57 300 111 2244 (393 min), +57 300 111 2235 (393 min), +57 300 111 2233 (393 min), +57 313 681 0188 (392 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T21:00:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (393 min), +57 300 111 2244 (393 min), +57 300 111 2235 (393 min), +57 300 111 2233 (393 min), +57 313 681 0188 (392 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T21:30:05] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (423 min), +57 300 111 2244 (423 min), +57 300 111 2235 (423 min), +57 300 111 2233 (423 min), +57 313 681 0188 (422 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T21:30:05] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (423 min), +57 300 111 2244 (423 min), +57 300 111 2235 (423 min), +57 300 111 2233 (423 min), +57 313 681 0188 (422 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-16T22:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (453 min), +57 300 111 2244 (453 min), +57 300 111 2235 (453 min), +57 300 111 2233 (453 min), +57 313 681 0188 (452 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-16T22:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (453 min), +57 300 111 2244 (453 min), +57 300 111 2235 (453 min), +57 300 111 2233 (453 min), +57 313 681 0188 (452 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T22:30:08] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (483 min), +57 300 111 2244 (483 min), +57 300 111 2235 (483 min), +57 300 111 2233 (483 min), +57 313 681 0188 (482 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-16T22:30:08] 12 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (483 min), +57 300 111 2244 (483 min), +57 300 111 2235 (483 min), +57 300 111 2233 (483 min), +57 313 681 0188 (482 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

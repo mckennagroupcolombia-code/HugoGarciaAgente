@@ -74,6 +74,20 @@ def _conn():
 #
 # `None` en cuenta_debito significa que la elige el usuario (categoría "otro").
 
+# Qué impuesto se está pagando. La distinción que importa: las 23xx son lo que
+# McKenna RETUVO a terceros y consigna a nombre de ellos; las 24xx son lo que
+# debe como CONTRIBUYENTE. Pagar el IVA bajando la 2365 salda una deuda que no
+# era y deja el IVA todavía como pasivo.
+IMPUESTOS_PAGABLES: tuple[tuple[str, str, str], ...] = (
+    ("2365", "Retención en la fuente (formulario 350)", "lo retenido a terceros, se consigna a su nombre"),
+    ("2367", "IVA retenido — reteIVA (formulario 350)", "lo retenido a terceros por IVA"),
+    ("2368", "ICA retenido — reteICA", "lo retenido a terceros por industria y comercio"),
+    ("2408", "IVA por pagar (formulario 300)", "IVA generado menos descontable: deuda propia"),
+    ("2404", "Renta y complementarios (formulario 110)", "impuesto de renta de McKenna"),
+    ("2412", "Industria y comercio (ICA propio)", "el ICA que McKenna paga por su actividad"),
+)
+
+
 CATEGORIAS: dict[str, dict] = {
     # ── Las tres del wizard simple (sep-2026) ──
     # El operador solicita casi siempre lo mismo: pagarle a un proveedor por
@@ -189,6 +203,13 @@ CATEGORIAS: dict[str, dict] = {
     },
     "salario_socio": {
         "cuenta_libre": True,
+        # Oculta desde sep-2026: lo que Armando y Cynthia cobran es prestación
+        # de servicios igual que la de Víctor o Stella, va a la misma cuenta
+        # (511095) y admite pago parcial desde «Servicios». Tener un botón
+        # aparte solo para socios sugería un trato distinto que no existe.
+        # La categoría NO se borra: hay solicitudes históricas con este valor y
+        # eliminarla las dejaría sin poder abrirse.
+        "oculta": True,
         "label": "Salario de socio",
         "ayuda": (
             "Lo que Armando o Cynthia cobran por su trabajo en McKenna. No es nómina: "
@@ -258,7 +279,9 @@ CATEGORIAS: dict[str, dict] = {
     },
     "impuestos": {
         "label": "Impuestos y retenciones",
-        "ayuda": "Declaración de retención en la fuente, IVA, ICA.",
+        "ayuda": ("Pagar una declaración. Elige CUÁL impuesto: lo retenido a terceros "
+                  "(2365 retefuente, 2367 reteIVA, 2368 reteICA) o lo que McKenna debe como "
+                  "contribuyente (2408 IVA, 2404 renta, 2412 ICA)."),
         "cuenta_debito": "2365",
         "origen": "saldos_impuestos",
         "requiere_tercero": False,
@@ -538,19 +561,52 @@ def opciones(categoria: str) -> dict:
         return {"tipo": "lista", "opciones": filas}
 
     if origen == "saldos_impuestos":
-        from app.services.retenciones import resumen_periodo
+        # Una opción por cada impuesto que McKenna realmente debe, con su saldo.
+        # Antes solo se ofrecía la retención en la fuente, así que pagar el IVA
+        # o la renta obligaba a usar «Otro» y terminaba bajando la 2365 —una
+        # deuda que no era—, dejando el impuesto real todavía como pasivo.
+        import app.services.contabilidad_core as cc
 
-        hoy = date.today()
-        anio, mes = (hoy.year - 1, 12) if hoy.month == 1 else (hoy.year, hoy.month - 1)
-        r = resumen_periodo(anio, mes)
-        if r["total_retencion"] <= 0:
-            return {"tipo": "lista", "opciones": []}
-        return {"tipo": "lista", "opciones": [{
-            "id": r["periodo"], "label": f"Retención en la fuente {r['periodo']}",
-            "monto_sugerido": r["total_retencion"],
-            "detalle": (f"vence {r['vencimiento'].get('fecha')}"
-                        if r["vencimiento"].get("conocido") else "vencimiento sin confirmar"),
-        }]}
+        opciones = []
+        with cc._conn() as con:
+            for codigo, etiqueta, nota in IMPUESTOS_PAGABLES:
+                if not con.execute(
+                    "SELECT 1 FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (codigo,)
+                ).fetchone():
+                    continue
+                r = con.execute(
+                    """SELECT COALESCE(SUM(l.credito),0) - COALESCE(SUM(l.debito),0) AS saldo
+                         FROM cc_movimiento_lineas l
+                         JOIN cc_movimientos m ON m.id = l.movimiento_id
+                        WHERE m.estado <> 'anulado'
+                          AND l.cuenta_id IN (
+                              SELECT id FROM cc_plan_cuentas WHERE codigo = ? OR codigo LIKE ?
+                          )""",
+                    (codigo, f"{codigo}__"),
+                ).fetchone()
+                saldo = round(float(r["saldo"] or 0), 2)
+                if saldo <= 0:
+                    continue
+                opciones.append({
+                    "id": codigo, "label": f"{codigo} · {etiqueta}",
+                    "monto_sugerido": saldo, "cuenta": codigo, "detalle": nota,
+                })
+
+        try:
+            from app.services.retenciones import resumen_periodo
+
+            hoy = date.today()
+            anio, mes = (hoy.year - 1, 12) if hoy.month == 1 else (hoy.year, hoy.month - 1)
+            r = resumen_periodo(anio, mes)
+            if r["total_retencion"] > 0:
+                venc = (f"vence {r['vencimiento'].get('fecha')}"
+                        if r["vencimiento"].get("conocido") else "vencimiento sin confirmar")
+                for o in opciones:
+                    if o["cuenta"] == "2365":
+                        o["detalle"] = f"{r['periodo']} · {venc}"
+        except Exception:
+            pass
+        return {"tipo": "lista", "opciones": opciones}
 
     return {"tipo": "libre", "opciones": []}
 
@@ -685,6 +741,17 @@ def previsualizar(payload: dict) -> dict:
             elegida = str((t_pre or {}).get("cuenta_gasto_default") or "").strip()
         if elegida and elegida != cuenta_debito:
             cuenta_debito = _validar_cuenta_elegida(elegida)
+    if categoria == "impuestos":
+        # La cuenta la decide QUÉ impuesto se paga, no una constante. Solo se
+        # aceptan las de la tabla: un pago de impuestos no baja otra cosa.
+        elegida = str(payload.get("cuenta_debito") or payload.get("opcion_id") or "").strip()
+        if elegida:
+            validas = {c for c, _e, _n in IMPUESTOS_PAGABLES}
+            if elegida not in validas:
+                raise ValueError(
+                    f"{elegida} no es una cuenta de impuestos. Opciones: {', '.join(sorted(validas))}"
+                )
+            cuenta_debito = elegida
     if categoria == "saldo_por_pagar":
         # La cuenta la decide el tercero, no el operador: un saldo con un socio
         # vive en 2380 y con cualquier otro prestador en 2367. Dejarlo a mano
@@ -743,7 +810,11 @@ def previsualizar(payload: dict) -> dict:
     if ica_por_mil <= 0 and tercero:
         ica_por_mil = round(float(tercero.get("ica_por_mil") or 0), 4)
     t_ica = ica_por_mil / 1000 if ica_por_mil > 0 else 0.0
+    # GMF: lo que mande el pago; si el pago no dice nada, lo que quedó guardado
+    # en la ficha del tercero la última vez.
     cobra_gmf = bool(payload.get("gmf"))
+    if "gmf" not in payload and tercero:
+        cobra_gmf = bool(int(tercero.get("gmf_por_defecto") or 0))
 
     retencion, retencion_ica, ret_info = 0.0, 0.0, None
     concepto_ret = cat.get("concepto_retencion")
@@ -764,18 +835,31 @@ def previsualizar(payload: dict) -> dict:
         modo = "ninguna"
         ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
 
-    if modo != "ninguna" and (concepto_ret or t_ica > 0):
+    # «Nadie — no se practica retención» habla de la retención de RENTA. El ICA
+    # es otro impuesto, con otra base legal y otro destinatario (el municipio,
+    # no la DIAN), y apagarlo junto con la renta hacía que a estas personas
+    # —que son exactamente las que van marcadas «sin retención»— no se les
+    # practicara nunca el ICA que el contador pidió.
+    #
+    # La única excepción es girar un saldo pendiente: ahí el gasto y sus
+    # impuestos se causaron cuando se reconoció el servicio, y volver a
+    # calcularlos sería cobrarlos dos veces.
+    causa_impuestos = categoria != "saldo_por_pagar"
+    aplica_renta = modo != "ninguna" and bool(concepto_ret) and causa_impuestos
+    aplica_ica = t_ica > 0 and causa_impuestos
+    if aplica_renta or aplica_ica:
         from app.services.retenciones import calcular
 
         declarante = bool(tercero.get("declarante", 1)) if tercero else True
-        if concepto_ret:
+        if aplica_renta:
             ret_info = calcular(concepto_ret, base_ret, anio=int(fecha[:4]), declarante=declarante)
-        t_renta = float((ret_info or {}).get("tarifa_pct") or 0) / 100 if concepto_ret else 0.0
+        t_renta = float((ret_info or {}).get("tarifa_pct") or 0) / 100 if aplica_renta else 0.0
+        t_ica = t_ica if aplica_ica else 0.0
 
         if valor_es_neto and (t_renta + t_ica) > 0:
             # Camino inverso: la base que, retenida, deja exactamente lo pactado.
             bruto = round(monto / (1 - t_renta - t_ica), 2) if (t_renta + t_ica) < 1 else monto
-            r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante) if concepto_ret else {}
+            r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante) if aplica_renta else {}
             retencion = round(float(r2.get("retencion") or 0), 2)
             retencion_ica = round(bruto * t_ica, 2)
             if retencion or retencion_ica:
@@ -930,7 +1014,70 @@ def previsualizar(payload: dict) -> dict:
         "requiere_factura": bool(cat.get("requiere_factura")),
         "valor_es_neto": valor_es_neto and (retencion + retencion_ica) > 0,
         "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
+        # Cómo queda cada cuenta si esto se aprueba. Es lo que convierte el
+        # asiento en algo revisable: «$3.000.000 al débito de 511095» no dice
+        # nada hasta ver que esa cuenta pasa de $3,9M a $6,9M.
+        "cuentas_t": _cuentas_t(lineas),
     }
+
+
+def _cuentas_t(lineas: list[dict]) -> list[dict]:
+    """Una cuenta T por cuenta tocada: saldo actual, débitos, créditos y saldo final.
+
+    El saldo se calcula según la **naturaleza** de la cuenta: un crédito a
+    Bancos la baja, un crédito a Proveedores la sube. Presentar las dos igual
+    —«crédito = resta»— es el error clásico de quien lee un asiento sin saber
+    de qué lado vive cada cuenta.
+    """
+    import app.services.contabilidad_core as cc
+
+    por_cuenta: dict[str, dict] = {}
+    for l in lineas:
+        codigo = str(l.get("cuenta_codigo") or "")
+        if not codigo:
+            continue
+        t = por_cuenta.setdefault(codigo, {
+            "cuenta_codigo": codigo,
+            "cuenta_nombre": l.get("cuenta_nombre") or "",
+            "cuenta_id": l.get("cuenta_id"),
+            "debito": 0.0, "credito": 0.0,
+            "movimientos": [],
+        })
+        t["debito"] += float(l.get("debito") or 0)
+        t["credito"] += float(l.get("credito") or 0)
+        t["movimientos"].append({
+            "descripcion": l.get("descripcion") or "",
+            "debito": float(l.get("debito") or 0),
+            "credito": float(l.get("credito") or 0),
+        })
+
+    with cc._conn() as con:
+        for codigo, t in por_cuenta.items():
+            fila = con.execute(
+                "SELECT id, naturaleza, tipo FROM cc_plan_cuentas WHERE codigo=?", (codigo,)
+            ).fetchone()
+            naturaleza = fila["naturaleza"] if fila else "debito"
+            t["naturaleza"] = naturaleza
+            t["tipo"] = fila["tipo"] if fila else ""
+            saldo_antes = 0.0
+            if fila:
+                r = con.execute(
+                    """SELECT COALESCE(SUM(l.debito),0) d, COALESCE(SUM(l.credito),0) c
+                         FROM cc_movimiento_lineas l
+                         JOIN cc_movimientos m ON m.id = l.movimiento_id
+                        WHERE l.cuenta_id=? AND m.estado <> 'anulado'""",
+                    (fila["id"],),
+                ).fetchone()
+                d, c = r["d"] or 0.0, r["c"] or 0.0
+                saldo_antes = (d - c) if naturaleza == "debito" else (c - d)
+            efecto = (t["debito"] - t["credito"]) if naturaleza == "debito" else (t["credito"] - t["debito"])
+            t["saldo_antes"] = round(saldo_antes, 2)
+            t["efecto"] = round(efecto, 2)
+            t["saldo_despues"] = round(saldo_antes + efecto, 2)
+            t["debito"] = round(t["debito"], 2)
+            t["credito"] = round(t["credito"], 2)
+
+    return [por_cuenta[k] for k in sorted(por_cuenta)]
 
 
 def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_tercero: str):
@@ -993,6 +1140,49 @@ def _lineas_cuota_prestamo(payload: dict, cc, medio: dict, tercero_id, nombre_te
 
 # ─── Paso 3: crear la solicitud (todavía sin asiento) ───────────────────────
 
+def _recordar_perfil_tributario(payload: dict, prev: dict) -> None:
+    """Guarda en la ficha del tercero cómo se le pagó, para no repetirlo a mano.
+
+    La quincena de quien presta servicios lleva siempre lo mismo —sin retención
+    de renta, con ICA 9,66 por mil y 4x1000— y hasta ahora había que marcar esas
+    casillas cada vez. Marcar bien doce veces al año y olvidarlo una es lo que
+    produjo los $164.542 de retención practicada de más en septiembre.
+
+    Se guarda **solo lo que el pago trae explícito**, y nunca a partir de un
+    valor que ya venía del propio tercero: si el operador no tocó el ICA, no
+    hay nada nuevo que aprender. Y no se toca a un tercero en Régimen SIMPLE,
+    donde la exención no es una preferencia sino el Art. 911 ET.
+    """
+    import app.services.contabilidad_core as cc
+
+    tercero_id = int(payload.get("tercero_id") or 0)
+    if not tercero_id or prev.get("categoria") in ("cuota_prestamo", "saldo_por_pagar"):
+        return
+    tercero = cc.obtener_tercero(tercero_id)
+    if not tercero or int(tercero.get("regimen_simple") or 0):
+        return
+
+    campos: dict[str, object] = {}
+    if "ica_por_mil" in payload:
+        campos["ica_por_mil"] = round(float(payload.get("ica_por_mil") or 0), 4)
+    if "gmf" in payload:
+        campos["gmf_por_defecto"] = 1 if payload.get("gmf") else 0
+    modo = str(payload.get("retencion_modo") or "").strip()
+    if modo == "ninguna":
+        campos["retefuente_exento"] = 1
+    elif modo in ("beneficiario", "mckenna"):
+        campos["retefuente_exento"] = 0
+    # La cuenta del gasto solo se recuerda si el operador la eligió a mano.
+    cuenta = str(payload.get("cuenta_debito") or "").strip()
+    if cuenta:
+        campos["cuenta_gasto_default"] = cuenta
+    if not campos:
+        return
+    sets = ", ".join(f"{k}=?" for k in campos)
+    with cc._conn() as con:
+        con.execute(f"UPDATE cc_terceros SET {sets} WHERE id=?", (*campos.values(), tercero_id))
+
+
 def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
     """Guarda la solicitud y abre el ticket de aprobación.
 
@@ -1011,6 +1201,8 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
     """
     _ensure()
     prev = previsualizar(payload)   # valida todo antes de guardar
+
+    _recordar_perfil_tributario(payload, prev)
 
     categoria = prev["categoria"]
     cat = CATEGORIAS[categoria]

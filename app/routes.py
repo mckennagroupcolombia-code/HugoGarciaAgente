@@ -7909,6 +7909,7 @@ def register_routes(app):
                 productos=data.get("productos") or [],
                 telefono=data.get("telefono") or "",
                 referencia=data.get("referencia") or "",
+                medio_pago=data.get("medio_pago") or "",
             )
             return jsonify(resultado), (200 if resultado.get("ok") else 400)
         except Exception as e:
@@ -11471,6 +11472,9 @@ def register_routes(app):
                  "permite_parcial": bool(v.get("permite_parcial")),
                  "pide_contrato": bool(v.get("pide_contrato"))}
                 for k, v in CATEGORIAS.items()
+                # Las ocultas siguen existiendo para abrir solicitudes viejas,
+                # pero no se ofrecen al crear una nueva.
+                if not v.get("oculta")
             ]})
         except Exception as e:
             return jsonify({"error": str(e)}), 500

@@ -765,11 +765,25 @@ Bancos ni contra Ventas. Nació de un caso real: la quincena de quien presta ser
 lo que se perdía la retención propia de la categoría.
 
 **El perfil tributario vive en el tercero, no en el pago** (`cc_terceros.retefuente_exento`,
-`ica_por_mil`, `cuenta_gasto_default` — `_migrar_columnas_v5`). A Víctor, Stella, Jenniffer y
-Armando **no se les practica retención de renta pero sí ICA (9,66 por mil → 2368)**, y su gasto
-va a 511095. Guardarlo en la persona y no en cada pago es lo que evita que se olvide: lo que se
-olvida una vez se olvida siempre. `retefuente_exento` anula **solo la renta**; el ICA se sigue
-evaluando aparte, son dos impuestos distintos.
+`ica_por_mil`, `gmf_por_defecto`, `cuenta_gasto_default` — `_migrar_columnas_v5`). A Armando,
+Cynthia, Víctor, Stella y Jenniffer **no se les practica retención de renta pero sí ICA (9,66 por
+mil → 2368) y 4x1000**, y su gasto va a **511095**. Guardarlo en la persona y no en cada pago es
+lo que evita que se olvide: lo que se olvida una vez se olvida siempre. Al crear una solicitud,
+`_recordar_perfil_tributario()` **guarda en la ficha lo que el operador definió** (solo lo que el
+pago trae explícito, y nunca sobre un tercero en Régimen SIMPLE), así que a partir del primer
+pago las casillas vienen puestas.
+
+⚠️ **ICA y retención de renta son impuestos distintos y se calculan por separado.** Elegir
+«Nadie — no se practica retención» —que es lo que el perfil de estas personas selecciona— apagaba
+también el ICA, así que justo a quienes el contador mandó practicárselo no se les practicaba
+nunca. `aplica_renta` y `aplica_ica` son ahora condiciones independientes; lo único que apaga las
+dos es `saldo_por_pagar`, donde los impuestos ya se causaron al reconocer el servicio.
+
+**«Salario de socio» se ocultó** (`"oculta": True`, sep-2026): lo que Armando y Cynthia cobran es
+prestación de servicios igual que la de Víctor o Stella, va a la misma cuenta y admite pago
+parcial desde **Servicios**. Un botón aparte solo para socios sugería un trato distinto que no
+existe. La categoría **no se borra** — hay solicitudes históricas con ese valor y eliminarla las
+dejaría sin poder abrirse; `/api/pagos/categorias` filtra las ocultas.
 
 **«Honorarios» y «Prestación de servicios» no son lo mismo** (sep-2026): quien
 presta servicios operativos a McKenna sin ser nómina —calidad, empaque, apoyo—
@@ -1028,6 +1042,22 @@ scripts/reclasificar_gastos_diversos.py  Saca de `5195 Diversos` lo que nunca fu
                                      mueve lo que tiene respuesta inequívoca **por tercero** (`REGLAS`) y
                                      deja lo demás listado: adivinar qué fue una compra suelta en D1 es
                                      como se llenó el cajón. Verifica que el total del balance no cambie.
+app/services/iva_ventas.py          **Reconocimiento del IVA de las ventas** (sep-2026). Las ventas se
+                                     asentaban por su total contra 4135, pero McKenna es responsable de IVA:
+                                     parte de ese total no es ingreso suyo. `reconocer(desde, hasta)` lo
+                                     reclasifica a **240805 IVA generado** con un asiento de ajuste por
+                                     período (las 1.269 ventas ya asentadas no se reescriben), idempotente
+                                     por `referencia="iva-ventas:<rango>"`.
+                                     ⚠️ La cifra sale de las **facturas emitidas en Alegra**, NO de dividir
+                                     el total por 1,19: hay materias primas excluidas (Art. 424 E.T.) — en
+                                     300 facturas, 484 ítems al 19% y 12 sin IVA. Aplicar la tarifa a todo
+                                     inventa IVA sobre lo excluido y lo declara de más ante la DIAN.
+                                     `resumen()` contrasta lo facturado contra el ingreso del libro: si no
+                                     cuadran hay ventas sin facturar o facturas sin contabilizar, y el IVA
+                                     se estaría calculando sobre una base que no corresponde.
+                                     Falta la otra mitad del formulario 300: el **IVA descontable** de las
+                                     compras (240810). Sin ella el saldo de 2408 queda por encima de lo que
+                                     realmente se paga. Script: `scripts/reconocer_iva_ventas.py`.
 app/services/alegra_puc.py          Puente por CÓDIGO con Alegra, que desde sep-2026 está en el catálogo
                                      **PUC** (antes NIIF). Al cambiar de catálogo Alegra reasignó TODAS sus
                                      ids internas, así que el `MAPA_PUC` a mano de `alegra_espejo` quedó

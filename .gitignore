@@ -53,6 +53,9 @@ app/data/empaque_evidencia.db
 app/data/ventas_wa.db
 app/data/precios_trm.db
 app/data/ventas_wa.db-*
+app/data/ventas_directas.db
+app/data/ventas_directas.db-*
+cotizaciones_pdf/
 app/data/ventas_wa_sombra.db
 app/data/ventas_wa_sombra.db-*
 # Estado del auditor de canales (runtime)

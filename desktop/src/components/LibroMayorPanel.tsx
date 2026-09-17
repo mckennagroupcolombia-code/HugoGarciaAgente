@@ -86,6 +86,8 @@ interface Movimiento {
   tercero: Tercero | null;
   soporte_path?: string;
   soporte_nombre?: string;
+  /** Comprobante en Alegra que espeja este asiento, si ya se espejó. */
+  alegra_journal_id?: string;
 }
 
 interface MayorLinea {
@@ -492,6 +494,76 @@ function SaldoSocioCard({ tercero, onGirar }: { tercero: Tercero; onGirar: () =>
 
 /* ─── Tabla de movimientos (compartida simple/avanzada) ──────────────────── */
 
+/**
+ * El comprobante de este asiento en Alegra: crearlo o anularlo desde acá.
+ *
+ * Existe porque el contador arma las declaraciones con lo que ve en Alegra, no
+ * con el Libro Mayor. Cuando un asiento se anula y se rehace, el comprobante
+ * viejo se queda allá con las cifras equivocadas; hasta el 16-sep-2026 había
+ * que entrar a Alegra a borrarlo a mano, que es el paso que no se hace.
+ */
+function EspejoAlegra({ m }: { m: Movimiento }) {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const anulado = m.estado === "anulado";
+
+  async function llamar(metodo: "post" | "delete", url: string) {
+    setOcupado(true);
+    setMsg(null);
+    try {
+      const r = metodo === "post"
+        ? await api.post<{ status?: string; id?: string; message?: string; error?: string }>(url, {})
+        : await api.delete<{ status?: string; id?: string; message?: string; error?: string }>(url);
+      setMsg(r.error || r.message || (r.status === "success" ? `Alegra #${r.id}` : r.status || "listo"));
+      void qc.invalidateQueries({ queryKey: ["cc-movimientos"] });
+    } catch (e) {
+      setMsg((e as Error).message);
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+      {m.alegra_journal_id ? (
+        <>
+          <span className="font-semibold text-emerald-600">🧾 Alegra #{m.alegra_journal_id}</span>
+          <button
+            type="button"
+            disabled={ocupado}
+            onClick={() => {
+              const aviso = anulado
+                ? `Anular en Alegra el comprobante #${m.alegra_journal_id} de este asiento.\n\nEl contador dejará de verlo. ¿Continuar?`
+                : `⚠️ El asiento #${m.id} sigue CONFIRMADO.\n\nSi borras su comprobante #${m.alegra_journal_id}, el contador deja de ver este movimiento en Alegra aunque siga vivo en el Libro Mayor. Normalmente primero se anula el asiento.\n\n¿Anular el comprobante de todos modos?`;
+              if (!window.confirm(aviso)) return;
+              void llamar("delete", `/api/alegra/espejo/${m.id}${anulado ? "" : "?forzar=1"}`);
+            }}
+            className="rounded-lg border border-border px-2 py-1 font-semibold text-muted hover:border-danger hover:text-danger disabled:opacity-40"
+          >
+            {ocupado ? "…" : "Anular en Alegra"}
+          </button>
+        </>
+      ) : (
+        <>
+          <span className="text-muted">Sin comprobante en Alegra</span>
+          {!anulado && (
+            <button
+              type="button"
+              disabled={ocupado}
+              onClick={() => void llamar("post", `/api/alegra/espejo/${m.id}`)}
+              className="rounded-lg border border-border px-2 py-1 font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              {ocupado ? "…" : "Espejar a Alegra"}
+            </button>
+          )}
+        </>
+      )}
+      {msg && <span className="text-muted">{msg}</span>}
+    </div>
+  );
+}
+
 function TablaMovimientos({
   movimientos,
   cargando,
@@ -620,6 +692,9 @@ function TablaMovimientos({
                     {m.referencia && (
                       <p className="mt-1 text-[11px] text-muted">Referencia: {m.referencia}</p>
                     )}
+                    <div className="mt-1">
+                      <EspejoAlegra m={m} />
+                    </div>
                     <div className="mt-1">
                       <ComprobanteWidget
                         uploadUrl={`/api/contabilidad/cc/movimientos/${m.id}/comprobante`}

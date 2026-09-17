@@ -3053,11 +3053,25 @@
           "codigo_verificacion": "44YH2V",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:47+00:00"
+        },
+        {
+          "lote_numero": "EXP0006/26",
+          "estado": "sin_cambios",
+          "fabricante": "RMCA COM ATACADISTA DE CEREAIS LTDA ME",
+          "pais_origen": "Brasil",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-16",
+          "codigo_verificacion": "EUF9MF",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-16T20:49:53+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:47+00:00"
+      "updated_at": "2026-09-16T20:49:53+00:00"
     },
     "C-MANNATTOS250G": {
       "ref": "C-MANNATTOS250G",
@@ -3074,11 +3088,25 @@
           "codigo_verificacion": "44YH2V",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:47+00:00"
+        },
+        {
+          "lote_numero": "EXP0006/26",
+          "estado": "sin_cambios",
+          "fabricante": "RMCA COM ATACADISTA DE CEREAIS LTDA ME",
+          "pais_origen": "Brasil",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-16",
+          "codigo_verificacion": "EUF9MF",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-16T20:49:53+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:47+00:00"
+      "updated_at": "2026-09-16T20:49:53+00:00"
     },
     "C-PROSUELECKG": {
       "ref": "C-PROSUELECKG",

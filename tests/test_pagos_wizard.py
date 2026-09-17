@@ -538,3 +538,72 @@ def test_el_segundo_visto_bueno_lo_da_el_otro(mods):
     assert cerrada["estado"] == "pagada"
     assert cerrada["pagado_por"] == 22
     assert cerrada["firmas"]["aprobada_por"] is not None
+
+
+# ─── Quién retiene y qué otros impuestos lleva ──────────────────────────────
+
+def _servicio(t, m, **extra):
+    return {"categoria": "servicios", "monto": 1_250_000, "concepto": "Quincena",
+            "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16", **extra}
+
+
+def test_ica_se_le_descuenta_al_beneficiario_y_va_a_2368(mods):
+    _cc, w, t, m, _ = mods
+    p = w.previsualizar(_servicio(t, m, retencion_modo="beneficiario", ica_por_mil=9.66))
+    assert p["retencion_ica"] == 12_075.0
+    assert p["girado"] == round(1_250_000 - p["retencion"] - 12_075, 2)
+    assert any(l["cuenta_codigo"] == "2368" for l in p["lineas"])
+    assert p["cuadra"]
+
+
+def test_libre_de_retencion_gross_up_incluye_el_ica(mods):
+    _cc, w, t, m, _ = mods
+    p = w.previsualizar(_servicio(t, m, retencion_modo="mckenna", ica_por_mil=9.66))
+    assert p["girado"] == 1_250_000        # recibe lo pactado, completo
+    assert p["retencion"] > 0 and p["retencion_ica"] > 0
+    assert p["monto"] == round(1_250_000 + p["retencion"] + p["retencion_ica"], 2)
+    assert p["cuadra"]
+
+
+def test_gmf_lo_paga_mckenna_no_el_beneficiario(mods):
+    _cc, w, t, m, _ = mods
+    p = w.previsualizar(_servicio(t, m, retencion_modo="ninguna", gmf=True))
+    assert p["retencion"] == 0
+    assert p["girado"] == 1_250_000                      # el 4x1000 no se le descuenta
+    assert p["gmf"] == 5_000.0                           # 0,4% de lo que sale
+    banco = [l for l in p["lineas"] if l["cuenta_codigo"] == "1110"][0]
+    assert banco["credito"] == 1_255_000.0               # del banco sale el pago + el gravamen
+    assert p["cuadra"]
+
+
+def test_el_asiento_aprobado_conserva_ica_y_gmf(mods):
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_servicio(t, m, retencion_modo="beneficiario", ica_por_mil=9.66, gmf=True))
+    assert s["retencion_ica"] == 12_075.0 and s["gmf"] > 0
+    aprobada = w.aprobar(s["id"], espejar=False)
+    assert aprobada["movimiento_id"]
+    import app.services.contabilidad_core as cc
+    mov = cc.obtener_movimiento(aprobada["movimiento_id"])
+    codigos = {l["cuenta_codigo"] for l in mov["lineas"]}
+    assert {"2365", "2368", "530595"} <= codigos
+
+
+def test_aprobar_dos_veces_no_crea_otro_asiento(mods):
+    """Una solicitud se contabiliza una sola vez, esté en el estado que esté.
+
+    El estado no bastaba como guarda: una ya girada («pagada») pasaba de largo y
+    un segundo clic habría duplicado el gasto y la retención.
+    """
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud(_pago(t, m))
+    primera = w.aprobar(s["id"], espejar=False)
+    w.montar_en_banco(s["id"], por=11)
+    w.confirmar_pago(s["id"], por=22, comprobante=(b"x", "captura.png"))
+
+    repetida = w.aprobar(s["id"], espejar=False)
+    assert repetida.get("ya_aprobada") is True
+    assert repetida["movimiento_id"] == primera["movimiento_id"]
+
+    import app.services.contabilidad_core as cc
+    iguales = [mv for mv in cc.listar_movimientos(limit=100) if mv["referencia"] == f"pago:{s['id']}"]
+    assert len(iguales) == 1

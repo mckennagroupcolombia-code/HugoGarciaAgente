@@ -75,6 +75,20 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     ("236535", "Retención — rendimientos financieros", "pasivo"),
     ("236540", "Retención — compras", "pasivo"),
     ("236595", "Retención — otras", "pasivo"),
+    # ── 24 Impuestos, gravámenes y tasas: lo que McKenna debe como
+    # CONTRIBUYENTE, distinto de las 23xx, que es lo que retuvo a terceros y
+    # consigna a nombre de ellos. Confundirlos hace que el pago de una
+    # declaración baje una deuda que no era.
+    ("2404", "De renta y complementarios", "pasivo"),
+    ("2408", "Impuesto sobre las ventas por pagar", "pasivo"),
+    # Las dos mitades del formulario 300: lo que McKenna cobró en sus ventas y
+    # lo que pagó en sus compras. Lo que se declara es la diferencia, así que
+    # tenerlas separadas no es un lujo — es lo que hace que el 300 se pueda
+    # armar leyendo el libro. Mismos códigos que usa Alegra en sus facturas
+    # (`categoryToBePaid` / `categoryFavorable`), para que el espejo case.
+    ("240805", "IVA generado", "pasivo"),
+    ("240810", "IVA descontable por compras", "pasivo"),
+    ("2412", "De industria y comercio", "pasivo"),
     ("2367", "Impuesto a las ventas retenido", "pasivo"),
     ("2368", "Impuesto de industria y comercio retenido", "pasivo"),
     # ── 3 Patrimonio ──
@@ -143,9 +157,13 @@ ALIAS: dict[str, str] = {
     # Un préstamo de un particular es una obligación financiera (2195), no un
     # proveedor. 2295 no existe.
     "2295": "2195",
-    # 2367 es IVA retenido. Lo que el libro llamaba así son costos y gastos por
-    # pagar = 2335.
-    "2367": "2335",
+    # OJO: aquí NO va "2367": "2335". El libro usaba 2367 con el nombre
+    # equivocado («costos y gastos por pagar»), y el alias movió esa data a
+    # 2335 — ya está hecho y registrado en `cc_puc_alias_aplicados`. Dejarlo
+    # puesto secuestraría el código: 2367 es «Impuesto a las ventas retenido»
+    # (reteIVA) en el decreto, y McKenna lo necesita para eso. El alias se
+    # retira una vez la migración corrió; los call-sites que quedaban apuntando
+    # a 2367 como «costos por pagar» ya dicen 2335.
     # 2380 es "Acreedores varios"; las deudas con socios son 2355.
     "2380": "2355",
     # MercadoPago estaba colgado de Bancos con un código inventado.

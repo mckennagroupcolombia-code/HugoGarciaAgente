@@ -107,8 +107,13 @@ def test_el_codigo_viejo_sigue_resolviendo_despues_de_migrar(libro):
         via_alias = cc._cuenta_id_por_codigo(con, "2380")
         directo = cc._cuenta_id_por_codigo(con, "2355")
         assert via_alias == directo
-        assert cc._cuenta_id_por_codigo(con, "2367") == cc._cuenta_id_por_codigo(con, "2335")
         assert cc._cuenta_id_por_codigo(con, "2295") == cc._cuenta_id_por_codigo(con, "2195")
+        # 2367 NO está en esa lista a propósito: su alias se retiró una vez la
+        # migración corrió. El libro lo usaba mal («costos y gastos por pagar»,
+        # que es 2335), pero en el decreto es «Impuesto a las ventas retenido»
+        # y McKenna lo necesita para el reteIVA. Mantener el alias habría
+        # secuestrado un código que el negocio sí usa.
+        assert cc._cuenta_id_por_codigo(con, "2367") != cc._cuenta_id_por_codigo(con, "2335")
 
 
 def test_migrar_no_descuadra_la_partida_doble(libro):

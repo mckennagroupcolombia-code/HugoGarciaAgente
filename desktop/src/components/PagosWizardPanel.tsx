@@ -29,6 +29,14 @@ type Opcion = {
   monto_sugerido?: number; detalle?: string; tipo_servicio?: string;
 };
 
+/** Una cuenta tocada por el asiento, con su saldo antes y después. */
+type CuentaT = {
+  cuenta_codigo: string; cuenta_nombre: string; naturaleza: "debito" | "credito";
+  tipo: string; debito: number; credito: number;
+  saldo_antes: number; efecto: number; saldo_despues: number;
+  movimientos: { descripcion: string; debito: number; credito: number }[];
+};
+
 type LineaAsiento = {
   cuenta_codigo: string; cuenta_nombre: string;
   debito: number; credito: number; descripcion: string;
@@ -38,7 +46,7 @@ type Previsualizacion = {
   categoria_label: string; concepto: string; fecha: string;
   monto: number; retencion: number; retencion_motivo: string; girado: number;
   tercero: { id: number; nombre: string } | null;
-  medio_pago: string; lineas: LineaAsiento[]; cuadra: boolean;
+  medio_pago: string; lineas: LineaAsiento[]; cuadra: boolean; cuentas_t?: CuentaT[];
   items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; subtotal: number; iva: number; total: number }>;
   total_items?: number; base_sin_iva?: number; iva_items?: number;
   valor_es_neto?: boolean; retencion_ica?: number; ica_por_mil?: number; gmf?: number; retencion_modo?: string;
@@ -264,7 +272,7 @@ function WizardSimple({
   const [fecha, setFecha] = useState(hoy());
   const [medioPagoId, setMedioPagoId] = useState("");
   const [concepto, setConcepto] = useState<
-    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "salario_socio" | "saldo_por_pagar"
+    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "saldo_por_pagar"
   >("productos");
   // Quién asume la retención. Lo pactado con un prestador de servicios suele
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
@@ -312,14 +320,43 @@ function WizardSimple({
   const cuentaSugerida = cat?.cuenta_sugerida ?? "";
 
   const esPublico = concepto === "servicio_publico";
-  const llevaRetencion = concepto === "productos" || concepto === "servicios" || concepto === "salario_socio";
+  // Lo que Armando y Cynthia cobran entra por «Servicios» como el de cualquier
+  // otro prestador: misma cuenta, mismas retenciones, mismo pago parcial.
+  const llevaRetencion = concepto === "productos" || concepto === "servicios";
   const permiteParcial = Boolean(cat?.permite_parcial);
   const valor = num(monto);
+
+  // Al elegir el tercero, las casillas de impuestos quedan como se le pagó la
+  // última vez. Es el punto del asunto: la quincena de quien presta servicios
+  // lleva siempre lo mismo —sin retención de renta, ICA 9,66 por mil y
+  // 4x1000— y marcarlo a mano cada quincena es cómo en septiembre se le
+  // practicó retención de más a tres personas. El operador puede cambiarlo;
+  // lo que cambie se vuelve a guardar al solicitar el pago.
   useEffect(() => {
-    // Cambiar de concepto invalida la cuenta elegida: 513550 no tiene nada que
-    // hacer en un pago de honorarios, y dejarla puesta la aplicaría en silencio.
-    setCuentaDebito("");
-  }, [concepto]);
+    if (!proveedor) return;
+    if (proveedor.regimen_simple) {
+      setRetencionModo("ninguna");
+    } else if (proveedor.retefuente_exento) {
+      setRetencionModo("ninguna");
+    }
+    const ica = Number(proveedor.ica_por_mil ?? 0);
+    if (ica > 0) {
+      setIcaActivo(true);
+      setIcaPorMil(String(ica));
+    }
+    if (proveedor.gmf_por_defecto) setGmf(true);
+    if (proveedor.cuenta_gasto_default) setCuentaDebito(proveedor.cuenta_gasto_default);
+  }, [proveedor?.id]);
+
+  useEffect(() => {
+    // Cambiar de concepto invalida la cuenta elegida a mano: 513550 no tiene
+    // nada que hacer en un pago de honorarios, y dejarla puesta la aplicaría en
+    // silencio. Pero se vuelve a la cuenta habitual del tercero, no a vacío: el
+    // backend la aplica igual, así que dejar el selector en blanco mostraba
+    // «5135 — la que propone la categoría» mientras el asiento se iba a 511095.
+    // Enseñar una cuenta y contabilizar otra es peor que no mostrar ninguna.
+    setCuentaDebito(proveedor?.cuenta_gasto_default || "");
+  }, [concepto, proveedor?.cuenta_gasto_default]);
   const conceptoTexto = useMemo(() => {
     const quien = proveedor?.nombre ? ` — ${proveedor.nombre}` : "";
     if (esPublico) {
@@ -328,7 +365,6 @@ function WizardSimple({
     }
     const label = concepto === "productos" ? "Productos"
       : concepto === "flete_transporte" ? "Transporte"
-      : concepto === "salario_socio" ? "Salario"
       : concepto === "saldo_por_pagar" ? "Saldo pendiente" : "Servicios";
     return `${label}${quien}${detalle ? ` · ${detalle}` : ""}`;
   }, [concepto, esPublico, tipoServicio, contrato, proveedor, detalle]);
@@ -412,7 +448,6 @@ function WizardSimple({
             ["servicios", "🧰 Servicios", "Servicios prestados a McKenna"],
             ["flete_transporte", "🚚 Transporte", "Fletes, guías, acarreos"],
             ["servicio_publico", "💡 Servicios públicos", "Con número de contrato"],
-            ["salario_socio", "🧑‍💼 Salario de socio", "Armando o Cynthia · se puede pagar parcial"],
             ["saldo_por_pagar", "⏳ Saldo pendiente", "Girar lo que quedó debiendo de un pago anterior"],
           ] as const).map(([id, label, ayuda]) => (
             <button
@@ -485,6 +520,13 @@ function WizardSimple({
           </div>
         )}
 
+        {proveedor && (Number(proveedor.ica_por_mil ?? 0) > 0 || proveedor.retefuente_exento || proveedor.gmf_por_defecto) && (
+          <p className="rounded-lg bg-accent/10 px-3 py-2 text-xs text-accent">
+            Impuestos tomados de la ficha de {proveedor.nombre}, como se le pagó la última vez.
+            Si los cambias acá, queda guardado para la próxima.
+          </p>
+        )}
+
         <label className="flex cursor-pointer items-start gap-2 text-sm">
           <input type="checkbox" checked={icaActivo} onChange={(e) => setIcaActivo(e.target.checked)} className="mt-1" />
           <span className="flex-1">
@@ -508,8 +550,13 @@ function WizardSimple({
           <span>
             <span className="font-bold text-ink">Sumar el 4x1000 (GMF)</span>
             <span className="block text-sm text-muted">
-              Lo cobra el banco sobre lo que sale de la cuenta; no se le descuenta al beneficiario, es gasto
-              de McKenna (cuenta 530595).
+              <b>Normalmente NO hay que marcarlo.</b> Bancolombia cobra el 4x1000 en una sola
+              línea diaria («IMPTO GOBIERNO 4X1000»), no pegado a cada transferencia, y esa línea
+              ya se contabiliza sola al conciliar el extracto. Marcarlo acá además lo contaría dos
+              veces. Y la cuenta tiene la exención del Art. 879 num. 1 ET: los primeros 350 UVT de
+              retiros del mes ($18.330.900 en 2026) no pagan, así que los pagos de principio de mes
+              no generan nada. Márcalo solo si sabes que este pago sale de una cuenta sin exención
+              y que el cobro no vendrá por el extracto.
             </span>
           </span>
         </label>
@@ -626,6 +673,9 @@ type ItemLinea = { sku: string; nombre: string; cantidad: string; precio: string
 type Proveedor = {
   id: number | null; nombre: string; identificacion: string; saldo_2205: number;
   en_libro: boolean; alegra_id: string | null; regimen_simple?: number; tipo_persona?: string;
+  /** Cómo se le pagó la última vez: el wizard deja las casillas ya puestas. */
+  retefuente_exento?: number; ica_por_mil?: number; gmf_por_defecto?: number;
+  cuenta_gasto_default?: string;
 };
 type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string };
 type CotejoItem = { sku: string; nombre: string; encontrado: boolean; por?: string; cantidad_ok: boolean; precio_ok: boolean };
@@ -1349,9 +1399,66 @@ function ResumenPedido({ proveedor, items, tot, verif, motivo }: {
  * Lo que hace que esto no sea firmar a ciegas: el asiento completo, con sus
  * cuentas y su cuadre, antes de que nadie apruebe nada.
  */
+/** Una cuenta en T: Debe a la izquierda, Haber a la derecha, y cómo queda el saldo. */
+function CuentaEnT({ t }: { t: CuentaT }) {
+  const sube = t.efecto > 0;
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-surface">
+      <div className="border-b border-border px-2 py-1">
+        <p className="font-mono text-xs font-bold text-accent">{t.cuenta_codigo}</p>
+        <p className="truncate text-xs font-semibold text-ink" title={t.cuenta_nombre}>{t.cuenta_nombre}</p>
+        <p className="text-[10px] uppercase text-muted">
+          {t.tipo} · naturaleza {t.naturaleza}
+        </p>
+      </div>
+      {/* Las dos columnas de la T. La cuenta se pinta siempre igual: lo que
+          cambia entre una de débito y una de crédito es de qué lado suma, y
+          eso se ve abajo en el saldo, no moviendo las columnas. */}
+      <div className="grid grid-cols-2 border-b border-border text-[10px] font-bold uppercase text-muted">
+        <span className="border-r border-border px-2 py-0.5 text-center">Debe</span>
+        <span className="px-2 py-0.5 text-center">Haber</span>
+      </div>
+      <div className="grid grid-cols-2">
+        <div className="border-r border-border">
+          {t.movimientos.filter((m) => m.debito > 0).map((m, i) => (
+            <p key={i} className="px-2 py-1 text-right text-xs tabular-nums text-ink">{cop(m.debito)}</p>
+          ))}
+        </div>
+        <div>
+          {t.movimientos.filter((m) => m.credito > 0).map((m, i) => (
+            <p key={i} className="px-2 py-1 text-right text-xs tabular-nums text-ink">{cop(m.credito)}</p>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-border bg-surface-panel px-2 py-1 text-[11px]">
+        <p className="flex justify-between text-muted">
+          <span>Saldo actual</span><span className="tabular-nums">{cop(t.saldo_antes)}</span>
+        </p>
+        <p className="flex justify-between font-bold text-ink">
+          <span>Queda en</span>
+          <span className={`tabular-nums ${sube ? "text-emerald-600" : "text-amber-700 dark:text-amber-400"}`}>
+            {cop(t.saldo_despues)}
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function AsientoPreview({ p }: { p: Previsualizacion }) {
   const totalD = p.lineas.reduce((a, l) => a + l.debito, 0);
   const totalC = p.lineas.reduce((a, l) => a + l.credito, 0);
+  // El diario es el formato compacto para revisar de un vistazo; las cuentas T
+  // son las que responden «¿cómo queda la cuenta?», que es lo que se mira antes
+  // de aprobar. Se recuerda la elección mientras dure la sesión del navegador.
+  const [vista, setVista] = useState<"diario" | "t">(
+    () => (typeof localStorage !== "undefined" && localStorage.getItem("pagos-vista-asiento") === "t" ? "t" : "diario"),
+  );
+  const cambiarVista = (v: "diario" | "t") => {
+    setVista(v);
+    try { localStorage.setItem("pagos-vista-asiento", v); } catch { /* modo privado */ }
+  };
+  const cuentas = p.cuentas_t ?? [];
   return (
     <div className="space-y-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
       <div className="grid gap-2 sm:grid-cols-3">
@@ -1359,10 +1466,30 @@ function AsientoPreview({ p }: { p: Previsualizacion }) {
         {p.retencion > 0 && <Mini label="Retención" valor={`− ${cop(p.retencion)}`} />}
         <Mini label="Se gira" valor={cop(p.girado)} acento />
       </div>
+      {cuentas.length > 0 && (
+        <div className="flex gap-1" role="tablist" aria-label="Cómo ver el asiento">
+          {([["diario", "Libro diario"], ["t", "Cuentas T"]] as const).map(([v, label]) => (
+            <button
+              key={v} type="button" role="tab" aria-selected={vista === v}
+              onClick={() => cambiarVista(v)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                vista === v ? "bg-accent text-white" : "border border-border bg-surface text-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {p.retencion_motivo && (
         <p className="rounded-lg bg-surface px-2 py-1.5 text-xs text-muted">{p.retencion_motivo}</p>
       )}
-      <div className="overflow-x-auto">
+      {vista === "t" && cuentas.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {cuentas.map((t) => <CuentaEnT key={t.cuenta_codigo} t={t} />)}
+        </div>
+      )}
+      <div className={`overflow-x-auto ${vista === "t" && cuentas.length > 0 ? "hidden" : ""}`}>
         <table className="min-w-full text-left text-sm">
           <thead className="text-xs uppercase text-muted">
             <tr>

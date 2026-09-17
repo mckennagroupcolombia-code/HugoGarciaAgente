@@ -1,5 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { api, fetchAuthBlobUrl } from "../api/client";
+
+/**
+ * Facturación → Cotizar/Facturar: wizard de venta directa por WhatsApp.
+ *
+ * Reemplaza cotizar en la interfaz de Alegra, donde el IVA salía dos veces: la
+ * lista de precios de Alegra ya trae el IVA incluido y Alegra le suma el 19%
+ * encima. Aquí el precio que se escribe es SIEMPRE el que paga el cliente; el
+ * backend (app/services/ventas_directas.py) saca el IVA línea por línea y le
+ * manda a Alegra el precio base.
+ *
+ * Dos caminos, un solo motor:
+ *  - Automático: se elige un pedido que armó el agente IA de WhatsApp y el
+ *    wizard salta directo a «Revisar» con cliente, productos y envío puestos.
+ *  - Manual: desde una conversación de WhatsApp (extracción con IA) o desde cero.
+ */
 
 interface ClienteResultado {
   id: string;
@@ -21,16 +36,74 @@ interface Linea {
   nombre: string;
   cantidad: number;
   precio_unitario: number;
+  iva_pct?: number;
+  base?: number;
+  iva?: number;
+  total?: number;
+  existe_en_alegra?: boolean;
+  precio_web?: number | null;
+  precio_lista?: number | null;
 }
 
-interface AccionResultado {
-  ok: boolean;
-  numero?: string;
-  total?: number;
-  cufe?: string;
-  url?: string;
-  enviado_whatsapp?: boolean;
-  error?: string;
+interface Calculo {
+  lineas: Linea[];
+  envio: number;
+  subtotal: number;
+  iva: number;
+  total: number;
+  errores: string[];
+  sin_alegra: string[];
+}
+
+interface Cliente {
+  nombre: string;
+  identificacion: string;
+  correo: string;
+  direccion: string;
+  ciudad: string;
+}
+
+type Estado = "borrador" | "cotizada" | "facturando" | "facturada" | "anulada";
+type Origen = "manual" | "pedido_ia" | "conversacion";
+
+interface Venta {
+  id: number;
+  numero: string;
+  estado: Estado;
+  origen: Origen;
+  origen_ref: string;
+  cliente: Cliente;
+  telefono: string;
+  lineas: Linea[];
+  envio: number;
+  subtotal: number;
+  iva: number;
+  total: number;
+  notas: string;
+  medio_pago: string;
+  alegra_cotizacion_numero?: string | null;
+  factura_numero?: string | null;
+  factura_url?: string | null;
+  factura_cufe?: string | null;
+  enviado_whatsapp: boolean;
+  avisos: string[];
+  creado_por: string;
+  actualizado: string;
+}
+
+interface PedidoIA {
+  id: number;
+  jid: string;
+  display: string;
+  estado: string;
+  items: { ref: string; nombre: string; precio: number; cantidad: number; subtotal: number }[];
+  cliente: Record<string, string>;
+  subtotal: number;
+  envio: number | null;
+  total: number | null;
+  faltantes: string[];
+  actualizado: number;
+  venta_directa?: { id: number; numero: string; estado: Estado } | null;
 }
 
 interface ProductoExtraido {
@@ -39,543 +112,1062 @@ interface ProductoExtraido {
   candidatos: ProductoResultado[];
 }
 
-interface ExtraccionResultado {
-  ok: boolean;
-  cliente?: { nombre: string; identificacion: string; telefono: string; correo: string; direccion: string };
-  productos?: ProductoExtraido[];
-  notas?: string;
-  error?: string;
-}
-
 interface ConversacionWA {
   usuario_id: string;
   telefono: string;
   resumen: string;
   ultimo: string;
-  n_mensajes: number;
 }
 
-function pesos(v: number) {
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
+const PASOS = [
+  { id: 1, label: "Origen" },
+  { id: 2, label: "Cliente" },
+  { id: 3, label: "Productos" },
+  { id: 4, label: "Revisar" },
+  { id: 5, label: "Cotizar o facturar" },
+] as const;
+
+const MEDIOS_PAGO = [
+  { id: "CREDIT_TRANSFER", label: "Transferencia / Nequi / Daviplata" },
+  { id: "DEBIT_TRANSFER", label: "PSE / botón de banco" },
+  { id: "BANK_DEPOSIT", label: "Consignación" },
+  { id: "CREDIT_CARD", label: "Tarjeta de crédito" },
+  { id: "DEBIT_CARD", label: "Tarjeta débito" },
+  { id: "CASH", label: "Efectivo" },
+];
+
+const ESTADO_UI: Record<Estado, { label: string; cls: string }> = {
+  borrador: { label: "Borrador", cls: "bg-surface-hover text-muted" },
+  cotizada: { label: "Cotizada · esperando pago", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
+  facturando: { label: "Facturando…", cls: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300" },
+  facturada: { label: "Facturada", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+  anulada: { label: "Anulada", cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
+};
+
+const CLIENTE_VACIO: Cliente = { nombre: "", identificacion: "", correo: "", direccion: "", ciudad: "" };
+
+const input =
+  "w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent";
+const card = "rounded-xl border border-border bg-surface-panel p-4";
+const btn =
+  "rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40";
+const btnPrimario =
+  "rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40";
+
+function pesos(v: number | null | undefined) {
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v ?? 0);
 }
 
-function formatTelefono(tel: string): string {
-  const d = (tel || "").replace(/\D/g, "");
+function hace(ts: number | string): string {
+  const ms = typeof ts === "number" ? ts * 1000 : new Date(ts).getTime();
+  const mins = Math.round((Date.now() - ms) / 60000);
+  if (!Number.isFinite(mins)) return "";
+  if (mins < 1) return "ahora";
+  if (mins < 60) return `hace ${mins} min`;
+  if (mins < 1440) return `hace ${Math.round(mins / 60)} h`;
+  return `hace ${Math.round(mins / 1440)} d`;
+}
+
+function telefonoVisible(tel: string): string {
+  if (tel.includes("@")) return tel.endsWith("@lid") ? "chat de WhatsApp" : tel.split("@")[0];
+  const d = tel.replace(/\D/g, "");
   const local = d.length === 12 && d.startsWith("57") ? d.slice(2) : d;
-  if (local.length === 10) return `+57 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
-  return tel;
+  return local.length === 10 ? `+57 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}` : tel;
 }
 
-function formatFecha(iso: string): string {
-  try {
-    const d = new Date(iso.includes("T") ? iso : `${iso.replace(" ", "T")}Z`);
-    const mins = Math.round((Date.now() - d.getTime()) / 60000);
-    if (mins < 1) return "ahora";
-    if (mins < 60) return `hace ${mins} min`;
-    const horas = Math.round(mins / 60);
-    if (horas < 24) return `hace ${horas} h`;
-    return `hace ${Math.round(horas / 24)} d`;
-  } catch {
-    return iso;
-  }
+function useDebounced<T>(valor: T, ms: number): T {
+  const [v, setV] = useState(valor);
+  useEffect(() => {
+    const t = window.setTimeout(() => setV(valor), ms);
+    return () => window.clearTimeout(t);
+  }, [valor, ms]);
+  return v;
 }
 
 export default function CotizarFacturarPanel() {
-  // Cliente
-  const [busquedaCliente, setBusquedaCliente] = useState("");
-  const [resultadosCliente, setResultadosCliente] = useState<ClienteResultado[]>([]);
-  const [buscandoCliente, setBuscandoCliente] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [identificacion, setIdentificacion] = useState("");
+  const [paso, setPaso] = useState(1);
+  const [ventaId, setVentaId] = useState<number | null>(null);
+  const [venta, setVenta] = useState<Venta | null>(null);
+
+  const [origen, setOrigen] = useState<Origen>("manual");
+  const [origenRef, setOrigenRef] = useState("");
+  const [cliente, setCliente] = useState<Cliente>(CLIENTE_VACIO);
   const [telefono, setTelefono] = useState("");
-  const [correo, setCorreo] = useState("");
-  const [direccion, setDireccion] = useState("");
-
-  // Productos
-  const [busquedaProducto, setBusquedaProducto] = useState("");
-  const [resultadosProducto, setResultadosProducto] = useState<ProductoResultado[]>([]);
-  const [buscandoProducto, setBuscandoProducto] = useState(false);
   const [lineas, setLineas] = useState<Linea[]>([]);
-
+  const [envio, setEnvio] = useState(0);
   const [notas, setNotas] = useState("");
-  const [referencia, setReferencia] = useState("");
-  const [enCurso, setEnCurso] = useState<"cotizar" | "facturar" | null>(null);
-  const [resultado, setResultado] = useState<{ tipo: "cotizar" | "facturar"; data: AccionResultado } | null>(null);
+  const [medioPago, setMedioPago] = useState("CREDIT_TRANSFER");
+
+  const [calc, setCalc] = useState<Calculo | null>(null);
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [avisos, setAvisos] = useState<string[]>([]);
   const [confirmarFactura, setConfirmarFactura] = useState(false);
+  const [pendientes, setPendientes] = useState<ProductoExtraido[]>([]);
 
-  // Extracción desde conversación de WhatsApp
-  const [textoConversacion, setTextoConversacion] = useState("");
-  const [extrayendo, setExtrayendo] = useState(false);
-  const [errorExtraccion, setErrorExtraccion] = useState<string | null>(null);
-  const [productosPendientes, setProductosPendientes] = useState<ProductoExtraido[]>([]);
-  const [conversaciones, setConversaciones] = useState<ConversacionWA[]>([]);
-  const [cargandoConversaciones, setCargandoConversaciones] = useState(false);
-  const [mostrarConversaciones, setMostrarConversaciones] = useState(false);
-  const [filtroConversaciones, setFiltroConversaciones] = useState("");
+  const soloLectura = venta?.estado === "facturada" || venta?.estado === "anulada" || venta?.estado === "facturando";
 
-  const conversacionesFiltradas = useMemo(() => {
-    const q = filtroConversaciones.replace(/\D/g, "");
-    if (!q) return conversaciones;
-    return conversaciones.filter((c) => c.telefono.includes(q));
-  }, [conversaciones, filtroConversaciones]);
+  const reiniciar = useCallback(() => {
+    setPaso(1);
+    setVentaId(null);
+    setVenta(null);
+    setOrigen("manual");
+    setOrigenRef("");
+    setCliente(CLIENTE_VACIO);
+    setTelefono("");
+    setLineas([]);
+    setEnvio(0);
+    setNotas("");
+    setMedioPago("CREDIT_TRANSFER");
+    setCalc(null);
+    setError(null);
+    setAvisos([]);
+    setConfirmarFactura(false);
+    setPendientes([]);
+  }, []);
 
-  // Búsqueda de cliente (debounced)
+  const cargarVenta = useCallback((v: Venta, irA?: number) => {
+    setVentaId(v.id);
+    setVenta(v);
+    setOrigen(v.origen);
+    setOrigenRef(v.origen_ref);
+    setCliente({ ...CLIENTE_VACIO, ...v.cliente });
+    setTelefono(v.telefono);
+    setLineas(v.lineas);
+    setEnvio(v.envio);
+    setNotas(v.notas);
+    if (v.medio_pago) setMedioPago(v.medio_pago);
+    setAvisos(v.avisos ?? []);
+    setError(null);
+    setConfirmarFactura(false);
+    if (irA) setPaso(irA);
+  }, []);
+
+  // Totales siempre desde el backend: el IVA de cada línea sale de Alegra.
+  const firmaCalculo = useDebounced(JSON.stringify({ lineas: lineas.map(({ codigo, cantidad, precio_unitario }) => ({ codigo, cantidad, precio_unitario })), envio }), 350);
   useEffect(() => {
-    const q = busquedaCliente.trim();
-    if (q.length < 2) {
-      setResultadosCliente([]);
+    const body = JSON.parse(firmaCalculo) as { lineas: Linea[]; envio: number };
+    if (!body.lineas.length && !body.envio) {
+      setCalc(null);
       return;
     }
     let cancelado = false;
-    const t = window.setTimeout(() => {
-      setBuscandoCliente(true);
-      void api
-        .get<{ items: ClienteResultado[] }>(`/api/facturacion/clientes/buscar?q=${encodeURIComponent(q)}`)
-        .then((data) => {
-          if (!cancelado) setResultadosCliente(data.items ?? []);
-        })
-        .catch(() => {
-          if (!cancelado) setResultadosCliente([]);
-        })
-        .finally(() => {
-          if (!cancelado) setBuscandoCliente(false);
-        });
-    }, 250);
+    api
+      .post<Calculo>("/api/ventas-directas/calcular", body)
+      .then((c) => !cancelado && setCalc(c))
+      .catch(() => !cancelado && setCalc(null));
     return () => {
       cancelado = true;
-      window.clearTimeout(t);
     };
-  }, [busquedaCliente]);
+  }, [firmaCalculo]);
 
-  // Búsqueda de producto (debounced)
-  useEffect(() => {
-    const q = busquedaProducto.trim();
-    if (q.length < 1) {
-      setResultadosProducto([]);
-      return;
-    }
-    let cancelado = false;
-    const t = window.setTimeout(() => {
-      setBuscandoProducto(true);
-      void api
-        .get<{ items: ProductoResultado[] }>(`/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=20&excluir_combos=0`)
-        .then((data) => {
-          if (!cancelado) setResultadosProducto(data.items ?? []);
-        })
-        .catch(() => {
-          if (!cancelado) setResultadosProducto([]);
-        })
-        .finally(() => {
-          if (!cancelado) setBuscandoProducto(false);
-        });
-    }, 220);
-    return () => {
-      cancelado = true;
-      window.clearTimeout(t);
-    };
-  }, [busquedaProducto]);
-
-  function elegirCliente(c: ClienteResultado) {
-    setNombre(c.nombre);
-    setIdentificacion(c.identificacion);
-    setTelefono(c.telefono);
-    setCorreo(c.email);
-    setDireccion(c.direccion);
-    setBusquedaCliente("");
-    setResultadosCliente([]);
-  }
-
-  async function agregarProducto(p: ProductoResultado, cantidadInicial = 1) {
-    setBusquedaProducto("");
-    setResultadosProducto([]);
-    if (lineas.some((l) => l.codigo === p.codigo)) return;
-    let precio = 0;
+  async function guardar(): Promise<Venta | null> {
+    if (soloLectura && venta) return venta;
+    const body = { origen, origen_ref: origenRef, cliente, telefono, lineas, envio, notas, medio_pago: medioPago };
     try {
-      const detalle = await api.get<{ ok: boolean; precio_lista?: number }>(
-        `/api/siigo/productos/detalle?codigo=${encodeURIComponent(p.codigo)}`,
-      );
-      precio = detalle.precio_lista ?? 0;
-    } catch {
-      precio = 0;
-    }
-    setLineas((prev) => [
-      ...prev,
-      { codigo: p.codigo, nombre: p.nombre, cantidad: cantidadInicial || 1, precio_unitario: precio },
-    ]);
-  }
-
-  async function procesarExtraccion(payload: { texto: string } | { usuario_id: string }) {
-    setExtrayendo(true);
-    setErrorExtraccion(null);
-    try {
-      const data = await api.post<ExtraccionResultado>("/api/facturacion/extraer-conversacion", payload);
-      if (!data.ok) {
-        setErrorExtraccion(data.error || "No se pudo extraer la información.");
-        return;
-      }
-      const c = data.cliente;
-      if (c) {
-        if (c.nombre && !nombre.trim()) setNombre(c.nombre);
-        if (c.identificacion && !identificacion.trim()) setIdentificacion(c.identificacion);
-        if (c.telefono && !telefono.trim()) setTelefono(c.telefono);
-        if (c.correo && !correo.trim()) setCorreo(c.correo);
-        if (c.direccion && !direccion.trim()) setDireccion(c.direccion);
-      }
-      if (data.notas && !notas.trim()) setNotas(data.notas);
-
-      const pendientes: ProductoExtraido[] = [];
-      for (const p of data.productos ?? []) {
-        if (p.candidatos.length === 1) {
-          await agregarProducto(p.candidatos[0], p.cantidad || 1);
-        } else {
-          pendientes.push(p);
-        }
-      }
-      if (pendientes.length > 0) setProductosPendientes((prev) => [...prev, ...pendientes]);
+      const r = ventaId
+        ? await api.put<{ venta: Venta }>(`/api/ventas-directas/${ventaId}`, body)
+        : await api.post<{ venta: Venta }>("/api/ventas-directas", body);
+      setVentaId(r.venta.id);
+      setVenta(r.venta);
+      return r.venta;
     } catch (e) {
-      setErrorExtraccion((e as Error).message);
-    } finally {
-      setExtrayendo(false);
+      setError((e as Error).message);
+      return null;
     }
   }
 
-  async function ejecutarExtraccion() {
-    const texto = textoConversacion.trim();
-    if (!texto) return;
-    await procesarExtraccion({ texto });
+  async function avanzar(a: number) {
+    setError(null);
+    if (a >= 4) {
+      setOcupado("guardar");
+      const v = await guardar();
+      setOcupado(null);
+      if (!v) return;
+    }
+    setPaso(a);
   }
 
-  async function cargarConversaciones() {
-    setCargandoConversaciones(true);
+  const clienteOk = cliente.nombre.trim().length > 0 && telefono.trim().length > 0;
+  const productosOk = lineas.length > 0 && lineas.every((l) => l.cantidad > 0 && l.precio_unitario >= 0);
+  const puedeFacturar =
+    clienteOk && cliente.identificacion.trim().length > 0 && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length);
+
+  const pasoHabilitado = (id: number) =>
+    id === 1 || (id === 2) || (id === 3 && clienteOk) || (id >= 4 && clienteOk && productosOk);
+
+  async function cotizar() {
+    setOcupado("cotizar");
+    setError(null);
+    const v = await guardar();
+    if (!v) return setOcupado(null);
     try {
-      const data = await api.get<{ items: ConversacionWA[] }>("/api/facturacion/conversaciones-wa?limit=40");
-      setConversaciones(data.items ?? []);
-    } catch {
-      setConversaciones([]);
-    } finally {
-      setCargandoConversaciones(false);
-    }
-  }
-
-  function alternarConversaciones() {
-    const nuevoValor = !mostrarConversaciones;
-    setMostrarConversaciones(nuevoValor);
-    if (nuevoValor && conversaciones.length === 0) void cargarConversaciones();
-  }
-
-  async function elegirConversacion(c: ConversacionWA) {
-    setMostrarConversaciones(false);
-    if (!telefono.trim()) {
-      const digitos = c.telefono.replace(/\D/g, "");
-      if (digitos.length === 10 || digitos.length === 12) setTelefono(digitos);
-    }
-    await procesarExtraccion({ usuario_id: c.usuario_id });
-  }
-
-  function confirmarPendiente(idx: number, candidato: ProductoResultado, cantidad: number) {
-    void agregarProducto(candidato, cantidad || 1);
-    setProductosPendientes((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function descartarPendiente(idx: number) {
-    setProductosPendientes((prev) => prev.filter((_, i) => i !== idx));
-  }
-
-  function actualizarLinea(codigo: string, campo: "cantidad" | "precio_unitario", valor: number) {
-    setLineas((prev) => prev.map((l) => (l.codigo === codigo ? { ...l, [campo]: valor } : l)));
-  }
-
-  function quitarLinea(codigo: string) {
-    setLineas((prev) => prev.filter((l) => l.codigo !== codigo));
-  }
-
-  const total = lineas.reduce((s, l) => s + l.cantidad * l.precio_unitario, 0);
-  const clienteListo = nombre.trim().length > 0 && telefono.trim().length > 0;
-  const puedeCotizar = clienteListo && lineas.length > 0 && enCurso === null;
-  const puedeFacturar = clienteListo && identificacion.trim().length > 0 && lineas.length > 0 && enCurso === null;
-
-  async function ejecutarCotizar() {
-    setEnCurso("cotizar");
-    setResultado(null);
-    try {
-      const data = await api.post<AccionResultado>("/api/facturacion/cotizar", {
-        cliente: { nombre, identificacion, correo, direccion },
-        productos: lineas,
-        telefono,
-        notas,
-      });
-      setResultado({ tipo: "cotizar", data });
+      const r = await api.post<{ venta: Venta; avisos: string[] }>(`/api/ventas-directas/${v.id}/cotizar`, {});
+      cargarVenta(r.venta);
+      setAvisos(r.avisos ?? []);
     } catch (e) {
-      setResultado({ tipo: "cotizar", data: { ok: false, error: (e as Error).message } });
+      setError((e as Error).message);
     } finally {
-      setEnCurso(null);
+      setOcupado(null);
     }
   }
 
-  async function ejecutarFacturar() {
+  async function facturar() {
     if (!confirmarFactura) {
       setConfirmarFactura(true);
       return;
     }
     setConfirmarFactura(false);
-    setEnCurso("facturar");
-    setResultado(null);
+    setOcupado("facturar");
+    setError(null);
+    const v = await guardar();
+    if (!v) return setOcupado(null);
     try {
-      const data = await api.post<AccionResultado>("/api/facturacion/facturar-directo", {
-        cliente: { nombre, identificacion, correo, direccion },
-        productos: lineas,
-        telefono,
-        referencia,
-      });
-      setResultado({ tipo: "facturar", data });
+      const r = await api.post<{ venta: Venta; avisos: string[] }>(`/api/ventas-directas/${v.id}/facturar`, {
+        medio_pago: medioPago,
+      }, { timeoutMs: 90_000 });
+      cargarVenta(r.venta);
+      setAvisos(r.avisos ?? []);
     } catch (e) {
-      setResultado({ tipo: "facturar", data: { ok: false, error: (e as Error).message } });
+      setError((e as Error).message);
+      // Refresca: si Alegra alcanzó a emitir, la venta ya no debe verse editable.
+      api.get<Venta>(`/api/ventas-directas/${v.id}`).then((x) => cargarVenta(x)).catch(() => undefined);
     } finally {
-      setEnCurso(null);
+      setOcupado(null);
     }
   }
 
+  async function anular() {
+    if (!ventaId) return;
+    try {
+      await api.post(`/api/ventas-directas/${ventaId}/anular`, {});
+      const v = await api.get<Venta>(`/api/ventas-directas/${ventaId}`);
+      cargarVenta(v);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function verPdf() {
+    if (!ventaId) return;
+    const url = await fetchAuthBlobUrl(`/api/ventas-directas/${ventaId}/pdf`);
+    if (url) window.open(url, "_blank", "noopener");
+    else setError("No se encontró el PDF de la cotización.");
+  }
+
   return (
-    <div className="mx-auto max-w-4xl space-y-4">
-      <div>
-        <h2 className="text-base font-semibold text-ink">Cotizar / Facturar directo</h2>
-        <p className="text-xs text-muted">
-          Venta ad-hoc por WhatsApp o trato directo — no ligada a un pedido de MeLi/la web. La
-          cotización es solo un PDF informativo (sin DIAN); Facturar crea una factura electrónica
-          real en Alegra. Ambas se envían por WhatsApp al cliente.
-        </p>
+    <div className="mx-auto max-w-5xl space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-ink">Cotizar / Facturar venta directa</h2>
+          <p className="max-w-2xl text-xs text-muted">
+            Ventas por WhatsApp de principio a fin. Escribe siempre el precio que paga el cliente (IVA incluido):
+            el sistema saca el IVA de cada producto y registra la cotización en Alegra con el precio correcto.
+            No cotices directamente en Alegra: allá el IVA se suma dos veces.
+          </p>
+        </div>
+        {(ventaId || paso > 1) && (
+          <button type="button" onClick={reiniciar} className={btn}>
+            + Nueva venta
+          </button>
+        )}
       </div>
 
-      {/* Extracción desde conversación de WhatsApp */}
-      <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">🪄 Extraer de conversación de WhatsApp</p>
-        <p className="mb-2 text-xs text-muted">
-          Elige la conversación real del cliente (nodo WhatsApp), o pega el texto manualmente
-          abajo. Solo rellena los campos vacíos — revisa siempre antes de cotizar o facturar.
-        </p>
-
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={alternarConversaciones}
-            disabled={extrayendo}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {mostrarConversaciones ? "Ocultar conversaciones" : "🔎 Elegir conversación reciente"}
-          </button>
-          {cargandoConversaciones && <span className="text-xs text-muted">Cargando…</span>}
-        </div>
-
-        {mostrarConversaciones && (
-          <div className="mb-3 overflow-hidden rounded-lg border border-border/70">
-            <input
-              type="text"
-              value={filtroConversaciones}
-              onChange={(e) => setFiltroConversaciones(e.target.value)}
-              placeholder="Filtrar por número…"
-              className="w-full border-b border-border bg-surface px-3 py-2 text-xs text-ink outline-none"
-            />
-            <div className="max-h-56 overflow-y-auto">
-              {conversacionesFiltradas.length === 0 && !cargandoConversaciones && (
-                <p className="px-3 py-2 text-xs text-muted">Sin conversaciones recientes de clientes.</p>
-              )}
-              {conversacionesFiltradas.map((c) => (
-                <button
-                  key={c.usuario_id}
-                  type="button"
-                  disabled={extrayendo}
-                  onClick={() => void elegirConversacion(c)}
-                  className="block w-full border-b border-border/50 px-3 py-2 text-left text-xs last:border-0 hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+      {/* Stepper */}
+      <ol className="grid grid-cols-5 gap-2" aria-label="Pasos">
+        {PASOS.map((p) => {
+          const activo = p.id === paso;
+          const hecho = p.id < paso || (venta?.estado === "facturada" && p.id <= 5);
+          const habil = pasoHabilitado(p.id);
+          return (
+            <li key={p.id}>
+              <button
+                type="button"
+                disabled={!habil}
+                aria-current={activo ? "step" : undefined}
+                onClick={() => void avanzar(p.id)}
+                className={`flex w-full items-center gap-2 rounded-xl border px-2 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  activo ? "border-accent ring-2 ring-accent" : "border-border hover:border-accent/60"
+                }`}
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-extrabold ${
+                    hecho ? "bg-accent text-white" : activo ? "bg-accent/15 text-accent" : "bg-surface-hover text-muted"
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-ink">{formatTelefono(c.telefono)}</span>
-                    <span className="shrink-0 text-[10px] text-muted">{formatFecha(c.ultimo)}</span>
-                  </div>
-                  {c.resumen && <p className="mt-0.5 truncate text-muted">{c.resumen}</p>}
+                  {hecho ? "✓" : p.id}
+                </span>
+                <span className="hidden truncate text-xs font-bold text-ink sm:inline">{p.label}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      {venta && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="font-mono font-semibold text-ink">{venta.numero}</span>
+          <span className={`rounded-full px-2 py-0.5 font-semibold ${ESTADO_UI[venta.estado].cls}`}>
+            {ESTADO_UI[venta.estado].label}
+          </span>
+          {venta.alegra_cotizacion_numero && <span className="text-muted">Alegra cotización #{venta.alegra_cotizacion_numero}</span>}
+          {venta.factura_numero && <span className="text-muted">· Factura {venta.factura_numero}</span>}
+          {venta.origen === "pedido_ia" && <span className="text-muted">· desde pedido IA #{venta.origen_ref}</span>}
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-xl border border-red-300/50 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-300">
+          ❌ {error}
+        </div>
+      )}
+
+      {paso === 1 && (
+        <PasoOrigen
+          onPedido={(v) => cargarVenta(v, 4)}
+          onVenta={(v) => cargarVenta(v, v.estado === "borrador" ? 3 : 5)}
+          onManual={() => {
+            setOrigen("manual");
+            setPaso(2);
+          }}
+          onConversacion={(datos) => {
+            setOrigen("conversacion");
+            setOrigenRef(datos.ref);
+            setCliente((c) => ({
+              ...c,
+              nombre: c.nombre || datos.cliente.nombre,
+              identificacion: c.identificacion || datos.cliente.identificacion,
+              correo: c.correo || datos.cliente.correo,
+              direccion: c.direccion || datos.cliente.direccion,
+            }));
+            if (datos.telefono) setTelefono((t) => t || datos.telefono);
+            if (datos.notas) setNotas((n) => n || datos.notas);
+            setLineas((prev) => [...prev, ...datos.lineas.filter((l) => !prev.some((p) => p.codigo === l.codigo))]);
+            setPendientes((prev) => [...prev, ...datos.pendientes]);
+            setPaso(2);
+          }}
+        />
+      )}
+
+      {paso === 2 && (
+        <PasoCliente
+          cliente={cliente}
+          telefono={telefono}
+          soloLectura={soloLectura}
+          onCliente={setCliente}
+          onTelefono={setTelefono}
+          onSiguiente={() => void avanzar(3)}
+          habilitado={clienteOk}
+        />
+      )}
+
+      {paso === 3 && (
+        <PasoProductos
+          lineas={lineas}
+          calc={calc}
+          envio={envio}
+          soloLectura={soloLectura}
+          onLineas={setLineas}
+          onEnvio={setEnvio}
+          pendientes={pendientes}
+          onPendientes={setPendientes}
+          onAtras={() => setPaso(2)}
+          onSiguiente={() => void avanzar(4)}
+          habilitado={productosOk}
+          ocupado={ocupado === "guardar"}
+        />
+      )}
+
+      {paso === 4 && (
+        <div className={`${card} space-y-4`}>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">Revisar antes de enviar</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/70 p-3 text-sm">
+              <p className="font-semibold text-ink">{cliente.nombre || "—"}</p>
+              <p className="text-xs text-muted">
+                {cliente.identificacion ? `CC/NIT ${cliente.identificacion}` : "Sin identificación — solo se puede cotizar"}
+              </p>
+              <p className="text-xs text-muted">📱 {telefonoVisible(telefono)}</p>
+              {cliente.correo && <p className="text-xs text-muted">✉️ {cliente.correo}</p>}
+              {cliente.direccion && <p className="text-xs text-muted">📍 {cliente.direccion}</p>}
+            </div>
+            <Totales calc={calc} />
+          </div>
+          <TablaResumen calc={calc} />
+          {calc && calc.sin_alegra.length > 0 && (
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+              ⚠️ No existen en Alegra: {calc.sin_alegra.join(", ")}. Se puede cotizar (solo PDF), pero no facturar.
+            </p>
+          )}
+          <textarea
+            value={notas}
+            disabled={soloLectura}
+            onChange={(e) => setNotas(e.target.value)}
+            placeholder="Notas para el cliente (condiciones, tiempo de entrega, descuento acordado…)"
+            rows={2}
+            className={input}
+          />
+          <div className="flex flex-wrap justify-between gap-2">
+            <button type="button" className={btn} onClick={() => setPaso(3)}>
+              ← Productos
+            </button>
+            <button type="button" className={btnPrimario} disabled={ocupado !== null} onClick={() => void avanzar(5)}>
+              {ocupado === "guardar" ? "Guardando…" : "Continuar →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {paso === 5 && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className={`${card} space-y-3`}>
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">📋 Cotizar</p>
+            <p className="text-xs text-muted">
+              PDF sin efecto ante la DIAN, válido 15 días. Se envía al WhatsApp del cliente y queda registrado en
+              Alegra{cliente.identificacion ? "" : " (esto último solo si hay identificación)"}.
+            </p>
+            <p className="text-2xl font-bold text-ink">{pesos(calc?.total ?? venta?.total)}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={btn}
+                disabled={ocupado !== null || soloLectura || !clienteOk || !productosOk}
+                onClick={() => void cotizar()}
+              >
+                {ocupado === "cotizar" ? "Enviando…" : venta?.estado === "cotizada" ? "Reenviar cotización" : "Enviar cotización"}
+              </button>
+              {(venta?.estado === "cotizada" || venta?.alegra_cotizacion_numero) && (
+                <button type="button" className="text-xs text-muted underline" onClick={() => void verPdf()}>
+                  Ver PDF
                 </button>
-              ))}
+              )}
             </div>
           </div>
-        )}
 
-        <textarea
-          value={textoConversacion}
-          onChange={(e) => setTextoConversacion(e.target.value)}
-          placeholder='O pega aquí el texto manualmente: "Cliente: Hola, necesito 2kg de ácido cítrico..."'
-          rows={4}
-          className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-        />
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={!textoConversacion.trim() || extrayendo}
-            onClick={() => void ejecutarExtraccion()}
-            className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {extrayendo ? "Extrayendo…" : "Extraer del texto pegado"}
-          </button>
-          {errorExtraccion && <span className="text-xs text-red-600">{errorExtraccion}</span>}
-        </div>
-        {productosPendientes.length > 0 && (
-          <div className="mt-3 space-y-2 border-t border-border pt-3">
-            <p className="text-xs font-semibold text-ink">Productos por confirmar (no se agregaron solos):</p>
-            {productosPendientes.map((p, idx) => (
-              <div key={`${p.nombre}-${idx}`} className="rounded-lg border border-border/70 bg-surface p-2 text-xs">
-                <p className="mb-1">
-                  <span className="font-semibold text-ink">&ldquo;{p.nombre}&rdquo;</span>{" "}
-                  <span className="text-muted">— cant. {p.cantidad}</span>
+          <div className={`${card} space-y-3`}>
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">🧾 Facturar (el cliente ya pagó)</p>
+            {venta?.estado === "facturada" ? (
+              <div className="space-y-1 text-sm">
+                <p className="font-semibold text-green-700 dark:text-green-400">✅ Factura {venta.factura_numero} emitida</p>
+                <p className="text-xs text-muted">
+                  {venta.enviado_whatsapp ? "Enviada por WhatsApp al cliente." : "Revisa el envío al cliente."}
                 </p>
-                {p.candidatos.length === 0 ? (
-                  <p className="text-muted">Sin coincidencia en Siigo/Alegra — búscalo manualmente abajo.</p>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {p.candidatos.map((c) => (
-                      <button
-                        key={c.codigo}
-                        type="button"
-                        onClick={() => confirmarPendiente(idx, c, p.cantidad)}
-                        className="rounded border border-border px-2 py-1 hover:border-accent hover:text-accent"
-                      >
-                        {c.codigo} — {c.nombre}
-                      </button>
-                    ))}
-                  </div>
+                {venta.factura_url && (
+                  <a href={venta.factura_url} target="_blank" rel="noreferrer" className="text-xs underline">
+                    Ver en Alegra
+                  </a>
                 )}
-                <button type="button" onClick={() => descartarPendiente(idx)} className="mt-1 text-muted underline">
-                  Descartar
-                </button>
               </div>
+            ) : (
+              <>
+                <p className="text-xs text-muted">
+                  Factura electrónica real ante la DIAN. Solo se corrige con nota crédito: confirma el pago antes.
+                </p>
+                <label className="block text-xs font-semibold text-ink">
+                  ¿Cómo pagó?
+                  <select
+                    value={medioPago}
+                    onChange={(e) => setMedioPago(e.target.value)}
+                    disabled={soloLectura}
+                    className={`${input} mt-1`}
+                  >
+                    {MEDIOS_PAGO.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {!cliente.identificacion.trim() && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">Falta la identificación del cliente (paso 2).</p>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={!puedeFacturar || ocupado !== null || soloLectura}
+                    onClick={() => void facturar()}
+                    className={`rounded-paper border-2 px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      confirmarFactura
+                        ? "border-red-500 bg-red-500 text-white hover:bg-red-600"
+                        : "border-border text-ink hover:border-red-400 hover:text-red-600"
+                    }`}
+                  >
+                    {ocupado === "facturar"
+                      ? "Facturando…"
+                      : confirmarFactura
+                        ? `⚠️ Confirmar factura DIAN por ${pesos(calc?.total)}`
+                        : "Facturar"}
+                  </button>
+                  {confirmarFactura && (
+                    <button type="button" onClick={() => setConfirmarFactura(false)} className="text-xs text-muted underline">
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          {avisos.length > 0 && (
+            <div className="rounded-xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 md:col-span-2">
+              {avisos.map((a) => (
+                <p key={a}>⚠️ {a}</p>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap justify-between gap-2 md:col-span-2">
+            <button type="button" className={btn} onClick={() => setPaso(4)}>
+              ← Revisar
+            </button>
+            {venta && venta.estado !== "facturada" && venta.estado !== "anulada" && venta.estado !== "facturando" && (
+              <button type="button" className="text-xs text-muted underline hover:text-red-600" onClick={() => void anular()}>
+                Anular esta venta
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────── Paso 1 · Origen ─────────────────────────────── */
+
+interface DatosConversacion {
+  ref: string;
+  cliente: Cliente;
+  telefono: string;
+  notas: string;
+  lineas: Linea[];
+  pendientes: ProductoExtraido[];
+}
+
+async function precioDe(p: ProductoResultado, cantidad = 1): Promise<Linea> {
+  try {
+    const d = await api.get<{ precio: number; precio_web: number | null; precio_lista: number | null; iva_pct: number }>(
+      `/api/ventas-directas/precio?codigo=${encodeURIComponent(p.codigo)}`,
+    );
+    return { codigo: p.codigo, nombre: p.nombre, cantidad, precio_unitario: d.precio, precio_web: d.precio_web, precio_lista: d.precio_lista, iva_pct: d.iva_pct };
+  } catch {
+    return { codigo: p.codigo, nombre: p.nombre, cantidad, precio_unitario: 0 };
+  }
+}
+
+function PasoOrigen({
+  onPedido,
+  onVenta,
+  onManual,
+  onConversacion,
+}: {
+  onPedido: (v: Venta) => void;
+  onVenta: (v: Venta) => void;
+  onManual: () => void;
+  onConversacion: (d: DatosConversacion) => void;
+}) {
+  const [pedidos, setPedidos] = useState<PedidoIA[] | null>(null);
+  const [ventas, setVentas] = useState<Venta[] | null>(null);
+  const [filtroVentas, setFiltroVentas] = useState("");
+  const [conversaciones, setConversaciones] = useState<ConversacionWA[] | null>(null);
+  const [texto, setTexto] = useState("");
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const q = useDebounced(filtroVentas, 300);
+
+  useEffect(() => {
+    api
+      .get<{ pedidos: PedidoIA[] }>("/api/ventas-directas/pedidos-ia")
+      .then((r) => setPedidos(r.pedidos))
+      .catch(() => setPedidos([]));
+  }, []);
+
+  useEffect(() => {
+    api
+      .get<{ ventas: Venta[] }>(`/api/ventas-directas?limit=30&q=${encodeURIComponent(q)}`)
+      .then((r) => setVentas(r.ventas))
+      .catch(() => setVentas([]));
+  }, [q]);
+
+  async function usarPedido(p: PedidoIA) {
+    setOcupado(`p${p.id}`);
+    setError(null);
+    try {
+      const r = await api.post<{ venta: Venta }>(`/api/ventas-directas/desde-pedido/${p.id}`, {});
+      onPedido(r.venta);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function extraer(payload: { texto: string } | { usuario_id: string }, telefono = "", ref = "") {
+    setOcupado("extraer");
+    setError(null);
+    try {
+      const data = await api.post<{
+        ok: boolean;
+        error?: string;
+        cliente?: { nombre: string; identificacion: string; telefono: string; correo: string; direccion: string };
+        productos?: ProductoExtraido[];
+        notas?: string;
+      }>("/api/facturacion/extraer-conversacion", payload);
+      if (!data.ok) throw new Error(data.error || "No se pudo extraer la información.");
+      const lineas: Linea[] = [];
+      const porConfirmar: ProductoExtraido[] = [];
+      for (const p of data.productos ?? []) {
+        if (p.candidatos.length === 1) lineas.push(await precioDe(p.candidatos[0], p.cantidad || 1));
+        else porConfirmar.push(p);
+      }
+      const c = data.cliente;
+      const tel = telefono || (c?.telefono ?? "");
+      onConversacion({
+        ref,
+        cliente: { ...CLIENTE_VACIO, ...(c ?? {}) },
+        telefono: tel,
+        notas: data.notas ?? "",
+        lineas,
+        pendientes: porConfirmar,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  const abiertos = (pedidos ?? []).filter((p) => !p.venta_directa || p.venta_directa.estado !== "facturada");
+
+  return (
+    <div className="space-y-4">
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className={card}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">⚡ Automático · pedidos que armó el agente IA</p>
+          <span className="text-[10px] text-muted">cliente, productos y envío ya puestos</span>
+        </div>
+        {pedidos === null ? (
+          <p className="text-xs text-muted">Cargando…</p>
+        ) : abiertos.length === 0 ? (
+          <p className="text-xs text-muted">
+            No hay pedidos del agente IA por facturar. (Mientras el agente de WhatsApp esté en modo sombra, sus
+            borradores no aparecen aquí: el cliente nunca los vio.)
+          </p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {abiertos.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                disabled={ocupado !== null}
+                onClick={() => void usarPedido(p)}
+                className="rounded-lg border border-border/70 p-3 text-left text-xs transition hover:border-accent disabled:opacity-50"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-ink">{p.cliente?.nombre || p.display}</span>
+                  <span className="text-[10px] text-muted">{hace(p.actualizado)}</span>
+                </div>
+                <p className="mt-0.5 truncate text-muted">
+                  {p.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(" · ")}
+                </p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="font-bold text-ink">{pesos(p.total ?? p.subtotal)}</span>
+                  {p.venta_directa ? (
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] ${ESTADO_UI[p.venta_directa.estado].cls}`}>
+                      {p.venta_directa.numero}
+                    </span>
+                  ) : p.faltantes.length > 0 ? (
+                    <span className="text-[10px] text-amber-700 dark:text-amber-400">falta: {p.faltantes.join(", ")}</span>
+                  ) : (
+                    <span className="text-[10px] text-green-700 dark:text-green-400">datos completos</span>
+                  )}
+                </div>
+                {ocupado === `p${p.id}` && <p className="mt-1 text-muted">Armando…</p>}
+              </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Cliente */}
-      <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Cliente</p>
-        <div className="relative mb-3">
-          <input
-            type="text"
-            value={busquedaCliente}
-            onChange={(e) => setBusquedaCliente(e.target.value)}
-            placeholder="Buscar cliente existente por nombre o identificación…"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          />
-          {(resultadosCliente.length > 0 || buscandoCliente) && busquedaCliente.trim().length >= 2 && (
-            <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-surface-panel shadow-paper-lg">
-              {buscandoCliente && <p className="px-3 py-2 text-xs text-muted">Buscando…</p>}
-              {!buscandoCliente && resultadosCliente.length === 0 && (
-                <p className="px-3 py-2 text-xs text-muted">Sin resultados — se creará como cliente nuevo.</p>
-              )}
-              {resultadosCliente.map((c) => (
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className={card}>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">🪄 Manual · desde una conversación</p>
+          <button
+            type="button"
+            className={btn}
+            disabled={ocupado !== null}
+            onClick={() => {
+              if (conversaciones) return setConversaciones(null);
+              api
+                .get<{ items: ConversacionWA[] }>("/api/facturacion/conversaciones-wa?limit=40")
+                .then((r) => setConversaciones(r.items ?? []))
+                .catch(() => setConversaciones([]));
+            }}
+          >
+            {conversaciones ? "Ocultar chats" : "Elegir chat reciente"}
+          </button>
+          {conversaciones && (
+            <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-border/70">
+              {conversaciones.length === 0 && <p className="px-3 py-2 text-xs text-muted">Sin conversaciones recientes.</p>}
+              {conversaciones.map((c) => (
                 <button
-                  key={c.id}
+                  key={c.usuario_id}
                   type="button"
-                  onClick={() => elegirCliente(c)}
-                  className="block w-full px-3 py-2 text-left text-xs hover:bg-surface-hover"
+                  disabled={ocupado !== null}
+                  onClick={() => void extraer({ usuario_id: c.usuario_id }, c.telefono.replace(/\D/g, ""), c.usuario_id)}
+                  className="block w-full border-b border-border/50 px-3 py-2 text-left text-xs last:border-0 hover:bg-surface-hover"
                 >
-                  <span className="font-semibold text-ink">{c.nombre}</span>{" "}
-                  <span className="text-muted">— {c.identificacion}</span>
+                  <div className="flex justify-between gap-2">
+                    <span className="font-semibold text-ink">{telefonoVisible(c.telefono)}</span>
+                    <span className="text-[10px] text-muted">{hace(c.ultimo.includes("T") ? c.ultimo : `${c.ultimo.replace(" ", "T")}Z`)}</span>
+                  </div>
+                  {c.resumen && <p className="truncate text-muted">{c.resumen}</p>}
                 </button>
               ))}
             </div>
           )}
+          <textarea
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            rows={3}
+            placeholder="…o pega aquí el texto del chat"
+            className={`${input} mt-2`}
+          />
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              className={btn}
+              disabled={!texto.trim() || ocupado !== null}
+              onClick={() => void extraer({ texto })}
+            >
+              {ocupado === "extraer" ? "Leyendo…" : "Extraer datos"}
+            </button>
+            <span className="text-[10px] text-muted">usa IA (unos pocos pesos por chat)</span>
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <input
-            type="text"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre completo *"
-            className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          />
-          <input
-            type="text"
-            value={identificacion}
-            onChange={(e) => setIdentificacion(e.target.value)}
-            placeholder="Identificación (CC/NIT) — obligatoria para facturar"
-            className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          />
-          <input
-            type="text"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            placeholder="Teléfono WhatsApp * (ej. 3001234567)"
-            className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          />
-          <input
-            type="email"
-            value={correo}
-            onChange={(e) => setCorreo(e.target.value)}
-            placeholder="Correo (opcional)"
-            className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          />
-          <input
-            type="text"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            placeholder="Dirección (opcional)"
-            className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent sm:col-span-2"
-          />
+
+        <div className={`${card} flex flex-col justify-between gap-3`}>
+          <div>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">✍️ Manual · desde cero</p>
+            <p className="text-xs text-muted">Buscas el cliente, agregas los productos y listo.</p>
+          </div>
+          <button type="button" className={btnPrimario} onClick={onManual}>
+            Empezar →
+          </button>
         </div>
       </div>
 
-      {/* Productos */}
-      <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">Productos</p>
-        <div className="relative mb-3">
+      <div className={card}>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted">🗂 Ventas directas recientes</p>
           <input
-            type="text"
-            value={busquedaProducto}
-            onChange={(e) => setBusquedaProducto(e.target.value)}
-            placeholder="Buscar producto por nombre o SKU…"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            value={filtroVentas}
+            onChange={(e) => setFiltroVentas(e.target.value)}
+            placeholder="Buscar cliente, número o factura…"
+            className="w-60 rounded border border-border bg-surface px-2 py-1 text-xs text-ink"
           />
-          {(resultadosProducto.length > 0 || buscandoProducto) && busquedaProducto.trim().length >= 1 && (
+        </div>
+        {ventas === null ? (
+          <p className="text-xs text-muted">Cargando…</p>
+        ) : ventas.length === 0 ? (
+          <p className="text-xs text-muted">Aún no hay ventas directas registradas.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <tbody className="divide-y divide-border/60">
+                {ventas.map((v) => (
+                  <tr key={v.id} className="cursor-pointer hover:bg-surface-hover" onClick={() => onVenta(v)}>
+                    <td className="py-1.5 font-mono text-ink">{v.numero}</td>
+                    <td className="py-1.5 text-ink-secondary">{v.cliente?.nombre || "—"}</td>
+                    <td className="py-1.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] ${ESTADO_UI[v.estado].cls}`}>
+                        {v.factura_numero || ESTADO_UI[v.estado].label}
+                      </span>
+                    </td>
+                    <td className="py-1.5 text-right font-semibold text-ink">{pesos(v.total)}</td>
+                    <td className="py-1.5 text-right text-muted">{hace(v.actualizado)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── Paso 2 · Cliente ─────────────────────────────── */
+
+function PasoCliente({
+  cliente,
+  telefono,
+  soloLectura,
+  onCliente,
+  onTelefono,
+  onSiguiente,
+  habilitado,
+}: {
+  cliente: Cliente;
+  telefono: string;
+  soloLectura: boolean;
+  onCliente: (c: Cliente) => void;
+  onTelefono: (t: string) => void;
+  onSiguiente: () => void;
+  habilitado: boolean;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [resultados, setResultados] = useState<ClienteResultado[]>([]);
+  const q = useDebounced(busqueda.trim(), 250);
+
+  useEffect(() => {
+    if (q.length < 2) return setResultados([]);
+    let cancelado = false;
+    api
+      .get<{ items: ClienteResultado[] }>(`/api/facturacion/clientes/buscar?q=${encodeURIComponent(q)}`)
+      .then((r) => !cancelado && setResultados(r.items ?? []))
+      .catch(() => !cancelado && setResultados([]));
+    return () => {
+      cancelado = true;
+    };
+  }, [q]);
+
+  const set = (k: keyof Cliente) => (e: ChangeEvent<HTMLInputElement>) => onCliente({ ...cliente, [k]: e.target.value });
+
+  return (
+    <div className={`${card} space-y-3`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-muted">¿A quién le vendemos?</p>
+      {!soloLectura && (
+        <div className="relative">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar cliente en Alegra por nombre o cédula/NIT…"
+            className={input}
+          />
+          {q.length >= 2 && (
             <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
-              {buscandoProducto && <p className="px-3 py-2 text-xs text-muted">Buscando…</p>}
-              {resultadosProducto.map((p) => (
+              {resultados.length === 0 && <p className="px-3 py-2 text-xs text-muted">Sin resultados — se creará como cliente nuevo.</p>}
+              {resultados.map((c) => (
                 <button
-                  key={p.codigo}
+                  key={c.id}
                   type="button"
-                  onClick={() => void agregarProducto(p)}
+                  onClick={() => {
+                    onCliente({ ...cliente, nombre: c.nombre, identificacion: c.identificacion, correo: c.email, direccion: c.direccion });
+                    if (c.telefono && !telefono) onTelefono(c.telefono);
+                    setBusqueda("");
+                  }}
                   className="block w-full px-3 py-2 text-left text-xs hover:bg-surface-hover"
                 >
-                  <span className="font-mono text-ink">{p.codigo}</span>{" "}
-                  <span className="text-ink-secondary">— {p.nombre}</span>
+                  <span className="font-semibold text-ink">{c.nombre}</span> <span className="text-muted">— {c.identificacion}</span>
                 </button>
               ))}
             </div>
           )}
         </div>
+      )}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <input value={cliente.nombre} onChange={set("nombre")} disabled={soloLectura} placeholder="Nombre o razón social *" className={input} />
+        <input
+          value={cliente.identificacion}
+          onChange={set("identificacion")}
+          disabled={soloLectura}
+          placeholder="Cédula / NIT (obligatorio para facturar)"
+          className={input}
+        />
+        <input
+          value={telefono.includes("@") ? telefonoVisible(telefono) : telefono}
+          onChange={(e) => onTelefono(e.target.value)}
+          disabled={soloLectura || telefono.includes("@")}
+          title={telefono.includes("@") ? "Se responde en el mismo chat donde el cliente hizo el pedido" : undefined}
+          placeholder="WhatsApp del cliente * (3001234567)"
+          className={input}
+        />
+        <input value={cliente.correo} onChange={set("correo")} disabled={soloLectura} placeholder="Correo (opcional)" className={input} />
+        <input
+          value={cliente.direccion}
+          onChange={set("direccion")}
+          disabled={soloLectura}
+          placeholder="Dirección y ciudad (opcional)"
+          className={`${input} sm:col-span-2`}
+        />
+      </div>
+      <div className="flex justify-end">
+        <button type="button" className={btnPrimario} disabled={!habilitado} onClick={onSiguiente}>
+          Productos →
+        </button>
+      </div>
+    </div>
+  );
+}
 
-        {lineas.length === 0 ? (
-          <p className="text-xs text-muted">Sin productos agregados todavía.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wide text-muted">
-                  <th className="py-1">SKU</th>
-                  <th className="py-1">Producto</th>
-                  <th className="py-1 text-right">Cant</th>
-                  <th className="py-1 text-right">Precio unit. (con IVA)</th>
-                  <th className="py-1 text-right">Subtotal</th>
-                  <th className="py-1"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {lineas.map((l) => (
+/* ─────────────────────────────── Paso 3 · Productos ─────────────────────────────── */
+
+function PasoProductos({
+  lineas,
+  calc,
+  envio,
+  soloLectura,
+  onLineas,
+  onEnvio,
+  onAtras,
+  onSiguiente,
+  habilitado,
+  ocupado,
+  pendientes,
+  onPendientes,
+}: {
+  pendientes: ProductoExtraido[];
+  onPendientes: (p: ProductoExtraido[]) => void;
+  lineas: Linea[];
+  calc: Calculo | null;
+  envio: number;
+  soloLectura: boolean;
+  onLineas: (fn: (prev: Linea[]) => Linea[]) => void;
+  onEnvio: (v: number) => void;
+  onAtras: () => void;
+  onSiguiente: () => void;
+  habilitado: boolean;
+  ocupado: boolean;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [resultados, setResultados] = useState<ProductoResultado[]>([]);
+  const q = useDebounced(busqueda.trim(), 220);
+
+  useEffect(() => {
+    if (!q) return setResultados([]);
+    let cancelado = false;
+    api
+      .get<{ items: ProductoResultado[] }>(`/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=20&excluir_combos=0`)
+      .then((r) => !cancelado && setResultados(r.items ?? []))
+      .catch(() => !cancelado && setResultados([]));
+    return () => {
+      cancelado = true;
+    };
+  }, [q]);
+
+  const porCodigo = useMemo(() => new Map((calc?.lineas ?? []).map((l) => [l.codigo, l])), [calc]);
+
+  async function agregar(p: ProductoResultado, cantidad = 1) {
+    setBusqueda("");
+    setResultados([]);
+    if (lineas.some((l) => l.codigo === p.codigo)) return;
+    const l = await precioDe(p, cantidad);
+    onLineas((prev) => (prev.some((x) => x.codigo === l.codigo) ? prev : [...prev, l]));
+  }
+
+  const actualizar = (codigo: string, campo: "cantidad" | "precio_unitario", valor: number) =>
+    onLineas((prev) => prev.map((l) => (l.codigo === codigo ? { ...l, [campo]: valor } : l)));
+
+  return (
+    <div className={`${card} space-y-3`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-muted">¿Qué lleva?</p>
+      {!soloLectura && (
+        <div className="relative">
+          <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar producto por nombre o SKU…" className={input} />
+          {q && resultados.length > 0 && (
+            <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
+              {resultados.map((p) => (
+                <button
+                  key={p.codigo}
+                  type="button"
+                  onClick={() => void agregar(p)}
+                  className="block w-full px-3 py-2 text-left text-xs hover:bg-surface-hover"
+                >
+                  <span className="font-mono text-ink">{p.codigo}</span> <span className="text-ink-secondary">— {p.nombre}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {pendientes.length > 0 && (
+        <div className="space-y-2 rounded-lg border border-amber-300/50 bg-amber-50 p-3 text-xs dark:bg-amber-900/20">
+          <p className="font-semibold text-ink">El chat menciona estos productos; elige el correcto:</p>
+          {pendientes.map((p, idx) => (
+            <div key={`${p.nombre}-${idx}`}>
+              <p className="text-ink">
+                &ldquo;{p.nombre}&rdquo; <span className="text-muted">× {p.cantidad}</span>{" "}
+                <button type="button" className="text-muted underline" onClick={() => onPendientes(pendientes.filter((_, i) => i !== idx))}>
+                  descartar
+                </button>
+              </p>
+              {p.candidatos.length === 0 ? (
+                <p className="text-muted">Sin coincidencia en Alegra — búscalo arriba.</p>
+              ) : (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {p.candidatos.map((c) => (
+                    <button
+                      key={c.codigo}
+                      type="button"
+                      onClick={() => {
+                        void agregar(c, p.cantidad || 1);
+                        onPendientes(pendientes.filter((_, i) => i !== idx));
+                      }}
+                      className="rounded border border-border bg-surface px-2 py-1 hover:border-accent hover:text-accent"
+                    >
+                      {c.codigo} — {c.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {lineas.length === 0 ? (
+        <p className="text-xs text-muted">Sin productos todavía.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wide text-muted">
+                <th className="py-1">Producto</th>
+                <th className="py-1 text-right">Cant</th>
+                <th className="py-1 text-right">Precio c/u (con IVA)</th>
+                <th className="py-1 text-right">IVA</th>
+                <th className="py-1 text-right">Total</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {lineas.map((l) => {
+                const c = porCodigo.get(l.codigo);
+                return (
                   <tr key={l.codigo}>
-                    <td className="py-1.5 font-mono text-ink">{l.codigo}</td>
-                    <td className="py-1.5 text-ink-secondary">{l.nombre}</td>
+                    <td className="py-1.5">
+                      <p className="text-ink">{l.nombre}</p>
+                      <p className="font-mono text-[10px] text-muted">
+                        {l.codigo}
+                        {c && !c.existe_en_alegra && <span className="ml-1 text-amber-600">· no está en Alegra</span>}
+                      </p>
+                      {(l.precio_web || l.precio_lista) && !soloLectura && (
+                        <p className="text-[10px] text-muted">
+                          {l.precio_web ? (
+                            <button type="button" className="underline" onClick={() => actualizar(l.codigo, "precio_unitario", l.precio_web ?? 0)}>
+                              web {pesos(l.precio_web)}
+                            </button>
+                          ) : null}
+                          {l.precio_web && l.precio_lista ? " · " : ""}
+                          {l.precio_lista ? (
+                            <button type="button" className="underline" onClick={() => actualizar(l.codigo, "precio_unitario", l.precio_lista ?? 0)}>
+                              MeLi {pesos(l.precio_lista)}
+                            </button>
+                          ) : null}
+                        </p>
+                      )}
+                    </td>
                     <td className="py-1.5 text-right">
                       <input
                         type="number"
                         min={0.01}
                         step="any"
                         value={l.cantidad}
-                        onChange={(e) => actualizarLinea(l.codigo, "cantidad", Number(e.target.value) || 0)}
+                        disabled={soloLectura}
+                        onChange={(e) => actualizar(l.codigo, "cantidad", Number(e.target.value) || 0)}
                         className="w-16 rounded border border-border bg-surface px-1.5 py-0.5 text-right text-xs text-ink"
                       />
                     </td>
@@ -585,109 +1177,114 @@ export default function CotizarFacturarPanel() {
                         min={0}
                         step="any"
                         value={l.precio_unitario}
-                        onChange={(e) => actualizarLinea(l.codigo, "precio_unitario", Number(e.target.value) || 0)}
+                        disabled={soloLectura}
+                        onChange={(e) => actualizar(l.codigo, "precio_unitario", Number(e.target.value) || 0)}
                         className="w-24 rounded border border-border bg-surface px-1.5 py-0.5 text-right text-xs text-ink"
                       />
                     </td>
+                    <td className="py-1.5 text-right text-muted">{c ? `${c.iva_pct ?? 0}%` : "…"}</td>
                     <td className="py-1.5 text-right font-semibold text-ink">{pesos(l.cantidad * l.precio_unitario)}</td>
                     <td className="py-1.5 text-right">
-                      <button type="button" onClick={() => quitarLinea(l.codigo)} className="text-muted hover:text-danger">
-                        ✕
-                      </button>
+                      {!soloLectura && (
+                        <button
+                          type="button"
+                          aria-label="Quitar"
+                          onClick={() => onLineas((prev) => prev.filter((x) => x.codigo !== l.codigo))}
+                          className="text-muted hover:text-danger"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="mt-2 flex justify-end text-sm font-bold text-ink">Total: {pesos(total)}</div>
-          </div>
-        )}
-      </div>
-
-      {/* Notas / referencia */}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <input
-          type="text"
-          value={referencia}
-          onChange={(e) => setReferencia(e.target.value)}
-          placeholder="Referencia interna (opcional, ej. trato/pedido)"
-          className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-        />
-        <input
-          type="text"
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-          placeholder="Notas para la cotización (opcional)"
-          className="rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-        />
-      </div>
-
-      {/* Acciones */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          disabled={!puedeCotizar}
-          onClick={() => void ejecutarCotizar()}
-          className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {enCurso === "cotizar" ? "Generando…" : "📋 Generar cotización (WhatsApp)"}
-        </button>
-        <button
-          type="button"
-          disabled={!puedeFacturar}
-          onClick={() => void ejecutarFacturar()}
-          className={`rounded-paper border-2 px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-            confirmarFactura
-              ? "border-red-500 bg-red-500 text-white hover:bg-red-600"
-              : "border-border text-ink hover:border-red-400 hover:text-red-600"
-          }`}
-        >
-          {enCurso === "facturar"
-            ? "Facturando…"
-            : confirmarFactura
-              ? "⚠️ Confirmar — crea factura DIAN real"
-              : "🧾 Facturar (Alegra + WhatsApp)"}
-        </button>
-        {confirmarFactura && (
-          <button
-            type="button"
-            onClick={() => setConfirmarFactura(false)}
-            className="text-xs text-muted underline"
-          >
-            Cancelar
-          </button>
-        )}
-        {!identificacion.trim() && (
-          <span className="text-xs text-muted">Facturar necesita la identificación del cliente.</span>
-        )}
-      </div>
-
-      {resultado && (
-        <div
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            resultado.data.ok
-              ? "border-green-300/50 bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300"
-              : "border-red-300/50 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
-          }`}
-        >
-          {resultado.data.ok ? (
-            <>
-              ✅ {resultado.tipo === "cotizar" ? "Cotización" : "Factura"} <strong>{resultado.data.numero}</strong> generada
-              {resultado.data.total != null ? ` por ${pesos(resultado.data.total)}` : ""} y enviada por WhatsApp al cliente.
-              {resultado.tipo === "facturar" && resultado.data.enviado_whatsapp === false && (
-                <p className="mt-1">⚠️ El PDF no se pudo enviar al cliente por WhatsApp — revisa manual.</p>
-              )}
-              {resultado.data.url && (
-                <a href={resultado.data.url} target="_blank" rel="noreferrer" className="mt-1 block underline">
-                  Ver en Alegra
-                </a>
-              )}
-            </>
-          ) : (
-            <>❌ {resultado.data.error || "No se pudo completar la acción."}</>
-          )}
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
+        <label className="text-xs font-semibold text-ink">
+          Envío (sin IVA)
+          <input
+            type="number"
+            min={0}
+            step={500}
+            value={envio}
+            disabled={soloLectura}
+            onChange={(e) => onEnvio(Number(e.target.value) || 0)}
+            className="ml-2 w-28 rounded border border-border bg-surface px-1.5 py-1 text-right text-xs text-ink"
+          />
+        </label>
+        <Totales calc={calc} compacto />
+      </div>
+
+      <div className="flex justify-between gap-2">
+        <button type="button" className={btn} onClick={onAtras}>
+          ← Cliente
+        </button>
+        <button type="button" className={btnPrimario} disabled={!habilitado || ocupado} onClick={onSiguiente}>
+          {ocupado ? "Guardando…" : "Revisar →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── Piezas compartidas ─────────────────────────────── */
+
+function Totales({ calc, compacto = false }: { calc: Calculo | null; compacto?: boolean }) {
+  if (!calc) return <p className="text-xs text-muted">Sin totales todavía.</p>;
+  return (
+    <div className={`text-right text-sm ${compacto ? "" : "rounded-lg border border-border/70 p-3"}`}>
+      <p className="text-xs text-muted">
+        Base {pesos(calc.subtotal)} · IVA {pesos(calc.iva)}
+        {calc.envio ? ` · envío ${pesos(calc.envio)}` : ""}
+      </p>
+      <p className="text-xl font-bold text-ink">{pesos(calc.total)}</p>
+      <p className="text-[10px] text-muted">Total que paga el cliente</p>
+    </div>
+  );
+}
+
+function TablaResumen({ calc }: { calc: Calculo | null }) {
+  if (!calc?.lineas.length) return null;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-[10px] uppercase tracking-wide text-muted">
+            <th className="py-1">Producto</th>
+            <th className="py-1 text-right">Cant</th>
+            <th className="py-1 text-right">Base</th>
+            <th className="py-1 text-right">IVA</th>
+            <th className="py-1 text-right">Total</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {calc.lineas.map((l) => (
+            <tr key={l.codigo || l.nombre}>
+              <td className="py-1.5 text-ink">{l.nombre}</td>
+              <td className="py-1.5 text-right">{l.cantidad}</td>
+              <td className="py-1.5 text-right text-muted">{pesos(l.base)}</td>
+              <td className="py-1.5 text-right text-muted">
+                {pesos(l.iva)} <span className="text-[10px]">({l.iva_pct}%)</span>
+              </td>
+              <td className="py-1.5 text-right font-semibold text-ink">{pesos(l.total)}</td>
+            </tr>
+          ))}
+          {calc.envio > 0 && (
+            <tr>
+              <td className="py-1.5 text-ink">Envío</td>
+              <td className="py-1.5 text-right">1</td>
+              <td className="py-1.5 text-right text-muted">{pesos(calc.envio)}</td>
+              <td className="py-1.5 text-right text-muted">—</td>
+              <td className="py-1.5 text-right font-semibold text-ink">{pesos(calc.envio)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

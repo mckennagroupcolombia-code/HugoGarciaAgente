@@ -105,6 +105,9 @@ def _sugerir_y_comentar(nuevos: list[dict], *, limite: int) -> int:
         return 0
 
     comentados = 0
+    # Un WhatsApp por comentario mandó la revisión del 2026-09-15 en ráfaga:
+    # se comenta en silencio y se avisa una vez por ticket al final.
+    por_ticket: dict[int, int] = {}
     for it in nuevos[:limite]:
         order_id = str(it.get("order_id") or "")
         paso = pasos.get(order_id)
@@ -117,10 +120,19 @@ def _sugerir_y_comentar(nuevos: list[dict], *, limite: int) -> int:
             continue
         texto = f"🤖 Sugerencia (orden {order_id}): {r['sugerencia']}"
         try:
-            _tdb.agregar_comentario(paso["ticket_id"], creador_id, texto, es_interno=False)
+            _tdb.agregar_comentario(paso["ticket_id"], creador_id, texto, es_interno=False, notificar=False)
             comentados += 1
+            por_ticket[int(paso["ticket_id"])] = por_ticket.get(int(paso["ticket_id"]), 0) + 1
         except Exception as e:
             print(f"   ⚠️  {order_id}: no se pudo comentar ({e})")
+
+    from app.services.tickets_notificaciones import notificar_comentarios_en_lote
+
+    for tid, n in por_ticket.items():
+        try:
+            notificar_comentarios_en_lote(tid, creador_id, n)
+        except Exception as e:
+            print(f"   ⚠️  ticket {tid}: no se pudo avisar ({e})")
     return comentados
 
 

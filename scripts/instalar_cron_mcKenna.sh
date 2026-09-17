@@ -47,6 +47,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "20 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/emitir_notas_credito_cron.py >>${LOG} 2>&1"
   echo "# Recuperación de compra: correos a pedidos web sin pagar (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "10 * * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recuperacion_compra_cron.py >>${LOG} 2>&1"
+  echo "# Copia de abonos Bancolombia a la asesora comercial (OTP y claves nunca se reenvían; REENVIO_BANCO_ACTIVO=0 lo apaga)"
+  echo "*/5 * * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reenvio_alertas_banco_cron.py >>${LOG} 2>&1"
   echo "# Préstamos a terceros: ticket de pagos a despachos (día 5) + ticket de declaración de retención en la fuente al mes siguiente (día 3). Corre a diario; el script valida qué toca hoy"
   echo "30 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/prestamos_recordatorio_cron.py >>${LOG} 2>&1"
   echo "# Resolución de Anulaciones (RA): ventas MeLi con reintegro al comprador → expediente, nota crédito y asiento; reporta la deuda abierta aunque no emita nada. Sucesor de emitir_notas_credito_cron.py — conviven sin pisarse mientras RA_EMISION_ACTIVA=0 (modo sombra)"

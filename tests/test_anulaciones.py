@@ -289,3 +289,48 @@ def test_relato_lleva_el_cufe_de_la_factura_siigo():
             "factura_cufe": "abc123", "factura_total": 77494, "pack_id": "2000014813807951"}
     assert "abc123" in motor.relato_para_observaciones(caso)
     assert "FV-2-71288" in motor.relato_para_observaciones(caso)
+
+
+def test_lote_de_tickets_se_avisa_en_un_solo_mensaje(monkeypatch, tmp_path):
+    """La primera corrida de RA (16-sep-2026) mandó 84 WhatsApps seguidos al
+    mismo operador, uno por ticket. El lote debe salir en un solo mensaje."""
+    import sqlite3
+
+    from app.services import tickets_notificaciones as tn
+    from app.tools import anulaciones as an
+
+    db = tmp_path / "tickets.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE tickets (id INTEGER PRIMARY KEY, titulo TEXT, asignado_a INT, creado_por INT)")
+    con.executemany(
+        "INSERT INTO tickets VALUES (?,?,?,?)",
+        [(i, f"{an.MARCADOR_TICKET} — RA-2026-{i:04d}", 10, 1) for i in range(1, 9)]
+        + [(9, f"{an.MARCADOR_TICKET} — RA-2026-0009", 1, 1)],  # autoasignado: no se avisa
+    )
+    con.commit()
+    con.close()
+    monkeypatch.setattr(an, "_db_path", lambda: str(db))
+    enviados = []
+    monkeypatch.setattr(tn, "enviar_texto_operador", lambda uid, txt: enviados.append((uid, txt)) or True)
+
+    assert an.notificar_tickets_nuevos(list(range(1, 10))) == 1
+    assert len(enviados) == 1
+    uid, texto = enviados[0]
+    assert uid == 10
+    assert "8 expediente(s)" in texto and "RA-2026-0001" in texto and "y 3 más" in texto
+    assert an.notificar_tickets_nuevos([]) == 0
+
+
+def test_comentarios_en_lote_salen_en_un_solo_aviso(monkeypatch):
+    """La revisión de facturación MeLi del 2026-09-15 mandó un «escribió en la
+    solicitud» por cada sugerencia de IA. El lote debe avisarse una vez."""
+    from app.services import tickets_notificaciones as tn
+
+    monkeypatch.setattr(tn, "_aviso_comentario", lambda tid, uid: (10, "Administrador escribió en la solicitud: Revisión facturación MeLi — 2026-09-15"))
+    enviados = []
+    monkeypatch.setattr(tn, "enviar_texto_operador", lambda uid, txt: enviados.append((uid, txt)) or True)
+
+    assert tn.notificar_comentarios_en_lote(5, 1, 7) is True
+    assert enviados == [(10, "Administrador dejó 7 mensajes en la solicitud: Revisión facturación MeLi — 2026-09-15")]
+    assert tn.notificar_comentarios_en_lote(5, 1, 0) is False
+    assert len(enviados) == 1

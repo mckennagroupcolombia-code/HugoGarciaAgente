@@ -111,6 +111,12 @@ def create_app():
         print(f"⚠️ Precios TRM: {e}")
 
     try:
+        from app.routes_ventas_directas import register_ventas_directas_routes
+        register_ventas_directas_routes(app)
+    except Exception as e:
+        print(f"⚠️ Ventas directas: {e}")
+
+    try:
         from app.routes_anulaciones import register_anulaciones_routes
         register_anulaciones_routes(app)
     except Exception as e:

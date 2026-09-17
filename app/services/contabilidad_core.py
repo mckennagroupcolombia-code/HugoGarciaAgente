@@ -130,6 +130,7 @@ def init_db() -> None:
     _migrar_columnas_v5()
     _ensure_gastos_personales()
     _sembrar_puc_real()
+    _corregir_2367()
     _initialized = True
 
 
@@ -191,6 +192,24 @@ def _migrar_columnas_v5() -> None:
         if "cuenta_gasto_default" not in cols:
             con.execute(
                 "ALTER TABLE cc_terceros ADD COLUMN cuenta_gasto_default TEXT NOT NULL DEFAULT ''"
+            )
+        # El 4x1000: técnicamente lo cobra el banco por la transacción, no el
+        # tercero. Pero en la práctica «a este proveedor se le paga con ICA y
+        # 4x1000» es una sola decisión que se toma una vez y se repite cada mes,
+        # y tenerla aquí es lo que evita volver a marcar las casillas —y
+        # olvidarlas— en cada quincena.
+        if "gmf_por_defecto" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN gmf_por_defecto INTEGER NOT NULL DEFAULT 0"
+            )
+        # Régimen SIMPLE (Art. 911 ET: no se le practica retención). La creaba
+        # `conciliacion_contador` la primera vez que alguien abría ese panel, y
+        # hasta entonces `previsualizar` leía un campo inexistente: la exención
+        # simplemente no se aplicaba, sin error ni aviso. Es una propiedad del
+        # tercero, así que la crea el módulo que es dueño de la tabla.
+        if "regimen_simple" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN regimen_simple INTEGER NOT NULL DEFAULT 0"
             )
 
 
@@ -289,6 +308,34 @@ def _migrar_cuentas_v2() -> None:
                    VALUES (?, ?, ?, ?, 1, 1)""",
                 (codigo, nombre, tipo, naturaleza),
             )
+
+
+def _corregir_2367() -> None:
+    """2367 es «Impuesto a las ventas retenido» (reteIVA) en el Decreto 2650.
+
+    El libro la sembró con el nombre «Costos y gastos por pagar», que es 2335, y
+    el sembrado corre ANTES que el del PUC real, así que el `INSERT OR IGNORE`
+    conserva el nombre equivocado incluso en bases nuevas. Los datos ya se
+    movieron a 2335 (`puc_colombia.ALIAS`), así que acá solo se corrige el
+    rótulo y se reactiva: McKenna es responsable de IVA y va a necesitar esa
+    cuenta para el reteIVA que practique.
+
+    Se corrige **solo si conserva el nombre viejo**: si alguien ya la renombró
+    o le dio otro uso, no se toca.
+    """
+    with _conn() as con:
+        fila = con.execute("SELECT id, nombre FROM cc_plan_cuentas WHERE codigo='2367'").fetchone()
+        if not fila or fila["nombre"] != "Costos y gastos por pagar":
+            return
+        con.execute(
+            """UPDATE cc_plan_cuentas
+                  SET nombre='Impuesto a las ventas retenido', activa=1,
+                      notas=TRIM(COALESCE(notas,'') ||
+                            ' · Hasta sep-2026 este código se usó, mal, para «costos y gastos por '
+                            || 'pagar»; eso vive en 2335.')
+                WHERE id=?""",
+            (fila["id"],),
+        )
 
 
 def _sembrar_puc_real() -> None:

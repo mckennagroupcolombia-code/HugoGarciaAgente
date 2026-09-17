@@ -3603,7 +3603,15 @@ def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
     return get_ticket(ticket_id, {"id": usuario_id, "rol": {"nivel": 3}}), None
 
 
-def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None) -> tuple:
+def crear_ticket(
+    data: dict, usuario_id: int, archivo_nombre: str | None = None, *, notificar: bool = True,
+) -> tuple:
+    """`notificar=False` crea el ticket sin el WhatsApp individual al asignado.
+
+    Lo usan los procesos por lote (p. ej. `scripts/anulaciones_cron.py`): con un
+    WhatsApp por ticket, la primera corrida de RA mandó 84 mensajes seguidos al
+    mismo operador en 7 segundos. Quien pasa False debe avisar él, consolidado.
+    """
     with _conn() as db:
         numero = _generar_numero(db)
         try:
@@ -3677,12 +3685,13 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
                 pasos_raw = _pasos_desde_protocolo(db, protocolo_id)
             _insertar_pasos_ticket(db, tid, pasos_raw)
             db.commit()
-            try:
-                from app.services.tickets_notificaciones import notificar_ticket_creado
-                from app.observability import spawn_thread
-                spawn_thread(notificar_ticket_creado, (tid,), daemon=True)
-            except Exception:
-                pass
+            if notificar:
+                try:
+                    from app.services.tickets_notificaciones import notificar_ticket_creado
+                    from app.observability import spawn_thread
+                    spawn_thread(notificar_ticket_creado, (tid,), daemon=True)
+                except Exception:
+                    pass
             return _ticket_full(db, tid), None
         except Exception as e:
             return None, str(e)
@@ -4252,7 +4261,9 @@ def listar_comentarios(ticket_id: int) -> list:
 
 
 def agregar_comentario(ticket_id: int, usuario_id: int,
-                       texto: str, es_interno: bool = False) -> int:
+                       texto: str, es_interno: bool = False, *, notificar: bool = True) -> int:
+    """`notificar=False` omite el WhatsApp «escribió en la solicitud»: los crons que
+    comentan en lote (revisión de facturación MeLi) avisan una sola vez al final."""
     with _conn() as db:
         cur = db.execute(
             "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) VALUES (?,?,?,?)",
@@ -4262,7 +4273,7 @@ def agregar_comentario(ticket_id: int, usuario_id: int,
         _log(db, ticket_id, usuario_id, "comentario_agregado", detalles=texto[:100])
         db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (ticket_id,))
         db.commit()
-        if not es_interno:
+        if not es_interno and notificar:
             try:
                 from app.services.tickets_notificaciones import notificar_comentario_agregado
                 from app.observability import spawn_thread

@@ -125,7 +125,7 @@ def main() -> int:
     from app.services import anulaciones_motor as motor
     from app.services.alegra import es_factura_alegra, obtener_facturas_hibridas
     from app.services.meli import listar_ordenes_meli_por_estado
-    from app.tools.anulaciones import crear_ticket_para_expediente
+    from app.tools.anulaciones import crear_ticket_para_expediente, notificar_tickets_nuevos
     from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 
     adb.init_db()
@@ -170,6 +170,8 @@ def main() -> int:
     print(f"   {len(facturas)} facturas (Siigo+Alegra) en la ventana.")
 
     emitidas, decisiones, bloqueadas = [], [], []
+    # Tickets creados en esta corrida: se avisan juntos al final, no uno por uno.
+    tickets_nuevos: list[int] = []
 
     for orden, reintegro in con_reintegro:
         pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
@@ -241,7 +243,13 @@ def main() -> int:
                     caso["id"], "requiere_decision", actor="cron", autonomia="manual",
                     resumen="Fuera de la politica de autonomia: " + "; ".join(politica["motivos"]),
                 )
-                crear_ticket_para_expediente(caso["id"], motivos=politica["motivos"])
+                tenia_ticket = (adb.obtener(caso["id"]) or {}).get("ticket_id")
+                ok, _ = crear_ticket_para_expediente(
+                    caso["id"], motivos=politica["motivos"], notificar=False,
+                )
+                nuevo = (adb.obtener(caso["id"]) or {}).get("ticket_id")
+                if ok and nuevo and nuevo != tenia_ticket:
+                    tickets_nuevos.append(int(nuevo))
             fila = adb.obtener(caso["id"]) or {}
             fila["_motivos"] = "; ".join(politica["motivos"])
             decisiones.append(fila)
@@ -265,6 +273,10 @@ def main() -> int:
         # Guardar el relato acumulado para el panel y para el próximo agente.
         adb.actualizar(actualizado["id"], relato=motor.relato_largo(actualizado, adb.eventos(actualizado["id"])))
         motor.cerrar_si_completo(actualizado["id"])
+
+    if tickets_nuevos and not _quiet():
+        n = notificar_tickets_nuevos(tickets_nuevos)
+        print(f"   📨 {len(tickets_nuevos)} ticket(s) nuevo(s) avisados en {n} mensaje(s).")
 
     deuda = adb.deuda_abierta()
     registrar_ejecucion(JOB_ID)

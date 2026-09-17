@@ -816,31 +816,31 @@
       "estado": "siigo_solo_lectura",
       "factura": "FV-2-71423",
       "proveedor": "Siigo",
-      "actualizado_en": "2026-09-15T07:25:40"
+      "actualizado_en": "2026-09-16T07:26:04"
     },
     "2000018127217092": {
       "estado": "siigo_solo_lectura",
       "factura": "FV-2-71049",
       "proveedor": "Siigo",
-      "actualizado_en": "2026-09-15T07:26:35"
+      "actualizado_en": "2026-09-16T07:27:02"
     },
     "2000018237497884": {
       "estado": "siigo_solo_lectura",
       "factura": "FV-2-71328",
       "proveedor": "Siigo",
-      "actualizado_en": "2026-09-15T07:25:49"
+      "actualizado_en": "2026-09-16T07:26:14"
     },
     "2000014813807951": {
       "estado": "siigo_solo_lectura",
       "factura": "FV-2-71288",
       "proveedor": "Siigo",
-      "actualizado_en": "2026-09-15T07:26:26"
+      "actualizado_en": "2026-09-16T07:26:53"
     },
     "2000014430597927": {
       "estado": "siigo_solo_lectura",
       "factura": "FV-2-69688",
       "proveedor": "Siigo",
-      "actualizado_en": "2026-09-15T07:26:45"
+      "actualizado_en": "2026-09-16T07:27:12"
     }
   }
 }

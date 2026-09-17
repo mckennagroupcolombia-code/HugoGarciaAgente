@@ -326,6 +326,64 @@ def _registrar_espejo(movimiento_id: int, journal_id: str, fecha: str, total: fl
         )
 
 
+def anular_espejo(movimiento_id: int, *, forzar: bool = False) -> dict:
+    """Borra en Alegra el comprobante que espeja este asiento.
+
+    **Para qué.** Cuando un asiento se anula y se rehace —como el 16-sep-2026
+    con dos quincenas que se habían girado con la retención descontada— el
+    comprobante viejo se queda en Alegra con las cifras equivocadas, y el
+    contador arma la declaración con lo que ve en Alegra. Antes había que
+    borrarlo a mano desde su interfaz; era el paso que se olvida.
+
+    Solo borra comprobantes que **este sistema creó** (están en
+    `cc_alegra_espejo`): no le toca nada al contador. Y se niega mientras el
+    asiento siga vivo, salvo `forzar` — quitarle el espejo a un asiento
+    confirmado lo deja invisible para el contador sin que nadie se entere.
+    """
+    import app.services.contabilidad_core as cc
+
+    if not _activo():
+        return {"status": "bloqueado", "message": "El espejo a Alegra está apagado (ALEGRA_ESPEJO_ACTIVO)"}
+
+    journal_id = espejo_existente(movimiento_id)
+    if not journal_id:
+        return {"status": "sin_espejo", "message": "Este asiento no tiene comprobante en Alegra"}
+
+    mov = cc.obtener_movimiento(int(movimiento_id))
+    if mov and mov.get("estado") != "anulado" and not forzar:
+        return {
+            "status": "bloqueado",
+            "message": (
+                f"El asiento #{movimiento_id} sigue confirmado: si le borras el comprobante, el "
+                "contador deja de verlo. Anula primero el asiento, o repite con forzar."
+            ),
+        }
+
+    from app.services.alegra import _ALEGRA_BASE, _alegra_headers
+
+    try:
+        r = requests.delete(f"{_ALEGRA_BASE}/journals/{journal_id}", headers=_alegra_headers(), timeout=30)
+    except Exception as e:
+        return {"status": "error", "message": f"No se pudo conectar con Alegra: {e}"}
+
+    # 404 = ya no está allá: el objetivo igual se cumple y hay que limpiar el
+    # registro local, si no el panel seguiría ofreciendo anular algo que no existe.
+    if r.status_code not in (200, 204, 404):
+        return {"status": "error", "message": f"Alegra respondió {r.status_code}: {r.text[:200]}"}
+
+    with cc._conn() as con:
+        con.execute("DELETE FROM cc_alegra_espejo WHERE movimiento_id=?", (int(movimiento_id),))
+
+    return {
+        "status": "success",
+        "id": journal_id,
+        "ya_no_estaba": r.status_code == 404,
+        "message": (f"Comprobante {journal_id} " +
+                    ("ya no estaba en Alegra; se limpió el enlace local"
+                     if r.status_code == 404 else "anulado en Alegra")),
+    }
+
+
 def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: bool = False) -> dict:
     """Postea un asiento del Libro Mayor como comprobante contable en Alegra.
 

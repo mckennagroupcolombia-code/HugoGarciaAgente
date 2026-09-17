@@ -213,7 +213,9 @@ def _ticket_existente(db_path: str, codigo: str) -> int | None:
                 pass
 
 
-def crear_ticket_para_expediente(caso_id: int, *, motivos: list[str] | None = None) -> tuple[bool, str]:
+def crear_ticket_para_expediente(
+    caso_id: int, *, motivos: list[str] | None = None, notificar: bool = True,
+) -> tuple[bool, str]:
     """Crea el ticket SOLO cuando el caso necesita una decisión humana.
 
     Deliberadamente NO se crea al abrir el expediente. El flujo viejo
@@ -278,6 +280,7 @@ def crear_ticket_para_expediente(caso_id: int, *, motivos: list[str] | None = No
         },
         creador,
         None,
+        notificar=notificar,
     )
     if err:
         return False, f"No se pudo crear el ticket: {err}"
@@ -288,6 +291,46 @@ def crear_ticket_para_expediente(caso_id: int, *, motivos: list[str] | None = No
         resumen=f"Ticket #{tid} creado para decision humana.",
     )
     return True, f"🎫 Ticket #{tid} creado para el expediente {codigo}."
+
+
+def notificar_tickets_nuevos(ticket_ids: list[int]) -> int:
+    """Un solo WhatsApp por asignado con todos los expedientes nuevos del lote.
+
+    Devuelve cuántos mensajes se enviaron. Síncrono a propósito: lo llama un
+    cron que termina enseguida y un hilo daemon podría morir sin enviar.
+    """
+    if not ticket_ids:
+        return 0
+    from app.services.tickets_notificaciones import enviar_texto_operador
+
+    por_asignado: dict[int, list[str]] = {}
+    db = None
+    try:
+        db = sqlite3.connect(_db_path())
+        db.row_factory = sqlite3.Row
+        marcas = ",".join("?" * len(ticket_ids))
+        for r in db.execute(
+            f"SELECT titulo, asignado_a, creado_por FROM tickets WHERE id IN ({marcas}) ORDER BY id",
+            [int(t) for t in ticket_ids],
+        ):
+            if not r["asignado_a"] or r["asignado_a"] == r["creado_por"]:
+                continue
+            codigo = (r["titulo"] or "").rsplit("— ", 1)[-1].strip()
+            por_asignado.setdefault(int(r["asignado_a"]), []).append(codigo)
+    finally:
+        if db:
+            db.close()
+
+    enviados = 0
+    for uid, codigos in por_asignado.items():
+        muestra = ", ".join(codigos[:5]) + (f" y {len(codigos) - 5} más" if len(codigos) > 5 else "")
+        texto = (
+            f"{MARCADOR_TICKET}: {len(codigos)} expediente(s) nuevo(s) requieren tu decisión "
+            f"({muestra}). Revísalos en el Centro de Mando."
+        )
+        if enviar_texto_operador(uid, texto):
+            enviados += 1
+    return enviados
 
 
 # ── Entrada desde el webhook de reclamos ──────────────────────────────────────

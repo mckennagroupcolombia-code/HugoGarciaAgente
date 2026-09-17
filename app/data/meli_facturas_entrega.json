@@ -23132,8 +23132,8 @@
     },
     "2000018369765974": {
       "shipping_id": "47972735081",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T11:07:50",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:30:03",
       "preview": {
         "lineas": [
           {
@@ -23150,7 +23150,14 @@
         "direccion_envio": "Carrera 19 #50-18, El Carmen, Barranquilla, Atlantico",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018369765974",
+      "siigo_invoice_id": "431",
+      "siigo_invoice_number": "FE431",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "fd297a3853fb73f8ac3dc94e431a343f9b301abb8eb637c367c9f84e2961a1a34564073aaa2334c6e996acbdc0fbc089",
+      "pdf_subido_meli": true
     },
     "2000018407462746": {
       "shipping_id": "47990467631",
@@ -23243,8 +23250,8 @@
     },
     "2000018394449818": {
       "shipping_id": "47984287263",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:28:14",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:27:42",
       "preview": {
         "lineas": [
           {
@@ -23261,12 +23268,19 @@
         "direccion_envio": "Calle 17A #5A -15, BRR VILLA JARDIN, Granada, Meta",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014968977003",
+      "siigo_invoice_id": "427",
+      "siigo_invoice_number": "FE427",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "21e31b3ad315b5a39310d8be3f159a6f1ecbc461b6b5fb86059398ff61a5cd8e0377da6efe66443c1f6cab04d3d85cdd",
+      "pdf_subido_meli": true
     },
     "2000018390078250": {
       "shipping_id": "47982462372",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:32:23",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:37",
       "preview": {
         "lineas": [
           {
@@ -23283,12 +23297,20 @@
         "direccion_envio": "Cra. 41a 52A-17, Barrancabermeja, Santander SN, Barrancabermeja, Santander",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014966851803",
+      "siigo_invoice_id": "430",
+      "siigo_invoice_number": "FE430",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "83e64fe8def63c284dd9a55963740fb442cbbd860601e91b4af0cf9d76feade0050b6d39bc083b7867a63bd95fca6acb",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018390080018": {
       "shipping_id": "47982462372",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:32:25",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:37",
       "preview": {
         "lineas": [
           {
@@ -23305,12 +23327,20 @@
         "direccion_envio": "Cra. 41a 52A-17, Barrancabermeja, Santander SN, Barrancabermeja, Santander",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014966851803",
+      "siigo_invoice_id": "430",
+      "siigo_invoice_number": "FE430",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "83e64fe8def63c284dd9a55963740fb442cbbd860601e91b4af0cf9d76feade0050b6d39bc083b7867a63bd95fca6acb",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018390542090": {
       "shipping_id": "47982382157",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:58:04",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:09",
       "preview": {
         "lineas": [
           {
@@ -23327,12 +23357,20 @@
         "direccion_envio": "Carrera 40 #19b-56, Palermo, Pasto, Nariño",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014967287985",
+      "siigo_invoice_id": "429",
+      "siigo_invoice_number": "FE429",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "98b9521c2f6e202f1e559d050101eec9aa802e00f6f0f3b86ba05703852cbfd9e5fa4383acd5a77720e62357ea328821",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018390529444": {
       "shipping_id": "47982382157",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:58:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:09",
       "preview": {
         "lineas": [
           {
@@ -23349,12 +23387,20 @@
         "direccion_envio": "Carrera 40 #19b-56, Palermo, Pasto, Nariño",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014967287985",
+      "siigo_invoice_id": "429",
+      "siigo_invoice_number": "FE429",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "98b9521c2f6e202f1e559d050101eec9aa802e00f6f0f3b86ba05703852cbfd9e5fa4383acd5a77720e62357ea328821",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018390540266": {
       "shipping_id": "47982382157",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:58:13",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:09",
       "preview": {
         "lineas": [
           {
@@ -23371,12 +23417,20 @@
         "direccion_envio": "Carrera 40 #19b-56, Palermo, Pasto, Nariño",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014967287985",
+      "siigo_invoice_id": "429",
+      "siigo_invoice_number": "FE429",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "98b9521c2f6e202f1e559d050101eec9aa802e00f6f0f3b86ba05703852cbfd9e5fa4383acd5a77720e62357ea328821",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018390542092": {
       "shipping_id": "47982382157",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-12T14:58:14",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:29:09",
       "preview": {
         "lineas": [
           {
@@ -23393,7 +23447,15 @@
         "direccion_envio": "Carrera 40 #19b-56, Palermo, Pasto, Nariño",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014967287985",
+      "siigo_invoice_id": "429",
+      "siigo_invoice_number": "FE429",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "98b9521c2f6e202f1e559d050101eec9aa802e00f6f0f3b86ba05703852cbfd9e5fa4383acd5a77720e62357ea328821",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018408166074": {
       "shipping_id": "47990798709",
@@ -23485,8 +23547,8 @@
     },
     "2000018420385780": {
       "shipping_id": "47996616087",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T08:21:37",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:11:51",
       "preview": {
         "lineas": [
           {
@@ -23503,12 +23565,19 @@
         "direccion_envio": "Carrera 1EW #64-30, Chicala, Neiva, Huila",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018420385780",
+      "siigo_invoice_id": "405",
+      "siigo_invoice_number": "FE405",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "eedf1934eb1e3ccf6b7efc8d9888de9fb18f3f14beb35b84748d57defb89e25af368a225c858af8d7ec01639c9c24224",
+      "pdf_subido_meli": true
     },
     "2000018412580856": {
       "shipping_id": "47992976093",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T09:19:55",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:23:57",
       "preview": {
         "lineas": [
           {
@@ -23525,7 +23594,14 @@
         "direccion_envio": "Via Fagua SN, Samaria, Chía, Cundinamarca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018412580856",
+      "siigo_invoice_id": "422",
+      "siigo_invoice_number": "FE422",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "16a2092f625a3f2e517371b919f35407fb2f1a5106650f7de2f18deac2ebdc673a5e2fce86dee928dae313319510811a",
+      "pdf_subido_meli": true
     },
     "2000018249927630": {
       "shipping_id": "47917915298",
@@ -23537,8 +23613,8 @@
     },
     "2000018396151952": {
       "shipping_id": "47985118433",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T10:43:52",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:27:08",
       "preview": {
         "lineas": [
           {
@@ -23555,12 +23631,20 @@
         "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014972589913",
+      "siigo_invoice_id": "426",
+      "siigo_invoice_number": "FE426",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "f1bbc7ab2f2ad43abf6474bd9f6d8f51767161cdcac23723b3016de3ee0e829496ab9003af5b0bb120b56dda655824aa",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018396157646": {
       "shipping_id": "47985118433",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T10:43:54",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:27:08",
       "preview": {
         "lineas": [
           {
@@ -23577,12 +23661,20 @@
         "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014972589913",
+      "siigo_invoice_id": "426",
+      "siigo_invoice_number": "FE426",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "f1bbc7ab2f2ad43abf6474bd9f6d8f51767161cdcac23723b3016de3ee0e829496ab9003af5b0bb120b56dda655824aa",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018396151954": {
       "shipping_id": "47985118433",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T10:43:58",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:27:08",
       "preview": {
         "lineas": [
           {
@@ -23599,12 +23691,20 @@
         "direccion_envio": "Calle 32 #11d -36, El municipal, Cali, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014972589913",
+      "siigo_invoice_id": "426",
+      "siigo_invoice_number": "FE426",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "f1bbc7ab2f2ad43abf6474bd9f6d8f51767161cdcac23723b3016de3ee0e829496ab9003af5b0bb120b56dda655824aa",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018359733730": {
       "shipping_id": "47968303570",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T11:37:43",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:30:38",
       "preview": {
         "lineas": [
           {
@@ -23621,12 +23721,19 @@
         "direccion_envio": "3B 93-120 120, Cali, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014938561959",
+      "siigo_invoice_id": "432",
+      "siigo_invoice_number": "FE432",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "06128d4117563280aa5239fe471b73063815355cdd7057cc9d2b80ac2886322b17920c71feb1462caa9a13f6901d0682",
+      "pdf_subido_meli": true
     },
     "2000018418199026": {
       "shipping_id": "47995542703",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T11:45:16",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:14:01",
       "preview": {
         "lineas": [
           {
@@ -23643,12 +23750,19 @@
         "direccion_envio": "Carrera 8 #127C-83, Bella Suiza, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993437393",
+      "siigo_invoice_id": "408",
+      "siigo_invoice_number": "FE408",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "8849780552f999532d3b98752d032ec17bdf60d1d1a6bb09305e2d9d66520afd035c211916cdb80033a2839cff950ff4",
+      "pdf_subido_meli": true
     },
     "2000018399281704": {
       "shipping_id": "47986554465",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T12:03:50",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:26:02",
       "preview": {
         "lineas": [
           {
@@ -23665,12 +23779,20 @@
         "direccion_envio": "Calle 16 #28-97, San antonio, Tuluá, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014975494447",
+      "siigo_invoice_id": "425",
+      "siigo_invoice_number": "FE425",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "df3b41716678063cf2b0dad71df941685ad73c77918f66b517879d65c2cadae304d89a857fd184d0a2efca8e3ef049b9",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018399281706": {
       "shipping_id": "47986554465",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T12:03:58",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:26:02",
       "preview": {
         "lineas": [
           {
@@ -23687,12 +23809,20 @@
         "direccion_envio": "Calle 16 #28-97, San antonio, Tuluá, Valle Del Cauca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014975494447",
+      "siigo_invoice_id": "425",
+      "siigo_invoice_number": "FE425",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "df3b41716678063cf2b0dad71df941685ad73c77918f66b517879d65c2cadae304d89a857fd184d0a2efca8e3ef049b9",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018414065184": {
       "shipping_id": "47993676717",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T13:16:27",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:21:02",
       "preview": {
         "lineas": [
           {
@@ -23709,12 +23839,20 @@
         "direccion_envio": "Calle 46 #10B bis -36, juan jose rondon, Sogamoso, Boyaca",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014989521099",
+      "siigo_invoice_id": "418",
+      "siigo_invoice_number": "FE418",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "19523e75ee1e6d1d29344593f9ada9d0e05b6e6c579f41187563343ad0d51583cf7a0d4cc593df5b2149042ba3b0a2b0",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (5 productos)."
     },
     "2000018414011166": {
       "shipping_id": "47993955080",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:22:56",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:22:39",
       "preview": {
         "lineas": [
           {
@@ -23731,12 +23869,19 @@
         "direccion_envio": "Portal de los Cámbulos Portal de los Cambulos PH Cra. 43 66-74, Comuna Universitaria, Manizales, Caldas",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014989431755",
+      "siigo_invoice_id": "420",
+      "siigo_invoice_number": "FE420",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "8e75609934793f01ace900323ca308912624fa4dba305d3c0eb9a4308090e8e43a0381693421a921530318051743cf14",
+      "pdf_subido_meli": true
     },
     "2000018418098750": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:29:59",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23753,12 +23898,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018418093814": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:30:02",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23775,12 +23928,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018418102314": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:30:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23797,12 +23958,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018418102312": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:30:10",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23819,12 +23988,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018418102318": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:30:12",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23841,12 +24018,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018418102316": {
       "shipping_id": "47995800170",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:30:17",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:13",
       "preview": {
         "lineas": [
           {
@@ -23863,12 +24048,20 @@
         "direccion_envio": "Calle 19 #42-96, Castropol, Medellín, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014993308485",
+      "siigo_invoice_id": "409",
+      "siigo_invoice_number": "FE409",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3d1d468bf9a4f882f9c4338966997ad9ef8ef9f19053a7729b75dbd7cce76ec86567e612a11134df334c21706e58408c",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (6 productos)."
     },
     "2000018413113858": {
       "shipping_id": "47993544466",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:37:34",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:23:22",
       "preview": {
         "lineas": [
           {
@@ -23885,12 +24078,19 @@
         "direccion_envio": "Carrera 33D Bis Samaria I manzana 23 casa 4 SN, Samaria I, Pereira, Risaralda",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018413113858",
+      "siigo_invoice_id": "421",
+      "siigo_invoice_number": "FE421",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "da37095943600a62027c1baef71bd57da8bc370c8bf347d1b61bc3d694d3ee43e82d64ac766c98b5e9938396de01f082",
+      "pdf_subido_meli": true
     },
     "2000018415774418": {
       "shipping_id": "47994762074",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:44:26",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:16:13",
       "preview": {
         "lineas": [
           {
@@ -23907,12 +24107,19 @@
         "direccion_envio": "Carrera 47 43-29, Santa Ana, Rionegro, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014991070041",
+      "siigo_invoice_id": "411",
+      "siigo_invoice_number": "FE411",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "b82a656fa6babb6aaf19357f0c10ed6589a633cc7d153da738be0f4c9958cfaaaa0b2b0ac3c30d233bafbe5f1cfb867a",
+      "pdf_subido_meli": true
     },
     "2000018420996708": {
       "shipping_id": "47996896823",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T14:45:15",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:10:33",
       "preview": {
         "lineas": [
           {
@@ -23929,12 +24136,19 @@
         "direccion_envio": "Simón Bolívar MZ 37 casa 31 SN, Ciudadela Simón Bolívar, Armenia, Quindio",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014996022077",
+      "siigo_invoice_id": "403",
+      "siigo_invoice_number": "FE403",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "8b3555450c3b7869f4b4d213fb73381ebf5c9b22991312bcc19a060a56484ddbdc26dcbf7d457fe95544760b7f7eadb8",
+      "pdf_subido_meli": true
     },
     "2000018415595798": {
       "shipping_id": "47994687264",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:24:02",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:16:44",
       "preview": {
         "lineas": [
           {
@@ -23951,12 +24165,19 @@
         "direccion_envio": "Calle 1 B #20-66, el tambo, La Ceja, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990935697",
+      "siigo_invoice_id": "412",
+      "siigo_invoice_number": "FE412",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "e14634daff8b96af492934650b0e3b117db62415f84dcb01c73aefc58e5fd7b74503225ddfaa9c8862edc958d370b400",
+      "pdf_subido_meli": true
     },
     "2000018409840496": {
       "shipping_id": "47991918910",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:26:11",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:25:13",
       "preview": {
         "lineas": [
           {
@@ -23973,12 +24194,19 @@
         "direccion_envio": "CALLE 49A SUR 88C, Bosa, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014985514279",
+      "siigo_invoice_id": "424",
+      "siigo_invoice_number": "FE424",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "129a9ad4149c5b45aaad20df49b805da3aba71b9a1ec990b9443bc424e899d5b74b7b491118363b2b6d7698e9b7a367e",
+      "pdf_subido_meli": true
     },
     "2000018415251544": {
       "shipping_id": "47994527366",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:48:37",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:17:44",
       "preview": {
         "lineas": [
           {
@@ -23995,12 +24223,20 @@
         "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990585357",
+      "siigo_invoice_id": "413",
+      "siigo_invoice_number": "FE413",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "25587517053c394c086480a057986b73ebb21a9d37c363aac3536d55f58cbb9d21376cae478eba1fbd2abe16d0eff69d",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018415258164": {
       "shipping_id": "47994527366",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:48:44",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:17:45",
       "preview": {
         "lineas": [
           {
@@ -24017,12 +24253,20 @@
         "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990585357",
+      "siigo_invoice_id": "413",
+      "siigo_invoice_number": "FE413",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "25587517053c394c086480a057986b73ebb21a9d37c363aac3536d55f58cbb9d21376cae478eba1fbd2abe16d0eff69d",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018415258162": {
       "shipping_id": "47994527366",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:48:47",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:17:45",
       "preview": {
         "lineas": [
           {
@@ -24039,12 +24283,20 @@
         "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990585357",
+      "siigo_invoice_id": "413",
+      "siigo_invoice_number": "FE413",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "25587517053c394c086480a057986b73ebb21a9d37c363aac3536d55f58cbb9d21376cae478eba1fbd2abe16d0eff69d",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018415243718": {
       "shipping_id": "47994527366",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:48:49",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:17:45",
       "preview": {
         "lineas": [
           {
@@ -24061,12 +24313,20 @@
         "direccion_envio": "Calle 71 13-21, Quinta Camacho, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990585357",
+      "siigo_invoice_id": "413",
+      "siigo_invoice_number": "FE413",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "25587517053c394c086480a057986b73ebb21a9d37c363aac3536d55f58cbb9d21376cae478eba1fbd2abe16d0eff69d",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (4 productos)."
     },
     "2000018414513074": {
       "shipping_id": "47994191128",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:50:59",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:20:16",
       "preview": {
         "lineas": [
           {
@@ -24083,12 +24343,19 @@
         "direccion_envio": "Calle 6 #5-50, villamaria vieja, Villamaria, Caldas",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018414513074",
+      "siigo_invoice_id": "417",
+      "siigo_invoice_number": "FE417",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "331826938583211ecee41738e1ac0b9a29b9a1e7755a28aa016b3abaf975495ff01d4690f8570e8e36623b7f4ca10eb9",
+      "pdf_subido_meli": true
     },
     "2000018422260890": {
       "shipping_id": "47997791918",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:58:01",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:09:40",
       "preview": {
         "lineas": [
           {
@@ -24105,12 +24372,19 @@
         "direccion_envio": "Carrera 52 #22-39, Salitre, Teusaquillo, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018422260890",
+      "siigo_invoice_id": "402",
+      "siigo_invoice_number": "FE402",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "5fd47b49ac8f6ee39e16494cc59d18ddb68da3708089723958ed4a397bdd87a66552a2d40fbf054a6c7fe36e5b4c56e7",
+      "pdf_subido_meli": true
     },
     "2000018440267808": {
       "shipping_id": "48005794272",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T15:59:58",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:51:19",
       "preview": {
         "lineas": [
           {
@@ -24127,12 +24401,19 @@
         "direccion_envio": "Cra. 2a 72-50, Los Rosales, Chapinero, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018440267808",
+      "siigo_invoice_id": "393",
+      "siigo_invoice_number": "FE393",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "ab543dd2f4b0028b00b2d49e37f4c3c6550da1538a7f8eddec2e39cf13bfe559f75dccbda93d34aab0fc7a5dfb5b1e9c",
+      "pdf_subido_meli": true
     },
     "2000018414628236": {
       "shipping_id": "47994236840",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:02:24",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:19:40",
       "preview": {
         "lineas": [
           {
@@ -24149,12 +24430,19 @@
         "direccion_envio": "CL 11 A # 40 - 20 # 72A-40, Bogotá:D.C., Bogotá",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990002665",
+      "siigo_invoice_id": "416",
+      "siigo_invoice_number": "FE416",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "799c5e6892a5a5b4372e88d5c40c233ab5b01c54252b63efe50ccb1ecfa377b8ab68480ef7637a264d40ff74fac05b1e",
+      "pdf_subido_meli": true
     },
     "2000018440479002": {
       "shipping_id": "48005878254",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:22:38",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:50:44",
       "preview": {
         "lineas": [
           {
@@ -24171,12 +24459,19 @@
         "direccion_envio": "Calle 66 2219, Barrios Unidos, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015014164057",
+      "siigo_invoice_id": "392",
+      "siigo_invoice_number": "FE392",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "06b509b75b31e99d8fd4e79880e2c353c8054127869f6fbb43d0827d5fd296d9e7c39cee495d955e6da5e3d591becdca",
+      "pdf_subido_meli": true
     },
     "2000018446516064": {
       "shipping_id": "48008176421",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:27:50",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:47:17",
       "preview": {
         "lineas": [
           {
@@ -24193,12 +24488,19 @@
         "direccion_envio": "68d 24b, Fontibón, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015019841195",
+      "siigo_invoice_id": "387",
+      "siigo_invoice_number": "FE387",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "6de5d194c21957fdcdbc07a73101bc2aa05cd03d281e970a291eb61b7069bdff05c3271a7b9597c0d09ccc6c4b6ce155",
+      "pdf_subido_meli": true
     },
     "2000018446228650": {
       "shipping_id": "48008357660",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:33:05",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:52:09",
       "preview": {
         "lineas": [
           {
@@ -24215,12 +24517,19 @@
         "direccion_envio": "Carrera 73 D  35 B 19SUR, Kennedy, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015019503533",
+      "siigo_invoice_id": "394",
+      "siigo_invoice_number": "FE394",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "a7a9d771268f7e0a8c80996c097b91431dc2c630866befe044d4fba522270d63798388ce403fbf7de4972d9775f5de54",
+      "pdf_subido_meli": true
     },
     "2000018432438538": {
       "shipping_id": "48002015631",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:38:09",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:05:44",
       "preview": {
         "lineas": [
           {
@@ -24237,12 +24546,19 @@
         "direccion_envio": "Carrera 29 40a53 #40a-53, La Soledad, Teusaquillo, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006741127",
+      "siigo_invoice_id": "398",
+      "siigo_invoice_number": "FE398",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "64b2e56df8a4d2f45e331ca416643aafdd639a4e6b6cf3117d7da92cb4bc210fe5e0c39ba2c744848f4202be7a782bcc",
+      "pdf_subido_meli": true
     },
     "2000018417815594": {
       "shipping_id": "47995382727",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:42:26",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:15:46",
       "preview": {
         "lineas": [
           {
@@ -24259,12 +24575,19 @@
         "direccion_envio": "Carrera 53 #115-20, alhambra, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018417815594",
+      "siigo_invoice_id": "410",
+      "siigo_invoice_number": "FE410",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "a0dc930f2dddfad6b70291dabe1e96ac3748b72056dad100cf8493dd2fe3cd58bc940c62ef77eac66a3862c799466f39",
+      "pdf_subido_meli": true
     },
     "2000018435810496": {
       "shipping_id": "48003519587",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:49:37",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:05:07",
       "preview": {
         "lineas": [
           {
@@ -24281,12 +24604,19 @@
         "direccion_envio": "Carrera 22 #22C-04, Samper Mendoza, Martires, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015009873227",
+      "siigo_invoice_id": "397",
+      "siigo_invoice_number": "FE397",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "d71fe6aa249552a83fb77c22b2cd50b485a0db714123f0ef725f606f85720ec1ed7dd33145e8c76ac8863858d3cf7875",
+      "pdf_subido_meli": true
     },
     "2000018427938324": {
       "shipping_id": "48000374752",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T16:52:37",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:08:46",
       "preview": {
         "lineas": [
           {
@@ -24303,17 +24633,32 @@
         "direccion_envio": "Calle 6 carrera 2 manzana H SN, Buenos Aires, Piedecuesta, Santander",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018427938324",
+      "siigo_invoice_id": "401",
+      "siigo_invoice_number": "FE401",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "221fb51b8f1336a6f7b23fa15292f282a3787fbf9af74538f5d9cea01669d58f3d065cde99b005ac25489185d278c6a5",
+      "pdf_subido_meli": true
     },
     "2000018414923328": {
-      "estado": "error",
+      "estado": "facturada",
       "error": "No se pudo obtener la orden de MeLi.",
-      "actualizado_en": "2026-09-14T17:02:22"
+      "actualizado_en": "2026-09-16T21:19:07",
+      "proveedor": "alegra",
+      "pack_id": "2000014990323039",
+      "siigo_invoice_id": "415",
+      "siigo_invoice_number": "FE415",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "511a9726a8f81803458eea8081ff89db097b36634f41460bbd9fd96b35d3f726a8b1fb3ecefbb16ac58ed1281d6c67dd",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018447336346": {
       "shipping_id": "48008529591",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:12:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:46:20",
       "preview": {
         "lineas": [
           {
@@ -24330,12 +24675,19 @@
         "direccion_envio": "Carrera 51a #145a-34 SN, Prado Pinzón, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015020636109",
+      "siigo_invoice_id": "385",
+      "siigo_invoice_number": "FE385",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3903224ef1afcd68068cc28fd8a61e21623e874ebd2254bd8e74ac6a901bac3aaf3633f490c651e9a438ceec834efb12",
+      "pdf_subido_meli": true
     },
     "2000018419918154": {
       "shipping_id": "47996682812",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:15:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:12:51",
       "preview": {
         "lineas": [
           {
@@ -24352,12 +24704,20 @@
         "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014995054721",
+      "siigo_invoice_id": "406",
+      "siigo_invoice_number": "FE406",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "a5e114fa45f2c7650b7ecbdd1876621d341a66473ec3296d45890e690c0c006bb6b93b9dec951021be106c0d827885e3",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018419911770": {
       "shipping_id": "47996682812",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:15:12",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:12:51",
       "preview": {
         "lineas": [
           {
@@ -24374,12 +24734,20 @@
         "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014995054721",
+      "siigo_invoice_id": "406",
+      "siigo_invoice_number": "FE406",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "a5e114fa45f2c7650b7ecbdd1876621d341a66473ec3296d45890e690c0c006bb6b93b9dec951021be106c0d827885e3",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018419916338": {
       "shipping_id": "47996682812",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:15:15",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:12:51",
       "preview": {
         "lineas": [
           {
@@ -24396,12 +24764,20 @@
         "direccion_envio": "Avenida Calle 56 a sur #24 60 interior 6 casa 2 Barrio túnal conjunto alhambra casas #602-SN, Tunal Oriental, Tunjuelito, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014995054721",
+      "siigo_invoice_id": "406",
+      "siigo_invoice_number": "FE406",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "a5e114fa45f2c7650b7ecbdd1876621d341a66473ec3296d45890e690c0c006bb6b93b9dec951021be106c0d827885e3",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018452632174": {
       "shipping_id": "48011392748",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:23:08",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:45:09",
       "preview": {
         "lineas": [
           {
@@ -24418,12 +24794,19 @@
         "direccion_envio": "Calle 128b #21-93, La Calleja, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015025688947",
+      "siigo_invoice_id": "383",
+      "siigo_invoice_number": "FE383",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "9342033c9dc6a8c2e0620f1be44754c2736761e98c9af79368efe821d55f6507d99bdeba3d343d62c3d38d0745eb33ae",
+      "pdf_subido_meli": true
     },
     "2000018445042192": {
       "shipping_id": "48007850656",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:39:40",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:48:26",
       "preview": {
         "lineas": [
           {
@@ -24440,12 +24823,19 @@
         "direccion_envio": "Carrera 11bis #123-80, Santa Bárbara Central, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018445042192",
+      "siigo_invoice_id": "388",
+      "siigo_invoice_number": "FE388",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "f0eddea74404f1b670edc109b2c517ad29616d54fcec497a4884e573a95ee067a97a15de2a7c2da85316aef69b174b79",
+      "pdf_subido_meli": true
     },
     "2000018443843588": {
       "shipping_id": "48007038359",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:46:04",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:48:58",
       "preview": {
         "lineas": [
           {
@@ -24462,12 +24852,19 @@
         "direccion_envio": "Calle 79A #11C-05, Paseo de San Francisco, Ibagué, Tolima",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015017306613",
+      "siigo_invoice_id": "389",
+      "siigo_invoice_number": "FE389",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "46569257f982b05f2207c3ad539d7c3287ce01d05e0ad9264787ac166bd111aef4f63ca86f495764915160c6157e83dd",
+      "pdf_subido_meli": true
     },
     "2000018429580674": {
       "shipping_id": "48001096980",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:53:46",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:08:13",
       "preview": {
         "lineas": [
           {
@@ -24484,12 +24881,20 @@
         "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015003997003",
+      "siigo_invoice_id": "400",
+      "siigo_invoice_number": "FE400",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "0a12218e70dccf804c8e911664e16ce2be0e7617917443d17f610b648079d6fb53c165e677f2865ae7fa5811236d39ef",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018429582194": {
       "shipping_id": "48001096980",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:53:48",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:08:13",
       "preview": {
         "lineas": [
           {
@@ -24506,12 +24911,20 @@
         "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015003997003",
+      "siigo_invoice_id": "400",
+      "siigo_invoice_number": "FE400",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "0a12218e70dccf804c8e911664e16ce2be0e7617917443d17f610b648079d6fb53c165e677f2865ae7fa5811236d39ef",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018429571378": {
       "shipping_id": "48001096980",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T17:54:11",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:08:13",
       "preview": {
         "lineas": [
           {
@@ -24528,12 +24941,20 @@
         "direccion_envio": "Calle 12C #01-40, La Concordia, La Candelaria, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015003997003",
+      "siigo_invoice_id": "400",
+      "siigo_invoice_number": "FE400",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "0a12218e70dccf804c8e911664e16ce2be0e7617917443d17f610b648079d6fb53c165e677f2865ae7fa5811236d39ef",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018415165540": {
       "shipping_id": "47994486774",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:23:57",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:18:16",
       "preview": {
         "lineas": [
           {
@@ -24550,12 +24971,20 @@
         "direccion_envio": "Carrera 30a 67-53, Fátima, Manizales, Caldas",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990529971",
+      "siigo_invoice_id": "414",
+      "siigo_invoice_number": "FE414",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "fd616e56a1ef1c321fcaba62bec5911af8de871375e42ccb4f7d9c91faf712562d4d8d3196cb5b76fb25faaa45f76032",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018415161744": {
       "shipping_id": "47994486774",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:24:01",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:18:16",
       "preview": {
         "lineas": [
           {
@@ -24572,12 +25001,20 @@
         "direccion_envio": "Carrera 30a 67-53, Fátima, Manizales, Caldas",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014990529971",
+      "siigo_invoice_id": "414",
+      "siigo_invoice_number": "FE414",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "fd616e56a1ef1c321fcaba62bec5911af8de871375e42ccb4f7d9c91faf712562d4d8d3196cb5b76fb25faaa45f76032",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018432229884": {
       "shipping_id": "48002235784",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:31:59",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:06:20",
       "preview": {
         "lineas": [
           {
@@ -24594,12 +25031,20 @@
         "direccion_envio": "Carrera 12 #140-53, Cedritos, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006567567",
+      "siigo_invoice_id": "399",
+      "siigo_invoice_number": "FE399",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "7bc85a5b8a0074fffce181c309a171f44eb75ada4691c89a498c1551611fc081b55989c1bf3a02f243aee2e1ebdf029e",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018432234966": {
       "shipping_id": "48002235784",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:32:03",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:06:20",
       "preview": {
         "lineas": [
           {
@@ -24616,12 +25061,20 @@
         "direccion_envio": "Carrera 12 #140-53, Cedritos, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006567567",
+      "siigo_invoice_id": "399",
+      "siigo_invoice_number": "FE399",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "7bc85a5b8a0074fffce181c309a171f44eb75ada4691c89a498c1551611fc081b55989c1bf3a02f243aee2e1ebdf029e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018394274790": {
       "shipping_id": "47984196091",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:32:54",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:28:11",
       "preview": {
         "lineas": [
           {
@@ -24638,12 +25091,19 @@
         "direccion_envio": "Diagonal 2n # 10 - 03 barrio brisas SN, San Alberto, San Alberto, Cesar",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014970812265",
+      "siigo_invoice_id": "428",
+      "siigo_invoice_number": "FE428",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "2cf793c31641f8e55b8308ef0984f8693c7180bd7b463a8c78a7da1fbba48a4d919bfffd4a09c2768a0c4ec86fe24d3b",
+      "pdf_subido_meli": true
     },
     "2000018452360048": {
       "shipping_id": "48011262616",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:43:27",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:45:40",
       "preview": {
         "lineas": [
           {
@@ -24660,12 +25120,19 @@
         "direccion_envio": "Calle 135 #17A-77, El Contador, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015025465323",
+      "siigo_invoice_id": "384",
+      "siigo_invoice_number": "FE384",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "6e3520fcb94ed23de0070b62ff645d8e4b3e6ef03add2f0a906039b582ee2db141a56e5e7b65dd775e8aa274f02a2291",
+      "pdf_subido_meli": true
     },
     "2000018414011364": {
       "shipping_id": "47993652525",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:48:40",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:21:53",
       "preview": {
         "lineas": [
           {
@@ -24682,12 +25149,19 @@
         "direccion_envio": "Carrera 42B #25Asur 151-SN, La Magnolia, Envigado, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014989453619",
+      "siigo_invoice_id": "419",
+      "siigo_invoice_number": "FE419",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "20fe833d94abd9407e442618b50d77793a6bba90d9472a2f55f9bdbe4df793b5f77ac8b1a5917fd30fb7ac0382bf89b0",
+      "pdf_subido_meli": true
     },
     "2000018418405844": {
       "shipping_id": "47995951978",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T18:57:04",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:13:26",
       "preview": {
         "lineas": [
           {
@@ -24704,12 +25178,19 @@
         "direccion_envio": "Carrera  20 # 23 SUR - 25, Sector San Lucas, Envigado, Antioquia",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018418405844",
+      "siigo_invoice_id": "407",
+      "siigo_invoice_number": "FE407",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "9d4bdfb5dbdb74a7070bc5e02f1ea63da73a9ec8487b52fdccf24a248c8a73a1b60d5f3430397bb18f756f95769d03ef",
+      "pdf_subido_meli": true
     },
     "2000018438567442": {
       "shipping_id": "48005036952",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:17:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:04:26",
       "preview": {
         "lineas": [
           {
@@ -24726,12 +25207,20 @@
         "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015012392057",
+      "siigo_invoice_id": "396",
+      "siigo_invoice_number": "FE396",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "b1224a7e16b5b9cfcc9dfff394bf7c9ec5055f33525f96eb8b39f61327cb3901f946f78dc64794494595e58e0708b2d1",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018438572540": {
       "shipping_id": "48005036952",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:17:11",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:04:26",
       "preview": {
         "lineas": [
           {
@@ -24748,12 +25237,20 @@
         "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015012392057",
+      "siigo_invoice_id": "396",
+      "siigo_invoice_number": "FE396",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "b1224a7e16b5b9cfcc9dfff394bf7c9ec5055f33525f96eb8b39f61327cb3901f946f78dc64794494595e58e0708b2d1",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018438572538": {
       "shipping_id": "48005036952",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:17:14",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:04:26",
       "preview": {
         "lineas": [
           {
@@ -24770,12 +25267,20 @@
         "direccion_envio": "Carrera 17 173-52, Acacias Usaquen, Usaquén, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015012392057",
+      "siigo_invoice_id": "396",
+      "siigo_invoice_number": "FE396",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "b1224a7e16b5b9cfcc9dfff394bf7c9ec5055f33525f96eb8b39f61327cb3901f946f78dc64794494595e58e0708b2d1",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018454821412": {
       "shipping_id": "48012135083",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:17:49",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:44:20",
       "preview": {
         "lineas": [
           {
@@ -24792,12 +25297,19 @@
         "direccion_envio": "Calle 28 sur #20-04, Olaya, Rafael Uribe Uribe, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018454821412",
+      "siigo_invoice_id": "382",
+      "siigo_invoice_number": "FE382",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "158d6a76efca60e4076d26cb7e02a981a0d2715e3f9d9e5617065c96dcef399460fc520e3fa5e78a60ab4ead10886abb",
+      "pdf_subido_meli": true
     },
     "2000018442471072": {
       "shipping_id": "48006441561",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:50:01",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:49:30",
       "preview": {
         "lineas": [
           {
@@ -24814,12 +25326,20 @@
         "direccion_envio": "Carrera 78k #73b 78 sur, Villa Anny I, Bosa, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015015952793",
+      "siigo_invoice_id": "390",
+      "siigo_invoice_number": "FE390",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "77843adf5f39463c710c4352b369d9d632008fa3b72684fe046960939cede4da084f2a6b41e2257682e7368292952276",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018442467200": {
       "shipping_id": "48006441561",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:50:05",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:49:30",
       "preview": {
         "lineas": [
           {
@@ -24836,12 +25356,20 @@
         "direccion_envio": "Carrera 78k #73b 78 sur, Villa Anny I, Bosa, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015015952793",
+      "siigo_invoice_id": "390",
+      "siigo_invoice_number": "FE390",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "77843adf5f39463c710c4352b369d9d632008fa3b72684fe046960939cede4da084f2a6b41e2257682e7368292952276",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018432185870": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:55:28",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24858,12 +25386,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432185868": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:55:32",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24880,12 +25416,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432189054": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:55:34",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24902,12 +25446,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432189052": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:55:50",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24924,12 +25476,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432189056": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:55:52",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24946,12 +25506,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432192458": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:56:10",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24968,12 +25536,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018432192460": {
       "shipping_id": "48002217668",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T19:56:15",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:31:54",
       "preview": {
         "lineas": [
           {
@@ -24990,12 +25566,20 @@
         "direccion_envio": "Carrera 53 #176-58, Nueva Zelandia, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015006459009",
+      "siigo_invoice_id": "433",
+      "siigo_invoice_number": "FE433",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "04453a28fb47073c9f962b41a5ea918987a1369c1221e92c7c9d05119a63a62098a6f5bf50f6ca0ffa102041272cc43e",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (7 productos)."
     },
     "2000018420652008": {
       "shipping_id": "47997041674",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:10:44",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:11:10",
       "preview": {
         "lineas": [
           {
@@ -25012,12 +25596,19 @@
         "direccion_envio": "Carrera 55 160-63, Mazuren, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000014995708057",
+      "siigo_invoice_id": "404",
+      "siigo_invoice_number": "FE404",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "58fadb79c152fabc388625f58d57f59a653bf5cff3fcaebd644fc3dedb203872a1971e12bbc91e0270d600ec7f692d59",
+      "pdf_subido_meli": true
     },
     "2000018412123010": {
       "shipping_id": "47992753791",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:20:37",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:24:38",
       "preview": {
         "lineas": [
           {
@@ -25034,12 +25625,19 @@
         "direccion_envio": "Calle 41 Sur #4-58, San Cristóbal Sur, San Cristobal Sur, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000018412123010",
+      "siigo_invoice_id": "423",
+      "siigo_invoice_number": "FE423",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "af1405a3612267e1a6076178c016432f591f6b5cf9ce9dadf13f26fce2ba4368250d7da78765e22685dd151d5e37b6cd",
+      "pdf_subido_meli": true
     },
     "2000018447231468": {
       "shipping_id": "48008789928",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:33:35",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:46:49",
       "preview": {
         "lineas": [
           {
@@ -25056,12 +25654,19 @@
         "direccion_envio": "Calle 167 #74-32, Portales del Norte, Suba, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015020552253",
+      "siigo_invoice_id": "386",
+      "siigo_invoice_number": "FE386",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "15ba78dc52b066852c009b0b3396c6994e4b6a715e982cb2a1df1b1fb78bf832d166353e6990e10b8d3fd340413a8d35",
+      "pdf_subido_meli": true
     },
     "2000018440594628": {
       "shipping_id": "48005926538",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:34:59",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:50:15",
       "preview": {
         "lineas": [
           {
@@ -25078,12 +25683,20 @@
         "direccion_envio": "45a 81c, Kennedy, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015014265505",
+      "siigo_invoice_id": "391",
+      "siigo_invoice_number": "FE391",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "2f65175566773ba364371a646000945c8d2ed0b042093aab673eabdd679befb577a8194cde12c2b49b6bbcd49913836d",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018440594630": {
       "shipping_id": "48005926538",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:35:07",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:50:15",
       "preview": {
         "lineas": [
           {
@@ -25100,12 +25713,20 @@
         "direccion_envio": "45a 81c, Kennedy, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015014265505",
+      "siigo_invoice_id": "391",
+      "siigo_invoice_number": "FE391",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "2f65175566773ba364371a646000945c8d2ed0b042093aab673eabdd679befb577a8194cde12c2b49b6bbcd49913836d",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018439916182": {
       "shipping_id": "48005326403",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:38:46",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:03:52",
       "preview": {
         "lineas": [
           {
@@ -25122,12 +25743,20 @@
         "direccion_envio": "Calle 83a 115-39, El Cortijo, Engativá, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015013649729",
+      "siigo_invoice_id": "395",
+      "siigo_invoice_number": "FE395",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3f951681930f86e8ae07b0046fda067e1e38c61f2a6722b72e9b54a1a4df4b6013fe53009bf82440333edf71c3196a27",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018439909334": {
       "shipping_id": "48005326403",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-14T20:38:48",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T21:03:52",
       "preview": {
         "lineas": [
           {
@@ -25144,7 +25773,15 @@
         "direccion_envio": "Calle 83a 115-39, El Cortijo, Engativá, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015013649729",
+      "siigo_invoice_id": "395",
+      "siigo_invoice_number": "FE395",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "3f951681930f86e8ae07b0046fda067e1e38c61f2a6722b72e9b54a1a4df4b6013fe53009bf82440333edf71c3196a27",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos)."
     },
     "2000018446736030": {
       "shipping_id": "48008571578",
@@ -25737,8 +26374,8 @@
     },
     "2000018470940668": {
       "shipping_id": "48019757359",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-15T15:40:15",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-16T20:30:32",
       "preview": {
         "lineas": [
           {
@@ -25755,7 +26392,14 @@
         "direccion_envio": "Transversal 21bis #59-26, San Luis, Teusaquillo, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015043063893",
+      "siigo_invoice_id": "381",
+      "siigo_invoice_number": "FE381",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "8c9cc50b183577c8b3b1c2d93ea8adeec61b377e10fe77c575d9c9fe2f5117f86e393c0023e3e5fb678d22a884742b77",
+      "pdf_subido_meli": true
     },
     "2000018471149620": {
       "shipping_id": "48020170298",
@@ -27346,6 +27990,1568 @@
         "telefono": "XXXXXXX",
         "email": ""
       }
+    },
+    "2000018471924630": {
+      "shipping_id": "48020236251",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T09:14:20",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-REVVID6mm",
+            "nombre": "Revolvedor De Vidrio 30 Cm X 6 Mm Laboratorio",
+            "cantidad": 1.0,
+            "precio_unitario": 12580.0
+          }
+        ],
+        "total": 12580.0,
+        "nombre_cliente": "Mateo Rene Vargas Velandia",
+        "identificacion": "1193063553",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Carrera 70C #57R-73SUR, Madelena, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018471913978": {
+      "shipping_id": "48020236251",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T09:14:22",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CERABEREFBLA500g",
+            "nombre": "Cera De Abejas  Blanca 500gr",
+            "cantidad": 1.0,
+            "precio_unitario": 18286.0
+          }
+        ],
+        "total": 18286.0,
+        "nombre_cliente": "Mateo Rene Vargas Velandia",
+        "identificacion": "1193063553",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Carrera 70C #57R-73SUR, Madelena, Ciudad Bolivar, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018458658852": {
+      "shipping_id": "48014306250",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T10:56:23",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-POLTWE20P500mL",
+            "nombre": "Polisorbato Tween 20 Usp 500ml",
+            "cantidad": 1.0,
+            "precio_unitario": 36550.0
+          }
+        ],
+        "total": 36550.0,
+        "nombre_cliente": "Hollman Andrey Vanegas Buitrago",
+        "identificacion": "1026266372",
+        "tipo_documento": "CC",
+        "direccion_envio": "Diagonal 37a #16-49, el trebol, Soacha, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018458658854": {
+      "shipping_id": "48014306250",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T10:56:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACISAL500g",
+            "nombre": "Ácido Salicílico Usp 500 Gr Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 32215.0
+          }
+        ],
+        "total": 32215.0,
+        "nombre_cliente": "Hollman Andrey Vanegas Buitrago",
+        "identificacion": "1026266372",
+        "tipo_documento": "CC",
+        "direccion_envio": "Diagonal 37a #16-49, el trebol, Soacha, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018435202328": {
+      "shipping_id": "48003247153",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T11:27:09",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BTMS50125g",
+            "nombre": "Btms 50 Emulsionante 125 Gr",
+            "cantidad": 2.0,
+            "precio_unitario": 20792.0
+          }
+        ],
+        "total": 41584.0,
+        "nombre_cliente": "Geovanni Andres Torres Sagbini",
+        "identificacion": "72000109",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 64 #98-90, Altos de Riomar, Barranquilla, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018461425498": {
+      "shipping_id": "48015330561",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T11:37:22",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON1000g",
+            "nombre": "Creatina Monohidrato 1000g N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 65700.0
+          }
+        ],
+        "total": 65700.0,
+        "nombre_cliente": "Rosa Alma Hinojosa Amaya",
+        "identificacion": "49737769",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 96g 22m-19, Ferrocaja Fontibón, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018465092258": {
+      "shipping_id": "48016986017",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T12:24:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC10mL",
+            "nombre": "Aceite De Ricino 10 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 7915.0
+          }
+        ],
+        "total": 7915.0,
+        "nombre_cliente": "Espitia Ayala Yuliet Katerin",
+        "identificacion": "1031644340",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 115 #153-80, Almendros, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018474690372": {
+      "shipping_id": "48021870540",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T12:42:00",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACIGLI50P30mL",
+            "nombre": "Ácido Glicólico 50%  30 Ml Todas",
+            "cantidad": 1.0,
+            "precio_unitario": 20792.0
+          }
+        ],
+        "total": 20792.0,
+        "nombre_cliente": "Soriana Barreto",
+        "identificacion": "1119700799",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 17C 10-27, Comuna 1, Villavicencio, Meta",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018457981600": {
+      "shipping_id": "48013976474",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T13:03:44",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Diana Marcela Oyola Cupitra",
+        "identificacion": "1005726396",
+        "tipo_documento": "CC",
+        "direccion_envio": "spm 2 mzn 2 casa #15 barrio las Américas SN, Comuna 9, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018427355064": {
+      "shipping_id": "47999806615",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T13:09:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ESPCCRCRV22CM",
+            "nombre": "Espátula Laboratorio Acero Inóxidable",
+            "cantidad": 1.0,
+            "precio_unitario": 10687.0
+          }
+        ],
+        "total": 10687.0,
+        "nombre_cliente": "Jeronimo Valencia Alvarez",
+        "identificacion": "1007480937",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Calle 41B SN, El Yucal, Santa Marta, Magdalena",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018427358336": {
+      "shipping_id": "47999806615",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T13:09:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Jeronimo Valencia Alvarez",
+        "identificacion": "1007480937",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Calle 41B SN, El Yucal, Santa Marta, Magdalena",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018427349666": {
+      "shipping_id": "47999806615",
+      "estado": "error",
+      "actualizado_en": "2026-09-16T13:09:43",
+      "error": "No puedo emitir factura automática: C-TEGBETLt: no existe en Alegra"
+    },
+    "2000018469892178": {
+      "shipping_id": "48019241613",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T13:46:49",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON500g",
+            "nombre": "Creatina Monohidrato 500g N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 55800.0
+          }
+        ],
+        "total": 55800.0,
+        "nombre_cliente": "Moises Chica Nieto",
+        "identificacion": "1053836220",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 29A # 69-83, Palermo, Manizales, Caldas",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018474715866": {
+      "shipping_id": "48021887710",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T13:48:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 3.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 32904.0,
+        "nombre_cliente": "Olmer Enrique Rico Guerra",
+        "identificacion": "79754085",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Carrera 7 126-30, Bella Suiza, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018475118440": {
+      "shipping_id": "48021770795",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T14:37:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-PAP100g",
+            "nombre": "Papaína Enzima Polvo 100gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 33317.0
+          }
+        ],
+        "total": 33317.0,
+        "nombre_cliente": "Jhon Anderson Hernandez Herrera",
+        "identificacion": "1022420903",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 68b #23b-35, Ciudad Salitre Sur-Oriental, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018459778910": {
+      "shipping_id": "48014860778",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T14:40:53",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALGSODLACCAL50g",
+            "nombre": "Alginato De Sodio + Lactato De Calcio 50g C/u",
+            "cantidad": 1.0,
+            "precio_unitario": 21389.0
+          }
+        ],
+        "total": 21389.0,
+        "nombre_cliente": "JHON sarmiento",
+        "identificacion": "1088245229",
+        "tipo_documento": "CC",
+        "direccion_envio": "carrera 24 bis 74 25, Pereira, Risaralda",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440858120": {
+      "shipping_id": "48005738549",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T14:46:33",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALU500g",
+            "nombre": "Alulosa Endulzante 500g",
+            "cantidad": 1.0,
+            "precio_unitario": 15895.0
+          }
+        ],
+        "total": 15895.0,
+        "nombre_cliente": "Shadia Scarleth Diaz Ramos",
+        "identificacion": "1006889418",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 5 #4A-43, El Bosque, Maicao, Guajira",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018440858122": {
+      "shipping_id": "48005738549",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T14:46:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALUKg",
+            "nombre": "Alulosa Endulzante 1 Kg",
+            "cantidad": 2.0,
+            "precio_unitario": 38250.0
+          }
+        ],
+        "total": 76500.0,
+        "nombre_cliente": "Shadia Scarleth Diaz Ramos",
+        "identificacion": "1006889418",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 5 #4A-43, El Bosque, Maicao, Guajira",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414972898": {
+      "shipping_id": "47994101065",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:01:51",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SHA70550mL",
+            "nombre": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 13175.0
+          }
+        ],
+        "total": 13175.0,
+        "nombre_cliente": "Oscar Eduardo Muñoz Osorio",
+        "identificacion": "1005872565",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 1g norte 7302, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018423558206": {
+      "estado": "error",
+      "error": "No se pudo obtener la orden de MeLi.",
+      "actualizado_en": "2026-09-16T15:16:15"
+    },
+    "2000018465354654": {
+      "shipping_id": "48017406096",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:23:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DEXKg",
+            "nombre": "Dextrosa Monohidratada  Kg",
+            "cantidad": 2.0,
+            "precio_unitario": 10186.0
+          }
+        ],
+        "total": 20372.0,
+        "nombre_cliente": "Hector Velasquez Casas",
+        "identificacion": "79322862",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 20 Sur 108-60, Aparco, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018465347882": {
+      "shipping_id": "48017406096",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:23:39",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MAL500g",
+            "nombre": "Maltodextrina Alimentos 500 Gr Dulce",
+            "cantidad": 2.0,
+            "precio_unitario": 7565.0
+          }
+        ],
+        "total": 15130.0,
+        "nombre_cliente": "Hector Velasquez Casas",
+        "identificacion": "79322862",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 20 Sur 108-60, Aparco, Ibagué, Tolima",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018459943928": {
+      "shipping_id": "48014949806",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:31:32",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAPGELVAC0VERBLA1000UN",
+            "nombre": "Cápsulas Gelatina Vacías Blanco Y Verde X1000 Und Talla 0 Blanco Y Verde",
+            "cantidad": 1.0,
+            "precio_unitario": 23800.0
+          }
+        ],
+        "total": 23800.0,
+        "nombre_cliente": "Valentina González",
+        "identificacion": "1027210018",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 42 número 9-14 SN, Boyacá, Boyaca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018479869514": {
+      "shipping_id": "48024405260",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:33:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19309.0
+          }
+        ],
+        "total": 19309.0,
+        "nombre_cliente": "Alcantara Berroteran Nery Griset",
+        "identificacion": "385477",
+        "tipo_documento": "CE",
+        "direccion_envio": "Carrera 12 # 116 - 46, Santa Bárbara Central, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018409150860": {
+      "shipping_id": "47991584520",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:56:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LAN40g",
+            "nombre": "Lanolina Pura  Anti Grietas 40 Gramos",
+            "cantidad": 1.0,
+            "precio_unitario": 15215.0
+          }
+        ],
+        "total": 15215.0,
+        "nombre_cliente": "Luis Alberto Clavijo Romero",
+        "identificacion": "81741635",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 5 B #20-77, Fusacatan, Fusagasugá, Cundinamarca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018491965110": {
+      "shipping_id": "48029814321",
+      "estado": "error",
+      "actualizado_en": "2026-09-16T15:57:06",
+      "error": "No puedo emitir factura automática: C-ACEESENLIM5mL: no existe en Alegra"
+    },
+    "2000018491965108": {
+      "shipping_id": "48029814321",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:57:09",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESEBER5mL",
+            "nombre": "Aceite Esencial Bergamota 5 Ml Mckenna Group Aromaterapia Y Masajes",
+            "cantidad": 1.0,
+            "precio_unitario": 16915.0
+          }
+        ],
+        "total": 16915.0,
+        "nombre_cliente": "Jeicob Mauricio Vernaza Cardenas",
+        "identificacion": "1061765111",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 15 #53-45, Galerías, Teusaquillo, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018491965112": {
+      "shipping_id": "48029814321",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:57:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESECORCED5mL",
+            "nombre": "Aceite Esencial Corteza Cedro Mckenna Group 5ml Aromaterapia/masajes",
+            "cantidad": 1.0,
+            "precio_unitario": 14875.0
+          }
+        ],
+        "total": 14875.0,
+        "nombre_cliente": "Jeicob Mauricio Vernaza Cardenas",
+        "identificacion": "1061765111",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 15 #53-45, Galerías, Teusaquillo, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018448175852": {
+      "shipping_id": "48008880143",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:59:51",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-AZUMMET30mL",
+            "nombre": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+            "cantidad": 1.0,
+            "precio_unitario": 6914.0
+          }
+        ],
+        "total": 6914.0,
+        "nombre_cliente": "Laudis Rosmery Sanchez Delgado",
+        "identificacion": "45515213",
+        "tipo_documento": "CC",
+        "direccion_envio": "Transversal 54 No. 30-403 Urbanización Santillana de los Patios 515 Blq Laureles, El Bosque, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018448180652": {
+      "shipping_id": "48008880143",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:59:53",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MENCRI100g",
+            "nombre": "Mentol Cristal  100gr",
+            "cantidad": 1.0,
+            "precio_unitario": 25075.0
+          }
+        ],
+        "total": 25075.0,
+        "nombre_cliente": "Laudis Rosmery Sanchez Delgado",
+        "identificacion": "45515213",
+        "tipo_documento": "CC",
+        "direccion_envio": "Transversal 54 No. 30-403 Urbanización Santillana de los Patios 515 Blq Laureles, El Bosque, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018448177146": {
+      "shipping_id": "48008880143",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T15:59:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-TENSCIKg",
+            "nombre": "Sci Tensoactivo 1kg",
+            "cantidad": 2.0,
+            "precio_unitario": 101915.0
+          }
+        ],
+        "total": 203830.0,
+        "nombre_cliente": "Laudis Rosmery Sanchez Delgado",
+        "identificacion": "45515213",
+        "tipo_documento": "CC",
+        "direccion_envio": "Transversal 54 No. 30-403 Urbanización Santillana de los Patios 515 Blq Laureles, El Bosque, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018448184634": {
+      "shipping_id": "48008880143",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:00:02",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-BENSOD500g",
+            "nombre": "Benzoato De Sodio 500gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 13944.0
+          }
+        ],
+        "total": 13944.0,
+        "nombre_cliente": "Laudis Rosmery Sanchez Delgado",
+        "identificacion": "45515213",
+        "tipo_documento": "CC",
+        "direccion_envio": "Transversal 54 No. 30-403 Urbanización Santillana de los Patios 515 Blq Laureles, El Bosque, Cartagena De Indias, Bolivar",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018457322254": {
+      "shipping_id": "48013644344",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:07:12",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALGSODLACCAL50g",
+            "nombre": "Alginato De Sodio + Lactato De Calcio 50g C/u",
+            "cantidad": 1.0,
+            "precio_unitario": 21389.0
+          }
+        ],
+        "total": 21389.0,
+        "nombre_cliente": "Zharick Linares",
+        "identificacion": "1042262148",
+        "tipo_documento": "CC",
+        "direccion_envio": "51A SN, Barranquilla, Atlantico",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018464476006": {
+      "shipping_id": "48016714597",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:22:25",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 2.0,
+            "precio_unitario": 19309.0
+          }
+        ],
+        "total": 38618.0,
+        "nombre_cliente": "Jessica Johana Echeverry Puerta",
+        "identificacion": "1128279744",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle calle 14 sur num 43a-100 1302, El Poblado, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484715708": {
+      "shipping_id": "48026592398",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:27:23",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LECSOY500g",
+            "nombre": "Lecitina De Soya Polvo 500gr Lecitina",
+            "cantidad": 1.0,
+            "precio_unitario": 16830.0
+          }
+        ],
+        "total": 16830.0,
+        "nombre_cliente": "Daniel Perez",
+        "identificacion": "1014859876",
+        "tipo_documento": "CC",
+        "direccion_envio": "6b 7421, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484715710": {
+      "shipping_id": "48026592398",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:27:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACENEE60mL",
+            "nombre": "Aceite De Neem  60 Ml Puro Prensado En Frío",
+            "cantidad": 1.0,
+            "precio_unitario": 14110.0
+          }
+        ],
+        "total": 14110.0,
+        "nombre_cliente": "Daniel Perez",
+        "identificacion": "1014859876",
+        "tipo_documento": "CC",
+        "direccion_envio": "6b 7421, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484717282": {
+      "shipping_id": "48026592398",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:27:32",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CREMON250g",
+            "nombre": "Creatina Monohidrato 250gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 22308.0
+          }
+        ],
+        "total": 22308.0,
+        "nombre_cliente": "Daniel Perez",
+        "identificacion": "1014859876",
+        "tipo_documento": "CC",
+        "direccion_envio": "6b 7421, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484715712": {
+      "shipping_id": "48026592398",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:27:35",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLU100g",
+            "nombre": "L Glutamina 100 Gr N/a",
+            "cantidad": 1.0,
+            "precio_unitario": 16235.0
+          }
+        ],
+        "total": 16235.0,
+        "nombre_cliente": "Daniel Perez",
+        "identificacion": "1014859876",
+        "tipo_documento": "CC",
+        "direccion_envio": "6b 7421, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018456826616": {
+      "shipping_id": "48013103861",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:28:06",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALGSODLACCAL50g",
+            "nombre": "Alginato De Sodio + Lactato De Calcio 50g C/u",
+            "cantidad": 1.0,
+            "precio_unitario": 21389.0
+          }
+        ],
+        "total": 21389.0,
+        "nombre_cliente": "Montoya Trujillo Lady Joana",
+        "identificacion": "1113673981",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 8 23-10, La Esperanza, Florida, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018487446492": {
+      "shipping_id": "48027632965",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:40:18",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-INU500g",
+            "nombre": "Inulina Prebiótico 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 25212.0
+          }
+        ],
+        "total": 25212.0,
+        "nombre_cliente": "Contreras Marin Johanna Andrea",
+        "identificacion": "53077091",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 96 C #22 H-30, Ferrocaja, Fontibón, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438426586": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-COLHID30mL",
+            "nombre": "Colágeno Hidrolizado Cosmético Mixta",
+            "cantidad": 1.0,
+            "precio_unitario": 19720.0
+          }
+        ],
+        "total": 19720.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438421714": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:43",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ELAHID30mL",
+            "nombre": "Elastina 30 Ml Activo Cosmético",
+            "cantidad": 1.0,
+            "precio_unitario": 18615.0
+          }
+        ],
+        "total": 18615.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438413998": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:45",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDSAL20P30mL",
+            "nombre": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 25684.0
+          }
+        ],
+        "total": 25684.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438414000": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:48",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-EXTALOVER30mL",
+            "nombre": "Extracto De Aloe Vera 30 Ml 92% Todo Tipo De Piel",
+            "cantidad": 1.0,
+            "precio_unitario": 11645.0
+          }
+        ],
+        "total": 11645.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438419696": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:52",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ARADES250g",
+            "nombre": "Arándanos Deshidratados 250g",
+            "cantidad": 1.0,
+            "precio_unitario": 9878.0
+          }
+        ],
+        "total": 9878.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018438419694": {
+      "shipping_id": "48004973858",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:52:58",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DPAN50mL",
+            "nombre": "D-pantenol Vitamina B5 75%",
+            "cantidad": 1.0,
+            "precio_unitario": 19309.0
+          }
+        ],
+        "total": 19309.0,
+        "nombre_cliente": "Jenny Paola Daza Pinzon",
+        "identificacion": "1012401868",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 1 #28-66, Santa Isabel, Martires, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018481472606": {
+      "shipping_id": "48025132696",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T16:53:40",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "PLVSLCpH",
+            "nombre": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
+            "cantidad": 1.0,
+            "precio_unitario": 9450.0
+          }
+        ],
+        "total": 9450.0,
+        "nombre_cliente": "Carlos Alfredo Rios Pabon",
+        "identificacion": "1023861333",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 145 13a-97, Cedritos, Usaquén, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018480774518": {
+      "shipping_id": "48024814368",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:01:42",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "María José Rodríguez",
+        "identificacion": "1072640785",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 23 5-42, Santa Fé, Santa Fe, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018482562428": {
+      "shipping_id": "48025312211",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:05:47",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACDKOJDPAL30mL",
+            "nombre": "Ácido Kojico Dpalmitato 5% 30ml",
+            "cantidad": 1.0,
+            "precio_unitario": 17765.0
+          }
+        ],
+        "total": 17765.0,
+        "nombre_cliente": "Luis Carlos Cisneros Gil",
+        "identificacion": "1016112490",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 4 #20-9, Las Nieves, Santa Fe, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018482564280": {
+      "shipping_id": "48025312211",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:05:51",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF100g",
+            "nombre": "Cafeina Anhidra 100gr Cafeína",
+            "cantidad": 1.0,
+            "precio_unitario": 47930.0
+          }
+        ],
+        "total": 47930.0,
+        "nombre_cliente": "Luis Carlos Cisneros Gil",
+        "identificacion": "1016112490",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 4 #20-9, Las Nieves, Santa Fe, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018473450990": {
+      "shipping_id": "48020968301",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:10:15",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-VASPRE100mL",
+            "nombre": "Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado",
+            "cantidad": 1.0,
+            "precio_unitario": 19465.0
+          }
+        ],
+        "total": 19465.0,
+        "nombre_cliente": "Valerie Ortega",
+        "identificacion": "1029662682",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 34 N44 38 SN, Otra ciudad, Casanare",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018474256976": {
+      "shipping_id": "48021358367",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:17:27",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAPVACGEL00TRA1000Un",
+            "nombre": "Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente",
+            "cantidad": 1.0,
+            "precio_unitario": 30600.0
+          }
+        ],
+        "total": 30600.0,
+        "nombre_cliente": "Claudia Jimena Cifuentes Ayala",
+        "identificacion": "29679133",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera Cra. 140 3-05 alto pance 45, Parcelaciones Pance, Cali, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018458855530": {
+      "shipping_id": "48014407730",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:19:01",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-DIOTIT500g",
+            "nombre": "Dióxido De Titanio 500 Gr  Sin Sabor",
+            "cantidad": 1.0,
+            "precio_unitario": 16282.0
+          }
+        ],
+        "total": 16282.0,
+        "nombre_cliente": "Diego Juan Rua Ayala",
+        "identificacion": "1007551134",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida 33 #54-54, Niquia, Bello, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018492165742": {
+      "shipping_id": "48029910463",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:27:03",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CERABEREFBLA500g",
+            "nombre": "Cera De Abejas  Blanca 500gr",
+            "cantidad": 2.0,
+            "precio_unitario": 18286.0
+          }
+        ],
+        "total": 36572.0,
+        "nombre_cliente": "Zingler Cruz Calvo",
+        "identificacion": "80443714",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera carrera 90a sur #34-54, Unir 1, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018462349150": {
+      "shipping_id": "48015756733",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:44:45",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "Abaunza Garcia Natalia",
+        "identificacion": "43972073",
+        "tipo_documento": "CC",
+        "direccion_envio": "Avenida Carrera 39e 48c sur 103, El Trianón, Envigado, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018482993030": {
+      "shipping_id": "48025508847",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:44:59",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF100g",
+            "nombre": "Cafeina Anhidra 100gr Cafeína",
+            "cantidad": 2.0,
+            "precio_unitario": 47930.0
+          }
+        ],
+        "total": 95860.0,
+        "nombre_cliente": "Yenny Angelica Garzon Rojas",
+        "identificacion": "52770714",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 146 A 58 C 56, Victoria Norte, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018457587122": {
+      "shipping_id": "48013477037",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T17:50:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAPVACGEL00TRA1000Un",
+            "nombre": "Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente",
+            "cantidad": 1.0,
+            "precio_unitario": 30600.0
+          }
+        ],
+        "total": 30600.0,
+        "nombre_cliente": "Lopez Quiceno Victor Augusto",
+        "identificacion": "94514944",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 18 #70-20, Parque Residencia Colombia, Armenia, Quindio",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484715176": {
+      "shipping_id": "48026283781",
+      "estado": "en_proceso",
+      "actualizado_en": "2026-09-16T17:50:48"
+    },
+    "2000018476524098": {
+      "shipping_id": "48022462783",
+      "estado": "error",
+      "actualizado_en": "2026-09-16T18:09:25",
+      "error": "No se pudo obtener la orden de MeLi."
+    },
+    "2000018481896524": {
+      "shipping_id": "48025319976",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:11",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ALFARB10g",
+            "nombre": "Alfa Arbutina Polvo 10g Todo Tipo De Piel Día/noche",
+            "cantidad": 2.0,
+            "precio_unitario": 19671.0
+          }
+        ],
+        "total": 39342.0,
+        "nombre_cliente": "Jaime Alberto Peñuela Mendez",
+        "identificacion": "1072649540",
+        "tipo_documento": "CC",
+        "direccion_envio": "Carrera 90 #71A-81, Florida Blanca, Engativá, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018476509946": {
+      "shipping_id": "48022462783",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:28",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GELSINSAB500g",
+            "nombre": "Gelatina Sin Sabor 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 24132.0
+          }
+        ],
+        "total": 24132.0,
+        "nombre_cliente": "Jessie Rocio Graciel Strobel Vanegas",
+        "identificacion": "57427546",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 77 ac #75-165, PILARICA.ROBLEDO, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018476509948": {
+      "shipping_id": "48022462783",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:34",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 2.0,
+            "precio_unitario": 20888.0
+          }
+        ],
+        "total": 41776.0,
+        "nombre_cliente": "Jessie Rocio Graciel Strobel Vanegas",
+        "identificacion": "57427546",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 77 ac #75-165, PILARICA.ROBLEDO, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018476524100": {
+      "shipping_id": "48022462783",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-SEMCAL250g",
+            "nombre": "Semilla De Calabaza 250g",
+            "cantidad": 1.0,
+            "precio_unitario": 11900.0
+          }
+        ],
+        "total": 11900.0,
+        "nombre_cliente": "Jessie Rocio Graciel Strobel Vanegas",
+        "identificacion": "57427546",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 77 ac #75-165, PILARICA.ROBLEDO, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018476518552": {
+      "shipping_id": "48022462783",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:38",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESECLA5mL",
+            "nombre": "Aceite Esencial Clavo Mckenna Group 5ml AnaLGésico Dental Y Difusor",
+            "cantidad": 1.0,
+            "precio_unitario": 14875.0
+          }
+        ],
+        "total": 14875.0,
+        "nombre_cliente": "Jessie Rocio Graciel Strobel Vanegas",
+        "identificacion": "57427546",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 77 ac #75-165, PILARICA.ROBLEDO, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018476518550": {
+      "shipping_id": "48022462783",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:09:41",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACEESEMEN5mL",
+            "nombre": "Aceite Esencial De Menta 5ml Mckenna Group Puro Apto Difusor Y Masajes",
+            "cantidad": 1.0,
+            "precio_unitario": 17500.0
+          }
+        ],
+        "total": 17500.0,
+        "nombre_cliente": "Jessie Rocio Graciel Strobel Vanegas",
+        "identificacion": "57427546",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 77 ac #75-165, PILARICA.ROBLEDO, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018464150066": {
+      "shipping_id": "48016565079",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:25:32",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANTKARAMA125g",
+            "nombre": "Manteca De Karité Orgánica Amarilla Sin - G A $191",
+            "cantidad": 1.0,
+            "precio_unitario": 27115.0
+          }
+        ],
+        "total": 27115.0,
+        "nombre_cliente": "john jader carmona",
+        "identificacion": "14698116",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 32B #04-12, Urb. El Jardin, Palmira, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018465617360": {
+      "shipping_id": "48017223505",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:38:14",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-GLICVEG500mL",
+            "nombre": "Glicerina Natural Vegetal Usp 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 10968.0
+          }
+        ],
+        "total": 10968.0,
+        "nombre_cliente": "Natalia Payares Perez",
+        "identificacion": "1017267028",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 86a #92e-72, Robledo, Medellín, Antioquia",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018482245578": {
+      "shipping_id": "48025174939",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:53:09",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CERABEREFBLA500g",
+            "nombre": "Cera De Abejas  Blanca 500gr",
+            "cantidad": 1.0,
+            "precio_unitario": 18286.0
+          }
+        ],
+        "total": 18286.0,
+        "nombre_cliente": "MELANY WILLIAMS",
+        "identificacion": "3758480",
+        "tipo_documento": "CE",
+        "direccion_envio": "Carrera 103b Bis  150c-58 SUBA TURINGIA 3, Sabana de Tibabuyes, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018482245580": {
+      "shipping_id": "48025174939",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T18:53:17",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-MANCACREF500g",
+            "nombre": "Manteca De Cacao 500 Gr",
+            "cantidad": 1.0,
+            "precio_unitario": 14365.0
+          }
+        ],
+        "total": 14365.0,
+        "nombre_cliente": "MELANY WILLIAMS",
+        "identificacion": "3758480",
+        "tipo_documento": "CE",
+        "direccion_envio": "Carrera 103b Bis  150c-58 SUBA TURINGIA 3, Sabana de Tibabuyes, Suba, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018492550968": {
+      "shipping_id": "48030093101",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T19:02:46",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-LECSOY500g",
+            "nombre": "Lecitina De Soya Polvo 500gr Lecitina",
+            "cantidad": 1.0,
+            "precio_unitario": 16830.0
+          }
+        ],
+        "total": 16830.0,
+        "nombre_cliente": "Katherine Charrez Mesa",
+        "identificacion": "1034776778",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 54B #82B-62sur, El Carmelo, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018484641180": {
+      "shipping_id": "48026257641",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T19:16:36",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-ACERIC500mL",
+            "nombre": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+            "cantidad": 1.0,
+            "precio_unitario": 20888.0
+          }
+        ],
+        "total": 20888.0,
+        "nombre_cliente": "Ayde Jimenez Piñeros",
+        "identificacion": "52973769",
+        "tipo_documento": "CC",
+        "direccion_envio": "Calle 57a sur #78m-15, Roma, Kennedy, Bogotá D.C.",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018432977170": {
+      "shipping_id": "48002545310",
+      "estado": "pendiente_activacion",
+      "actualizado_en": "2026-09-16T20:12:07",
+      "preview": {
+        "lineas": [
+          {
+            "codigo": "C-CAF100g",
+            "nombre": "Cafeina Anhidra 100gr Cafeína",
+            "cantidad": 1.0,
+            "precio_unitario": 47930.0
+          }
+        ],
+        "total": 47930.0,
+        "nombre_cliente": "Andres Mauricio Adarmes Cubillos",
+        "identificacion": "1115188183",
+        "tipo_documento": "CC",
+        "direccion_envio": "crr 14 # 9-66 segundo piso SN, Las Américas, Caicedonia, Valle Del Cauca",
+        "telefono": "XXXXXXX",
+        "email": ""
+      }
+    },
+    "2000018414923330": {
+      "estado": "facturada",
+      "proveedor": "alegra",
+      "pack_id": "2000014990323039",
+      "siigo_invoice_id": "415",
+      "siigo_invoice_number": "FE415",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "511a9726a8f81803458eea8081ff89db097b36634f41460bbd9fd96b35d3f726a8b1fb3ecefbb16ac58ed1281d6c67dd",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (2 productos).",
+      "actualizado_en": "2026-09-16T21:19:07"
+    },
+    "2000018414074188": {
+      "estado": "facturada",
+      "proveedor": "alegra",
+      "pack_id": "2000014989521099",
+      "siigo_invoice_id": "418",
+      "siigo_invoice_number": "FE418",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "19523e75ee1e6d1d29344593f9ada9d0e05b6e6c579f41187563343ad0d51583cf7a0d4cc593df5b2149042ba3b0a2b0",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (5 productos).",
+      "actualizado_en": "2026-09-16T21:21:02"
+    },
+    "2000018414074190": {
+      "estado": "facturada",
+      "proveedor": "alegra",
+      "pack_id": "2000014989521099",
+      "siigo_invoice_id": "418",
+      "siigo_invoice_number": "FE418",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "19523e75ee1e6d1d29344593f9ada9d0e05b6e6c579f41187563343ad0d51583cf7a0d4cc593df5b2149042ba3b0a2b0",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (5 productos).",
+      "actualizado_en": "2026-09-16T21:21:02"
+    },
+    "2000018414066590": {
+      "estado": "facturada",
+      "proveedor": "alegra",
+      "pack_id": "2000014989521099",
+      "siigo_invoice_id": "418",
+      "siigo_invoice_number": "FE418",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "19523e75ee1e6d1d29344593f9ada9d0e05b6e6c579f41187563343ad0d51583cf7a0d4cc593df5b2149042ba3b0a2b0",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (5 productos).",
+      "actualizado_en": "2026-09-16T21:21:02"
+    },
+    "2000018414072428": {
+      "estado": "facturada",
+      "proveedor": "alegra",
+      "pack_id": "2000014989521099",
+      "siigo_invoice_id": "418",
+      "siigo_invoice_number": "FE418",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "19523e75ee1e6d1d29344593f9ada9d0e05b6e6c579f41187563343ad0d51583cf7a0d4cc593df5b2149042ba3b0a2b0",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (5 productos).",
+      "actualizado_en": "2026-09-16T21:21:02"
     }
   },
   "2000018272473696": {

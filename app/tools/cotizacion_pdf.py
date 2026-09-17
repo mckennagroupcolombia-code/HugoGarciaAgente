@@ -164,7 +164,7 @@ def generar_cotizacion_pdf(cotizacion: dict) -> str:
     tot  = cotizacion.get("total", 0)
     totales_data = [
         ["", "Subtotal:",   f"${sub:,.0f}"],
-        ["", "IVA (19%):",  f"${iva:,.0f}"],
+        ["", "IVA:",        f"${iva:,.0f}"],
         ["", "TOTAL:",      f"${tot:,.0f}"],
     ]
     tot_t = Table(totales_data, colWidths=[ancho_util*0.60, ancho_util*0.20, ancho_util*0.20])

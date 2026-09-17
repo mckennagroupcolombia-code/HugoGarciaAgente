@@ -120,6 +120,13 @@ def proveedores(q: str = "") -> list[dict]:
             "id": t["id"], "nombre": t["nombre"], "identificacion": t.get("identificacion") or "",
             "tipo_persona": t.get("tipo_persona") or "", "regimen_simple": int(t.get("regimen_simple") or 0),
             "saldo_2205": round(saldos.get(t["id"], 0.0)), "en_libro": True, "alegra_id": None,
+            # Perfil tributario guardado: el wizard lo usa para dejar las
+            # casillas de impuestos ya puestas y no depender de que alguien se
+            # acuerde de marcarlas cada quincena.
+            "retefuente_exento": int(t.get("retefuente_exento") or 0),
+            "ica_por_mil": float(t.get("ica_por_mil") or 0),
+            "gmf_por_defecto": int(t.get("gmf_por_defecto") or 0),
+            "cuenta_gasto_default": t.get("cuenta_gasto_default") or "",
         })
     for c in _contactos_alegra():
         if c["identificacion"] and c["identificacion"] in vistos_ident:
