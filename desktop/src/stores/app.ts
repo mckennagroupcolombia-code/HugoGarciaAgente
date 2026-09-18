@@ -69,6 +69,8 @@ export type Panel =
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
 export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
+/** Pestañas de Docs técnicos: viven en el cabezote (como Contabilidad). */
+export type DocsTab = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
 
 /** Sub-pestaña dentro de Studio visual. La portada es "categorias": la unidad de
  *  trabajo es la categoría de producto, no la biblioteca de imágenes. */
@@ -215,6 +217,8 @@ interface AppState {
   toggleSidebar: () => void;
   etiquetasTab: EtiquetasTab;
   setEtiquetasTab: (t: EtiquetasTab) => void;
+  docsTab: DocsTab;
+  setDocsTab: (t: DocsTab) => void;
   /** Studio visual en vista de lienzo (editor): Layout usa fill sin padding. */
   etiquetasStudioInmersivo: boolean;
   setEtiquetasStudioInmersivo: (v: boolean) => void;
@@ -322,6 +326,11 @@ export const useAppStore = create<AppState>()(
       toggleSidebar: () => {
         set((s) => ({ sidebarOpen: !s.sidebarOpen }));
         queueMicrotask(() => notifyNavChange());
+      },
+      docsTab: "biblioteca",
+      setDocsTab: (docsTab) => {
+        if (get().docsTab === docsTab) return;
+        set({ docsTab });
       },
       etiquetasTab: "imprimir",
       setEtiquetasTab: (etiquetasTab) => {

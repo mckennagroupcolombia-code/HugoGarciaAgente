@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
+import LemaLogo from "./LemaLogo";
 import PopoverFlotante from "../etiqueta-ficha/PopoverFlotante";
 import { TITULOS_CAS, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 import CampoEtiqueta from "./CampoEtiqueta";
@@ -39,7 +40,7 @@ export default function CenterProductPanel({
 
   return (
     <section className="e30-panel e30-panel-centro">
-      <div ref={logoRef} className="e30-logo e30-linea-inf">
+      <div ref={logoRef} className="e30-logo e30-logo-con-lema e30-linea-inf">
         <button
           type="button"
           disabled={!editable}
@@ -53,6 +54,9 @@ export default function CenterProductPanel({
             <span className="e30-logo-vacio">McKenna Group</span>
           ) : null}
         </button>
+        {/* Lema de la casa, el mismo de la ficha de 76 × 66 y de la vertical:
+            constante, no es un dato del producto. */}
+        <LemaLogo logoRef={logoRef} logoUrl={data.logoUrl} />
         {onChange && (
           <MenuLogoCorporativo
             data={data}
@@ -138,6 +142,11 @@ export default function CenterProductPanel({
               maxLineas={1}
             />
           </div>
+        </div>
+        {/* Espacio en blanco para el timbre (lote / vencimiento): en la
+            etiqueta terminada no se dibuja nada; en edición se ve la guía. */}
+        <div className="e30-timbre-centro" aria-hidden="true">
+          {editMode && <span>Timbre</span>}
         </div>
       </div>
 

@@ -33,15 +33,40 @@ def test_una_venta_directa_SI_cuenta():
 
 
 def test_la_marca_no_depende_de_mayusculas_ni_del_campo():
-    assert factura_ya_contada({"observations": "VENTA MERCADOLIBRE — Orden 123"}) is True
-    assert factura_ya_contada({"observaciones": "venta mercadolibre — orden 123"}) is True
+    assert factura_ya_contada({"observations": "VENTA MERCADOLIBRE — Orden 2000018359733730"}) is True
+    assert factura_ya_contada({"observaciones": "venta mercadolibre — orden 2000018359733730"}) is True
 
 
-def test_no_se_confunde_con_una_mencion_en_medio_del_texto():
-    """«Devolución de una venta MercadoLibre» no es una factura de venta MeLi.
-    La marca la pone el facturador al principio; buscarla en cualquier parte
-    dejaría fuera ventas reales."""
+def test_un_numero_corto_no_es_una_orden_de_mercadolibre():
+    """Los ids de MeLi tienen 13+ dígitos. Exigir al menos 8 evita que un número
+    cualquiera del texto convierta una factura en «ya contada» y la haga
+    desaparecer del ingreso — el error contrario al doble conteo, y peor,
+    porque una venta que falta no la reclama nadie."""
+    assert factura_ya_contada({"observations": "Venta MercadoLibre — Orden 123"}) is False
+
+
+def test_una_mencion_sin_numero_de_orden_no_cuenta_como_marca():
+    """«Nota sobre la venta MercadoLibre anterior» no es una factura de venta.
+
+    Lo que prueba que la factura corresponde a una orden ya contada es el
+    NÚMERO que acompaña la marca, no el texto suelto.
+    """
     assert factura_ya_contada({"observations": "Nota sobre venta MercadoLibre anterior"}) is False
+    assert factura_ya_contada({"observations": "Venta mostrador"}) is False
+    assert factura_ya_contada({"observations": "TERMINOS Y CONDICIONES  La siguiente info"}) is False
+
+
+def test_la_marca_no_tiene_que_estar_al_principio():
+    """El caso que costó $17,7M de agosto.
+
+    Las facturas de corrección del IVA duplicado de astroselling empiezan por
+    «Reemplaza FV-…» y traen la marca DESPUÉS. Con `startswith` se escapaban 343
+    facturas de agosto, que se habrían contado dos veces: una por la orden de
+    MeLi y otra por su factura de reemplazo.
+    """
+    obs = ("Reemplaza FV-2-67352 — corrección IVA duplicado parcial (astroselling). "
+           "Venta Mercado Libre #2000013456789")
+    assert factura_ya_contada({"observations": obs}) is True
 
 
 def test_cubre_las_dos_grafias_de_los_dos_sistemas():

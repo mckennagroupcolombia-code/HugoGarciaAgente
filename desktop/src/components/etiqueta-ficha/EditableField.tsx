@@ -85,6 +85,25 @@ interface Props {
   marcoVisible?: boolean;
 }
 
+/** Pone un `<textarea>` de la etiqueta al alto justo de su texto. Lo usa el
+ *  propio campo y también `ProductLabelForm`, que al buscar el ancho de
+ *  maquetación necesita los campos ya ajustados ANTES de medir (el
+ *  `ResizeObserver` del campo llegaría un cuadro tarde). */
+export function ajustarAltoTextarea(el: HTMLTextAreaElement): void {
+  el.style.height = "auto";
+  // `scrollHeight` mide contenido + relleno, SIN el borde. Y el campo es
+  // `border-box`, así que la altura que se le pone incluye el borde: con
+  // `height = scrollHeight` el borde se come 2 px por dentro (1 arriba y
+  // 1 abajo) y el texto se queda siempre ese pelo corto — barra de
+  // desplazamiento y último renglón a medias. Hay que sumarlo.
+  const cs = getComputedStyle(el);
+  const borde =
+    cs.boxSizing === "border-box"
+      ? (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0)
+      : 0;
+  el.style.height = `${el.scrollHeight + borde}px`;
+}
+
 /** Menú flotante de tamaño/fuente compartido por `EditableField` (valores
  *  editables) y `EditableLabel` (títulos fijos, ej. "ORIGEN") — misma
  *  casilla de override en `TextStyleContext` para ambos.
@@ -289,20 +308,7 @@ export default function EditableField({
   useLayoutEffect(() => {
     const el = taRef.current;
     if (!multiline || !el) return;
-    const ajustar = () => {
-      el.style.height = "auto";
-      // `scrollHeight` mide contenido + relleno, SIN el borde. Y el campo es
-      // `border-box`, así que la altura que se le pone incluye el borde: con
-      // `height = scrollHeight` el borde se come 2 px por dentro (1 arriba y
-      // 1 abajo) y el texto se queda siempre ese pelo corto — barra de
-      // desplazamiento y último renglón a medias. Hay que sumarlo.
-      const cs = getComputedStyle(el);
-      const borde =
-        cs.boxSizing === "border-box"
-          ? (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0)
-          : 0;
-      el.style.height = `${el.scrollHeight + borde}px`;
-    };
+    const ajustar = () => ajustarAltoTextarea(el);
     ajustar();
     const ro = new ResizeObserver(ajustar);
     ro.observe(el);

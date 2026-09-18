@@ -5,6 +5,7 @@ import ContabilidadNavTabs from "./ContabilidadNavTabs";
 import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 import DisenoNavTabs from "./nav/DisenoNavTabs";
+import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
@@ -174,12 +175,6 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
-              {/* Diseño: pestañas inline solo con ancho suficiente (≥ xl) */}
-              {sectionId === "diseno" && (
-                <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5 xl:block">
-                  <DisenoNavTabs />
-                </div>
-              )}
               <TemasHeaderButton />
               <ThemeModeToggle />
               <UserMenuButton />
@@ -189,14 +184,14 @@ export default function Layout({
           {/* Agenda ya lleva pestañas en la fila del cabezote (izquierda). */}
           {showHubTabs && sectionId !== "inicio" && (
             <div
-              className={`mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5 ${
-                sectionId === "diseno" ? "xl:hidden" : ""
-              }`}
+              className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5"
             >
               {sectionId === "contabilidad" ? (
                 <ContabilidadNavTabs />
               ) : sectionId === "diseno" ? (
                 <DisenoNavTabs />
+              ) : sectionId === "docs" ? (
+                <DocsNavTabs />
               ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}

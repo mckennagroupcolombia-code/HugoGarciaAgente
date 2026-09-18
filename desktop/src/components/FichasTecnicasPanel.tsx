@@ -1,3 +1,4 @@
+import { useAppStore } from "../stores/app";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -12,6 +13,7 @@ import DocumentoGeneradorTab, {
   textoDesdeFilas,
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
+import { TablaComposicion } from "./documentos/TablaComposicion";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
@@ -37,16 +39,6 @@ import { esperarJobScan } from "../lib/scanJobPoll";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 
-type TabDoc = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
-
-/** "revision" va primera a propósito: es la entrada guiada — "esto es lo
- * que falta por revisar/corregir contra el formato vigente" — antes de que
- * el usuario tenga que decidir en cuál de las demás pestañas entrar. */
-const TABS: { id: TabDoc; label: string; icon: UiIconName }[] = [
-  { id: "revision", label: "Revisión guiada", icon: "listChecks" },
-  { id: "biblioteca", label: "Biblioteca", icon: "books" },
-  { id: "completo", label: "Ficha Técnica COA SDS", icon: "file" },
-];
 
 interface ArchivoGenerado {
   nombre: string;
@@ -588,7 +580,7 @@ function CoaTabContent({
     () => ({
       titulo,
       identificacion: {
-        nombre_comercial: nombreComercial || titulo,
+        nombre_comercial: titulo || nombreComercial,
         referencia_interna: referencia,
         nombre_inci: inci,
         cas,
@@ -672,7 +664,6 @@ function CoaTabContent({
         <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
@@ -912,7 +903,7 @@ function SdsTabContent({
     () => ({
       titulo,
       identificacion: {
-        nombre_comercial: nombreComercial || titulo,
+        nombre_comercial: titulo || nombreComercial,
         referencia_interna: referencia,
         nombre_inci: inci,
         cas,
@@ -950,7 +941,6 @@ function SdsTabContent({
         <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
@@ -960,7 +950,7 @@ function SdsTabContent({
         <p className="text-xs font-medium text-muted">Peligros</p>
         <Field label="Clasificación GHS" value={clasificacion} onChange={setClasificacion} rows={2} />
         <Field label="Pictogramas / frases H-P" value={pictogramas} onChange={setPictogramas} rows={2} />
-        <Field label="Composición (componente|concentración)" value={composicion} onChange={setComposicion} rows={4} mono />
+        <TablaComposicion value={composicion} onChange={setComposicion} />
         <Field label="Primeros auxilios (caso|instrucción)" value={primerosAuxilios} onChange={setPrimerosAuxilios} rows={4} mono />
         <Field label="Manipulación" value={manipulacion} onChange={setManipulacion} rows={2} />
         <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
@@ -2417,16 +2407,14 @@ function DocumentoCompletoTabContent({
           rows={2}
           actions={<IaBtn {...ia("sds_pictogramas")} />}
         />
-        <Field
+        <TablaComposicion
           label={
             casillas.composicionRequerida
-              ? "Composición (componente|concentración) · requerida para este tipo de insumo"
-              : "Composición (componente|concentración)"
+              ? "Composición · requerida para este tipo de insumo"
+              : "Composición"
           }
           value={sdsComposicion}
           onChange={setSdsComposicion}
-          rows={4}
-          mono
           actions={<IaBtn {...ia("composicion")} />}
         />
         <Field
@@ -2544,7 +2532,9 @@ function DocumentoCompletoTabContent({
 }
 
 export default function FichasTecnicasPanel() {
-  const [tab, setTab] = useState<TabDoc>("biblioteca");
+  // La pestaña vive en el store: la barra está en el cabezote (DocsNavTabs).
+  const tab = useAppStore((st) => st.docsTab);
+  const setTab = useAppStore((st) => st.setDocsTab);
   const [ftPreload, setFtPreload] = useState<Record<string, unknown> | null>(null);
   const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
   const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
@@ -2614,28 +2604,6 @@ export default function FichasTecnicasPanel() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-3 pb-4">
-      <div>
-        <h2 className="text-base font-semibold text-ink">Documentos técnicos</h2>
-      </div>
-
-      <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface-panel p-1" role="tablist" aria-label="Documentos técnicos">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            aria-label={t.label}
-            title={t.label}
-            onClick={() => setTab(t.id)}
-            className={hubTabClass(tab === t.id, "mck-hub-tab-etiquetado flex-col")}
-          >
-            <Icon name={t.icon} size={22} weight="bold" />
-            <span className={HUB_TAB_LABEL}>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}

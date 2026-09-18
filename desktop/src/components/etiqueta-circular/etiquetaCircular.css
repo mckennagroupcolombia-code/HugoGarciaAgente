@@ -110,6 +110,22 @@
   text-align: center;
 }
 
+/* Logo + lema bajo el arco del título. El logo cede el alto al lema; el
+   tamaño del lema lo iguala `LemaLogo` al ancho del logo dibujado. */
+.ec-logo {
+  gap: 3px;
+  overflow: visible;
+}
+.ec-logo .ec-logo-caja {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+}
+.ec-lema {
+  font-size: 14px;
+}
+
 .ec-descripcion {
   width: 100%;
   font-size: 17px;

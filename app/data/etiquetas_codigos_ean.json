@@ -2612,6 +2612,17 @@
       "bimestre": 4,
       "codigo": "7702355002649",
       "creado_at": "2026-09-17T00:01:25"
+    },
+    {
+      "id": "9cccdcd36471",
+      "sku": "C-ACEESELAV5mL",
+      "nombre_producto": "ACEITE  ESENCIAL LAVANDA 5mL",
+      "numero_producto": 236,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702360052646",
+      "creado_at": "2026-09-17T15:17:26"
     }
   ]
 }

@@ -8,6 +8,8 @@ import {
 } from "react";
 import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import PopoverFlotante from "../etiqueta-ficha/PopoverFlotante";
+import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
+import LemaLogo from "../etiqueta-30ml/LemaLogo";
 import { EJEMPLO_ETIQUETA, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
 import BarcodeSection from "../etiqueta-30ml/BarcodeSection";
@@ -84,6 +86,8 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
   const bandas = reticula.bandas;
   const tam = reticula.tam;
 
+  const logoRef = useRef<HTMLDivElement>(null);
+  const [menuLogo, setMenuLogo] = useState(false);
   const bandaDescRef = useRef<HTMLDivElement>(null);
   const bandaListaRef = useRef<HTMLDivElement>(null);
 
@@ -197,6 +201,39 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
             <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
           </div>
         )}
+
+        {/* Logo y lema de la casa, igual que en las demás etiquetas: el logo se
+            elige de DISEÑO CORPORATIVO y el lema es constante. */}
+        <div
+          ref={logoRef}
+          className="ec-banda ec-logo"
+          style={{ top: bandas.logo.top, height: bandas.logo.alto, width: bandas.logo.ancho }}
+        >
+          <button
+            type="button"
+            disabled={!editable}
+            onClick={() => setMenuLogo((v) => !v)}
+            title={editable ? "Elegir logo (carpeta DISEÑO CORPORATIVO)" : undefined}
+            className="e30-logo-caja ec-logo-caja mck-btn-no-fx"
+          >
+            {data.logoUrl ? (
+              <img className="ec-logo-img" src={data.logoUrl} alt="Logotipo" />
+            ) : editMode ? (
+              <span className="e30-logo-vacio">McKenna Group</span>
+            ) : null}
+          </button>
+          <LemaLogo logoRef={logoRef} logoUrl={data.logoUrl} className="ec-lema" />
+          {onChange && (
+            <MenuLogoCorporativo
+              data={data}
+              onChange={onChange}
+              anchorRef={logoRef}
+              abierto={editable && menuLogo}
+              onCerrar={() => setMenuLogo(false)}
+              alinear="centro"
+            />
+          )}
+        </div>
 
         <div
           ref={bandaDescRef}

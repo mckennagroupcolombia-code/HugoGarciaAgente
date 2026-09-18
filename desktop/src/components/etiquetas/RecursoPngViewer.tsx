@@ -143,6 +143,7 @@ export function LightboxImagen({
   nombre,
   formato,
   onCerrar,
+  onImprimir,
   onDescargar,
   onEliminar,
   descargando,
@@ -151,6 +152,8 @@ export function LightboxImagen({
   nombre: string;
   formato?: FormatoPngAsociado | null;
   onCerrar: () => void;
+  /** En Imprimir: pasa de la vista en grande a la configuración de impresión. */
+  onImprimir?: () => void;
   onDescargar: () => void;
   onEliminar?: () => void;
   descargando: boolean;
@@ -190,6 +193,11 @@ export function LightboxImagen({
       maxWidthClassName="max-w-4xl"
       headerExtra={
         <div className="flex shrink-0 items-center gap-1.5">
+          {onImprimir ? (
+            <Button variant="primary" size="sm" icon="printer" onClick={onImprimir}>
+              Imprimir
+            </Button>
+          ) : null}
           <Button variant="secondary" size="sm" icon="download" loading={descargando} onClick={onDescargar}>
             Descargar
           </Button>

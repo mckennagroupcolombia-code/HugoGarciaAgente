@@ -73,6 +73,10 @@ export interface BandaCircular {
  * de aplicaciones, que va por el centro, es la más ancha.
  */
 const BANDAS_REL = {
+  // Logo + lema: el hueco que queda por dentro del arco del título (las
+  // letras cuelgan hacia afuera) y encima de la descripción. A esa altura el
+  // arco deja libres ±0,18 d, de ahí el ancho.
+  logo: { top: 0.1647, alto: 0.1176, ancho: 0.3 },
   descripcion: { top: 0.2882, alto: 0.1618, ancho: 0.5382 },
   aplicacionesTitulo: { top: 0.4529, alto: 0.0382, ancho: 0.4412 },
   aplicaciones: { top: 0.4941, alto: 0.2147, ancho: 0.6912 },
@@ -103,6 +107,7 @@ function bandasCirculares(d: number): Record<ClaveBanda, BandaCircular> {
     ancho: Math.round(d * r.ancho),
   });
   return {
+    logo: px(BANDAS_REL.logo),
     descripcion: px(BANDAS_REL.descripcion),
     aplicacionesTitulo: px(BANDAS_REL.aplicacionesTitulo),
     aplicaciones: px(BANDAS_REL.aplicaciones),

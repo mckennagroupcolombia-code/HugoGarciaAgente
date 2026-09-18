@@ -187,6 +187,14 @@ CUENTA_RETENCION: dict[str, str] = {
     "honorarios": "236515",
     "arrendamientos": "236530",
     "rendimientos_financieros": "236535",
+    "comisiones": "236520",
+    # El 350 pide el transporte dentro de servicios, que es donde el contador
+    # lo certificó (concepto «SERVICIOS» al 1%).
+    "transporte_carga": "236525",
+    "transporte_pasajeros": "236525",
+    "arrendamiento_inmueble": "236530",
+    "arrendamiento_mueble": "236530",
+    "otros_ingresos": "236595",
 }
 
 

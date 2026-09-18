@@ -17,6 +17,7 @@ import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
 import ContactFooter from "../etiqueta-30ml/ContactFooter";
 import TechnicalCell from "../etiqueta-30ml/TechnicalCell";
 import { GradoInsumo } from "../etiqueta-30ml/CenterProductPanel";
+import LemaLogo from "../etiqueta-30ml/LemaLogo";
 import {
   GRADO_INSUMO_POR_DEFECTO,
   PREFIJO_SUBTITULO,
@@ -182,7 +183,7 @@ function PanelProducto({
 
   return (
     <section className="e5-panel e5-panel-centro">
-      <div ref={logoRef} className="e30-logo e30-linea-inf">
+      <div ref={logoRef} className="e30-logo e30-logo-con-lema e30-linea-inf">
         <button
           type="button"
           disabled={!editable}
@@ -196,6 +197,8 @@ function PanelProducto({
             <span className="e30-logo-vacio">McKenna Group</span>
           ) : null}
         </button>
+        {/* Lema de la casa bajo el logo, igual que en el 30 mL. */}
+        <LemaLogo logoRef={logoRef} logoUrl={data.logoUrl} className="e5-lema" />
         {onChange && (
           <MenuLogoCorporativo
             data={data}
@@ -268,8 +271,8 @@ function PanelProducto({
  *  franja con la dirección web. Mismas 2 filas + franja que el panel
  *  izquierdo: sus líneas horizontales caen exactamente a la misma altura.
  *
- *  El código ocupa la fila entera —sin el hueco del timbre que sí lleva el
- *  30 mL—: es lo único que le da algo de ancho a los 21 mm del panel. Aun
+ *  El timbre va debajo de la tabla, en la fila 1. El código ocupa la fila 2
+ *  entera —sin el hueco lateral de timbre que sí lleva el 30 mL—: es lo único que le da algo de ancho a los 21 mm del panel. Aun
  *  así queda por debajo de la magnificación que pide GS1, así que hay que
  *  probarlo con el escáner antes de mandar a imprimir.
  *
@@ -327,49 +330,56 @@ function PanelDocumentacion({
             )}
           </button>
         </div>
-        <div className="e30-tabla e5-tabla">
-          <div className="e30-tabla-campo e30-tabla-fila1">
-            <EditableLabel
-              texto="PUREZA:"
-              editMode={editMode}
-              styleKey="e5_concentrationTitulo"
-              defaultFontSize={TAM_5ML.tituloTabla}
-            />
+        {/* Tabla y, debajo, el espacio en blanco del timbre (lote /
+            vencimiento): impreso queda vacío; la guía solo sale en edición. */}
+        <div className="e5-ficha-col">
+          <div className="e30-tabla e5-tabla">
+            <div className="e30-tabla-campo e30-tabla-fila1">
+              <EditableLabel
+                texto="PUREZA:"
+                editMode={editMode}
+                styleKey="e5_concentrationTitulo"
+                defaultFontSize={TAM_5ML.tituloTabla}
+              />
+            </div>
+            <div className="e30-tabla-valor e30-tabla-fila1">
+              <CampoEtiqueta
+                as="span"
+                valor={data.concentration || ""}
+                onChange={cambio("concentration")}
+                editMode={editMode}
+                styleKey="e5_concentration"
+                ejemplo={EJEMPLO_5ML.concentration}
+                tam={TAM_5ML.tabla}
+                maxLineas={1}
+              />
+            </div>
+            <div className="e30-tabla-campo">
+              <EditableLabel
+                texto={`${data.casTitulo || TITULOS_CAS[0]}:`}
+                editMode={editMode}
+                styleKey="e5_casTitulo"
+                defaultFontSize={TAM_5ML.tituloTabla}
+                opciones={TITULOS_CAS}
+                valorOpcion={data.casTitulo || TITULOS_CAS[0]}
+                onElegirOpcion={(v) => onChange?.({ casTitulo: v })}
+              />
+            </div>
+            <div className="e30-tabla-valor">
+              <CampoEtiqueta
+                as="span"
+                valor={data.cas || ""}
+                onChange={cambio("cas")}
+                editMode={editMode}
+                styleKey="e5_cas"
+                ejemplo={EJEMPLO_5ML.cas}
+                tam={TAM_5ML.tabla}
+                maxLineas={1}
+              />
+            </div>
           </div>
-          <div className="e30-tabla-valor e30-tabla-fila1">
-            <CampoEtiqueta
-              as="span"
-              valor={data.concentration || ""}
-              onChange={cambio("concentration")}
-              editMode={editMode}
-              styleKey="e5_concentration"
-              ejemplo={EJEMPLO_5ML.concentration}
-              tam={TAM_5ML.tabla}
-              maxLineas={1}
-            />
-          </div>
-          <div className="e30-tabla-campo">
-            <EditableLabel
-              texto={`${data.casTitulo || TITULOS_CAS[0]}:`}
-              editMode={editMode}
-              styleKey="e5_casTitulo"
-              defaultFontSize={TAM_5ML.tituloTabla}
-              opciones={TITULOS_CAS}
-              valorOpcion={data.casTitulo || TITULOS_CAS[0]}
-              onElegirOpcion={(v) => onChange?.({ casTitulo: v })}
-            />
-          </div>
-          <div className="e30-tabla-valor">
-            <CampoEtiqueta
-              as="span"
-              valor={data.cas || ""}
-              onChange={cambio("cas")}
-              editMode={editMode}
-              styleKey="e5_cas"
-              ejemplo={EJEMPLO_5ML.cas}
-              tam={TAM_5ML.tabla}
-              maxLineas={1}
-            />
+          <div className="e5-timbre" aria-hidden="true">
+            {editMode && <span>Timbre</span>}
           </div>
         </div>
       </div>

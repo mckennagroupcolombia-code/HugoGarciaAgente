@@ -53,6 +53,38 @@ CONCEPTOS: dict[str, tuple[float, float, float, str]] = {
     "honorarios": (10.0, 11.0, 0.0, "Art. 392 E.T."),
     # Intereses de préstamos. Tarifa única, sin cuantía mínima.
     "rendimientos_financieros": (7.0, 7.0, 0.0, "Art. 395 E.T."),
+    # Comisiones. Misma norma que honorarios pero SIN cuantía mínima: una
+    # comisión de $50.000 lleva retención y una asesoría de $50.000 también,
+    # mientras que un servicio de $50.000 no (está bajo las 4 UVT).
+    "comisiones": (10.0, 11.0, 0.0, "Art. 392 E.T."),
+    # Transporte de carga (mensajería, fletes, acarreos). Tarifa única: no
+    # distingue declarante.
+    #
+    # Estuvo deliberadamente fuera de esta tabla hasta sep-2026, con el
+    # argumento de que inventar la tarifa le saldría del bolsillo a alguien.
+    # Ya no se está inventando: el propio contador de McKenna certificó este
+    # concepto al 1% —«SERVICIOS 1.0», base $17.377.500, retención $173.775—
+    # en el certificado de retención año gravable 2024 a NEXT ENVIOS S.A.S
+    # (docs/contabilidad/2025/Soportes_Contador/2025-04/certificados/). La
+    # tarifa sale de ahí, no de una lectura nuestra de la norma.
+    #
+    # ⚠️ La mayoría de transportadoras son autorretenedoras y entonces NO se
+    # les retiene. Eso es una propiedad del tercero (`retefuente_exento` en su
+    # ficha), no del concepto: quien paga tiene que saber a quién le está
+    # pagando. Ver `impuestos_por_cuenta.py`, que lo advierte en el wizard.
+    "transporte_carga": (1.0, 1.0, 4.0, "Art. 392 E.T. · DUR 1.2.4.4.14."),
+    # Transporte de pasajeros. Tarifa distinta a la de carga; se deja explícita
+    # para que nadie use la de carga «porque transporte es transporte».
+    "transporte_pasajeros": (3.5, 3.5, 27.0, "Art. 392 E.T. · DUR 1.2.4.4.14."),
+    # Arrendamiento. La tarifa depende de QUÉ se arrienda, no de quién cobra:
+    # un inmueble va al 3,5% desde 27 UVT y un mueble (equipos, vehículos) al
+    # 4% sin mínimo. Son dos conceptos, no uno con dos tarifas.
+    "arrendamiento_inmueble": (3.5, 3.5, 27.0, "Art. 401 E.T."),
+    "arrendamiento_mueble": (4.0, 4.0, 0.0, "Art. 392 E.T."),
+    # Cajón de sastre de la norma: lo que es ingreso tributario gravado y no
+    # encaja en ningún concepto propio. NO es un default cómodo — si un pago
+    # cae acá suele ser que la cuenta del gasto está mal elegida.
+    "otros_ingresos": (2.5, 3.5, 27.0, "Art. 401 E.T."),
 }
 
 

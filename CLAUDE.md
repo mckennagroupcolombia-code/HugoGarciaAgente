@@ -239,6 +239,14 @@ FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
 # Operaciones, observabilidad y cron
 MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
 GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
+CONTABILIDAD_LEDGER_BUDGET_S # Segundos para APIs remotas en armar_libro (default 28, panel).
+CONTABILIDAD_LEDGER_MAX_PAGINAS      # Tope de páginas al listar facturas (default 60)
+CONTABILIDAD_LEDGER_MAX_PAGINAS_MELI # Tope de páginas de órdenes MeLi (default 25 ≈ 1.250 órdenes)
+                             # Los tres defaults son del PANEL, donde vale más una cifra parcial
+                             # rápida. Un BACKFILL necesita subirlos (1800 / 500 / 300): un período
+                             # posteado a medias queda CUADRADO y parece completo, que es como nadie
+                             # lo vuelve a mirar. El script ahora imprime los avisos de lectura
+                             # truncada y el monto por fuente, para contrastar contra la facturación.
 AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
 AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
 AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. scripts/,app/tools/,tests/
@@ -650,8 +658,8 @@ como paso manual posterior, no se hace**.
 
 **Wizard simple (15-sep-2026).** La puerta de entrada es una sola pantalla: proveedor · fecha ·
 cuenta de salida (viene puesta en **Bancolombia ahorros 42800000974**) · concepto (**Productos**
-1435 / **Servicios** 5135 / **Transporte** 513550 / **Servicios públicos** con tipo y número de
-contrato) · valor solicitado · botón **Solicitar**, uno solo: quien solicita no decide si se salta
+1435 / **Servicios** · **Saldo pendiente** · **Impuestos**) · cuenta del PUC · valor solicitado ·
+botón **Solicitar**, uno solo: quien solicita no decide si se salta
 la aprobación (el registro directo sigue existiendo en el recorrido largo). El asiento se sigue viendo antes de solicitar — eso no se quitó,
 es lo que evita firmar a ciegas. El recorrido largo (productos con SKU + factura cotejada) sigue
 existiendo y se abre con el enlace «Compra con productos y factura cotejada» o desde el Centro de
@@ -659,6 +667,49 @@ Mando; las categorías `productos` y `servicios` llevan retención (compras / se
 exigen SKU ni cotejo, así que una compra de mercancía con factura debe ir por el recorrido largo.
 La bandeja ya no lista los borradores de cuotas de préstamo que monta el cron (son de Préstamos y
 solo eran ruido); si una sale a aprobación, ahí sí aparece.
+
+**La cuenta del PUC decide el impuesto, no el botón (17-sep-2026).** Había un botón por concepto
+(Productos, Servicios, **Transporte**, **Servicios públicos**) *y* un selector de cuenta: la misma
+pregunta hecha dos veces con distinto vocabulario, y podían contradecirse — «Servicios» traía el 4%
+aunque el gasto fuera a 513550 Transporte, donde la tarifa es el 1%. El botón fijaba el impuesto y
+la cuenta fijaba el balance. Ahora **`app/services/impuestos_por_cuenta.py`** traduce cada cuenta a
+su concepto de retención y su tarifa de ICA de Bogotá, `previsualizar()` lo usa cuando la categoría
+es `cuenta_libre`, y el panel muestra debajo del selector qué dedujo y qué advertir. Los botones de
+Transporte y Servicios públicos se **ocultaron** (`"oculta": True`, igual que `salario_socio`: las
+categorías no se borran porque hay solicitudes históricas con ese valor); un servicio público se
+paga por **Servicios** eligiendo 513530/513525/513535/513555, y ahí el número de contrato aparece
+solo. `cuentas_gasto()` devuelve el perfil de cada cuenta para que el panel deje las casillas
+puestas, y `cc_terceros.medio_pago_default` completa la ficha de pago recurrente (cuenta del gasto
++ impuestos + de qué cuenta sale) para no volver a elegir lo mismo cada mes.
+
+**Transporte de carga al 1 %** (`retenciones.CONCEPTOS["transporte_carga"]`, 4 UVT). Estuvo fuera
+de la tabla a propósito hasta sep-2026 —«inventar la tarifa le sale del bolsillo a alguien»— pero
+ya no se está inventando: el propio contador la certificó al **1 %** («SERVICIOS 1.0», base
+$17.377.500, retención $173.775) en el certificado año gravable 2024 a NEXT ENVIOS S.A.S. También
+se cargaron `transporte_pasajeros` (3,5 %), `comisiones` (10/11 %, sin mínimo),
+`arrendamiento_inmueble` (3,5 %, 27 UVT), `arrendamiento_mueble` (4 %, sin mínimo) y
+`otros_ingresos` (2,5/3,5 %). ⚠️ **Las transportadoras grandes son autorretenedoras** y no se les
+retiene: eso es una propiedad del tercero (`retefuente_exento`), no del concepto, y el wizard lo
+advierte. El default retiene a propósito — retenerle a un autorretenedor produce un reclamo
+visible, no retenerle a quien sí debía produce una deuda silenciosa del Art. 370 E.T., que es
+exactamente lo que pasó con la mensajería de Fidel.
+
+**La retención va a su subcuenta también al aprobar (17-sep-2026).** `previsualizar()` mostraba
+236525/236540/236515 y `aprobar()` posteaba contra **2365 plana**: se le enseñaba una cuenta a
+quien firma y se contabilizaba otra, y el contador tenía que desglosar el 350 a mano teniendo el
+sistema el concepto guardado. `aprobar()` ahora resuelve la subcuenta con
+`puc_colombia.cuenta_retencion(s["retencion_concepto"])`.
+
+**Régimen SIMPLE: ni renta ni ICA (17-sep-2026).** `regimen_simple` apagaba solo la retención de
+renta y el ICA se seguía calculando, así que a un tercero del SIMPLE con tarifa en su ficha se le
+retenía un impuesto que ya paga dentro del SIMPLE. La exención del Art. 911 E.T. es por **quién
+recibe**, no por el concepto: da igual si el pago es de honorarios, de servicios o de transporte, y
+el ICA va consolidado en el SIMPLE (Art. 907 E.T.). Es la **única** excepción a la regla de que
+«apagar la renta no apaga el ICA» — ahí se trata de un tercero exento de retefuente que sigue
+siendo sujeto de ICA (Víctor, Stella, Jenniffer); acá el tercero no es sujeto de ninguno de los dos.
+Caso que lo destapó: Fidel Rocha Morón (CC 9.385.573), que facturó como NEXT ENVIOS S.A.S hasta la
+FV1637 del 2024-05-01 y desde jun-2024 cobra como persona natural del SIMPLE con cuenta de cobro
+(Art. 616-2 E.T.) — el contador nunca le practicó retención y **hace bien**.
 
 **«Libre de retención» (15-sep-2026).** A un prestador de servicios se le pacta «te pago
 $1.100.000 libres de retención»: ese valor es **lo que recibe**, no la base gravable. Con
@@ -1017,6 +1068,29 @@ día — usar" de la casilla *envíos* en Operativos → Mensajería, para no co
 
 Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::puedeVerPanel`).
 
+### S. Grabar pantalla → fragmentos → WhatsApp (bridge supervisor)
+
+```
+/app → Supervisor → Grabar pantalla   (GrabacionPantalla.tsx)
+  1 Elegir pantalla/ventana/pestaña (getDisplayMedia) + audio de la pestaña y/o micrófono
+    (mezclados con AudioContext en una sola pista)
+  2 Opcional: arrastrar sobre la vista previa la SECCIÓN a enviar (recorte en píxeles)
+  3 MediaRecorder sube un trozo cada 2 s → POST /api/grabaciones/<id>/trozo (en orden, con reintento)
+  4 Detener → /finalizar: remux `-c copy` (el WebM de MediaRecorder no trae duración ni índice)
+  5 Editor: marcar inicio/fin (teclas I / O), «Ver fragmento», cambiar la sección → «Sacar fragmento»
+     → ffmpeg en hilo: corte + crop + H.264/AAC, bitrate calculado para quedar < 15 MB
+  6 Enviar → bridge supervisor :3001 POST /enviar-video {numero, filePath, caption}
+```
+
+`app/tools/grabacion_pantalla.py` + `app/routes_grabaciones.py`; archivos en `grabaciones_pantalla/<id>/`
+(gitignored). Mismo bridge y selector de contactos que «Enviar Voz» (`SupervisorDestino.tsx`).
+**Por qué por trozos:** una subida única al final choca con `MAX_CONTENT_LENGTH` (48 MB) y con el corte
+de 100 s de Cloudflare, y si la pestaña se cierra se pierde todo; así lo grabado ya está en el servidor
+(«Recuperar» cierra una grabación interrumpida). El recorte se aplica al cortar, no al grabar, para poder
+cambiar la sección después. `/enviar-video` solo lee MP4 dentro de `grabaciones_pantalla/`. Sin LLM.
+Requiere Chrome/Edge por https o localhost (por IP de la LAN el navegador bloquea getDisplayMedia); en
+Linux el audio de la pantalla completa no siempre llega — compartir una **pestaña** con su audio.
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
 Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
@@ -1058,6 +1132,14 @@ scripts/reclasificar_gastos_diversos.py  Saca de `5195 Diversos` lo que nunca fu
                                      mueve lo que tiene respuesta inequívoca **por tercero** (`REGLAS`) y
                                      deja lo demás listado: adivinar qué fue una compra suelta en D1 es
                                      como se llenó el cajón. Verifica que el total del balance no cambie.
+⚠️ **`CONTABILIDAD_LEDGER_BUDGET_S`** (default 28): presupuesto de las APIs remotas en
+                                     `armar_libro()`. Los 28 s son para el PANEL, donde vale más una cifra
+                                     parcial rápida. **Un backfill necesita subirlo** (p. ej. 900): postear
+                                     un período a medias es peor que no postearlo, porque queda cuadrado, se
+                                     ve completo y nadie vuelve a mirarlo. `auto_postear_periodo` ahora
+                                     propaga `avisos` (lectura truncada) y `montos_por_fuente`, y el script
+                                     de backfill los imprime — antes decía «1.300 creados» sin mencionar que
+                                     faltaban facturas.
 app/services/contabilidad_ledger.py → `factura_ya_contada()` (sep-2026): el libro toma ingresos de TRES
                                      fuentes que se solapan —órdenes de MeLi (`meli_venta`), pedidos de la
                                      tienda (`web_venta`) y **facturas** (`siigo_venta`), que son las
@@ -1347,6 +1429,7 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
 | `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (extractos de la empresa) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar". Con `tercero_id` (también en GET/POST `/extractos`) opera sobre los extractos PERSONALES de ese socio |
 | `/api/socios/*` | GET/POST/PATCH/DELETE | Bearer / propio socio o admin real | Expediente fiscal de socios (Declarador): perfil, documentos, años gravables, hallazgos, cruces banco socio ↔ empresa, agente con herramientas — ver `app/routes_declarador.py` y Flujo Q |
+| `/api/grabaciones/*` | GET/POST/PATCH/DELETE | Bearer (archivos de video sin Bearer: el id es el token) | Grabaciones de pantalla por trozos, recorte de sección, clips MP4 y envío por el bridge supervisor — ver Flujo S |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 

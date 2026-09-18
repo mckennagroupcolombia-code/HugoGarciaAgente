@@ -169,6 +169,8 @@ tmp_reportes_stock/
 
 # Contenido · videos subidos/procesados para quitar marca de agua (runtime, puede pesar)
 contenido_video/
+# Grabaciones de pantalla y sus clips (app/tools/grabacion_pantalla.py)
+grabaciones_pantalla/
 
 # Red de proveedores (SQLite runtime, ver app/services/proveedores_db.py)
 app/data/proveedores.db
@@ -197,3 +199,6 @@ docs/contabilidad/*/Soportes_Contador/
 docs/contabilidad/**/declaraciones_contador.json
 docs/contabilidad/comparacion_350_vs_2365.json
 app/data/alegra_contactos_cache.json
+
+# Motor OCR copiado de node_modules (desktop/scripts/copy-ocr-assets.mjs)
+desktop/public/assets/ocr/

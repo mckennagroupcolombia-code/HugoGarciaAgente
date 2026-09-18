@@ -52,6 +52,34 @@ def _cuenta_id(cuentas_por_codigo: dict[str, int], codigo: str) -> int:
     return cid
 
 
+def _mapa_cuentas(cc) -> dict[str, int]:
+    """Código PUC → id, resolviendo los códigos viejos a su cuenta vigente.
+
+    El diccionario se armaba con `solo_activas=False`, así que un código
+    migrado y desactivado (2380 → 2355) seguía resolviendo a la cuenta MUERTA y
+    `crear_movimiento` rechazaba el asiento con «cuenta inactiva». Las compras
+    de socios (`compra_exterior`) lo pedían por su código viejo y fallaron 8
+    veces en el backfill de agosto.
+
+    Las inactivas se cargan primero y las activas después, para que un código
+    reutilizado se quede con la cuenta viva; y cada alias apunta a su destino.
+    """
+    from app.services.puc_colombia import ALIAS
+
+    activas = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=True)}
+    mapa = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=False)}
+    mapa.update(activas)
+    for viejo, nuevo in ALIAS.items():
+        # El alias SOLO vale para un código que ya no existe vivo. `529505` sí
+        # existe: dejó de ser publicidad y hoy es «Comisiones», así que aplicarle
+        # su alias mandaría las comisiones a publicidad — el mismo cruce que la
+        # migración tuvo que ordenar con cuidado. Un código activo manda sobre
+        # cualquier alias que lo mencione.
+        if viejo not in activas and nuevo in activas:
+            mapa[viejo] = activas[nuevo]
+    return mapa
+
+
 def _lineas_creditos_adquiridos(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -> list[dict]:
     """Cuota de crédito bancario: separa capital (pasivo) e intereses (gasto financiero)."""
     extra = row.get("extra") or {}
@@ -358,14 +386,18 @@ def auto_postear_periodo(
     (nunca se descartan en silencio)."""
     cc._ensure()
     libro = armar_libro(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
-    cuentas_por_codigo = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=False)}
+    cuentas_por_codigo = _mapa_cuentas(cc)
 
     creados = 0
     omitidos = 0
     fuentes_sin_mapeo: dict[str, int] = {}
     errores: list[dict[str, Any]] = []
 
+    montos_por_fuente: dict[str, float] = {}
     for row in libro["movimientos"]:
+        montos_por_fuente[row.get("fuente") or "?"] = round(
+            montos_por_fuente.get(row.get("fuente") or "?", 0.0) + float(row.get("monto") or 0), 2
+        )
         fuente = row.get("fuente") or ""
         if fuente not in FUENTES_SOPORTADAS:
             fuentes_sin_mapeo[fuente] = fuentes_sin_mapeo.get(fuente, 0) + 1
@@ -404,4 +436,13 @@ def auto_postear_periodo(
         "fuentes_sin_mapeo": fuentes_sin_mapeo,
         "errores": errores,
         "dry_run": dry_run,
+        # `armar_libro` avisa cuando una fuente remota se cortó por tiempo
+        # (`_REMOTE_BUDGET_S`, 28 s, pensados para el panel). En un backfill eso
+        # significa postear un período INCOMPLETO, y descartar el aviso hacía
+        # que la corrida se viera exitosa —«1.300 creados»— sin decir que
+        # faltaban facturas. Se propaga para que quien corre el backfill lo vea.
+        "avisos": libro.get("avisos") or [],
+        # Cuánto se postea, por fuente: «1.300 asientos» no permite contrastar
+        # contra la facturación; «$80M en ventas» sí.
+        "montos_por_fuente": montos_por_fuente,
     }

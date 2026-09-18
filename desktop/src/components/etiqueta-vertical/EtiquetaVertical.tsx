@@ -259,9 +259,9 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
           as="div"
         />
         <div className="ev-beneficios-cols">
-          {([1, 2, 3] as const).map((n) => {
+          {([1, 2] as const).map((n) => {
             const Icono = ICONOS_BENEFICIO[n - 1];
-            const campo = `beneficio${n}` as "beneficio1" | "beneficio2" | "beneficio3";
+            const campo = `beneficio${n}` as "beneficio1" | "beneficio2";
             return (
               <div key={n} className="ev-beneficio" style={{ borderLeftWidth: linea }}>
                 <span className="ev-icono" style={{ width: ladoIcono, height: ladoIcono }}>
@@ -284,62 +284,72 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
         </div>
       </div>
 
-      {/* 5. Contenido neto */}
-      <div className="ev-bloque ev-neto" style={{ height: bloques.neto }}>
-        <EditableLabel
-          texto="Contenido neto"
-          editMode={editMode}
-          styleKey="ev-neto-titulo"
-          defaultFontSize={TAM.netoTitulo[0]}
-          className="ev-neto-titulo"
-        />
-        <CampoEtiqueta
-          valor={data.netContent || ""}
-          onChange={cambio("netContent")}
-          editMode={editMode}
-          styleKey="ev-neto-valor"
-          tam={TAM.netoValor}
-          maxLineas={1}
-          ejemplo={EJEMPLO_VERTICAL.netContent}
-          className="ev-neto-valor"
-        />
-      </div>
+      {/* 5. Franja libre: el contenido neto pasó al costado derecho del
+          bloque de marca y este espacio se deja en blanco a propósito. */}
+      <div className="ev-bloque ev-neto" style={{ height: bloques.neto }} />
 
       {/* 6. Logo, lema y código de barras — el código SIEMPRE debajo */}
       <div className="ev-bloque ev-marca" style={{ height: bloques.marca }}>
-        <div
-          ref={logoRef}
-          className="ev-logo"
-          style={{ height: Math.round(bloques.marca * 0.3), cursor: editable ? "pointer" : undefined }}
-          onClick={editable ? () => setMenuLogo(true) : undefined}
-        >
-          {data.logoUrl ? (
-            <img src={data.logoUrl} alt={data.logoNombre || "Logo"} />
-          ) : editMode ? (
-            <span className="ev-lema ev-ejemplo">Logo</span>
-          ) : null}
+        <div className="ev-marca-cuerpo">
+          <div
+            ref={logoRef}
+            className="ev-logo"
+            style={{ height: Math.round(bloques.marca * 0.3), cursor: editable ? "pointer" : undefined }}
+            onClick={editable ? () => setMenuLogo(true) : undefined}
+          >
+            {data.logoUrl ? (
+              <img src={data.logoUrl} alt={data.logoNombre || "Logo"} />
+            ) : editMode ? (
+              <span className="ev-lema ev-ejemplo">Logo</span>
+            ) : null}
+          </div>
+          {/* El lema es el mismo de la casa (constante, como en ProductHeader):
+              no es un dato de producto, así que no se edita, solo su tamaño y
+              su letra. Si el logo cargado ya lo trae dibujado, se apaga desde
+              el menú del logo para no repetirlo. */}
+          {/* Copia invisible a tamaño de referencia: solo sirve para medir. */}
+          <span ref={espejoLema} className="ev-lema-espejo" aria-hidden="true">
+            {ESLOGAN}
+          </span>
+          <p className="ev-lema" style={{ fontSize: tamLema }}>
+            {ESLOGAN}
+          </p>
+          <div className="ev-codigo">
+            <BarcodeBlock
+              value={data.barcode || ""}
+              onChange={cambio("barcode") ?? (() => {})}
+              onElegirCodigo={onElegirCodigo}
+              editMode={editMode}
+              franja={{ alto: 11 }}
+              className="flex w-full flex-col items-center justify-end"
+              claseImagen="h-auto w-full max-w-full"
+            />
+          </div>
         </div>
-        {/* El lema es el mismo de la casa (constante, como en ProductHeader):
-            no es un dato de producto, así que no se edita, solo su tamaño y
-            su letra. Si el logo cargado ya lo trae dibujado, se apaga desde
-            el menú del logo para no repetirlo. */}
-        {/* Copia invisible a tamaño de referencia: solo sirve para medir. */}
-        <span ref={espejoLema} className="ev-lema-espejo" aria-hidden="true">
-          {ESLOGAN}
-        </span>
-        <p className="ev-lema" style={{ fontSize: tamLema }}>
-          {ESLOGAN}
-        </p>
-        <div className="ev-codigo">
-          <BarcodeBlock
-            value={data.barcode || ""}
-            onChange={cambio("barcode") ?? (() => {})}
-            onElegirCodigo={onElegirCodigo}
-            editMode={editMode}
-            franja={{ alto: 11 }}
-            className="flex w-full flex-col items-center justify-end"
-            claseImagen="h-auto w-full max-w-full"
-          />
+        {/* Contenido neto en vertical, a la derecha del logo y del código.
+            La caja se maqueta acostada (ancho = alto del bloque) y se gira
+            entera: `useAjusteTexto` mide con offset/scroll, que no ven el
+            giro, así que el ajuste de tamaño sigue funcionando. */}
+        <div className="ev-neto-lateral" style={{ borderLeftWidth: linea }}>
+          <div className="ev-neto-giro" style={{ width: bloques.marca }}>
+            <EditableLabel
+              texto="Contenido neto"
+              editMode={editMode}
+              styleKey="ev-neto-titulo"
+              defaultFontSize={TAM.netoTitulo[0]}
+              className="ev-neto-titulo"
+            />
+            <CampoEtiqueta
+              valor={data.netContent || ""}
+              onChange={cambio("netContent")}
+              editMode={editMode}
+              styleKey="ev-neto-valor"
+              tam={TAM.netoValor}
+              maxLineas={1}
+              ejemplo={EJEMPLO_VERTICAL.netContent}
+              className="ev-neto-valor"
+            />
+          </div>
         </div>
       </div>
 

@@ -188,7 +188,14 @@ function capaCentral(centro: HTMLElement, rel: (r: DOMRect) => Caja): string[] {
 
   // Código de barras: el generador del repo ya devuelve un SVG de barras y
   // dígitos, así que entra anidado y sigue siendo vectorial (nada de píxeles).
-  const img = centro.querySelector("img");
+  // Logo: va como imagen incrustada (los logos de DISEÑO CORPORATIVO son PNG).
+  const logo = centro.querySelector<HTMLImageElement>("img.ec-logo-img");
+  if (logo) {
+    const incrustado = imagenIncrustada(logo, rel(logo.getBoundingClientRect()));
+    if (incrustado) piezas.push(incrustado);
+  }
+
+  const img = centro.querySelector("img:not(.ec-logo-img)");
   if (img instanceof HTMLImageElement) {
     const anidado = barrasAnidadas(img, rel(img.getBoundingClientRect()));
     if (anidado) piezas.push(anidado);
@@ -201,6 +208,30 @@ function capaCentral(centro: HTMLElement, rel: (r: DOMRect) => Caja): string[] {
   }
 
   return piezas;
+}
+
+/** <image> con el logo dentro de su caja (`object-fit: contain`). Se pasa a
+ *  data URL con un canvas para que el SVG no dependa del servidor; si el
+ *  navegador no deja leer la imagen, se omite antes que romper el archivo. */
+function imagenIncrustada(img: HTMLImageElement, c: Caja): string | null {
+  const { naturalWidth: nw, naturalHeight: nh } = img;
+  if (!nw || !nh || c.w <= 0 || c.h <= 0) return null;
+  let href = img.currentSrc || img.src;
+  if (!href.startsWith("data:")) {
+    try {
+      const lienzo = document.createElement("canvas");
+      lienzo.width = nw;
+      lienzo.height = nh;
+      lienzo.getContext("2d")?.drawImage(img, 0, 0);
+      href = lienzo.toDataURL("image/png");
+    } catch {
+      return null;
+    }
+  }
+  return (
+    `<image x="${redondear(c.x)}" y="${redondear(c.y)}" width="${redondear(c.w)}" height="${redondear(c.h)}"`
+    + ` preserveAspectRatio="xMidYMid meet" href="${href}"/>`
+  );
 }
 
 function barrasAnidadas(img: HTMLImageElement, c: Caja): string | null {

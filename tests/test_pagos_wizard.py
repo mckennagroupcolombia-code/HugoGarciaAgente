@@ -128,7 +128,10 @@ def test_aprobar_deja_constancia_en_el_ticket(mods):
     w.aprobar(s["id"], aprobada_por=8, espejar=False)
     with tickets_db._conn() as db:
         textos = [r["texto"] for r in db.execute("SELECT texto FROM comentarios_tickets WHERE ticket_id=1")]
-    assert any("aprobado" in x and "$850.000" in x for x in textos)
+    # El valor del comentario es lo que se GIRA ($850.000 menos el 1% de
+    # transporte), que es el que quien monta la transferencia va a teclear y el
+    # que después aparece en el extracto — no el bruto causado.
+    assert any("aprobado" in x and "$841.500" in x for x in textos)
 
 
 def test_aprobar_crea_el_asiento_y_cuadra(mods):
@@ -139,7 +142,11 @@ def test_aprobar_crea_el_asiento_y_cuadra(mods):
     assert r["movimiento"]["id"]
     por_cuenta = {l["cuenta_codigo"]: l for l in r["movimiento"]["lineas"]}
     assert por_cuenta["513550"]["debito"] == pytest.approx(850_000, abs=1)
-    assert por_cuenta["1110"]["credito"] == pytest.approx(850_000, abs=1)
+    # Desde sep-2026 el transporte de carga lleva el 1% (Art. 392 E.T.), así que
+    # lo que sale del banco es el neto. La tarifa no es una lectura nuestra de
+    # la norma: es la que el contador de McKenna certificó en 2024.
+    assert por_cuenta["236525"]["credito"] == pytest.approx(8_500, abs=1)
+    assert por_cuenta["1110"]["credito"] == pytest.approx(841_500, abs=1)
     assert cc.balance_comprobacion()["cuadra"]
 
 
@@ -214,7 +221,10 @@ def test_el_asiento_aprobado_usa_lo_guardado_no_lo_que_llegue_despues(mods):
     _cc, w, t, m, _ = mods
     s = w.crear_solicitud(_pago(t, m))
     with w._conn() as con:   # alguien altera el monto por fuera
-        con.execute("UPDATE cc_solicitudes_pago SET monto=1 WHERE id=?", (s["id"],))
+        # También la retención: un monto de $1 con la retención del original
+        # sería una solicitud incoherente (giraría negativo), y lo que se está
+        # probando es de dónde saca los datos, no que tolere basura.
+        con.execute("UPDATE cc_solicitudes_pago SET monto=1, retencion=0 WHERE id=?", (s["id"],))
     r = w.aprobar(s["id"], espejar=False)
     total = sum(l["debito"] for l in r["movimiento"]["lineas"])
     assert total == pytest.approx(1, abs=0.01)   # usa el valor guardado, no el original
@@ -290,7 +300,9 @@ def test_el_registro_directo_tambien_calcula_retencion(mods):
         ADMIN, espejar=False,
     )
     assert r["retencion"] == pytest.approx(250_000, abs=1)
-    assert any(l["cuenta_codigo"] == "2365" for l in r["movimiento"]["lineas"])
+    # A su subcuenta por concepto (honorarios → 236515): es como el contador
+    # arma el 350. Con todo en «2365» plana tiene que desglosarlo a mano.
+    assert any(l["cuenta_codigo"] == "236515" for l in r["movimiento"]["lineas"])
 
 
 def test_prestacion_servicios_no_usa_la_tarifa_de_honorarios(mods):
@@ -585,7 +597,7 @@ def test_el_asiento_aprobado_conserva_ica_y_gmf(mods):
     import app.services.contabilidad_core as cc
     mov = cc.obtener_movimiento(aprobada["movimiento_id"])
     codigos = {l["cuenta_codigo"] for l in mov["lineas"]}
-    assert {"2365", "2368", "530595"} <= codigos
+    assert {"236525", "2368", "530595"} <= codigos
 
 
 def test_aprobar_dos_veces_no_crea_otro_asiento(mods):
@@ -607,3 +619,110 @@ def test_aprobar_dos_veces_no_crea_otro_asiento(mods):
     import app.services.contabilidad_core as cc
     iguales = [mv for mv in cc.listar_movimientos(limit=100) if mv["referencia"] == f"pago:{s['id']}"]
     assert len(iguales) == 1
+
+
+# ─── La cuenta del PUC decide los impuestos (sep-2026) ──────────────────────
+#
+# Antes había un botón por concepto (Productos, Servicios, Transporte,
+# Servicios públicos) Y un selector de cuenta PUC: la misma pregunta hecha dos
+# veces, y podían contradecirse. El botón fijaba el impuesto y la cuenta fijaba
+# el balance. Ahora manda la cuenta, que es el dato que el contador mira.
+
+@pytest.mark.parametrize(
+    "cuenta, concepto, tarifa",
+    [
+        ("513550", "transporte_carga", 1.0),    # transporte de carga
+        ("5135",   "servicios", 4.0),           # servicios generales
+        ("511095", "servicios", 4.0),           # prestación de servicios, NO honorarios
+        ("5110",   "honorarios", 10.0),
+        ("1435",   "compras", 2.5),
+        ("529505", "comisiones", 10.0),
+    ],
+)
+def test_la_cuenta_elegida_manda_sobre_el_impuesto(mods, cuenta, concepto, tarifa):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 10_000_000, "concepto": "prueba",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16",
+        "cuenta_debito": cuenta, "retencion_modo": "beneficiario",
+    })
+    assert prev["lineas"][0]["cuenta_codigo"] == cuenta
+    assert prev["concepto_retencion"] == concepto
+    assert prev["retencion"] == pytest.approx(10_000_000 * tarifa / 100, abs=1)
+
+
+def test_un_servicio_publico_no_lleva_retencion(mods):
+    # Las ESP son autorretenedoras. Antes esto dependía de oprimir el botón
+    # «Servicios públicos»; ahora es una consecuencia de la cuenta, que es donde
+    # de verdad estaba escrito.
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 900_000, "concepto": "Enel agosto",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16",
+        "cuenta_debito": "513530", "retencion_modo": "beneficiario",
+    })
+    assert prev["retencion"] == 0
+    assert prev["lineas"][0]["cuenta_codigo"] == "513530"
+
+
+def test_regimen_simple_no_lleva_ni_renta_ni_ica(mods):
+    """Art. 911 E.T. — y el ICA va consolidado dentro del SIMPLE (Art. 907).
+
+    La exención del SIMPLE es por QUIÉN recibe, no por el concepto: da igual si
+    el pago es de honorarios, de servicios o de transporte. Hasta sep-2026
+    `regimen_simple` apagaba solo la renta y el ICA se seguía calculando, así
+    que a un tercero del SIMPLE con tarifa de ICA en su ficha se le retenía un
+    impuesto que ya está pagando dentro del SIMPLE.
+    """
+    cc, w, _t, m, _ = mods
+    fidel = cc.crear_tercero({
+        "nombre": "FIDEL ROCHA MORON", "tipo": "proveedor",
+        "tipo_persona": "natural", "identificacion": "9385573",
+    })
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET regimen_simple=1, ica_por_mil=9.66 WHERE id=?", (fidel["id"],))
+    for cuenta in ("513550", "5110", "5135"):
+        prev = w.previsualizar({
+            "categoria": "servicios", "monto": 1_998_000, "concepto": "Mensajería quincena",
+            "tercero_id": fidel["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16",
+            "cuenta_debito": cuenta, "retencion_modo": "beneficiario", "ica_por_mil": 9.66,
+        })
+        assert prev["retencion"] == 0, cuenta
+        assert prev["retencion_ica"] == 0, cuenta
+        assert prev["girado"] == pytest.approx(1_998_000, abs=1), cuenta
+        assert "SIMPLE" in prev["retencion_motivo"]
+
+
+def test_exento_de_renta_sigue_sujeto_a_ica(mods):
+    """La excepción del SIMPLE no se contagia al resto.
+
+    A Víctor, Stella y Jenniffer el contador pidió no practicarles renta pero SÍ
+    ICA: son sujetos de ICA, solo que exentos de retefuente. Apagar los dos
+    juntos es lo que hacía que justo a quienes había que practicárselo no se les
+    practicara nunca.
+    """
+    cc, w, _t, m, _ = mods
+    p = cc.crear_tercero({"nombre": "Victor Hugo Garcia", "tipo": "otro",
+                          "tipo_persona": "natural", "identificacion": "79000001"})
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retefuente_exento=1, ica_por_mil=9.66 WHERE id=?", (p["id"],))
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_000_000, "concepto": "Quincena",
+        "tercero_id": p["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16",
+        "cuenta_debito": "511095", "retencion_modo": "beneficiario",
+    })
+    assert prev["retencion"] == 0
+    assert prev["retencion_ica"] == pytest.approx(9_660, abs=1)
+
+
+def test_se_recuerda_de_que_cuenta_se_le_paga_a_cada_tercero(mods):
+    # Volver a elegir lo mismo cada mes es donde se equivoca uno.
+    cc, w, t, m, _ = mods
+    w.crear_solicitud({
+        "categoria": "servicios", "monto": 500_000, "concepto": "Guías",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-16",
+        "cuenta_debito": "513550",
+    })
+    ficha = cc.obtener_tercero(t["id"])
+    assert ficha["cuenta_gasto_default"] == "513550"
+    assert int(ficha["medio_pago_default"]) == m["id"]

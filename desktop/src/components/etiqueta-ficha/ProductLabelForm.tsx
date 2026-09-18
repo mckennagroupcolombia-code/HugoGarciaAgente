@@ -31,6 +31,7 @@ import {
 import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
 import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
+import { ajustarAltoTextarea } from "./EditableField";
 import ContactFooter from "./ContactFooter";
 import { desenfocarBlobLocal } from "../../lib/desenfoqueLocal";
 import { CARPETA_PUBLICACIONES_DIGITALES } from "../plantillas-visuales/studioEtiquetasData";
@@ -169,6 +170,21 @@ export interface EntradaFormularioEtiqueta {
 /** Ventana de desenfoque por recuadro (la misma de Studio Visual), cargada
  *  aparte para no arrastrar la librería de exportación al chunk de la ficha. */
 const DesenfoquePlantillaModal = lazy(() => import("../plantillas-visuales/DesenfoquePlantillaModal"));
+
+/** Escala de rasterizado para imprimir. Debe ser un entero PAR: las líneas de
+ *  la tabla miden 1,5 px de diseño y solo con escala par caen en píxeles
+ *  enteros (×2 → 3 px). Con la escala "exacta" de 300/600 dpi (0,94 · 1,89)
+ *  unas líneas salían de 1 px y otras de 2, y las finas se perdían al
+ *  reducir la imagen en Diseño → Imprimir. El tamaño físico no depende de
+ *  esto: el PDF se arma con los mm del formato. */
+function escalaRasterImpresion(anchoMm: number, anchoDiseno: number): number {
+  const a600 = ((anchoMm / 25.4) * 600) / anchoDiseno;
+  return a600 <= 2 ? 2 : 4;
+}
+
+function dpiDeEscala(anchoMm: number, anchoDiseno: number, escala: number): number {
+  return Math.round((anchoDiseno * escala) / (anchoMm / 25.4));
+}
 
 export default function ProductLabelForm({
   onVolver,
@@ -675,34 +691,77 @@ function ProductLabelFormInner({
   // formato sin romper la composición interna.
   const fichaRef = useRef<HTMLDivElement>(null);
   const [altoDiseno, setAltoDiseno] = useState(700);
+  const proporcionMarco = usaMarcoFicha && tipo ? tipo.ancho_mm! / tipo.alto_mm! : undefined;
+
+  // Ancho de maquetación: el MENOR (desde el de diseño) al que el contenido
+  // cabe en el alto del formato. Se busca de cero en cada cambio, probando
+  // anchos directamente sobre el lienzo antes de pintar: al maquetar más ancho
+  // los párrafos ocupan menos renglones, así que el exceso baja en cada vuelta
+  // hasta caber; el tope evita iterar con un texto imposible de encajar (ahí
+  // se dibuja escalada por alto y el marco enseña que no cabe).
+  //
+  // Antes esto se iteraba con estado (medir → ensanchar → volver a medir) y
+  // fallaba de dos maneras: se medía con los campos de texto todavía al alto
+  // del ancho anterior (ensanchaba de más), y tras reducir un texto o su
+  // tamaño de letra el ancho ya no volvía a bajar — la etiqueta se quedaba
+  // pequeña, con una banda blanca debajo del pie.
   useLayoutEffect(() => {
     const el = fichaRef.current;
     if (!el) return;
-    const medir = () => setAltoDiseno(el.offsetHeight);
-    medir();
-    const ro = new ResizeObserver(medir);
+    if (!proporcionMarco) {
+      const medir = () => setAltoDiseno(el.offsetHeight);
+      medir();
+      const ro = new ResizeObserver(medir);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }
+    const campos = () => el.querySelectorAll("textarea").forEach(ajustarAltoTextarea);
+    const ajustar = () => {
+      // Alto natural: sin el alto mínimo del marco, que lo taparía.
+      el.style.minHeight = "0px";
+      // Menos de 1 px de etiqueta: con más holgura la ficha se escalaba por
+      // alto y asomaba un filo vacío a la derecha.
+      const HOLGURA = 1.001;
+      const excesoA = (ancho: number) => {
+        el.style.width = `${ancho}px`;
+        campos();
+        return el.offsetHeight / (ancho / proporcionMarco);
+      };
+      // 1) Ensanchar en la proporción del exceso hasta que quepa (se pasa de
+      //    largo: el texto refluye y el alto baja más de lo calculado)…
+      let ancho = ANCHO_DISENO;
+      let noCabe = 0;
+      for (let vuelta = 0; vuelta < 8; vuelta++) {
+        const exceso = excesoA(ancho);
+        if (exceso <= HOLGURA || ancho >= ANCHO_LAYOUT_MAX) break;
+        noCabe = ancho;
+        ancho = Math.min(ANCHO_LAYOUT_MAX, Math.ceil(ancho * exceso));
+      }
+      // 2) …y afinar por bisección entre el último ancho que no cupo y ese:
+      //    cada píxel de más es texto más pequeño de lo necesario.
+      if (noCabe && excesoA(ancho) <= HOLGURA) {
+        let cabe = ancho;
+        while (cabe - noCabe > 6) {
+          const medio = Math.round((cabe + noCabe) / 2);
+          if (excesoA(medio) <= HOLGURA) cabe = medio;
+          else noCabe = medio;
+        }
+        ancho = cabe;
+      }
+      excesoA(ancho);
+      // El lienzo queda como lo va a dejar React (que solo reescribe un estilo
+      // cuando su valor cambia): ancho final y alto mínimo del marco.
+      el.style.minHeight = `${ancho / proporcionMarco}px`;
+      setAnchoLayout(ancho);
+      setAltoDiseno(el.offsetHeight);
+    };
+    ajustar();
+    // Lo que cambia el alto sin pasar por el estado: fuentes e imágenes que
+    // terminan de cargar.
+    const ro = new ResizeObserver(ajustar);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [data, editMode, anchoLayout]);
-
-  // Cada edición vuelve a partir del ancho de diseño: si no, la ficha se
-  // quedaría ensanchada (y el texto pequeño) después de borrar lo que la hizo
-  // desbordar. Desde ahí se ensancha otra vez lo que haga falta.
-  useLayoutEffect(() => {
-    setAnchoLayout(ANCHO_DISENO);
-  }, [data, tipoNombre, editMode]);
-
-  // Si al ancho actual la ficha se pasa del alto del formato, se maqueta más
-  // ancha en la misma proporción: el marco crece igual pero el texto refluye
-  // en menos renglones, así que el exceso baja en cada vuelta hasta caber.
-  // El tope evita quedarse iterando con un texto imposible de encajar (ahí se
-  // dibuja escalada, como antes, y el marco enseña que no cabe).
-  useLayoutEffect(() => {
-    if (!altoMarcoFicha) return;
-    const exceso = altoDiseno / altoMarcoFicha;
-    if (exceso <= 1.005) return;
-    setAnchoLayout((w) => Math.min(ANCHO_LAYOUT_MAX, Math.round(w * exceso)));
-  }, [altoDiseno, altoMarcoFicha]);
+  }, [data, estilos, attributeIcons, editMode, proporcionMarco]);
 
   const discrepancia = discrepanciaProducto(data.barcodeTitle, data.fichaTecnicaTitulo, data.productName);
   const [confirmarDiscrepancia, setConfirmarDiscrepancia] = useState(false);
@@ -752,14 +811,13 @@ function ProductLabelFormInner({
       }
       if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
 
-      const DPI_IMPRESION = 300;
       const anchoMm = anchoImpresionMm;
       const altoMm = altoImpresionMm;
       // Con Formato elegido: escala para que el PNG mida exactamente
-      // ancho_mm a 300dpi. Sin Formato ("tamaño libre"): escala fija alta
+      // ancho_mm a 600dpi (a 300 las líneas de 1,5 px salían de 1 px y se perdían al reducir la imagen). Sin Formato ("tamaño libre"): escala fija alta
       // (960px de diseño × 3 ≈ 2880px), suficiente para imprimir bien sin
       // un tamaño físico de referencia.
-      const pixelRatio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / anchoDiseno : 3;
+      const pixelRatio = anchoMm ? escalaRasterImpresion(anchoMm, anchoDiseno) : 3;
 
       const { toBlob } = await import("html-to-image");
       const blob = await toBlob(el, {
@@ -784,7 +842,7 @@ function ProductLabelFormInner({
         altoPx: dims.h,
         anchoMm,
         altoMm,
-        dpi: anchoMm ? DPI_IMPRESION : undefined,
+        dpi: anchoMm ? dpiDeEscala(anchoMm, anchoDiseno, pixelRatio) : undefined,
         pixelRatio,
       });
     } catch (e) {
@@ -857,15 +915,13 @@ function ProductLabelFormInner({
     new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
   /** Rasteriza la ficha tal como está ahora mismo en pantalla. */
-  const rasterizarFichaActual = async (
-    DPI_IMPRESION = 300,
-  ): Promise<{ blob: Blob; anchoMm?: number; altoMm?: number; ratio: number }> => {
+  const rasterizarFichaActual = async (): Promise<{ blob: Blob; anchoMm?: number; altoMm?: number; ratio: number }> => {
     const el = fichaRef.current;
     if (!el) throw new Error("La ficha no está montada");
     if (typeof document !== "undefined" && document.fonts) await document.fonts.ready;
     const anchoMm = anchoImpresionMm;
     const altoMm = altoImpresionMm;
-    const ratio = anchoMm ? (anchoMm / 25.4) * DPI_IMPRESION / anchoDiseno : 3;
+    const ratio = anchoMm ? escalaRasterImpresion(anchoMm, anchoDiseno) : 3;
     const { toBlob } = await import("html-to-image");
     const blob = await toBlob(el, { pixelRatio: ratio, backgroundColor: "#ffffff", cacheBust: true });
     if (!blob) throw new Error("No se pudo rasterizar la ficha");
@@ -885,7 +941,7 @@ function ProductLabelFormInner({
         setEditMode(false);
         await esperarRepintado();
       }
-      const { blob, anchoMm, altoMm } = await rasterizarFichaActual(600);
+      const { blob, anchoMm, altoMm } = await rasterizarFichaActual();
       await imprimirImagenEtiqueta(blob, anchoMm ?? 102, altoMm ?? 38);
     } catch (e) {
       setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo imprimir la etiqueta" });
@@ -1031,7 +1087,7 @@ function ProductLabelFormInner({
           tipo_etiqueta: tipo?.nombre,
           ancho_mm: anchoMm,
           alto_mm: altoMm,
-          dpi: anchoMm ? 300 : undefined,
+          dpi: anchoMm ? dpiDeEscala(anchoMm, anchoDiseno, ratio) : undefined,
           escala: ratio,
         });
         hechos.push(nombreArchivo);
@@ -1156,12 +1212,17 @@ function ProductLabelFormInner({
     <div
       ref={fichaRef}
       lang="es"
-      className="relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white text-[#111111] shadow-none"
+      className={`relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white text-[#111111] shadow-none${
+        altoMarcoFicha ? " flex flex-col" : ""
+      }`}
       style={{ width: anchoDiseno, minHeight: altoMarcoFicha, ...variablesAcento(data.accentColor) }}
     >
       {showGrid && <div className="pointer-events-none absolute inset-0" style={PATRON_RETICULA} />}
 
-      <div className={altoMarcoFicha ? "relative flex h-full flex-col" : "relative"}>
+      {/* `flex-1` y no `h-full`: el lienzo solo tiene alto MÍNIMO, y contra eso
+          un porcentaje no se resuelve — las filas nunca llegaban a repartirse
+          el sobrante y quedaba blanco bajo el pie. */}
+      <div className={altoMarcoFicha ? "relative flex flex-1 flex-col" : "relative"}>
         {/* 1-2. Cabecera */}
         <ProductHeader
           data={data}
@@ -1523,7 +1584,7 @@ function ProductLabelFormInner({
             type="button"
             onClick={() => void generarPng()}
             disabled={guardando}
-            title="Genera un PNG listo para imprimir (300 dpi si hay Formato elegido), lo muestra en vista previa y, al confirmar, lo guarda junto con el Formato en Diseño → Imprimir"
+            title="Genera un PNG listo para imprimir (alta resolución, ≥ 600 dpi, si hay Formato elegido), lo muestra en vista previa y, al confirmar, lo guarda junto con el Formato en Diseño → Imprimir"
             className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
           >
             {guardando && !previa ? "Generando…" : "Guardar PNG para imprimir"}
@@ -1865,9 +1926,16 @@ function ProductLabelFormInner({
                 transformOrigin: "top left",
               }}
             >
+              {/* Centrada: solo se nota con el ancho ya en el tope y la ficha
+                  escalada por alto, que si no dejaba todo el hueco a la derecha. */}
               <div
-                className="absolute left-0 top-0"
-                style={{ width: anchoLayout, transform: `scale(${marco.escala})`, transformOrigin: "top left" }}
+                className="absolute top-0"
+                style={{
+                  left: Math.max(0, (marco.ancho - anchoLayout * marco.escala) / 2),
+                  width: anchoLayout,
+                  transform: `scale(${marco.escala})`,
+                  transformOrigin: "top left",
+                }}
               >
                 {ficha}
               </div>
@@ -1972,7 +2040,7 @@ function ProductLabelFormInner({
               imageUrl={desenfoqueFuente.url}
               formato="png"
               titulo="Desenfocar datos para publicaciones digitales"
-              subtitulo={`Arrastra un recuadro sobre cada dato a ocultar; se guarda en ${carpetaPublicacionesDigitales()}, fuera de impresión`}
+              subtitulo={`"MCKENNA GROUP" se detecta solo por OCR; arrastra un recuadro para ocultar otro dato. Se guarda en ${carpetaPublicacionesDigitales()}, fuera de impresión`}
               desenfocar={desenfocarBlobLocal}
               onAplicado={(b) => void guardarPngDesenfocado(b)}
             />

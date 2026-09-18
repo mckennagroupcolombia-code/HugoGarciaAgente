@@ -1,5 +1,5 @@
 {
-  "actualizado_en": "2026-09-16T07:25:35",
+  "actualizado_en": "2026-09-17T07:25:47",
   "indice": {
     "2000014851989261": {
       "factura_id": "c3dc174d-65f7-4120-8406-42f33d47bdce",
@@ -21932,124 +21932,376 @@
       "total": 50500.0,
       "integracion": "astroselling"
     },
-    "2000013508441093": {
-      "factura_id": "e7baff10-b360-4500-bff6-6a5e846c03c7",
-      "factura_numero": "FV-2-67491",
-      "factura_fecha": "2026-06-14",
-      "total": 27400.0,
-      "integracion": "astroselling"
+    "2000015006459009": {
+      "factura_id": "433",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 121827,
+      "integracion": "mckenna"
     },
-    "2000013507989929": {
-      "factura_id": "1b5f6869-9f93-4a7c-af7f-78ac6bae4707",
-      "factura_numero": "FV-2-67490",
-      "factura_fecha": "2026-06-13",
-      "total": 34000.0,
-      "integracion": "astroselling"
+    "2000018359733730": {
+      "factura_id": "432",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 18900,
+      "integracion": "mckenna"
     },
-    "2000016928459300": {
-      "factura_id": "e04335a6-a72d-401e-86ea-1bda85799eba",
-      "factura_numero": "FV-2-67489",
-      "factura_fecha": "2026-06-13",
-      "total": 10400.0,
-      "integracion": "astroselling"
+    "2000018369765974": {
+      "factura_id": "431",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 38250,
+      "integracion": "mckenna"
     },
-    "2000016928329596": {
-      "factura_id": "dee7cdb9-4972-4257-88fb-43886baa73ae",
-      "factura_numero": "FV-2-67488",
-      "factura_fecha": "2026-06-13",
-      "total": 20900.0,
-      "integracion": "astroselling"
+    "2000014966851803": {
+      "factura_id": "430",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 21374,
+      "integracion": "mckenna"
     },
-    "2000016927653888": {
-      "factura_id": "f2f6a3a2-8b4b-4270-b1b2-c7b0cc426063",
-      "factura_numero": "FV-2-67486",
-      "factura_fecha": "2026-06-13",
-      "total": 12000.0,
-      "integracion": "astroselling"
+    "2000014967287985": {
+      "factura_id": "429",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 103205,
+      "integracion": "mckenna"
     },
-    "2000016927510764": {
-      "factura_id": "4557357d-3f52-4675-a906-83a00496710e",
-      "factura_numero": "FV-2-67485",
-      "factura_fecha": "2026-06-13",
-      "total": 10500.0,
-      "integracion": "astroselling"
+    "2000018394274790": {
+      "factura_id": "428",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 20880,
+      "integracion": "mckenna"
     },
-    "2000013505676375": {
-      "factura_id": "b781f720-629e-49cb-9ae4-32c8f0018699",
-      "factura_numero": "FV-2-67484",
-      "factura_fecha": "2026-06-13",
-      "total": 105000.0,
-      "integracion": "astroselling"
+    "2000018394449818": {
+      "factura_id": "427",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 44030,
+      "integracion": "mckenna"
     },
-    "2000013505462369": {
-      "factura_id": "ddac3fb6-a690-41df-b1c2-4ec685b738cb",
-      "factura_numero": "FV-2-67483",
-      "factura_fecha": "2026-06-13",
-      "total": 65400.0,
-      "integracion": "astroselling"
+    "2000014972589913": {
+      "factura_id": "426",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 69165,
+      "integracion": "mckenna"
     },
-    "2000013504731715": {
-      "factura_id": "4042f980-420b-46a6-a07b-1fc32e25315e",
-      "factura_numero": "FV-2-67482",
-      "factura_fecha": "2026-06-13",
-      "total": 40300.0,
-      "integracion": "astroselling"
+    "2000014975494447": {
+      "factura_id": "425",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 67150,
+      "integracion": "mckenna"
     },
-    "2000013504618921": {
-      "factura_id": "03967daf-5450-4ec9-b816-6d4477e101cc",
-      "factura_numero": "FV-2-67481",
-      "factura_fecha": "2026-06-13",
-      "total": 28900.0,
-      "integracion": "astroselling"
+    "2000018409840496": {
+      "factura_id": "424",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 10968,
+      "integracion": "mckenna"
     },
-    "2000013504559649": {
-      "factura_id": "b8b1ccc4-d03b-49c3-b93d-38b2907763c4",
-      "factura_numero": "FV-2-67480",
-      "factura_fecha": "2026-06-13",
-      "total": 67600.0,
-      "integracion": "astroselling"
+    "2000018412123010": {
+      "factura_id": "423",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 21420,
+      "integracion": "mckenna"
     },
-    "2000016925393464": {
-      "factura_id": "4f6385b1-434d-40b7-9fad-8f44ef679ef7",
-      "factura_numero": "FV-2-67479",
-      "factura_fecha": "2026-06-13",
-      "total": 10500.0,
-      "integracion": "astroselling"
+    "2000018412580856": {
+      "factura_id": "422",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 10968,
+      "integracion": "mckenna"
     },
-    "2000013503071635": {
-      "factura_id": "b998feed-dd44-4768-989f-fd50b0c69a34",
-      "factura_numero": "FV-2-67478",
-      "factura_fecha": "2026-06-13",
-      "total": 10500.0,
-      "integracion": "astroselling"
+    "2000018413113858": {
+      "factura_id": "421",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 20792,
+      "integracion": "mckenna"
     },
-    "2000013502459135": {
-      "factura_id": "42c4066e-cc4c-4adc-9cc7-9c7aee347485",
-      "factura_numero": "FV-2-67477",
-      "factura_fecha": "2026-06-13",
-      "total": 64000.0,
-      "integracion": "astroselling"
+    "2000018414011166": {
+      "factura_id": "420",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 91800,
+      "integracion": "mckenna"
     },
-    "2000013498415749": {
-      "factura_id": "b86d17eb-5dc0-4669-8cd4-c3dc65c0d14f",
-      "factura_numero": "FV-2-67471",
-      "factura_fecha": "2026-06-13",
-      "total": 56461.0,
-      "integracion": "astroselling"
+    "2000018414011364": {
+      "factura_id": "419",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 30612,
+      "integracion": "mckenna"
     },
-    "2000016919505450": {
-      "factura_id": "f6b51983-0b0f-4e32-9d5f-6de2fbbcb0b2",
-      "factura_numero": "FV-2-67470",
-      "factura_fecha": "2026-06-13",
-      "total": 36900.0,
-      "integracion": "astroselling"
+    "2000014989521099": {
+      "factura_id": "418",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 117232,
+      "integracion": "mckenna"
     },
-    "2000013497170349": {
-      "factura_id": "397e3992-110d-44cc-9dc8-45f1b65ff71a",
-      "factura_numero": "FV-2-67469",
-      "factura_fecha": "2026-06-13",
-      "total": 294000.0,
-      "integracion": "astroselling"
+    "2000018414513074": {
+      "factura_id": "417",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 153159,
+      "integracion": "mckenna"
+    },
+    "2000018414628236": {
+      "factura_id": "416",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 69140,
+      "integracion": "mckenna"
+    },
+    "2000014990323039": {
+      "factura_id": "415",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 26970,
+      "integracion": "mckenna"
+    },
+    "2000014990529971": {
+      "factura_id": "414",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 65281,
+      "integracion": "mckenna"
+    },
+    "2000014990585357": {
+      "factura_id": "413",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 62791,
+      "integracion": "mckenna"
+    },
+    "2000018415595798": {
+      "factura_id": "412",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 22844,
+      "integracion": "mckenna"
+    },
+    "2000018415774418": {
+      "factura_id": "411",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 76500,
+      "integracion": "mckenna"
+    },
+    "2000018417815594": {
+      "factura_id": "410",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 20888,
+      "integracion": "mckenna"
+    },
+    "2000014993308485": {
+      "factura_id": "409",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 97698,
+      "integracion": "mckenna"
+    },
+    "2000018418199026": {
+      "factura_id": "408",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 30600,
+      "integracion": "mckenna"
+    },
+    "2000018418405844": {
+      "factura_id": "407",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 31430,
+      "integracion": "mckenna"
+    },
+    "2000014995054721": {
+      "factura_id": "406",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 110897,
+      "integracion": "mckenna"
+    },
+    "2000018420385780": {
+      "factura_id": "405",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 6630,
+      "integracion": "mckenna"
+    },
+    "2000018420652008": {
+      "factura_id": "404",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 52276,
+      "integracion": "mckenna"
+    },
+    "2000018420996708": {
+      "factura_id": "403",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 20792,
+      "integracion": "mckenna"
+    },
+    "2000018422260890": {
+      "factura_id": "402",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 32642,
+      "integracion": "mckenna"
+    },
+    "2000018427938324": {
+      "factura_id": "401",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 30600,
+      "integracion": "mckenna"
+    },
+    "2000015003997003": {
+      "factura_id": "400",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 54645,
+      "integracion": "mckenna"
+    },
+    "2000015006567567": {
+      "factura_id": "399",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 53253,
+      "integracion": "mckenna"
+    },
+    "2000018432438538": {
+      "factura_id": "398",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 17117,
+      "integracion": "mckenna"
+    },
+    "2000018435810496": {
+      "factura_id": "397",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 55800,
+      "integracion": "mckenna"
+    },
+    "2000015012392057": {
+      "factura_id": "396",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 45819,
+      "integracion": "mckenna"
+    },
+    "2000015013649729": {
+      "factura_id": "395",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 98006,
+      "integracion": "mckenna"
+    },
+    "2000018446228650": {
+      "factura_id": "394",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 24542,
+      "integracion": "mckenna"
+    },
+    "2000018440267808": {
+      "factura_id": "393",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 24825,
+      "integracion": "mckenna"
+    },
+    "2000018440479002": {
+      "factura_id": "392",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 10968,
+      "integracion": "mckenna"
+    },
+    "2000015014265505": {
+      "factura_id": "391",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 32456,
+      "integracion": "mckenna"
+    },
+    "2000015015952793": {
+      "factura_id": "390",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 49003,
+      "integracion": "mckenna"
+    },
+    "2000018443843588": {
+      "factura_id": "389",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 47930,
+      "integracion": "mckenna"
+    },
+    "2000018445042192": {
+      "factura_id": "388",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 18203,
+      "integracion": "mckenna"
+    },
+    "2000018446516064": {
+      "factura_id": "387",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 41220,
+      "integracion": "mckenna"
+    },
+    "2000018447231468": {
+      "factura_id": "386",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 47930,
+      "integracion": "mckenna"
+    },
+    "2000018447336346": {
+      "factura_id": "385",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 66045,
+      "integracion": "mckenna"
+    },
+    "2000018452360048": {
+      "factura_id": "384",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 22950,
+      "integracion": "mckenna"
+    },
+    "2000018452632174": {
+      "factura_id": "383",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 19538,
+      "integracion": "mckenna"
+    },
+    "2000018454821412": {
+      "factura_id": "382",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 27800,
+      "integracion": "mckenna"
+    },
+    "2000018470940668": {
+      "factura_id": "381",
+      "factura_numero": "",
+      "factura_fecha": "2026-09-16",
+      "total": 79824,
+      "integracion": "mckenna"
     },
     "2000018409141672": {
       "factura_id": "380",

@@ -127,6 +127,7 @@ def proveedores(q: str = "") -> list[dict]:
             "ica_por_mil": float(t.get("ica_por_mil") or 0),
             "gmf_por_defecto": int(t.get("gmf_por_defecto") or 0),
             "cuenta_gasto_default": t.get("cuenta_gasto_default") or "",
+            "medio_pago_default": int(t.get("medio_pago_default") or 0),
         })
     for c in _contactos_alegra():
         if c["identificacion"] and c["identificacion"] in vistos_ident:

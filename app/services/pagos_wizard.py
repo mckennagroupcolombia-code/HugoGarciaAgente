@@ -144,28 +144,33 @@ CATEGORIAS: dict[str, dict] = {
         "con_productos": True,
         "requiere_factura": True,
     },
+    # ── Ocultas desde sep-2026: ahora son una cuenta, no un botón ──────────
+    # «Transporte» y «Servicios públicos» preguntaban con un botón lo mismo que
+    # el selector de cuenta PUC pregunta dos campos más abajo, y podían
+    # contradecirlo. Hoy se paga por «Servicios» y se elige 513550 o 513530: el
+    # perfil de la cuenta (impuestos_por_cuenta.py) trae la retención correcta
+    # —1% en transporte, ninguna en servicios públicos— sin que nadie lo
+    # recuerde. Las categorías NO se borran: hay solicitudes históricas con
+    # estos valores y eliminarlas las dejaría sin poder abrirse.
     "flete_transporte": {
         "cuenta_libre": True,
+        "oculta": True,
         "label": "Flete o transporte",
         "ayuda": "Interrapidísimo, guías, acarreos, envíos. Va a gasto, no baja ninguna deuda previa.",
         "cuenta_debito": "513550",
         "origen": "libre",
         "requiere_tercero": True,
         "icono": "🚚",
-        "simple": True,
-        # Sin `concepto_retencion` a propósito: la retención de transporte
-        # (carga 1%, pasajeros 3,5%) no está cargada en retenciones.py y la
-        # mayoría de transportadoras son autorretenedoras. Inventar la tarifa
-        # acá le saldría del bolsillo a alguien.
+        "concepto_retencion": "transporte_carga",
     },
     "servicio_publico": {
+        "oculta": True,
         "label": "Servicio público",
         "ayuda": "Energía, acueducto, gas, teléfono e internet. Cada uno a su cuenta.",
         "cuenta_debito": None,   # depende del servicio elegido
         "origen": "servicios",
         "requiere_tercero": False,
         "icono": "💡",
-        "simple": True,
         "pide_contrato": True,
         "cuentas_por_tipo": {
             "luz": "513530", "energia": "513530",
@@ -637,6 +642,8 @@ def cuentas_gasto() -> list[dict]:
     _ensure()
     import app.services.contabilidad_core as cc
 
+    from app.services import impuestos_por_cuenta as _ipc
+
     salida = []
     for c in cc.listar_plan_cuentas(solo_activas=True):
         codigo = str(c["codigo"])
@@ -644,6 +651,7 @@ def cuentas_gasto() -> list[dict]:
             continue
         if not (codigo.startswith("14") or codigo[:1] in ("5", "6", "7")):
             continue
+        p = _ipc.perfil(codigo)
         salida.append({
             "codigo": codigo,
             "nombre": c["nombre"],
@@ -652,6 +660,12 @@ def cuentas_gasto() -> list[dict]:
             # Una subcuenta de 6 dígitos es la que el contador espera ver usada;
             # la de 4 queda como agrupadora aunque técnicamente admita movimiento.
             "es_subcuenta": len(codigo) >= 6,
+            # Los impuestos que trae la cuenta, para que el panel los deje
+            # puestos al elegirla en vez de pedirlos como una pregunta aparte.
+            "concepto_retencion": p["concepto_retencion"] or "",
+            "ica_por_mil": p["ica_por_mil"],
+            "nota": p["nota"],
+            "advertencia": p["advertencia"],
         })
     salida.sort(key=lambda x: x["codigo"])
     return salida
@@ -817,7 +831,24 @@ def previsualizar(payload: dict) -> dict:
         cobra_gmf = bool(int(tercero.get("gmf_por_defecto") or 0))
 
     retencion, retencion_ica, ret_info = 0.0, 0.0, None
+    # ── Qué retención lleva: lo decide la CUENTA, no el botón ─────────────
+    #
+    # Hasta sep-2026 el concepto salía de la categoría. Categoría y cuenta son
+    # la misma pregunta hecha dos veces, y podían contradecirse: «Servicios»
+    # traía el 4% aunque el operador llevara el gasto a 513550 Transporte,
+    # donde la tarifa es el 1%. El botón decidía el impuesto y la cuenta
+    # decidía el balance, cada uno por su lado.
+    #
+    # Ahora manda la cuenta, que es el dato que el contador mira y el que
+    # define la naturaleza del gasto. La categoría solo queda como respaldo
+    # para cuentas que el perfil no conoce y para las categorías que no eligen
+    # cuenta (cuota de préstamo, reintegro, impuestos).
+    from app.services import impuestos_por_cuenta as _ipc
+
+    perfil_cuenta = _ipc.perfil(cuenta_debito)
     concepto_ret = cat.get("concepto_retencion")
+    if perfil_cuenta["conocida"] and cat.get("cuenta_libre"):
+        concepto_ret = perfil_cuenta["concepto_retencion"]
     base_ret = base_sin_iva if items else monto
 
     if tercero and int(tercero.get("retefuente_exento") or 0) and modo != "ninguna":
@@ -830,10 +861,27 @@ def previsualizar(payload: dict) -> dict:
             "(marcado como exento en su ficha de tercero)."
         )}
 
-    if tercero and int(tercero.get("regimen_simple") or 0) and modo != "ninguna":
+    en_simple = bool(tercero and int(tercero.get("regimen_simple") or 0))
+    if en_simple and modo != "ninguna":
         # Art. 911 ET: a un contribuyente del SIMPLE no se le practica retención.
         modo = "ninguna"
         ret_info = {"retencion": 0, "motivo": f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención (Art. 911 ET)."}
+    if en_simple and ica_por_mil > 0:
+        # Y tampoco ICA. La exención del SIMPLE es por QUIÉN recibe, no por el
+        # concepto: da igual si el pago es de honorarios, de servicios o de
+        # transporte. El ICA no desaparece, va **dentro** del SIMPLE (Art. 907
+        # E.T. lo integra como «impuesto de industria y comercio consolidado»),
+        # así que retenérselo acá se lo cobraría dos veces.
+        #
+        # Esto es una excepción a la regla de más abajo —«apagar la renta no
+        # apaga el ICA»— y la única: ahí se trata de un tercero al que el
+        # contador dijo no practicarle renta, que sigue siendo sujeto de ICA.
+        # Acá el tercero no es sujeto de ninguno de los dos.
+        ica_por_mil, t_ica = 0.0, 0.0
+        ret_info = {"retencion": 0, "motivo": (
+            f"{tercero.get('nombre')} está en Régimen SIMPLE: no se le practica retención de renta "
+            "ni de ICA (Art. 911 E.T.; el ICA va consolidado dentro del SIMPLE, Art. 907 E.T.)."
+        )}
 
     # «Nadie — no se practica retención» habla de la retención de RENTA. El ICA
     # es otro impuesto, con otra base legal y otro destinatario (el municipio,
@@ -998,6 +1046,13 @@ def previsualizar(payload: dict) -> dict:
         "gmf": gmf,
         "retencion_modo": modo,
         "retencion_motivo": (ret_info or {}).get("motivo", ""),
+        "concepto_retencion": concepto_ret or "",
+        # Qué dedujo el sistema de la cuenta elegida, para mostrarlo debajo del
+        # selector: la nota («Transporte de carga: 1% desde 4 UVT») y la
+        # advertencia («las transportadoras grandes son autorretenedoras»). Es
+        # lo que permite darse cuenta de que la cuenta está mal elegida ANTES
+        # de firmar, no cuando el contador arma el 350.
+        "perfil_cuenta": {**perfil_cuenta, "cuenta_nombre": nombres.get(cuenta_debito, "")},
         "girado": girado,
         "pagado_ahora": pagado_ahora,
         "saldo_pendiente": saldo_pendiente,
@@ -1176,6 +1231,9 @@ def _recordar_perfil_tributario(payload: dict, prev: dict) -> None:
     cuenta = str(payload.get("cuenta_debito") or "").strip()
     if cuenta:
         campos["cuenta_gasto_default"] = cuenta
+    medio = int(payload.get("medio_pago_id") or 0)
+    if medio:
+        campos["medio_pago_default"] = medio
     if not campos:
         return
     sets = ", ".join(f"{k}=?" for k in campos)
@@ -1718,8 +1776,17 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
     gmf = round(float(s.get("gmf") or 0), 2)
     if ret or ica or gmf:
         nombre_t = (s.get("tercero") or {}).get("nombre", "")
+        # La retención va a su SUBCUENTA por concepto (236525 servicios, 236540
+        # compras, 236515 honorarios…), igual que en la previsualización. Hasta
+        # sep-2026 acá se usaba «2365» plana mientras el asiento previsualizado
+        # mostraba la subcuenta: se le enseñaba una cuenta al que aprueba y se
+        # contabilizaba otra, y el contador tenía que desglosar a mano el 350
+        # justo cuando el sistema ya sabía el concepto.
+        from app.services import puc_colombia as _puc_ap
+
+        cod_ret = _puc_ap.cuenta_retencion(s.get("retencion_concepto") or "")
         with cc._conn() as con:
-            id_ret = cc._cuenta_id_por_codigo(con, "2365")
+            id_ret = cc._cuenta_id_por_codigo(con, cod_ret) or cc._cuenta_id_por_codigo(con, "2365")
             id_ica = cc._cuenta_id_por_codigo(con, "2368")
             id_gmf = cc._cuenta_id_por_codigo(con, "530595")
         medias = [lineas[0]]

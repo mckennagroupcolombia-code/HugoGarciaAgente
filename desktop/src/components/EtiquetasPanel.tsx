@@ -5628,7 +5628,7 @@ function TabImprimir({
       )}
 
       {vistaImpresion === "catalogo" ? (
-        <div className="mck-card overflow-hidden shadow-paper-sm">
+        <div className="mck-card flex h-[calc(100dvh-7.5rem)] max-h-[calc(100dvh-7.5rem)] flex-col overflow-hidden shadow-paper-sm">
           <ImpresionEtiquetasHeader
             vista="catalogo"
             onVistaChange={setVistaImpresion}
@@ -5636,7 +5636,7 @@ function TabImprimir({
             onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
             onInstalarClick={() => abrirInstalador("windows10pro")}
           />
-          <div className="p-4">
+          <div className="flex min-h-0 flex-1 flex-col">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
               onAbrirPng={abrirPngParaImprimir}
@@ -5723,20 +5723,6 @@ function TabImprimir({
               onOffsetVChange={setOffsetV}
               onOffsetHChange={setOffsetH}
             />
-          </RibbonGroup>
-          <RibbonGroup label="Cantidad">
-            <div className="flex items-center gap-0.5">
-              <button type="button" aria-label="Restar cantidad" onClick={() => setCantidad((c) => Math.max(1, c - 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">−</button>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={cantidad}
-                onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
-                className={`${RIB_INP} w-10 text-center font-semibold`}
-              />
-              <button type="button" aria-label="Sumar cantidad" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-6 w-5 rounded border border-border text-[11px] font-semibold hover:bg-surface-hover">+</button>
-            </div>
           </RibbonGroup>
           <RibbonGroup label="Trazabilidad">
             <label
@@ -5855,9 +5841,9 @@ function TabImprimir({
                     type="button"
                     onClick={volverACatalogoPng}
                     title="Volver a la biblioteca de archivos (Esc)"
-                    className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:border-accent hover:text-accent"
+                    className="shrink-0 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink-secondary hover:border-accent hover:text-accent"
                   >
-                    ← Archivos
+                    ✕ Cerrar
                   </button>
                 </div>
                 {matchEanPng === "sin-match" ? (
@@ -5994,8 +5980,8 @@ function TabImprimir({
         </div>
 
         {/* Barra inferior — imprimir (compacta, resalta en verde) */}
-        <div className="flex flex-shrink-0 items-center justify-between gap-2 border-t border-border bg-surface-panel px-2.5 py-1.5">
-          <p className="min-w-0 flex-1 truncate text-[10px] text-muted">
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-surface-panel px-3 py-2">
+          <p className="min-w-[8rem] flex-1 truncate text-xs text-muted">
             {pngImpresion
               ? (pngImpresion.nombre.includes("/") ? pngImpresion.nombre.split("/").pop() : pngImpresion.nombre)
               : pdfStudioRuta
@@ -6005,18 +5991,50 @@ function TabImprimir({
               : "Selecciona un PNG del catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
+          {/* Copias junto al botón: es lo último que se decide antes de imprimir.
+              El input va dentro de un <span> para que la regla global de
+              "botón junto a input" (index.css) no encoja los botones. */}
+          <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Número de copias">
+            <button
+              type="button"
+              aria-label="Restar copia"
+              onClick={() => setCantidad((c) => Math.max(1, c - 1))}
+              className="mck-press flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg font-bold text-ink hover:bg-surface-hover"
+            >
+              −
+            </button>
+            <span className="flex flex-col items-center">
+              <input
+                type="number"
+                min={1}
+                max={999}
+                value={cantidad}
+                onChange={(e) => setCantidad(Math.min(999, Math.max(1, parseInt(e.target.value) || 1)))}
+                aria-label="Copias"
+                className="mck-field-lg h-11 w-16 rounded-lg border border-border bg-surface text-center text-base font-bold tabular-nums text-ink outline-none focus:border-accent"
+              />
+            </span>
+            <button
+              type="button"
+              aria-label="Sumar copia"
+              onClick={() => setCantidad((c) => Math.min(999, c + 1))}
+              className="mck-press flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-lg font-bold text-ink hover:bg-surface-hover"
+            >
+              +
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleImprimir}
             disabled={imprimirMut.isPending || preparandoPngImpresion || !productoListo}
-            className="mck-press inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-success px-3 text-[11px] font-bold tracking-wide text-white shadow-sm ring-1 ring-success/40 transition hover:brightness-110 disabled:opacity-40"
+            className="mck-press inline-flex h-11 shrink-0 items-center gap-2 rounded-lg bg-success px-6 text-sm font-bold tracking-wide text-white shadow-sm ring-1 ring-success/40 transition hover:brightness-110 disabled:opacity-40"
           >
             {imprimirMut.isPending || preparandoPngImpresion ? (
               "Imprimiendo…"
             ) : (
               <>
-                <Icon name="printer" size={14} />
-                Imprimir
+                <Icon name="printer" size={18} />
+                Imprimir {cantidad} {cantidad === 1 ? "copia" : "copias"}
               </>
             )}
           </button>

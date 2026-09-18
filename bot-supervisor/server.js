@@ -616,6 +616,56 @@ appExpress.post('/enviar', async (req, res) => {
     }
 });
 
+/** POST /enviar-video  { numero, filePath, caption?, fileName? }
+ *  Envía un clip MP4 (panel Supervisor → Grabar pantalla) desde la cuenta supervisora.
+ *  Solo lee archivos dentro de grabaciones_pantalla/: con filePath libre, cualquiera
+ *  con el token del bridge podría mandarse por WhatsApp cualquier archivo del servidor. */
+const GRABACIONES_DIR = path.resolve(__dirname, '..', 'grabaciones_pantalla');
+
+appExpress.post('/enviar-video', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const { numero, filePath, caption, fileName } = req.body;
+    if (!numero || !filePath) return res.status(400).json({ error: 'Faltan numero o filePath' });
+    const real = path.resolve(String(filePath));
+    if (!real.startsWith(GRABACIONES_DIR + path.sep) || !real.toLowerCase().endsWith('.mp4')) {
+        return res.status(400).json({ error: 'Solo se envían clips MP4 de grabaciones_pantalla/' });
+    }
+    if (!fs.existsSync(real)) return res.status(400).json({ error: 'Clip no encontrado' });
+
+    try {
+        if (!sistemaListo && client.info && client.info.wid) await promoverSistemaListo('API /enviar-video');
+        if (!sistemaListo) {
+            return res.status(503).json({
+                error: 'WhatsApp supervisor aún sincronizando. Espera ~15 s tras conectar y vuelve a intentarlo.',
+            });
+        }
+        const media = new MessageMedia(
+            'video/mp4', fs.readFileSync(real).toString('base64'), fileName || path.basename(real)
+        );
+        const candidatos = await resolverCandidatosChatId(numero);
+        const chatUsado = await enviarConResolucionLid(candidatos, (cid) =>
+            client.sendMessage(cid, media, { caption: caption || '' })
+        );
+        console.log(`🎬 [supervisor] Video (API) → ${chatUsado}`);
+        logActividad('SALIENTE', { para: chatUsado, tipo: 'VIDEO', texto: (caption || '').substring(0, 60), origen: 'API' });
+        res.json({ status: 'success', chatId: chatUsado });
+    } catch (err) {
+        if (esErrorContextoPuppeteer(err)) {
+            return res.status(503).json({
+                error: 'WhatsApp está reconectando su sesión. Espera ~15 s e intenta de nuevo.',
+            });
+        }
+        console.error('[supervisor] Error /enviar-video:', err.message);
+        if (/no lid/i.test(err.message)) {
+            return res.status(422).json({
+                error: 'WhatsApp no tiene LID para ese número en la sesión supervisor. '
+                     + 'Pide al contacto que escriba primero a este WhatsApp.',
+            });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ── Perfil de WhatsApp (foto, nombre para mostrar e "Info"/about) ────────────
 appExpress.post('/perfil/foto', async (req, res) => {
     if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });

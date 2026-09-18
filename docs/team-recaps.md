@@ -3310,3 +3310,78 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Pendiente si se repite en «Corregir y republicar»: `republicarMut` usa el mismo tipo de flujo síncrono y puede sufrir el mismo corte.
   - **Requiere `sudo systemctl restart agente-pro`** (cambio en Python). Front compilado y desplegado.
 - **Archivos Modificados:** `app/services/meli_crear_jobs.py` (nuevo), `app/routes.py`, `desktop/src/components/MeliComplianceTab.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - Studio: desenfoque automático de «MCKENNA GROUP» por OCR
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual y ficha de etiqueta → ventana de desenfoque)
+- **Qué se implementó:**
+  - La ventana de desenfoque (`DesenfoquePlantillaModal`) ya no espera a que el usuario marque recuadros: al abrirse corre un **OCR en el navegador** (tesseract.js), busca el texto "MCKENNA GROUP" — el logo y también la web y el correo, que lo llevan pegado (`mckennagroup.co`) —, marca esas zonas y genera el preview sola. El usuario solo revisa y pulsa "Usar esta versión". Aplica a los dos usos del modal: exportar en Plantillas Visuales (blur en servidor) y casilla «Desenfoque» de la ficha (blur local).
+  - Lo manual queda de respaldo: botón "Detectar MCKENNA GROUP" para repetir, "Pie McKenna", recuadros a mano (teléfono, NIT: el OCR solo busca la marca) y "Limpiar zonas". Lo dibujado a mano mientras corre el OCR se conserva; re-detectar no duplica zonas. Si el OCR no encuentra nada o no carga, avisa y se sigue a mano.
+  - `lib/ocrMarca.ts` (nuevo): escala la etiqueta a 1900 px sobre fondo blanco y hace **tres pasadas** (~3 s): modo automático, modo texto disperso (el automático pierde el logo de trazo fino bajo el dibujo) y una tercera sobre una imagen preprocesada que deja en negro solo el texto que va sobre rellenos de color u oscuros (botón azul de la web, franja café de Semillas), que Tesseract toma por imagen y se salta. Coincidencia tolerante a una letra mal leída; cajas solapadas se unen y se les da margen para tapar el ®.
+  - **Motor self-hosted, sin CDN:** `desktop/scripts/copy-ocr-assets.mjs` copia worker, núcleo WASM (3 variantes SIMD) e idioma `eng` de `node_modules` a `public/assets/ocr` (en `.gitignore`), y corre antes de `dev` y `build`. Va bajo `/app/assets/` porque es lo único estático que sirve Flask. El idioma se copia **descomprimido** (`gzip: false`): Flask etiqueta los `.gz` con `Content-Encoding: gzip` y el navegador recibía un cuerpo vacío. Solo se descarga al abrir la ventana (~9 MB la primera vez; luego caché).
+  - Dependencias nuevas: `tesseract.js` y `@tesseract.js-data/eng` (dev). Sin cambios en Python ni reinicio.
+  - **Verificado** en Chrome headless con el código real (`ocrMarca.ts` + `desenfoqueLocal.ts`) sobre `LACTATO_CALCIO_250g_3.png` y `MANI_NATURAL_TOSTADO_500g_4.png`: logo, web y correo detectados y desenfocados en ambas. **Sin verificar dentro del panel** (pide inicio de sesión con Google). Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/lib/ocrMarca.ts` (nuevo), `desktop/scripts/copy-ocr-assets.mjs` (nuevo), `desktop/src/components/plantillas-visuales/DesenfoquePlantillaModal.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/package.json`, `desktop/package-lock.json`, `.gitignore`, `docs/team-recaps.md`
+
+### 2026-09-17 - Diseño → Imprimir: biblioteca de etiquetas rehecha (miniaturas accesibles)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Diseño → Imprimir)
+- **Qué se implementó:**
+  - **Problema:** la vista de miniaturas era difícil de usar: 6 por fila con texto de 9 px, recuadro con scroll propio dentro de la página, y en cada tarjeta un checkbox, una papelera de 20 px y un select de categoría compitiendo con el clic de imprimir. Además los botones superpuestos (papelera, limpiar) caían fuera de sitio: `index.css` fuerza `position: relative` en todo `<button>` de `#root` y anula la clase `absolute`.
+  - **Biblioteca nueva** (`EtiquetasStudioCatalogo`, rama `soloArchivosPng`, solo la usa Imprimir): ocupa el alto de la pantalla con barra fija arriba y solo la rejilla se desplaza. Buscador grande con foco automático, botón de limpiar, **Enter abre la primera** y Esc limpia. **Tamaño de miniatura** Pequeñas/Medianas/Grandes (120/180/260 px, se recuerda en `localStorage` `mck.imprimir.tamanoMiniatura`). **Chips por categoría** con conteo para filtrar. Encabezados de categoría pegajosos.
+  - **Tarjetas:** miniatura grande sobre blanco, nombre legible a 2 líneas (sin carpeta, extensión ni guiones bajos) y tamaño. Clic = ir a imprimir (franja "Imprimir" al pasar el cursor o enfocar); botón de ojo = **ver en grande**, y el lightbox gana botón **Imprimir** (`LightboxImagen.onImprimir`). Las imágenes se piden **solo al acercarse a la pantalla** (`IntersectionObserver`): antes se bajaban los ~100 PNG completos al abrir.
+  - **Modo «Organizar»** (solo quien puede eliminar): ahí viven checkbox, seleccionar todo, eliminar en lote, papelera y cambio de categoría, con controles de 32 px. Fuera de ese modo la tarjeta queda limpia.
+  - **Vista de impresión:** las copias salen de la cinta y pasan junto al botón, con − / + de 44 px; el botón dice **«Imprimir N copias»** y mide 44 px. Cabecera con textos legibles y botón «← Etiquetas» siempre con texto.
+  - **Corrección — no se podía volver a la biblioteca:** la cabecera de Imprimir llevaba `mck-header-glass`, cuyo fondo claro translúcido gana a `bg-accent`; el título y el botón de volver (blancos) quedaban invisibles. Se quitó la clase (cabecera sólida) y el botón ahora es blanco con texto «← Volver a la biblioteca»; el «← Archivos» de 9 px sobre la vista previa pasó a «✕ Cerrar» de tamaño normal. Esc sigue funcionando. Verificado con captura.
+  - **Ajuste — rejilla corrida:** con «Todas» (y con cualquier chip) ya no se parte en secciones por categoría: una sola rejilla ordenada por nombre, sin encabezados; la categoría va como texto en la tarjeta (`tamaño · categoría`) cuando no hay filtro. Tarjetas más compactas (miniatura 7:6 al ras, menos relleno, separación de 8 px) y tamaños 110/160/240 px: en 1440 px caben 8 por fila en «Medianas».
+  - Trucos por el CSS global: botones `absolute` van dentro de un `<span>` posicionado; el buscador usa `mck-field-lg` para salir de la regla de campos compactos; el input de copias va en un `<span>` para que la regla «botón junto a input» no encoja los − / +.
+  - **Verificado** con un arnés temporal (vite dev + Chrome headless, API simulada con los 99 PNG reales) en 1440 px y 420 px: rejilla, organizar, búsqueda + Enter, hover y lightbox. El arnés se borró. La barra de copias/Imprimir **no** se vio en navegador (necesita toda la pestaña con sesión); compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiquetas/EtiquetasStudioCatalogo.tsx`, `desktop/src/components/etiquetas/RecursoPngViewer.tsx`, `desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx`, `desktop/src/components/EtiquetasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiquetas: la casilla Composición no se llenaba desde la ficha técnica (aceites esenciales)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha de etiqueta ← ficha técnica)
+- **Qué se implementó:**
+  - **Causa:** `camposDesdeFichaTecnica` solo leía `composicion` de la raíz del YAML. En las fichas FT + COA + SDS la tabla de componentes se diligencia en la sección 3 del SDS (`_sds.composicion`) y la de la raíz queda `[]`: 194 de 201 fichas tienen la raíz vacía y 39 de ellas sí traen composición en el SDS — entre ellas 17 de los 20 aceites esenciales.
+  - **Arreglo:** si la composición de la FT está vacía se usa la del SDS (nombres de componentes separados por coma, como antes). Mismo cambio en las dos copias de la extracción: `lib/fichaTecnicaCampos.ts` (ficha de etiqueta actual) y `lib/etiquetaFormulario.ts` (formulario antiguo). La fórmula molecular sigue teniendo prioridad cuando existe; ningún aceite esencial la trae.
+  - Siguen sin composición en ningún lado: `aceite_esencial_rosas`, `aceite_esencial_tomillo`, `aceite_esencial_ylang_ylang` (fichas viejas sin SDS). En la mayoría de los `vacio_ft_coa_sds_*` el único componente es el propio aceite («Aceite esencial de menta piperita (Mentha × piperita)») porque falta el perfil GC del proveedor.
+  - Solo front; compilado y desplegado. Sin verificar en el panel (login Google).
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `desktop/src/lib/etiquetaFormulario.ts`, `docs/team-recaps.md`
+
+### 2026-09-17 - Fichas técnicas: Composición como tabla de 2 columnas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Fichas Técnicas → SDS)
+- **Qué se implementó:**
+  - La casilla **Composición** dejó de ser un cuadro de texto `componente|concentración`: ahora es una tabla **Componente · Porcentaje** con la misma mecánica que «Parámetros de análisis» (fila por componente, ✕ para quitar, + para agregar, «Limpiar tabla», botón IA en la cabecera). Aplica en los dos sitios donde aparece: el formulario SDS suelto y el de la ficha completa FT + COA + SDS (conserva el aviso «requerida para este tipo de insumo»).
+  - Nuevo `components/documentos/TablaComposicion.tsx`. El valor sigue viajando como texto `componente|porcentaje|CAS` por línea, así que IA, escáner, guardado (`filasTresDesdeTexto`) y Word no cambian. La tercera columna (CAS del componente, que ya traen varias fichas) **no se muestra pero se conserva** al editar. `|` y saltos de línea escritos en una celda se cambian por espacio.
+  - Solo front; compilado y desplegado. Sin verificar en el panel (login Google); pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/documentos/TablaComposicion.tsx` (nuevo), `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - COA y SDS: se quita «Nombre comercial»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas Técnicas → COA)
+- **Qué se implementó:**
+  - Formulario del Certificado de análisis (`FichasTecnicasPanel`, sección Identificación): se eliminó la casilla **Nombre comercial**. Al guardar, `identificacion.nombre_comercial` toma el **título** (antes era al revés), porque sin casilla ya no habría dónde corregir un nombre viejo; el dato se sigue guardando para lotes y búsquedas.
+  - PDF del documento completo (`app/templates/documento_completo_pdf.html`): se quitó la fila «Nombre comercial» de «Identificación del producto» del COA. El título del producto sigue en la cabecera. La plantilla se lee en cada render: no requiere reinicio.
+  - **Después, también en la hoja de seguridad:** se quitó la fila «Nombre comercial» de la sección 1 del SDS en el PDF y la casilla del formulario SDS suelto (guarda el título como nombre comercial, igual que el COA).
+  - **No se tocó:** el COA suelto en Word (`app/services/coa.py`), donde «Nombre comercial» es una celda fija de la plantilla .docx.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiqueta 102 × 38 mm: lema «Proveemos a tus ideas» bajo el logo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste de diseño (ficha de etiqueta → formato horizontal de tres paneles)
+- **Qué se implementó:**
+  - Panel central de la etiqueta de 102 × 38 mm (`etiqueta-30ml/CenterProductPanel.tsx`): debajo del logo va ahora el lema de la casa, la misma constante `ESLOGAN` de la ficha de 76 × 66 y de la vertical, en el color de acento. Pedido para la plantilla de Activos cosméticos; como la maqueta es única por formato, sale en todas las categorías que usan 102 × 38.
+  - La fila del logo **no crece** (sigue alineada con las filas de los paneles laterales): el logo cede alto al lema (`.e30-logo-con-lema`, lema de 18 px sobre 1200 px de ancho ≈ 4,3 pt impreso, ancho similar al del logotipo). El 5 mL reutiliza `.e30-logo` pero no lleva lema: la clase nueva solo se pone en el panel de 102 × 38.
+  - **Verificado** con arnés (LabelPreview real + logo morado): el lema queda centrado bajo el logo, sin mover nombre ni contenido neto. Arnés borrado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/CenterProductPanel.tsx`, `desktop/src/components/etiqueta-30ml/etiqueta30ml.css`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiquetas 250 / 500 g: el lienzo ya no se queda encogido ni deja huecos al editar textos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha de etiqueta → marco de formato)
+- **Qué se implementó:**
+  - **Problema:** en las plantillas con marco (Sales minerales 250 / 500 g y demás formatos de la ficha de dos columnas), al agrandar un texto o su tamaño de letra el lienzo se ensanchaba para que cupiera, pero al reducirlo **ya no volvía a bajar**: la etiqueta se quedaba pequeña, con una banda blanca bajo el pie (y, con el ancho en el tope, un margen vacío a la derecha). Además se ensanchaba de más, porque se medía con los campos de texto todavía al alto del ancho anterior.
+  - **Solución** (`ProductLabelForm.tsx`): el ancho de maquetación se busca de cero en cada cambio (datos, tamaños/fuentes, íconos, modo edición), probando anchos sobre el lienzo antes de pintar —ensanche proporcional + bisección— y se queda con el **menor** ancho al que el contenido cabe (texto lo más grande posible, mismo resultado subiendo que bajando). Los `<textarea>` se reajustan antes de medir (`ajustarAltoTextarea`, extraída de `EditableField.tsx`).
+  - Las filas del cuerpo ahora sí se reparten el alto sobrante (`flex-1` en vez de `h-full`, que contra un alto mínimo no se resuelve). Holgura de ajuste 0,1 % (antes 0,5 %, asomaba un filo a la derecha). Si ni en el tope cabe, la ficha se centra en el marco.
+  - **Verificado** con arnés (formulario real + datos de GLICINA 250 g): letra 18→48→15 y texto largo→corto, siempre sin hueco a la derecha ni abajo; formato 70×70 reparte filas. Arnés borrado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/EditableField.tsx`, `docs/team-recaps.md`

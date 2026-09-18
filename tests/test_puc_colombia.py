@@ -222,3 +222,28 @@ def test_ningun_alias_apunta_a_un_codigo_que_no_este_en_el_puc(libro):
     codigos = {c for c, _, _ in puc.PUC_MCKENNA}
     faltantes = [d for d in puc.ALIAS.values() if d not in codigos]
     assert faltantes == []
+
+
+def test_el_mapa_del_autopost_resuelve_codigos_migrados_sin_pisar_los_vivos(libro):
+    """Dos trampas a la vez, las dos vistas en producción.
+
+    (a) Tras migrar, `2380` queda INACTIVA y el mapa la devolvía igual: el
+        asiento se rechazaba con «cuenta inactiva» y 8 compras de socios
+        fallaron en el backfill de agosto.
+    (b) `529505` sí sigue viva —dejó de ser publicidad y hoy es Comisiones—, así
+        que aplicarle su alias mandaría las comisiones a publicidad.
+    """
+    cc, puc = libro
+    from app.services.contabilidad_autopost import _mapa_cuentas
+
+    puc.migrar(dry_run=False)
+    mapa = _mapa_cuentas(cc)
+
+    with cc._conn() as con:
+        id_2355 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='2355'").fetchone()["id"]
+        id_529505 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='529505'").fetchone()["id"]
+        id_523560 = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='523560'").fetchone()["id"]
+
+    assert mapa["2380"] == id_2355          # el código muerto resuelve al vivo
+    assert mapa["529505"] == id_529505      # y el vivo se queda donde está
+    assert mapa["529505"] != id_523560

@@ -255,11 +255,6 @@ export default function PagosWizardPanel() {
 // Lo que NO se quita: el asiento se ve antes de solicitar. Pedir un monto sin
 // ver contra qué cuenta va sigue siendo firmar a ciegas.
 
-const TIPOS_SERVICIO_PUBLICO = [
-  ["energia", "Energía"], ["acueducto", "Agua"], ["gas", "Gas"],
-  ["internet", "Internet / teléfono"], ["saas", "Software / SaaS"],
-] as const;
-
 function WizardSimple({
   onCerrar, onCreada, onError, onAvanzado,
 }: {
@@ -272,7 +267,7 @@ function WizardSimple({
   const [fecha, setFecha] = useState(hoy());
   const [medioPagoId, setMedioPagoId] = useState("");
   const [concepto, setConcepto] = useState<
-    "productos" | "servicios" | "flete_transporte" | "servicio_publico" | "saldo_por_pagar" | "impuestos"
+    "productos" | "servicios" | "saldo_por_pagar" | "impuestos"
   >("productos");
   // Quién asume la retención. Lo pactado con un prestador de servicios suele
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
@@ -285,7 +280,6 @@ function WizardSimple({
   const [icaActivo, setIcaActivo] = useState(false);
   const [icaPorMil, setIcaPorMil] = useState("");
   const [gmf, setGmf] = useState(false);
-  const [tipoServicio, setTipoServicio] = useState("energia");
   const [contrato, setContrato] = useState("");
   const [monto, setMonto] = useState("");
   const [detalle, setDetalle] = useState("");
@@ -319,10 +313,22 @@ function WizardSimple({
   });
   const cuentaSugerida = cat?.cuenta_sugerida ?? "";
 
-  const esPublico = concepto === "servicio_publico";
+  // El perfil tributario de la cuenta elegida: qué retención lleva, qué ICA
+  // propone y qué hay que mirar antes de firmar. Es lo que reemplazó a los
+  // botones de «Transporte» y «Servicios públicos».
+  const cuentaActual = cuentaDebito || cuentaSugerida;
+  const perfilCuenta = useMemo(
+    () => (cuentasPucQ.data?.cuentas ?? []).find((c) => c.codigo === cuentaActual) ?? null,
+    [cuentasPucQ.data, cuentaActual],
+  );
+  // Un servicio público se reconoce por su cuenta (513525/30/35/55) y por que
+  // esa cuenta no lleva retención. Lo único que sigue necesitando es el número
+  // de contrato, que es lo que permite identificar el recibo después.
+  const esPublico = /^5135(25|30|35|55)$/.test(cuentaActual);
   // Lo que Armando y Cynthia cobran entra por «Servicios» como el de cualquier
   // otro prestador: misma cuenta, mismas retenciones, mismo pago parcial.
-  const llevaRetencion = concepto === "productos" || concepto === "servicios";
+  const llevaRetencion =
+    (concepto === "productos" || concepto === "servicios") && Boolean(perfilCuenta?.concepto_retencion);
   const permiteParcial = Boolean(cat?.permite_parcial);
   const valor = num(monto);
 
@@ -346,7 +352,25 @@ function WizardSimple({
     }
     if (proveedor.gmf_por_defecto) setGmf(true);
     if (proveedor.cuenta_gasto_default) setCuentaDebito(proveedor.cuenta_gasto_default);
+    // También de qué cuenta se le paga: con eso, un pago que se repite cada mes
+    // llega con todo puesto y solo hay que escribir el valor.
+    if (proveedor.medio_pago_default) setMedioPagoId(String(proveedor.medio_pago_default));
   }, [proveedor?.id]);
+
+  // Al elegir la cuenta del PUC, el ICA que esa cuenta propone queda puesto —
+  // salvo que el tercero ya tenga una tarifa propia, que es más específica y
+  // manda. Un tercero en Régimen SIMPLE no lleva ICA de ninguna clase
+  // (Art. 911 E.T.), así que ahí ni se ofrece.
+  useEffect(() => {
+    if (!perfilCuenta || proveedor?.regimen_simple) {
+      if (proveedor?.regimen_simple) setIcaActivo(false);
+      return;
+    }
+    if (Number(proveedor?.ica_por_mil ?? 0) > 0) return;
+    const sugerido = Number(perfilCuenta.ica_por_mil ?? 0);
+    setIcaActivo(sugerido > 0);
+    setIcaPorMil(sugerido > 0 ? String(sugerido) : "");
+  }, [perfilCuenta?.codigo, proveedor?.id, proveedor?.regimen_simple]);
 
   useEffect(() => {
     // Cambiar de concepto invalida la cuenta elegida a mano: 513550 no tiene
@@ -360,14 +384,16 @@ function WizardSimple({
   const conceptoTexto = useMemo(() => {
     const quien = proveedor?.nombre ? ` — ${proveedor.nombre}` : "";
     if (esPublico) {
-      const tipo = TIPOS_SERVICIO_PUBLICO.find(([v]) => v === tipoServicio)?.[1] ?? "Servicios públicos";
-      return `Servicios públicos · ${tipo}${contrato ? ` · contrato ${contrato}` : ""}${quien}`;
+      // El nombre de la cuenta ya dice qué servicio es (Energía eléctrica, Gas…):
+      // no hace falta volver a preguntarlo en un desplegable aparte.
+      const tipo = perfilCuenta?.nombre ?? "Servicios públicos";
+      return `${tipo}${contrato ? ` · contrato ${contrato}` : ""}${quien}`;
     }
     const label = concepto === "productos" ? "Productos"
-      : concepto === "flete_transporte" ? "Transporte"
-      : concepto === "saldo_por_pagar" ? "Saldo pendiente" : "Servicios";
+      : concepto === "saldo_por_pagar" ? "Saldo pendiente"
+      : perfilCuenta?.nombre ?? "Servicios";
     return `${label}${quien}${detalle ? ` · ${detalle}` : ""}`;
-  }, [concepto, esPublico, tipoServicio, contrato, proveedor, detalle]);
+  }, [concepto, esPublico, perfilCuenta, contrato, proveedor, detalle]);
 
   const cuerpo = useMemo(() => ({
     categoria: concepto,
@@ -376,14 +402,13 @@ function WizardSimple({
     fecha,
     tercero_id: proveedor?.id ?? null,
     medio_pago_id: medioPagoId ? Number(medioPagoId) : null,
-    tipo_servicio: esPublico ? tipoServicio : "",
     referencia: esPublico ? contrato : "",
     retencion_modo: llevaRetencion ? retencionModo : "ninguna",
     ica_por_mil: icaActivo ? num(icaPorMil) : 0,
     cuenta_debito: cuentaDebito,
     gmf,
     ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
-  }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, tipoServicio, contrato,
+  }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
        llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial, pagaTodo, pagoAhora]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
@@ -409,12 +434,15 @@ function WizardSimple({
   const selectorConcepto = (
       <div>
         <p className="mb-1 text-xs font-bold uppercase text-muted">Concepto</p>
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Tres botones, no seis. «Transporte» y «Servicios públicos» eran la
+              misma pregunta que el selector de cuenta PUC de abajo, hecha con
+              otro vocabulario y capaz de contradecirlo: el botón fijaba el
+              impuesto y la cuenta fijaba el balance. Hoy se paga por Servicios
+              y se elige 513550 o 513530, y el impuesto sale de ahí. */}
           {([
             ["productos", "📦 Productos", "Mercancía del proveedor"],
-            ["servicios", "🧰 Servicios", "Servicios prestados a McKenna"],
-            ["flete_transporte", "🚚 Transporte", "Fletes, guías, acarreos"],
-            ["servicio_publico", "💡 Servicios públicos", "Con número de contrato"],
+            ["servicios", "🧰 Servicios", "Servicios, transporte, servicios públicos, honorarios"],
             ["saldo_por_pagar", "⏳ Saldo pendiente", "Girar lo que quedó debiendo de un pago anterior"],
             ["impuestos", "🏛️ Impuestos", "Retención, IVA, ICA: con el recibo del contador"],
           ] as const).map(([id, label, ayuda]) => (
@@ -482,19 +510,25 @@ function WizardSimple({
 
       {selectorConcepto}
 
-      {esPublico ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Campo label="Tipo de servicio">
-            <select value={tipoServicio} onChange={(e) => setTipoServicio(e.target.value)} className={inputCls}>
-              {TIPOS_SERVICIO_PUBLICO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Número de contrato">
-            <input value={contrato} onChange={(e) => setContrato(e.target.value)}
-                   placeholder="El que aparece en la factura" className={inputCls} />
-          </Campo>
-        </div>
-      ) : (
+      {/* La cuenta va antes del detalle y del valor porque es la que decide los
+          impuestos: verla después de haber llenado todo la convertía en un
+          trámite al final, y ahí es donde se deja la que venía puesta. */}
+      <SelectorCuentaPuc
+        cuentas={cuentasPucQ.data?.cuentas ?? []}
+        value={cuentaDebito}
+        sugerida={cuentaSugerida}
+        obligatoria={false}
+        onChange={setCuentaDebito}
+      />
+
+      {esPublico && (
+        <Campo label="Número de contrato">
+          <input value={contrato} onChange={(e) => setContrato(e.target.value)}
+                 placeholder="El que aparece en la factura" className={inputCls} />
+        </Campo>
+      )}
+
+      {!esPublico && (
         <Campo label="Detalle (opcional)">
           <input value={detalle} onChange={(e) => setDetalle(e.target.value)}
                  placeholder="Orden de compra, mes del servicio…" className={inputCls} />
@@ -506,18 +540,33 @@ function WizardSimple({
                placeholder="0" className={inputCls} />
       </Campo>
 
-      {!esPublico && (
-        <SelectorCuentaPuc
-          cuentas={cuentasPucQ.data?.cuentas ?? []}
-          value={cuentaDebito}
-          sugerida={cuentaSugerida}
-          obligatoria={false}
-          onChange={setCuentaDebito}
-        />
-      )}
-
       <div className="space-y-3 rounded-xl border-2 border-dashed border-border p-4">
         <p className="text-sm font-bold uppercase text-muted">Impuestos y retenciones</p>
+
+        {/* Lo que el sistema dedujo de la cuenta, con la norma. Sin esta línea
+            el operador no tiene cómo notar que la cuenta está mal elegida hasta
+            que el contador arma el 350 tres meses después. */}
+        {perfilCuenta && (
+          <div className="rounded-lg border border-border bg-surface px-3 py-2">
+            <p className="text-sm text-ink">
+              <span className="font-bold">{perfilCuenta.codigo}</span>{" "}
+              <span className="text-muted">{perfilCuenta.nombre}</span>
+              {": "}
+              {perfilCuenta.nota}
+            </p>
+            {perfilCuenta.advertencia && (
+              <p className="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                ⚠️ {perfilCuenta.advertencia}
+              </p>
+            )}
+            {proveedor?.regimen_simple && (
+              <p className="mt-1 text-sm font-semibold text-accent">
+                {proveedor.nombre} está en Régimen SIMPLE: no lleva retención de renta ni de ICA
+                (Art. 911 E.T.; el ICA va dentro del SIMPLE, Art. 907 E.T.), sea cual sea la cuenta.
+              </p>
+            )}
+          </div>
+        )}
 
         {llevaRetencion && (
           <div className="space-y-2">
@@ -548,13 +597,15 @@ function WizardSimple({
           </p>
         )}
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm">
-          <input type="checkbox" checked={icaActivo} onChange={(e) => setIcaActivo(e.target.checked)} className="mt-1" />
+        <label className={`flex items-start gap-2 text-sm ${proveedor?.regimen_simple ? "opacity-50" : "cursor-pointer"}`}>
+          <input type="checkbox" checked={icaActivo} disabled={Boolean(proveedor?.regimen_simple)}
+                 onChange={(e) => setIcaActivo(e.target.checked)} className="mt-1" />
           <span className="flex-1">
             <span className="font-bold text-ink">Lleva retención de ICA</span>
             <span className="block text-sm text-muted">
-              Tarifa por mil según el municipio y la actividad (Bogotá: 9,66 servicios · 11,04 comercial ·
-              4,14 industrial). Escríbela: no se adivina, y una tarifa equivocada sale del bolsillo de alguien.
+              La cuenta propone la tarifa de Bogotá (9,66 servicios · 11,04 comercial · 4,14 industrial) y
+              la ficha del tercero manda sobre ella. Cámbiala si el municipio o la actividad son otros:
+              una tarifa equivocada sale del bolsillo de alguien.
             </span>
             {icaActivo && (
               <span className="mt-2 flex items-center gap-2">
@@ -906,6 +957,7 @@ type Proveedor = {
   /** Cómo se le pagó la última vez: el wizard deja las casillas ya puestas. */
   retefuente_exento?: number; ica_por_mil?: number; gmf_por_defecto?: number;
   cuenta_gasto_default?: string;
+  medio_pago_default?: number;
 };
 type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string };
 type CotejoItem = { sku: string; nombre: string; encontrado: boolean; por?: string; cantidad_ok: boolean; precio_ok: boolean };
@@ -2292,6 +2344,11 @@ interface CuentaGasto {
   tipo: string;
   grupo: string;
   es_subcuenta: boolean;
+  /** Impuestos que trae la cuenta (app/services/impuestos_por_cuenta.py). */
+  concepto_retencion?: string;
+  ica_por_mil?: number;
+  nota?: string;
+  advertencia?: string;
 }
 
 /** Nombre del grupo del PUC, para agrupar el desplegable por familias. */
@@ -2347,7 +2404,16 @@ function SelectorCuentaPuc({
 
   return (
     <Campo label={obligatoria ? "Cuenta contable del gasto" : "Cuenta contable del gasto (PUC)"}>
-      <select value={actual} onChange={(e) => onChange(e.target.value)} className={inputCls}>
+      {/* Letra grande y tabular, y la jerarquía del PUC marcada en el texto:
+          el código en negrita para la cuenta mayor de 4 dígitos y sangrado con
+          «·» para la subcuenta o auxiliar que cuelga de ella. En un desplegable
+          nativo no se puede poner negrita por opción, así que la diferencia se
+          hace con el código —que es lo que se lee— y no con estilo. */}
+      <select
+        value={actual}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border-2 border-border bg-surface-input px-3 py-2.5 font-mono text-base font-bold tabular-nums text-ink"
+      >
         {!obligatoria && sugerida && (
           <option value={sugerida}>
             {sugerida} — la que propone la categoría
@@ -2355,17 +2421,26 @@ function SelectorCuentaPuc({
         )}
         {obligatoria && <option value="">Selecciona…</option>}
         {grupos.map(([g, cs]) => (
-          <optgroup key={g} label={`${g} · ${GRUPO_PUC[g] ?? "Otras"}`}>
+          <optgroup key={g} label={`━━ ${g} · ${(GRUPO_PUC[g] ?? "Otras").toUpperCase()} ━━`}>
             {cs.map((c) => (
               <option key={c.codigo} value={c.codigo}>
-                {c.es_subcuenta ? "   " : ""}{c.codigo} — {c.nombre}
+                {c.es_subcuenta ? `    · ${c.codigo}` : c.codigo}  {c.nombre}
               </option>
             ))}
           </optgroup>
         ))}
       </select>
+      {elegida && (
+        <p className="mt-1.5 text-sm text-ink">
+          <span className="font-mono text-base font-extrabold tabular-nums">{elegida.codigo}</span>{" "}
+          <span className="font-bold">{elegida.nombre}</span>
+          <span className="ml-1 text-muted">
+            {elegida.es_subcuenta ? "· subcuenta (el nivel que el contador espera)" : "· cuenta mayor"}
+          </span>
+        </p>
+      )}
       {elegida && !elegida.es_subcuenta && (
-        <p className="mt-1 text-[11px] text-muted">
+        <p className="mt-1 text-sm text-muted">
           {elegida.codigo} es una cuenta mayor. Si existe una subcuenta de 6 dígitos que
           encaje, el contador la prefiere — y Alegra solo acepta ese nivel.
         </p>

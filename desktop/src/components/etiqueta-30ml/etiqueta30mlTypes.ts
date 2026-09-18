@@ -83,7 +83,9 @@ export function reticula30ml(anchoMm?: number, altoMm?: number): Reticula30ml {
   const interior = alto - 2 * margen - 2 * borde;
   const franja = Math.round(interior * 0.15);
   const fila = (interior - franja) / 3;
-  const neto = Math.round(interior * 0.27);
+  // Banda del valor (= franja) más una pista corta para el título: el resto
+  // del alto lo usa el espacio del timbre, debajo de la tabla de pureza.
+  const neto = franja + 26;
   return {
     ancho: ANCHO_30ML,
     alto,

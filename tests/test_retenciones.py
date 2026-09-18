@@ -228,3 +228,55 @@ def test_el_pago_del_formulario_350_no_resta(monkeypatch, tmp_path):
         ],
     )
     assert resumen_periodo(2026, 10)["total_retencion"] == 12_500
+
+
+# ─── Conceptos añadidos en sep-2026 ────────────────────────────────────────
+
+def test_transporte_de_carga_va_al_uno_por_ciento():
+    """La tarifa no es una lectura nuestra de la norma: es la que el contador de
+    McKenna certificó —«SERVICIOS 1.0», base $17.377.500, retención $173.775—
+    en el certificado año gravable 2024 a NEXT ENVIOS S.A.S."""
+    from app.services.retenciones import calcular
+
+    r = calcular("transporte_carga", 1_998_000, anio=2026)
+    assert r["aplica"] is True
+    assert r["tarifa_pct"] == 1.0
+    assert r["retencion"] == pytest.approx(19_980, abs=1)
+    # Y reproduce el certificado.
+    assert calcular("transporte_carga", 17_377_500, anio=2024)["retencion"] == pytest.approx(173_775, abs=1)
+
+
+def test_transporte_de_carga_respeta_la_cuantia_minima():
+    from app.services.retenciones import calcular
+
+    # 4 UVT de 2026 = $209.496.
+    assert calcular("transporte_carga", 200_000, anio=2026)["aplica"] is False
+    assert calcular("transporte_carga", 250_000, anio=2026)["aplica"] is True
+
+
+def test_carga_y_pasajeros_no_comparten_tarifa():
+    """«Transporte es transporte» es como se aplica la tarifa equivocada."""
+    from app.services.retenciones import CONCEPTOS
+
+    assert CONCEPTOS["transporte_carga"][0] == 1.0
+    assert CONCEPTOS["transporte_pasajeros"][0] == 3.5
+
+
+def test_arrendamiento_distingue_inmueble_de_mueble():
+    from app.services.retenciones import calcular
+
+    # Un inmueble: 3,5% desde 27 UVT. Un mueble: 4% sin mínimo.
+    assert calcular("arrendamiento_inmueble", 3_000_000, anio=2026)["tarifa_pct"] == 3.5
+    assert calcular("arrendamiento_mueble", 100_000, anio=2026)["aplica"] is True
+    assert calcular("arrendamiento_mueble", 100_000, anio=2026)["retencion"] == pytest.approx(4_000, abs=1)
+
+
+def test_cada_concepto_tiene_su_subcuenta_de_2365():
+    """El contador arma el 350 por concepto; con todo en 2365 plana lo desglosa
+    a mano."""
+    from app.services.puc_colombia import cuenta_retencion
+    from app.services.retenciones import CONCEPTOS
+
+    for concepto in CONCEPTOS:
+        codigo = cuenta_retencion(concepto)
+        assert codigo.startswith("2365") and len(codigo) == 6, concepto

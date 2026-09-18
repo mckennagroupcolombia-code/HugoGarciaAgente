@@ -134,6 +134,14 @@
 .e5-etiqueta .e30-logo {
   padding: 8px 0;
 }
+/* Con lema: la fila no crece, el logo cede el alto (como en el 30 mL). */
+.e5-etiqueta .e30-logo-con-lema {
+  gap: 2px;
+  padding: 6px 0 5px;
+}
+.e5-lema {
+  font-size: 17px;
+}
 .e5-etiqueta .e30-logo-caja {
   width: 78%;
 }
@@ -204,21 +212,51 @@
   height: 50px;
 }
 
+/* Columna derecha de la fila 1: la tabla arriba y el timbre debajo. */
+.e5-ficha-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+}
+/* Espacio del timbre: mismo ancho que la tabla, ~3,5 mm de alto. */
+.e5-timbre {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 94%;
+  height: 62px;
+}
+.e30-editando .e5-timbre {
+  border: 1.5px dashed #b8b8b8;
+  border-radius: 4px;
+}
+.e5-timbre > span {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b0b0b0;
+}
+
 .e5-tabla {
   width: 94%;
   margin-right: 6px;
-  grid-template-rows: repeat(2, 42px);
-  border-width: 2.5px;
+  grid-template-rows: repeat(2, 38px);
+  border-width: 1.5px;
 }
 .e5-tabla .e30-tabla-campo {
   padding: 0 5px;
-  border-right-width: 2.5px;
+  border-right-width: 1.5px;
 }
 .e5-tabla .e30-tabla-valor {
   padding: 0 5px;
 }
 .e5-tabla .e30-tabla-fila1 {
-  border-bottom-width: 2.5px;
+  border-bottom-width: 1.5px;
 }
 
 /* Fila 2: el código de barras, a ancho completo del panel. No hay hueco de

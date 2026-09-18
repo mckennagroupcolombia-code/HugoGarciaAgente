@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-16T07:27:12"
+    "ultima_ejecucion": "2026-09-17T07:27:17"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-16T18:00:01"
+    "ultima_ejecucion": "2026-09-17T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,11 +45,11 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-16T07:05:00"
+    "ultima_ejecucion": "2026-09-17T07:05:49"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-16T06:51:10"
+    "ultima_ejecucion": "2026-09-17T06:51:06"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
@@ -57,23 +57,23 @@
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-16T09:02:05"
+    "ultima_ejecucion": "2026-09-17T09:01:53"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-16T09:05:02"
+    "ultima_ejecucion": "2026-09-17T09:05:01"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-17T01:30:01"
+    "ultima_ejecucion": "2026-09-17T22:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-09-17T00:10:14"
+    "ultima_ejecucion": "2026-09-17T18:10:32"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-16T07:36:19"
+    "ultima_ejecucion": "2026-09-17T07:36:54"
   },
   "anulaciones_ra": {
     "intervalo_horas": 168,
@@ -81,10 +81,10 @@
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-09-17T01:10:01"
+    "ultima_ejecucion": "2026-09-17T22:10:01"
   },
   "precios_trm": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": null
+    "ultima_ejecucion": "2026-09-17T08:40:02"
   }
 }

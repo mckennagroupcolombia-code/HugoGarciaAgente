@@ -117,6 +117,12 @@ def create_app():
         print(f"⚠️ Ventas directas: {e}")
 
     try:
+        from app.routes_grabaciones import register_grabaciones_routes
+        register_grabaciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Grabaciones de pantalla: {e}")
+
+    try:
         from app.routes_anulaciones import register_anulaciones_routes
         register_anulaciones_routes(app)
     except Exception as e:

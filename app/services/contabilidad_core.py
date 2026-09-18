@@ -211,6 +211,15 @@ def _migrar_columnas_v5() -> None:
             con.execute(
                 "ALTER TABLE cc_terceros ADD COLUMN regimen_simple INTEGER NOT NULL DEFAULT 0"
             )
+        # De qué cuenta se le paga habitualmente a este tercero. Completa la
+        # ficha de «pago recurrente»: con la cuenta del gasto y los impuestos ya
+        # guardados, un pago que se repite cada mes queda con todo puesto y solo
+        # hay que escribir el valor. Es lo que pidió el operador (sep-2026):
+        # volver a elegir lo mismo cada vez es donde se equivoca uno.
+        if "medio_pago_default" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN medio_pago_default INTEGER NOT NULL DEFAULT 0"
+            )
 
 
 def _ensure_gastos_personales() -> None:

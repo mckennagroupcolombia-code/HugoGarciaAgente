@@ -13,8 +13,9 @@
  *  - El texto de clasificación SGA y el bloque «Información técnica /
  *    Disponible en». Queda el pictograma GHS, que es lo exigible, y la
  *    dirección web en la franja inferior.
- *  - El hueco del timbre físico (lote y vencimiento): en el frasco de 5 mL va
- *    impreso en la tapa o en el estuche, y aquí se lo come el código.
+ *  - El hueco lateral del timbre junto al código: aquí el timbre físico (lote
+ *    y vencimiento) va debajo de la tabla Pureza/CAS, y el código conserva
+ *    todo el ancho del panel.
  *
  * Mismo objeto de datos que las demás etiquetas (`ProductLabelData`): el SKU,
  * la ficha técnica, el logo con su color, el autoguardado y la generación en
