@@ -2623,6 +2623,17 @@
       "bimestre": 4,
       "codigo": "7702360052646",
       "creado_at": "2026-09-17T15:17:26"
+    },
+    {
+      "id": "3dbeccd364b0",
+      "sku": "C-COCDESHILKg",
+      "nombre_producto": "COCO DESHIDRATADO 1000g",
+      "numero_producto": 237,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702370012647",
+      "creado_at": "2026-09-18T00:56:52"
     }
   ]
 }

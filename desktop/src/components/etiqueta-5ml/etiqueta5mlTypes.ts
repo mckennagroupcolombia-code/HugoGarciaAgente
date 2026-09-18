@@ -136,10 +136,12 @@ export interface Celda5ml {
 }
 
 /** Matriz 2 × 2 del panel izquierdo, en orden de lectura. Son cuatro de las
- *  seis celdas del 30 mL: las que un aceite esencial necesita en el frasco. */
+ *  seis celdas del 30 mL: las que un aceite esencial necesita en el frasco.
+ *  Orden en la matriz (fila a fila): Origen, Fórmula/Composición,
+ *  Conservación, Aroma. */
 export const CELDAS_5ML: readonly Celda5ml[] = [
-  { campo: "composition", titulo: "Fórmula molecular", icono: "composicion_matraz" },
   { campo: "origin", titulo: "Origen", icono: "origen_globo_meridianos" },
+  { campo: "composition", titulo: "Fórmula molecular", icono: "composicion_matraz" },
   { campo: "storage", titulo: "Conservación", icono: "conservacion_termometro" },
   { campo: "odor", titulo: "Aroma", icono: "aroma_nariz_percepcion" },
 ];

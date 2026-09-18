@@ -8943,3 +8943,51 @@ reenvio_alertas_banco: enviados=1 omitidos=0 destino=23jenniffergarcia@gmail.com
 ✅ Reporte enviado a WhatsApp con éxito.
 [auditor_canales 2026-09-17T22:30:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (637 min), +57 300 111 2233 (560 min), +57 314 462 5671 (353 min), +57 318 506 1041 (323 min), +57 318 243 2463 (67 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 3 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[cursor/wa-metricas-panel 7693bde] Auto-commit: actualizacion diaria 2026-09-17 23:00
+ 87 files changed, 8773 insertions(+), 2195 deletions(-)
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260917T160433.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260917T160704.png
+ create mode 100644 app/data/competencia_evidencias/MCO111_20260917T161211.png
+ create mode 100644 app/routes_grabaciones.py
+ create mode 100644 app/services/impuestos_por_cuenta.py
+ create mode 100644 app/tools/grabacion_pantalla.py
+ create mode 100644 desktop/scripts/copy-ocr-assets.mjs
+ create mode 100644 desktop/src/components/GrabacionPantalla.tsx
+ create mode 100644 desktop/src/components/SupervisorDestino.tsx
+ create mode 100644 desktop/src/components/documentos/TablaComposicion.tsx
+ create mode 100644 desktop/src/components/etiqueta-30ml/LemaLogo.tsx
+ create mode 100644 desktop/src/components/nav/DocsNavTabs.tsx
+ create mode 100644 desktop/src/lib/ocrMarca.ts
+ create mode 100644 tests/test_impuestos_por_cuenta.py
+ create mode 100644 tests/test_ledger_lectura_completa.py
+[2026-09-17 23:00:01] Commit local creado: 'Auto-commit: actualizacion diaria 2026-09-17 23:00'
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-17T23:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (667 min), +57 300 111 2233 (590 min), +57 314 462 5671 (383 min), +57 318 506 1041 (353 min), +57 318 243 2463 (97 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-17T23:00:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (667 min), +57 300 111 2233 (590 min), +57 314 462 5671 (383 min), +57 318 506 1041 (353 min), +57 318 243 2463 (97 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-17T23:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (697 min), +57 300 111 2233 (620 min), +57 314 462 5671 (413 min), +57 318 506 1041 (383 min), +57 318 243 2463 (127 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-17T23:30:03] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (697 min), +57 300 111 2233 (620 min), +57 314 462 5671 (413 min), +57 318 506 1041 (383 min), +57 318 243 2463 (127 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T00:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (650 min), +57 314 462 5671 (443 min), +57 318 506 1041 (413 min), +57 318 243 2463 (157 min), +57 320 720 9541 (83 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T00:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (650 min), +57 314 462 5671 (443 min), +57 318 506 1041 (413 min), +57 318 243 2463 (157 min), +57 320 720 9541 (83 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-08 → 2026-09-18…
+✅ Token de Mercado Libre refrescado exitosamente.
+   19 creado(s), 610 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T00:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (680 min), +57 314 462 5671 (473 min), +57 318 506 1041 (443 min), +57 318 243 2463 (187 min), +57 320 720 9541 (113 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T00:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (680 min), +57 314 462 5671 (473 min), +57 318 506 1041 (443 min), +57 318 243 2463 (187 min), +57 320 720 9541 (113 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-18T01:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (710 min), +57 314 462 5671 (503 min), +57 318 506 1041 (473 min), +57 318 243 2463 (217 min), +57 320 720 9541 (143 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T01:00:03] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 111 2233 (710 min), +57 314 462 5671 (503 min), +57 318 506 1041 (473 min), +57 318 243 2463 (217 min), +57 320 720 9541 (143 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T01:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (533 min), +57 318 506 1041 (503 min), +57 318 243 2463 (247 min), +57 320 720 9541 (173 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T01:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (533 min), +57 318 506 1041 (503 min), +57 318 243 2463 (247 min), +57 320 720 9541 (173 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-18T02:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (563 min), +57 318 506 1041 (533 min), +57 318 243 2463 (277 min), +57 320 720 9541 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T02:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (563 min), +57 318 506 1041 (533 min), +57 318 243 2463 (277 min), +57 320 720 9541 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
