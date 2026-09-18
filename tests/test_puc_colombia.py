@@ -247,3 +247,82 @@ def test_el_mapa_del_autopost_resuelve_codigos_migrados_sin_pisar_los_vivos(libr
     assert mapa["2380"] == id_2355          # el código muerto resuelve al vivo
     assert mapa["529505"] == id_529505      # y el vivo se queda donde está
     assert mapa["529505"] != id_523560
+
+
+# ─── La guía de cada cuenta (18-sep-2026) ──────────────────────────────────
+
+def test_toda_cuenta_del_plan_tiene_descripcion():
+    """La guía va pegada a la cuenta, no en un documento aparte: un manual en
+    otra parte es un manual que nadie abre."""
+    from app.services.puc_colombia import PUC_MCKENNA, descripcion
+
+    sin_guia = [c for c, _n, _t in PUC_MCKENNA if not descripcion(c)]
+    assert sin_guia == [], f"cuentas sin descripción: {sin_guia}"
+
+
+def test_una_subcuenta_nueva_hereda_la_guia_de_su_mayor():
+    from app.services.puc_colombia import descripcion
+
+    assert descripcion("513599") == descripcion("5135")
+    assert descripcion("999999") == ""
+
+
+def test_la_guia_avisa_donde_la_cuenta_se_usa_distinto_de_su_nombre():
+    """511095 se llama «Honorarios — otros» y es donde van las quincenas de
+    prestación de servicios; 5195 es el cajón de sastre. Son los dos sitios
+    donde alguien se equivoca, y la descripción tiene que decirlo."""
+    from app.services.puc_colombia import descripcion
+
+    assert "QUINCENAS" in descripcion("511095")
+    assert "SERVICIOS" in descripcion("511095")
+    assert "Cajón de sastre" in descripcion("5195")
+    assert "523550" in descripcion("513550")     # remite a la cuenta correcta
+
+
+def test_la_guia_viaja_con_la_cuenta_hasta_el_libro(monkeypatch, tmp_path):
+    import app.services.contabilidad_core as cc
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "t.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc._ensure()
+    cuenta = next(c for c in cc.listar_plan_cuentas() if c["codigo"] == "523550")
+    assert "cliente" in cuenta["descripcion"]
+    assert cuenta["concepto_retencion"] == "transporte_carga"
+    assert cuenta["ica_por_mil"] == 4.14
+
+
+def test_equivalentes_cubre_los_dos_sentidos(libro):
+    """Una consulta SQL por código tiene que seguir encontrando el dato.
+
+    `WHERE c.codigo = '2380'` dejó de devolver nada el día de la migración y el
+    panel de saldos con socios mostró CERO donde había $3,7M. No falló: devolvió
+    vacío, que es la forma más cara de fallar.
+    """
+    _cc, puc = libro
+
+    assert set(puc.equivalentes("2380")) == {"2380", "2355"}
+    assert set(puc.equivalentes("2355")) == {"2355", "2380"}   # también al revés
+    marcadores, params = puc.marcadores_sql("2355")
+    assert marcadores == "?,?" and set(params) == {"2355", "2380"}
+
+
+def test_el_saldo_con_socios_sobrevive_a_la_migracion(libro):
+    cc, puc = libro
+    from app.services import compras_socios
+
+    socio = cc.crear_tercero({"nombre": "Socio Uno", "tipo": "socio"})
+    with cc._conn() as con:
+        inventario = cc._cuenta_id_por_codigo(con, "1435")
+        pasivo = cc._cuenta_id_por_codigo(con, "2380")
+    cc.crear_movimiento(
+        fecha="2026-08-10", concepto="Compra del socio",
+        lineas=[{"cuenta_id": inventario, "debito": 500_000, "credito": 0},
+                {"cuenta_id": pasivo, "debito": 0, "credito": 500_000,
+                 "tercero_id": socio["id"]}],
+    )
+    antes = {s["nombre"]: s["saldo"] for s in compras_socios.saldo_socios()}
+    puc.migrar(dry_run=False)
+    despues = {s["nombre"]: s["saldo"] for s in compras_socios.saldo_socios()}
+
+    assert antes == {"Socio Uno": 500_000.0}
+    assert despues == antes      # el saldo no puede desaparecer al migrar

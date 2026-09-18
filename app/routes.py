@@ -11355,7 +11355,7 @@ def register_routes(app):
                           JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                           JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
                           LEFT JOIN cc_terceros t ON t.id = l.tercero_id
-                         WHERE c.codigo = '2380'
+                         WHERE c.codigo IN ('2355', '2380')
                          GROUP BY t.id
                         HAVING ROUND(SUM(l.credito - l.debito), 2) <> 0
                          ORDER BY saldo DESC

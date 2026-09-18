@@ -53,31 +53,12 @@ def _cuenta_id(cuentas_por_codigo: dict[str, int], codigo: str) -> int:
 
 
 def _mapa_cuentas(cc) -> dict[str, int]:
-    """Código PUC → id, resolviendo los códigos viejos a su cuenta vigente.
+    """Delega en `contabilidad_core.mapa_cuentas_por_codigo()`.
 
-    El diccionario se armaba con `solo_activas=False`, así que un código
-    migrado y desactivado (2380 → 2355) seguía resolviendo a la cuenta MUERTA y
-    `crear_movimiento` rechazaba el asiento con «cuenta inactiva». Las compras
-    de socios (`compra_exterior`) lo pedían por su código viejo y fallaron 8
-    veces en el backfill de agosto.
-
-    Las inactivas se cargan primero y las activas después, para que un código
-    reutilizado se quede con la cuenta viva; y cada alias apunta a su destino.
+    La lógica vive allá, que es el módulo dueño de la tabla: tenerla duplicada
+    acá fue lo que hizo que este camino no viera los alias de la migración.
     """
-    from app.services.puc_colombia import ALIAS
-
-    activas = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=True)}
-    mapa = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=False)}
-    mapa.update(activas)
-    for viejo, nuevo in ALIAS.items():
-        # El alias SOLO vale para un código que ya no existe vivo. `529505` sí
-        # existe: dejó de ser publicidad y hoy es «Comisiones», así que aplicarle
-        # su alias mandaría las comisiones a publicidad — el mismo cruce que la
-        # migración tuvo que ordenar con cuidado. Un código activo manda sobre
-        # cualquier alias que lo mencione.
-        if viejo not in activas and nuevo in activas:
-            mapa[viejo] = activas[nuevo]
-    return mapa
+    return cc.mapa_cuentas_por_codigo()
 
 
 def _lineas_creditos_adquiridos(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -> list[dict]:

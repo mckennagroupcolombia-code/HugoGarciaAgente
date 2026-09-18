@@ -129,6 +129,11 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     ("519595", "Diversos — otros", "gasto"),
     # ── 5 Gastos · 52 Operacionales de ventas ──
     ("5235", "Servicios (ventas)", "gasto"),
+    # El flete de la mercancía que sale hacia el cliente es gasto de VENTAS, no
+    # de administración: 523550, no 513550. Lo indicó el contador el 18-sep-2026
+    # para la mensajería (Fidel Rocha / Interrapidísimo). 513550 se queda para
+    # el transporte administrativo.
+    ("523550", "Transporte, fletes y acarreos (ventas)", "gasto"),
     ("523560", "Publicidad, propaganda y promoción", "gasto"),
     ("5295", "Diversos (ventas)", "gasto"),
     ("529505", "Comisiones", "gasto"),
@@ -181,6 +186,152 @@ ALIAS: dict[str, str] = {
 
 # Concepto de retención → subcuenta de 2365. El contador arma el formulario 350
 # por concepto; con todo en 2365 plana tiene que desglosarlo a mano.
+# ─── Qué operación vive en cada cuenta ─────────────────────────────────────
+#
+# La guía que el contador —o cualquiera que abra el Libro Mayor dentro de un
+# año— necesita para saber qué significa un saldo sin tener que preguntarle a
+# quien lo asentó. Va pegada a la cuenta, no en un documento aparte: un manual
+# en otra parte es un manual que nadie abre.
+#
+# Es la NATURALEZA de la operación, no su tratamiento tributario — eso vive en
+# `impuestos_por_cuenta.py` y el panel muestra los dos juntos. Donde una cuenta
+# de McKenna se usa distinto de lo que su nombre del PUC sugiere, se dice aquí:
+# es justo el punto donde alguien se equivoca.
+DESCRIPCIONES: dict[str, str] = {
+    # ── 1 Activo ──
+    "1105": "Efectivo en poder de la empresa.",
+    "110505": "Caja general.",
+    "1110": "Saldos en cuentas bancarias. Se mueve cuando la plata sale o entra del banco de verdad, "
+             "no cuando se causa la obligación.",
+    "111005": "Bancolombia y demás cuentas en pesos.",
+    "1120": "Cuentas de ahorro.",
+    "1125": "Fondos de inversión.",
+    "112515": "Fondos especiales en moneda nacional.",
+    "1325": "Lo que los socios le DEBEN a McKenna. Ojo con el sentido: lo que McKenna les debe a "
+            "ellos va en 2355, y confundirlas invierte el signo del patrimonio.",
+    "1370": "Préstamos que McKenna otorgó a particulares. El capital prestado, no los intereses.",
+    "1405": "Materias primas en bodega.",
+    "1435": "Mercancía para la venta. Entra al comprar y sale al costo cuando se vende (6135).",
+    # ── 2 Pasivo ──
+    "2105": "Créditos con bancos y entidades financieras.",
+    "2195": "Otras obligaciones financieras.",
+    "219505": "Préstamos recibidos de PARTICULARES (familiares, terceros que consignaron dinero a la "
+              "empresa). No son socios: lo de los socios va en 2355.",
+    "2205": "Lo que se le debe a proveedores por facturas ya recibidas y aún no pagadas.",
+    "2335": "Costos y gastos ya causados que quedaron por pagar. Es donde queda el saldo cuando un "
+            "servicio se causa completo y se gira solo una parte.",
+    "2355": "Lo que McKenna le DEBE a los socios: reintegros de compras que hicieron con su tarjeta "
+            "personal, cuota de manejo y saldos a su favor. Lo inverso de 1325.",
+    "235510": "Saldos a favor de cada socio.",
+    "2365": "Retención en la fuente PRACTICADA a terceros, que McKenna consigna a la DIAN a nombre "
+            "de ellos. No es un impuesto propio: es plata de otro que está de paso. Se declara en "
+            "el formulario 350 y por eso se lleva en subcuentas por concepto.",
+    "236515": "Retención practicada por honorarios (10% / 11%).",
+    "236520": "Retención practicada por comisiones (10% / 11%).",
+    "236525": "Retención practicada por servicios (4% / 6%) y por transporte de carga (1%).",
+    "236530": "Retención practicada por arrendamientos (3,5% inmuebles / 4% muebles).",
+    "236535": "Retención practicada por rendimientos financieros (7%): los intereses de los "
+              "préstamos de particulares.",
+    "236540": "Retención practicada por compras de bienes (2,5% / 3,5%).",
+    "236595": "Retención practicada por conceptos sin subcuenta propia.",
+    "2367": "IVA retenido a terceros (reteIVA). Igual que la 2365: plata de otro que se consigna a "
+            "la DIAN, no impuesto propio.",
+    "2368": "ICA retenido a terceros (reteICA), que se consigna a la Secretaría de Hacienda de "
+            "Bogotá. Es municipal, no va en el 350 sino en la declaración bimestral de RTICA.",
+    "2404": "Impuesto de renta que McKenna debe como contribuyente (formulario 110).",
+    "2408": "IVA por pagar: el generado en ventas menos el descontable en compras (formulario 300).",
+    "240805": "IVA generado en las ventas. No es ingreso de McKenna: se cobra al cliente y se gira "
+              "a la DIAN. Ojo: hay materias primas excluidas (Art. 424 E.T.), así que no se calcula "
+              "dividiendo el total por 1,19 — sale de las facturas emitidas.",
+    "240810": "IVA descontable pagado en las compras, que resta del generado.",
+    "2412": "ICA propio de McKenna por su actividad comercial (declaración anual). Distinto de la "
+            "2368, que es lo retenido a otros.",
+    # ── 3 Patrimonio ──
+    "3115": "Capital aportado por los socios.",
+    # ── 4 Ingresos ──
+    "4135": "Venta de mercancía por todos los canales: MercadoLibre, tienda web y venta directa. "
+            "Va SIN el IVA, que se reconoce aparte en 240805.",
+    "4175": "Devoluciones y anulaciones de ventas. Resta del ingreso.",
+    "4295": "Ingresos que no vienen de vender mercancía.",
+    # ── 5 Gastos de administración ──
+    "5105": "Sueldos de personal con CONTRATO LABORAL. ⚠️ McKenna no tiene trabajadores formales: "
+            "lo que se paga cada quincena es prestación de servicios y va en 511095. Usar esta "
+            "cuenta afirma una relación laboral que no existe.",
+    "510506": "Sueldos.",
+    "5110": "Honorarios: contador, abogado, asesorías profesionales.",
+    "511025": "Asesoría jurídica.",
+    "511030": "Asesoría financiera.",
+    "511035": "Asesoría técnica.",
+    "511095": "⚠️ Pese al nombre, es donde van las QUINCENAS de quienes prestan servicios a McKenna "
+              "sin ser nómina (Víctor, Stella, Jenniffer, y lo que cobran los socios). Llevan "
+              "retención de SERVICIOS (4% / 6%), no la de honorarios; a estas personas el contador "
+              "pidió no practicarles renta pero sí ICA.",
+    "5115": "Impuestos que son gasto de la operación (no los que se retienen a terceros).",
+    "5120": "Arriendo de oficina, bodega y equipos.",
+    "5130": "Primas de seguros.",
+    "5135": "Servicios prestados a McKenna por terceros. Es la cuenta genérica: si existe una "
+            "subcuenta que encaje, va ahí — de esas subcuentas salen los renglones del estado de "
+            "resultados.",
+    "513505": "Aseo y vigilancia.",
+    "513515": "Asistencia técnica.",
+    "513520": "Software, SaaS y procesamiento de datos.",
+    "513525": "Acueducto y alcantarillado.",
+    "513530": "Energía eléctrica.",
+    "513535": "Teléfono e internet.",
+    "513550": "Transporte y fletes del área ADMINISTRATIVA. El flete de la mercancía que sale hacia "
+              "el cliente no va aquí: va en 523550, que es gasto de ventas.",
+    "513555": "Gas.",
+    "513595": "Servicios que no encajan en las subcuentas anteriores.",
+    "5140": "Trámites legales: cámara de comercio, notarías, registros.",
+    "514010": "Renovación del registro mercantil.",
+    "514095": "Otros gastos legales.",
+    "5145": "Mantenimiento y reparación de equipos e instalaciones.",
+    "514515": "Mantenimiento de maquinaria y equipo.",
+    "5155": "Gastos de viaje y desplazamiento.",
+    "5195": "⚠️ Cajón de sastre. Si una compra cae aquí suele ser que falta clasificarla: llegó a "
+            "acumular $3,17M donde el 47% eran fletes y el 40% el registro mercantil. Antes de "
+            "usarla, buscar la cuenta que corresponde.",
+    "519510": "Libros, suscripciones y publicaciones.",
+    "519525": "Elementos de aseo y cafetería.",
+    "519595": "Diversos sin clasificar.",
+    # ── 5 Gastos de ventas ──
+    "5235": "Servicios contratados para el área comercial.",
+    "523550": "Flete de la mercancía que SALE hacia el cliente: mensajería, guías, despachos. Es "
+              "gasto de ventas porque es costo de entregar lo vendido. El transporte "
+              "administrativo va en 513550.",
+    "523560": "Publicidad y promoción. La de MercadoLibre viene en su factura mensual y se cobra "
+              "contra el saldo de MercadoPago, no por el banco.",
+    "5295": "Gastos diversos del área de ventas.",
+    "529505": "Comisiones de venta, incluidas las que cobra MercadoLibre.",
+    # ── 5 Gastos no operacionales ──
+    "5305": "Gastos financieros.",
+    "530505": "Cuotas de manejo, chequeras y demás cobros del banco.",
+    "530515": "Comisiones financieras.",
+    "530520": "Intereses pagados, incluidos los de los préstamos de particulares.",
+    "530595": "GMF 4x1000. Lo cobra el banco sobre lo que sale y es gasto de McKenna: no se le "
+              "descuenta a nadie. Bancolombia lo cobra en una línea diaria, no pegado a cada "
+              "transferencia.",
+    # ── 6 Costos ──
+    "6135": "Costo de la mercancía vendida: lo que salió de 1435 al venderse.",
+    "6205": "Costo de la materia prima transformada.",
+}
+
+
+def descripcion(codigo: str) -> str:
+    """Para qué sirve esa cuenta, o cadena vacía si no está documentada.
+
+    Si el código exacto no está, hereda de su cuenta mayor: una subcuenta nueva
+    sin descripción propia dice algo útil antes que nada.
+    """
+    c = str(codigo or "").strip()
+    if c in DESCRIPCIONES:
+        return DESCRIPCIONES[c]
+    for corte in (6, 4, 2):
+        if len(c) > corte and c[:corte] in DESCRIPCIONES:
+            return DESCRIPCIONES[c[:corte]]
+    return ""
+
+
 CUENTA_RETENCION: dict[str, str] = {
     "compras": "236540",
     "servicios": "236525",
@@ -206,6 +357,35 @@ def resolver(codigo: str) -> str:
     """Código PUC real para un código que puede ser viejo. Idempotente."""
     c = str(codigo or "").strip()
     return ALIAS.get(c, c)
+
+
+def equivalentes(*codigos: str) -> tuple[str, ...]:
+    """Todos los códigos que designan la misma cuenta: el vigente y los viejos.
+
+    Para consultas SQL que filtran por código. Una query con
+    `WHERE c.codigo = '2380'` dejó de devolver nada el día de la migración —los
+    datos se movieron a 2355— y el panel de saldos con socios mostró CERO donde
+    había $3,7M. No falló: devolvió vacío, que es la forma más cara de fallar.
+
+    Se incluyen los dos sentidos (el viejo por si algo quedó sin migrar, el
+    nuevo porque es donde vive el dato) para que la consulta sea correcta
+    durante y después de una migración.
+    """
+    out: list[str] = []
+    for codigo in codigos:
+        c = str(codigo or "").strip()
+        if not c:
+            continue
+        for x in (c, ALIAS.get(c, c), *[v for v, d in ALIAS.items() if d == c]):
+            if x not in out:
+                out.append(x)
+    return tuple(out)
+
+
+def marcadores_sql(*codigos: str) -> tuple[str, tuple[str, ...]]:
+    """`("?,?,?", ("2380", "2355"))` — para meter `equivalentes()` en un IN."""
+    eq = equivalentes(*codigos)
+    return ",".join("?" for _ in eq), eq
 
 
 def cuenta_retencion(concepto: str) -> str:

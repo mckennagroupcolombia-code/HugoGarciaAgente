@@ -89,13 +89,19 @@ def test_lo_que_el_operador_define_queda_guardado_para_la_proxima(mods):
     w.crear_solicitud(_pago(persona, medio, ica_por_mil=9.66, gmf=True,
                             retencion_modo="ninguna", cuenta_debito="511095"))
 
+    # La exención de renta NO se aprende del pago (cambio del 18-sep-2026): al
+    # dejar de preguntarle el modo al operador, «ninguna» pasó a ser una
+    # consecuencia de la CUENTA —un servicio público no retiene— y no una
+    # afirmación sobre el tercero. Aprender de ahí desmarcaría a los
+    # autorretenedores de verdad en cuanto se les pagara por una cuenta que sí
+    # retiene. Se cambia en la ficha del tercero, que es donde se sabe.
     assert _perfil(cc, persona["id"]) == {
-        "retefuente_exento": 1, "ica_por_mil": 9.66,
+        "retefuente_exento": 0, "ica_por_mil": 9.66,
         "gmf_por_defecto": 1, "cuenta_gasto_default": "511095",
     }
-    # Y el siguiente pago ya no necesita que se lo digan.
+    # Lo que sí se arrastra: el ICA y el 4x1000 no hay que volver a marcarlos.
     prev = w.previsualizar(_pago(persona, medio))
-    assert prev["retencion"] == 0 and prev["retencion_ica"] > 0 and prev["gmf"] > 0
+    assert prev["retencion_ica"] > 0 and prev["gmf"] > 0
 
 
 def test_lo_que_el_pago_no_menciona_no_se_sobreescribe(mods):
@@ -108,7 +114,8 @@ def test_lo_que_el_pago_no_menciona_no_se_sobreescribe(mods):
     perfil = _perfil(cc, persona["id"])
     assert perfil["ica_por_mil"] == 9.66     # sigue ahí
     assert perfil["gmf_por_defecto"] == 1
-    assert perfil["retefuente_exento"] == 1  # esto sí lo trajo el pago
+    # Y la exención tampoco se toca desde el pago, en ningún sentido.
+    assert perfil["retefuente_exento"] == 0
 
 
 def test_a_un_regimen_simple_no_se_le_aprende_nada(mods):

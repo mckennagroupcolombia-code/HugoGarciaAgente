@@ -516,7 +516,11 @@ def opciones(categoria: str) -> dict:
                          JOIN cc_movimientos m ON m.id = l.movimiento_id AND m.estado <> 'anulado'
                          JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
                          JOIN cc_terceros t ON t.id = l.tercero_id
-                        WHERE c.codigo IN ('2380', '2367')
+                        -- Códigos vigentes y sus equivalentes previos a la
+                        -- migración al PUC: 2380→2355 (socios) y 2367→2335
+                        -- (costos y gastos por pagar). Preguntar solo por los
+                        -- viejos devolvía vacío y la lista salía en blanco.
+                        WHERE c.codigo IN ('2355', '2380', '2335', '2367')
                         GROUP BY t.id, c.codigo
                        HAVING saldo > 0
                         ORDER BY saldo DESC"""

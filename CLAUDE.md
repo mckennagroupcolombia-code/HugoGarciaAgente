@@ -682,6 +682,46 @@ solo. `cuentas_gasto()` devuelve el perfil de cada cuenta para que el panel deje
 puestas, y `cc_terceros.medio_pago_default` completa la ficha de pago recurrente (cuenta del gasto
 + impuestos + de qué cuenta sale) para no volver a elegir lo mismo cada mes.
 
+**Cada cuenta lleva su guía, y el wizard ya no pregunta impuestos (18-sep-2026).**
+`puc_colombia.DESCRIPCIONES` documenta **las 79 cuentas** del plan: qué operación vive en cada una,
+en el lenguaje del negocio y señalando donde McKenna la usa distinto de lo que su nombre del PUC
+sugiere (511095 son las **quincenas de prestación de servicios** pese a llamarse «Honorarios —
+otros»; 5195 es el **cajón de sastre** que ya acumuló $3,17M mal clasificados; 513550 remite a
+523550 para el flete de ventas). `contabilidad_core._con_guia()` la pega a **toda** cuenta que sale
+de `listar_plan_cuentas` / `obtener_cuenta`, junto con el efecto tributario de
+`impuestos_por_cuenta`, así que viaja sola al **árbol del PUC** (tooltip), al **extracto**
+(cabecera), al **PDF** y al **CSV** que se le manda al contador. Van en dos fuentes a propósito: la
+descripción dice QUÉ operación es y la nota tributaria QUÉ impuestos acarrea — se corrigen por
+razones distintas. `descripcion()` hereda de la cuenta mayor, así que una subcuenta nueva dice algo
+útil antes que nada; un test exige que ninguna cuenta de `PUC_MCKENNA` quede sin guía.
+
+**El wizard informa los impuestos en vez de preguntarlos.** Se quitaron «¿quién asume la
+retención?», «¿lleva retención de ICA?» y la casilla del 4x1000 del recorrido principal: la
+respuesta ya está en los datos —la **cuenta** dice el concepto y la tarifa, la **ficha del tercero**
+dice si está exento, si es del SIMPLE y con qué ICA— y contestarlas bien doce veces al año y
+olvidarlo una es lo que produjo los $164.542 retenidos de más en septiembre. Ahora el bloque muestra
+la cuenta con su descripción y **las cifras reales calculadas por el backend** (retefuente, ReteICA,
+GMF) con el motivo de cada una; los ceros también se muestran, porque «$0 porque es autorretenedor»
+dice más que una casilla sin marcar. Queda **«Ajustar»**, plegado, para lo único que el PUC no puede
+saber: el gross-up («te pago libre de retención» es un acuerdo comercial), la tarifa de ICA de otro
+municipio y el GMF. El default de `retencion_modo` pasó de `mckenna` a **`beneficiario`** — lo normal
+es descontársela a quien cobra; el gross-up es la excepción y vive en la ficha del tercero.
+
+**Mensajería: 523550 + 1 % + ReteICA 4,14 ‰ (18-sep-2026).** El contador fijó cómo se contabiliza el
+servicio de mensajería: gasto **523550 Transporte, fletes y acarreos (ventas)** —el flete de la
+mercancía que sale al cliente es gasto de VENTAS; 513550 se queda para el transporte
+administrativo—, **retefuente 1 %** y **ReteICA 4,14 por mil** (transporte, Bogotá). Las dos tarifas
+reproducen al peso el certificado que él mismo expidió a NEXT ENVIOS por 2024 ($173.775 y $71.943
+sobre base $17.377.500), así que no son una lectura nuestra de la norma. El operador solo escribe el
+valor: la cuenta y el ICA salen de la ficha del tercero y la retención del perfil de la cuenta.
+
+⚠️ **Fidel Rocha quedó DESMARCADO de Régimen SIMPLE** por esto. Retener es incompatible con el
+Art. 911 E.T., así que sostener las dos cosas a la vez era imposible y la bandera habría anulado
+justo las retenciones que el contador pidió practicar. **Pendiente: pedirle el RUT** para confirmar
+el régimen; si resultara estar en el SIMPLE hay que devolverle lo retenido y volver a marcarlo. Lo
+anterior a esta fecha se pagó completo y **se deja como está** (decisión del usuario): los asientos
+5396-5399 de jul-ago 2026 van contra 513550 y sin retención.
+
 **Transporte de carga al 1 %** (`retenciones.CONCEPTOS["transporte_carga"]`, 4 UVT). Estuvo fuera
 de la tabla a propósito hasta sep-2026 —«inventar la tarifa le sale del bolsillo a alguien»— pero
 ya no se está inventando: el propio contador la certificó al **1 %** («SERVICIOS 1.0», base
@@ -710,6 +750,109 @@ siendo sujeto de ICA (Víctor, Stella, Jenniffer); acá el tercero no es sujeto 
 Caso que lo destapó: Fidel Rocha Morón (CC 9.385.573), que facturó como NEXT ENVIOS S.A.S hasta la
 FV1637 del 2024-05-01 y desde jun-2024 cobra como persona natural del SIMPLE con cuenta de cobro
 (Art. 616-2 E.T.) — el contador nunca le practicó retención y **hace bien**.
+
+**Perfil tributario desde las facturas electrónicas (18-sep-2026).**
+`app/services/perfil_tributario_dian.py` lee los XML `AttachedDocument` UBL 2.1 que
+`sincronizar_facturas_de_compra_siigo.py` ya guarda en `facturas_descargadas/` (2.235 archivos, 113
+emisores) y saca de `AccountingSupplierParty/cbc:TaxLevelCode` las **responsabilidades fiscales del
+RUT** de cada proveedor: `O-15` autorretenedor y `O-47` Régimen SIMPLE son las que cambian cuánto se
+gira. Así se obtiene la información de la DIAN sin acceso privilegiado: (1) el **correo**, que es la
+entrega con validez legal (Res. 042/2020) y es lo que ya cosechamos; (2) el portal
+`catalogo-vpfe.dian.gov.co` → «Documentos recibidos», descarga en lote, sin API de listado; (3) el
+SOAP `vpfe.dian.gov.co/WcfDianCustomerServices.svc`, que emite y consulta UN documento por CUFE pero
+**no lista lo recibido**.
+
+⚠️ **Propone, nunca aplica.** `TaxLevelCode` lo escribe el emisor sobre sí mismo y puede estar mal:
+**DUQUE SALDARRIAGA (860508007) se declara `O-47` SIMPLE en 10 de sus 64 facturas y es régimen común
+autorretenedor.** Por eso cada propuesta muestra «en N de M facturas» — la proporción es la señal (los
+falsos salen en minoría: Duque 10/64, Envasar 14/42; los ciertos en bloque: Sodimac 114/114) — y
+`aplicar()` exige que alguien decida y deja traza con fecha, quién y por qué. `descartar()` registra
+el «no» junto con la evidencia del momento y la propuesta **vuelve si el respaldo se duplica**: una
+lista que no converge deja de leerse, y un «no» con 10 facturas no debe silenciar el aviso cuando ya
+son 60. El XML **no** trae la retención que McKenna debe practicar (`WithholdingTaxTotal` son las del
+emisor) ni a quien no factura electrónicamente — una cuenta de cobro del Art. 616-2 jamás aparece ahí,
+que es el caso de la mensajería de Fidel Rocha: cero facturas en 2.235 XML.
+
+⛔ **El registro de facturas de compra quedó APAGADO (18-sep-2026).** Era el paso doble: la compra
+se pagaba por Solicitudes de pago y después se volvía a registrar cuando llegaba la factura, con
+riesgo de contarla dos veces y en el orden al revés —el documento llega después de que la plata ya
+se comprometió—. Se apagaron los **dos** caminos: `sincronizar_facturas_de_compra_siigo()` (por NIT)
+y `procesar_facturas_para_importar_productos()` con sus comandos de WhatsApp `inv ok / inventario /
+gasto`. **`inv skip` sigue vivo** a propósito: quedaron facturas encoladas de antes y sin él la cola
+no se podría vaciar nunca. Bandera: `FACTURAS_COMPRA_REGISTRO_ACTIVO=1` lo reactiva.
+
+⚠️ **Lo que NO se apagó es la descarga de los XML** (`descargar_xml_facturas_compra()`, que corre en
+los dos caminos deshabilitados). No es un detalle: esos XML en `facturas_descargadas/` son la fuente
+de `perfil_tributario_dian.py`, que saca de `cbc:TaxLevelCode` quién es autorretenedor (O-15) y
+quién está en Régimen SIMPLE (O-47) — el dato que decide cuánto se le retiene a cada proveedor.
+Apagar el módulo entero habría dejado ese perfil congelado sin que nadie lo notara. El botón del
+panel se renombró a «Bajar XML de facturas».
+
+**La compra se contabiliza con la cotización, no con la factura (18-sep-2026).** «Productos» del
+wizard simple ya no pide un valor global: se eligen las **materias primas por su referencia** del
+catálogo de Alegra con la cantidad y el precio de la cotización del proveedor, y el asiento la
+reproduce **renglón por renglón** contra 1435. El objetivo es no registrar la compra dos veces —una
+para pagarla y otra para contabilizarla cuando llegue la factura—, que es lo que hoy hace el módulo
+de facturas de compra. `productos_opcionales` deja pasar el insumo que no está en el catálogo con
+un valor global: bloquearlo empujaría al operador a «Otro», donde se pierden la retención y la
+cuenta.
+
+Tres cosas que el picker hacía mal y se corrigieron en `pagos_proveedor.productos()`:
+- **Mezclaba combos con materias primas.** En Alegra conviven `type="product"` (la materia prima
+  suelta, `CITCALg` = citrato de calcio por gramo, que es lo que el proveedor despacha) y
+  `type="kit"` (el combo `C-CITCAL500g` que McKenna arma y vende). Una compra entra por el primero;
+  ahora los combos quedan fuera salvo `incluir_combos=True`.
+- **El precio salía siempre en 0**: leía `price` y el catálogo lo guarda en `precio_lista`.
+- **Suponía IVA 19% a todo.** **254 de los 316 productos están EXCLUIDOS** (Art. 424 E.T.), así que
+  el IVA sale de cada ítem del catálogo, no de un default.
+
+⚠️ **El IVA del catálogo de Alegra NO es confiable para comprar.** Probado el 18-sep-2026 con la
+cotización real PRE0031580 de Factores y Mercadeo (14 materias primas): la misma sustancia está
+marcada **19% como `kit`** (el combo que McKenna vende) y **0% como `product`** (la materia prima)
+—alulosa, gelatina e inulina, las tres—, y el reparto es un espejo exacto entre los dos tipos
+(80% de los kits en 19, 80% de los productos en 0): ese flag nunca se curó para los insumos.
+Armando el asiento con él, esa cotización daba **$0 de IVA contra los $619.115 reales**.
+
+Por eso el IVA del catálogo es **solo un punto de partida** y el control real es
+**`total_documento`**: el operador teclea el total de la cotización o factura y el sistema exige
+que las líneas lo sumen. Como total = base + IVA, una tarifa mal puesta hace que no dé.
+`previsualizar()` devuelve `aviso_documento` y `enviar_a_aprobacion()` **rechaza** el descuadre —
+se puede guardar un borrador a medias, pero no se aprueba un asiento que dice algo distinto de la
+factura que lo sustenta. El campo es opcional: hay compras sin documento a la mano y bloquearlas
+empujaría al operador fuera del wizard.
+
+Con el IVA tomado del documento, esa cotización reproduce **todas** sus cifras al centavo:
+mercancía $4.531.500 · IVA $619.115 · retención 2,5% $113.287,50 · **girado $5.037.327,50**, que es
+el «Total General» del documento — el proveedor ya descuenta la retención en su cotización.
+
+⚠️ **El IVA ya no se carga a inventario.** Antes el asiento debitaba a 1435 el total **con IVA**:
+inflaba el inventario con un impuesto que no es costo de la mercancía —es un crédito contra la
+DIAN— y dejaba el formulario 300 imposible de armar leyendo el libro. Ahora va a **240810 IVA
+descontable**, que es la mitad que faltaba del 300 (`iva_ventas.py` ya cubría la otra).
+
+Dos defectos de `aprobar()` que esto destapó: reconstruía el asiento con **`lineas[0]`** (con cinco
+productos habría contabilizado uno y descuadrado el asiento) y **no le devolvía los `items`** a
+`previsualizar`, con lo que el detalle por referencia se perdía justo al contabilizar. La
+proyección de líneas conserva ahora `cuenta_codigo` para poder distinguir las líneas del gasto de
+las que la reconstrucción rearma con los impuestos aprobados.
+
+**El gross-up se pacta, no se elige (18-sep-2026).** `retencion_modo="mckenna"` significa que
+McKenna **asume** la retención del tercero como mayor gasto y le gira el valor completo. Mientras
+fue un radio del wizard, cualquiera podía activarlo con un clic: sobre la quincena de mensajería
+($1.998.000) son **$28.657 que salen del banco de más**, cada quincena, sin que nadie lo pactara.
+Ahora solo se acepta si la ficha del tercero dice que así se acordó
+(**`cc_terceros.retencion_asume_mckenna`**, apagado para todos por defecto y editable solo en
+Libro Mayor → Configurar → Terceros). `previsualizar()` lo valida en el **backend** —por
+`retencion_modo` y por `valor_es_neto`, que era la puerta de atrás— y devuelve `aviso_gross_up`
+explicando por qué lo ignoró: esconder un radio no es un control, es una sugerencia.
+
+⚠️ **`retefuente_exento` ya NO se deduce de `retencion_modo`.** Mientras el modo era una respuesta
+del operador, «ninguna» quería decir «sé que a este no se le retiene» y aprenderlo servía. Al dejar
+de preguntarlo pasó a ser **consecuencia de la cuenta** (513530 manda «ninguna» porque la energía no
+retiene; 513550 manda «beneficiario» porque sí), y seguir aprendiendo de ahí habría marcado exento a
+cualquiera al que se le pagara un recibo de luz y, peor, **desmarcado a los autorretenedores reales**
+—Interrapidísimo, Sodimac— en cuanto se les hiciera un pago con cuenta que retiene, reteniéndoles
+indebidamente al siguiente. La exención se cambia en la ficha o desde `perfil_tributario_dian`.
 
 **«Libre de retención» (15-sep-2026).** A un prestador de servicios se le pacta «te pago
 $1.100.000 libres de retención»: ese valor es **lo que recibe**, no la base gravable. Con
@@ -1091,6 +1234,25 @@ cambiar la sección después. `/enviar-video` solo lee MP4 dentro de `grabacione
 Requiere Chrome/Edge por https o localhost (por IP de la LAN el navegador bloquea getDisplayMedia); en
 Linux el audio de la pantalla completa no siempre llega — compartir una **pestaña** con su audio.
 
+### T. Entregas Flex de MeLi (horas de reparto, evolución semanal)
+
+```
+scripts/entregas_flex_cron.py  (23:15 diario, job "entregas_flex" en Tareas Programadas)
+  └─ app/services/entregas_flex.py::sincronizar(dias=10)
+       ├─ /orders/search paid (paginador propio con reintentos, ver abajo)
+       ├─ GET /shipments/{id} → logistic.type == "self_service" (Flex), localidad, fecha prometida
+       ├─ GET /shipments/{id}/history → impreso / salida (date_shipped) / entregado
+       └─ app/data/entregas_flex.db (gitignored): solo consulta envíos nuevos o abiertos
+/app → Atención → Entregas Flex  (EntregasFlexPanel.tsx) — lee /api/entregas-flex/resumen, sin llamar a MeLi
+```
+
+Todas las horas se guardan en hora de Bogotá (MeLi responde en -04:00). Las comparaciones son
+últimas 4 semanas vs. las 4 anteriores; «patrones» solo avisa cambios de ≥15 min o ≥5 puntos.
+Corte del mismo día: `ENTREGAS_FLEX_CORTE_HORA` (decimal, default 12.33 = 12:20, medido en el
+estudio del 17-sep-2026). Backfill: `scripts/entregas_flex_cron.py --dias 90 --forzar`. Sin LLM.
+⚠️ No usa `meli.listar_ordenes_meli_por_estado`: esa función corta la paginación en silencio ante
+un error de red (18-sep-2026: la misma llamada devolvió 1.797 y luego 700 órdenes de 30 días).
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
 Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
@@ -1412,6 +1574,7 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
 | `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
 | `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
+| `/api/entregas-flex/*` | GET/POST | Bearer / permiso `entregas-flex`, `pedidos`, `empaque` o `guias-envio` | Horas de entrega de los envíos Flex de MeLi: `resumen?semanas=N` (serie semanal, patrones, localidades, corte, abiertos), `estado`, `sincronizar` (segundo plano) — ver `app/services/entregas_flex.py` y Flujo T |
 | `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
 | `/api/precios-trm/*` | GET/PUT/POST | Bearer / nivel administrador | Precios indexados a la TRM: estado y propuesta, config, recalcular, aplicar, descartar — ver `app/services/precios_trm.py` |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |

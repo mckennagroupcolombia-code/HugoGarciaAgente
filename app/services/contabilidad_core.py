@@ -478,6 +478,36 @@ def listar_plan_cuentas(solo_activas: bool = True, tipo: str | None = None) -> l
     return [dict(r) for r in rows]
 
 
+def mapa_cuentas_por_codigo() -> dict[str, int]:
+    """Código PUC → id de la cuenta **viva** que le corresponde hoy.
+
+    Existe porque el patrón `{c["codigo"]: c["id"] for c in listar_plan_cuentas()}`
+    se repitió en varios módulos y rompe en silencio después de una migración:
+    un código desactivado (2380 → 2355) seguía resolviendo a la cuenta muerta y
+    `crear_movimiento` rechazaba el asiento con «cuenta inactiva». Así fallaron
+    8 compras de socios en el backfill de agosto-2026, un día después de migrar,
+    porque ese camino no pasaba por `_cuenta_id_por_codigo`.
+
+    Dos reglas, las dos aprendidas a los golpes:
+
+    * las activas pisan a las inactivas, para que un código nunca resuelva a una
+      cuenta muerta si hay una viva con ese mismo código;
+    * un alias solo se aplica si el código viejo **no** existe vivo. `529505`
+      dejó de ser publicidad y hoy es «Comisiones»: aplicarle su alias mandaría
+      las comisiones a publicidad.
+    """
+    _ensure()
+    from app.services.puc_colombia import ALIAS
+
+    activas = {c["codigo"]: c["id"] for c in listar_plan_cuentas(solo_activas=True)}
+    mapa = {c["codigo"]: c["id"] for c in listar_plan_cuentas(solo_activas=False)}
+    mapa.update(activas)
+    for viejo, nuevo in ALIAS.items():
+        if viejo not in activas and nuevo in activas:
+            mapa[viejo] = activas[nuevo]
+    return mapa
+
+
 def obtener_cuenta(cuenta_id: int) -> dict | None:
     _ensure()
     with _conn() as con:
