@@ -193,120 +193,19 @@ git pull origin main    # o: git pull origin master
 
 ## Variables de Entorno (.env)
 
-```env
-# IA
-GOOGLE_API_KEY              # Google GenAI (Gemini) — red de seguridad WhatsApp/web/preventa, pipelines de contenido
-ANTHROPIC_API_KEY           # Claude API — obligatorio: modelo por defecto en WhatsApp, `/chat`, Web Chat, preventa MeLi y herramientas del agente
-WEB_API_URL                 # Base URL API stock/precios sitio web (opcional; ver sincronizar_productos_pagina_web)
-WEB_API_KEY                 # Bearer para API web (opcional)
+**Catálogo completo, con qué hace cada una y su default: `.env.example`.** Al agregar una variable
+nueva, documentarla ahí (comentario en línea aparte: systemd no quita un `# comentario` al final).
 
-# MercadoLibre
-MELI_CREDS_PATH             # Ruta a credenciales_meli.json
-
-# WhatsApp (Evolution API)
-EVOLUTION_API_URL           # Endpoint Evolution API
-EVOLUTION_API_KEY           # Clave autenticación
-INSTANCE_NAME               # Nombre instancia WA
-
-# Google
-SPREADSHEET_ID              # ID Google Sheet (catálogo/inventario)
-TDS_FOLDER_ID               # Google Drive folder fichas técnicas
-
-# Grupos WhatsApp
-GRUPO_CONTABILIDAD_WA       # ID grupo contabilidad (default: 120363407538342427@g.us)
-GRUPO_INVENTARIO_WA         # ID grupo inventario
-TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
-GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
-GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
-GRUPO_COTIZACIONES_WA       # Solicitudes de cotización desde mckennagroup.co/cotizar (default: GRUPO_PEDIDOS_WEB_WA)
-GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio + entregado
-# Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
-
-# API
-CHAT_API_TOKEN              # Token para endpoints /chat y /sync/*
-ADMIN_TOKEN                 # Token admin
-
-# Infraestructura
-CLOUDFLARE_TUNNEL_TOKEN     # Token túnel Cloudflare
-
-# Multimedia / Redes Sociales (scripts de consola)
-IDEOGRAM_API_KEY            # Generación de imágenes con IA (Ideogram)
-ELEVENLABS_API_KEY          # Síntesis de voz TTS en español (ElevenLabs)
-FAL_KEY                     # Generación de video (fal.ai / Kling v1.6)
-FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
-FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
-
-# Operaciones, observabilidad y cron
-MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
-GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
-CONTABILIDAD_LEDGER_BUDGET_S # Segundos para APIs remotas en armar_libro (default 28, panel).
-CONTABILIDAD_LEDGER_MAX_PAGINAS      # Tope de páginas al listar facturas (default 60)
-CONTABILIDAD_LEDGER_MAX_PAGINAS_MELI # Tope de páginas de órdenes MeLi (default 25 ≈ 1.250 órdenes)
-                             # Los tres defaults son del PANEL, donde vale más una cifra parcial
-                             # rápida. Un BACKFILL necesita subirlos (1800 / 500 / 300): un período
-                             # posteado a medias queda CUADRADO y parece completo, que es como nadie
-                             # lo vuelve a mirar. El script ahora imprime los avisos de lectura
-                             # truncada y el monto por fuente, para contrastar contra la facturación.
-AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
-AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
-AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. scripts/,app/tools/,tests/
-AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
-AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
-AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
-
-# Préstamos de terceros (app/services/prestamos.py — ver Flujo M)
-DECLARADOR_DIR               # Carpeta raíz del Declarador (default /home/mckg/Declarador; una subcarpeta por socio)
-DECLARADOR_MODELO            # Modelo del agente del expediente de socios (default claude-sonnet-5)
-
-PRESTAMOS_DIA_RECORDATORIO   # Día del mes del ticket de pagos a despachos (default 5)
-PRESTAMOS_USUARIO_PAGOS      # Username que monta los pagos en Sucursal Negocios (default jerry)
-PRESTAMOS_RECORDATORIO_ACTIVO # 0 = desactiva el cron sin tocar el crontab
-PRESTAMOS_MUTUARIO_RAZON     # Razón social en el contrato (default McKenna Group S.A.S.)
-PRESTAMOS_MUTUARIO_NIT       # NIT en el contrato (default 901.316.016-3, verificado en Alegra)
-PRESTAMOS_MUTUARIO_REPRESENTANTE # Representante legal que firma (opcional)
-PRESTAMOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real a la DIAN (default 0 = modo sombra)
-PRESTAMOS_ALEGRA_ITEM_REF    # Referencia del ítem de intereses en Alegra (default INTERES-MUTUO)
-PRESTAMOS_DIA_AVISO_RETENCIONES # Día del mes del ticket de retenciones (default 3, sobre el mes anterior)
-UVT_<año>                    # Valor de la UVT si no está cargado en retenciones.py (ej. UVT_2027)
-EMAIL_CONTADOR               # Correo del contador para el detalle mensual de retenciones
-COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real de compras a socios (default 0 = sombra)
-COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra (default MERCANCIA-SOCIO)
-ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra como comprobantes
-                             # contables (default 0 = sombra). **En 1 desde el 2026-09-14**: el
-                             # contador arma el 350 con lo que ve en Alegra, y había $2.621.225 de
-                             # retención practicada en 2026 que solo estaba en el libro. Enero–junio
-                             # quedó reespejado; MercadoPago (111010) y publicidad en plataformas
-                             # (529505) siguen sin cuenta en MAPA_PUC, así que las 3 facturas
-                             # mensuales de MercadoLibre no se espejan todavía.
-PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
-ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
-
-# Precios indexados a la TRM BanRep (app/services/precios_trm.py + scripts/precios_trm_cron.py, diario 8:40)
-# Cada SKU guarda (precio, TRM del día en que se fijó); el cron PROPONE ajuste = variación TRM × traslado
-# y un admin aprueba en /app → Rentabilidad → Precios TRM (escribe MeLi + Alegra, web al final del lote).
-# Un cambio manual de precio reinicia la base de ese SKU. Traslado/umbral/redondeo en app/data/precios_trm_config.json.
-PRECIOS_TRM_ACTIVO           # 0 = apaga el cron sin tocar el crontab
-PRECIOS_TRM_QUIET            # 1 = no avisa por WhatsApp (pruebas)
-
-# Recuperación de compra (app/tools/recuperacion_compra.py + scripts/recuperacion_compra_cron.py)
-RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar (el cron sigue instalado)
-RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
-RECUPERACION_COMPRA_MAX_POR_CORRIDA # Tope de correos por corrida del cron (default 20)
-
-# Copia de abonos Bancolombia a la asesora (app/tools/reenvio_alertas_banco.py + scripts/reenvio_alertas_banco_cron.py, cada 5 min)
-# Solo reenvía "Recibiste …"; OTP, claves y alertas de seguridad NUNCA (llegan al mismo buzón).
-# Clasifica por el snippet, no por el cuerpo: el pie legal de todas las alertas dice "seguridad"/"clave".
-# Dedupe con la etiqueta Gmail «Bancolombia/Reenviado asesora»; corte en app/data/reenvio_alertas_banco.json.
-REENVIO_BANCO_ACTIVO         # 0 = apaga el reenvío sin tocar el crontab
-REENVIO_BANCO_DESTINO        # Destinataria (default 23jenniffergarcia@gmail.com)
-REENVIO_BANCO_INCLUIR_SALIDAS # 1 = también pagos salientes (quincenas, proveedores). Default 0
-
-# Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
-LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
-LLM_BUDGET_TOPE_USD         # Tope duro diario (default 15.0): se bloquean nuevas llamadas LLM
-LLM_BUDGET_BATCH_LLAMADAS   # Máx llamadas por proceso batch sin autorizar (default 25)
-LLM_BUDGET_BATCH_USD        # Máx USD estimados por proceso batch sin autorizar (default 1.0)
-```
+Las que más cuestan si se tocan sin saber:
+- `ANTHROPIC_API_KEY` (obligatoria, modelo por defecto de los canales) · `GOOGLE_API_KEY` (red de seguridad Gemini).
+- `CHAT_API_TOKEN` (Bearer de `/chat` y `/api/*`) · `ADMIN_TOKEN`.
+- `LLM_BUDGET_DIARIO_USD` / `LLM_BUDGET_TOPE_USD` / `LLM_BUDGET_BATCH_*` — ver la regla obligatoria abajo.
+- `ALEGRA_ESPEJO_ACTIVO` — **en 1 desde el 2026-09-14** (el contador arma el 350 con lo que ve en Alegra).
+- `CONTABILIDAD_LEDGER_BUDGET_S` / `_MAX_PAGINAS` / `_MAX_PAGINAS_MELI` — defaults del panel; un
+  **backfill** necesita subirlos (1800 / 500 / 300) o postea un período a medias que parece completo.
+- Banderas de modo sombra (default 0): `PRESTAMOS_DOC_SOPORTE_ACTIVO`, `PAGOS_DOC_SOPORTE_ACTIVO`,
+  `COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO`, `MELI_AUTOFACTURA_ENTREGA_ACTIVO`. Encenderlas emite documentos reales a la DIAN.
+- Grupos de WhatsApp por área: `GRUPO_*_WA`; inventario oficial en `app/data/grupos_whatsapp_oficiales.json`.
 
 ### ⚠️ REGLA OBLIGATORIA — Presupuesto de gasto LLM
 
