@@ -682,6 +682,135 @@ solo. `cuentas_gasto()` devuelve el perfil de cada cuenta para que el panel deje
 puestas, y `cc_terceros.medio_pago_default` completa la ficha de pago recurrente (cuenta del gasto
 + impuestos + de qué cuenta sale) para no volver a elegir lo mismo cada mes.
 
+**Documento soporte a no obligados a facturar (18-sep-2026).** `app/services/doc_soporte_pagos.py`:
+al **aprobar** una solicitud de pago, si el beneficiario no está obligado a facturar se emite el
+**documento soporte** (Res. DIAN 000167/2021) contra la plantilla 10 de Alegra —`supportDocument`,
+electrónica, resolución **18764115104411**, prefijo **DSMG** 1-1000, vigencia hasta 2027-09-03— con
+su CUDS. Va pegado a la aprobación y no como paso aparte, porque un paso aparte es un paso que un día
+no se hace y nadie nota.
+
+**Por qué importa:** el Art. 771-2 E.T. solo acepta un costo o deducción con factura o documento
+equivalente. La mensajería de Fidel Rocha son **~$1,93M por quincena (~$46,4M/año)** pagados,
+conciliados y contabilizados pero **sin soporte fiscal**: a la tarifa de renta del 35% son $16,2M de
+mayor impuesto más la sanción por inexactitud.
+
+A quién **no** se le emite: personas jurídicas, quien factura electrónicamente (su factura ya es el
+soporte; emitir además duplicaría el gasto ante la DIAN) y los del **Régimen SIMPLE**, que **sí**
+están obligados a facturar (Art. 915 E.T.) — de hecho, que alguien cobre con cuenta de cobro
+amparado en el 616-2 **es evidencia de que no es del SIMPLE**: las dos cosas son incompatibles.
+Se marca por tercero en `cc_terceros.emite_doc_soporte`; el módulo propone pero no decide solo,
+porque equivocarse emite un documento fiscal irreversible (solo se corrige con nota de ajuste) a
+nombre de alguien real. `PAGOS_DOC_SOPORTE_ACTIVO=0` (sombra) por defecto.
+
+⚠️ **Un PUT a Alegra NO es parcial: reemplaza.** Mandar `{"provider": 313}` a `/bills/1` para
+refrescar el proveedor **borró las retenciones** del documento, que después se transmitió así
+(DSMG1, 18-sep-2026: aceptado por la DIAN por $2.026.657 **sin** el 1% ni el ReteICA, dejando un
+saldo abierto de $28.657 que en realidad es de la DIAN, no del proveedor). Lo mismo aparece al
+editar un contacto: pide `name`, luego `kindOfPerson`, luego `nameObject` — **hay que reenviar el
+bloque completo**. Y una vez sellado (`STAMPED_AND_ACCEPTED*`) ya no se edita (`11042`): solo nota
+de ajuste ADS. Ningún módulo hace PUT a `/bills`; si alguna vez hace falta, reenviar el documento
+entero, nunca un campo suelto.
+
+⚠️ **El documento congela una FOTO del proveedor.** Cambiar la ficha del contacto después **no**
+actualiza el documento ya creado: su `provider.identificationObject` se queda como estaba. Si hay
+que corregir la identificación, se corrige el contacto **y** se rehace el documento (mientras no
+esté transmitido).
+
+⚠️ **Las personas naturales van como NIT, no como CC.** En un documento electrónico la DIAN exige
+NIT, y para una persona natural el NIT **es** su cédula más el dígito de verificación. Creados como
+`CC`, Alegra se niega: «Tu proveedor cuenta con cédula de ciudadanía (CC)».
+`_resolver_o_crear_proveedor_persona_natural_alegra` los creaba así y ahora los crea como **NIT con
+su DV** (calculado con `empresa.digito_verificacion`). Corregidos a mano el 18-sep-2026: Fidel
+(9385573-3) y los cuatro prestamistas — habrían reventado la cuota del 9-oct. **Quedan 23 contactos
+con tipo CC** (clientes), pendientes.
+
+**El ciclo completo del documento soporte** (18-sep-2026, aprendido emitiendo el DSMG1 en vivo —
+tres cosas que **ningún dry run mostró**):
+
+1. **La cuenta contable se resuelve con `alegra_espejo.cuenta_alegra()`**, no con otra. Resuelve por
+   código PUC y solo cae al `MAPA_PUC` viejo si esa id sigue viva. Mandando la id 5214 (catálogo
+   NIIF) Alegra respondió `400 · 11060 «No se encontró una de las cuentas contables»`. Sin
+   equivalente, `doc_soporte_pagos` **se niega a emitir**: no hay cuenta de respaldo, porque un
+   documento contra la cuenta equivocada ya viajó a la DIAN. ⚠️ Lo mismo afectaba a **préstamos**,
+   configurado contra la id **5252** — una de solo **8 cuentas (de 997)** que sobrevivieron la
+   migración **sin código PUC**; corregida a **5949** (`530520 Intereses`).
+2. **El ReteICA va dentro del documento**, o su «total a pagar» no cuadra con lo girado: el DSMG1
+   decía $2.006.390 cuando salieron $1.998.000, y la diferencia eran los $8.390,36 de ICA. Y va con
+   **su tarifa**: se crearon en Alegra `ReteICA transporte 4,14 ‰` (id 15), `asesoría técnica 8,66 ‰`
+   (16) y `servicios 9,66 ‰` (17), porque la genérica id 11 está al 0 % y el documento **oficial**
+   imprimía «(0%)». ⚠️ El ICA se habla **por mil** y Alegra recibe **porcentaje**: 4,14 ‰ = **0,414 %**.
+   Una tarifa sin cuenta propia cae a la genérica y **avisa**.
+3. **El pago se registra al confirmar el giro**, no al aprobar (`doc_soporte_pagos.registrar_pago_en_alegra`
+   desde `confirmar_pago`), y por lo **girado**, no por el total — la retención no se le pagó a él.
+   Sin esto el documento queda «por pagar» y Alegra muestra un pasivo con el beneficiario que no
+   existe. Alegra **no deja editar** un documento ya pagado (`11042`): hay que quitar el pago,
+   corregir y volver a aplicarlo — y eso solo mientras no tenga sello de la DIAN; después, nota de
+   ajuste ADS.
+
+⚠️ La retención va **dentro** del documento: `("transporte_carga", 1.0) → id 13` ya existía en
+Alegra pero no estaba mapeada, y sin eso el documento de un pago a Fidel habría salido sin
+retención. Y `crear_solicitud` guardaba el concepto de la **categoría** en vez del que deduce la
+**cuenta**: una compra a 523550 quedaba como «servicios», la retención iba a la subcuenta de 2365
+equivocada y («servicios», 1%) no existe en Alegra. Corregido, y las 10 solicitudes ya creadas se
+reetiquetaron.
+
+⛔ **FECHA DE CORTE CONTABLE: lo anterior al corte es del contador (18-sep-2026).**
+`contabilidad_core.fecha_corte()` / `antes_del_corte()` / `motivo_corte()`, configurable con
+**`CONTABILIDAD_FECHA_CORTE`** (default **2026-09-01**). Hasta agosto de 2026 la contabilidad la
+llevó el contador: discriminaba los impuestos con un mecanismo propio que no conocemos y sobre eso
+presentó las declaraciones (el 350 del período 8 se presentó el **16-sep-2026**). **Él va a fijar los
+saldos iniciales**, por la migración Siigo→Alegra. El libro propio **no reescribe ese pasado**: se
+corrige de las declaraciones siguientes en adelante.
+
+Lo hacen cumplir los dos caminos que salen hacia afuera: `alegra_espejo.espejar_movimiento()`
+devuelve `bloqueado_por_corte` (y **`forzar` NO lo salta** — `forzar` autoriza postear con el asiento
+a la vista, no reescribir un período cerrado) y `contabilidad_autopost.auto_postear_periodo()`
+**recorta** el rango al corte en vez de rechazarlo entero, avisando, para que un backfill que empiece
+antes siga sirviendo para lo que sí es nuestro.
+
+Los asientos anteriores **no se borran**: documentan movimientos bancarios reales y varios están
+conciliados contra el extracto. Simplemente dejan de propagarse. Casos que lo motivaron: los 4 pagos
+a Fidel de julio/agosto (hechos con el tratamiento viejo, contra 513550 y sin retención) y los
+asientos de IVA generado de julio y agosto — todos listos para espejarse a un período ya declarado.
+
+**Historial por tercero (18-sep-2026).** `app/services/terceros_historial.py` ·
+`GET/POST /api/contabilidad/cc/terceros/<id>/historial` · botón **Historial** en Libro Mayor →
+Configurar → Terceros. La ficha guarda el **estado** (exento, SIMPLE, cuenta del gasto); esto
+guarda **el porqué y lo que le ha pasado**: decisiones, indicaciones del contador, incidentes,
+documentos emitidos y pagos. Es lo que hace falta cuando alguien abre un tercero seis meses después
+y tiene que decidir si lo que ve sigue vigente — hasta ahora esa memoria vivía en el campo `notas`,
+en las tablas de cada módulo y en la cabeza de quien estuvo.
+
+Es **append-only** (un historial editable no responde «¿qué pasó?»), **idempotente** por
+(tercero, fecha, título) para que un reintento no lo llene de duplicados, y **no copia** lo que ya
+registran `cc_doc_soporte` y `cc_solicitudes_pago`: los lee, porque una copia se desactualiza y
+entonces hay dos versiones de lo ocurrido. `perfil_tributario` traduce las banderas a frases con su
+norma — «regimen_simple = 1» no le dice nada a quien abre la ficha.
+
+⚠️ **`emite_doc_soporte` la crea ahora `contabilidad_core`**, dueño de `cc_terceros`, no
+`doc_soporte_pagos`. Es la misma lección de `regimen_simple`: creada por el módulo que la usa, el
+campo no existía hasta que alguien emitiera el primer documento y cualquier lector veía `None`.
+
+**Libro Diario (18-sep-2026).** `contabilidad_mayor.libro_diario()` + `GET /api/contabilidad/cc/diario`
+(`formato=csv` para una fila por línea, que es lo que el contador importa) y la pestaña **Libro
+Mayor → Libro Diario**. El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
+día»: cada asiento con el **código y el nombre** de cada cuenta, débito, crédito y si cuadra. Va en
+orden **ascendente** —como se lleva un diario—, al revés que la lista de movimientos, donde se busca
+lo último. Los totales son **del rango completo, no de la página**: si fueran de la página cuadrarían
+siempre y no servirían para revisar. Filtra por cuenta incluyendo subcuentas (1110 trae 111005).
+`pagos_wizard.obtener()` devuelve además el `asiento` de la solicitud con esas mismas columnas, para
+no tener que abrir el Libro Mayor a preguntar dónde quedó un pago.
+
+**El IVA de comprar se aprende del documento, el de vender lo decide Alegra (18-sep-2026).** Son dos
+cosas distintas y ahora tienen reglas distintas. **Vender:** `crear_factura_venta_alegra` lee
+`tax_ids`/`tax_rate_total` del producto **en vivo** en Alegra y la factura tiene que cuadrar al peso
+con lo cotizado — nada de esto lo toca el módulo de compras (`tests/test_compras_no_rompen_ventas.py`
+falla si algún módulo de ventas llega a importar `pagos_proveedor`). **Comprar:** cuando una compra
+se registra y su total **cuadra contra el documento**, las tarifas de cada línea quedan probadas
+(total = base + IVA) y se guardan por SKU en `cc_compras_iva_sku`
+(`pagos_proveedor.aprender_iva_compra`). La siguiente compra de ese insumo llega con la tarifa que el
+proveedor cobra de verdad y el selector marca el origen (`iva_origen`: `compras` o `catalogo`).
+
 **Cada cuenta lleva su guía, y el wizard ya no pregunta impuestos (18-sep-2026).**
 `puc_colombia.DESCRIPCIONES` documenta **las 79 cuentas** del plan: qué operación vive en cada una,
 en el lenguaje del negocio y señalando donde McKenna la usa distinto de lo que su nombre del PUC
@@ -798,10 +927,19 @@ un valor global: bloquearlo empujaría al operador a «Otro», donde se pierden 
 cuenta.
 
 Tres cosas que el picker hacía mal y se corrigieron en `pagos_proveedor.productos()`:
-- **Mezclaba combos con materias primas.** En Alegra conviven `type="product"` (la materia prima
-  suelta, `CITCALg` = citrato de calcio por gramo, que es lo que el proveedor despacha) y
-  `type="kit"` (el combo `C-CITCAL500g` que McKenna arma y vende). Una compra entra por el primero;
-  ahora los combos quedan fuera salvo `incluir_combos=True`.
+- **Mezclaba combos con materias primas.** En Alegra conviven la materia prima suelta (`CITCALg` =
+  citrato de calcio por gramo, lo que el proveedor despacha) y el combo que McKenna arma y vende
+  (`C-CITCAL500g`). Una compra entra por la primera; los combos quedan fuera salvo
+  `incluir_combos=True`. ⚠️ **Lo que manda es el prefijo `C-`, no el campo `type`**: los 231 `kit`
+  lo llevan, pero hay además **14 combos guardados como `product`** —`C-VITCACIASC100g`,
+  `C-ARCVRT250g`, `C-KITACIHIA30mL`…— que solo la referencia delata. Comprar contra un combo
+  asienta como materia prima algo que se arma: el inventario queda a precio de venta y el IVA sale
+  del combo, no de la factura.
+- **Daba falsos negativos al buscar**, y eso es peor que resultados de sobra porque lleva a crear
+  duplicado en Alegra algo que ya existe: «CLORURO **DE** MAGNESIO» no encontraba «CLORURO MAGNESIO
+  HEXAHIDRATADO» (preposiciones) y «GOMA XANT**H**AN» no encontraba «GOMA XANTANA» (la misma
+  sustancia con otra grafía). Ahora se ignoran las preposiciones y un término también casa por su
+  raíz de 4 letras.
 - **El precio salía siempre en 0**: leía `price` y el catálogo lo guarda en `precio_lista`.
 - **Suponía IVA 19% a todo.** **254 de los 316 productos están EXCLUIDOS** (Art. 424 E.T.), así que
   el IVA sale de cada ítem del catálogo, no de un default.

@@ -98,13 +98,25 @@ CATEGORIAS: dict[str, dict] = {
     "productos": {
         "cuenta_libre": True,
         "label": "Productos",
-        "ayuda": "Mercancía comprada a un proveedor. Va a inventario (1435).",
+        "ayuda": ("Materias primas e insumos comprados a un proveedor. Se eligen por su "
+                  "referencia del catálogo y el asiento reproduce la cotización renglón "
+                  "por renglón, a inventario (1435)."),
         "cuenta_debito": "1435",
         "origen": "libre",
         "requiere_tercero": True,
         "icono": "📦",
         "concepto_retencion": "compras",
         "simple": True,
+        # Con productos, pero SIN exigir factura (18-sep-2026). La idea es
+        # contabilizar la compra en el momento de solicitar el pago, con la
+        # cotización del proveedor — que es cuando se sabe qué se compró y a
+        # qué precio. Exigir la factura ahí obligaría a esperar a que llegue, y
+        # entonces habría que registrar la compra dos veces: una para pagarla y
+        # otra para contabilizarla. Es justo el paso doble que se quiere quitar.
+        # `compra_proveedor` sigue existiendo con `requiere_factura` para las
+        # compras que sí deben cotejarse contra el documento antes de pagar.
+        "con_productos": True,
+        "productos_opcionales": True,
     },
     "servicios": {
         "cuenta_libre": True,
@@ -387,6 +399,11 @@ def init_db() -> None:
             # sin esta columna el asiento se recalculaba al aprobar como si fuera
             # completo y el saldo por pagar desaparecía.
             ("pagado_ahora", "REAL"),
+            # El total que dice el documento del proveedor. Es el patrón contra
+            # el que se cuadra la réplica: si las líneas no lo suman, alguna
+            # tarifa de IVA está mal (las del catálogo son una sugerencia) o
+            # falta un renglón.
+            ("total_documento", "REAL NOT NULL DEFAULT 0"),
         ):
             if col not in cols:
                 con.execute(f"ALTER TABLE cc_solicitudes_pago ADD COLUMN {col} {ddl}")
@@ -519,7 +536,8 @@ def opciones(categoria: str) -> dict:
                         -- Códigos vigentes y sus equivalentes previos a la
                         -- migración al PUC: 2380→2355 (socios) y 2367→2335
                         -- (costos y gastos por pagar). Preguntar solo por los
-                        -- viejos devolvía vacío y la lista salía en blanco.
+                        -- viejos devolvía vacío y la lista de saldos por pagar
+                        -- salía en blanco.
                         WHERE c.codigo IN ('2355', '2380', '2335', '2367')
                         GROUP BY t.id, c.codigo
                        HAVING saldo > 0
@@ -647,6 +665,7 @@ def cuentas_gasto() -> list[dict]:
     import app.services.contabilidad_core as cc
 
     from app.services import impuestos_por_cuenta as _ipc
+    from app.services import puc_colombia as _puc_desc
 
     salida = []
     for c in cc.listar_plan_cuentas(solo_activas=True):
@@ -664,6 +683,9 @@ def cuentas_gasto() -> list[dict]:
             # Una subcuenta de 6 dígitos es la que el contador espera ver usada;
             # la de 4 queda como agrupadora aunque técnicamente admita movimiento.
             "es_subcuenta": len(codigo) >= 6,
+            # Qué operación vive en la cuenta: la misma guía que ve el contador
+            # en el Libro Mayor, para que el operador elija sabiendo.
+            "descripcion": _puc_desc.descripcion(codigo),
             # Los impuestos que trae la cuenta, para que el panel los deje
             # puestos al elegirla en vez de pedirlos como una pregunta aparte.
             "concepto_retencion": p["concepto_retencion"] or "",
@@ -723,6 +745,32 @@ def previsualizar(payload: dict) -> dict:
     monto = round(float(payload.get("monto") or 0), 2)
     if items and monto <= 0:
         monto = total_items
+
+    # ── El total del documento: la réplica tiene que cuadrar con el original ──
+    #
+    # Prueba real (18-sep-2026, cotización PRE0031580 de Factores y Mercadeo):
+    # el IVA que trae el catálogo de Alegra para las materias primas **no es
+    # confiable**. La misma sustancia está marcada 19% como combo (lo que
+    # McKenna vende) y 0% como `product` (la materia prima) — alulosa, gelatina
+    # e inulina, las tres —, y el reparto 80/20 es un espejo exacto entre los
+    # dos tipos: ese flag nunca se curó para los insumos. Armando el asiento con
+    # él, esa cotización daba $68.875 de IVA contra los $619.115 reales: medio
+    # millón de IVA descontable perdido y otro tanto de más en inventario.
+    #
+    # Por eso el IVA del catálogo es solo un punto de partida y lo que manda es
+    # el documento. Teclear su total obliga a que la réplica cuadre línea por
+    # línea: como total = base + IVA, si una tarifa está mal el total no da.
+    total_documento = round(float(payload.get("total_documento") or 0), 2)
+    dif_documento = round(total_items - total_documento, 2) if (items and total_documento > 0) else 0.0
+    aviso_documento = ""
+    if abs(dif_documento) > 1:
+        aviso_documento = (
+            f"Lo capturado suma {_fmt(total_items)} y el documento dice {_fmt(total_documento)}: "
+            f"sobran {_fmt(dif_documento)}." if dif_documento > 0 else
+            f"Lo capturado suma {_fmt(total_items)} y el documento dice {_fmt(total_documento)}: "
+            f"faltan {_fmt(-dif_documento)}."
+        ) + (" Revisa las tarifas de IVA de cada línea: las del catálogo son una sugerencia, "
+             "el documento manda.")
     if monto <= 0:
         raise ValueError("El monto debe ser mayor que cero")
     if items and abs(total_items - monto) > 1:
@@ -820,7 +868,40 @@ def previsualizar(payload: dict) -> dict:
         modo = "mckenna" if payload.get("valor_es_neto") else ("ninguna" if payload.get("sin_retencion") else "beneficiario")
     if items:
         modo = "beneficiario" if modo == "mckenna" else modo   # con factura, el total manda
-    valor_es_neto = modo == "mckenna"
+
+    # ── El gross-up no se elige: se pacta ─────────────────────────────────
+    #
+    # `mckenna` significa que McKenna ASUME la retención del tercero como mayor
+    # gasto y le gira el valor completo. Eso es un acuerdo comercial con una
+    # persona concreta, y mientras fue una opción del pago cualquiera podía
+    # activarlo con un clic: sobre la quincena de mensajería son $28.657 que
+    # salen del banco de más y que nadie pactó, cada quincena.
+    #
+    # Ahora solo se acepta si la ficha del tercero dice que así se pactó
+    # (`retencion_asume_mckenna`), y se valida **acá** y no solo en el panel:
+    # esconder un radio no es un control, es una sugerencia.
+    aviso_gross_up = ""
+    if modo == "mckenna" and not int((tercero or {}).get("retencion_asume_mckenna") or 0):
+        modo = "beneficiario"
+        quien = (tercero or {}).get("nombre") or "este tercero"
+        aviso_gross_up = (
+            f"Se pidió pagar libre de retención, pero con {quien} no está pactado así: la "
+            "retención se le descuenta a él. Si de verdad se acordó que McKenna la asume, "
+            "actívalo en su ficha de tercero — es un acuerdo, no una opción de cada pago."
+        )
+    # La ficha del tercero no solo AUTORIZA el gross-up: lo impone. Con quien se
+    # pactó pagar libre se paga libre siempre, aunque el modo llegue como
+    # «ninguna» porque no lleva retención de RENTA: el ICA es otro impuesto,
+    # sigue corriendo, y el acuerdo dice quién lo asume.
+    #
+    # Sin esto la ficha servía solo de veto y el acuerdo se perdía justo con
+    # quien más claro estaba (18-sep-2026): a William Novoa, exento de renta por
+    # el Art. 383 y con ICA pactado libre, el panel mandaba «ninguna» y el ICA
+    # terminaba descontándosele en cada pago — lo contrario de lo acordado.
+    # Con factura de por medio no aplica: ahí manda el total del documento.
+    valor_es_neto = modo == "mckenna" or bool(
+        not items and int((tercero or {}).get("retencion_asume_mckenna") or 0)
+    )
 
     # ICA: lo que mande el pago; si no, la tarifa del tercero. Que la tarifa
     # viva en el tercero es lo que evita que se olvide en el próximo pago.
@@ -991,13 +1072,53 @@ def previsualizar(payload: dict) -> dict:
         retencion_ica, gmf = 0.0, 0.0
         ret_info = ret_info or {"motivo": "Retención de rendimientos financieros del cronograma"}
     else:
-        lineas = [{
-            "cuenta_codigo": cuenta_debito,
-            "cuenta_id": id_debito,
-            "debito": monto, "credito": 0,
-            "tercero_id": tercero_id,
-            "descripcion": concepto or cat["label"],
-        }]
+        # ── Una línea por producto, y el IVA a su cuenta ───────────────────
+        #
+        # Con productos, el asiento reproduce la cotización del proveedor renglón
+        # por renglón: referencia, cantidad y precio. Es lo que convierte la
+        # solicitud de pago en la contabilización de la compra y hace innecesario
+        # volver a registrarla cuando llega la factura.
+        #
+        # Y el IVA se separa a **240810 IVA descontable**. Antes el asiento
+        # debitaba a inventario el total CON IVA: inflaba la 1435 por un impuesto
+        # que no es costo de la mercancía —es un crédito contra la DIAN— y dejaba
+        # el formulario 300 imposible de armar leyendo el libro. Ojo con darlo por
+        # sentado: 254 de los 316 productos del catálogo están EXCLUIDOS (Art. 424
+        # E.T.), así que el IVA sale de cada línea, no de aplicarle 19% al total.
+        if items:
+            lineas = [{
+                "cuenta_codigo": cuenta_debito,
+                "cuenta_id": id_debito,
+                "debito": i["subtotal"], "credito": 0,
+                "tercero_id": tercero_id,
+                "descripcion": (
+                    f"{i['sku']} {i['nombre']}".strip()
+                    + f" · {i['cantidad']:g}"
+                    + (f" {i['unidad']}" if i["unidad"] else "")
+                    + f" × {_fmt(i['precio'])}"
+                ),
+            } for i in items]
+            if iva_items > 0:
+                with cc._conn() as con:
+                    id_iva = cc._cuenta_id_por_codigo(con, "240810")
+                if not id_iva:
+                    raise ValueError(
+                        "La cuenta 240810 (IVA descontable) no existe en el plan: hace falta "
+                        "para no cargarle a inventario un impuesto que no es costo"
+                    )
+                lineas.append({
+                    "cuenta_codigo": "240810", "cuenta_id": id_iva,
+                    "debito": iva_items, "credito": 0, "tercero_id": tercero_id,
+                    "descripcion": f"IVA descontable de la compra — {nombre_tercero}",
+                })
+        else:
+            lineas = [{
+                "cuenta_codigo": cuenta_debito,
+                "cuenta_id": id_debito,
+                "debito": monto, "credito": 0,
+                "tercero_id": tercero_id,
+                "descripcion": concepto or cat["label"],
+            }]
     if lineas_cuota is None:
         if retencion > 0:
             lineas.append({
@@ -1049,7 +1170,8 @@ def previsualizar(payload: dict) -> dict:
         "ica_por_mil": ica_por_mil,
         "gmf": gmf,
         "retencion_modo": modo,
-        "retencion_motivo": (ret_info or {}).get("motivo", ""),
+        "retencion_motivo": ((ret_info or {}).get("motivo", "") + (" " + aviso_gross_up if aviso_gross_up else "")).strip(),
+        "aviso_gross_up": aviso_gross_up,
         "concepto_retencion": concepto_ret or "",
         # Qué dedujo el sistema de la cuenta elegida, para mostrarlo debajo del
         # selector: la nota («Transporte de carga: 1% desde 4 UVT») y la
@@ -1070,6 +1192,9 @@ def previsualizar(payload: dict) -> dict:
         "base_sin_iva": base_sin_iva,
         "iva_items": iva_items,
         "con_productos": bool(cat.get("con_productos")),
+        "total_documento": total_documento,
+        "diferencia_documento": dif_documento,
+        "aviso_documento": aviso_documento,
         "requiere_factura": bool(cat.get("requiere_factura")),
         "valor_es_neto": valor_es_neto and (retencion + retencion_ica) > 0,
         "cuadra": abs(sum(l["debito"] for l in lineas) - sum(l["credito"] for l in lineas)) < 0.01,
@@ -1226,11 +1351,22 @@ def _recordar_perfil_tributario(payload: dict, prev: dict) -> None:
         campos["ica_por_mil"] = round(float(payload.get("ica_por_mil") or 0), 4)
     if "gmf" in payload:
         campos["gmf_por_defecto"] = 1 if payload.get("gmf") else 0
-    modo = str(payload.get("retencion_modo") or "").strip()
-    if modo == "ninguna":
-        campos["retefuente_exento"] = 1
-    elif modo in ("beneficiario", "mckenna"):
-        campos["retefuente_exento"] = 0
+    # ⚠️ `retefuente_exento` YA NO se deduce de `retencion_modo` (18-sep-2026).
+    #
+    # Mientras el modo era una respuesta del operador, «ninguna» significaba «yo
+    # sé que a este no se le retiene» y aprenderlo tenía sentido. Al dejar de
+    # preguntarlo, el modo pasó a ser una CONSECUENCIA de la cuenta: un pago de
+    # energía manda «ninguna» porque 513530 no lleva retención, y un pago a
+    # Interrapidísimo manda «beneficiario» porque 513550 sí. Seguir aprendiendo
+    # de ahí habría hecho dos destrozos silenciosos:
+    #
+    #   * marcar exento a cualquiera al que se le pague un servicio público, y
+    #   * **desmarcar** a los autorretenedores de verdad —Interrapidísimo,
+    #     Sodimac— en cuanto se les hiciera un pago con cuenta que sí retiene,
+    #     con lo que al siguiente se les habría retenido indebidamente.
+    #
+    # La exención es una propiedad del tercero y se cambia donde se sabe: en su
+    # ficha, o desde `perfil_tributario_dian` con la evidencia de sus facturas.
     # La cuenta del gasto solo se recuerda si el operador la eligió a mano.
     cuenta = str(payload.get("cuenta_debito") or "").strip()
     if cuenta:
@@ -1305,14 +1441,22 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                   medio_pago_id, referencia, origen_ref, retencion, retencion_concepto,
                   estado, notas, creada_por, items_json, factura_numero, verificacion_json,
                   es_plantilla, frecuencia, plantilla_id, periodo, origen_sistema,
-                  retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                  retencion_modo, retencion_ica, ica_por_mil, gmf, pagado_ahora,
+                  total_documento)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 categoria, prev["concepto"], prev["monto"], prev["fecha"],
                 (prev["tercero"] or {}).get("id"), cuenta_debito,
                 int(payload.get("medio_pago_id") or 0) or None,
                 str(payload.get("referencia") or factura_numero or ""), str(payload.get("origen_ref") or ""),
-                prev["retencion"], str(cat.get("concepto_retencion") or ""),
+                # El concepto que de verdad se aplicó, que lo decide la CUENTA
+                # elegida y no la categoría (18-sep-2026). Guardar el de la
+                # categoría hacía que una compra a 523550 quedara registrada
+                # como «servicios»: la retención iba a la subcuenta de 2365
+                # equivocada y el documento soporte salía SIN retención, porque
+                # («servicios», 1%) no existe en Alegra. Es `previsualizar` quien
+                # ya lo resolvió; acá solo hay que no perderlo.
+                prev["retencion"], str(prev.get("concepto_retencion") or cat.get("concepto_retencion") or ""),
                 estado,
                 str(payload.get("notas") or ""), created_by,
                 json.dumps(prev["items"], ensure_ascii=False), factura_numero,
@@ -1327,9 +1471,26 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 float(prev.get("ica_por_mil") or 0),
                 float(prev.get("gmf") or 0),
                 (float(prev["pagado_ahora"]) if prev.get("saldo_pendiente") else None),
+                float(prev.get("total_documento") or 0),
             ),
         )
         sid = int(cur.lastrowid)
+    # El total cuadró contra el documento: las tarifas de IVA de cada línea
+    # quedaron PROBADAS (total = base + IVA; una mal puesta no daría), así que se
+    # aprenden por SKU para la próxima compra de ese insumo. Es lo único que
+    # corrige el IVA del catálogo, que es de ventas y para insumos no está curado.
+    if prev.get("items") and float(prev.get("total_documento") or 0) > 0 \
+            and abs(float(prev.get("diferencia_documento") or 0)) <= 1:
+        try:
+            from app.services.pagos_proveedor import aprender_iva_compra
+
+            aprender_iva_compra(
+                prev["items"],
+                proveedor=(prev.get("tercero") or {}).get("nombre", ""),
+                fecha=prev.get("fecha", ""),
+            )
+        except Exception as e:   # aprender no puede tumbar la solicitud
+            print(f"⚠️ No se pudo aprender el IVA de compra: {e}", flush=True)
     if archivo_tmp:
         from app.services.pagos_proveedor import consolidar_archivo
 
@@ -1420,8 +1581,26 @@ def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None =
     cat = CATEGORIAS.get(sol["categoria"]) or {}
     items = sol.get("items") or []
     if cat.get("con_productos"):
-        if not items:
+        # `productos_opcionales`: en «Productos» del wizard simple el detalle es
+        # lo deseable pero no obligatorio — hay compras de insumos que no están
+        # en el catálogo, y bloquear el pago por eso empuja al operador a la
+        # categoría «Otro», que es donde se pierde la retención y la cuenta.
+        if not items and not cat.get("productos_opcionales"):
             raise ValueError("Agrega al menos un producto con su SKU")
+        # La réplica tiene que cuadrar con el documento. Se valida al ENVIAR y
+        # no al capturar, para poder guardar un borrador a medias; pero no se
+        # aprueba un asiento que dice algo distinto de la factura que lo
+        # sustenta. Ver `previsualizar`: el IVA del catálogo no es confiable y
+        # este cuadre es lo que lo cubre.
+        total_doc = round(float(sol.get("total_documento") or datos.get("total_documento") or 0), 2)
+        if items and total_doc > 0:
+            suma = round(sum(float(i.get("total") or 0) for i in items), 2)
+            if abs(suma - total_doc) > 1:
+                raise ValueError(
+                    f"Lo capturado suma {_fmt(suma)} y el documento dice {_fmt(total_doc)}. "
+                    "Cuadra las líneas antes de enviar: revisa las tarifas de IVA, que las del "
+                    "catálogo son una sugerencia y el documento manda."
+                )
         if cat.get("requiere_factura") and not (
             sol.get("factura_archivo") or datos.get("archivo_tmp")
         ):
@@ -1434,6 +1613,7 @@ def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None =
         ("medio_pago_id", "medio_pago_id"),
         ("referencia", "referencia"),
         ("notas", "notas"),
+        ("total_documento", "total_documento"),
     ):
         if clave in datos:
             campos.append(f"{col}=?")
@@ -1683,6 +1863,26 @@ def obtener(sid: int) -> dict | None:
     if not r:
         return None
     d = dict(r)
+    # El asiento que quedó, con sus líneas: cuenta, nombre, débito y crédito.
+    # Una solicitud aprobada sin poder ver contra qué se contabilizó obliga a
+    # abrir el Libro Mayor en otra pestaña para responder «¿y esto dónde quedó?».
+    if d.get("movimiento_id"):
+        try:
+            import app.services.contabilidad_core as _cc
+
+            mov = _cc.obtener_movimiento(int(d["movimiento_id"]))
+            if mov:
+                d["asiento"] = {
+                    "id": mov["id"], "fecha": mov["fecha"], "concepto": mov["concepto"],
+                    "estado": mov.get("estado", ""),
+                    "lineas": [
+                        {k: l.get(k) for k in
+                         ("cuenta_codigo", "cuenta_nombre", "debito", "credito", "descripcion")}
+                        for l in mov.get("lineas", [])
+                    ],
+                }
+        except Exception:
+            pass
     d["categoria_label"] = CATEGORIAS.get(d["categoria"], {}).get("label", d["categoria"])
     d["icono"] = CATEGORIAS.get(d["categoria"], {}).get("icono", "📌")
     # Lo que de verdad recibe el beneficiario: el ICA también se le descuenta
@@ -1767,12 +1967,18 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         "concepto": s["concepto"], "tercero_id": s["tercero_id"],
         "medio_pago_id": s["medio_pago_id"], "cuenta_debito": s["cuenta_debito"],
         "retencion_modo": "ninguna",   # los impuestos ya están fijados en la solicitud
+        # Los productos que se aprobaron: sin ellos, la reconstrucción armaba una
+        # sola línea global y el asiento perdía el detalle por referencia —y con
+        # él la réplica de la cotización, que es el punto de registrarlos.
+        **({"items": s["items"]} if s.get("items") else {}),
         **({"pagado_ahora": s["pagado_ahora"]} if s.get("pagado_ahora") is not None else {}),
     })
-    lineas = [
-        {k: v for k, v in l.items() if k in ("cuenta_id", "debito", "credito", "tercero_id", "descripcion")}
-        for l in prev["lineas"]
-    ]
+    # Se conserva `cuenta_codigo` en la proyección: la reconstrucción de abajo
+    # necesita distinguir las líneas del gasto de las que ella misma rearma con
+    # los impuestos aprobados, y sin el código no puede. `crear_movimiento`
+    # ignora las claves que no conoce.
+    _CAMPOS_LINEA = ("cuenta_id", "cuenta_codigo", "debito", "credito", "tercero_id", "descripcion")
+    lineas = [{k: v for k, v in l.items() if k in _CAMPOS_LINEA} for l in prev["lineas"]]
     # Reinyectar los impuestos tal como se aprobaron: lo que se contabiliza es
     # lo que alguien firmó, no lo que las tarifas de hoy dirían.
     ret = round(float(s["retencion"] or 0), 2)
@@ -1793,7 +1999,19 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             id_ret = cc._cuenta_id_por_codigo(con, cod_ret) or cc._cuenta_id_por_codigo(con, "2365")
             id_ica = cc._cuenta_id_por_codigo(con, "2368")
             id_gmf = cc._cuenta_id_por_codigo(con, "530595")
-        medias = [lineas[0]]
+        # TODAS las líneas del gasto, no solo la primera: una compra con cinco
+        # productos tiene cinco líneas de inventario más la del IVA descontable,
+        # y quedarse con `lineas[0]` habría contabilizado un solo producto y
+        # descuadrado el asiento.
+        #
+        # Se excluyen las que esta reconstrucción vuelve a armar abajo con los
+        # impuestos tal como se aprobaron —retención, ICA, GMF— y la salida de
+        # banco. Incluir el GMF acá lo contaba dos veces.
+        _rearmadas = ("2365", "2368", "530595", "1110", "2355", "2335")
+        medias = [
+            l for l in lineas
+            if l.get("debito") and not str(l.get("cuenta_codigo") or "").startswith(_rearmadas)
+        ]
         if ret:
             medias.append({"cuenta_id": id_ret, "debito": 0, "credito": ret,
                            "tercero_id": s["tercero_id"],
@@ -1869,6 +2087,30 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         except Exception as e:
             espejo = {"status": "error", "message": str(e)}
 
+    # Documento soporte, si el beneficiario NO está obligado a facturar. Es lo
+    # que hace deducible el gasto (Art. 771-2 E.T.): sin factura del proveedor
+    # ni documento soporte nuestro, el pago está conciliado y contabilizado pero
+    # no es deducible. Va aquí y no como paso aparte porque un paso aparte es un
+    # paso que un día no se hace — y si no se emite, no hay quien lo note.
+    doc_soporte = {"status": "omitido"}
+    try:
+        from app.services import doc_soporte_pagos as _ds
+
+        doc_soporte = _ds.emitir_por_solicitud(sid)
+    except Exception as e:      # emitirlo no puede tumbar la aprobación
+        doc_soporte = {"status": "error", "message": str(e)}
+        print(f"⚠️ Solicitud {sid}: documento soporte no emitido: {e}", flush=True)
+
+    _nota_ds = ""
+    if doc_soporte.get("status") == "success":
+        _nota_ds = f"\n📄 Documento soporte {doc_soporte.get('numero')} emitido y transmitido a la DIAN."
+    elif doc_soporte.get("status") == "dry_run":
+        _nota_ds = ("\n📄 Este beneficiario no está obligado a facturar: le corresponde documento "
+                    "soporte, pero está en modo sombra (PAGOS_DOC_SOPORTE_ACTIVO=0). "
+                    "Sin él, el gasto no es deducible (Art. 771-2 E.T.).")
+    elif doc_soporte.get("status") == "error":
+        _nota_ds = f"\n⚠️ Documento soporte NO emitido: {str(doc_soporte.get('message'))[:180]}"
+
     _comentar_ticket(
         s.get("ticket_id"), aprobada_por,
         f"✅ Pago aprobado (solicitud #{sid}). Asiento #{mov.get('id')} en el Libro Mayor"
@@ -1877,9 +2119,10 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         + f". Girar {_fmt(s['girado'])} a {(s.get('tercero') or {}).get('nombre') or 'el beneficiario'}"
         f" desde {prev['medio_pago']} — ese es el valor que debe aparecer en el extracto.\n\n"
         "Siguiente: montarlo en la Sucursal Virtual con el primer token y aprobarlo con el "
-        "segundo; al confirmarlo se adjunta el comprobante del banco en la solicitud.",
+        "segundo; al confirmarlo se adjunta el comprobante del banco en la solicitud."
+        + _nota_ds,
     )
-    return {**obtener(sid), "movimiento": mov, "alegra": espejo}
+    return {**obtener(sid), "movimiento": mov, "alegra": espejo, "doc_soporte": doc_soporte}
 
 
 # ─── Paso 5: el giro en el banco (dos tokens) y su comprobante ─────────────
@@ -1996,6 +2239,20 @@ def confirmar_pago(
                 cc.guardar_comprobante(int(s["movimiento_id"]), archivo.read_bytes(), nombre, mime)
         except Exception as e:
             print(f"⚠️ Solicitud {sid}: no se pudo adjuntar el comprobante al asiento: {e}", flush=True)
+
+    # El documento soporte se emitió al aprobar, cuando la plata todavía no
+    # había salido. Ahora que el giro está confirmado, se salda en Alegra: si
+    # no, queda una cuenta por pagar al beneficiario que ya no existe — un
+    # pasivo fantasma en el auxiliar de proveedores.
+    try:
+        from app.services.doc_soporte_pagos import registrar_pago_en_alegra
+
+        _pago_ds = registrar_pago_en_alegra(sid, referencia=str(referencia or ""))
+        if _pago_ds.get("status") == "error":
+            print(f"⚠️ Solicitud {sid}: documento soporte sin saldar en Alegra: "
+                  f"{str(_pago_ds.get('message'))[:180]}", flush=True)
+    except Exception as e:      # saldar en Alegra no puede tumbar la confirmación
+        print(f"⚠️ Solicitud {sid}: no se pudo saldar el documento soporte: {e}", flush=True)
 
     # Si el pago nació en otro módulo (hoy: los lotes de mensajería), ese módulo
     # tiene que enterarse de que ya se giró. Si no, el lote se queda «en

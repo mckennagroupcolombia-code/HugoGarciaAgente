@@ -4098,9 +4098,18 @@ def register_routes(app):
                     procesar_facturas_para_importar_productos,
                     job="gmail_importar_xml",
                 )
+            from app.tools.sincronizar_facturas_de_compra_siigo import registro_compras_activo
+
             return jsonify({
                 "status": "iniciado",
-                "mensaje": "Escaneo facturas de compra Gmail iniciado.",
+                "mensaje": (
+                    "Escaneo facturas de compra Gmail iniciado."
+                    if registro_compras_activo() else
+                    "Descargando los XML de Gmail. El REGISTRO de facturas de compra está "
+                    "apagado desde el 18-sep-2026: la compra se contabiliza antes de pagarla, "
+                    "en Contabilidad → Solicitudes de pago → Productos."
+                ),
+                "registro_activo": registro_compras_activo(),
                 "timestamp": _dt.now().isoformat(),
             })
         except Exception as e:
@@ -7092,9 +7101,9 @@ def register_routes(app):
             limite = 40
         forzar = (request.args.get("forzar") or "").strip().lower() in ("1", "true")
         try:
-            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado
+            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado_sin_espera
 
-            data = listar_ventas_meli_unificado(dias=dias, segmento=segmento, limite=limite, forzar=forzar)
+            data = listar_ventas_meli_unificado_sin_espera(dias=dias, segmento=segmento, limite=limite, forzar=forzar)
             return jsonify(data)
         except Exception as e:
             return jsonify({"error": str(e)[:300], "ventas": []}), 502
@@ -10932,6 +10941,87 @@ def register_routes(app):
             terceros = (request.args.get("terceros") or "").strip() in ("1", "true", "si")
             return jsonify(arbol_cuentas(desde=desde, hasta=hasta, solo_con_movimiento=solo_mov,
                                          con_terceros=terceros))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tid>/historial", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tid>/historial", methods=["GET"])
+    def api_cc_tercero_historial(tid: int):
+        """Historial de un tercero: su perfil tributario explicado y todo lo que
+        le ha pasado en orden — decisiones, indicaciones del contador,
+        documentos emitidos y pagos. La ficha guarda el estado; esto guarda el
+        porqué, que es lo que hace falta seis meses después."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.terceros_historial import historial
+
+            return jsonify(historial(tid))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/terceros/<int:tid>/historial", methods=["POST"])
+    @app.route("/app/api/contabilidad/cc/terceros/<int:tid>/historial", methods=["POST"])
+    def api_cc_tercero_historial_agregar(tid: int):
+        """Anota un hecho en el historial. Append-only: un historial que se
+        puede editar no sirve para responder «¿qué pasó?»."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.terceros_historial import registrar
+
+            d = request.get_json(silent=True) or {}
+            from datetime import date as _d
+
+            return jsonify(registrar(
+                tid,
+                titulo=str(d.get("titulo") or ""),
+                fecha=str(d.get("fecha") or _d.today().isoformat()),
+                tipo=str(d.get("tipo") or "nota"),
+                detalle=str(d.get("detalle") or ""),
+                referencia=str(d.get("referencia") or ""),
+                monto=float(d["monto"]) if d.get("monto") not in (None, "") else None,
+                por=str(d.get("por") or ""),
+            ))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/cc/diario", methods=["GET"])
+    @app.route("/app/api/contabilidad/cc/diario", methods=["GET"])
+    def api_cc_libro_diario():
+        """El Libro Diario: los asientos en orden cronológico con sus líneas,
+        cada una con el código y el NOMBRE de la cuenta, el débito y el crédito.
+
+        El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
+        día». Con `.csv` al final devuelve una fila por línea de asiento, que es
+        el formato que el contador importa."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.contabilidad_mayor import libro_diario, libro_diario_csv
+
+            d = libro_diario(
+                desde=(request.args.get("desde") or "").strip() or None,
+                hasta=(request.args.get("hasta") or "").strip() or None,
+                tercero_id=int(request.args.get("tercero_id") or 0) or None,
+                cuenta=(request.args.get("cuenta") or "").strip() or None,
+                q=(request.args.get("q") or "").strip() or None,
+                incluir_anulados=(request.args.get("anulados") or "").strip() in ("1", "true", "si"),
+                limit=min(int(request.args.get("limit") or 300), 1000),
+                offset=int(request.args.get("offset") or 0),
+            )
+            if (request.args.get("formato") or "").lower() == "csv":
+                from flask import Response
+
+                return Response(
+                    libro_diario_csv(d), mimetype="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": 'attachment; filename="libro_diario.csv"'},
+                )
+            return jsonify(d)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -18619,7 +18709,64 @@ def register_routes(app):
             return jsonify({"error": f"No se pudo guardar en Documentos: {e}"}), 500
         entry = _registrar_pdf_guardado_etiqueta(dest_name, dest_path, len(raw))
         rel = entry.get("ruta") or os.path.relpath(dest_path, _PDF_DIR)
+        # Tamaño de la página 1 en mm: Imprimir → «Cargar del ordenador» lo usa
+        # para elegir el formato sin que el operador lo digite.
+        _medidas_pdf_mm = {}
+        try:
+            import fitz as _fitz_sub
+            with _fitz_sub.open(stream=raw, filetype="pdf") as _doc_sub:
+                _r = _doc_sub[0].rect
+                _medidas_pdf_mm = {
+                    "ancho_mm": round(_r.width * 25.4 / 72, 2),
+                    "alto_mm": round(_r.height * 25.4 / 72, 2),
+                }
+        except Exception:
+            _medidas_pdf_mm = {}
+        # La biblioteca de Imprimir solo lista imágenes de «ETIQUETAS STUDIO»: un
+        # PDF cargado desde ahí deja su página 1 como PNG a 600 dpi (la misma
+        # resolución que exporta Studio) para que quede guardado y se vuelva a
+        # encontrar. Sin esto el PDF se imprimía una vez y desaparecía.
+        _png_biblioteca = None
+        if (request.form.get("biblioteca_imprimir") or "").strip() == "1" and _medidas_pdf_mm:
+            try:
+                import fitz as _fitz_png
+                from app.tools.etiquetas_studio import _tipos_etiqueta_mm as _tipos_mm_png
+                _dpi_png = 600
+                with _fitz_png.open(stream=raw, filetype="pdf") as _doc_png:
+                    _pix = _doc_png[0].get_pixmap(dpi=_dpi_png, alpha=False)
+                    _png_bytes = _pix.tobytes("png")
+                _nombre_png = _nombre_png_recurso_seguro(f"{os.path.splitext(nombre_orig)[0]}.png")
+                if not _nombre_png_disponible(_nombre_png):
+                    _b, _e = os.path.splitext(_nombre_png)
+                    _n = 2
+                    while not _nombre_png_disponible(f"{_b}_{_n}{_e}"):
+                        _n += 1
+                    _nombre_png = f"{_b}_{_n}{_e}"
+                _carpeta_png = _resolver_subcarpeta_png("ETIQUETAS STUDIO", crear=True)
+                if _carpeta_png:
+                    _destino_png = os.path.join(_carpeta_png, _nombre_png)
+                    with open(_destino_png, "wb") as f:
+                        f.write(_png_bytes)
+                    _meta_png = {**_medidas_pdf_mm, "dpi": float(_dpi_png)}
+                    # Tolerancia de 1,5 mm: los PDF de diseño suelen venir 1 mm
+                    # por debajo del troquel (p. ej. 101×38 para el rollo 102×38).
+                    # Si calza con un formato del catálogo se imprime a ese tamaño.
+                    for _t_nombre, _t_w, _t_h in _tipos_mm_png():
+                        if (abs(_t_w - _medidas_pdf_mm["ancho_mm"]) <= 1.5
+                                and abs(_t_h - _medidas_pdf_mm["alto_mm"]) <= 1.5):
+                            _meta_png.update(
+                                {"tipo_etiqueta": _t_nombre, "ancho_mm": _t_w, "alto_mm": _t_h}
+                            )
+                            break
+                    _png_biblioteca = _registrar_png_recurso(
+                        _nombre_png, _destino_png, len(_png_bytes), meta=_meta_png,
+                    )
+            except Exception as e:
+                print(f"[etiquetas] subir-pdf: no se pudo dejar el PNG en la biblioteca: {e}")
+                _png_biblioteca = None
         return jsonify({
+            **_medidas_pdf_mm,
+            "png_biblioteca": _png_biblioteca,
             "ok": True,
             "nombre": dest_name,
             "ruta": rel,

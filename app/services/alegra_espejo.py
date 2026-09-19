@@ -79,6 +79,12 @@ MAPA_PUC: dict[str, str] = {
     "513530": "5212",   # Energía eléctrica
     "513535": "5213",   # Teléfono / Internet
     "513550": "5214",   # Transporte, fletes y acarreos -> "Transporte y acarreo"
+    # El flete de ventas comparte destino en Alegra con el administrativo: allá
+    # no hay una cuenta aparte para el transporte del área comercial, y partirlo
+    # en dos exigiría crear cuenta en el catálogo de Alegra (que devuelve 503 en
+    # POST que sí se ejecutaron — ver alegra_puc). En el Libro Mayor sí quedan
+    # separadas, que es donde importa para el estado de resultados.
+    "523550": "5214",   # Transporte, fletes y acarreos (ventas)
     "513555": "5207",   # Gas
     "513560": "5231",   # SaaS -> "Cuotas y suscripciones"
     "513595": "5215",   # Otros servicios
@@ -151,10 +157,23 @@ def tipos_comprobante(*, refrescar: bool = False) -> tuple[list, str]:
     if _TIPOS_CACHE and not refrescar and (time.time() - _TIPOS_CACHE[2]) < 600 and _TIPOS_CACHE[0]:
         return _TIPOS_CACHE[0], _TIPOS_CACHE[1]
     try:
-        # 90 s: este endpoint devuelve los comprobantes con todas sus líneas, así
-        # que tarda más cuanto más se ha espejado. Con 20 s empezó a dar timeout
-        # apenas pasó de 100 comprobantes y tumbaba el lote entero.
-        r = requests.get(f"{_ALEGRA_BASE}/journals/types", headers=_alegra_headers(), timeout=90)
+        # **`?limit=1` no es una optimización, es lo que hace que funcione.**
+        #
+        # Este endpoint devuelve los comprobantes con TODAS sus líneas, y crece
+        # con cada asiento espejado. Al pasar de ~130 comprobantes el gateway de
+        # Alegra empezó a cortarlo a los 30 s exactos con un **503 «Service
+        # Unavailable»** —que parece una caída suya y no lo es—, y como el
+        # espejo consulta esto antes de cada asiento, dejó de espejarse TODO
+        # desde el 16-sep-2026: 1.162 asientos, incluidos los pagos del wizard.
+        # Grave porque el contador arma las declaraciones con lo que ve en
+        # Alegra. Con `?limit=1` responde en ~4 s.
+        #
+        # Y basta con uno: de esta respuesta solo se usa para comprobar que
+        # exista AL MENOS UN tipo de comprobante configurado (sin eso no se
+        # puede postear, y crearlo por API da 403). El id ni siquiera va en el
+        # payload de `/journals`.
+        r = requests.get(f"{_ALEGRA_BASE}/journals/types?limit=1",
+                         headers=_alegra_headers(), timeout=60)
     except Exception as e:
         # Si ya se leyó antes en este proceso, seguir con eso: los tipos de
         # comprobante no cambian en mitad de un lote, y rendirse aquí deja el
@@ -408,6 +427,12 @@ def espejar_movimiento(movimiento_id: int, *, forzar: bool = False, reespejar: b
                 "message": f"El asiento {movimiento_id} ya es el comprobante {ya} en Alegra."}
     if mov.get("estado") == "anulado":
         return {"status": "no_aplica", "motivo": "El asiento está anulado."}
+    # Lo anterior al corte lo declaró el contador con su propia contabilidad;
+    # meterlo a Alegra ahora le desordena lo que ya presentó. `forzar` NO lo
+    # salta: `forzar` existe para autorizar un posteo con el asiento a la vista,
+    # no para reescribir un período cerrado.
+    if cc.antes_del_corte(mov.get("fecha")):
+        return {"status": "bloqueado_por_corte", "message": cc.motivo_corte(mov.get("fecha"))}
 
     entries, faltantes = _entradas_desde_movimiento(mov)
     if faltantes:

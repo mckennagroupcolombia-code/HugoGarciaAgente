@@ -106,6 +106,14 @@ def generar_pdf_extracto(extracto: dict[str, Any], destino: str | None = None) -
         HRFlowable(width="100%", color=_LINEA, spaceBefore=6, spaceAfter=8),
     ]
 
+    # Qué operación vive en esta cuenta y qué impuestos acarrea. Va en el PDF
+    # porque este documento es el que se le manda al contador, y es ahí donde la
+    # pregunta «¿qué es este saldo?» aparece sin nadie a quien preguntarle.
+    guia = " ".join(x for x in (cuenta.get("descripcion"), cuenta.get("nota_tributaria")) if x)
+    if guia:
+        flow.append(Paragraph(guia, est["sub"]))
+        flow.append(HRFlowable(width="100%", color=_LINEA, spaceBefore=6, spaceAfter=8))
+
     # Resumen de cabecera: los cuatro números que se buscan primero.
     resumen = Table(
         [

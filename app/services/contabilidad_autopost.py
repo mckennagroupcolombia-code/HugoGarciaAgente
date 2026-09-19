@@ -366,6 +366,29 @@ def auto_postear_periodo(
     pero este módulo todavía no sabe clasificar quedan en `fuentes_sin_mapeo`
     (nunca se descartan en silencio)."""
     cc._ensure()
+    # Antes del corte manda el contador: ese período ya lo declaró con su propia
+    # contabilidad y el libro propio no lo reescribe. Se recorta el rango en vez
+    # de rechazarlo entero, para que un backfill que empiece antes siga sirviendo
+    # para lo que sí es nuestro.
+    avisos_corte: list[str] = []
+    corte = cc.fecha_corte()
+    if cc.antes_del_corte(desde):
+        avisos_corte.append(
+            f"El rango empezaba el {desde}, antes del corte contable ({corte}): se recortó. "
+            "Ese período lo declaró el contador y el libro propio no lo reescribe. "
+            "Para cambiarlo, CONTABILIDAD_FECHA_CORTE."
+        )
+        desde = corte
+    if hasta and cc.antes_del_corte(hasta):
+        return {
+            "creados": 0, "omitidos": 0, "errores": [], "fuentes_sin_mapeo": {},
+            "montos_por_fuente": {},
+            "avisos": avisos_corte + [
+                f"Todo el rango es anterior al corte contable ({corte}): no se posteó nada. "
+                + cc.motivo_corte(hasta)
+            ],
+            "bloqueado_por_corte": True,
+        }
     libro = armar_libro(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
     cuentas_por_codigo = _mapa_cuentas(cc)
 
@@ -422,7 +445,7 @@ def auto_postear_periodo(
         # significa postear un período INCOMPLETO, y descartar el aviso hacía
         # que la corrida se viera exitosa —«1.300 creados»— sin decir que
         # faltaban facturas. Se propaga para que quien corre el backfill lo vea.
-        "avisos": libro.get("avisos") or [],
+        "avisos": avisos_corte + (libro.get("avisos") or []),
         # Cuánto se postea, por fuente: «1.300 asientos» no permite contrastar
         # contra la facturación; «$80M en ventas» sí.
         "montos_por_fuente": montos_por_fuente,

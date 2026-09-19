@@ -1505,7 +1505,19 @@ def estado_alegra(prestamo_id: int) -> dict:
 # Cuenta contable de Alegra para la línea del documento soporte. Los intereses
 # de un mutuo son gasto financiero, no un producto: por eso va cuenta y no ítem
 # (ver alegra.crear_documento_soporte_alegra).
-CUENTA_ALEGRA_INTERESES_DEFAULT = "5252"   # Gastos por Intereses financieros
+#
+# ⚠️ Es la id **5949**, que en Alegra corresponde al código PUC **530520
+# Intereses**, y NO la 5252 «Gastos por Intereses financieros» que estaba antes.
+# La 5252 sigue existiendo pero es una de las **8 cuentas sobrevivientes del
+# catálogo NIIF** (de 997) que quedaron **sin código PUC** cuando Alegra migró,
+# y en modo PUC las rechaza: `HTTP 400 · 11060 «No se encontró una de las
+# cuentas contables asociadas a la factura de compra»`. Se descubrió al emitir
+# el primer documento soporte de un pago (18-sep-2026), y de no haberlo visto
+# la cuota del 9-oct habría fallado igual.
+#
+# Se resuelve con `alegra_espejo.cuenta_alegra("530520")` para no volver a
+# escribir una id a mano, que es justo como se llegó a la 5252.
+CUENTA_ALEGRA_INTERESES_DEFAULT = "5949"   # PUC 530520 Intereses
 
 
 def _doc_soporte_activo() -> bool:

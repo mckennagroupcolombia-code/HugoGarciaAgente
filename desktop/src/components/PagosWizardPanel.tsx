@@ -50,6 +50,10 @@ type Previsualizacion = {
   items?: Array<{ sku: string; nombre: string; cantidad: number; precio: number; subtotal: number; iva: number; total: number }>;
   total_items?: number; base_sin_iva?: number; iva_items?: number;
   valor_es_neto?: boolean; retencion_ica?: number; ica_por_mil?: number; gmf?: number; retencion_modo?: string;
+  concepto_retencion?: string;
+  aviso_gross_up?: string;
+  aviso_documento?: string; diferencia_documento?: number; total_documento?: number;
+  perfil_cuenta?: { nota?: string; advertencia?: string; cuenta_nombre?: string };
   pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
   // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
   difiere_de_lo_guardado?: boolean; monto_guardado?: number;
@@ -273,13 +277,30 @@ function WizardSimple({
   // ser «te pago X libre de retención»: ese valor es lo que RECIBE, no la base.
   // Tomarlo como base le recorta la retención y después la reclama (pasó con
   // tres quincenas en sep-2026).
-  const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">("mckenna");
+  // Lo normal es descontarle la retención al beneficiario. El gross-up («te
+  // pago libre de retención») es un acuerdo comercial y vive en la ficha del
+  // tercero, no en una pregunta que haya que contestar en cada pago.
+  const [retencionModo, setRetencionModo] = useState<"mckenna" | "beneficiario" | "ninguna">("beneficiario");
   // Cuenta del PUC a la que va el gasto. Vacía = la que propone la categoría (o
   // la habitual del tercero, que el backend aplica solo).
   const [cuentaDebito, setCuentaDebito] = useState("");
   const [icaActivo, setIcaActivo] = useState(false);
   const [icaPorMil, setIcaPorMil] = useState("");
   const [gmf, setGmf] = useState(false);
+  // Los impuestos se informan; «ajustar» es la salida para lo que el PUC no
+  // puede saber (un pago pactado libre de retención es un acuerdo comercial).
+  const [ajustarImpuestos, setAjustarImpuestos] = useState(false);
+  // La cotización del proveedor, renglón por renglón. Al solicitar el pago la
+  // compra queda contabilizada contra inventario con su referencia, y no hay
+  // que volver a registrarla cuando llegue la factura — que es el paso doble
+  // que este cambio viene a quitar.
+  const [items, setItems] = useState<ItemLinea[]>([]);
+  // El total que dice el documento del proveedor. Es el patrón contra el que se
+  // cuadra la réplica: como total = base + IVA, si una tarifa de IVA está mal el
+  // total no da. Hace falta porque el IVA que trae el catálogo de Alegra para
+  // las materias primas NO es confiable (la misma sustancia está marcada 19%
+  // como combo y 0% como insumo).
+  const [totalDocumento, setTotalDocumento] = useState("");
   const [contrato, setContrato] = useState("");
   const [monto, setMonto] = useState("");
   const [detalle, setDetalle] = useState("");
@@ -395,9 +416,24 @@ function WizardSimple({
     return `${label}${quien}${detalle ? ` · ${detalle}` : ""}`;
   }, [concepto, esPublico, perfilCuenta, contrato, proveedor, detalle]);
 
+  const totProd = useMemo(() => {
+    const subtotal = items.reduce((a, it) => a + num(it.cantidad) * num(it.precio), 0);
+    const iva = items.reduce((a, it) => a + num(it.cantidad) * num(it.precio) * (num(it.iva_pct) / 100), 0);
+    return { subtotal, iva, total: subtotal + iva };
+  }, [items]);
+  const conProductosSimple = concepto === "productos";
+  const hayItems = conProductosSimple && items.length > 0;
+
   const cuerpo = useMemo(() => ({
     categoria: concepto,
-    monto: valor,
+    // Con productos el monto lo manda la cotización: teclearlo aparte abría la
+    // puerta a que el total y el detalle dijeran cosas distintas.
+    monto: hayItems ? Math.round(totProd.total) : valor,
+    ...(hayItems && num(totalDocumento) > 0 ? { total_documento: num(totalDocumento) } : {}),
+    ...(hayItems ? { items: items.map((it) => ({
+      sku: it.sku, nombre: it.nombre, unidad: it.unidad,
+      cantidad: num(it.cantidad), precio: num(it.precio), iva_pct: num(it.iva_pct),
+    })) } : {}),
     concepto: conceptoTexto,
     fecha,
     tercero_id: proveedor?.id ?? null,
@@ -409,10 +445,11 @@ function WizardSimple({
     gmf,
     ...(permiteParcial && !pagaTodo ? { pagado_ahora: num(pagoAhora) } : {}),
   }), [concepto, valor, conceptoTexto, fecha, proveedor, medioPagoId, esPublico, contrato,
-       llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial, pagaTodo, pagoAhora]);
+       llevaRetencion, retencionModo, icaActivo, icaPorMil, cuentaDebito, gmf, permiteParcial,
+       pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
-  const listo = valor > 0 && !!medioPagoId && !!fecha && !faltaProveedor;
+  const listo = (hayItems ? totProd.total > 0 : valor > 0) && !!medioPagoId && !!fecha && !faltaProveedor;
 
   const prevQ = useQuery<Previsualizacion>({
     queryKey: ["pagos-previsualizar", cuerpo],
@@ -535,103 +572,180 @@ function WizardSimple({
         </Campo>
       )}
 
-      <Campo label="Valor solicitado">
-        <input type="number" min="0" step="1000" value={monto} onChange={(e) => setMonto(e.target.value)}
-               placeholder="0" className={inputCls} />
+      {conProductosSimple && (
+        <div className="space-y-2 rounded-xl border-2 border-dashed border-border p-4">
+          <p className="text-sm font-bold uppercase text-muted">Materias primas de la cotización</p>
+          <p className="text-xs text-muted">
+            Agrégalas por su <b>referencia</b> del catálogo de Alegra (CITCALg, GLIVEGg…) con la
+            cantidad y el precio que trae la cotización del proveedor. El asiento reproduce cada
+            renglón contra inventario y separa el IVA descontable, así que la compra queda
+            contabilizada desde ya y no hay que volver a registrarla cuando llegue la factura.
+            Si el insumo no está en el catálogo, déjalo vacío y escribe el valor total abajo.
+          </p>
+          <TablaProductos items={items} setItems={setItems} tot={totProd} />
+          {items.length > 0 && (
+            <div className="rounded-lg border border-border bg-surface px-3 py-2">
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-bold text-ink">Total que dice el documento</span>
+                <input type="number" min="0" step="0.01" value={totalDocumento}
+                       onChange={(e) => setTotalDocumento(e.target.value)}
+                       placeholder="5150615" inputMode="decimal"
+                       className="w-40 rounded border-2 border-border bg-surface-input px-2 py-1 text-right text-base tabular-nums text-ink" />
+                <span className="text-xs text-muted">el total con IVA de la cotización o factura</span>
+              </label>
+              {prevQ.data?.aviso_documento ? (
+                <p className="mt-1.5 rounded bg-amber-500/10 px-2 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
+                  ⚠️ {prevQ.data.aviso_documento}
+                </p>
+              ) : num(totalDocumento) > 0 ? (
+                <p className="mt-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                  ✓ La réplica cuadra con el documento.
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-muted">
+                  Escríbelo y el sistema comprueba que las líneas lo sumen. Sin eso, una tarifa de
+                  IVA equivocada pasa desapercibida: las del catálogo son una sugerencia.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      <Campo label={hayItems ? "Total de la cotización" : "Valor solicitado"}>
+        <input type="number" min="0" step="1000"
+               value={hayItems ? String(Math.round(totProd.total)) : monto}
+               onChange={(e) => setMonto(e.target.value)}
+               disabled={hayItems}
+               placeholder="0" className={`${inputCls} ${hayItems ? "opacity-60" : ""}`} />
+        {hayItems && (
+          <span className="mt-1 block text-xs text-muted">
+            Lo suman los productos de arriba. Para escribirlo a mano, quita las líneas.
+          </span>
+        )}
       </Campo>
 
+      {/* ── Impuestos: se INFORMAN, no se preguntan ────────────────────────
+          Antes esto eran tres preguntas («¿quién asume la retención?», «¿lleva
+          ICA?», «¿lleva 4x1000?») que el operador tenía que contestar bien cada
+          vez. Contestarlas bien doce veces al año y olvidarlo una es lo que
+          produjo los $164.542 retenidos de más en septiembre.
+
+          La respuesta ya está en los datos: la CUENTA del PUC dice qué concepto
+          de retención aplica y con qué tarifa, y la FICHA DEL TERCERO dice si
+          está exento, si es del Régimen SIMPLE y con qué tarifa de ICA. Así que
+          el panel muestra lo que salió, con su porqué, y el operador solo lo
+          verifica. Si hay que apartarse —un pago pactado libre de retención es
+          un acuerdo comercial que el PUC no puede saber— se abre «ajustar». */}
       <div className="space-y-3 rounded-xl border-2 border-dashed border-border p-4">
-        <p className="text-sm font-bold uppercase text-muted">Impuestos y retenciones</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-bold uppercase text-muted">Impuestos de esta operación</p>
+          <button
+            type="button"
+            onClick={() => setAjustarImpuestos((v) => !v)}
+            className="text-xs font-bold text-accent underline"
+          >
+            {ajustarImpuestos ? "Ocultar ajustes" : "Ajustar"}
+          </button>
+        </div>
 
-        {/* Lo que el sistema dedujo de la cuenta, con la norma. Sin esta línea
-            el operador no tiene cómo notar que la cuenta está mal elegida hasta
-            que el contador arma el 350 tres meses después. */}
         {perfilCuenta && (
-          <div className="rounded-lg border border-border bg-surface px-3 py-2">
-            <p className="text-sm text-ink">
-              <span className="font-bold">{perfilCuenta.codigo}</span>{" "}
-              <span className="text-muted">{perfilCuenta.nombre}</span>
-              {": "}
-              {perfilCuenta.nota}
-            </p>
-            {perfilCuenta.advertencia && (
-              <p className="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
-                ⚠️ {perfilCuenta.advertencia}
-              </p>
-            )}
-            {proveedor?.regimen_simple && (
-              <p className="mt-1 text-sm font-semibold text-accent">
-                {proveedor.nombre} está en Régimen SIMPLE: no lleva retención de renta ni de ICA
-                (Art. 911 E.T.; el ICA va dentro del SIMPLE, Art. 907 E.T.), sea cual sea la cuenta.
-              </p>
-            )}
-          </div>
-        )}
-
-        {llevaRetencion && (
-          <div className="space-y-2">
-            <p className="text-sm font-bold text-ink">¿Quién asume la retención?</p>
-            {([
-              ["mckenna", "McKenna — se pagan libres de retención",
-               "El valor de arriba es lo que RECIBE el beneficiario. La retención se suma al gasto. Es lo pactado con quien presta servicios."],
-              ["beneficiario", "El beneficiario — se le descuenta",
-               "El valor de arriba es el total y recibe menos la retención. Es lo normal cuando hay factura."],
-              ["ninguna", "Nadie — no se practica retención",
-               "Autorretenedor, Régimen SIMPLE o por debajo de la cuantía mínima. Si no estás seguro, pregúntale al contador antes."],
-            ] as const).map(([v, label, ayuda]) => (
-              <label key={v} className="flex cursor-pointer items-start gap-2 text-sm">
-                <input type="radio" checked={retencionModo === v} onChange={() => setRetencionModo(v)} className="mt-1" />
-                <span>
-                  <span className="font-bold text-ink">{label}</span>
-                  <span className="block text-sm text-muted">{ayuda}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-
-        {proveedor && (Number(proveedor.ica_por_mil ?? 0) > 0 || proveedor.retefuente_exento || proveedor.gmf_por_defecto) && (
-          <p className="rounded-lg bg-accent/10 px-3 py-2 text-xs text-accent">
-            Impuestos tomados de la ficha de {proveedor.nombre}, como se le pagó la última vez.
-            Si los cambias acá, queda guardado para la próxima.
+          <p className="text-sm text-ink">
+            <span className="font-mono font-bold">{perfilCuenta.codigo}</span>{" "}
+            <span className="font-bold">{perfilCuenta.nombre}</span>
+            {perfilCuenta.descripcion ? <span className="block text-sm text-muted">{perfilCuenta.descripcion}</span> : null}
           </p>
         )}
 
-        <label className={`flex items-start gap-2 text-sm ${proveedor?.regimen_simple ? "opacity-50" : "cursor-pointer"}`}>
-          <input type="checkbox" checked={icaActivo} disabled={Boolean(proveedor?.regimen_simple)}
-                 onChange={(e) => setIcaActivo(e.target.checked)} className="mt-1" />
-          <span className="flex-1">
-            <span className="font-bold text-ink">Lleva retención de ICA</span>
-            <span className="block text-sm text-muted">
-              La cuenta propone la tarifa de Bogotá (9,66 servicios · 11,04 comercial · 4,14 industrial) y
-              la ficha del tercero manda sobre ella. Cámbiala si el municipio o la actividad son otros:
-              una tarifa equivocada sale del bolsillo de alguien.
-            </span>
-            {icaActivo && (
-              <span className="mt-2 flex items-center gap-2">
-                <input type="number" min="0" step="0.01" value={icaPorMil} onChange={(e) => setIcaPorMil(e.target.value)}
-                       placeholder="9.66" className="w-28 rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink" />
-                <span className="text-sm text-muted">por mil · va a la cuenta 2368</span>
-              </span>
+        {/* Lo que de verdad se va a retener, calculado en el backend sobre este
+            monto y este tercero. No es una promesa de tarifa: es la cifra. */}
+        {prevQ.data ? (
+          <div className="space-y-1.5 rounded-lg border border-border bg-surface px-3 py-2.5">
+            <Linea
+              etiqueta="Retención en la fuente"
+              valor={prevQ.data.retencion}
+              detalle={prevQ.data.concepto_retencion || perfilCuenta?.concepto_retencion || ""}
+            />
+            <Linea etiqueta="ReteICA" valor={prevQ.data.retencion_ica}
+                   detalle={prevQ.data.ica_por_mil ? `${prevQ.data.ica_por_mil} por mil · cuenta 2368` : ""} />
+            {(prevQ.data.gmf ?? 0) > 0 && <Linea etiqueta="GMF 4x1000" valor={prevQ.data.gmf ?? 0} detalle="cuenta 530595" />}
+            {prevQ.data.retencion_motivo && (
+              <p className="pt-1 text-sm text-muted">{prevQ.data.retencion_motivo}</p>
             )}
-          </span>
-        </label>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Escribe el valor y aquí aparece exactamente qué se le retiene.
+          </p>
+        )}
 
-        <label className="flex cursor-pointer items-start gap-2 text-sm">
-          <input type="checkbox" checked={gmf} onChange={(e) => setGmf(e.target.checked)} className="mt-1" />
-          <span>
-            <span className="font-bold text-ink">Sumar el 4x1000 (GMF)</span>
-            <span className="block text-sm text-muted">
-              <b>Normalmente NO hay que marcarlo.</b> Bancolombia cobra el 4x1000 en una sola
-              línea diaria («IMPTO GOBIERNO 4X1000»), no pegado a cada transferencia, y esa línea
-              ya se contabiliza sola al conciliar el extracto. Marcarlo acá además lo contaría dos
-              veces. Y la cuenta tiene la exención del Art. 879 num. 1 ET: los primeros 350 UVT de
-              retiros del mes ($18.330.900 en 2026) no pagan, así que los pagos de principio de mes
-              no generan nada. Márcalo solo si sabes que este pago sale de una cuenta sin exención
-              y que el cobro no vendrá por el extracto.
-            </span>
-          </span>
-        </label>
+        {prevQ.data?.aviso_gross_up && (
+          <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
+            ⚠️ {prevQ.data.aviso_gross_up}
+          </p>
+        )}
+
+        {perfilCuenta?.advertencia && (
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            ⚠️ {perfilCuenta.advertencia}
+          </p>
+        )}
+
+        {ajustarImpuestos && (
+          <div className="space-y-3 rounded-lg border border-accent/40 bg-accent/5 p-3">
+            <p className="text-xs text-muted">
+              Solo para apartarse de lo que dicen la cuenta y la ficha del tercero. Lo que cambies
+              queda guardado en la ficha y se aplica en los próximos pagos.
+            </p>
+            {/* Quién asume la retención NO es una opción del pago: es un
+                acuerdo con esa persona, y vive en su ficha. Mientras fue un
+                radio, cualquiera podía hacer que McKenna pagara los impuestos
+                de un tercero con un clic — sobre la quincena de mensajería son
+                $28.657 de más cada quincena. El backend lo rechaza igual
+                aunque alguien llame la API a mano: esconder un radio no es un
+                control, es una sugerencia. */}
+            {llevaRetencion && (
+              <div className="space-y-1 rounded-lg border border-border bg-surface px-3 py-2">
+                <p className="text-sm font-bold text-ink">Quién asume la retención</p>
+                {proveedor?.retencion_asume_mckenna ? (
+                  <p className="text-sm text-ink">
+                    <span className="font-bold text-accent">La asume McKenna.</span> Con{" "}
+                    {proveedor.nombre} se pactó pago libre de retención, así que recibe el valor
+                    completo y la retención se suma al gasto.
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted">
+                    Se le descuenta a <span className="font-bold text-ink">{proveedor?.nombre || "el beneficiario"}</span>,
+                    que es lo normal: el valor de arriba es el total facturado y recibe menos la retención.
+                  </p>
+                )}
+                <p className="text-xs text-muted">
+                  Para cambiarlo hace falta un acuerdo con esa persona, y se marca en su ficha de
+                  tercero (Libro Mayor → Configurar → Terceros). No se decide pago por pago.
+                </p>
+              </div>
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              <span className="font-bold text-ink">Tarifa de ICA</span>
+              <input type="number" min="0" step="0.01" value={icaPorMil}
+                     onChange={(e) => { setIcaPorMil(e.target.value); setIcaActivo(num(e.target.value) > 0); }}
+                     placeholder="0" className="w-24 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm text-ink" />
+              <span className="text-sm text-muted">por mil (0 = no lleva)</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 text-sm">
+              <input type="checkbox" checked={gmf} onChange={(e) => setGmf(e.target.checked)} className="mt-1" />
+              <span>
+                <span className="font-bold text-ink">Sumar el 4x1000 (GMF)</span>
+                <span className="block text-sm text-muted">
+                  <b>Normalmente NO.</b> Bancolombia lo cobra en una línea diaria, no pegado a cada
+                  transferencia, y esa línea ya se contabiliza sola al conciliar el extracto: marcarlo
+                  acá lo contaría dos veces. Además los primeros 350 UVT de retiros del mes están
+                  exentos (Art. 879 num. 1 E.T.).
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* Pago parcial. Va antes del resumen porque cambia la cifra que se gira. */}
@@ -958,8 +1072,11 @@ type Proveedor = {
   retefuente_exento?: number; ica_por_mil?: number; gmf_por_defecto?: number;
   cuenta_gasto_default?: string;
   medio_pago_default?: number;
+  /** Se pactó pagarle libre de retención (McKenna la asume). Acuerdo comercial:
+   *  vive en su ficha, no en una casilla de cada pago. */
+  retencion_asume_mckenna?: number;
 };
-type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string };
+type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string; precio?: number; iva_pct?: number };
 type CotejoItem = { sku: string; nombre: string; encontrado: boolean; por?: string; cantidad_ok: boolean; precio_ok: boolean };
 type Verificacion = {
   fiel: boolean; legible: boolean; origen: string; advertencias: string[]; numero_documento: string;
@@ -1003,6 +1120,12 @@ function Wizard({
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const [proveedor, setProveedor] = useState<Proveedor | null>(null);
   const [items, setItems] = useState<ItemLinea[]>([]);
+  // El total que dice el documento del proveedor. Es el patrón contra el que se
+  // cuadra la réplica: como total = base + IVA, si una tarifa de IVA está mal el
+  // total no da. Hace falta porque el IVA que trae el catálogo de Alegra para
+  // las materias primas NO es confiable (la misma sustancia está marcada 19%
+  // como combo y 0% como insumo).
+  const [totalDocumento, setTotalDocumento] = useState("");
   const [verif, setVerif] = useState<Verificacion | null>(null);
   const [motivoDif, setMotivoDif] = useState("");
 
@@ -1459,11 +1582,22 @@ function PasoProveedor({
 
 // ─── Paso: productos con SKU del catálogo Alegra ───────────────────────────
 
-function PasoProductos({
-  items, setItems, tot, onAtras, onSiguiente,
+/**
+ * Buscador del catálogo de Alegra + tabla de la cotización del proveedor.
+ *
+ * Se comparte entre el recorrido largo (compra cotejada contra factura) y el
+ * botón «Productos» del wizard simple: en los dos casos se está replicando la
+ * misma cotización, y tenerlo dos veces garantizaba que se arreglara en uno
+ * solo. Cada línea es un renglón del asiento contra 1435.
+ *
+ * Se buscan **materias primas e insumos** (`type="product"` en Alegra), no los
+ * combos (`kit`): el combo es lo que McKenna arma y vende, no lo que compra.
+ */
+function TablaProductos({
+  items, setItems, tot,
 }: {
-  items: ItemLinea[]; setItems: (v: ItemLinea[]) => void; tot: { subtotal: number; iva: number; total: number };
-  onAtras: () => void; onSiguiente: () => void;
+  items: ItemLinea[]; setItems: (v: ItemLinea[]) => void;
+  tot: { subtotal: number; iva: number; total: number };
 }) {
   const [q, setQ] = useState("");
   const prodQ = useQuery<{ productos: ProductoCat[] }>({
@@ -1477,32 +1611,38 @@ function PasoProductos({
     if (items.some((it) => it.sku === p.sku)) return;
     setItems([...items, {
       sku: p.sku, nombre: p.nombre, cantidad: "1",
-      precio: p.costo_unitario ? String(p.costo_unitario) : "", iva_pct: "19", unidad: p.unidad,
+      precio: p.costo_unitario ? String(p.costo_unitario) : (p.precio ? String(p.precio) : ""),
+      // El IVA lo dice el catálogo, no un default: 254 de las 316 materias
+      // primas están EXCLUIDAS (Art. 424 E.T.) y ponerles 19% inventa un IVA
+      // descontable que no existe y una base de retención equivocada.
+      iva_pct: String(p.iva_pct ?? 19),
+      unidad: p.unidad,
     }]);
     setQ("");
   }
   function editar(i: number, k: keyof ItemLinea, v: string) {
     setItems(items.map((it, j) => (j === i ? { ...it, [k]: v } : it)));
   }
-  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && it.sku);
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-bold text-accent">¿Qué productos se compran? (SKU del catálogo Alegra)</p>
       <div className="relative">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto por SKU o nombre…" className={inputCls} autoFocus />
+        <input value={q} onChange={(e) => setQ(e.target.value)}
+               placeholder="Buscar por referencia o nombre… (CITCALg, citrato)" className={inputCls} />
         {q.trim().length >= 2 && (
           <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
             {prodQ.isLoading && <p className="px-3 py-2 text-sm text-muted">Buscando…</p>}
             {resultados.map((p) => (
               <button key={p.sku} type="button" onClick={() => agregar(p)}
                 className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent/10">
-                <span><span className="font-mono text-accent">{p.sku}</span> <span className="text-ink">{p.nombre}</span></span>
-                <span className="text-xs text-muted">{p.costo_unitario ? `costo ${cop(p.costo_unitario)}` : ""}</span>
+                <span><span className="font-mono font-bold text-accent">{p.sku}</span> <span className="text-ink">{p.nombre}</span></span>
+                <span className="text-xs text-muted">
+                  {p.unidad ? `${p.unidad} · ` : ""}{Number(p.iva_pct ?? 19) === 0 ? "excluido de IVA" : "IVA 19%"}
+                </span>
               </button>
             ))}
             {!prodQ.isLoading && !resultados.length && (
-              <p className="px-3 py-2 text-sm text-muted">Sin resultados en el catálogo Alegra. Si es un producto nuevo, créalo primero en Catálogo Alegra.</p>
+              <p className="px-3 py-2 text-sm text-muted">Sin resultados entre las materias primas del catálogo Alegra. Si es un insumo nuevo, créalo primero en Catálogo Alegra.</p>
             )}
           </div>
         )}
@@ -1513,7 +1653,7 @@ function PasoProductos({
           <table className="min-w-full text-left text-sm">
             <thead className="bg-surface text-xs uppercase text-muted">
               <tr>
-                <th className="px-2 py-1.5">SKU</th><th className="px-2 py-1.5">Producto</th>
+                <th className="px-2 py-1.5">Referencia</th><th className="px-2 py-1.5">Materia prima</th>
                 <th className="px-2 py-1.5 text-right">Cant.</th><th className="px-2 py-1.5 text-right">Precio sin IVA</th>
                 <th className="px-2 py-1.5 text-right">IVA %</th><th className="px-2 py-1.5 text-right">Subtotal</th><th />
               </tr>
@@ -1521,10 +1661,10 @@ function PasoProductos({
             <tbody>
               {items.map((it, i) => (
                 <tr key={it.sku + i} className="border-t border-border/40">
-                  <td className="px-2 py-1 font-mono text-accent">{it.sku}</td>
+                  <td className="px-2 py-1 font-mono font-bold text-accent">{it.sku}</td>
                   <td className="px-2 py-1 text-ink">{it.nombre}{it.unidad ? <span className="text-muted"> · {it.unidad}</span> : null}</td>
-                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.cantidad} onChange={(e) => editar(i, "cantidad", e.target.value)} className="w-20 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
-                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.precio} onChange={(e) => editar(i, "precio", e.target.value)} className="w-28 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
+                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.cantidad} onChange={(e) => editar(i, "cantidad", e.target.value)} className="w-24 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
+                  <td className="px-2 py-1 text-right"><input type="number" min="0" step="0.01" value={it.precio} onChange={(e) => editar(i, "precio", e.target.value)} className="w-28 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
                   <td className="px-2 py-1 text-right">
                     <select value={it.iva_pct} onChange={(e) => editar(i, "iva_pct", e.target.value)} className="rounded border border-border bg-surface-input px-1 py-0.5">
                       <option value="19">19</option><option value="5">5</option><option value="0">0</option>
@@ -1536,15 +1676,30 @@ function PasoProductos({
               ))}
             </tbody>
             <tfoot className="text-sm">
-              <tr className="border-t border-border"><td colSpan={5} className="px-2 py-1 text-right text-muted">Subtotal</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.subtotal)}</td><td /></tr>
-              <tr><td colSpan={5} className="px-2 py-1 text-right text-muted">IVA</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.iva)}</td><td /></tr>
-              <tr className="font-bold"><td colSpan={5} className="px-2 py-1 text-right">Total a pagar</td><td className="px-2 py-1 text-right tabular-nums text-ink">{cop(tot.total)}</td><td /></tr>
+              <tr className="border-t border-border"><td colSpan={5} className="px-2 py-1 text-right text-muted">Subtotal (va a inventario 1435)</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.subtotal)}</td><td /></tr>
+              <tr><td colSpan={5} className="px-2 py-1 text-right text-muted">IVA descontable (240810)</td><td className="px-2 py-1 text-right tabular-nums">{cop(tot.iva)}</td><td /></tr>
+              <tr className="font-bold"><td colSpan={5} className="px-2 py-1 text-right">Total de la cotización</td><td className="px-2 py-1 text-right tabular-nums text-ink">{cop(tot.total)}</td><td /></tr>
             </tfoot>
           </table>
         </div>
       )}
-      {!items.length && <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">Busca y agrega los productos de la compra. Cada línea lleva su SKU.</p>}
+      {!items.length && <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">Busca y agrega las materias primas de la cotización. Cada línea queda como un renglón del asiento.</p>}
+    </div>
+  );
+}
 
+function PasoProductos({
+  items, setItems, tot, onAtras, onSiguiente,
+}: {
+  items: ItemLinea[]; setItems: (v: ItemLinea[]) => void;
+  tot: { subtotal: number; iva: number; total: number };
+  onAtras: () => void; onSiguiente: () => void;
+}) {
+  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && it.sku);
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-bold text-accent">¿Qué materias primas se compran? (referencia del catálogo Alegra)</p>
+      <TablaProductos items={items} setItems={setItems} tot={tot} />
       <div className="flex gap-2">
         <button type="button" onClick={onAtras} className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink">← Atrás</button>
         <button type="button" onClick={onSiguiente} disabled={!listo}
@@ -2349,6 +2504,7 @@ interface CuentaGasto {
   ica_por_mil?: number;
   nota?: string;
   advertencia?: string;
+  descripcion?: string;
 }
 
 /** Nombre del grupo del PUC, para agrupar el desplegable por familias. */
@@ -2450,6 +2606,23 @@ function SelectorCuentaPuc({
 }
 
 const inputCls = "mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-base text-ink";
+
+/** Un impuesto del pago: cuánto y por qué. En cero también se muestra —«$0» con
+ *  su motivo dice más que una casilla sin marcar. */
+function Linea({ etiqueta, valor, detalle }: { etiqueta: string; valor?: number; detalle?: string }) {
+  const v = Number(valor ?? 0);
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-sm text-ink">
+        <span className="font-bold">{etiqueta}</span>
+        {detalle ? <span className="ml-1.5 text-muted">{detalle}</span> : null}
+      </span>
+      <span className={`text-base font-extrabold tabular-nums ${v > 0 ? "text-ink" : "text-muted"}`}>
+        {cop(v)}
+      </span>
+    </div>
+  );
+}
 
 function Campo({ label, children }: { label: string; children: ReactNode }) {
   return (

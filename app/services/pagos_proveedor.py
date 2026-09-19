@@ -128,6 +128,7 @@ def proveedores(q: str = "") -> list[dict]:
             "gmf_por_defecto": int(t.get("gmf_por_defecto") or 0),
             "cuenta_gasto_default": t.get("cuenta_gasto_default") or "",
             "medio_pago_default": int(t.get("medio_pago_default") or 0),
+            "retencion_asume_mckenna": int(t.get("retencion_asume_mckenna") or 0),
         })
     for c in _contactos_alegra():
         if c["identificacion"] and c["identificacion"] in vistos_ident:
@@ -160,28 +161,108 @@ def adoptar_contacto_alegra(alegra_id: str) -> dict:
 # ───────────────────────────────────────────── productos ─────────────────
 
 
-def productos(q: str = "", limit: int = 25) -> list[dict]:
+def productos(q: str = "", limit: int = 25, *, incluir_combos: bool = False) -> list[dict]:
+    """Materias primas e insumos del catálogo de Alegra, buscados por REFERENCIA.
+
+    En Alegra conviven dos cosas con nombre parecido y hay que no confundirlas:
+
+      * `type="product"` — la **materia prima** suelta, que es lo que el
+        proveedor despacha y lo que se compra. Su referencia es la que usa el
+        proveedor en la cotización: `CITCALg` = citrato de calcio por gramo.
+      * prefijo **`C-`** — el **combo** que McKenna vende, que junta la materia
+        prima con el envase, la etiqueta y demás: `C-CITCAL500g`. El prefijo es
+        la señal fiable, no el campo `type`: los 231 `kit` lo llevan, pero hay
+        además 14 combos guardados como `product` que solo la referencia delata.
+
+    Una compra entra por el primero. Por eso los combos quedan fuera salvo que
+    se pidan a propósito: ofrecerlos en una compra invita a asentar como
+    mercancía adquirida algo que McKenna arma, no compra.
+
+    Devuelve además si el ítem lleva IVA, que en materias primas es la
+    excepción: 254 de los 316 productos del catálogo están **excluidos**
+    (Art. 424 E.T.) y suponerles el 19% inventa un IVA descontable que no
+    existe.
+    """
     from app.services import alegra_catalogo_db as cat
 
     if not (q or "").strip():
         return []
     # Búsqueda por palabras en cualquier orden: «farma 30» encuentra «FARMA AZUL 30mL».
-    tokens = [t for t in _norm(q).split() if t]
-    data = cat.listar_items(q=tokens[0], limit=300, offset=0)
+    #
+    # Dos cosas que hacían fallar búsquedas legítimas (18-sep-2026, probando la
+    # cotización PRE0031580 de Factores y Mercadeo):
+    #
+    #   * **Preposiciones.** «CLORURO DE MAGNESIO» no encontraba «CLORURO
+    #     MAGNESIO HEXAHIDRATADO» porque el «de» no está en el nombre. El
+    #     proveedor y el catálogo nunca van a escribir igual.
+    #   * **Grafías distintas de la misma sustancia.** «GOMA XANTHAN» no
+    #     encontraba «GOMA XANTANA»: xanthan/xantana, con hache y sin ella. Por
+    #     eso un token también casa por su raíz de 4 letras — suficiente para
+    #     xant(han|ana) y corto de más para juntar cosas distintas, y de todos
+    #     modos quien elige es el operador viendo la lista.
+    #
+    # Creer que el producto «no está en el catálogo» cuando sí está es peor que
+    # un par de resultados de sobra: lleva a crearlo duplicado en Alegra.
+    _VACIAS = {"de", "del", "la", "el", "los", "las", "y", "con", "para", "en", "al"}
+    tokens = [t for t in _norm(q).split() if t and t not in _VACIAS]
+    data = cat.listar_items(q=tokens[0], limit=500, offset=0)
     items = data.get("items") if isinstance(data, dict) else data
     out = []
     for it in items or []:
-        texto = _norm(f"{it.get('reference') or ''} {it.get('name') or ''}")
-        if not all(t in texto for t in tokens):
+        tipo = (it.get("type") or "").strip()
+        referencia = it.get("reference") or ""
+        # **El prefijo `C-` es lo que manda, no el campo `type`.** Los 231 kits
+        # lo llevan, pero además hay 14 combos guardados como `product` —
+        # `C-VITCACIASC100g`, `C-ARCVRT250g`, `C-KITACIHIA30mL`…— y a esos solo
+        # los delata la referencia. Comprar contra un combo asienta como materia
+        # prima algo que McKenna arma y vende: el inventario queda valorado a
+        # precio de venta y el IVA sale del combo, no de la factura.
+        if not incluir_combos and (referencia.upper().startswith("C-") or tipo == "kit"):
             continue
-        if len(out) >= limit:
-            break
+        texto = _norm(f"{referencia} {it.get('name') or ''}")
+        if not all(t in texto or (len(t) >= 5 and t[:4] in texto) for t in tokens):
+            continue
         out.append({
-            "sku": it.get("reference") or "", "nombre": it.get("name") or "",
-            "tipo": it.get("type") or "", "unidad": it.get("unit") or "",
+            "sku": referencia, "nombre": it.get("name") or "",
+            "tipo": tipo, "unidad": it.get("unit") or "",
             "costo_unitario": round(float(it.get("unit_cost") or 0), 2),
-            "precio": round(float(it.get("price") or it.get("precio") or 0), 2),
+            # El catálogo guarda el precio en `precio_lista`; leerlo como
+            # `price` devolvía 0 en todos los ítems y el operador tenía que
+            # teclear el precio a ciegas.
+            "precio": round(float(it.get("precio_lista") or 0), 2),
+            "iva_pct": 19.0 if int(it.get("iva") or 0) else 0.0,
         })
+    # Orden: primero la materia prima de verdad.
+    #
+    # Dos registros del catálogo están mal tipificados y por eso se colaban
+    # (18-sep-2026): `C-VITCACIASC100g` lleva el prefijo `C-` de los combos pero
+    # está guardado como `product` —sus hermanos de 250g y 500g sí son `kit`—, y
+    # `UREA250` («Urea cosmética») es una presentación sin unidad ni precio que
+    # le ganaba a `UREg`, que es la urea por gramo. Comprar contra cualquiera de
+    # los dos asienta como materia prima algo que es producto terminado.
+    #
+    # No se corrigen aquí —el tipo de un ítem afecta las ventas y se arregla en
+    # Alegra—; se ordenan al final, que es lo que el operador necesita hoy.
+    ref_exacta = _norm(q)
+    def _rango(x):
+        return (
+            0 if x["precio"] > 0 and x["unidad"] else 1,     # fichas incompletas, al final
+            0 if _norm(x["sku"]) == ref_exacta else 1 if ref_exacta in _norm(x["sku"]) else 2,
+            x["sku"],
+        )
+    out.sort(key=_rango)
+    out = out[:limit]
+    # La tarifa que el proveedor cobró de verdad le gana a la del catálogo, que
+    # es de ventas y para insumos no está curada.
+    aprendido = iva_compras_conocido()
+    for x in out:
+        a = aprendido.get(x["sku"])
+        x["iva_origen"] = "catalogo"
+        if a:
+            x["iva_pct"] = a["iva_pct"]
+            x["iva_origen"] = "compras"
+            x["iva_veces"] = a["veces"]
+            x["iva_proveedor"] = a["ultimo_proveedor"]
     return out
 
 
@@ -429,3 +510,78 @@ def consolidar_archivo(tid: str, sid: int, nombre_original: str) -> tuple[str, s
         return str(destino.relative_to(_ROOT)), seguro
     except ValueError:
         return str(destino), seguro
+
+
+# ─────────────────────────────── IVA de comprar ───────────────────────────
+#
+# **El IVA de comprar y el de vender son dos cosas distintas.** El de vender lo
+# decide Alegra y la factura tiene que cuadrar al peso con lo cotizado; ese no se
+# toca desde acá. El de comprar lo decide el documento del proveedor.
+#
+# Y el flag del catálogo no sirve para comprar: la misma sustancia está marcada
+# 19% como combo (lo que McKenna vende) y 0% como materia prima —alulosa,
+# gelatina, inulina—, con un reparto 80/20 que es un espejo exacto entre los dos
+# tipos: nunca se curó para insumos. Con él, la cotización PRE0031580 de Factores
+# y Mercadeo daba $0 de IVA contra los $619.115 reales.
+#
+# Así que se aprende del único que sabe: el documento. Cuando una compra se
+# registra y su total CUADRA con el del documento, la tarifa de cada línea quedó
+# probada —total = base + IVA, si una estuviera mal no daría— y se guarda por
+# SKU. La próxima compra de ese insumo llega con la tarifa que el proveedor
+# cobra de verdad, no con la del catálogo de ventas.
+
+def _ensure_iva_compras() -> None:
+    import app.services.contabilidad_core as cc
+
+    cc._ensure()
+    with cc._conn() as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS cc_compras_iva_sku (
+                sku TEXT PRIMARY KEY,
+                iva_pct REAL NOT NULL DEFAULT 0,
+                veces INTEGER NOT NULL DEFAULT 0,
+                ultimo_proveedor TEXT NOT NULL DEFAULT '',
+                ultima_fecha TEXT NOT NULL DEFAULT '',
+                actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+
+
+def aprender_iva_compra(items: list[dict], *, proveedor: str = "", fecha: str = "") -> int:
+    """Guarda la tarifa de IVA que el proveedor cobró por cada insumo.
+
+    Solo debe llamarse cuando el total cuadró contra el documento: es lo que
+    prueba que las tarifas son las de la factura y no las que alguien supuso.
+    """
+    _ensure_iva_compras()
+    import app.services.contabilidad_core as cc
+
+    n = 0
+    with cc._conn() as con:
+        for it in items or []:
+            sku = str(it.get("sku") or "").strip()
+            if not sku:
+                continue
+            con.execute(
+                "INSERT INTO cc_compras_iva_sku (sku, iva_pct, veces, ultimo_proveedor, ultima_fecha)"
+                " VALUES (?,?,1,?,?)"
+                " ON CONFLICT(sku) DO UPDATE SET iva_pct=excluded.iva_pct,"
+                " veces=cc_compras_iva_sku.veces+1, ultimo_proveedor=excluded.ultimo_proveedor,"
+                " ultima_fecha=excluded.ultima_fecha, actualizado_en=datetime('now')",
+                (sku, round(float(it.get("iva_pct") or 0), 2), proveedor, fecha),
+            )
+            n += 1
+    return n
+
+
+def iva_compras_conocido() -> dict[str, dict]:
+    """Tarifa aprendida por SKU: {sku: {iva_pct, veces, ultimo_proveedor}}."""
+    _ensure_iva_compras()
+    import app.services.contabilidad_core as cc
+
+    with cc._conn() as con:
+        return {
+            r["sku"]: {"iva_pct": r["iva_pct"], "veces": r["veces"],
+                       "ultimo_proveedor": r["ultimo_proveedor"], "ultima_fecha": r["ultima_fecha"]}
+            for r in con.execute("SELECT * FROM cc_compras_iva_sku")
+        }

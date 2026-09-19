@@ -41,6 +41,11 @@ interface NodoArbol {
   saldo_final: number;
   lineas: number;
   hijos: NodoArbol[];
+  /** Qué operación vive en la cuenta y qué impuestos acarrea (puc_colombia
+   *  DESCRIPCIONES + impuestos_por_cuenta). Va pegada a la cuenta para que el
+   *  contador no tenga que preguntarle a quien asentó qué significa un saldo. */
+  descripcion?: string;
+  nota_tributaria?: string;
   /** Auxiliar por tercero de lo asentado directamente en la cuenta. */
   terceros?: TerceroEnCuenta[];
 }
@@ -124,7 +129,10 @@ interface ResumenTercero {
 }
 
 interface Extracto {
-  cuenta: { id: number; codigo: string; nombre: string; tipo: string; naturaleza: "debito" | "credito" };
+  cuenta: {
+    id: number; codigo: string; nombre: string; tipo: string; naturaleza: "debito" | "credito";
+    descripcion?: string; nota_tributaria?: string;
+  };
   desde: string | null;
   hasta: string | null;
   incluir_subcuentas: boolean;
@@ -926,7 +934,12 @@ function FilaCuenta({
               className={`truncate text-left underline-offset-2 hover:underline ${
                 esTitulo ? "font-extrabold text-ink" : `font-semibold ${TIPO_COLOR[nodo.tipo] ?? "text-ink"}`
               }`}
-              title={`Ver el extracto de ${nodo.codigo} · ${nodo.nombre}`}
+              title={
+                nodo.descripcion
+                  ? `${nodo.codigo} · ${nodo.nombre}\n\n${nodo.descripcion}` +
+                    (nodo.nota_tributaria ? `\n\nImpuestos: ${nodo.nota_tributaria}` : "")
+                  : `Ver el extracto de ${nodo.codigo} · ${nodo.nombre}`
+              }
             >
               {nodo.nombre}
             </button>
@@ -1042,6 +1055,16 @@ function ExtractoCuenta({
             Extracto {desde || "desde el inicio"} → {hasta || "hoy"}
             {e ? ` · naturaleza ${e.cuenta.naturaleza}` : ""}
           </p>
+          {/* La guía de la cuenta, en la cabecera del extracto: es donde aparece
+              la pregunta «¿qué es este saldo?» sin nadie a quien preguntarle. */}
+          {e?.cuenta.descripcion && (
+            <p className="mt-1 max-w-3xl text-xs leading-snug text-ink">{e.cuenta.descripcion}</p>
+          )}
+          {e?.cuenta.nota_tributaria && (
+            <p className="mt-0.5 max-w-3xl text-xs leading-snug text-muted">
+              Impuestos: {e.cuenta.nota_tributaria}
+            </p>
+          )}
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <button

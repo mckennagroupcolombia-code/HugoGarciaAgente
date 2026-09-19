@@ -234,8 +234,11 @@ def test_el_csv_lleva_totales_y_una_fila_por_asiento(libro):
 
     assert "2205" in csv and "Proveedores nacionales" in csv
     assert "Saldo inicial" in csv
-    # Título + período + cabeceras + saldo inicial + 2 asientos + totales.
-    assert len([l for l in csv.splitlines() if l.strip()]) == 7
+    # La guía de la cuenta también va en el CSV: el contador lo abre en Excel
+    # sin el panel al lado, y ahí es donde aparece «¿qué es este saldo?».
+    assert "Qué va en esta cuenta" in csv
+    # Título + período + guía + cabeceras + saldo inicial + 2 asientos + totales.
+    assert len([l for l in csv.splitlines() if l.strip()]) == 8
 
 
 def test_el_pdf_del_extracto_se_genera(libro, tmp_path):

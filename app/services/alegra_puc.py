@@ -103,6 +103,9 @@ def catalogo(refrescar: bool = False) -> dict[str, dict]:
 # contable, no técnica: se decide acá una vez, a la vista, en vez de dejar que
 # el emparejador sortee. Solo van las que tienen UNA respuesta evidente para
 # McKenna; lo ambiguo de verdad se queda en `sin_equivalente` a propósito.
+# Marca para excluir una cuenta del emparejamiento automático (ver abajo).
+SIN_EQUIVALENTE = "__sin_equivalente__"
+
 OVERRIDES: dict[str, str] = {
     # McKenna vende mercancía: sus ingresos operacionales son «Ingresos por
     # ventas». El otro candidato (41350101 «Ventas») cuelga de 413501, que es
@@ -112,6 +115,23 @@ OVERRIDES: dict[str, str] = {
     "1325": "132505",
     # Cajón de sastre legítimo de Servicios mientras el gasto no se clasifique.
     "5135": "513595",
+    # El flete de ventas (523550) NO existe en el catálogo PUC de Alegra: bajo
+    # `5235 Servicios (ventas)` la única subcuenta movible que trae es
+    # `523560 Publicidad`. Se asienta entonces contra `513550 Transporte, fletes
+    # y acarreos`, que es exactamente el mismo concepto — en el Libro Mayor
+    # propio sí quedan separados el flete administrativo y el de ventas, que es
+    # donde importa para el estado de resultados.
+    #
+    # Sin esto, el espejo se NIEGA a postear (con razón: dejaría el comprobante
+    # descuadrado) y el asiento se queda fuera de Alegra, que es de donde el
+    # contador arma las declaraciones. Pasó con el pago a Fidel del 18-sep-2026.
+    "523550": "513550",
+    # ⚠️ `5235` a secas queda SIN equivalente a propósito. El emparejador baja al
+    # único descendiente movible, y en Alegra ese es `523560 Publicidad`: un
+    # servicio del área comercial se habría espejado como publicidad, mezclado
+    # con los $105M que ya hay ahí. Mejor que el espejo se niegue y alguien
+    # elija la subcuenta, que asentar en silencio contra la cuenta equivocada.
+    "5235": SIN_EQUIVALENTE,
 }
 
 
@@ -145,6 +165,20 @@ def construir_mapa(refrescar: bool = False) -> dict[str, Any]:
     for codigo, nombre, _tipo in PUC_MCKENNA:
         destino, via = None, ""
         forzado = OVERRIDES.get(codigo)
+        # `SIN_EQUIVALENTE` apaga el emparejamiento automático de una cuenta.
+        # Hace falta porque «único descendiente movible» no significa
+        # «descendiente correcto»: bajo `5235 Servicios (ventas)` el único que
+        # Alegra trae es `523560 Publicidad`, y un servicio comercial se habría
+        # espejado como publicidad, mezclado con los $105M que ya hay ahí.
+        # Que el espejo se niegue y alguien elija es mejor que asentar en
+        # silencio contra la cuenta equivocada.
+        if forzado == SIN_EQUIVALENTE:
+            sin_equivalente.append({
+                "codigo": codigo, "nombre": nombre,
+                "motivo": "excluida a propósito: en Alegra solo cuelga una subcuenta "
+                          "que significa otra cosa. Elige la subcuenta al asentar.",
+            })
+            continue
         if forzado and forzado in plano and plano[forzado].get("movimiento"):
             destino, via = plano[forzado], f"elección explícita ({forzado})"
         elif codigo in plano and plano[codigo].get("movimiento"):

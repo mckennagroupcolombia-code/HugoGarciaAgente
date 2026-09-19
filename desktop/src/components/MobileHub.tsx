@@ -550,7 +550,10 @@ const QUICK_ACTIONS: QuickAction[] = [
   { icon: "lightning", label: "Sync facturas hoy",   sub: "Últimas 24 horas",   endpoint: "/api/sync/hoy",   method: "POST", tone: "sun" },
   { icon: "chartBar",  label: "Reporte de stock",    sub: "Envía por WhatsApp", endpoint: "/api/sync/stock", method: "POST", tone: "sky" },
   { icon: "robot",     label: "Aprendizaje IA",      sub: "Q&A MeLi",           endpoint: "/api/sync/aprendizaje", method: "POST", tone: "plum" },
-  { icon: "envelope",  label: "Facturas de compra",  sub: "Registrar desde Gmail", endpoint: "/api/sync/gmail", method: "POST", tone: "rose" },
+  // Ya no registra: desde el 18-sep-2026 la compra se contabiliza antes de
+  // pagarla, en Solicitudes de pago → Productos. Lo que sigue haciendo es bajar
+  // los XML, que alimentan el perfil tributario de cada proveedor.
+  { icon: "envelope",  label: "Bajar XML de facturas",  sub: "Solo descarga · el registro va en Solicitudes de pago", endpoint: "/api/sync/gmail", method: "POST", tone: "rose" },
 ];
 
 function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user: TicketsUser | null; onNavigateTo: (p: Panel) => void }) {

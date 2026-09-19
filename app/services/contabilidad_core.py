@@ -34,6 +34,51 @@ TIPOS_TERCERO = ("proveedor", "cliente", "socio", "empleado", "otro")
 TIPOS_PERSONA = ("natural", "juridica")
 
 
+# ─── Fecha de corte contable ───────────────────────────────────────────────
+#
+# **Lo anterior al corte es territorio del contador y no se toca.**
+#
+# Hasta agosto de 2026 la contabilidad de McKenna la llevó él: discriminaba los
+# impuestos con un mecanismo propio que no conocemos, y sobre eso presentó las
+# declaraciones (el 350 del período 8 se presentó el 16-sep-2026). El libro
+# propio nació después y **no puede pretender explicar ese pasado**: va a fijar
+# los saldos iniciales él, por la migración de Siigo a Alegra.
+#
+# Sin esta guarda, cualquier script o clic puede meter a Alegra un asiento de un
+# período ya declarado y desordenarle lo que presentó. No es hipotético: el
+# 18-sep-2026 aparecieron tres asientos de IVA generado de julio, agosto y un
+# septiembre **sin terminar**, y los pagos a Fidel de julio/agosto —hechos con
+# el tratamiento viejo, contra 513550 y sin retención— estaban listos para
+# espejarse. Lo que se deja al criterio de cada quien, un día se hace mal.
+#
+# Los asientos anteriores al corte NO se borran: documentan movimientos
+# bancarios reales y varios están conciliados contra el extracto. Simplemente
+# dejan de propagarse hacia afuera.
+FECHA_CORTE_DEFECTO = "2026-09-01"
+
+
+def fecha_corte() -> str:
+    """Fecha desde la cual el libro propio es la fuente. Antes manda el contador."""
+    v = (os.getenv("CONTABILIDAD_FECHA_CORTE") or "").strip()
+    return v or FECHA_CORTE_DEFECTO
+
+
+def antes_del_corte(fecha: str | None) -> bool:
+    f = str(fecha or "")[:10]
+    return bool(f) and f < fecha_corte()
+
+
+def motivo_corte(fecha: str | None) -> str:
+    """Por qué no se toca ese período, en una frase que sirva al que la lea."""
+    return (
+        f"El asiento es del {str(fecha or '')[:10]}, anterior al corte contable "
+        f"({fecha_corte()}). Ese período ya lo declaró el contador con su propia "
+        "contabilidad y el libro propio no lo reescribe: se corrige de las "
+        "declaraciones siguientes en adelante. Para cambiar el corte, "
+        "CONTABILIDAD_FECHA_CORTE."
+    )
+
+
 @contextmanager
 def _conn():
     con = sqlite3.connect(_DB_PATH)
@@ -219,6 +264,28 @@ def _migrar_columnas_v5() -> None:
         if "medio_pago_default" not in cols:
             con.execute(
                 "ALTER TABLE cc_terceros ADD COLUMN medio_pago_default INTEGER NOT NULL DEFAULT 0"
+            )
+        # «Con esta persona se pactó pagarle libre de retención»: McKenna asume
+        # la retención como mayor gasto y el beneficiario recibe el valor
+        # completo. Es un ACUERDO COMERCIAL con alguien concreto, no una opción
+        # de cada pago — por eso vive acá y no en un radio del wizard.
+        #
+        # Que fuera elegible en cada pago significaba que cualquiera podía hacer
+        # que McKenna pagara los impuestos de un tercero con un clic: sobre la
+        # quincena de mensajería son $28.657 que salen del banco de más y que
+        # nadie pactó. Apagado por defecto para todos.
+        # «A este tercero hay que emitirle documento soporte» (no está obligado
+        # a facturar, Art. 616-2). La creaba `doc_soporte_pagos` la primera vez
+        # que se emitía uno, y hasta entonces cualquiera que leyera el campo veía
+        # `None` — es exactamente lo que ya pasó con `regimen_simple`: la
+        # propiedad es del tercero, así que la crea el módulo dueño de la tabla.
+        if "emite_doc_soporte" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN emite_doc_soporte INTEGER NOT NULL DEFAULT 0"
+            )
+        if "retencion_asume_mckenna" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN retencion_asume_mckenna INTEGER NOT NULL DEFAULT 0"
             )
 
 
@@ -461,6 +528,13 @@ def _naturaleza_por_tipo(tipo: str) -> str:
 
 
 def listar_plan_cuentas(solo_activas: bool = True, tipo: str | None = None) -> list[dict]:
+    """El plan de cuentas, con la guía de qué operación vive en cada una.
+
+    La descripción viaja pegada a la cuenta y no en un documento aparte: un
+    manual en otra parte es un manual que nadie abre. Es lo que permite que el
+    contador —o cualquiera que abra el libro dentro de un año— sepa qué
+    significa un saldo sin preguntarle a quien lo asentó.
+    """
     _ensure()
     where = []
     params: list = []
@@ -475,7 +549,27 @@ def listar_plan_cuentas(solo_activas: bool = True, tipo: str | None = None) -> l
     sql += " ORDER BY codigo"
     with _conn() as con:
         rows = con.execute(sql, params).fetchall()
-    return [dict(r) for r in rows]
+    return [_con_guia(dict(r)) for r in rows]
+
+
+def _con_guia(cuenta: dict) -> dict:
+    """Agrega a una cuenta su descripción de uso y su efecto tributario.
+
+    Dos fuentes distintas a propósito: `puc_colombia.DESCRIPCIONES` dice QUÉ
+    operación vive ahí y `impuestos_por_cuenta` dice qué impuestos acarrea. Se
+    juntan aquí para que quien lea el libro las vea de una vez, pero se escriben
+    por separado porque se corrigen por razones distintas.
+    """
+    from app.services import impuestos_por_cuenta as _ipc
+    from app.services import puc_colombia as _puc
+
+    codigo = str(cuenta.get("codigo") or "")
+    cuenta["descripcion"] = _puc.descripcion(codigo)
+    perfil = _ipc.perfil(codigo)
+    cuenta["concepto_retencion"] = perfil["concepto_retencion"] or ""
+    cuenta["ica_por_mil"] = perfil["ica_por_mil"]
+    cuenta["nota_tributaria"] = perfil["nota"] if perfil["conocida"] else ""
+    return cuenta
 
 
 def mapa_cuentas_por_codigo() -> dict[str, int]:
@@ -512,7 +606,7 @@ def obtener_cuenta(cuenta_id: int) -> dict | None:
     _ensure()
     with _conn() as con:
         row = con.execute("SELECT * FROM cc_plan_cuentas WHERE id=?", (cuenta_id,)).fetchone()
-    return dict(row) if row else None
+    return _con_guia(dict(row)) if row else None
 
 
 def crear_cuenta(payload: dict) -> dict:
@@ -671,6 +765,16 @@ def actualizar_tercero(tercero_id: int, payload: dict) -> dict:
         campos["usuario_id"] = int(payload["usuario_id"]) if payload["usuario_id"] else None
     if "activo" in payload:
         campos["activo"] = 1 if payload["activo"] else 0
+    # Banderas tributarias del tercero. `retencion_asume_mckenna` solo se cambia
+    # aquí, en la ficha: es un acuerdo con esa persona, no una casilla del pago.
+    for bandera in ("retefuente_exento", "regimen_simple", "gmf_por_defecto",
+                    "retencion_asume_mckenna"):
+        if bandera in payload:
+            campos[bandera] = 1 if payload[bandera] else 0
+    if "ica_por_mil" in payload:
+        campos["ica_por_mil"] = round(float(payload["ica_por_mil"] or 0), 4)
+    if "cuenta_gasto_default" in payload:
+        campos["cuenta_gasto_default"] = str(payload["cuenta_gasto_default"] or "").strip()
     if not campos:
         return actual
     sets = ", ".join(f"{k} = ?" for k in campos)
@@ -743,6 +847,16 @@ def actualizar_medio_pago(medio_pago_id: int, payload: dict) -> dict:
         campos["tipo"] = str(payload["tipo"] or "").strip()
     if "activo" in payload:
         campos["activo"] = 1 if payload["activo"] else 0
+    # Banderas tributarias del tercero. `retencion_asume_mckenna` solo se cambia
+    # aquí, en la ficha: es un acuerdo con esa persona, no una casilla del pago.
+    for bandera in ("retefuente_exento", "regimen_simple", "gmf_por_defecto",
+                    "retencion_asume_mckenna"):
+        if bandera in payload:
+            campos[bandera] = 1 if payload[bandera] else 0
+    if "ica_por_mil" in payload:
+        campos["ica_por_mil"] = round(float(payload["ica_por_mil"] or 0), 4)
+    if "cuenta_gasto_default" in payload:
+        campos["cuenta_gasto_default"] = str(payload["cuenta_gasto_default"] or "").strip()
     if not campos:
         return actual
     sets = ", ".join(f"{k} = ?" for k in campos)

@@ -91,3 +91,30 @@ def test_todo_concepto_propuesto_existe_en_retenciones():
     for cuenta in ipc._PERFILES:
         c = ipc.perfil(cuenta)["concepto_retencion"]
         assert c is None or c in CONCEPTOS, cuenta
+
+
+# ─── Transporte: las dos cuentas y las dos tarifas (18-sep-2026) ───────────
+
+@pytest.mark.parametrize("cuenta", ["513550", "523550"])
+def test_las_dos_cuentas_de_transporte_llevan_1_por_ciento_y_ica_4_14(cuenta):
+    """El flete de la mercancía que sale al cliente es gasto de VENTAS (523550) y
+    el administrativo se queda en 513550. Distinto renglón del resultado, mismo
+    tratamiento tributario."""
+    p = ipc.perfil(cuenta)
+    assert p["concepto_retencion"] == "transporte_carga"
+    assert p["ica_por_mil"] == 4.14
+
+
+def test_las_tarifas_de_transporte_reproducen_el_certificado_del_contador():
+    """No son una lectura nuestra de la norma: el contador certificó a NEXT
+    ENVIOS por 2024 sobre base $17.377.500 exactamente $173.775 de renta y
+    $71.943 de ICA."""
+    d = ipc.describir("523550", anio=2024, base=17_377_500)
+    assert d["retencion_estimada"] == pytest.approx(173_775, abs=1)
+    assert round(17_377_500 * d["ica_por_mil"] / 1000) == pytest.approx(71_943, abs=1)
+
+
+def test_el_transporte_no_cae_en_el_saco_de_servicios_de_ventas():
+    """523550 debe ganarle a 5235: son 1% y 4%, y el ICA 4,14 contra 9,66."""
+    assert ipc.perfil("5235")["concepto_retencion"] == "servicios"
+    assert ipc.perfil("523550")["concepto_retencion"] == "transporte_carga"

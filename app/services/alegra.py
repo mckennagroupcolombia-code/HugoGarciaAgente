@@ -1308,31 +1308,50 @@ def obtener_facturas_alegra_paginadas(fecha_inicio: str, estricto: bool = False)
     except RuntimeError:
         return []
 
+    # Alegra tarda ~15 s por página de /invoices (medido en vivo 2026-09-18,
+    # 448 facturas desde el corte = 15 páginas ≈ 225 s en serie). Se piden en
+    # tandas paralelas; el corte es el mismo que en serie (primera página con
+    # error o con menos de 30), así que el resultado no cambia.
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _pagina(n: int):
+        params = {"date_afterEqual": fecha_inicio, "limit": 30, "start": n * 30}
+        res = requests.get(f"{_ALEGRA_BASE}/invoices", headers=headers, params=params, timeout=40)
+        if res.status_code == 429:
+            import time as _t
+
+            _t.sleep(3)
+            res = requests.get(f"{_ALEGRA_BASE}/invoices", headers=headers, params=params, timeout=40)
+        return res
+
     todas = []
     pagina = 0
-    while True:
-        try:
-            res = requests.get(
-                f"{_ALEGRA_BASE}/invoices",
-                headers=headers,
-                params={"date_afterEqual": fecha_inicio, "limit": 30, "start": pagina * 30},
-                timeout=20,
-            )
-        except requests.RequestException:
-            if estricto:
-                raise
-            break
-        if res.status_code != 200:
-            break
-        resultados = res.json() or []
-        if not resultados:
-            break
-        for f in resultados:
-            f["purchase_order"] = f.get("anotation") or ""
-            todas.append(f)
-        if len(resultados) < 30:
-            break
-        pagina += 1
+    tanda = 6
+    with ThreadPoolExecutor(max_workers=tanda) as ex:
+        while True:
+            futuros = [ex.submit(_pagina, n) for n in range(pagina, pagina + tanda)]
+            fin = False
+            for fut in futuros:
+                try:
+                    res = fut.result()
+                except requests.RequestException:
+                    if estricto:
+                        raise
+                    fin = True
+                    break
+                if res.status_code != 200:
+                    fin = True
+                    break
+                resultados = res.json() or []
+                for f in resultados:
+                    f["purchase_order"] = f.get("anotation") or ""
+                    todas.append(f)
+                if len(resultados) < 30:
+                    fin = True
+                    break
+            if fin:
+                break
+            pagina += tanda
     return todas
 
 
@@ -2178,6 +2197,20 @@ def _resolver_referencia_item_alegra(item_id: str) -> dict:
         return {}
     if item_id in _item_referencia_cache:
         return _item_referencia_cache[item_id]
+    # Primero el espejo local del catálogo (contabilidad.db → alegra_items):
+    # sobrevive a los reinicios y evita ~1 s de API por ítem, que en el panel
+    # Astro Killer sumaba ~140 s por carga en frío (2026-09-18).
+    try:
+        from app.services import contabilidad_db as _cdb
+
+        with _cdb._conn() as _con:
+            _row = _con.execute("SELECT reference, name FROM alegra_items WHERE id = ?", (item_id,)).fetchone()
+        if _row and (_row["reference"] or "").strip():
+            out = {"reference": _row["reference"], "name": _row["name"] or ""}
+            _item_referencia_cache[item_id] = out
+            return out
+    except Exception:
+        pass
     out: dict = {}
     try:
         headers = _alegra_headers()
@@ -3201,7 +3234,45 @@ RETENCIONES_ALEGRA: dict[tuple[str, float], int] = {
     # POST /retentions (id 14): sin ella el documento soporte de una cuota se
     # emitía SIN retención y el contador no la veía por esa vía.
     ("rendimientos_financieros", 7.0): 14,
+    # Transporte de carga al 1 % (Art. 392 E.T.), la de la mensajería. Ya
+    # existía en la cuenta (id 13, «Transporte de carga») pero no estaba
+    # mapeada, así que el documento soporte de un pago a Fidel se habría
+    # emitido SIN retención — y un documento soporte ya viajó a la DIAN: solo
+    # se corrige con nota de ajuste.
+    ("transporte_carga", 1.0): 13,
+    ("transporte_pasajeros", 3.5): 2,   # Alegra no separa pasajeros; misma tarifa
+    ("arrendamiento_inmueble", 3.5): 2,
+    ("arrendamiento_mueble", 4.0): 1,
+    ("comisiones", 10.0): 5,
+    ("comisiones", 11.0): 6,
 }
+
+# Retenciones de ICA en Alegra, **por tarifa**. Existe una por cada «por mil»
+# que McKenna practica de verdad, para que el documento oficial imprima la
+# tarifa y no un «(0%)»: la id 11 genérica está definida al 0% y solo sirve
+# para informar el monto, con lo que el soporte que ve el beneficiario —y la
+# DIAN— no dice a qué tarifa se le retuvo.
+#
+# Las tarifas son de Bogotá y las fijó el contador:
+#   4,14 ‰ transporte · 8,66 ‰ asesoría técnica · 9,66 ‰ servicios en general.
+# Ojo con la unidad: el ICA se habla «por mil» y Alegra recibe PORCENTAJE, así
+# que 4,14 ‰ = 0,414 %. Creadas por API el 18-sep-2026 (ids 15, 16, 17).
+ALEGRA_RETENCIONES_ICA: dict[float, int] = {
+    4.14: 15,
+    8.66: 16,
+    9.66: 17,
+}
+# Genérica al 0%, para una tarifa que no tenga cuenta propia. Informa el monto
+# correcto pero imprime «(0%)»: es el último recurso, no el camino normal.
+ALEGRA_RETENCION_ICA_ID = 11
+
+# Cuenta de Alegra de donde salen los pagos a proveedores (id 3, «Banco 1»).
+ALEGRA_CUENTA_BANCO_PAGOS = int(os.getenv("ALEGRA_CUENTA_BANCO_PAGOS") or 3)
+
+
+def retencion_ica_alegra_id(por_mil: float) -> int:
+    """Id de la retención de ICA para esa tarifa por mil, o la genérica."""
+    return ALEGRA_RETENCIONES_ICA.get(round(float(por_mil or 0), 2), ALEGRA_RETENCION_ICA_ID)
 
 
 def retencion_alegra_id(concepto: str, tarifa_pct: float) -> int | None:
@@ -3328,9 +3399,22 @@ def _resolver_o_crear_proveedor_persona_natural_alegra(
     if res.status_code == 200 and (res.json() or []):
         return str((res.json())[0]["id"]), ""
 
+    # ⚠️ **NIT, no CC.** En un documento electrónico la DIAN exige que las
+    # partes se identifiquen con NIT; para una persona natural el NIT ES su
+    # número de cédula más el dígito de verificación. Creado como `CC`, Alegra
+    # se niega a emitir: «Tu proveedor cuenta con cédula de ciudadanía (CC)»,
+    # y el documento soporte queda creado pero sin transmitir — que es lo único
+    # que le da validez (18-sep-2026, al emitir el DSMG1 de Fidel).
+    #
+    # El DV se calcula con el algoritmo de la DIAN, el mismo que valida el NIT
+    # de McKenna, en vez de dejarlo en null.
+    from app.services.empresa import digito_verificacion
+
     payload = {
         "name": _nombre_object_persona(nombre or f"Prestamista {digits}"),
-        "identificationObject": {"type": "CC", "number": digits},
+        "identificationObject": {
+            "type": "NIT", "number": digits, "dv": str(digito_verificacion(digits) or ""),
+        },
         "kindOfPerson": "PERSON_ENTITY",
         "regime": "SIMPLIFIED_REGIME",
         "type": ["provider"],
@@ -3357,6 +3441,8 @@ def crear_documento_soporte_alegra(
     email: str = "",
     observaciones: str = "",
     retencion: dict | None = None,
+    retencion_ica: float = 0.0,
+    ica_por_mil: float = 0.0,
     dry_run: bool = False,
 ) -> dict:
     """Emite un documento soporte en Alegra por `valor` (una sola línea).
@@ -3409,16 +3495,45 @@ def crear_documento_soporte_alegra(
     # tarifa: así queda registrada en sus reportes y el contador entra a pagarla
     # sin recalcular nada.
     aviso_retencion = ""
+    retenciones_payload: list[dict] = []
     if retencion and float(retencion.get("retencion") or 0) > 0:
         rid = retencion_alegra_id(retencion.get("concepto", ""), retencion.get("tarifa_pct", 0))
         if rid:
-            payload["retentions"] = [{"id": rid, "amount": round(float(retencion["retencion"]), 2)}]
+            retenciones_payload.append({"id": rid, "amount": round(float(retencion["retencion"]), 2)})
         else:
             aviso_retencion = (
                 f"⚠️ La retención de {retencion.get('concepto')} al "
                 f"{retencion.get('tarifa_pct')}% no está configurada en Alegra "
                 "(Configuración → Retenciones). El documento iría SIN retención."
             )
+    # **El ReteICA también va dentro del documento.** Es otra retención
+    # practicada al mismo beneficiario y, si falta, el «total a pagar» del
+    # documento no coincide con lo que salió del banco: sobre la quincena de
+    # Fidel el DSMG1 decía $2.006.390 cuando se le giraron $1.998.000, y la
+    # diferencia eran exactamente los $8.390,36 de ICA (18-sep-2026). Un
+    # documento que no cuadra con el pago es un documento que alguien va a
+    # tener que explicar.
+    #
+    # La retención de ICA en Alegra está al 0% (id 11) y se informa por monto:
+    # la tarifa depende del municipio y la actividad, así que la calcula quien
+    # paga, no Alegra.
+    if retencion_ica and float(retencion_ica) > 0:
+        rid_ica = retencion_ica_alegra_id(ica_por_mil)
+        if rid_ica:
+            retenciones_payload.append({"id": rid_ica, "amount": round(float(retencion_ica), 2)})
+            if rid_ica == ALEGRA_RETENCION_ICA_ID:
+                aviso_retencion = (aviso_retencion + " " if aviso_retencion else "") + (
+                    f"⚠️ No hay una retención de ICA al {ica_por_mil:g} por mil en Alegra: el "
+                    "documento informa el monto correcto pero imprimirá «(0%)». "
+                    "Créala para que el soporte muestre la tarifa."
+                )
+        else:
+            aviso_retencion = (aviso_retencion + " " if aviso_retencion else "") + (
+                "⚠️ No hay retención de ICA configurada en Alegra: el documento iría sin ella "
+                "y su total no cuadraría con lo girado."
+            )
+    if retenciones_payload:
+        payload["retentions"] = retenciones_payload
 
     if dry_run:
         # No se resuelve ni se crea el proveedor: crear un contacto es escribir
@@ -3429,6 +3544,7 @@ def crear_documento_soporte_alegra(
             "cuenta_contable": str(cuenta_contable),
             "valor": valor,
             "retencion": retencion or None,
+            "retencion_ica": round(float(retencion_ica or 0), 2) or None,
             "aviso": aviso_retencion or None,
         }
 
@@ -3500,4 +3616,40 @@ def crear_item_servicio_alegra(
         data = r.json()
         print(f"✅ Ítem creado en Alegra: {data.get('id')} ({referencia})", flush=True)
         return {"status": "success", "creado": True, "id": str(data.get("id")), "data": data}
+    return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
+
+
+def registrar_pago_documento_soporte(
+    *, bill_id: str, fecha: str, valor: float, observaciones: str = "",
+    cuenta_banco: int | None = None,
+) -> dict:
+    """Registra en Alegra el pago de un documento soporte ya emitido.
+
+    Sin esto el documento queda «por pagar» y Alegra muestra un pasivo con el
+    beneficiario que no existe: la plata ya salió. El monto es lo **girado**
+    (neto de retenciones), que es lo que de verdad recibió.
+    """
+    if not str(bill_id or "").strip():
+        return {"status": "error", "message": "Falta el id del documento soporte."}
+    valor = round(float(valor or 0), 2)
+    if valor <= 0:
+        return {"status": "error", "message": "El valor del pago debe ser mayor que cero."}
+
+    payload = {
+        "date": str(fecha)[:10],
+        "type": "out",
+        "bankAccount": {"id": int(cuenta_banco or ALEGRA_CUENTA_BANCO_PAGOS)},
+        "paymentMethod": "transfer",
+        "observations": (observaciones or "")[:500],
+        "bills": [{"id": str(bill_id), "amount": valor}],
+    }
+    try:
+        r = requests.post(f"{_ALEGRA_BASE}/payments", headers=_alegra_headers(),
+                          json=payload, timeout=25)
+    except (RuntimeError, requests.RequestException) as e:
+        return {"status": "error", "message": f"Error registrando el pago en Alegra: {e}"}
+    if r.status_code in (200, 201):
+        d = r.json()
+        print(f"\u2705 Pago registrado en Alegra: {d.get('id')} por {valor:,.2f}", flush=True)
+        return {"status": "success", "id": str(d.get("id")), "data": d}
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}

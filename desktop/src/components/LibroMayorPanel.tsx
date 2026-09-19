@@ -1278,6 +1278,7 @@ function FormCompraProveedor({
 
 type SubvistaAvanzada =
   | "diario"
+  | "libro-diario"
   | "mayor"
   | "rapido"
   | "plan-cuentas"
@@ -1318,6 +1319,9 @@ const GRUPOS: Grupo[] = [
     icon: "book",
     subs: [
       { id: "mayor", label: "Plan de cuentas y saldos", icon: "book", desc: "Árbol del PUC, terceros y extracto por cuenta" },
+      // El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
+      // día»: el asiento completo con el nombre de cada cuenta, débito y crédito.
+      { id: "libro-diario", label: "Libro Diario", icon: "listChecks", desc: "Asientos del día con cuenta, débito y crédito" },
       { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
       { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
       { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
@@ -1504,6 +1508,7 @@ function VistaEmpresa({
       {sub === "plan-cuentas" && <PlanCuentasTab />}
       {sub === "terceros" && <TercerosTab />}
       {sub === "movimientos" && <MovimientosTab />}
+      {sub === "libro-diario" && <LibroDiarioTab />}
       {sub === "cuentas-t" && <CuentasTTab />}
       {sub === "balance" && <BalanceTab />}
       {sub === "asiento-manual" && <AsientoManualTab />}
@@ -1781,6 +1786,7 @@ function TercerosTab() {
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [form, setForm] = useState(emptyTerceroForm);
+  const [historialDe, setHistorialDe] = useState<number | null>(null);
   const usuariosQ = useUsuariosLogin(showForm && form.tipo === "socio");
 
   const pasivos = (cuentasQ.data?.cuentas ?? []).filter((c) => c.activa && c.tipo === "pasivo");
@@ -1909,6 +1915,10 @@ function TercerosTab() {
                 <td className="px-3 py-2 text-muted">{t.telefono || "—"}</td>
                 <td className="px-3 py-2 text-muted">{t.activo ? "Activo" : "Inactivo"}</td>
                 <td className="px-3 py-2 text-right">
+                  <button type="button" onClick={() => setHistorialDe(t.id)}
+                          className="mr-3 text-[10px] font-bold text-accent hover:underline">
+                    Historial
+                  </button>
                   {t.activo && (
                     <button type="button" onClick={() => toggleMut.mutate(t.id)} className="text-[10px] font-bold text-danger hover:underline">
                       Desactivar
@@ -1919,6 +1929,139 @@ function TercerosTab() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {historialDe !== null && (
+        <HistorialTercero terceroId={historialDe} onCerrar={() => setHistorialDe(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Historial de un tercero ──────────────────────────────────────────────
+ *
+ * La ficha guarda el ESTADO —que está exento, que es del SIMPLE, a qué cuenta
+ * va su gasto—; esto guarda el PORQUÉ y lo que le ha pasado. Es lo que hace
+ * falta cuando alguien abre un tercero seis meses después y tiene que decidir
+ * si lo que ve sigue vigente.
+ *
+ * Junta el log propio con lo que ya registran otros módulos —documentos
+ * soporte, solicitudes de pago— sin copiarlo: una copia se desactualiza y
+ * entonces hay dos versiones de lo que pasó.
+ */
+interface EventoTercero {
+  fecha: string; tipo: string; tipo_label: string; titulo: string;
+  detalle: string; referencia: string; monto: number | null; origen: string; por?: string;
+}
+interface HistorialData {
+  tercero: Record<string, unknown> & { nombre: string; identificacion: string };
+  perfil_tributario: string[];
+  eventos: EventoTercero[];
+  total_eventos: number;
+}
+
+const COLOR_EVENTO: Record<string, string> = {
+  incidente: "border-l-red-500",
+  contador: "border-l-amber-500",
+  decision: "border-l-accent",
+  fiscal: "border-l-emerald-500",
+  documento: "border-l-border",
+  nota: "border-l-border",
+};
+
+function HistorialTercero({ terceroId, onCerrar }: { terceroId: number; onCerrar: () => void }) {
+  const qc = useQueryClient();
+  const [abierto, setAbierto] = useState<number | null>(null);
+  const [nota, setNota] = useState({ titulo: "", detalle: "", tipo: "nota" });
+
+  const hQ = useQuery<HistorialData>({
+    queryKey: ["cc-tercero-historial", terceroId],
+    queryFn: () => api.get(`/api/contabilidad/cc/terceros/${terceroId}/historial`),
+  });
+  const agregarMut = useMutation({
+    mutationFn: () => api.post(`/api/contabilidad/cc/terceros/${terceroId}/historial`, nota),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["cc-tercero-historial", terceroId] });
+      setNota({ titulo: "", detalle: "", tipo: "nota" });
+    },
+  });
+  const h = hQ.data;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4">
+      <div className="lm-card my-8 w-full max-w-3xl p-5">
+        <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
+          <div className="min-w-0">
+            <p className="text-base font-extrabold text-ink">{h?.tercero.nombre ?? "Cargando…"}</p>
+            <p className="text-xs text-muted">{h?.tercero.identificacion}</p>
+          </div>
+          <button type="button" onClick={onCerrar} className="text-sm text-muted hover:text-ink">✕</button>
+        </div>
+
+        {h && h.perfil_tributario.length > 0 && (
+          <div className="mt-3 rounded-lg border border-border bg-surface px-3 py-2">
+            <p className="text-xs font-bold uppercase text-muted">Perfil tributario</p>
+            <ul className="mt-1 space-y-0.5">
+              {h.perfil_tributario.map((p, i) => (
+                <li key={i} className="text-sm text-ink">· {p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="mt-4 space-y-1.5">
+          {hQ.isLoading && <p className="py-6 text-center text-sm text-muted">Cargando el historial…</p>}
+          {h?.eventos.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted">Todavía no hay nada registrado.</p>
+          )}
+          {h?.eventos.map((e, i) => (
+            <div key={i}
+                 className={`border-l-4 ${COLOR_EVENTO[e.tipo] ?? "border-l-border"} rounded-r-lg bg-surface px-3 py-2`}>
+              <button type="button" onClick={() => setAbierto(abierto === i ? null : i)}
+                      className="flex w-full flex-wrap items-baseline gap-x-2 text-left">
+                <span className="font-mono text-xs tabular-nums text-muted">{e.fecha}</span>
+                <span className="text-[10px] font-bold uppercase text-muted">{e.tipo_label}</span>
+                <span className="min-w-0 flex-1 text-sm font-bold text-ink">{e.titulo}</span>
+                {e.monto ? <span className="text-sm font-bold tabular-nums text-ink">{formatCop(e.monto)}</span> : null}
+              </button>
+              {abierto === i && (e.detalle || e.referencia) && (
+                <div className="mt-1.5 border-t border-border/50 pt-1.5">
+                  {e.detalle && <p className="text-sm leading-snug text-muted">{e.detalle}</p>}
+                  {e.referencia && <p className="mt-1 font-mono text-[10px] text-muted">{e.referencia}</p>}
+                  {e.por && <p className="mt-0.5 text-[10px] text-muted">registrado por {e.por}</p>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 space-y-2 rounded-lg border border-dashed border-border p-3">
+          <p className="text-xs font-bold uppercase text-muted">Anotar algo</p>
+          <div className="flex flex-wrap gap-2">
+            <select value={nota.tipo} onChange={(e) => setNota({ ...nota, tipo: e.target.value })}
+                    className="rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink">
+              <option value="nota">Nota</option>
+              <option value="decision">Decisión</option>
+              <option value="contador">Indicación del contador</option>
+              <option value="incidente">Incidente</option>
+              <option value="fiscal">Cambio de perfil tributario</option>
+            </select>
+            <input value={nota.titulo} onChange={(e) => setNota({ ...nota, titulo: e.target.value })}
+                   placeholder="Qué pasó, en una línea"
+                   className="min-w-[14rem] flex-1 rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" />
+          </div>
+          <textarea value={nota.detalle} onChange={(e) => setNota({ ...nota, detalle: e.target.value })}
+                    placeholder="El porqué, para quien lo lea dentro de seis meses" rows={2}
+                    className="w-full rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" />
+          <button type="button" disabled={!nota.titulo.trim() || agregarMut.isPending}
+                  onClick={() => agregarMut.mutate()}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white disabled:opacity-40">
+            Anotar
+          </button>
+          <p className="text-[10px] text-muted">
+            El historial no se edita ni se borra: uno que se puede cambiar no sirve para responder qué pasó.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1971,6 +2114,138 @@ function MovimientosTab() {
         onAnular={(id) => anularMut.mutate(id)}
         onEliminar={(id) => eliminarMut.mutate(id)}
       />
+    </div>
+  );
+}
+
+/* ─── Libro Diario ─────────────────────────────────────────────────────────
+ *
+ * El Mayor responde «cómo se movió esta cuenta»; el Diario responde «qué pasó
+ * ese día»: cada asiento completo, con el código y el NOMBRE de cada cuenta, el
+ * débito y el crédito. Antes había que abrir asiento por asiento desde la lista
+ * de movimientos, y esta es la vista que el contador espera recorrer de corrido.
+ *
+ * Va en orden ascendente —del más viejo al más nuevo, como se lleva un diario—
+ * al revés que la lista de movimientos, donde se busca lo que acaba de pasar.
+ */
+interface LineaDiario {
+  cuenta_codigo: string; cuenta_nombre: string; cuenta_tipo: string;
+  debito: number; credito: number; descripcion: string; tercero_nombre: string | null;
+}
+interface AsientoDiario {
+  id: number; fecha: string; concepto: string; referencia: string;
+  tipo_origen: string; estado: string;
+  tercero: { id: number; nombre: string; identificacion: string } | null;
+  lineas: LineaDiario[]; debito: number; credito: number; cuadra: boolean;
+}
+interface Diario {
+  asientos: AsientoDiario[]; total_asientos: number; hay_mas: boolean;
+  total_debito: number; total_credito: number; cuadra: boolean; descuadrados: number[];
+}
+
+function LibroDiarioTab() {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const mes = hoy.slice(0, 8) + "01";
+  const [desde, setDesde] = useState(mes);
+  const [hasta, setHasta] = useState(hoy);
+  const [q, setQ] = useState("");
+  const [cuenta, setCuenta] = useState("");
+  const [limit, setLimit] = useState(100);
+
+  const dQ = useQuery<Diario>({
+    queryKey: ["cc-libro-diario", desde, hasta, q, cuenta, limit],
+    queryFn: () => api.get(
+      `/api/contabilidad/cc/diario?desde=${desde}&hasta=${hasta}&limit=${limit}` +
+      `${q ? `&q=${encodeURIComponent(q)}` : ""}${cuenta ? `&cuenta=${encodeURIComponent(cuenta)}` : ""}`),
+  });
+  const d = dQ.data;
+
+  return (
+    <div className="space-y-3">
+      <div className="lm-card flex flex-wrap items-end gap-2 p-3">
+        <label className="text-xs font-bold text-muted">Desde
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)}
+                 className="mt-0.5 block rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <label className="text-xs font-bold text-muted">Hasta
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)}
+                 className="mt-0.5 block rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <label className="text-xs font-bold text-muted">Cuenta
+          <input value={cuenta} onChange={(e) => setCuenta(e.target.value)} placeholder="1110"
+                 className="mt-0.5 block w-24 rounded border border-border bg-surface-input px-2 py-1 font-mono text-sm text-ink" /></label>
+        <label className="flex-1 text-xs font-bold text-muted">Buscar
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="concepto o referencia…"
+                 className="mt-0.5 block w-full rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" /></label>
+        <a href={`/api/contabilidad/cc/diario?formato=csv&desde=${desde}&hasta=${hasta}&limit=1000`}
+           className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-ink hover:border-accent">
+          Descargar CSV
+        </a>
+      </div>
+
+      {d && (
+        <div className="lm-card flex flex-wrap items-center gap-4 px-3 py-2 text-sm">
+          <span className="text-muted">{d.total_asientos} asientos</span>
+          <span className="text-ink">Débitos <b className="tabular-nums">{formatCop(d.total_debito)}</b></span>
+          <span className="text-ink">Créditos <b className="tabular-nums">{formatCop(d.total_credito)}</b></span>
+          <span className={d.cuadra ? "font-bold text-emerald-600" : "font-bold text-red-600"}>
+            {d.cuadra ? "✓ cuadra" : `✗ descuadre de ${formatCop(Math.abs(d.total_debito - d.total_credito))}`}
+          </span>
+          {d.descuadrados.length > 0 && (
+            <span className="font-bold text-red-600">asientos descuadrados: {d.descuadrados.join(", ")}</span>
+          )}
+        </div>
+      )}
+
+      {dQ.isLoading && <p className="px-3 py-6 text-sm text-muted">Cargando el diario…</p>}
+      {d?.asientos.length === 0 && (
+        <p className="lm-card px-4 py-8 text-center text-sm text-muted">No hay asientos en ese rango.</p>
+      )}
+
+      <div className="space-y-2">
+        {d?.asientos.map((a) => (
+          <div key={a.id} className={`lm-card overflow-hidden ${a.estado === "anulado" ? "opacity-60" : ""}`}>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border bg-surface px-3 py-1.5">
+              <span className="font-mono text-sm font-bold text-accent">#{a.id}</span>
+              <span className="font-mono text-sm tabular-nums text-ink">{a.fecha}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">{a.concepto}</span>
+              {a.tercero && <span className="text-xs text-muted">{a.tercero.nombre}</span>}
+              {a.referencia && <span className="font-mono text-[10px] text-muted">{a.referencia}</span>}
+              {!a.cuadra && <span className="text-xs font-bold text-red-600">no cuadra</span>}
+              {a.estado === "anulado" && <span className="text-xs font-bold text-red-600">ANULADO</span>}
+            </div>
+            <table className="min-w-full text-sm">
+              <tbody>
+                {a.lineas.map((l, i) => (
+                  <tr key={i} className="border-t border-border/30">
+                    <td className="w-24 px-3 py-1 font-mono font-bold tabular-nums text-ink">{l.cuenta_codigo}</td>
+                    <td className="px-2 py-1 text-ink">
+                      {l.cuenta_nombre}
+                      {l.descripcion && <span className="block text-xs text-muted">{l.descripcion}</span>}
+                    </td>
+                    <td className="w-28 px-2 py-1 text-right tabular-nums text-ink">
+                      {l.debito ? formatCop(l.debito) : ""}
+                    </td>
+                    <td className="w-28 px-3 py-1 text-right tabular-nums text-ink">
+                      {l.credito ? formatCop(l.credito) : ""}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-border bg-surface/60 text-xs font-bold">
+                  <td className="px-3 py-1" colSpan={2} />
+                  <td className="px-2 py-1 text-right tabular-nums text-ink">{formatCop(a.debito)}</td>
+                  <td className="px-3 py-1 text-right tabular-nums text-ink">{formatCop(a.credito)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
+      {d?.hay_mas && (
+        <button type="button" onClick={() => setLimit((n) => n + 100)}
+                className="w-full rounded-lg border border-border py-2 text-sm font-bold text-ink hover:border-accent">
+          Ver más asientos ({d.total_asientos - d.asientos.length} restantes)
+        </button>
+      )}
     </div>
   );
 }

@@ -266,8 +266,10 @@ def arbol_cuentas(
     """
     _ensure()
     with _conn() as con:
+        import app.services.contabilidad_core as _cc
+
         cuentas = [
-            dict(r)
+            _cc._con_guia(dict(r))
             for r in con.execute(
                 "SELECT * FROM cc_plan_cuentas ORDER BY codigo"
             ).fetchall()
@@ -320,6 +322,10 @@ def arbol_cuentas(
                 "existe": True,
                 "activa": bool(c["activa"]),
                 "es_movimiento": bool(c["es_movimiento"]),
+                # La guía de qué operación vive en la cuenta, pegada al nodo del
+                # árbol: quien abre el Libro Mayor la ve sin ir a otra pantalla.
+                "descripcion": c.get("descripcion", ""),
+                "nota_tributaria": c.get("nota_tributaria", ""),
             }
         )
         a = agregados.get(c["id"])
@@ -471,6 +477,11 @@ def extracto_cuenta(
                 raise ValueError("Cuenta no encontrada")
             cuenta = dict(fila)
 
+        # El extracto que se le manda al contador encabeza con la guía de la
+        # cuenta: qué operación vive ahí y qué impuestos acarrea.
+        import app.services.contabilidad_core as _cc
+
+        cuenta = _cc._con_guia(cuenta)
         naturaleza = cuenta["naturaleza"]
         ids = (
             _codigos_descendientes(con, str(cuenta["codigo"]))
@@ -642,6 +653,12 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
     cuenta = extracto["cuenta"]
     w.writerow([f"Extracto contable {cuenta['codigo']} - {cuenta['nombre']}"])
     w.writerow(["Desde", extracto.get("desde") or "inicio", "Hasta", extracto.get("hasta") or "hoy"])
+    # La guía de la cuenta también en el CSV: el contador abre este archivo en
+    # Excel sin el panel al lado.
+    if cuenta.get("descripcion"):
+        w.writerow(["Qué va en esta cuenta", cuenta["descripcion"]])
+    if cuenta.get("nota_tributaria"):
+        w.writerow(["Impuestos", cuenta["nota_tributaria"]])
     w.writerow([])
     w.writerow(
         ["Fecha", "Asiento", "Concepto", "Tercero", "Referencia", "Contrapartida", "Débito", "Crédito", "Saldo"]
@@ -663,4 +680,144 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
         )
     w.writerow([])
     w.writerow(["", "", "Totales", "", "", "", extracto["total_debito"], extracto["total_credito"], extracto["saldo_final"]])
+    return buf.getvalue()
+
+
+# ─────────────────────────────── Libro Diario ──────────────────────────────
+
+def libro_diario(
+    desde: str | None = None,
+    hasta: str | None = None,
+    *,
+    tercero_id: int | None = None,
+    cuenta: str | None = None,
+    q: str | None = None,
+    incluir_anulados: bool = False,
+    limit: int = 300,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """El libro diario: los asientos en orden cronológico, con sus líneas.
+
+    Es la otra mitad de lo que ya había. El **Libro Mayor** responde «cómo se
+    movió esta cuenta» y el **Diario** responde «qué pasó ese día»: cada asiento
+    completo, con el código y el NOMBRE de cada cuenta, el débito y el crédito.
+    Sin él había que abrir asiento por asiento desde la lista de movimientos, y
+    es la vista que el contador espera poder recorrer de corrido.
+
+    Va en orden **ascendente** —del más viejo al más nuevo, como se lleva un
+    diario— a diferencia de la lista de movimientos, que muestra lo último
+    primero porque ahí lo que se busca es lo que acaba de pasar.
+    """
+    _ensure()
+    import app.services.contabilidad_core as cc
+
+    where, params = [], []
+    if desde:
+        where.append("m.fecha >= ?"); params.append(desde)
+    if hasta:
+        where.append("m.fecha <= ?"); params.append(hasta)
+    if tercero_id:
+        where.append("m.tercero_id = ?"); params.append(int(tercero_id))
+    if not incluir_anulados:
+        where.append("m.estado <> 'anulado'")
+    if q:
+        where.append("(m.concepto LIKE ? OR m.referencia LIKE ?)")
+        params += [f"%{q}%", f"%{q}%"]
+    if cuenta:
+        # Incluye las subcuentas: filtrar por 1110 trae también 111005.
+        where.append(
+            "m.id IN (SELECT ml.movimiento_id FROM cc_movimiento_lineas ml"
+            " JOIN cc_plan_cuentas pc ON pc.id = ml.cuenta_id"
+            " WHERE pc.codigo = ? OR pc.codigo LIKE ?)"
+        )
+        params += [str(cuenta), f"{cuenta}%"]
+
+    filtro = (" WHERE " + " AND ".join(where)) if where else ""
+    with _conn() as con:
+        total = con.execute(
+            f"SELECT COUNT(*) n FROM cc_movimientos m{filtro}", params
+        ).fetchone()["n"]
+        movs = [dict(r) for r in con.execute(
+            f"""SELECT m.*, t.nombre AS tercero_nombre, t.identificacion AS tercero_identificacion
+                  FROM cc_movimientos m
+                  LEFT JOIN cc_terceros t ON t.id = m.tercero_id{filtro}
+                 ORDER BY m.fecha ASC, m.id ASC LIMIT ? OFFSET ?""",
+            (*params, int(limit), int(offset)),
+        )]
+        lineas_por_mov: dict[int, list[dict]] = {}
+        if movs:
+            ph = ",".join("?" * len(movs))
+            ids = [m["id"] for m in movs]
+            for r in con.execute(
+                f"""SELECT ml.movimiento_id, ml.debito, ml.credito, ml.descripcion, ml.orden,
+                           pc.codigo AS cuenta_codigo, pc.nombre AS cuenta_nombre,
+                           pc.tipo AS cuenta_tipo, pc.naturaleza AS cuenta_naturaleza,
+                           t.nombre AS tercero_nombre
+                      FROM cc_movimiento_lineas ml
+                      JOIN cc_plan_cuentas pc ON pc.id = ml.cuenta_id
+                      LEFT JOIN cc_terceros t ON t.id = ml.tercero_id
+                     WHERE ml.movimiento_id IN ({ph})
+                     ORDER BY ml.movimiento_id, ml.orden""", ids):
+                lineas_por_mov.setdefault(r["movimiento_id"], []).append(dict(r))
+        # Totales de TODO el rango, no solo de la página: si dijeran solo lo de
+        # la página, cuadrarían siempre y no servirían para revisar nada.
+        tot = con.execute(
+            f"""SELECT COALESCE(SUM(ml.debito),0) d, COALESCE(SUM(ml.credito),0) c
+                  FROM cc_movimiento_lineas ml
+                  JOIN cc_movimientos m ON m.id = ml.movimiento_id{filtro}""", params
+        ).fetchone()
+
+    asientos = []
+    for m in movs:
+        ls = lineas_por_mov.get(m["id"], [])
+        asientos.append({
+            "id": m["id"], "fecha": m["fecha"], "concepto": m["concepto"],
+            "referencia": m["referencia"], "tipo_origen": m["tipo_origen"],
+            "estado": m["estado"],
+            "tercero": ({"id": m["tercero_id"], "nombre": m["tercero_nombre"],
+                         "identificacion": m["tercero_identificacion"]}
+                        if m["tercero_id"] else None),
+            "lineas": ls,
+            "debito": round(sum(l["debito"] or 0 for l in ls), 2),
+            "credito": round(sum(l["credito"] or 0 for l in ls), 2),
+            "cuadra": abs(sum(l["debito"] or 0 for l in ls)
+                          - sum(l["credito"] or 0 for l in ls)) < 0.01,
+        })
+    return {
+        "desde": desde, "hasta": hasta,
+        "asientos": asientos, "total_asientos": total,
+        "limit": limit, "offset": offset,
+        "hay_mas": offset + len(asientos) < total,
+        "total_debito": round(tot["d"], 2), "total_credito": round(tot["c"], 2),
+        "cuadra": abs(tot["d"] - tot["c"]) < 0.01,
+        "descuadrados": [a["id"] for a in asientos if not a["cuadra"]],
+    }
+
+
+def libro_diario_csv(diario: dict[str, Any]) -> str:
+    """El diario en CSV, una fila por línea de asiento — el formato que el
+    contador importa a su software."""
+    import csv
+    import io
+
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["Libro Diario"])
+    w.writerow(["Desde", diario.get("desde") or "inicio", "Hasta", diario.get("hasta") or "hoy"])
+    w.writerow([])
+    w.writerow(["Fecha", "Asiento", "Concepto", "Referencia", "Cuenta", "Nombre de la cuenta",
+                "Tercero", "Detalle", "Débito", "Crédito"])
+    for a in diario["asientos"]:
+        for i, l in enumerate(a["lineas"]):
+            w.writerow([
+                a["fecha"] if i == 0 else "", a["id"] if i == 0 else "",
+                a["concepto"] if i == 0 else "", a["referencia"] if i == 0 else "",
+                l["cuenta_codigo"], l["cuenta_nombre"],
+                l.get("tercero_nombre") or (a["tercero"] or {}).get("nombre") or "",
+                l.get("descripcion") or "",
+                l["debito"] or "", l["credito"] or "",
+            ])
+    w.writerow([])
+    w.writerow(["", "", "TOTALES", "", "", "", "", "",
+                diario["total_debito"], diario["total_credito"]])
     return buf.getvalue()

@@ -35,6 +35,16 @@ from __future__ import annotations
 ICA_SERVICIOS = 9.66
 ICA_COMERCIAL = 11.04
 ICA_INDUSTRIAL = 4.14
+# Consultoría profesional (contabilidad, jurídica, financiera, técnica). NO es
+# la de «las demás actividades de servicios»: subió de 6,9 a 8,66 en 2022 y se
+# quedó ahí. Verificada contra los documentos del contador — su cuenta de cobro
+# de agosto-2026 liquida $5.659 sobre $653.470 y su certificado de 2024 liquida
+# $50.310 sobre $5.809.492: 8,66 por mil exacto en ambos. Con 9,66 se le retiene
+# de más y la 2368 queda inflada frente a lo que él declara en el RTICA.
+ICA_CONSULTORIA = 8.66
+# Transporte en Bogotá. Es la que el contador aplica al servicio de mensajería
+# (18-sep-2026) y la que usó en el certificado a NEXT ENVIOS por 2024.
+ICA_TRANSPORTE = 4.14
 
 # cuenta PUC -> (concepto de retención o None, tarifa ICA sugerida, nota, advertencia)
 #
@@ -59,10 +69,10 @@ _PERFILES: dict[str, tuple[str | None, float, str, str]] = {
                "McKenna no tiene trabajadores con contrato laboral."),
 
     # ── Honorarios y prestación de servicios ─────────────────────────────
-    "5110": ("honorarios", ICA_SERVICIOS, "Honorarios: 10% declarante / 11% no declarante, sin cuantía mínima.", ""),
-    "511025": ("honorarios", ICA_SERVICIOS, "Asesoría jurídica: retención de honorarios.", ""),
-    "511030": ("honorarios", ICA_SERVICIOS, "Asesoría financiera: retención de honorarios.", ""),
-    "511035": ("honorarios", ICA_SERVICIOS, "Asesoría técnica: retención de honorarios.", ""),
+    "5110": ("honorarios", ICA_CONSULTORIA, "Honorarios: 10% declarante / 11% no declarante, sin cuantía mínima.", ""),
+    "511025": ("honorarios", ICA_CONSULTORIA, "Asesoría jurídica: retención de honorarios.", ""),
+    "511030": ("honorarios", ICA_CONSULTORIA, "Asesoría financiera: retención de honorarios.", ""),
+    "511035": ("honorarios", ICA_CONSULTORIA, "Asesoría técnica: retención de honorarios.", ""),
     # 511095 es donde viven las quincenas de quienes prestan servicios a McKenna
     # (Víctor, Stella, Jenniffer, y lo que cobran Armando y Cynthia). Pese al
     # nombre de la cuenta, el concepto de retención es **servicios**, no
@@ -93,11 +103,24 @@ _PERFILES: dict[str, tuple[str | None, float, str, str]] = {
     "513555": (None, 0.0, "Servicio público (gas): las ESP son autorretenedoras, no se les retiene.", ""),
 
     # ── Transporte ───────────────────────────────────────────────────────
-    "513550": ("transporte_carga", 0.0,
-               "Transporte de carga: 1% desde 4 UVT (así lo certificó el contador en 2024).",
+    # Retefuente 1% (Art. 392 E.T.) e **ICA 4,14 por mil**, que es la tarifa de
+    # transporte en Bogotá. Las dos las confirmó el contador el 18-sep-2026 para
+    # la mensajería, y las dos reproducen al peso el certificado que él mismo
+    # expidió a NEXT ENVIOS por 2024: sobre base $17.377.500, $173.775 de renta
+    # y $71.943 de ICA. No son una lectura nuestra de la norma.
+    #
+    # Dos cuentas, no una: el flete de la mercancía que sale hacia el cliente es
+    # gasto de VENTAS (523550) y el transporte administrativo se queda en
+    # 513550. Mismo tratamiento tributario, distinto renglón del resultado.
+    "513550": ("transporte_carga", ICA_TRANSPORTE,
+               "Transporte de carga: retefuente 1% desde 4 UVT + ReteICA 4,14 por mil (Bogotá).",
                "Las transportadoras grandes (Interrapidísimo, Servientrega, TCC) son autorretenedoras "
                "y no se les retiene; márcalo en su ficha. A un mensajero persona natural sí se le "
-               "retiene, salvo que esté en Régimen SIMPLE."),
+               "retiene. Si el flete es de la mercancía que sale al cliente, la cuenta es 523550."),
+    "523550": ("transporte_carga", ICA_TRANSPORTE,
+               "Flete de ventas: retefuente 1% desde 4 UVT + ReteICA 4,14 por mil (Bogotá).",
+               "Las transportadoras grandes son autorretenedoras y no se les retiene; márcalo en su "
+               "ficha. Si el transporte no es para despachar mercancía, la cuenta es 513550."),
 
     # ── Arrendamientos ───────────────────────────────────────────────────
     "5120": ("arrendamiento_inmueble", ICA_SERVICIOS,

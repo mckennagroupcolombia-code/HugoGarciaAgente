@@ -474,7 +474,11 @@ def test_la_categoria_nomina_advierte_que_no_hay_contrato_laboral(mods):
 # base le giraba 1.056.000 y el reclamo llegaba después.
 
 def test_valor_libre_de_retencion_gira_exactamente_lo_pactado(mods):
-    _cc, w, t, m, _ = mods
+    cc, w, t, m, _ = mods
+    # Desde sep-2026 el gross-up hay que PACTARLO en la ficha del tercero; ya no
+    # se activa desde el pago.
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retencion_asume_mckenna=1 WHERE id=?", (t["id"],))
     prev = w.previsualizar({
         "categoria": "servicios", "monto": 1_100_000, "concepto": "Quincena",
         "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-10",
@@ -569,7 +573,9 @@ def test_ica_se_le_descuenta_al_beneficiario_y_va_a_2368(mods):
 
 
 def test_libre_de_retencion_gross_up_incluye_el_ica(mods):
-    _cc, w, t, m, _ = mods
+    cc, w, t, m, _ = mods
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retencion_asume_mckenna=1 WHERE id=?", (t["id"],))
     p = w.previsualizar(_servicio(t, m, retencion_modo="mckenna", ica_por_mil=9.66))
     assert p["girado"] == 1_250_000        # recibe lo pactado, completo
     assert p["retencion"] > 0 and p["retencion_ica"] > 0
@@ -726,3 +732,415 @@ def test_se_recuerda_de_que_cuenta_se_le_paga_a_cada_tercero(mods):
     ficha = cc.obtener_tercero(t["id"])
     assert ficha["cuenta_gasto_default"] == "513550"
     assert int(ficha["medio_pago_default"]) == m["id"]
+
+
+def test_la_mensajeria_sale_completa_con_solo_escribir_el_valor(mods):
+    """El caso de Fidel Rocha tal como lo pidió el contador (18-sep-2026): gasto
+    523550 transporte de ventas, retefuente 1% y ReteICA 4,14 por mil.
+
+    Lo que se prueba es que el operador **no tiene que elegir nada más**: la
+    cuenta y el ICA vienen de la ficha del tercero y la retención de la cuenta.
+    Lo que hay que recordar cada quincena es lo que se olvida una quincena.
+    """
+    cc, w, _t, m, _ = mods
+    fidel = cc.crear_tercero({"nombre": "FIDEL ROCHA MORON", "tipo": "proveedor",
+                              "tipo_persona": "natural", "identificacion": "9385573"})
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET ica_por_mil=4.14, cuenta_gasto_default='523550'"
+                    " WHERE id=?", (fidel["id"],))
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_998_000, "concepto": "Mensajería quincena",
+        "tercero_id": fidel["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "retencion_modo": "beneficiario",
+    })
+    por_cuenta = {l["cuenta_codigo"]: l for l in prev["lineas"]}
+    assert por_cuenta["523550"]["debito"] == pytest.approx(1_998_000, abs=1)
+    assert por_cuenta["236525"]["credito"] == pytest.approx(19_980, abs=1)   # 1%
+    assert por_cuenta["2368"]["credito"] == pytest.approx(8_271.72, abs=1)   # 4,14 x mil
+    assert por_cuenta["1110"]["credito"] == pytest.approx(1_969_748.28, abs=1)
+    assert prev["concepto_retencion"] == "transporte_carga"
+    assert prev["cuadra"] is True
+
+
+# ─── Los impuestos se informan, no se preguntan (18-sep-2026) ───────────────
+
+def test_sin_contestar_nada_los_impuestos_ya_salen(mods):
+    """El wizard no pregunta «¿lleva retención?»: la cuenta del PUC y la ficha
+    del tercero ya lo dicen. Contestar bien doce veces al año y olvidarlo una es
+    lo que produjo los $164.542 retenidos de más en septiembre."""
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 5_000_000, "concepto": "Servicio",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "5135",
+        # sin retencion_modo, sin ica_por_mil, sin gmf
+    })
+    assert prev["retencion"] == pytest.approx(200_000, abs=1)     # servicios 4%
+    assert prev["concepto_retencion"] == "servicios"
+    assert prev["retencion_modo"] == "beneficiario"
+
+
+def test_la_previsualizacion_explica_la_cuenta_elegida(mods):
+    """Lo que el panel muestra en vez de las preguntas."""
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_000_000, "concepto": "x",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "523550",
+    })
+    perfil = prev["perfil_cuenta"]
+    assert perfil["conocida"] is True
+    assert "1%" in perfil["nota"] and "4,14" in perfil["nota"]
+    assert "autorretenedora" in perfil["advertencia"]
+    assert prev["perfil_cuenta"]["cuenta_nombre"].startswith("Transporte")
+
+
+def test_el_gross_up_sigue_siendo_posible_porque_el_puc_no_lo_sabe(mods):
+    """«Te pago libre de retención» es un acuerdo comercial: ninguna cuenta del
+    PUC puede deducirlo. Por eso sigue existiendo — pero pactado en la ficha."""
+    cc, w, t, m, _ = mods
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retencion_asume_mckenna=1 WHERE id=?", (t["id"],))
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_000_000, "concepto": "Quincena",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "511095", "retencion_modo": "mckenna",
+    })
+    assert prev["girado"] == pytest.approx(1_000_000, abs=1)   # recibe lo pactado
+    assert prev["monto"] > 1_000_000                            # la base sube
+    assert prev["valor_es_neto"] is True
+
+
+# ─── El gross-up se pacta, no se elige (18-sep-2026) ───────────────────────
+
+def test_no_se_puede_hacer_que_mckenna_asuma_la_retencion_desde_el_pago(mods):
+    """Mientras fue un radio del wizard, cualquiera podía hacer que McKenna
+    pagara los impuestos de un tercero con un clic: sobre la quincena de
+    mensajería son $28.657 que salen del banco de más, cada quincena, sin que
+    nadie lo pactara. Se valida en el backend porque esconder un radio no es un
+    control, es una sugerencia."""
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_998_000, "concepto": "Mensajería",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "523550", "retencion_modo": "mckenna",
+    })
+    assert prev["retencion_modo"] == "beneficiario"
+    # 1.998.000 menos el 1% de transporte: sale el neto, no el bruto.
+    assert prev["girado"] == pytest.approx(1_978_020, abs=1)
+    assert "no está pactado" in prev["aviso_gross_up"]
+
+
+def test_el_otro_camino_al_gross_up_tambien_queda_cerrado(mods):
+    """`valor_es_neto` llegaba a lo mismo por la puerta de atrás."""
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_998_000, "concepto": "Mensajería",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "523550", "valor_es_neto": True,
+    })
+    assert prev["retencion_modo"] == "beneficiario"
+    assert prev["valor_es_neto"] is False
+
+
+def test_con_quien_si_se_pacto_el_gross_up_sigue_funcionando(mods):
+    cc, w, t, m, _ = mods
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retencion_asume_mckenna=1 WHERE id=?", (t["id"],))
+    prev = w.previsualizar({
+        "categoria": "servicios", "monto": 1_000_000, "concepto": "Quincena pactada neta",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "511095", "retencion_modo": "mckenna",
+    })
+    assert prev["valor_es_neto"] is True
+    assert prev["girado"] == pytest.approx(1_000_000, abs=1)
+    assert not prev["aviso_gross_up"]
+
+
+def test_pagar_un_servicio_publico_no_marca_exento_al_tercero(mods):
+    """Al dejar de preguntar, `retencion_modo` pasó a ser consecuencia de la
+    cuenta: 513530 manda «ninguna» porque la energía no lleva retención.
+    Aprender de ahí marcaba exento a cualquiera al que se le pagara un recibo."""
+    cc, w, t, m, _ = mods
+    w.crear_solicitud({
+        "categoria": "servicios", "monto": 300_000, "concepto": "Energía",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "513530", "retencion_modo": "ninguna",
+    })
+    assert int(cc.obtener_tercero(t["id"])["retefuente_exento"]) == 0
+
+
+def test_pagarle_a_un_autorretenedor_no_le_quita_la_exencion(mods):
+    """El daño inverso y peor: Interrapidísimo manda «beneficiario» porque
+    513550 sí retiene, y eso desmarcaba su exención — al siguiente pago se le
+    habría retenido indebidamente."""
+    cc, w, t, m, _ = mods
+    with cc._conn() as con:
+        con.execute("UPDATE cc_terceros SET retefuente_exento=1 WHERE id=?", (t["id"],))
+    w.crear_solicitud({
+        "categoria": "servicios", "monto": 850_000, "concepto": "Guías",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "cuenta_debito": "513550", "retencion_modo": "beneficiario",
+    })
+    assert int(cc.obtener_tercero(t["id"])["retefuente_exento"]) == 1
+
+
+# ─── La compra se contabiliza con la cotización (18-sep-2026) ───────────────
+#
+# El objetivo: que al solicitar el pago la compra quede contabilizada renglón
+# por renglón, para no tener que volver a registrarla cuando llegue la factura.
+
+def _items():
+    # Dos materias primas: una EXCLUIDA de IVA (Art. 424) y otra gravada. El
+    # catálogo de McKenna tiene 254 excluidas de 316, así que suponer 19% a
+    # todo inventa un IVA descontable que no existe.
+    return [
+        {"sku": "CITCALg", "nombre": "CITRATO DE CALCIO", "cantidad": 50_000,
+         "precio": 9, "unidad": "g", "iva_pct": 0},
+        {"sku": "GLIVEGg", "nombre": "GLICERINA VEGETAL G", "cantidad": 20_000,
+         "precio": 11, "unidad": "g", "iva_pct": 19},
+    ]
+
+
+def test_cada_producto_de_la_cotizacion_es_una_linea_del_asiento(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "productos", "concepto": "Cotización 4471", "fecha": "2026-09-18",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "items": _items(), "monto": 0,
+    })
+    inventario = [l for l in prev["lineas"] if l["cuenta_codigo"] == "1435"]
+    assert len(inventario) == 2
+    assert inventario[0]["debito"] == pytest.approx(450_000, abs=1)
+    assert "CITCALg" in inventario[0]["descripcion"]
+    assert "50000 g" in inventario[0]["descripcion"]
+    assert prev["cuadra"] is True
+
+
+def test_el_iva_no_se_carga_a_inventario(mods):
+    """Antes el asiento debitaba a 1435 el total CON IVA: inflaba el inventario
+    con un impuesto que no es costo de la mercancía —es un crédito contra la
+    DIAN— y dejaba el formulario 300 imposible de armar leyendo el libro."""
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "productos", "concepto": "Compra", "fecha": "2026-09-18",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "items": _items(), "monto": 0,
+    })
+    iva = [l for l in prev["lineas"] if l["cuenta_codigo"] == "240810"]
+    assert len(iva) == 1
+    assert iva[0]["debito"] == pytest.approx(41_800, abs=1)      # solo la gravada
+    assert sum(l["debito"] for l in prev["lineas"] if l["cuenta_codigo"] == "1435") \
+        == pytest.approx(670_000, abs=1)                          # base, sin IVA
+
+
+def test_una_materia_prima_excluida_no_genera_iva_descontable(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "productos", "concepto": "Compra", "fecha": "2026-09-18",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "items": [{"sku": "CITCALg", "nombre": "CITRATO DE CALCIO", "cantidad": 50_000,
+                   "precio": 9, "iva_pct": 0}],
+    })
+    assert all(l["cuenta_codigo"] != "240810" for l in prev["lineas"])
+    assert prev["monto"] == pytest.approx(450_000, abs=1)
+
+
+def test_al_aprobar_no_se_pierde_ningun_producto(mods):
+    """La reconstrucción del asiento tomaba `lineas[0]`: con cinco productos
+    habría contabilizado uno y descuadrado el asiento."""
+    cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Cotización 4471", "fecha": "2026-09-18",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "items": _items(), "monto": 0,
+    })
+    r = w.aprobar(s["id"], espejar=False)
+    mov = cc.obtener_movimiento(r["movimiento_id"])
+    inventario = [l for l in mov["lineas"] if l["cuenta_codigo"] == "1435"]
+    assert len(inventario) == 2
+    assert sum(l["debito"] for l in inventario) == pytest.approx(670_000, abs=1)
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_productos_no_bloquea_el_pago_si_no_hay_catalogo(mods):
+    """Hay insumos que no están en el catálogo. Bloquear el pago por eso empuja
+    al operador a la categoría «Otro», que es donde se pierden la retención y
+    la cuenta correcta."""
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "monto": 300_000, "concepto": "Insumo suelto",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "estado": "borrador",
+    })
+    w.enviar_a_aprobacion(s["id"])            # no exige productos
+    assert w.obtener(s["id"])["estado"] == "pendiente"
+
+
+def test_pactado_libre_se_respeta_aunque_el_pago_diga_ninguna(mods):
+    """Exento de renta + ICA pactado libre: el ICA lo asume McKenna, no él.
+
+    El panel manda `retencion_modo="ninguna"` cuando el tercero está marcado
+    exento de RENTA. Pero el ICA es otro impuesto y sigue corriendo: si la ficha
+    dice que se pactó pagar libre, el gross-up tiene que hacerse igual. Antes la
+    ficha solo servía de veto (impedía el gross-up sin acuerdo) y no de mandato,
+    así que a William Novoa —exento por el Art. 383, con ICA 8,66 pactado
+    libre— se le terminaba descontando el ICA en cada pago.
+    """
+    cc, w, t, m, _ = mods
+    with cc._conn() as con:
+        con.execute(
+            "UPDATE cc_terceros SET retencion_asume_mckenna=1, retefuente_exento=1, ica_por_mil=8.66 WHERE id=?",
+            (t["id"],),
+        )
+    prev = w.previsualizar({
+        "categoria": "honorarios", "monto": 1_200_000, "concepto": "Honorarios contables",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-10-05",
+        "retencion_modo": "ninguna",
+    })
+    assert prev["girado"] == 1_200_000            # recibe lo pactado, exacto
+    assert prev["retencion"] == 0                 # exento de renta: Art. 383 E.T.
+    assert prev["retencion_ica"] > 0              # pero el ICA sí se practica
+    assert prev["monto"] == round(1_200_000 + prev["retencion_ica"], 2)
+    assert prev["valor_es_neto"] is True
+    assert prev["cuadra"] is True
+
+
+def test_los_honorarios_profesionales_llevan_ica_de_consultoria(mods):
+    """8,66 por mil, no 9,66: la contabilidad es consultoría profesional.
+
+    Verificado contra los documentos del contador — su cuenta de cobro liquida
+    $5.659 sobre $653.470 y su certificado anual $50.310 sobre $5.809.492.
+    El 9,66 es el de «las demás actividades de servicios» y debe quedarse en
+    5135, donde entra la prestación de servicios.
+    """
+    from app.services.impuestos_por_cuenta import perfil
+
+    for cuenta in ("5110", "511025", "511030", "511035"):
+        assert perfil(cuenta)["ica_por_mil"] == 8.66, cuenta
+    for cuenta in ("5135", "511095"):
+        assert perfil(cuenta)["ica_por_mil"] == 9.66, cuenta
+
+
+# ─── La réplica tiene que cuadrar con el documento (18-sep-2026) ────────────
+#
+# Prueba real: cotización PRE0031580 de FACTORES Y MERCADEO, 14 materias primas,
+# $4.531.500 de mercancía + $619.115 de IVA − $113.287,50 de retención =
+# $5.037.327,50 girados. El IVA que trae el catálogo de Alegra para los insumos
+# **no es confiable**: la misma sustancia está marcada 19% como combo (lo que
+# McKenna vende) y 0% como `product` (la materia prima) —alulosa, gelatina e
+# inulina—, y el reparto 80/20 es un espejo entre los dos tipos: nunca se curó.
+# Con él, esa cotización daba $0 de IVA en vez de $619.115.
+
+COTIZACION = [
+    ("CLOMAGHEXg", 5800, 25, 19), ("ALAg", 38000, 2, 19), ("PROB80g", 42000, 20, 19),
+    ("VITETOC99Pg", 192000, 2, 0), ("VITCACIASCg", 14500, 25, 0),
+    ("GELSINSABg", 25000, 25, 19), ("ALUALLg", 16000, 25, 19), ("GOMXANg", 14600, 25, 19),
+    ("INU90Pg", 20000, 20, 19), ("DEXMONg", 4800, 25, 19), ("AMILARGBASg", 75000, 2, 19),
+    ("DPANg", 82000, 2, 0), ("UREAUSPg", 14500, 25, 0), ("MALM15MALg", 5500, 25, 19),
+]
+TOTAL_DOCUMENTO = 5_150_615
+
+
+def _cotizacion(iva_del_catalogo=False):
+    return [{"sku": s, "nombre": s, "cantidad": c, "precio": p, "unidad": "KG",
+             "iva_pct": 0 if iva_del_catalogo else i} for s, p, c, i in COTIZACION]
+
+
+def test_la_cotizacion_real_reproduce_el_documento_al_centavo(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "productos", "concepto": "PRE0031580", "fecha": "2026-09-10",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "items": _cotizacion(), "total_documento": TOTAL_DOCUMENTO,
+    })
+    assert prev["base_sin_iva"] == pytest.approx(4_531_500, abs=1)
+    assert prev["iva_items"] == pytest.approx(619_115, abs=1)
+    assert prev["monto"] == pytest.approx(5_150_615, abs=1)
+    assert prev["retencion"] == pytest.approx(113_287.50, abs=1)
+    # El «Total General» del documento: lo que de verdad sale del banco.
+    assert prev["girado"] == pytest.approx(5_037_327.50, abs=1)
+    assert prev["aviso_documento"] == ""
+    assert prev["cuadra"] is True
+    assert len([l for l in prev["lineas"] if l["cuenta_codigo"] == "1435"]) == 14
+
+
+def test_el_iva_del_catalogo_no_cuadra_y_se_avisa(mods):
+    _cc, w, t, m, _ = mods
+    prev = w.previsualizar({
+        "categoria": "productos", "concepto": "PRE0031580", "fecha": "2026-09-10",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "items": _cotizacion(iva_del_catalogo=True), "total_documento": TOTAL_DOCUMENTO,
+    })
+    assert prev["iva_items"] == 0
+    assert prev["diferencia_documento"] == pytest.approx(-619_115, abs=1)
+    assert "faltan" in prev["aviso_documento"]
+    assert "IVA" in prev["aviso_documento"]
+
+
+def test_un_descuadre_no_llega_a_aprobacion(mods):
+    """Se puede guardar el borrador a medias, pero no se aprueba un asiento que
+    dice algo distinto de la factura que lo sustenta."""
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "PRE0031580", "fecha": "2026-09-10",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0, "estado": "borrador",
+        "items": _cotizacion(iva_del_catalogo=True), "total_documento": TOTAL_DOCUMENTO,
+    })
+    assert w.obtener(s["id"])["estado"] == "borrador"       # guardar sí
+    with pytest.raises(ValueError, match="documento dice"):
+        w.enviar_a_aprobacion(s["id"])
+
+
+def test_sin_total_del_documento_no_estorba(mods):
+    """No es obligatorio: hay compras sin documento a la mano y bloquearlas
+    empujaría al operador fuera del wizard."""
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Compra", "fecha": "2026-09-10",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0, "estado": "borrador",
+        "items": _cotizacion(),
+    })
+    w.enviar_a_aprobacion(s["id"])
+    assert w.obtener(s["id"])["estado"] == "pendiente"
+
+
+# ─── Buscar el insumo como lo nombra el proveedor (18-sep-2026) ─────────────
+#
+# Probando la cotización PRE0031580, tres de catorce insumos parecían «no estar
+# en el catálogo» y los tres estaban. Creer que falta un producto que sí existe
+# es peor que un par de resultados de sobra: lleva a crearlo duplicado.
+
+def test_las_preposiciones_no_estorban():
+    """«CLORURO DE MAGNESIO» debe encontrar «CLORURO MAGNESIO HEXAHIDRATADO»:
+    el proveedor y el catálogo nunca escriben igual."""
+    from app.services.pagos_proveedor import productos
+
+    assert any(p["sku"] == "CLOMAGHEXg" for p in productos("cloruro de magnesio"))
+
+
+def test_encuentra_la_misma_sustancia_con_otra_grafia():
+    """El proveedor escribe «GOMA XANTHAN» y el catálogo «GOMA XANTANA»."""
+    from app.services.pagos_proveedor import productos
+
+    assert any(p["sku"] == "GOMXANg" for p in productos("goma xanthan"))
+
+
+def test_ningun_combo_se_cuela_en_una_compra():
+    """El prefijo `C-` manda sobre el campo `type`: los 231 `kit` lo llevan, pero
+    además hay 14 combos guardados como `product` —`C-VITCACIASC100g`,
+    `C-ARCVRT250g`, `C-KITACIHIA30mL`…— que solo la referencia delata. Comprar
+    contra uno asienta como materia prima algo que McKenna arma y vende: el
+    inventario queda a precio de venta y el IVA sale del combo, no de la
+    factura."""
+    from app.services.pagos_proveedor import productos
+
+    for q in ("vitamina c", "arcilla", "triptofano", "citrato", "aceite esencial", "gelatina"):
+        assert not [p for p in productos(q, limit=8) if p["sku"].upper().startswith("C-")], q
+    assert productos("vitamina c acido")[0]["sku"] == "VITCACIASCg"
+
+
+def test_una_ficha_incompleta_no_le_gana_a_la_buena():
+    """`UREA250` («Urea cosmética») no tiene unidad ni precio y le ganaba a
+    `UREg`, que es la urea por gramo."""
+    from app.services.pagos_proveedor import productos
+
+    r = productos("urea")
+    assert r and r[0]["sku"] == "UREg"
