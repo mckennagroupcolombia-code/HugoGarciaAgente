@@ -148,6 +148,90 @@ def facturas_del_periodo(desde: str, hasta: str, limite_paginas: int = 40) -> li
     return salida
 
 
+def notas_credito_del_periodo(desde: str, hasta: str) -> list[dict]:
+    """Notas crédito del rango, con el IVA que **devuelven**.
+
+    Sin esto el IVA se declara de más. Agosto-2026 tuvo 712 notas crédito por
+    $44.441.972 —la campaña de corrección del IVA duplicado de astroselling, que
+    anuló cada factura mala y reexpidió— con $4.560.640 de IVA. Contar solo las
+    facturas dejaba ese IVA como deuda con la DIAN cuando la venta se había
+    anulado.
+
+    También es lo que explica el hueco entre lo facturado y el libro: $113,5M
+    facturados menos $44,4M anulados son $69,1M, contra $66,7M registrados.
+    """
+    import requests
+
+    from app.services.alegra import FECHA_CORTE_MIGRACION_ALEGRA
+
+    salida: list[dict] = []
+
+    def _agregar(id_, numero, fecha, total, iva, sistema):
+        salida.append({
+            "id": str(id_), "numero": numero, "fecha": fecha,
+            "total": round(float(total or 0), 2), "iva": round(float(iva or 0), 2),
+            "sistema": sistema,
+        })
+
+    def _iva_items(doc) -> float:
+        iva = 0.0
+        for it in doc.get("items") or []:
+            for t in it.get("taxes") or it.get("tax") or []:
+                if str(t.get("type") or t.get("name") or "").upper().startswith("IVA"):
+                    # Siigo trae el valor; Alegra, el porcentaje.
+                    if t.get("value") is not None:
+                        iva += float(t.get("value") or 0)
+                    else:
+                        base = float(it.get("price") or 0) * float(it.get("quantity") or 1)
+                        iva += base * float(t.get("percentage") or 0) / 100
+        return iva
+
+    if desde < FECHA_CORTE_MIGRACION_ALEGRA:
+        from app.services.siigo import PARTNER_ID, autenticar_siigo
+
+        tok = autenticar_siigo()
+        h = {"Authorization": tok if str(tok).lower().startswith("bearer") else f"Bearer {tok}",
+             "Partner-Id": PARTNER_ID, "Content-Type": "application/json"}
+        hasta_siigo = min(hasta, FECHA_CORTE_MIGRACION_ALEGRA)
+        pagina = 1
+        while pagina <= 40:
+            r = requests.get("https://api.siigo.com/v1/credit-notes", headers=h,
+                             params={"created_start": desde, "created_end": hasta_siigo,
+                                     "page": pagina, "page_size": 100}, timeout=60)
+            if not r.ok:
+                raise RuntimeError(f"Siigo respondió {r.status_code} al listar notas crédito")
+            res = (r.json() or {}).get("results") or []
+            if not res:
+                break
+            for x in res:
+                _agregar(x.get("id"), f"{x.get('prefix') or ''}{x.get('number') or ''}",
+                         str(x.get("date") or "")[:10], x.get("total"), _iva_items(x), "siigo")
+            pagina += 1
+
+    if not hasta or hasta >= FECHA_CORTE_MIGRACION_ALEGRA:
+        desde_alegra = max(desde, FECHA_CORTE_MIGRACION_ALEGRA)
+        start = 0
+        while start < 1200:
+            r = requests.get(f"{_BASE}/credit-notes", headers=_headers(),
+                             params={"limit": 30, "start": start}, timeout=60)
+            if not r.ok:
+                break
+            lote = r.json() or []
+            if not lote:
+                break
+            for x in lote:
+                fecha = str(x.get("date") or "")[:10]
+                if desde_alegra <= fecha <= hasta:
+                    _agregar(x.get("id"),
+                             (x.get("numberTemplate") or {}).get("fullNumber") or x.get("id"),
+                             fecha, x.get("total"), x.get("tax") or _iva_items(x), "alegra")
+            start += 30
+            if len(lote) < 30:
+                break
+
+    return salida
+
+
 def resumen(desde: str, hasta: str) -> dict[str, Any]:
     """Base gravable, IVA generado y ventas sin IVA del período, más el contraste
     contra lo que el libro tiene como ingreso.
@@ -160,9 +244,12 @@ def resumen(desde: str, hasta: str) -> dict[str, Any]:
     import app.services.contabilidad_core as cc
 
     facturas = [f for f in facturas_del_periodo(desde, hasta) if not f["anulada"]]
-    base = round(sum(f["base"] for f in facturas), 2)
-    iva = round(sum(f["iva"] for f in facturas), 2)
-    total = round(sum(f["total"] for f in facturas), 2)
+    notas = notas_credito_del_periodo(desde, hasta)
+    iva_nc = round(sum(n["iva"] for n in notas), 2)
+    total_nc = round(sum(n["total"] for n in notas), 2)
+    base = round(sum(f["base"] for f in facturas) - (total_nc - iva_nc), 2)
+    iva = round(sum(f["iva"] for f in facturas) - iva_nc, 2)
+    total = round(sum(f["total"] for f in facturas) - total_nc, 2)
     sin_iva = [f for f in facturas if f["iva"] <= 0]
 
     cc._ensure()
@@ -180,6 +267,9 @@ def resumen(desde: str, hasta: str) -> dict[str, Any]:
     return {
         "desde": desde, "hasta": hasta,
         "facturas": len(facturas),
+        "notas_credito": len(notas),
+        "iva_anulado": iva_nc,
+        "total_anulado": total_nc,
         "base_gravable": base,
         "iva_generado": iva,
         "total_facturado": total,

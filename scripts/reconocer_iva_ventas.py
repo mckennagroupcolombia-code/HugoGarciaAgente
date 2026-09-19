@@ -59,7 +59,8 @@ def main() -> None:
     from app.services.iva_ventas import reconocer
 
     periodos = _meses(args.periodo, args.hasta or args.periodo)
-    print(f"{'PERÍODO':<9} {'FACT':>5} {'BASE':>15} {'IVA':>13} {'FACTURADO':>15} {'LIBRO':>15} {'DIFERENCIA':>14}")
+    print(f"{'PERÍODO':<9} {'FACT':>5} {'NC':>4} {'IVA BRUTO':>13} {'IVA ANULADO':>13} "
+          f"{'IVA NETO':>13} {'FACT.NETO':>15} {'LIBRO':>15} {'DIF':>13}")
     total_iva = 0.0
     for p in periodos:
         desde, hasta = _rango(p)
@@ -67,8 +68,10 @@ def main() -> None:
         total_iva += r["iva_generado"] if r["estado"] in ("simulado", "reconocido") else 0
         dif = r["diferencia_libro_vs_facturas"]
         marca = {"reconocido": "✓", "ya_reconocido": "=", "sin_iva": "·", "simulado": "~"}.get(r["estado"], "?")
-        print(f"{p:<9} {r['facturas']:>5} {_fmt(r['base_gravable']):>15} {_fmt(r['iva_generado']):>13} "
-              f"{_fmt(r['total_facturado']):>15} {_fmt(r['ingreso_en_libro']):>15} {_fmt(dif):>14} {marca}")
+        bruto = r["iva_generado"] + r.get("iva_anulado", 0)
+        print(f"{p:<9} {r['facturas']:>5} {r.get('notas_credito', 0):>4} {_fmt(bruto):>13} "
+              f"{_fmt(r.get('iva_anulado', 0)):>13} {_fmt(r['iva_generado']):>13} "
+              f"{_fmt(r['total_facturado']):>15} {_fmt(r['ingreso_en_libro']):>15} {_fmt(dif):>13} {marca}")
         if abs(dif) > 1000:
             print(f"          ⚠ el libro y las facturas no cuadran por {_fmt(abs(dif))}: "
                   f"{'hay ventas sin facturar' if dif > 0 else 'hay facturas sin contabilizar'}")

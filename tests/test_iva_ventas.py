@@ -20,6 +20,9 @@ def libro(monkeypatch, tmp_path):
     monkeypatch.setattr(cc, "_DB_PATH", db)
     monkeypatch.setattr(cc, "_initialized", False)
     cc.init_db()
+    # Por defecto, sin notas crédito y sin red: un test que quiera probarlas las
+    # inyecta. Sin esto cada test salía a Siigo y a Alegra de verdad.
+    monkeypatch.setattr(iva, "notas_credito_del_periodo", lambda d, h: [])
     return cc, iva
 
 
@@ -172,3 +175,42 @@ def test_un_periodo_anterior_a_la_migracion_no_consulta_alegra(monkeypatch):
 
     fs = iva.facturas_del_periodo("2026-08-01", "2026-08-31")
     assert [f["sistema"] for f in fs] == ["siigo"]
+
+
+def test_las_notas_credito_restan_del_iva(libro, monkeypatch):
+    """Sin esto se declara IVA de una venta que se anuló.
+
+    Agosto-2026 tuvo 712 notas crédito por $44.441.972 —la campaña de
+    corrección del IVA duplicado de astroselling— con $4.560.640 de IVA.
+    Contar solo las facturas lo dejaba como deuda con la DIAN.
+    """
+    cc, iva = libro
+    _facturas(monkeypatch, iva, [
+        {"id": "1", "numero": "FE1", "fecha": "2026-08-05", "base": 100_000,
+         "iva": 19_000, "total": 119_000, "anulada": False, "cliente": "A"},
+    ])
+    monkeypatch.setattr(iva, "notas_credito_del_periodo", lambda d, h: [
+        {"id": "nc1", "numero": "NC1", "fecha": "2026-08-20",
+         "total": 59_500, "iva": 9_500, "sistema": "siigo"},
+    ])
+    _venta(cc, 119_000, fecha="2026-08-05")
+
+    r = iva.resumen("2026-08-01", "2026-08-31")
+    assert r["notas_credito"] == 1
+    assert r["iva_anulado"] == 9_500
+    assert r["iva_generado"] == 9_500            # 19.000 − 9.500
+    assert r["total_facturado"] == 59_500        # 119.000 − 59.500
+    assert r["base_gravable"] == 50_000          # 100.000 − 50.000
+
+
+def test_sin_notas_credito_el_iva_no_cambia(libro, monkeypatch):
+    cc, iva = libro
+    _facturas(monkeypatch, iva, [
+        {"id": "1", "numero": "FE1", "fecha": "2026-08-05", "base": 100_000,
+         "iva": 19_000, "total": 119_000, "anulada": False, "cliente": "A"},
+    ])
+    monkeypatch.setattr(iva, "notas_credito_del_periodo", lambda d, h: [])
+    _venta(cc, 119_000, fecha="2026-08-05")
+
+    r = iva.resumen("2026-08-01", "2026-08-31")
+    assert r["iva_generado"] == 19_000 and r["iva_anulado"] == 0

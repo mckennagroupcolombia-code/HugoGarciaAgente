@@ -1467,6 +1467,14 @@ app/services/iva_ventas.py          **Reconocimiento del IVA de las ventas** (se
                                      `resumen()` contrasta lo facturado contra el ingreso del libro: si no
                                      cuadran hay ventas sin facturar o facturas sin contabilizar, y el IVA
                                      se estaría calculando sobre una base que no corresponde.
+                                     ⚠️ **Resta las notas crédito** (`notas_credito_del_periodo`): sin eso se
+                                     declara IVA de ventas anuladas. Agosto-2026 tuvo **712 notas crédito por
+                                     $44.441.972** —la campaña de corrección del IVA duplicado de
+                                     astroselling, que anuló cada factura mala y reexpidió— con $4.560.640 de
+                                     IVA. Es además lo que explicaba un hueco de $46,8M entre lo facturado y
+                                     el libro que parecía un error de contabilización y no lo era.
+                                     Aplicado el 18-sep-2026: jul $12.066.709 · ago $11.655.994 ·
+                                     sep $4.071.769 (**$27.794.472** en 240805).
                                      Falta la otra mitad del formulario 300: el **IVA descontable** de las
                                      compras (240810). Sin ella el saldo de 2408 queda por encima de lo que
                                      realmente se paga. Script: `scripts/reconocer_iva_ventas.py`.

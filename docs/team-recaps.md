@@ -1,3 +1,16 @@
+### 2026-09-18 - El IVA de las ventas deja de estar dentro de los ingresos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable (Contabilidad → Libro Mayor)
+- **Qué se implementó:**
+  - Las ventas se contabilizaban por su **total** contra 4135, pero McKenna es responsable de IVA: parte de ese total no es ingreso suyo sino IVA que le debe a la DIAN. Resultado: ingresos inflados y el IVA sin reconocer como pasivo, así que al pagar la declaración no había contra qué bajarla. Reconocido a **240805 IVA generado**: julio $12.066.709 · agosto $11.655.994 · septiembre $4.071.769 = **$27.794.472**. Los ingresos quedan en $60,3M / $55,1M / $32,0M.
+  - **La cifra sale de las facturas, no de dividir por 1,19.** Hay materias primas excluidas (Art. 424 E.T.): en 300 facturas, 484 ítems al 19% y 12 sin IVA. Aplicar la tarifa a todo inventaría IVA sobre lo excluido y lo declararía de más.
+  - **Se restan las notas crédito**, que era el hueco grande. Agosto tuvo **712 notas crédito por $44.441.972** ($4.560.640 de IVA): la campaña de corrección del IVA duplicado de astroselling, que anuló cada factura mala y reexpidió. Sin restarlas se habrían declarado $4,56M de IVA sobre ventas anuladas. Era además la causa real de un hueco de $46,8M entre lo facturado y el libro — antes de dar con ella se descartaron dos hipótesis (duplicación en la lista de facturas, y puesta al día de facturación), las dos verificadas contra los datos y las dos falsas.
+  - **Lee los dos sistemas** según la fecha de corte de migración (2026-09-02): consultar solo Alegra devolvía $0 de IVA para julio y agosto. En Siigo el IVA vive en `items[].taxes[].value`, sin totales de cabecera.
+  - `resumen()` contrasta lo facturado neto contra el ingreso del libro y dice en qué dirección está el hueco: negativo = facturas sin contabilizar, positivo = ventas sin facturar. Tras el arreglo las tres diferencias quedan en rango de timing (−$7,0M / −$2,4M / +$10,2M).
+  - Los tests tardaban 104 s porque salían a Siigo y Alegra de verdad; el fixture ahora corta la red por defecto (0,76 s).
+- **Pendiente:** el **IVA descontable de compras** (240810) para poder armar el formulario 300 completo; y la diferencia entre los dos caminos de lectura de facturas de Siigo (~$7,4M de venta directa en julio).
+- **Archivos Modificados:** `app/services/iva_ventas.py`, `scripts/reconocer_iva_ventas.py`, `tests/test_iva_ventas.py`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-18 16:30 - Facturar MeLi: descontar las unidades reembolsadas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (Facturación → Ventas, «Facturar ahora» y autofactura al entregar)
