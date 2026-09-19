@@ -1352,7 +1352,7 @@ Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::p
 ### S. Grabar pantalla → fragmentos → WhatsApp (bridge supervisor)
 
 ```
-/app → Supervisor → Grabar pantalla   (GrabacionPantalla.tsx)
+/app → Contenido → 🔴 Grabar pantalla   (GrabacionPantalla.tsx; también en Sistemas → Supervisor WA)
   1 Elegir pantalla/ventana/pestaña (getDisplayMedia) + audio de la pestaña y/o micrófono
     (mezclados con AudioContext en una sola pista)
   2 Opcional: arrastrar sobre la vista previa la SECCIÓN a enviar (recorte en píxeles)

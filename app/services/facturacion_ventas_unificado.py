@@ -756,12 +756,96 @@ def listar_ventas_meli_unificado(
         "total_en_rango": total_en_rango,
         "actualizado_en": datetime.now().isoformat(timespec="seconds"),
     }
-    _cache[cache_key] = (_time.time(), resultado)
+    ahora_ts = _time.time()
+    _cache[cache_key] = (ahora_ts, resultado)
     # El histórico se llena solo con el uso normal del panel: cada listado en
     # vivo deja sus filas persistidas para que la vista "Histórico" pueda
     # mostrar miles sin volver a consultar MeLi (ver facturacion_ventas_cache).
     _guardar_en_cache(filas)
+    try:
+        from app.services.facturacion_ventas_cache import guardar_listado
+
+        guardar_listado(_clave_listado(cache_key), resultado, ahora_ts)
+    except Exception:
+        pass
     return resultado
+
+
+# ── Respuesta sin esperar (panel) ────────────────────────────────────────────
+# Con la latencia real de Alegra (~15 s por página de facturas) una carga en
+# frío de la vista por defecto tardó 339 s el 2026-09-18, y el túnel de
+# Cloudflare corta a ~100 s: el panel se quedaba "Actualizando…" para siempre.
+# El precalentamiento no alcanzaba (la caché de 60 s vencía mucho antes de que
+# terminara el siguiente cálculo) y cada reinicio de agente-pro la borraba.
+# Ahora el panel recibe al instante el último listado conocido (memoria o
+# SQLite) marcado con `recalculando`, y el cálculo corre en un hilo aparte.
+
+_recalculos: dict[tuple, "threading.Thread"] = {}
+_recalculos_lock = __import__("threading").Lock()
+_ESPERA_PRIMERA_CARGA = 60  # s; por debajo del corte de Cloudflare
+
+
+def _clave_listado(cache_key: tuple) -> str:
+    return "|".join(str(p) for p in cache_key)
+
+
+def _lanzar_recalculo(dias: int, segmento: str, limite: int, forzar: bool):
+    import threading
+
+    key = (dias, segmento, limite)
+    with _recalculos_lock:
+        hilo = _recalculos.get(key)
+        if hilo and hilo.is_alive():
+            return hilo
+
+        def _correr():
+            try:
+                listar_ventas_meli_unificado(dias=dias, segmento=segmento, limite=limite, forzar=forzar)
+            except Exception as e:
+                print(f"⚠️ Recálculo Ventas/Astro Killer {key}: {e}")
+
+        hilo = threading.Thread(target=_correr, daemon=True, name=f"ventas-unificadas-{dias}-{segmento}-{limite}")
+        _recalculos[key] = hilo
+        hilo.start()
+        return hilo
+
+
+def listar_ventas_meli_unificado_sin_espera(
+    *, dias: int = 30, segmento: str = "concretadas", limite: int = 40, forzar: bool = False,
+) -> dict:
+    """Como `listar_ventas_meli_unificado`, pero nunca bloquea más de
+    `_ESPERA_PRIMERA_CARGA`: si la caché venció devuelve el último listado
+    conocido con `recalculando: True` y recalcula en segundo plano."""
+    segmento = segmento if segmento in ("concretadas", "canceladas", "todas") else "concretadas"
+    limite = min(max(int(limite or 40), 1), 150)
+    key = (dias, segmento, limite)
+
+    cacheado = _cache.get(key)
+    if cacheado and not forzar and _time.time() - cacheado[0] < _CACHE_TTL:
+        return cacheado[1]
+
+    previo = cacheado
+    if previo is None:
+        try:
+            from app.services.facturacion_ventas_cache import leer_listado
+
+            previo = leer_listado(_clave_listado(key))
+        except Exception:
+            previo = None
+
+    hilo = _lanzar_recalculo(dias, segmento, limite, forzar)
+
+    if previo is None:
+        hilo.join(_ESPERA_PRIMERA_CARGA)
+        listo = _cache.get(key)
+        if listo and not hilo.is_alive():
+            return listo[1]
+        return {
+            "ventas": [], "total": 0, "total_en_rango": 0, "actualizado_en": None,
+            "recalculando": True,
+        }
+
+    return {**previo[1], "recalculando": True}
 
 
 def items_flaggeados_para_ticket(resultado: dict) -> list[dict]:

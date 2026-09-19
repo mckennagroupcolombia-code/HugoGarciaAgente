@@ -139,6 +139,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Acumula día a día en qué municipios reales se despachan pedidos de MercadoLibre (GET /shipments/{id} por envío nuevo), para la sección \"¿A dónde hemos llegado?\" del inicio de la tienda web. No hay backfill retroactivo: solo crece hacia adelante.",
         "script": "scripts/actualizar_cobertura_meli_cron.py",
     },
+    "entregas_flex": {
+        "nombre": "Entregas Flex MeLi (horas de entrega)",
+        "descripcion": "Guarda la hora de salida y de entrega de cada envío Flex (reparto propio en Bogotá) para ver en Atención → Entregas Flex cómo evoluciona semana a semana. Solo consulta envíos nuevos o abiertos de los últimos 10 días; sin IA. ENTREGAS_FLEX_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/entregas_flex_cron.py",
+    },
     "contabilidad_autopost": {
         "nombre": "Auto-posteo contable (libro de partida doble)",
         "descripcion": "Postea al libro mayor propio (Contabilidad → Libro Mayor) las ventas MeLi/web/Siigo, compras, compras al exterior, servicios, impuestos y cuotas de créditos que ya agrega el libro operativo (Contabilidad → Ingresos y Egresos), para que el balance de comprobación refleje todo el negocio. Ventana móvil de los últimos días (default 10); reprocesar no duplica.",

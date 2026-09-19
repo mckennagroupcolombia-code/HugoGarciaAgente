@@ -1224,7 +1224,7 @@ export function EtiquetasStudioCatalogo({
                             className="absolute left-2 top-2 h-5 w-5 cursor-pointer rounded shadow"
                           />
                         ) : (
-                          <span className="absolute right-2 top-2 flex transition sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+                          <span className="absolute right-2 top-2 flex gap-1.5 transition sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
                             <button
                               type="button"
                               aria-label={`Ver ${legible} en grande`}
@@ -1234,6 +1234,23 @@ export function EtiquetasStudioCatalogo({
                             >
                               <Icon name="eye" size={16} />
                             </button>
+                            {/* Eliminar directo, sin pasar por Organizar: es lo que se
+                                usa a diario para quitar una etiqueta mal generada. */}
+                            {puedeEliminarPng && (
+                              <button
+                                type="button"
+                                aria-label={`Eliminar ${legible}`}
+                                title={`Eliminar ${legible} de la biblioteca`}
+                                disabled={pngEliminandoUno === nombre}
+                                onClick={() => {
+                                  if (!window.confirm(`¿Eliminar "${nombre}" de la biblioteca?`)) return;
+                                  eliminarPngMut.mutate(nombre);
+                                }}
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-danger/40 bg-white/95 text-danger shadow-sm transition hover:bg-danger hover:text-white disabled:opacity-50"
+                              >
+                                {pngEliminandoUno === nombre ? "…" : <Icon name="trash" size={16} />}
+                              </button>
+                            )}
                           </span>
                         )}
                         <div className="flex flex-1 flex-col gap-0.5 border-t border-border/60 px-2 py-1.5">

@@ -129,6 +129,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "atencion",
   },
+  "entregas-flex": {
+    emoji: "🛵",
+    label: "Entregas Flex",
+    description:
+      "A qué hora llegan los envíos Flex de MercadoLibre (reparto propio en Bogotá) y cómo cambia eso semana a semana: salida de la ruta, hora de entrega, corte del mismo día, localidades y envíos que se quedaron en el camino.",
+    tips: [
+      "Los datos se actualizan solos cada noche a las 23:15, cuando ya cerró la ruta. «Actualizar ahora» trae lo del día.",
+      "«Patrones» compara las últimas 4 semanas contra las 4 anteriores y solo avisa cambios de 15 min o 5 puntos.",
+      "Una entrega marcada de madrugada casi siempre es el mensajero cerrando el envío días después, no una entrega real.",
+    ],
+    tier: "standard",
+    category: "atencion",
+  },
   empaque: {
     emoji: "📷",
     label: "Empaque",
@@ -639,12 +652,13 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   contenido: {
     emoji: "🎬",
     label: "Contenido",
-    description: "Herramientas para preparar video antes de publicarlo. Por ahora: quitar una marca de agua estática (franja o región fija) de un video.",
+    description: "Herramientas de video: quitar una marca de agua estática, generar audio con la voz clonada y grabar una sección de la pantalla con su audio para sacar fragmentos y enviarlos por WhatsApp.",
     tips: [
       "Sube el video y ajusta la franja inferior (o una región exacta) donde está la marca.",
       "El proceso corre en segundo plano — puedes seguir usando el panel mientras termina.",
       "Se conserva el audio original del video automáticamente.",
       "Videos largos o en alta resolución tardan más: el inpainting se calcula fotograma a fotograma.",
+      "Grabar pantalla: comparte una pestaña con su audio, marca inicio/fin con I y O y envía el fragmento por WhatsApp.",
     ],
     tier: "standard",
     category: "contenido",

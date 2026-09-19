@@ -59,6 +59,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "pedidos", tier: "core" },
       { panel: "empaque", tier: "core" },
       { panel: "guias-envio", tier: "core" },
+      { panel: "entregas-flex", tier: "standard" },
       { panel: "whatsapp", tier: "standard" },
     ],
   },

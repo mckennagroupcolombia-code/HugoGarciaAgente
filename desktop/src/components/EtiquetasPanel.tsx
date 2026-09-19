@@ -36,6 +36,7 @@ import {
 } from "../lib/cmykColor";
 import {
   mmParaTipoEtiqueta,
+  nombreTipoPorMedidas,
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
   etiquetaTamanoTipoNombre,
@@ -2591,6 +2592,98 @@ function BotonSubirPdfEtiqueta({
   );
 }
 
+/** PDF recién subido; el servidor devuelve el tamaño de la página 1 en mm. */
+type PdfSubidoImprimir = PdfItem & {
+  ok?: boolean;
+  ancho_mm?: number;
+  alto_mm?: number;
+  /** Copia PNG (600 dpi) que el servidor deja en ETIQUETAS STUDIO. */
+  png_biblioteca?: RecursoPng | null;
+};
+
+/** Imprimir: carga un archivo del ordenador (PDF, PNG o JPG), lo guarda en la
+ *  biblioteca de Imprimir (carpeta ETIQUETAS STUDIO, la única que esa
+ *  biblioteca lista) y lo abre directo en la ventana de impresión. */
+function BotonCargarArchivoImprimir({
+  onPdf,
+  onImagen,
+}: {
+  onPdf: (item: PdfSubidoImprimir) => void;
+  onImagen: (item: RecursoPng) => void;
+}) {
+  const qc = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
+
+  const subirMut = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const esPdf =
+        file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (esPdf) {
+        fd.append("biblioteca_imprimir", "1");
+        const pdf = await api.upload<PdfSubidoImprimir>("/api/etiquetas/subir-pdf", fd);
+        return { tipo: "pdf" as const, pdf };
+      }
+      if (!esImagenPngJpg(file)) throw new Error("Solo se permiten archivos PDF, PNG o JPG.");
+      fd.append("carpeta", "ETIQUETAS STUDIO");
+      const imagen = await api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
+      return { tipo: "imagen" as const, imagen };
+    },
+    onSuccess: (res) => {
+      setErrorLocal(null);
+      if (res.tipo === "pdf") {
+        void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+        // Se abre la copia de la biblioteca: lo que se imprime hoy es lo mismo
+        // que se va a encontrar mañana en ETIQUETAS STUDIO.
+        if (res.pdf.png_biblioteca?.nombre) onImagen(res.pdf.png_biblioteca);
+        else onPdf({ ...res.pdf, guardado: true });
+      } else {
+        void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+        void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+        onImagen(res.imagen);
+      }
+    },
+    onError: (err: Error) => setErrorLocal(err.message),
+  });
+
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {/* El input va envuelto: index.css encoge los botones hermanos de un input. */}
+      <span className="hidden">
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".pdf,application/pdf,image/jpeg,image/jpg,image/png,.jpg,.jpeg,.jpe,.png"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) subirMut.mutate(f);
+            e.target.value = "";
+          }}
+        />
+      </span>
+      {errorLocal && (
+        <p className="max-w-[14rem] truncate text-[10px] font-semibold text-white" title={errorLocal}>
+          ⚠ {errorLocal}
+        </p>
+      )}
+      <button
+        type="button"
+        disabled={subirMut.isPending}
+        onClick={() => inputRef.current?.click()}
+        title="Cargar un PDF, PNG o JPG desde el ordenador para imprimirlo"
+        className="mck-press inline-flex h-8 items-center gap-1.5 rounded-lg border border-white bg-white px-2.5 text-[11px] font-bold text-accent shadow-sm hover:bg-white/90 disabled:opacity-60"
+      >
+        <Icon name="folder" size={13} />
+        {subirMut.isPending ? "Cargando…" : "Cargar del ordenador"}
+      </button>
+    </div>
+  );
+}
+
 function NavegadorArchivos({
   onSeleccionar,
   onCerrar,
@@ -5111,6 +5204,10 @@ function TabImprimir({
   const [pdfStudioNombre, setPdfStudioNombre] = useState("");
   const [pngImpresion, setPngImpresion] = useState<RecursoPngCatalogo | null>(null);
   const [preparandoPngImpresion, setPreparandoPngImpresion] = useState(false);
+  // Archivo cargado del ordenador: no trae formato del catálogo, así que el
+  // selector de la cinta queda editable para corregir el tamaño a mano.
+  const [archivoDelOrdenador, setArchivoDelOrdenador] = useState(false);
+  const { data: tiposEtiquetaData } = useTiposEtiqueta();
   const tokenTickets = ticketsToken || panelBearerToken();
 
   const { data: solicitudesImprimir = [], refetch: refetchSolicitudesImprimir } = useQuery({
@@ -5308,6 +5405,7 @@ function TabImprimir({
   }
 
   async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
+    setArchivoDelOrdenador(false);
     setSkuActivoImpresion(fila.sku);
     setFilaActiva(fila);
     setMatchEanPng(null);
@@ -5388,7 +5486,8 @@ function TabImprimir({
     setIncluirLoteExp(Boolean(loteFinal || vencFinal));
   }
 
-  async function abrirPngParaImprimir(item: RecursoPngCatalogo) {
+  async function abrirPngParaImprimir(item: RecursoPngCatalogo, delOrdenador = false) {
+    setArchivoDelOrdenador(delOrdenador);
     setPngImpresion(item);
     setPdfStudioRuta("");
     setPdfStudioNombre("");
@@ -5467,7 +5566,58 @@ function TabImprimir({
     setIncluirLoteExp(Boolean(loteDelMatch || vencDelMatch));
   }
 
+  /** PDF cargado del ordenador: se imprime tal cual; el formato sale del tamaño
+   *  de su página 1 (si coincide con uno del catálogo se usa ese nombre). */
+  function abrirPdfDelOrdenador(item: PdfSubidoImprimir) {
+    setArchivoDelOrdenador(true);
+    setPngImpresion(null);
+    setSkuActivoImpresion("");
+    setFilaActiva(null);
+    setStudioDatos({ ...ETIQUETA_STUDIO_DEFAULT });
+    setLotesRegistrados([]);
+    setMatchEanPng(null);
+    setLote(LOTE_PREFIJO);
+    setVencimiento(EXP_PREFIJO);
+    setIncluirLoteExp(false);
+    setErrorImpresion(null);
+    const ancho = Number(item.ancho_mm);
+    const alto = Number(item.alto_mm);
+    if (ancho > 0 && alto > 0) {
+      const tipos = tiposEtiquetaData?.tipos ?? TIPOS_ETIQUETA_DEFAULT;
+      const igual = tipos.find(
+        (t) => Math.abs(t.ancho_mm - ancho) <= 1.5 && Math.abs(t.alto_mm - alto) <= 1.5,
+      );
+      const next = igual
+        ? { nombre: igual.nombre, anchoMm: igual.ancho_mm, altoMm: igual.alto_mm }
+        : { nombre: nombreTipoPorMedidas(ancho, alto), anchoMm: ancho, altoMm: alto };
+      setFormato(next);
+      setRotacion(rotacionDefaultEtiqueta(next.nombre));
+      if (esFormatoCircularImpresion(next)) setForma("Diecut_Gap");
+    }
+    setPdfStudioRuta(item.ruta_completa);
+    setPdfStudioNombre(item.nombre);
+    setVistaImpresion("documento");
+  }
+
+  const botonCargarDelOrdenador = (
+    <BotonCargarArchivoImprimir
+      onPdf={abrirPdfDelOrdenador}
+      onImagen={(img) =>
+        void abrirPngParaImprimir(
+          {
+            nombre: img.nombre,
+            tipo_etiqueta: img.tipo_etiqueta,
+            ancho_mm: img.ancho_mm,
+            alto_mm: img.alto_mm,
+          },
+          true,
+        )
+      }
+    />
+  );
+
   function volverACatalogoPng() {
+    setArchivoDelOrdenador(false);
     setPngImpresion(null);
     setPdfStudioRuta("");
     setPdfStudioNombre("");
@@ -5635,11 +5785,12 @@ function TabImprimir({
             solicitudesCount={solicitudesImprimir.length}
             onPedidosClick={() => setMostrarPedidoEtiquetas(true)}
             onInstalarClick={() => abrirInstalador("windows10pro")}
+            extra={botonCargarDelOrdenador}
           />
           <div className="flex min-h-0 flex-1 flex-col">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
-              onAbrirPng={abrirPngParaImprimir}
+              onAbrirPng={(item) => void abrirPngParaImprimir(item)}
               skuActivo={skuActivoImpresion}
               modoSeleccion="fila"
               accionLabel={null}
@@ -5664,6 +5815,7 @@ function TabImprimir({
           impConectada={impConectada}
           impDeshabilitada={impDeshabilitada}
           avisoRollo={avisoRollo}
+          extra={botonCargarDelOrdenador}
         />
 
         {errorImpresion && (
@@ -5704,7 +5856,8 @@ function TabImprimir({
         <div className="flex flex-shrink-0 flex-wrap items-center gap-y-0.5 border-b border-border bg-surface">
           <RibbonGroup label="Formato">
             <SelectorFormatoEtiqueta
-              readOnly
+              readOnly={!archivoDelOrdenador}
+              onChange={setFormato}
               value={formato}
               inputClass={RIB_INP}
               selectClass={RIB_SEL}

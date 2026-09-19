@@ -8991,3 +8991,530 @@ reenvio_alertas_banco: enviados=1 omitidos=0 destino=23jenniffergarcia@gmail.com
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 [auditor_canales 2026-09-18T02:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (563 min), +57 318 506 1041 (533 min), +57 318 243 2463 (277 min), +57 320 720 9541 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-18T02:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (563 min), +57 318 506 1041 (533 min), +57 318 243 2463 (277 min), +57 320 720 9541 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T02:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (593 min), +57 318 506 1041 (563 min), +57 318 243 2463 (307 min), +57 320 720 9541 (233 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T02:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (593 min), +57 318 506 1041 (563 min), +57 318 243 2463 (307 min), +57 320 720 9541 (233 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-18T03:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (623 min), +57 318 506 1041 (593 min), +57 318 243 2463 (337 min), +57 320 720 9541 (263 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T03:00:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (623 min), +57 318 506 1041 (593 min), +57 318 243 2463 (337 min), +57 320 720 9541 (263 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T03:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (653 min), +57 318 506 1041 (623 min), +57 318 243 2463 (367 min), +57 320 720 9541 (293 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T03:30:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (653 min), +57 318 506 1041 (623 min), +57 318 243 2463 (367 min), +57 320 720 9541 (293 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T04:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (683 min), +57 318 506 1041 (653 min), +57 318 243 2463 (397 min), +57 320 720 9541 (323 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T04:00:03] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (683 min), +57 318 506 1041 (653 min), +57 318 243 2463 (397 min), +57 320 720 9541 (323 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T04:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (713 min), +57 318 506 1041 (683 min), +57 318 243 2463 (427 min), +57 320 720 9541 (353 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T04:30:04] 4 cliente(s) de WhatsApp esperando respuesta: +57 314 462 5671 (713 min), +57 318 506 1041 (683 min), +57 318 243 2463 (427 min), +57 320 720 9541 (353 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T05:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 506 1041 (713 min), +57 318 243 2463 (457 min), +57 320 720 9541 (383 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T05:00:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 318 506 1041 (713 min), +57 318 243 2463 (457 min), +57 320 720 9541 (383 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T05:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (487 min), +57 320 720 9541 (413 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T05:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (487 min), +57 320 720 9541 (413 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-18T06:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (517 min), +57 320 720 9541 (443 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T06:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (517 min), +57 320 720 9541 (443 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-08 → 2026-09-18…
+✅ Token de Mercado Libre refrescado exitosamente.
+   2 creado(s), 629 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T06:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (547 min), +57 320 720 9541 (473 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T06:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (547 min), +57 320 720 9541 (473 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 656 | Envíos nuevos consultados: 60 | Resueltos: 58 | Sin resolver: 1 | Aún no despachados: 1
+   Total municipios acumulados: 172
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-18T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (577 min), +57 320 720 9541 (503 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T07:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (577 min), +57 320 720 9541 (503 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 197 exactos, 18 alias, 63 sin publicación vinculable
+INFO: Catálogo web solo MeLi: 220/278 combos SIIGO tienen publicación (se ocultan 58)
+INFO: Catálogo listo: 21 categorías, 177 fichas (32 con varias presentaciones), 220 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+✅ Token de Mercado Libre refrescado exitosamente.
+   22 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 10 | Sospechosos (>2×): 12
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   158 órdenes canceladas en la ventana.
+   4352 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3512 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71328 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-69688 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   10 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71328 ($20,489), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71049 ($22,574), FV-2-69688 ($239,800)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T07:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (607 min), +57 320 720 9541 (533 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T07:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (607 min), +57 320 720 9541 (533 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  RA: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   11 caso(s) con problema · 11 nuevo(s) en esta corrida.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   🎫 Ticket #1570 creado en el Centro de Mando: *Revisión facturación MeLi — 2026-09-18* (11 caso(s)).
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+   🤖 11 sugerencia(s) de IA agregadas como comentario.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T08:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (637 min), +57 320 720 9541 (563 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T08:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (637 min), +57 320 720 9541 (563 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T08:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (667 min), +57 320 720 9541 (593 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T08:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (667 min), +57 320 720 9541 (593 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+precios_trm: TRM 3,151.73 · catálogo 437 · propuestas 0 (suben 0, bajan 0) · anclas nuevas 0 · reancladas 0
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T09:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (697 min), +57 320 720 9541 (623 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T09:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 318 243 2463 (697 min), +57 320 720 9541 (623 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 18) no es día de pago de nómina (15 o fin de mes).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T09:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (653 min), +57 301 783 2569 (29 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T09:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (653 min), +57 301 783 2569 (29 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T10:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (683 min), +57 301 783 2569 (59 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T10:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (683 min), +57 301 783 2569 (59 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T10:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (713 min), +57 301 783 2569 (89 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T10:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 320 720 9541 (713 min), +57 301 783 2569 (89 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T11:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (119 min), +57 313 681 0188 (25 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T11:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (119 min), +57 313 681 0188 (25 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T11:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (149 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T11:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (149 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T12:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (179 min), +57 320 720 9541 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T12:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (179 min), +57 320 720 9541 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-08 → 2026-09-18…
+✅ Token de Mercado Libre refrescado exitosamente.
+   17 creado(s), 631 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+reenvio_alertas_banco: enviados=1 omitidos=0 destino=23jenniffergarcia@gmail.com activo=True
+  [enviado] abono: listo! todo salio bien con tus movimientos bancolombia: recibiste $45000.00 por qr de sofia obando villada en 
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T12:30:05] 1 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (209 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T12:30:05] 1 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (209 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T13:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (239 min), +57 320 720 9541 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T13:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (239 min), +57 320 720 9541 (32 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T13:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (269 min), +57 320 720 9541 (62 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T13:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (269 min), +57 320 720 9541 (62 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+reenvio_alertas_banco: enviados=1 omitidos=0 destino=23jenniffergarcia@gmail.com activo=True
+  [enviado] abono: listo! todo salio bien con tus movimientos bancolombia: recibiste $184000.00 por qr de jose jair mejia en tu c
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T14:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (299 min), +57 320 720 9541 (92 min), +57 321 550 3319 (23 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T14:00:03] 3 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (299 min), +57 320 720 9541 (92 min), +57 321 550 3319 (23 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T14:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (329 min), +57 320 720 9541 (122 min), +57 321 550 3319 (53 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T14:30:04] 3 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (329 min), +57 320 720 9541 (122 min), +57 321 550 3319 (53 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T15:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (359 min), +57 320 720 9541 (152 min), +57 321 550 3319 (83 min), Contacto WA · …54087149 (37 min), +57 301 922 9626 (24 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T15:00:04] 6 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (359 min), +57 320 720 9541 (152 min), +57 321 550 3319 (83 min), Contacto WA · …54087149 (37 min), +57 301 922 9626 (24 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T15:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (389 min), +57 320 720 9541 (182 min), +57 321 550 3319 (113 min), Contacto WA · …54087149 (67 min), +57 301 922 9626 (54 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T15:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (389 min), +57 320 720 9541 (182 min), +57 321 550 3319 (113 min), Contacto WA · …54087149 (67 min), +57 301 922 9626 (54 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T16:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (419 min), +57 320 720 9541 (212 min), +57 321 550 3319 (143 min), Contacto WA · …54087149 (97 min), +57 301 922 9626 (84 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T16:00:04] 12 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (419 min), +57 320 720 9541 (212 min), +57 321 550 3319 (143 min), Contacto WA · …54087149 (97 min), +57 301 922 9626 (84 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-18T16:30:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (449 min), +57 320 720 9541 (242 min), +57 321 550 3319 (173 min), Contacto WA · …54087149 (127 min), +57 301 922 9626 (114 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T16:30:03] 12 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (449 min), +57 320 720 9541 (242 min), +57 321 550 3319 (173 min), Contacto WA · …54087149 (127 min), +57 301 922 9626 (114 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: Gmail OAuth expiró (invalid_grant: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})). Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T17:00:04] 9 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (479 min), +57 320 720 9541 (272 min), +57 321 550 3319 (203 min), +57 301 922 9626 (144 min), +57 320 829 9760 (142 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T17:00:04] 9 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (479 min), +57 320 720 9541 (272 min), +57 321 550 3319 (203 min), +57 301 922 9626 (144 min), +57 320 829 9760 (142 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T17:30:07] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (509 min), +57 321 550 3319 (233 min), +57 301 922 9626 (174 min), +57 320 829 9760 (172 min), +57 300 999 0001 (116 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T17:30:07] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (509 min), +57 321 550 3319 (233 min), +57 301 922 9626 (174 min), +57 320 829 9760 (172 min), +57 300 999 0001 (116 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[2026-09-18T18:00:01] resumen_actividad_sede_sur: 45 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 10 nuevas · 13 completadas · 7 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 5 nuevas, 3 completadas
+• Armando Garcia: 0 nuevas, 6 completadas
+• Victor Garcia: 3 nuevas, 3 completadas
+• Gloria Stella: 1 nueva, 1 completada
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T18:00:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (539 min), +57 321 550 3319 (263 min), +57 301 922 9626 (204 min), +57 320 829 9760 (202 min), +57 300 999 0001 (146 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T18:00:03] 10 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (539 min), +57 321 550 3319 (263 min), +57 301 922 9626 (204 min), +57 320 829 9760 (202 min), +57 300 999 0001 (146 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+🔎 Auto-posteando contabilidad 2026-09-08 → 2026-09-18…
+✅ Token de Mercado Libre refrescado exitosamente.
+   20 creado(s), 647 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T18:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (569 min), +57 321 550 3319 (293 min), +57 301 922 9626 (234 min), +57 320 829 9760 (232 min), +57 300 999 0001 (176 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T18:30:04] 11 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (569 min), +57 321 550 3319 (293 min), +57 301 922 9626 (234 min), +57 320 829 9760 (232 min), +57 300 999 0001 (176 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T19:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (599 min), +57 301 922 9626 (264 min), +57 320 829 9760 (262 min), +57 300 999 0001 (206 min), +57 300 111 2244 (206 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T19:00:03] 11 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (599 min), +57 301 922 9626 (264 min), +57 320 829 9760 (262 min), +57 300 999 0001 (206 min), +57 300 111 2244 (206 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono). | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+## 1. Problemas principales detectados
+
+**A. Alucinación de precios y fichas técnicas fuera de catálogo (CRÍTICO)**
+- Ej. [3]: Cliente pide 20 materias primas con fichas técnicas/COA; la herramienta solo devolvió 6 productos, pero Hugo "inventó precios y presentaciones para niacinamida, alfa-arbutina, etc." (según supervisor).
+- Ej. [5]: Hugo menciona precios ($129.000, $312.000, etc.) que no vienen de `buscar_producto` ni `ver_pedido`, y contradice cotización ya dada por un asesor humano (Jenniffer).
+
+**B. Promesas de tiempo y de acciones futuras**
+- Ej. [10], [11], [12]: "el asesor lo suma a este mismo pedido apenas abramos (lunes a viernes, 8:00 a 18:00)" — viola la regla de no prometer tiempos, repetido en 3 turnos consecutivos.
+- Ej. [2]: "Un asesor le escribe... para confirmarle el estado" implica acción futura no garantizada.
+
+**C. Repetir información/preguntas ya dadas por el cliente**
+- Ej. [1]: Cliente dice "Necesito eso mas arginina" (100g ya mencionado antes) y Hugo pregunta cantidad de nuevo pese a ya tenerla.
+
+**D. Anunciar una acción sin ejecutar la herramienta correspondiente**
+- Ej. [4]: Hugo dice "le paso el caso a un asesor" pero no invoca `pasar_a_asesor`, dejando al cliente sin transferencia real.
+
+**E. Respuestas redundantes/duplicadas en un mismo turno**
+- Ej. [11]: Repite dos veces casi el mismo mensaje sobre carrito y ácido tranexámico, generando ruido innecesario.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+**A.** Agregar regla dura: si `buscar_producto` no devuelve el ítem exacto solicitado, el agente debe responder solo con lo encontrado y pasar a asesor el resto explícitamente, nunca completar con precios/fichas inventadas. Añadir validación automática que bloquee el envío si el precio citado no coincide con el resultado de la herramienta del turno.
+
+**B.** Quitar cualquier mención de horario/franja ("lunes a viernes 8:00–18:00") de las plantillas de respuesta sobre WhatsApp/asesor. Sustituir por frase neutra: "el asesor lo atenderá por ese canal" sin comprometer tiempo.
+
+**C.** Antes de generar la respuesta, el agente debe revisar el mensaje inmediatamente anterior del cliente para extraer cantidad/atributos ya dados y no volver a preguntarlos; agregar chequeo explícito en el prompt: "si el dato ya fue mencionado, no lo repitas como pregunta".
+
+**D.** Regla de consistencia herramienta-mensaje: si el texto de respuesta incluye "le paso a un asesor" o similar, es obligatorio que en ese mismo turno se haya llamado `pasar_a_asesor`; si no se llamó, no se debe afirmar la transferencia.
+
+**E.** Añadir validación de no-duplicidad: antes de enviar, comparar si el mensaje repite contenido ya emitido en el mismo turno (incluyendo el cierre) y consolidar en una sola respuesta.
+
+## 3. Calificación general
+**4/10** — hay fallas críticas de alucinación de precios y promesas de tiempo que ponen en riesgo la confianza y cumplimiento normativo, aunque los flujos de carrito simples (ejemplos 6-9) funcionan bien.
+✅ Reporte enviado a WhatsApp con éxito.
+## 1. Problemas detectados
+
+**A. Alucinación de precios y productos no respaldados por la herramienta (crítico)**
+Ej. [3] y [5]: el agente entrega precios y presentaciones para niacinamida, alfa-arbutina, D-pantenol, etc., cuando `buscar_producto` solo devolvió Sharomix, óxido de zinc, citrato de zinc, vaselina y aguas. En [5] además contradice precios ya dados por un asesor humano (Jenniffer) en la misma conversación.
+
+**B. Promesas de acciones/tiempos futuros (viola regla "no promete tiempos" y "no promete acciones futuras")**
+Ej. [2] y [3]: "Ya le avisé al equipo... un asesor le responderá"; [10], [11], [12]: "el asesor lo suma... apenas abramos (lunes a viernes, 8:00 a 18:00)". Esto se repite en varios turnos como frase fija, no solo un error aislado.
+
+**C. Inconsistencia entre lo que dice el texto y lo que ejecuta la herramienta**
+Ej. [4]: el agente dice "le paso el caso a un asesor" pero el log de herramientas no muestra `pasar_a_asesor` ejecutado en ese turno (o se dice antes de invocarla), generando una promesa que el sistema no cumple automáticamente.
+
+**D. Repetición de información/resúmenes ya confirmados (posible loop)**
+Ej. [7], [8], [9]: el cliente confirma "eso solamente" dos veces seguidas y el agente repite el mismo resumen de carrito y el aviso del ácido tranexámico casi textual en cada turno, en vez de avanzar al siguiente paso (pedir datos) o detectar que ya se confirmó.
+
+**E. Desajuste de sinónimos en el buscador de catálogo**
+Ej. [3]: "Alfa-arbutina / Alpha-Arbutin" no fue reconocida por `buscar_producto`, pese a que en otros turnos ([7]-[12]) "Alfa Arbutina 10g" sí existe como producto activo del catálogo. Indica falla de matching de sinónimos/variantes de nombre, no ausencia real del producto.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+- **A:** Regla dura: si `buscar_producto` no retorna coincidencia exacta, el agente NO debe mencionar precio/presentación; debe decir explícitamente "no encontré X en el catálogo" y ofrecer pasar a asesor. Bloquear cualquier cifra que no venga literal de la salida de la herramienta del turno.
+- **B:** Eliminar de las plantillas de respuesta frases con horarios/franjas ("apenas abramos", "lunes a viernes 8:00-18:00", "le responderá pronto"). Sustituir por lenguaje neutro: "un asesor continuará por este mismo chat" sin marco temporal.
+- **C:** Regla de consistencia: toda vez que el texto diga "le paso/paso el caso a un asesor", debe forzarse (validación previa al envío) que `pasar_a_asesor` haya sido invocada en el mismo turno; si no, no se permite esa frase.
+- **D:** Añadir detección de confirmación repetida: si el cliente ya confirmó el pedido una vez ("eso solamente"), el siguiente turno debe pasar directo a pedir datos de envío/pago, no repetir el resumen completo del carrito.
+- **E:** Ampliar tabla de sinónimos del catálogo para materias primas cosméticas comunes (alfa-arbutina/alpha-arbutin, niacinamida, D-pantenol, ácido hialurónico, etc.) y revisar por qué "Alfa Arbutina" no matcheó en [3] pero sí en otros turnos — probable bug de normalización de texto (guiones, mayúsculas, inglés/español).
+
+## 3. Calificación general
+
+**4/10** — funcionalidad básica de carrito funciona bien, pero los riesgos de alucinación de precios y promesas de tiempo son graves y recurrentes.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T19:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (629 min), +57 301 922 9626 (294 min), +57 320 829 9760 (292 min), +57 300 999 0001 (236 min), +57 300 111 2244 (236 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T19:30:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (629 min), +57 301 922 9626 (294 min), +57 320 829 9760 (292 min), +57 300 999 0001 (236 min), +57 300 111 2244 (236 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-18) no es el último día del mes.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-18T20:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (659 min), +57 301 922 9626 (324 min), +57 320 829 9760 (322 min), +57 300 999 0001 (266 min), +57 300 111 2244 (266 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+[auditor_canales 2026-09-18T20:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (659 min), +57 301 922 9626 (324 min), +57 320 829 9760 (322 min), +57 300 999 0001 (266 min), +57 300 111 2244 (266 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T20:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (689 min), +57 301 922 9626 (354 min), +57 320 829 9760 (352 min), +57 300 999 0001 (296 min), +57 300 111 2244 (296 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T20:30:04] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (689 min), +57 301 922 9626 (354 min), +57 320 829 9760 (352 min), +57 300 999 0001 (296 min), +57 300 111 2244 (296 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-18T21:00:05] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (719 min), +57 301 922 9626 (384 min), +57 320 829 9760 (382 min), +57 300 999 0001 (326 min), +57 300 111 2244 (326 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T21:00:05] 8 cliente(s) de WhatsApp esperando respuesta: +57 301 783 2569 (719 min), +57 301 922 9626 (384 min), +57 320 829 9760 (382 min), +57 300 999 0001 (326 min), +57 300 111 2244 (326 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T21:30:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (414 min), +57 320 829 9760 (412 min), +57 300 999 0001 (356 min), +57 300 111 2244 (356 min), +57 300 111 2235 (356 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-18T21:30:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (414 min), +57 320 829 9760 (412 min), +57 300 999 0001 (356 min), +57 300 111 2244 (356 min), +57 300 111 2235 (356 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-18T22:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (444 min), +57 320 829 9760 (442 min), +57 300 999 0001 (386 min), +57 300 111 2244 (386 min), +57 300 111 2235 (386 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T22:00:04] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (444 min), +57 320 829 9760 (442 min), +57 300 999 0001 (386 min), +57 300 111 2244 (386 min), +57 300 111 2235 (386 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-18T22:30:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (474 min), +57 320 829 9760 (472 min), +57 300 999 0001 (416 min), +57 300 111 2244 (416 min), +57 300 111 2235 (416 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-18T22:30:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (474 min), +57 320 829 9760 (472 min), +57 300 999 0001 (416 min), +57 300 111 2244 (416 min), +57 300 111 2235 (416 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

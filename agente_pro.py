@@ -117,6 +117,12 @@ def create_app():
         print(f"⚠️ Ventas directas: {e}")
 
     try:
+        from app.routes_entregas_flex import register_entregas_flex_routes
+        register_entregas_flex_routes(app)
+    except Exception as e:
+        print(f"⚠️ Entregas Flex: {e}")
+
+    try:
         from app.routes_grabaciones import register_grabaciones_routes
         register_grabaciones_routes(app)
     except Exception as e:
@@ -204,13 +210,14 @@ def create_app():
             import threading
             import time as _time
 
-            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado
+            from app.services.facturacion_ventas_unificado import _lanzar_recalculo
 
             def _prewarm_facturacion_loop():
                 _time.sleep(25)  # deja que el resto del arranque termine primero
                 while True:
                     try:
-                        listar_ventas_meli_unificado(dias=7, segmento="concretadas", limite=30, forzar=True)
+                        # Mismo hilo que usa el panel: nunca dos cálculos de la misma vista a la vez.
+                        _lanzar_recalculo(7, "concretadas", 30, True).join()
                     except Exception as _e:
                         print(f"⚠️ Precalentamiento Facturación: {_e}")
                     _time.sleep(50)

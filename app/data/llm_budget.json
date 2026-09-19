@@ -1,25 +1,22 @@
 {
- "fecha": "2026-09-17",
- "gasto_usd": 0.783241,
- "llamadas": 137,
+ "fecha": "2026-09-18",
+ "gasto_usd": 1.274838,
+ "llamadas": 161,
  "por_modelo": {
-  "claude-sonnet-5": 0.539574,
-  "claude-haiku-4-5": 0.027698,
-  "gemini-2.5-flash": 0.215906,
-  "gemini-2.5-pro": 6.3e-05
+  "claude-sonnet-5": 1.192986,
+  "claude-haiku-4-5": 0.074958,
+  "gemini-2.5-flash": 0.006852,
+  "gemini-2.5-pro": 4.2e-05
  },
  "por_contexto": {
-  "revision_facturacion": 0.00188,
-  "wa_ventas_v2": 0.316378,
-  "wa_ventas_v2_supervisor": 0.027698,
-  "meli_preventa": 0.031935,
-  "ft_scan_tablas": 0.016302,
-  "ft_scan_estructurar": 0.03295,
-  "coa_scan_tablas": 0.065582,
-  "coa_scan_estructurar": 0.095837,
-  "cliente_chat": 0.122066,
-  "coa_scan_un_paso": 0.005234,
-  "auditor_canales": 0.067378
+  "wa_ventas_v2": 0.548842,
+  "wa_ventas_v2_supervisor": 0.074958,
+  "cliente_chat": 0.524446,
+  "revision_facturacion": 0.02278,
+  "coa_scan_tablas": 0.002686,
+  "coa_scan_estructurar": 0.004166,
+  "meli_preventa": 0.03097,
+  "auditor_canales": 0.06599
  },
  "alerta_enviada": false,
  "historial": [
@@ -605,6 +602,30 @@
     "ft_scan_tablas": 0.105757,
     "ft_scan_estructurar": 0.118699,
     "auditor_canales": 0.057988
+   }
+  },
+  {
+   "fecha": "2026-09-17",
+   "gasto_usd": 0.783241,
+   "llamadas": 137,
+   "por_modelo": {
+    "claude-sonnet-5": 0.539574,
+    "claude-haiku-4-5": 0.027698,
+    "gemini-2.5-flash": 0.215906,
+    "gemini-2.5-pro": 6.3e-05
+   },
+   "por_contexto": {
+    "revision_facturacion": 0.00188,
+    "wa_ventas_v2": 0.316378,
+    "wa_ventas_v2_supervisor": 0.027698,
+    "meli_preventa": 0.031935,
+    "ft_scan_tablas": 0.016302,
+    "ft_scan_estructurar": 0.03295,
+    "coa_scan_tablas": 0.065582,
+    "coa_scan_estructurar": 0.095837,
+    "cliente_chat": 0.122066,
+    "coa_scan_un_paso": 0.005234,
+    "auditor_canales": 0.067378
    }
   }
  ]

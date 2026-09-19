@@ -58,6 +58,40 @@ def init_db() -> None:
         con.execute("CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas_cache(fecha DESC)")
         con.execute("CREATE INDEX IF NOT EXISTS idx_ventas_estado ON ventas_cache(estado)")
         con.execute("CREATE INDEX IF NOT EXISTS idx_ventas_pack ON ventas_cache(pack_id)")
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS listados_snapshot (
+                clave       TEXT PRIMARY KEY,
+                generado_ts REAL NOT NULL,
+                payload     TEXT NOT NULL
+            )
+            """
+        )
+
+
+def guardar_listado(clave: str, resultado: dict, generado_ts: float) -> None:
+    """Último listado completo de una vista (días/segmento/límite), para que el
+    panel tenga algo que mostrar tras un reinicio mientras se recalcula."""
+    init_db()
+    with _LOCK, _conn() as con:
+        con.execute(
+            "INSERT OR REPLACE INTO listados_snapshot (clave, generado_ts, payload) VALUES (?, ?, ?)",
+            (clave, generado_ts, json.dumps(resultado, ensure_ascii=False, default=str)),
+        )
+
+
+def leer_listado(clave: str) -> tuple[float, dict] | None:
+    init_db()
+    with _conn() as con:
+        row = con.execute(
+            "SELECT generado_ts, payload FROM listados_snapshot WHERE clave = ?", (clave,),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return float(row["generado_ts"]), json.loads(row["payload"])
+    except (TypeError, ValueError):
+        return None
 
 
 def _fila_a_columnas(fila: dict) -> tuple:

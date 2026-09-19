@@ -664,7 +664,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "control-inventario", label: "Inventario" },
   { id: "publicaciones", label: "Publicaciones" },
   { id: "placas-concreto", label: "Placas de Concreto" },
-  { id: "contenido", label: "Contenido (quitar marca de agua de video)" },
+  { id: "contenido", label: "Contenido (video, audio y grabar pantalla)" },
   { id: "logistica-internacional", label: "Logística Internacional" },
   { id: "voz",        label: "Voz IA" },
   { id: "settings",   label: "Ajustes" },

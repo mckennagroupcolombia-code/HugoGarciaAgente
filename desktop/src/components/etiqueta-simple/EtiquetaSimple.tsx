@@ -280,7 +280,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
                   editMode={editMode}
                   styleKey="es_origin"
                   ejemplo={EJEMPLO_ETIQUETA.origin}
-                  tam={TAM_SIMPLE.dato}
+                  tam={TAM_SIMPLE.origen}
                   maxLineas={1}
                   className="es-dato-texto"
                 />

@@ -23,6 +23,7 @@ export type Panel =
   | "pedidos"
   | "empaque"
   | "guias-envio"
+  | "entregas-flex"
   | "publicaciones"
   | "vitrina-web"
   | "facturacion"

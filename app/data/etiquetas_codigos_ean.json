@@ -1811,13 +1811,14 @@
     {
       "id": "cb477ca71f1a",
       "sku": "C-SALROSHIMGRU250g",
-      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 250g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM 250g",
       "numero_producto": 163,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701632502643",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-18T13:24:03"
     },
     {
       "id": "0f8ad80f0096",
@@ -1910,13 +1911,14 @@
     {
       "id": "b39b6025a7e3",
       "sku": "C-SALROSHIMGRU500g",
-      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 500g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM 500g",
       "numero_producto": 172,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701725002647",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-18T13:24:19"
     },
     {
       "id": "7146f592618a",

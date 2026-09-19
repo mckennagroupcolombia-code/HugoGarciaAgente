@@ -115,6 +115,8 @@ interface VentasResp {
   total: number;
   total_en_rango: number;
   actualizado_en: string | null;
+  /** El servidor devolvió el último listado conocido y está recalculando. */
+  recalculando?: boolean;
 }
 
 /** Límite por defecto según el rango elegido — más días, más filas
@@ -566,6 +568,7 @@ export default function VentasAstroKillerPanel() {
     queryFn: () => api.get(`/api/facturacion/ventas-unificadas?segmento=${segmento}&dias=${dias}&limit=${limite}`),
     staleTime: 60_000,
     enabled: modo === "vivo",
+    refetchInterval: (query) => (query.state.data?.recalculando ? 10_000 : false),
   });
 
   // Histórico: sale del caché local (SQLite), sin tocar MeLi. Por eso puede
@@ -772,7 +775,7 @@ export default function VentasAstroKillerPanel() {
             disabled={q.isFetching}
             className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:opacity-40"
           >
-            {q.isFetching ? "Actualizando…" : "Actualizar"}
+            {q.isFetching || (modo === "vivo" && qVivo.data?.recalculando) ? "Actualizando…" : "Actualizar"}
           </button>
         </div>
       </div>
@@ -903,13 +906,20 @@ export default function VentasAstroKillerPanel() {
       {errorBusqueda && <p className="text-xs font-semibold text-danger">{errorBusqueda}</p>}
       {verError && <p className="text-xs font-semibold text-danger">{verError}</p>}
       {q.isError && <p className="text-xs text-danger">{(q.error as Error).message || "No se pudo cargar el listado."}</p>}
+      {modo === "vivo" && qVivo.data?.recalculando && (
+        <p className="text-xs text-muted">
+          {qVivo.data.actualizado_en
+            ? `Mostrando el listado de ${new Date(qVivo.data.actualizado_en).toLocaleString("es-CO")} mientras se recalcula contra Alegra y MeLi (puede tardar unos minutos).`
+            : "Calculando el listado contra Alegra y MeLi — la primera carga puede tardar unos minutos; se actualiza solo."}
+        </p>
+      )}
       {q.isLoading && (
         <p className="text-sm text-muted">
           Consultando Alegra y MeLi… la primera carga puede tardar un momento (cruza cada venta con su
           detalle real, entrega y documento fiscal en MeLi).
         </p>
       )}
-      {!q.isLoading && !q.isError && filtradas.length === 0 && (
+      {!q.isLoading && !q.isError && filtradas.length === 0 && !(modo === "vivo" && qVivo.data?.recalculando) && (
         <p className="text-sm text-muted">{busqueda ? "Sin resultados para esa búsqueda." : "Sin ventas en el período."}</p>
       )}
 

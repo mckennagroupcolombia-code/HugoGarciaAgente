@@ -76,6 +76,7 @@ const NOTAS: Record<string, string> = {
   "ventas-email": "también se abre con Preventa MeLi",
   "vitrina-web": "también se abre con Publicaciones",
   "guias-envio": "también se abre con Pedidos Web o Empaque",
+  "entregas-flex": "también se abre con Pedidos Web, Empaque o Guías de envío",
   "libro-mayor": "permiso propio: no se hereda de Facturación ni Sync",
   pagos: "mueve plata y crea asientos — permiso propio",
   prestamos: "datos de socios y familiares — permiso propio",

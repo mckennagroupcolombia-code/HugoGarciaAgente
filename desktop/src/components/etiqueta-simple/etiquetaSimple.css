@@ -167,7 +167,7 @@
   text-align: center;
   border-radius: 6px;
   background: var(--acento);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -326,6 +326,13 @@
 .es-alergenos {
   font-weight: 700;
   color: #111111;
+}
+/* El origen va un 30 % más grande que los datos del pie (rótulo y dato). */
+.es-datos-origen .es-dato-rotulo {
+  font-size: 25px;
+}
+.es-datos-origen .es-dato-texto {
+  font-size: 27px;
 }
 
 /* Textos centrados en esta columna (también en edición). */
