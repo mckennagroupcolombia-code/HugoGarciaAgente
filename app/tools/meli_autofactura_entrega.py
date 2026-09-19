@@ -290,7 +290,51 @@ def _construir_lineas_factura_desde_orden_meli(orden: dict) -> tuple[list[dict],
 
     if missing:
         return [], "No puedo emitir factura automática: " + "; ".join(missing)
-    return lines, None
+    return _descontar_unidades_reembolsadas(lines, orden)
+
+
+def _descontar_unidades_reembolsadas(lines: list[dict], orden: dict) -> tuple[list[dict], str | None]:
+    """Quita de la factura las unidades que MeLi le reembolsó al comprador.
+
+    Cuando se despacha menos de lo vendido, MeLi devuelve la diferencia pero la
+    orden sigue diciendo la cantidad original (`partially_refunded`, qty 2 con
+    $14.365 devueltos: pack 2000015079330551, sep-2026). Facturar esa qty
+    factura mercancía que ni salió ni se cobró, y después toca nota crédito.
+
+    Solo descuenta cuando el reembolso equivale a unidades enteras de UNA línea;
+    si no cuadra (reembolso de envío, descuento parcial, dos líneas posibles)
+    no adivina: devuelve error para que se facture a mano.
+    """
+    from app.services.anulaciones_motor import reintegro_de_orden
+
+    devuelto = float(reintegro_de_orden(orden).get("monto") or 0)
+    if devuelto < 1:
+        return lines, None
+
+    candidatas = []
+    for i, l in enumerate(lines):
+        precio = l["precio_unitario"]
+        if precio <= 0:
+            continue
+        unidades = devuelto / precio
+        if abs(unidades - round(unidades)) < 0.001 and 1 <= round(unidades) <= l["cantidad"]:
+            candidatas.append((i, int(round(unidades))))
+    if len(candidatas) != 1:
+        return [], (
+            f"MeLi reembolsó ${devuelto:,.0f} al comprador y no se puede saber qué unidades "
+            "corresponden. Factura esta venta a mano descontando lo reembolsado."
+        )
+
+    i, unidades = candidatas[0]
+    ajustada = dict(lines[i], cantidad=lines[i]["cantidad"] - unidades)
+    nuevas = lines[:i] + ([ajustada] if ajustada["cantidad"] > 0 else []) + lines[i + 1 :]
+    if not nuevas:
+        return [], f"MeLi reembolsó la totalidad (${devuelto:,.0f}): no hay nada que facturar."
+    print(
+        f"↩️ [MELI-AUTOFACTURA] Orden {orden.get('id')}: {unidades} u. de {lines[i]['codigo']} "
+        f"reembolsadas (${devuelto:,.0f}) — se facturan {ajustada['cantidad']:g}."
+    )
+    return nuevas, None
 
 
 def procesar_entrega_meli_para_factura(shipping_id: str) -> None:
@@ -407,7 +451,9 @@ def _facturar_orden_entregada(
             _registrar_estado_orden(order_id, estado="error", error="No se pudo obtener la orden de MeLi.")
             return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
 
-        if orden.get("status") not in ("paid", "partially_paid"):
+        # partially_refunded: se despachó menos de lo vendido y MeLi devolvió la
+        # diferencia; las líneas descuentan lo reembolsado (_descontar_unidades_reembolsadas).
+        if orden.get("status") not in ("paid", "partially_paid", "partially_refunded"):
             error = f"Orden en estado {orden.get('status')!r}, no pagada."
             _registrar_estado_orden(order_id, estado="omitida", error=error)
             return {"ok": False, "error": error}
