@@ -1,3 +1,12 @@
+### 2026-09-18 16:30 - Facturar MeLi: descontar las unidades reembolsadas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Facturación → Ventas, «Facturar ahora» y autofactura al entregar)
+- **Qué se implementó:**
+  - Cuando se despacha menos de lo vendido, MeLi devuelve la diferencia pero la orden conserva la cantidad original (`partially_refunded`). Antes el botón la rechazaba como «no pagada» y, de haberla emitido, habría facturado las unidades que nunca salieron.
+  - `_descontar_unidades_reembolsadas()` descuenta de la línea las unidades que equivalen al reembolso. Si no cuadra con unidades enteras de UN solo producto, no adivina: pide facturar a mano.
+  - Caso real: pack 2000015079330551 (2 × Manteca de Cacao 500 g, 1 reembolsada) facturado como **FE448** por 1 unidad, $14.365.
+- **Archivos Modificados:** `app/tools/meli_autofactura_entrega.py`, `tests/test_meli_autofactura_entrega.py`, `docs/team-recaps.md`
+
 ### 2026-09-18 - Documento soporte con CUDS, fecha de corte contable e historial por tercero
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + correcciones (Contabilidad → Solicitudes de pago, Libro Mayor)
