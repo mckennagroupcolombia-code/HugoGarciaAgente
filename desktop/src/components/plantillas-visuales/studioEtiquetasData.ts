@@ -95,3 +95,16 @@ export function useEtiquetasPublicaciones() {
     gcTime: 60 * 60 * 1000,
   });
 }
+
+/** Texto comparable para el buscador de Studio: sin tildes ni mayúsculas, para
+ *  que «mani» encuentre «MANÍ 500g». */
+export function normalizarBusqueda(s: string): string {
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+/** ¿`texto` contiene todas las palabras de la búsqueda (ya normalizada)? */
+export function coincideBusqueda(texto: string, q: string): boolean {
+  if (!q) return true;
+  const t = normalizarBusqueda(texto);
+  return q.split(/\s+/).every((palabra) => t.includes(palabra));
+}

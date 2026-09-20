@@ -1649,15 +1649,15 @@
     },
     {
       "id": "f79b9f21d472",
-      "sku": "C-DATSINHUE250g",
-      "nombre_producto": "DATILES SIN HUESO 250g",
+      "sku": "C-DATSAY250g",
+      "nombre_producto": "DATILES SAYED SIN HUESO 250g",
       "numero_producto": 148,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701482502640",
       "creado_at": "2026-09-06T15:16:52",
-      "actualizado_at": "2026-09-12T13:21:55"
+      "actualizado_at": "2026-09-20T00:34:45"
     },
     {
       "id": "aaedcd4b9987",
@@ -1684,15 +1684,15 @@
     },
     {
       "id": "1435ea1ea37d",
-      "sku": "C-DATSINHUE500g",
-      "nombre_producto": "DATILES SIN HUESO 500g",
+      "sku": "C-DATSAY500g",
+      "nombre_producto": "DATILES SAYED SIN HUESO 500g",
       "numero_producto": 151,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701515002642",
       "creado_at": "2026-09-06T15:16:52",
-      "actualizado_at": "2026-09-12T13:22:26"
+      "actualizado_at": "2026-09-20T00:34:45"
     },
     {
       "id": "e654a129b102",
@@ -2645,6 +2645,184 @@
       "bimestre": 4,
       "codigo": "7702370012647",
       "creado_at": "2026-09-18T00:56:52"
+    },
+    {
+      "id": "0dd51e725b62",
+      "sku": "C-ACEESEBER5mL",
+      "nombre_producto": "ACEITE ESENCIAL BERGAMOTA 5mL",
+      "numero_producto": 238,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702380052640",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0bcc1f833ae7",
+      "sku": "C-ACEESECAN5mL",
+      "nombre_producto": "ACEITE ESENCIAL CANELA 5mL",
+      "numero_producto": 239,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702390052647",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "393e27e44b03",
+      "sku": "C-ACEESECLA5mL",
+      "nombre_producto": "ACEITE ESENCIAL CLAVO 5mL",
+      "numero_producto": 240,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702400052643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "4cba159bfa28",
+      "sku": "C-ACEESEYLAYLA5mL",
+      "nombre_producto": "ACEITE ESENCIAL YLANG YLANG 5mL",
+      "numero_producto": 241,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702410052640",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "ebdad417c4c1",
+      "sku": "C-ACISAL50g",
+      "nombre_producto": "ACIDO SALICILICO 50g",
+      "numero_producto": 242,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702420502647",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "af901362769b",
+      "sku": "C-AGUROS250mL",
+      "nombre_producto": "AGUA DE ROSAS 250mL",
+      "numero_producto": 243,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702432502642",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "5ca56b56ace9",
+      "sku": "C-ALBHUE500g",
+      "nombre_producto": "ALBUMINA DE HUEVO 500g",
+      "numero_producto": 244,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702445002641",
+      "creado_at": "2026-09-19T23:29:41",
+      "actualizado_at": "2026-09-20T00:42:15"
+    },
+    {
+      "id": "80b80d98f3df",
+      "sku": "C-CARACTPEL800g",
+      "nombre_producto": "CARBON ACTIVADO 800g",
+      "numero_producto": 245,
+      "presentacion": "800",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702458002645",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "d5b4e58cb4f2",
+      "sku": "C-CARMAG500g",
+      "nombre_producto": "CARBONATO DE MAGNESIO 500g",
+      "numero_producto": 246,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702465002645",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0bdef23684cf",
+      "sku": "C-CERLAN500g",
+      "nombre_producto": "CERA LANETTE 500g",
+      "numero_producto": 247,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702475002642",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "fa8dfb2d894c",
+      "sku": "C-CREMON1000g",
+      "nombre_producto": "CREATINA MONOHIDRATO 1000g",
+      "numero_producto": 248,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702480012643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0edc621cbda8",
+      "sku": "C-GELSILCRI250g",
+      "nombre_producto": "GEL SILICA 250g",
+      "numero_producto": 249,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702492502644",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "7dbd580ea45c",
+      "sku": "C-LPRO100g",
+      "nombre_producto": "L PROLINA 100g",
+      "numero_producto": 250,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702501002646",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "df9cc1b9996b",
+      "sku": "C-SUC100g",
+      "nombre_producto": "SUCRALOSA 100g",
+      "numero_producto": 251,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702511002643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "df90afd598ef",
+      "sku": "C-MANCACNAT500g",
+      "nombre_producto": "MANTECA DE CACAO NATURAL 500g",
+      "numero_producto": 252,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702525002646",
+      "creado_at": "2026-09-20T01:10:54"
+    },
+    {
+      "id": "488d34babbb1",
+      "sku": "C-HARPAN00Kg",
+      "nombre_producto": "HARINA DE PANADERIA 00 1000g",
+      "numero_producto": 253,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702530012647",
+      "creado_at": "2026-09-20T01:18:19",
+      "actualizado_at": "2026-09-20T01:19:44"
     }
   ]
 }

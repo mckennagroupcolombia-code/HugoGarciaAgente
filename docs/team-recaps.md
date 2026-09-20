@@ -1,3 +1,59 @@
+### 2026-09-20 - Goma arábiga: publicaciones eliminadas en MeLi
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de publicaciones (Mercado Libre)
+- **Qué se implementó:**
+  - Se eliminaron, a pedido del usuario, MCO2055189788 «Goma Arábiga 500gr» (66 vendidas) y MCO2055177320 «Goma Arábiga 1 Kg» (39 vendidas), ambas pausadas sin existencias, sin pedidos por entregar ni preguntas pendientes. Copia completa de cada una en `~/backups_manual/meli_<id>_antes_de_eliminar_20260920.json`.
+  - Motivo: la de 1 kg llevaba el SKU `C-GOMXANKg`, que es el de la goma XANTANA — una venta se habría facturado como xantana a $38.900 descontando inventario de xantana. La goma arábiga no existe en Alegra (ni inventario ni combo) y `GMARB500g` tampoco. `C-GOMXANKg` queda ahora con una sola publicación (MCO1255107965).
+- **Tienda web:** también se retiró «Goma Arábiga 500g» (`GMARB500g`). No venía de MeLi sino de la lista de SKUs extra: se quitó de `catalogo_extra_siigo.json` (si no, la próxima reconstrucción la vuelve a traer de Siigo), de `cache.json` (179 → 178 productos, edición puntual para no depender de un refresh que se trunca en silencio), de `stock_web.json` y de `origen_materias.json`; reinicio de `mckenna-website` y verificado: 0 apariciones en /tienda y /catalogo, la página del producto da 404. Respaldo en `~/backups_manual/web_goma_arabiga_20260920/`. En /cotizar sigue «Goma Arábiga Polvo-terrón» como materia prima bajo pedido (oferta de proveedores): es otra cosa y no se tocó.
+- **Pendiente:** conflictos de SKU restantes: polisorbato 250 mL y `AS-44`.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Precios de Alegra igualados a Mercado Libre (28 productos)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Alegra — precio de lista)
+- **Qué se implementó:**
+  - Regla del negocio: ante una diferencia **manda el precio de MeLi**. Se aplicó con `actualizar_precio_alegra_producto` a **28 SKU**, cada uno verificado releyendo desde Alegra. Precios anteriores en `~/backups_manual/alegra_precios_antes_20260920.json`. Casos notables: agitador magnético $177 → $422.000; cera de abejas natural $1 → $31.000; bergamota 5 mL $0 → $19.900; vaselina 900 g $21.800 → $49.000; almendra 250 g $62.400 → $16.900; semilla de calabaza 250 g $49.900 → $14.000; placa de aluminio $50.000 → $109.900.
+  - **Error corregido en el acto:** `C-GOMXANKg` (goma xantana) recibió $58.000 desde una publicación de goma ARÁBIGA que tiene mal puesto ese SKU; el filtro por palabras lo dejó pasar porque ambas dicen «goma». Revertido a $38.900. Al comparar títulos no basta una palabra en común: exigir el sustantivo distintivo.
+- **Pendiente (conflictos de SKU en MeLi):** «Goma Arábiga 1 Kg» (MCO2055177320) lleva el SKU de la xantana; «Polisorbato Tween 20 250 ml» lleva el del de 500 mL; `AS-44` apunta en Alegra a un collar de perro y en MeLi a bolsas para setas. Siguen los 35 SKU de publicaciones activas que no existen en Alegra (`docs/precios_meli_vs_alegra.md`).
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Cierre de los 6 combos sin código y comparación de precios MeLi vs. Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · códigos de barras · etiquetas)
+- **Qué se implementó:**
+  - **Regla fijada por el negocio: el precio real es el de Mercado Libre.** Albúmina `C-ALBHUE500g` quedó en $44.900.
+  - **Manteca de cacao natural** (`C-MANCACNAT500g`): sí se vende (MCO577142200, 247 vendidas, pausada sin existencias). El combo descontaba 5.001 g y costaba $1 → 500 g y $69.500; el SKU en MeLi tenía una errata (`C-MANNCACNAT500g`); código de barras 7702525002646, ficha retitulada «MANTECA DE CACAO NATURAL» y etiqueta.
+  - **Harina de panadería 00** (`C-HARPAN00Kg`): precio $0 → $15.000; SKU en MeLi `HRNTRG00Kg` → `C-HARPAN00Kg`; código 7702530012647; ficha nueva como alimento (fortificación, «contiene gluten») y etiqueta. El nombre del código no puede terminar en «00 Kg»: la app lee «00» como contenido neto (quedó «… 00 1000g»).
+  - **Colorante alimentario:** la publicación MCO1140118070 («Colorante Alimentos 30 Gr Rojo») se **eliminó** de MeLi a pedido del usuario por título mal escrito (copia completa en `~/backups_manual/`). Prometía 30 g, el SKU decía 50 g y la única compra era de frascos de 25 g; el combo `C-COL50g` sigue en Alegra sin componentes.
+  - **Comparación de precios en vivo** (`docs/precios_meli_vs_alegra.md`): 237 coinciden, **35 con precio distinto** y **180 publicaciones cuyo SKU no existe en Alegra**. Entre las diferencias hay SKU mal puestos en MeLi: la goma arábiga usa `C-GOMXANKg` (xantana) y el polisorbato de 250 mL usa el SKU del de 500 mL.
+- **Pendiente:** aplicar el precio de MeLi en Alegra a los casos limpios; decidir los conflictos de SKU; desactivar `C-COL50g`; IVA de la harina (19 % en Alegra; la harina de trigo tributa al 5 %, Art. 468-1 E.T. — consultar al contador); dos publicaciones no están en la hoja de Sheets.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/precios_meli_vs_alegra.md`, `docs/team-recaps.md`
+
+### 2026-09-20 - Albúmina de huevo: un solo combo (`C-ALBHUE500g`) y dátiles con un solo nombre
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · tienda web · códigos de barras)
+- **Qué se implementó:**
+  - **Albúmina 500 g:** había dos combos con el mismo nombre. `C-ALBHUE500g` (el SKU que debe quedar) estaba a medio armar: $1 y 1 g de albúmina. Se le copió la composición y el precio del que sí funcionaba (`C-ALBHV500g`: 500 g + 7 empaques, $21.500, IVA 19 %) con `actualizar_combo_alegra`, verificado releyendo desde Alegra. Estado previo en `~/backups_manual/alegra_albumina_antes_20260920.json`.
+  - Canales movidos al SKU final: publicación MeLi MCO3022724080 y hoja de Sheets (`actualizar_sku_meli_item`), código de barras 7702445002641, `publicaciones_overrides.json`, `origen_materias.json`, `stock_web.json` y catálogo de la tienda. `C-ALBHV500g` quedó **inactivo** en Alegra (no borrado) y con equivalencia `C-ALBHV500g → C-ALBHUE500g` en `alegra_sku_alias_venta.json`.
+  - **`resolver_producto_venta_alegra` ahora prefiere la equivalencia cuando el SKU directo está INACTIVO.** Antes devolvía el ítem inactivo: un pedido de MeLi hecho antes del cambio (conserva el SKU de ese momento) se habría facturado contra un combo retirado.
+  - **Dátiles:** ficha, PDF, códigos de barras y etiquetas unificados como «DÁTILES SAYED SIN HUESO» (Alegra y la factura de compra dicen «Sayed»; la ficha decía «sin hueso»).
+  - ⚠️ **`POST /api/refresh` de la tienda puede truncarse en silencio:** con un `Connection reset` de MeLi al listar publicaciones pausadas, el catálogo bajó de 179 a 173 productos sin error (se ocultaron 6 con existencias). Un segundo refresco lo dejó completo. Tras refrescar, comparar el conteo contra el anterior.
+- **Pendiente:** Alegra tiene la albúmina a $21.500 y la tienda web a $40.410; todos los componentes de empaque tienen costo $0 (ningún combo calcula margen); ¿la etiqueta térmica 10×15 va dentro de los combos? Siguen por revisar: manteca de cacao natural, harina de panadería y colorante alimentario.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `app/data/etiquetas_codigos_ean.json`, `PAGINA_WEB/site/data/origen_materias.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Códigos de barras para combos de Alegra que no tenían (grupo 1) y alérgenos en la cuadrícula
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos + producción (Diseño → Códigos EAN y Etiquetas)
+- **Qué se implementó:**
+  - Las etiquetas en lote parten del catálogo de códigos de barras, así que **lo que no tiene código no recibe etiqueta**: por eso no aparecían productos como el propionato de calcio. 61 fichas técnicas estaban en ese caso.
+  - **Grupo 1 — combos que ya existen en Alegra sin código de barras:** se crearon **14 códigos** (n.º 238 a 251): aceites esenciales de bergamota, canela, clavo e ylang ylang 5 mL; ácido salicílico 50 g; agua de rosas 250 mL; albúmina de huevo 500 g (`C-ALBHV500g`); carbón activado 800 g; carbonato de magnesio 500 g; cera lanette 500 g; creatina 1000 g; gel sílica 250 g; L-prolina 100 g; sucralosa 100 g. Con sus 14 etiquetas.
+  - **Dátiles Sayed:** ya tenían código, pero registrado con un SKU que no existe en Alegra (`C-DATSINHUE…`); se corrigió a `C-DATSAY250g/500g` sin cambiar el código.
+  - **No se les creó código (combos rotos o incompletos en Alegra):** `C-ALBHUE500g` y `C-MANCACNAT500g` (precio $1, cantidades erradas, duplican a otros buenos), harina de panadería (precio $0, sin materia prima) y colorante alimentario (sin componentes ni color definido).
+  - Fichas: datos de etiqueta deducidos para 9 fichas antiguas; ficha nueva de gel sílica; «ALCOHOL CETO ESTEARÍLICO» retitulada «CERA LANETTE (ALCOHOL CETOESTEARÍLICO)»; clasificación SGA del ylang ylang.
+  - **Alérgenos:** el formato de cuadrícula (76×66) no tiene casilla de alérgenos. Huevo, leche y soya se declaran ahora dentro de «Composición» («… CONTIENE HUEVO») en albúmina, proteínas de suero, suero de leche, proteína aislada de soya y lecitina; regeneradas sus 5 etiquetas.
+- **Pendiente:** grupo 3 (18 combos cuyo código de barras está registrado con un SKU distinto al de Alegra) y grupo 2 (unos 49 productos con ficha que no existen en Alegra: requieren definir SKU y presentaciones). El formato de cuadrícula muestra un solo pictograma GHS aunque la ficha tenga varios (ácido salicílico 50 g).
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/team-recaps.md`
+
 ### 2026-09-19 (cierre) - Etiquetas de mL y demás presentaciones: 110 más, todas las diagramaciones revisadas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Producción + correcciones de diagramación y de datos (Diseño → Studio → Etiquetas del formulario)

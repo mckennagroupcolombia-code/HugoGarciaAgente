@@ -495,7 +495,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
             : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {subcarpetas.map((nombreCarpeta) => {
             const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
             const enHoverDrop = carpetaHoverDrop === rel;
@@ -659,9 +659,17 @@ type Vista =
 // ya existían son el catálogo viejo: se consultan e imprimen desde
 // Diseño → Imprimir (agrupados por categoría) y desde "Catálogo antiguo", pero
 // no se mezclan con las plantillas nuevas.
+/** Qué busca la barra del encabezado en cada pestaña de Studio. */
+const PLACEHOLDER_BUSCAR: Record<string, string> = {
+  categorias: "Buscar categoría, plantilla o etiqueta…",
+  etiquetas: "Buscar etiqueta…",
+  disenos: "Buscar plantillas e imágenes en todas las carpetas…",
+  recursos: "Buscar logo o imagen en esta carpeta…",
+  publicaciones: "Buscar etiqueta para publicaciones…",
+};
+
 const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
   { id: "categorias", label: "Categorías" },
-  { id: "disenos", label: "Catálogo antiguo" },
   { id: "recursos", label: "Recursos" },
   { id: "publicaciones", label: "Etiquetas para publicaciones" },
 ];
@@ -715,6 +723,11 @@ export default function PlantillasVisualesPanel({
   const [entradaFormulario, setEntradaFormulario] = useState<EntradaFormularioEtiqueta | null>(null);
   const subvista = useAppStore((s) => s.studioSubvista);
   const setSubvista = useAppStore((s) => s.setStudioSubvista);
+  // «Catálogo antiguo» ya no tiene pestaña. La subvista se guarda entre sesiones:
+  // quien la dejó abierta caería en una pantalla sin pestaña marcada y sin salida.
+  useEffect(() => {
+    if (subvista === "disenos") setSubvista("categorias");
+  }, [subvista, setSubvista]);
   const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
   const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
   const { data: catsData } = useCategoriasEtiqueta();
@@ -1480,10 +1493,40 @@ export default function PlantillasVisualesPanel({
             {sv.label}
           </button>
         ))}
+        {/* Un solo buscador para todo Studio: antes solo lo tenían «Catálogo
+            antiguo» y las galerías, y la portada (Categorías) no tenía ninguno. */}
+        {/* La lupa va fuera del <input>: index.css fija el padding de todos los
+            campos con !important y un ícono superpuesto tapa el texto. */}
+        <label className="ml-auto flex w-full items-center rounded-lg border border-border bg-surface pl-2.5 focus-within:border-accent/60 sm:w-72">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="h-3.5 w-3.5 shrink-0 text-muted"
+          >
+            <circle cx="8.5" cy="8.5" r="5.5" />
+            <path d="M13 13l4.5 4.5" />
+          </svg>
+          <input
+            type="search"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setBuscar("");
+            }}
+            placeholder={PLACEHOLDER_BUSCAR[subvista] ?? "Buscar…"}
+            aria-label="Buscar en Studio"
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none focus:ring-0"
+          />
+        </label>
       </div>
 
       {subvista === "categorias" && (
         <StudioCategoriasPanel
+          buscar={buscar}
           onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onAbrirPlantilla={(pl) => {
@@ -1516,21 +1559,22 @@ export default function PlantillasVisualesPanel({
 
       {subvista === "etiquetas" && (
         <StudioEtiquetasPanel
+          buscar={buscar}
           categoriaFiltro={categoriaFiltro}
           onCategoriaFiltroChange={setCategoriaFiltro}
           onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
         />
       )}
 
-      {subvista === "publicaciones" && <StudioPublicacionesPanel />}
+      {subvista === "publicaciones" && <StudioPublicacionesPanel buscar={buscar} />}
 
       {subvista === "recursos" && (
         <div>
           <p className="mb-3 text-xs text-muted">
             Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
-            terminadas están en la pestaña «Etiquetas».
+            terminadas están en «Categorías», dentro de cada familia de producto.
           </p>
-          <BibliotecaEtiquetasSection />
+          <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
         </div>
       )}
 
@@ -1547,14 +1591,7 @@ export default function PlantillasVisualesPanel({
             {etiquetaCategoriaEn(categorias, categoriaFiltro)} ✕
           </button>
         )}
-        <div className="min-w-0 flex-1">
-          <input
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Buscar plantillas e imágenes en todas las carpetas…"
-            className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-          />
-        </div>
+        <div className="min-w-0 flex-1" />
         {plantillas.length > 0 && (
           <button
             type="button"

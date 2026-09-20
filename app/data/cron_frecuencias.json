@@ -65,7 +65,7 @@
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-19T22:30:01"
+    "ultima_ejecucion": "2026-09-20T01:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
@@ -81,7 +81,7 @@
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-09-19T22:10:01"
+    "ultima_ejecucion": "2026-09-20T01:10:02"
   },
   "precios_trm": {
     "intervalo_horas": 24,
@@ -89,6 +89,6 @@
   },
   "entregas_flex": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-18T15:02:07"
+    "ultima_ejecucion": "2026-09-19T23:15:07"
   }
 }

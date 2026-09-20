@@ -247,9 +247,14 @@ def resolver_producto_venta_alegra(sku: str):
     Solo para facturar VENTAS: no usar al crear/liberar productos, donde un
     alias haría pasar por existente un código que en realidad no existe."""
     prod = buscar_producto_alegra_por_referencia(sku)
-    if prod:
-        return prod
     ref = _alias_sku_venta().get((sku or "").strip().upper())
+    # Un SKU retirado sigue existiendo en Alegra, pero INACTIVO: si tiene
+    # equivalencia, manda la equivalencia. Caso real (20-sep-2026): C-ALBHV500g se
+    # unificó en C-ALBHUE500g; los pedidos de MeLi hechos antes del cambio siguen
+    # trayendo el SKU viejo y se habrían facturado contra un ítem inactivo.
+    inactivo = bool(prod) and str(prod.get("status") or "").strip().lower() == "inactive"
+    if prod and not (inactivo and ref):
+        return prod
     if not ref:
         return None
     prod = buscar_producto_alegra_por_referencia(ref)

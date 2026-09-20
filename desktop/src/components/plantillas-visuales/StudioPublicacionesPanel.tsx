@@ -20,6 +20,8 @@ import { descargarBlob } from "../../lib/etiquetaAssets";
 import {
   CARPETA_PUBLICACIONES_DIGITALES,
   categoriaDeRutaEtiqueta,
+  coincideBusqueda,
+  normalizarBusqueda,
   useEtiquetasPublicaciones,
   type EtiquetaStudioPng,
 } from "./studioEtiquetasData";
@@ -27,12 +29,16 @@ import { nombreVisibleEtiqueta } from "./StudioCategoriasPanel";
 
 const SIN_CATEGORIA = "__sin_categoria__";
 
-export default function StudioPublicacionesPanel() {
+export default function StudioPublicacionesPanel({
+  buscar = "",
+}: {
+  /** Texto del buscador de Studio (la barra vive en el encabezado). */
+  buscar?: string;
+} = {}) {
   const qc = useQueryClient();
   const { data: cats } = useCategoriasEtiqueta();
   const categorias = Array.isArray(cats) ? cats : CATEGORIAS_ETIQUETA;
   const { data: etiquetas, isLoading, isError } = useEtiquetasPublicaciones();
-  const [buscar, setBuscar] = useState("");
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -70,11 +76,11 @@ export default function StudioPublicacionesPanel() {
   // (PUBLICACIONES DIGITALES/<Categoría>/…). Lo que quede suelto en la raíz
   // va a un grupo aparte, no se esconde.
   const grupos = useMemo(() => {
-    const q = buscar.trim().toLowerCase();
+    const q = normalizarBusqueda(buscar);
     const porCategoria = new Map<string, EtiquetaStudioPng[]>();
     for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
       const visible = nombreVisibleEtiqueta(e.nombre);
-      if (q && !visible.toLowerCase().includes(q)) continue;
+      if (!coincideBusqueda(visible, q)) continue;
       const cat = categoriaDeRutaEtiqueta(e.nombre, categorias, CARPETA_PUBLICACIONES_DIGITALES) ?? SIN_CATEGORIA;
       const lista = porCategoria.get(cat) ?? [];
       lista.push(e);
@@ -101,12 +107,6 @@ export default function StudioPublicacionesPanel() {
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input
-          value={buscar}
-          onChange={(e) => setBuscar(e.target.value)}
-          placeholder="Buscar etiqueta…"
-          className="w-full max-w-xs rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-        />
         <span className="text-xs text-muted">
           {total} etiqueta{total === 1 ? "" : "s"}
         </span>
@@ -130,7 +130,7 @@ export default function StudioPublicacionesPanel() {
       )}
 
       {!isLoading && lista.length > 0 && grupos.length === 0 && (
-        <p className="py-10 text-center text-sm text-muted">Ninguna etiqueta coincide con «{buscar}».</p>
+        <p className="py-10 text-center text-sm text-muted">Ninguna etiqueta coincide con «{buscar.trim()}».</p>
       )}
 
       <div className="space-y-6">

@@ -301,10 +301,6 @@
     "meli_item_id": "MCO2035213641",
     "updated_at": "2026-08-04T17:34:07.947510"
   },
-  "C-ALBHV500g": {
-    "meli_item_id": "MCO3022724080",
-    "updated_at": "2026-08-04T17:33:53.369075"
-  },
   "C-NUEBRA250g": {
     "meli_item_id": "MCO4158346500",
     "updated_at": "2026-08-04T17:34:13.476199"
@@ -706,5 +702,9 @@
       "C-SHA70550mL.png"
     ],
     "updated_at": "2026-09-15T10:17:40.631499"
+  },
+  "C-ALBHUE500g": {
+    "meli_item_id": "MCO3022724080",
+    "updated_at": "2026-08-04T17:33:53.369075"
   }
 }
