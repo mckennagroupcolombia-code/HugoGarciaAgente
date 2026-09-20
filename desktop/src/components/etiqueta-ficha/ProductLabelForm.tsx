@@ -80,6 +80,7 @@ import {
   detectarCategoriaEtiqueta,
   esIdPlantillaFicha,
   etiquetaCategoria,
+  etiquetaCategoriaEn,
   idPlantillaCategoria,
   PLANTILLA_FICHA_ID,
 } from "../../lib/categoriasEtiqueta";
@@ -353,6 +354,11 @@ function ProductLabelFormInner({
   const [plantillaOrigenId, setPlantillaOrigenId] = useState<string | null>(null);
   const { data: catsData } = useCategoriasEtiqueta();
   const categorias = Array.isArray(catsData) ? catsData : CATEGORIAS_ETIQUETA;
+  /** Nombre VIGENTE de la categoría (el que editó el operador). `etiquetaCategoria`
+   *  a secas lee la lista fija del código: con ella el lote guardaba en
+   *  «Semillas» lo que el panel llama «Semillas & Frutos Secos», y en el id
+   *  crudo las categorías creadas desde el panel. */
+  const nombreCategoria = (id: string | undefined | null) => etiquetaCategoriaEn(categorias, id);
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [autoguardado, setAutoguardado] = useState<
     { estado: "idle" | "pendiente" | "guardando" | "ok" | "error"; texto?: string }
@@ -883,7 +889,7 @@ function ProductLabelFormInner({
         onSuccess: () =>
           setPlantillaMsg({
             ok: true,
-            texto: `Ya es la plantilla de «${etiquetaCategoria(categoria)}»: desde Studio → Categorías puedes generar con ella las etiquetas de la familia.`,
+            texto: `Ya es la plantilla de «${nombreCategoria(categoria)}»: desde Studio → Categorías puedes generar con ella las etiquetas de la familia.`,
           }),
         onError: (err) =>
           setPlantillaMsg({
@@ -1069,7 +1075,7 @@ function ProductLabelFormInner({
         }
         // El diseño es el de la plantilla; los datos de producto, solo los de
         // este SKU y su ficha técnica (nunca los que traiga la plantilla).
-        setData({
+        const datosSku: ProductLabelData = {
           ...sinDatosDeProducto(datosBase),
           ...patch,
           barcode: (codigo.codigo || "").replace(/\D/g, "").slice(0, 13),
@@ -1077,13 +1083,39 @@ function ProductLabelFormInner({
           fichaTecnicaId: mejor.ficha.id,
           fichaTecnicaTitulo: mejor.ficha.titulo,
           ...(neto ? { netContent: neto } : {}),
-        });
+        };
+        setData(datosSku);
+        // La etiqueta del SKU también se GUARDA (no solo su PNG): queda enlazada
+        // a su plantilla, su código de barras y su ficha técnica, y se puede
+        // abrir después para corregirla. Si ya existía una con el mismo nombre
+        // en esta categoría y formato, se actualiza en vez de duplicarla.
+        if (titulo) {
+          const previa = (fichasTodas ?? []).find(
+            (f) =>
+              !f.es_plantilla_categoria &&
+              f.categoria === categoria &&
+              (f.tipo_nombre || "") === (tipoNombre || "") &&
+              f.nombre.trim().toLowerCase() === titulo.toLowerCase(),
+          );
+          await guardarFichaMutation
+            .mutateAsync({
+              ...(previa ? { id: previa.id } : {}),
+              nombre: titulo,
+              data: datosSku,
+              tipo_nombre: tipoNombre || undefined,
+              categoria: categoria || undefined,
+              plantilla_id: fichaId || undefined,
+              attribute_icons: attributeIcons,
+              text_styles: estilos,
+            })
+            .catch(() => undefined); // el PNG sale igual; la ficha se puede guardar a mano
+        }
         await esperarRepintado();
         await esperarRepintado();
         const { blob, anchoMm, altoMm, ratio } = await rasterizarFichaActual();
         const nombreArchivo = `${nombreArchivoDesdeTitulo(titulo) || codigo.sku || "etiqueta"}.png`;
         await subirImagenBlobAEtiquetas(blob, nombreArchivo, {
-          carpeta: `ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}`,
+          carpeta: `ETIQUETAS STUDIO/${nombreCategoria(categoria)}`,
           tipo_etiqueta: tipo?.nombre,
           ancho_mm: anchoMm,
           alto_mm: altoMm,
@@ -1097,7 +1129,7 @@ function ProductLabelFormInner({
       setGuardarMsg({
         ok: sinFicha.length === 0,
         texto:
-          `${hechos.length} etiqueta(s) generadas en ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}.`
+          `${hechos.length} etiqueta(s) generadas en ETIQUETAS STUDIO/${nombreCategoria(categoria)}.`
           + (sinFicha.length > 0
             ? ` Sin ficha técnica, no se generaron (hazlas a mano): ${sinFicha.join(", ")}.`
             : ""),
@@ -1131,7 +1163,7 @@ function ProductLabelFormInner({
       const res = await subirImagenBlobAEtiquetas(previa.blob, nombreArchivoPng(), {
         // Subcarpeta por categoría: así la etiqueta aparece dentro de su
         // categoría en Studio y no se mezcla con el catálogo viejo de la raíz.
-        carpeta: `ETIQUETAS STUDIO/${etiquetaCategoria(categoria)}`,
+        carpeta: `ETIQUETAS STUDIO/${nombreCategoria(categoria)}`,
         tipo_etiqueta: tipo?.nombre,
         ancho_mm: previa.anchoMm,
         alto_mm: previa.altoMm,
@@ -1173,7 +1205,7 @@ function ProductLabelFormInner({
    *  "_digital" (los nombres son únicos en toda la biblioteca). */
   const nombreArchivoPngDigital = () => `${nombreArchivoPng().replace(/\.png$/i, "")}_digital.png`;
   const carpetaPublicacionesDigitales = () =>
-    `${CARPETA_PUBLICACIONES_DIGITALES}/${etiquetaCategoria(categoria)}`;
+    `${CARPETA_PUBLICACIONES_DIGITALES}/${nombreCategoria(categoria)}`;
 
   /** "Usar esta versión" en la ventana de desenfoque: sube el PNG desenfocado
    *  a PUBLICACIONES DIGITALES/<Categoría>. Lleva el mismo formato (mm, dpi)
@@ -1334,7 +1366,7 @@ function ProductLabelFormInner({
     return (
       <ElegirTamanoPlantilla
         categoriaId={entrada.nuevaPlantillaCategoria}
-        categoriaLabel={etiquetaCategoria(entrada.nuevaPlantillaCategoria)}
+        categoriaLabel={nombreCategoria(entrada.nuevaPlantillaCategoria)}
         tipos={tipos}
         tiposLoading={tiposLoading}
         yaUsados={(fichasTodas ?? [])
@@ -1358,7 +1390,7 @@ function ProductLabelFormInner({
     return (
       <ElegirProductoParaEtiqueta
         plantilla={plantillaDeEntrada}
-        categoriaLabel={etiquetaCategoria(plantillaDeEntrada.categoria || "")}
+        categoriaLabel={nombreCategoria(plantillaDeEntrada.categoria || "")}
         onVolver={onVolver}
         onElegir={(codigo) => void crearEtiquetaDesdePlantilla(plantillaDeEntrada, codigo)}
       />
@@ -1441,7 +1473,7 @@ function ProductLabelFormInner({
             title="Este formato pasa a ser la plantilla de su categoría"
             className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
           >
-            Usar como plantilla de «{etiquetaCategoria(categoria)}»
+            Usar como plantilla de «{nombreCategoria(categoria)}»
           </button>
         )}
 
@@ -2050,7 +2082,7 @@ function ProductLabelFormInner({
 
       {loteAbierto && (
         <LotePorCategoria
-          categoriaLabel={etiquetaCategoria(categoria)}
+          categoriaLabel={nombreCategoria(categoria)}
           seleccion={loteSeleccion}
           onSeleccionChange={setLoteSeleccion}
           progreso={loteProgreso}

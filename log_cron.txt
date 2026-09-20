@@ -9594,3 +9594,595 @@ reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reau
 reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
 [auditor_canales 2026-09-19T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (684 min), +57 320 829 9760 (682 min), +57 300 999 0001 (626 min), +57 300 111 2244 (626 min), +57 300 111 2235 (626 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-19T02:00:03] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (684 min), +57 320 829 9760 (682 min), +57 300 999 0001 (626 min), +57 300 111 2244 (626 min), +57 300 111 2235 (626 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T03:17:54] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (719 min), +57 320 829 9760 (717 min), +57 300 999 0001 (661 min), +57 300 111 2244 (661 min), +57 300 111 2235 (661 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T03:17:54] 7 cliente(s) de WhatsApp esperando respuesta: +57 301 922 9626 (719 min), +57 320 829 9760 (717 min), +57 300 999 0001 (661 min), +57 300 111 2244 (661 min), +57 300 111 2235 (661 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T03:17:54] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (704 min), +57 300 111 2244 (704 min), +57 300 111 2235 (704 min), +57 300 111 2233 (704 min), +57 321 550 3319 (432 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T03:17:54] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (704 min), +57 300 111 2244 (704 min), +57 300 111 2235 (704 min), +57 300 111 2233 (704 min), +57 321 550 3319 (432 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T03:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (716 min), +57 300 111 2244 (716 min), +57 300 111 2235 (716 min), +57 300 111 2233 (716 min), +57 321 550 3319 (444 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T03:30:04] 5 cliente(s) de WhatsApp esperando respuesta: +57 300 999 0001 (716 min), +57 300 111 2244 (716 min), +57 300 111 2235 (716 min), +57 300 111 2233 (716 min), +57 321 550 3319 (444 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T04:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (474 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T04:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (474 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T04:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (504 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T04:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (504 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T05:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (534 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T05:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (534 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T05:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (564 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T05:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (564 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T06:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (594 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T06:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (594 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+🔎 Auto-posteando contabilidad 2026-09-09 → 2026-09-19…
+✅ Token de Mercado Libre refrescado exitosamente.
+   0 creado(s), 591 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T06:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (624 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T06:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (624 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+🗺️  Actualizando cobertura geográfica MeLi (departamento/municipio)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+   Órdenes revisadas: 599 | Envíos nuevos consultados: 60 | Resueltos: 40 | Sin resolver: 0 | Aún no despachados: 20
+   Total municipios acumulados: 172
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T07:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (654 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T07:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (654 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 turno(s) del agente con error en 30 min (0 frenados/corregidos por el supervisor).
+INFO: Consultando combos activos en SIIGO…
+INFO: Fichas técnicas cargadas: 173
+INFO: Combo SIIGO omitido sin precio público: C-ACEESEBER5mL ACEITE ESENCIAL BERGAMOTA 5 mL
+INFO: Combo SIIGO omitido sin precio público: C-AGUROS250mL AGUA DE ROSAS 250 mL
+INFO: Combo SIIGO omitido sin precio público: C-HARPAN00Kg HARINA DE PANADERIA KG
+INFO: SKU extra MeLi/web incorporado: GTRVDR10ML12UN
+INFO: SKU extra MeLi/web incorporado: GTRVDR50mL
+INFO: SKU extra MeLi/web incorporado: ARCRJ250g
+INFO: SKU extra MeLi/web incorporado: KTBKRLAB
+INFO: SKU extra MeLi/web incorporado: RVVD15CM
+INFO: SKU extra MeLi/web incorporado: TSSCC500mL
+INFO: SKU extra MeLi/web incorporado: CCHMZCPLS30UN
+INFO: SKU extra MeLi/web incorporado: OILESNLMN5mL
+INFO: SKU extra MeLi/web incorporado: LHST100G
+INFO: SKU extra MeLi/web incorporado: OILESNCLV5mL
+INFO: SKU extra MeLi/web incorporado: ACLCTGLC30mL
+INFO: SKU extra MeLi/web incorporado: SBCRD150g
+INFO: SKU extra MeLi/web incorporado: GTRVDR100ML
+INFO: SKU extra MeLi/web incorporado: OLTKLt
+INFO: SKU extra MeLi/web incorporado: ALMYCKG
+INFO: SKU extra MeLi/web incorporado: VSLKG
+INFO: SKU extra MeLi/web incorporado: OILESNATJJB
+INFO: SKU extra MeLi/web incorporado: CRBCA500g
+INFO: SKU extra MeLi/web incorporado: AGTMGNPLN
+INFO: SKU extra MeLi/web incorporado: KTESPLAB
+INFO: SKU extra MeLi/web incorporado: MNTMNG120g
+INFO: SKU extra MeLi/web incorporado: SCR250G
+INFO: SKU extra MeLi/web incorporado: OILSMLUNW
+INFO: SKU extra MeLi/web incorporado: SBRVN100G
+INFO: SKU extra MeLi/web incorporado: KTBKRPRB
+INFO: SKU extra MeLi/web incorporado: ACDFMRLB
+INFO: SKU extra MeLi/web incorporado: H2ORS250mL
+INFO: SKU extra MeLi/web incorporado: CRBACT500g
+INFO: SKU extra MeLi/web incorporado: OILESNRS5mL
+INFO: SKU extra MeLi/web incorporado: ACDBNZ100G
+INFO: SKU extra MeLi/web incorporado: ACDFMRKG
+INFO: SKU extra MeLi/web incorporado: OILESNPN5mL
+INFO: SKU extra MeLi/web incorporado: OILESNHB5mL
+INFO: SKU extra MeLi/web incorporado: OILESNTML5mL
+INFO: SKU extra MeLi/web incorporado: OILESNALB5mL
+INFO: SKU extra MeLi/web incorporado: BKR30ML
+INFO: SKU extra MeLi/web incorporado: ACDBRCLB
+INFO: SKU extra MeLi/web incorporado: GLTMNSLB
+INFO: SKU extra MeLi/web incorporado: PRTASLSYKG
+INFO: SKU extra MeLi/web incorporado: GTRVDRAZL5ML
+INFO: SKU extra MeLi/web incorporado: GTRVDRAMB60mL
+INFO: SKU extra MeLi/web incorporado: ELSORT316
+INFO: SKU extra MeLi/web incorporado: GMARB500g
+INFO: SKU extra MeLi/web incorporado: EXTGLCLVN60ML
+INFO: SKU extra MeLi/web incorporado: OILMNRLt
+INFO: SKU extra MeLi/web incorporado: OILNM60mLOLTKLT
+INFO: SKU extra MeLi/web incorporado: AGDSTgL
+INFO: SKU extra MeLi/web incorporado: SBRJLP100G
+INFO: SKU extra MeLi/web incorporado: C-TEGBETLt
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL0AZUBLA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPVACGEL00TRA1000Un
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0TRA1000UN
+INFO: SKU extra MeLi/web incorporado: C-CAPGELVAC0VERBLA1000UN
+INFO: Fotos/precios MeLi por SKU: 199 exactos, 18 alias, 61 sin publicación vinculable
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+INFO: Catálogo web solo MeLi: 222/278 combos SIIGO tienen publicación (se ocultan 56)
+INFO: Catálogo listo: 21 categorías, 179 fichas (32 con varias presentaciones), 222 combos SIIGO
+INFO: Cache guardado en disco
+🔎 Comparando precio vivo de MeLi vs Siigo por SKU…
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 1/3): {"message":"Rate limiter grant_type refresh_token was exceeded","error":"too_many_requests","status":429,"cause":[]}
+⚠️ OAuth MeLi transitorio HTTP 429 (intento 2/3): {"message":"local_rate_limited","status":429}
+
+✅ Token de Mercado Libre refrescado exitosamente.
+   31 SKU(s) con precio distinto entre MeLi y Siigo.
+   Aplicados: 12 | Sospechosos (>2×): 19
+✅ Reporte enviado a WhatsApp con éxito.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Auditoría scripts: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+🔎 Buscando canceladas MeLi (últimos 90 días, margen 48.0h)…
+✅ Token de Mercado Libre refrescado exitosamente.
+   151 órdenes canceladas en la ventana.
+   4325 facturas (Siigo+Alegra) en la ventana.
+   Índice de conciliación Ventas/Facturación actualizado (3485 packs con factura).
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71423 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71328 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71288 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-71049 (Siigo, solo lectura): queda para el contador, no se reintenta.
+   ⏸  FV-2-69688 (Siigo, solo lectura): queda para el contador, no se reintenta.
+Resumen: 0 emitidas, 0 ya tenían NC (sin acción), 0 errores.
+   10 factura(s) Siigo cancelada(s) quedan para el contador (Siigo en solo lectura): FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71423 ($75,741), FV-2-71328 ($20,489), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71288 ($77,494), FV-2-71049 ($22,574), FV-2-69688 ($239,800)
+✅ Sin novedades que reportar (nada emitido, nada roto).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T07:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (684 min), +57 305 719 2313 (42 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T07:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (684 min), +57 305 719 2313 (42 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Revisando facturación MeLi de los últimos 30 día(s)…
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   10 caso(s) con problema · 10 nuevo(s) en esta corrida.
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+   🎫 Ticket #1583 creado en el Centro de Mando: *Revisión facturación MeLi — 2026-09-19* (10 caso(s)).
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+✅ Centro de Mando (tickets DB) inicializado
+[tickets-notif] Enviado a usuario 10 (573182…)
+[tickets-notif] Enviado a usuario 10 (573182…)
+   🤖 10 sugerencia(s) de IA agregadas como comentario.
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  RA: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Certificados de retención: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T08:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (714 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T08:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 321 550 3319 (714 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Monitor importaciones: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Compliance MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T08:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (36 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T08:30:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (36 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+precios_trm: TRM 3,192.92 · catálogo 437 · propuestas 319 (suben 319, bajan 0) · anclas nuevas 0 · reancladas 0
+✅ Reporte enviado a WhatsApp con éxito.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T09:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (66 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T09:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (66 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+⏭  Sin novedades para 2026-09.
+⏭  Hoy (día 19) no es día de pago de nómina (15 o fin de mes).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (96 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T09:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (96 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T10:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (126 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T10:00:04] 1 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (126 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T10:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (156 min), +57 312 413 1450 (23 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T10:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (156 min), +57 312 413 1450 (23 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T11:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (186 min), +57 312 413 1450 (53 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+[auditor_canales 2026-09-19T11:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (186 min), +57 312 413 1450 (53 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 20 veces en 30 min.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T11:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (216 min), +57 312 413 1450 (83 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T11:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (216 min), +57 312 413 1450 (83 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T12:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (246 min), +57 312 413 1450 (113 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T12:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (246 min), +57 312 413 1450 (113 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+🔎 Auto-posteando contabilidad 2026-09-09 → 2026-09-19…
+✅ Token de Mercado Libre refrescado exitosamente.
+   13 creado(s), 591 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T12:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (276 min), +57 312 413 1450 (143 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T12:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (276 min), +57 312 413 1450 (143 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 2 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T13:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (306 min), +57 312 413 1450 (173 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T13:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (306 min), +57 312 413 1450 (173 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde. | 1 adjunto(s) de clientes no se pudieron descargar en 30 min (revisar en el teléfono).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T13:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (336 min), +57 312 413 1450 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T13:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (336 min), +57 312 413 1450 (203 min) | 20 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T14:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (366 min), +57 312 413 1450 (233 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T14:00:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (366 min), +57 312 413 1450 (233 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T14:30:05] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (396 min), +57 312 413 1450 (263 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T14:30:05] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (396 min), +57 312 413 1450 (263 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Sincronización de precios MeLi: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+[auditor_canales 2026-09-19T15:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (426 min), +57 312 413 1450 (293 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T15:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (426 min), +57 312 413 1450 (293 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Sin pedidos pagados recientes con aviso pendiente.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T15:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (456 min), +57 312 413 1450 (323 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T15:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (456 min), +57 312 413 1450 (323 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+reenvio_alertas_banco: ERROR GmailAuthError: No hay token de Gmail válido. Reautoriza con: source venv/bin/activate && python3 scripts/reautorizar_gmail.py
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-19T16:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (486 min), +57 312 413 1450 (353 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 21 veces en 30 min. | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+[auditor_canales 2026-09-19T16:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (486 min), +57 312 413 1450 (353 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde. | La sincronización de chats del panel falló 21 veces en 30 min. | 1 turno(s) del agente con error en 30 min (1 frenados/corregidos por el supervisor).
+reenvio_alertas_banco: enviados=2 omitidos=0 destino=23jenniffergarcia@gmail.com activo=True
+  [enviado] abono: listo! todo salio bien con tus movimientos bancolombia: recibiste $115500.00 por qr de ancisar agudelo hernand
+  [enviado] abono: listo! todo salio bien con tus movimientos bancolombia: recibiste $50000.00 por qr de jose jair mejia en tu cu
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-19T16:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (516 min), +57 312 413 1450 (383 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T16:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (516 min), +57 312 413 1450 (383 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-19T17:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (546 min), +57 312 413 1450 (413 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T17:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (546 min), +57 312 413 1450 (413 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T17:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (576 min), +57 312 413 1450 (443 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T17:30:04] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (576 min), +57 312 413 1450 (443 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[2026-09-19T18:41:14] resumen_actividad_sede_sur: 30 eventos hoy
+📋 *Resumen del día — SEDE SUR*
+Hoy: 5 nuevas · 11 completadas · 4 iniciadas
+
+*Por persona:*
+• Jenniffer Garcia: 1 nueva, 8 completadas
+• Gloria Stella: 3 nuevas, 3 completadas
+• Administrador: 1 nueva, 0 completadas
+
+Detalle en vivo: https://bot.mckennagroup.co/app
+✅ Reporte enviado a WhatsApp con éxito.
+✅ Resumen enviado al grupo SEDE SUR
+[auditor_canales 2026-09-19T18:41:29] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (647 min), +57 312 413 1450 (514 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T18:41:29] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (647 min), +57 312 413 1450 (514 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T18:41:29] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (647 min), +57 312 413 1450 (514 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T18:41:29] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (647 min), +57 312 413 1450 (514 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+🔎 Auto-posteando contabilidad 2026-09-09 → 2026-09-19…
+✅ Token de Mercado Libre refrescado exitosamente.
+   12 creado(s), 604 omitido(s) (ya existían), 0 fuente(s) sin mapeo, 0 error(es).
+✅ Reporte enviado a WhatsApp con éxito.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-19T19:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (666 min), +57 312 413 1450 (533 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T19:00:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (666 min), +57 312 413 1450 (533 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+# Auditoría de calidad — Muestra de turnos
+
+## 1. Problemas principales detectados
+
+**A. Precios sin trazabilidad clara a herramienta del turno**
+Ejemplo [1]: el agente da precios de Manteca de Karité Blanca marcados como error por el supervisor ("mencionas precios que no salen de las herramientas de este turno"). Aunque usó `buscar_producto`, no queda claro que el precio mostrado corresponda a esa consulta específica (posible reutilización de contexto/caché de turnos anteriores, ver ejemplo [6] con los mismos precios).
+
+**B. Mensajes duplicados al derivar a asesor**
+Ejemplos [7] y [12]: el agente repite casi textualmente el mismo párrafo ("un asesor le escribirá...", "quedó registrado...") dos veces en la misma respuesta. Se ve como un error de generación, no de contenido.
+
+**C. Imprecisión de horarios y repetición de datos ya conocidos**
+Ejemplo [2]: fuera de horario (sábado), el agente da a entender algo como "le escribirán apenas abran" en vez de indicar el día concreto (lunes), y vuelve a pedir ciudad cuando ya estaba en el pedido #43. Rompe la regla de "no repetir preguntas" y la de precisión en tiempos.
+
+**D. Categoría "Conservantes" sistemáticamente ausente del catálogo**
+Ejemplos [3], [4], [5]: cada vez que el cliente pide "conservantes" el agente no encuentra nada y pide nombre químico. Se repite en 3 turnos distintos, sugiriendo que es un vacío real de catálogo/sinónimos, no un caso aislado.
+
+**E. Manejo ambiguo de pedidos industriales/fuera de especificación**
+Ejemplo [7]: el cliente pide un insumo técnico específico (Caolín Calcinado Micronizado, D50 2-5 micras, formato bulto). El agente ofrece precios de presentaciones que explícitamente no cumplen el requerimiento (y están agotadas), lo cual puede confundir sobre si eso es lo que se está cotizando.
+
+## 2. Correcciones propuestas (sin aplicar)
+
+- **A:** Regla de supervisor: exigir que todo precio mostrado esté vinculado a un `buscar_producto` ejecutado en el turno actual (evitar reutilizar resultados de turnos previos, aunque el producto ya se haya buscado antes en la sesión).
+- **B:** Instrucción: al invocar `pasar_a_asesor`, generar un único mensaje de cierre (plantilla fija), no reconstruir el resumen dos veces en la misma respuesta.
+- **C:** Instrucción: cuando esté fuera de horario, calcular y mencionar el próximo día hábil explícito ("le escribiremos el lunes"), nunca frases vagas tipo "apenas abran". Regla adicional: antes de pedir datos de contacto/ubicación, verificar `ver_pedido` para no repetir campos ya guardados.
+- **D:** Agregar al catálogo (o a un mapa de sinónimos) los conservantes disponibles con sus nombres comerciales/químicos habituales (cosgard, germaben, optiphen, sodium benzoate, etc.), o si McKenna no maneja esa categoría, dar una respuesta fija más clara ("no manejamos conservantes actualmente") en vez de pedir siempre el nombre específico.
+- **E:** Instrucción: cuando el cliente pida especificaciones técnicas/industriales que el catálogo web no cubre (bultos, grados de pureza, granulometría), no mostrar precios de presentaciones estándar que no cumplen el requisito; aclarar directamente que no hay coincidencia y pasar a asesor sin listar precios irrelevantes.
+
+## 3. Calificación general
+
+**7/10** — Buen manejo de derivación a asesor y catálogo en general, pero con fallas recurrentes de precisión (precios/horarios), redundancia de mensajes y un vacío de catálogo (conservantes) que se repite en varios turnos.
+✅ Reporte enviado a WhatsApp con éxito.
+## 1-2. Problemas detectados y corrección propuesta
+
+**A. Precios no verificados contra la herramienta en el turno actual**
+- Ejemplo: [1] el supervisor marca error porque los precios ($104.400, $170.100) no vienen de la llamada `buscar_producto` de ese turno. Sin embargo, en [6] se repiten exactamente los mismos precios para el mismo producto y no se marca error — indicio de que el agente está reutilizando precios de memoria/caché en vez de la respuesta fresca de la herramienta.
+- Corrección: reforzar la instrucción de "usar solo el resultado literal de la última llamada a `buscar_producto`/`ver_pedido` en el turno actual, nunca precios de turnos anteriores o de la conversación"; agregar una validación automática del supervisor que compare cadena de precios mostrada vs. output real de la tool de ese turno (no de todo el historial).
+
+**B. Manejo deficiente de fuera de horario y repetición de datos ya conocidos**
+- Ejemplo: [2] dice que "le escribirán apenas abran" estando fuera de horario (sábado), en vez de precisar "el lunes"; además pide ciudad cuando ya está en el pedido #43.
+- Corrección: instrucción explícita de calcular el próximo día hábil real y usarlo en el mensaje ("le escribiremos el lunes..."); regla de supervisor que obligue a llamar `ver_pedido`/perfil antes de solicitar cualquier dato, y solo pedir los campos faltantes (nombre, documento, dirección).
+
+**C. Mensajes duplicados/redundantes dentro de la misma respuesta**
+- Ejemplo: [7] y [12] — el agente repite casi textualmente dos veces "quedó registrado / un asesor le escribirá..." en el mismo turno.
+- Corrección: definir una plantilla única de cierre para `pasar_a_asesor` (una sola confirmación, sin repetir el párrafo); regla de estilo "no reiterar la misma información dos veces en un mismo mensaje".
+
+**D. Inconsistencia en la organización y precios del catálogo entre turnos consecutivos**
+- Ejemplo: [3], [4], [5] responden la misma solicitud ("Todas") con agrupamientos distintos (a veces "Aceites" y "Esencias" separados, a veces juntos) y con precios que no siempre coinciden en formato/orden.
+- Corrección: fijar una estructura estándar única de categorías en las instrucciones (orden y agrupación fija: Mantecas, Arcillas, Conservantes, Aceites, Esencias), y reutilizar la respuesta ya dada en la misma conversación si el cliente repite la pregunta, en vez de regenerar con variaciones.
+
+**E. Interpretación arriesgada de mensajes ambiguos sin pedir aclaración**
+- Ejemplo: [10] el agente asume sin evidencia clara que "TOTAL=85.500" es una notificación automática de Interrápidísimo, sin confirmar con el cliente.
+- Corrección: agregar regla de "ante mensajes ambiguos o fuera de patrón conocido, preguntar antes de etiquetar" (p. ej. "¿esto corresponde a una guía de envío o a un comprobante de pago?").
+
+## 3. Calificación general
+**6/10** — buen desempeño en catálogo/derivación a asesor, pero con fallas de precisión en precios, manejo de horarios y redundancia que afectan la confiabilidad.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-19T19:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (696 min), +57 312 413 1450 (563 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T19:30:03] 2 cliente(s) de WhatsApp esperando respuesta: +57 311 470 1287 (696 min), +57 312 413 1450 (563 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+⏭  Informe reposición: hoy (2026-09-19) no es el último día del mes.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T20:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (593 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T20:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (593 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-19T20:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (623 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T20:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (623 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+[auditor_canales 2026-09-19T21:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (653 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T21:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (653 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-19T21:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (683 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T21:30:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (683 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T22:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (713 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Reporte enviado a WhatsApp con éxito.
+[auditor_canales 2026-09-19T22:00:03] 1 cliente(s) de WhatsApp esperando respuesta: +57 312 413 1450 (713 min) | 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-19T22:30:03] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-19T22:30:03] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).

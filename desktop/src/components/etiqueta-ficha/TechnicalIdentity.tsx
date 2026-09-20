@@ -45,9 +45,14 @@ export default function TechnicalIdentity({
       onOpcion: onCasTituloChange,
     },
   ];
+  // En vista —lo que se imprime— una fila sin dato no se dibuja: una casilla
+  // «PUREZA:» en blanco parece un error de impresión. En edición se ven todas
+  // para poder llenarlas. Si no queda ninguna, el cuadro entero desaparece.
+  const visibles = editMode ? filas : filas.filter((f) => (f.value || "").trim());
+  if (visibles.length === 0) return null;
   return (
     <div className="grid w-full grid-cols-[auto_1fr] overflow-hidden rounded-[4px] border-[1.5px] border-[color:var(--acento)] text-center">
-      {filas.map((fila, i) => (
+      {visibles.map((fila, i) => (
         <div key={fila.key} className="contents">
           <div
             className={`flex min-h-[34px] items-center justify-center border-r-[1.5px] border-[color:var(--acento)] px-3 ${

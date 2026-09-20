@@ -351,30 +351,33 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
                 />
               </div>
             </div>
-            <div className="es-dato">
-              <button
-                type="button"
-                className="e30-celda-icono es-dato-icono mck-btn-no-fx"
-                disabled={!editable || !onIconChange}
-                onClick={() => setIconoAbierto("alergenos")}
-                title={editable ? "Cambiar ícono de alérgenos" : undefined}
-              >
-                <IconoCelda elegido={attributeIcons.alergenos} porDefecto="seguridad_atencion" />
-              </button>
-              <div className="es-dato-cuerpo">
-                <CampoEtiqueta
-                  valor={data.alergenos || ""}
-                  onChange={cambio("alergenos")}
-                  editMode={editMode}
-                  styleKey="es_alergenos"
-                  ejemplo={EJEMPLO_ETIQUETA.alergenos}
-                  tam={TAM_SIMPLE.dato}
-                  maxLineas={2}
-                  multilinea
-                  className="es-dato-texto es-alergenos"
-                />
+            {/* Sin alérgenos que declarar, la fila entera sobra: dejaba un ícono «!» suelto. */}
+            {(editMode || (data.alergenos || "").trim()) && (
+              <div className="es-dato">
+                <button
+                  type="button"
+                  className="e30-celda-icono es-dato-icono mck-btn-no-fx"
+                  disabled={!editable || !onIconChange}
+                  onClick={() => setIconoAbierto("alergenos")}
+                  title={editable ? "Cambiar ícono de alérgenos" : undefined}
+                >
+                  <IconoCelda elegido={attributeIcons.alergenos} porDefecto="seguridad_atencion" />
+                </button>
+                <div className="es-dato-cuerpo">
+                  <CampoEtiqueta
+                    valor={data.alergenos || ""}
+                    onChange={cambio("alergenos")}
+                    editMode={editMode}
+                    styleKey="es_alergenos"
+                    ejemplo={EJEMPLO_ETIQUETA.alergenos}
+                    tam={TAM_SIMPLE.dato}
+                    maxLineas={2}
+                    multilinea
+                    className="es-dato-texto es-alergenos"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

@@ -245,7 +245,7 @@
 .e5-tabla {
   width: 94%;
   margin-right: 6px;
-  grid-template-rows: repeat(2, 38px);
+  grid-auto-rows: 38px;
   border-width: 1.5px;
 }
 .e5-tabla .e30-tabla-campo {

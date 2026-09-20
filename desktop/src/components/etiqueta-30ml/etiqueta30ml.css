@@ -456,7 +456,9 @@
   display: grid;
   flex: none;
   grid-template-columns: 49% 51%;
-  grid-template-rows: repeat(2, 24px);
+  /* Filas automáticas, no `repeat(2, …)`: en vista la fila PUREZA sin dato no se
+     dibuja y la tabla debe medir lo que sus filas, no dejar un hueco bajo CAS. */
+  grid-auto-rows: 24px;
   width: 87%;
   border: 1.5px solid var(--acento);
 }

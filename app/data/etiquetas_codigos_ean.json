@@ -50,13 +50,14 @@
     {
       "id": "d3d649dedced",
       "sku": "C-COCDESHIL500g",
-      "nombre_producto": "COCOS DESHIDRATADO HILOS  500g",
+      "nombre_producto": "COCO DESHIDRATADO HILOS 500g",
       "numero_producto": 5,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700055002631",
-      "creado_at": "2026-07-09T02:36:50"
+      "creado_at": "2026-07-09T02:36:50",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "5c73ab9d69dc",
@@ -84,13 +85,14 @@
     {
       "id": "b2441d20b3e5",
       "sku": "C-CERABENAT500g",
-      "nombre_producto": "CERA DE ABEJAS NATRURAL 500g",
+      "nombre_producto": "CERA DE ABEJAS NATURAL 500g",
       "numero_producto": 8,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700085002632",
-      "creado_at": "2026-07-15T12:17:52"
+      "creado_at": "2026-07-15T12:17:52",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "d093bd665464",
@@ -264,13 +266,14 @@
     {
       "id": "59dfa4ca9348",
       "sku": "C-ACIASAL30mL",
-      "nombre_producto": "ACIDO SALICILICO 30mL",
+      "nombre_producto": "ACIDO SALICILICO 20% SOLUCION 30mL",
       "numero_producto": 24,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700240302638",
-      "creado_at": "2026-07-13T13:12:57"
+      "creado_at": "2026-07-13T13:12:57",
+      "actualizado_at": "2026-09-19T20:23:35"
     },
     {
       "id": "ec1b2114a46c",
@@ -330,13 +333,14 @@
     {
       "id": "15cdcbd52e3f",
       "sku": "C-FRALIP120mL",
-      "nombre_producto": "FREGANCIA LIPOSOLUBLE 120mL",
+      "nombre_producto": "FRAGANCIA LIPOSOLUBLE 120mL",
       "numero_producto": 30,
       "presentacion": "120",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700301202631",
-      "creado_at": "2026-07-13T22:54:32"
+      "creado_at": "2026-07-13T22:54:32",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "dcf92499f799",
@@ -534,13 +538,14 @@
     {
       "id": "04e7eef86a46",
       "sku": "C-ACEESECORCED5mL",
-      "nombre_producto": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+      "nombre_producto": "ACEITE ESENCIAL CORTEZA CEDRO 5mL",
       "numero_producto": 48,
       "presentacion": "005",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700480052638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T19:18:54"
     },
     {
       "id": "32255c17865a",
@@ -1433,13 +1438,14 @@
     {
       "id": "bbf5338e9e8e",
       "sku": "C-CITPOTKg",
-      "nombre_producto": "CITRATO POTASO Kg",
+      "nombre_producto": "CITRATO POTASIO Kg",
       "numero_producto": 129,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701290012638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "7a52d29321b0",
@@ -1510,13 +1516,14 @@
     {
       "id": "f3a3627d8585",
       "sku": "C-COLHID30mL",
-      "nombre_producto": "COLAGENO HIDROLIZADO 30mL",
+      "nombre_producto": "COLAGENO HIDROLIZADO COSMETICO 30mL",
       "numero_producto": 136,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701360302638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T20:23:35"
     },
     {
       "id": "88fe85b83291",
@@ -2342,13 +2349,14 @@
     {
       "id": "14c64348cb65",
       "sku": "C-SOR500mL",
-      "nombre_producto": "SORBITOL 500mL",
+      "nombre_producto": "SORBITOL LIQUIDO 500mL",
       "numero_producto": 211,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702115002636",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T20:23:35"
     },
     {
       "id": "23601aeaa900",
@@ -2485,13 +2493,14 @@
     {
       "id": "6138ffe3fc29",
       "sku": "C-TENSCIKg",
-      "nombre_producto": "TENSO ACTIVO SCI Kg",
+      "nombre_producto": "SCI Kg",
       "numero_producto": 224,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702240012630",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T19:41:35"
     },
     {
       "id": "b49fe916b1e5",

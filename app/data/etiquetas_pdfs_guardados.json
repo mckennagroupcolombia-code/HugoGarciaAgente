@@ -1,6 +1,34 @@
 {
   "archivos": [
     {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260919_090610.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090610.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090610.pdf",
+      "subido_at": "2026-09-19T09:06:10",
+      "bytes": 298713
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260919_090547.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090547.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090547.pdf",
+      "subido_at": "2026-09-19T09:05:48",
+      "bytes": 298713
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260919_090529.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090529.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090529.pdf",
+      "subido_at": "2026-09-19T09:05:29",
+      "bytes": 298713
+    },
+    {
+      "nombre": "ALMENDRA_NATURAL_500g_6.25x_20260919_090507.pdf",
+      "ruta": "Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090507.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ALMENDRA_NATURAL_500g_6.25x_20260919_090507.pdf",
+      "subido_at": "2026-09-19T09:05:07",
+      "bytes": 298713
+    },
+    {
       "nombre": "VITAMINA C 30 mL_20260918_121309.pdf",
       "ruta": "Etiquetas McKenna/VITAMINA C 30 mL_20260918_121309.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/VITAMINA C 30 mL_20260918_121309.pdf",
@@ -1370,34 +1398,6 @@
       "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_205134.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_205134.pdf",
       "subido_at": "2026-08-19T20:51:34",
-      "bytes": 367169
-    },
-    {
-      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204902.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204902.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204902.pdf",
-      "subido_at": "2026-08-19T20:49:02",
-      "bytes": 367169
-    },
-    {
-      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204843.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204843.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204843.pdf",
-      "subido_at": "2026-08-19T20:48:43",
-      "bytes": 367169
-    },
-    {
-      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204758.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204758.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204758.pdf",
-      "subido_at": "2026-08-19T20:47:58",
-      "bytes": 367169
-    },
-    {
-      "nombre": "MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204738.pdf",
-      "ruta": "Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204738.pdf",
-      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/MANTECA_KARITE_BLANCA_125g_6.25x_20260819_204738.pdf",
-      "subido_at": "2026-08-19T20:47:38",
       "bytes": 367169
     }
   ]

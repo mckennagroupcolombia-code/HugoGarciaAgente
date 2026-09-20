@@ -101,10 +101,10 @@ export default function ProductAttribute({
         marcoVisible
         styleKey={styleKey}
         defaultFontSize={14}
-        // Texto descriptivo justificado al ancho del cuadro; la última línea
-        // va centrada (un texto de una sola línea no se estira) y la
-        // separación silábica (lang="es" en la raíz de la ficha) evita
-        // huecos grandes entre palabras — justificado sin deformarse.
+        // Texto centrado con renglones equilibrados (`text-wrap: balance`).
+        // Antes iba justificado con la última línea centrada: en una celda
+        // tan angosta eso abría huecos entre palabras («Almacenar   en   un
+        // lugar   bien») y cada celda quedaba con un borde distinto.
         //
         // min-h de 3 renglones al tamaño por defecto (3 × 14 px × 1.22 ≈ 52):
         // el cuadro reserva ese alto siempre, así la ficha no crece —ni se
@@ -119,7 +119,15 @@ export default function ProductAttribute({
         //
         // Ancho completo de la celda (antes 92 % con tope 320 px) para que
         // quepan más palabras por renglón.
-        className="w-full min-h-[52px] break-words text-justify [text-align-last:center] hyphens-auto font-medium leading-[1.22] text-[#111111]"
+        //
+        // El alto reservado solo aplica EN EDICIÓN: ahí conviene ver el cuadro
+        // entero. En vista —que es lo que se imprime— el módulo mide lo que su
+        // texto y la celda lo centra en vertical; con el cuadro reservado, un
+        // valor de un renglón dejaba el bloque pegado arriba y un hueco abajo.
+        // Las filas no cambian de alto por esto: con formato elegido se
+        // reparten a partes iguales (FILAS_CUERPO_REPARTIDAS) y sin formato
+        // tienen un mínimo de 160 px.
+        className={`w-full ${editMode ? "min-h-[52px]" : ""} break-words text-center [text-wrap:balance] font-medium leading-[1.22] text-[#111111]`}
       />
     </div>
   );

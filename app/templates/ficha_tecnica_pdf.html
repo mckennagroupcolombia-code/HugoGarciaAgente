@@ -441,8 +441,8 @@ sub { font-size: 0.72em; vertical-align: sub; }
   {% include "_pdf_hdr_logo.html" %}
 </div>
 
-<!-- Meta: CAS / fecha / origen / fabricante -->
-{% if cas or fecha_revision or pais_origen or fabricante %}
+<!-- Meta: CAS / fecha / origen (el fabricante no se publica: solo país de origen) -->
+{% if cas or fecha_revision or pais_origen %}
 <table class="meta-table">
   <tr>
     <td>{% if cas %}<b>CAS:</b> {{ cas }}{% endif %}</td>
@@ -450,7 +450,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </tr>
   <tr>
     <td>{% if pais_origen %}<b>País de origen:</b> {{ pais_origen }}{% endif %}</td>
-    <td>{% if fabricante %}<b>Fabricante:</b> {{ fabricante }}{% endif %}</td>
+    <td></td>
   </tr>
 </table>
 {% endif %}

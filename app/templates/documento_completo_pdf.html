@@ -275,6 +275,9 @@ sub { font-size: 0.72em; vertical-align: sub; }
 </style>
 </head>
 <body>
+{% if borrador %}
+<div style="position:fixed; top:-0.9cm; left:0; right:0; text-align:center; font-size:7.5pt; letter-spacing:.12em; color:#B00020; font-weight:700;">BORRADOR · SIN VALIDEZ · PENDIENTE DE REVISIÓN DE CALIDAD</div>
+{% endif %}
 
 {# seccion_sola: 'ft' | 'coa' | 'sds' — omitir para documento completo #}
 {# ═══════════════════════════════════════════════════════
@@ -303,7 +306,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if ft.cas or ft.pais_origen or ft.fabricante or ft.lote or ft.concentracion or ft.grado or ft.hs_code %}
+  {% if ft.cas or ft.pais_origen or ft.lote or ft.concentracion or ft.grado or ft.hs_code %}
   <table class="meta-table">
     <tr>
       <td>{% if ft.cas %}<b class="mono-lbl">N° CAS</b> <span class="mono-val">{{ ft.cas }}</span>{% endif %}</td>
@@ -315,9 +318,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
       <td>{% if ft.hs_code %}<b class="mono-lbl">Cód. arancelario</b> <span class="mono-val">{{ ft.hs_code }}</span>{% endif %}</td>
       <td>{% if ft.lote %}<b class="mono-lbl">Lote</b> <span class="mono-val">{{ ft.lote }}</span>{% endif %}</td>
     </tr>
-    {% if ft.fabricante %}
-    <tr><td colspan="3"><b class="mono-lbl">Fabricante</b> <span class="mono-val">{{ ft.fabricante }}</span></td></tr>
-    {% endif %}
   </table>
   {% endif %}
 
@@ -465,7 +465,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
     </div>
   </div>
 
-  {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.fabricante %}
+  {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.pais_origen %}
   {% set nco.i = nco.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Trazabilidad de lote</span></div>
@@ -476,7 +476,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if coa.vida_util %}<div class="kv-row"><div class="kv-key">Vida útil</div><div class="kv-val">{{ coa.vida_util }}</div></div>{% endif %}
       {% if coa.tamano_lote %}<div class="kv-row"><div class="kv-key">Tamaño del lote</div><div class="kv-val">{{ coa.tamano_lote }}</div></div>{% endif %}
       {% if coa.pais_origen %}<div class="kv-row"><div class="kv-key">País de origen</div><div class="kv-val">{{ coa.pais_origen }}</div></div>{% endif %}
-      {% if coa.fabricante %}<div class="kv-row"><div class="kv-key">Fabricante original</div><div class="kv-val">{{ coa.fabricante }}</div></div>{% endif %}
       {% if coa.fecha_analisis %}<div class="kv-row"><div class="kv-key">Fecha de análisis</div><div class="kv-val mono">{{ coa.fecha_analisis }}</div></div>{% endif %}
       {% if coa.fecha_emision %}<div class="kv-row"><div class="kv-key">Fecha de emisión</div><div class="kv-val mono">{{ coa.fecha_emision }}</div></div>{% endif %}
     </div>
@@ -553,6 +552,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   <div class="dictamen"><b>Dictamen:</b> {{ coa.dictamen }}</div>
   {% endif %}
 
+  {% if not borrador %}
   <div class="coa-firma">
     <div class="coa-firma-box">
       <div class="coa-firma-lbl">Revisado y aprobado por</div>
@@ -567,6 +567,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if coa.firma_organizacion %}<div class="coa-firma-org">{{ coa.firma_organizacion }}</div>{% endif %}
     </div>
   </div>
+  {% endif %}
 
   {% if coa.codigo_verificacion %}
   <div class="cod-verif"><b>Código de verificación:</b> {{ coa.codigo_verificacion }}</div>

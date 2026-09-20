@@ -99,26 +99,32 @@ export default function CenterProductPanel({
           />
         </p>
         <div className="e30-tabla">
-          <div className="e30-tabla-campo e30-tabla-fila1">
-            <EditableLabel
-              texto="PUREZA:"
-              editMode={editMode}
-              styleKey="e30_concentrationTitulo"
-              defaultFontSize={13}
-            />
-          </div>
-          <div className="e30-tabla-valor e30-tabla-fila1">
-            <CampoEtiqueta
-              as="span"
-              valor={data.concentration || ""}
-              onChange={cambio("concentration")}
-              editMode={editMode}
-              styleKey="e30_concentration"
-              ejemplo={EJEMPLO_30ML.concentration}
-              tam={TAM_30ML.tabla}
-              maxLineas={1}
-            />
-          </div>
+{/* En vista —lo que se imprime— la fila PUREZA sin dato no se dibuja (una casilla en
+              blanco parece un error de impresión); en edición sí, para poder llenarla. */}
+          {(editMode || (data.concentration || "").trim()) && (
+            <>
+            <div className="e30-tabla-campo e30-tabla-fila1">
+              <EditableLabel
+                texto="PUREZA:"
+                editMode={editMode}
+                styleKey="e30_concentrationTitulo"
+                defaultFontSize={13}
+              />
+            </div>
+            <div className="e30-tabla-valor e30-tabla-fila1">
+              <CampoEtiqueta
+                as="span"
+                valor={data.concentration || ""}
+                onChange={cambio("concentration")}
+                editMode={editMode}
+                styleKey="e30_concentration"
+                ejemplo={EJEMPLO_30ML.concentration}
+                tam={TAM_30ML.tabla}
+                maxLineas={1}
+              />
+            </div>
+            </>
+          )}
           <div className="e30-tabla-campo">
             <EditableLabel
               texto={`${data.casTitulo || TITULOS_CAS[0]}:`}

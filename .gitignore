@@ -205,3 +205,7 @@ desktop/public/assets/ocr/
 # Entregas Flex MeLi (se regenera con scripts/entregas_flex_cron.py --dias 90 --forzar)
 app/data/entregas_flex.db
 app/data/entregas_flex.db-*
+# Candado y copia previa del almacén de etiquetas (app/tools/etiquetas_fichas.py)
+app/data/etiquetas_fichas.lock
+app/data/etiquetas_fichas.json.bak
+app/data/etiquetas_fichas.json.tmp*

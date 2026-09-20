@@ -628,8 +628,9 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         identidad_out.append(["FECHA DE REVISIÓN", _formatear_fecha_revision(fecha)])
     if pais_origen:
         identidad_out.append(["PAÍS DE ORIGEN", pais_origen])
-    if fabricante:
-        identidad_out.append(["FABRICANTE", fabricante])
+    # El fabricante NO se publica en ningún documento (decisión del negocio,
+    # 2026-09-19): hacia afuera solo va el país de origen. El dato se conserva en
+    # el YAML porque la trazabilidad interna de lotes lo usa (lotes_materia_prima).
 
     comp_rows = _filas_tabla(d.get("composicion"))
     comp_labels = {_normalizar(r[0]) for r in comp_rows if r}
@@ -1150,7 +1151,6 @@ def _contexto_html(
     sinonimos = (d.get("sinonimos") or "").strip()
     cas = (d.get("cas") or "").strip()
     pais_origen = (d.get("pais_origen") or "").strip()
-    fabricante = (d.get("fabricante") or "").strip()
     fecha = _formatear_fecha_revision(d.get("fecha_revision") or "")
     from app.services.documento_cientifico import _asegurar_punto_final
     descripcion = _asegurar_punto_final((d.get("descripcion") or "").strip())
@@ -1276,7 +1276,8 @@ def _contexto_html(
         "sinonimos": sinonimos,
         "cas": cas,
         "pais_origen": pais_origen,
-        "fabricante": fabricante,
+        # Nunca llega a una plantilla (PDF ni web): solo país de origen.
+        "fabricante": "",
         "fecha_revision": fecha,
         "descripcion": descripcion,
         "propiedades": propiedades_fijas,
@@ -1423,7 +1424,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "vida_util": (lote.get("vida_util") or "").strip(),
         "tamano_lote": (lote.get("tamano_lote") or "").strip(),
         "pais_origen": (lote.get("pais_origen") or "").strip(),
-        "fabricante": (lote.get("fabricante") or "").strip(),
+        "fabricante": "",  # no se publica; ver normalizar_datos_ficha
         "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
         "fecha_emision": (lote.get("fecha_emision") or "").strip(),
         "parametros": filas,
@@ -1451,7 +1452,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
 _COA_CAMPOS_EXCLUSIVOS = (
     "concentracion", "presentacion", "incluye",
     "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
-    "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
+    "pais_origen", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
     "firma_nombre", "firma_cargo", "firma_organizacion", "firma_imagen_src",
     "codigo_verificacion", "dictamen",
@@ -1622,8 +1623,13 @@ def generar_pdf_completo(
     *,
     cabezote_id: str | None = None,
     salida: Path | None = None,
+    borrador: bool = False,
 ) -> dict:
-    """Genera un PDF unificado FT + COA + SDS desde datos de formulario."""
+    """Genera un PDF unificado FT + COA + SDS desde datos de formulario.
+
+    `borrador=True` es para vistas previas de documentos que Calidad aún no
+    revisó: sale sin la firma del COA y con una banda «BORRADOR» en cada página.
+    Un certificado sin resultados de lote no puede circular firmado."""
     from jinja2 import Environment, FileSystemLoader
     from weasyprint import HTML
 
@@ -1641,7 +1647,7 @@ def generar_pdf_completo(
     coa_ctx = _contexto_coa(datos_coa) if datos_coa else None
     if coa_ctx and not _coa_diligenciado(coa_ctx):
         coa_ctx = None
-    elif coa_ctx:
+    elif coa_ctx and not borrador:
         coa_ctx = _con_firma_default(coa_ctx)
     sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
 
@@ -1673,6 +1679,7 @@ def generar_pdf_completo(
         ft=ft_ctx,
         coa=coa_ctx,
         sds=sds_ctx,
+        borrador=borrador,
     )
 
     HTML(string=html_str, base_url=str(tpl_dir)).write_pdf(str(destino))

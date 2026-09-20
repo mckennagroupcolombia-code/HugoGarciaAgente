@@ -160,7 +160,7 @@
       "ultimo_mensaje": "Que tienen nuevamente carb\u00f3n activado para consumo humano"
     }
   },
-  "bot_global_activo": false,
+  "bot_global_activo": true,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

@@ -127,8 +127,10 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           <path id={idCiudad} fill="none" d={arcoTexto(centro, rAnillo - sepArco, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
         </defs>
 
-        <circle className="ec-borde-exterior" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
-        <circle className="ec-borde-interior" cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
+        {/* fill="none" como ATRIBUTO: al rasterizar (html-to-image) se pierde el CSS de
+            la clase y un <circle> sin relleno explícito sale negro, tapando toda la etiqueta. */}
+        <circle className="ec-borde-exterior" fill="none" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
+        <circle className="ec-borde-interior" fill="none" cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
 
         <TextoCurvo
           idPath={idTitulo}
