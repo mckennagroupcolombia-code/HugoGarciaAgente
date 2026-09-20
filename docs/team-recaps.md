@@ -1,3 +1,12 @@
+### 2026-09-20 - Bolsas para cultivo de hongos: SKU propio en vez de los `AS-43` / `AS-44` heredados
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)
+- **Qué se implementó:**
+  - `AS-44` en Alegra es «COLLAR DE PERRO EN CUERO RAZA MEDIANA» (id 222) y en MeLi lo llevaba «Bolsas Para Setas Bolsas Para Cultivo De Hongos» (MCO1340299743, 7 vendidas): una venta se habría facturado como collar a $58.000. Código heredado de astroselling. `AS-43` (MCO1915649374, «Bolsas Cultivo Hongos», 1 vendida) no existía en Alegra. Las dos publicaciones son el mismo producto: paquete de 60 bolsas con filtro de 0,2 micras, $209.000, ambas pausadas sin existencias.
+  - Armando pidió un SKU propio → `BLSCULHON60Un` «BOLSAS CULTIVO HONGOS FILTRO 0.2 MICRAS X 60 UN» (Alegra id 636, producto simple, unidad, $209.000 = precio MeLi, IVA 19 %). Asignado a las dos publicaciones (SELLER_SKU y custom field, verificado releyendo MeLi). Ninguna está en Sheets. `agente-pro` y `webhook-meli` reiniciados.
+- **Pendiente:** el costo quedó en $0 (no hay factura de compra en el historial); cargarlo cuando se vuelvan a comprar. El collar `AS-44` sigue activo en Alegra sin publicación que lo use. `C-COL50g` sigue esperando decisión.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
 ### 2026-09-20 - Celulosa microcristalina: dos referencias (101 y 102), cada una con su ficha, código y etiqueta
 - **Autor:** Armando García
 - **Tipo de Cambio:** Documentos técnicos + códigos de barras + etiquetas
