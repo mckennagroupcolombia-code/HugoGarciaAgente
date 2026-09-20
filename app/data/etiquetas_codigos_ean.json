@@ -2823,6 +2823,17 @@
       "codigo": "7702530012647",
       "creado_at": "2026-09-20T01:18:19",
       "actualizado_at": "2026-09-20T01:19:44"
+    },
+    {
+      "id": "9066d04bbad9",
+      "sku": "C-POLTWE20P250mL",
+      "nombre_producto": "POLISORBATO TWEEN 20 250mL",
+      "numero_producto": 254,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702542502648",
+      "creado_at": "2026-09-20T02:02:25"
     }
   ]
 }

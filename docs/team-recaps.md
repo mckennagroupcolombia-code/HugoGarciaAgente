@@ -1,3 +1,14 @@
+### 2026-09-20 - Polisorbato Tween 20 de 250 mL: combo propio + emparejador de fichas que distingue números
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / web / etiquetas) + corrección de bug
+- **Qué se implementó:**
+  - Las publicaciones de 250 mL (MCO1910972470, 85 vendidas) y 500 mL compartían el SKU `C-POLTWE20P500mL`: cada venta de 250 mL se facturaba como 500 mL y descontaba 500 g y el envase de 500 cc (~21 kg de polisorbato descontados de más en Alegra, pendiente de ajuste de inventario).
+  - Receta aprobada por Armando → combo `C-POLTWE20P250mL` (Alegra id 631, $26.500 = precio MeLi, IVA 19 %): 250 `POLTWE20Pg`, `ENVBTR250cc`, tapa 38 mm, liner, copa, bolsa 12x20, etiqueta 3x2,625, térmica, 2 burbuja, vinipel, 2 operativos mínimos.
+  - SKU cambiado en MeLi y Sheets; código de barras 7702542502648 (n.º 254); etiqueta 250 mL generada con el flujo de lote; catálogo web reconstruido (180 productos, familia «Polisorbato Tween 20» con 250 y 500 mL; de paso entraron `C-MANCACNAT500g` y `C-HARPAN00Kg`) y stock web cargado desde MeLi (8 / 0 / 0). `agente-pro` y `webhook-meli` reiniciados; `resolver_producto_venta_alegra` resuelve el SKU nuevo.
+  - **Bug encontrado al revisar la etiqueta:** salió con nombre y CAS del **Tween 80**. `fichaTecnicaMatch.ts` descarta los números sueltos como presentación, así que «TWEEN 20» y «TWEEN 80» puntuaban igual y ganó el borrador del 80 creado el 19-sep. Nuevo `numerosEnConflicto()`: si los dos títulos traen número suelto y ninguno coincide, la candidata se descarta (si solo uno lo trae no se afirma nada). Etiqueta rehecha y verificada (POLISORBATO 20, CAS 9005-64-5). Panel recompilado.
+- **Pendiente:** la misma regla destapó `C-CELMIC101500g` «CELULOSA MICROCRISTALINA 101 500g», cuya etiqueta dice «A 102» (solo existe ficha técnica del grado 102): confirmar qué grado se vende. Ajuste de inventario del polisorbato. Siguen `AS-44` y `C-COL50g`.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `app/data/etiquetas_codigos_ean.json`, `app/data/etiquetas_fichas.json` (no versionado), `PAGINA_WEB/site/data/{cache,stock_web,catalogo_extra_siigo,origen_materias}.json`, `docs/team-recaps.md`
+
 ### 2026-09-20 - Goma arábiga: publicaciones eliminadas en MeLi
 - **Autor:** Armando García
 - **Tipo de Cambio:** Saneamiento de publicaciones (Mercado Libre)

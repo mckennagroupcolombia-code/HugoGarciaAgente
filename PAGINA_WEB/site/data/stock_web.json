@@ -1177,7 +1177,7 @@
   },
   "C-MANCACNAT500G": {
     "stock": 0,
-    "updated_at": "2026-08-09T05:06:34.854608"
+    "updated_at": "2026-09-20T02:06:58.183519"
   },
   "C-CERABENAT500G": {
     "stock": 0,
@@ -2254,5 +2254,13 @@
   "C-ALBHUE500G": {
     "stock": 2,
     "updated_at": "2026-09-19T05:45:19.137927"
+  },
+  "C-POLTWE20P250ML": {
+    "stock": 8,
+    "updated_at": "2026-09-20T02:06:57.922370"
+  },
+  "C-HARPAN00KG": {
+    "stock": 0,
+    "updated_at": "2026-09-20T02:06:58.053739"
   }
 }

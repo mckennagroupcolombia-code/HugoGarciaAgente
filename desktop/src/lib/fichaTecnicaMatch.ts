@@ -36,6 +36,26 @@ export function palabrasClave(titulo: string): string[] {
   return out;
 }
 
+/** Números SIN unidad del título ("20" en "POLISORBATO TWEEN 20 250mL", "705"
+ *  en "SHAROMIX 705"). `palabrasClave` los descarta como presentación, pero a
+ *  veces son el producto: Tween 20 y Tween 80 son sustancias distintas. */
+export function numerosSueltos(titulo: string): string[] {
+  return normalizarTexto(titulo)
+    .split(" ")
+    .filter((t) => /^\d+$/.test(t));
+}
+
+/** Los dos títulos traen número suelto y ninguno coincide → son productos
+ *  distintos aunque el resto del nombre sea igual. Si solo uno lo trae no se
+ *  puede afirmar nada ("VITAMINA E 50" ~ "VITAMINA E"). Caso real (20-sep-2026):
+ *  "POLISORBATO TWEEN 20 250mL" se enlazó con la ficha del TWEEN 80 y la
+ *  etiqueta salió con el nombre y el CAS de otra sustancia. */
+export function numerosEnConflicto(a: string, b: string): boolean {
+  const na = numerosSueltos(a);
+  const nb = numerosSueltos(b);
+  return na.length > 0 && nb.length > 0 && !na.some((n) => nb.includes(n));
+}
+
 function coincide(a: string, b: string): boolean {
   if (a === b) return true;
   // Prefijos largos: "salicilic" ~ "salicilico", "deshidratado" ~ "deshidratada".
@@ -114,6 +134,7 @@ export function mejorFichaParaTitulo<T extends CandidataFicha>(
   const peso = pesosPorRareza(fichas.map((f) => f.titulo));
   let mejor: { ficha: T; puntaje: number; claves: string[] } | null = null;
   for (const f of fichas) {
+    if (numerosEnConflicto(titulo, f.titulo)) continue;
     const p = puntuarTitulo(claves, f.titulo, peso);
     if (p <= 0) continue;
     const gana =
@@ -140,6 +161,7 @@ export function candidatasParaTitulo<T extends CandidataFicha>(
   if (claves.length === 0) return [];
   const peso = pesosPorRareza(fichas.map((f) => f.titulo));
   return fichas
+    .filter((ficha) => !numerosEnConflicto(titulo, ficha.titulo))
     .map((ficha) => ({ ficha, puntaje: puntuarTitulo(claves, ficha.titulo, peso) }))
     .filter((c) => c.puntaje >= minimo)
     .sort((a, b) => b.puntaje - a.puntaje);
