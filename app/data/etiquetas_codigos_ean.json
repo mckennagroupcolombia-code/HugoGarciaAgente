@@ -1137,13 +1137,14 @@
     {
       "id": "06d88e39f99c",
       "sku": "C-CELMIC101500g",
-      "nombre_producto": "CELULOSA MICROCRISTALINA  101 500g",
+      "nombre_producto": "CELULOSA MICROCRISTALINA 101 500g",
       "numero_producto": 102,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701025002637",
-      "creado_at": "2026-07-30T12:00:34"
+      "creado_at": "2026-07-30T12:00:34",
+      "actualizado_at": "2026-09-20T02:19:14"
     },
     {
       "id": "7369519d1dea",
@@ -2834,6 +2835,17 @@
       "bimestre": 4,
       "codigo": "7702542502648",
       "creado_at": "2026-09-20T02:02:25"
+    },
+    {
+      "id": "2f9586b80b0f",
+      "sku": "C-CELMIC102500g",
+      "nombre_producto": "CELULOSA MICROCRISTALINA 102 500g",
+      "numero_producto": 255,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702555002647",
+      "creado_at": "2026-09-20T02:19:14"
     }
   ]
 }

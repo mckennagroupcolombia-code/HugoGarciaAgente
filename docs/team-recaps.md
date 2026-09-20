@@ -1,3 +1,17 @@
+### 2026-09-20 - Celulosa microcristalina: dos referencias (101 y 102), cada una con su ficha, código y etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Documentos técnicos + códigos de barras + etiquetas
+- **Qué se implementó:**
+  - El código `C-CELMIC101500g` tenía una etiqueta que decía «A 102» (solo existía ficha del 102). Compras: FEE97643 (11-jun-2026) grado 101 y FEE99814 (11-jul-2026) 25 kg de «A 102», ambas de Factores y Mercadeo y ambas cargadas al mismo código `CELMICg`. Armando confirmó que se manejan las DOS referencias.
+  - Ficha 102: retitulada «CELULOSA MICROCRISTALINA 102» (la «A» era ruido de la factura); YAML `ft_coa_sds_celulosa_microcristalina_102.yaml` y PDF regenerado; los archivos «A 102» quedaron en `fichas_word/_respaldo_yaml/`.
+  - Ficha 101: **borrador** `borrador_ft_coa_sds_celulosa_microcristalina_101.yaml` (misma sustancia y monografía; lo propio del grado —partícula ≈50 µm, granulación húmeda— y el origen India van marcados «deducido»; COA con especificaciones y SIN resultados: son de lote). Fuente: `fichas_word/autor/2026-09-20/celulosa_microcristalina_101.yaml`.
+  - Códigos de barras: 7701025002637 sigue siendo el 101 (solo se corrigió el doble espacio del nombre); nuevo **7702555002647** (n.º 255) `C-CELMIC102500g` «CELULOSA MICROCRISTALINA 102 500g».
+  - Etiquetas 500 g de cada grado generadas y revisadas en Cápsulas & Excipientes; la etiqueta vieja (PNG y ficha de etiqueta) se retiró.
+  - Materias primas creadas en Alegra, una por grado: `CELMIC101g` (id 632) y `CELMIC102g` (id 633), unidad gramo, costo $16/g (FEE97643 y FEE99814), IVA 19 %, lista $25 (la que tenía Siigo). `CELMICg` era un código de Siigo y nunca existió en Alegra, así que no hubo inventario que separar.
+  - Combos creados en Alegra: `C-CELMIC101500g` (id 634) y `C-CELMIC102500g` (id 635), **$23.900** con IVA 19 % (precio elegido por Armando, igual al alcohol cetílico 500 g). Receta aprobada, la de los excipientes de 500 g sin cuchara: 500 g de la materia prima del grado, `BLSMTL13X21cms`, `BOLVAC8X12`, `BOLSEGBLAUn`, `ETQ250g`, 2 `PPLBRB10cms`, `VNP20cms`.
+- **Pendiente:** publicación en MeLi y tienda web (no existe ninguna). Las compras futuras deben entrar a `CELMIC101g` / `CELMIC102g`, no a `CELMICg`. Pedir a Factores y Mercadeo el COA del lote de 101.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `fichas_word/` y `app/data/etiquetas_fichas.json` (no versionados), `docs/team-recaps.md`
+
 ### 2026-09-20 - Polisorbato Tween 20 de 250 mL: combo propio + emparejador de fichas que distingue números
 - **Autor:** Armando García
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / web / etiquetas) + corrección de bug

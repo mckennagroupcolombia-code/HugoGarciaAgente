@@ -10222,3 +10222,6 @@ Ejemplo [7]: el cliente pide un insumo técnico específico (Caolín Calcinado M
 ⏭  Reintento avisos pedidos web: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).
 [auditor_canales 2026-09-20T02:00:04] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
 [auditor_canales 2026-09-20T02:00:04] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+✅ Sin pedidos pagados recientes con aviso pendiente.
+[auditor_canales 2026-09-20T02:30:04] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
+[auditor_canales 2026-09-20T02:30:04] 22 chat(s) en modo humano hace más de 24 h: el bot no les responde.
