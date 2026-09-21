@@ -1046,6 +1046,17 @@ export default function PlantillasVisualesPanel({
     setVista("formularios-etiquetas");
   }, []);
 
+  // Llegada desde el taller de combos: abrir directamente la etiqueta de ese producto
+  // (o, si aún no existe, dejar su nombre en el buscador).
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "etiquetas") return;
+    if (tallerSalto.fichaId) abrirFormulario({ fichaId: tallerSalto.fichaId });
+    else if (tallerSalto.buscar) setBuscar(tallerSalto.buscar);
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto, abrirFormulario]);
+
   const abrirNuevo = () => {
     setDoc(null);
     setPendienteNuevo(null);

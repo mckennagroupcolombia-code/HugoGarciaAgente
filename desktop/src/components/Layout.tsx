@@ -51,6 +51,8 @@ export default function Layout({
   const { advanced: advancedToggle, navClasica } = useUiMode();
   // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
   const navFlujo = !navClasica;
+  const tallerRetorno = useAppStore((st) => st.tallerRetorno);
+  const volverAlTaller = useAppStore((st) => st.volverAlTaller);
   const enOrigen = panel === "hugo" || panel === "tickets";
   const ubicacion = ubicacionDe(panel);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
@@ -91,6 +93,19 @@ export default function Layout({
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       <SolicitudesEnProcesoFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+        {tallerRetorno && panel !== "combos" && (
+          <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
+            <button
+              type="button"
+              onClick={volverAlTaller}
+              title="Volver al taller de combos para seguir completando este producto"
+              className="mck-flujo-nodo mck-mision-pulso flex max-w-full items-center gap-2 rounded-full border-2 border-white/70 bg-accent px-4 py-2 text-[13px] font-bold text-white shadow-paper-lg hover:opacity-90"
+            >
+              <span aria-hidden="true">←</span>
+              <span className="truncate">Seguir con {tallerRetorno.nombre}</span>
+            </button>
+          </div>
+        )}
         {!studioEtiquetasFill && (
           <>
             <AccesoDenegadoBanner />

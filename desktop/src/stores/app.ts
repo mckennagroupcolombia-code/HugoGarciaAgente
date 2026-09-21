@@ -234,6 +234,15 @@ interface AppState {
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
   /** Combo que llega a Diseño → Códigos EAN ya escrito en el formulario (viene de Inventario → Combos). */
   eanPrefill: { sku: string; nombre: string } | null;
+  /**
+   * Salto desde el taller de combos a un apartado que ya existe (Studio, Docs técnicos,
+   * Publicaciones): el apartado abre en ESE producto y el cabezote ofrece volver al combo.
+   */
+  tallerSalto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string } | null;
+  tallerRetorno: { ref: string; nombre: string } | null;
+  saltarDesdeTaller: (retorno: { ref: string; nombre: string }, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
+  consumirTallerSalto: () => void;
+  volverAlTaller: () => void;
   /** Combos: «mision» = taller guiado caso a caso · «galeria» = todos los combos. */
   combosVista: "mision" | "galeria";
   setCombosVista: (v: "mision" | "galeria") => void;
@@ -366,6 +375,17 @@ export const useAppStore = create<AppState>()(
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),
       eanPrefill: null,
       setEanPrefill: (eanPrefill) => set({ eanPrefill }),
+      tallerSalto: null,
+      tallerRetorno: null,
+      saltarDesdeTaller: (tallerRetorno, tallerSalto) => {
+        set({ tallerRetorno, tallerSalto });
+        get().setPanel(tallerSalto.panel);
+      },
+      consumirTallerSalto: () => set({ tallerSalto: null }),
+      volverAlTaller: () => {
+        set({ tallerRetorno: null, tallerSalto: null, combosVista: "mision" });
+        get().setPanel("combos");
+      },
       combosVista: "mision",
       setCombosVista: (combosVista) => set({ combosVista }),
       etiquetasSolicitudActiva: null,

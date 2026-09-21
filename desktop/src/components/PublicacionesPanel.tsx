@@ -1,3 +1,4 @@
+import { useAppStore } from "../stores/app";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
 import CompetenciaPreciosPanel from "./CompetenciaPreciosPanel";
@@ -2320,6 +2321,21 @@ export default function PublicacionesPanel() {
   const [loteSkus, setLoteSkus] = useState<Set<string>>(() => new Set());
   const [loteDialogOpen, setLoteDialogOpen] = useState(false);
   const buscarInputRef = useRef<HTMLInputElement>(null);
+
+  // Llegada desde el taller de combos: abrir la publicación de ese SKU.
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "publicaciones") return;
+    if (tallerSalto.sku) {
+      setMainView("catalogo");
+      setBuscar(tallerSalto.sku);
+      setBuscarDebounced(tallerSalto.sku);
+      setBuscarAbierto(true);
+      setSelectedSku(tallerSalto.sku);
+    }
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto]);
 
   // Debounce búsqueda
   useEffect(() => {

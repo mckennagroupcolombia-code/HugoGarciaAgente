@@ -6,6 +6,7 @@ scripts/auditar_catalogo_combos.py. No llama a Alegra, MeLi ni a ningún LLM.
 import pytest
 
 from app.services import mapa_producto as M
+A = M._auditoria()  # las reglas compartidas de scripts/auditar_catalogo_combos.py
 
 ESLABONES = {"receta", "etiqueta_fisica", "documento", "ean", "etiqueta", "publicacion"}
 
@@ -102,9 +103,51 @@ def test_fijar_sku_cambia_solo_la_linea_de_referencia(docs_tmp):
 
 def test_fijar_sku_no_pisa_una_referencia_existente(docs_tmp):
     M.fijar_sku_documento("doc.yaml", "PROCALg")
-    with pytest.raises(ValueError, match="no se pisa"):
+    with pytest.raises(ValueError, match="otro producto activo"):
         M.fijar_sku_documento("doc.yaml", "OTROg")
     assert M.fijar_sku_documento("doc.yaml", "PROCALg").get("sin_cambios")
+
+
+def test_fijar_sku_corrige_una_referencia_que_ya_no_es_un_producto(docs_tmp):
+    """`ALUg` en el documento cuando el producto es `ALUALLg`: era un enlace roto, no una decisión.
+    Antes se rechazaba y el taller no dejaba unir ese documento (2026-09-21)."""
+    (docs_tmp / "doc.yaml").write_text(YAML_DOC.replace("referencia: ''", "referencia: VIEJOg"), encoding="utf-8")
+    r = M.fijar_sku_documento("doc.yaml", "PROCALg")
+    assert r["modo"] == "reemplazar" and r["antes"] == "VIEJOg"
+    assert (docs_tmp / "doc.yaml").read_text(encoding="utf-8") == YAML_DOC.replace("referencia: ''", "referencia: PROCALg")
+    # el código de un combo en `referencia` también es un enlace roto
+    (docs_tmp / "doc.yaml").write_text(YAML_DOC.replace("referencia: ''", "referencia: C-PROCAL500g"), encoding="utf-8")
+    assert M.fijar_sku_documento("doc.yaml", "PROCALg")["modo"] == "reemplazar"
+
+
+def test_un_documento_se_comparte_solo_si_se_pide(docs_tmp):
+    import yaml
+
+    M.fijar_sku_documento("doc.yaml", "PROCALg")
+    r = M.fijar_sku_documento("doc.yaml", "OTROg", compartir=True)
+    assert r["modo"] == "compartir"
+    d = yaml.safe_load((docs_tmp / "doc.yaml").read_text(encoding="utf-8"))
+    assert d["referencia"] == "PROCALg" and d["referencias_equivalentes"] == ["OTROg"]
+    assert "# comentario que un yaml.dump borraría" in (docs_tmp / "doc.yaml").read_text(encoding="utf-8")
+    assert M.fijar_sku_documento("doc.yaml", "OTROg").get("sin_cambios")
+
+
+def test_el_documento_compartido_se_encuentra_por_cualquiera_de_sus_skus():
+    docs = [{"archivo": "a.yaml", "titulo": "ALULOSA", "toks": {"ALULOSA"}, "estado": "TDS", "referencia": "ALUg", "equivalentes": ["ALUALLg"]}]
+    assert A.mejor_documento("ALUALLg", "NOMBRE QUE NO SE PARECE", docs)["archivo"] == "a.yaml"
+    assert A.mejor_documento("OTROg", "NOMBRE QUE NO SE PARECE", docs) is None
+
+
+def test_un_componente_sin_nombre_no_cuenta_como_materia_prima():
+    """Hay recetas cuyos componentes llegan sin nombre en la copia de Alegra: sin nombre nada parecía
+    empaque, el kit quedaba con diez «materias primas» y el combo no podía unir su documento."""
+    assert A.es_empaque("COPA DOSIFICADORA NATU 30 mL") and A.es_empaque("BOLSA SEGURIDAD BLANCA")
+    d = M.anatomia_combos()
+    if not d["combos"]:
+        pytest.skip("sin copia local del catálogo de Alegra")
+    for c in d["combos"]:
+        sin_nombre = [x["codigo"] for x in c["componentes"] if x["existe"] and not x["nombre"].strip()]
+        assert not sin_nombre, f"{c['ref']}: componentes sin nombre {sin_nombre}"
 
 
 def test_fijar_sku_rechaza_un_combo_y_un_sku_inexistente(docs_tmp):

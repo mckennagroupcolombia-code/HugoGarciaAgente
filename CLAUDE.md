@@ -914,6 +914,23 @@ combo van aparte (no hay producto de venta que dibujar) con salida a Crear en Al
 ⚠️ `index.css` fuerza `position: relative; overflow: hidden` en **todos** los `button` de `#root`: un botón con `absolute`
 se queda en el flujo. Posicionar un `div` y meter el botón dentro.
 
+**Unir un documento a su materia prima (corregido 21-sep-2026).** El documento describe la materia prima y el combo lo
+hereda; el enlace firme es `referencia: <SKU>` en el YAML. Tres fallos impedían hacerlo desde el taller:
+(1) hay recetas cuyos componentes llegan **sin nombre** en la copia local de Alegra → nada parecía empaque, el kit quedaba
+con diez «materias primas» y no se ofrecía unir; ahora el nombre se toma del catálogo por código, y COPA/DOSIFICADOR/BALA/
+SCOOP son empaque (la copa dosificadora iba como segunda materia prima en 19 recetas). (2) `fijar_sku_documento()` se negaba
+a tocar un documento que ya declarara SKU, aunque fuera uno caduco (`ALUg` cuando el producto es `ALUALLg`, o el código de
+un combo): ahora **reemplaza** la referencia que NO es un producto de inventario activo, y solo con `compartir=True` agrega
+el SKU a `referencias_equivalentes` cuando el documento ya pertenece a OTRA materia prima activa (misma sustancia, dos
+códigos); `mejor_documento()` encuentra el documento por cualquiera de sus SKU. El lote «Unir por SKU» sigue proponiendo solo
+el modo `fijar`: reemplazar o compartir se decide caso a caso. (3) si el parecido de nombre no encontraba el documento no
+había cómo elegirlo: `GET /api/mapa-sistema/documentos?q=` + buscador en el inspector («Enlazar un documento que ya existe…»,
+con selector de materia prima si la receta tiene varias).
+**Editar en su apartado y volver.** Cada pieza del taller salta a su sitio ya abierto en ESE producto —Studio en la etiqueta
+(`abrirFormulario({fichaId})`), Códigos EAN, Docs técnicos con el buscador sembrado, Publicaciones en el SKU, Catálogo
+Alegra en el kit— vía `saltarDesdeTaller()` / `tallerSalto` en `stores/app.ts`, y queda un botón flotante «← Seguir con
+<combo>» (`tallerRetorno`, en `Layout.tsx`; flotante porque el Studio inmersivo oculta el cabezote) que devuelve al mismo caso.
+
 **La cadena se mide por producto ADQUIRIDO**, no por combo (`matriz_productos()`): de 191 materias primas, 33 llegan
 completas a la vitrina y 82 se venden sin etiqueta o sin documento listo. Vista por combos, las 40 compradas sin
 ninguna presentación de venta ni siquiera existen.

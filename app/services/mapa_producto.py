@@ -106,6 +106,15 @@ def _etiquetas_ligeras() -> list[dict]:
     return out
 
 
+def _es_inventario_activo(cat: dict, ref: str) -> bool:
+    """¿`ref` es hoy un producto de inventario (no un combo) en la copia local de Alegra?"""
+    ref = (ref or "").strip().lower()
+    if not ref:
+        return False
+    item = next((v for k, v in cat.items() if k.lower() == ref), None)
+    return bool(item) and item.get("type") != "kit"
+
+
 def _casilla(nombre: str, es_mp: bool) -> str:
     if es_mp:
         return "materia_prima"
@@ -161,7 +170,10 @@ def _construir() -> dict:
         comps_raw = k.get("componentes") or []
         comps = []
         for c in comps_raw:
-            cn = c.get("nombre") or ""
+            # Hay recetas cuyo componente llega SIN nombre en la copia local de Alegra: sin nombre
+            # nada parece empaque y las diez piezas del kit salían como «materia prima» (con lo
+            # que el combo no podía unir su documento). El nombre está en el catálogo, por código.
+            cn = c.get("nombre") or (cat.get(c.get("codigo") or "") or {}).get("name") or ""
             es_mp = not A.es_empaque(cn) and A._primera(cn) not in A._NO_MATERIA
             comps.append({
                 "codigo": c.get("codigo") or "",
@@ -200,14 +212,17 @@ def _construir() -> dict:
 
         # 3. Documento técnico (describe la materia prima; el combo lo hereda)
         doc = None
+        mp_doc = None  # la materia prima a la que pertenece el documento encontrado
         for c in mp:
             doc = A.mejor_documento(c["codigo"], c["nombre"], docs)
             if doc:
+                mp_doc = c
                 break
         if not doc:
             doc = A.mejor_documento(ref, nombre, docs)
         if doc:
-            por_sku = bool(doc.get("referencia")) and any(doc["referencia"].lower() == c["codigo"].lower() for c in mp)
+            declarados = {x.lower() for x in [doc.get("referencia") or "", *doc.get("equivalentes", [])] if x}
+            por_sku = any(c["codigo"].lower() in declarados for c in mp)
             estado = "ok" if doc["estado"] in _DOC_OK else "aviso"
             detalle = doc["estado"] + (" · unido por SKU" if por_sku else " · unido por parecido de nombre (el documento no declara SKU)")
             if estado == "ok" and not por_sku:
@@ -263,12 +278,25 @@ def _construir() -> dict:
             esl["ean"]["accion"] = {"tipo": "generar_ean"}
         if esl["etiqueta"]["estado"] == "falta" and esl["ean"]["estado"] == "ok":
             esl["etiqueta"]["accion"] = {"tipo": "disenar_etiqueta"}
+        # Las materias primas a las que se puede unir un documento (para elegirlo a mano también).
+        mps = [{"codigo": c["codigo"], "nombre": c["nombre"]} for c in mp if c["existe"] and c["nombre"].strip()]
         if esl["documento"]["estado"] == "falta":
-            esl["documento"]["accion"] = {"tipo": "crear_documento"}
-        elif (doc and not esl["documento"].get("por_sku") and len(mp) == 1 and not doc.get("referencia")
-              and mp[0]["existe"] and mp[0]["nombre"].strip()):
-            esl["documento"]["accion"] = {"tipo": "fijar_sku", "sku": mp[0]["codigo"], "mp_nombre": mp[0]["nombre"],
-                                          "archivo": doc["archivo"], "doc_titulo": doc["titulo"]}
+            esl["documento"]["accion"] = {"tipo": "crear_documento", "mps": mps}
+        elif doc and not esl["documento"].get("por_sku") and mps:
+            # El documento se encontró por nombre. Tres casos, según lo que ya declare:
+            #   fijar       no declara SKU → se escribe
+            #   reemplazar  declara uno que no es un producto de inventario activo (viejo, mal
+            #               tecleado o el código de un combo) → se corrige; antes se rechazaba
+            #   compartir   declara OTRA materia prima activa → el documento sirve a las dos
+            principal = mp_doc if mp_doc and mp_doc["existe"] else mp[0]
+            actual = (doc.get("referencia") or "").strip()
+            vigente = _es_inventario_activo(cat, actual)
+            esl["documento"]["accion"] = {
+                "tipo": "fijar_sku", "sku": principal["codigo"], "mp_nombre": principal["nombre"],
+                "archivo": doc["archivo"], "doc_titulo": doc["titulo"], "mps": mps,
+                "referencia_actual": actual,
+                "modo": "fijar" if not actual else ("compartir" if vigente else "reemplazar"),
+            }
 
         estados = [e["estado"] for e in esl.values()]
         combos.append({
@@ -292,7 +320,9 @@ def _construir() -> dict:
         if d["archivo"] not in usados and d["estado"] != "vacía"
     ]
 
-    return {"combos": combos, "docs_huerfanos": huerfanos, "total_docs": len(docs),
+    documentos = [{"archivo": d["archivo"], "titulo": d["titulo"], "estado": d["estado"],
+                   "referencia": d["referencia"], "equivalentes": d.get("equivalentes", [])} for d in docs]
+    return {"combos": combos, "docs_huerfanos": huerfanos, "documentos": documentos, "total_docs": len(docs),
             "total_etiquetas": len(etiquetas), "total_ean": len(ean_por_sku),
             "generado": time.strftime("%Y-%m-%dT%H:%M:%S")}
 
@@ -500,8 +530,8 @@ def propuestas_sku() -> dict:
     por_doc: dict[str, dict] = {}
     for c in _datos()["combos"]:
         a = c["eslabones"]["documento"].get("accion") or {}
-        if a.get("tipo") != "fijar_sku":
-            continue
+        if a.get("tipo") != "fijar_sku" or a.get("modo", "fijar") != "fijar":
+            continue  # reemplazar o compartir una referencia se decide caso a caso, no en lote
         fila = por_doc.setdefault(a["archivo"], {"archivo": a["archivo"], "doc_titulo": a["doc_titulo"],
                                                  "candidatos": {}, "combos": []})
         fila["candidatos"][a["sku"]] = a["mp_nombre"]
@@ -519,12 +549,19 @@ def propuestas_sku() -> dict:
             "exactas": sum(1 for f in filas if f["exacto"]), "conflictos": sum(1 for f in filas if f["conflicto"])}
 
 
-def fijar_sku_documento(archivo: str, sku: str) -> dict:
-    """Escribe `referencia: <sku>` en el YAML del documento — y nada más.
+def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict:
+    """Une un documento a su materia prima escribiendo su SKU en el YAML — y nada más.
 
     Edita UNA línea (no re-serializa el archivo: `yaml.dump` reordenaría comentarios y
     bloques de texto de 248 documentos). Respaldo previo, y si al releer cambió algo
-    distinto de `referencia`, se restaura. No pisa una referencia ya declarada.
+    distinto de lo pedido, no se escribe. Según lo que el documento ya declare:
+
+    - nada → escribe `referencia: <sku>`;
+    - un código que NO es un producto de inventario activo (viejo, mal tecleado o el de un
+      combo) → lo reemplaza: era un enlace roto, no una decisión (`ALUg` cuando el producto
+      es `ALUALLg`). Antes se rechazaba y el taller no dejaba unir esos documentos;
+    - OTRA materia prima activa → no la pisa. Solo con `compartir=True` agrega el SKU a
+      `referencias_equivalentes`: el mismo documento sirve a las dos.
     """
     import shutil
 
@@ -550,28 +587,59 @@ def fijar_sku_documento(archivo: str, sku: str) -> dict:
     texto = ruta.read_text(encoding="utf-8")
     antes = yaml.safe_load(texto) or {}
     actual = str(antes.get("referencia") or "").strip()
-    if actual and actual.lower() != sku.lower():
-        raise ValueError(f"El documento ya declara `{actual}`: no se pisa")
-    if actual.lower() == sku.lower():
+    equiv = antes.get("referencias_equivalentes") or []
+    equiv = [str(x).strip() for x in equiv] if isinstance(equiv, list) else []
+    if sku.lower() in {x.lower() for x in [actual, *equiv] if x}:
         return {"ok": True, "archivo": archivo, "sku": sku, "sin_cambios": True}
 
-    linea = f"referencia: {sku}"
-    if re.search(r"^referencia:.*$", texto, flags=re.M):
-        nuevo = re.sub(r"^referencia:.*$", linea, texto, count=1, flags=re.M)
+    clave, modo = "referencia", "fijar"
+    if actual:
+        otro = ac.obtener_item(actual)
+        if otro and otro.get("type") != "kit":
+            if not compartir:
+                raise ValueError(f"El documento ya pertenece a `{actual}`, que es otro producto activo. "
+                                 "Si los dos son la misma sustancia, compártelo; si no, este producto necesita su propio documento")
+            clave, modo = "referencias_equivalentes", "compartir"
+        else:
+            modo = "reemplazar"
+
+    if clave == "referencia":
+        linea = f"referencia: {sku}"
     else:
-        m = re.search(r"^(nombre_producto|titulo):.*$", texto, flags=re.M)
+        linea = "referencias_equivalentes: [" + ", ".join([*equiv, sku]) + "]"
+    if re.search(rf"^{clave}:.*$", texto, flags=re.M):
+        if clave == "referencias_equivalentes" and not re.search(r"^referencias_equivalentes: *\[.*\] *$", texto, flags=re.M):
+            raise ValueError("`referencias_equivalentes` está escrita en varias líneas: edítala a mano en el YAML")
+        nuevo = re.sub(rf"^{clave}:.*$", linea, texto, count=1, flags=re.M)
+    else:
+        m = re.search(r"^referencia:.*$", texto, flags=re.M) if clave != "referencia" else None
+        m = m or re.search(r"^(nombre_producto|titulo):.*$", texto, flags=re.M)
         if not m:
             raise ValueError("El documento no tiene `titulo` ni `nombre_producto` donde anclar la referencia")
         nuevo = texto[: m.end()] + "\n" + linea + texto[m.end():]
 
     despues = yaml.safe_load(nuevo) or {}
-    if {k: v for k, v in despues.items() if k != "referencia"} != {k: v for k, v in antes.items() if k != "referencia"} \
-            or str(despues.get("referencia")) != sku:
-        raise ValueError("La edición habría cambiado algo más que `referencia`: no se escribió")
+    esperado = sku if clave == "referencia" else [*equiv, sku]
+    if {k: v for k, v in despues.items() if k != clave} != {k: v for k, v in antes.items() if k != clave} \
+            or despues.get(clave) != esperado:
+        raise ValueError("La edición habría cambiado algo más que lo pedido: no se escribió")
 
     respaldo = ft.DATOS_DIR / "_respaldo_referencia"
     respaldo.mkdir(exist_ok=True)
     shutil.copy2(ruta, respaldo / f"{ruta.stem}.{time.strftime('%Y%m%d_%H%M%S')}.yaml")
     ruta.write_text(nuevo, encoding="utf-8")
     invalidar()
-    return {"ok": True, "archivo": archivo, "sku": sku}
+    return {"ok": True, "archivo": archivo, "sku": sku, "modo": modo, "antes": actual}
+
+
+def listar_documentos(q: str = "", limite: int = 40) -> list[dict]:
+    """Los documentos técnicos para elegir uno a mano cuando el parecido de nombre no lo encuentra."""
+    A = _auditoria()
+    palabras = [p for p in A._norm(q).split() if p]
+    out = []
+    for d in _datos()["documentos"]:
+        base = A._norm(d["titulo"] + " " + d["archivo"].replace("_", " ") + " " + d["referencia"])
+        if all(p in base for p in palabras):
+            out.append(d)
+    out.sort(key=lambda d: (A._ORDEN_DOC.index(d["estado"]) if d["estado"] in A._ORDEN_DOC else 99, d["titulo"]))
+    return out[: max(1, min(int(limite or 40), 200))]

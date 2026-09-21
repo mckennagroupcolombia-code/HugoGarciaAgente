@@ -23,9 +23,21 @@ export type Eslabon = {
   doc_titulo?: string;
   accion?: Accion;
 };
+export type MateriaPrima = { codigo: string; nombre: string };
 export type Accion =
-  | { tipo: "generar_ean" | "disenar_etiqueta" | "crear_documento" | "corregir_alegra" }
-  | { tipo: "fijar_sku"; sku: string; mp_nombre: string; archivo: string; doc_titulo: string };
+  | { tipo: "generar_ean" | "disenar_etiqueta" | "corregir_alegra" }
+  | { tipo: "crear_documento"; mps?: MateriaPrima[] }
+  | {
+      tipo: "fijar_sku";
+      sku: string;
+      mp_nombre: string;
+      archivo: string;
+      doc_titulo: string;
+      mps?: MateriaPrima[];
+      /** Lo que el documento ya declara, y qué se hará con eso. */
+      referencia_actual?: string;
+      modo?: "fijar" | "reemplazar" | "compartir";
+    };
 export type Combo = {
   ref: string;
   nombre: string;
@@ -188,7 +200,14 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
               ⚗️ <b>{accion.mp_nombre}</b> <code className="text-muted">{accion.sku}</code>
             </div>
             <div className="mt-1 text-muted">
-              Se escribe <code>referencia: {accion.sku}</code> en el documento. Todos los combos de esa materia prima lo heredan.
+              {accion.modo === "reemplazar" ? (
+                <>El documento declara <code>{accion.referencia_actual}</code>, que no es un producto activo en Alegra: se corrige a <code>{accion.sku}</code>.</>
+              ) : accion.modo === "compartir" ? (
+                <>El documento ya pertenece a <code>{accion.referencia_actual}</code>. Si son la misma sustancia, se comparte: <code>{accion.sku}</code> queda como referencia equivalente.</>
+              ) : (
+                <>Se escribe <code>referencia: {accion.sku}</code> en el documento.</>
+              )}{" "}
+              Todos los combos de esa materia prima lo heredan.
             </div>
             <div className="mt-2 flex gap-2">
               <button
@@ -197,14 +216,14 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
                 onClick={() =>
                   correr(async () => {
                     const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", {
-                      items: [{ archivo: accion.archivo, sku: accion.sku }],
+                      items: [{ archivo: accion.archivo, sku: accion.sku, compartir: accion.modo === "compartir" }],
                     });
                     if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo fijar");
                     await refrescar();
                   })
                 }
               >
-                Sí, fijar el SKU
+                {accion.modo === "reemplazar" ? "Sí, corregir el SKU" : accion.modo === "compartir" ? "Sí, compartir el documento" : "Sí, fijar el SKU"}
               </button>
               <button className={BTN_SEC} onClick={() => setConfirmar(false)}>
                 No

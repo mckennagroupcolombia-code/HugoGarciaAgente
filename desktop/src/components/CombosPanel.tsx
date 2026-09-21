@@ -133,6 +133,10 @@ export default function CombosPanel() {
   const [visibles, setVisibles] = useState(60);
   const vista = useAppStore((s) => s.combosVista);
   const setVista = useAppStore((s) => s.setCombosVista);
+  // Al llegar a Combos por cualquier camino, el «volver al combo» del cabezote ya cumplió.
+  useEffect(() => {
+    if (useAppStore.getState().tallerRetorno) useAppStore.setState({ tallerRetorno: null, tallerSalto: null });
+  }, []);
 
   const datos = useQuery({
     queryKey: ["mapa-sistema-combos"],

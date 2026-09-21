@@ -44,6 +44,9 @@ _EMPAQUE_INICIO = {
     "LINER", "LINNER", "BANDA", "PAPEL", "VINIPEL", "CUCHARA", "CAJA", "FRASCO", "PERA",
     "PIPETA", "DOYPACK", "STICKER", "CINTA", "ROLLO", "TARRO", "POTE", "ATOMIZADOR",
     "VALVULA", "SELLO", "PLASTICO", "SOBRE", "SPRAY", "DISPENSADOR", "E", "ZUNCHO",
+    # La copa dosificadora iba en 19 recetas como segunda «materia prima»: con dos, el combo
+    # no sabía a cuál pertenece su documento y no dejaba unirlo (2026-09-21).
+    "COPA", "DOSIFICADOR", "BALA", "SCOOP",
 }
 _NO_MATERIA = {"OPERATIVOS", "ENVIO", "DOMICILIO", "FLETE", "SERVICIO", "GENERICO"}
 _STOP = {"DE", "DEL", "LA", "EL", "EN", "Y", "G", "GR", "ML", "KG", "LT", "UN", "X", "MG", "L", "CON", "SIN"}
@@ -143,8 +146,12 @@ def documentos_por_titulo() -> list[dict]:
                 estado = "completo SIN PUBLICAR"
             else:
                 estado = "antigua (solo TDS)"
+        # Un documento puede servir a más de una materia prima (la misma sustancia comprada con
+        # dos códigos): `referencia` es la principal —la que se imprime— y estas la acompañan.
+        equiv = d.get("referencias_equivalentes") or []
         out.append({"archivo": y.name, "titulo": titulo, "toks": _toks(titulo), "estado": estado,
-                    "referencia": (d.get("referencia") or "").strip()})
+                    "referencia": (d.get("referencia") or "").strip(),
+                    "equivalentes": [str(x).strip() for x in equiv if str(x).strip()] if isinstance(equiv, list) else []})
     return out
 
 
@@ -155,7 +162,7 @@ def mejor_documento(ref: str, nombre: str, docs: list[dict]) -> dict | None:
     tn = _toks(nombre)
     cand = []
     for d in docs:
-        if d["referencia"] and d["referencia"].lower() == ref.lower():
+        if ref and ref.lower() in {x.lower() for x in [d["referencia"], *d.get("equivalentes", [])] if x}:
             cand.append((3.0, d))
             continue
         if not tn or not d["toks"]:

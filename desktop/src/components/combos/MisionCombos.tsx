@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { useAppStore } from "../../stores/app";
-import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, type Combo, type Eslabon, type Respuesta } from "./comun";
+import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, type Combo, type Eslabon, type MateriaPrima, type Respuesta } from "./comun";
 
 /**
  * El taller de combos: una guía caso a caso para completar lo que le falta a cada producto
@@ -26,6 +26,36 @@ type Propuesta = { sku: string; nombre_producto: string; numero_producto: number
 type FichaEtiqueta = { id: string; nombre: string; tipo_nombre?: string; plantilla_id?: string; categoria?: string; data: Record<string, string> };
 type RespEtiqueta = { ficha: FichaEtiqueta; opciones: { tamanos: string[]; plantillas: { id: string; nombre: string; categoria: string; tipo_nombre: string }[] } };
 type FilaProducto = { ref: string; nombre: string; combo: string };
+type DocLista = { archivo: string; titulo: string; estado: string; referencia: string; equivalentes: string[] };
+
+/** Ir a editar una pieza en SU apartado, dejando en el cabezote el botón para volver a este combo. */
+function useSalto(c: Combo) {
+  const saltar = useAppStore((s) => s.saltarDesdeTaller);
+  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
+  const setDocsTab = useAppStore((s) => s.setDocsTab);
+  const setEanPrefill = useAppStore((s) => s.setEanPrefill);
+  const retorno = { ref: c.ref, nombre: c.nombre };
+  return {
+    studio: (fichaId?: string) => {
+      setEtiquetasTab("studio");
+      saltar(retorno, { panel: "etiquetas", fichaId, buscar: fichaId ? undefined : c.nombre });
+    },
+    ean: () => {
+      setEanPrefill({ sku: c.ref, nombre: c.nombre });
+      setEtiquetasTab("codigos_ean");
+      saltar(retorno, { panel: "etiquetas" });
+    },
+    docs: (buscar: string) => {
+      setDocsTab("biblioteca");
+      saltar(retorno, { panel: "fichas", buscar });
+    },
+    publicaciones: () => saltar(retorno, { panel: "publicaciones", sku: c.ref }),
+    alegra: () => {
+      navigator.clipboard?.writeText(c.ref).catch(() => null);
+      saltar(retorno, { panel: "catalogo-alegra", buscar: c.ref });
+    },
+  };
+}
 
 const CLAVE_REF = "mck-mision-combo";
 const CLAVE_DIA = "mck-mision-marcador";
@@ -76,9 +106,7 @@ function textoEstado(e: Eslabon) {
 }
 
 function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<void> }) {
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
-  const setEanPrefill = useAppStore((s) => s.setEanPrefill);
+  const salto = useSalto(c);
   const e = c.eslabones.ean;
   const puedeProponer = e.estado === "falta" && Boolean(e.accion);
   const prop = useQuery({
@@ -89,11 +117,7 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
   });
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const irAEan = () => {
-    setEanPrefill({ sku: c.ref, nombre: c.nombre });
-    setEtiquetasTab("codigos_ean");
-    setPanel("etiquetas");
-  };
+  const irAEan = salto.ean;
 
   if (e.estado === "ok")
     return (
@@ -145,8 +169,7 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
 }
 
 function InspectorEtiqueta({ c, alResolver }: { c: Combo; alResolver: () => Promise<void> }) {
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
+  const salto = useSalto(c);
   const e = c.eslabones.etiqueta;
   const ean = c.eslabones.ean?.codigo || "";
   const ficha = useQuery({
@@ -169,17 +192,17 @@ function InspectorEtiqueta({ c, alResolver }: { c: Combo; alResolver: () => Prom
     setMsg(null);
   }, [ficha.data]);
 
-  const irAlStudio = () => {
-    navigator.clipboard?.writeText(ficha.data?.ficha.nombre || c.nombre).catch(() => null);
-    setEtiquetasTab("studio");
-    setPanel("etiquetas");
-  };
+  const irAlStudio = () => salto.studio(e.etiqueta_id);
 
   if (!e.etiqueta_id)
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
-        {e.accion ? <AccionRanura c={c} accion={e.accion} /> : <p className="text-[11.5px] text-muted">La etiqueta se diseña cuando el combo ya tiene su código EAN.</p>}
+        {e.accion ? (
+          <button className={BTN} onClick={() => salto.studio()}>Diseñarla en el Studio →</button>
+        ) : (
+          <p className="text-[11.5px] text-muted">La etiqueta se diseña cuando el combo ya tiene su código EAN.</p>
+        )}
       </div>
     );
   if (ficha.isLoading) return <p className="text-[11.5px] text-muted">Abriendo la etiqueta…</p>;
@@ -252,15 +275,141 @@ function InspectorEtiqueta({ c, alResolver }: { c: Combo; alResolver: () => Prom
       ))}
       <div className="flex flex-wrap items-center gap-2">
         <button className={BTN} disabled={!hayCambios || ocupado} onClick={guardar}>{ocupado ? "Guardando…" : "Guardar en la etiqueta"}</button>
-        <button className={BTN_SEC} onClick={irAlStudio}>Diseño y exportación en el Studio →</button>
+        <button className={BTN_SEC} onClick={irAlStudio}>Diseño, formato y exportación en el Studio →</button>
       </div>
       {msg && <p className={`text-[11px] ${msg.ok ? "text-accent-leaf" : "text-accent-rose"}`}>{msg.texto}</p>}
     </div>
   );
 }
 
+function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Promise<void> }) {
+  const salto = useSalto(c);
+  const e = c.eslabones.documento;
+  const a = e.accion;
+  const mps: MateriaPrima[] = (a && "mps" in a && a.mps) || [];
+  const [elegir, setElegir] = useState(false);
+  const [q, setQ] = useState("");
+  const [doc, setDoc] = useState<DocLista | null>(null);
+  const [sku, setSku] = useState("");
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pideCompartir, setPideCompartir] = useState(false);
+  useEffect(() => {
+    setElegir(false);
+    setQ("");
+    setDoc(null);
+    setError(null);
+    setPideCompartir(false);
+    setSku(mps[0]?.codigo ?? "");
+  }, [c.ref]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const lista = useQuery({
+    queryKey: ["mision-documentos", q],
+    queryFn: () => api.get<{ documentos: DocLista[] }>(`/api/mapa-sistema/documentos?q=${encodeURIComponent(q)}`),
+    enabled: elegir,
+    staleTime: 60_000,
+  });
+
+  const unir = async (archivo: string, codigo: string, compartir: boolean) => {
+    setOcupado(true);
+    setError(null);
+    try {
+      const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", { items: [{ archivo, sku: codigo, compartir }] });
+      if (!r.ok) {
+        const msg = r.errores[0]?.error || "No se pudo unir";
+        setPideCompartir(/otro producto activo/.test(msg));
+        throw new Error(msg);
+      }
+      setElegir(false);
+      setDoc(null);
+      setPideCompartir(false);
+      await alResolver();
+    } catch (err) {
+      setError((err as Error)?.message || "No se pudo unir");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {e.doc_titulo && <p className="text-[12px] font-bold text-ink">📄 {e.doc_titulo}</p>}
+      <p className="text-[11.5px] text-muted">{e.detalle}</p>
+
+      {mps.length === 0 && e.estado !== "ok" && (
+        <p className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11px] text-ink">
+          Este combo no tiene una materia prima reconocible en su receta, y el documento se une a la materia prima. Arregla primero la pieza «Receta».
+        </p>
+      )}
+
+      {/* Lo que el sistema encontró por nombre */}
+      {a?.tipo === "fijar_sku" && !elegir && (
+        <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
+          <div>⚗️ <b>{a.mp_nombre}</b> <code className="text-muted">{a.sku}</code></div>
+          <div className="mt-1 text-muted">
+            {a.modo === "reemplazar" ? (
+              <>El documento declara <code>{a.referencia_actual}</code>, que <b>no es un producto activo</b> en Alegra: era un enlace roto. Se corrige a <code>{a.sku}</code>.</>
+            ) : a.modo === "compartir" ? (
+              <>El documento ya pertenece a <code>{a.referencia_actual}</code>, otro producto activo. Si los dos son la misma sustancia, se comparte; si no, elige otro documento.</>
+            ) : (
+              <>¿Son el mismo producto? Se escribe <code>referencia: {a.sku}</code> en el documento y todos los combos de esa materia prima lo heredan.</>
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button className={BTN} disabled={ocupado} onClick={() => unir(a.archivo, a.sku, a.modo === "compartir")}>
+              {ocupado ? "Uniendo…" : a.modo === "reemplazar" ? "Sí, corregir el enlace" : a.modo === "compartir" ? "Sí, compartir el documento" : "Sí, unir por SKU"}
+            </button>
+            <button className={BTN_SEC} onClick={() => setElegir(true)}>No es ese: elegir otro…</button>
+          </div>
+        </div>
+      )}
+
+      {/* Elegir el documento a mano */}
+      {mps.length > 0 && a?.tipo !== "fijar_sku" && !elegir && e.estado !== "ok" && (
+        <button className={BTN} onClick={() => setElegir(true)}>Enlazar un documento que ya existe…</button>
+      )}
+      {elegir && (
+        <div className="space-y-2 rounded-md border border-accent/40 bg-accent/5 p-2">
+          {mps.length > 1 && (
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-muted">
+              ¿De cuál materia prima es el documento?
+              <select className="mt-0.5 w-full rounded-md border border-border bg-surface-input px-2 py-1 text-[12px] font-normal normal-case text-ink" value={sku} onChange={(ev) => setSku(ev.target.value)}>
+                {mps.map((m) => <option key={m.codigo} value={m.codigo}>{m.nombre} · {m.codigo}</option>)}
+              </select>
+            </label>
+          )}
+          <input autoFocus value={q} onChange={(ev) => { setQ(ev.target.value); setDoc(null); }} placeholder="Buscar el documento por nombre o SKU…" className="w-full rounded-md border border-border bg-surface-input px-2 py-1 text-[12px] text-ink" />
+          <div className="max-h-56 space-y-1 overflow-y-auto">
+            {lista.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
+            {(lista.data?.documentos ?? []).map((d) => (
+              <button key={d.archivo} onClick={() => { setDoc(d); setPideCompartir(false); setError(null); }} className={`block w-full rounded-md border px-2 py-1 text-left ${doc?.archivo === d.archivo ? "border-accent bg-accent/15" : "border-border bg-surface-input hover:border-accent/50"}`}>
+                <span className="block truncate text-[11.5px] font-semibold text-ink">{d.titulo}</span>
+                <span className="block truncate font-mono text-[9.5px] text-muted">{d.estado}{d.referencia ? ` · ${[d.referencia, ...d.equivalentes].join(", ")}` : " · sin SKU"}</span>
+              </button>
+            ))}
+            {lista.data && lista.data.documentos.length === 0 && <p className="text-[11px] text-muted">Ningún documento coincide. Si de verdad no existe, hay que redactarlo en Docs técnicos.</p>}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button className={BTN} disabled={!doc || !sku || ocupado} onClick={() => doc && unir(doc.archivo, sku, pideCompartir)}>
+              {ocupado ? "Uniendo…" : pideCompartir ? "Compartir este documento" : "Unir este documento"}
+            </button>
+            <button className={BTN_SEC} onClick={() => { setElegir(false); setDoc(null); setError(null); }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+      {error && <p className="text-[11px] text-accent-rose">{error}{pideCompartir ? " Pulsa «Compartir este documento» si son la misma sustancia." : ""}</p>}
+
+      <div className="flex flex-wrap gap-2 border-t border-border/70 pt-2">
+        <button className={BTN_SEC} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre || c.nombre)}>
+          {e.estado === "falta" ? "Redactarlo en Docs técnicos →" : "Abrirlo en Docs técnicos →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Inspector({ c, clave, alResolver }: { c: Combo; clave: string; alResolver: () => Promise<void> }) {
-  const setPanel = useAppStore((s) => s.setPanel);
+  const salto = useSalto(c);
   const e = c.eslabones[clave];
   if (!e) return null;
   const cuerpo = () => {
@@ -285,23 +434,17 @@ function Inspector({ c, clave, alResolver }: { c: Combo; clave: string; alResolv
             </div>
           )}
           {e.accion && <AccionRanura c={c} accion={e.accion} />}
-          {!e.accion && e.estado !== "ok" && <p className="text-[11px] text-muted">Se corrige en Alegra, en la receta del kit <code>{c.ref}</code>.</p>}
+          {e.estado !== "ok" && <p className="text-[11px] text-muted">La receta vive en Alegra, en el kit <code>{c.ref}</code>.</p>}
+          <button className={BTN_SEC} onClick={salto.alegra}>Ver el kit en Catálogo Alegra →</button>
         </div>
       );
     }
-    if (clave === "documento")
-      return (
-        <div className="space-y-2">
-          {e.doc_titulo && <p className="text-[12px] font-bold text-ink">📄 {e.doc_titulo}</p>}
-          <p className="text-[11.5px] text-muted">{e.detalle}</p>
-          {e.accion ? <AccionRanura c={c} accion={e.accion} /> : e.estado !== "ok" ? <button className={BTN_SEC} onClick={() => setPanel("fichas")}>Revisarlo en Docs técnicos →</button> : null}
-        </div>
-      );
+    if (clave === "documento") return <InspectorDocumento c={c} alResolver={alResolver} />;
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
         {e.precio ? <p className="text-[12px] tabular-nums text-ink">${Math.round(e.precio).toLocaleString("es-CO")} en la web</p> : null}
-        {e.estado !== "ok" && <button className={BTN_SEC} onClick={() => setPanel("publicaciones")}>Ir a Publicaciones →</button>}
+        <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={salto.publicaciones}>Editar la publicación →</button>
       </div>
     );
   };

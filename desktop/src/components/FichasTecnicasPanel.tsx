@@ -71,6 +71,14 @@ interface BibliotecaDatosResult {
 
 function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
   const [busqueda, setBusqueda] = useState("");
+  // Llegada desde el taller de combos: la biblioteca abre buscando el documento de ese producto.
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "fichas") return;
+    if (tallerSalto.buscar) setBusqueda(tallerSalto.buscar);
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewNombre, setPreviewNombre] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);

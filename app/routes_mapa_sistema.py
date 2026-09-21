@@ -214,6 +214,12 @@ def register_mapa_sistema_routes(app):
     def mapa_sistema_propuestas_sku():
         return jsonify(M.propuestas_sku())
 
+    @_dual(app, "/api/mapa-sistema/documentos", methods=["GET"])
+    @_auth
+    def mapa_sistema_documentos():
+        """Buscar un documento técnico para unirlo a mano a una materia prima."""
+        return jsonify({"documentos": M.listar_documentos(request.args.get("q") or "", request.args.get("limite") or 40)})
+
     @_dual(app, "/api/mapa-sistema/documentos/fijar-sku", methods=["POST"])
     @_auth_escritura
     def mapa_sistema_fijar_sku():
@@ -225,7 +231,8 @@ def register_mapa_sistema_routes(app):
         hechos, errores = [], []
         for it in items:
             try:
-                hechos.append(M.fijar_sku_documento((it or {}).get("archivo"), (it or {}).get("sku")))
+                hechos.append(M.fijar_sku_documento((it or {}).get("archivo"), (it or {}).get("sku"),
+                                                    compartir=bool((it or {}).get("compartir"))))
             except ValueError as exc:
                 errores.append({"archivo": (it or {}).get("archivo"), "error": str(exc)})
         return jsonify({"ok": not errores, "hechos": hechos, "errores": errores})
