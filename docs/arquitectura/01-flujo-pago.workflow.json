@@ -1,0 +1,334 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Solicitud de pago — se contabiliza antes de que salga el dinero",
+    "output": "01-flujo-pago.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "entra al Libro Mayor"
+        },
+        "cloud": {
+          "label": "pasa en el banco"
+        },
+        "security": {
+          "label": "hoy no existe en la plataforma"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "camino",
+        "label": "El camino completo",
+        "focus": [
+          "arma",
+          "factura",
+          "coteja",
+          "aprueba",
+          "monta",
+          "token2",
+          "transferencia"
+        ],
+        "note": "De la solicitud al comprobante: tres personas distintas y dos tokens del banco."
+      },
+      {
+        "id": "antes",
+        "label": "Contabilizado antes de pagar",
+        "focus": [
+          "aprueba",
+          "asiento",
+          "monta",
+          "preparado",
+          "token2",
+          "transferencia"
+        ],
+        "note": "El asiento nace al aprobar. El dinero sale recién con el Token 2: entre ambos, el libro ya acreditó Bancos."
+      },
+      {
+        "id": "registro",
+        "label": "Producto que no está en inventario",
+        "focus": [
+          "arma",
+          "registro",
+          "registra"
+        ],
+        "note": "La solicitud de registro entra a la cola y la cumple cualquiera de los dos administradores. Hoy no existe."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "sol",
+      "label": "Solicitante"
+    },
+    {
+      "id": "app",
+      "label": "Plataforma /app"
+    },
+    {
+      "id": "lib",
+      "label": "Libro Mayor"
+    },
+    {
+      "id": "adm1",
+      "label": "Administrador 1 · el primero que atiende"
+    },
+    {
+      "id": "adm2",
+      "label": "Administrador 2 · el otro"
+    },
+    {
+      "id": "ban",
+      "label": "Bancolombia · Sucursal Negocios"
+    }
+  ],
+  "phases": [
+    {
+      "id": "armar",
+      "label": "Armar la solicitud",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "contable",
+      "label": "Contabilizado, aún sin pagar",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "pagar",
+      "label": "Sale el dinero",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "arma",
+    "factura",
+    "coteja",
+    "aprueba",
+    "monta",
+    "preparado",
+    "token2",
+    "transferencia"
+  ],
+  "nodes": [
+    {
+      "id": "arma",
+      "lane": "sol",
+      "col": 0,
+      "type": "frontend",
+      "label": "Arma la compra",
+      "sublabel": "proveedor + productos",
+      "width": 129
+    },
+    {
+      "id": "registro",
+      "lane": "app",
+      "col": 1,
+      "type": "security",
+      "label": "Solicitud de registro",
+      "sublabel": "producto nuevo",
+      "width": 163
+    },
+    {
+      "id": "registra",
+      "lane": "adm1",
+      "col": 1,
+      "type": "security",
+      "label": "Registra el producto",
+      "sublabel": "admin 1 o 2",
+      "tag": "SKU · g / mL / un",
+      "width": 156
+    },
+    {
+      "id": "factura",
+      "lane": "sol",
+      "col": 2,
+      "type": "frontend",
+      "label": "Sube la pro-forma",
+      "sublabel": "copia digital fiel",
+      "width": 135
+    },
+    {
+      "id": "coteja",
+      "lane": "app",
+      "col": 2,
+      "type": "backend",
+      "label": "Coteja la factura",
+      "sublabel": "el total debe cuadrar",
+      "width": 152,
+      "tag": "vista previa del asiento"
+    },
+    {
+      "id": "aprueba",
+      "lane": "adm1",
+      "col": 3,
+      "type": "frontend",
+      "label": "Aprueba",
+      "sublabel": "revisa y acepta",
+      "width": 97
+    },
+    {
+      "id": "asiento",
+      "lane": "lib",
+      "col": 3,
+      "type": "database",
+      "label": "Nace el asiento",
+      "sublabel": "Db 1435 · 240810",
+      "tag": "Cr 1110 Bancos",
+      "width": 122
+    },
+    {
+      "id": "monta",
+      "lane": "adm1",
+      "col": 4,
+      "type": "frontend",
+      "label": "Monta el pago",
+      "sublabel": "Token 1",
+      "width": 108
+    },
+    {
+      "id": "preparado",
+      "lane": "ban",
+      "col": 4,
+      "type": "cloud",
+      "label": "Pago preparado",
+      "sublabel": "el dinero no se mueve",
+      "width": 129
+    },
+    {
+      "id": "token2",
+      "lane": "adm2",
+      "col": 5,
+      "type": "frontend",
+      "label": "Autoriza",
+      "sublabel": "Token 2 · firma final",
+      "width": 129
+    },
+    {
+      "id": "transferencia",
+      "lane": "ban",
+      "col": 5,
+      "type": "cloud",
+      "label": "Transferencia",
+      "sublabel": "el dinero sale",
+      "width": 130,
+      "tag": "comprobante → Pagada"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-arma-factura",
+      "from": "arma",
+      "to": "factura",
+      "role": "main"
+    },
+    {
+      "id": "e-arma-registro",
+      "from": "arma",
+      "to": "registro",
+      "label": "no está",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-registro-registra",
+      "from": "registro",
+      "to": "registra",
+      "label": "en cola",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-registra-arma",
+      "from": "registra",
+      "to": "arma",
+      "label": "con SKU",
+      "role": "return",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-factura-coteja",
+      "from": "factura",
+      "to": "coteja",
+      "role": "main"
+    },
+    {
+      "id": "e-coteja-aprueba",
+      "from": "coteja",
+      "to": "aprueba",
+      "label": "por orden de llegada",
+      "role": "main"
+    },
+    {
+      "id": "e-aprueba-asiento",
+      "from": "aprueba",
+      "to": "asiento",
+      "label": "al aprobar",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "e-aprueba-monta",
+      "from": "aprueba",
+      "to": "monta",
+      "role": "main"
+    },
+    {
+      "id": "e-monta-preparado",
+      "from": "monta",
+      "to": "preparado",
+      "role": "main"
+    },
+    {
+      "id": "e-preparado-token2",
+      "from": "preparado",
+      "to": "token2",
+      "label": "falta 2ª firma",
+      "role": "main"
+    },
+    {
+      "id": "e-token2-transferencia",
+      "from": "token2",
+      "to": "transferencia",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "El asiento nace al aprobar",
+      "items": [
+        "Al solicitar solo hay vista previa: el libro no cambia",
+        "Db 1435 por renglón · Db 240810 IVA · Cr 1110 Bancos"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Tres personas, dos tokens",
+      "items": [
+        "Quien aprueba monta el pago con el Token 1",
+        "Otro administrador autoriza con el Token 2"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Por construir",
+      "items": [
+        "Solicitud de registro de producto con su cola",
+        "La cumple cualquiera de los dos administradores"
+      ]
+    }
+  ]
+}

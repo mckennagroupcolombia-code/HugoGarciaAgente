@@ -123,6 +123,12 @@ def create_app():
         print(f"⚠️ Entregas Flex: {e}")
 
     try:
+        from app.routes_mapa_sistema import register_mapa_sistema_routes
+        register_mapa_sistema_routes(app)
+    except Exception as e:
+        print(f"⚠️ Mapa del sistema: {e}")
+
+    try:
         from app.routes_grabaciones import register_grabaciones_routes
         register_grabaciones_routes(app)
     except Exception as e:

@@ -123,6 +123,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     items: [
       { panel: "control-inventario", tier: "core" },
       { panel: "stock", tier: "standard" },
+      { panel: "combos", tier: "standard" },
+      { panel: "mapa-sistema", tier: "standard" },
     ],
   },
   {
@@ -153,6 +155,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     advancedOnly: true,
     items: [
+      { panel: "mapa-sistema", tier: "advanced" },
       { panel: "supervisor", tier: "advanced" },
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },

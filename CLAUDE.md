@@ -823,6 +823,54 @@ estudio del 17-sep-2026). Backfill: `scripts/entregas_flex_cron.py --dias 90 --f
 ⚠️ No usa `meli.listar_ordenes_meli_por_estado`: esa función corta la paginación en silencio ante
 un error de red (18-sep-2026: la misma llamada devolvió 1.797 y luego 700 órdenes de 30 días).
 
+### U. Mapa del sistema y anatomía de combos (dónde se rompe la cadena de un producto)
+
+```
+/app → Inventario → Mapa del sistema   (MapaSistemaPanel.tsx; también en Sistemas)
+  ├─ Cadena del producto, con conteos vivos (refresco 30 s): combo en Alegra → documento técnico
+  │    → código EAN → diseño de etiqueta → publicación. Cada caja: cuántos pasan, cuántos se quedan y por qué
+  ├─ «Documentos sin combo»: fichas escritas que ninguna receta usa (el caso propionato de calcio)
+  ├─ «Unir por SKU»: revisión en lote para escribir `referencia` en los documentos que hoy se unen por nombre
+  ├─ Ciclo de la solicitud de pago (5 estados, quién actúa en cada uno) y conexiones externas
+  └─ «Los flujos del proyecto»: toda la lógica en diagramas de Archify con un mismo lenguaje (una franja por
+       persona o sistema, tiempo de izquierda a derecha): mapa global + pago, producto, tres canales de
+       venta, contabilidad y procesos. Incrustados e interactivos; fuentes en docs/arquitectura/*.json
+/app → Inventario → Combos             (CombosPanel.tsx) — la «fotografía» de cada combo:
+       inventario (su receta: materia prima, bolsa, envase, tapa, etiqueta, cuchara…) + equipamiento
+       (documento, EAN, etiqueta, publicación). Una ranura vacía dice por qué y trae el botón que la destraba
+
+app/services/mapa_producto.py   solo lectura salvo `fijar_sku_documento()`; sin LLM, sin llamar a Alegra ni MeLi
+app/routes_mapa_sistema.py      /api/mapa-sistema/* — administrador, o permiso `mapa-sistema` / `combos`
+```
+
+**El modelo (no redescubrirlo):** en Alegra conviven el **producto de inventario** (`AMICREMONg`,
+materia prima) y el **combo de venta** (`type=kit`, `C-CREMON500g` = gramos + empaque + etiqueta). El
+documento técnico describe la **materia prima** y el combo lo **hereda por su receta**; el EAN nace del
+**SKU de venta**; la etiqueta se une por **código de barras**. Por eso `documento.referencia` nunca
+coincide con el catálogo web (que lista combos): es por diseño. Las reglas de qué es empaque y cómo se
+empareja un documento viven en `scripts/auditar_catalogo_combos.py`; el servicio las importa, no las repite.
+
+**Por qué el propionato de calcio no tenía etiqueta:** su documento está completo, pero ningún combo en
+Alegra lo usa. Sin combo no hay SKU de venta → sin SKU no hay EAN → el generador en lote lo salta. Se
+arregla creando el combo, no redactando otro documento. El 2026-09-20 había 101 documentos así.
+
+Reglas de las acciones:
+- **No nace una segunda vía de escritura**: «Generar código» solo *propone* (`GET …/ean-propuesto`) y crea
+  con el `POST /api/etiquetas/codigos-ean` de siempre, que conserva su control de permisos. Etiqueta y
+  documento nuevos llevan al Studio y a Docs técnicos.
+- **No se ofrece código a un combo con la receta rota** (solo empaque, sin componentes): el equipo los
+  dejó sin código a propósito el 2026-09-19.
+- **`fijar_sku_documento()` edita UNA línea** del YAML (no re-serializa: `yaml.dump` reordenaría 248
+  documentos), respalda en `fichas_word/datos/_respaldo_referencia/`, aborta si al releer cambió algo más
+  que `referencia`, no pisa una referencia existente y exige que el SKU sea un producto de inventario
+  activo (un `C-…` se rechaza: la referencia es la materia prima). Requiere administrador o permiso `fichas`.
+- **Diagramas**: se versiona la fuente `docs/arquitectura/*.json` + `indice.json` (orden y textos del panel);
+  el HTML es derivado (`.gitignore`) y se genera con `python3 scripts/diagramas_arquitectura.py entregar`.
+  Antes de añadir o tocar un flujo, leer `docs/arquitectura/README.md`: el tipo `workflow` tiene solo 6
+  columnas, y una etiqueta de arista larga deja la ruta «imposible» sin decir por qué.
+- En «Unir por SKU» solo vienen marcados los de **nombre idéntico**; los *conflictos* (dos materias primas
+  reclaman el mismo documento: karité amarilla/blanca, colágeno g/mL) no se pueden marcar.
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
 **Detalle completo: `docs/agentic/modules/contabilidad.md`** (sección «Flujo J completo»).
@@ -923,6 +971,7 @@ fiscal solo en `app/services/empresa.py`; dígito del calendario DIAN = **6** (n
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
 | `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (extractos de la empresa) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar". Con `tercero_id` (también en GET/POST `/extractos`) opera sobre los extractos PERSONALES de ese socio |
 | `/api/socios/*` | GET/POST/PATCH/DELETE | Bearer / propio socio o admin real | Expediente fiscal de socios (Declarador): perfil, documentos, años gravables, hallazgos, cruces banco socio ↔ empresa, agente con herramientas — ver `app/routes_declarador.py` y Flujo Q |
+| `/api/mapa-sistema/*` | GET/POST | Bearer / administrador o permiso `mapa-sistema`, `combos` (escritura: admin o `fichas`) | Mapa vivo de la cadena del producto y del ciclo de pago, anatomía de combos, propuesta de EAN, unión documento↔materia prima por SKU y diagramas de Archify — ver `app/services/mapa_producto.py` y Flujo U |
 | `/api/grabaciones/*` | GET/POST/PATCH/DELETE | Bearer (archivos de video sin Bearer: el id es el token) | Grabaciones de pantalla por trozos, recorte de sección, clips MP4 y envío por el bridge supervisor — ver Flujo S |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |

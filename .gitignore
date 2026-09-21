@@ -222,3 +222,12 @@ app/data/facturacion_ventas_cache.db-*
 PAGINA_WEB/site/data/orders.db
 PAGINA_WEB/site/data/orders.db-*
 log_cron.txt
+
+# Archify: evidencia de verificación visual (capturas PNG + recibo): se regenera
+# con `archify visual-check` y son binarios que cambian en cada corrida.
+docs/arquitectura/*.visual-check.json
+docs/arquitectura/*.visual-check.html
+docs/arquitectura/*.visual-check.*.png
+# El HTML de cada diagrama (~800 KB, 9 archivos) se regenera desde su .json con
+# `python3 scripts/diagramas_arquitectura.py entregar`. Se versiona la fuente, no el derivado.
+docs/arquitectura/*.html

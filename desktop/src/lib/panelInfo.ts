@@ -142,6 +142,32 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "atencion",
   },
+  "mapa-sistema": {
+    emoji: "🗺️",
+    label: "Mapa del sistema",
+    description:
+      "Cómo se conectan las piezas de un producto (combo en Alegra → documento técnico → código EAN → etiqueta → publicación) y de un pago, con los números de este momento: cuántos pasan cada eslabón, cuáles se quedan y por qué.",
+    tips: [
+      "Toca una caja para ver qué productos se quedan en ese eslabón y el motivo de cada uno.",
+      "«Documentos sin combo» son fichas ya escritas que nada vende: no les falta documento, les falta el combo en Alegra.",
+      "Se actualiza solo cada 30 segundos y no llama a Alegra ni a MeLi: lee la copia local del catálogo.",
+    ],
+    tier: "standard",
+    category: "inventario",
+  },
+  combos: {
+    emoji: "🧩",
+    label: "Combos",
+    description:
+      "La fotografía de cada producto de venta con todo lo que lo compone: la receta que descuenta de inventario (materia prima, bolsa, envase, etiqueta, cuchara…) y lo que lo respalda (documento técnico, código EAN, diseño de etiqueta y publicación).",
+    tips: [
+      "Una ranura vacía es algo que falta: el texto dice por qué y qué la destraba.",
+      "Si la receta descuenta una cantidad distinta a la presentación (500 g que descuentan 5001), aparece como aviso.",
+      "La etiqueta se muestra cuando ya se exportó a PNG desde Diseño → Imprimir con el mismo nombre del combo.",
+    ],
+    tier: "standard",
+    category: "inventario",
+  },
   empaque: {
     emoji: "📷",
     label: "Empaque",

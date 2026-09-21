@@ -1,0 +1,59 @@
+{
+  "_nota": "Orden y textos de los diagramas en /app → Inventario → Mapa del sistema. Las fuentes son los .json de esta carpeta; el HTML se genera con scripts/diagramas_arquitectura.py entregar.",
+  "diagramas": [
+    {
+      "nombre": "00-mapa-global",
+      "corto": "Mapa global",
+      "grupo": "Todo el negocio",
+      "resumen": "De la compra al Libro Mayor: cómo se encadenan los seis flujos."
+    },
+    {
+      "nombre": "01-flujo-pago",
+      "corto": "Solicitud de pago",
+      "grupo": "Abastecer",
+      "resumen": "Tres personas y dos tokens: el asiento nace antes de que salga el dinero."
+    },
+    {
+      "nombre": "02-flujo-producto",
+      "corto": "Producto",
+      "grupo": "Preparar",
+      "resumen": "Del registro al combo enlazado: unidad, SKU base, combo, etiqueta, SKU C-…, EAN-13 y los cuatro enlaces."
+    },
+    {
+      "nombre": "cadena-producto",
+      "corto": "Dónde se rompe la cadena",
+      "grupo": "Preparar",
+      "resumen": "Por qué un producto con documento no tiene etiqueta (el caso propionato)."
+    },
+    {
+      "nombre": "03-venta-meli",
+      "corto": "Venta MercadoLibre",
+      "grupo": "Vender",
+      "resumen": "Pregunta, orden, stock, entrega, factura y nota crédito."
+    },
+    {
+      "nombre": "04-venta-web",
+      "corto": "Venta tienda web",
+      "grupo": "Vender",
+      "resumen": "Del carrito a la factura, con el grupo de WhatsApp despachando."
+    },
+    {
+      "nombre": "05-venta-whatsapp",
+      "corto": "Venta WhatsApp",
+      "grupo": "Vender",
+      "resumen": "La IA arma el pedido y el asesor cierra la venta."
+    },
+    {
+      "nombre": "06-contabilidad",
+      "corto": "Contabilidad",
+      "grupo": "Contar",
+      "resumen": "De cada operación al Libro Mayor, a Alegra, al banco y al contador."
+    },
+    {
+      "nombre": "mi-agente",
+      "corto": "Procesos y puertos",
+      "grupo": "Infraestructura",
+      "resumen": "Qué proceso escucha en qué puerto y el monolito de rutas."
+    }
+  ]
+}
