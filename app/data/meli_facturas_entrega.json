@@ -30403,8 +30403,8 @@
     },
     "2000018511423868": {
       "shipping_id": "48039263090",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-17T16:39:46",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-21T00:36:09",
       "preview": {
         "lineas": [
           {
@@ -30421,12 +30421,20 @@
         "direccion_envio": "Carrera 70B #64B-28, Conjunto Residencial BANZAI, Engativá, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015081432203",
+      "siigo_invoice_id": "468",
+      "siigo_invoice_number": "FE468",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "9853fbb5c5a9640560625fdbf7b4f5bedf3985870b0d54287fa88b9b553d83e4ec1375d785fa74569ca146aa07953a8f",
+      "pdf_subido_meli": true,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018511434664": {
       "shipping_id": "48039263090",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-17T16:39:50",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-21T00:36:09",
       "preview": {
         "lineas": [
           {
@@ -30443,12 +30451,20 @@
         "direccion_envio": "Carrera 70B #64B-28, Conjunto Residencial BANZAI, Engativá, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015081432203",
+      "siigo_invoice_id": "468",
+      "siigo_invoice_number": "FE468",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "9853fbb5c5a9640560625fdbf7b4f5bedf3985870b0d54287fa88b9b553d83e4ec1375d785fa74569ca146aa07953a8f",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018511429558": {
       "shipping_id": "48039263090",
-      "estado": "pendiente_activacion",
-      "actualizado_en": "2026-09-17T16:39:54",
+      "estado": "facturada",
+      "actualizado_en": "2026-09-21T00:36:09",
       "preview": {
         "lineas": [
           {
@@ -30465,7 +30481,15 @@
         "direccion_envio": "Carrera 70B #64B-28, Conjunto Residencial BANZAI, Engativá, Bogotá D.C.",
         "telefono": "XXXXXXX",
         "email": ""
-      }
+      },
+      "proveedor": "alegra",
+      "pack_id": "2000015081432203",
+      "siigo_invoice_id": "468",
+      "siigo_invoice_number": "FE468",
+      "siigo_invoice_status": "STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS",
+      "siigo_invoice_cufe": "9853fbb5c5a9640560625fdbf7b4f5bedf3985870b0d54287fa88b9b553d83e4ec1375d785fa74569ca146aa07953a8f",
+      "pdf_subido_meli": false,
+      "nota": "Factura consolidada del carrito (3 productos)."
     },
     "2000018510421348": {
       "shipping_id": "48038476703",
