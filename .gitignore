@@ -247,3 +247,8 @@ desktop/tsconfig.tsbuildinfo
 # regenera con `python3 scripts/arquitectura_cbm.py`. El grafo cambia en cada
 # commit, así que versionarlo repetiría el problema de los auto-commits.
 app/data/arquitectura_cbm/
+
+# Respaldo de un build del SPA que quedo versionado por error el 5-sep-2026
+# (112 archivos, 14 MB). desktop/dist/ ya estaba ignorado; esta copia se
+# escapo del patron. Es derivado: se regenera con `npm run build`.
+desktop/dist_cynthia_backup_*/
