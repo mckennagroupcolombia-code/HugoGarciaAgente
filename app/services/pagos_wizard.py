@@ -2122,6 +2122,8 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         "segundo; al confirmarlo se adjunta el comprobante del banco en la solicitud."
         + _nota_ds,
     )
+    _avisar_solicitante(s.get("ticket_id"), aprobada_por, "escrito",
+                        "Pago aprobado y contabilizado; falta girarlo en el banco.")
     return {**obtener(sid), "movimiento": mov, "alegra": espejo, "doc_soporte": doc_soporte}
 
 
@@ -2266,15 +2268,19 @@ def confirmar_pago(
         + ". Comprobante adjunto en la solicitud; ciclo cerrado.",
     )
     _resolver_ticket(s.get("ticket_id"), por)
+    _avisar_solicitante(s.get("ticket_id"), por, "terminado",
+                        f"Pago girado por {_fmt(s['girado'])}; el comprobante está en la solicitud.")
     return obtener(sid)
 
 
 def _resolver_ticket(ticket_id, usuario_id) -> None:
     """Cierra el ticket de la solicitud cuando el pago ya se giró.
 
-    El comentario anterior ya le avisa a quien la pidió (las notificaciones del
-    ticket llegan a los participantes); esto además saca el ticket de la bandeja
-    en vez de dejarlo «pendiente» sobre un pago que ya está hecho.
+    Saca el ticket de la bandeja en vez de dejarlo «pendiente» sobre un pago que ya
+    está hecho. Lo cierra un proceso, no el asignado: el segundo token lo da el otro
+    administrador, y sin `cierre_por_proceso` el cierre se rechazaba en silencio
+    («Solo el usuario asignado puede resolver»). Sin aviso propio: al solicitante
+    le llega `_avisar_solicitante(..., "terminado")`.
     """
     if not ticket_id or not usuario_id:
         return
@@ -2283,7 +2289,12 @@ def _resolver_ticket(ticket_id, usuario_id) -> None:
 
         usuario = _tdb.get_usuario_by_id(int(usuario_id))
         if usuario:
-            _tdb.cambiar_estado(int(ticket_id), "resuelto", usuario, "Pago girado y comprobante adjunto")
+            ok, err = _tdb.cambiar_estado(
+                int(ticket_id), "resuelto", usuario, "Pago girado y comprobante adjunto",
+                notificar=False, cierre_por_proceso=True,
+            )
+            if not ok:
+                print(f"⚠️ No se pudo cerrar el ticket {ticket_id}: {err}", flush=True)
     except Exception as e:
         print(f"⚠️ No se pudo cerrar el ticket {ticket_id}: {e}", flush=True)
 
@@ -2335,9 +2346,24 @@ def _comentar_ticket(ticket_id, usuario_id, texto: str) -> None:
 
         uid = usuario_id or _usuario_id(_tdb.DB_PATH, "admin")
         if uid:
-            _tdb.agregar_comentario(int(ticket_id), int(uid), texto)
+            # Sin el WhatsApp genérico «escribió en la solicitud»: cada paso del pago
+            # dejaba uno igual al anterior. Al solicitante le avisa `_avisar_solicitante`.
+            _tdb.agregar_comentario(int(ticket_id), int(uid), texto, notificar=False)
     except Exception as e:
         print(f"⚠️ No se pudo comentar el ticket {ticket_id}: {e}", flush=True)
+
+
+def _avisar_solicitante(ticket_id, actor_uid, evento: str, detalle: str = "") -> None:
+    """WhatsApp a quien pidió el pago: `escrito` (aprobado) o `terminado` (girado o rechazado)."""
+    if not ticket_id:
+        return
+    try:
+        from app.services.tickets_notificaciones import notificar_solicitud_pago
+        from app.observability import spawn_thread
+
+        spawn_thread(notificar_solicitud_pago, (int(ticket_id), actor_uid, evento, detalle), daemon=True)
+    except Exception as e:
+        print(f"⚠️ No se pudo avisar al solicitante del ticket {ticket_id}: {e}", flush=True)
 
 
 def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
@@ -2358,6 +2384,11 @@ def rechazar(sid: int, motivo: str = "", por: int | None = None) -> dict:
     _comentar_ticket(s.get("ticket_id"), por,
                      f"❌ Solicitud de pago #{sid} rechazada: {motivo or 'sin motivo'}. "
                      "No quedó ningún asiento contable.")
+    # Rechazada también es terminada: se cierra el ticket (antes quedaba pendiente
+    # hasta que alguien lo cerraba a mano) y se le dice al solicitante por qué.
+    _resolver_ticket(s.get("ticket_id"), por)
+    _avisar_solicitante(s.get("ticket_id"), por, "terminado",
+                        f"La rechazó: {motivo or 'sin motivo'}. No se pagó nada.")
     return obtener(sid)
 
 

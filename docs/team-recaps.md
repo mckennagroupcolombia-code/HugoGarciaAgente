@@ -1,3 +1,14 @@
+### 2026-09-21 - Solicitudes de pago: al solicitante le llegan solo dos avisos, y el ticket se cierra al girar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago · avisos de WhatsApp a operadores). Sin LLM.
+- **Qué se implementó:**
+  - **Antes:** cada paso automático del pago (aprobado, montado en la Sucursal) dejaba un comentario en el ticket y cada comentario mandaba a quien pidió el pago un «Armando escribió en la solicitud: Aprobar pago — …», iguales entre sí. Al girar con el segundo token **no llegaba nada**: el ticket intentaba cerrarse a nombre de quien dio el segundo token, que no es el asignado, y `cambiar_estado` lo rechazaba en silencio. Por eso los tickets de pago quedaban «pendiente» hasta que alguien los cerraba a mano.
+  - **Ahora, al solicitante le llegan exactamente dos avisos:** «<Aprobador> escribió en tu solicitud: … Pago aprobado y contabilizado; falta girarlo en el banco.» y «<Quien giró> terminó tu solicitud: … Pago girado por $X; el comprobante está en la solicitud.». Si se rechaza, el segundo es «… terminó tu solicitud: … La rechazó: <motivo>.». Si alguien se pide un pago a sí mismo, no recibe avisos.
+  - El ticket se cierra solo al confirmar el giro y al rechazar (`cambiar_estado(..., cierre_por_proceso=True, notificar=False)`).
+  - El aviso al aprobador al crear la solicitud dice qué es: «Solicitud de pago: Jenniffer te pide aprobar Servicios: $81.490.» en vez de «te ha hecho una solicitud».
+  - Los mensajes que las personas escriben a mano en el chat de la solicitud siguen avisando como siempre.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/tickets_notificaciones.py`, `app/services/tickets_db.py` (`cambiar_estado`: `notificar`, `cierre_por_proceso`), `tests/test_pagos_avisos_solicitante.py` (nuevo, 4 pruebas)
+
 ### 2026-09-21 - Solicitudes de pago: los terceros nuevos de Alegra ya aparecen en la lista de proveedores
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago). Sin LLM; solo lectura de contactos en Alegra.

@@ -156,6 +156,10 @@ def notificar_ticket_creado(ticket_id: int) -> None:
             texto = f"Compras: {creador} te solicita {titulo}."
         elif subtipo == "etiqueta":
             texto = f"Etiquetas: {creador} pidió {titulo}."
+        elif subtipo == "pago":
+            # Título «Aprobar pago — Servicios: $81.490» → «Servicios: $81.490».
+            que = re.sub(r"^\s*Aprobar pago\s*[—-]\s*", "", t.get("titulo") or "")
+            texto = f"Solicitud de pago: {creador} te pide aprobar {_titulo_corto(que, 60)}."
         elif t["tipo"] == "solicitud":
             texto = f"{creador} te ha hecho una solicitud: {titulo}"
         else:
@@ -278,6 +282,31 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
         titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
         texto = f"{resolvio} terminó {titulo} y pide tu aprobación."
         _programar(creador, texto)
+
+
+def notificar_solicitud_pago(ticket_id: int, actor_uid: int | None, evento: str, detalle: str = "") -> None:
+    """Los dos únicos avisos que recibe quien pidió un pago (sep-2026).
+
+    Antes le llegaba un «X escribió en la solicitud» por cada comentario automático
+    (aprobado, montado en el banco…), repetidos e iguales, y ninguno al terminar: el
+    ticket no se cerraba porque el segundo token lo da quien no es el asignado.
+    Ahora: `escrito` cuando se aprueba y `terminado` cuando se gira o se rechaza.
+    Nadie más recibe estos avisos, y a quien se lo hizo a sí mismo no le llega.
+    """
+    with _conn_ctx() as db:
+        t = _ticket_row(db, ticket_id)
+        if not t:
+            return
+        creador = t.get("creado_por")
+        if not creador or creador == actor_uid:
+            return
+        actor = _primer_nombre(_nombre_usuario(db, actor_uid))
+        titulo = _titulo_corto(t.get("titulo") or "tu solicitud de pago", 60)
+    verbo = "terminó" if evento == "terminado" else "escribió en"
+    texto = f"{actor} {verbo} tu solicitud: {titulo}."
+    if detalle:
+        texto += f" {detalle.strip()}"
+    _programar(creador, texto)
 
 
 def notificar_ticket_reabierto(ticket_id: int, reabrio_uid: int) -> None:

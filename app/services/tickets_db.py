@@ -3941,7 +3941,13 @@ def cambiar_estado(
     *,
     resultado_cantidad: float | None = None,
     resultado_unidad: str | None = None,
+    notificar: bool = True,
+    cierre_por_proceso: bool = False,
 ) -> tuple:
+    """`notificar=False` omite el WhatsApp del cambio de estado: lo usan los módulos que
+    avisan con su propio texto (Solicitudes de pago). `cierre_por_proceso=True` deja
+    resolver una solicitud a quien no es el asignado cuando la cierra un proceso del
+    sistema — p. ej. el segundo token del giro lo da el otro administrador."""
     valid = {"pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado"}
     if nuevo_estado not in valid:
         return False, "Estado inválido"
@@ -3958,7 +3964,7 @@ def cambiar_estado(
                 return False, "Solo Administración puede aprobar este tipo de ticket."
             # Las solicitudes solo pueden resolverlas el asignado,
             # EXCEPTO cuando están en revisión: el creador puede aprobarlas.
-            if t["tipo"] == "solicitud" and t["asignado_a"] != uid:
+            if t["tipo"] == "solicitud" and t["asignado_a"] != uid and not cierre_por_proceso:
                 aprobacion_por_creador = (
                     t["estado"] == "esperando_aprobacion" and t["creado_por"] == uid
                 )
@@ -4114,7 +4120,9 @@ def cambiar_estado(
             _programar_renovacion_ticket(db, ticket_id)
 
         db.commit()
-        if nuevo_estado == "resuelto":
+        if not notificar:
+            pass
+        elif nuevo_estado == "resuelto":
             try:
                 from app.services.tickets_notificaciones import notificar_ticket_resuelto
                 from app.observability import spawn_thread
