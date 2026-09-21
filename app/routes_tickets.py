@@ -589,6 +589,20 @@ def register_tickets_routes(app):
         )
         return jsonify({"ok": True}), 200
 
+    @app.route("/api/tickets/panel/atajos", methods=["GET"])
+    @app.route("/app/api/tickets/panel/atajos", methods=["GET"])
+    @_auth
+    def panel_atajos():
+        """Accesos rápidos del usuario: sus paneles más usados (con peso por recencia)
+        y los últimos visitados. Ver panel_presencia.atajos_frecuentes."""
+        from app.services.panel_presencia import atajos_frecuentes
+
+        try:
+            limite = max(1, min(int(request.args.get("limite") or 8), 20))
+        except ValueError:
+            limite = 8
+        return jsonify(atajos_frecuentes(request.tickets_usuario["id"], limite=limite)), 200
+
     @app.route("/api/tickets/presencia/en-linea", methods=["GET"])
     @_auth
     def panel_presencia_en_linea():

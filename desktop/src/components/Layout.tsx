@@ -11,6 +11,7 @@ import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
 import FlujoNav from "./nav/FlujoNav";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
+import AccesosRapidos from "./nav/AccesosRapidos";
 import ThemeModeToggle from "./ThemeModeToggle";
 import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
@@ -218,6 +219,7 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
+              <AccesosRapidos />
               <TemasHeaderButton />
               <ThemeModeToggle />
               <UserMenuButton />

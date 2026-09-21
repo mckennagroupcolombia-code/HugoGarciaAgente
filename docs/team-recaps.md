@@ -1,3 +1,13 @@
+### 2026-09-21 - Accesos rápidos (⚡ / Ctrl+K): cada persona llega en un clic a lo que más usa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (cabezote de /app, todas las vistas). Sin LLM.
+- **Qué se implementó:**
+  - **Botón ⚡ «Rápido» en el cabezote y atajo Ctrl/⌘+K desde cualquier parte.** Abre un menú con **«Lo que más usas»** (hasta 8 paneles, numerados: con el buscador vacío la tecla 1–8 los abre), **«Volver a»** (los últimos paneles visitados) y un **buscador** sobre todos los paneles a los que la persona tiene acceso (Enter abre el primero).
+  - **Sale de la telemetría que ya existía:** cada cambio de panel queda como `panel_view` en `panel_eventos_operativos` (~16.900 desde mayo). `GET /api/tickets/panel/atajos` los rankea por persona en los últimos 45 días, con peso por recencia (vida media de 10 días), así que el menú se acomoda solo cuando alguien cambia de oficio. Agenda, perfil y ajustes no cuentan como atajo.
+  - Solo ofrece paneles que el usuario puede abrir (misma regla del menú, `puedeVerSeccionPanel`), para que un atajo nunca rebote.
+  - Hoy, por ejemplo: Jenniffer → Facturación, WhatsApp, Correo ventas, Solicitudes de pago; Cynthia → Etiquetas, Docs técnicos, Publicaciones, Stock.
+- **Archivos Modificados:** `desktop/src/components/nav/AccesosRapidos.tsx` (nuevo), `desktop/src/components/Layout.tsx`, `app/services/panel_presencia.py` (`atajos_frecuentes`), `app/routes_tickets.py`, `tests/test_panel_atajos.py` (nuevo, 4 pruebas)
+
 ### 2026-09-21 - Solicitudes de pago: al solicitante le llegan solo dos avisos, y el ticket se cierra al girar
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago · avisos de WhatsApp a operadores). Sin LLM.
