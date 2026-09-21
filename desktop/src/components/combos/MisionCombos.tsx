@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { useAppStore } from "../../stores/app";
+import EnlazarDocumento from "./EnlazarDocumento";
 import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, type Combo, type Eslabon, type MateriaPrima, type Respuesta } from "./comun";
 
 /**
@@ -26,7 +27,6 @@ type Propuesta = { sku: string; nombre_producto: string; numero_producto: number
 type FichaEtiqueta = { id: string; nombre: string; tipo_nombre?: string; plantilla_id?: string; categoria?: string; data: Record<string, string> };
 type RespEtiqueta = { ficha: FichaEtiqueta; opciones: { tamanos: string[]; plantillas: { id: string; nombre: string; categoria: string; tipo_nombre: string }[] } };
 type FilaProducto = { ref: string; nombre: string; combo: string };
-type DocLista = { archivo: string; titulo: string; estado: string; referencia: string; equivalentes: string[] };
 
 /** Ir a editar una pieza en SU apartado, dejando en el cabezote el botón para volver a este combo. */
 function useSalto(c: Combo) {
@@ -34,7 +34,9 @@ function useSalto(c: Combo) {
   const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
   const setDocsTab = useAppStore((s) => s.setDocsTab);
   const setEanPrefill = useAppStore((s) => s.setEanPrefill);
-  const retorno = { ref: c.ref, nombre: c.nombre };
+  const accionDoc = c.eslabones.documento?.accion;
+  // Si el documento aún no está unido por SKU, Docs técnicos ofrecerá asociarlo a este combo.
+  const retorno = { ref: c.ref, nombre: c.nombre, mps: (accionDoc && "mps" in accionDoc && accionDoc.mps) || [], asociarDoc: Boolean(accionDoc) };
   return {
     studio: (fichaId?: string) => {
       setEtiquetasTab("studio");
@@ -50,6 +52,7 @@ function useSalto(c: Combo) {
       saltar(retorno, { panel: "fichas", buscar });
     },
     publicaciones: () => saltar(retorno, { panel: "publicaciones", sku: c.ref }),
+    inventario: (codigo: string) => saltar(retorno, { panel: "catalogo-alegra", buscar: codigo }),
     alegra: () => {
       navigator.clipboard?.writeText(c.ref).catch(() => null);
       saltar(retorno, { panel: "catalogo-alegra", buscar: c.ref });
@@ -168,7 +171,7 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
   );
 }
 
-function InspectorEtiqueta({ c, alResolver }: { c: Combo; alResolver: () => Promise<void> }) {
+function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Combo[]; alResolver: () => Promise<void> }) {
   const salto = useSalto(c);
   const e = c.eslabones.etiqueta;
   const ean = c.eslabones.ean?.codigo || "";
@@ -198,8 +201,14 @@ function InspectorEtiqueta({ c, alResolver }: { c: Combo; alResolver: () => Prom
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
+        {hermanas.filter((h) => h.ref !== c.ref && h.eslabones.etiqueta?.etiqueta_id).map((h) => (
+          <div key={h.ref} className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
+            La presentación <b>{h.presentacion || h.nombre}</b> ya tiene etiqueta{h.eslabones.etiqueta.tamano ? <> en tamaño <b>{h.eslabones.etiqueta.tamano}</b></> : null}. Sirve de punto de partida, pero esta presentación lleva la suya, con su propio tamaño y plantilla.
+            <button className={`${BTN_SEC} mt-1.5`} onClick={() => salto.studio(h.eslabones.etiqueta.etiqueta_id)}>Abrir la de {h.presentacion || h.ref} en el Studio →</button>
+          </div>
+        ))}
         {e.accion ? (
-          <button className={BTN} onClick={() => salto.studio()}>Diseñarla en el Studio →</button>
+          <button className={BTN} onClick={() => salto.studio()}>Diseñar la de esta presentación en el Studio →</button>
         ) : (
           <p className="text-[11.5px] text-muted">La etiqueta se diseña cuando el combo ya tiene su código EAN.</p>
         )}
@@ -288,41 +297,19 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
   const a = e.accion;
   const mps: MateriaPrima[] = (a && "mps" in a && a.mps) || [];
   const [elegir, setElegir] = useState(false);
-  const [q, setQ] = useState("");
-  const [doc, setDoc] = useState<DocLista | null>(null);
-  const [sku, setSku] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pideCompartir, setPideCompartir] = useState(false);
   useEffect(() => {
     setElegir(false);
-    setQ("");
-    setDoc(null);
     setError(null);
-    setPideCompartir(false);
-    setSku(mps[0]?.codigo ?? "");
-  }, [c.ref]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const lista = useQuery({
-    queryKey: ["mision-documentos", q],
-    queryFn: () => api.get<{ documentos: DocLista[] }>(`/api/mapa-sistema/documentos?q=${encodeURIComponent(q)}`),
-    enabled: elegir,
-    staleTime: 60_000,
-  });
+  }, [c.ref]);
 
   const unir = async (archivo: string, codigo: string, compartir: boolean) => {
     setOcupado(true);
     setError(null);
     try {
       const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", { items: [{ archivo, sku: codigo, compartir }] });
-      if (!r.ok) {
-        const msg = r.errores[0]?.error || "No se pudo unir";
-        setPideCompartir(/otro producto activo/.test(msg));
-        throw new Error(msg);
-      }
-      setElegir(false);
-      setDoc(null);
-      setPideCompartir(false);
+      if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo unir");
       await alResolver();
     } catch (err) {
       setError((err as Error)?.message || "No se pudo unir");
@@ -369,38 +356,14 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
         <button className={BTN} onClick={() => setElegir(true)}>Enlazar un documento que ya existe…</button>
       )}
       {elegir && (
-        <div className="space-y-2 rounded-md border border-accent/40 bg-accent/5 p-2">
-          {mps.length > 1 && (
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-muted">
-              ¿De cuál materia prima es el documento?
-              <select className="mt-0.5 w-full rounded-md border border-border bg-surface-input px-2 py-1 text-[12px] font-normal normal-case text-ink" value={sku} onChange={(ev) => setSku(ev.target.value)}>
-                {mps.map((m) => <option key={m.codigo} value={m.codigo}>{m.nombre} · {m.codigo}</option>)}
-              </select>
-            </label>
-          )}
-          <input autoFocus value={q} onChange={(ev) => { setQ(ev.target.value); setDoc(null); }} placeholder="Buscar el documento por nombre o SKU…" className="w-full rounded-md border border-border bg-surface-input px-2 py-1 text-[12px] text-ink" />
-          <div className="max-h-56 space-y-1 overflow-y-auto">
-            {lista.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
-            {(lista.data?.documentos ?? []).map((d) => (
-              <button key={d.archivo} onClick={() => { setDoc(d); setPideCompartir(false); setError(null); }} className={`block w-full rounded-md border px-2 py-1 text-left ${doc?.archivo === d.archivo ? "border-accent bg-accent/15" : "border-border bg-surface-input hover:border-accent/50"}`}>
-                <span className="block truncate text-[11.5px] font-semibold text-ink">{d.titulo}</span>
-                <span className="block truncate font-mono text-[9.5px] text-muted">{d.estado}{d.referencia ? ` · ${[d.referencia, ...d.equivalentes].join(", ")}` : " · sin SKU"}</span>
-              </button>
-            ))}
-            {lista.data && lista.data.documentos.length === 0 && <p className="text-[11px] text-muted">Ningún documento coincide. Si de verdad no existe, hay que redactarlo en Docs técnicos.</p>}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button className={BTN} disabled={!doc || !sku || ocupado} onClick={() => doc && unir(doc.archivo, sku, pideCompartir)}>
-              {ocupado ? "Uniendo…" : pideCompartir ? "Compartir este documento" : "Unir este documento"}
-            </button>
-            <button className={BTN_SEC} onClick={() => { setElegir(false); setDoc(null); setError(null); }}>Cancelar</button>
-          </div>
+        <div className="rounded-md border border-accent/40 bg-accent/5 p-2">
+          <EnlazarDocumento mps={mps} inicial="" onCancelar={() => setElegir(false)} onHecho={async () => { setElegir(false); await alResolver(); }} />
         </div>
       )}
-      {error && <p className="text-[11px] text-accent-rose">{error}{pideCompartir ? " Pulsa «Compartir este documento» si son la misma sustancia." : ""}</p>}
+      {error && <p className="text-[11px] text-accent-rose">{error}</p>}
 
       <div className="flex flex-wrap gap-2 border-t border-border/70 pt-2">
-        <button className={BTN_SEC} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre || c.nombre)}>
+        <button className={BTN_SEC} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}>
           {e.estado === "falta" ? "Redactarlo en Docs técnicos →" : "Abrirlo en Docs técnicos →"}
         </button>
       </div>
@@ -408,13 +371,45 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
   );
 }
 
-function Inspector({ c, clave, alResolver }: { c: Combo; clave: string; alResolver: () => Promise<void> }) {
+function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string; hermanas: Combo[]; alResolver: () => Promise<void> }) {
   const salto = useSalto(c);
   const e = c.eslabones[clave];
+  if (clave === "fotos") {
+    const fotos = c.fotos?.length ? c.fotos : c.foto ? [c.foto] : [];
+    return (
+      <div className="space-y-2.5">
+        <div className="mb-1 flex items-center gap-2">
+          <span className="text-lg leading-none">🖼️</span>
+          <h4 className="mck-flujo-nodo text-[13px] font-bold text-ink">Fotos del producto</h4>
+          <span className={`ml-auto font-mono text-[9.5px] font-bold uppercase ${fotos.length ? "text-accent-leaf" : "text-accent-rose"}`}>{fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : "sin foto"}</span>
+        </div>
+        {fotos.length === 0 ? (
+          <p className="text-[11.5px] text-muted">Esta presentación no tiene foto en la vitrina. Se sube en Publicaciones (web y MeLi).</p>
+        ) : (
+          <>
+            <div>
+              <p className="mb-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">Principal</p>
+              <img src={fotos[0]} alt={`Foto principal de ${c.nombre}`} className="max-h-56 w-full rounded-lg border border-border bg-white object-contain" />
+            </div>
+            {fotos.length > 1 && (
+              <div>
+                <p className="mb-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">Secundarias</p>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {fotos.slice(1).map((f) => <img key={f} src={f} alt="" loading="lazy" className="aspect-square w-full rounded-md border border-border bg-white object-contain" />)}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <button className={BTN} onClick={salto.publicaciones}>Cambiar, ordenar o agregar fotos →</button>
+        <p className="text-[10.5px] text-muted">Se editan en Publicaciones: principal (★), orden y fotos de la web y de MeLi por separado.</p>
+      </div>
+    );
+  }
   if (!e) return null;
   const cuerpo = () => {
     if (clave === "ean") return <InspectorEan c={c} alResolver={alResolver} />;
-    if (clave === "etiqueta") return <InspectorEtiqueta c={c} alResolver={alResolver} />;
+    if (clave === "etiqueta") return <InspectorEtiqueta c={c} hermanas={hermanas} alResolver={alResolver} />;
     if (clave === "receta" || clave === "etiqueta_fisica") {
       const lista = clave === "receta" ? c.componentes : c.componentes.filter((x) => x.casilla === "etiqueta");
       return (
@@ -423,18 +418,35 @@ function Inspector({ c, clave, alResolver }: { c: Combo; clave: string; alResolv
           {lista.length > 0 && (
             <div className="grid grid-cols-2 gap-1.5">
               {lista.map((x, i) => (
-                <div key={`${x.codigo}-${i}`} title={x.nombre} className={`relative rounded-md border p-1.5 ${x.casilla === "materia_prima" ? "border-accent/70 bg-accent/10" : "border-border bg-surface-input"} ${x.existe ? "" : "border-dashed border-accent-rose/70"}`}>
+                <button
+                  key={`${x.codigo}-${i}`}
+                  onClick={() => salto.inventario(x.codigo)}
+                  title={`${x.nombre} — consultar en el inventario`}
+                  className={`mck-btn-no-fx relative rounded-md border p-1.5 text-left transition hover:border-accent ${x.casilla === "materia_prima" ? "border-accent/70 bg-accent/10" : "border-border bg-surface-input"} ${x.existe ? "" : "border-dashed border-accent-rose/70"}`}
+                >
                   <span className="absolute right-1 top-1 rounded bg-surface px-1 text-[9.5px] font-bold tabular-nums text-ink">{cantidad(x)}</span>
-                  <div className="text-base leading-none">{CASILLA[x.casilla].icono}</div>
-                  <div className="mt-0.5 text-[8.5px] font-bold uppercase tracking-wide text-muted">{CASILLA[x.casilla].nombre}</div>
-                  <div className="line-clamp-2 text-[10.5px] leading-tight text-ink">{x.nombre}</div>
-                  <code className="text-[9px] text-muted">{x.codigo}</code>
-                </div>
+                  <span className="block text-base leading-none">{CASILLA[x.casilla].icono}</span>
+                  <span className="mt-0.5 block text-[8.5px] font-bold uppercase tracking-wide text-muted">{CASILLA[x.casilla].nombre}</span>
+                  <span className="line-clamp-2 block text-[10.5px] leading-tight text-ink">{x.nombre}</span>
+                  <code className="block text-[9px] text-muted">{x.codigo}</code>
+                  <span className="mt-0.5 flex items-center justify-between gap-1 font-mono text-[9px]">
+                    {x.existencias == null ? (
+                      <span className="text-muted">sin dato de existencias</span>
+                    ) : (
+                      <span className={x.existencias > 0 ? "text-accent-leaf" : "text-accent-rose"}>{x.existencias.toLocaleString("es-CO")} en inventario</span>
+                    )}
+                    <span className="text-accent">ver →</span>
+                  </span>
+                  {!x.existe && <span className="block text-[9px] font-bold text-accent-rose">ya no existe en Alegra</span>}
+                </button>
               ))}
             </div>
           )}
           {e.accion && <AccionRanura c={c} accion={e.accion} />}
           {e.estado !== "ok" && <p className="text-[11px] text-muted">La receta vive en Alegra, en el kit <code>{c.ref}</code>.</p>}
+          {lista.some((x) => (x.existencias ?? 0) < 0) && (
+            <p className="text-[10.5px] text-muted">Las existencias son la referencia de Siigo que usa el panel de Inventario; un número negativo es empaque que se descuenta pero nunca se cargó.</p>
+          )}
           <button className={BTN_SEC} onClick={salto.alegra}>Ver el kit en Catálogo Alegra →</button>
         </div>
       );
@@ -493,9 +505,12 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
           className={premio ? "stroke-accent-sun" : "stroke-accent-leaf"} strokeDasharray={`${CIRC * avance} ${CIRC}`} style={{ transition: "stroke-dasharray 700ms ease" }} />
       </svg>
 
-      {/* la foto, en el centro */}
-      <div className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-4 border-surface-panel bg-white ${premio ? "mck-mision-premio" : ""}`} style={{ width: "17.2%", aspectRatio: "1" }}>
-        {c.foto ? <img src={c.foto} alt={c.nombre} className="h-full w-full object-contain" /> : <span className="text-3xl text-muted">?</span>}
+      {/* la foto, en el centro: se toca para ver y editar sus fotos */}
+      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-4 bg-white ${sel === "fotos" ? "border-accent" : "border-surface-panel"} ${premio ? "mck-mision-premio" : ""}`} style={{ width: "17.2%", aspectRatio: "1" }}>
+        <button onClick={() => onSel("fotos")} aria-pressed={sel === "fotos"} title="Ver y editar las fotos de esta presentación" className="mck-btn-no-fx group block h-full w-full">
+          {c.foto ? <img src={c.foto} alt={c.nombre} className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center text-3xl text-muted">?</span>}
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/60 py-0.5 text-center font-mono text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100">fotos{c.fotos && c.fotos.length > 1 ? ` · ${c.fotos.length}` : ""}</span>
+        </button>
       </div>
       <div className="absolute left-1/2 top-[67.5%] -translate-x-1/2 rounded-full border border-border bg-surface-panel px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-ink">
         {c.ok}/{TOTAL}
@@ -629,6 +644,12 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
   const huerfanos = (sinCombo.data?.filas ?? []).filter((f) => f.combo === "falta");
   const [verHuerfanos, setVerHuerfanos] = useState(false);
 
+  // Las otras presentaciones del mismo producto (misma materia prima): cada una es su combo,
+  // con su EAN, su etiqueta y su plantilla propios.
+  const hermanas = useMemo(
+    () => (c?.familia ? datos.combos.filter((x) => x.familia === c.familia).sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true })) : []),
+    [c?.familia, datos.combos],
+  );
   const completos = datos.combos.filter(completo).length;
   const resueltosEnCola = cola.filter((r) => { const x = porRef.get(r); return x ? completo(x) : false; }).length;
 
@@ -659,7 +680,7 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                  Caso {pos + 1} de {cola.length} · {resueltosEnCola} resueltos en esta visita · {c.linea || "sin línea en la web"}
+                  {pos >= 0 ? `Caso ${pos + 1} de ${cola.length}` : "Fuera de la cola (ya estaba completo)"} · {resueltosEnCola} resueltos en esta visita · {c.linea || "sin línea en la web"}
                 </p>
                 <h3 className="truncate text-base font-bold text-ink">{c.nombre}</h3>
                 <code className="text-[11px] text-ink-secondary">{c.ref}</code>
@@ -679,11 +700,34 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
               </div>
             ) : null}
 
+            {hermanas.length > 1 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">{hermanas.length} presentaciones · cada una con su etiqueta y plantilla</span>
+                {hermanas.map((h) => {
+                  const aqui = h.ref === c.ref;
+                  const etq = h.eslabones.etiqueta;
+                  return (
+                    <button
+                      key={h.ref}
+                      onClick={() => { setPremio(false); setRef(h.ref); }}
+                      aria-current={aqui ? "true" : undefined}
+                      title={`${h.nombre} · ${h.ok}/${TOTAL} piezas${etq?.tamano ? ` · etiqueta ${etq.tamano}` : " · sin etiqueta"}`}
+                      className={`mck-flujo-nodo flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11.5px] font-bold ${aqui ? "border-accent bg-accent text-white" : "border-border bg-surface-input text-ink-secondary hover:border-accent/60 hover:text-ink"}`}
+                    >
+                      {h.presentacion || h.nombre.split(" ").slice(-1)[0]}
+                      <span className={`rounded-full px-1.5 text-[10px] tabular-nums ${aqui ? "bg-white/25" : completo(h) ? "bg-accent-leaf text-white" : "bg-surface text-muted"}`}>{h.ok}/{TOTAL}</span>
+                      <span className={`font-mono text-[9px] font-normal ${aqui ? "text-white/80" : etq?.tamano ? "text-muted" : "text-accent-rose"}`}>{etq?.tamano || "sin etiqueta"}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             <Tablero c={c} sel={sel} guia={guia} destello={destello} premio={premio} onSel={setSel} />
           </div>
 
           <div className="rounded-xl border border-border bg-surface-panel p-3 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto">
-            <Inspector c={c} clave={sel} alResolver={alResolver} />
+            <Inspector c={c} clave={sel} hermanas={hermanas} alResolver={alResolver} />
           </div>
         </div>
       )}

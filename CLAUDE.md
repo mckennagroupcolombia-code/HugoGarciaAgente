@@ -926,10 +926,27 @@ códigos); `mejor_documento()` encuentra el documento por cualquiera de sus SKU.
 el modo `fijar`: reemplazar o compartir se decide caso a caso. (3) si el parecido de nombre no encontraba el documento no
 había cómo elegirlo: `GET /api/mapa-sistema/documentos?q=` + buscador en el inspector («Enlazar un documento que ya existe…»,
 con selector de materia prima si la receta tiene varias).
+**Asociar desde Docs técnicos.** La biblioteca de Docs técnicos lista PDF generados y no tenía cómo decir «este es el
+documento de aquel producto»: quien llegaba desde un combo sin ficha quedaba en un callejón. Ahora, si se llega desde un
+combo cuyo documento no está unido por SKU (`tallerRetorno.asociarDoc`, con sus `mps`), la biblioteca abre con el bloque
+«Asociar un documento a «<combo>»»: buscador sobre los YAML (no sobre los PDF), botón «Asociar a este combo» por documento,
+confirmación y «← Seguir con el combo». Es la misma pieza del taller (`components/combos/EnlazarDocumento.tsx`), así que
+corrige referencias caducas y solo comparte un documento si se confirma. También entra por ahí la galería de Combos.
 **Editar en su apartado y volver.** Cada pieza del taller salta a su sitio ya abierto en ESE producto —Studio en la etiqueta
 (`abrirFormulario({fichaId})`), Códigos EAN, Docs técnicos con el buscador sembrado, Publicaciones en el SKU, Catálogo
 Alegra en el kit— vía `saltarDesdeTaller()` / `tallerSalto` en `stores/app.ts`, y queda un botón flotante «← Seguir con
 <combo>» (`tallerRetorno`, en `Layout.tsx`; flotante porque el Studio inmersivo oculta el cabezote) que devuelve al mismo caso.
+
+**Fotos, presentaciones y componentes en el taller (21-sep-2026).** La **foto del centro se toca**: abre la principal y
+las secundarias (`fotos`, del `cache.json` de la web) y salta a Publicaciones en ese SKU, que es donde se cambian, ordenan y
+suben (web y MeLi por separado). **Presentaciones:** `familia` = la materia prima única de la receta; los combos que la
+comparten son presentaciones del mismo producto (250 g · 500 g · kg) y salen como tira sobre el tablero. Comparten
+documento (es de la materia prima) pero **cada una es su combo: su EAN, su etiqueta, su tamaño y su plantilla**; si una no
+tiene etiqueta, el inspector ofrece abrir la de la hermana como punto de partida. Un kit con varias materias primas no es
+presentación de ninguna (`familia` vacía). **Componentes:** cada pieza de la receta (bolsa, etiqueta, tapa…) muestra sus
+existencias de referencia y abre Catálogo Alegra buscando su código. Las existencias salen de `siigo_stock_cache.json`, el
+caché que ya deja el panel de Inventario — acá **solo se lee el archivo**, nunca se llama a Siigo; muchos empaques están en
+negativo porque se descuentan y nunca se cargaron. `unit_cost` de la copia de Alegra viene en 0: no se muestra costo.
 
 **La cadena se mide por producto ADQUIRIDO**, no por combo (`matriz_productos()`): de 191 materias primas, 33 llegan
 completas a la vitrina y 82 se venden sin etiqueta o sin documento listo. Vista por combos, las 40 compradas sin

@@ -1,3 +1,4 @@
+import EnlazarDocumento from "./combos/EnlazarDocumento";
 import { useAppStore } from "../stores/app";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -67,6 +68,37 @@ interface BibliotecaDatosResult {
   datos: Record<string, unknown>;
   yaml: string;
   tiene_datos: boolean;
+}
+
+/**
+ * Llegada desde un combo sin documento (taller o galería de Combos): la biblioteca lista PDF y no
+ * tenía cómo decir «este es el documento de aquel producto». Este bloque lo hace ahí mismo.
+ */
+function AsociarAlCombo() {
+  const retorno = useAppStore((st) => st.tallerRetorno);
+  const volver = useAppStore((st) => st.volverAlTaller);
+  const [hecho, setHecho] = useState<{ titulo: string; sku: string } | null>(null);
+  if (!retorno?.asociarDoc) return null;
+  const mps = retorno.mps ?? [];
+  return (
+    <div className="rounded-xl border-2 border-accent/60 bg-accent/5 p-3">
+      <p className="text-sm font-bold text-ink">Asociar un documento a «{retorno.nombre}»</p>
+      {hecho ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-ink">
+          <span>✓ «{hecho.titulo}» quedó asociado a <code>{hecho.sku}</code>. Todas las presentaciones de esa materia prima lo heredan.</span>
+          <button type="button" onClick={volver} className="rounded-md border border-accent bg-accent px-2.5 py-1 text-[12px] font-bold text-white hover:opacity-90">← Seguir con el combo</button>
+          <button type="button" onClick={() => setHecho(null)} className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] text-ink hover:bg-surface-hover">Asociar otro</button>
+        </div>
+      ) : (
+        <>
+          <p className="mb-2 mt-0.5 text-xs text-muted">
+            Busca el documento que ya existe y pulsa «Asociar a este combo». Si no existe, redáctalo en las pestañas de arriba y vuelve aquí a asociarlo.
+          </p>
+          <EnlazarDocumento mps={mps} inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""} etiquetaBoton="Asociar a este combo" onHecho={setHecho} />
+        </>
+      )}
+    </div>
+  );
 }
 
 function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
@@ -181,6 +213,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
+      <AsociarAlCombo />
       <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">

@@ -342,3 +342,19 @@ def test_editar_una_etiqueta_cambia_solo_lo_pedido(tmp_path, monkeypatch):
             EF.actualizar_campos_ficha("f1", malo.get("campos"), plantilla_id=malo.get("plantilla_id"))
     with pytest.raises(ValueError):  # la plantilla de una categoría no se edita desde un producto
         EF.actualizar_campos_ficha("plant1", {"productName": "otra"})
+
+
+def test_presentaciones_fotos_y_datos_de_inventario_por_componente():
+    """El taller muestra las otras presentaciones del mismo producto, sus fotos y las existencias
+    de cada componente. Un kit de varias materias primas no es «otra presentación» de ninguna."""
+    d = M.anatomia_combos()
+    if not d["combos"]:
+        pytest.skip("sin copia local del catálogo de Alegra")
+    for c in d["combos"]:
+        mp = [x for x in c["componentes"] if x["casilla"] == "materia_prima"]
+        assert isinstance(c["fotos"], list) and all(isinstance(f, str) for f in c["fotos"])
+        if len(mp) > 1:
+            assert c["familia"] != mp[0]["codigo"], c["ref"]
+        for x in c["componentes"]:
+            assert "costo" in x and "existencias" in x
+            assert x["existencias"] is None or isinstance(x["existencias"], (int, float))

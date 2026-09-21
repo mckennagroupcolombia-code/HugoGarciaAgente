@@ -33,6 +33,7 @@ from typing import Any
 
 REPO = Path(__file__).resolve().parents[2]
 _EAN_JSON = REPO / "app" / "data" / "etiquetas_codigos_ean.json"
+_STOCK_JSON = Path(__file__).resolve().parents[1] / "data" / "siigo_stock_cache.json"
 _ETIQUETAS_JSON = REPO / "app" / "data" / "etiquetas_fichas.json"
 _PNG_JSON = REPO / "app" / "data" / "etiquetas_recursos_png.json"
 _CACHE_WEB = REPO / "PAGINA_WEB" / "site" / "data" / "cache.json"
@@ -162,6 +163,10 @@ def _construir() -> dict:
     for p in cache.get("combos") or []:
         web.setdefault((p.get("ref") or "").strip().upper(), {**p, "_linea": p.get("cat")})
 
+    # Existencias de referencia: el caché que ya deja el panel de Inventario (Siigo, solo lectura).
+    # Acá solo se lee el archivo; si no está, los componentes salen sin existencias.
+    stock_ref = {str(c).lower(): v for c, v in ((_leer_json(_STOCK_JSON, {}) or {}).get("por_codigo") or {}).items()}
+
     combos = []
     for ref, k in sorted(cat.items()):
         if k.get("type") != "kit":
@@ -175,12 +180,16 @@ def _construir() -> dict:
             # que el combo no podía unir su documento). El nombre está en el catálogo, por código.
             cn = c.get("nombre") or (cat.get(c.get("codigo") or "") or {}).get("name") or ""
             es_mp = not A.es_empaque(cn) and A._primera(cn) not in A._NO_MATERIA
+            en_cat = cat.get(c.get("codigo") or "") or {}
+            existencias = (stock_ref.get((c.get("codigo") or "").lower()) or {}).get("stock_siigo")
             comps.append({
                 "codigo": c.get("codigo") or "",
                 "nombre": cn,
                 "cantidad": float(c.get("cantidad") or 0),
                 "casilla": _casilla(cn, es_mp),
                 "existe": bool(c.get("codigo")) and c.get("codigo") in cat,
+                "costo": float(en_cat.get("unit_cost") or 0),
+                "existencias": existencias if isinstance(existencias, (int, float)) else None,
             })
         mp = [c for c in comps if c["casilla"] == "materia_prima"]
 
@@ -304,6 +313,14 @@ def _construir() -> dict:
             "nombre": nombre,
             "precio_lista": k.get("precio_lista"),
             "foto": (w or {}).get("photo"),
+            "fotos": [f for f in ((w or {}).get("photos") or []) if isinstance(f, str)][:8]
+                     if isinstance((w or {}).get("photos"), list) else [],
+            # Un producto puede venderse en varias presentaciones (250 g, 500 g, 1 kg): todas
+            # comparten materia prima —y por eso documento—, pero cada una es SU combo, con su
+            # propio EAN, su propia etiqueta y su propia plantilla.
+            # Solo con UNA materia prima: un kit de varias no es «otra presentación» de ninguna.
+            "familia": (mp[0]["codigo"] if len(mp) == 1 else "") or (w or {}).get("family_slug") or "",
+            "presentacion": (w or {}).get("presentacion_label") or "",
             "linea": (w or {}).get("_linea") or "",
             "componentes": comps,
             "eslabones": esl,

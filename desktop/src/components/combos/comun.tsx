@@ -7,7 +7,7 @@ import { useAppStore } from "../../stores/app";
  *  acciones que destraban una ranura. Una sola definición para que no diverjan. */
 
 export type Casilla = "materia_prima" | "bolsa" | "envase" | "tapa" | "etiqueta" | "accesorio" | "proteccion" | "operacion" | "otro";
-export type Componente = { codigo: string; nombre: string; cantidad: number; casilla: Casilla; existe: boolean };
+export type Componente = { codigo: string; nombre: string; cantidad: number; casilla: Casilla; existe: boolean; costo?: number; existencias?: number | null };
 export type Eslabon = {
   estado: "ok" | "aviso" | "falta";
   titulo: string;
@@ -43,6 +43,10 @@ export type Combo = {
   nombre: string;
   precio_lista: number | null;
   foto: string | null;
+  fotos?: string[];
+  /** Materia prima que comparten las presentaciones de un mismo producto. */
+  familia?: string;
+  presentacion?: string;
   linea: string;
   componentes: Componente[];
   eslabones: Record<string, Eslabon>;
@@ -257,8 +261,14 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
   if (accion.tipo === "crear_documento") {
     return (
       <div className="mt-2">
-        <button className={BTN} onClick={() => setPanel("fichas")}>
-          Ir a Docs técnicos →
+        <button
+          className={BTN}
+          onClick={() => {
+            useAppStore.getState().setDocsTab("biblioteca");
+            useAppStore.getState().saltarDesdeTaller({ ref: c.ref, nombre: c.nombre, mps: accion.mps ?? [], asociarDoc: true }, { panel: "fichas", buscar: accion.mps?.[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? c.nombre });
+          }}
+        >
+          Asociar o redactar en Docs técnicos →
         </button>
       </div>
     );

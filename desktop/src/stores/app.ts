@@ -239,8 +239,8 @@ interface AppState {
    * Publicaciones): el apartado abre en ESE producto y el cabezote ofrece volver al combo.
    */
   tallerSalto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string } | null;
-  tallerRetorno: { ref: string; nombre: string } | null;
-  saltarDesdeTaller: (retorno: { ref: string; nombre: string }, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
+  tallerRetorno: { ref: string; nombre: string; mps?: { codigo: string; nombre: string }[]; asociarDoc?: boolean } | null;
+  saltarDesdeTaller: (retorno: { ref: string; nombre: string; mps?: { codigo: string; nombre: string }[]; asociarDoc?: boolean }, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
   consumirTallerSalto: () => void;
   volverAlTaller: () => void;
   /** Combos: «mision» = taller guiado caso a caso · «galeria» = todos los combos. */
