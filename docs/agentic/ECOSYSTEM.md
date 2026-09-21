@@ -1,6 +1,42 @@
 # Gentleman Ecosystem For McKenna
 
-Objetivo: usar el ecosistema Gentleman como referencia para superagentes en McKenna sin instalar herramientas globales a ciegas. Primero se documenta la arquitectura; instalacion real debe hacerse en una tarea separada con backup.
+Objetivo: usar el ecosistema Gentleman como referencia para superagentes en McKenna sin instalar herramientas globales a ciegas.
+
+## Estado real de la instalacion (verificado 2026-09-20)
+
+Este documento describia el ecosistema como algo *por evaluar*. No lo es: dos de las
+herramientas llevan meses instaladas y corriendo en esta maquina, y ambas estan atrasadas.
+
+| Herramienta | Instalado | Ultimo publicado | Ruta / dato |
+| --- | --- | --- | --- |
+| `gentle-ai` | **3.4.0** ✅ | 3.4.0 | `/usr/local/bin/gentle-ai` — actualizado el 20-sep-2026 desde 1.25.4 |
+| `engram` | **2.0.0** ✅ | 2.0.0 | `/usr/local/bin/engram`, base en `~/.engram/engram.db` — actualizado el 20-sep-2026 desde 1.15.4 |
+| `archify` | **instalado** ✅ | 2.17.0 | Skills `archify` + `archify-review` en `~/.agents/skills/`, enlazadas desde `~/.claude/skills/`. Primer diagrama en `docs/arquitectura/` — ver su `README.md` |
+
+Instalados desde los tarballs oficiales de GitHub (no hay Homebrew en esta maquina, y el
+Go local 1.22.2 es viejo para compilar v2). Respaldo previo en
+`~/backups_manual/engram_20260920/`: la base mas los dos binarios viejos, por si hay que volver.
+
+## Lo que ninguna de las dos hace todavia por mi-agente
+
+Actualizarlas no las conecto al proyecto, y conviene no confundir las dos cosas:
+
+- **Engram tenia un solo proyecto en el store, `eth-usdc-bot`** (100 observaciones, 7 sesiones,
+  sin escrituras desde el 6-may-2026). mi-agente no tenia ni una memoria. Tras el upgrade se
+  verifico que v2 escribe y lee bien en este repo, que Engram detecta como `hugogarciaagente`
+  por el remoto de git. La memoria viva de McKenna sigue estando en
+  `~/.claude/projects/-home-mckg-mi-agente/memory/`, en ChromaDB (`memoria_vectorial/`) y en
+  `docs/agentic/MEMORY.md` — mapearla a `mem_save` sigue pendiente.
+- **gentle-ai nunca se instalo en este repo**: no hay `.atl/`, y las skills de
+  `.agents/skills/` y `.cursor/skills/` (las `caveman*`) se pusieron a mano, no las gestiona el.
+  `gentle-ai sdd-status` responde `unresolved / next: sdd-new`, que es lo normal en un repo sin
+  SDD iniciado. Correr `gentle-ai install` o `sync` cambiaria configuraciones de agentes en toda
+  la maquina: es una decision aparte, no parte de actualizar.
+
+⚠️ **`engram doctor` sale en `error` y no es por el upgrade.** Los dos hallazgos
+(`sync_target_closed_space` y `sync_mutation_required_fields`, 107 mutaciones sin confirmar)
+son de `eth-usdc-bot`, de mayo, hacia un destino cloud que nunca se configuro. `doctor repair
+--dry-run` los marca `repairable: false`. Son de otro proyecto: no se tocaron.
 
 ## Repos Evaluados
 
@@ -54,8 +90,11 @@ El orquestador debe analizar lenguaje natural y decidir:
 ## Fases De Adopcion
 
 1. **Ya implementado local:** `docs/agentic/`, contratos, smoke tests, CI backend.
-2. **Siguiente paso seguro:** instalar/evaluar `engram` en entorno dev, no en produccion, y mapear memorias McKenna a `mem_save`.
-3. **Despues:** evaluar `gentle-ai` para configurar Cursor/otros agentes con SDD, skills registry y Engram.
+2. **Ya instalado (no es un paso pendiente):** `engram` 1.15.4 y `gentle-ai` 1.25.4 estan en
+   `/usr/local/bin`. El paso real pendiente es **actualizarlos** (ver tabla de estado arriba),
+   no instalarlos.
+3. **Pendiente de verdad:** mapear las memorias McKenna de `docs/agentic/MEMORY.md` a `mem_save`
+   de Engram, que hoy convive con Chroma sin que ninguno sea la fuente de verdad.
 4. **Luego:** incorporar skills externas seleccionadas de `Gentleman-Skills` como skills reales de Cursor o fichas locales.
 5. **Finalmente:** evaluar `gentleman-guardian-angel` como review pre-commit/PR. No bloquear commits productivos hasta calibrar reglas.
 6. **Opcional:** usar `Gentleman.Dots` en maquinas dev para entorno consistente; no requerido en servidor.

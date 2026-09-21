@@ -26,3 +26,24 @@ pytest>=8.0.0
 flask-cors>=4.0.0
 opencv-python-headless
 numpy
+
+# --- Dependencias que el código importaba sin declarar (auditoría 20-sep-2026) ---
+# Estaban instaladas a mano en el venv; sin esto el entorno no se podía reconstruir.
+CairoSVG>=2.9.0                 # render SVG→PNG de etiquetas
+weasyprint>=68.1                # HTML→PDF (fichas, catálogos)
+PyPDF2>=3.0.1                   # manipulación de PDFs
+pyzbar>=0.1.9                   # lectura de códigos de barras
+cryptography>=46.0.5            # firma/cifrado
+WooCommerce>=3.0.0              # API de la tienda
+pywebpush>=2.3.0                # notificaciones push del panel
+scrapling>=0.4.4                # scraping en knowledge_agent
+openai>=2.24.0                  # cliente usado en un call-site puntual
+tiktoken>=0.13.0                # conteo de tokens
+fal-client>=0.13.2              # video Kling vía fal.ai
+faster-whisper>=1.2.1           # STT local; usa ctranslate2, NO torch
+ctranslate2>=4.7.2              # motor de faster-whisper + detección de GPU
+soundfile>=0.13.1               # E/S de audio
+
+# NO agregar `qwen-tts`: arrastra torch, gradio, transformers y accelerate
+# (~7 GB de CUDA). El motor de voz vivo es voicebox, que corre en su propio
+# venv (~/voicebox-venv, servicio voicebox-tts, puerto 17493).

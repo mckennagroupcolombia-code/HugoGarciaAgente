@@ -39,7 +39,7 @@ cd desktop && npm run build
 # Luego reiniciar Flask: sudo systemctl restart agente-pro
 
 # Catálogo PDF
-source venv/bin/activate && python3 generar_catalogo.py
+source venv/bin/activate && python3 scripts/generar_catalogo.py
 
 # Puente WhatsApp (Node, puerto 3000)
 cd bot-mckenna && npm ci && npm start
@@ -108,7 +108,7 @@ git pull origin main    # o: git pull origin master
 ├── webhook_meli.py                Flask app notificaciones MeLi (puerto 8080)
 ├── preventa_meli.py               Orquestador preguntas de preventa MeLi
 ├── modulo_posventa.py             Gestión post-venta (RUT, devoluciones)
-├── generar_catalogo.py            Genera PDF catálogo con fotos de MeLi
+│   (generar_catalogo.py vive en scripts/ y app/tools/, no en la raíz)
 │
 ├── PAGINA_WEB/site/               Tienda y contenido (Flask `website.py`): pedidos, catálogo, datos JSON
 │
@@ -178,7 +178,7 @@ git pull origin main    # o: git pull origin master
 ├── cotizaciones_preliminares/     JSON de cotizaciones en progreso
 ├── DISENO CORPORATIVO/            Logo e isotipo McKenna
 │
-├── pipeline_contenido_facebook.py Copy→Imagen→Voz→Video→Facebook (consola)
+├── app/tools/pipeline_contenido_facebook.py  Copy→Imagen→Voz→Video→Facebook (consola)
 ├── generar_infografias_facebook.py Infografías PIL publicadas en Facebook (consola)
 ├── sincronizar_facebook.py        Limpia y republica la página de Facebook (consola)
 │
@@ -1094,7 +1094,7 @@ Comando del grupo:
 ## Generación de Catálogo PDF
 
 ```python
-# generar_catalogo.py - flujo:
+# scripts/generar_catalogo.py - flujo:
 1. leer_productos_sheets() → lee Sheets, extrae meli_id_to_sku de col A
 2. fetch_meli_photos(token, meli_id_to_sku) → descarga 1ª foto por item_id
 3. Inyecta photo_path en cada producto
@@ -1238,7 +1238,7 @@ Gemini (copy + prompts)
 
 | Script | Uso | Descripción |
 |--------|-----|-------------|
-| `pipeline_contenido_facebook.py` | `python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
+| `app/tools/pipeline_contenido_facebook.py` | `python3 -m app.tools.pipeline_contenido_facebook --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
 | `generar_infografias_facebook.py` | `python3 generar_infografias_facebook.py --tipo receta --n 3` | Infografías estáticas con PIL sin video ni audio |
 | `sincronizar_facebook.py` | `python3 sincronizar_facebook.py` | Borra y republica la página con productos, guías y blog posts actuales |
 
@@ -1298,7 +1298,7 @@ Scripts de investigación científica automatizada y publicación en WordPress. 
 
 | Script | Descripción | Output |
 |--------|-------------|--------|
-| `generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
+| `app/tools/generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
 | `generar_posts_masivos.py` | 20+ posts comparativos (ej: Niacinamida vs Clindamicina). Cada post incluye hallazgos contrastados, gráficas SVG/CSS inline, bibliografía. Usa PubMed con filtros MeSH. | `/PAGINA_WEB/site/data/posts.json` |
 | `generar_recetas_masivas.py` | 40+ recetas de formulación en 4 categorías: cosmética, nutrición, perfumería, hogar. Genera ingredientes, cantidades, modo de preparación, precauciones con Gemini. | `/PAGINA_WEB/site/data/recetas.json` |
 
@@ -1313,7 +1313,7 @@ generar_y_publicar_contenido('Niacinamida cosmética', 'post_blog', publicar=Tru
 "
 
 # Guías masivas (62 ingredientes)
-python3 generar_guias_masivas.py
+python3 -m app.tools.generar_guias_masivas
 
 # Posts comparativos
 python3 generar_posts_masivos.py

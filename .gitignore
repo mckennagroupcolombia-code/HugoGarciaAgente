@@ -209,3 +209,16 @@ app/data/entregas_flex.db-*
 app/data/etiquetas_fichas.lock
 app/data/etiquetas_fichas.json.bak
 app/data/etiquetas_fichas.json.tmp*
+
+# Binarios y logs de runtime que cambiaban a diario ESTANDO versionados
+# (auditoría 20-sep-2026). El tar nocturno de backup_drive.py ya los respalda;
+# en git solo producían diffs binarios inútiles y commits automáticos.
+#   contabilidad.db 60 commits · facturacion_ventas_cache.db 32 · orders.db 102
+#   log_cron.txt 278 commits (lo escriben los ~28 cron cada noche)
+app/data/contabilidad.db
+app/data/contabilidad.db-*
+app/data/facturacion_ventas_cache.db
+app/data/facturacion_ventas_cache.db-*
+PAGINA_WEB/site/data/orders.db
+PAGINA_WEB/site/data/orders.db-*
+log_cron.txt

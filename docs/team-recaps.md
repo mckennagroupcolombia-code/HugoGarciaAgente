@@ -1,3 +1,17 @@
+### 2026-09-20 23:10 - Auditoría de peso del repo: el venv baja de 9,25 a 1,26 GB y se quitan 29 archivos huérfanos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (limpieza). Sin cambios de comportamiento para el usuario. Sin LLM.
+- **Qué se implementó:**
+  - **El repo pesaba 17 GB y casi nada era código**: 9,25 GB de venv (7 GB de PyTorch + CUDA que nadie importaba), 2,1 GB de sesiones de WhatsApp, 1,7 GB de backups. Se desinstalaron torch, triton, `nvidia-*`, transformers, diffusers, gradio, modelscope, scikit-learn, pandas, pyarrow, playwright (pip), la cadena de librosa y `qwen-tts`. **venv 9,25 → 1,26 GB, repo 17 → 8,2 GB, 285 → 236 paquetes, `pip check` limpio.** La voz de producción (voicebox) corre en su propio venv y no se tocó.
+  - **Whisper sigue en GPU sin torch**: `faster-whisper` usa `ctranslate2`; torch solo se importaba para detectar CUDA. Ahora usa `ctranslate2.get_cuda_device_count()`. Verificado transcribiendo en `cuda (float16)` con torch bloqueado.
+  - `qwen3_disponible()` decía `true` mirando solo el paquete: sin torch, `/api/voz/sintetizar` habría elegido qwen3 y reventado en vez de seguir a ElevenLabs. Ahora comprueba también torch. `onnxruntime-gpu` → `onnxruntime` (CPU): había perdido su provider CUDA y escupía un error en cada embedding.
+  - **`requirements.txt` ahora describe el entorno**: 28 → 42 paquetes (faltaban 14 que el código importaba: CairoSVG, weasyprint, PyPDF2, pyzbar, faster-whisper, ctranslate2…). **No agregar `qwen-tts`**: arrastra torch y devuelve los 7 GB. `requirements.lock.txt` es la foto de ANTES, solo para revertir.
+  - **29 archivos huérfanos eliminados** (20 scripts de migraciones ya corridas y generadores de catálogo redundantes + 9 componentes React del rediseño de navegación), verificados contra crontab, systemd y `scripts_manifest.json`. Se conservó `scripts/renovar_oauth_meli.py`: es la recuperación manual de credenciales MeLi.
+  - **Salen de git los binarios que cambiaban a diario** (siguen en disco y en el tar nocturno): `contabilidad.db` (60 commits), `facturacion_ventas_cache.db`, `orders.db` (102) y `log_cron.txt` (278). El 58 % de los commits del repo son auto-commits de estos archivos.
+  - `gentle-ai` 1.25.4 → 3.4.0 y Engram 1.15.4 → 2.0.0 (respaldo en `~/backups_manual/engram_20260920/`). `ECOSYSTEM.md` los describía como «por evaluar» y llevaban meses instalados. Rutas de archivos movidos corregidas en `CLAUDE.md`.
+- **Pendiente:** `pytest tests/` completo da 32 fallos **anteriores a este cambio** (verificado contra un worktree en HEAD: cero regresiones); son tests que no siguieron al código (Siigo→Alegra, un stub sin `refresh=`). `engram doctor` sale en error por una cola de sync de otro proyecto (`eth-usdc-bot`), no se tocó. Hay dos SKU con dos códigos EAN cada uno (`C-ACERIC250ML`, `C-MANTOSPAR500G`). El crontab tiene `auditor_canales_cron.py` duplicado.
+- **Archivos Modificados:** `requirements.txt`, `requirements.lock.txt`, `app/services/whisper_stt.py`, `app/services/tts_qwen3.py`, `.gitignore`, `CLAUDE.md`, `docs/agentic/ECOSYSTEM.md`; 20 scripts y 9 componentes eliminados.
+
 ### 2026-09-20 - Documentos técnicos: 20 fichas antiguas (solo TDS) pasadas a borrador TDS + COA + SDS
 - **Autor:** Armando García
 - **Tipo de Cambio:** Contenido (Fichas técnicas → Borradores). Sin cambios de código, sin LLM por API.
