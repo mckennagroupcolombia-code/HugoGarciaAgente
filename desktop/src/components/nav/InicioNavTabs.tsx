@@ -5,6 +5,7 @@ import { PanelIcon } from "../../icons/PanelIcon";
 import { Icon } from "../../icons";
 import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
+import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 import ScrollableTabList from "./ScrollableTabList";
 
 function puedeVerTabInicio(
@@ -18,10 +19,12 @@ function puedeVerTabInicio(
 }
 
 /**
- * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Métricas.
+ * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Métricas / Mapa.
  * Sustituye el título "Agenda" para no repetir el texto.
+ * `soloVistas`: con la navegación por flujo, Métricas y Mapa ya están en la secuencia del
+ * cabezote; aquí quedan solo las vistas DENTRO de la Agenda (Agenda / Mensajes).
  */
-export default function InicioNavTabs() {
+export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boolean }) {
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const setPanel = useAppStore((s) => s.setPanel);
@@ -37,8 +40,13 @@ export default function InicioNavTabs() {
   const showSolicitudes = puedeVerTabInicio(permisos, nivel, "solicitudes");
   const showMensajes = showAcciones || showSolicitudes;
 
+  // El mapa de la aplicación es la otra forma de llegar a todo: por secuencia, no por menú.
+  const showMapa = !soloVistas && Boolean(user && puedeVerSeccionPanel(user, "mapa-sistema"));
+  const mapaActivo = panel === "mapa-sistema";
+
   useEffect(() => {
     if (panel === "dashboard") guardarUltimoPanelHub("inicio", "dashboard");
+    else if (panel === "mapa-sistema") guardarUltimoPanelHub("inicio", "mapa-sistema");
     else if (enAgenda) guardarUltimoPanelHub("inicio", "hugo");
   }, [panel, enAgenda]);
 
@@ -69,7 +77,7 @@ export default function InicioNavTabs() {
   );
   const metricasActiva = panel === "dashboard";
   // Métricas del equipo: solo tiene sentido para quien administra la operación.
-  const showMetricas = nivel >= 3;
+  const showMetricas = !soloVistas && nivel >= 3;
   const tabClass = (selected: boolean) => hubTabClass(selected, "mck-hub-tab-etiquetado flex-col");
 
   return (
@@ -84,7 +92,7 @@ export default function InicioNavTabs() {
         className={tabClass(agendaActiva)}
       >
         <Icon name="target" size={22} weight="bold" />
-        <span className={HUB_TAB_LABEL}>Agenda</span>
+        <span className={HUB_TAB_LABEL}>{soloVistas ? "Mi día" : "Agenda"}</span>
       </button>
       {showMensajes && (
         <button
@@ -112,6 +120,20 @@ export default function InicioNavTabs() {
         >
           <PanelIcon panel="dashboard" size={22} active={metricasActiva} bubble={false} />
           <span className={HUB_TAB_LABEL}>Métricas</span>
+        </button>
+      )}
+      {showMapa && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mapaActivo}
+          aria-label="Mapa de la aplicación"
+          title="Mapa de la aplicación"
+          onClick={() => setPanel("mapa-sistema")}
+          className={tabClass(mapaActivo)}
+        >
+          <PanelIcon panel="mapa-sistema" size={22} active={mapaActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Mapa</span>
         </button>
       )}
     </ScrollableTabList>

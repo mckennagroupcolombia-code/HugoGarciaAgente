@@ -97,6 +97,32 @@ def _auth_escritura(f):
     return wrapper
 
 
+def _auth_etiquetas(f):
+    """Editar una etiqueta desde el taller de combos pide lo mismo que el Studio visual
+    (`puede_ver_etiquetas_avanzado`): es la misma escritura, por otra puerta."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        from app.api_auth import bearer_token_from_request, chat_api_token_matches_request
+        from app.services.tickets_db import (aplicar_privilegios_admin_cynthia, get_usuario_by_token,
+                                             puede_ver_etiquetas_avanzado)
+
+        usuario = None
+        try:
+            tok = (request.headers.get("X-Tickets-Token") or "").strip() or bearer_token_from_request()
+            usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(tok)) if tok else None
+        except Exception:
+            usuario = None
+        if usuario is None and chat_api_token_matches_request():
+            return f(*args, **kwargs)
+        if not usuario:
+            return jsonify({"error": "No autorizado"}), 401
+        if not puede_ver_etiquetas_avanzado(usuario):
+            return jsonify({"error": "Editar etiquetas requiere el acceso al Studio visual"}), 403
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 def _dual(app, rule: str, **opts):
     def deco(f):
         app.add_url_rule(rule, endpoint=f.__name__, view_func=f, **opts)
@@ -107,7 +133,17 @@ def _dual(app, rule: str, **opts):
 
 
 def register_mapa_sistema_routes(app):
+    import os
+
     from app.services import mapa_producto as M
+
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        try:
+            from app.services import mapa_app
+
+            mapa_app.precalentar()
+        except Exception as exc:  # el precalentado es una cortesía, nunca un requisito
+            print(f"⚠️ Mapa de la app: no se pudo precalentar ({exc})")
 
     @_dual(app, "/api/mapa-sistema/flujo", methods=["GET"])
     @_auth
@@ -123,6 +159,20 @@ def register_mapa_sistema_routes(app):
             refrescar=request.args.get("refrescar") == "1",
         ))
 
+    @_dual(app, "/api/mapa-sistema/bloqueos", methods=["GET"])
+    @_auth
+    def mapa_sistema_bloqueos():
+        """Qué está detenido ahora, por etapa del negocio (app/services/mapa_app.py)."""
+        from app.services import mapa_app
+
+        return jsonify(mapa_app.bloqueos(refrescar=request.args.get("refrescar") == "1"))
+
+    @_dual(app, "/api/mapa-sistema/productos", methods=["GET"])
+    @_auth
+    def mapa_sistema_productos():
+        """La cadena vista desde lo que se compró: una fila por producto adquirido."""
+        return jsonify(M.matriz_productos(refrescar=request.args.get("refrescar") == "1"))
+
     @_dual(app, "/api/mapa-sistema/combos/<ref>/ean-propuesto", methods=["GET"])
     @_auth
     def mapa_sistema_ean_propuesto(ref: str):
@@ -132,6 +182,26 @@ def register_mapa_sistema_routes(app):
             return jsonify(M.proponer_ean(ref))
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
+
+    @_dual(app, "/api/mapa-sistema/etiqueta/<ficha_id>", methods=["GET", "POST"])
+    @_auth_etiquetas
+    def api_mapa_sistema_etiqueta(ficha_id: str):
+        """Taller de combos: leer una etiqueta sin sus imágenes y corregir tamaño, plantilla o
+        textos. Escribe por `etiquetas_fichas` (la vía del Studio), no por una propia."""
+        from app.tools import etiquetas_fichas as EF
+
+        if request.method == "GET":
+            f = EF.ficha_ligera(ficha_id)
+            if not f:
+                return jsonify({"error": "Esa etiqueta no existe"}), 404
+            return jsonify({"ficha": f, "opciones": EF.opciones_etiqueta(), "editables": list(EF.CAMPOS_EDITABLES)})
+        body = request.get_json(silent=True) or {}
+        try:
+            EF.actualizar_campos_ficha(ficha_id, body.get("campos"), body.get("tipo_nombre"), body.get("plantilla_id"))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        M.invalidar()
+        return jsonify({"ok": True, "ficha": EF.ficha_ligera(ficha_id)})
 
     @_dual(app, "/api/mapa-sistema/invalidar", methods=["POST"])
     @_auth

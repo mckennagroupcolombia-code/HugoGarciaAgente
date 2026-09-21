@@ -114,10 +114,10 @@ export const UI_ZOOMS: { id: UiZoom; label: string }[] = [
 
 export const MCKENNA_THEME_DEFAULT: PanelThemeConfig = {
   mode: "light",
-  fontSans: "Nunito",
-  accentRgb: "232 92 128",
-  radius: "lg",
-  skin: "sakura",
+  fontSans: "Montserrat",
+  accentRgb: "8 145 178",
+  radius: "md",
+  skin: "flujo",
   fontScale: "md",
   menuScale: "md",
   uiZoom: "100",
@@ -191,6 +191,18 @@ export const THEME_PACKS: ThemePack[] = [
     mode: "light",
   },
   {
+    id: "flujo",
+    label: "Flujo",
+    tagline: "La app como diagrama técnico: papel frío, cuadrícula y nodos.",
+    skin: "flujo",
+    fontSans: "Montserrat",
+    radius: "md",
+    fontScale: "md",
+    menuScale: "md",
+    accentRgb: "8 145 178",
+    mode: "light",
+  },
+  {
     id: "bodega",
     label: "Bodega",
     tagline: "Terracota y arena, como las etiquetas kraft de materia prima.",
@@ -242,7 +254,7 @@ export function sanitizeColors(raw: unknown): ThemeColorMap {
 }
 
 const FONTS = new Set<FontChoice>(FONT_CHOICES.map((f) => f.id));
-const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica"]);
+const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo"]);
 
 /** Variantes visibles: Matrix, Sakura, Barbie Agenda, Bodega y Botica. McKenna/Atelier pasan a Sakura. */
 function featuredSkin(raw: unknown): UiSkin {
@@ -250,6 +262,7 @@ function featuredSkin(raw: unknown): UiSkin {
   if (raw === "barbie" || raw === "cherry") return "barbie";
   if (raw === "bodega") return "bodega";
   if (raw === "botica") return "botica";
+  if (raw === "flujo") return "flujo";
   if (raw === "sakura" || raw === "clasica" || raw === "atelier") return "sakura";
   return "sakura";
 }

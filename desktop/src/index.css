@@ -209,6 +209,110 @@
   }
 
   /*
+   * Flujo — la app como diagrama técnico (el lenguaje de los flujos de Archify):
+   * papel frío con cuadrícula, nodos de borde fino, títulos monoespaciados y un
+   * color por significado (cian persona · verde plataforma · violeta dato ·
+   * ámbar externo · rosa bloqueo). Es la piel por defecto: la navegación por flujo
+   * (FlujoNav) y el Mapa de la aplicación se leen como un mismo diagrama.
+   */
+  html[data-mck-skin="flujo"]:not(.dark) {
+    --mck-surface: 246 248 251;
+    --mck-surface-panel: 255 255 255;
+    --mck-surface-input: 255 255 255;
+    --mck-surface-hover: 235 241 247;
+    --mck-ink: 15 23 42;
+    --mck-ink-secondary: 51 65 85;
+    --mck-ink-muted: 100 116 139;
+    --mck-border: 209 218 229;
+    --mck-border-strong: 148 163 184;
+    --mck-muted: 100 116 139;
+    --mck-title: 15 23 42;
+    --mck-accent-sun: 217 119 6;
+    --mck-accent-sun-deep: 180 83 9;
+    --mck-accent-leaf: 5 150 105;
+    --mck-accent-leaf-deep: 4 120 87;
+    --mck-accent-sky: 8 145 178;
+    --mck-accent-sky-deep: 14 116 144;
+    --mck-accent-rose: 225 29 72;
+    --mck-accent-plum: 124 58 237;
+    --mck-success: 5 150 105;
+    --mck-danger: 225 29 72;
+    --mck-warning: 217 119 6;
+    --mck-shadow-paper: 0 1px 0 rgba(15, 23, 42, 0.05), 0 8px 24px -14px rgba(15, 23, 42, 0.25);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(15, 23, 42, 0.05);
+    --mck-shadow-paper-lg: 0 1px 0 rgba(15, 23, 42, 0.06), 0 18px 40px -18px rgba(15, 23, 42, 0.3);
+  }
+  html[data-mck-skin="flujo"].dark {
+    --mck-surface: 8 13 24;
+    --mck-surface-panel: 15 23 42;
+    --mck-surface-input: 22 32 54;
+    --mck-surface-hover: 35 48 74;
+    --mck-ink: 226 232 240;
+    --mck-ink-secondary: 186 198 214;
+    --mck-ink-muted: 136 151 172;
+    --mck-border: 44 58 84;
+    --mck-border-strong: 80 98 128;
+    --mck-muted: 136 151 172;
+    --mck-title: 226 232 240;
+    --mck-accent-sun: 245 170 60;
+    --mck-accent-sun-deep: 217 119 6;
+    --mck-accent-leaf: 52 211 153;
+    --mck-accent-leaf-deep: 16 185 129;
+    --mck-accent-sky: 56 189 218;
+    --mck-accent-sky-deep: 34 160 190;
+    --mck-accent-rose: 251 113 133;
+    --mck-accent-plum: 167 139 250;
+    --mck-success: 52 211 153;
+    --mck-danger: 251 113 133;
+    --mck-warning: 245 170 60;
+    --mck-shadow-paper: 0 1px 0 rgba(0, 0, 0, 0.4), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
+    --mck-shadow-paper-lg: 0 1px 0 rgba(0, 0, 0, 0.45), 0 20px 44px -18px rgba(0, 0, 0, 0.8);
+  }
+  /* El lienzo: cuadrícula de 24 px, como el fondo de un diagrama. */
+  html[data-mck-skin="flujo"] body {
+    letter-spacing: 0;
+    line-height: 1.5;
+    background:
+      linear-gradient(rgb(var(--mck-border) / 0.35) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgb(var(--mck-border) / 0.35) 1px, transparent 1px) 0 0 / 24px 24px,
+      rgb(var(--mck-surface));
+  }
+  html[data-mck-skin="flujo"] .mck-title,
+  html[data-mck-skin="flujo"] .mck-flujo-nav,
+  html[data-mck-skin="flujo"] .mck-flujo-nodo {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: -0.01em;
+  }
+  html[data-mck-skin="flujo"] .mck-title {
+    font-size: 19px;
+    font-weight: 500;
+  }
+  html[data-mck-skin="flujo"] .mck-title::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background: rgb(var(--mck-accent));
+    vertical-align: 2px;
+  }
+  html[data-mck-skin="flujo"] .mck-header-glass {
+    background: rgb(var(--mck-surface-panel) / 0.92);
+    backdrop-filter: blur(6px);
+    box-shadow: none;
+  }
+  html[data-mck-skin="flujo"] .mck-flujo-nodo {
+    font-size: 11.5px;
+    font-weight: 500;
+    box-shadow: 0 1px 0 rgb(var(--mck-ink) / 0.05);
+  }
+  html[data-mck-skin="flujo"] .mck-flujo-tramo {
+    background: rgb(var(--mck-surface) / 0.7);
+  }
+
+  /*
    * Botica — verde botella + mostaza, frascos de activos e ingredientes
    * naturales. Más carácter que Bodega, sigue siendo seria/profesional.
    */
@@ -2546,4 +2650,75 @@ html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
   #root .mck-panel-scroll > div[class*="md:p-6"] {
     padding: 0.65rem;
   }
+}
+
+/*
+ * Piel «flujo» — las pestañas de VISTA (Agenda · Mensajes, las de Diseño, Docs, Libro Mayor…)
+ * hablan el mismo lenguaje que la navegación por flujo: nodos en fila, borde fino, monoespaciada.
+ * Sin esto quedaban como botones de icono apilado del menú viejo debajo de un cabezote de diagrama.
+ * Va fuera de @layer porque las reglas base de .mck-hub-tab también lo están.
+ */
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item,
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+  min-width: 0;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgb(var(--mck-border));
+  border-radius: 0.45rem;
+  background: rgb(var(--mck-surface-input));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  box-shadow: 0 1px 0 rgb(var(--mck-ink) / 0.05);
+  transform: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item::before {
+  display: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item:not(.is-active):hover {
+  border-color: rgb(var(--mck-accent) / 0.5);
+  background: rgb(var(--mck-surface-hover));
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item.is-active {
+  border-color: rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent));
+  color: #fff;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) > .mck-hub-tab-label,
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-hub-tab-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-icon,
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-illus-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-illus-icon svg {
+  width: 100%;
+  height: 100%;
+}
+html[data-mck-skin="flujo"] .mck-flujo-miga {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Taller de combos (misión): las conexiones que se encienden y el premio al completar. */
+@keyframes mck-mision-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--mck-accent) / 0.55); } 50% { box-shadow: 0 0 0 9px rgb(var(--mck-accent) / 0); } }
+@keyframes mck-mision-gana { 0% { transform: translate(-50%, -50%) scale(1); } 35% { transform: translate(-50%, -50%) scale(1.09); } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes mck-mision-sube { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px); } }
+@keyframes mck-mision-destello { 0% { stroke-width: 3.5; filter: drop-shadow(0 0 0 rgb(var(--mck-accent-leaf))); } 40% { stroke-width: 8; filter: drop-shadow(0 0 8px rgb(var(--mck-accent-leaf))); } 100% { stroke-width: 3.5; filter: none; } }
+@keyframes mck-mision-premio { 0% { box-shadow: 0 0 0 0 rgb(var(--mck-accent-sun) / 0.8); } 100% { box-shadow: 0 0 0 26px rgb(var(--mck-accent-sun) / 0); } }
+@keyframes mck-mision-confeti { 0% { transform: translateY(-10%) rotate(0); opacity: 1; } 100% { transform: translateY(720%) rotate(540deg); opacity: 0; } }
+.mck-mision-pulso { animation: mck-mision-pulso 1.6s ease-out infinite; }
+.mck-mision-gana { animation: mck-mision-gana 700ms ease-out; }
+.mck-mision-sube { animation: mck-mision-sube 2.2s ease-out forwards; }
+.mck-mision-destello { animation: mck-mision-destello 1.4s ease-out; }
+.mck-mision-premio { animation: mck-mision-premio 1.3s ease-out 3; }
+.mck-mision-confeti { position: absolute; top: 0; width: 7px; height: 12px; border-radius: 2px; animation: mck-mision-confeti 2.4s ease-in forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .mck-mision-pulso, .mck-mision-gana, .mck-mision-sube, .mck-mision-destello, .mck-mision-premio { animation: none; }
+  .mck-mision-confeti, .mck-mision-viajero { display: none; }
 }

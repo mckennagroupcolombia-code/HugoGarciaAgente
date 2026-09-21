@@ -22,7 +22,7 @@ export default function UserMenuButton() {
   const { user, token, clear: clearTickets } = useTicketsAuth();
   const clearMain = useAuthStore((s) => s.clear);
   const setFotoPendiente = useProfilePhotoPending((s) => s.setFile);
-  const { advanced, toggleAdvanced } = useUiMode();
+  const { advanced, toggleAdvanced, navClasica, setNavClasica } = useUiMode();
   const advancedEfectivo = modoAvanzadoEfectivo(user, advanced);
   const { data: preventaData } = usePreventa();
   const { data: postventaData } = usePostventa();
@@ -132,6 +132,15 @@ export default function UserMenuButton() {
           >
             <Icon name={advancedEfectivo ? "flask" : "lock"} size={16} weight="duotone" />
             {advancedEfectivo ? "Modo avanzado activo" : "Activar modo avanzado"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setNavClasica(!navClasica)}
+            title="La navegación por flujo ordena los paneles por la secuencia del negocio; la clásica, por departamento"
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold text-ink-secondary hover:bg-surface-hover hover:text-ink"
+          >
+            <Icon name="wrench" size={16} weight="duotone" />
+            {navClasica ? "Usar navegación por flujo" : "Volver a la navegación clásica"}
           </button>
 
           <div className="my-1.5 h-px bg-border/60" />

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useAppStore } from "../../stores/app";
 import { calcCheck, generarEAN13 } from "../../lib/ean13";
 import {
   BIMESTRE_LABEL,
@@ -109,6 +110,18 @@ export function CodigosEanPanel() {
       autoFillHecho.current = true;
     }
   }, [codigos, siguienteNumero, numeroProducto]);
+
+  // Llega desde Inventario → Combos con el combo ya elegido: se escribe en el formulario
+  // y el número y la presentación se proponen solos (los dos efectos de alrededor).
+  const eanPrefill = useAppStore((s) => s.eanPrefill);
+  const setEanPrefill = useAppStore((s) => s.setEanPrefill);
+  useEffect(() => {
+    if (!eanPrefill) return;
+    presentacionManual.current = false;
+    setSku(sinPrefijoSku(eanPrefill.sku));
+    setNombreProducto(eanPrefill.nombre);
+    setEanPrefill(null);
+  }, [eanPrefill, setEanPrefill]);
 
   // Sugerir presentación (kg→001, 50→050, 100→100…) al escribir SKU/nombre.
   useEffect(() => {

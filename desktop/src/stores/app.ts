@@ -232,6 +232,12 @@ interface AppState {
   setStudioCategoriaFiltro: (v: string) => void;
   etiquetasHandoff: EtiquetasHandoff | null;
   setEtiquetasHandoff: (h: EtiquetasHandoff | null) => void;
+  /** Combo que llega a Diseño → Códigos EAN ya escrito en el formulario (viene de Inventario → Combos). */
+  eanPrefill: { sku: string; nombre: string } | null;
+  /** Combos: «mision» = taller guiado caso a caso · «galeria» = todos los combos. */
+  combosVista: "mision" | "galeria";
+  setCombosVista: (v: "mision" | "galeria") => void;
+  setEanPrefill: (p: { sku: string; nombre: string } | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
   setEtiquetasSolicitudActiva: (s: EtiquetasSolicitudActiva | null) => void;
   /** true tras rehidratar localStorage — evita saltos de panel al refrescar. */
@@ -358,6 +364,10 @@ export const useAppStore = create<AppState>()(
       },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),
+      eanPrefill: null,
+      setEanPrefill: (eanPrefill) => set({ eanPrefill }),
+      combosVista: "mision",
+      setCombosVista: (combosVista) => set({ combosVista }),
       etiquetasSolicitudActiva: null,
       setEtiquetasSolicitudActiva: (etiquetasSolicitudActiva) => set({ etiquetasSolicitudActiva }),
     }),

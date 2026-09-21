@@ -66,7 +66,8 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
     config.skin === "sakura" ||
     config.skin === "barbie" ||
     config.skin === "bodega" ||
-    config.skin === "botica"
+    config.skin === "botica" ||
+    config.skin === "flujo"
       ? config.skin
       : "clasica";
 
@@ -120,8 +121,10 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
           ? "#e85c80"
           : skin === "barbie"
             ? "#ff7eb6"
-            : skin === "bodega"
-              ? "#b5502a"
+            : skin === "flujo"
+              ? "#0891b2"
+              : skin === "bodega"
+                ? "#b5502a"
               : skin === "botica"
                 ? "#3d5a44"
                 : dark

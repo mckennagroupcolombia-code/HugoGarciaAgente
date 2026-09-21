@@ -7,6 +7,8 @@ import HubNavTabs from "./nav/HubNavTabs";
 import DisenoNavTabs from "./nav/DisenoNavTabs";
 import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
+import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
+import FlujoNav from "./nav/FlujoNav";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
 import ThemeModeToggle from "./ThemeModeToggle";
@@ -46,7 +48,11 @@ export default function Layout({
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   const user = useTicketsAuth((s) => s.user);
-  const { advanced: advancedToggle } = useUiMode();
+  const { advanced: advancedToggle, navClasica } = useUiMode();
+  // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
+  const navFlujo = !navClasica;
+  const enOrigen = panel === "hugo" || panel === "tickets";
+  const ubicacion = ubicacionDe(panel);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
   // El inbox de "Mensajes" es un chat de dos paneles (como Home) que necesita
@@ -63,7 +69,7 @@ export default function Layout({
     ? "Mi perfil"
     : panel === "settings"
     ? "Ajustes"
-    : isHub && sectionLabel
+    : isHub && sectionLabel && !navFlujo
     ? sectionLabel
     : panelInfo?.label ?? "Panel de operaciones";
 
@@ -110,7 +116,7 @@ export default function Layout({
               </button>
             )}
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-              {sectionId !== "inicio" && !studioEtiquetasFill && (
+              {sectionId !== "inicio" && !studioEtiquetasFill && !navFlujo && (
                 <button
                   type="button"
                   onClick={() => navegarPanel("hugo")}
@@ -121,8 +127,30 @@ export default function Layout({
                   Agenda
                 </button>
               )}
-              {/* Agenda: pestañas a la izquierda (sin título duplicado "Agenda"). */}
-              {sectionId === "inicio" ? (
+              {navFlujo ? (
+                /* Flujo: la miga dice en qué punto de la secuencia estás; el título, el panel. */
+                <>
+                  <div className="min-w-0">
+                    <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                      {enOrigen
+                        ? "Inicio · tu día"
+                        : ubicacion
+                          ? `${ubicacion.etapa.titulo} ⇢ ${ubicacion.n}·${ubicacion.tramo.titulo}`
+                          : panel === "mapa-sistema"
+                            ? "Todo el flujo"
+                            : "Fuera de la secuencia"}
+                    </p>
+                    <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight">
+                      {enOrigen ? ORIGEN_APP.titulo : headerTitle}
+                    </h1>
+                  </div>
+                  {enOrigen && (
+                    <div className="hidden shrink-0 border-l border-border/60 pl-2 sm:flex">
+                      <EquipoConectadoBar />
+                    </div>
+                  )}
+                </>
+              ) : sectionId === "inicio" ? (
                 <>
                   <div className="min-w-0 shrink">
                     <InicioNavTabs />
@@ -181,8 +209,17 @@ export default function Layout({
             </div>
           </div>
 
+          {/* Navegación por flujo: etapas en secuencia → tramos → paneles. Las pestañas de
+              Diseño y Docs siguen debajo porque son vistas DENTRO de un panel, no paneles. */}
+          {navFlujo && <FlujoNav />}
+          {navFlujo && (sectionId === "diseno" || sectionId === "docs") && (
+            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+              {sectionId === "diseno" ? <DisenoNavTabs /> : <DocsNavTabs />}
+            </div>
+          )}
+
           {/* Agenda ya lleva pestañas en la fila del cabezote (izquierda). */}
-          {showHubTabs && sectionId !== "inicio" && (
+          {!navFlujo && showHubTabs && sectionId !== "inicio" && (
             <div
               className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5"
             >

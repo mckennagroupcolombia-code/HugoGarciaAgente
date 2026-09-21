@@ -1945,7 +1945,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["radius"] = radius
         skin = panel_in.get("skin")
         if skin is not None:
-            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica"):
+            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo"):
                 return False, "skin inválido", None
             panel["skin"] = skin
         font_scale = panel_in.get("fontScale")
@@ -1987,6 +1987,12 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
         if quest:
             clean["quest"] = quest
 
+    # Versión del estilo base ya adoptado por este usuario (ver desktop/src/lib/userThemeSync.ts):
+    # permite cambiar el estilo predeterminado de todos UNA vez sin pisar lo que elijan después.
+    estilo_v = preferencias.get("estilo_v")
+    if isinstance(estilo_v, int) and not isinstance(estilo_v, bool) and 0 <= estilo_v <= 99:
+        clean["estilo_v"] = estilo_v
+
     if not clean:
         return False, "Nada que guardar", None
 
@@ -2007,6 +2013,8 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             merged["panel"] = {**(merged.get("panel") or {}), **clean["panel"]}
         if "quest" in clean:
             merged["quest"] = {**(merged.get("quest") or {}), **clean["quest"]}
+        if "estilo_v" in clean:
+            merged["estilo_v"] = clean["estilo_v"]
         db.execute(
             "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
             (_json.dumps(merged), user_id),

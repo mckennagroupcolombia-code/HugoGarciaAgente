@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
+import MapaAppFlujo from "./MapaAppFlujo";
 
 /**
  * Mapa del sistema: el flujo de un producto y de un pago, con conteos vivos.
@@ -239,13 +240,13 @@ export default function MapaSistemaPanel() {
   const anchoSvg = X0 * 2 + PASO * 4 + NODO_W;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="space-y-5 [&>*]:mx-auto [&>*]:max-w-6xl [&>section:first-of-type]:max-w-[1840px]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-bold text-ink">Mapa del sistema</h2>
           <p className="mt-1 max-w-3xl text-xs text-muted">
-            Cómo se conectan las piezas de un producto y de un pago, con los números de este momento. Cada caja dice cuántos
-            pasan el eslabón y cuántos se quedan; toca una para ver cuáles y por qué.
+            Toda la aplicación como un diagrama de flujo: las etapas del negocio en secuencia, qué está detenido en cada una,
+            y debajo los flujos detallados y la cadena de cada producto. Toca cualquier caja para entrar.
           </p>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-muted">
@@ -268,8 +269,17 @@ export default function MapaSistemaPanel() {
         </div>
       )}
 
-      {/* ── 0. Flujos del proyecto (Archify) ── */}
-      <section className="rounded-xl border border-border bg-surface-panel p-4">
+      {/* ── 0. La aplicación como diagrama de flujo navegable ── */}
+      <MapaAppFlujo
+        titulosDiagramas={Object.fromEntries(listaFlujos.map((g) => [g.nombre, g.titulo]))}
+        onVerDiagrama={(nombre) => {
+          setFlujoSel(nombre);
+          document.getElementById("flujos-del-proyecto")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+      />
+
+      {/* ── 0b. Flujos del proyecto (Archify) ── */}
+      <section id="flujos-del-proyecto" className="scroll-mt-4 rounded-xl border border-border bg-surface-panel p-4">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h3 className="text-sm font-bold text-ink">Los flujos del proyecto</h3>

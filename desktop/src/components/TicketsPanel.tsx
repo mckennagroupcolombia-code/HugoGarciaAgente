@@ -27,6 +27,8 @@ import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import { AddIconButton } from "./AddIconButton";
 import DolarHoraGadget from "./DolarHoraGadget";
 import InicioLauncher from "./InicioLauncher";
+import { useUiMode } from "../stores/uiMode";
+import AgendaFlujo from "./AgendaFlujo";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
@@ -4239,6 +4241,15 @@ function CentroMandoHome({
   onEmpaque?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+  const navClasica = useUiMode((s) => s.navClasica);
+  const [verContexto, setVerContexto] = useState<boolean>(() => {
+    try { return localStorage.getItem("mck-agenda-contexto") === "1"; } catch { return false; }
+  });
+  const alternarContexto = () =>
+    setVerContexto((v) => {
+      try { localStorage.setItem("mck-agenda-contexto", v ? "0" : "1"); } catch { /* sin almacenamiento */ }
+      return !v;
+    });
 
   const [acciones,      setAcciones]      = useState<any[]>([]);
   const [solicitudes,   setSolicitudes]   = useState<any[]>([]);
@@ -4324,6 +4335,25 @@ function CentroMandoHome({
 
       <DolarHoraGadget />
 
+      {/* ── Navegación por flujo: «Tu día, en orden» (solicitudes ⇢ acciones ⇢ recordatorios) ── */}
+      {!navClasica && (pVer("acciones") || pVer("solicitudes")) && (
+        <AgendaFlujo
+          userId={user.id}
+          solicitudes={solicitudes}
+          acciones={acciones}
+          recordatorios={recordatorios}
+          hoy={hoy}
+          verSolicitudes={pVer("solicitudes")}
+          verAcciones={pVer("acciones")}
+          onSolicitudes={onSolicitudes}
+          onVerSolicitud={onVerSolicitud}
+          onAcciones={onAcciones}
+          onRecordatorios={onRecordatorios}
+        />
+      )}
+
+      {navClasica && (
+        <>
       {/* ── Acciones / Solicitudes — justo debajo de la TRM ── */}
       {(pVer("acciones") || pVer("solicitudes")) && (
         <div className="grid grid-cols-2 gap-2">
@@ -4416,6 +4446,24 @@ function CentroMandoHome({
         </div>
       )}
 
+        </>
+      )}
+
+      {/* De lo cotidiano a lo avanzado: equipo y sistema quedan recogidos hasta que se piden. */}
+      {nivel >= 2 && !navClasica && (
+        <button
+          type="button"
+          onClick={alternarContexto}
+          aria-expanded={verContexto}
+          className="mck-flujo-nodo flex w-full items-center gap-2 rounded-lg border border-dashed border-border px-3 py-1.5 text-left text-[12px] font-bold text-ink-secondary hover:border-accent/50 hover:text-ink"
+        >
+          <span aria-hidden="true">{verContexto ? "−" : "+"}</span>
+          Equipo y sistema
+          <span className="font-sans text-[11px] font-normal text-muted">actividad del equipo · ecosistema · commits · cambios recientes</span>
+        </button>
+      )}
+      {(navClasica || verContexto) && (
+        <>
       {/* ── Actividad del equipo — expandida acá; la tirita colapsada del cabezote sigue existiendo ── */}
       {nivel >= 2 && (
         <div className="mck-card border-accent/20 bg-[rgb(var(--mck-card-bg))] p-3">
@@ -4450,6 +4498,8 @@ function CentroMandoHome({
         </div>
       )}
 
+        </>
+      )}
     </div>
   );
 }

@@ -206,6 +206,71 @@ def _guardar_ficha_bajo_candado(body: dict, ficha_id: str, nombre: str, data: di
     return entry
 
 
+# Lo que se puede corregir de una etiqueta SIN abrir el Studio (taller de combos de /app):
+# textos del formulario, no diseño. Imágenes embebidas, colores y estilos quedan fuera.
+CAMPOS_EDITABLES = (
+    "productName", "netContent", "barcode", "barcodeTitle", "classification", "gradoInsumo", "grade",
+    "composition", "concentration", "appearance", "odor", "origin", "storage", "alergenos", "aplicaciones",
+    "descripcionProducto", "cas", "registro", "technicalDocuments", "fichaTecnicaId", "fichaTecnicaTitulo",
+)
+_PESADOS = ("logoUrl", "ghsIconSvg")
+
+
+def ficha_ligera(ficha_id: str) -> dict | None:
+    """La ficha sin sus imágenes embebidas (el logo son ~184 KB de data-URI por etiqueta)."""
+    f = obtener_ficha(ficha_id)
+    if not f:
+        return None
+    f = dict(f)
+    f["data"] = {k: v for k, v in (f.get("data") or {}).items() if k not in _PESADOS}
+    return f
+
+
+def opciones_etiqueta() -> dict:
+    """Tamaños en uso y plantillas de categoría, para elegir sin teclear."""
+    todas = _load_all()
+    return {
+        "tamanos": sorted({(f.get("tipo_nombre") or "").strip() for f in todas} - {""}),
+        "plantillas": sorted(
+            ({"id": f["id"], "nombre": f.get("nombre") or "", "categoria": f.get("categoria") or "",
+              "tipo_nombre": f.get("tipo_nombre") or ""} for f in todas if f.get("es_plantilla_categoria")),
+            key=lambda x: x["nombre"]),
+    }
+
+
+def actualizar_campos_ficha(ficha_id: str, campos: dict | None = None,
+                            tipo_nombre: str | None = None, plantilla_id: str | None = None) -> dict:
+    """Cambia SOLO lo pedido y conserva el resto de la ficha tal cual.
+
+    `guardar_ficha` reemplaza la ficha entera: quien quiera corregir un texto tendría que
+    traer y devolver la ficha completa (logo incluido) y un campo que olvide se pierde. Acá
+    se lee, se mezcla y se guarda bajo el mismo candado, por la misma vía de escritura.
+    """
+    campos = campos or {}
+    ajenos = sorted(set(campos) - set(CAMPOS_EDITABLES))
+    if ajenos:
+        raise ValueError(f"Campos que no se editan desde aquí: {', '.join(ajenos)}")
+    if any(not isinstance(v, str) for v in campos.values()):
+        raise ValueError("Los campos de la etiqueta son texto")
+    if not campos and tipo_nombre is None and plantilla_id is None:
+        raise ValueError("Nada que cambiar")
+    with _candado():
+        actual = next((f for f in _load_all() if f.get("id") == (ficha_id or "").strip()), None)
+        if not actual:
+            raise ValueError("Esa etiqueta no existe")
+        if plantilla_id and not any(f.get("id") == plantilla_id and f.get("es_plantilla_categoria") for f in _load_all()):
+            raise ValueError("Esa plantilla no existe")
+        if actual.get("es_plantilla_categoria"):
+            raise ValueError("Es la plantilla de una categoría: se edita en el Studio, no desde un producto")
+        body = dict(actual)
+        body["data"] = {**(actual.get("data") or {}), **campos}
+        if tipo_nombre is not None:
+            body["tipo_nombre"] = tipo_nombre.strip() or actual.get("tipo_nombre") or ""
+        if plantilla_id is not None:
+            body["plantilla_id"] = plantilla_id.strip() or actual.get("plantilla_id") or ""
+        return _guardar_ficha_bajo_candado(body, actual["id"], actual.get("nombre") or "", body["data"])
+
+
 def eliminar_ficha(ficha_id: str) -> bool:
     ficha_id = (ficha_id or "").strip()
     if not ficha_id:

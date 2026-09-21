@@ -55,6 +55,7 @@ import { usePanelTheme } from "./stores/panelTheme";
 import { useQuestTheme } from "./stores/questTheme";
 import {
   applyUserUiPreferences,
+  guardarMigracionEstilo,
   resetSaveBaseline,
   scheduleSaveUserUiPreferences,
 } from "./lib/userThemeSync";
@@ -392,6 +393,7 @@ export default function App() {
     lastAppliedPrefs.current = json;
     applyUserUiPreferences(user.preferencias_ui);
     resetSaveBaseline(user.preferencias_ui);
+    guardarMigracionEstilo(token);
   }, [user, token]);
 
   useEffect(() => {

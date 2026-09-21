@@ -73,6 +73,24 @@ function PackPreview({ id }: { id: ThemePackId }) {
       </div>
     );
   }
+  if (id === "flujo") {
+    // Tres nodos unidos por flechas sobre cuadrícula: la app como diagrama.
+    return (
+      <div
+        className="flex h-14 items-center gap-1 rounded-lg px-2.5 ring-1 ring-[#cbd5e1]"
+        style={{
+          background:
+            "linear-gradient(#e2e8f0 1px, transparent 1px) 0 0 / 10px 10px, linear-gradient(90deg, #e2e8f0 1px, transparent 1px) 0 0 / 10px 10px, #f8fafc",
+        }}
+      >
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#0891b2] bg-[#ecfeff]" />
+        <span className="text-[10px] text-[#64748b]">→</span>
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#059669] bg-[#ecfdf5]" />
+        <span className="text-[10px] text-[#64748b]">→</span>
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#7c3aed] bg-[#f5f3ff]" />
+      </div>
+    );
+  }
   if (id === "botica") {
     return (
       <div className="flex h-14 items-end gap-1.5 rounded-xl bg-gradient-to-br from-[#f3eee1] via-[#faf6ea] to-[#dad2b9] px-2.5 py-2 shadow-[0_4px_0_rgba(35,41,31,0.12)] ring-2 ring-[#dad2b9]">

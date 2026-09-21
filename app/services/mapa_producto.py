@@ -41,6 +41,7 @@ _TTL_S = 90
 _lock = threading.Lock()
 _memo: dict[str, Any] = {"t": 0.0, "data": None}
 _etq_memo: dict[str, Any] = {"mtime": 0.0, "data": None}
+_memo_matriz: dict[str, Any] = {"t": 0.0, "data": None}
 
 # Casilla del «inventario» en la que cae cada componente, por la primera palabra.
 _CASILLAS = (
@@ -95,6 +96,8 @@ def _etiquetas_ligeras() -> list[dict]:
             "id": f.get("id"),
             "nombre": f.get("nombre") or "",
             "categoria": f.get("categoria") or "",
+            "tipo_nombre": f.get("tipo_nombre") or "",
+            "plantilla_id": f.get("plantilla_id") or "",
             "actualizado": f.get("actualizado") or "",
             "barcode": (d.get("barcode") or "").strip(),
             "ficha_tecnica_id": (d.get("fichaTecnicaId") or "").strip(),
@@ -236,7 +239,8 @@ def _construir() -> dict:
         png = png_por_nombre.get(_norm(nombre)) or png_por_nombre.get(_norm(nombre).replace(" ", ""))
         if etq:
             esl["etiqueta"] = _eslabon("ok" if via == "código de barras" else "aviso", "Diseño de etiqueta",
-                                       f"«{etq['nombre']}» · unida por {via}", etiqueta_id=etq["id"], png=png)
+                                       f"«{etq['nombre']}» · unida por {via}", etiqueta_id=etq["id"], png=png,
+                                       tamano=etq.get("tipo_nombre") or "", plantilla_id=etq.get("plantilla_id") or "")
         else:
             motivo = "no tiene código EAN" if not ean else "nadie la ha diseñado"
             esl["etiqueta"] = _eslabon("falta", "Diseño de etiqueta", f"Sin etiqueta: {motivo}.", png=png)
@@ -387,12 +391,83 @@ def mapa_sistema(refrescar: bool = False) -> dict:
     }
 
 
+# ─── La misma cadena, vista desde lo que se COMPRÓ ───────────────────────────
+
+_RELACION_MELI = REPO / "app" / "data" / "relacion_codigos_cache.json"
+_COLS_PRODUCTO = ("combo", "documento", "ean", "etiqueta", "meli", "web")
+
+
+def matriz_productos(refrescar: bool = False) -> dict:
+    """Una fila por producto ADQUIRIDO (materia prima activa en Alegra) y una columna
+    por eslabón. La unidad no es el combo: es lo que se compró, con su documento y
+    sus presentaciones colgando. Así se ven también los comprados que nunca llegaron
+    a tener combo, que en la vista por combos no existen.
+
+    Estados: ok · parcial (algunos combos sí, otros no) · falta · na (aún no aplica).
+    """
+    with _lock:
+        if not refrescar and _memo_matriz["data"] is not None and time.time() - _memo_matriz["t"] < _TTL_S:
+            return _memo_matriz["data"]
+    A = _auditoria()
+    materias = A.auditar()["materias"]
+    combos = {c["ref"]: c for c in _datos(refrescar)["combos"]}
+
+    # MeLi se mide aparte de la web: un combo puede estar publicado allá y no acá.
+    meli = set()
+    for x in (_leer_json(_RELACION_MELI, {}) or {}).get("items") or []:
+        sku = (x.get("sku_meli") or "").strip().upper()
+        if sku:
+            meli.add(sku)
+    cache = _leer_json(_CACHE_WEB, {}) or {}
+    web = {(p.get("ref") or "").strip().upper() for s in cache.get("sections") or [] for p in s.get("products") or []}
+    web |= {(p.get("ref") or "").strip().upper() for p in cache.get("combos") or []}
+
+    def agrega(vals: list[bool]) -> str:
+        if not vals:
+            return "na"
+        return "ok" if all(vals) else ("parcial" if any(vals) else "falta")
+
+    filas = []
+    for m in materias:
+        cs = [combos[r] for r in m["combos"] if r in combos]
+        est = lambda c, k: c["eslabones"][k]["estado"]  # noqa: E731
+        fila = {
+            "ref": m["ref"], "nombre": m["nombre"], "combos": [c["ref"] for c in cs], "doc_estado": m["doc"],
+            "combo": "falta" if not cs else ("ok" if all(est(c, "receta") == "ok" for c in cs) else "parcial"),
+            "documento": "ok" if m["doc"] in _DOC_OK else ("parcial" if m["doc"] != "—" else "falta"),
+            "ean": agrega([est(c, "ean") == "ok" for c in cs]),
+            "etiqueta": agrega([est(c, "etiqueta") != "falta" for c in cs]),
+            "meli": agrega([c["ref"].upper() in meli for c in cs]),
+            "web": agrega([c["ref"].upper() in web for c in cs]),
+        }
+        fila["completo"] = all(fila[k] == "ok" for k in _COLS_PRODUCTO)
+        # Se vende (está en MeLi) sin etiqueta o sin documento listo: el cliente compra a ciegas.
+        fila["se_vende_incompleto"] = fila["meli"] in ("ok", "parcial") and (fila["etiqueta"] != "ok" or fila["documento"] != "ok")
+        filas.append(fila)
+
+    embudo, vivos = [("adquiridos", len(filas))], filas
+    for k in _COLS_PRODUCTO:
+        vivos = [f for f in vivos if f[k] == "ok"]
+        embudo.append((k, len(vivos)))
+    data = {
+        "filas": filas, "embudo": embudo, "total": len(filas),
+        "completos": sum(1 for f in filas if f["completo"]),
+        "sin_combo": sum(1 for f in filas if f["combo"] == "falta"),
+        "se_venden_incompletos": sum(1 for f in filas if f["se_vende_incompleto"]),
+        "generado": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    }
+    with _lock:
+        _memo_matriz.update(t=time.time(), data=data)
+    return data
+
+
 # ─── Acciones: lo que destraba una ranura vacía ──────────────────────────────
 
 def invalidar() -> None:
     """Tras escribir algo, la próxima lectura se recalcula."""
     with _lock:
         _memo.update(t=0.0, data=None)
+        _memo_matriz.update(t=0.0, data=None)
 
 
 def proponer_ean(ref: str) -> dict:

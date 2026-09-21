@@ -826,7 +826,11 @@ un error de red (18-sep-2026: la misma llamada devolvió 1.797 y luego 700 órde
 ### U. Mapa del sistema y anatomía de combos (dónde se rompe la cadena de un producto)
 
 ```
-/app → Inventario → Mapa del sistema   (MapaSistemaPanel.tsx; también en Sistemas)
+/app → Agenda → Mapa · Inventario → Mapa del sistema   (MapaSistemaPanel.tsx; también en Sistemas)
+  ├─ **La aplicación como diagrama de flujo navegable** (MapaAppFlujo.tsx): los 61 paneles reordenados por la
+  │    SECUENCIA del negocio —abastecer → preparar → publicar → vender → entregar → facturar → contar, más
+  │    Dirigir y Sistema que las acompañan— con lo que cada etapa tiene detenido ahora. Etapa → tramos en
+  │    orden → panel (abre de verdad) o diagrama de Archify. Estructura: `desktop/src/lib/flujoApp.ts`
   ├─ Cadena del producto, con conteos vivos (refresco 30 s): combo en Alegra → documento técnico
   │    → código EAN → diseño de etiqueta → publicación. Cada caja: cuántos pasan, cuántos se quedan y por qué
   ├─ «Documentos sin combo»: fichas escritas que ninguna receta usa (el caso propionato de calcio)
@@ -840,6 +844,8 @@ un error de red (18-sep-2026: la misma llamada devolvió 1.797 y luego 700 órde
        (documento, EAN, etiqueta, publicación). Una ranura vacía dice por qué y trae el botón que la destraba
 
 app/services/mapa_producto.py   solo lectura salvo `fijar_sku_documento()`; sin LLM, sin llamar a Alegra ni MeLi
+app/services/mapa_app.py        bloqueos por etapa: junta señales que cada módulo YA produce (checklist contable,
+                                resumen de pagos, matriz de productos, caché de inventario, orders.db). No calcula nada nuevo
 app/routes_mapa_sistema.py      /api/mapa-sistema/* — administrador, o permiso `mapa-sistema` / `combos`
 ```
 
@@ -854,10 +860,69 @@ empareja un documento viven en `scripts/auditar_catalogo_combos.py`; el servicio
 Alegra lo usa. Sin combo no hay SKU de venta → sin SKU no hay EAN → el generador en lote lo salta. Se
 arregla creando el combo, no redactando otro documento. El 2026-09-20 había 101 documentos así.
 
+**Reordenar la app es editar un archivo.** El menú agrupa por departamento («Contabilidad» tenía 22 paneles, entre
+ellos Stock, Costos y Crear en Alegra); `flujoApp.ts` los ubica donde se USAN. Un test falla si un panel de
+`panelInfo.ts` queda sin lugar o aparece en dos (`tests/test_mapa_producto.py`). Una fuente de bloqueos que falle se omite y se anuncia en
+`sin_senal` — un mapa que se cae por un módulo escondería justo lo que debe mostrar. Para sumar una señal: una
+función en `_FUENTES` que devuelva `_b(etapa, id, n, texto, panel)`.
+
+**Toda la interfaz es el flujo (21-sep-2026), y va de lo general a lo avanzado.** El cabezote es `nav/FlujoNav.tsx`:
+- **Origen — «Mi agenda»**: siempre el primer nodo y el panel inicial (`ORIGEN_APP` en `flujoApp.ts`). Es donde cada
+  quien ve lo que le pidieron e inicia acciones; **no** es un panel más de una etapa (un test lo exige). Con la Agenda
+  abierta, debajo solo van sus vistas (Mi día · Mensajes) y ninguna etapa se despliega sola.
+- **Etapas** en secuencia con lo detenido → al tocar una se despliegan sus **tramos** con los paneles de uso normal
+  (tocarla otra vez la recoge) → **«+N avanzado»** muestra los de uso ocasional (`tier: "advanced"` de `panelInfo.ts`).
+- **«◇ Todo el flujo»** abre el Mapa: **un solo diagrama** (`MapaAppFlujo.tsx`) origen ⇢ 7 etapas en columnas ⇢ carriles
+  Dirigir y Sistema, con zoom semántico de 4 niveles — Etapas · Cotidiano (`core`) · Operación (+`standard`) · Todo
+  (+`advanced`, qué hace cada panel y las **variables** de cada tramo, `datos` en `flujoApp.ts`). El nivel se recuerda en
+  `localStorage`; en «Etapas», tocar una etapa despliega solo esa columna. Un tramo sin `datos` hace fallar el test.
+- **Dentro de la Agenda** (`AgendaFlujo.tsx`, montado en `CentroMandoHome` de `TicketsPanel.tsx`): «tu día, en orden» =
+  tres carriles *Me pidieron ⇢ Puedo iniciar ⇢ Me espera*. Cada nodo abre su ticket como siempre y a la derecha dice a qué
+  **etapa** pertenece (salta al panel donde se resuelve); debajo, «a dónde lleva tu día» reparte lo tuyo en la secuencia.
+  La etapa sale de `lib/flujoTickets.ts`: reglas por palabras del **título**, en orden, sin IA — la `categoria` del ticket
+  no sirve («logistica» es el valor por defecto del 80 %). Sin regla, el nodo no lleva etapa: no se inventa. Equipo,
+  ecosistema, commits y cambios quedan recogidos en «+ Equipo y sistema». La TRM sigue arriba, como estaba decidido.
+- Sobre el título va la **miga** (`ubicacionDe()`): «PREPARAR ⇢ 4·RESPALDARLO». Las pestañas que quedan (Diseño, Docs,
+  Libro Mayor…) son **vistas dentro de un panel** y en la piel «flujo» se dibujan como nodos (CSS al final de `index.css`,
+  fuera de `@layer` porque las reglas base de `.mck-hub-tab` también lo están).
+- El menú por departamento sigue detrás de Menú de usuario → «Volver a la navegación clásica» (`uiMode.navClasica`);
+  con el flujo activo se ocultan «← Agenda» y la franja «Ir a…». El móvil (`MobileHub`) no cambió: ya abría en la agenda.
+  Los conteos de bloqueos son de administración: a quien la API le responde 403 simplemente no se le muestran.
+El estilo predeterminado es la piel **«flujo»** (`html[data-mck-skin="flujo"]` en `index.css`: papel frío,
+cuadrícula de 24 px, nodos, monoespaciada en la navegación — el lenguaje de Archify). Como un default nuevo no
+alcanza a quien ya tenía tema guardado, `lib/userThemeSync.ts` la aplica **una sola vez** por persona
+(`ESTILO_BASE_V`, guardado como `preferencias_ui.estilo_v`) conservando modo claro/oscuro, tamaños, zoom y «Mis
+temas»; después manda lo que cada quien elija en Temas. ⚠️ Una piel nueva va en **dos** listas: `SKINS` de
+`theme/presets.ts` y la validación de `tickets_db.actualizar_preferencias_ui` — si falta en la segunda se ve bien
+y el PUT responde 400 en silencio (hay test).
+
+**Taller de combos (21-sep-2026) — la guía de la etapa «Preparar».** Una etapa puede declarar `guia` en `flujoApp.ts`
+(`abre`, no `panel`: ese panel ya vive en un tramo); sale como nodo lleno «▶ Taller de combos» al desplegar Preparar y en
+su columna del Mapa. Abre `combos` en vista `mision` (`combosVista` en `stores/app.ts`; «Ver todos los combos» pasa a la
+galería). `components/combos/MisionCombos.tsx`: un combo a la vez, **su foto en el centro** y sus seis piezas alrededor
+(receta · etiqueta en la receta · documento · EAN · diseño de etiqueta · publicación); conexión viva = completa, punteada
+= ranura vacía; «siguiente paso» marca la primera que falta. La cola se arma una vez por visita, primero los que están a
+una pieza de cerrarse, y recuerda el caso en `sessionStorage` (ir al Studio y volver no lo pierde). El inspector resuelve
+ahí mismo: **crear el EAN** (propuesta de `…/ean-propuesto` → el `POST /api/etiquetas/codigos-ean` de siempre), **unir el
+documento por SKU**, y en la etiqueta **tamaño, plantilla y textos** vía `GET/POST /api/mapa-sistema/etiqueta/<id>` →
+`etiquetas_fichas.actualizar_campos_ficha()` (mismo candado y misma escritura que el Studio; permiso
+`puede_ver_etiquetas_avanzado`; lista blanca `CAMPOS_EDITABLES`, sin logos ni estilos; una plantilla de categoría no se
+edita desde un producto). ⚠️ `guardar_ficha` REEMPLAZA la ficha entera: toda edición parcial pasa por esa función. El PNG
+no se regenera: exportar sigue siendo del Studio. Premio: la conexión se enciende, «+1 conexión», anillo de la foto, y con
+6/6 celebración + marcador del día (`localStorage`) y del catálogo; respeta `prefers-reduced-motion`. Los 40 productos sin
+combo van aparte (no hay producto de venta que dibujar) con salida a Crear en Alegra.
+⚠️ `index.css` fuerza `position: relative; overflow: hidden` en **todos** los `button` de `#root`: un botón con `absolute`
+se queda en el flujo. Posicionar un `div` y meter el botón dentro.
+
+**La cadena se mide por producto ADQUIRIDO**, no por combo (`matriz_productos()`): de 191 materias primas, 33 llegan
+completas a la vitrina y 82 se venden sin etiqueta o sin documento listo. Vista por combos, las 40 compradas sin
+ninguna presentación de venta ni siquiera existen.
+
 Reglas de las acciones:
-- **No nace una segunda vía de escritura**: «Generar código» solo *propone* (`GET …/ean-propuesto`) y crea
-  con el `POST /api/etiquetas/codigos-ean` de siempre, que conserva su control de permisos. Etiqueta y
-  documento nuevos llevan al Studio y a Docs técnicos.
+- **No nace una segunda vía de escritura**: una ranura vacía **lleva al apartado que ya existe** para
+  resolverla — el código EAN a Diseño → Códigos EAN con el combo ya cargado (`eanPrefill` en `stores/app.ts`,
+  lo consume `CodigosEanPanel`), la etiqueta al Studio, el documento a Docs técnicos. Combos no crea nada por
+  su cuenta (`GET …/ean-propuesto` sigue existiendo, solo informa).
 - **No se ofrece código a un combo con la receta rota** (solo empaque, sin componentes): el equipo los
   dejó sin código a propósito el 2026-09-19.
 - **`fijar_sku_documento()` edita UNA línea** del YAML (no re-serializa: `yaml.dump` reordenaría 248

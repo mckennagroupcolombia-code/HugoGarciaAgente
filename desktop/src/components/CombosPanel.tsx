@@ -1,7 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { api, fetchAuthBlobUrl } from "../api/client";
+import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
+import MisionCombos from "./combos/MisionCombos";
+import { AccionRanura, CASILLA, COLOR, EQUIPO, EtiquetaPng, FILTROS, Vida, cantidad, type Combo, type Respuesta } from "./combos/comun";
 
 /**
  * Combos: la «fotografía» de cada producto de venta y todo lo que lo compone.
@@ -14,291 +16,6 @@ import { useAppStore } from "../stores/app";
  *
  * Solo lee `/api/mapa-sistema/combos` (app/services/mapa_producto.py), sin LLM.
  */
-
-type Casilla = "materia_prima" | "bolsa" | "envase" | "tapa" | "etiqueta" | "accesorio" | "proteccion" | "operacion" | "otro";
-type Componente = { codigo: string; nombre: string; cantidad: number; casilla: Casilla; existe: boolean };
-type Eslabon = {
-  estado: "ok" | "aviso" | "falta";
-  titulo: string;
-  detalle: string;
-  archivo?: string;
-  codigo?: string;
-  png?: string | null;
-  meli_id?: string;
-  precio?: number;
-  accion?: Accion;
-};
-type Accion =
-  | { tipo: "generar_ean" | "disenar_etiqueta" | "crear_documento" | "corregir_alegra" }
-  | { tipo: "fijar_sku"; sku: string; mp_nombre: string; archivo: string; doc_titulo: string };
-type EanPropuesto = {
-  sku: string;
-  nombre_producto: string;
-  numero_producto: number;
-  presentacion: string;
-  anio: number;
-  bimestre: number;
-  codigo_previsto: string;
-};
-type Combo = {
-  ref: string;
-  nombre: string;
-  precio_lista: number | null;
-  foto: string | null;
-  linea: string;
-  componentes: Componente[];
-  eslabones: Record<string, Eslabon>;
-  ok: number;
-  avisos: number;
-  faltas: number;
-};
-type Respuesta = {
-  combos: Combo[];
-  total: number;
-  conteo: { rotos: number; sanos: number; sin_etiqueta: number; sin_documento: number; sin_ean: number };
-  generado: string;
-};
-
-const CASILLA: Record<Casilla, { icono: string; nombre: string }> = {
-  materia_prima: { icono: "⚗️", nombre: "Materia prima" },
-  bolsa: { icono: "🛍️", nombre: "Bolsa" },
-  envase: { icono: "🧴", nombre: "Envase" },
-  tapa: { icono: "🔩", nombre: "Tapa / cierre" },
-  etiqueta: { icono: "🏷️", nombre: "Etiqueta" },
-  accesorio: { icono: "🥄", nombre: "Accesorio" },
-  proteccion: { icono: "📦", nombre: "Protección" },
-  operacion: { icono: "⏱️", nombre: "Mano de obra" },
-  otro: { icono: "◻️", nombre: "Otro" },
-};
-
-const EQUIPO: { clave: string; icono: string }[] = [
-  { clave: "receta", icono: "🧪" },
-  { clave: "etiqueta_fisica", icono: "🏷️" },
-  { clave: "documento", icono: "📄" },
-  { clave: "ean", icono: "▮▯▮" },
-  { clave: "etiqueta", icono: "🎨" },
-  { clave: "publicacion", icono: "🛒" },
-];
-
-const FILTROS: { id: string; label: string; cuenta?: keyof Respuesta["conteo"] }[] = [
-  { id: "", label: "Todos" },
-  { id: "rotos", label: "Con algo roto", cuenta: "rotos" },
-  { id: "sin_etiqueta", label: "Sin etiqueta", cuenta: "sin_etiqueta" },
-  { id: "sin_documento", label: "Sin documento", cuenta: "sin_documento" },
-  { id: "sin_ean", label: "Sin código", cuenta: "sin_ean" },
-  { id: "sanos", label: "Completos", cuenta: "sanos" },
-];
-
-const COLOR = {
-  ok: { borde: "border-accent-leaf/60", punto: "bg-accent-leaf", texto: "text-accent-leaf" },
-  aviso: { borde: "border-accent-sun/70", punto: "bg-accent-sun", texto: "text-accent-sun" },
-  falta: { borde: "border-accent-rose/70 border-dashed", punto: "bg-accent-rose", texto: "text-accent-rose" },
-} as const;
-
-function cantidad(c: Componente): string {
-  const n = Number.isInteger(c.cantidad) ? String(c.cantidad) : c.cantidad.toFixed(2).replace(/\.?0+$/, "");
-  const u = c.casilla !== "materia_prima" ? "" : /mL$/i.test(c.codigo) ? " mL" : /g$/.test(c.codigo) ? " g" : "";
-  return `×${n}${u}`;
-}
-
-function Vida({ c }: { c: Combo }) {
-  const total = c.ok + c.avisos + c.faltas || 1;
-  return (
-    <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-input" title={`${c.ok} de ${total} eslabones completos`}>
-      <div className="bg-accent-leaf" style={{ width: `${(c.ok / total) * 100}%` }} />
-      <div className="bg-accent-sun" style={{ width: `${(c.avisos / total) * 100}%` }} />
-      <div className="bg-accent-rose" style={{ width: `${(c.faltas / total) * 100}%` }} />
-    </div>
-  );
-}
-
-function EtiquetaPng({ nombre }: { nombre: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let vivo = true;
-    let creada: string | null = null;
-    fetchAuthBlobUrl(`/api/etiquetas/recursos-png/archivo/${nombre.split("/").map(encodeURIComponent).join("/")}`).then((u) => {
-      creada = u;
-      if (vivo) setUrl(u);
-      else if (u) URL.revokeObjectURL(u);
-    });
-    return () => {
-      vivo = false;
-      if (creada) URL.revokeObjectURL(creada);
-    };
-  }, [nombre]);
-  if (!url) return <div className="flex h-28 items-center justify-center text-[11px] text-muted">Cargando etiqueta…</div>;
-  return <img src={url} alt="Etiqueta del producto" className="max-h-44 w-full rounded-md bg-white object-contain p-1" />;
-}
-
-const BTN = "rounded-md border border-accent bg-accent/15 px-2 py-1 text-[11px] font-bold text-ink hover:bg-accent/25 disabled:opacity-50";
-const BTN_SEC = "rounded-md border border-border bg-surface px-2 py-1 text-[11px] text-ink hover:bg-surface-hover";
-
-/** Lo que destraba una ranura vacía. Cada acción reutiliza el camino que ya existe
- *  (el mismo endpoint de códigos EAN, el Studio, Docs técnicos): acá no nace una segunda vía. */
-function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
-  const qc = useQueryClient();
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
-  const [prop, setProp] = useState<EanPropuesto | null>(null);
-  const [confirmar, setConfirmar] = useState(false);
-  const [ocupado, setOcupado] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    setProp(null);
-    setConfirmar(false);
-    setMsg(null);
-  }, [c.ref]);
-
-  const refrescar = async () => {
-    await api.post("/api/mapa-sistema/invalidar").catch(() => null);
-    await qc.invalidateQueries({ queryKey: ["mapa-sistema-combos"] });
-    await qc.invalidateQueries({ queryKey: ["mapa-sistema-flujo"] });
-  };
-  const correr = async (f: () => Promise<void>) => {
-    setOcupado(true);
-    setMsg(null);
-    try {
-      await f();
-    } catch (e) {
-      setMsg((e as Error)?.message || "No se pudo completar");
-    } finally {
-      setOcupado(false);
-    }
-  };
-
-  if (accion.tipo === "generar_ean") {
-    return (
-      <div className="mt-2 space-y-1.5">
-        {!prop ? (
-          <button
-            className={BTN}
-            disabled={ocupado}
-            onClick={() => correr(async () => setProp(await api.get<EanPropuesto>(`/api/mapa-sistema/combos/${encodeURIComponent(c.ref)}/ean-propuesto`)))}
-          >
-            Generar código…
-          </button>
-        ) : (
-          <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
-            <div>
-              Producto n.º <b>{prop.numero_producto}</b> · presentación <b>{prop.presentacion}</b> · 20{prop.anio}, bimestre {prop.bimestre}
-            </div>
-            <div className="mt-1 font-mono text-sm tracking-[0.18em]">{prop.codigo_previsto}</div>
-            <div className="mt-2 flex gap-2">
-              <button
-                className={BTN}
-                disabled={ocupado}
-                onClick={() =>
-                  correr(async () => {
-                    await api.post("/api/etiquetas/codigos-ean", {
-                      sku: prop.sku,
-                      nombre_producto: prop.nombre_producto,
-                      numero_producto: prop.numero_producto,
-                      presentacion: prop.presentacion,
-                      anio: prop.anio,
-                      bimestre: prop.bimestre,
-                    });
-                    await refrescar();
-                  })
-                }
-              >
-                Crear este código
-              </button>
-              <button className={BTN_SEC} onClick={() => setProp(null)}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-        {msg && <p className="text-[11px] text-accent-rose">{msg}</p>}
-      </div>
-    );
-  }
-
-  if (accion.tipo === "fijar_sku") {
-    return (
-      <div className="mt-2 space-y-1.5">
-        {!confirmar ? (
-          <button className={BTN} onClick={() => setConfirmar(true)}>
-            Unir por SKU…
-          </button>
-        ) : (
-          <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
-            <div className="text-muted">¿Son el mismo producto?</div>
-            <div className="mt-1">
-              📄 <b>{accion.doc_titulo}</b>
-            </div>
-            <div>
-              ⚗️ <b>{accion.mp_nombre}</b> <code className="text-muted">{accion.sku}</code>
-            </div>
-            <div className="mt-1 text-muted">
-              Se escribe <code>referencia: {accion.sku}</code> en el documento. Todos los combos de esa materia prima lo heredan.
-            </div>
-            <div className="mt-2 flex gap-2">
-              <button
-                className={BTN}
-                disabled={ocupado}
-                onClick={() =>
-                  correr(async () => {
-                    const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", {
-                      items: [{ archivo: accion.archivo, sku: accion.sku }],
-                    });
-                    if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo fijar");
-                    await refrescar();
-                  })
-                }
-              >
-                Sí, fijar el SKU
-              </button>
-              <button className={BTN_SEC} onClick={() => setConfirmar(false)}>
-                No
-              </button>
-            </div>
-          </div>
-        )}
-        {msg && <p className="text-[11px] text-accent-rose">{msg}</p>}
-      </div>
-    );
-  }
-
-  if (accion.tipo === "disenar_etiqueta") {
-    return (
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          className={BTN}
-          onClick={() => {
-            navigator.clipboard?.writeText(c.nombre).catch(() => null);
-            setEtiquetasTab("studio");
-            setPanel("etiquetas");
-          }}
-        >
-          Diseñar en el Studio →
-        </button>
-        <span className="text-[10px] text-muted">copia el nombre al portapapeles</span>
-      </div>
-    );
-  }
-
-  if (accion.tipo === "crear_documento") {
-    return (
-      <div className="mt-2">
-        <button className={BTN} onClick={() => setPanel("fichas")}>
-          Ir a Docs técnicos →
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 flex flex-wrap items-center gap-2">
-      <button className={BTN_SEC} onClick={() => navigator.clipboard?.writeText(c.ref).catch(() => null)}>
-        Copiar SKU
-      </button>
-      <span className="text-[10px] text-muted">Se corrige en Alegra: abre el kit y agrégale su materia prima.</span>
-    </div>
-  );
-}
 
 function Detalle({ c }: { c: Combo }) {
   const etq = c.eslabones.etiqueta;
@@ -414,6 +131,8 @@ export default function CombosPanel() {
   const [filtro, setFiltro] = useState("rotos");
   const [sel, setSel] = useState<string | null>(null);
   const [visibles, setVisibles] = useState(60);
+  const vista = useAppStore((s) => s.combosVista);
+  const setVista = useAppStore((s) => s.setCombosVista);
 
   const datos = useQuery({
     queryKey: ["mapa-sistema-combos"],
@@ -438,8 +157,27 @@ export default function CombosPanel() {
   useEffect(() => setVisibles(60), [q, filtro]);
   const elegido = useMemo(() => lista.find((c) => c.ref === sel) ?? lista[0] ?? null, [lista, sel]);
 
+  if (vista === "mision")
+    return (
+      <div className="mx-auto max-w-[1500px] space-y-3">
+        <div>
+          <h2 className="text-base font-bold text-ink">Taller de combos</h2>
+          <p className="mt-1 max-w-3xl text-xs text-muted">
+            Un combo a la vez: su foto en el centro y sus seis piezas alrededor. Completa las ranuras vacías para encender cada conexión;
+            empieza por los que están a una pieza de quedar listos.
+          </p>
+        </div>
+        {datos.isLoading && <p className="text-xs text-muted">Leyendo el catálogo de Alegra…</p>}
+        {datos.isError && <div className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-xs text-ink">No se pudieron leer los combos: {(datos.error as Error)?.message}</div>}
+        {datos.data && <MisionCombos datos={datos.data} onGaleria={() => setVista("galeria")} />}
+      </div>
+    );
+
   return (
     <div className="mx-auto max-w-7xl space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <button onClick={() => setVista("mision")} className="order-2 rounded-lg border border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white hover:opacity-90">▶ Volver al taller guiado</button>
+      </div>
       <div>
         <h2 className="text-base font-bold text-ink">Combos</h2>
         <p className="mt-1 max-w-3xl text-xs text-muted">
