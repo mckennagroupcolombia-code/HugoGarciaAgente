@@ -503,6 +503,14 @@
   height: 48px;
   box-sizing: border-box;
 }
+/* Plantillas sin timbre central (`sinTimbreCentro`): la tabla toma ese alto
+   con filas más holgadas y el resto se reparte entre nombre, subtítulo y tabla. */
+.e30-sin-timbre {
+  justify-content: space-evenly;
+}
+.e30-sin-timbre .e30-tabla {
+  grid-auto-rows: 36px;
+}
 .e30-editando .e30-timbre-centro {
   border: 1px dashed #b8b8b8;
   border-radius: 4px;

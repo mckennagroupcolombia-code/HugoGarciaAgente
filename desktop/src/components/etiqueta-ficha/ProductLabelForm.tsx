@@ -315,7 +315,14 @@ function ProductLabelFormInner({
   const cambiosGhsRef = useRef(0);
   const onChange = (patch: Partial<ProductLabelData>) => {
     if ("ghs" in patch || "ghsIconSvg" in patch) cambiosGhsRef.current += 1;
-    setData((d) => ({ ...d, ...patch }));
+    setData((d) => {
+      const next = { ...d, ...patch };
+      // Al aplicar una ficha técnica manda la conservación de la FAMILIA (la que
+      // fija la plantilla), no la de la ficha: cada ficha la redacta distinto y
+      // la categoría quiere una sola. Escribir en la casilla no pasa por aquí.
+      if (patch.fichaTecnicaId && d.storageSugerido) next.storage = d.storageSugerido;
+      return next;
+    });
   };
   const onIconChange = (campo: IconoKey, svgDataUrl: string) =>
     setAttributeIcons((prev) => ({ ...prev, [campo]: svgDataUrl }));
@@ -1083,6 +1090,8 @@ function ProductLabelFormInner({
           fichaTecnicaId: mejor.ficha.id,
           fichaTecnicaTitulo: mejor.ficha.titulo,
           ...(neto ? { netContent: neto } : {}),
+          // Conservación de la familia, igual que en `onChange`.
+          ...(datosBase.storageSugerido ? { storage: datosBase.storageSugerido } : {}),
         };
         setData(datosSku);
         // La etiqueta del SKU también se GUARDA (no solo su PNG): queda enlazada

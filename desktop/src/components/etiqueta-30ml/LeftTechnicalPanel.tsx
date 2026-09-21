@@ -5,7 +5,7 @@ import { normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productL
 import { IconoContacto, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
 import TechnicalCell from "./TechnicalCell";
 import ContactFooter from "./ContactFooter";
-import { CELDAS_30ML, EJEMPLO_30ML, TITULOS_FORMULA_30ML, tituloFormula30ml } from "./etiqueta30mlTypes";
+import { EJEMPLO_30ML, TITULOS_FORMULA_30ML, celdas30ml, tituloFormula30ml } from "./etiqueta30mlTypes";
 
 /** Panel izquierdo: matriz exacta de 2 columnas × 3 filas (CSS Grid) y la
  *  franja de ubicación + teléfono. Las líneas son bordes de las celdas: la
@@ -29,9 +29,11 @@ export default function LeftTechnicalPanel({
   const cambio = (campo: keyof ProductLabelData) =>
     onChange ? (v: string) => onChange({ [campo]: v }) : undefined;
 
+  const celdas = celdas30ml(data);
+
   return (
     <section className="e30-panel e30-panel-izq">
-      {CELDAS_30ML.map((c, i) => (
+      {celdas.map((c, i) => (
         <TechnicalCell
           key={c.campo}
           campo={c.campo}
@@ -43,11 +45,11 @@ export default function LeftTechnicalPanel({
               }
             : {})}
           valor={data[c.campo] || ""}
-          ejemplo={EJEMPLO_30ML[c.campo]}
+          ejemplo={(c.campo === "storage" && data.storageSugerido) || EJEMPLO_30ML[c.campo]}
           iconoElegido={attributeIcons[c.campo]}
           iconoPorDefecto={c.icono}
           editMode={editMode}
-          lineas={`${i % 2 === 0 ? "e30-linea-der" : ""} ${i < CELDAS_30ML.length - 2 ? "e30-linea-inf" : ""}`}
+          lineas={`${i % 2 === 0 ? "e30-linea-der" : ""} ${i < celdas.length - 2 ? "e30-linea-inf" : ""}`}
           onChange={cambio(c.campo)}
           onEditarIcono={onIconChange ? () => setCampoAbierto(c.campo) : undefined}
         />

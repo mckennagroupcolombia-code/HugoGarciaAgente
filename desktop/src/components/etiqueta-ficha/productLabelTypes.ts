@@ -52,6 +52,22 @@ export interface ProductLabelData {
   /** Formato 30 mL: texto de clasificación SGA (vacío = frase por defecto si
    *  el producto no es peligroso). */
   clasificacionTexto?: string;
+  /** Formato 30 mL: título del bloque de clasificación. Un producto sin
+   *  pictograma GHS puede usar ese espacio para «Modo de uso» o «Sugerencia»
+   *  (ver `TITULOS_CLASIFICACION_30ML`). Dato de plantilla. */
+  clasificacionTitulo?: string;
+  /** Formato 30 mL: orden de las seis casillas del panel izquierdo, claves
+   *  separadas por coma en orden de lectura ("origin,appearance,…"). Dato de
+   *  plantilla: cada categoría decide el suyo; sin dato, el orden de siempre. */
+  ordenCeldas?: string;
+  /** Formato 30 mL: texto de conservación de la FAMILIA. Dato de plantilla
+   *  (`storage` es dato de producto y nunca se hereda): es el ejemplo en gris
+   *  de la casilla y el texto con que nace cada etiqueta hecha con la plantilla. */
+  storageSugerido?: string;
+  /** Formato 30 mL: sin el espacio del timbre bajo la tabla Pureza/CAS; la
+   *  tabla ocupa ese alto. El timbre físico sigue teniendo su zona junto al
+   *  código de barras. Dato de plantilla. */
+  sinTimbreCentro?: boolean;
   /** Formato 69 × 51 mm (alimentos): línea de alérgenos ("Contiene: frutos
    *  secos…"). Dato de plantilla: toda etiqueta de la familia la hereda y se
    *  ajusta por producto. */
@@ -206,6 +222,10 @@ export const CAMPOS_PLANTILLA = [
   "cucharaUnidad",
   "cucharaUtensilio",
   "gradoInsumo",
+  "clasificacionTitulo",
+  "ordenCeldas",
+  "storageSugerido",
+  "sinTimbreCentro",
   "alergenos",
   "aplicacionesTitulo",
   "empresa",

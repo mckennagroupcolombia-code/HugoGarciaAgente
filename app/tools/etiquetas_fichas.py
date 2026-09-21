@@ -217,3 +217,64 @@ def eliminar_ficha(ficha_id: str) -> bool:
             return False
         _save_all(items)
         return True
+
+
+# Datos de DISEÑO del formato 30 mL (102 × 38 mm) que una etiqueta toma de su
+# plantilla. Espejo de los campos homónimos de `CAMPOS_PLANTILLA`
+# (desktop/src/components/etiqueta-ficha/productLabelTypes.ts).
+_CAMPOS_DISENO_PROPAGABLES = (
+    "ordenCeldas",
+    "storageSugerido",
+    "sinTimbreCentro",
+    "clasificacionTitulo",
+)
+
+
+def propagar_diseno_plantilla(plantilla_id: str, aplicar: bool = False) -> dict:
+    """Lleva el diseño de una plantilla de categoría a las etiquetas hechas con ella.
+
+    Una etiqueta es una COPIA de su plantilla: cambiar la plantilla (orden de las
+    casillas, íconos, conservación de la familia…) no toca las ya generadas. Esto
+    las alcanza por `plantilla_id`. Solo cambia diseño; los datos del producto
+    (nombre, composición, CAS, código de barras…) no se tocan, salvo `storage`
+    cuando la plantilla fija `storageSugerido`, que es justo lo que ese dato pide.
+
+    No regenera los PNG de impresión: eso lo hace el navegador (html-to-image).
+    Con `aplicar=False` solo informa qué cambiaría.
+    """
+    plantilla_id = (plantilla_id or "").strip()
+    with _candado():
+        todos = _load_all()
+        plantilla = next((f for f in todos if f.get("id") == plantilla_id), None)
+        if not plantilla or not plantilla.get("es_plantilla_categoria"):
+            raise ValueError(f"{plantilla_id!r} no es una plantilla de categoría")
+        pdata = plantilla.get("data") or {}
+        iconos_plantilla = plantilla.get("attribute_icons") or {}
+        informe: list[dict] = []
+        now = _now()
+        for f in todos:
+            if f.get("es_plantilla_categoria") or f.get("plantilla_id") != plantilla_id:
+                continue
+            data = f.setdefault("data", {})
+            cambios: list[str] = []
+            for campo in _CAMPOS_DISENO_PROPAGABLES:
+                if campo in pdata and data.get(campo) != pdata[campo]:
+                    data[campo] = pdata[campo]
+                    cambios.append(campo)
+            sugerido = (pdata.get("storageSugerido") or "").strip()
+            if sugerido and data.get("storage") != sugerido:
+                data["storage"] = sugerido
+                cambios.append("storage")
+            iconos = dict(f.get("attribute_icons") or {})
+            for campo, svg in iconos_plantilla.items():
+                if iconos.get(campo) != svg:
+                    iconos[campo] = svg
+                    cambios.append(f"ícono:{campo}")
+            if iconos:
+                f["attribute_icons"] = iconos
+            if cambios:
+                f["actualizado"] = now
+            informe.append({"id": f.get("id"), "nombre": f.get("nombre"), "cambios": cambios})
+        if aplicar and any(i["cambios"] for i in informe):
+            _save_all(todos)
+    return {"plantilla": plantilla.get("nombre"), "aplicado": bool(aplicar), "etiquetas": informe}

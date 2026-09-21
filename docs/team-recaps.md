@@ -1,3 +1,84 @@
+### 2026-09-20 - Documentos técnicos: 20 fichas antiguas (solo TDS) pasadas a borrador TDS + COA + SDS
+- **Autor:** Armando García
+- **Tipo de Cambio:** Contenido (Fichas técnicas → Borradores). Sin cambios de código, sin LLM por API.
+- **Qué se implementó:** dos lotes con `scripts/fichas_lote_autor.py`, mismo molde de los documentos ya completos (TDS con propiedades funcionales `Título|texto`, COA con especificación de monografía y **resultado vacío**, SDS de 16 secciones sin primeros auxilios ni manipulación, sin fabricante). Todo queda como **borrador sin firma** en Documentos técnicos → Borradores; nada se publicó.
+  - `fichas_word/autor/2026-09-20c/`: SCI, BTMS 50, cafeína, cera carnauba, elastina, urea, betaína de coco, albúmina de huevo (alimento: TDS + COA con alérgenos, sin SDS), aloe vera, ácido glicólico 50 %.
+  - `fichas_word/autor/2026-09-20d/`: benzoato de sodio, bicarbonato de sodio, cocoamida DEA, dióxido de titanio, óxido de zinc, goma guar, cloruro de magnesio, citrato de zinc, dextrosa, fructosa.
+  - Estado documental (auditoría de combos): borradores 18 → 40, fichas antiguas 45 → 23.
+  - **Errores de las fichas antiguas corregidos** (cada uno anotado en `_fuentes`): la albúmina decía servir «para personas con alergias al huevo» (ES huevo); el glicólico al 50 % indicaba aplicarlo directo en la piel (es corrosivo, H314); fórmulas de otra sustancia en goma guar y citrato de zinc; «soluble en agua» en óxido de zinc y citrato de zinc; pH ácido en bicarbonato y neutro en cocoamida DEA; cafeína «muy soluble»; microbiología con el signo invertido («≥ 10000») en seis fichas; «cumple USP» en sustancias sin monografía; marcas de fabricante en los sinónimos del BTMS.
+  - ⚠️ **La frase de la albúmina estaba publicada** («sustituto del huevo… útil para personas con alergias al huevo»): salía en la ficha del producto en la tienda web y en el texto de su etiqueta. Se quitó esa oración de `PAGINA_WEB/site/data/fichas_tecnicas.json`, `cache.json`, `app/data/etiquetas_fichas.json` y del YAML antiguo. **Falta reiniciar `mckenna-website`** para que la web deje de servirla desde memoria, y revisar la descripción en MeLi.
+  - **Compliance de materia prima:** se retiraron dosis de suplemento, uso laxante y beneficios corporales (cloruro de magnesio, cafeína, urea, aloe, elastina, fructosa).
+- **Pendiente (decisión de una persona):** citrato de zinc — la ficha vieja decía 13 % de zinc y el grado USP tiene ≥ 31,3 %: confirmar con el COA antes de publicar. Glicólico 50 % — confirmar si la fórmula propia se neutraliza (pH) y poner pictograma de corrosión en la etiqueta del frasco. «TEGO» es marca de un fabricante: ¿renombrar a BETAÍNA DE COCO? Etiquetas con pictograma pendiente: óxido de zinc y citrato de zinc (GHS09), cocoamida DEA y BTMS (GHS05). Revisar que MeLi/web no repitan las frases retiradas de albúmina y cloruro de magnesio. Siguen 23 fichas antiguas, 20 vacías y 7 completas sin `_tipo: completo`.
+- **Archivos Modificados:** `fichas_word/autor/2026-09-20c/*.yaml`, `fichas_word/autor/2026-09-20d/*.yaml`, `fichas_word/datos/borrador_ft_coa_sds_*.yaml` (20 nuevos), `docs/auditoria_catalogo_combos.md`, `docs/team-recaps.md`
+
+### 2026-09-20 - Seis artículos de reventa creados en Alegra (publicaciones activas sin producto)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)
+- **Qué se implementó:** mismo criterio de las bolsas para hongos — producto simple por unidad, se conserva el SKU que ya tenía MeLi, precio = MeLi, IVA 19 %, costo $0 (no hay compra en el historial). Cada uno releído y resuelto por la facturación; en MeLi quedaron los dos campos de SKU iguales: `OILBMBVC` aceite para bomba de vacío (id 648, $60.000); `KTBKRPRB` kit beakers y probetas (id 649, $268.000; MCO888492103 y MCO1319828203); `DISLIJ2000` disco lija grano 2000 (id 650, $14.900); `ERLMYR50mL` erlenmeyer 50 mL (id 651, $15.500); `SoMoNiSeMa1.6` soportes de motor Nissan Sentra (id 652, $340.000); `KITPULTAL9V` kit pulido taladro 9 V (id 653, $88.000) — este no tenía SKU, se le creó y se cargó en MCO1765489343.
+- **Pendiente:** cargar costos con la próxima compra. Faltan los que necesitan materia prima + receta: sulfato ferroso 500 g, arcilla amarilla 250 g, eritritol 500 g (`ERIg` a $12,5/g, FA271345 Interkrol, no existe en Alegra), L-isoleucina 100 g, aceite mineral 1 L, fragancia cosmética 250 mL.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Seis combos nuevos en Alegra para publicaciones activas que no se podían facturar por SKU
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra)
+- **Qué se implementó:** recetas aprobadas por Armando — copia de la presentación hermana con la cantidad ajustada, precio = MeLi, IVA 19 %. Cada uno releído desde Alegra y resuelto por `resolver_producto_venta_alegra`:
+  - `C-CREMON100g` (id 642, $14.900): 100 `AMICREMONg` + empaque de `C-CREMON500g`. MCO862333529, 196 vendidas.
+  - `C-TEGBETLt` (id 643, $49.350): 1000 `TEGBETg` + empaque de `C-GLIVEGLt` (`BOTGLILt`). MCO595871453, 132 vendidas.
+  - `C-BCAA500g` (id 644, $80.900): 500 `AMIBCAg` + empaque de `C-AMIBCA250g`. MCO1050151269.
+  - `C-ALA250g` (id 645, $52.900): 250 `ALAg` + empaque de `C-ALA100g`. MCO851538777 y MCO1354834051.
+  - `C-KITREPCOS2` (id 646, $59.415): el kit #1 con 30 `VITETOC99Pg` (vitamina E) en vez de `FOR-VITC20PmL`, según la descripción de MCO851988655 (hialurónico, aloe, elastina, vitamina E). 100 vendidas.
+  - `C-AGUDESSOBRpH` (id 647, $15.500): `C-AGUDES250mL` + 1 × `C-SOBCALpH3un`. MCO2068301233.
+- **Pendiente:** `C-GOTPLA3mL10Un` (610 vendidas), `C-VAS400g` y `ALCPRFLT` esperan que Armando confirme empaque/fórmula. Frente 3: 13 productos sin nada en Alegra.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Triptófano y teanina 100 g: de producto suelto a combo con materia prima
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra)
+- **Qué se implementó:**
+  - `C-LTRI100g` (MCO952731685, 331 vendidas) y `C-LTEA100g` (MCO1050487497, 382 vendidas) eran productos sueltos sin receta: cada venta se facturaba sin descontar materia prima ni empaque. Mismo criterio que la histidina (decisión de Armando: el código de venta `C-…` se conserva y debe ser combo). Recreados con `crear_combo_en_alegra`, que renombra el ítem anterior a `…-LEGACY` inactivo (ids 74 y 63; copias en `~/backups_manual/alegra_C-L{TRI,TEA}100g_suelto_antes_20260920.json`): `C-LTRI100g` id 640, $32.000, 100 `AMILTRIg`; `C-LTEA100g` id 641, $39.000, 100 `AMITEAg`. Empaque, el del combo de triptófano que ya existía: `PASBLA180mL`, `TAP38MSENUn`, `LNRIND36.2mm`, `BANPAS180mm`, `SCO1g`, `ETQ100g`, `ETQTRM`, `BURB`, `BOLSEGBLAUn`. MeLi no se tocó (los SKU ya eran esos).
+- **Pendiente:** `C-AMILTRI100g` (combo de triptófano duplicado, sin publicación) sigue activo. **`C-AMILCAR100g` «L CARNITINA 100g» tiene como materia prima 100 g de `AMITEAg` (teanina)**: revisar. Otros productos sueltos con código `C-…`: `C-ARCVRT250g`, `C-DHA10g`, `C-CEBCOR150g`, `C-CREMON250g`, `C-EXTMAL500g`, `C-FRBSGL120mL`, `C-KITACIHIA30mL`, `C-REVVID6mm`, `C-SOBCALpH3un`, `C-VERMAL30mL`, `C-VITCACIASC100g`.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Beakers 50 / 25 / 10 mL: la venta facturaba el beaker suelto y no descontaba empaque
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / Sheets)
+- **Qué se implementó:**
+  - No eran duplicados: `BKR50ML` / `BKR25ML` / `BKR10ML` son el beaker como artículo de inventario y `C-VASPRE50mL` / `25mL` / `10mL` el combo de venta (beaker + `BOLSEGBLAUn` + `ETQTRM` + 2 `PPLBRB10cms`), mismo precio. Las publicaciones tenían SELLER_SKU = combo pero `seller_custom_field` = `BKR…`, y la facturación lee el segundo: se descontaba el beaker pero nunca el empaque (668 vendidos entre los tres).
+  - Los combos de 25 y 10 mL no tenían el beaker entre sus componentes: se agregó 1 × `BKR25ML` y 1 × `BKR10ML` con `actualizar_combo_alegra` (copias previas en `~/backups_manual/alegra_C-VASPRE{25,10}mL_antes_20260920.json`). El de 50 y el de 100 mL ya estaban completos.
+  - MCO833400087, MCO833400305 y MCO1171713653 quedaron con `C-VASPRE…` en los dos campos (y en Sheets col B); verificado que resuelven al combo. Los `BKR…` siguen activos: son el inventario real y por ahí entran las compras.
+  - Hierbabuena, mismo caso del jengibre: `C-ACEESEHIEBUE5mL` (id 527) es el combo completo y `C-ACEESENHIEBUE5mL` (id 184) un producto suelto sin receta, con una «N» de más. MCO3152503164 (38 vendidas) facturaba por el suelto y no descontaba nada; quedó con `C-ACEESEHIEBUE5mL` en los dos campos, igual que MCO1278712229. Claves viejas retiradas de `publicaciones_overrides.json` y `stock_web.json`. El suelto se **inactivó** con el visto bueno de Armando, tras verificar que ninguna publicación, producto web ni equivalencia lo usa; copia en `~/backups_manual/alegra_C-ACEESENHIEBUE5mL_antes_de_inactivar_20260920.json`.
+- **Pendiente:** el inventario de empaque en Alegra quedó inflado por las ventas pasadas (no se ajustó).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Coco deshidratado: el combo de 500 g descontaba 250 g; combo de 250 g creado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web / datos locales)
+- **Qué se implementó:**
+  - `C-COCDESHIL500g` (Alegra id 559) se llamaba «COCO DESHIDRATADO HILOS 250g» y descontaba 250 g de `COCDESHILg`, pero valía $20.000, el precio de la publicación de 500 g (MCO4354293808): cada venta de 500 g descontaba la mitad. Corregido con `actualizar_combo_alegra` a 500 g y nombre «… 500g» (Alegra lo permitió; copia previa en `~/backups_manual/alegra_C-COCDESHIL500g_antes_20260920.json`).
+  - Nuevo combo `C-COCDESHIL250g` (id 639, $11.000 = MeLi, IVA 19 % como el de 500 g) para MCO4354281272, con el mismo empaque: `BLSMTL13X21cms`, `BOLVAC8X12`, `ETQ100g`, `ETQTRM`. En MeLi los SKU terminan en «G» mayúscula; el resolvedor no distingue mayúsculas, no se tocaron.
+  - Códigos de barras y etiquetas ya estaban correctos. `publicaciones_overrides.json` apuntaba a dos publicaciones eliminadas (MCO4208343872 / MCO4208635856): ahora a las vigentes. Catálogo web reconstruido (180 productos antes y después): «Coco Deshidratado Hilos» pasó de un producto «250g» con SKU de 500 g y sin precio a una familia con 2 presentaciones (250 g $9.900, 500 g $18.000 web).
+- **Pendiente:** ajuste de inventario de `COCDESHILg` por las ventas de 500 g que descontaron 250 g (2 vendidas en la publicación actual). Costo de referencia: $24,2/g (BO15756, Productos 3A, 4-jul-2026).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/cache.json` (y derivados del refresh), `docs/team-recaps.md`
+
+### 2026-09-20 - SKU mal digitados en MeLi (paso 1 de las 35 publicaciones sin SKU en Alegra) + publicaciones con los dos campos de SKU distintos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (MeLi / Sheets / Alegra / datos locales)
+- **Qué se implementó:**
+  - De las 35 publicaciones activas cuyo SKU no existe en Alegra, 7 ya se facturan por equivalencia (ylang, 2 de mandarina, 4 de cápsulas). Paso 1, los errores de digitación — se corrigió el SKU en MeLi (SELLER_SKU y custom field) y se verificó que `resolver_producto_venta_alegra` lo encuentra: MCO3124400002 `C-ACEESENJEN5mL` → `C-ACEESEJEN5mL`; MCO1582274449 `C-INL500g` → `C-INU500g` (comparte SKU con MCO991717213, la principal); MCO1765424925 sin SKU → `INJGER5UN`; MCO1050313694 L-histidina: **se deja `C-LHIS100g`** (decisión de Armando: el SKU de venta `C-…` es el definitivo; se había cambiado a `LHST100G` y se devolvió) y, por indicación suya, quedó como **combo igual al de prolina** (`C-LPRO100g`): materia prima nueva `L-AMIHISg` «L AMINOACIDO HISTIDINA G» (Alegra id 637, gramo, IVA 19 %, costo $0 — no hay compra en el historial) y combo `C-LHIS100g` «L HISTIDINA 100g» (id 638, $43.900 = MeLi): 100 `L-AMIHISg`, `PASBLA180mL`, `TAP38MBLAUn`, `LINPASUn`, `BANPAS180mm`, `BOLSEGBLAUn`, `ETQTRM`. La equivalencia temporal a `LHST100G` se retiró; `LHST100G` (id 182, producto suelto sin receta) se **inactivó** con el visto bueno de Armando, tras verificar que ninguna publicación, producto web ni equivalencia lo usa; copia en `~/backups_manual/alegra_LHST100G_antes_de_inactivar_20260920.json`. Precio de `C-ACEESEJEN5mL` en Alegra $17.000 → $17.500 (manda MeLi).
+  - **Hallazgo:** la facturación lee primero `seller_custom_field` (`facturacion_ventas_unificado.py:430`, `meli_autofactura_entrega.py:248`), y 7 publicaciones tenían ese campo distinto del SELLER_SKU. Corregidas las 3 inequívocas dejando ambos campos con el SKU que sí existe: MCO1394253550 «Aceite Esencial De Jengibre» (224 vendidas) tenía custom `C-ACEESELIM5mL` = **limón**, así que se facturaba como limón; MCO3152478202 romero tenía `OILESNRMR5mL` y MCO1298425191 carnauba `CRCRNLB`, que no existen en Alegra.
+  - Datos locales: `publicaciones_overrides.json` (claves viejas pasadas al SKU corregido; `C-INU500g` y `C-ACEESEJEN5mL` apuntan a su publicación principal; se quitó el override de limón, que apuntaba a la publicación de jengibre — no hay publicación de limón) y `stock_web.json`.
+- **Pendiente:** 4 publicaciones con dos ítems duplicados en Alegra, decide Armando cuál queda: beakers 50/25/10 mL (`C-VASPRE…` vs `BKR…ML`) y hierbabuena (`C-ACEESEHIEBUE5mL` vs `C-ACEESENHIEBUE5mL`). Revisar si las ventas pasadas de jengibre salieron facturadas como limón. Siguen: coco deshidratado (combo 500 g que descuenta 250 g), 9 combos por crear y 13 productos sin nada en Alegra.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - `C-COL50g` (colorante alimentario 50 g) inactivado en Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web)
+- **Qué se implementó:**
+  - `C-COL50g` (Alegra id 577, $33.900) no tenía componentes: cada venta se facturaba sin descontar inventario y sin costo. Su publicación de MeLi ya se había eliminado; Armando confirmó que no existe. Verificado antes de tocarlo: ninguna publicación de MeLi con ese SKU y ningún producto en la tienda web. Inactivado con `PUT /items/577 {"status": "inactive"}` y releído. Copia del ítem en `~/backups_manual/alegra_C-COL50g_antes_de_inactivar_20260920.json`.
+  - Se quitó de `stock_web.json` la clave huérfana `C-COL50G` (6 unidades sin producto en la tienda).
+- **Pendiente:** queda una entrada inofensiva en `publicaciones_overrides.json`. Siguen las 35 publicaciones activas cuyo SKU no existe en Alegra.
+- **Archivos Modificados:** `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
 ### 2026-09-20 - Bolsas para cultivo de hongos: SKU propio en vez de los `AS-43` / `AS-44` heredados
 - **Autor:** Armando García
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)

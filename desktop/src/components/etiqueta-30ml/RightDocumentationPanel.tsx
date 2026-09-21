@@ -12,10 +12,12 @@ import {
   CLASIFICACION_NO_PELIGROSO,
   EJEMPLO_30ML,
   TAM_30ML,
+  TITULOS_CLASIFICACION_30ML,
   esPeligrosoGhs,
   pictogramasGhs,
   textoCirculoGhs,
   textoClasificacion,
+  tituloClasificacion30ml,
 } from "./etiqueta30mlTypes";
 
 /** Panel derecho: información técnica + web · clasificación · código de
@@ -46,6 +48,8 @@ export default function RightDocumentationPanel({
   // En edición se ve lo escrito (vacío = la frase por defecto, en gris); en
   // vista, el texto que se imprime (ver `textoClasificacion`).
   const clasificacion = editable ? data.clasificacionTexto || "" : textoClasificacion(data);
+  const tituloClasif = tituloClasificacion30ml(data, editMode);
+  const esTituloDeUso = tituloClasif !== TITULOS_CLASIFICACION_30ML[0];
 
   return (
     <section className="e30-panel e30-panel-der">
@@ -126,19 +130,29 @@ export default function RightDocumentationPanel({
         </div>
         <div ref={clasifRef} className="e30-clasif-texto">
           <EditableLabel
-            texto="Clasificación:"
+            texto={`${tituloClasif}:`}
             editMode={editMode}
             styleKey="e30_clasificacionTitulo"
             defaultFontSize={14}
             as="p"
             className="e30-clasif-titulo"
+            // Sin pictograma GHS el bloque puede ser «Modo de uso» o «Sugerencia».
+            opciones={!peligroso && onChange ? TITULOS_CLASIFICACION_30ML : undefined}
+            valorOpcion={tituloClasif}
+            onElegirOpcion={(v) => onChange?.({ clasificacionTitulo: v })}
           />
           <CampoEtiqueta
             valor={clasificacion}
             onChange={cambio("clasificacionTexto")}
             editMode={editMode}
             styleKey="e30_clasificacionTexto"
-            ejemplo={peligroso ? "Escribe la clasificación de peligro" : CLASIFICACION_NO_PELIGROSO}
+            ejemplo={
+              peligroso
+                ? "Escribe la clasificación de peligro"
+                : esTituloDeUso
+                  ? "Escribe aquí el uso. En blanco, se imprime la clasificación SGA."
+                  : CLASIFICACION_NO_PELIGROSO
+            }
             tam={TAM_30ML.clasificacion}
             maxLineas={3}
             cajaRef={clasifRef}

@@ -134,6 +134,16 @@ export const CELDAS_30ML: readonly Celda30ml[] = [
   { campo: "odor", titulo: "Aroma", icono: "aroma_nariz_percepcion" },
 ];
 
+/** Casillas en el orden que pide la plantilla (`ordenCeldas`). Solo vale una
+ *  lista con las seis claves, cada una una vez: un orden a medias dejaría una
+ *  casilla sin dibujar y el dato de un producto sin imprimir. */
+export function celdas30ml(data: ProductLabelData): readonly Celda30ml[] {
+  const claves = (data.ordenCeldas || "").split(",").map((c) => c.trim()).filter(Boolean);
+  if (claves.length !== CELDAS_30ML.length || new Set(claves).size !== claves.length) return CELDAS_30ML;
+  const ordenadas = claves.map((k) => CELDAS_30ML.find((c) => c.campo === k));
+  return ordenadas.every(Boolean) ? (ordenadas as Celda30ml[]) : CELDAS_30ML;
+}
+
 /** Títulos elegibles de la primera celda (menú del título). Se guarda en
  *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66 — las mismas
  *  dos opciones, en el orden propio de este formato. Si trae un título
@@ -170,6 +180,23 @@ export function pictogramasGhs(data: ProductLabelData): string[] {
     const svg = svgPictogramaGhs(c);
     return ghsSvgADataUrl(svg ?? marcoGhsSvg(c.replace(/\D/g, "").padStart(3, "0"), false));
   });
+}
+
+/** Títulos elegibles del bloque de clasificación. Los dos últimos solo tienen
+ *  sentido en un producto SIN pictograma GHS: ahí el círculo «¡NO GHS» ya dice
+ *  que no es peligroso y el texto puede aprovecharse para el uso. */
+export const TITULOS_CLASIFICACION_30ML = ["Clasificación", "Modo de uso", "Sugerencia"] as const;
+
+/** Título que se dibuja. Un producto peligroso lleva siempre «Clasificación».
+ *  En vista —lo que se imprime— un título de uso sin texto propio vuelve a
+ *  «Clasificación»: debajo saldría la frase del SGA, que no es un modo de uso. */
+export function tituloClasificacion30ml(data: ProductLabelData, editMode: boolean): string {
+  const [porDefecto] = TITULOS_CLASIFICACION_30ML;
+  if (esPeligrosoGhs(data.ghs)) return porDefecto;
+  const t = data.clasificacionTitulo || "";
+  if (!(TITULOS_CLASIFICACION_30ML as readonly string[]).includes(t)) return porDefecto;
+  if (!editMode && !(data.clasificacionTexto || "").trim()) return porDefecto;
+  return t;
 }
 
 /** Texto de clasificación de la etiqueta. Sin texto propio, un producto no

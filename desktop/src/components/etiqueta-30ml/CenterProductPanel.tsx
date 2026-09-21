@@ -69,7 +69,7 @@ export default function CenterProductPanel({
         )}
       </div>
 
-      <div className="e30-identidad">
+      <div className={`e30-identidad${data.sinTimbreCentro ? " e30-sin-timbre" : ""}`}>
         <div ref={nombreCajaRef} className="e30-nombre-caja">
           <CampoEtiqueta
             as="h1"
@@ -151,9 +151,11 @@ export default function CenterProductPanel({
         </div>
         {/* Espacio en blanco para el timbre (lote / vencimiento): en la
             etiqueta terminada no se dibuja nada; en edición se ve la guía. */}
-        <div className="e30-timbre-centro" aria-hidden="true">
-          {editMode && <span>Timbre</span>}
-        </div>
+        {!data.sinTimbreCentro && (
+          <div className="e30-timbre-centro" aria-hidden="true">
+            {editMode && <span>Timbre</span>}
+          </div>
+        )}
       </div>
 
       <div className="e30-neto e30-linea-sup">
