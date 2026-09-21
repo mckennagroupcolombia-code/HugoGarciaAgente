@@ -1,3 +1,12 @@
+### 2026-09-21 - Solicitudes de pago: los terceros nuevos de Alegra ya aparecen en la lista de proveedores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago). Sin LLM; solo lectura de contactos en Alegra.
+- **Qué se implementó:**
+  - **Por qué no aparecían:** el listado le pedía a Alegra solo los contactos con la casilla «Proveedor» marcada (`type=provider`), y casi nadie la marca al crear el tercero: 281 de 339 contactos no tienen tipo, entre ellos todos los recién creados. Ahora se traen todos los contactos activos y solo se excluyen los que son exclusivamente clientes (337 entran).
+  - **Cache de una hora sin salida:** si la búsqueda (nombre o NIT) no encuentra nada, se vuelve a bajar la lista de Alegra (máx. una vez por minuto), así el tercero recién creado aparece al buscarlo. Lo mismo al adoptarlo.
+  - **Lista incompleta en cache:** si Alegra fallaba a mitad de la paginación se guardaba la lista a medias durante una hora, escondiendo justo los contactos más nuevos. Ahora no se guarda y se usa la última completa.
+- **Archivos Modificados:** `app/services/pagos_proveedor.py`
+
 ### 2026-09-21 - Taller de combos: fotos, presentaciones, componentes en el inventario y asociar el documento desde Docs técnicos
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora + corrección (Preparar → Taller de combos · Docs técnicos → Biblioteca). Sin LLM, sin llamar a Alegra, MeLi ni Siigo.

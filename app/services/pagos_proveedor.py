@@ -45,7 +45,17 @@ EXT_OK = {".pdf", ".xml", ".zip"}
 
 
 def _contactos_alegra(forzar: bool = False) -> list[dict]:
-    """Contactos proveedor de Alegra, con cache de una hora (la API es lenta y paginada)."""
+    """Contactos de Alegra a los que se les puede pagar, con cache de una hora (la API es lenta y
+    paginada).
+
+    Se piden TODOS los contactos, no `type=provider`: en Alegra la casilla «Proveedor» casi nunca
+    se marca (21-sep-2026: 281 de 339 contactos sin tipo, entre ellos los recién creados), y
+    filtrar por ella dejaba fuera del listado a cualquier tercero nuevo. Solo se excluyen los que
+    son exclusivamente clientes.
+
+    Si Alegra falla a mitad de la paginación no se guarda nada: un listado incompleto en cache
+    escondía durante una hora justo los contactos más nuevos, que son las últimas páginas.
+    """
     try:
         if not forzar and _CACHE_CONTACTOS.exists():
             data = json.loads(_CACHE_CONTACTOS.read_text(encoding="utf-8"))
@@ -63,12 +73,17 @@ def _contactos_alegra(forzar: bool = False) -> list[dict]:
         while True:
             r = requests.get(
                 "https://api.alegra.com/api/v1/contacts",
-                headers=headers, params={"type": "provider", "limit": 30, "start": start}, timeout=20,
+                headers=headers, params={"limit": 30, "start": start}, timeout=20,
             )
             if r.status_code != 200:
-                break
+                raise RuntimeError(f"Alegra respondió {r.status_code} en start={start}")
             lote = r.json() if isinstance(r.json(), list) else []
             for c in lote:
+                tipos = c.get("type") or []
+                if tipos and "provider" not in tipos:
+                    continue
+                if (c.get("status") or "active") != "active":
+                    continue
                 ident = (c.get("identificationObject") or {}).get("number") or c.get("identification") or ""
                 contactos.append({
                     "alegra_id": str(c.get("id")),
@@ -84,8 +99,32 @@ def _contactos_alegra(forzar: bool = False) -> list[dict]:
         _CACHE_CONTACTOS.write_text(json.dumps({"ts": time.time(), "contactos": contactos}, ensure_ascii=False),
                                     encoding="utf-8")
     except Exception:
-        pass
+        # Sin Alegra se sigue con lo último que se tenga, aunque esté vencido.
+        try:
+            return json.loads(_CACHE_CONTACTOS.read_text(encoding="utf-8")).get("contactos", [])
+        except Exception:
+            return []
     return contactos
+
+
+def _cache_reciente(segundos: float = 60) -> bool:
+    """True si la cache se bajó hace menos de `segundos` (para no martillar Alegra al teclear)."""
+    try:
+        data = json.loads(_CACHE_CONTACTOS.read_text(encoding="utf-8"))
+        return time.time() - float(data.get("ts") or 0) < segundos
+    except Exception:
+        return False
+
+
+def _filtrar_contactos(contactos: list[dict], qn: str, vistos_ident: set[str]) -> list[dict]:
+    out = []
+    for c in contactos:
+        if c["identificacion"] and c["identificacion"] in vistos_ident:
+            continue
+        if qn and qn not in _norm(c["nombre"]) and qn not in c["identificacion"]:
+            continue
+        out.append({**c, "id": None, "saldo_2205": 0, "en_libro": False})
+    return out
 
 
 def proveedores(q: str = "") -> list[dict]:
@@ -130,12 +169,12 @@ def proveedores(q: str = "") -> list[dict]:
             "medio_pago_default": int(t.get("medio_pago_default") or 0),
             "retencion_asume_mckenna": int(t.get("retencion_asume_mckenna") or 0),
         })
-    for c in _contactos_alegra():
-        if c["identificacion"] and c["identificacion"] in vistos_ident:
-            continue
-        if qn and qn not in _norm(c["nombre"]) and qn not in c["identificacion"]:
-            continue
-        out.append({**c, "id": None, "saldo_2205": 0, "en_libro": False})
+    de_alegra = _filtrar_contactos(_contactos_alegra(), qn, vistos_ident)
+    # Quien acaba de crear el tercero en Alegra lo busca enseguida: si la búsqueda no
+    # encuentra nada, la cache puede estar vieja; se vuelve a bajar (máx. 1 vez por minuto).
+    if qn and not out and not de_alegra and not _cache_reciente():
+        de_alegra = _filtrar_contactos(_contactos_alegra(forzar=True), qn, vistos_ident)
+    out.extend(de_alegra)
     out.sort(key=lambda x: (not x["en_libro"], -abs(x["saldo_2205"]), x["nombre"].lower()))
     return out[:60]
 
@@ -145,6 +184,8 @@ def adoptar_contacto_alegra(alegra_id: str) -> dict:
     import app.services.contabilidad_core as cc
 
     c = next((x for x in _contactos_alegra() if x["alegra_id"] == str(alegra_id)), None)
+    if not c and not _cache_reciente():
+        c = next((x for x in _contactos_alegra(forzar=True) if x["alegra_id"] == str(alegra_id)), None)
     if not c:
         raise ValueError("Ese contacto de Alegra no está en el listado")
     if c["identificacion"]:
