@@ -157,6 +157,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     advancedOnly: true,
     items: [
       { panel: "mapa-sistema", tier: "advanced" },
+      { panel: "arquitectura", tier: "advanced" },
       { panel: "supervisor", tier: "advanced" },
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },

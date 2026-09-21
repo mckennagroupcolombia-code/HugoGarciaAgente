@@ -25,6 +25,7 @@ export type Panel =
   | "guias-envio"
   | "entregas-flex"
   | "mapa-sistema"
+  | "arquitectura"
   | "combos"
   | "publicaciones"
   | "vitrina-web"

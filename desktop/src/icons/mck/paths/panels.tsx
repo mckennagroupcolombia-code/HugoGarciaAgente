@@ -109,6 +109,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M6 19h12" />
     </>
   ),
+  arquitectura: (
+    <>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="10" r="2.5" />
+      <circle cx="9" cy="18" r="2.5" />
+      <path d="M8.2 7.2l7.6 2.1M16.6 12.1l-5.9 4.4M7.1 8.4l1.4 7.2" />
+    </>
+  ),
   "mapa-sistema": (
     <>
       <rect x="3" y="4" width="6" height="5" rx="1" />

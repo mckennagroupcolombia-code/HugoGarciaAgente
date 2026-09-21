@@ -78,6 +78,7 @@ const NOTAS: Record<string, string> = {
   "guias-envio": "también se abre con Pedidos Web o Empaque",
   "entregas-flex": "también se abre con Pedidos Web, Empaque o Guías de envío",
   "mapa-sistema": "vista de administración: sin este permiso solo la ve un administrador",
+  arquitectura: "solo administrador: es el mapa interno del sistema y con él se planean borrados",
   combos: "también abre el Mapa del sistema en la API",
   "libro-mayor": "permiso propio: no se hereda de Facturación ni Sync",
   pagos: "mueve plata y crea asientos — permiso propio",

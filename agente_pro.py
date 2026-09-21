@@ -147,6 +147,12 @@ def create_app():
         print(f"⚠️ Conciliación contador: {e}")
 
     try:
+        from app.routes_arquitectura import register_arquitectura_routes
+        register_arquitectura_routes(app)
+    except Exception as e:
+        print(f"⚠️ Arquitectura del código: {e}")
+
+    try:
         from app.routes_declarador import register_declarador_routes
         register_declarador_routes(app)
     except Exception as e:

@@ -142,6 +142,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "atencion",
   },
+  arquitectura: {
+    emoji: "\u{1F9ED}",
+    label: "Arquitectura del c\u00f3digo",
+    description:
+      "Qu\u00e9 archivo llama a cu\u00e1l y qu\u00e9 funciones no usa nadie, derivado del c\u00f3digo real con codebase-memory-mcp. El Mapa del sistema cuenta el flujo del negocio; esto cuenta el de las llamadas.",
+    tips: [
+      "Toca un archivo en el mapa para ver qui\u00e9n lo llama y a qui\u00e9n llama.",
+      "El n\u00famero de c\u00f3digo muerto trae su embudo a la vista: el dato crudo del grafo tiene ~93% de falsos positivos (referencias JSX y rutas Flask no generan arista de llamada).",
+      "Es un snapshot, no una consulta viva: se regenera con `python3 scripts/arquitectura_cbm.py`.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
   "mapa-sistema": {
     emoji: "🗺️",
     label: "Mapa del sistema",

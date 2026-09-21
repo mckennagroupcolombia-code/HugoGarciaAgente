@@ -242,3 +242,8 @@ docs/arquitectura/*.html
 app/data/etiquetas_recursos_png.json
 app/data/meli_facturas_entrega.json
 desktop/tsconfig.tsbuildinfo
+
+# Snapshot de arquitectura (codebase-memory-mcp). Derivado del código: se
+# regenera con `python3 scripts/arquitectura_cbm.py`. El grafo cambia en cada
+# commit, así que versionarlo repetiría el problema de los auto-commits.
+app/data/arquitectura_cbm/
