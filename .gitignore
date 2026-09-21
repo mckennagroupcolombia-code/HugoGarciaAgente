@@ -231,3 +231,14 @@ docs/arquitectura/*.visual-check.*.png
 # El HTML de cada diagrama (~800 KB, 9 archivos) se regenera desde su .json con
 # `python3 scripts/diagramas_arquitectura.py entregar`. Se versiona la fuente, no el derivado.
 docs/arquitectura/*.html
+
+# Residuales de la auditoría de auto-commits (21-sep-2026). Ya estaban en
+# .gitignore o eran derivados, pero seguían rastreados y los ~2 auto-commits
+# diarios los volvían a versionar. Se quedan en disco; los respalda el tar
+# nocturno de backup_drive.py.
+#   etiquetas_recursos_png.json  2 MB · 55 versiones · 15,6 MB de historial
+#   meli_facturas_entrega.json   1,2 MB · 51 versiones · estado de facturación
+#   tsconfig.tsbuildinfo         derivado de build · 93 commits
+app/data/etiquetas_recursos_png.json
+app/data/meli_facturas_entrega.json
+desktop/tsconfig.tsbuildinfo
