@@ -76,15 +76,24 @@ def binario() -> str:
     sys.exit("No encuentro codebase-memory-mcp. Instálalo o define CBM_BIN.")
 
 
-def cbm(tool: str, *flags: str, timeout: int = 600) -> dict:
-    """Ejecuta una herramienta de CBM y devuelve su JSON."""
-    cmd = [binario(), "cli", "--quiet", tool, *flags, "--format", "json"]
+def cbm(tool: str, *flags: str, timeout: int = 600, formato: bool = True) -> dict:
+    """Ejecuta una herramienta de CBM y devuelve su JSON.
+
+    `formato=False` para las herramientas que no admiten `--format` (index_repository
+    lo rechaza con "unknown flag"); en ese caso se devuelve lo que salga, como JSON si
+    se puede y si no bajo la clave "raw".
+    """
+    cmd = [binario(), "cli", "--quiet", tool, *flags]
+    if formato:
+        cmd += ["--format", "json"]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     if r.returncode != 0:
         raise RuntimeError(f"{tool} falló: {(r.stderr or r.stdout)[:400]}")
     try:
         return json.loads(r.stdout)
     except json.JSONDecodeError as e:
+        if not formato:
+            return {"raw": r.stdout.strip()}
         raise RuntimeError(f"{tool} devolvió algo que no es JSON: {r.stdout[:200]}") from e
 
 
@@ -112,11 +121,19 @@ def consulta_paginada(plantilla: str, total: int, paso: int = 120) -> list[list]
 
 # ---------------------------------------------------------------- fuentes
 
+# Lo que este mismo análisis produce no cuenta como mención: el informe
+# docs/arquitectura/codigo-muerto.md lista por nombre las funciones confirmadas,
+# y en la segunda corrida (22-sep-2026) esa lista contó como "una referencia más"
+# y descartó las 196 de golpe (confirmadas: 2). Lo mismo aplicaría al snapshot
+# JSON si algún día se versiona.
+EXCLUIR_MENCIONES = ("desktop/dist", "docs/arquitectura/codigo-muerto", "app/data/arquitectura_cbm/")
+
+
 def archivos_fuente() -> list[str]:
     salida = subprocess.run(
         ["git", "ls-files"], cwd=RAIZ, capture_output=True, text=True
     ).stdout.splitlines()
-    return [f for f in salida if f.endswith(EXTS_FUENTE) and not f.startswith("desktop/dist")]
+    return [f for f in salida if f.endswith(EXTS_FUENTE) and not f.startswith(EXCLUIR_MENCIONES)]
 
 
 def contar_mencion_por_identificador(archivos: list[str]) -> collections.Counter:
@@ -317,8 +334,10 @@ def main() -> int:
 
     if args.reindexar:
         print("Reindexando…", flush=True)
-        r = cbm("index_repository", "--repo-path", str(RAIZ), timeout=1800)
-        print(f"  {r.get('nodes')} nodos · {r.get('edges')} aristas · {r.get('status')}")
+        # --name fija el nombre del proyecto al que luego consultan las demás
+        # herramientas (PROYECTO); sin él CBM lo deriva de la ruta y podría no coincidir.
+        r = cbm("index_repository", "--repo-path", str(RAIZ), "--name", PROYECTO, timeout=1800, formato=False)
+        print(f"  {r.get('nodes')} nodos · {r.get('edges')} aristas · {r.get('status') or r.get('raw', '')[:200]}")
 
     DESTINO.mkdir(parents=True, exist_ok=True)
     generado = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")

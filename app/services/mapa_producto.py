@@ -48,7 +48,7 @@ _memo_matriz: dict[str, Any] = {"t": 0.0, "data": None}
 _CASILLAS = (
     ("etiqueta", {"ETIQUETA", "STICKER"}),
     ("bolsa", {"BOLSA", "DOYPACK", "SOBRE"}),
-    ("envase", {"ENVASE", "ENV", "FRASCO", "TARRO", "POTE", "GOTERO", "ATOMIZADOR", "PASTILLERO", "FARMA"}),
+    ("envase", {"ENVASE", "ENV", "FRASCO", "TARRO", "POTE", "GOTERO", "ATOMIZADOR", "PASTILLERO", "FARMA", "BALA"}),
     ("tapa", {"TAPA", "TAPON", "VALVULA", "LINER", "LINNER", "SELLO", "BANDA", "DISPENSADOR", "SPRAY"}),
     ("accesorio", {"CUCHARA", "PIPETA", "PERA"}),
     ("proteccion", {"PAPEL", "VINIPEL", "PLASTICO", "CINTA", "ZUNCHO", "CAJA", "ROLLO"}),
@@ -58,13 +58,23 @@ _CASILLAS = (
 _DOC_OK = {"TDS+COA+SDS", "TDS+COA", "TDS"}
 
 
+_memo_auditoria: dict = {"firma": None, "mod": None}
+
+
 def _auditoria():
-    """El módulo de auditoría, cargado por ruta (scripts/ no es un paquete)."""
+    """El módulo de auditoría, cargado por ruta (scripts/ no es un paquete).
+
+    Se vuelve a cargar solo si el script cambió: así sus reglas nuevas aplican sin reiniciar
+    y no se pierde la memoria de YAML que guarda (`_DOCS_MEMO`)."""
     ruta = REPO / "scripts" / "auditar_catalogo_combos.py"
-    spec = importlib.util.spec_from_file_location("_auditar_catalogo_combos", ruta)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore[union-attr]
-    return mod
+    st = ruta.stat()
+    firma = (st.st_mtime_ns, st.st_size)
+    if _memo_auditoria["mod"] is None or _memo_auditoria["firma"] != firma:
+        spec = importlib.util.spec_from_file_location("_auditar_catalogo_combos", ruta)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)  # type: ignore[union-attr]
+        _memo_auditoria.update(firma=firma, mod=mod)
+    return _memo_auditoria["mod"]
 
 
 def _norm(s: str) -> str:
@@ -144,6 +154,20 @@ def _casilla(nombre: str, es_mp: bool) -> str:
         if primera in palabras:
             return casilla
     return "otro"
+
+
+# Bolsas del despacho (van por fuera, con la guía): no dicen en qué se guarda el producto.
+_BOLSA_ENVIO = {"SEGURIDAD", "PORTAGUIA"}
+
+
+def _recipiente(comps: list[dict]) -> str:
+    """Cómo se nombra en la etiqueta lo que contiene el producto: «envase» si la receta lleva
+    frasco, pote, farma, gotero, bala…; «empaque» si solo va en bolsa. Vacío si no se sabe."""
+    if any(c["casilla"] == "envase" for c in comps):
+        return "envase"
+    if any(c["casilla"] == "bolsa" and not (_BOLSA_ENVIO & set(_norm(c["nombre"]).split())) for c in comps):
+        return "empaque"
+    return ""
 
 
 def _eslabon(estado: str, titulo: str, detalle: str, **extra) -> dict:
@@ -345,6 +369,7 @@ def _construir() -> dict:
             "presentacion": (w or {}).get("presentacion_label") or "",
             "linea": (w or {}).get("_linea") or "",
             "componentes": comps,
+            "recipiente": _recipiente(comps),
             "eslabones": esl,
             "ok": estados.count("ok"),
             "avisos": estados.count("aviso"),
@@ -547,6 +572,49 @@ def matriz_productos(refrescar: bool = False) -> dict:
 
 
 # ─── Acciones: lo que destraba una ranura vacía ──────────────────────────────
+
+def recipientes() -> dict:
+    """«envase» o «empaque» por código de barras y por etiqueta, según la receta del combo.
+    Si una etiqueta sirve a combos que no coinciden (uno en frasco, otro en bolsa), no se decide."""
+    por_barcode: dict[str, set] = {}
+    por_etiqueta: dict[str, set] = {}
+    for c in _datos()["combos"]:
+        r = c.get("recipiente") or ""
+        if not r:
+            continue
+        codigo = str((c["eslabones"].get("ean") or {}).get("codigo") or "").strip()
+        eid = (c["eslabones"].get("etiqueta") or {}).get("etiqueta_id") or ""
+        if codigo:
+            por_barcode.setdefault(codigo, set()).add(r)
+        if eid:
+            por_etiqueta.setdefault(eid, set()).add(r)
+    unico = lambda d: {k: next(iter(v)) for k, v in d.items() if len(v) == 1}
+    return {"por_barcode": unico(por_barcode), "por_etiqueta": unico(por_etiqueta)}
+
+
+def recipiente_etiqueta(ficha_id: str = "", barcode: str = "") -> str:
+    """Manda el código de barras (dice cuál es el combo); si no, el enlace ya conocido."""
+    r = recipientes()
+    return r["por_barcode"].get((barcode or "").strip()) or r["por_etiqueta"].get(ficha_id or "") or ""
+
+
+_RE_RECIPIENTE = re.compile(r"\b(envase|empaque)(s?)\b", re.IGNORECASE)
+
+
+def palabra_recipiente(texto: str, recipiente: str) -> str:
+    """Cambia «envase»/«empaque» por la palabra del combo, respetando plural y mayúsculas."""
+    if not texto or recipiente not in ("envase", "empaque"):
+        return texto
+
+    def cambio(m: re.Match) -> str:
+        w = recipiente + m.group(2)
+        orig = m.group(0)
+        if orig.isupper():
+            return w.upper()
+        return w[0].upper() + w[1:] if orig[0].isupper() else w
+
+    return _RE_RECIPIENTE.sub(cambio, texto)
+
 
 def invalidar() -> None:
     """Tras escribir algo, la próxima lectura se recalcula."""

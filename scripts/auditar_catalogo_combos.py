@@ -112,47 +112,71 @@ def cargar_catalogo() -> dict[str, dict]:
     return {i["reference"]: (ac.obtener_item(i["reference"]) or i) for i in items}
 
 
+# Leer los ~260 YAML con PyYAML tarda ~9 s y el taller de combos lo repite tras cada cambio
+# (la moneda sonaba segundos tarde): se guarda la entrada de cada archivo y solo se relee
+# el que cambió de fecha o de tamaño.
+_DOCS_MEMO: dict[str, tuple[tuple[int, int], dict | None]] = {}
+
+
 def documentos_por_titulo() -> list[dict]:
     """YAML de fichas: completos, borradores, antiguas y marcadas vacías."""
     from app.services import ficha_tecnica as ft
 
     out = []
+    vistos = set()
     for y in sorted(ft.DATOS_DIR.glob("*.yaml")):
         if y.name.startswith(("plantilla", "coa_plantilla")):
             continue
         try:
-            d = ft.cargar_datos_desde_archivo(y)
-        except Exception:
+            st = y.stat()
+        except OSError:
             continue
-        titulo = (d.get("titulo") or d.get("nombre_producto") or "").strip()
-        if not titulo:
-            continue
-        if y.name.startswith("vacio_") or d.get("_estado") == "vacio":
-            estado = "vacía"
-        elif d.get("_borrador"):
-            estado = "borrador"
-        elif d.get("_tipo") == "completo":
-            coa = ft._contexto_coa(d["_coa"]) if d.get("_coa") else None
-            sds = ft._contexto_sds(d["_sds"]) if d.get("_sds") else None
-            tiene_coa = bool(coa and ft._coa_diligenciado(coa))
-            tiene_sds = bool(sds and ft._sds_diligenciado(sds))
-            estado = "TDS+COA+SDS" if tiene_coa and tiene_sds else ("TDS+COA" if tiene_coa else "TDS")
-        else:
-            # Hay YAML con COA y SDS diligenciados que no llevan `_tipo: completo`:
-            # la web solo publica los marcados, así que existen pero nadie los ve.
-            coa = ft._contexto_coa(d["_coa"]) if d.get("_coa") else None
-            sds = ft._contexto_sds(d["_sds"]) if d.get("_sds") else None
-            if coa and sds and ft._coa_diligenciado(coa) and ft._sds_diligenciado(sds):
-                estado = "completo SIN PUBLICAR"
-            else:
-                estado = "antigua (solo TDS)"
-        # Un documento puede servir a más de una materia prima (la misma sustancia comprada con
-        # dos códigos): `referencia` es la principal —la que se imprime— y estas la acompañan.
-        equiv = d.get("referencias_equivalentes") or []
-        out.append({"archivo": y.name, "titulo": titulo, "toks": _toks(titulo), "estado": estado,
-                    "referencia": (d.get("referencia") or "").strip(),
-                    "equivalentes": [str(x).strip() for x in equiv if str(x).strip()] if isinstance(equiv, list) else []})
+        firma = (st.st_mtime_ns, st.st_size)
+        vistos.add(y.name)
+        memo = _DOCS_MEMO.get(y.name)
+        if not memo or memo[0] != firma:
+            memo = (firma, _entrada_documento(ft, y))
+            _DOCS_MEMO[y.name] = memo
+        if memo[1] is not None:
+            out.append(dict(memo[1]))
+    for k in set(_DOCS_MEMO) - vistos:
+        del _DOCS_MEMO[k]
     return out
+
+
+def _entrada_documento(ft, y) -> dict | None:
+    try:
+        d = ft.cargar_datos_desde_archivo(y)
+    except Exception:
+        return None
+    titulo = (d.get("titulo") or d.get("nombre_producto") or "").strip()
+    if not titulo:
+        return None
+    if y.name.startswith("vacio_") or d.get("_estado") == "vacio":
+        estado = "vacía"
+    elif d.get("_borrador"):
+        estado = "borrador"
+    elif d.get("_tipo") == "completo":
+        coa = ft._contexto_coa(d["_coa"]) if d.get("_coa") else None
+        sds = ft._contexto_sds(d["_sds"]) if d.get("_sds") else None
+        tiene_coa = bool(coa and ft._coa_diligenciado(coa))
+        tiene_sds = bool(sds and ft._sds_diligenciado(sds))
+        estado = "TDS+COA+SDS" if tiene_coa and tiene_sds else ("TDS+COA" if tiene_coa else "TDS")
+    else:
+        # Hay YAML con COA y SDS diligenciados que no llevan `_tipo: completo`:
+        # la web solo publica los marcados, así que existen pero nadie los ve.
+        coa = ft._contexto_coa(d["_coa"]) if d.get("_coa") else None
+        sds = ft._contexto_sds(d["_sds"]) if d.get("_sds") else None
+        if coa and sds and ft._coa_diligenciado(coa) and ft._sds_diligenciado(sds):
+            estado = "completo SIN PUBLICAR"
+        else:
+            estado = "antigua (solo TDS)"
+    # Un documento puede servir a más de una materia prima (la misma sustancia comprada con
+    # dos códigos): `referencia` es la principal —la que se imprime— y estas la acompañan.
+    equiv = d.get("referencias_equivalentes") or []
+    return {"archivo": y.name, "titulo": titulo, "toks": _toks(titulo), "estado": estado,
+            "referencia": (d.get("referencia") or "").strip(),
+            "equivalentes": [str(x).strip() for x in equiv if str(x).strip()] if isinstance(equiv, list) else []}
 
 
 _ORDEN_DOC = ["TDS+COA+SDS", "completo SIN PUBLICAR", "TDS+COA", "TDS", "borrador", "antigua (solo TDS)", "vacía"]

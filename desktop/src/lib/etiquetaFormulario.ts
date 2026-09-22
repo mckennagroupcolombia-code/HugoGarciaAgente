@@ -81,7 +81,7 @@ export type BloqueFormularioEtiqueta = {
 
 /** Grados de materia prima fijos (independientes de la línea comercial que
  *  define el color/logo — ver `PALETA_LOGO_LINEA`). */
-export const GRADOS_MATERIA_PRIMA = ["Alimentario", "Cosmético", "Agro", "Industrial"] as const;
+export const GRADOS_MATERIA_PRIMA = ["Alimentario", "Cosmético", "Agro", "Industrial", "Solventes"] as const;
 
 export const PAISES_ORIGEN_SUGERIDOS = [
   "China", "India", "Estados Unidos", "Alemania", "España",

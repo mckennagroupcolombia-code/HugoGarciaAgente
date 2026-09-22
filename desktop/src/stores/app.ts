@@ -262,9 +262,6 @@ interface AppState {
   saltarDesdeTaller: (retorno: TallerRetorno, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
   consumirTallerSalto: () => void;
   volverAlTaller: () => void;
-  /** Combos: «mision» = taller guiado caso a caso · «galeria» = todos los combos. */
-  combosVista: "mision" | "galeria";
-  setCombosVista: (v: "mision" | "galeria") => void;
   setEanPrefill: (p: { sku: string; nombre: string } | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
   setEtiquetasSolicitudActiva: (s: EtiquetasSolicitudActiva | null) => void;
@@ -402,11 +399,9 @@ export const useAppStore = create<AppState>()(
       },
       consumirTallerSalto: () => set({ tallerSalto: null }),
       volverAlTaller: () => {
-        set({ tallerRetorno: null, tallerSalto: null, combosVista: "mision" });
+        set({ tallerRetorno: null, tallerSalto: null });
         get().setPanel("combos");
       },
-      combosVista: "mision",
-      setCombosVista: (combosVista) => set({ combosVista }),
       etiquetasSolicitudActiva: null,
       setEtiquetasSolicitudActiva: (etiquetasSolicitudActiva) => set({ etiquetasSolicitudActiva }),
     }),

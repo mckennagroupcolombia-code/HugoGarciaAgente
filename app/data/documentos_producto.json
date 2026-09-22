@@ -36,11 +36,25 @@
           "codigo_verificacion": "TT43YL",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "Lote254186**",
+          "estado": "sin_cambios",
+          "fabricante": "Borges Agricultural & Industrial Edible Oils, BAIE.",
+          "pais_origen": "Argentina",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "444JGV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T04:20:26+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-22T04:20:26+00:00"
     },
     "C-ACEIJOJ30ML": {
       "ref": "C-ACEIJOJ30ML",
@@ -912,7 +926,7 @@
     },
     "C-ACISAL500G": {
       "ref": "C-ACISAL500G",
-      "nombre": "ÁCIDO SALICÍLICO",
+      "nombre": "Ácido Salicílico",
       "lotes": [
         {
           "lote_numero": "PKD473",
@@ -925,15 +939,29 @@
           "codigo_verificacion": "XYVRWT",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "YC2602004",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "febrero 03, 2026",
+          "fecha_vencimiento": "febrero 02, 2029",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "WC8FK2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:15:45+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T05:15:45+00:00"
     },
     "C-ACISAL100G": {
       "ref": "C-ACISAL100G",
-      "nombre": "ÁCIDO SALICÍLICO",
+      "nombre": "Ácido Salicílico",
       "lotes": [
         {
           "lote_numero": "PKD473",
@@ -946,11 +974,25 @@
           "codigo_verificacion": "XYVRWT",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "YC2602004",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "febrero 03, 2026",
+          "fecha_vencimiento": "febrero 02, 2029",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "WC8FK2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:15:45+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T05:15:45+00:00"
     },
     "C-ACDSAL20P30M": {
       "ref": "C-ACDSAL20P30M",
@@ -3187,7 +3229,7 @@
     },
     "C-ARADES250G": {
       "ref": "C-ARADES250G",
-      "nombre": "ARANDANOS DESHIDRATADOS",
+      "nombre": "Soft & Moist Sliced Sweetened Dried Cranberries",
       "lotes": [
         {
           "lote_numero": "XNT849",
@@ -3200,15 +3242,29 @@
           "codigo_verificacion": "GKL5Z9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:47+00:00"
+        },
+        {
+          "lote_numero": "NB/ 10012",
+          "estado": "sin_cambios",
+          "fabricante": "Ocean Spray Cranberries Inc.",
+          "pais_origen": "Vietnam",
+          "fecha_fabricacion": "2025-12-21",
+          "fecha_vencimiento": "2027-12-21",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "PXFKK3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T06:00:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:47+00:00"
+      "updated_at": "2026-09-22T06:00:27+00:00"
     },
     "C-ARADES500G": {
       "ref": "C-ARADES500G",
-      "nombre": "ARANDANOS DESHIDRATADOS",
+      "nombre": "Soft & Moist Sliced Sweetened Dried Cranberries",
       "lotes": [
         {
           "lote_numero": "XNT849",
@@ -3221,11 +3277,25 @@
           "codigo_verificacion": "GKL5Z9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:47+00:00"
+        },
+        {
+          "lote_numero": "NB/ 10012",
+          "estado": "sin_cambios",
+          "fabricante": "Ocean Spray Cranberries Inc.",
+          "pais_origen": "Vietnam",
+          "fecha_fabricacion": "2025-12-21",
+          "fecha_vencimiento": "2027-12-21",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "PXFKK3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T06:00:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:47+00:00"
+      "updated_at": "2026-09-22T06:00:27+00:00"
     },
     "C-COCDESHIL250G": {
       "ref": "C-COCDESHIL250G",
@@ -4370,7 +4440,7 @@
     },
     "C-LTEA100G": {
       "ref": "C-LTEA100G",
-      "nombre": "L- TEANINA",
+      "nombre": "AMINOÁCIDO L - TEANINA",
       "lotes": [
         {
           "lote_numero": "HCB958",
@@ -4383,11 +4453,25 @@
           "codigo_verificacion": "48YHWC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-08-12T06:29:14+00:00"
+        },
+        {
+          "lote_numero": "20260311",
+          "estado": "nuevo",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "marzo 11, 2026",
+          "fecha_vencimiento": "marzo 10, 2028",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "SB5D8C",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:56:23+00:00"
         }
       ],
-      "updated_at": "2026-08-12T06:29:14+00:00"
+      "updated_at": "2026-09-22T05:56:23+00:00"
     },
     "C-LAN40G": {
       "ref": "C-LAN40G",
@@ -4892,6 +4976,90 @@
         }
       ],
       "updated_at": "2026-09-22T00:53:37+00:00"
+    },
+    "ACICITG": {
+      "ref": "ACICITG",
+      "nombre": "ÁCIDO CÍTRICO (ANHIDRO MALLA 30-100)",
+      "lotes": [
+        {
+          "lote_numero": "6AX2604237",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "abril 22, 2026",
+          "fecha_vencimiento": "abril 21, 2029",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "JFC927",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:01:55+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T05:01:55+00:00"
+    },
+    "C-ACISAL50G": {
+      "ref": "C-ACISAL50G",
+      "nombre": "Ácido Salicílico",
+      "lotes": [
+        {
+          "lote_numero": "YC2602004",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "febrero 03, 2026",
+          "fecha_vencimiento": "febrero 02, 2029",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "WC8FK2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:15:45+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T05:15:45+00:00"
+    },
+    "C-AGUDES250ML": {
+      "ref": "C-AGUDES250ML",
+      "nombre": "AGUA DESTILADA",
+      "lotes": [
+        {
+          "lote_numero": "08202026",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "08202026",
+          "fecha_vencimiento": "08/20/2028",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "PAFSXD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:22:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T05:22:04+00:00"
+    },
+    "AMILARGBASG": {
+      "ref": "AMILARGBASG",
+      "nombre": "Aminoácido L-Arginina Base",
+      "lotes": [
+        {
+          "lote_numero": "H251121",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "21 de noviembre de 2025",
+          "fecha_vencimiento": "20 de noviembre de 2027",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "7HG46C",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T05:50:42+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T05:50:42+00:00"
     }
   }
 }

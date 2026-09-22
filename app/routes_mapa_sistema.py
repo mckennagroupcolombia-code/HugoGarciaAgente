@@ -203,6 +203,12 @@ def register_mapa_sistema_routes(app):
         M.invalidar()
         return jsonify({"ok": True, "ficha": EF.ficha_ligera(ficha_id)})
 
+    @_dual(app, "/api/mapa-sistema/recipientes", methods=["GET"])
+    @_auth_etiquetas
+    def api_mapa_sistema_recipientes():
+        """«envase»/«empaque» por código de barras y por etiqueta (casilla CONSERVACIÓN)."""
+        return jsonify(M.recipientes())
+
     @_dual(app, "/api/mapa-sistema/invalidar", methods=["POST"])
     @_auth
     def mapa_sistema_invalidar():

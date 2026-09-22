@@ -161,9 +161,31 @@ def guardar_ficha(body: dict) -> dict:
         return _guardar_ficha_bajo_candado(body, ficha_id, nombre, data)
 
 
+def _con_recipiente(ficha_id: str, data: dict) -> dict:
+    """La CONSERVACIÓN dice «envase» o «empaque» según la receta del combo de la etiqueta
+    (frasco → envase, bolsa → empaque; ver `mapa_producto.recipientes`). Si no se puede saber,
+    o falla la lectura del catálogo, el texto queda como vino: guardar nunca se bloquea."""
+    try:
+        from app.services import mapa_producto as M
+
+        r = M.recipiente_etiqueta(ficha_id, str(data.get("barcode") or ""))
+        if not r:
+            return data
+        out = dict(data)
+        for k in ("storage", "storageSugerido"):
+            if isinstance(out.get(k), str):
+                out[k] = M.palabra_recipiente(out[k], r)
+        return out
+    except Exception:
+        return data
+
+
 def _guardar_ficha_bajo_candado(body: dict, ficha_id: str, nombre: str, data: dict) -> dict:
     todos = _load_all()
     existente = next((f for f in todos if f.get("id") == ficha_id), None)
+    # Una plantilla de categoría no es de ningún combo (su código de barras es de muestra).
+    if not (body.get("es_plantilla_categoria") or (existente or {}).get("es_plantilla_categoria")):
+        data = _con_recipiente(ficha_id, data)
     now = _now()
 
     entry: dict[str, Any] = {

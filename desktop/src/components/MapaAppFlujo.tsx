@@ -86,7 +86,6 @@ export default function MapaAppFlujo({
   titulosDiagramas?: Record<string, string>;
 }) {
   const setPanel = useAppStore((s) => s.setPanel);
-  const setCombosVista = useAppStore((s) => s.setCombosVista);
   const user = useTicketsAuth((s) => s.user);
   const [nivel, setNivelEstado] = useState<number>(nivelGuardado);
   const [abiertas, setAbiertas] = useState<Set<string>>(new Set());
@@ -323,10 +322,7 @@ export default function MapaAppFlujo({
                           <>
                             <Baja />
                             <button
-                              onClick={() => {
-                                if (e.guia!.abre === "combos") setCombosVista("mision");
-                                abrir(e.guia!.abre);
-                              }}
+                              onClick={() => abrir(e.guia!.abre)}
                               title={e.guia.hace}
                               className="mck-flujo-nodo w-full rounded-full border border-accent bg-accent px-2 py-1 text-center text-[11.5px] font-bold text-white hover:opacity-90"
                             >

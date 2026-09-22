@@ -4,6 +4,7 @@ import { createContext, lazy, useContext, useEffect, useLayoutEffect, useMemo, u
 import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import { useAppStore } from "../../stores/app";
+import { usePanelTheme } from "../../stores/panelTheme";
 import AsignarEan from "./AsignarEan";
 import InspectorEtiquetaReceta from "./InspectorEtiquetaReceta";
 import InspectorReceta from "./InspectorReceta";
@@ -608,6 +609,7 @@ function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA }: {
 
 function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: string; guia: string | null; destello: Set<string>; premio: boolean; onSel: (k: string) => void }) {
   const R = 86;
+  const barbie = usePanelTheme((s) => s.skin) === "barbie";
   const avance = c.ok / TOTAL;
   const CIRC = 2 * Math.PI * (R + 9);
   return (
@@ -689,9 +691,26 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
 
       {premio && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-          {Array.from({ length: 26 }, (_, i) => (
-            <span key={i} className="mck-mision-confeti" style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 9) * 90}ms`, background: ["#0891b2", "#059669", "#d97706", "#7c3aed", "#e11d48"][i % 5] }} />
-          ))}
+          {barbie
+            ? // Barbie Agenda: estrellas de hada que brotan por el tablero, titilan y suben.
+              Array.from({ length: 34 }, (_, i) => (
+                <span
+                  key={i}
+                  className="mck-mision-estrella"
+                  style={{
+                    left: `${(i * 37 + 7) % 96}%`,
+                    top: `${(i * 53 + 11) % 88}%`,
+                    fontSize: `${10 + ((i * 7) % 4) * 6}px`,
+                    animationDelay: `${(i % 11) * 110}ms`,
+                    color: ["#ff4fa3", "#ffd76a", "#c89bff", "#ffffff", "#ff9ecf"][i % 5],
+                  }}
+                >
+                  {i % 3 ? "✦" : "★"}
+                </span>
+              ))
+            : Array.from({ length: 26 }, (_, i) => (
+                <span key={i} className="mck-mision-confeti" style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 9) * 90}ms`, background: ["#0891b2", "#059669", "#d97706", "#7c3aed", "#e11d48"][i % 5] }} />
+              ))}
         </div>
       )}
     </div>
@@ -864,7 +883,7 @@ function ListaCombos({ combos, total, actual, q, setQ, filtro, setFiltro, conteo
   );
 }
 
-export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; onGaleria: () => void }) {
+export default function MisionCombos({ datos }: { datos: Respuesta }) {
   const qc = useQueryClient();
   const setPanel = useAppStore((s) => s.setPanel);
   const porRef = useMemo(() => new Map(datos.combos.map((c) => [c.ref, c])), [datos.combos]);
@@ -1041,12 +1060,11 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
         <button
           onClick={() => { const v = !conSonido; setConSonido(v); ponerSonido(v); if (v) sonarMoneda(true); }}
           aria-pressed={conSonido}
-          title={conSonido ? "Suena una moneda al completar un combo. Toca para silenciar." : "Sonido apagado. Toca para activarlo (y oírlo)."}
+          title={conSonido ? "Suena una vida extra al completar un combo. Toca para silenciar." : "Sonido apagado. Toca para activarlo (y oírlo)."}
           className={`mck-flujo-nodo rounded-md border px-2 py-0.5 text-[11px] font-bold ${conSonido ? "border-accent/50 text-accent" : "border-border text-muted"}`}
         >
           <Ico e="🔊" /> {conSonido ? "sonido" : "en silencio"}
         </button>
-        <button onClick={onGaleria} className="text-[11px] text-muted underline hover:text-ink">vista clásica</button>
       </div>
 
       {!c ? (

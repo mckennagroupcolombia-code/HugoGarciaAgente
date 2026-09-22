@@ -20,7 +20,7 @@ export const TIPOS_INSUMO: { id: TipoInsumo; letra: string; nombre: string; ejem
   { id: "alimento", letra: "D", nombre: "Alimento", ejemplos: "Frutos secos, deshidratados, semillas, flores secas" },
 ];
 
-export const GRADOS_SUGERIDOS = ["Cosmético", "Alimentos", "Farmacéutico (USP)", "Industrial", "Grasas y Ceras", "Agro"] as const;
+export const GRADOS_SUGERIDOS = ["Cosmético", "Alimentos", "Farmacéutico (USP)", "Industrial", "Grasas y Ceras", "Agro", "Solventes"] as const;
 
 export function esTipoInsumo(v: unknown): v is TipoInsumo {
   return v === "definida" || v === "natural" || v === "mezcla" || v === "alimento";

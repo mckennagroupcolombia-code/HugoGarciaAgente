@@ -37,13 +37,13 @@ function etapaDe(panel: Panel): string | null {
 export default function FlujoNav() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
-  const setCombosVista = useAppStore((s) => s.setCombosVista);
   const user = useTicketsAuth((s) => s.user);
   const { advanced: advToggle } = useUiMode();
   const modoAvanzado = modoAvanzadoEfectivo(user, advToggle);
   const panelNorm: Panel = panel === "tickets" ? "hugo" : panel;
   const enAgenda = panelNorm === ORIGEN_APP.panel;
   const enMapa = panelNorm === "mapa-sistema";
+  const enCodigo = panelNorm === "arquitectura";
   const etapaActual = enMapa ? null : etapaDe(panelNorm);
   const [abierta, setAbierta] = useState<string | null>(etapaActual);
   const [verAvanzado, setVerAvanzado] = useState(false);
@@ -146,6 +146,22 @@ export default function FlujoNav() {
             ◇ Todo el flujo
           </button>
         )}
+        {/* La otra perspectiva: el grafo real de llamadas del código (codebase-memory-mcp).
+            Vive en Sistema como panel avanzado, pero merece un acceso directo igual que el Mapa:
+            «Todo el flujo» cuenta el negocio; «Código» cuenta qué archivo llama a cuál. */}
+        {permitido("arquitectura") && (
+          <button
+            type="button"
+            onClick={() => setPanel("arquitectura")}
+            aria-current={enCodigo ? "page" : undefined}
+            title="Ver el proyecto desde el código: qué archivo llama a cuál y qué funciones no usa nadie"
+            className={`mck-flujo-nodo flex shrink-0 items-center gap-1 rounded-lg border px-2.5 py-1 text-[12px] font-bold ${
+              enCodigo ? "border-accent bg-accent text-white" : "border-accent/50 text-accent hover:bg-accent/10"
+            }`}
+          >
+            ◇ Código
+          </button>
+        )}
       </div>
 
       {/* Con la Agenda abierta (o en Colaboradores, que vive dentro de ella) y ninguna
@@ -166,10 +182,7 @@ export default function FlujoNav() {
               <span className="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (g.abre === "combos") setCombosVista("mision");
-                    setPanel(g.abre);
-                  }}
+                  onClick={() => setPanel(g.abre)}
                   title={g.hace}
                   className="mck-flujo-nodo flex shrink-0 items-center gap-1.5 self-center rounded-full border border-accent bg-accent px-3 py-1 text-[12px] font-bold text-white hover:opacity-90"
                 >

@@ -71,6 +71,7 @@ import {
   useGuardarFichaEtiqueta,
   type FichaEtiquetaGuardada,
 } from "../../lib/etiquetasFichas";
+import { palabraRecipiente, recipientePara, useRecipientes } from "../../lib/recipienteEtiqueta";
 import {
   CATEGORIAS_ETIQUETA,
   CATEGORIA_ETIQUETA_OTROS,
@@ -354,6 +355,7 @@ function ProductLabelFormInner({
   const [categoria, setCategoria] = useState<string>(CATEGORIA_ETIQUETA_OTROS);
   const plantilla = plantillasPorCategoria.get(categoria) ?? plantillaBase;
   const guardarFichaMutation = useGuardarFichaEtiqueta();
+  const recipientes = useRecipientes().data;
   const eliminarFichaMutation = useEliminarFichaEtiqueta();
   const [plantillaMsg, setPlantillaMsg] = useState<{ ok: boolean; texto: string } | null>(null);
 
@@ -881,6 +883,18 @@ function ProductLabelFormInner({
     fichaId && fichasTodas?.find((f) => f.id === fichaId)?.es_plantilla_categoria,
   );
 
+  // CONSERVACIÓN: «envase» si el combo de esta etiqueta va en frasco, «empaque» si va en
+  // bolsa (lib/recipienteEtiqueta). Una plantilla no es de ningún combo: se deja como está.
+  const recipiente = esPlantillaDeCategoria ? "" : recipientePara(recipientes, data.barcode, fichaId);
+  useEffect(() => {
+    if (!recipiente) return;
+    setData((d) => {
+      const actual = d.storage ?? "";
+      const nuevo = palabraRecipiente(actual, recipiente);
+      return nuevo === actual ? d : { ...d, storage: nuevo };
+    });
+  }, [recipiente, data.storage]);
+
   const marcarComoPlantilla = () => {
     if (!fichaId || !nombreFicha.trim()) return;
     setPlantillaMsg(null);
@@ -1093,8 +1107,11 @@ function ProductLabelFormInner({
           fichaTecnicaId: mejor.ficha.id,
           fichaTecnicaTitulo: mejor.ficha.titulo,
           ...(neto ? { netContent: neto } : {}),
-          // Conservación de la familia, igual que en `onChange`.
-          ...(datosBase.storageSugerido ? { storage: datosBase.storageSugerido } : {}),
+          // Conservación de la familia, igual que en `onChange`, con «envase» o «empaque»
+          // según la receta del combo de este código.
+          ...(datosBase.storageSugerido
+            ? { storage: palabraRecipiente(datosBase.storageSugerido, recipientePara(recipientes, codigo.codigo)) }
+            : {}),
         };
         setData(datosSku);
         // La etiqueta del SKU también se GUARDA (no solo su PNG): queda enlazada

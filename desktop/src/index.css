@@ -2718,9 +2718,17 @@ html[data-mck-skin="flujo"] .mck-flujo-miga {
 .mck-mision-destello { animation: mck-mision-destello 1.4s ease-out; }
 .mck-mision-premio { animation: mck-mision-premio 1.3s ease-out 3; }
 .mck-mision-confeti { position: absolute; top: 0; width: 7px; height: 12px; border-radius: 2px; animation: mck-mision-confeti 2.4s ease-in forwards; }
+@keyframes mck-mision-estrella {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0) rotate(-40deg); }
+  18% { opacity: 1; transform: translate(-50%, -6px) scale(1.25) rotate(0); }
+  34% { opacity: 0.45; transform: translate(-50%, -12px) scale(0.85) rotate(12deg); }
+  50% { opacity: 1; transform: translate(-50%, -20px) scale(1.1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -56px) scale(0.4) rotate(30deg); }
+}
+.mck-mision-estrella { position: absolute; opacity: 0; line-height: 1; text-shadow: 0 0 4px currentColor, 0 0 10px currentColor, 0 0 18px rgb(255 79 163 / 0.7); animation: mck-mision-estrella 2.6s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) {
   .mck-mision-pulso, .mck-mision-gana, .mck-mision-sube, .mck-mision-destello, .mck-mision-premio { animation: none; }
-  .mck-mision-confeti, .mck-mision-viajero { display: none; }
+  .mck-mision-confeti, .mck-mision-estrella, .mck-mision-viajero { display: none; }
 }
 
 /* Taller de combos: el tablero se ajusta al alto QUE QUEDA, no solo al ancho. Desde 1024 px el
@@ -2778,4 +2786,87 @@ svg.mck-ico {
 @media (prefers-reduced-motion: reduce) {
   .mck-mision-foto-parpadea { animation: none; box-shadow: 0 0 0 4px rgb(var(--mck-accent-sun) / 0.6); }
   .mck-mision-foto-parpadea img { animation: none; }
+}
+
+/* Barbie Agenda · modo oscuro «de gala»: el rosa de siempre con filete dorado clásico
+   (marcos finos de doble línea, títulos en oro bruñido y un brillo cálido). Solo en .dark. */
+html[data-mck-skin="barbie"].dark {
+  --mck-oro: 212 175 95;
+  --mck-oro-claro: 246 220 150;
+  --mck-oro-hondo: 150 110 45;
+  --mck-accent-sun: 232 196 110;
+  --mck-border: 150 78 104;
+  --mck-border-strong: 212 175 95;
+  --mck-shadow-paper: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(212, 175, 95, 0.28);
+  --mck-shadow-paper-sm: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 95, 0.22);
+  --mck-shadow-paper-lg: 0 14px 36px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 175, 95, 0.32);
+}
+html[data-mck-skin="barbie"].dark body {
+  background-color: #2c1022;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgb(246 220 150 / 0.16), transparent 45%),
+    radial-gradient(circle at 12% 12%, rgb(255 126 182 / 0.2), transparent 38%),
+    radial-gradient(circle at 88% 88%, rgb(212 175 95 / 0.14), transparent 40%),
+    /* damasco muy tenue: rombos de filete dorado */
+    repeating-linear-gradient(45deg, transparent 0 34px, rgb(212 175 95 / 0.045) 34px 35px),
+    repeating-linear-gradient(-45deg, transparent 0 34px, rgb(212 175 95 / 0.045) 34px 35px),
+    linear-gradient(180deg, #341628 0%, #2c1022 60%, #230a1b 100%);
+}
+/* Tarjetas: marco de doble filete (exterior dorado, interior rosa) y un reflejo arriba. */
+html[data-mck-skin="barbie"].dark .mck-card,
+html[data-mck-skin="barbie"].dark .lm-card {
+  border-color: rgb(var(--mck-oro) / 0.55);
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--mck-surface-panel)),
+    inset 0 0 0 4px rgb(var(--mck-oro) / 0.22),
+    inset 0 1px 0 4px rgb(var(--mck-oro-claro) / 0.06),
+    var(--mck-shadow-paper);
+}
+html[data-mck-skin="barbie"].dark .mck-card-interactive:hover {
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--mck-surface-panel)),
+    inset 0 0 0 4px rgb(var(--mck-oro) / 0.35),
+    0 12px 28px rgb(0 0 0 / 0.35),
+    0 0 22px rgb(var(--mck-oro) / 0.28);
+}
+/* Botón principal: rosa con canto de oro. */
+html[data-mck-skin="barbie"].dark .mck-btn-primary {
+  border: 1.5px solid rgb(var(--mck-oro-claro) / 0.85);
+  box-shadow:
+    0 4px 0 rgb(var(--mck-oro-hondo)),
+    0 8px 22px rgb(var(--mck-oro) / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+/* Títulos en oro bruñido. */
+html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+html[data-mck-skin="barbie"].dark .mck-title {
+  background: linear-gradient(180deg, #fff1c4 0%, #f0cf7a 38%, #c8962f 62%, #f6dc96 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgb(80 40 10 / 0.6)) drop-shadow(0 0 10px rgb(var(--mck-oro) / 0.35));
+}
+/* Cabezote y menú: filete dorado en el borde. */
+html[data-mck-skin="barbie"].dark .mck-header-glass {
+  background: rgb(44 14 32 / 0.94);
+  border-bottom: 1px solid rgb(var(--mck-oro) / 0.45);
+  box-shadow: 0 1px 0 rgb(var(--mck-oro) / 0.12), 0 6px 18px rgb(0 0 0 / 0.3);
+}
+html[data-mck-skin="barbie"].dark aside.mck-sidebar {
+  border-right: 1px solid rgb(var(--mck-oro) / 0.5);
+  box-shadow: inset -3px 0 0 rgb(var(--mck-surface)), inset -4px 0 0 rgb(var(--mck-oro) / 0.2);
+}
+html[data-mck-skin="barbie"].dark .mck-nav-item.is-active {
+  box-shadow: inset 0 0 0 1px rgb(var(--mck-oro-claro) / 0.75), 0 4px 16px rgb(var(--mck-oro) / 0.3);
+}
+/* Tablas: cabecera con filete dorado. */
+html[data-mck-skin="barbie"].dark thead th {
+  color: rgb(var(--mck-oro-claro));
+  border-bottom: 1px solid rgb(var(--mck-oro) / 0.5);
+}
+html[data-mck-skin="barbie"].dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus,
+html[data-mck-skin="barbie"].dark select:focus,
+html[data-mck-skin="barbie"].dark textarea:focus {
+  border-color: rgb(var(--mck-oro) / 0.9);
+  box-shadow: 0 0 0 3px rgb(var(--mck-oro) / 0.2);
 }

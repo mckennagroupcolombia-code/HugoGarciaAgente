@@ -126,6 +126,18 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
     </svg>`,
   },
 
+  {
+    id: "origen_mapa_colombia",
+    nombre: "Mapa de Colombia",
+    categoria: "origen",
+    tags: ["origen", "colombia", "mapa", "pais", "nacional", "hecho en colombia", "procedencia"],
+    // Silueta de Colombia simplificada desde Natural Earth 1:50m (dominio público), 62 de alto.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M56.1 21.1 L51 24.9 L48.5 31 L51.8 37.2 L53.5 39.1 L60.5 39.4 L63.1 42.4 L70.3 42.2 L68.9 48.5 L71 52.5 L68.9 54.8 L71.3 56.3 L68.6 58.7 L61.5 58.9 L61.5 61.3 L64.1 62.8 L60.8 63.1 L60.7 65.7 L63.2 69.7 L61.1 81 L58.2 79.3 L60.6 75.1 L57.4 73.5 L50 74.1 L43.1 66 L37.7 63.6 L33.5 63.8 L27.5 59.2 L34.7 50.7 L34.1 43.7 L31.6 38.3 L34.2 35.6 L35.3 33.3 L40 30.1 L39.8 27.5 L43 23.9 L45.6 23.1 L48.7 23.2 L54.6 19 Z" stroke-width="4"/>
+    </svg>`,
+  },
+
   // --- AROMA ---
   {
     id: "aroma_ondas_gota",
