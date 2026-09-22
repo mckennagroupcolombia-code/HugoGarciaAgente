@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cron: copia de las alertas de abono de Bancolombia a la asesora comercial.
+Cron: abonos de Bancolombia a la asesora comercial, por correo (copia) y por WhatsApp.
 
 Corre cada 5 minutos desde crontab (scripts/instalar_cron_mcKenna.sh). Ver
 app/tools/reenvio_alertas_banco.py para qué se reenvía y qué no (OTP y claves nunca).
@@ -8,7 +8,8 @@ app/tools/reenvio_alertas_banco.py para qué se reenvía y qué no (OTP y claves
   python3 scripts/reenvio_alertas_banco_cron.py             # reenvía lo nuevo
   python3 scripts/reenvio_alertas_banco_cron.py --simular   # lista qué enviaría
   REENVIO_BANCO_ACTIVO=0                                     # apaga sin tocar el crontab
-  REENVIO_BANCO_DESTINO=otro@correo.com                      # cambia la destinataria
+  REENVIO_BANCO_DESTINO=otro@correo.com                      # cambia el correo
+  REENVIO_BANCO_WA=573001234567                              # cambia el número (default 573182432463)
   REENVIO_BANCO_INCLUIR_SALIDAS=1                            # incluye pagos salientes
 """
 
@@ -39,11 +40,13 @@ def main() -> int:
     except Exception as exc:  # token vencido, red, etc.: una línea en el log, sin traceback cada 5 min
         print(f"reenvio_alertas_banco: ERROR {type(exc).__name__}: {exc}")
         return 1
-    if a.simular or r.get("enviados"):
-        print(f"reenvio_alertas_banco: enviados={r['enviados']} omitidos={r['omitidos']} "
+    if a.simular or r.get("enviados") or r.get("whatsapp") or r.get("fallidos"):
+        print(f"reenvio_alertas_banco: enviados={r['enviados']} omitidos={r['omitidos']} whatsapp={r.get('whatsapp', 0)} fallidos_wa={r.get('fallidos', 0)} "
               f"destino={r['destino']} activo={r['activo']}")
         for d in r["detalle"]:
             print(f"  [{d['accion']}] {d['tipo']}: {d['resumen']}")
+            if a.simular and d.get("mensaje"):
+                print("    → " + d["mensaje"].replace("\n", " | "))
     return 0
 
 
