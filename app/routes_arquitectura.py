@@ -195,7 +195,16 @@ def estado_visor(timeout: float = 2.0) -> dict:
         r = requests.get(f"{base}/api/ui-config", timeout=timeout)
         r.raise_for_status()
         cfg = r.json() if "json" in (r.headers.get("Content-Type") or "") else {}
-        return {"activo": True, "version": cfg.get("version"), "url": PREFIJO_VISOR + "/", "upstream": base}
+        # Directo a la vista 3D del proyecto: sin `tab=graph` el visor abre en su
+        # lista de proyectos y hay que pulsar «View Graph», que es justo lo que
+        # nadie encontraba.
+        proyecto = os.getenv("CBM_PROYECTO") or "home-mckg-mi-agente"
+        try:
+            proyecto = json.loads((DIR_SNAPSHOT / "resumen.json").read_text("utf-8")).get("proyecto") or proyecto
+        except (OSError, json.JSONDecodeError):
+            pass
+        url = f"{PREFIJO_VISOR}/?tab=graph&project={proyecto}"
+        return {"activo": True, "version": cfg.get("version"), "url": url, "proyecto": proyecto, "upstream": base}
     except Exception as e:  # conexión rechazada, timeout, respuesta rara
         return {"activo": False, "url": PREFIJO_VISOR + "/", "upstream": base,
                 "motivo": type(e).__name__,

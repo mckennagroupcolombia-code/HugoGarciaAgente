@@ -69,3 +69,10 @@
 {"pack_id": "2000015086272423", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE541"], "nota_credito": "NC110", "conserva": "FE540", "error": null, "ts": "2026-09-22T02:15:46"}
 {"pack_id": "2000015084116091", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE526"], "nota_credito": "NC111", "conserva": "FE525", "error": null, "ts": "2026-09-22T02:16:16"}
 {"pack_id": "2000015084116091", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE527"], "nota_credito": "NC112", "conserva": "FE525", "error": null, "ts": "2026-09-22T02:16:45"}
+{"pack_id": "2000015083896389", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE554"], "nota_credito": "NC113", "conserva": "FE553", "error": null, "ts": "2026-09-22T02:17:19"}
+{"pack_id": "2000015073110871", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE562"], "nota_credito": "NC114", "conserva": "FE561", "error": null, "ts": "2026-09-22T02:17:51"}
+{"pack_id": "2000015068968031", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE577"], "nota_credito": "NC115", "conserva": "FE576", "error": null, "ts": "2026-09-22T02:18:25"}
+{"pack_id": "2000015056078053", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE455"], "nota_credito": "NC116", "conserva": "FE453", "error": null, "ts": "2026-09-22T02:19:00"}
+{"pack_id": "2000015051718935", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE480"], "nota_credito": "NC117", "conserva": "FE479", "error": null, "ts": "2026-09-22T02:19:29"}
+{"pack_id": "2000015048323195", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE452"], "nota_credito": "NC118", "conserva": "FE451", "error": null, "ts": "2026-09-22T02:20:23"}
+{"pack_id": "2000018266348554", "tipo": "doble_siigo_alegra_22sep", "ok": false, "anuladas": ["FE56"], "nota_credito": null, "conserva": "FV-2-71416", "error": "Error al crear nota crédito en Alegra: {\"message\":\"El tipo de indentificaci\\u00f3n del cliente es distinto al n\\u00famero de identificacion que ten\\u00eda el cliente al momento de hacer el documento.\",\"code\":9228}", "ts": "2026-09-22T02:21:59"}
