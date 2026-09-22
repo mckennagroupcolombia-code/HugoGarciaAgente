@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { api } from "../api/client";
 
 /**
  * Agenda → Juegos: un rato de descanso para el equipo.
@@ -12,6 +13,12 @@ import { createPortal } from "react-dom";
  *
  * Se juega inmersivo: capa negra sobre toda la app + Fullscreen API. El juego se monta solo
  * mientras se juega (al salir se desmonta y se callan sus sonidos).
+ *
+ * Partidas guardadas: el iframe con sandbox no tiene localStorage ni OPFS, así que un juego que
+ * guarde (la SRAM del cartucho en los emulados) la manda por postMessage y este panel la sube a
+ * `/api/juegos/partidas/<juego>` con el Bearer del usuario; al abrir, el juego la pide y el panel
+ * se la devuelve. Protocolo: {tipo:"juego:partida:leer"} → {tipo:"juego:partida", datos};
+ * {tipo:"juego:partida:guardar", datos} → PUT. Solo se atiende al iframe montado.
  */
 
 type Juego = {
@@ -35,12 +42,28 @@ const JUEGOS: Juego[] = [
     alto: 456,
   },
   {
-    id: "circus",
+    id: "circus-nes",
     nombre: "Circus Charlie",
-    descripcion: "Charlie sobre el león: ← → para correr y Espacio para saltar aros de fuego y jarrones hasta el podio. En el celular salen los botones en pantalla.",
-    src: `${import.meta.env.BASE_URL}juegos/circus/index.html?v=3`,
+    descripcion: "El juego original de NES completo (5 etapas), emulado. ← → ↑ ↓ mueven, Espacio salta (A), Enter = Start. En el celular salen los botones en pantalla.",
+    src: `${import.meta.env.BASE_URL}juegos/circus-nes/index.html?v=1`,
+    ancho: 512,
+    alto: 480,
+  },
+  {
+    id: "bass",
+    nombre: "Bassin's Black Bass",
+    descripcion: "Pesca de lobina por torneos (SNES, 1994), emulado y con los textos en español. Flechas mueven, S = A, X = B, A = X, Z = Y, Enter = Start. Tarda unos segundos en cargar.",
+    src: `${import.meta.env.BASE_URL}juegos/bass/index.html?v=2`,
     ancho: 512,
     alto: 448,
+  },
+  {
+    id: "chess",
+    nombre: "Chessmaster",
+    descripcion: "Ajedrez (Game Boy Advance, 2002), emulado. Flechas mueven el cursor, X = A (elegir), Z = B (atrás), Enter = Start, Esc sale. Tarda unos segundos en cargar.",
+    src: `${import.meta.env.BASE_URL}juegos/chess/index.html?v=1`,
+    ancho: 480,
+    alto: 320,
   },
 ];
 
@@ -94,12 +117,56 @@ export default function JuegosPanel() {
   const juego = JUEGOS.find((j) => j.id === activoId) ?? JUEGOS[0];
   const servidor = useServidorJuegos(juego.src);
   const escenario = useRef<HTMLDivElement>(null);
+  const marco = useRef<HTMLIFrameElement>(null);
   const escala = useEscala(escenario, juego.ancho, juego.alto, jugando);
+  const [guardado, setGuardado] = useState<string | null>(null);
 
+
+  const guardadoPendiente = useRef<(() => void) | null>(null);
+
+  // Antes de desmontar el juego le pide la partida (hasta 1,5 s): si se cerrara de golpe, el
+  // último guardado del cartucho podría perderse.
   const salir = useCallback(() => {
-    setJugando(false);
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    const ventana = marco.current?.contentWindow;
+    if (!ventana) { setJugando(false); return; }
+    let cerrado = false;
+    const cerrar = () => { if (!cerrado) { cerrado = true; guardadoPendiente.current = null; setJugando(false); } };
+    guardadoPendiente.current = cerrar;
+    window.setTimeout(cerrar, 1500);
+    ventana.postMessage({ tipo: "juego:partida:pedir" }, "*");
   }, []);
+
+  // Puente de partidas guardadas con el juego (ver el comentario de arriba).
+  useEffect(() => {
+    if (!jugando) return;
+    const id = juego.id;
+    const alMensaje = async (e: MessageEvent) => {
+      const ventana = marco.current?.contentWindow;
+      if (!ventana || e.source !== ventana) return;
+      const m = e.data as { tipo?: string; datos?: string } | null;
+      if (!m || typeof m.tipo !== "string") return;
+      try {
+        if (m.tipo === "juego:partida:leer") {
+          const r = await api.get<{ datos: string | null }>(`/api/juegos/partidas/${id}`);
+          ventana.postMessage({ tipo: "juego:partida", datos: r?.datos ?? null }, "*");
+        } else if (m.tipo === "juego:partida:guardar" && typeof m.datos === "string") {
+          await api.put(`/api/juegos/partidas/${id}`, { datos: m.datos });
+          setGuardado(new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }));
+          ventana.postMessage({ tipo: "juego:partida:ok" }, "*");
+          guardadoPendiente.current?.();
+        } else if (m.tipo === "juego:partida:sin-cambios") {
+          guardadoPendiente.current?.();
+        } else if (m.tipo === "juego:salir") {
+          salir();
+        }
+      } catch {
+        ventana.postMessage({ tipo: "juego:partida:error" }, "*");
+      }
+    };
+    window.addEventListener("message", alMensaje);
+    return () => window.removeEventListener("message", alMensaje);
+  }, [jugando, juego.id, salir]);
 
   function jugar() {
     setPartida((n) => n + 1);
@@ -181,6 +248,7 @@ export default function JuegosPanel() {
             onMouseMove={() => !verControles && setVerControles(true)}
           >
             <iframe
+              ref={marco}
               key={`${juego.id}-${partida}`}
               title={juego.nombre}
               src={juego.src}
@@ -194,6 +262,11 @@ export default function JuegosPanel() {
             />
             {/* Controles: a los 3 s quedan tenues pero tocables (en el celular no hay mouse que
                 los haga reaparecer, y en iPhone no hay Esc ni pantalla completa real). */}
+            {guardado && (
+              <div className="pointer-events-none absolute bottom-3 left-3 rounded bg-white/15 px-2 py-1 text-xs text-white/80 backdrop-blur">
+                Partida guardada {guardado}
+              </div>
+            )}
             <div
               className={`absolute right-3 top-3 flex gap-2 transition-opacity duration-500 ${
                 verControles ? "opacity-100" : "opacity-25 hover:opacity-100"

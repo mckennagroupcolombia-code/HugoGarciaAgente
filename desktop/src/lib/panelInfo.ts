@@ -162,7 +162,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Un rato de descanso dentro de la Agenda. Los juegos corren aislados del panel: no ven tu sesión ni tus datos y no se conectan a internet.",
     tips: [
       "Duck Hunt: apunta con el mouse y dispara con clic. Tienes 3 tiros por pato.",
-      "Circus Charlie: ← → corre, Espacio salta. Aro 100, jarrón 200, aro con premio 1.000; el bonus baja con el tiempo.",
+      "Circus Charlie: el original de NES emulado, 5 etapas. Enter arranca, ← → corre, Espacio salta; M silencia.",
       "El sonido arranca después del primer clic (el navegador no deja reproducir audio antes).",
     ],
     tier: "core",

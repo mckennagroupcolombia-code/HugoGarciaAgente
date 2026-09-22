@@ -16298,6 +16298,24 @@ def register_routes(app):
     # que son los assets públicos del repositorio original (ver desktop/public/juegos/*/LEEME.md).
     _CSP_JUEGOS = ("sandbox allow-scripts; default-src 'self' 'unsafe-inline'; connect-src 'none'; "
                    "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
+    # Juegos emulados con WebAssembly (SNES): el núcleo compila wasm ('wasm-unsafe-eval'), el audio
+    # va por un AudioWorklet creado desde un blob, y el .wasm y la ROM se traen con fetch, así que
+    # connect-src tiene que abrirse a 'self'. No se puede limitar a la carpeta del juego con la URL
+    # completa: el túnel de Cloudflare le pasa a Flask el host 127.0.0.1:8081 y la CSP salía con esa
+    # dirección, que el navegador del dominio público bloqueaba (22-sep-2026: «NetworkError»). Con
+    # 'self' el juego solo alcanza este mismo origen, y la API exige el token Bearer, que el iframe
+    # con sandbox no tiene.
+    _JUEGOS_WASM = ("bass", "chess")
+
+    def _csp_juego(ruta: str) -> str:
+        juego = ruta.split("/", 1)[0]
+        if juego not in _JUEGOS_WASM:
+            return _CSP_JUEGOS
+        return ("sandbox allow-scripts; default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:; "
+                "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+                "connect-src 'self'; worker-src blob:; media-src 'self'; "
+                "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
 
     @app.route("/app/juegos/<path:ruta>", methods=["GET", "HEAD"])
     def serve_spa_juegos(ruta):
@@ -16306,11 +16324,63 @@ def register_routes(app):
         if ruta.endswith(".html") and spa_sesion.gate_activo() and not spa_sesion.usuario_de_cookie():
             return jsonify({"error": "Sesión requerida"}), 403
         resp = send_from_directory(os.path.join(_SPA_DIR, "juegos"), ruta)
-        resp.headers["Content-Security-Policy"] = _CSP_JUEGOS
+        resp.headers["Content-Security-Policy"] = _csp_juego(ruta)
+        if ruta.split("/", 1)[0] in _JUEGOS_WASM:
+            # Desde el iframe con sandbox (origen «null») los módulos ES y los fetch van en modo
+            # CORS: sin esta cabecera el navegador los descarta. Son archivos estáticos del juego.
+            resp.headers["Access-Control-Allow-Origin"] = "*"
         resp.headers["X-Content-Type-Options"] = "nosniff"
         # Sin hash en los nombres: revalidar siempre (ETag), o un celular sigue con el juego viejo.
         resp.headers["Cache-Control"] = "private, no-cache"
         return resp
+
+    # Partidas guardadas de los juegos emulados: la SRAM del cartucho, por usuario del panel. El
+    # iframe con sandbox no tiene localStorage ni OPFS, así que el juego se la manda al panel por
+    # postMessage y el panel la sube aquí con su Bearer (ver desktop/src/components/JuegosPanel.tsx).
+    _JUEGOS_PARTIDAS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "juegos_partidas")
+    _JUEGOS_PARTIDA_MAX = 256 * 1024
+
+    def _juegos_partida_ruta(juego: str):
+        import re as _re
+        if not _re.fullmatch(r"[a-z0-9-]{1,32}", juego or ""):
+            return None
+        usuario = None
+        try:
+            from app.api_auth import bearer_token_from_request as _btr
+            from app.services.tickets_db import get_usuario_by_token as _gut
+            u = _gut(_btr() or "")
+            usuario = u.get("id") if u else None
+        except Exception:
+            usuario = None
+        base = os.environ.get("JUEGOS_PARTIDAS_DIR") or _JUEGOS_PARTIDAS_DIR   # la variable la usan los tests
+        carpeta = os.path.join(base, f"usuario_{usuario}" if usuario else "comun")
+        return os.path.join(carpeta, f"{juego}.sav")
+
+    @app.route("/api/juegos/partidas/<juego>", methods=["GET", "PUT"])
+    def api_juegos_partida(juego):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta = _juegos_partida_ruta(juego)
+        if not ruta:
+            return jsonify({"error": "Juego inválido"}), 400
+        if request.method == "GET":
+            if not os.path.isfile(ruta):
+                return jsonify({"datos": None})
+            with open(ruta, "rb") as f:
+                return jsonify({"datos": base64.b64encode(f.read()).decode("ascii")})
+        body = request.get_json(silent=True) or {}
+        try:
+            datos = base64.b64decode(str(body.get("datos") or ""), validate=True)
+        except Exception:
+            return jsonify({"error": "Datos inválidos"}), 400
+        if not datos or len(datos) > _JUEGOS_PARTIDA_MAX:
+            return jsonify({"error": "Tamaño inválido"}), 400
+        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+        tmp = ruta + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(datos)
+        os.replace(tmp, ruta)
+        return jsonify({"ok": True, "bytes": len(datos)})
 
     @app.route("/.well-known/assetlinks.json")
     def serve_assetlinks():

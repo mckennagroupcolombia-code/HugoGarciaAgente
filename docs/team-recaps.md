@@ -1,3 +1,13 @@
+### 2026-09-22 - Juegos en la Agenda: emuladores de NES, SNES y GBA con partidas guardadas y traducciones
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda → Juegos). Sin LLM.
+- **Qué se implementó:**
+  - **Tres emuladores dentro del panel**, cada uno en un iframe con sandbox y CSP propia: Circus Charlie (NES, `jsnes`), Bassin's Black Bass (SNES, Snes9x en WebAssembly) y Chessmaster (Game Boy Advance, mGBA en WebAssembly). Las ROM las trajo el usuario; uso interno detrás del login (los `LEEME.md` de cada carpeta dejan la nota legal). Se borró el remake propio en canvas de Circus Charlie al llegar la ROM original.
+  - **Partidas guardadas por usuario:** el iframe aislado no tiene almacenamiento, así que el juego manda la SRAM del cartucho al panel por `postMessage` y el panel la sube con su Bearer a `GET/PUT /api/juegos/partidas/<juego>` (`juegos_partidas/usuario_<id>/`, fuera de git). Se sincroniza cada 10 s, al ocultar la pestaña y antes de cerrar el juego. **Esc dentro del juego sale al panel** (el «QUIT» de Bassin's está hecho para apagar la consola y congelaba la pantalla; se cambió su texto).
+  - **CSP de los juegos wasm:** `'wasm-unsafe-eval'`, `blob:` para el AudioWorklet y `connect-src 'self'` (la URL absoluta rompía tras el túnel de Cloudflare, que entrega el host `127.0.0.1:8081`); `Access-Control-Allow-Origin: *` porque desde el origen «null» del sandbox los módulos ES y los fetch van en modo CORS.
+  - **Traducciones al español en la ROM, en sitio y con el mismo largo** (no se encontraron tablas de punteros utilizables): Bassin's Black Bass, 421 mensajes (diálogos, consejos, cebos, especies, reglas); Chessmaster, 511 textos de interfaz (menús, opciones, niveles, mensajes del tablero, títulos del tutor, consejero). Quedan en inglés los rótulos gráficos de Bassin's y la prosa de Chessmaster (tutorial y comentarios de partidas, ~300 KB). Flujo reproducible en `traduccion/` de cada juego.
+- **Archivos Modificados:** `app/routes.py` (`_csp_juego`, `_JUEGOS_WASM`, `/api/juegos/partidas`), `desktop/src/components/JuegosPanel.tsx` (puente de partidas, Esc), `desktop/public/juegos/{circus-nes,bass,chess}/` (nuevos; `circus/` borrado), `desktop/src/lib/panelInfo.ts`, `tests/test_juegos.py` (12 pruebas), `.gitignore`
+
 ### 2026-09-21 - Accesos rápidos (⚡ / Ctrl+K): cada persona llega en un clic a lo que más usa
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (cabezote de /app, todas las vistas). Sin LLM.

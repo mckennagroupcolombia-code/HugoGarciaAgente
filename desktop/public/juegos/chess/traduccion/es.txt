@@ -1,0 +1,526 @@
+# Chessmaster (GBA) — traducción de la interfaz. OFFSET|original|traducción (mismo sitio; ver traducir_rom.py).
+# Sin acentos ni Ñ. Los comentarios de partidas clásicas, los de aperturas y el tutorial siguen en inglés.
+# --- Menú principal
+1FEA4B|Standard Game|Juego Normal
+1FEA5C|STANDARD GAME|JUEGO NORMAL
+1FEB97|Handicap Game|Con Handicap
+1FEBA8|HANDICAP GAME|CON HANDICAP
+1FECE3|Board Setup Game|Armar Tablero
+1FECF7|BOARD SETUP GAME|ARMAR TABLERO
+1FEE33|Load Game|Cargar
+1FEE40|LOAD GAME|CARGAR
+1FEF77|Link Multiplayer|Multijugador
+1FEF8B|LINK MULTIPLAYER|MULTIJUGADOR
+1FF0C7|Chess Tutor|Tutorial
+1FF0D6|CHESS TUTOR|TUTORIAL
+# --- Opciones de partida
+20420F|OPPONENT|RIVAL
+204343|Response Time|Tiempo
+204354|RESPONSE TIME|TIEMPO
+20448F|Who Plays|Jugadores
+20449C|WHO PLAYS|JUGADORES
+2045D3|Teaching Mode|Modo Tutor
+2045E4|TEACHING MODE|MODO TUTOR
+20471F|Chess Set Look|Estilo Piezas
+204731|CHESS SET LOOK|ESTILO PIEZAS
+20486B|Save Settings|Guardar
+20487C|SAVE SETTINGS|GUARDAR
+# --- Rivales de nombre (los descriptivos)
+22AE2B|More|Mas
+22AE33|MORE|MAS
+# --- Niveles
+2345C3|  Beginner| Iniciado
+2345D1| Newcomer|  Nuevo
+2345DE|    Novice|    Novato
+2345EC| Apprentice|  Aprendiz
+2345FB|   Aspirant|  Aspirante
+26DEFB|  Defender|  Defensor
+26DF13|   Master|  Maestro
+26DF20| Positional| Posicional
+26DF48| Challenger| Retador
+# --- Tiempo por jugada / partida
+234DFF|Seconds per Move   05|Segundos x Jugada  05
+234E18|SECONDS PER MOVE   05|SEGUNDOS X JUGADA  05
+234E31|Seconds per Move   10|Segundos x Jugada  10
+234E4A|SECONDS PER MOVE   10|SEGUNDOS X JUGADA  10
+234E63|Seconds per Move   15|Segundos x Jugada  15
+234E7C|SECONDS PER MOVE   15|SEGUNDOS X JUGADA  15
+234E95|Seconds per Move   20|Segundos x Jugada  20
+234EAE|SECONDS PER MOVE   20|SEGUNDOS X JUGADA  20
+234EC7|Seconds per Move   25|Segundos x Jugada  25
+234EE0|SECONDS PER MOVE   25|SEGUNDOS X JUGADA  25
+234EF9|Seconds per Move   30|Segundos x Jugada  30
+234F12|SECONDS PER MOVE   30|SEGUNDOS X JUGADA  30
+234F2B|Seconds per Move   35|Segundos x Jugada  35
+234F44|SECONDS PER MOVE   35|SEGUNDOS X JUGADA  35
+234F5D|Seconds per Move   40|Segundos x Jugada  40
+234F76|SECONDS PER MOVE   40|SEGUNDOS X JUGADA  40
+234F8F|Seconds per Move   45|Segundos x Jugada  45
+234FA8|SECONDS PER MOVE   45|SEGUNDOS X JUGADA  45
+234FC1|Seconds per Move   50|Segundos x Jugada  50
+234FDA|SECONDS PER MOVE   50|SEGUNDOS X JUGADA  50
+235053|Minutes per Game   05|Min. por Partida   05
+23506C|MINUTES PER GAME   05|MIN. POR PARTIDA   05
+235085|Minutes per Game   10|Min. por Partida   10
+23509E|MINUTES PER GAME   10|MIN. POR PARTIDA   10
+2350B7|Minutes per Game   15|Min. por Partida   15
+2350D0|MINUTES PER GAME   15|MIN. POR PARTIDA   15
+2350E9|Minutes per Game   20|Min. por Partida   20
+235102|MINUTES PER GAME   20|MIN. POR PARTIDA   20
+23511B|Minutes per Game   30|Min. por Partida   30
+235134|MINUTES PER GAME   30|MIN. POR PARTIDA   30
+23514D|Minutes per Game   40|Min. por Partida   40
+235166|MINUTES PER GAME   40|MIN. POR PARTIDA   40
+23517F|Minutes per Game   50|Min. por Partida   50
+235198|MINUTES PER GAME   50|MIN. POR PARTIDA   50
+2351B1|Minutes per Game   60|Min. por Partida   60
+2351CA|MINUTES PER GAME   60|MIN. POR PARTIDA   60
+2351E3|Minutes per Game   90|Min. por Partida   90
+2351FC|MINUTES PER GAME   90|MIN. POR PARTIDA   90
+235215|Minutes per Game 120|Min. por Partida 120
+23522D|MINUTES PER GAME 120|MIN. POR PARTIDA 120
+23527F|Infinite Time|Sin Limite
+235290|INFINITE TIME|SIN LIMITE
+2359B7|Player vs. Player|Humano vs Humano
+2359CC|PLAYER VS. PLAYER|HUMANO VS HUMANO
+2360CF|Legal Moves OFF|Mov.Legales NO
+2360E2|LEGAL MOVES OFF|MOV.LEGALES NO
+2360F5|Legal Moves ON|Mov.Legales SI
+236107|LEGAL MOVES ON|MOV.LEGALES SI
+23613B|Threatened Pieces OFF|Piezas Amenazadas NO
+236154|THREATENED PIECES OFF|PIEZAS AMENAZADAS NO
+23616D|Threatened Pieces ON|Piezas Amenazadas SI
+236185|THREATENED PIECES ON|PIEZAS AMENAZADAS SI
+# --- Estilos de piezas
+23FCDF|Classic Set|Clasico
+23FCEE|CLASSIC SET|CLASICO
+23FE27|Newspaper Set|Periodico
+23FE38|NEWSPAPER SET|PERIODICO
+23FF73|Wood Set|Madera
+23FF7F|WOOD SET|MADERA
+2400B3|Kids Clay Set|Plastilina
+2400C4|KIDS CLAY SET|PLASTILINA
+2401FF|Napoleon Set|Napoleon
+24020F|NAPOLEON SET|NAPOLEON
+240347|Circus Set|Circo
+240355|CIRCUS SET|CIRCO
+253943|Dogs Set|Perros
+25394F|DOGS SET|PERROS
+253A83|Fantasy Set|Fantasia
+253A92|FANTASY SET|FANTASIA
+253BCB|Invaders Set|Invasores
+253BDB|INVADERS SET|INVASORES
+253D13|Sea Set|Mar
+253D1E|SEA SET|MAR
+253E53|Previous|Anterior
+253E5F|PREVIOUS|ANTERIOR
+26474F|Board Champion|Campeon
+264761|BOARD CHAMPION|CAMPEON
+# --- Menú dentro de la partida
+2889BB|Hint|Pista
+2889C3|HINT|PISTA
+288AF3|Force Move|Forzar Mov.
+288B01|FORCE MOVE|FORZAR MOV.
+288C37|Save Game|Guardar
+288C44|SAVE GAME|GUARDAR
+288D7B|Load Game|Cargar
+288D88|LOAD GAME|CARGAR
+288EBF|Change Sides|Cambiar Lado
+288ECF|CHANGE SIDES|CAMBIAR LADO
+289007|Rotate Board|Girar Tablero
+289017|ROTATE BOARD|GIRAR TABLERO
+28914F|New Game|Nueva
+28915B|NEW GAME|NUEVA
+# --- Tutor
+2AEF97|Basic Rules|Reglas
+2AEFA6|BASIC RULES|REGLAS
+2AF0DF|Pieces Rules|Las Piezas
+2AF0EF|PIECES RULES|LAS PIEZAS
+2AF227|Special Moves|Mov.Especiales
+2AF238|SPECIAL MOVES|MOV.ESPECIALES
+2AF37F|NOTATION|NOTACION
+2AF4C1|STRATEGIES|ESTRATEGIAS
+2AF5F7|Chess Rater|Tu Nivel
+2AF606|CHESS RATER|TU NIVEL
+2AF73F|Famous Games|Partidas
+2AF74F|FAMOUS GAMES|PARTIDAS
+2D0A63|INTRODUCTION|INTRODUCCION
+2D0B9B|Chessman Introduction|Presentar las Piezas
+2D0BB4|CHESSMAN INTRODUCTION|PRESENTAR LAS PIEZAS
+2D0CF7|Chessman Summary|Resumen Piezas
+2D0D0B|CHESSMAN SUMMARY|RESUMEN PIEZAS
+2D0E47|Check and Check Mate|Jaque y Jaque Mate
+2D0E5F|CHECK AND CHECK MATE|JAQUE Y JAQUE MATE
+2D0FAC|STALEMATE|AHOGADO
+2D15AF|The King|El Rey
+2D15BB|THE KING|EL REY
+2D16EF|The Queen|La Dama
+2D16FC|THE QUEEN|LA DAMA
+2D1833|The Rook|La Torre
+2D183F|THE ROOK|LA TORRE
+2D1973|The Bishop|El Alfil
+2D1981|THE BISHOP|EL ALFIL
+2D1AB7|The Knight|El Caballo
+2D1AC5|THE KNIGHT|EL CABALLO
+2D1BFB|The Pawn|El Peon
+2D1C07|THE PAWN|EL PEON
+2D21D7|En Passant|Al Paso
+2D21E5|EN PASSANT|AL PASO
+2D2327|CASTLING|ENROQUE
+2D2468|PROMOTION|CORONACION
+2D2A68|ALGEBRAIC|ALGEBRAICA
+2D2B9F|Long Algebraic|Algebr. Larga
+2D2BB1|LONG ALGEBRAIC|ALGEBR. LARGA
+2D2CF9|COORDINATE|COORDENADAS
+2D2E3E|DESCRIPTIVE|DESCRIPTIVA
+2D2F89|CORRESPONDENCE|POR CORREO
+2D35A9|BASICS|BASICO
+2D36DB|Kings and Pawns|Reyes y Peones
+2D36EE|KINGS AND PAWNS|REYES Y PEONES
+2D382B|Queens and Rooks|Damas y Torres
+2D383F|QUEENS AND ROOKS|DAMAS Y TORRES
+2D397B|Minor Piece Endings|Finales Menores
+2D3992|MINOR PIECE ENDINGS|FINALES MENORES
+2D3AD3|Mating Configurations|Redes de Mate
+2D3AEC|MATING CONFIGURATIONS|REDES DE MATE
+2D3C2F|Basic Combinations|Combinaciones
+2D3C45|BASIC COMBINATIONS|COMBINACIONES
+2D426F|INSTRUCTIONS|INSTRUCCIONES
+2D43A7|Challenge Set 1|Reto 1
+2D43BA|CHALLENGE SET 1|RETO 1
+2D44F7|Challenge Set 2|Reto 2
+2D450A|CHALLENGE SET 2|RETO 2
+2D4647|Challenge Set 3|Reto 3
+2D465A|CHALLENGE SET 3|RETO 3
+2E97FB|Roots of Combinations|Base de Combinaciones
+2E9814|ROOTS OF COMBINATIONS|BASE DE COMBINACIONES
+2E9969|DOUBLE ATTACKS|ATAQUES DOBLES
+2E9AB1|SACRIFICES|SACRIFICIOS
+2E9BF3|STRATEGY|ESTRATEG.
+# --- Multijugador
+31AEE7|One Cartridge|Un Cartucho
+31AEF8|ONE CARTRIDGE|UN CARTUCHO
+31B033|Two Cartridges|Dos Cartuchos
+31B045|TWO CARTRIDGES|DOS CARTUCHOS
+31B607|Join Game|Unirse
+31B614|JOIN GAME|UNIRSE
+# --- Armar tablero (piezas)
+049294|BLACK|NEGRO
+04929C|WHITE|BLANCO
+0492AC|Empty Square|Vaciar
+0492BC|White |Blanco
+0492C4|Black |Negro
+0492CC|Pawn|Peon
+0492D4|Knight|Caballo
+0492DC|Bishop|Alfil
+0492E4|Rook|Torre
+0492EC|Queen|Dama
+0492F4|King|Rey
+049308|resign|rinde
+049310|draw|tablas
+049318|time|tiempo
+# --- Mensajes del recuadro (8 caracteres, dos líneas)
+049674| None.| Nada.
+04967C| Book.| Libro.
+04969C| DRAW   | TABLAS
+0496A8|AGREED! |PACTADAS
+0496C0|50 moves|50 jugad
+0496D8| capture|captura
+0496F0|  same  | misma
+0496FC|position|posicion
+049708| DRAW!  | TABLAS!
+049714| TIME   | TIEMPO
+049720| OUT!   |AGOTADO!
+04972C| Black  | Negras
+049738| wins!  | ganan!
+049744| White  |Blancas
+04975C| MATE!  | MATE!
+049768|RESIGNS |SE RINDE
+049844| That's  |  Eso
+049850| not it. | no es.
+049874|  Press  |  Pulsa
+049880| A button|boton A
+049898| continue| seguir
+0498A4| Correct! |Correcto!
+0498E8| GAME   |  FIN
+0498F4| OVER!  |  DEL
+049900| Can't  |No puede
+049918|Opponent|  Rival
+049930| move!  | mover!
+04993C| Your   |  Tu
+049948| turn!  | turno!
+049A3C| CHECK! | JAQUE!
+049A48| Offer  |Ofrecer
+049A60|Confirm:|Confirma
+049A6C|A button|boton A
+049A8C|Waiting |Esperan-
+049A98|for the |do al
+049AA4| other  |  otro
+049AB0| player |jugador
+049ABC|  Use   |  Usa
+049AC8|L and R |  L y R
+049AD4|buttons |
+049AE0|Thinking|Pensando
+049AEC|canceled|cancelad
+049B00|control |la cruz
+049B0C|pad to  |para
+049B18|select. |elegir.
+049B24|Promote!|Corona!
+049B30|Drawing |Tablas
+049B3C|  not   |  no
+049B48|accepted|aceptad.
+049B54| Wrong  |  Mal
+049B60| drop!  |soltado!
+049B6C| pick!  |elegido!
+049B78|You have selected the|Elegiste la
+049B90| for practice.| para practica.
+049BA0|The first move is |Primera jugada: 
+049BE8| Hint:  | Pista:
+049C00| Loading  | Cargando
+049EF0|The Chessmaster advises:|Chessmaster aconseja:
+049F0C|The Chessmaster suggests:|Chessmaster sugiere:
+# --- Consejero en lenguaje natural (fragmentos que el juego concatena)
+049F68|king|rey
+049F70|kings|reyes
+049F78|queen|dama
+049F80|queens|damas
+049F88|rook|torre
+049F90|rooks|torres
+049F98|bishop|alfil
+049FA0|bishops|alfiles
+049FA8|knight|caballo
+049FB0|knights|caballo
+049FB8|pawn|peon
+049FC0|pawns|peones
+049FCC|first|1o
+049FD4|second|2o
+049FDC|third|3o
+049FE4|fourth|4o
+049FEC|fifth|5o
+049FF4|sixth|6o
+049FFC|seventh|7o
+04A004|eighth|8o
+04A00C|ninth|9o
+04A014|tenth|10o
+04A01C|eleventh|11o
+04A028|twelfth|12o
+04A030|thirteenth|13o
+04A03C|fourteenth|14o
+04A048|fifteenth|15o
+04A054|sixteenth|16o
+04A060|seventeenth|17o
+04A06C|eighthteenth|18o
+04A07C|ninteenth|19o
+04A088|twentieth|20o
+04A094|you|tu
+04A098|White|Blanco
+04A0A0|Black|Negro
+04A1B4|however|pero
+04A1F0|the King's are moved closer together|los Reyes quedan mas cerca
+04A218|the King's are moved farther apart|los Reyes quedan mas lejos
+04A278|moves|mueve
+04A280|move|mueve
+04A288|gains|gana
+04A290|gain|gana
+04A298|wins|gana
+04A2A0|win|win
+04A2A4|loses|pierde
+04A2AC|lose|pierde
+04A2B4|promotions|coronas
+04A2C0|promotion|corona
+04A2CC|Analysis:|Analisis:
+04A2D8|you move your|mueves tu
+04A2E8|your|tu
+04A2F0|you fianchetto the|fianchetto del
+04A304|you are forced to move your|te obligan a mover tu
+04A320|you are forced to move|te obligan a mover
+04A338|you are forced to|te obligan a
+04A34C|you are forced to fianchetto the|te obligan al fianchetto con
+04A37C|Woodpusher|Aficionado
+04A388|Queentaker|Cazadamas
+04A394|Positional|Posicional
+04A3A0|Defender|Defensor
+04A3C8|Pawngrabber|Comepeones
+04A3D4|Novice|Novato
+04A3DC|Drawmaster|Empatador
+04A3E8|Newcomer|Nuevo
+04A520|  All   |Deshech-
+04A52C| moves  |as todas
+04A538| taken  |  las
+04A544|  back  |jugadas
+04A568|replayed|repetid.
+04A5B4| Want to|Quieres
+04A5C0|resigns?|rendirte
+04A5CC| Player |Jugador
+04AA28|Do you want to know more?|Quieres saber mas?
+04ABDC|Player|Jugador
+0D52AE|128 The Chessmaster advises:|128 Chessmaster aconseja:
+0D52CB|129 The Chessmaster suggests:|129 Chessmaster sugiere:
+0D52E9|130 The Chessmaster recommends:|130 Chessmaster recomienda:
+0D5309|131 Analysis:|131 Analisis:
+0D5317|132 This is your only legal move.|132 Es tu unica jugada legal.
+0D536F|134 You only have one legal move.|134 Solo tienes una jugada legal.
+0D553C|142 No advice available.|142 Sin consejo.
+0D5741|168 Natural Language Advice|168 Consejo en palabras
+0D575D|169 Number of seconds to think:|169 Segundos para pensar:
+0D57F1|176 one|176 1
+0D57F9|177 two|177 2
+0D5801|178 three|178 3
+0D580B|179 four|179 4
+0D5814|180 five|180 5
+0D581D|181 six|181 6
+0D5825|182 seven|182 7
+0D582F|183 eight|183 8
+0D5839|184 nine|184 9
+0D5842|185 ten|185 10
+0D584A|186 eleven|186 11
+0D5855|187 twelve|187 12
+0D5860|188 thirteen|188 13
+0D586D|189 fourteen|189 14
+0D587A|190 fiveteen|190 15
+0D5887|191 sixteen|191 16
+0D5893|192 seventeen|192 17
+0D58A1|193 eighteen|193 18
+0D58AE|194 nineteen|194 19
+0D58BB|195 twenty|195 20
+0D58C6|196 first|196 1o
+0D58D0|197 second|197 2o
+0D58DB|198 third|198 3o
+0D58E5|199 fourth|199 4o
+0D58F0|200 fifth|200 5o
+0D58FA|201 sixth|201 6o
+0D5904|202 seventh|202 7o
+0D5910|203 eighth|203 8o
+0D591B|204 ninth|204 9o
+0D5925|205 tenth|205 10o
+0D592F|206 eleventh|206 11o
+0D593C|207 twelfth|207 12o
+0D5948|208 thirteenth|208 13o
+0D5957|209 fourteenth|209 14o
+0D5966|210 fifteenth|210 15o
+0D5974|211 sixteenth|211 16o
+0D5982|212 seventeenth|212 17o
+0D5992|213 eighthteenth|213 18o
+0D59A3|214 ninteenth|214 19o
+0D59B1|215 twentieth|215 20o
+0D59BF|216 king|216 rey
+0D59C8|217 queen|217 dama
+0D59D2|218 rook|218 rook
+0D59DB|219 bishop|219 alfil
+0D59E6|220 knight|220 knight
+0D59F1|221 pawn|221 peon
+0D59FA|222 kings|222 reyes
+0D5A04|223 queens|223 damas
+0D5A0F|224 rooks|224 rooks
+0D5A19|225 bishops|225 alfiles
+0D5A25|226 knights|226 knights
+0D5A31|227 pawns|227 pawns
+0D5A3B|228 castle|228 enroca
+0D5A46|229 castle queenside|229 enroca largo
+0D5A5B|230 castle kingside|230 enroca corto
+0D5A6F|231 castling|231 enroque
+0D5A7C|232 castling queenside|232 enroque largo
+0D5A93|233 castling kingside|233 enroque corto
+0D5AA9|234 en passant|234 al paso
+0D5AB8|235 with a promotion to queen|235 coronando dama
+0D5AD6|236 with a queen promotion|236 coronando dama
+0D5BC5|243 takes|243 toma
+0D5BCF|244 captures|244 captura
+0D5BF0|248 and|248 y
+0D5BF8|249 the|249 el
+0D5C00|250 which|250 que
+0D5C0A|251 for|251 por
+0D5C12|252 however|252 pero
+0D5C1E|253 through|253 por
+0D5D42|268 checkmates your king|268 da mate a tu rey
+0D5D5B|269 checkmates White's king|269 da mate al rey blanco
+0D5D77|270 checkmates Black's king|270 da mate al rey negro
+0D5E08|274 results in a stalemate|274 termina en ahogado
+0D5E23|275 pins|275 fija
+0D5E2C|276 partially pins|276 clava en parte
+0D5E3F|277 skewers|277 ensarta
+0D5E4B|278 releases the pin on|278 desclava a
+0D5E63|279 frees the pin on|279 desclava a
+0D5E78|280 disengages the pin on|280 deshace la clavada de
+0D5E92|281 traps|281 caza
+0D5E9C|282 moves it out of immediate danger|282 lo saca del peligro inmediato
+0D5EC1|283 moves it to safety|283 lo pone a salvo
+0D5ED8|284 moves it out of immediate jeopardy|284 lo saca del peligro inmediato
+0D5F1E|286 moves it out of take|286 lo saca de captura
+0D5F37|287 moves it out of check|287 lo saca del jaque
+0D5F51|288 you|288 tu
+0D5F59|289 White|289 White
+0D5F63|290 Black|290 Negro
+0D5F6D|291 moves|291 mueve
+0D5F77|292 move|292 va
+0D5F80|293 gains|293 gana
+0D5F8A|294 gain|294 gana
+0D5F93|295 wins|295 gana
+0D5F9C|296 win|296 win
+0D5FA4|297 loses|297 loses
+0D5FAE|298 lose|298 lose
+0D5FB7|299 promotions|299 coronas
+0D5FC6|300 promotion|300 corona
+0D5FD4|301 wins the exchange (Rook for Knight)|301 gana la calidad (Torre por Caballo)
+0D5FFC|302 wins the exchange (Rook for Bishop)|302 gana la calidad (Torre por Alfil)
+0D6024|303 win the exchange (Rook for Knight)|303 gana la calidad (Torre x Caballo)
+0D604B|304 win the exchange (Rook for Bishop)|304 gana la calidad (Torre x Alfil)
+0D6072|305 your|305 tu
+0D607B|306 White's|306 blanco
+0D6087|307 Black's|307 negro
+0D6093|308 you move your|308 mueves tu
+0D60A5|309 your|309 tu
+0D60AE|310 you|310 tu
+0D60B6|311 you fianchetto the|311 fianchetto del
+0D60CD|312 you are forced to move your|312 te obligan a mover tu
+0D60ED|313 you are forced to move|313 te obligan a mover
+0D6108|314 you are forced to|314 te obligan a
+0D611E|315 you are forced to fianchetto the|315 te obligan al fianchetto con
+0D63D4|365 threatens|365 amenaza
+0D63E2|366 attacks|366 ataca
+0D63EE|367 forks|367 ataca
+0D641D|370 protects|370 protege
+0D642A|371 removes the threat on|371 quita la amenaza a
+0D64C1|380 blocks|380 tapa
+0D64CC|381 creates passed pawns on|381 crea peones pasados en
+0D64E8|382 creates a passed pawn on|382 crea un peon pasado en
+0D655B|385 enables the long castle|385 permite enroque largo
+0D6577|386 clears the way for a kingside castle|386 despeja el enroque corto
+0D65CB|388 enables the short castle|388 permite el enroque corto
+0D7267|521 the King's are moved closer together|521 los Reyes quedan mas cerca
+0D7290|522 the King's are moved farther apart|522 los Reyes quedan mas lejos
+0D73D2|539 you can win the game with this move|539 con esta jugada puedes ganar
+0D73FA|540 this move wins the game|540 esta jugada gana
+0D76D2|563 adds a promote threat at|563 amenaza coronar en
+0D76EF|564 removes the promote threat at|564 quita la amenaza de corona en
+0D7711|565 moves it off the edge|565 lo aleja del borde
+0D772B|566 moves it off the edge of the board|566 lo aleja del borde del tablero
+0D7787|568 moves it out of the corner|568 lo saca de la esquina
+0D77D9|570 isolates|570 aisla
+0D77E6|571 moves it behind the passed pawn|571 lo pone tras el peon pasado
+0D780A|572 places it behind the passed pawn|572 lo pone tras el peon pasado
+0D78F7|578 As a result of this line of play|578 Como resultado de esta linea
+0D7946|580 Additionally|580 Ademas
+0D7957|581 In addition|581 Ademas
+0D7967|582 Also|582 Y
+0D7970|583 Lastly|583 Al fin
+0D797B|584 Finally|584 Por fin
+0D7987|585 Have a happy New Year!|585 Feliz Ano Nuevo!
+0D79A2|586 Beware the Ides of March!|586 Cuidado con los idus!
+0D7A10|589 Have a Merry Christmas!|589 Feliz Navidad!
+0D7A2C|590 Don't drink and drive!|590 No bebas y conduzcas!
+0D7A47|591 Way to go!|591 Muy bien!
+0D7A56|592 You got it!|592 Lo tienes!
+0D7A66|593 That's correct!|593 Correcto!
+0D7A7A|594 That is incorrect.|594 Incorrecto.
+0D7A91|595 That's not it.|595 No es eso.
+# --- Comentarios cortos de aperturas (los largos siguen en inglés)
+0C9BA4|Chances are even.|Igualdad.
+0CB897|Chances are even here.|Igualdad.
+0CC518|The position is balanced.|Posicion equilibrada.
+0CD48E|The game is equal here.|Partida igualada.
+0CEB60|Chances are equal here.|Igualdad.
+0D1447|Chances are equal.|Igualdad.
+0D1DC1|White has the initiative.|Blancas con iniciativa.
+0D3017|White has a clear initiative.|Blancas con clara iniciativa.
+0D3691|The game is roughly equal|Partida casi igualada

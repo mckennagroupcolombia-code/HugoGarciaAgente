@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<title>Bassin's Black Bass</title>
+	<style>
+		html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 512px; height: 448px; }
+		html, body, canvas, button {
+			touch-action: none; -webkit-user-select: none; user-select: none;
+			-webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+		}
+		#lienzo { display: block; width: 512px; height: 448px; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+		#aviso { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; color: #9ca3af; font: 12px 'Courier New', monospace; pointer-events: none; }
+		/* Controles táctiles: solo se muestran cuando hay un toque (ver emulador.js). */
+		#tactil { position: absolute; inset: 0; display: none; pointer-events: none; }
+		#tactil.visible { display: block; }
+		#tactil button {
+			position: absolute; width: 52px; height: 52px; border-radius: 50%;
+			border: 2px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff;
+			font: bold 16px monospace; pointer-events: auto; padding: 0;
+		}
+		#tactil button:active, #tactil button.activo { background: rgba(255,255,255,.4); }
+		/* cruceta */
+		#arr { left: 66px; bottom: 118px; } #aba { left: 66px; bottom: 10px; }
+		#izq { left: 12px; bottom: 64px; } #der { left: 120px; bottom: 64px; }
+		/* botones en rombo: X arriba, Y izquierda, A derecha, B abajo */
+		#x { right: 66px; bottom: 118px; } #b { right: 66px; bottom: 10px; }
+		#y { right: 120px; bottom: 64px; } #a { right: 12px; bottom: 64px; }
+		#tactil #start { right: 14px; top: 10px; width: 74px; height: 30px; border-radius: 15px; font-size: 12px; }
+		#tactil #select { right: 96px; top: 10px; width: 74px; height: 30px; border-radius: 15px; font-size: 12px; }
+	</style>
+</head>
+<body>
+	<canvas id="lienzo" width="256" height="224" tabindex="0"></canvas>
+	<div id="aviso">CARGANDO EL CARTUCHO...</div>
+	<div id="tactil">
+		<button id="arr" type="button" data-tecla="ArrowUp" aria-label="Arriba">&#9650;</button>
+		<button id="aba" type="button" data-tecla="ArrowDown" aria-label="Abajo">&#9660;</button>
+		<button id="izq" type="button" data-tecla="ArrowLeft" aria-label="Izquierda">&#9664;</button>
+		<button id="der" type="button" data-tecla="ArrowRight" aria-label="Derecha">&#9654;</button>
+		<button id="x" type="button" data-tecla="KeyA" aria-label="X">X</button>
+		<button id="y" type="button" data-tecla="KeyZ" aria-label="Y">Y</button>
+		<button id="a" type="button" data-tecla="KeyS" aria-label="A">A</button>
+		<button id="b" type="button" data-tecla="KeyX" aria-label="B">B</button>
+		<button id="select" type="button" data-tecla="ShiftRight" aria-label="Select">SELECT</button>
+		<button id="start" type="button" data-tecla="Enter" aria-label="Start">START</button>
+	</div>
+	<script type="module" src="emulador.js"></script>
+</body>
+</html>
