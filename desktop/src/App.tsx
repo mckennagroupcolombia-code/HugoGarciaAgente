@@ -23,6 +23,8 @@ const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
 const EntregasFlexPanel = lazy(() => import("./components/EntregasFlexPanel"));
 const MapaSistemaPanel = lazy(() => import("./components/MapaSistemaPanel"));
+const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"));
+const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
 const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
 const CombosPanel = lazy(() => import("./components/CombosPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
@@ -152,6 +154,10 @@ function PanelRouterInner() {
       return <EntregasFlexPanel />;
     case "mapa-sistema":
       return <MapaSistemaPanel />;
+    case "colaboradores":
+      return <ColaboradoresPanel />;
+    case "juegos":
+      return <JuegosPanel />;
     case "arquitectura":
       return <ArquitecturaPanel />;
     case "combos":
@@ -225,6 +231,33 @@ function AppLoginView({
       });
   }, [onLogin, bootstrapUntil]);
 
+  // Ingreso con correo (o usuario) y contraseña: para quien no entra con Google
+  // —el contador externo—. El servidor frena la fuerza bruta (5 fallos → 15 min).
+  const [cred, setCred] = useState({ usuario: "", clave: "" });
+  const ingresarConClave = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setLoading(true);
+    try {
+      const r = await fetch("/api/tickets/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cred.usuario.trim(), password: cred.clave }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || !body?.token || !body?.usuario?.id) {
+        setAuthError(body?.error === "Credenciales inválidas" ? "Correo o contraseña incorrectos." : (body?.error || `Error ${r.status}`));
+        setLoading(false);
+        return;
+      }
+      bootstrapUntil.current = Date.now() + OAUTH_BOOTSTRAP_MS;
+      onLogin(body.token as string, body.usuario as TicketsUser, body.usuario.api_token ?? null);
+    } catch {
+      setAuthError("No se pudo conectar con el servidor.");
+      setLoading(false);
+    }
+  }, [cred, onLogin, bootstrapUntil]);
+
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     const token = p.get("_token");
@@ -280,6 +313,24 @@ function AppLoginView({
             </svg>
             Iniciar sesión con Google
           </a>
+        )}
+
+        {!loading && (
+          <form onSubmit={(e) => void ingresarConClave(e)} className="mt-5 space-y-2 border-t border-border pt-5">
+            <p className="text-center text-xs text-muted">o con tu correo y contraseña</p>
+            <input type="text" autoComplete="username" value={cred.usuario}
+                   onChange={(e) => setCred({ ...cred, usuario: e.target.value })}
+                   placeholder="Correo o usuario"
+                   className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent" />
+            <input type="password" autoComplete="current-password" value={cred.clave}
+                   onChange={(e) => setCred({ ...cred, clave: e.target.value })}
+                   placeholder="Contraseña"
+                   className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent" />
+            <button type="submit" disabled={!cred.usuario.trim() || !cred.clave}
+                    className="w-full rounded-paper border-2 border-border bg-surface py-2.5 text-sm font-semibold text-ink transition hover:border-accent disabled:opacity-40">
+              Ingresar
+            </button>
+          </form>
         )}
 
         <p className="mt-5 text-center text-xs text-muted">

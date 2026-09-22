@@ -122,6 +122,49 @@ retención. Y `crear_solicitud` guardaba el concepto de la **categoría** en vez
 equivocada y («servicios», 1%) no existe en Alegra. Corregido, y las 10 solicitudes ya creadas se
 reetiquetaron.
 
+**Con documento soporte, el asiento no se espeja (21-sep-2026).** `aprobar()` emitía el documento
+soporte **y además** espejaba el asiento a Alegra: el documento ya causa el gasto y las retenciones, y su
+pago (al confirmar el giro) la salida de bancos, así que Alegra lo contaba **dos veces** — pasó con Fidel
+(DSMG1 + comprobante 134). Ahora el documento se emite primero y, si sale (`success`/`ya_emitido`), el
+espejo queda `cubierto_por_doc_soporte`; si falla, el asiento se espeja como siempre para que el pago no
+quede invisible. Las **cuotas de préstamo** quedan fuera de `emitir_por_solicitud` (el documento de los
+intereses lo emite `prestamos.py`).
+
+**Borrador al aprobar, emisión manual (21-sep-2026).** La API de Alegra **no transmite un documento
+soporte ya creado** (solo `POST /invoices/stamp` para facturas): se transmite al crearlo
+(`stamp.generateStamp`). Por eso al aprobar el documento queda **BORRADOR** en `cc_doc_soporte`
+(`detalle_json` = foto exacta: base, retenciones, pagos, solicitudes que cubre) sin tocar Alegra, y un
+operador de Administración pulsa **«Emitir a la DIAN»** (ficha de la solicitud o **Libro Mayor → Documentos
+soporte**, patrón AstroKiller) → `doc_soporte_pagos.emitir_a_dian()`, que antes de enviar exige: emisión
+activa, todo **al peso** y base − retenciones = girado, contacto **NIT con DV**, cuenta con equivalente, y
+una simulación donde **todas** las retenciones existen en Alegra y suman lo esperado (si falta una, NO se
+emite: es lo que dejó al DSMG1 sin retenciones y con $28.657 fantasma). Crea+transmite en un paso, registra
+los pagos y verifica saldo 0. Nunca PUT a `/bills`. Rutas: `GET /api/pagos/documentos-soporte`,
+`GET/POST /api/pagos/solicitudes/<id>/documento-soporte[/emitir]`.
+
+**El 3051 era el país (21-sep-2026).** «Problema de comunicación con DIAN» (Alegra 3051) en el DSMG2 de
+William, seis intentos: la DIAN respondía bien a las facturas y la asociación del proveedor tecnológico estaba
+activa. La causa: **la dirección del contacto sin país**. `emitir_a_dian` ahora exige país, departamento y ciudad
+(formato aceptado: `Bogotá D.C.` / `Bogotá, D.C.` / `Colombia`). Además el **ReteICA ya no va dentro del
+documento**: se aplica en el **pago** (`bills[].retentions`) y el documento queda con saldo 0 — verificado con
+el DSMG2. **Si Alegra responde 3051, el documento ya quedó creado**: el reintento lo retoma (lo borra sin sello y
+lo recrea con el mismo número), nunca crea otro.
+
+**Todo al peso.** `pagos_wizard._pesos()` (mitad hacia arriba): retenciones enteras y, en gross-up, la
+base entera cuyo neto es exacto. `monto_es_bruto` evita repetir el gross-up al rearmar una solicitud
+guardada (`aprobar`, `previsualizacion_de`) — la #38 de William pasaba de 1.210.483 a 1.221.057.
+
+**1ª quincena de sep (21-sep-2026).** Víctor, Stella y Jenniffer: sin retención en la fuente (anulada el
+16-sep, asientos 1878-1882), gasto a **511035 Asesoría técnica** y **ReteICA 9,66‰ asumido por McKenna**
+(asientos 5584-5586, base = pagado / 0,99034). Sus 13 comprobantes espejo se anularon en Alegra (el documento soporte los reemplaza); los
+documentos quedaron como BORRADORES al peso (bases 1.110.730 / 1.262.193 / 1.614.597), la numeración
+volvió a **DSMG2** y solo DSMG1 existe en Alegra. Los complementos #14/#15
+quedan en `cc_doc_soporte` como `incluido`. **DSMG2-5** eran de `tests/test_prestamos.py` (Juan Pérez
+79123456) escribiendo en la Alegra real: borrados, y `tests/conftest.py` ahora apaga las banderas de
+documentos fiscales y bloquea toda escritura HTTP hacia Alegra en la suite. **Fidel (DSMG1 + journal 134)
+sigue duplicado a propósito**: su DSMG1 no trae las retenciones y el journal es lo único que las muestra —
+lo decide el contador.
+
 ⛔ **FECHA DE CORTE CONTABLE: lo anterior al corte es del contador (18-sep-2026).**
 `contabilidad_core.fecha_corte()` / `antes_del_corte()` / `motivo_corte()`, configurable con
 **`CONTABILIDAD_FECHA_CORTE`** (default **2026-09-01**). Hasta agosto de 2026 la contabilidad la

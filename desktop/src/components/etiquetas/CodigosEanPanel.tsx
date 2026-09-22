@@ -54,7 +54,10 @@ function coincideCodigoEan(c: CodigoEan, q: string): boolean {
   return t.split(/\s+/).filter(Boolean).every((palabra) => blob.includes(palabra));
 }
 
-export function CodigosEanPanel() {
+export function CodigosEanPanel({ buscarInicial = "" }: {
+  /** Abre la lista ya filtrada (p. ej. el SKU de un combo que ya tiene código, desde el taller). */
+  buscarInicial?: string;
+} = {}) {
   const { data: codigos, isLoading, error } = useCodigosEan();
   const crear = useCrearCodigoEan();
   const eliminar = useEliminarCodigoEan();
@@ -66,7 +69,7 @@ export function CodigosEanPanel() {
   const [crearSiigoAbierto, setCrearSiigoAbierto] = useState(false);
   const [accionSiigo, setAccionSiigo] = useState<"crear" | "duplicar">("crear");
   const [siigoInicial, setSiigoInicial] = useState<{ codigo: string; nombre: string } | null>(null);
-  const [busquedaLista, setBusquedaLista] = useState("");
+  const [busquedaLista, setBusquedaLista] = useState(buscarInicial);
   const [sku, setSku] = useState("");
   const [nombreProducto, setNombreProducto] = useState("");
   const [numeroProducto, setNumeroProducto] = useState("");

@@ -155,10 +155,13 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     cf.olor,
     valorEnFilas(datos.propiedades, "aroma", "olor", "odour", "odor"),
   );
-  // En el formulario FT+COA+SDS la composición se diligencia en la sección SDS
-  // (`_sds.composicion`); la de la FT suele quedar vacía (aceites esenciales).
+  // En el formulario FT+COA+SDS la composición se diligencia en el COA
+  // (`_coa.composicion`, desde 21-sep-2026); los documentos anteriores la tienen
+  // en la SDS (`_sds.composicion`). La de la FT suele quedar vacía.
   const composicionRaw =
-    flattenComposicion(datos.composicion) || flattenComposicion(sds.composicion);
+    flattenComposicion(datos.composicion) ||
+    flattenComposicion((coa as Record<string, unknown>).composicion) ||
+    flattenComposicion(sds.composicion);
   // Fórmula molecular: la casilla de la etiqueta muestra el MISMO dato que la
   // fila "Fórmula molecular" del documento técnico (`caracteristicas_fisicas.
   // formula_quimica`; en el COA/SDS viaja como `formula_molecular`). Se

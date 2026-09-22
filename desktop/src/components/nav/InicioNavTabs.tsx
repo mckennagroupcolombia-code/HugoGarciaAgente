@@ -19,7 +19,7 @@ function puedeVerTabInicio(
 }
 
 /**
- * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Métricas / Mapa.
+ * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Colaboradores / Juegos / Métricas / Mapa.
  * Sustituye el título "Agenda" para no repetir el texto.
  * `soloVistas`: con la navegación por flujo, Métricas y Mapa ya están en la secuencia del
  * cabezote; aquí quedan solo las vistas DENTRO de la Agenda (Agenda / Mensajes).
@@ -44,9 +44,19 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   const showMapa = !soloVistas && Boolean(user && puedeVerSeccionPanel(user, "mapa-sistema"));
   const mapaActivo = panel === "mapa-sistema";
 
+  // Colaboradores vive DENTRO de la Agenda (no es una etapa del negocio), así que
+  // en el flujo no aparecía por ningún lado: solo por Ctrl+K. Va aquí, con las demás
+  // vistas de la Agenda, también en `soloVistas`.
+  const showColaboradores = Boolean(user && puedeVerSeccionPanel(user, "colaboradores"));
+  const colaboradoresActivo = panel === "colaboradores";
+  const showJuegos = Boolean(user && puedeVerSeccionPanel(user, "juegos"));
+  const juegosActivo = panel === "juegos";
+
   useEffect(() => {
     if (panel === "dashboard") guardarUltimoPanelHub("inicio", "dashboard");
     else if (panel === "mapa-sistema") guardarUltimoPanelHub("inicio", "mapa-sistema");
+    else if (panel === "colaboradores") guardarUltimoPanelHub("inicio", "colaboradores");
+    else if (panel === "juegos") guardarUltimoPanelHub("inicio", "juegos");
     else if (enAgenda) guardarUltimoPanelHub("inicio", "hugo");
   }, [panel, enAgenda]);
 
@@ -106,6 +116,34 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
         >
           <Icon name="chat" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Mensajes</span>
+        </button>
+      )}
+      {showColaboradores && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={colaboradoresActivo}
+          aria-label="Colaboradores"
+          title="Colaboradores — diagramas compartidos"
+          onClick={() => setPanel("colaboradores")}
+          className={tabClass(colaboradoresActivo)}
+        >
+          <PanelIcon panel="colaboradores" size={22} active={colaboradoresActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Colaboradores</span>
+        </button>
+      )}
+      {showJuegos && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={juegosActivo}
+          aria-label="Juegos"
+          title="Juegos — un rato de descanso"
+          onClick={() => setPanel("juegos")}
+          className={tabClass(juegosActivo)}
+        >
+          <PanelIcon panel="juegos" size={22} active={juegosActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Juegos</span>
         </button>
       )}
       {showMetricas && (

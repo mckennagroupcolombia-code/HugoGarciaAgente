@@ -21,6 +21,8 @@ export interface NuevoCodigoEan {
   presentacion?: string;
   anio?: number;
   mes: number;
+  /** Si viene, manda sobre `mes` (el backend lo usa tal cual): conserva el bimestre de un código existente. */
+  bimestre?: number;
 }
 
 export const BIMESTRE_LABEL: Record<number, string> = {

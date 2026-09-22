@@ -5096,6 +5096,14 @@
    "movimiento": false,
    "padre": "52"
   },
+  "523550": {
+   "id": "6296",
+   "nombre": "Transporte, fletes y acarreos",
+   "tipo": "expense",
+   "naturaleza": "debit",
+   "movimiento": true,
+   "padre": "5235"
+  },
   "523560": {
    "id": "6289",
    "nombre": "Publicidad, propaganda y promoción",

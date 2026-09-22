@@ -13,6 +13,8 @@ export function PanelTransition({ children }: { children: ReactNode }) {
     esPanelContabilidad(panel) ||
     panel === "publicaciones" ||
     panel === "placas-concreto" ||
+    panel === "colaboradores" ||
+    panel === "juegos" ||
     (panel === "etiquetas" && etiquetasStudioInmersivo);
   // Misma key en todo el hub Contabilidad: si no, cada pestaña remonta el árbol
   // y se pierde keep-alive (Stock/Rentabilidad) + estado de filtros.

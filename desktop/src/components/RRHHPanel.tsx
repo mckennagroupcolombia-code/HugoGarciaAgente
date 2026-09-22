@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -459,7 +461,7 @@ function TabHallazgos() {
             </span>
             {h.responsable && (
               <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] text-muted">
-                👤 {h.responsable}
+                <Ico e="👤" /> {h.responsable}
               </span>
             )}
             <div className="flex-1" />
@@ -648,7 +650,7 @@ function TabNomina({ resumen, onRefetch }: { resumen: Resumen; onRefetch: () => 
         {msg && <span className="text-xs text-muted">{msg}</span>}
       </div>
       <p className="text-[11px] leading-relaxed text-muted">
-        ⚠️ Recordatorios del diagnóstico: nunca rebajas nominales de salario (ineficacia jurídica +
+        <Ico e="⚠️" /> Recordatorios del diagnóstico: nunca rebajas nominales de salario (ineficacia jurídica +
         desmotivación); quien esté sobre la línea se congela hasta que la línea lo alcance; deducciones
         deben cuadrar con PILA (riesgo UGPP).
       </p>
@@ -810,7 +812,7 @@ export default function RRHHPanel() {
                 : "border border-border bg-surface-panel text-muted hover:text-ink"
             }`}
           >
-            {t.label}
+            {ico(t.label)}
           </button>
         ))}
       </div>

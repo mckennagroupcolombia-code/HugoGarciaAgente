@@ -144,7 +144,7 @@ def _extraer_json(texto: str) -> dict | None:
     return None
 
 
-def _sintetizar_json(prompt: str) -> dict | None:
+def _sintetizar_json(prompt: str, contexto: str = "documentos_completar") -> dict | None:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY no configurada (requerida para completar documentos)")
@@ -152,13 +152,24 @@ def _sintetizar_json(prompt: str) -> dict | None:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-pro"
+        ok, motivo = permitir_llamada(modelo, contexto=contexto)
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-pro", contents=prompt))
+            fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
             try:
                 resp = fut.result(timeout=75)
             except FutureTimeout:
                 raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto=contexto,
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         return _extraer_json(resp.text or "")
     except RuntimeError:
         raise
@@ -334,13 +345,24 @@ def _sintetizar_texto(prompt: str) -> str:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-flash"
+        ok, motivo = permitir_llamada(modelo, contexto="documentos_sugerir_campo")
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-flash", contents=prompt))
+            fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
             try:
                 resp = fut.result(timeout=30)
             except FutureTimeout:
                 raise RuntimeError("Gemini tardó demasiado — intente de nuevo en unos segundos")
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto="documentos_sugerir_campo",
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         text = (resp.text or "").strip()
         text = re.sub(r"^```[\w]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)

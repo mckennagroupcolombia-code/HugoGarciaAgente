@@ -25,6 +25,10 @@ from app.services.ficha_tecnica import (
     _contexto_coa,
     _contexto_html,
     _contexto_sds,
+    limpiar_contextos_documento,
+    mover_composicion_al_coa,
+    preparar_sds_documento,
+    sds_con_recomendaciones_ft,
     _sds_diligenciado,
 )
 
@@ -156,14 +160,15 @@ def _contexto_publico(datos: dict) -> dict | None:
     if not coa or not _coa_diligenciado(coa):
         return None
     coa = _con_firma_default(coa)
-    sds = _contexto_sds(datos.get("_sds") or {})
-    if not sds or not _sds_diligenciado(sds):
+    sds = _contexto_sds(sds_con_recomendaciones_ft(datos.get("_sds") or {}, ft))
+    # La web nunca contó las recomendaciones de la FT para publicar una SDS.
+    if not sds or not _sds_diligenciado(sds, contar_recomendaciones_ft=False):
         return None
-
-    recs_ft = list(ft.get("recomendaciones") or [])
     ft["recomendaciones"] = []
-    if recs_ft and not (sds.get("recomendaciones") or []):
-        sds["recomendaciones"] = recs_ft
+
+    mover_composicion_al_coa(ft, coa, sds)
+    preparar_sds_documento(ft, coa, sds)
+    limpiar_contextos_documento(ft, coa, sds)
 
     if coa.get("formula"):
         coa["formula_html"] = _formula_html(coa["formula"])

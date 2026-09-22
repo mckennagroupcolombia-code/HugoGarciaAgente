@@ -118,3 +118,14 @@ def test_el_transporte_no_cae_en_el_saco_de_servicios_de_ventas():
     """523550 debe ganarle a 5235: son 1% y 4%, y el ICA 4,14 contra 9,66."""
     assert ipc.perfil("5235")["concepto_retencion"] == "servicios"
     assert ipc.perfil("523550")["concepto_retencion"] == "transporte_carga"
+
+
+def test_servicios_publicos_no_llevan_retencion_de_renta_ni_de_ica():
+    """21-sep-2026: un pago de luz a ENEL salió con ReteICA 9,66 porque el ICA
+    venía de la ficha del tercero. Estas cuentas apagan los dos impuestos."""
+    for cta in ("513525", "513530", "513535", "513555"):
+        assert ipc.es_autorretenedora(cta)
+        assert ipc.perfil(cta)["concepto_retencion"] is None
+        assert ipc.perfil(cta)["ica_por_mil"] == 0
+    assert not ipc.es_autorretenedora("5135")
+    assert not ipc.es_autorretenedora("513550")

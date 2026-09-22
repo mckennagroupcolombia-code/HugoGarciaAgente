@@ -1,6 +1,9 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useAppStore } from "../stores/app";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import MeliComplianceTab, { CrearDesdeCeroPanel } from "./MeliComplianceTab";
+import GuiaPublicacionTaller, { partirPresentacion } from "./combos/GuiaPublicacionTaller";
 import CompetenciaPreciosPanel from "./CompetenciaPreciosPanel";
 import DesenfoqueFotoModal, { DesenfoqueLoteDialog } from "./DesenfoqueFotoModal";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
@@ -723,7 +726,7 @@ function ImagenesTab({
             </div>
           ) : (
             <>
-              <span className="text-3xl opacity-25">🖼</span>
+              <span className="text-3xl opacity-25"><Ico e="🖼" /></span>
               <p className="text-sm font-semibold text-ink">Arrastra o haz clic para elegir</p>
               <p className="text-xs text-muted">
                 JPG, PNG, WEBP · Se normalizan a 1000×1000 con fondo blanco
@@ -1805,7 +1808,7 @@ function GaleriaPublicacionesView({
             disabled={isFetching}
             className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink transition hover:border-accent/50 disabled:opacity-40"
           >
-            {isFetching ? "Actualizando…" : "🔄 Actualizar"}
+            {isFetching ? "Actualizando…" : ico("🔄 Actualizar")}
           </button>
           <button
             type="button"
@@ -2169,7 +2172,7 @@ function VerificarPreciosView() {
           onClick={() => void refetch()}
           className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-accent/50 disabled:opacity-40"
         >
-          {isFetching ? "Actualizando…" : "🔄 Actualizar"}
+          {isFetching ? "Actualizando…" : ico("🔄 Actualizar")}
         </button>
       </form>
 
@@ -2337,6 +2340,22 @@ export default function PublicacionesPanel() {
     consumirTallerSalto();
   }, [tallerSalto, consumirTallerSalto]);
 
+  // Guía desde el taller: qué combo se vino a publicar y con qué datos se crea si no existe.
+  const tallerRetorno = useAppStore((st) => st.tallerRetorno);
+  const crearInicial = useMemo(() => {
+    if (!tallerRetorno || tallerRetorno.pieza?.clave !== "publicacion") return undefined;
+    const { base, presentacion } = partirPresentacion(tallerRetorno.nombre);
+    return { nombre: base, sku: tallerRetorno.ref, presentacion, precio: tallerRetorno.precioLista };
+  }, [tallerRetorno]);
+  const guiaNoEsta = useCallback(() => setSelectedSku(null), []);
+  const guiaBuscar = useCallback((q: string) => {
+    setMainView("catalogo");
+    setBuscarAbierto(true);
+    setBuscar(q);
+    setBuscarDebounced(q);
+    setSelectedSku(null);
+  }, []);
+
   // Debounce búsqueda
   useEffect(() => {
     const t = setTimeout(() => setBuscarDebounced(buscar), 350);
@@ -2444,6 +2463,16 @@ export default function PublicacionesPanel() {
         </button>
       </div>
 
+      {(mainView === "catalogo" || mainView === "crear") && (
+        <GuiaPublicacionTaller
+          vista={mainView}
+          onBuscar={guiaBuscar}
+          onCrear={() => setMainView("crear")}
+          onAbrir={(sku) => { setMainView("catalogo"); setSelectedSku(sku); }}
+          onNoEsta={guiaNoEsta}
+        />
+      )}
+
       {/* Vista galería */}
       {mainView === "galeria" && (
         <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-surface-panel p-2">
@@ -2473,7 +2502,7 @@ export default function PublicacionesPanel() {
       {/* Vista crear desde cero */}
       {mainView === "crear" && (
         <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-2.5">
-          <CrearDesdeCeroPanel onDone={() => setMainView("compliance")} />
+          <CrearDesdeCeroPanel key={crearInicial?.sku ?? "vacio"} inicial={crearInicial} onDone={() => setMainView("compliance")} />
         </div>
       )}
 

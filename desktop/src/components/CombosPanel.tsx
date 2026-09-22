@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -72,7 +73,7 @@ function Detalle({ c }: { c: Combo }) {
                 <span className="absolute right-1.5 top-1.5 rounded bg-surface px-1 text-[10px] font-bold tabular-nums text-ink">
                   {cantidad(x)}
                 </span>
-                <div className="text-xl leading-none">{CASILLA[x.casilla].icono}</div>
+                <div className="text-xl leading-none"><Ico e={CASILLA[x.casilla].icono} /></div>
                 <div className="mt-1 text-[9px] font-bold uppercase tracking-wide text-muted">{CASILLA[x.casilla].nombre}</div>
                 <div className="line-clamp-2 text-[11px] leading-tight text-ink">{x.nombre}</div>
                 <code className="text-[9.5px] text-muted">{x.codigo}</code>
@@ -94,7 +95,7 @@ function Detalle({ c }: { c: Combo }) {
             return (
               <div key={clave} className={`rounded-lg border bg-surface-input p-2.5 ${col.borde}`}>
                 <div className="flex items-center gap-2">
-                  <span className="text-base leading-none">{icono}</span>
+                  <span className="text-base leading-none"><Ico e={icono} /></span>
                   <span className="text-xs font-bold text-ink">{e.titulo}</span>
                   <span className={`ml-auto text-[10px] font-bold uppercase ${col.texto}`}>
                     {e.estado === "ok" ? "equipado" : e.estado === "aviso" ? "revisar" : "ranura vacía"}
@@ -163,14 +164,7 @@ export default function CombosPanel() {
 
   if (vista === "mision")
     return (
-      <div className="mx-auto max-w-[1500px] space-y-3">
-        <div>
-          <h2 className="text-base font-bold text-ink">Taller de combos</h2>
-          <p className="mt-1 max-w-3xl text-xs text-muted">
-            Un combo a la vez: su foto en el centro y sus seis piezas alrededor. Completa las ranuras vacías para encender cada conexión;
-            empieza por los que están a una pieza de quedar listos.
-          </p>
-        </div>
+      <div className="mx-auto w-full max-w-[1760px]">
         {datos.isLoading && <p className="text-xs text-muted">Leyendo el catálogo de Alegra…</p>}
         {datos.isError && <div className="rounded-lg border border-accent-rose/40 bg-accent-rose/10 px-3 py-2 text-xs text-ink">No se pudieron leer los combos: {(datos.error as Error)?.message}</div>}
         {datos.data && <MisionCombos datos={datos.data} onGaleria={() => setVista("galeria")} />}

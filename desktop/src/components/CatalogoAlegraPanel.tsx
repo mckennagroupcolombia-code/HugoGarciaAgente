@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { nombreMayusculasAlegra } from "../lib/alegraNombreProducto";
 
-interface CatalogoItem {
+export interface CatalogoItem {
   id: string;
   reference: string;
   name: string;
@@ -102,7 +102,8 @@ function nuevaComp(parcial?: Partial<CompEdit>): CompEdit {
   };
 }
 
-function EditarModal({
+/** También lo usa el taller de combos (combos/KitEmergente.tsx): mismo emergente, misma escritura. */
+export function EditarModal({
   item,
   busy,
   error,

@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -607,7 +608,7 @@ export default function MensajeriaPanel() {
               )}
               {l.solicitud_pago_id && (
                 <p className="mt-3 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] text-ink">
-                  🧾 Va por <b>Contabilidad → Solicitudes de pago #{l.solicitud_pago_id}</b>: allí se
+                  <Ico e="🧾" /> Va por <b>Contabilidad → Solicitudes de pago #{l.solicitud_pago_id}</b>: allí se
                   aprueba (y nace el asiento), se gira con los dos tokens de la Sucursal Virtual y se
                   adjunta el comprobante. Cuando se confirme el giro, este lote queda pagado solo.
                 </p>

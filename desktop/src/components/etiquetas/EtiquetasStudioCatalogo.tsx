@@ -1,3 +1,4 @@
+import { ico } from "../../icons/icoTexto";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -886,7 +887,7 @@ export function EtiquetasStudioCatalogo({
                     }}
                     className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded border border-danger/40 bg-white/95 text-[11px] leading-none text-danger shadow-sm transition hover:bg-danger hover:text-white disabled:opacity-50"
                   >
-                    {pngEliminandoUno === nombre ? "…" : "🗑"}
+                    {pngEliminandoUno === nombre ? "…" : ico("🗑")}
                   </button>
                 )}
                 <button

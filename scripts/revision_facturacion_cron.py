@@ -1,41 +1,42 @@
 #!/usr/bin/env python3
 """
-Cron: agente autónomo de revisión de facturación MeLi (Astro Killer).
+Cron: revisión diaria de facturación MeLi (Facturación → Ventas).
 
-Hasta ahora `app/tools/revision_facturacion.py` solo se disparaba cuando
-alguien abría el panel Facturación → Ventas, NC y Astro Killer (ver
-`app/services/facturacion_ventas_unificado.py::listar_ventas_meli_unificado`).
-Este cron corre la misma detección todos los días sin depender de que
-alguien entre al panel, crea/actualiza el ticket-checklist del Centro de
-Mando (`app/tools/revision_facturacion.py::crear_o_actualizar_ticket_revision_facturacion`)
-y — solo para los casos NUEVOS de esta corrida — pide al modelo una
-sugerencia corta de qué hacer, que queda como comentario del ticket.
+Hasta el 21-sep-2026 este cron armaba un ticket GLOBAL por día («Revisión
+facturación MeLi — <fecha>») con un paso por venta y sugerencias de IA como
+comentarios. Se dejó de hacer: el checklist se llenaba de ventas que ya se
+habían facturado después de la foto (85 de 94 «sin facturar» el 21-sep), y la
+revisión real se hace en el panel, venta por venta, donde está el botón
+«Facturar ahora» y el cruce comprado vs facturado. Cuando una venta necesita a
+otra persona, el operador le pide la intervención desde esa venta
+(`revision_facturacion.pedir_intervencion`): una solicitud por venta.
 
-Importante: la sugerencia NUNCA ejecuta nada por sí sola (no anula factura,
-no emite nota crédito, no cambia estado de venta) — mismo criterio que el
-resto del repo (ej. postventa MeLi: borrador + aprobación humana, "hugo dale
-ok <order_id>"). El operador sigue marcando "revisado" a mano.
+Lo que hace ahora, sin LLM:
+  1. Recalcula el listado de los últimos N días (actualiza el histórico).
+  2. Revalida las filas del histórico cuya foto puede estar vieja (sin
+     facturar, en tránsito, en margen, duplicados…) contra MeLi y Alegra.
+  3. Cierra los tickets globales viejos que ya tengan todos sus pasos hechos.
+  4. Si aparecieron casos NUEVOS que piden acción (no revisados y sin una
+     intervención abierta), manda UN WhatsApp corto al grupo de contabilidad
+     que lleva al panel. Un caso ya avisado no se vuelve a avisar.
 
 Uso típico (crontab, desde la raíz del repo):
   30 7 * * * cd /ruta/mi-agente && ./venv/bin/python scripts/revision_facturacion_cron.py >>log_cron.txt 2>&1
 
-La frecuencia efectiva real la gobierna app/services/cron_scheduler.py (panel
-Sistemas → Tareas Programadas) — el crontab solo dispara el chequeo, que se
-sale de inmediato si no ha pasado el intervalo configurado.
+La frecuencia efectiva la gobierna app/services/cron_scheduler.py (Sistemas →
+Tareas Programadas).
 
 Variables:
   REVISION_FACTURACION_ACTIVO=0     — desactiva el cron sin tocar el crontab (default: activo)
-  REVISION_FACTURACION_QUIET=1      — no envía WhatsApp aunque haya actividad (pruebas)
-  REVISION_FACTURACION_DIAS         — ventana hacia atrás en días (default 30, igual que el panel)
-  REVISION_FACTURACION_SIN_IA=1     — crea/actualiza el ticket pero no pide sugerencias al modelo
-  REVISION_FACTURACION_AUTORIZAR_GASTO_USD — ver `--autorizar-gasto-usd` abajo
+  REVISION_FACTURACION_QUIET=1      — no envía WhatsApp (pruebas)
+  REVISION_FACTURACION_DIAS         — ventana hacia atrás en días (default 30)
 """
 
 from __future__ import annotations
 
-import argparse
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -59,10 +60,6 @@ def _quiet() -> bool:
     return (os.getenv("REVISION_FACTURACION_QUIET", "0") or "0").strip() == "1"
 
 
-def _sin_ia() -> bool:
-    return (os.getenv("REVISION_FACTURACION_SIN_IA", "0") or "0").strip() == "1"
-
-
 def _dias() -> int:
     try:
         return int(os.getenv("REVISION_FACTURACION_DIAS", "30") or "30")
@@ -70,150 +67,94 @@ def _dias() -> int:
         return 30
 
 
-def _items_nuevos(items: list[dict]) -> list[dict]:
-    """Mismo criterio de dedupe que
-    `crear_o_actualizar_ticket_revision_facturacion` — se calcula aparte
-    (antes de llamarla) solo para saber a cuáles order_id vale la pena
-    pedirles sugerencia de IA (no repetir en casos ya conocidos)."""
-    from app.tools.revision_facturacion import pasos_abiertos_facturacion, revisado_map_facturacion
+def _ya_avisados(ids: list[str]) -> set[str]:
+    """order_id ya avisados por WhatsApp (tabla en el mismo SQLite del histórico)."""
+    from app.services.facturacion_ventas_cache import _conn, init_db
 
-    ya_conocidos = set(revisado_map_facturacion().keys()) | set(pasos_abiertos_facturacion().keys())
-    return [it for it in items if str(it.get("order_id")) not in ya_conocidos]
+    init_db()
+    with _conn() as con:
+        con.execute("CREATE TABLE IF NOT EXISTS avisos_revision (order_id TEXT PRIMARY KEY, avisado_en TEXT)")
+        if not ids:
+            return set()
+        marcas = ",".join("?" * len(ids))
+        return {r[0] for r in con.execute(f"SELECT order_id FROM avisos_revision WHERE order_id IN ({marcas})", ids)}
 
 
-def _sugerir_y_comentar(nuevos: list[dict], *, limite: int) -> int:
-    """Pide sugerencia de IA para cada item nuevo (hasta `limite`, defensivo
-    aunque `permitir_llamada` ya limita internamente por presupuesto) y la
-    deja como comentario en el ticket del día. Nunca interrumpe la corrida
-    por un fallo de IA en un item — se salta ese caso y sigue."""
-    from app.services import tickets_db as _tdb
-    from app.tools.revision_facturacion import pasos_abiertos_facturacion, sugerir_resolucion
+def _registrar_avisados(ids: list[str]) -> None:
+    from app.services.facturacion_ventas_cache import _conn
 
-    if not nuevos:
-        return 0
-
-    pasos = pasos_abiertos_facturacion()  # ya refleja los pasos recién creados
-    creador_id = None
-    try:
-        from app.tools.revision_facturacion import _get_creator_user_id, _db_path
-
-        creador_id = _get_creator_user_id(_db_path())
-    except Exception:
-        creador_id = None
-    if not creador_id:
-        print("⚠️  Sin usuario admin/activo — no se pueden comentar sugerencias.")
-        return 0
-
-    comentados = 0
-    # Un WhatsApp por comentario mandó la revisión del 2026-09-15 en ráfaga:
-    # se comenta en silencio y se avisa una vez por ticket al final.
-    por_ticket: dict[int, int] = {}
-    for it in nuevos[:limite]:
-        order_id = str(it.get("order_id") or "")
-        paso = pasos.get(order_id)
-        if not paso:
-            continue
-        r = sugerir_resolucion(order_id, it.get("tipo") or "revisar", it)
-        if not r.get("ok"):
-            if r.get("motivo"):
-                print(f"   ⏭  {order_id}: sin sugerencia ({r['motivo']})")
-            continue
-        texto = f"🤖 Sugerencia (orden {order_id}): {r['sugerencia']}"
-        try:
-            _tdb.agregar_comentario(paso["ticket_id"], creador_id, texto, es_interno=False, notificar=False)
-            comentados += 1
-            por_ticket[int(paso["ticket_id"])] = por_ticket.get(int(paso["ticket_id"]), 0) + 1
-        except Exception as e:
-            print(f"   ⚠️  {order_id}: no se pudo comentar ({e})")
-
-    from app.services.tickets_notificaciones import notificar_comentarios_en_lote
-
-    for tid, n in por_ticket.items():
-        try:
-            notificar_comentarios_en_lote(tid, creador_id, n)
-        except Exception as e:
-            print(f"   ⚠️  ticket {tid}: no se pudo avisar ({e})")
-    return comentados
+    ahora = datetime.now().isoformat(timespec="seconds")
+    with _conn() as con:
+        con.executemany("INSERT OR IGNORE INTO avisos_revision VALUES (?, ?)", [(i, ahora) for i in ids])
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--autorizar-gasto-usd",
-        type=float,
-        default=None,
-        help="Autoriza un gasto de IA mayor al límite conservador de fábrica para esta corrida "
-        "(25 llamadas / US$1, ver app/services/llm_budget.py). Normalmente no hace falta: la "
-        "cadencia real (pocos casos nuevos por corrida) no roza ese límite.",
-    )
-    args = parser.parse_args()
-
     from app.services.cron_scheduler import debe_ejecutar, registrar_ejecucion
 
     if not debe_ejecutar(JOB_ID):
         print("⏭  Revisión facturación: aún no toca según la frecuencia configurada (Sistemas → Tareas Programadas).")
         return 0
-
     if not _activo():
         print("⏸️  REVISION_FACTURACION_ACTIVO=0 — cron desactivado, no se hace nada.")
         return 0
 
-    if args.autorizar_gasto_usd:
-        from app.services.llm_budget import autorizar_lote
-
-        autorizar_lote(args.autorizar_gasto_usd, descripcion="revision_facturacion_cron")
-
-    from app.services.facturacion_ventas_unificado import items_flaggeados_para_ticket, listar_ventas_meli_unificado
-    from app.tools.revision_facturacion import crear_o_actualizar_ticket_revision_facturacion
+    from app.services.facturacion_ventas_cache import filas_para_revalidar, listar_historial
+    from app.services.facturacion_ventas_unificado import (
+        _revalidar_una,
+        anotar_filas,
+        listar_ventas_meli_unificado,
+        problema_de_venta,
+    )
+    from app.tools.revision_facturacion import cerrar_tickets_revision_completados
 
     dias = _dias()
     print(f"🔎 Revisando facturación MeLi de los últimos {dias} día(s)…")
     try:
-        resultado = listar_ventas_meli_unificado(dias=dias, segmento="todas", limite=150, forzar=False)
-    except Exception as e:
+        resultado = listar_ventas_meli_unificado(dias=dias, segmento="todas", limite=150, forzar=True)
+        if resultado.get("error"):
+            print(f"🔴 {resultado['error']}")
+    except Exception as e:  # noqa: BLE001
         print(f"🔴 No se pudo listar ventas MeLi unificadas: {e}")
-        registrar_ejecucion(JOB_ID)
-        return 1
 
-    if resultado.get("error"):
-        print(f"🔴 {resultado['error']}")
-        registrar_ejecucion(JOB_ID)
-        return 1
-
-    items = items_flaggeados_para_ticket(resultado)
-    nuevos = _items_nuevos(items)
-    print(f"   {len(items)} caso(s) con problema · {len(nuevos)} nuevo(s) en esta corrida.")
-
-    ok, mensaje = crear_o_actualizar_ticket_revision_facturacion(items)
-    print(f"   {mensaje}")
-
-    from app.tools.revision_facturacion import cerrar_tickets_revision_completados
+    ids = filas_para_revalidar(max_filas=300, edad_minima_min=60)
+    print(f"   Revalidando {len(ids)} fila(s) del histórico con foto vieja…")
+    for oid in ids:
+        _revalidar_una(oid)
 
     cerrados = cerrar_tickets_revision_completados()
     if cerrados:
-        print(f"   ✅ Ticket(s) de revisión con todos los pasos hechos, cerrados: {cerrados}")
+        print(f"   ✅ Tickets globales viejos con todos los pasos hechos, cerrados: {cerrados}")
 
-    comentados = 0
-    if ok and nuevos and not _sin_ia():
-        comentados = _sugerir_y_comentar(nuevos, limite=25)
-        if comentados:
-            print(f"   🤖 {comentados} sugerencia(s) de IA agregadas como comentario.")
+    ventas = anotar_filas(listar_historial(segmento="todas", limite=5000)["ventas"])
+    casos = [
+        v for v in ventas
+        if not v.get("revisado")
+        and not (v.get("intervencion") or {}).get("abierta")
+        and problema_de_venta(v)[0]
+    ]
+    nuevos = [v for v in casos if v["order_id"] not in _ya_avisados([v["order_id"] for v in casos])]
+    print(f"   {len(casos)} venta(s) piden acción · {len(nuevos)} nueva(s) desde el último aviso.")
 
     registrar_ejecucion(JOB_ID)
 
-    hay_actividad = bool(nuevos) or not ok
-    if hay_actividad and not _quiet():
+    if nuevos and not _quiet():
         from app.utils import enviar_whatsapp_reporte
 
-        partes = [f"🧾 *Revisión de facturación MeLi* — {dias} día(s)", mensaje]
-        if comentados:
-            partes.append(f"🤖 {comentados} sugerencia(s) de IA lista(s) para revisar en el ticket.")
+        por_tipo: dict[str, int] = {}
+        for v in nuevos:
+            t = problema_de_venta(v)[0]
+            por_tipo[t] = por_tipo.get(t, 0) + 1
+        from app.tools.revision_facturacion import ETIQUETA_PROBLEMA
+
+        detalle = " · ".join(f"{n} {ETIQUETA_PROBLEMA.get(t, t)}" for t, n in sorted(por_tipo.items()))
         enviar_whatsapp_reporte(
-            "\n".join(partes),
+            f"🧾 *Facturación MeLi*: {len(nuevos)} venta(s) nueva(s) piden acción ({detalle}).\n"
+            f"Total pendientes: {len(casos)}. Revisar en /app → Facturación → Ventas → «Solo pendientes»; "
+            "si una necesita a otra persona, usar «Pedir intervención» en esa venta.",
             os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us").strip(),
         )
-
-    return 0 if ok else 1
+        _registrar_avisados([v["order_id"] for v in nuevos])
+    return 0
 
 
 if __name__ == "__main__":

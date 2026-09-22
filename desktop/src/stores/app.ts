@@ -25,6 +25,8 @@ export type Panel =
   | "guias-envio"
   | "entregas-flex"
   | "mapa-sistema"
+  | "colaboradores"
+  | "juegos"
   | "arquitectura"
   | "combos"
   | "publicaciones"
@@ -160,6 +162,22 @@ export type LibroMayorBootTab =
   | "informes"
   | "cuenta-socio";
 
+/** El combo desde el que se saltó a otro apartado, y lo que ese apartado necesita para abrir en él. */
+export interface TallerRetorno {
+  ref: string;
+  nombre: string;
+  /** Materias primas de la receta: el documento técnico es de ellas, no del combo. */
+  mps?: { codigo: string; nombre: string }[];
+  /** El documento no está unido por SKU: Docs técnicos ofrece asociarlo. */
+  asociarDoc?: boolean;
+  /** El documento que el taller encontró (YAML en fichas_word/datos), para abrirlo directo en el editor. */
+  doc?: { archivo?: string; titulo?: string; detalle?: string; estado?: "ok" | "aviso" | "falta" };
+  /** La pieza que se vino a resolver y lo que el taller sabe de ella: el destino arma su guía con esto. */
+  pieza?: { clave: string; titulo: string; estado: "ok" | "aviso" | "falta"; detalle: string; meli_id?: string; precio?: number };
+  /** Precio de lista del combo (Alegra, con IVA) para lo que se cree desde el destino. */
+  precioLista?: number;
+}
+
 interface AppState {
   panel: Panel;
   setPanel: (p: Panel) => void;
@@ -240,8 +258,8 @@ interface AppState {
    * Publicaciones): el apartado abre en ESE producto y el cabezote ofrece volver al combo.
    */
   tallerSalto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string } | null;
-  tallerRetorno: { ref: string; nombre: string; mps?: { codigo: string; nombre: string }[]; asociarDoc?: boolean } | null;
-  saltarDesdeTaller: (retorno: { ref: string; nombre: string; mps?: { codigo: string; nombre: string }[]; asociarDoc?: boolean }, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
+  tallerRetorno: TallerRetorno | null;
+  saltarDesdeTaller: (retorno: TallerRetorno, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
   consumirTallerSalto: () => void;
   volverAlTaller: () => void;
   /** Combos: «mision» = taller guiado caso a caso · «galeria» = todos los combos. */

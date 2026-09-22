@@ -11,6 +11,8 @@ function puedeVerTickets(user: TicketsUser): boolean {
 }
 
 /** Rótulos de envío: admin, permiso propio, o quien despacha (pedidos/empaque). */
+import { esContador, PANELES_CONTADOR } from "./contadorAccess";
+import { esColaboradorExterno, PANELES_COLABORADOR } from "./colaboradorAccess";
 export function puedeVerGuiasEnvio(user: TicketsUser): boolean {
   if (esAdminPanel(user)) return true;
   const perm = user.permisos_secciones;
@@ -27,6 +29,19 @@ export function puedeVerEntregasFlex(user: TicketsUser): boolean {
 /** Visibilidad de un panel/sección del menú según rol y permisos. */
 export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string): boolean {
   if (!user) return false;
+  // Contador externo: solo el Libro Mayor. Va antes que todo lo demás porque
+  // los paneles «libres» (Etiquetas, Empaque) no son asunto suyo — y su API
+  // igual le responde 403 (`_guard_perfil_contador`).
+  if (esContador(user)) return PANELES_CONTADOR.has(seccion);
+  // Colaborador externo: Colaboradores y su Agenda con Armando, nada más.
+  if (esColaboradorExterno(user)) {
+    if (!PANELES_COLABORADOR.has(seccion)) return false;
+    if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
+    return true;
+  }
+  // Colaboradores es un espacio entre Armando y sus colaboradores: ni otro
+  // administrador lo ve sin el permiso explícito (el backend lo niega igual).
+  if (seccion === "colaboradores") return Boolean(user.permisos_secciones?.colaboradores);
   const logistica = puedeVerModuloLogistica(user, seccion);
   if (logistica !== null) return logistica;
   const contab = puedeVerModuloContabilidad(user, seccion);
@@ -34,6 +49,8 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if (esAdminPanel(user)) return true;
   if (seccion === "settings") return true;
+  // Juegos: un rato de descanso para todo el equipo interno (no para contador ni colaborador externo).
+  if (seccion === "juegos") return true;
   if (seccion === "etiquetas") return true;
   if (seccion === "empaque") return true;
   // Rótulos de envío: los hace quien despacha (pedidos/empaque). Debe decir lo

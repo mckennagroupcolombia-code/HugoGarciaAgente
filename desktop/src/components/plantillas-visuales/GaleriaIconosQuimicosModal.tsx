@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -56,7 +57,7 @@ export default function GaleriaIconosQuimicosModal({
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-base text-accent">
-              ⚗️
+              <Ico e="⚗️" />
             </span>
             <div>
               <h3 className="text-sm font-bold text-ink">Galería de Iconos Circulares</h3>
@@ -79,7 +80,7 @@ export default function GaleriaIconosQuimicosModal({
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted text-xs">
-                🔍
+                <Ico e="🔍" />
               </span>
               <input
                 type="text"
@@ -150,7 +151,7 @@ export default function GaleriaIconosQuimicosModal({
         <div className="flex-1 overflow-y-auto p-4">
           {iconosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="text-3xl opacity-40">🧪</span>
+              <span className="text-3xl opacity-40"><Ico e="🧪" /></span>
               <p className="mt-2 text-xs font-semibold text-ink">No se encontraron iconos</p>
               <p className="text-[11px] text-muted">Prueba con otra palabra clave o categoría</p>
             </div>

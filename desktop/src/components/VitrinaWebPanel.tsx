@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMemo, useState } from "react";
 import {
   LINEAS_ORIGEN,
@@ -568,7 +569,7 @@ export default function VitrinaWebPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2 sm:p-3">
       <header>
-        <h1 className="text-base font-bold text-ink dark:text-white">🖥️ Vitrina Web</h1>
+        <h1 className="text-base font-bold text-ink dark:text-white"><Ico e="🖥️" /> Vitrina Web</h1>
       </header>
 
       <div className="flex gap-2">

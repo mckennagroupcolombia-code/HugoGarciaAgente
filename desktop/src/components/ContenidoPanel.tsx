@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ticketsSessionHeaders } from "../api/client";
@@ -654,7 +655,7 @@ export default function ContenidoPanel() {
   return (
     <div className={`mx-auto ${vista === "grabar" ? "max-w-5xl" : "max-w-3xl"} space-y-3`}>
       <div>
-        <h2 className="text-base font-bold text-ink">🎬 Contenido</h2>
+        <h2 className="text-base font-bold text-ink"><Ico e="🎬" /> Contenido</h2>
       </div>
 
       <div className="flex gap-2">
@@ -665,7 +666,7 @@ export default function ContenidoPanel() {
             vista === "video" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
           }`}
         >
-          🎬 Video
+          <Ico e="🎬" /> Video
         </button>
         <button
           type="button"
@@ -674,7 +675,7 @@ export default function ContenidoPanel() {
             vista === "audio" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
           }`}
         >
-          🎙️ Generar audio
+          <Ico e="🎙️" /> Generar audio
         </button>
         <button
           type="button"
@@ -683,7 +684,7 @@ export default function ContenidoPanel() {
             vista === "grabar" ? "border-accent bg-accent/8 text-ink" : "border-border text-muted hover:border-accent/50"
           }`}
         >
-          🔴 Grabar pantalla
+          <Ico e="🔴" /> Grabar pantalla
         </button>
       </div>
 

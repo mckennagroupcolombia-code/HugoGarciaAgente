@@ -25,12 +25,12 @@
       "ultima_vez": "2026-09-10T07:41:57"
     },
     "información sobre sus productos": {
-      "veces": 3,
+      "veces": 4,
       "canales": [
         "whatsapp"
       ],
       "primera_vez": "2026-09-10T14:21:56",
-      "ultima_vez": "2026-09-20T10:08:19"
+      "ultima_vez": "2026-09-21T08:11:24"
     },
     "la primera": {
       "veces": 1,
@@ -207,7 +207,23 @@
       ],
       "primera_vez": "2026-09-20T14:32:43",
       "ultima_vez": "2026-09-20T14:32:43"
+    },
+    "como estas": {
+      "veces": 1,
+      "canales": [
+        "whatsapp"
+      ],
+      "primera_vez": "2026-09-21T07:30:12",
+      "ultima_vez": "2026-09-21T07:30:12"
+    },
+    "metabisulfito de sodio en presentación de kilo, para un kilo y enviar en bogota ": {
+      "veces": 1,
+      "canales": [
+        "whatsapp"
+      ],
+      "primera_vez": "2026-09-21T07:32:10",
+      "ultima_vez": "2026-09-21T07:32:10"
     }
   },
-  "actualizado": "2026-09-20T14:32:43"
+  "actualizado": "2026-09-21T08:11:24"
 }

@@ -358,3 +358,133 @@ def test_presentaciones_fotos_y_datos_de_inventario_por_componente():
         for x in c["componentes"]:
             assert "costo" in x and "existencias" in x
             assert x["existencias"] is None or isinstance(x["existencias"], (int, float))
+
+
+def test_todo_emoji_mapeado_apunta_a_un_icono_que_existe():
+    """`<Ico e="📦" />` dibuja el icono lineal que diga icons/emojiMap.ts. Si el mapa nombra un icono
+    que no está en el set, `Icon` devuelve null y el botón queda SIN icono y sin aviso."""
+    import re
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[1] / "desktop" / "src" / "icons"
+    disponibles = set(re.findall(r"^  ([A-Za-z0-9]+): ", (src / "mck" / "paths" / "ui.tsx").read_text(encoding="utf-8"), flags=re.M))
+    mapa = (src / "emojiMap.ts").read_text(encoding="utf-8").split("export const TOPIC_ICON_PRESETS")[0]
+    usados = dict(re.findall(r'^\s*"([^"]+)":\s*"([A-Za-z0-9]+)"', mapa, flags=re.M))
+    assert len(usados) > 150 and len(disponibles) > 100
+    faltan = {e: n for e, n in usados.items() if n not in disponibles}
+    assert not faltan, f"emojis que apuntan a un icono inexistente: {faltan}"
+    tipos = set(re.findall(r'\| "([A-Za-z0-9]+)"', (src / "types.ts").read_text(encoding="utf-8")))
+    assert not (set(usados.values()) - tipos), "icono usado en el mapa que no está en UiIconName"
+
+
+def test_revisar_documento_organiza_sus_partes_y_no_escribe(tmp_path, monkeypatch):
+    """El taller muestra el documento en un emergente. La lectura debe traer sus partes, contar lo
+    vacío, explicar por qué no está listo y NO tocar el archivo ni devolver imágenes embebidas."""
+    import json
+
+    from app.services import ficha_tecnica as ft
+
+    doc = tmp_path / "vacio_doc.yaml"
+    doc.write_text('''titulo: ACEITE X
+referencia: ACEXg
+cas: ''
+descripcion: Un aceite de prueba que se describe en una frase suficientemente larga para ser un párrafo y no una fila.
+caracteristicas_fisicas:
+  apariencia: Líquido
+  ph: ''
+propiedades_lista:
+  - Hidratante|Ayuda a mantener la piel
+_estado: vacio
+_vacio_motivo: Falta la clasificación GHS
+_vacio_pendientes:
+  - Pedir la SDS al proveedor
+_coa:
+  identificacion:
+    nombre_comercial: ACEITE X
+  parametros:
+    - [Propiedad, Estándar, Resultado]
+    - [Densidad, '0,9', '']
+  firma:
+    nombre: Alguien
+    imagen_b64: data:image/png;base64,AAAA
+_fuentes:
+  - Ficha del proveedor
+''', encoding="utf-8")
+    antes = doc.read_text(encoding="utf-8")
+    monkeypatch.setattr(ft, "DATOS_DIR", tmp_path)
+    monkeypatch.setattr(M, "_datos", lambda refrescar=False: {"documentos": [{"archivo": "vacio_doc.yaml", "estado": "vacía", "referencia": "ACEXg", "equivalentes": []}]})
+
+    r = M.revisar_documento("vacio_doc.yaml")
+    assert r["titulo"] == "ACEITE X" and r["estado"] == "vacía" and r["referencia"] == "ACEXg"
+    por_id = {s["id"]: s for s in r["secciones"]}
+    assert por_id["tds"]["existe"] and por_id["tds"]["vacios"] == 2          # cas y pH
+    assert por_id["coa"]["existe"] and por_id["coa"]["firmado"] and not por_id["sds"]["existe"]
+    assert any(b["tipo"] == "tabla" for b in por_id["coa"]["bloques"])
+    assert [p["titulo"] for p in r["pendientes"]][0].startswith("Por qué") and r["fuentes"] == ["Ficha del proveedor"]
+    assert "base64" not in json.dumps(r), "la firma embebida no debe viajar al navegador"
+    assert doc.read_text(encoding="utf-8") == antes
+    for malo in ("../x.yaml", "no_existe.yaml", "doc.txt"):
+        with pytest.raises(ValueError):
+            M.revisar_documento(malo)
+
+
+def test_editar_documento_cambia_solo_lo_pedido_y_deja_rastro(tmp_path, monkeypatch):
+    """El emergente del taller corrige valores del documento. Debe tocar SOLO las rutas pedidas, respaldar,
+    dejar rastro, no dejar mover el enlace con la materia prima y pedir confirmación si está publicado."""
+    import yaml
+
+    from app.services import ficha_tecnica as ft
+
+    monkeypatch.setattr(ft, "DATOS_DIR", tmp_path)
+    monkeypatch.setattr(ft, "normalizar_datos_ficha", lambda d: dict(d))
+    base = {"titulo": "ACEITE X", "referencia": "ACEXg", "cas": "", "descripcion": "Texto viejo",
+            "caracteristicas_fisicas": {"ph": "", "olor": "Suave"}, "aplicaciones": ["Uno", "Dos"],
+            "_borrador": True, "_tipo": "completo",
+            "_coa": {"parametros": [["Propiedad", "Estándar", "Resultado"], ["Densidad", "0,9", ""]], "firma": {"imagen_b64": "data:AAAA"}}}
+    doc = tmp_path / "borrador_x.yaml"
+    doc.write_text(yaml.dump(base, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    r = M.editar_documento("borrador_x.yaml", [
+        {"ruta": ["cas"], "valor": "111-22-3"},
+        {"ruta": ["caracteristicas_fisicas", "ph"], "valor": "7,0"},
+        {"ruta": ["aplicaciones", 1], "valor": "Dos corregido"},
+        {"ruta": ["_coa", "parametros", 1, 2], "valor": "0,91"},
+        {"ruta": ["descripcion"], "valor": "Texto viejo"},            # igual: no cuenta
+    ], usuario="Armando")
+    assert r["ok"] and r["cambiados"] == ["cas", "caracteristicas_fisicas.ph", "aplicaciones.1", "_coa.parametros.1.2"]
+    d = yaml.safe_load(doc.read_text(encoding="utf-8"))
+    assert d["cas"] == "111-22-3" and d["caracteristicas_fisicas"] == {"ph": "7,0", "olor": "Suave"}
+    assert d["aplicaciones"] == ["Uno", "Dos corregido"] and d["_coa"]["parametros"][1] == ["Densidad", "0,9", "0,91"]
+    assert d["referencia"] == "ACEXg" and d["_coa"]["firma"]["imagen_b64"] == "data:AAAA" and d["descripcion"] == "Texto viejo"
+    assert d["_ediciones"][-1]["quien"] == "Armando" and d["_ediciones"][-1]["desde"] == "taller de combos"
+    assert len(list((tmp_path / "_respaldo_edicion").glob("borrador_x.*.yaml"))) == 1
+
+    for malo in ([{"ruta": ["referencia"], "valor": "OTROg"}], [{"ruta": ["_coa", "firma", "imagen_b64"], "valor": "x"}],
+                 [{"ruta": ["_borrador"], "valor": "no"}], [{"ruta": ["no_existe"], "valor": "x"}],
+                 [{"ruta": ["caracteristicas_fisicas"], "valor": "x"}], [{"ruta": ["cas"], "valor": 5}], []):
+        with pytest.raises(ValueError):
+            M.editar_documento("borrador_x.yaml", malo)
+
+    # publicado: sin confirmación no se toca
+    pub = tmp_path / "ft_coa_sds_y.yaml"
+    pub.write_text(yaml.dump({"titulo": "Y", "cas": "1", "_tipo": "completo"}, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(ValueError, match="publicado"):
+        M.editar_documento("ft_coa_sds_y.yaml", [{"ruta": ["cas"], "valor": "2"}])
+    assert yaml.safe_load(pub.read_text(encoding="utf-8"))["cas"] == "1"
+    assert M.editar_documento("ft_coa_sds_y.yaml", [{"ruta": ["cas"], "valor": "2"}], confirmar_publicado=True)["publicado"]
+
+
+def test_estado_de_la_foto_del_combo():
+    """El taller hace parpadear la foto del centro cuando el combo se completa y su foto no está al día."""
+    f = M._estado_foto
+    assert f(None, None)[0] == "sin_foto" and f({"photo": ""}, None)[0] == "sin_foto"
+    meli = "https://http2.mlstatic.com/D_794179-MCO54788904486_042023-O.jpg"
+    assert f({"photo": meli, "photo_match_type": "identity"}, None)[:2] == ("prestada", "2023-04")
+    assert f({"photo": meli, "photo_match_type": "sku"}, {"actualizado": "2026-09-20T16:44:31"})[0] == "anterior_a_etiqueta"
+    assert f({"photo": meli, "photo_match_type": "sku"}, {"actualizado": "2023-03-01"})[0] == "ok"
+    assert f({"photo": meli, "photo_match_type": "sku"}, None)[0] == "ok"
+    assert f({"photo": "/imagenes-productos-catalogo/C-X.png", "photo_match_type": "siigo"}, {"actualizado": "2026-09-20"}) == ("ok", "", "")
+    d = M.anatomia_combos()
+    for c in d["combos"]:
+        assert c["foto_estado"] in ("sin_foto", "prestada", "anterior_a_etiqueta", "ok")
+        assert (c["foto_estado"] == "ok") == (c["foto_motivo"] == "")

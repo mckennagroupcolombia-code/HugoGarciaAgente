@@ -2722,3 +2722,60 @@ html[data-mck-skin="flujo"] .mck-flujo-miga {
   .mck-mision-pulso, .mck-mision-gana, .mck-mision-sube, .mck-mision-destello, .mck-mision-premio { animation: none; }
   .mck-mision-confeti, .mck-mision-viajero { display: none; }
 }
+
+/* Taller de combos: el tablero se ajusta al alto QUE QUEDA, no solo al ancho. Desde 1024 px el
+   lienzo es un contenedor con tamaño y el tablero toma el mayor 1000×640 que quepa en él. */
+@media (min-width: 1024px) {
+  .mck-mision-lienzo {
+    container-type: size;
+    flex: 1 1 0;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mck-mision-lienzo > .mck-mision-tablero {
+    width: min(100cqw, calc(100cqh * 1000 / 640));
+    max-width: none;
+    margin: 0;
+  }
+}
+.mck-mision-tablero { container-type: inline-size; }
+.mck-nodo-corto { display: none; }
+@container (max-width: 640px) {
+  .mck-mision-nodo { width: 29% !important; }
+  .mck-nodo-largo { display: none; }
+  .mck-nodo-corto { display: inline; }
+}
+@container (max-width: 460px) {
+  .mck-mision-tablero .mck-flujo-nodo { padding: 0.2rem 0.35rem; }
+}
+
+/* <Ico/>: icono lineal del tamaño del texto que lo rodea (los atributos width/height del SVG
+   ceden ante esto). Es la iconografía minimalista que reemplaza a los emojis de la interfaz. */
+svg.mck-ico {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.17em;
+  flex: none;
+}
+
+/* Taller de combos: el combo ya está completo pero su foto no está al día → la foto del centro llama la
+   atención SIN volverse transparente: el círculo sigue blanco y opaco (por detrás pasan las seis líneas del
+   tablero; con opacidad en el círculo se veían cruzadas). Late un halo ámbar por fuera y la foto se atenúa
+   sobre el blanco. */
+@keyframes mck-mision-foto-halo {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--mck-accent-sun) / 0.85); border-color: rgb(var(--mck-accent-sun)); }
+  50% { box-shadow: 0 0 0 14px rgb(var(--mck-accent-sun) / 0); border-color: rgb(var(--mck-accent-sun) / 0.35); }
+}
+@keyframes mck-mision-foto-tenue {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.mck-mision-foto-parpadea { background: #fff !important; opacity: 1 !important; animation: mck-mision-foto-halo 1.3s ease-in-out infinite; }
+.mck-mision-foto-parpadea img { animation: mck-mision-foto-tenue 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mck-mision-foto-parpadea { animation: none; box-shadow: 0 0 0 4px rgb(var(--mck-accent-sun) / 0.6); }
+  .mck-mision-foto-parpadea img { animation: none; }
+}

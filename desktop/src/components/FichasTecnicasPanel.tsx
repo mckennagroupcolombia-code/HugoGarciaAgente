@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import EnlazarDocumento from "./combos/EnlazarDocumento";
 import { useAppStore } from "../stores/app";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
@@ -5,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import ImageLightbox from "./ImageLightbox";
 import DocumentoGeneradorTab, {
-  type DocLayoutOpciones,
   type GenerarDocResult,
   Field,
   filasDesdeTexto,
@@ -19,6 +20,7 @@ import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
 import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
+import SdsSeccion, { SDS_VACIA, sdsAPayload, sdsDesdeDatos, type ContextoFt, type SdsForm } from "./documentos/SdsSeccion";
 import DocumentosCatalogoTab, { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
 import {
   PARAMETROS_COA_FALLBACK,
@@ -70,34 +72,171 @@ interface BibliotecaDatosResult {
   tiene_datos: boolean;
 }
 
+/** Primer tramo del «detalle» del taller («vacía · unido por SKU» → «vacía»). */
+function estadoDoc(detalle?: string): string {
+  return (detalle || "").split(" · ")[0].trim();
+}
+
+const ESTADO_DOC_TONO: Record<string, string> = {
+  ok: "border-emerald-600/40 bg-emerald-600/10 text-emerald-800 dark:text-emerald-300",
+  aviso: "border-accent-sun/60 bg-accent-sun/15 text-ink",
+  falta: "border-accent-rose/50 bg-accent-rose/10 text-accent-rose",
+};
+
 /**
- * Llegada desde un combo sin documento (taller o galería de Combos): la biblioteca lista PDF y no
- * tenía cómo decir «este es el documento de aquel producto». Este bloque lo hace ahí mismo.
+ * Llegada desde el taller de combos: una sola tarjeta dice de qué producto se trata, qué documento
+ * es, qué le falta y cuál es el siguiente paso. Antes se aterrizaba en la biblioteca de PDF con el
+ * escáner de COA encima y un buscador que no encontraba nada (un documento sin PDF no aparece ahí).
+ *
+ * - Con documento encontrado: se abre solo en el editor (una vez por documento) y la tarjeta lista
+ *   los pendientes que dejó quien lo redactó (`_vacio_pendientes` del YAML).
+ * - Sin documento: dos salidas lado a lado — enlazar uno que ya existe o empezar desde cero.
  */
-function AsociarAlCombo() {
+function DocDelCombo({ onAbrir, editando, onVolver }: {
+  onAbrir: (datos: Record<string, unknown>) => void;
+  editando: boolean;
+  /** Dentro de la ventana del taller: cerrar la ventana en vez de navegar al taller. */
+  onVolver?: () => void;
+}) {
   const retorno = useAppStore((st) => st.tallerRetorno);
-  const volver = useAppStore((st) => st.volverAlTaller);
-  const [hecho, setHecho] = useState<{ titulo: string; sku: string } | null>(null);
-  if (!retorno?.asociarDoc) return null;
+  const volverAlTaller = useAppStore((st) => st.volverAlTaller);
+  const volver = onVolver ?? volverAlTaller;
+  const setTab = useAppStore((st) => st.setDocsTab);
+  const [archivoElegido, setArchivoElegido] = useState<string | null>(null);
+  const [elegir, setElegir] = useState(false);
+  const [verPendientes, setVerPendientes] = useState(true);
+  const [nuevoAbierto, setNuevoAbierto] = useState(false);
+  const abiertoRef = useRef<string | null>(null);
+
+  const archivo = archivoElegido || retorno?.doc?.archivo || "";
+  const slug = archivo.replace(/\.ya?ml$/i, "");
+  const docQ = useQuery({
+    queryKey: ["fichas-datos-slug", slug],
+    queryFn: () => api.get<{ archivo: string; datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(slug)}`),
+    enabled: Boolean(slug),
+    staleTime: 30_000,
+  });
+
+  // Abre el documento en el editor apenas llega, una sola vez por documento.
+  useEffect(() => {
+    if (!docQ.data || abiertoRef.current === slug) return;
+    abiertoRef.current = slug;
+    onAbrir(docQ.data.datos);
+  }, [docQ.data, slug, onAbrir]);
+
+  if (!retorno) return null;
   const mps = retorno.mps ?? [];
+  const datos = docQ.data?.datos;
+  const titulo = String(datos?.titulo || datos?.nombre_producto || retorno.doc?.titulo || "");
+  const estado = archivoElegido ? "" : estadoDoc(retorno.doc?.detalle);
+  const tono = retorno.doc?.estado ?? (archivo ? "aviso" : "falta");
+  const pendientes = Array.isArray(datos?._vacio_pendientes) ? (datos!._vacio_pendientes as unknown[]).map(String) : [];
+  const motivo = String(datos?._vacio_motivo || "");
+
+  const desdeCero = () => {
+    const mp = mps[0];
+    // El nombre del combo sin su presentación («ALMENDRA NATURAL 250g» → «ALMENDRA NATURAL»); el de la
+    // materia prima trae el empaque de compra («…AMERICANA CAJA 22.68 KG»).
+    const nombre = retorno.nombre.replace(/\s+\d+([.,]\d+)?\s*(g|gr|kg|ml|l|un|und)$/i, "").trim().toUpperCase();
+    abiertoRef.current = "__nuevo__";
+    setNuevoAbierto(true);
+    onAbrir({ titulo: nombre, nombre_producto: nombre, referencia: mp?.codigo || "" });
+  };
+
   return (
-    <div className="rounded-xl border-2 border-accent/60 bg-accent/5 p-3">
-      <p className="text-sm font-bold text-ink">Asociar un documento a «{retorno.nombre}»</p>
-      {hecho ? (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px] text-ink">
-          <span>✓ «{hecho.titulo}» quedó asociado a <code>{hecho.sku}</code>. Todas las presentaciones de esa materia prima lo heredan.</span>
-          <button type="button" onClick={volver} className="rounded-md border border-accent bg-accent px-2.5 py-1 text-[12px] font-bold text-white hover:opacity-90">← Seguir con el combo</button>
-          <button type="button" onClick={() => setHecho(null)} className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] text-ink hover:bg-surface-hover">Asociar otro</button>
+    <section className="rounded-xl border border-accent/50 bg-surface-panel p-3 shadow-paper-sm" aria-label="Documento del combo">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-wide text-muted">Desde el taller de combos</p>
+        <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+          {retorno.nombre} <code className="font-normal text-muted">{retorno.ref}</code>
+        </p>
+        <button type="button" onClick={volver} className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-semibold text-ink hover:border-accent">
+          ← Volver al combo
+        </button>
+      </div>
+
+      {archivo ? (
+        <div className="mt-2 border-t border-border/70 pt-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Ico e="📄" />
+            <span className="text-[14px] font-bold text-ink">{titulo || archivo}</span>
+            {estado && <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase ${ESTADO_DOC_TONO[tono] ?? ""}`}>{estado}</span>}
+            <span className="ml-auto flex flex-wrap items-center gap-2">
+              {docQ.isLoading && <span className="text-[12px] text-muted">Abriendo…</span>}
+              {docQ.isError && <span className="text-[12px] text-accent-rose">No se pudo leer el documento ({archivo}).</span>}
+              {datos && (editando ? (
+                <span className="text-[12px] font-semibold text-accent">✓ Abierto en el editor, abajo</span>
+              ) : (
+                <button type="button" onClick={() => { onAbrir(datos); setTab("completo"); }} className="rounded-md border border-accent bg-accent px-3 py-1 text-[12px] font-bold text-white hover:opacity-90">
+                  Abrir en el editor
+                </button>
+              ))}
+              {mps.length > 0 && !elegir && (
+                <button type="button" onClick={() => setElegir(true)} className="text-[11.5px] text-muted underline decoration-dotted hover:text-ink">
+                  ¿No es este documento?
+                </button>
+              )}
+            </span>
+          </div>
+
+          {(pendientes.length > 0 || motivo) && (
+            <div className="mt-2 rounded-lg border border-accent-sun/50 bg-accent-sun/10 px-3 py-2">
+              <button type="button" onClick={() => setVerPendientes((v) => !v)} className="flex w-full items-center justify-between text-left text-[12px] font-bold text-ink">
+                <span>Lo que le falta para quedar listo{pendientes.length ? ` (${pendientes.length})` : ""}</span>
+                <span className="text-muted">{verPendientes ? "▲" : "▼"}</span>
+              </button>
+              {verPendientes && (
+                <ol className="mt-1.5 max-h-36 list-decimal space-y-1 overflow-y-auto pl-5 pr-1 text-[12px] leading-snug text-ink">
+                  {(pendientes.length ? pendientes : [motivo]).map((t, k) => <li key={k}>{t}</li>)}
+                </ol>
+              )}
+            </div>
+          )}
+          {datos && !pendientes.length && !motivo && (
+            <p className="mt-1.5 text-[12px] text-muted">
+              Revisa las tres secciones del editor (Ficha técnica → COA → SDS), guarda y genera el documento. Luego vuelve al combo.
+            </p>
+          )}
         </div>
       ) : (
-        <>
-          <p className="mb-2 mt-0.5 text-xs text-muted">
-            Busca el documento que ya existe y pulsa «Asociar a este combo». Si no existe, redáctalo en las pestañas de arriba y vuelve aquí a asociarlo.
-          </p>
-          <EnlazarDocumento mps={mps} inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""} etiquetaBoton="Asociar a este combo" onHecho={setHecho} />
-        </>
+        <div className="mt-2 grid gap-3 border-t border-border/70 pt-2 md:grid-cols-2">
+          <div>
+            <p className="text-[12.5px] font-bold text-ink">1 · ¿Ya existe el documento?</p>
+            <p className="mb-2 text-[11.5px] text-muted">Búscalo y asócialo: todas las presentaciones de la materia prima lo heredan.</p>
+            <EnlazarDocumento
+              mps={mps}
+              inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""}
+              etiquetaBoton="Asociar y abrir"
+              onHecho={(r) => { setArchivoElegido(r.archivo); setTab("completo"); }}
+            />
+          </div>
+          <div className="md:border-l md:border-border/70 md:pl-3">
+            <p className="text-[12.5px] font-bold text-ink">2 · ¿No existe?</p>
+            <p className="mb-2 text-[11.5px] text-muted">
+              Empieza uno nuevo con el nombre y el SKU de la materia prima ya puestos{mps[0] ? <> (<code>{mps[0].codigo}</code>)</> : null}.
+            </p>
+            <button type="button" onClick={desdeCero} className="rounded-md border border-accent bg-accent px-3 py-1.5 text-[12px] font-bold text-white hover:opacity-90">
+              Empezar desde cero
+            </button>
+            {nuevoAbierto && editando && (
+              <p className="mt-2 text-[12px] font-semibold text-accent">✓ Documento nuevo abierto abajo. Al guardarlo queda unido a <code>{mps[0]?.codigo}</code>.</p>
+            )}
+          </div>
+        </div>
       )}
-    </div>
+
+      {archivo && elegir && (
+        <div className="mt-2 rounded-lg border border-accent/40 bg-accent/5 p-2">
+          <EnlazarDocumento
+            mps={mps}
+            inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""}
+            etiquetaBoton="Usar este"
+            onCancelar={() => setElegir(false)}
+            onHecho={(r) => { setElegir(false); setArchivoElegido(r.archivo); setTab("completo"); }}
+          />
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -213,17 +352,28 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
-      <AsociarAlCombo />
-      <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">Cargar documentos en la página web</p>
-          <p className="mt-0.5 text-xs text-muted">
-            Publica solo documentos completos (FT + COA + SDS) en las páginas de producto de mckennagroup.co.
-          </p>
+      {/* La biblioteca es la lista de PDF generados. Escanear un COA y publicar en la web son tareas
+          ocasionales: una fila compacta (el escáner plegado) en vez de media pantalla sobre la lista. */}
+      <div className="grid gap-2 md:grid-cols-2">
+        <details className="group rounded-xl border border-border bg-surface-panel open:md:col-span-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5">
+            <span>
+              <span className="block text-sm font-semibold text-ink"><Ico e="📷" /> Escanear el COA de un proveedor</span>
+              <span className="block text-xs text-muted">Fotos o PDF → la IA llena el documento</span>
+            </span>
+            <span className="text-muted group-open:rotate-180">▼</span>
+          </summary>
+          <div className="border-t border-border px-2 pb-2 pt-2">
+            <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
+          </div>
+        </details>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-panel px-4 py-2.5">
+          <span>
+            <span className="block text-sm font-semibold text-ink">Publicar en la página web</span>
+            <span className="block text-xs text-muted">Solo documentos completos (FT + COA + SDS)</span>
+          </span>
+          <CargarDocumentosWebButton />
         </div>
-        <CargarDocumentosWebButton />
       </div>
 
       {deleteError && (
@@ -254,7 +404,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
           title="Registra un lote autogenerado (4 letras + consecutivo) para cada ficha técnica guardada que aún no tenga uno"
           className="ml-auto rounded-lg border border-accent/50 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
         >
-          {generarLotesMut.isPending ? "Generando…" : "🔢 Generar lotes faltantes"}
+          {generarLotesMut.isPending ? "Generando…" : ico("🔢 Generar lotes faltantes")}
         </button>
       </div>
 
@@ -381,7 +531,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
                           className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger"
                           title="Eliminar archivo"
                         >
-                          🗑
+                          <Ico e="🗑" />
                         </button>
                       </div>
                     )}
@@ -481,7 +631,6 @@ function FichaTecnicaTabContent({
       loadDatos={loadDatos}
       buildDatos={buildDatos}
       showWordPdfFolders={false}
-      showFichaLayout
       showDrive={false}
       showYamlMode={false}
       showGuardarYaml={false}
@@ -1299,7 +1448,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
                 key={`${p.name}-${i}`}
                 className="flex h-20 max-w-[140px] items-center gap-1 rounded border border-border bg-surface-input px-2"
               >
-                <span className="text-[10px] text-muted">📄</span>
+                <span className="text-[10px] text-muted"><Ico e="📄" /></span>
                 <span className="truncate text-[10px] text-ink">{p.name}</span>
               </div>
             ),
@@ -1344,7 +1493,7 @@ function CoaSection({
   errorSugerir: string | null;
 }) {
   /* ── Tabla de parámetros ── */
-  const rows = parseParamRows(coaParametros);
+  const rows = parseParamRows(coaParametros, { editable: true });
   const rowsParaTabla = rows.length ? rows : [{ parametro: "", especificacion: "", resultado: "" }];
   const tieneParametros = rows.some((r) => r.parametro || r.especificacion || r.resultado);
   const sinInfoCoa = !coaEinces.trim() && !coaGrado.trim() && !tieneParametros;
@@ -1525,9 +1674,12 @@ function IaBtn({ label, loading, onClick }: { label: string; loading: boolean; o
 function DocumentoCompletoTabContent({
   producto,
   preload,
+  onVolver,
 }: {
   producto: ProductoDocumentacion | null;
   preload: Record<string, unknown> | null;
+  /** Dentro de la ventana del taller: volver al combo tras dar el visto bueno. */
+  onVolver?: () => void;
 }) {
   /* FT — delegado a FichaTecnicaForm mediante refs */
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
@@ -1553,61 +1705,15 @@ function DocumentoCompletoTabContent({
 
   /* ── Campos compartidos (una sola vez en el formulario) ── */
   const [nombre, setNombre] = useState("");
+  const desdeTaller = useAppStore((st) => Boolean(st.tallerRetorno));
   const [referencia, setReferencia] = useState("");
   const [cas, setCas] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
   const [inci, setInci] = useState("");
-  const [colorAcento, setColorAcento] = useState("#069DC2");
-  const [cabezoteId, setCabezoteId] = useState("default");
-
+  // El formato FT + COA + SDS lleva un único logo y color: el turquesa corporativo
+  // (lo impone ficha_tecnica.LOGO_FORMATO / COLOR_FORMATO). Ya no se elige.
+  const colorAcento = "#044D5C";
   const qc = useQueryClient();
-  const cabezoteFileRef = useRef<HTMLInputElement>(null);
-  const [cabezoteConfirmDelete, setCabezoteConfirmDelete] = useState<string | null>(null);
-  const [cabezoteDeleting, setCabezoteDeleting] = useState<string | null>(null);
-  const [cabezoteDeleteError, setCabezoteDeleteError] = useState<string | null>(null);
-  const [cabezotePreview, setCabezotePreview] = useState<{ src: string; nombre: string } | null>(null);
-
-  const { data: layoutOpciones } = useQuery({
-    queryKey: ["fichas-opciones"],
-    queryFn: () => api.get<DocLayoutOpciones>("/api/fichas/opciones"),
-  });
-
-  const cabezoteUploadMut = useMutation({
-    mutationFn: (file: File) => {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      const base = file.name.replace(/\.[^.]+$/, "");
-      if (base.trim()) fd.append("nombre", base.trim());
-      return api.upload<{ ok: boolean; cabezote: { id: string; nombre: string } }>("/api/fichas/cabezotes/subir", fd);
-    },
-    onSuccess: (r) => {
-      setCabezoteId(r.cabezote.id);
-      void qc.invalidateQueries({ queryKey: ["fichas-opciones"] });
-    },
-  });
-
-  const handleCabezoteDelete = async (id: string) => {
-    if (cabezoteDeleting) return;
-    setCabezoteDeleting(id);
-    setCabezoteDeleteError(null);
-    try {
-      const { resolvePanelApiUrl } = await import("../api/client");
-      const { useTicketsAuth } = await import("../stores/ticketsAuth");
-      const { useAuthStore } = await import("../stores/auth");
-      const t = useTicketsAuth.getState();
-      const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-      const url = resolvePanelApiUrl(`/api/fichas/cabezotes/${encodeURIComponent(id)}/eliminar`, "DELETE");
-      const res = await fetch(url, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (cabezoteId === id) setCabezoteId("default");
-      void qc.invalidateQueries({ queryKey: ["fichas-opciones"] });
-    } catch (err) {
-      setCabezoteDeleteError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setCabezoteDeleting(null);
-      setCabezoteConfirmDelete(null);
-    }
-  };
 
   /* ── COA: solo campos exclusivos ── */
   const [coaEinces, setCoaEinces] = useState("");
@@ -1621,16 +1727,18 @@ function DocumentoCompletoTabContent({
   const inciGuardar = casillas.inci ? "" : inci;
   const insGuardar = casillas.ins ? "" : ins;
   const [coaParametros, setCoaParametros] = useState("");
+  /* Composición: se imprime en el COA (antes vivía en la SDS) */
+  const [coaComposicion, setCoaComposicion] = useState("");
   const [coaFirmaNombre, setCoaFirmaNombre] = useState("");
   const [coaFirmaCargo, setCoaFirmaCargo] = useState("");
   const [coaFirmaOrganizacion, setCoaFirmaOrganizacion] = useState("");
   const [coaFirmaImagenB64, setCoaFirmaImagenB64] = useState("");
 
-  /* ── SDS: solo campos exclusivos ── */
-  const [sdsClasificacion, setSdsClasificacion] = useState("");
-  const [sdsPictogramas, setSdsPictogramas] = useState("");
-  const [sdsComposicion, setSdsComposicion] = useState("");
-  const [sdsRecomendaciones, setSdsRecomendaciones] = useState("");
+  /* ── SDS (esquema 2, ver documentos/SdsSeccion.tsx) ── */
+  const [sdsForm, setSdsForm] = useState<SdsForm>(SDS_VACIA);
+  const [sdsAvisos, setSdsAvisos] = useState<string[]>([]);
+  const sdsCargaRef = useRef(0);
+  const [sdsCargando, setSdsCargando] = useState(false);
 
   /* Generación */
   const [loading, setLoading] = useState(false);
@@ -1651,10 +1759,7 @@ function DocumentoCompletoTabContent({
         case "inci":                   setInci(v); break;
         case "nombre_comercial":       setNombreComercial(v); break;
 
-        case "sds_clasificacion_ghs":  setSdsClasificacion(v); break;
-        case "sds_pictogramas":        setSdsPictogramas(v); break;
-        case "composicion":            setSdsComposicion(v); break;
-        case "recomendaciones":        setSdsRecomendaciones(v); break;
+        case "composicion":            setCoaComposicion(v); break;
         case "coa_einecs":             setCoaEinces(v); break;
         case "coa_grado":              setCoaGrado(v); break;
         case "coa_parametros":         setCoaParametros(v); break;
@@ -1747,8 +1852,6 @@ function DocumentoCompletoTabContent({
     setTipoInsumo(esTipoInsumo(datos.tipo_insumo) ? datos.tipo_insumo : "");
     setIns(String(datos.ins || ""));
 
-    if (datos._cabezote_id) setCabezoteId(String(datos._cabezote_id));
-    if (datos.color_acento) setColorAcento(String(datos.color_acento));
 
     // Promover lote/fechas del bloque COA al formulario FT (fuente del completo).
     // Preferir valores del escaneo (_coa.lote / top-level) para que sí se vean en el editor.
@@ -1781,23 +1884,47 @@ function DocumentoCompletoTabContent({
       else if (sdsIdent.numero_ce) setCoaEinces(String(sdsIdent.numero_ce));
       if (coaIdent.grado) setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
+      if (coaData.composicion) setCoaComposicion(textoDesdeFilasTres(coaData.composicion));
       setCoaFirmaNombre(String(coaFirma.nombre || ""));
       setCoaFirmaCargo(String(coaFirma.cargo || ""));
       setCoaFirmaOrganizacion(String(coaFirma.organizacion || ""));
       setCoaFirmaImagenB64(String(coaFirma.imagen_b64 || ""));
     }
 
+    // SDS: se convierte al esquema 2 en el backend (misma regla que el PDF).
+    const carga = ++sdsCargaRef.current;
+    setSdsAvisos([]);
     if (sdsData) {
-      const peligros = (sdsData.peligros as Record<string, unknown>) || {};
-      if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
-      if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
-      if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
-      const recSds = String(sdsData.recomendaciones || peligros.recomendaciones || "");
-      if (recSds.trim()) setSdsRecomendaciones(recSds);
+      // Documentos anteriores guardaban la composición en la SDS: pasa al COA.
+      if (sdsData.composicion && !coaData?.composicion) {
+        setCoaComposicion(textoDesdeFilasTres(sdsData.composicion));
+      }
+      // Recomendaciones GHS históricas guardadas en la FT: entran a la SDS para repartirse.
+      const recFt = String(datos.recomendaciones || "");
+      const pel = (sdsData.peligros as Record<string, unknown>) || {};
+      const sdsEntrada =
+        recFt.trim() && sdsData.esquema !== 2 && !sdsData.recomendaciones && !pel.recomendaciones
+          ? { ...sdsData, recomendaciones: recFt }
+          : sdsData;
+      setSdsForm(sdsDesdeDatos(sdsEntrada.esquema === 2 ? sdsEntrada : null));
+      setSdsCargando(true);
+      void api
+        .post<{ sds: Record<string, unknown>; avisos: string[] }>("/api/fichas/sds/normalizar", { sds: sdsEntrada })
+        .then((r) => {
+          if (carga !== sdsCargaRef.current) return;
+          setSdsForm(sdsDesdeDatos(r.sds));
+          setSdsAvisos(r.avisos || []);
+        })
+        .catch(() => {
+          if (carga === sdsCargaRef.current) setSdsAvisos(["No se pudo convertir la hoja del formato anterior; recargue el documento."]);
+        })
+        .finally(() => {
+          if (carga === sdsCargaRef.current) setSdsCargando(false);
+        });
+    } else {
+      setSdsForm(SDS_VACIA);
+      setSdsCargando(false);
     }
-    // Migrar recomendaciones GHS históricas guardadas en FT → SDS
-    const recFt = String(datos.recomendaciones || "");
-    if (recFt.trim()) setSdsRecomendaciones((prev) => prev.trim() || recFt);
   }, []);
 
   /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
@@ -1838,6 +1965,7 @@ function DocumentoCompletoTabContent({
         tamano_lote: String(ft.presentacion || ""),
       },
       parametros: filasTresDesdeTexto(coaParametros),
+      composicion: filasTresDesdeTexto(coaComposicion),
       firma: {
         nombre: coaFirmaNombre,
         cargo: coaFirmaCargo,
@@ -1847,11 +1975,11 @@ function DocumentoCompletoTabContent({
     };
   }, [
     nombre, nombreComercial, referencia, inciGuardar, casGuardar,
-    einecsGuardar, insGuardar, coaGrado, coaParametros,
+    einecsGuardar, insGuardar, coaGrado, coaParametros, coaComposicion,
     coaFirmaNombre, coaFirmaCargo, coaFirmaOrganizacion, coaFirmaImagenB64,
   ]);
 
-  const buildSdsDatos = useCallback(() => ({
+  const buildSdsDatos = useCallback(() => sdsAPayload(sdsForm, {
     titulo: nombre,
     identificacion: {
       nombre_comercial: nombreComercial || nombre,
@@ -1860,13 +1988,19 @@ function DocumentoCompletoTabContent({
       cas: casGuardar,
       numero_ce: einecsGuardar,
     },
-    peligros: { clasificacion: sdsClasificacion, pictogramas: sdsPictogramas },
-    composicion: filasTresDesdeTexto(sdsComposicion),
-    recomendaciones: sdsRecomendaciones,
-  }), [
-    nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar,
-    sdsClasificacion, sdsPictogramas, sdsComposicion, sdsRecomendaciones,
-  ]);
+  }), [nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar, sdsForm]);
+
+  /** Lo que la FT ya dice: la SDS lo muestra como referencia y la IA no lo repite. */
+  const obtenerFtParaSds = useCallback((): ContextoFt => {
+    const ft = buildFtRef.current() as Record<string, unknown>;
+    const cf = (ft.caracteristicas_fisicas as Record<string, unknown>) || {};
+    return {
+      conservacion: String(ft.conservacion || ""),
+      propiedades: Object.entries(cf)
+        .filter(([, v]) => String(v || "").trim())
+        .map(([k, v]) => [k.replace(/_/g, " "), String(v)] as [string, string]),
+    };
+  }, []);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -1889,7 +2023,6 @@ function DocumentoCompletoTabContent({
     ft: _buildFt(),
     coa: buildCoaDatos(),
     sds: buildSdsDatos(),
-    cabezote_id: cabezoteId,
   });
 
   const _getToken = async () => {
@@ -1940,9 +2073,14 @@ function DocumentoCompletoTabContent({
   };
 
   const handleGenerar = async () => {
-    setLoading(true);
     setError(null);
     setResultado(null);
+    if (sdsForm.sugeridaIa && !sdsForm.vistoBueno) {
+      setError("La hoja de seguridad es una sugerencia de IA: revísela y dé el visto bueno en la Sección 3 antes de generar el documento final.");
+      document.getElementById("sds-seccion")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setLoading(true);
     try {
       const { resolvePanelApiUrl } = await import("../api/client");
       const token = await _getToken();
@@ -1956,6 +2094,22 @@ function DocumentoCompletoTabContent({
       if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
       setResultado(json);
       void refetchBorradores();
+      // Desde el taller, generar el documento final ES el visto bueno de revisado: se marca en
+      // todas las presentaciones que heredan el documento (es de la materia prima) y se vuelve al combo.
+      const retornoTaller = useAppStore.getState().tallerRetorno;
+      if (retornoTaller?.ref) {
+        try {
+          await api.post("/api/documentos/revision-checklist/marcar", {
+            producto_ref: retornoTaller.ref,
+            revisado: true,
+            con_presentaciones: true,
+            notas: `Visto bueno al generar el documento desde el taller de combos (${json.pdf_nombre || nombre})`,
+          });
+        } catch {
+          /* el PDF ya quedó generado; la marca de revisión se puede poner desde Revisión guiada */
+        }
+        onVolver?.();
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1971,7 +2125,7 @@ function DocumentoCompletoTabContent({
       const genRes = await fetch(genUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify(_buildBody()),
+        body: JSON.stringify({ ..._buildBody(), vista_previa: true }),
       });
       const json = await genRes.json();
       if (!genRes.ok || json.error) throw new Error(json.error || `Error ${genRes.status}`);
@@ -2011,14 +2165,20 @@ function DocumentoCompletoTabContent({
     URL.revokeObjectURL(a.href);
   };
 
+  // Desde el taller se trabaja UN producto: solo sus borradores, no la lista de todos.
+  const normTitulo = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  const borradoresVisibles = desdeTaller
+    ? nombre.trim() ? borradores.filter((b) => normTitulo(b.titulo) === normTitulo(nombre)) : []
+    : borradores;
+
   return (
     <div className="relative space-y-4 pb-28">
 
-      {borradores.length > 0 && (
+      {borradoresVisibles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
-          <p className="text-xs font-medium text-ink">Borradores guardados</p>
+          <p className="text-xs font-medium text-ink">{desdeTaller ? "Hay un borrador guardado de este producto" : "Borradores guardados"}</p>
           <ul className="space-y-1">
-            {borradores.slice(0, 8).map((b) => (
+            {borradoresVisibles.slice(0, 8).map((b) => (
               <li key={b.id} className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
                 {b.guardado_at && (
@@ -2246,153 +2406,6 @@ function DocumentoCompletoTabContent({
           </div>
         )}
 
-        {/* Color del formato */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted">Color del formato</p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { hex: "#069DC2", nombre: "Azul McKenna", logo: "logo_azul" },
-              { hex: "#003DA5", nombre: "Azul marino", logo: "logo_azul" },
-              { hex: "#5CB85C", nombre: "Verde claro", logo: "logo_azul" },
-              { hex: "#37474F", nombre: "Gris antracita", logo: "logo_gris" },
-              { hex: "#6A1B9A", nombre: "Morado", logo: "logo_morado" },
-              { hex: "#B71C1C", nombre: "Rojo", logo: "logo_cafe" },
-              { hex: "#FFA040", nombre: "Naranja claro", logo: "logo_amarillo" },
-              { hex: "#000000", nombre: "Negro", logo: "logo_gris" },
-            ].map(({ hex, nombre: n, logo }) => (
-              <button
-                key={hex}
-                type="button"
-                title={n}
-                onClick={() => {
-                  setColorAcento(hex);
-                  if (layoutOpciones?.cabezotes.some((c) => c.id === logo)) {
-                    setCabezoteId(logo);
-                  }
-                }}
-                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: hex,
-                  borderColor: colorAcento === hex ? "#fff" : hex,
-                  outline: colorAcento === hex ? `2px solid ${hex}` : "none",
-                }}
-              />
-            ))}
-            <input
-              type="color"
-              value={colorAcento}
-              onChange={(e) => setColorAcento(e.target.value)}
-              title="Color personalizado"
-              className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
-            />
-          </div>
-        </div>
-
-        {/* Cabezote */}
-        {layoutOpciones && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-muted">Cabezote del encabezado</p>
-              <button
-                type="button"
-                onClick={() => cabezoteFileRef.current?.click()}
-                disabled={cabezoteUploadMut.isPending}
-                className="shrink-0 rounded border border-accent/40 bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
-              >
-                {cabezoteUploadMut.isPending ? "Subiendo…" : "+ Subir imagen"}
-              </button>
-            </div>
-            <input
-              ref={cabezoteFileRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) cabezoteUploadMut.mutate(file);
-              }}
-            />
-            <div className="flex flex-wrap gap-3">
-              {layoutOpciones.cabezotes.map((c) => {
-                const imgSrc = `/api/fichas/cabezotes/${encodeURIComponent(c.id)}/imagen`;
-                const selected = cabezoteId === c.id;
-                const isDeleting = cabezoteDeleting === c.id;
-                const isConfirming = cabezoteConfirmDelete === c.id;
-                return (
-                  <div
-                    key={c.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => !isConfirming && !isDeleting && setCabezoteId(c.id)}
-                    onKeyDown={(e) => e.key === "Enter" && !isConfirming && !isDeleting && setCabezoteId(c.id)}
-                    className={`group relative w-36 cursor-pointer select-none overflow-hidden rounded-xl border-2 transition-all ${
-                      selected ? "border-accent shadow-[0_0_0_3px] shadow-accent/20" : "border-border hover:border-accent/60"
-                    }`}
-                  >
-                    {c.id === "default" ? (
-                      <div className={`flex h-14 w-full flex-col items-center justify-center gap-1 ${selected ? "bg-accent/10 text-accent" : "bg-surface-input text-muted"}`}>
-                        <span className="text-[10px] font-medium">Sin cabezote</span>
-                      </div>
-                    ) : (
-                      <div className="relative h-20 w-full bg-white mck-paper-white">
-                        <img src={imgSrc} alt={c.nombre} className="h-full w-full object-contain p-1" />
-                        <button
-                          type="button"
-                          title="Vista previa"
-                          onClick={(e) => { e.stopPropagation(); setCabezotePreview({ src: imgSrc, nombre: c.nombre }); }}
-                          className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-ink shadow opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-                        </button>
-                      </div>
-                    )}
-                    {selected && (
-                      <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-sm">✓</div>
-                    )}
-                    <div className="flex h-7 items-center gap-1 border-t border-border/40 bg-surface-panel px-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-ink">{c.nombre}</span>
-                      {c.id !== "default" && !isDeleting && !isConfirming && (
-                        <button
-                          type="button"
-                          title="Eliminar"
-                          onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(c.id); setCabezoteDeleteError(null); }}
-                          className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted/50 hover:bg-danger/10 hover:text-danger"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 11 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><path d="M1 3h9M4 3V2h3v1M1.5 3l.7 6.3a1 1 0 001 .9h3.6a1 1 0 001-.9L8.5 3"/></svg>
-                        </button>
-                      )}
-                    </div>
-                    {isConfirming && !isDeleting && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-surface-panel/95" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-[10px] font-semibold text-ink">¿Eliminar?</p>
-                        <div className="flex gap-1.5">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); void handleCabezoteDelete(c.id); }} className="rounded bg-danger px-2.5 py-1 text-[10px] font-bold text-white hover:opacity-85">Sí</button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(null); }} className="rounded border border-border bg-surface-input px-2 py-1 text-[10px] text-ink">No</button>
-                        </div>
-                      </div>
-                    )}
-                    {isDeleting && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-surface-panel/90">
-                        <span className="text-[10px] text-muted">Eliminando…</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {cabezoteDeleteError && <p className="text-xs text-danger">{cabezoteDeleteError}</p>}
-            {cabezotePreview && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setCabezotePreview(null)}>
-                <div className="relative max-w-xl rounded-xl bg-white mck-paper-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                  <img src={cabezotePreview.src} alt={cabezotePreview.nombre} className="max-h-64 w-full object-contain" />
-                  <p className="mt-2 text-center text-xs text-muted">{cabezotePreview.nombre}</p>
-                  <button type="button" onClick={() => setCabezotePreview(null)} className="absolute right-2 top-2 rounded bg-surface-input px-2 py-1 text-xs text-ink hover:bg-border">✕ Cerrar</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ─── FICHA TÉCNICA ─── */}
@@ -2429,44 +2442,30 @@ function DocumentoCompletoTabContent({
         sugiriendo={sugerirCoaMut.isPending}
         errorSugerir={sugerirCoaMut.isError ? (sugerirCoaMut.error as Error).message : null}
       />
-
-      {/* ─── SDS: solo campos exclusivos ─── */}
-      <SeccionBanner titulo="Sección 3 — Hoja de Datos de Seguridad (SDS)" />
-      <div className="space-y-4">
-        <p className="text-xs font-medium text-muted">Peligros</p>
-        <Field
-          label="Clasificación GHS"
-          value={sdsClasificacion}
-          onChange={setSdsClasificacion}
-          rows={2}
-          actions={<IaBtn {...ia("sds_clasificacion_ghs")} />}
-        />
-        <Field
-          label="Pictogramas / frases H-P"
-          value={sdsPictogramas}
-          onChange={setSdsPictogramas}
-          rows={2}
-          actions={<IaBtn {...ia("sds_pictogramas")} />}
-        />
+      <div className="mt-4">
         <TablaComposicion
           label={
             casillas.composicionRequerida
               ? "Composición · requerida para este tipo de insumo"
               : "Composición"
           }
-          value={sdsComposicion}
-          onChange={setSdsComposicion}
+          value={coaComposicion}
+          onChange={setCoaComposicion}
           actions={<IaBtn {...ia("composicion")} />}
         />
-        <Field
-          label="Recomendaciones para manejo seguro (GHS/SGA)"
-          value={sdsRecomendaciones}
-          onChange={setSdsRecomendaciones}
-          rows={5}
-          placeholder="Se recomienda guardar en envases bien cerrados… Una idea por línea."
-          actions={<IaBtn {...ia("recomendaciones")} />}
-        />
       </div>
+
+      {/* ─── SDS: solo campos exclusivos ─── */}
+      <SeccionBanner titulo="Sección 3 — Hoja de Datos de Seguridad (SDS)" />
+      <SdsSeccion
+        value={sdsForm}
+        onChange={setSdsForm}
+        nombre={nombre}
+        identificacion={{ cas: casGuardar, inci: inciGuardar }}
+        obtenerFt={obtenerFtParaSds}
+        avisos={sdsAvisos}
+        cargando={sdsCargando}
+      />
 
       {/* ─── Resultado / errores (sin botones de acción: van flotantes) ─── */}
       {(error || previewMut.isError || resultado || borradorMsg || borradorError) && (
@@ -2528,7 +2527,7 @@ function DocumentoCompletoTabContent({
               disabled={loading || previewMut.isPending}
               className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >
-              {loading ? "Generando documento…" : "Ficha Técnica COA SDS"}
+              {loading ? "Generando documento…" : desdeTaller ? "Dar el visto bueno y generar el PDF" : "Generar PDF (FT · COA · SDS)"}
             </button>
           </div>
         </div>
@@ -2572,7 +2571,10 @@ function DocumentoCompletoTabContent({
   );
 }
 
-export default function FichasTecnicasPanel() {
+export default function FichasTecnicasPanel({ onVolver }: {
+  /** Montado en la ventana del taller de combos: «Volver al combo» cierra la ventana. */
+  onVolver?: () => void;
+} = {}) {
   // La pestaña vive en el store: la barra está en el cabezote (DocsNavTabs).
   const tab = useAppStore((st) => st.docsTab);
   const setTab = useAppStore((st) => st.setDocsTab);
@@ -2580,6 +2582,7 @@ export default function FichasTecnicasPanel() {
   const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
   const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
   const [completoPreload, setCompletoPreload] = useState<Record<string, unknown> | null>(null);
+  const [completoKey, setCompletoKey] = useState(0);
 
   const handleEditar = (r: BibliotecaDatosResult) => {
     const hoy = (() => {
@@ -2640,20 +2643,30 @@ export default function FichasTecnicasPanel() {
       payload = stampFechaHoy(r.datos); // ft
     }
     setCompletoPreload(payload);
+    setCompletoKey((k) => k + 1);
     setTab("completo");
   };
 
+  // Documento que llega desde el taller: editor limpio (key nueva) con ese YAML.
+  const handleEditarRef = useRef(handleEditar);
+  handleEditarRef.current = handleEditar;
+  const abrirDesdeTaller = useCallback((datos: Record<string, unknown>) => {
+    handleEditarRef.current({ tipo: "completo", titulo: String(datos.titulo || ""), datos, yaml: "", tiene_datos: true });
+  }, []);
+
   return (
     <div className="mx-auto max-w-4xl space-y-3 pb-4">
+      <DocDelCombo onAbrir={abrirDesdeTaller} editando={tab === "completo"} onVolver={onVolver} />
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
-      {tab === "completo" && <DocumentoCompletoTabContent producto={null} preload={completoPreload} />}
+      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} />}
       {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
       {tab === "revision" && (
         <DocumentosCatalogoTab
           onGenerar={(producto) => {
             setCompletoPreload({ titulo: producto.nombre, nombre_producto: producto.nombre });
+            setCompletoKey((k) => k + 1);
             setTab("completo");
           }}
         />

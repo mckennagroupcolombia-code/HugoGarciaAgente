@@ -1,8 +1,11 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
 import TerceroSelect from "./TerceroSelect";
+import { DocumentoSoporteDetalle, type DocSoporte } from "./DocumentosSoporte";
 
 /**
  * Solicitudes de pago con asiento contable automático.
@@ -76,6 +79,8 @@ type Solicitud = {
   creada_por?: number | null; aprobada_por?: number | null;
   montado_por?: number | null; pagado_por?: number | null;
   firmas?: { creada_por?: string; aprobada_por?: string; montado_por?: string; pagado_por?: string };
+  /** El documento contable que nació de este pago, si el beneficiario no factura. */
+  doc_soporte?: DocSoporte | null;
 };
 
 type Yo = { puede: boolean; usuario: string; usuario_id?: number | null; nivel?: number };
@@ -595,7 +600,7 @@ function WizardSimple({
               </label>
               {prevQ.data?.aviso_documento ? (
                 <p className="mt-1.5 rounded bg-amber-500/10 px-2 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
-                  ⚠️ {prevQ.data.aviso_documento}
+                  <Ico e="⚠️" /> {prevQ.data.aviso_documento}
                 </p>
               ) : num(totalDocumento) > 0 ? (
                 <p className="mt-1.5 text-sm font-bold text-emerald-700 dark:text-emerald-400">
@@ -681,13 +686,13 @@ function WizardSimple({
 
         {prevQ.data?.aviso_gross_up && (
           <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-800 dark:text-amber-300">
-            ⚠️ {prevQ.data.aviso_gross_up}
+            <Ico e="⚠️" /> {prevQ.data.aviso_gross_up}
           </p>
         )}
 
         {perfilCuenta?.advertencia && (
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-            ⚠️ {perfilCuenta.advertencia}
+            <Ico e="⚠️" /> {perfilCuenta.advertencia}
           </p>
         )}
 
@@ -1002,7 +1007,7 @@ function PagoImpuestos({
             </div>
           )}
           {rec.avisos.map((a) => (
-            <p key={a} className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">⚠️ {a}</p>
+            <p key={a} className="rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300"><Ico e="⚠️" /> {a}</p>
           ))}
           <div className="grid gap-3 sm:grid-cols-2">
             <Campo label="De qué cuenta salió">
@@ -1277,7 +1282,7 @@ function Wizard({
               onClick={() => { setCat(c); setPaso(2); setItems([]); setVerif(null); setProveedor(null); }}
               className={`rounded-lg border p-3 text-left hover:border-accent ${c.con_productos ? "border-accent/50 bg-accent/5" : "border-border"}`}
             >
-              <p className="text-base font-bold text-ink">{c.icono} {c.label}</p>
+              <p className="text-base font-bold text-ink"><Ico e={c.icono} /> {ico(c.label)}</p>
               <p className="mt-0.5 text-xs leading-snug text-muted">{c.ayuda}</p>
               {c.con_productos && <p className="mt-1 text-xs font-bold text-accent">Proveedor · productos con SKU · factura cotejada</p>}
             </button>
@@ -1313,7 +1318,7 @@ function Wizard({
       {/* ── Recorrido simple: PASO 2 detalles ── */}
       {!conProductos && paso === 2 && cat && (
         <div className="space-y-3">
-          <p className="text-sm font-bold text-accent">{cat.icono} {cat.label}</p>
+          <p className="text-sm font-bold text-accent"><Ico e={cat.icono} /> {ico(cat.label)}</p>
 
           {cat.origen !== "libre" && (
             <div>
@@ -1335,7 +1340,7 @@ function Wizard({
                       f.origen_ref === String(o.id) ? "border-accent bg-accent/10" : "border-border hover:border-accent"
                     }`}
                   >
-                    <p className="font-bold text-ink">{o.label}</p>
+                    <p className="font-bold text-ink">{ico(o.label)}</p>
                     <p className="text-xs text-muted">{o.detalle}</p>
                     {o.monto_sugerido ? (
                       <p className="mt-0.5 font-bold tabular-nums text-accent">{cop(o.monto_sugerido)}</p>
@@ -1551,7 +1556,7 @@ function PasoProveedor({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm font-bold text-accent">{cat.icono} {cat.label} · ¿A qué proveedor?</p>
+      <p className="text-sm font-bold text-accent"><Ico e={cat.icono} /> {cat.label} · ¿A qué proveedor?</p>
       <ListaProveedores proveedor={proveedor} onElegir={onElegir} autoFocus />
 
       <p className="text-xs font-bold uppercase text-muted">Datos del pago</p>
@@ -1757,7 +1762,7 @@ function PasoFactura({
       {verif && (
         <div className={`space-y-2 rounded-xl border p-3 ${verif.fiel ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
           <p className={`text-base font-bold ${verif.fiel ? "text-emerald-600" : "text-amber-600"}`}>
-            {verif.fiel ? "✅ Fiel copia de lo solicitado" : verif.legible ? "⚠️ Hay diferencias con lo solicitado" : "⚠️ No se pudo leer el archivo"}
+            {verif.fiel ? "✅ Fiel copia de lo solicitado" : verif.legible ? ico("⚠️ Hay diferencias con lo solicitado") : ico("⚠️ No se pudo leer el archivo")}
             {verif.numero_documento ? <span className="ml-2 font-mono text-sm text-muted">{verif.numero_documento}</span> : null}
           </p>
           <div className="grid gap-1 text-sm sm:grid-cols-3">
@@ -2037,7 +2042,7 @@ function FichaSolicitud({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-[14rem]">
           <p className="text-lg font-bold leading-snug text-ink">
-            {s.icono} {s.concepto}
+            <Ico e={s.icono} /> {s.concepto}
           </p>
           <p className="mt-0.5 text-sm text-muted">
             {s.categoria_label} · {s.fecha}
@@ -2058,23 +2063,32 @@ function FichaSolicitud({
             )}
           </div>
           <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-bold ${badge.cls}`}>
-            {badge.label}
+            {ico(badge.label)}
           </span>
         </div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
-        {s.movimiento_id && <span>📒 asiento #{s.movimiento_id}</span>}
+        {s.movimiento_id && <span><Ico e="📒" /> asiento #{s.movimiento_id}</span>}
         {s.alegra_journal_id && <span className="text-emerald-500">✓ Alegra #{s.alegra_journal_id}</span>}
-        {s.estado === "aprobada" && !s.alegra_journal_id && (
+        {s.doc_soporte && (
+          <span className={s.doc_soporte.estado === "success" ? "text-emerald-500" : "font-bold text-amber-600"}>
+            📄 {s.doc_soporte.estado === "success"
+              ? `Documento soporte ${s.doc_soporte.numero}`
+              : s.doc_soporte.estado === "vista_previa"
+                ? "Lleva documento soporte"
+                : "Documento soporte por emitir"}
+          </span>
+        )}
+        {s.estado === "aprobada" && !s.alegra_journal_id && !s.doc_soporte && (
           <span className="text-amber-500">sin espejar en Alegra</span>
         )}
-        {s.ticket_id && <span>🎫 ticket #{s.ticket_id}</span>}
-        {s.items && s.items.length > 0 && <span>📦 {s.items.length} producto(s)</span>}
+        {s.ticket_id && <span><Ico e="🎫" /> ticket #{s.ticket_id}</span>}
+        {s.items && s.items.length > 0 && <span><Ico e="📦" /> {s.items.length} producto(s)</span>}
         {s.factura_archivo && (
           <button type="button" className="text-accent hover:underline"
             onClick={() => { void fetchAuthBlobUrl(`/api/pagos/solicitudes/${s.id}/factura`).then((u) => { if (u) window.open(u, "_blank"); }); }}>
-            📎 {s.factura_numero || s.factura_nombre || "factura"}
+            <Ico e="📎" /> {s.factura_numero || s.factura_nombre || "factura"}
           </button>
         )}
         {s.verificacion && typeof s.verificacion.fiel === "boolean" && (
@@ -2107,6 +2121,13 @@ function FichaSolicitud({
           </span>
         )}
 
+        {s.estado !== "borrador" && !s.es_plantilla && (
+          <button type="button" onClick={() => setVerAsiento((v) => !v)}
+                  className={`rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent ${NECESITA_ACCION.has(s.estado) ? "" : "ml-auto"}`}>
+            {verAsiento ? "Ocultar asiento" : "Ver asiento"}
+          </button>
+        )}
+
         {NECESITA_ACCION.has(s.estado) && !puedeFirmar && (
           <span className="ml-auto italic">Esperando la firma de Administración</span>
         )}
@@ -2136,13 +2157,14 @@ function FichaSolicitud({
           {s.comprobante_archivo && (
             <button type="button" className="ml-auto font-bold text-accent hover:underline"
               onClick={() => { void fetchAuthBlobUrl(`/api/pagos/solicitudes/${s.id}/comprobante`).then((u) => { if (u) window.open(u, "_blank"); }); }}>
-              📎 {s.comprobante_nombre || "comprobante del banco"}
+              <Ico e="📎" /> {s.comprobante_nombre || "comprobante del banco"}
             </button>
           )}
         </p>
       )}
 
       {verAsiento && <AsientoEnVivo sid={s.id} />}
+      {s.doc_soporte && <DocumentoSoporteDetalle doc={s.doc_soporte} />}
     </article>
   );
 }
@@ -2223,7 +2245,7 @@ function CicloGiro({
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={() => void montar()} disabled={ocupado}
                   className="rounded-xl bg-accent px-5 py-3 text-base font-bold text-white disabled:opacity-40">
-            {ocupado ? "Guardando…" : "🏦 Ya lo preparé en Sucursal Negocios"}
+            {ocupado ? "Guardando…" : ico("🏦 Ya lo preparé en Sucursal Negocios")}
           </button>
           <input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="N° de transacción (opcional)"
                  className="w-56 rounded-xl border border-border bg-surface-input px-3 py-2.5 text-sm text-ink" />
@@ -2282,7 +2304,7 @@ function AsientoEnVivo({ sid }: { sid: number }) {
     <div className="mt-2 rounded-lg border border-border bg-surface-input/40 p-2">
       {p.difiere_de_lo_guardado && (
         <p className="mb-2 rounded bg-amber-500/10 px-2 py-1 text-sm text-amber-500">
-          ⚠️ Las cifras cambiaron desde que se montó el borrador
+          <Ico e="⚠️" /> Las cifras cambiaron desde que se montó el borrador
           {typeof p.monto_guardado === "number" ? ` (era ${cop(p.monto_guardado)})` : ""}.
           Lo que vale es lo de abajo.
         </p>
@@ -2308,7 +2330,7 @@ function AsientoEnVivo({ sid }: { sid: number }) {
         </tbody>
       </table>
       <p className="mt-1 text-xs text-muted">
-        {p.cuadra ? "✅ El asiento cuadra." : "⚠️ El asiento NO cuadra."}
+        {p.cuadra ? "✅ El asiento cuadra." : ico("⚠️ El asiento NO cuadra.")}
         {p.retencion > 0 ? ` Se gira ${cop(p.girado)}; ${cop(p.retencion)} van a la DIAN.` : ""}
         {" "}Nace en el Libro Mayor al aprobar, no ahora.
       </p>
@@ -2395,14 +2417,14 @@ function CapturaComprobante({
         <>
           {preview
             ? <img src={preview} alt="Comprobante" className="max-h-56 rounded-lg border border-border" />
-            : <p className="text-3xl">📄</p>}
+            : <p className="text-3xl"><Ico e="📄" /></p>}
           <p className="text-sm font-bold text-emerald-600">{archivo.name}</p>
           <button type="button" onClick={(e) => { e.stopPropagation(); setArchivo(null); }}
                   className="text-xs font-bold text-muted underline">Cambiar</button>
         </>
       ) : (
         <>
-          <p className="text-2xl">📋</p>
+          <p className="text-2xl"><Ico e="📋" /></p>
           <p className="text-base font-bold text-ink">Pega la captura con Ctrl+V</p>
           <p className="text-sm text-muted">o arrastra la imagen aquí · o haz clic para elegir el archivo</p>
         </>
@@ -2466,7 +2488,7 @@ function ListaPlantillas({ onMensaje }: { onMensaje: (m: { tipo: "ok" | "error";
         <article key={p.id} className="rounded-xl border border-border bg-surface-panel p-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-base font-bold text-ink">{p.icono} {p.concepto}</p>
+              <p className="text-base font-bold text-ink"><Ico e={p.icono} /> {p.concepto}</p>
               <p className="mt-0.5 text-sm text-muted">
                 {p.categoria_label}
                 {p.frecuencia ? ` · ${p.frecuencia}` : ""}

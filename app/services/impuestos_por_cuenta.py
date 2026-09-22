@@ -178,6 +178,20 @@ _PERFILES: dict[str, tuple[str | None, float, str, str]] = {
     "530595": (None, 0.0, "GMF 4x1000: es un impuesto, no se le retiene a nadie.", ""),
 }
 
+# Cuentas cuyo gasto se le paga SIEMPRE a una empresa autorretenedora (ESP de
+# acueducto, energía y gas; operadores de telefonía e internet): no se les
+# practica retención de renta NI de ICA, diga lo que diga la ficha del tercero.
+# Hace falta decirlo aparte porque el ICA sale de la ficha, no de la cuenta: el
+# 21-sep-2026 la ficha de ENEL quedó con 9,66 por mil y un pago de luz salió con
+# $6.418 de ReteICA (y $26.576 de retefuente, por ir a 5135 y no a 513530).
+CUENTAS_AUTORRETENEDORAS: frozenset[str] = frozenset({"513525", "513530", "513535", "513555"})
+
+
+def es_autorretenedora(codigo: str) -> bool:
+    """True si la cuenta es de servicios públicos / telecomunicaciones: sin retenciones."""
+    return str(codigo or "").strip() in CUENTAS_AUTORRETENEDORAS
+
+
 # Cuando la cuenta exacta no está en la tabla —porque alguien agregó una
 # subcuenta nueva al plan—, se hereda del grupo. Es preferible a quedarse sin
 # propuesta: una casilla vacía se aprueba igual de rápido que una llena.

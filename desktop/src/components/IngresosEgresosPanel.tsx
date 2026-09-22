@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchAuthBlobUrl } from "../api/client";
@@ -1080,7 +1081,7 @@ export default function IngresosEgresosPanel({
               title="Abrir carpeta de extractos guardados"
             >
               <span aria-hidden className="text-sm leading-none">
-                📁
+                <Ico e="📁" />
               </span>
               Biblioteca
               {(extractosQ.data?.extractos?.length ?? 0) > 0 && (
@@ -1096,7 +1097,7 @@ export default function IngresosEgresosPanel({
               title="Buscar movimientos del libro y líneas del extracto que calzan por fecha y monto, para confirmarlos en bloque"
             >
               <span aria-hidden className="text-sm leading-none">
-                🔗
+                <Ico e="🔗" />
               </span>
               Vincular automáticamente
             </button>
@@ -1107,7 +1108,7 @@ export default function IngresosEgresosPanel({
               title="Líneas del banco (de cualquier extracto) sin ningún movimiento contable asociado en este rango"
             >
               <span aria-hidden className="text-sm leading-none">
-                ⚠️
+                <Ico e="⚠️" />
               </span>
               Pendientes por clasificar
               {(pendientesQ.data?.pendientes?.length ?? 0) > 0 && (
@@ -1583,7 +1584,7 @@ export default function IngresosEgresosPanel({
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
-                  <span aria-hidden>📁</span>
+                  <span aria-hidden><Ico e="📁" /></span>
                   Carpeta de extractos
                 </h3>
                 <p className="text-[11px] text-muted">
@@ -1768,7 +1769,7 @@ export default function IngresosEgresosPanel({
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
-                  <span aria-hidden>🔗</span>
+                  <span aria-hidden><Ico e="🔗" /></span>
                   Vincular automáticamente
                 </h3>
                 <p className="text-[11px] text-muted">

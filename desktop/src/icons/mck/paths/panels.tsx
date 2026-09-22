@@ -71,8 +71,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
   ),
   sync: (
     <>
-      <path d="M20 11a7 7 0 1 0-1.6-4.4M20 4v4h-4" />
-      <path d="M4 13a7 7 0 1 0 1.6 4.4M4 20v-4h4" />
+      {/* Dos flechas en ciclo. Las anteriores usaban el arco LARGO (flag 1) y se montaban una
+          sobre otra: a 14 px se veía como dos trazos sueltos. */}
+      <path d="M19 5v4.5h-4.5" />
+      <path d="M5 19v-4.5h4.5" />
+      <path d="M6.2 9.5a6.5 6.5 0 0 1 10.9-2.4L19 9.5" />
+      <path d="M17.8 14.5a6.5 6.5 0 0 1-10.9 2.4L5 14.5" />
     </>
   ),
   stock: (
@@ -115,6 +119,23 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <circle cx="18" cy="10" r="2.5" />
       <circle cx="9" cy="18" r="2.5" />
       <path d="M8.2 7.2l7.6 2.1M16.6 12.1l-5.9 4.4M7.1 8.4l1.4 7.2" />
+    </>
+  ),
+  juegos: (
+    <>
+      <rect x="2.5" y="7" width="19" height="11" rx="4" />
+      <path d="M7.5 10.5v4M5.5 12.5h4" />
+      <circle cx="15.5" cy="11.5" r="0.9" />
+      <circle cx="17.8" cy="13.8" r="0.9" />
+    </>
+  ),
+  colaboradores: (
+    <>
+      <rect x="2.5" y="4" width="7" height="5" rx="1" />
+      <rect x="14.5" y="15" width="7" height="5" rx="1" />
+      <path d="M9.5 6.5h4a2 2 0 0 1 2 2V15" />
+      <path d="M13.5 13l2 2 2-2" />
+      <circle cx="6" cy="17.5" r="2.5" />
     </>
   ),
   "mapa-sistema": (

@@ -28,7 +28,7 @@ export default function EnlazarDocumento({
   /** Texto con el que abre el buscador (el nombre de la materia prima, normalmente). */
   inicial?: string;
   etiquetaBoton?: string;
-  onHecho: (r: { titulo: string; sku: string }) => void | Promise<void>;
+  onHecho: (r: { titulo: string; sku: string; archivo: string }) => void | Promise<void>;
   onCancelar?: () => void;
 }) {
   const qc = useQueryClient();
@@ -62,7 +62,7 @@ export default function EnlazarDocumento({
       await qc.invalidateQueries({ queryKey: ["mapa-sistema-combos"] });
       await qc.invalidateQueries({ queryKey: ["mision-documentos"] });
       await qc.invalidateQueries({ queryKey: ["mapa-app-bloqueos"] });
-      await onHecho({ titulo: d.titulo, sku });
+      await onHecho({ titulo: d.titulo, sku, archivo: d.archivo });
     } catch (err) {
       setError((err as Error)?.message || "No se pudo asociar");
     } finally {

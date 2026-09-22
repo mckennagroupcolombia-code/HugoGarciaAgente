@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TicketsUser } from "../../stores/ticketsAuth";
@@ -411,7 +412,7 @@ export default function HiloConversacion({
             onClick={() => (pedirAbierto ? setPedirAbierto(false) : abrirPedirIntervencion())}
             className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${pedirAbierto ? "bg-accent/20 text-accent" : "bg-muted/10 text-muted hover:bg-muted/20 hover:text-ink"}`}
           >
-            🙋 Pedir intervención
+            <Ico e="🙋" /> Pedir intervención
           </button>
         )}
         {esCreadoPorMi && ticket.estado === "esperando_aprobacion" && (
@@ -431,7 +432,7 @@ export default function HiloConversacion({
         )}
         {bloqueada && (
           <span className="rounded-full bg-muted/10 px-2.5 py-1 text-[12px] font-semibold text-muted">
-            🔒 En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
+            <Ico e="🔒" /> En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
             {ticket.bloqueado_por_numero ? ` (${ticket.bloqueado_por_numero})` : ""}
           </span>
         )}
@@ -455,7 +456,7 @@ export default function HiloConversacion({
               onClick={() => setModoInter("pausar")}
               className={`rounded-xl border px-3 py-2 text-left transition ${modoInter === "pausar" ? "border-accent/50 bg-accent/10" : "border-border hover:border-accent/40"}`}
             >
-              <p className="text-[12px] font-bold text-ink">🛑 Pausar y delegar</p>
+              <p className="text-[12px] font-bold text-ink"><Ico e="🛑" /> Pausar y delegar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Crea una sub-solicitud. Ésta queda bloqueada hasta que la resuelvan.</p>
             </button>
             <button
@@ -463,7 +464,7 @@ export default function HiloConversacion({
               onClick={() => setModoInter("colaborar")}
               className={`rounded-xl border px-3 py-2 text-left transition ${modoInter === "colaborar" ? "border-accent/50 bg-accent/10" : "border-border hover:border-accent/40"}`}
             >
-              <p className="text-[12px] font-bold text-ink">👥 Invitar a colaborar</p>
+              <p className="text-[12px] font-bold text-ink"><Ico e="👥" /> Invitar a colaborar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Comparte el hilo sin pausar. Puede ver y escribir aquí mismo.</p>
             </button>
           </div>
@@ -523,7 +524,7 @@ export default function HiloConversacion({
                 target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border px-2.5 py-1 text-[12px] font-semibold text-accent hover:border-accent/50"
               >
-                📎 Ver adjunto de apertura
+                <Ico e="📎" /> Ver adjunto de apertura
               </a>
             )}
             <p className="text-[11px] text-muted">

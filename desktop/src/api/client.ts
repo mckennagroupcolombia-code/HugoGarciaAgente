@@ -173,7 +173,14 @@ async function request<T>(
   }
 
   const ctFirst = (res.headers.get("content-type") ?? "").toLowerCase();
+  // Reintentar con el otro prefijo SOLO si la petición no modifica nada. Una
+  // respuesta HTML a un POST suele ser el corte de Cloudflare (524, ~100 s) o
+  // un 502 mientras el agente reinicia: el servidor SÍ recibió la primera y
+  // puede seguir trabajando. Reenviarla duplicaba la operación — el 21-sep-2026
+  // «Facturar ahora» emitió 22 facturas de más en 15 ventas así.
+  const esLectura = method.toUpperCase() === "GET" || method.toUpperCase() === "HEAD";
   if (
+    esLectura &&
     !ctFirst.includes("application/json") &&
     typeof window !== "undefined" &&
     origin &&
@@ -229,6 +236,12 @@ async function request<T>(
   const ct = (res.headers.get("content-type") ?? "").toLowerCase();
   if (!ct.includes("application/json")) {
     const preview = (await res.clone().text()).slice(0, 120).trim();
+    if (!esLectura && [502, 504, 524].includes(res.status)) {
+      throw new Error(
+        "El servidor tardó demasiado y la conexión se cortó, pero la operación pudo haberse completado. " +
+          "Actualiza antes de volver a intentarlo.",
+      );
+    }
     throw new Error(
       preview.startsWith("<")
         ? "El servidor devolvió HTML en lugar de JSON (revisá proxy/nginx para /api o reiniciá Flask)."

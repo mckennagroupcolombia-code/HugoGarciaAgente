@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api, fetchAuthBlobUrl } from "../../api/client";
@@ -43,6 +44,10 @@ export type Combo = {
   nombre: string;
   precio_lista: number | null;
   foto: string | null;
+  /** ¿La foto con la que se vende está al día? (app/services/mapa_producto.py::_estado_foto) */
+  foto_estado?: "sin_foto" | "prestada" | "anterior_a_etiqueta" | "ok";
+  foto_fecha?: string;
+  foto_motivo?: string;
   fotos?: string[];
   /** Materia prima que comparten las presentaciones de un mismo producto. */
   familia?: string;
@@ -198,10 +203,10 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
           <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
             <div className="text-muted">¿Son el mismo producto?</div>
             <div className="mt-1">
-              📄 <b>{accion.doc_titulo}</b>
+              <Ico e="📄" /> <b>{accion.doc_titulo}</b>
             </div>
             <div>
-              ⚗️ <b>{accion.mp_nombre}</b> <code className="text-muted">{accion.sku}</code>
+              <Ico e="⚗️" /> <b>{accion.mp_nombre}</b> <code className="text-muted">{accion.sku}</code>
             </div>
             <div className="mt-1 text-muted">
               {accion.modo === "reemplazar" ? (
@@ -264,8 +269,8 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
         <button
           className={BTN}
           onClick={() => {
-            useAppStore.getState().setDocsTab("biblioteca");
-            useAppStore.getState().saltarDesdeTaller({ ref: c.ref, nombre: c.nombre, mps: accion.mps ?? [], asociarDoc: true }, { panel: "fichas", buscar: accion.mps?.[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? c.nombre });
+            useAppStore.getState().setDocsTab("completo");
+            useAppStore.getState().saltarDesdeTaller({ ref: c.ref, nombre: c.nombre, mps: accion.mps ?? [], asociarDoc: true, doc: { estado: "falta" } }, { panel: "fichas", buscar: accion.mps?.[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? c.nombre });
           }}
         >
           Asociar o redactar en Docs técnicos →

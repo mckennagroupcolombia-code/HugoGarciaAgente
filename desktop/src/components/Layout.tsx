@@ -94,7 +94,8 @@ export default function Layout({
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       <SolicitudesEnProcesoFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
-        {tallerRetorno && panel !== "combos" && (
+        {/* En Docs técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
+        {tallerRetorno && panel !== "combos" && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
           <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
             <button
               type="button"
@@ -259,6 +260,8 @@ export default function Layout({
             {isHub && !isCentroMando ? (
               sectionId === "contabilidad" ||
               sectionId === "publicaciones" ||
+              panel === "colaboradores" ||
+              panel === "juegos" ||
               studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>

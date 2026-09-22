@@ -786,7 +786,14 @@ def previsualizar(payload: dict) -> dict:
     # usuario en las categorías abiertas.
     cuenta_debito = cat["cuenta_debito"]
     if categoria == "servicio_publico":
-        cuenta_debito = _cuenta_servicio(payload.get("tipo_servicio"))
+        # `aprobar()` rearma el asiento sin `tipo_servicio` (no se guarda), solo
+        # con la cuenta de la solicitud. Sin esto la luz y el gas del 16-sep-2026
+        # se aprobaron con 513530/513555 y se contabilizaron en 513595.
+        guardada = str(payload.get("cuenta_debito") or "").strip()
+        if not payload.get("tipo_servicio") and guardada in cat["cuentas_por_tipo"].values():
+            cuenta_debito = guardada
+        else:
+            cuenta_debito = _cuenta_servicio(payload.get("tipo_servicio"))
     if not cuenta_debito:
         cuenta_debito = str(payload.get("cuenta_debito") or "").strip()
     elif cat.get("cuenta_libre"):
@@ -902,6 +909,12 @@ def previsualizar(payload: dict) -> dict:
     valor_es_neto = modo == "mckenna" or bool(
         not items and int((tercero or {}).get("retencion_asume_mckenna") or 0)
     )
+    # Rearmar una solicitud YA GUARDADA (aprobar, previsualizacion_de): su monto
+    # es la base bruta que resultó del gross-up, no el neto pactado. Tratarlo
+    # como neto lo volvía a inflar — la #38 de William (1.210.483 → 1.221.057,
+    # 21-sep-2026) habría salido con un asiento que no cuadra con lo guardado.
+    if payload.get("monto_es_bruto"):
+        valor_es_neto = False
 
     # ICA: lo que mande el pago; si no, la tarifa del tercero. Que la tarifa
     # viva en el tercero es lo que evita que se olvide en el próximo pago.
@@ -968,6 +981,17 @@ def previsualizar(payload: dict) -> dict:
             "ni de ICA (Art. 911 E.T.; el ICA va consolidado dentro del SIMPLE, Art. 907 E.T.)."
         )}
 
+    if _ipc.es_autorretenedora(cuenta_debito) and (concepto_ret or ica_por_mil > 0):
+        # Servicios públicos y telecomunicaciones: la empresa es autorretenedora
+        # de renta y de ICA. La cuenta manda aquí sobre la ficha del tercero —el
+        # ICA venía de la ficha y una tarifa mal guardada (ENEL, 21-sep-2026) le
+        # retenía ICA a una ESP.
+        concepto_ret = None
+        ica_por_mil, t_ica = 0.0, 0.0
+        ret_info = {"retencion": 0, "motivo": (
+            f"{perfil_cuenta['nota']} Tampoco se le practica ICA."
+        )}
+
     # «Nadie — no se practica retención» habla de la retención de RENTA. El ICA
     # es otro impuesto, con otra base legal y otro destinatario (el municipio,
     # no la DIAN), y apagarlo junto con la renta hacía que a estas personas
@@ -991,21 +1015,35 @@ def previsualizar(payload: dict) -> dict:
 
         if valor_es_neto and (t_renta + t_ica) > 0:
             # Camino inverso: la base que, retenida, deja exactamente lo pactado.
-            bruto = round(monto / (1 - t_renta - t_ica), 2) if (t_renta + t_ica) < 1 else monto
-            r2 = calcular(concepto_ret, bruto, anio=int(fecha[:4]), declarante=declarante) if aplica_renta else {}
-            retencion = round(float(r2.get("retencion") or 0), 2)
-            retencion_ica = round(bruto * t_ica, 2)
+            # En PESOS ENTEROS: Alegra y la DIAN no llevan centavos, y una base de
+            # $1.110.729,65 salía en el documento soporte como $1.110.730 con el
+            # ReteICA en $10.730 — el libro y Alegra discrepaban por centavos
+            # (21-sep-2026). Se busca la base entera cuyas retenciones, también
+            # al peso, dejen EXACTAMENTE lo pactado.
+            def _retenciones_de(base: float) -> tuple[float, float, dict]:
+                r = calcular(concepto_ret, base, anio=int(fecha[:4]), declarante=declarante) if aplica_renta else {}
+                return _pesos((r or {}).get("retencion") or 0), _pesos(base * t_ica), (r or {})
+
+            aprox = monto / (1 - t_renta - t_ica) if (t_renta + t_ica) < 1 else monto
+            bruto = _pesos(aprox)
+            for candidato in sorted({_pesos(aprox) + d for d in range(-3, 4)}):
+                ret_c, ica_c, _ = _retenciones_de(candidato)
+                if _pesos(candidato - ret_c - ica_c) == _pesos(monto):
+                    bruto = candidato
+                    break
+            retencion, retencion_ica, r2 = _retenciones_de(bruto)
             if retencion or retencion_ica:
                 neto = monto
-                monto = round(neto + retencion + retencion_ica, 2)
+                monto = _pesos(neto + retencion + retencion_ica)
                 ret_info = {**(r2 or {}), "retencion": retencion, "motivo": (
                     f"Pactado libre de retención: el beneficiario recibe {_fmt(neto)} y "
                     f"{_fmt(retencion + retencion_ica)} de retenciones los asume McKenna como mayor gasto. "
                     f"Base gravable {_fmt(monto)}. " + str((r2 or {}).get("motivo", ""))
                 )}
         else:
-            retencion = round(float((ret_info or {}).get("retencion") or 0), 2)
-            retencion_ica = round(base_ret * t_ica, 2)
+            # Al peso: la retención se practica y se declara en pesos enteros.
+            retencion = _pesos((ret_info or {}).get("retencion") or 0)
+            retencion_ica = _pesos(base_ret * t_ica)
 
     if retencion_ica > 0:
         motivo_ica = (f"ICA {ica_por_mil:g} por mil sobre {_fmt(base_ret if not valor_es_neto else monto)} "
@@ -1542,6 +1580,7 @@ def previsualizacion_de(sid: int) -> dict:
             # cuánto se gira hoy. Sin esto, aprobar cambiaba el asiento —una
             # quincena pactada libre de retención volvía a salir con ella.
             "retencion_modo": sol.get("retencion_modo") or "",
+            "monto_es_bruto": True,    # lo guardado ya trae el gross-up aplicado
             "ica_por_mil": sol.get("ica_por_mil") or 0,
             "gmf": bool(sol.get("gmf")),
             **({"pagado_ahora": sol["pagado_ahora"]} if sol.get("pagado_ahora") is not None else {}),
@@ -1757,6 +1796,18 @@ def instanciar_plantillas_de(
     return out
 
 
+def _pesos(n) -> float:
+    """Redondeo al peso, mitad hacia arriba (no el «redondeo del banquero» de `round`).
+
+    Las retenciones y la base de un documento soporte van en pesos enteros:
+    Alegra redondea al peso y si el libro guarda centavos las dos versiones
+    dejan de cuadrar.
+    """
+    from decimal import ROUND_HALF_UP, Decimal
+
+    return float(Decimal(str(float(n or 0))).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
 def _fmt(n) -> str:
     return "$" + f"{round(float(n or 0)):,}".replace(",", ".")
 
@@ -1883,6 +1934,21 @@ def obtener(sid: int) -> dict | None:
                 }
         except Exception:
             pass
+    # El documento contable que nació de este pago: el documento soporte (si el
+    # beneficiario no factura) o el comprobante espejo en Alegra.
+    try:
+        from app.services import doc_soporte_pagos as _ds
+
+        _doc = _ds.obtener_por_solicitud(int(sid))
+        # Sin documento todavía (pendiente de aprobar): la vista previa de lo que
+        # dejaría la aprobación, para revisarlo junto con el asiento.
+        if not _doc and not d.get("movimiento_id") and d.get("estado") in ("borrador", "pendiente"):
+            _doc = _ds.vista_previa(d)
+        d["doc_soporte"] = ({k: _doc.get(k) for k in ("solicitud_id", "estado", "numero", "cuds", "estado_dian",
+                                                      "alegra_id", "valor", "mensaje", "emitido_at", "detalle")}
+                            if _doc else None)
+    except Exception:
+        d["doc_soporte"] = None
     d["categoria_label"] = CATEGORIAS.get(d["categoria"], {}).get("label", d["categoria"])
     d["icono"] = CATEGORIAS.get(d["categoria"], {}).get("icono", "📌")
     # Lo que de verdad recibe el beneficiario: el ICA también se le descuenta
@@ -1967,6 +2033,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         "concepto": s["concepto"], "tercero_id": s["tercero_id"],
         "medio_pago_id": s["medio_pago_id"], "cuenta_debito": s["cuenta_debito"],
         "retencion_modo": "ninguna",   # los impuestos ya están fijados en la solicitud
+        "monto_es_bruto": True,
         # Los productos que se aprobaron: sin ellos, la reconstrucción armaba una
         # sola línea global y el asiento perdía el detalle por referencia —y con
         # él la réplica de la cotización, que es el punto de registrarlos.
@@ -2070,8 +2137,30 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         except Exception as e:
             print(f"⚠️ Solicitud {sid}: no se pudo adjuntar la factura al asiento: {e}", flush=True)
 
+    # Documento soporte, si el beneficiario NO está obligado a facturar. Es lo
+    # que hace deducible el gasto (Art. 771-2 E.T.): sin factura del proveedor
+    # ni documento soporte nuestro, el pago está conciliado y contabilizado pero
+    # no es deducible. Va aquí y no como paso aparte porque un paso aparte es un
+    # paso que un día no se hace — y si no se emite, no hay quien lo note.
+    doc_soporte = {"status": "omitido"}
+    try:
+        from app.services import doc_soporte_pagos as _ds
+
+        doc_soporte = _ds.emitir_por_solicitud(sid)
+    except Exception as e:      # emitirlo no puede tumbar la aprobación
+        doc_soporte = {"status": "error", "message": str(e)}
+        print(f"⚠️ Solicitud {sid}: documento soporte no emitido: {e}", flush=True)
+
+    # ⚠️ **Con documento soporte, el asiento NO se espeja.** El documento ya
+    # causa en Alegra el gasto y las retenciones, y su pago (al confirmar el
+    # giro) la salida de bancos. Espejar además el asiento lo contaba DOS veces:
+    # pasó con la quincena de Fidel (DSMG1 + comprobante 134, 18-sep-2026) —
+    # gasto, retenciones y banco duplicados en lo que el contador ve en Alegra.
     espejo = {"status": "omitido"}
-    if espejar:
+    if doc_soporte.get("status") in ("success", "ya_emitido", "borrador"):
+        espejo = {"status": "cubierto_por_doc_soporte",
+                  "message": f"Lo lleva a Alegra el documento soporte {doc_soporte.get('numero')}"}
+    elif espejar:
         try:
             from app.services.alegra_espejo import espejar_movimiento
 
@@ -2087,23 +2176,10 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         except Exception as e:
             espejo = {"status": "error", "message": str(e)}
 
-    # Documento soporte, si el beneficiario NO está obligado a facturar. Es lo
-    # que hace deducible el gasto (Art. 771-2 E.T.): sin factura del proveedor
-    # ni documento soporte nuestro, el pago está conciliado y contabilizado pero
-    # no es deducible. Va aquí y no como paso aparte porque un paso aparte es un
-    # paso que un día no se hace — y si no se emite, no hay quien lo note.
-    doc_soporte = {"status": "omitido"}
-    try:
-        from app.services import doc_soporte_pagos as _ds
-
-        doc_soporte = _ds.emitir_por_solicitud(sid)
-    except Exception as e:      # emitirlo no puede tumbar la aprobación
-        doc_soporte = {"status": "error", "message": str(e)}
-        print(f"⚠️ Solicitud {sid}: documento soporte no emitido: {e}", flush=True)
-
     _nota_ds = ""
-    if doc_soporte.get("status") == "success":
-        _nota_ds = f"\n📄 Documento soporte {doc_soporte.get('numero')} emitido y transmitido a la DIAN."
+    if doc_soporte.get("status") == "borrador":
+        _nota_ds = ("\n📄 Documento soporte en BORRADOR: revísalo y emítelo a la DIAN desde "
+                    "Libro Mayor → Documentos soporte (o desde esta solicitud).")
     elif doc_soporte.get("status") == "dry_run":
         _nota_ds = ("\n📄 Este beneficiario no está obligado a facturar: le corresponde documento "
                     "soporte, pero está en modo sombra (PAGOS_DOC_SOPORTE_ACTIVO=0). "
@@ -2115,6 +2191,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         s.get("ticket_id"), aprobada_por,
         f"✅ Pago aprobado (solicitud #{sid}). Asiento #{mov.get('id')} en el Libro Mayor"
         + (f" · comprobante Alegra #{espejo.get('id')}" if espejo.get("status") == "success"
+           else "" if espejo.get("status") == "cubierto_por_doc_soporte"
            else f" · Alegra: {espejo.get('status')}")
         + f". Girar {_fmt(s['girado'])} a {(s.get('tercero') or {}).get('nombre') or 'el beneficiario'}"
         f" desde {prev['medio_pago']} — ese es el valor que debe aparecer en el extracto.\n\n"

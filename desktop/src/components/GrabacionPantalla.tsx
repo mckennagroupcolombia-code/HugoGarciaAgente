@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { SelectorDestino, useDestinoSupervisor } from "./SupervisorDestino";
@@ -442,7 +443,7 @@ function Grabador({ onLista }: { onLista: (g: Grabacion) => void }) {
             onClick={elegirPantalla}
             className="w-full rounded-lg bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90"
           >
-            🖥️ Elegir pantalla, ventana o pestaña
+            <Ico e="🖥️" /> Elegir pantalla, ventana o pestaña
           </button>
         </>
       )}

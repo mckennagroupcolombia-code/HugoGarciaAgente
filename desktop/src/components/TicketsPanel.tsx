@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
@@ -558,7 +560,7 @@ function PrerequisitosBlock({
       >
         <TopicIcon value={o.icono} size={18} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-ink truncate">{o.label}</p>
+          <p className="font-semibold text-ink truncate">{ico(o.label)}</p>
           {o.sub && <p className="text-xs text-muted truncate">{o.sub}</p>}
         </div>
         <span className="shrink-0 text-[10px] font-bold uppercase text-accent">+ Agregar</span>
@@ -1078,7 +1080,7 @@ function TicketRecurrenciaSection({
   return (
     <div className="rounded-xl border-2 border-accent/20 bg-accent/50 p-4 space-y-3 dark:border-accent">
       <p className="text-xs font-bold uppercase tracking-wide text-accent">
-        ♻️ Recurrencia del ticket
+        <Ico e="♻️" /> Recurrencia del ticket
       </p>
       {canEdit ? (
         <div className="flex flex-wrap items-end gap-2">
@@ -1111,7 +1113,7 @@ function TicketRecurrenciaSection({
           onClick={renovar}
           className="rounded-paper border-2 border-accent/40 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/50 hover:border-accent/50 hover:text-white transition disabled:opacity-50"
         >
-          {renewing ? "Renovando..." : "♻️ Renovar ticket"}
+          {renewing ? "Renovando..." : ico("♻️ Renovar ticket")}
         </button>
       )}
     </div>
@@ -3321,7 +3323,7 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
           {estadoLabel}
         </span>
         {t.asignado_a_nombre && (
-          <span className="truncate text-[10px] text-muted">👤 {t.asignado_a_nombre}</span>
+          <span className="truncate text-[10px] text-muted"><Ico e="👤" /> {t.asignado_a_nombre}</span>
         )}
       </div>
     </button>
@@ -3552,7 +3554,7 @@ function MisionUbicacionResumen({
     return (
       <p className="mt-1 flex items-center gap-2 text-xs font-semibold text-muted">
         {accent && <ZonaColorDot color={accent} size="sm" />}
-        <span>📍 {fallback}</span>
+        <span><Ico e="📍" /> {fallback}</span>
       </p>
     );
   }
@@ -3562,7 +3564,7 @@ function MisionUbicacionResumen({
       {filas.map((f) => (
         <span key={f.label} className="inline-flex items-center gap-1 text-xs text-muted">
           {f.color && <ZonaColorDot color={f.color} size="sm" title={f.label} />}
-          <span className="font-bold uppercase tracking-wide text-[10px] text-muted/80">{f.label}</span>{" "}
+          <span className="font-bold uppercase tracking-wide text-[10px] text-muted/80">{ico(f.label)}</span>{" "}
           <span className="font-semibold text-ink">{f.valor}</span>
         </span>
       ))}
@@ -5018,7 +5020,7 @@ function CreateTicketView({
                   : "border-border text-muted hover:border-accent hover:text-accent"
               }`}
             >
-              {m.label}
+              {ico(m.label)}
             </button>
           ))}
         </div>
@@ -5071,7 +5073,7 @@ function CreateTicketView({
             )}
             {requiereDocumento && (
               <p className="mt-1 text-xs font-medium text-accent">
-                ⚠️ Requiere soporte documental adjunto (PDF o imagen)
+                <Ico e="⚠️" /> Requiere soporte documental adjunto (PDF o imagen)
               </p>
             )}
           </div>
@@ -5136,13 +5138,13 @@ function CreateTicketView({
             >
               {file ? (
                 <div className="flex items-center justify-center gap-2 text-sm font-semibold text-accent">
-                  <span>📎</span> {file.name}
+                  <span><Ico e="📎" /></span> {file.name}
                   <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}
                     className="ml-2 text-muted hover:text-danger font-bold">✕</button>
                 </div>
               ) : (
                 <p className="text-sm text-muted">
-                  📎 Haz clic o arrastra un archivo (PDF, JPG, PNG · máx. 10MB)
+                  <Ico e="📎" /> Haz clic o arrastra un archivo (PDF, JPG, PNG · máx. 10MB)
                 </p>
               )}
             </div>
@@ -5354,7 +5356,7 @@ function TicketBarraGuardado({
         disabled={saving}
         className="rounded-paper border-2 border-accent bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-accent disabled:opacity-50"
       >
-        {saving ? "Guardando…" : "💾 Guardar"}
+        {saving ? "Guardando…" : ico("💾 Guardar")}
       </button>
       {puedeGuardarTiempo && (
         <span className="text-[10px] text-muted">Incluye el tramo del cronómetro en la bitácora</span>
@@ -5524,7 +5526,7 @@ function TicketPasoAPasoView({
   if (fase === "todo_ok") return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
       <div className="relative">
-        <div className="mck-bounce-in text-8xl select-none">🏆</div>
+        <div className="mck-bounce-in text-8xl select-none"><Ico e="🏆" /></div>
         <div className="absolute inset-0 rounded-full pointer-events-none"
           style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
       </div>
@@ -5666,7 +5668,7 @@ function NotaAccionInline({
   return (
     <div className="rounded-2xl border border-accent/70  bg-accent/60  p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-sm font-extrabold text-accent">📝 Notas</span>
+        <span className="text-sm font-extrabold text-accent"><Ico e="📝" /> Notas</span>
         {saving && <span className="text-[10px] text-muted animate-pulse">Guardando…</span>}
         {saved && <span className="text-[10px] text-accent">✓ Guardado</span>}
       </div>
@@ -5810,12 +5812,12 @@ export function TicketDetailView({
         {ticket.mision_info && ticket.etapa_info && (
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
             style={{ borderColor: ticket.mision_info.color + "66", background: ticket.mision_info.color + "18", color: ticket.mision_info.color }}>
-            🎯 {ticket.mision_info.titulo} · Etapa {ticket.etapa_info.orden}/{ticket.mision_info.total_etapas}
+            <Ico e="🎯" /> {ticket.mision_info.titulo} · Etapa {ticket.etapa_info.orden}/{ticket.mision_info.total_etapas}
           </div>
         )}
         {ticket.bloqueado_por && (
           <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600">
-            🔒 Bloqueado por {ticket.bloqueado_por_numero}
+            <Ico e="🔒" /> Bloqueado por {ticket.bloqueado_por_numero}
           </div>
         )}
         <h2 className="text-lg font-extrabold text-ink">{ticket.titulo}</h2>
@@ -5826,7 +5828,7 @@ export function TicketDetailView({
           <a href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
             target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-xl border-2 border-border px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition">
-            📎 Ver adjunto
+            <Ico e="📎" /> Ver adjunto
           </a>
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted border-t border-border pt-3">
@@ -5916,7 +5918,7 @@ export function TicketDetailView({
             className="flex w-full items-center justify-between px-5 py-3 text-left"
             onClick={() => setShowComentarios((v) => !v)}>
             <span className="text-sm font-extrabold uppercase tracking-wide text-muted">
-              💬 Comentarios
+              <Ico e="💬" /> Comentarios
               <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold">{ticket.comentarios.length}</span>
             </span>
             <span className="text-xs text-muted">{showComentarios ? "▲" : "▼"}</span>
@@ -5929,7 +5931,7 @@ export function TicketDetailView({
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
                     <div className="flex items-center gap-2">
-                      {Boolean(c.es_interno) && <span className="text-xs font-semibold text-accent">🔒 Interno</span>}
+                      {Boolean(c.es_interno) && <span className="text-xs font-semibold text-accent"><Ico e="🔒" /> Interno</span>}
                       <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
                     </div>
                   </div>
@@ -6277,7 +6279,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                 {!["rrhh", "logistica", "mantenimiento", "contratos"].includes(c.slug) && (
                   <button onClick={() => eliminarCategoria(c.slug, c.nombre)}
                     className="text-xs font-semibold text-red-400 transition hover:text-red-600">
-                    🗑️ Eliminar
+                    <Ico e="🗑️" /> Eliminar
                   </button>
                 )}
                 {["rrhh", "logistica", "mantenimiento", "contratos"].includes(c.slug) && (
@@ -6309,7 +6311,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
                     <span>{u.rol?.nombre}</span>·<span style={{ color: u.departamento?.color }}>{u.departamento?.nombre}</span>
                     {u.telefono ? (
-                      <span className="font-mono text-accent">📱 {u.telefono}</span>
+                      <span className="font-mono text-accent"><Ico e="📱" /> {u.telefono}</span>
                     ) : (
                       <span className="text-accent">Sin teléfono WA</span>
                     )}
@@ -6549,7 +6551,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                       <div className="space-y-2.5">
                         {grupos.map((grupo) => (
                           <div key={grupo.id}>
-                            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">{grupo.label}</p>
+                            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">{ico(grupo.label)}</p>
                             <div className="grid grid-cols-2 gap-1.5">
                               {grupo.permisos.map((s) => (
                                 <label
@@ -6838,7 +6840,7 @@ function PasoNotaPostit({
         title={tieneNota ? "Ver nota post-it" : "Agregar nota post-it"}
         className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5   dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
       >
-        📝
+        <Ico e="📝" />
         {tieneNota && (
           <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface" />
         )}
@@ -7179,7 +7181,7 @@ function CreateMisionEtapaFrames({
                   {i + 1}
                 </span>
                 {isSecuencial && i > 0 && (
-                  <span className="text-[10px] font-semibold text-muted">🔒 tras #{i}</span>
+                  <span className="text-[10px] font-semibold text-muted"><Ico e="🔒" /> tras #{i}</span>
                 )}
                 {!isSecuencial && (
                   <span className="text-[10px] font-semibold text-muted">⚡ activo</span>
@@ -7521,7 +7523,7 @@ export function PasosSection({
   return (
     <div ref={containerRef} className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📋 Pasos del procedimiento</h3>
+        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted"><Ico e="📋" /> Pasos del procedimiento</h3>
         {pasos.length > 0 && (
           <span className={`text-xs font-bold ${pct === 100 ? "text-accent" : "text-muted"}`}>
             {completados}/{pasos.length} — {pct}%
@@ -7636,13 +7638,13 @@ export function PasosSection({
                   popoverRef={notePopoverRef}
                 />
                 {p.completado_por_nombre && (
-                  <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
+                  <span className="text-xs text-muted shrink-0"><Ico e="👤" /> {p.completado_por_nombre}</span>
                 )}
                 {editMode && (
                   <label title="Adjuntar archivo o Ctrl+V en este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
                     {subiendoAdjPaso === p.id
                       ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                      : <span className="text-xs">📎</span>
+                      : <span className="text-xs"><Ico e="📎" /></span>
                     }
                     <input
                       type="file"
@@ -7720,7 +7722,7 @@ export function PasosSection({
                   {subiendoAdjPaso === p.id ? (
                     <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
                   ) : (
-                    <><span>📷</span> Ctrl+V — pegar pantallazo</>
+                    <><span><Ico e="📷" /></span> Ctrl+V — pegar pantallazo</>
                   )}
                   <input
                     type="file"
@@ -7762,7 +7764,7 @@ export function PasosSection({
           disabled={saving}
           className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-accent disabled:opacity-50"
         >
-          {saving ? "Guardando…" : "💾 Guardar pasos"}
+          {saving ? "Guardando…" : ico("💾 Guardar pasos")}
         </button>
         {guardarMsg && (
           <span className={`text-xs font-semibold ${guardarMsg.includes("Error") ? "text-danger" : "text-accent"}`}>
@@ -7812,7 +7814,7 @@ function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${cfg.className}`}>
       <TopicIcon value={cfg.emoji} size={10} weight="regular" />
-      {cfg.label}
+      {ico(cfg.label)}
     </span>
   );
 }
@@ -8189,7 +8191,7 @@ export function MaterialesSection({
 
   return (
     <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
-      <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📦 Materiales e insumos</h3>
+      <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted"><Ico e="📦" /> Materiales e insumos</h3>
       <p className="text-[11px] text-muted -mt-2">
         Los materiales nuevos se guardan en el inventario general y quedan vinculados a esta etapa.
       </p>
@@ -8230,7 +8232,7 @@ export function MaterialesSection({
                         title={tieneNota ? "Ver observación" : "Agregar observación"}
                         className={`relative flex h-9 w-9 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-base shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5   dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${noteOpen ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
                       >
-                        📝
+                        <Ico e="📝" />
                         {tieneNota && (
                           <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface" />
                         )}
@@ -8874,7 +8876,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
       return (
         <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-3 shadow-paper-sm space-y-3 sm:col-span-2 xl:col-span-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-xs font-extrabold text-accent">✏️ Editar material</h3>
+            <h3 className="text-xs font-extrabold text-accent"><Ico e="✏️" /> Editar material</h3>
             <button type="button" onClick={() => setEditId(null)}
               className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
           </div>
@@ -8977,7 +8979,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
           )}
           <div className="min-w-0 flex-1 space-y-0.5">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              {bajo && <span className="text-xs">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
+              {bajo && <span className="text-xs">{m.stock_actual <= 0 ? ico("🔴") : ico("🟡")}</span>}
               <p className="truncate text-sm font-bold text-ink">{m.nombre}</p>
               <BadgeTipoMaterial tipo={m.tipo} />
               <span className={`ml-auto text-sm font-black tabular-nums ${bajo ? "text-red-600" : "text-ink"}`}>
@@ -9004,7 +9006,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
               }`}
               title={enCarrito(m.id) ? "Ya en el carrito — clic suma cantidad" : "Agregar al carrito de compras"}
             >
-              🛒
+              <Ico e="🛒" />
             </button>
             {nivel >= 2 && (
               <button
@@ -9015,7 +9017,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
                 }}
                 className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
                 title="Editar material">
-                ✏️
+                <Ico e="✏️" />
               </button>
             )}
           </div>
@@ -9168,7 +9170,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
 
       {cartFlash && (
         <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent">
-          🛒 <span className="font-bold">{cartFlash}</span> agregado al carrito.
+          <Ico e="🛒" /> <span className="font-bold">{cartFlash}</span> agregado al carrito.
           <button
             type="button"
             onClick={abrirCarrito}
@@ -9713,7 +9715,7 @@ function CreateMisionView({
       <div className="mb-8 flex items-center justify-between">
         <button onClick={onBack} className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
         <button onClick={() => setModoSimple(false)} className="rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-accent hover:text-accent">
-          ⚙️ Vista avanzada
+          <Ico e="⚙️" /> Vista avanzada
         </button>
       </div>
 
@@ -9870,7 +9872,7 @@ function CreateMisionView({
                 onClick={() => { setShowMatsWizard((v) => !v); if (!showMatsWizard && pasoMats.length === 0) setPasoMats([{ n: "", c: "" }]); }}
                 className="flex items-center gap-2 text-sm font-bold text-accent transition hover:text-accent/70">
                 <span className={`transition-transform ${showMatsWizard ? "rotate-90" : ""}`}>▶</span>
-                📦 Añadir materiales
+                <Ico e="📦" /> Añadir materiales
               </button>
               {showMatsWizard && (
                 <div className="mt-3 space-y-2 mck-slide-up">
@@ -9973,10 +9975,10 @@ function CreateMisionView({
               ? "border-accent/30 bg-accent/5 text-accent"
               : "border-border bg-surface-panel text-muted"
           }`}>
-            {form.modo_ciclo === "infinita" ? "♾️ Infinita" : "📌 Finita"}
+            {form.modo_ciclo === "infinita" ? ico("♾️ Infinita") : ico("📌 Finita")}
           </span>
           <span className="rounded-full border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-muted">
-            {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
+            {isSecuencial ? ico("🔗 Secuencial") : "⚡ Paralelo"}
           </span>
           {infoMsg && (
             <span className="rounded-full border border-accent/30 bg-accent/5 px-2.5 py-1 text-xs font-semibold text-accent">
@@ -10045,7 +10047,7 @@ function CreateMisionView({
                         onChange={() => setForm((f) => ({ ...f, modo_ciclo: opt.value }))}
                       />
                       <span className="min-w-0">
-                        <span className="block text-sm font-bold text-ink">{opt.label}</span>
+                        <span className="block text-sm font-bold text-ink">{ico(opt.label)}</span>
                         <span className="block text-[10px] leading-snug text-muted">{opt.hint}</span>
                       </span>
                     </label>
@@ -10101,7 +10103,7 @@ function CreateMisionView({
                 />
               ) : (
                 <div className="rounded-lg border-2 border-accent/30 bg-accent/5 px-3 py-2 text-xs text-accent dark:border-accent">
-                  Crea reinos en <strong>🏰 Reinos</strong> primero.
+                  Crea reinos en <strong><Ico e="🏰" /> Reinos</strong> primero.
                 </div>
               )}
 
@@ -10323,7 +10325,7 @@ function MisionFocusMode({
   if (fase === "todo_ok") return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
       <div className="relative">
-        <div className="mck-bounce-in text-8xl select-none">🏆</div>
+        <div className="mck-bounce-in text-8xl select-none"><Ico e="🏆" /></div>
         <div className="absolute inset-0 rounded-full pointer-events-none"
           style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
       </div>
@@ -10420,7 +10422,7 @@ function MisionFocusMode({
                 <div className="overflow-hidden rounded-2xl border-2 border-accent/25 bg-surface-panel">
                   {/* Header */}
                   <div className="flex items-center gap-2 border-b border-accent/20 bg-accent/8 px-5 py-3">
-                    <span className="text-lg">📦</span>
+                    <span className="text-lg"><Ico e="📦" /></span>
                     <span className="text-xs font-extrabold uppercase tracking-widest text-accent">
                       Materiales · {matItems.length} ítem{matItems.length !== 1 ? "s" : ""}
                     </span>
@@ -10762,7 +10764,7 @@ function MisionDetailView({
     if (estaCompleta) return (
       <div className="mx-auto flex min-h-[80vh] w-full max-w-lg flex-col items-center justify-center gap-7 px-4 text-center">
         <div className="relative">
-          <div className="mck-bounce-in text-8xl select-none">🏆</div>
+          <div className="mck-bounce-in text-8xl select-none"><Ico e="🏆" /></div>
           <div className="absolute inset-0 rounded-full pointer-events-none"
             style={{ animation: "mck-ring-pulse 1.2s ease-out 0.4s both", background: "radial-gradient(circle, rgba(244,196,77,0.35) 0%, transparent 70%)" }} />
         </div>
@@ -10811,7 +10813,7 @@ function MisionDetailView({
                 setModoFocus(true);
               } catch (e: any) { alert(e.message); }
             }}>
-            🚀 Volver a hacer la misión
+            <Ico e="🚀" /> Volver a hacer la misión
           </button>
         )}
         <button onClick={onBack}
@@ -10832,7 +10834,7 @@ function MisionDetailView({
         <div className="mck-slide-up space-y-3 text-center">
           <div className="text-6xl select-none mck-bounce-in"
             style={{ filter: `drop-shadow(0 4px 12px ${mision.color}66)` }}>
-            🎯
+            <Ico e="🎯" />
           </div>
           <h1 className="text-3xl font-extrabold text-ink">{mision.titulo}</h1>
           {mision.descripcion && <p className="text-base text-muted">{mision.descripcion}</p>}
@@ -10852,7 +10854,7 @@ function MisionDetailView({
         <button
           onClick={() => setModoFocus(true)}
           className="w-full rounded-2xl bg-accent py-5 text-xl font-extrabold text-white shadow-lg transition hover:brightness-110 active:scale-95">
-          {pct > 0 ? "▶ Continuar misión" : "🎯 Comenzar misión"}
+          {pct > 0 ? "▶ Continuar misión" : ico("🎯 Comenzar misión")}
         </button>
       </div>
     );
@@ -10867,18 +10869,18 @@ function MisionDetailView({
         </button>
         {(mision.departamento_nombre || mision.ubicacion_label) && (
           <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-            🏢 {mision.departamento_nombre || mision.ubicacion_label}
+            <Ico e="🏢" /> {mision.departamento_nombre || mision.ubicacion_label}
           </span>
         )}
         <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-semibold text-muted">
-          {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
+          {isSecuencial ? ico("🔗 Secuencial") : "⚡ Paralelo"}
         </span>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${
           misionInfinita
             ? "bg-accent/10 text-accent border-accent/30"
             : "bg-surface-hover text-muted border-border"
         }`}>
-          {misionInfinita ? "♾️ Infinita" : "📌 Finita"}
+          {misionInfinita ? ico("♾️ Infinita") : ico("📌 Finita")}
         </span>
         {mision.estado === "completada" && !misionInfinita && (
           <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent border border-accent/30 px-2.5 py-0.5 text-xs font-bold">
@@ -10893,7 +10895,7 @@ function MisionDetailView({
         <div className="ml-auto flex gap-2">
           {readonly ? (
             <span className="rounded-full bg-surface-hover border border-border px-2.5 py-0.5 text-[10px] font-bold text-muted">
-              👁 Solo visualización
+              <Ico e="👁" /> Solo visualización
             </span>
           ) : (
             <>
@@ -10903,7 +10905,7 @@ function MisionDetailView({
                   ${editingMeta
                     ? "border-accent bg-accent text-white"
                     : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-                ✏️ Editar
+                <Ico e="✏️" /> Editar
               </button>
               {nivel >= 1 && !esOrquestador && (
                 <button
@@ -10921,14 +10923,14 @@ function MisionDetailView({
                     }
                   }}
                   className="rounded-paper border-2 border-accent/40 px-3 py-1.5 text-sm font-bold text-accent transition hover:bg-accent/50 hover:border-accent/50 hover:text-white disabled:opacity-50">
-                  {renewing ? "Iniciando..." : "🚀 Iniciar misión"}
+                  {renewing ? "Iniciando..." : ico("🚀 Iniciar misión")}
                 </button>
               )}
               {etapas.filter((e) => e.ticket_id).length > 0 && (
                 <button
                   onClick={() => setModoFocus(true)}
                   className="rounded-paper border-2 border-accent px-3 py-1.5 text-sm font-bold text-accent transition hover:bg-accent hover:text-white">
-                  🎯 Modo enfocado
+                  <Ico e="🎯" /> Modo enfocado
                 </button>
               )}
               {nivel >= 3 && (
@@ -10947,7 +10949,7 @@ function MisionDetailView({
                     }
                   }}
                   className="rounded-paper border-2 border-red-300 px-3 py-1.5 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:border-red-500 hover:text-white">
-                  🗑️ Eliminar
+                  <Ico e="🗑️" /> Eliminar
                 </button>
               )}
             </>
@@ -10984,7 +10986,7 @@ function MisionDetailView({
                     onChange={() => setMetaForm((f) => ({ ...f, modo_ciclo: opt.value }))}
                   />
                   <span className="min-w-0 text-xs">
-                    <span className="block font-bold text-ink">{opt.label}</span>
+                    <span className="block font-bold text-ink">{ico(opt.label)}</span>
                     <span className="text-muted">{opt.hint}</span>
                   </span>
                 </label>
@@ -11236,7 +11238,7 @@ function MisionDetailView({
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">
         <div className="mb-4 flex items-center gap-2">
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
-            {isSecuencial ? "🔗 Pipeline Secuencial" : "⚡ Tickets Asíncronos"}
+            {isSecuencial ? ico("🔗 Pipeline Secuencial") : "⚡ Tickets Asíncronos"}
           </h3>
           <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-muted">
             {isSecuencial ? "Se desbloquean en orden" : "Todos activos en paralelo"}
@@ -11267,12 +11269,12 @@ function MisionDetailView({
                       style={isDone
                         ? { background: mision.color }
                         : { color: mision.color, border: `2px solid ${mision.color}33` }}>
-                      {isDone ? "✓" : etapaLocked ? "🔒" : et.orden}
+                      {isDone ? "✓" : etapaLocked ? ico("🔒") : et.orden}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className={`font-semibold text-sm ${etapaLocked ? "opacity-50" : ""}`}>{et.titulo}</p>
                       {et.asignado_nombre && (
-                        <p className="text-xs opacity-75 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>
+                        <p className="text-xs opacity-75 flex items-center gap-1"><span><Ico e="👤" /></span>{et.asignado_nombre}</p>
                       )}
                       {et.ticket_frecuencia && (
                         <p className="text-[10px] font-semibold text-accent">
@@ -11314,7 +11316,7 @@ function MisionDetailView({
                             ${configurandoTicketId === et.ticket_id
                               ? "border-accent bg-accent text-white"
                               : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-                          ⚙️
+                          <Ico e="⚙️" />
                         </button>
                       )}
                       {!isLocked && !isDone && !readonly && (
@@ -11327,7 +11329,7 @@ function MisionDetailView({
                   {!readonly && configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-2 rounded-paper border border-accent/30 bg-surface p-4 space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
-                        ⚙️ Configurar: {et.titulo}
+                        <Ico e="⚙️" /> Configurar: {et.titulo}
                       </p>
                       <TicketCronometroById ticketId={et.ticket_id} token={token} />
                       <TicketRecurrenciaById
@@ -11417,7 +11419,7 @@ function MisionDetailView({
                             ${configurandoTicketId === et.ticket_id
                               ? "border-accent bg-accent text-white"
                               : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-                          ⚙️
+                          <Ico e="⚙️" />
                         </button>
                       )}
                       {!isLocked && !isDone && !readonly && (
@@ -11433,11 +11435,11 @@ function MisionDetailView({
                       {FRECUENCIA_LABEL[et.ticket_frecuencia] ?? et.ticket_frecuencia}
                     </p>
                   )}
-                  {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>}
+                  {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span><Ico e="👤" /></span>{et.asignado_nombre}</p>}
                   {/* Panel de configuración inline — solo en modo edición */}
                   {!readonly && configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
-                      <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
+                      <p className="text-xs font-extrabold uppercase tracking-wide text-accent"><Ico e="⚙️" /> Configurar</p>
                       <TicketCronometroById ticketId={et.ticket_id} token={token} />
                       <TicketRecurrenciaById
                         ticketId={et.ticket_id}
@@ -12029,7 +12031,7 @@ function WorkloadView({
                           </div>
                           <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tipoBadge[t.tipo] ?? tipoBadge.ticket}`}>
-                              {t.tipo === "accion" ? "⚡ acción" : t.tipo === "solicitud" ? "📋 solicitud" : "🎫 ticket"}
+                              {t.tipo === "accion" ? "⚡ acción" : t.tipo === "solicitud" ? ico("📋 solicitud") : ico("🎫 ticket")}
                             </span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${prioBadge[t.prioridad] ?? prioBadge.baja}`}>
                               {t.prioridad}
@@ -12311,7 +12313,7 @@ function esTarjetaSoloCompras(ticket: Ticket, user?: TicketsUser): boolean {
 function AccionCardAvisoCompras({ ticket }: { ticket: Ticket }) {
   return (
     <div className="rounded-xl border border-accent/50 bg-accent/50  p-3 space-y-2">
-      <p className="text-sm font-bold text-ink">🛒 {ticket.titulo}</p>
+      <p className="text-sm font-bold text-ink"><Ico e="🛒" /> {ticket.titulo}</p>
       <p className="text-xs text-muted font-mono">{ticket.numero}</p>
       <p className="text-xs text-muted">
         Esta tarea es solo la lista de compras. Ábrela en <strong className="text-ink">Solicitudes</strong>.
@@ -12657,7 +12659,7 @@ function AccionCardOperativa({
               onClick={() => onContinuar(ticket)}
               className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-3 text-sm font-extrabold text-white min-h-[44px] transition hover:brightness-110"
             >
-              📋 Continuar donde quedé
+              <Ico e="📋" /> Continuar donde quedé
             </button>
           )}
           <div className="flex gap-2">
@@ -12996,7 +12998,7 @@ function AccionesFrecuentesSugeridas({
             onClick={onEmpacarHoy}
             className="rounded-xl border-2 border-accent/50 bg-accent/10 px-3 py-2 text-left text-xs font-extrabold text-accent transition hover:bg-accent/15"
           >
-            <span className="block">📦 Empacar hoy</span>
+            <span className="block"><Ico e="📦" /> Empacar hoy</span>
             <span className="text-[10px] font-normal text-muted">Indica qué productos</span>
           </button>
         )}
@@ -13582,7 +13584,7 @@ function SolicitudListaChecklist({
             <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition
               ${facturaFile ? "border-accent bg-accent/8" : "border-border hover:border-accent/60"}`}>
               <span className="text-xs font-bold text-accent">
-                {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional) — Ctrl+V"}
+                {facturaFile ? facturaFile.name : ico("📷 Factura de caja (opcional) — Ctrl+V")}
               </span>
               {facturaFile && (
                 <button
@@ -13627,7 +13629,7 @@ function SolicitudListaChecklist({
               })}
               className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent hover:bg-accent/5"
             >
-              🖨 Abrir Impresora · Etiquetas
+              <Ico e="🖨" /> Abrir Impresora · Etiquetas
             </button>
           )}
         </div>
@@ -14210,7 +14212,7 @@ function SolicitudCard({
             {a.preview ? (
               <img src={a.preview} alt="" className="h-10 w-10 rounded object-cover border border-border" />
             ) : (
-              <span className="flex h-10 w-10 items-center justify-center rounded border border-border bg-surface text-base">📷</span>
+              <span className="flex h-10 w-10 items-center justify-center rounded border border-border bg-surface text-base"><Ico e="📷" /></span>
             )}
             <span className="max-w-[6rem] truncate text-xs text-muted">{a.file.name}</span>
             <button type="button" onClick={() => quitarArchivoPendienteEn(idx)} className="shrink-0 text-xs text-danger hover:underline">
@@ -14898,7 +14900,7 @@ function SolicitudCard({
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <span className="text-sm font-bold text-ink">🛒 {ticket.titulo}</span>
+            <span className="text-sm font-bold text-ink"><Ico e="🛒" /> {ticket.titulo}</span>
             <p className="mt-0.5 text-xs text-muted font-mono">{ticket.numero}</p>
           </div>
           <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px]">
@@ -14926,7 +14928,7 @@ function SolicitudCard({
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            <span className="text-sm font-bold text-ink">🏷️ {ticket.titulo}</span>
+            <span className="text-sm font-bold text-ink"><Ico e="🏷️" /> {ticket.titulo}</span>
             <p className="mt-0.5 text-xs text-muted font-mono">{ticket.numero}</p>
           </div>
           <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px]">
@@ -14953,7 +14955,7 @@ function SolicitudCard({
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-5 text-center px-4 py-10">
         <div className="relative">
-          <div className="mck-bounce-in text-8xl select-none">🏆</div>
+          <div className="mck-bounce-in text-8xl select-none"><Ico e="🏆" /></div>
           <div className="absolute inset-0 rounded-full pointer-events-none"
             style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
         </div>
@@ -15093,10 +15095,10 @@ function SolicitudCard({
           {(ticket.frecuencia || ticket.protocolo_titulo) && (
             <div className="flex flex-wrap gap-2 pt-0.5">
               {ticket.frecuencia && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted">♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-muted"><Ico e="♻️" /> {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}</span>
               )}
               {ticket.protocolo_titulo && (
-                <span className="inline-flex items-center gap-1 text-xs text-accent/80" title="Procedimiento vinculado">📋 {ticket.protocolo_titulo}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-accent/80" title="Procedimiento vinculado"><Ico e="📋" /> {ticket.protocolo_titulo}</span>
               )}
             </div>
           )}
@@ -15171,7 +15173,7 @@ function SolicitudCard({
             )}
             {ticket.frecuencia && (
               <span className="flex items-center gap-1">
-                ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
+                <Ico e="♻️" /> {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
               </span>
             )}
             {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
@@ -15182,7 +15184,7 @@ function SolicitudCard({
             )}
             {ticket.protocolo_titulo && (
               <span className="flex items-center gap-1 text-accent/90" title="Procedimiento vinculado">
-                📋 {ticket.protocolo_titulo}
+                <Ico e="📋" /> {ticket.protocolo_titulo}
               </span>
             )}
             {(adjuntos.length > 0 || loadingAdjuntos) && (
@@ -15191,7 +15193,7 @@ function SolicitudCard({
                 onClick={() => { setShowAdjuntos(true); if (!adjuntos.length && !loadingAdjuntos) void cargarAdjuntos(); }}
                 className="flex items-center gap-1 text-accent hover:underline"
               >
-                📎 {loadingAdjuntos ? "Cargando…" : `${adjuntos.length} adjunto${adjuntos.length !== 1 ? "s" : ""}`}
+                <Ico e="📎" /> {loadingAdjuntos ? "Cargando…" : `${adjuntos.length} adjunto${adjuntos.length !== 1 ? "s" : ""}`}
               </button>
             )}
             {puedeVerChat && (
@@ -15277,7 +15279,7 @@ function SolicitudCard({
       {/* Formulario de edición inline — visible al creador o admin */}
       {showEdit && (
         <div className="rounded-xl border-2 border-accent/40 bg-accent/5 p-3 space-y-2">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-accent">✏️ Editar solicitud</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-accent"><Ico e="✏️" /> Editar solicitud</p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           <ProseInput
             className="quest-input w-full text-sm"
@@ -15372,7 +15374,7 @@ function SolicitudCard({
                 hayArchivoPendiente ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-accent hover:border-accent"
               }`}
             >
-              📷
+              <Ico e="📷" />
             </button>
             <input
               ref={interArchivoRef}
@@ -15388,7 +15390,7 @@ function SolicitudCard({
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-              📎
+              <Ico e="📎" />
             </button>
           </div>
           <p className="text-[10px] text-muted text-center">
@@ -15439,7 +15441,7 @@ function SolicitudCard({
         <div className="rounded-xl border border-accent/50 bg-accent/30  p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-accent  flex items-center gap-1">
-              🔒 Datos sensibles / Protocolo privado
+              <Ico e="🔒" /> Datos sensibles / Protocolo privado
               <InfoTooltip text="Visible solo para el asignado, quien creó la solicitud, participantes directos y supervisores. Aquí puedes guardar contraseñas, procedimientos internos o notas confidenciales de resolución. Solo supervisores pueden editar." />
             </span>
             <button type="button" onClick={() => setShowSensible(false)} className="text-muted hover:text-ink text-xs">✕</button>
@@ -15574,7 +15576,7 @@ function SolicitudCard({
                                 alt={item.adjunto.nombre_original}
                                 className="max-h-72 w-full max-w-[280px] object-cover transition group-hover:opacity-85"
                               />
-                              <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-2xl text-white opacity-0 transition group-hover:bg-black/10 group-hover:opacity-100">🔍</span>
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-2xl text-white opacity-0 transition group-hover:bg-black/10 group-hover:opacity-100"><Ico e="🔍" /></span>
                             </button>
                           ) : (
                             <a
@@ -15663,7 +15665,7 @@ function SolicitudCard({
                   onClick={() => chatArchivoRef.current?.click()}
                   className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-base text-muted hover:border-accent hover:text-accent transition-colors"
                 >
-                  📷
+                  <Ico e="📷" />
                 </button>
                 <input
                   ref={chatArchivoRef}
@@ -15683,7 +15685,7 @@ function SolicitudCard({
                     onClick={abrirPreguntaSolicitante}
                     className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
                   >
-                    🙋 Pedir intervención
+                    <Ico e="🙋" /> Pedir intervención
                   </button>
                 )}
                 <div className="flex-1" />
@@ -15720,7 +15722,7 @@ function SolicitudCard({
         <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-ink">
-              📎 Adjuntos {adjuntos.length > 0 && <span className="font-normal text-muted">({adjuntos.length})</span>}
+              <Ico e="📎" /> Adjuntos {adjuntos.length > 0 && <span className="font-normal text-muted">({adjuntos.length})</span>}
             </span>
             <div className="flex items-center gap-2">
               {puedeSubirAdjuntos && (
@@ -15766,7 +15768,7 @@ function SolicitudCard({
                   {esImagen ? (
                     <button type="button" onClick={() => setLightboxUrl(url)} className="shrink-0 group relative" title="Ver imagen">
                       <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border group-hover:opacity-80 transition-opacity" />
-                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity">🔍</span>
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity"><Ico e="🔍" /></span>
                     </button>
                   ) : (
                     <span className="text-base shrink-0">{icono}</span>
@@ -15819,7 +15821,7 @@ function SolicitudCard({
               )}
               {ticket.protocolo_titulo && (
                 <span className="text-[10px] font-normal text-accent bg-accent/10 rounded-full px-2 py-0.5">
-                  📋 {ticket.protocolo_titulo}
+                  <Ico e="📋" /> {ticket.protocolo_titulo}
                 </span>
               )}
             </span>
@@ -15934,7 +15936,7 @@ function SolicitudCard({
                             <button type="button" title="Necesito ayuda en este paso"
                               onClick={() => abrirIntervencionDesdePaso(p)}
                               className="text-muted hover:text-accent/50 transition-colors p-0.5 text-[10px]">
-                              🛑
+                              <Ico e="🛑" />
                             </button>
                           )}
                           <button type="button" title="Eliminar paso" onClick={() => void eliminarPasoInline(p.id)}
@@ -15948,7 +15950,7 @@ function SolicitudCard({
                         <label title="Adjuntar archivo o Ctrl+V en este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
                           {subiendoAdjPaso === p.id
                             ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                            : <span className="text-[11px]">📎</span>
+                            : <span className="text-[11px]"><Ico e="📎" /></span>
                           }
                           <input
                             type="file"
@@ -15967,7 +15969,7 @@ function SolicitudCard({
                     {p.intervencion_pendiente_numero && (
                       <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px]">
                         <span className="font-semibold text-accent">
-                          🛑 Esperando intervención {p.intervencion_pendiente_numero}
+                          <Ico e="🛑" /> Esperando intervención {p.intervencion_pendiente_numero}
                         </span>
                         {p.intervencion_asignado_nombre && (
                           <span className="text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
@@ -16000,7 +16002,7 @@ function SolicitudCard({
                                 {esImagen ? (
                                   <button type="button" onClick={() => setLightboxUrl(url)} className="block" title={a.nombre_original}>
                                     <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
-                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold transition-opacity pointer-events-none">🔍</span>
+                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
                                   </button>
                                 ) : (
                                   <a href={url} target="_blank" rel="noreferrer"
@@ -16040,7 +16042,7 @@ function SolicitudCard({
                         {subiendoAdjPaso === p.id ? (
                           <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
                         ) : (
-                          <><span>📷</span> Ctrl+V — pegar pantallazo</>
+                          <><span><Ico e="📷" /></span> Ctrl+V — pegar pantallazo</>
                         )}
                         <input
                           type="file"
@@ -16166,7 +16168,7 @@ function SolicitudCard({
         <div className="rounded-xl border border-accent/40 bg-accent/20  p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-accent  flex items-center gap-1">
-              🛒 Lista de compras
+              <Ico e="🛒" /> Lista de compras
               <InfoTooltip text="Agrega los productos que se deben comprar para esta solicitud. Puedes buscarlos en el catálogo de materiales o escribir uno nuevo. Marca los que ya se compraron." />
             </span>
             <button type="button" onClick={() => setShowCompras(false)} className="text-muted hover:text-ink text-xs">▲</button>
@@ -16334,7 +16336,7 @@ function SolicitudCard({
             /* En revisión — esperando al creador */
             <div className="rounded-xl border border-accent/50 bg-accent/30  px-3 py-2.5 space-y-2">
               <p className="text-sm font-bold text-accent  flex items-center gap-2">
-                🔔 Esperando revisión del solicitante
+                <Ico e="🔔" /> Esperando revisión del solicitante
               </p>
               <p className="text-xs text-accent/80">
                 {ticket.creado_por_nombre ?? "El solicitante"} debe aprobar para cerrar la solicitud.
@@ -16388,7 +16390,7 @@ function SolicitudCard({
                   <button type="button"
                     onClick={() => { setShowAdjuntos((v) => !v); if (!showAdjuntos) void cargarAdjuntos(); }}
                     className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-                    📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
+                    <Ico e="📎" /> Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
                   </button>
                   {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
                     <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
@@ -16400,7 +16402,7 @@ function SolicitudCard({
                     <button type="button"
                       onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
                       className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
-                      📋 Enlazar
+                      <Ico e="📋" /> Enlazar
                     </button>
                   )}
                   {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
@@ -16412,7 +16414,7 @@ function SolicitudCard({
                   <button type="button"
                     onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
                     className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-accent/40 text-accent" : "border-border text-muted hover:text-accent/50 hover:border-accent/40"}`}>
-                    🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
+                    <Ico e="🛒" /> Compras{compras.length > 0 ? ` (${compras.length})` : ""}
                   </button>
                 </>
               )}
@@ -16422,7 +16424,7 @@ function SolicitudCard({
               <button type="button"
                 onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
                 className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-                📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
+                <Ico e="📎" /> Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
               </button>
               {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
               {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
@@ -16435,7 +16437,7 @@ function SolicitudCard({
                 <button type="button"
                   onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
                   className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
-                  📋 Enlazar procedimiento
+                  <Ico e="📋" /> Enlazar procedimiento
                 </button>
               )}
               {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
@@ -16447,7 +16449,7 @@ function SolicitudCard({
               <button type="button"
                 onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
                 className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-accent/40 text-accent" : "border-border text-muted hover:text-accent/50 hover:border-accent/40"}`}>
-                🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
+                <Ico e="🛒" /> Compras{compras.length > 0 ? ` (${compras.length})` : ""}
               </button>
               {/* Intervención solo disponible por paso — botón general eliminado */}
             </div>
@@ -16459,7 +16461,7 @@ function SolicitudCard({
       {!resuelta && esCreadoPorMi && !esAsignado && ticket.estado === "esperando_aprobacion" && (
         <div className="rounded-xl border-2 border-accent/50 bg-accent/30  p-3 space-y-3">
           <p className="text-sm font-extrabold text-accent  flex items-center gap-2">
-            🔔 {ticket.asignado_a_nombre ?? "El ejecutor"} completó la solicitud y pide tu revisión
+            <Ico e="🔔" /> {ticket.asignado_a_nombre ?? "El ejecutor"} completó la solicitud y pide tu revisión
           </p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
 
@@ -16499,7 +16501,7 @@ function SolicitudCard({
                   rel="noreferrer"
                   className="block rounded-lg border border-border px-3 py-2 text-xs font-semibold text-accent hover:underline"
                 >
-                  📎 {a.nombre_original}
+                  <Ico e="📎" /> {a.nombre_original}
                 </a>
               );
             })}
@@ -16522,7 +16524,7 @@ function SolicitudCard({
             <button type="button" disabled={busy}
               onClick={() => setShowPedirAjustes(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/50 px-3 py-2 text-xs font-bold text-accent  hover:bg-accent/40  transition-colors disabled:opacity-40">
-              🔄 Pedir ajustes
+              <Ico e="🔄" /> Pedir ajustes
             </button>
           ) : (
             <div className="space-y-2">
@@ -16560,7 +16562,7 @@ function SolicitudCard({
                       {a.preview ? (
                         <img src={a.preview} alt="" className="h-16 w-16 rounded-lg object-cover border border-border" />
                       ) : (
-                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-xl">📎</div>
+                        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-xl"><Ico e="📎" /></div>
                       )}
                       <button
                         type="button"
@@ -16616,7 +16618,7 @@ function SolicitudCard({
         && !(esCreadoPorMi || isAdmin) && (
         <div className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted text-center">
           {ticket.estado === "esperando_aprobacion"
-            ? <span>🔔 Esperando revisión de <strong>{ticket.creado_por_nombre ?? "el solicitante"}</strong></span>
+            ? <span><Ico e="🔔" /> Esperando revisión de <strong>{ticket.creado_por_nombre ?? "el solicitante"}</strong></span>
             : <span>Solo <strong>{ticket.asignado_a_nombre ?? "el asignado"}</strong> puede resolver esta solicitud</span>
           }
         </div>
@@ -16629,7 +16631,7 @@ function SolicitudCard({
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted hover:border-accent hover:text-accent transition-colors"
             >
-              📎 Ver adjuntos
+              <Ico e="📎" /> Ver adjuntos
             </button>
           )}
           <p className="text-[10px] text-center text-muted">
@@ -16677,7 +16679,7 @@ function SolicitudCard({
                 })()}
                 className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors disabled:opacity-40"
               >
-                {guardandoProtocolo ? "Guardando…" : "📋 Guardar como procedimiento"}
+                {guardandoProtocolo ? "Guardando…" : ico("📋 Guardar como procedimiento")}
               </button>
               {puedeCrearProtocolos(user) && (
                 <button
@@ -16688,14 +16690,14 @@ function SolicitudCard({
                   }}
                   className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors"
                 >
-                  ✏️ Personalizar nombre del procedimiento
+                  <Ico e="✏️" /> Personalizar nombre del procedimiento
                 </button>
               )}
             </div>
           ) : (
             <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 space-y-2">
               <p className="text-xs font-bold text-accent flex items-center gap-1">
-                📋 Guardar como procedimiento
+                <Ico e="📋" /> Guardar como procedimiento
                 <InfoTooltip text="Crea un procedimiento reutilizable a partir de esta solicitud resuelta. El procedimiento guardará todos los pasos ejecutados y servirá como plantilla para nuevas solicitudes del mismo tipo." />
               </p>
               <ProseInput
@@ -18545,7 +18547,7 @@ function NuevaAccionWizard({
                           {p.desc.slice(0, 48)}{p.desc.length > 48 ? "…" : ""}
                         </p>
                       )}
-                      {p.foto && <span className="text-xs text-accent shrink-0">📎</span>}
+                      {p.foto && <span className="text-xs text-accent shrink-0"><Ico e="📎" /></span>}
                     </div>
                   </div>
                   <button
@@ -18554,7 +18556,7 @@ function NuevaAccionWizard({
                     className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
                     title="Editar paso"
                   >
-                    ✏️
+                    <Ico e="✏️" />
                   </button>
                   <button
                     type="button"
@@ -18570,7 +18572,7 @@ function NuevaAccionWizard({
                     className="shrink-0 rounded-lg border border-accent/50 px-2 py-1 text-[10px] font-bold text-accent transition hover:bg-accent/5"
                     title="Pedir verificación a otro usuario"
                   >
-                    🛑
+                    <Ico e="🛑" />
                   </button>
                   <button
                     type="button"
@@ -18874,7 +18876,7 @@ function NuevaAccionWizard({
                     : "text-muted hover:text-ink"
                 }`}
               >
-                🔒 Solo para mí
+                <Ico e="🔒" /> Solo para mí
               </button>
               <button
                 type="button"
@@ -18885,7 +18887,7 @@ function NuevaAccionWizard({
                     : "text-muted hover:text-ink"
                 }`}
               >
-                🌐 Compartir con el equipo
+                <Ico e="🌐" /> Compartir con el equipo
               </button>
             </div>
           )}
@@ -19810,7 +19812,7 @@ function NuevaSolicitudWizard({
               className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
-                🏷️ Solicitud de etiquetas
+                <Ico e="🏷️" /> Solicitud de etiquetas
               </p>
               <p className="mt-1 text-sm text-muted">
                 Pedir impresión de etiquetas: producto, presentación y unidades.
@@ -19836,7 +19838,7 @@ function NuevaSolicitudWizard({
                   puedeSolicitarPago ? "group-hover:text-accent transition-colors" : ""
                 }`}
               >
-                💸 Solicitud de pago a proveedor
+                <Ico e="💸" /> Solicitud de pago a proveedor
               </p>
               <p className="mt-1 text-sm text-muted">
                 {puedeSolicitarPago
@@ -19850,7 +19852,7 @@ function NuevaSolicitudWizard({
               className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
-                🛒 Solicitud de compras
+                <Ico e="🛒" /> Solicitud de compras
               </p>
               <p className="mt-1 text-sm text-muted">
                 Armar una lista de materiales o insumos para que alguien los compre.
@@ -19862,7 +19864,7 @@ function NuevaSolicitudWizard({
               className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
-                ✍️ Nueva solicitud
+                <Ico e="✍️" /> Nueva solicitud
               </p>
               <p className="mt-1 text-sm text-muted">
                 Describir con tus palabras cualquier otra tarea que necesites delegar.
@@ -19874,7 +19876,7 @@ function NuevaSolicitudWizard({
                 onClick={() => elegirVariante("protocolo")}
                 className="w-full text-center rounded-xl border border-dashed border-border px-4 py-3 text-sm font-semibold text-muted transition hover:border-accent hover:text-accent"
               >
-                📋 O delegar un procedimiento existente →
+                <Ico e="📋" /> O delegar un procedimiento existente →
               </button>
             )}
           </div>
@@ -20330,7 +20332,7 @@ function NuevaSolicitudWizard({
             {variante === "etiqueta" && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tipo</p>
-                <p className="text-sm font-semibold text-accent">🏷️ Solicitud de etiquetas</p>
+                <p className="text-sm font-semibold text-accent"><Ico e="🏷️" /> Solicitud de etiquetas</p>
                 {listaComprasDraft.length > 0 && (
                   <ul className="mt-2 space-y-1 text-sm text-muted">
                     {listaComprasDraft.map((item, idx) => (
@@ -20352,7 +20354,7 @@ function NuevaSolicitudWizard({
             {variante === "compra" && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tipo</p>
-                <p className="text-sm font-semibold text-accent">🛒 Solicitud de compras</p>
+                <p className="text-sm font-semibold text-accent"><Ico e="🛒" /> Solicitud de compras</p>
                 {listaComprasDraft.length > 0 && (
                   <ul className="mt-2 space-y-1 text-sm text-muted">
                     {listaComprasDraft.map((item, idx) => (
@@ -20371,7 +20373,7 @@ function NuevaSolicitudWizard({
             {protSel && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Procedimiento</p>
-                <p className="text-sm font-semibold text-accent">📋 {protSel.titulo}</p>
+                <p className="text-sm font-semibold text-accent"><Ico e="📋" /> {protSel.titulo}</p>
               </div>
             )}
             <div>
@@ -20505,7 +20507,7 @@ function SolicitudResumenCard({
         <span>{esCreadoPorMi ? "📋 Tú" : `📋 ${ticket.creado_por_nombre ?? "?"}`}</span>
         {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
         {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
-        {ticket.protocolo_titulo && <span className="text-accent/90">📋 {ticket.protocolo_titulo}</span>}
+        {ticket.protocolo_titulo && <span className="text-accent/90"><Ico e="📋" /> {ticket.protocolo_titulo}</span>}
         <span className="rounded-full border border-border px-2 py-0.5 text-[10px]">
           {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
         </span>
@@ -20721,7 +20723,7 @@ function HistorialSolicitudCard({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
-          {ticket.creado_por_nombre && <span>📋 {ticket.creado_por_nombre}</span>}
+          {ticket.creado_por_nombre && <span><Ico e="📋" /> {ticket.creado_por_nombre}</span>}
           {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
           {duracionMs !== null && <span>⏱ {_fmtDuracionMs(duracionMs)}</span>}
           {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
@@ -20904,7 +20906,7 @@ function HistorialSolicitudDetalle({
           {esImagen ? (
             <button type="button" onClick={() => setLbUrl(url)} className="group relative shrink-0" title="Ver imagen">
               <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border group-hover:opacity-80 transition-opacity" />
-              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity">🔍</span>
+              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity"><Ico e="🔍" /></span>
             </button>
           ) : (
             <span className="text-base shrink-0">{icono}</span>
@@ -20961,7 +20963,7 @@ function HistorialSolicitudDetalle({
       <div className="flex flex-wrap gap-3">
         {t.creado_por_nombre && (
           <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-panel px-3 py-2 text-sm">
-            <span className="text-base">📋</span>
+            <span className="text-base"><Ico e="📋" /></span>
             <div>
               <p className="text-[10px] text-muted font-bold uppercase tracking-wide leading-none mb-0.5">Solicitado por</p>
               <p className="font-semibold text-ink">{t.creado_por_nombre}</p>
@@ -20970,7 +20972,7 @@ function HistorialSolicitudDetalle({
         )}
         {t.asignado_a_nombre && (
           <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-panel px-3 py-2 text-sm">
-            <span className="text-base">👤</span>
+            <span className="text-base"><Ico e="👤" /></span>
             <div>
               <p className="text-[10px] text-muted font-bold uppercase tracking-wide leading-none mb-0.5">Resuelto por</p>
               <p className="font-semibold text-ink">{t.asignado_a_nombre}</p>
@@ -21016,7 +21018,7 @@ function HistorialSolicitudDetalle({
       <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-4">
         <div>
           <p className="text-xs font-extrabold uppercase tracking-wide text-ink">
-            💬 Conversación de la solicitud
+            <Ico e="💬" /> Conversación de la solicitud
             {comentarios.length > 0 && (
               <span className="ml-1 font-normal normal-case tracking-normal text-muted">
                 ({comentarios.length} mensaje{comentarios.length !== 1 ? "s" : ""})
@@ -21147,7 +21149,7 @@ function HistorialSolicitudDetalle({
       {/* Archivos adjuntos (generales y por paso) */}
       {adjuntos.length > 0 && (
         <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-3">
-          <p className="text-xs font-extrabold uppercase tracking-wide text-ink">📎 Archivos adjuntos</p>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-ink"><Ico e="📎" /> Archivos adjuntos</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {adjuntos.map((a) => {
               const paso = a.paso_id ? pasos.find((p) => p.id === a.paso_id) : null;
@@ -21212,7 +21214,7 @@ function HistorialSolicitudDetalle({
       <div className="rounded-2xl border-2 border-dashed border-border p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-extrabold text-ink">🔁 Repetir esta solicitud</p>
+            <p className="text-sm font-extrabold text-ink"><Ico e="🔁" /> Repetir esta solicitud</p>
             <p className="text-xs text-muted mt-0.5">
               Crea una nueva solicitud con el mismo contenido para que alguien la resuelva de nuevo.
             </p>
@@ -22037,7 +22039,7 @@ function SolicitudesView({
               onClick={() => setCompraActiva(t)}
               className="w-full rounded-xl border-2 border-accent/50 bg-accent/60  px-4 py-3 text-left transition hover:border-accent"
             >
-              <p className="text-sm font-bold text-ink">🛒 {t.titulo}</p>
+              <p className="text-sm font-bold text-ink"><Ico e="🛒" /> {t.titulo}</p>
               <p className="text-xs text-muted font-mono">{t.numero}</p>
               {t.ticket_padre_titulo && (
                 <p className="mt-1 text-xs text-muted">Para: {t.ticket_padre_titulo}</p>
@@ -22074,7 +22076,7 @@ function SolicitudesView({
               onClick={() => setTab("historial")}
               className="text-xs text-accent hover:underline"
             >
-              📜 Ver las que ya cerraron y su conversación
+              <Ico e="📜" /> Ver las que ya cerraron y su conversación
             </button>
           )}
         </div>
@@ -22222,7 +22224,7 @@ function SolicitudesView({
       {tab === "asignadas" && !asignadaDetalle && !loading && etiquetasPendientes.length > 0 && puedeVerSeccionPanel(user, "etiquetas") && (
         <div className="rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3">
           <p className="text-sm font-bold text-accent">
-            🏷️ {etiquetasPendientes.length} pedido{etiquetasPendientes.length !== 1 ? "s" : ""} de etiquetas
+            <Ico e="🏷️" /> {etiquetasPendientes.length} pedido{etiquetasPendientes.length !== 1 ? "s" : ""} de etiquetas
           </p>
           <p className="mt-1 text-xs text-accent">
             Estos pedidos están en Impresora · Etiquetas, no en esta lista de solicitudes.
@@ -22289,7 +22291,7 @@ function SolicitudesView({
             onClick={() => setTab("historial")}
             className="text-xs font-semibold text-accent hover:underline"
           >
-            📜 Ver las que ya cerraron y su conversación
+            <Ico e="📜" /> Ver las que ya cerraron y su conversación
           </button>
         </div>
       )}
@@ -22644,7 +22646,7 @@ function RepetirAccionWizard({
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
         <div className="relative">
-          <div className="mck-bounce-in text-8xl select-none">🏆</div>
+          <div className="mck-bounce-in text-8xl select-none"><Ico e="🏆" /></div>
           <div className="absolute inset-0 rounded-full pointer-events-none"
             style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
         </div>
@@ -22930,7 +22932,7 @@ function RepetirAccionWizard({
                   return (
                     <a key={i} href={url} target="_blank" rel="noreferrer"
                       className="flex items-center gap-2 rounded-2xl border-2 border-border bg-surface px-4 py-3 text-sm font-semibold text-accent hover:border-accent transition-colors">
-                      📄 Ver archivo de referencia
+                      <Ico e="📄" /> Ver archivo de referencia
                     </a>
                   );
                 })}
@@ -23234,7 +23236,7 @@ function PendientesPanel({
       {/* Encabezado con botón crear */}
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-          🗓️ Acciones futuras
+          <Ico e="🗓️" /> Acciones futuras
           {pendientes.length > 0 && (
             <span className="rounded-full bg-accent/10  px-2 py-0.5 text-[10px] font-bold text-accent">
               {pendientes.length}
@@ -23269,7 +23271,7 @@ function PendientesPanel({
           />
           {/* Fecha opcional */}
           <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
-            <span className="text-base shrink-0">📅</span>
+            <span className="text-base shrink-0"><Ico e="📅" /></span>
             <span className="text-xs text-muted shrink-0">Fecha recordatorio</span>
             <input
               type="date"
@@ -23301,7 +23303,7 @@ function PendientesPanel({
 
       {!loading && pendientes.length === 0 && !showForm && (
         <div className="space-y-3 py-12 text-center">
-          <p className="text-3xl">🗓️</p>
+          <p className="text-3xl"><Ico e="🗓️" /></p>
           <p className="text-sm text-muted">Sin acciones futuras anotadas.</p>
           <p className="text-xs text-muted">Anota ideas o tareas para más adelante. Si necesitas alerta en una fecha, créala en Recordatorios.</p>
           <AddIconButton title="Nueva acción futura" className="mx-auto" onClick={() => setShowForm(true)} />
@@ -23332,7 +23334,7 @@ function PendientesPanel({
                       onChange={(e) => setEditDesc(e.target.value)}
                     />
                     <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input px-3 py-1.5">
-                      <span className="text-sm shrink-0">📅</span>
+                      <span className="text-sm shrink-0"><Ico e="📅" /></span>
                       <input
                         type="date"
                         className="flex-1 bg-transparent text-xs text-ink outline-none"
@@ -23628,7 +23630,7 @@ function RecordatoriosPanel({
         {/* Fecha y hora */}
         <div className="flex gap-2">
           <div className="flex flex-1 items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
-            <span className="text-base">📅</span>
+            <span className="text-base"><Ico e="📅" /></span>
             <span className="text-xs text-muted shrink-0">
               {tipoRep === "una_vez" ? "Fecha:" : "Empieza el:"}
             </span>
@@ -23640,7 +23642,7 @@ function RecordatoriosPanel({
             />
           </div>
           <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
-            <span className="text-base">🕐</span>
+            <span className="text-base"><Ico e="🕐" /></span>
             <input
               type="time"
               className="bg-transparent text-sm text-ink outline-none w-[5.5rem]"
@@ -23709,7 +23711,7 @@ function RecordatoriosPanel({
                       className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
                         activo ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60"
                       }`}>
-                      {p.label}
+                      {ico(p.label)}
                     </button>
                   );
                 })}
@@ -23744,7 +23746,7 @@ function RecordatoriosPanel({
         {/* Asignar a miembro del equipo */}
         {usuarios.length > 0 && (
           <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
-            <span className="text-base shrink-0">👤</span>
+            <span className="text-base shrink-0"><Ico e="👤" /></span>
             <span className="text-xs text-muted shrink-0">Para:</span>
             <select
               className="flex-1 bg-transparent text-sm text-ink outline-none"
@@ -23780,7 +23782,7 @@ function RecordatoriosPanel({
       {!loading && activos.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-wide text-danger flex items-center gap-1.5">
-            🔔 Para hoy
+            <Ico e="🔔" /> Para hoy
           </p>
           {activos.map((r) => (
             <div key={r.id} className={`rounded-2xl border-2 bg-surface-panel p-4 space-y-2 ${
@@ -23792,7 +23794,7 @@ function RecordatoriosPanel({
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
                     <p className="text-[11px] text-accent  mt-0.5 font-semibold">
-                      👤 Para: {r.asignado_a_nombre}
+                      <Ico e="👤" /> Para: {r.asignado_a_nombre}
                     </p>
                   )}
                   {r.creado_por_nombre && (
@@ -23809,7 +23811,7 @@ function RecordatoriosPanel({
               </div>
               <p className="text-[11px] text-muted flex items-center gap-2">
                 {descRepeticion(r)}
-                {r.hora && <span className="font-semibold text-accent">🕐 {r.hora}</span>}
+                {r.hora && <span className="font-semibold text-accent"><Ico e="🕐" /> {r.hora}</span>}
               </p>
               <div className="flex gap-2">
                 <button
@@ -23842,7 +23844,7 @@ function RecordatoriosPanel({
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
                     <p className="text-[11px] text-accent  mt-0.5 font-semibold">
-                      👤 Para: {r.asignado_a_nombre}
+                      <Ico e="👤" /> Para: {r.asignado_a_nombre}
                     </p>
                   )}
                 </div>
@@ -23862,10 +23864,10 @@ function RecordatoriosPanel({
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs text-muted flex items-center gap-2">
                   {descRepeticion(r)}
-                  {r.hora && <span className="font-semibold text-accent">🕐 {r.hora}</span>}
+                  {r.hora && <span className="font-semibold text-accent"><Ico e="🕐" /> {r.hora}</span>}
                 </span>
                 <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-semibold text-ink">
-                  📅 {fmtFecha(r.proxima_fecha)}
+                  <Ico e="📅" /> {fmtFecha(r.proxima_fecha)}
                 </span>
               </div>
             </div>
@@ -23875,7 +23877,7 @@ function RecordatoriosPanel({
 
       {!loading && recordatorios.length === 0 && !showForm && (
         <div className="space-y-3 py-12 text-center">
-          <p className="text-3xl">🔔</p>
+          <p className="text-3xl"><Ico e="🔔" /></p>
           <p className="text-sm text-muted">Sin recordatorios programados.</p>
           <p className="text-xs text-muted">Crea tareas con alerta en la fecha que elijas — puntuales o recurrentes.</p>
           <AddIconButton title="Crear recordatorio" className="mx-auto" onClick={() => setShowForm(true)} />
@@ -24063,9 +24065,9 @@ function NuevoProcedimientoForm({
                           {esImg
                             ? <button type="button" onClick={() => setLbUrl(url)}>
                                 <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
-                                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold pointer-events-none">🔍</span>
+                                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold pointer-events-none"><Ico e="🔍" /></span>
                               </button>
-                            : <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-xl">📄</div>
+                            : <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-xl"><Ico e="📄" /></div>
                           }
                           <button
                             type="button"
@@ -24096,7 +24098,7 @@ function NuevoProcedimientoForm({
                 >
                   {subiendoFoto === i
                     ? <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
-                    : <><span>📷</span> Ctrl+V — adjuntar pantallazo</>
+                    : <><span><Ico e="📷" /></span> Ctrl+V — adjuntar pantallazo</>
                   }
                   <input
                     type="file"
@@ -24448,7 +24450,7 @@ function ProcedimientoCard({
             </p>
             {alcanceActual === "seleccionado" && (p.usuarios_compartidos ?? []).length > 0 && (
               <p className="text-[10px] text-muted mt-0.5 truncate">
-                👤 {(p.usuarios_compartidos ?? []).map((u) => u.nombre.split(" ")[0]).join(", ")}
+                <Ico e="👤" /> {(p.usuarios_compartidos ?? []).map((u) => u.nombre.split(" ")[0]).join(", ")}
               </p>
             )}
           </div>
@@ -24464,7 +24466,7 @@ function ProcedimientoCard({
                     ? "text-accent  bg-accent/10 border-accent/25"
                     : "text-muted bg-surface-hover border-border"
                 }`}>
-              {alcanceActual === "global" ? "🌐 Equipo" : alcanceActual === "seleccionado" ? "👤 Específico" : "🔒 Privado"}
+              {alcanceActual === "global" ? ico("🌐 Equipo") : alcanceActual === "seleccionado" ? ico("👤 Específico") : ico("🔒 Privado")}
             </button>
             {puedeEliminar && (
               <button
@@ -24555,7 +24557,7 @@ function ProcedimientoCard({
                             {esImagen
                               ? <button type="button" onClick={() => setLbUrl(url)} className="block" title="Ver imagen">
                                   <img src={url} alt="" className="h-16 w-16 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
-                                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-sm font-bold transition-opacity pointer-events-none">🔍</span>
+                                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-sm font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
                                 </button>
                               : <a href={url} target="_blank" rel="noreferrer"
                                   className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-xl">📄</a>
@@ -24586,7 +24588,7 @@ function ProcedimientoCard({
                     }`}>
                     {subiendoFoto === i
                       ? <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
-                      : <><span>📷</span> Foto o Ctrl+V</>
+                      : <><span><Ico e="📷" /></span> Foto o Ctrl+V</>
                     }
                     <input
                       type="file"
@@ -24738,17 +24740,17 @@ function ProcedimientoCard({
             className="rounded-xl border border-accent/50 bg-accent/10 px-2.5 py-2 text-xs font-bold text-accent  hover:bg-accent/20 transition-colors"
             title="Asignar este procedimiento a un aliado del equipo"
           >
-            👥 Delegar
+            <Ico e="👥" /> Delegar
           </button>
           <button type="button" onClick={() => setEditando(true)}
             className="rounded-xl border border-border px-2.5 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
             title="Editar nombre y pasos">
-            ✏️ Editar
+            <Ico e="✏️" /> Editar
           </button>
           <button type="button" onClick={abrirPicker}
             className="rounded-xl border border-border px-2.5 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
             title="Cambiar visibilidad">
-            🔒 Visibilidad
+            <Ico e="🔒" /> Visibilidad
           </button>
         </div>
       )}
@@ -24881,7 +24883,7 @@ function AdminSubhomePanel({
                   )}
                   {r.pendientes > 0 && (
                     <span className="inline-flex items-center rounded-full bg-accent/10  px-2 py-0.5 text-xs font-bold text-accent">
-                      🗓 {r.pendientes}
+                      <Ico e="🗓" /> {r.pendientes}
                     </span>
                   )}
                   {r.resueltas > 0 && (
@@ -25295,7 +25297,7 @@ function BolsilloSeguro({ token }: { token: string }) {
   return (
     <div className="border-t border-border/50 pt-6">
       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-        🔐 Bolsillo seguro
+        <Ico e="🔐" /> Bolsillo seguro
       </p>
 
       {/* Locked */}
@@ -25303,7 +25305,7 @@ function BolsilloSeguro({ token }: { token: string }) {
         <button type="button"
           onClick={() => { setPin(""); setPinError(""); setVista("pin_unlock"); }}
           className="w-full flex items-center gap-3 rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 text-left transition hover:border-accent/50 active:scale-[0.98]">
-          <span className="text-2xl">🔒</span>
+          <span className="text-2xl"><Ico e="🔒" /></span>
           <div>
             <p className="text-sm font-bold text-ink">Bolsillo cerrado</p>
             <p className="text-xs text-muted">Toca para ingresar el PIN</p>
@@ -25338,7 +25340,7 @@ function BolsilloSeguro({ token }: { token: string }) {
       {vista === "pin_unlock" && (
         <div className="rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-ink">🔓 Ingresá el PIN</p>
+            <p className="text-sm font-bold text-ink"><Ico e="🔓" /> Ingresá el PIN</p>
             <button type="button" onClick={bloquear} className="text-xs text-muted hover:text-ink">✕ Cancelar</button>
           </div>
           <input ref={pinRef} type="password" inputMode="numeric" maxLength={12}
@@ -25359,13 +25361,13 @@ function BolsilloSeguro({ token }: { token: string }) {
         <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-accent  flex items-center gap-1.5">
-              🔓 Abierto
+              <Ico e="🔓" /> Abierto
               {guardando === "saving" && <span className="text-muted font-normal">Guardando…</span>}
               {guardando === "ok"     && <span className="font-normal">✓</span>}
             </p>
             <button type="button" onClick={bloquear}
               className="flex items-center gap-1 rounded-full bg-accent/10  px-3 py-1 text-xs font-bold text-accent  hover:bg-accent/20 transition">
-              🔒 Bloquear
+              <Ico e="🔒" /> Bloquear
             </button>
           </div>
 
@@ -25406,7 +25408,7 @@ function BolsilloSeguro({ token }: { token: string }) {
             </span>
             <button type="button" onClick={() => { if (confirm("¿Eliminar esta nota?")) eliminarNota(notaActiva.id); }}
               className="text-xs text-red-400 hover:text-red-600 transition">
-              🗑 Eliminar
+              <Ico e="🗑" /> Eliminar
             </button>
           </div>
           <input
@@ -26250,7 +26252,7 @@ function AccionesView({
               onClick={() => { setShowIniciarMenu(false); setAccionSimpleEmpaque(true); setShowAccionSimple(true); }}
               className="text-left rounded-2xl border-2 border-accent/40 bg-accent/5 px-4 py-4 transition hover:border-accent hover:bg-accent/10 group sm:col-span-2"
             >
-              <p className="text-sm font-extrabold text-accent group-hover:text-accent transition-colors">📦 Empacar hoy</p>
+              <p className="text-sm font-extrabold text-accent group-hover:text-accent transition-colors"><Ico e="📦" /> Empacar hoy</p>
               <p className="mt-1 text-xs text-muted">Indica qué productos vas a empacar y registra unidades al terminar.</p>
             </button>
             <button
@@ -26262,7 +26264,7 @@ function AccionesView({
               <p className="mt-1 text-xs text-muted">Título y listo — sin pasos ni compras obligatorias.</p>
             </button>
             <div className="rounded-2xl border-2 border-border bg-surface px-4 py-4 space-y-2">
-              <p className="text-sm font-extrabold text-ink">📋 Desde procedimiento</p>
+              <p className="text-sm font-extrabold text-ink"><Ico e="📋" /> Desde procedimiento</p>
               <p className="text-xs text-muted">Ejecuta un proceso ya definido del equipo.</p>
               {loadingMenu && <p className="text-xs text-muted">Cargando…</p>}
               {!loadingMenu && protocolosMenu.length === 0 && (
@@ -26480,7 +26482,7 @@ function AccionesView({
                     <div className="flex flex-wrap items-center gap-1.5">
                       {(t as any).responsable_nombre && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink">
-                          👤 {(t as any).responsable_nombre}
+                          <Ico e="👤" /> {(t as any).responsable_nombre}
                         </span>
                       )}
                       {total > 0 && (
@@ -26603,7 +26605,7 @@ function AccionesView({
                       )}
                       {tieneProcedimiento && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 px-2 py-0.5 text-[10px] font-bold text-accent">
-                          📋 Procedimiento
+                          <Ico e="📋" /> Procedimiento
                         </span>
                       )}
                     </div>
@@ -26643,7 +26645,7 @@ function AccionesView({
                                           <img src={`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`}
                                             alt={item.nombre_original ?? "foto"}
                                             className="rounded-xl w-full border border-border object-cover hover:opacity-80 transition"/>
-                                          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                                          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
                                         </button>
                                         <p className="text-[10px] text-muted mt-1">{fmt(item.creado_en)}</p>
                                       </div>
@@ -26686,7 +26688,7 @@ function AccionesView({
                         }}
                         className="w-full rounded-xl border-2 border-border py-2 text-sm font-bold text-ink hover:border-accent hover:text-accent transition"
                       >
-                        {registroExpandido === t.id ? "▲ Ocultar registro" : "📷 Ver fotos y notas"}
+                        {registroExpandido === t.id ? "▲ Ocultar registro" : ico("📷 Ver fotos y notas")}
                       </button>
                       <button
                         type="button"
@@ -26705,7 +26707,7 @@ function AccionesView({
                             className="flex-1 rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
                             title="Solo tú lo verás en Mis procedimientos"
                           >
-                            🔒 Guardar personal
+                            <Ico e="🔒" /> Guardar personal
                           </button>
                           <button
                             type="button"
@@ -26714,7 +26716,7 @@ function AccionesView({
                             className="flex-1 rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
                             title="Todo el equipo podrá usarlo y delegarlo"
                           >
-                            🌐 Compartir
+                            <Ico e="🌐" /> Compartir
                           </button>
                         </div>
                       )}
@@ -26750,7 +26752,7 @@ function AccionesView({
           {/* Aplicaciones — procedimientos interactivos (calculadoras, no checklist) */}
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
-              🧩 Aplicaciones — disponibles para todo el equipo
+              <Ico e="🧩" /> Aplicaciones — disponibles para todo el equipo
             </p>
             <button
               type="button"
@@ -26784,7 +26786,7 @@ function AccionesView({
           {procedimientos.filter((p) => (p.alcance ?? "personal") === "personal").length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
-                🔒 Privados — solo tú los ves
+                <Ico e="🔒" /> Privados — solo tú los ves
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {procedimientos.filter((p) => (p.alcance ?? "personal") === "personal").map((p) => (
@@ -26813,7 +26815,7 @@ function AccionesView({
           {procedimientos.filter((p) => p.alcance === "seleccionado").length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
-                👤 Compartido con personas específicas
+                <Ico e="👤" /> Compartido con personas específicas
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {procedimientos.filter((p) => p.alcance === "seleccionado").map((p) => (
@@ -26842,7 +26844,7 @@ function AccionesView({
           {procedimientos.filter((p) => (p.alcance ?? "personal") === "global").length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
-                🌐 Compartidos — todo el equipo puede ejecutarlos
+                <Ico e="🌐" /> Compartidos — todo el equipo puede ejecutarlos
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {procedimientos.filter((p) => (p.alcance ?? "personal") === "global").map((p) => (
@@ -27444,7 +27446,7 @@ function PanelComprasEjecucion({
           onChange={e => { const f = e.target.files?.[0]; if (f) void subirFactura(f); e.target.value = ""; }}/>
         <button type="button" onClick={() => facturaRef.current?.click()} disabled={subiendoFactura}
           className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-accent/40 text-accent  bg-accent/5" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
-          <span>🧾</span>
+          <span><Ico e="🧾" /></span>
           <span>{subiendoFactura ? "Subiendo…" : facturaFile ? `Factura: ${facturaFile.name}` : "Adjuntar factura de compras"}</span>
         </button>
       </div>
@@ -27752,7 +27754,7 @@ function EjecucionAccionChat({
         )}
         {!cargandoNotas && notas.length === 0 && (
           <div className="text-center py-6 space-y-2">
-            <p className="text-3xl">📋</p>
+            <p className="text-3xl"><Ico e="📋" /></p>
             <p className="text-sm text-gray-400 dark:text-white/40">
               Cuénteme qué va haciendo,<br/>tome fotos como evidencia.
             </p>
@@ -27787,7 +27789,7 @@ function EjecucionAccionChat({
                       <button type="button" onClick={() => !(nota.guardando || nota.eliminando) && setLbUrl(nota.fotoUrl!)} className="block w-full max-w-xs text-left" title="Ver imagen">
                         <img src={nota.fotoUrl} alt="foto"
                           className={`rounded-xl w-full max-w-xs border object-cover transition group-hover:opacity-80 ${nota.guardando || nota.eliminando ? "opacity-60" : ""} border-gray-200 dark:border-white/10`}/>
-                        {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
+                        {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>}
                       </button>
                       {!nota.guardando && nota.serverItemId && (
                         <button type="button" onClick={() => void eliminarNota(nota)}
@@ -27839,7 +27841,7 @@ function EjecucionAccionChat({
         />
         <button type="button" onClick={() => setModoCompras(true)} title="Lista de compras"
           className="relative shrink-0 h-11 w-11 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center justify-center transition text-lg">
-          🛒
+          <Ico e="🛒" />
           {numCompras > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-accent text-white text-[9px] font-black flex items-center justify-center px-0.5">{numCompras}</span>}
         </button>
         <ProseTextarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)} prose={false}
@@ -28026,7 +28028,7 @@ function RevisionSolicitudView({
                   <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
                     <img src={nota.fotoUrl} alt="foto"
                       className="rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover group-hover:opacity-80 transition-opacity" />
-                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
                   </button>
                 </>
               )}
@@ -28071,7 +28073,7 @@ function RevisionSolicitudView({
                       <div key={fi} className="relative">
                         {f.preview
                           ? <img src={f.preview} alt="" className="h-16 w-16 rounded-lg object-cover border-2 border-border" />
-                          : <div className="h-16 w-16 rounded-lg border-2 border-border bg-surface-hover flex items-center justify-center text-xl">📎</div>
+                          : <div className="h-16 w-16 rounded-lg border-2 border-border bg-surface-hover flex items-center justify-center text-xl"><Ico e="📎" /></div>
                         }
                         <button type="button" onClick={() => quitarFotoItem(item.id, fi)}
                           className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">✕</button>
@@ -28080,7 +28082,7 @@ function RevisionSolicitudView({
                   </div>
                 )}
                 <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted hover:text-accent transition-colors">
-                  <span>📷</span>
+                  <span><Ico e="📷" /></span>
                   <span>{item.fotos.length > 0 ? "Agregar otra imagen" : "Adjuntar imagen o PDF"}</span>
                   <input type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
                     onChange={e => {
@@ -28596,7 +28598,7 @@ function ResolverActividadChat({
                   ? "border-accent/40 bg-accent/5"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
-              <p className="text-sm font-extrabold text-ink">🛑 Pausar y delegar</p>
+              <p className="text-sm font-extrabold text-ink"><Ico e="🛑" /> Pausar y delegar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Crea un sub-ticket. La solicitud queda bloqueada hasta que el compañero responda.</p>
             </button>
             <button type="button"
@@ -28606,7 +28608,7 @@ function ResolverActividadChat({
                   ? "border-accent/40 bg-accent/5"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
-              <p className="text-sm font-extrabold text-ink">👥 Invitar a colaborar</p>
+              <p className="text-sm font-extrabold text-ink"><Ico e="👥" /> Invitar a colaborar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Comparte el hilo. El compañero puede ver y escribir en la misma conversación sin pausar.</p>
             </button>
           </div>
@@ -28731,7 +28733,7 @@ function ResolverActividadChat({
             disabled={!!bloqueadoPorNumero}
             className="shrink-0 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition disabled:opacity-40"
             title="Preguntarle al solicitante o pedir intervención de un compañero">
-            🙋 Pedir ayuda
+            <Ico e="🙋" /> Pedir ayuda
           </button>
         </div>
       </div>
@@ -28763,7 +28765,7 @@ function ResolverActividadChat({
               onClick={() => setShowPadre(v => !v)}
               className="w-full flex items-center justify-between px-4 py-2.5 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-accent">👥</span>
+                <span className="text-accent"><Ico e="👥" /></span>
                 <span className="text-xs font-extrabold text-accent  uppercase tracking-wide">
                   Hilo principal · {padreInfo.numero}
                 </span>
@@ -28786,7 +28788,7 @@ function ResolverActividadChat({
                             {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
                             <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
                               <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-accent/20  object-cover group-hover:opacity-80 transition-opacity" />
-                              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
                             </button>
                           </>
                         )}
@@ -28873,7 +28875,7 @@ function ResolverActividadChat({
                           : esColab ? "border-accent/20"
                           : "border-gray-200 dark:border-white/10"
                         }`}/>
-                      {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
+                      {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>}
                     </button>
                     {canDelete && (
                       <button
@@ -30021,7 +30023,7 @@ function AgenteMandoView({
               <button type="button" onClick={onGoTablero}
                 className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
                 title="Agenda">
-                🎯 Agenda
+                <Ico e="🎯" /> Agenda
               </button>
             </>
           )}
@@ -30102,7 +30104,7 @@ function AgenteMandoView({
                 >
                   <span className={`h-2 w-2 shrink-0 rounded-full ${m.dot}`} />
                   <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-sm font-semibold ${m.label}`}>{chip.label}</span>
+                    <span className={`block truncate text-sm font-semibold ${m.label}`}>{ico(chip.label)}</span>
                     {chip.subtitulo && (
                       <span className="block truncate text-xs text-muted/70">{chip.subtitulo}</span>
                     )}

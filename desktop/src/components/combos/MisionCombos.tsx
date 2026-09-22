@@ -1,8 +1,33 @@
+import { Ico } from "../../icons/Ico";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, lazy, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import { useAppStore } from "../../stores/app";
+import AsignarEan from "./AsignarEan";
+import InspectorEtiquetaReceta from "./InspectorEtiquetaReceta";
+import InspectorReceta from "./InspectorReceta";
 import EnlazarDocumento from "./EnlazarDocumento";
+import { ponerSonido, sonarMoneda, sonidoActivo } from "./sonidoMoneda";
+import EtiquetaEmergente from "./EtiquetaEmergente";
+import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
+import KitEmergente from "./KitEmergente";
+import PublicacionEmergente from "./PublicacionEmergente";
+import VentanaTaller from "./VentanaTaller";
+
+// Los apartados que resuelven piezas, montados en ventanas sobre el taller (cargados al abrirlas).
+const CodigosEanPanel = lazy(() => import("../etiquetas/CodigosEanPanel").then((m) => ({ default: m.CodigosEanPanel })));
+const FichasTecnicasPanel = lazy(() => import("../FichasTecnicasPanel"));
+const CrearProductosSiigoPanel = lazy(() => import("../CrearProductosSiigoPanel"));
+const CatalogoAlegraPanel = lazy(() => import("../CatalogoAlegraPanel"));
+
+/** Qué apartado está abierto en ventana sobre el taller. */
+type Ventana =
+  | { tipo: "ean"; combo: Combo }
+  | { tipo: "docs"; combo: Combo }
+  | { tipo: "componente"; combo: Combo; codigo: string; nombre: string }
+  | { tipo: "crear"; ref: string; nombre: string };
+const VentanaCtx = createContext<(v: Ventana) => void>(() => {});
 import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, type Combo, type Eslabon, type MateriaPrima, type Respuesta } from "./comun";
 
 /**
@@ -13,8 +38,10 @@ import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, typ
  * (receta, etiqueta en la receta, documento, código EAN, diseño de etiqueta, publicación).
  * Una conexión viva = pieza completa; punteada = ranura vacía. Al tocar una pieza se abre a
  * la derecha su inspector, donde se resuelve: crear el EAN, unir el documento por SKU, definir
- * tamaño y plantilla de la etiqueta y corregir sus textos. Lo que exige otra herramienta (el
- * Studio para diseñar, Alegra para la receta) lleva allá y el taller recuerda dónde ibas.
+ * tamaño y plantilla de la etiqueta y corregir sus textos. Lo que exige otra herramienta
+ * (Códigos EAN, Docs técnicos, Publicaciones, el editor de etiquetas, el kit de Alegra, Crear en
+ * Alegra) se abre en una VENTANA sobre el taller, que queda de fondo: el usuario no quiere salir
+ * del combo. Solo «Abrir en el Studio completo» sigue saltando, a pedido explícito.
  *
  * El premio se ve: cada pieza resuelta enciende su conexión, el anillo de la foto avanza, y un
  * combo con las seis piezas se celebra y suma al marcador del día y al del catálogo.
@@ -34,25 +61,46 @@ function useSalto(c: Combo) {
   const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
   const setDocsTab = useAppStore((s) => s.setDocsTab);
   const setEanPrefill = useAppStore((s) => s.setEanPrefill);
+  const abrir = useContext(VentanaCtx);
   const accionDoc = c.eslabones.documento?.accion;
   // Si el documento aún no está unido por SKU, Docs técnicos ofrecerá asociarlo a este combo.
-  const retorno = { ref: c.ref, nombre: c.nombre, mps: (accionDoc && "mps" in accionDoc && accionDoc.mps) || [], asociarDoc: Boolean(accionDoc) };
+  const docEsl = c.eslabones.documento;
+  const mpsReceta = c.componentes.filter((x) => x.casilla === "materia_prima").map((x) => ({ codigo: x.codigo, nombre: x.nombre }));
+  const retorno = {
+    ref: c.ref,
+    nombre: c.nombre,
+    mps: (accionDoc && "mps" in accionDoc && accionDoc.mps) || mpsReceta,
+    asociarDoc: Boolean(accionDoc),
+    doc: docEsl ? { archivo: docEsl.archivo, titulo: docEsl.doc_titulo, detalle: docEsl.detalle, estado: docEsl.estado } : undefined,
+  };
   return {
     studio: (fichaId?: string) => {
       setEtiquetasTab("studio");
       saltar(retorno, { panel: "etiquetas", fichaId, buscar: fichaId ? undefined : c.nombre });
     },
+    // EAN, documento y componentes se resuelven en una ventana sobre el taller: no se sale del combo.
     ean: () => {
-      setEanPrefill({ sku: c.ref, nombre: c.nombre });
-      setEtiquetasTab("codigos_ean");
-      saltar(retorno, { panel: "etiquetas" });
+      // Sin código: el formulario de alta ya escrito. Con código: solo la lista filtrada en ese combo
+      // (precargar el alta invitaría a registrarle un segundo código).
+      if (c.eslabones.ean?.estado !== "ok") setEanPrefill({ sku: c.ref, nombre: c.nombre });
+      abrir({ tipo: "ean", combo: c });
     },
-    docs: (buscar: string) => {
-      setDocsTab("biblioteca");
-      saltar(retorno, { panel: "fichas", buscar });
+    docs: (_buscar?: string) => {
+      // Docs técnicos lee el combo del store (tarjeta «Documento del combo») y abre el editor.
+      useAppStore.setState({ tallerRetorno: retorno, tallerSalto: null });
+      setDocsTab("completo");
+      abrir({ tipo: "docs", combo: c });
     },
-    publicaciones: () => saltar(retorno, { panel: "publicaciones", sku: c.ref }),
-    inventario: (codigo: string) => saltar(retorno, { panel: "catalogo-alegra", buscar: codigo }),
+    publicaciones: () => {
+      const e = c.eslabones.publicacion;
+      const pieza = e ? { clave: "publicacion", titulo: e.titulo, estado: e.estado, detalle: e.detalle, meli_id: e.meli_id, precio: e.precio } : undefined;
+      saltar({ ...retorno, pieza, precioLista: c.precio_lista ?? undefined }, { panel: "publicaciones", sku: c.ref });
+    },
+    inventario: (codigo: string) => {
+      // Catálogo Alegra lee la búsqueda de `tallerSalto` al montarse (solo consulta; editar es explícito allí).
+      useAppStore.setState({ tallerSalto: { panel: "catalogo-alegra", buscar: codigo } });
+      abrir({ tipo: "componente", combo: c, codigo, nombre: c.componentes.find((x) => x.codigo === codigo)?.nombre ?? codigo });
+    },
     alegra: () => {
       navigator.clipboard?.writeText(c.ref).catch(() => null);
       saltar(retorno, { panel: "catalogo-alegra", buscar: c.ref });
@@ -73,6 +121,8 @@ const POS: Record<string, { x: number; y: number }> = {
   etiqueta: { x: 150, y: 450 },
   publicacion: { x: 150, y: 190 },
 };
+/** Con el tablero pequeño (portátil, ventana partida) el nombre largo no cabe en el nodo. */
+const CORTO: Record<string, string> = { receta: "Receta", etiqueta_fisica: "Etq. física", documento: "Documento", ean: "EAN", etiqueta: "Diseño", publicacion: "Publicación" };
 const ORDEN_GUIA = ["receta", "etiqueta_fisica", "documento", "ean", "etiqueta", "publicacion"];
 
 const CAMPOS_ETIQUETA: { clave: string; nombre: string; largo?: boolean }[] = [
@@ -98,6 +148,10 @@ function leerMarcador(): { dia: string; conexiones: number; combos: number } {
   return { dia: hoyClave(), conexiones: 0, combos: 0 };
 }
 
+/** La foto con la que se vende no está al día (no tiene, es de otra presentación, o muestra la etiqueta anterior). */
+function fotoPendiente(c: Combo) {
+  return Boolean(c.foto_estado && c.foto_estado !== "ok");
+}
 function completo(c: Combo) {
   return c.ok === TOTAL;
 }
@@ -120,16 +174,20 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
   });
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [asignando, setAsignando] = useState(false);
+  useEffect(() => setAsignando(false), [c.ref]);
   const irAEan = salto.ean;
 
   if (e.estado === "ok")
     return (
       <div className="space-y-2">
         <div className="rounded-lg border border-accent-leaf/50 bg-accent-leaf/10 p-3 text-center font-mono text-lg tracking-[0.25em] text-ink">{e.codigo}</div>
-        <button className={BTN_SEC} onClick={irAEan}>Ver o corregir en Códigos EAN →</button>
+        <button className={BTN_SEC} onClick={irAEan}>Ver o corregir el código…</button>
       </div>
     );
   if (!puedeProponer) return <p className="text-[11.5px] text-muted">Primero hay que arreglar la receta: a un combo con la receta rota no se le gasta un código.</p>;
+  // Antes de gastar un número nuevo: ¿ya hay un código registrado que sea de este producto?
+  if (asignando) return <AsignarEan c={c} onCancelar={() => setAsignando(false)} onHecho={async () => { setAsignando(false); await alResolver(); }} />;
   return (
     <div className="space-y-2">
       {prop.isLoading && <p className="text-[11.5px] text-muted">Calculando el siguiente código libre…</p>}
@@ -162,17 +220,55 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
             >
               {ocupado ? "Creando…" : "Crear este código"}
             </button>
-            <button className={BTN_SEC} onClick={irAEan}>Ajustarlo en Códigos EAN →</button>
+            <button className={BTN_SEC} onClick={irAEan}>Ajustarlo antes de crearlo…</button>
           </div>
         </>
       )}
+      <button className={`${BTN_SEC} w-full`} onClick={() => setAsignando(true)}>
+        ¿Ya tiene un código registrado? Buscarlo y asignarlo…
+      </button>
       {error && <p className="text-[11.5px] text-accent-rose">{error}</p>}
     </div>
   );
 }
 
+/**
+ * La etiqueta se diseña en un emergente dentro del taller (EtiquetaEmergente), no saltando al Studio.
+ * El emergente vive en este envoltorio y no en el cuerpo: al crear la etiqueta el combo cambia de
+ * rama (sin etiqueta → con etiqueta) y el emergente se cerraría a mitad de edición. El taller se
+ * vuelve a leer al cerrarlo.
+ */
 function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Combo[]; alResolver: () => Promise<void> }) {
   const salto = useSalto(c);
+  const qc = useQueryClient();
+  const [editor, setEditor] = useState<EntradaFormularioEtiqueta | null>(null);
+  const cerrar = () => {
+    setEditor(null);
+    void qc.invalidateQueries({ queryKey: ["mision-etiqueta"] });
+    void alResolver();
+  };
+  return (
+    <>
+      <InspectorEtiquetaCuerpo c={c} hermanas={hermanas} alResolver={alResolver} abrirEditor={setEditor} />
+      {editor && (
+        <EtiquetaEmergente
+          entrada={editor}
+          combo={c.presentacion ? `${c.nombre} · ${c.presentacion}` : c.nombre}
+          onCerrar={cerrar}
+          onAbrirEnStudio={() => {
+            const fichaId = editor.fichaId ?? undefined;
+            setEditor(null);
+            salto.studio(fichaId);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function InspectorEtiquetaCuerpo({ c, hermanas, alResolver, abrirEditor }: {
+  c: Combo; hermanas: Combo[]; alResolver: () => Promise<void>; abrirEditor: (entrada: EntradaFormularioEtiqueta) => void;
+}) {
   const e = c.eslabones.etiqueta;
   const ean = c.eslabones.ean?.codigo || "";
   const ficha = useQuery({
@@ -195,7 +291,7 @@ function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Co
     setMsg(null);
   }, [ficha.data]);
 
-  const irAlStudio = () => salto.studio(e.etiqueta_id);
+  const irAlStudio = () => abrirEditor({ fichaId: e.etiqueta_id });
 
   if (!e.etiqueta_id)
     return (
@@ -204,11 +300,11 @@ function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Co
         {hermanas.filter((h) => h.ref !== c.ref && h.eslabones.etiqueta?.etiqueta_id).map((h) => (
           <div key={h.ref} className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
             La presentación <b>{h.presentacion || h.nombre}</b> ya tiene etiqueta{h.eslabones.etiqueta.tamano ? <> en tamaño <b>{h.eslabones.etiqueta.tamano}</b></> : null}. Sirve de punto de partida, pero esta presentación lleva la suya, con su propio tamaño y plantilla.
-            <button className={`${BTN_SEC} mt-1.5`} onClick={() => salto.studio(h.eslabones.etiqueta.etiqueta_id)}>Abrir la de {h.presentacion || h.ref} en el Studio →</button>
+            <button className={`${BTN_SEC} mt-1.5`} onClick={() => abrirEditor({ fichaId: h.eslabones.etiqueta.etiqueta_id })}>Ver la de {h.presentacion || h.ref} →</button>
           </div>
         ))}
         {e.accion ? (
-          <button className={BTN} onClick={() => salto.studio()}>Diseñar la de esta presentación en el Studio →</button>
+          <button className={BTN} onClick={() => abrirEditor({ sku: c.ref })}>Diseñar la de esta presentación</button>
         ) : (
           <p className="text-[11.5px] text-muted">La etiqueta se diseña cuando el combo ya tiene su código EAN.</p>
         )}
@@ -219,7 +315,7 @@ function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Co
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-accent-rose">{(ficha.error as Error)?.message || "No se pudo abrir la etiqueta"}</p>
-        <button className={BTN_SEC} onClick={irAlStudio}>Abrirla en el Studio →</button>
+        <button className={BTN_SEC} onClick={irAlStudio}>Abrir el editor de la etiqueta</button>
       </div>
     );
 
@@ -237,7 +333,7 @@ function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Co
       });
       await ficha.refetch();
       await alResolver();
-      setMsg({ ok: true, texto: "Guardado en la etiqueta. Para volver a sacar el PNG, ábrela en el Studio." });
+      setMsg({ ok: true, texto: "Guardado en la etiqueta. Para volver a sacar el PNG, ábrela en el editor." });
     } catch (err) {
       setMsg({ ok: false, texto: (err as Error)?.message || "No se pudo guardar" });
     } finally {
@@ -284,7 +380,7 @@ function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Co
       ))}
       <div className="flex flex-wrap items-center gap-2">
         <button className={BTN} disabled={!hayCambios || ocupado} onClick={guardar}>{ocupado ? "Guardando…" : "Guardar en la etiqueta"}</button>
-        <button className={BTN_SEC} onClick={irAlStudio}>Diseño, formato y exportación en el Studio →</button>
+        <button className={BTN_SEC} onClick={irAlStudio}>Diseñar la etiqueta (formato y exportación)</button>
       </div>
       {msg && <p className={`text-[11px] ${msg.ok ? "text-accent-leaf" : "text-accent-rose"}`}>{msg.texto}</p>}
     </div>
@@ -310,6 +406,7 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
     try {
       const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", { items: [{ archivo, sku: codigo, compartir }] });
       if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo unir");
+      setElegir(false);
       await alResolver();
     } catch (err) {
       setError((err as Error)?.message || "No se pudo unir");
@@ -320,19 +417,30 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
 
   return (
     <div className="space-y-2.5">
-      {e.doc_titulo && <p className="text-[12px] font-bold text-ink">📄 {e.doc_titulo}</p>}
+      {e.doc_titulo && <p className="text-[12px] font-bold text-ink"><Ico e="📄" /> {e.doc_titulo}</p>}
       <p className="text-[11.5px] text-muted">{e.detalle}</p>
+      {/* Un solo botón: revisar, completar y dar el visto bueno se hace en el editor de Docs técnicos
+          (en una ventana sobre el taller). Generar el documento final marca revisadas todas las
+          presentaciones que lo heredan. */}
+      <button className={BTN} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}>
+        {e.estado === "falta" ? "Redactar el documento…" : e.estado === "ok" ? "Abrir el documento…" : "Revisar, completar y dar el visto bueno…"}
+      </button>
 
-      {mps.length === 0 && e.estado !== "ok" && (
+      {!c.componentes.some((x) => x.casilla === "materia_prima") && e.estado !== "ok" && (
         <p className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11px] text-ink">
           Este combo no tiene una materia prima reconocible en su receta, y el documento se une a la materia prima. Arregla primero la pieza «Receta».
+        </p>
+      )}
+      {!a && e.estado !== "ok" && c.componentes.some((x) => x.casilla === "materia_prima") && (
+        <p className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
+          El documento <b>ya está unido</b> a su materia prima; lo que falta es su contenido (está como «{e.detalle.split(" · ")[0]}»). Se completa y se firma en Docs técnicos.
         </p>
       )}
 
       {/* Lo que el sistema encontró por nombre */}
       {a?.tipo === "fijar_sku" && !elegir && (
         <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
-          <div>⚗️ <b>{a.mp_nombre}</b> <code className="text-muted">{a.sku}</code></div>
+          <div><Ico e="⚗️" /> <b>{a.mp_nombre}</b> <code className="text-muted">{a.sku}</code></div>
           <div className="mt-1 text-muted">
             {a.modo === "reemplazar" ? (
               <>El documento declara <code>{a.referencia_actual}</code>, que <b>no es un producto activo</b> en Alegra: era un enlace roto. Se corrige a <code>{a.sku}</code>.</>
@@ -362,27 +470,33 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
       )}
       {error && <p className="text-[11px] text-accent-rose">{error}</p>}
 
-      <div className="flex flex-wrap gap-2 border-t border-border/70 pt-2">
-        <button className={BTN_SEC} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}>
-          {e.estado === "falta" ? "Redactarlo en Docs técnicos →" : "Abrirlo en Docs técnicos →"}
-        </button>
-      </div>
     </div>
   );
 }
 
-function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string; hermanas: Combo[]; alResolver: () => Promise<void> }) {
+function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA }: {
+  c: Combo; clave: string; hermanas: Combo[]; alResolver: () => Promise<void>;
+  /** La publicación se revisa en un emergente sobre el taller, no saltando a Publicaciones. */
+  abrirPublicacion: () => void;
+  /** Pasar a otra pieza del mismo combo (p. ej. de «Etiqueta en la receta» a «Receta»). */
+  irA?: (clave: string) => void;
+}) {
   const salto = useSalto(c);
+  const [kitAbierto, setKitAbierto] = useState(false);
+  useEffect(() => setKitAbierto(false), [c.ref, clave]);
   const e = c.eslabones[clave];
   if (clave === "fotos") {
     const fotos = c.fotos?.length ? c.fotos : c.foto ? [c.foto] : [];
     return (
       <div className="space-y-2.5">
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-lg leading-none">🖼️</span>
+          <span className="text-lg leading-none"><Ico e="🖼️" /></span>
           <h4 className="mck-flujo-nodo text-[13px] font-bold text-ink">Fotos del producto</h4>
           <span className={`ml-auto font-mono text-[9.5px] font-bold uppercase ${fotos.length ? "text-accent-leaf" : "text-accent-rose"}`}>{fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : "sin foto"}</span>
         </div>
+        {fotoPendiente(c) && (
+          <p className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11.5px] text-ink"><b>Foto por actualizar.</b> {c.foto_motivo}</p>
+        )}
         {fotos.length === 0 ? (
           <p className="text-[11.5px] text-muted">Esta presentación no tiene foto en la vitrina. Se sube en Publicaciones (web y MeLi).</p>
         ) : (
@@ -401,7 +515,7 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
             )}
           </>
         )}
-        <button className={BTN} onClick={salto.publicaciones}>Cambiar, ordenar o agregar fotos →</button>
+        <button className={BTN} onClick={abrirPublicacion}>Cambiar, ordenar o agregar fotos…</button>
         <p className="text-[10.5px] text-muted">Se editan en Publicaciones: principal (★), orden y fotos de la web y de MeLi por separado.</p>
       </div>
     );
@@ -410,6 +524,20 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
   const cuerpo = () => {
     if (clave === "ean") return <InspectorEan c={c} alResolver={alResolver} />;
     if (clave === "etiqueta") return <InspectorEtiqueta c={c} hermanas={hermanas} alResolver={alResolver} />;
+    if (clave === "etiqueta_fisica")
+      return (
+        <>
+          <InspectorEtiquetaReceta c={c} alResolver={alResolver} irAReceta={() => irA?.("receta")} abrirKit={() => setKitAbierto(true)} />
+          {kitAbierto && <KitEmergente sku={c.ref} nombre={c.nombre} precio={c.precio_lista} onCerrar={() => setKitAbierto(false)} onGuardado={alResolver} />}
+        </>
+      );
+    if (clave === "receta" && e.estado !== "ok")
+      return (
+        <>
+          <InspectorReceta c={c} alResolver={alResolver} abrirKit={() => setKitAbierto(true)} />
+          {kitAbierto && <KitEmergente sku={c.ref} nombre={c.nombre} precio={c.precio_lista} onCerrar={() => setKitAbierto(false)} onGuardado={alResolver} />}
+        </>
+      );
     if (clave === "receta" || clave === "etiqueta_fisica") {
       const lista = clave === "receta" ? c.componentes : c.componentes.filter((x) => x.casilla === "etiqueta");
       return (
@@ -425,7 +553,7 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
                   className={`mck-btn-no-fx relative rounded-md border p-1.5 text-left transition hover:border-accent ${x.casilla === "materia_prima" ? "border-accent/70 bg-accent/10" : "border-border bg-surface-input"} ${x.existe ? "" : "border-dashed border-accent-rose/70"}`}
                 >
                   <span className="absolute right-1 top-1 rounded bg-surface px-1 text-[9.5px] font-bold tabular-nums text-ink">{cantidad(x)}</span>
-                  <span className="block text-base leading-none">{CASILLA[x.casilla].icono}</span>
+                  <span className="block text-base leading-none"><Ico e={CASILLA[x.casilla].icono} /></span>
                   <span className="mt-0.5 block text-[8.5px] font-bold uppercase tracking-wide text-muted">{CASILLA[x.casilla].nombre}</span>
                   <span className="line-clamp-2 block text-[10.5px] leading-tight text-ink">{x.nombre}</span>
                   <code className="block text-[9px] text-muted">{x.codigo}</code>
@@ -447,7 +575,12 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
           {lista.some((x) => (x.existencias ?? 0) < 0) && (
             <p className="text-[10.5px] text-muted">Las existencias son la referencia de Siigo que usa el panel de Inventario; un número negativo es empaque que se descuenta pero nunca se cargó.</p>
           )}
-          <button className={BTN_SEC} onClick={salto.alegra}>Ver el kit en Catálogo Alegra →</button>
+          <div className="flex flex-wrap gap-2">
+            <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={() => setKitAbierto(true)}>
+              {clave === "etiqueta_fisica" && e.estado !== "ok" ? "Agregar la etiqueta a la receta…" : "Ver y editar la receta del kit…"}
+            </button>
+          </div>
+          {kitAbierto && <KitEmergente sku={c.ref} nombre={c.nombre} precio={c.precio_lista} onCerrar={() => setKitAbierto(false)} onGuardado={alResolver} />}
         </div>
       );
     }
@@ -456,7 +589,7 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
         {e.precio ? <p className="text-[12px] tabular-nums text-ink">${Math.round(e.precio).toLocaleString("es-CO")} en la web</p> : null}
-        <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={salto.publicaciones}>Editar la publicación →</button>
+        <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={abrirPublicacion}>{e.estado === "ok" ? "Revisar la publicación…" : "Resolver la publicación…"}</button>
       </div>
     );
   };
@@ -464,7 +597,7 @@ function Inspector({ c, clave, hermanas, alResolver }: { c: Combo; clave: string
   return (
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-lg leading-none">{icono}</span>
+        <span className="text-lg leading-none"><Ico e={icono ?? ""} /></span>
         <h4 className="mck-flujo-nodo text-[13px] font-bold text-ink">{e.titulo}</h4>
         <span className={`ml-auto font-mono text-[9.5px] font-bold uppercase ${e.estado === "ok" ? "text-accent-leaf" : e.estado === "aviso" ? "text-accent-sun" : "text-accent-rose"}`}>{textoEstado(e)}</span>
       </div>
@@ -506,14 +639,15 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
       </svg>
 
       {/* la foto, en el centro: se toca para ver y editar sus fotos */}
-      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-4 bg-white ${sel === "fotos" ? "border-accent" : "border-surface-panel"} ${premio ? "mck-mision-premio" : ""}`} style={{ width: "17.2%", aspectRatio: "1" }}>
-        <button onClick={() => onSel("fotos")} aria-pressed={sel === "fotos"} title="Ver y editar las fotos de esta presentación" className="mck-btn-no-fx group block h-full w-full">
+      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-4 bg-white ${sel === "fotos" ? "border-accent" : fotoPendiente(c) ? "border-accent-sun" : "border-surface-panel"} ${premio ? "mck-mision-premio" : ""} ${completo(c) && fotoPendiente(c) ? "mck-mision-foto-parpadea" : ""}`} style={{ width: "17.2%", aspectRatio: "1" }}>
+        <button onClick={() => onSel("fotos")} aria-pressed={sel === "fotos"} title={fotoPendiente(c) ? `Foto por actualizar — ${c.foto_motivo}` : "Ver y editar las fotos de esta presentación"} className="mck-btn-no-fx group block h-full w-full">
           {c.foto ? <img src={c.foto} alt={c.nombre} className="h-full w-full object-contain" /> : <span className="flex h-full items-center justify-center text-3xl text-muted">?</span>}
           <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink/60 py-0.5 text-center font-mono text-[9px] font-bold text-white opacity-0 transition group-hover:opacity-100">fotos{c.fotos && c.fotos.length > 1 ? ` · ${c.fotos.length}` : ""}</span>
         </button>
       </div>
-      <div className="absolute left-1/2 top-[67.5%] -translate-x-1/2 rounded-full border border-border bg-surface-panel px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-ink">
+      <div className="absolute left-1/2 top-[67.5%] flex -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border border-border bg-surface-panel px-2 py-0.5 font-mono text-[10px] font-bold tabular-nums text-ink">
         {c.ok}/{TOTAL}
+        {fotoPendiente(c) && <span className="font-normal text-accent-sun">· foto por actualizar</span>}
       </div>
 
       {EQUIPO.map(({ clave, icono }) => {
@@ -529,7 +663,7 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
           <div
             key={clave}
             style={{ left: `${p.x / 10}%`, top: `${(p.y / 640) * 100}%`, width: "23%" }}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 ${destello.has(clave) ? "mck-mision-gana" : ""}`}
+            className={`mck-mision-nodo absolute -translate-x-1/2 -translate-y-1/2 ${destello.has(clave) ? "mck-mision-gana" : ""}`}
           >
             <button
               onClick={() => onSel(clave)}
@@ -539,8 +673,11 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
               } ${activo ? "ring-2 ring-accent ring-offset-2 ring-offset-surface-panel" : "hover:border-accent"} ${guia === clave && !activo ? "mck-mision-pulso" : ""}`}
             >
               <span className="flex items-center gap-1.5">
-                <span className="text-[15px] leading-none" aria-hidden="true">{icono}</span>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold text-ink">{e.titulo}</span>
+                <span className="text-[15px] leading-none" aria-hidden="true"><Ico e={icono} /></span>
+                <span className="min-w-0 flex-1 truncate text-[11.5px] font-bold text-ink">
+                  <span className="mck-nodo-largo">{e.titulo}</span>
+                  <span className="mck-nodo-corto">{CORTO[clave] ?? e.titulo}</span>
+                </span>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${e.estado === "ok" ? "bg-accent-leaf" : e.estado === "aviso" ? "bg-accent-sun" : "bg-accent-rose"}`} />
               </span>
               <span className={`mt-0.5 block truncate font-mono text-[9.5px] ${e.estado === "ok" ? "text-muted" : e.estado === "aviso" ? "text-accent-sun" : "text-accent-rose"}`}>{dato || textoEstado(e)}</span>
@@ -561,16 +698,180 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
   );
 }
 
+/**
+ * El taller ocupa EXACTAMENTE lo que queda de ventana bajo el cabezote (que cambia de alto al
+ * desplegar una etapa): así nada obliga a desplazar la página; solo la lista y el inspector tienen
+ * su propio desplazamiento. Por debajo de 1024 px se apila y la página fluye normal (`null`).
+ */
+function useAltoDisponible<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [alto, setAlto] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      setAlto(window.innerWidth < 1024 ? null : Math.max(440, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 10)));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    const cabezote = document.querySelector("header");
+    if (cabezote) ro.observe(cabezote);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", medir);
+      ro.disconnect();
+    };
+  }, []);
+  return { ref, alto };
+}
+
+/** La pregunta con la que el taller guía cada pieza: dice qué pasa y qué se propone hacer. */
+function preguntaGuia(clave: string, e: Eslabon | undefined): string {
+  if (clave === "fotos") return "Estas son las fotos con las que se vende. ¿Las cambiamos o agregamos más?";
+  if (!e) return "";
+  if (e.estado === "ok") return "Esta pieza ya está conectada. Puedes revisarla o pasar a la siguiente.";
+  const a = e.accion?.tipo;
+  if (clave === "receta") return e.estado === "falta" ? "Este combo no descuenta su materia prima al venderse. ¿Arreglamos la receta del kit?" : "La receta tiene algo por revisar. ¿La miramos?";
+  if (clave === "etiqueta_fisica") return "La receta no descuenta una etiqueta por unidad. ¿Se la agregamos al kit?";
+  if (clave === "documento") {
+    if (a === "fijar_sku") return "Encontré este documento por parecido de nombre. ¿Es el de su materia prima? Revísalo y, si es, lo unimos.";
+    if (e.estado === "falta") return "No encontré su documento técnico. ¿Existe con otro nombre? Búscalo y lo enlazamos; si no existe, hay que redactarlo.";
+    return "El documento ya está unido, pero todavía no está listo para publicarse. ¿Lo revisamos y completamos?";
+  }
+  if (clave === "ean") return a ? "No tiene código de barras. Este es el siguiente número libre: ¿lo creamos?" : "Aún no se le puede crear código: primero hay que arreglar su receta.";
+  if (clave === "etiqueta") return e.etiqueta_id ? "La etiqueta existe, pero no está unida al combo por su código de barras. ¿La conectamos?" : "No tiene etiqueta diseñada. ¿La diseñamos ahora?";
+  return "No aparece publicado. ¿Revisamos su publicación?";
+}
+
+/**
+ * Una pieza del combo en un EMERGENTE sobre el tablero. El taller no tiene barra lateral: la mayoría
+ * de las piezas se resuelven con un solo botón y una columna entera para eso era espacio muerto. Arriba
+ * va la pregunta que guía; abajo, «siguiente pendiente», para recorrer la misión sin volver al tablero.
+ */
+function PiezaEmergente({ clave, e, recien, siguiente, onSiguiente, onCerrar, children }: {
+  clave: string; e: Eslabon | undefined; recien: string | null; siguiente: { clave: string; titulo: string } | null;
+  onSiguiente: () => void; onCerrar: () => void; children: React.ReactNode;
+}) {
+  useEffect(() => {
+    // Esc cierra ESTE emergente solo si no hay otro encima (documento, kit, etiqueta).
+    const tecla = (ev: KeyboardEvent) => { if (ev.key === "Escape" && document.querySelectorAll('[role="dialog"][aria-modal="true"]').length === 1) onCerrar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [onCerrar]);
+  return createPortal(
+    <div className="fixed inset-0 z-[45] flex items-center justify-center bg-black/40 p-3" role="dialog" aria-modal="true" aria-label="Pieza del combo" onClick={onCerrar}>
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+        {recien && (
+          <p className="mck-mision-gana-tira shrink-0 border-b border-accent-leaf/40 bg-accent-leaf/15 px-4 py-1.5 text-[12px] font-bold text-ink"><Ico e="✅" /> {recien} — seguimos con la siguiente pieza.</p>
+        )}
+        <p className="shrink-0 border-b border-border bg-accent/5 px-4 py-2 text-[13px] leading-snug text-ink">{preguntaGuia(clave, e)}</p>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">{children}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-border bg-surface px-4 py-2">
+          {siguiente && <button className={BTN_SEC} onClick={onSiguiente}>Siguiente pendiente: {siguiente.titulo} →</button>}
+          <span className="flex-1" />
+          <button className={BTN_SEC} onClick={onCerrar}>Volver al tablero</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+const FILTROS_LISTA: { id: string; nombre: string; pasa: (c: Combo) => boolean }[] = [
+  { id: "pendientes", nombre: "Por completar", pasa: (c) => !completo(c) },
+  { id: "casi", nombre: "A una pieza", pasa: (c) => pendientes(c) === 1 },
+  { id: "documento", nombre: "Sin documento", pasa: (c) => c.eslabones.documento?.estado !== "ok" },
+  { id: "ean", nombre: "Sin código", pasa: (c) => c.eslabones.ean?.estado !== "ok" },
+  { id: "etiqueta", nombre: "Sin etiqueta", pasa: (c) => c.eslabones.etiqueta?.estado !== "ok" },
+  { id: "receta", nombre: "Receta rota", pasa: (c) => c.eslabones.receta?.estado === "falta" },
+  { id: "completos", nombre: "Completos", pasa: completo },
+  { id: "todos", nombre: "Todos", pasa: () => true },
+  // No son combos: productos comprados que aún no tienen ninguna presentación de venta.
+  { id: "huerfanos", nombre: "Sin combo", pasa: () => false },
+];
+const COLOR_SEG = { ok: "bg-accent-leaf", aviso: "bg-accent-sun", falta: "bg-accent-rose" } as const;
+
+/**
+ * Todos los combos, en la misma ventana del tablero. Es a la vez la galería y la cola del taller:
+ * lo que se filtra aquí es lo que recorren «Anterior / Siguiente». Cada segmento de una fila es una
+ * pieza de ese combo: tocarlo abre el combo directamente en esa pieza.
+ */
+function ListaCombos({ combos, total, actual, q, setQ, filtro, setFiltro, conteos, onElegir, huerfanos, onCrearCombo }: {
+  combos: Combo[]; total: number; actual: string | null; q: string; setQ: (v: string) => void;
+  filtro: string; setFiltro: (v: string) => void; conteos: Record<string, number>; onElegir: (ref: string, pieza?: string) => void;
+  huerfanos: FilaProducto[]; onCrearCombo: (ref: string) => void;
+}) {
+  useEffect(() => {
+    if (actual) document.getElementById(`mision-fila-${actual}`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [actual, combos.length]);
+  return (
+    <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-border bg-surface-panel p-2">
+      <div className="flex min-w-0 items-center gap-1.5 xl:block">
+      <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder="Buscar combo por nombre o SKU…" aria-label="Buscar combo" className="w-52 shrink-0 rounded-md border border-border bg-surface-input px-2 py-1.5 text-[12px] text-ink xl:w-full" />
+      <div className="flex min-w-0 gap-1 overflow-x-auto pb-0.5 xl:mt-1.5 xl:flex-wrap xl:overflow-visible">
+        {FILTROS_LISTA.filter((f) => f.id !== "huerfanos" || huerfanos.length > 0).map((f) => (
+          <button key={f.id} onClick={() => setFiltro(f.id)} aria-pressed={filtro === f.id}
+            className={`mck-flujo-nodo shrink-0 whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[10.5px] font-bold ${filtro === f.id ? "border-accent bg-accent text-white" : "border-border bg-surface-input text-ink-secondary hover:border-accent/50"}`}>
+            {f.nombre} <span className="tabular-nums opacity-75">{conteos[f.id] ?? 0}</span>
+          </button>
+        ))}
+      </div>
+      </div>
+      <p className="mt-1 hidden font-mono text-[9.5px] text-muted xl:block">
+        {filtro === "huerfanos" ? `${huerfanos.length} productos comprados sin presentación de venta` : `${combos.length} de ${total} · primero los más cerca de quedar completos`}
+      </p>
+      {/* xl: columna con desplazamiento propio · más angosto: una franja horizontal sobre el tablero */}
+      <div className="mt-1 flex min-h-0 flex-1 gap-1 overflow-x-auto pb-1 xl:block xl:space-y-1 xl:overflow-y-auto xl:overflow-x-hidden xl:pb-0 xl:pr-0.5">
+        {filtro === "huerfanos" && huerfanos.map((f) => (
+          <div key={f.ref} className="flex w-56 shrink-0 items-center gap-2 rounded-lg border border-dashed border-border bg-surface-input p-1.5 xl:w-auto">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[11.5px] font-bold leading-tight text-ink">{f.nombre}</span>
+              <code className="block truncate text-[9.5px] text-muted">{f.ref}</code>
+            </span>
+            <button className={BTN_SEC} onClick={() => onCrearCombo(f.ref)} title="No tiene combo: se crea en Alegra">Crear →</button>
+          </div>
+        ))}
+        {filtro !== "huerfanos" && combos.map((c) => {
+          const aqui = c.ref === actual;
+          return (
+            <div key={c.ref} id={`mision-fila-${c.ref}`} className={`w-56 shrink-0 rounded-lg border p-1.5 transition xl:w-auto ${aqui ? "border-accent bg-accent/10" : "border-border bg-surface-input hover:border-accent/50"}`}>
+              <button onClick={() => onElegir(c.ref)} aria-current={aqui ? "true" : undefined} className="mck-btn-no-fx flex w-full items-center gap-2 text-left">
+                <span className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-border bg-white">
+                  {c.foto ? <img src={c.foto} alt="" loading="lazy" className="h-full w-full object-contain" /> : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[11.5px] font-bold leading-tight text-ink">{c.nombre}</span>
+                  <code className="block truncate text-[9.5px] text-muted">{c.ref}</code>
+                </span>
+                <span className={`shrink-0 rounded-full px-1.5 font-mono text-[10px] font-bold tabular-nums ${completo(c) ? "bg-accent-leaf text-white" : pendientes(c) === 1 ? "bg-accent-sun/25 text-ink" : "bg-surface text-muted"}`}>{c.ok}/{TOTAL}</span>
+              </button>
+              <div className="mt-1 flex gap-0.5">
+                {EQUIPO.map(({ clave }) => {
+                  const e = c.eslabones[clave];
+                  return (
+                    <button key={clave} onClick={() => onElegir(c.ref, clave)} title={`${e?.titulo}: ${e ? textoEstado(e) : ""} — abrir en esta pieza`} aria-label={`${c.nombre}: ${e?.titulo}`}
+                      className={`mck-btn-no-fx h-2 flex-1 rounded-full transition hover:scale-y-150 ${COLOR_SEG[e?.estado ?? "falta"]}`} />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+        {filtro !== "huerfanos" && combos.length === 0 && <p className="px-1 py-3 text-[11.5px] text-muted">Ningún combo coincide con ese filtro.</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; onGaleria: () => void }) {
   const qc = useQueryClient();
   const setPanel = useAppStore((s) => s.setPanel);
   const porRef = useMemo(() => new Map(datos.combos.map((c) => [c.ref, c])), [datos.combos]);
 
-  // La cola se arma UNA vez por visita: un combo que se completa no desaparece bajo los pies,
-  // se queda para celebrarlo. Primero los que están a una pieza de cerrarse.
-  const [cola] = useState<string[]>(() =>
-    datos.combos.filter((c) => !completo(c)).sort((a, b) => pendientes(a) - pendientes(b) || a.faltas - b.faltas || a.nombre.localeCompare(b.nombre)).map((c) => c.ref),
-  );
+  const [q, setQ] = useState("");
+  const [filtro, setFiltro] = useState("pendientes");
+  const orden = (a: Combo, b: Combo) => (completo(a) ? 1 : 0) - (completo(b) ? 1 : 0) || pendientes(a) - pendientes(b) || a.faltas - b.faltas || a.nombre.localeCompare(b.nombre, "es", { numeric: true });
   const [ref, setRef] = useState<string | null>(() => {
     try {
       const g = sessionStorage.getItem(CLAVE_REF);
@@ -578,8 +879,19 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
     } catch {
       /* sin almacenamiento */
     }
-    return cola[0] ?? null;
+    return [...datos.combos].filter((x) => !completo(x)).sort(orden)[0]?.ref ?? null;
   });
+  // La lista ES la cola: lo que se filtra es lo que recorren «Anterior / Siguiente». El combo que
+  // se está trabajando nunca desaparece de ella aunque deje de cumplir el filtro al completarse.
+  const listaCombos = useMemo(() => {
+    const texto = q.trim().toUpperCase();
+    const pasa = FILTROS_LISTA.find((f) => f.id === filtro)?.pasa ?? (() => true);
+    return datos.combos
+      .filter((x) => x.ref === ref || (pasa(x) && (!texto || x.nombre.toUpperCase().includes(texto) || x.ref.toUpperCase().includes(texto))))
+      .sort(orden);
+  }, [datos.combos, q, filtro, ref]); // eslint-disable-line react-hooks/exhaustive-deps
+  const conteos = useMemo(() => Object.fromEntries(FILTROS_LISTA.map((f) => [f.id, datos.combos.filter(f.pasa).length])), [datos.combos]);
+  const cola = useMemo(() => listaCombos.map((x) => x.ref), [listaCombos]);
   const c = ref ? porRef.get(ref) ?? null : null;
   const pos = ref ? cola.indexOf(ref) : -1;
   useEffect(() => {
@@ -592,13 +904,38 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
 
   const guia = useMemo(() => (c ? ORDEN_GUIA.find((k) => c.eslabones[k]?.estado === "falta") ?? ORDEN_GUIA.find((k) => c.eslabones[k]?.estado === "aviso") ?? null : null), [c]);
   const [sel, setSel] = useState<string>("receta");
-  useEffect(() => setSel(guia ?? "receta"), [ref]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [pubAbierta, setPubAbierta] = useState(false);
+  const [ventana, setVentana] = useState<Ventana | null>(null);
+  const cerrarVentana = () => {
+    if (ventana?.tipo === "docs") useAppStore.setState({ tallerRetorno: null, tallerSalto: null });
+    setVentana(null);
+    void alResolver();
+    if (ventana?.tipo === "crear") void qc.invalidateQueries({ queryKey: ["mision-sin-combo"] });
+  };
+  // Tocar la pieza «Publicación» la abre en un emergente sobre el taller (no en el panel lateral).
+  const [piezaAbierta, setPiezaAbierta] = useState(false);
+  const [recien, setRecien] = useState<string | null>(null);
+  // Tocar una pieza la abre en un emergente sobre el tablero (la publicación tiene el suyo propio).
+  const tocarPieza = (k: string) => {
+    setSel(k);
+    setRecien(null);
+    if (k === "publicacion") setPubAbierta(true);
+    else setPiezaAbierta(true);
+  };
+  useEffect(() => {
+    const pedida = piezaPedida.current;
+    setSel(pedida ?? guia ?? "receta");
+    setRecien(null);
+    setPiezaAbierta(Boolean(pedida && pedida !== "publicacion"));
+    piezaPedida.current = null;
+  }, [ref]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // El premio: comparar cada combo con cómo estaba la última vez que se vio.
   const antes = useRef<Map<string, Record<string, string>>>(new Map());
   const [destello, setDestello] = useState<Set<string>>(new Set());
   const [premio, setPremio] = useState(false);
   const [marcador, setMarcador] = useState(leerMarcador);
+  const [conSonido, setConSonido] = useState(sonidoActivo);
   useEffect(() => {
     if (!c) return;
     const ahora = Object.fromEntries(EQUIPO.map(({ clave }) => [clave, c.eslabones[clave]?.estado ?? "falta"]));
@@ -613,6 +950,7 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
     const cerro = completo(c);
     setDestello(new Set(ganadas));
     setPremio(cerro);
+    if (cerro) sonarMoneda();
     setMarcador((m) => {
       const n = { dia: hoyClave(), conexiones: (m.dia === hoyClave() ? m.conexiones : 0) + ganadas.length, combos: (m.dia === hoyClave() ? m.combos : 0) + (cerro ? 1 : 0) };
       try {
@@ -624,6 +962,8 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
     });
     const t = setTimeout(() => setDestello(new Set()), 2600);
     const siguientePieza = ORDEN_GUIA.find((k) => ahora[k] !== "ok");
+    setRecien("Listo: " + ganadas.map((k) => c.eslabones[k]?.titulo ?? k).join(" y "));
+    if (cerro || !siguientePieza || siguientePieza === "publicacion") setPiezaAbierta(false);
     if (siguientePieza) setSel(siguientePieza);
     return () => clearTimeout(t);
   }, [c]);
@@ -640,9 +980,38 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
     setRef(cola[i]);
   };
 
+  const piezaPedida = useRef<string | null>(null);
+  const elegir = (r: string, pieza?: string) => {
+    setPremio(false);
+    if (pieza === "publicacion") setPubAbierta(true);
+    if (r === ref) {
+      if (pieza) tocarPieza(pieza);
+      return;
+    }
+    piezaPedida.current = pieza ?? null;
+    setRef(r);
+  };
+  // ← → recorren la lista · 1–6 abren una pieza · F las fotos. No actúan mientras se escribe.
+  useEffect(() => {
+    const tecla = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      if (ev.metaKey || ev.ctrlKey || ev.altKey || (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) return;
+      // Con un emergente abierto (editor de etiqueta, documento, kit) las teclas son suyas:
+      // una flecha cambiaría de combo por debajo y cerraría lo que se está editando.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      if (ev.key === "ArrowRight") mover(1);
+      else if (ev.key === "ArrowLeft") mover(-1);
+      else if (/^[1-6]$/.test(ev.key)) tocarPieza(ORDEN_GUIA[Number(ev.key) - 1]);
+      else if (ev.key.toLowerCase() === "f") tocarPieza("fotos");
+      else return;
+      ev.preventDefault();
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  });
+
   const sinCombo = useQuery({ queryKey: ["mision-sin-combo"], queryFn: () => api.get<{ filas: FilaProducto[] }>("/api/mapa-sistema/productos"), staleTime: 300_000, retry: false });
   const huerfanos = (sinCombo.data?.filas ?? []).filter((f) => f.combo === "falta");
-  const [verHuerfanos, setVerHuerfanos] = useState(false);
 
   // Las otras presentaciones del mismo producto (misma materia prima): cada una es su combo,
   // con su EAN, su etiqueta y su plantilla propios.
@@ -650,13 +1019,14 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
     () => (c?.familia ? datos.combos.filter((x) => x.familia === c.familia).sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true })) : []),
     [c?.familia, datos.combos],
   );
+  const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>();
   const completos = datos.combos.filter(completo).length;
-  const resueltosEnCola = cola.filter((r) => { const x = porRef.get(r); return x ? completo(x) : false; }).length;
 
   return (
-    <div className="space-y-3">
+    <VentanaCtx.Provider value={setVentana}>
+    <div ref={raiz} style={alto ? { height: alto } : undefined} className="flex min-h-0 flex-col gap-2">
       {/* Marcador */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-border bg-surface-panel px-3 py-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-border bg-surface-panel px-3 py-1.5">
         <div className="min-w-[220px] flex-1">
           <div className="flex items-baseline justify-between font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
             <span>Catálogo completo</span>
@@ -667,23 +1037,35 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
           </div>
         </div>
         <div className="mck-flujo-nodo text-[12px] text-ink"><b className="tabular-nums">{marcador.conexiones}</b> <span className="text-muted">conexiones hoy</span></div>
-        <div className="mck-flujo-nodo text-[12px] text-ink">🏆 <b className="tabular-nums">{marcador.combos}</b> <span className="text-muted">combos completados hoy</span></div>
-        <button onClick={onGaleria} className={BTN_SEC}>Ver todos los combos</button>
+        <div className="mck-flujo-nodo text-[12px] text-ink"><Ico e="🏆" /> <b className="tabular-nums">{marcador.combos}</b> <span className="text-muted">combos completados hoy</span></div>
+        <button
+          onClick={() => { const v = !conSonido; setConSonido(v); ponerSonido(v); if (v) sonarMoneda(true); }}
+          aria-pressed={conSonido}
+          title={conSonido ? "Suena una moneda al completar un combo. Toca para silenciar." : "Sonido apagado. Toca para activarlo (y oírlo)."}
+          className={`mck-flujo-nodo rounded-md border px-2 py-0.5 text-[11px] font-bold ${conSonido ? "border-accent/50 text-accent" : "border-border text-muted"}`}
+        >
+          <Ico e="🔊" /> {conSonido ? "sonido" : "en silencio"}
+        </button>
+        <button onClick={onGaleria} className="text-[11px] text-muted underline hover:text-ink">vista clásica</button>
       </div>
 
       {!c ? (
-        <div className="rounded-xl border border-accent-leaf/50 bg-accent-leaf/10 p-6 text-center text-sm text-ink">🏆 No queda ningún combo incompleto. El catálogo está al día.</div>
+        <div className="rounded-xl border border-accent-leaf/50 bg-accent-leaf/10 p-6 text-center text-sm text-ink"><Ico e="🏆" /> No queda ningún combo incompleto. El catálogo está al día.</div>
       ) : (
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-          <div className="rounded-xl border border-border bg-surface-panel p-3">
+        <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-1 lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]">
+          <ListaCombos combos={listaCombos} total={datos.total} actual={ref} q={q} setQ={setQ} filtro={filtro} setFiltro={setFiltro} conteos={{ ...conteos, huerfanos: huerfanos.length }} onElegir={elegir}
+            huerfanos={huerfanos} onCrearCombo={(r) => setVentana({ tipo: "crear", ref: r, nombre: huerfanos.find((h) => h.ref === r)?.nombre ?? r })} />
+          <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-border bg-surface-panel p-3">
             {/* Caso actual */}
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                  {pos >= 0 ? `Caso ${pos + 1} de ${cola.length}` : "Fuera de la cola (ya estaba completo)"} · {resueltosEnCola} resueltos en esta visita · {c.linea || "sin línea en la web"}
+                  {`Caso ${pos + 1} de ${cola.length}`} · {FILTROS_LISTA.find((f) => f.id === filtro)?.nombre.toLowerCase()} · {c.linea || "sin línea en la web"}
                 </p>
-                <h3 className="truncate text-base font-bold text-ink">{c.nombre}</h3>
-                <code className="text-[11px] text-ink-secondary">{c.ref}</code>
+                <h3 className="flex min-w-0 items-baseline gap-2 text-base font-bold text-ink">
+                  <span className="truncate">{c.nombre}</span>
+                  <code className="shrink-0 text-[11px] font-normal text-ink-secondary">{c.ref}</code>
+                </h3>
               </div>
               <div className="flex shrink-0 gap-1.5">
                 <button className={BTN_SEC} onClick={() => mover(-1)}>← Anterior</button>
@@ -692,11 +1074,14 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
             </div>
 
             {premio || completo(c) ? (
-              <div className="mt-2 rounded-lg border border-accent-sun/60 bg-accent-sun/10 px-3 py-2 text-center text-[12.5px] font-bold text-ink">🏆 ¡Combo completo! Sus seis piezas están conectadas: ya se puede vender con todo su respaldo.</div>
+              <div className="mt-2 rounded-lg border border-accent-sun/60 bg-accent-sun/10 px-3 py-2 text-center text-[12.5px] font-bold text-ink"><Ico e="🏆" /> ¡Combo completo! Sus seis piezas están conectadas: ya se puede vender con todo su respaldo.{fotoPendiente(c) ? <span className="font-normal"> Solo queda la foto: toca la imagen que parpadea.</span> : null}</div>
             ) : guia ? (
-              <div className="mt-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-[12px] text-ink">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">siguiente paso</span>{" "}
-                {c.eslabones[guia].titulo}: <span className="text-muted">{c.eslabones[guia].detalle}</span>
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-[12px] text-ink">
+                <span className="min-w-0 flex-1 truncate" title={`${c.eslabones[guia].titulo}: ${c.eslabones[guia].detalle}`}>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-accent">siguiente paso</span>{" "}
+                  {c.eslabones[guia].titulo}: <span className="text-muted">{c.eslabones[guia].detalle}</span>
+                </span>
+                <button className={`${BTN} mck-mision-pulso shrink-0`} onClick={() => tocarPieza(guia)}>Resolver ahora →</button>
               </div>
             ) : null}
 
@@ -723,38 +1108,64 @@ export default function MisionCombos({ datos, onGaleria }: { datos: Respuesta; o
               </div>
             )}
 
-            <Tablero c={c} sel={sel} guia={guia} destello={destello} premio={premio} onSel={setSel} />
-          </div>
-
-          <div className="rounded-xl border border-border bg-surface-panel p-3 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto">
-            <Inspector c={c} clave={sel} hermanas={hermanas} alResolver={alResolver} />
-          </div>
-        </div>
-      )}
-
-      {/* Lo que ni siquiera tiene combo: no entra al tablero porque no hay producto de venta que mostrar */}
-      {huerfanos.length > 0 && (
-        <div className="rounded-xl border border-dashed border-border bg-surface-panel/60 p-2">
-          <button onClick={() => setVerHuerfanos((v) => !v)} aria-expanded={verHuerfanos} className="mck-flujo-nodo flex w-full items-center gap-2 px-1 text-left text-[12px] font-bold text-ink-secondary hover:text-ink">
-            <span aria-hidden="true">{verHuerfanos ? "−" : "+"}</span>
-            {huerfanos.length} productos comprados sin ninguna presentación de venta
-            <span className="font-sans text-[11px] font-normal text-muted">no tienen combo: primero hay que crearlo en Alegra</span>
-          </button>
-          {verHuerfanos && (
-            <div className="mt-2 grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
-              {huerfanos.map((f) => (
-                <div key={f.ref} className="flex items-center gap-2 rounded-md border border-border bg-surface-input px-2 py-1">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[11.5px] font-semibold text-ink">{f.nombre}</span>
-                    <code className="text-[9.5px] text-muted">{f.ref}</code>
-                  </span>
-                  <button className={BTN_SEC} onClick={() => { navigator.clipboard?.writeText(f.ref).catch(() => null); setPanel("productos-siigo"); }}>Crear combo →</button>
-                </div>
-              ))}
+            <div className="mck-mision-lienzo">
+              <Tablero c={c} sel={sel} guia={guia} destello={destello} premio={premio} onSel={tocarPieza} />
             </div>
-          )}
+            <p className="mt-1 hidden shrink-0 text-center font-mono text-[9.5px] text-muted [@media(min-height:840px)]:block">toca una pieza para resolverla · ← → cambian de combo · 1–6 abren una pieza · F las fotos</p>
+          </div>
+
+          <div className="contents">
+            {piezaAbierta && sel !== "publicacion" && (() => {
+              const pend = ORDEN_GUIA.filter((k) => k !== sel && k !== "publicacion" && c.eslabones[k] && c.eslabones[k].estado !== "ok");
+              const sig = pend[0] ? { clave: pend[0], titulo: c.eslabones[pend[0]].titulo } : null;
+              return (
+                <PiezaEmergente clave={sel} e={c.eslabones[sel]} recien={recien} siguiente={sig}
+                  onSiguiente={() => { if (sig) { setRecien(null); setSel(sig.clave); } }} onCerrar={() => { setPiezaAbierta(false); setRecien(null); }}>
+                  <Inspector c={c} clave={sel} hermanas={hermanas} alResolver={alResolver} abrirPublicacion={() => { setPiezaAbierta(false); setPubAbierta(true); }} irA={(k) => { setRecien(null); setSel(k); }} />
+                </PiezaEmergente>
+              );
+            })()}
+            {pubAbierta && (
+              <PublicacionEmergente
+                key={c.ref}
+                sku={c.ref}
+                nombre={c.nombre}
+                precioLista={c.precio_lista}
+                onCerrar={() => { setPubAbierta(false); void alResolver(); }}
+              />
+            )}
+          </div>
         </div>
       )}
+
     </div>
+      {ventana?.tipo === "ean" && (
+        <VentanaTaller titulo="Código EAN" combo={ventana.combo.nombre} ancho="max-w-[1100px]" onCerrar={cerrarVentana}
+          ayuda={ventana.combo.eslabones.ean?.estado === "ok"
+            ? <>Este combo ya tiene código (<code>{ventana.combo.eslabones.ean.codigo}</code>): la lista está filtrada en él. Corrígelo con el lápiz; no registres otro.</>
+            : <>El formulario ya tiene el SKU <code>{ventana.combo.ref}</code>. Registra el código y cierra: la pieza se enciende sola.</>}>
+          <CodigosEanPanel buscarInicial={ventana.combo.eslabones.ean?.estado === "ok" ? ventana.combo.ref : ""} />
+        </VentanaTaller>
+      )}
+      {ventana?.tipo === "docs" && (
+        <VentanaTaller titulo="Documento técnico" combo={ventana.combo.nombre} ancho="max-w-[1100px]" onCerrar={cerrarVentana}
+          ayuda="Ficha técnica, COA y SDS en un solo documento. Arriba ves lo que le falta; guarda o genera el PDF y cierra.">
+          <FichasTecnicasPanel onVolver={cerrarVentana} />
+        </VentanaTaller>
+      )}
+      {ventana?.tipo === "componente" && (
+        <VentanaTaller titulo="Componente de la receta" combo={ventana.combo.nombre} onCerrar={cerrarVentana}
+          ayuda={<>{ventana.nombre} (<code>{ventana.codigo}</code>) en el catálogo de Alegra: existencias, precio y en qué recetas va.</>}>
+          <CatalogoAlegraPanel />
+        </VentanaTaller>
+      )}
+      {ventana?.tipo === "crear" && (
+        <VentanaTaller titulo="Crear en Alegra" combo={ventana.nombre} ancho="max-w-[900px]" onCerrar={cerrarVentana}
+          ayuda={<>Este producto (<code>{ventana.ref}</code>) no tiene presentación de venta. Crea su combo; al cerrar aparece en la lista del taller.</>}>
+          {/* Lo que falta es la presentación de VENTA: el formulario nace como combo (código C-…). */}
+          <CrearProductosSiigoPanel compact inicial={{ codigo: ventana.ref.toUpperCase().startsWith("C-") ? ventana.ref : "C-", nombre: ventana.nombre }} onCreado={() => void alResolver()} />
+        </VentanaTaller>
+      )}
+    </VentanaCtx.Provider>
   );
 }

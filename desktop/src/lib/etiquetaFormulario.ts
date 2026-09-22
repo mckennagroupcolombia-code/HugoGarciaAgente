@@ -371,12 +371,15 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   );
   const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
   // Igual que en fichaTecnicaCampos: en las fichas FT + COA + SDS los
-  // componentes viven en la sección 3 del SDS.
+  // componentes viven en el COA (antes, en la sección 3 del SDS).
   const sdsComp =
     datos._sds && typeof datos._sds === "object"
       ? (datos._sds as Record<string, unknown>).composicion
       : undefined;
-  const composicionRaw = flattenComposicion(datos.composicion) || flattenComposicion(sdsComp);
+  const composicionRaw =
+    flattenComposicion(datos.composicion) ||
+    flattenComposicion((coa as Record<string, unknown>).composicion) ||
+    flattenComposicion(sdsComp);
   const almacenamientoRaw = pick(
     datos.almacenamiento,
     emp.almacenamiento,

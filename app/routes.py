@@ -23,16 +23,17 @@ PERMISOS_CONTABILIDAD = {
     # Catálogos que todos los paneles contables leen (plan de cuentas, terceros,
     # medios de pago). El wizard de pagos también los necesita: TerceroSelect
     # crea terceros desde ahí.
-    "referencia": ("libro-mayor", "prestamos", "socios", "pagos"),
+    # `contador`: el contador externo, SOLO lectura (ver `_guard_perfil_contador`).
+    "referencia": ("libro-mayor", "prestamos", "socios", "pagos", "contador"),
     # Asientos, balances, extractos, créditos: el corazón del Libro Mayor.
     # Préstamos y Socios leen esos mismos movimientos en sus propios paneles.
-    "libro": ("libro-mayor", "prestamos", "socios"),
+    "libro": ("libro-mayor", "prestamos", "socios", "contador"),
     # Préstamos de terceros: cédula, correo, cuenta bancaria y saldos.
     "prestamos": ("prestamos", "libro-mayor"),
     # Cuenta corriente de cada socio con la empresa.
     "socios": ("socios", "libro-mayor", "prestamos"),
     # Solicitar y aprobar pagos mueve plata y crea asientos.
-    "pagos": ("pagos", "libro-mayor"),
+    "pagos": ("pagos", "libro-mayor", "contador"),
 }
 
 
@@ -3777,6 +3778,143 @@ def register_routes(app):
             }), 403
         return None
 
+    # ── Perfil «contador»: el contador externo, lectura + comentarios ────────
+    #
+    # El contador necesita ver y cruzar TODA la contabilidad (mayor, diario,
+    # balances, auxiliares, documentos soporte) pero no es de la casa: no puede
+    # crear, editar ni borrar nada, y el resto de la aplicación (inventario,
+    # ventas, MeLi, usuarios…) no es asunto suyo. Como `_api_token_valido()`
+    # acepta la sesión de cualquier usuario en ~540 rutas, esconder paneles no
+    # basta («ocultar no es restringir»): acá se decide por LISTA BLANCA —lo que
+    # no está permitido explícitamente, se niega— y por método HTTP.
+    #
+    # Lo único que escribe: sus indicaciones en el historial de un tercero
+    # (tipo «contador», firmadas con su nombre) y su propia sesión/contraseña.
+    _CONTADOR_LECTURA = (
+        "/api/contabilidad/",
+        "/api/pagos/documentos-soporte",
+        "/api/pagos/solicitudes",
+        "/api/pagos/puedo-registrar",
+        "/api/pagos/categorias",
+        "/api/pagos/cuentas-gasto",
+        "/api/alegra/espejo",
+        "/api/status",
+        "/api/tickets/panel/",
+        "/api/tickets/auth/",
+    )
+    _CONTADOR_ESCRITURA = (
+        "/api/tickets/auth/",           # su sesión y su contraseña
+        "/api/tickets/panel/sesion/",   # telemetría de sesión del panel
+        "/api/tickets/panel/evento",
+    )
+
+    def _es_perfil_contador(usuario) -> bool:
+        if not usuario:
+            return False
+        try:
+            from app.services.tickets_db import es_admin_efectivo
+
+            if es_admin_efectivo(usuario):
+                return False
+        except Exception:
+            if int((usuario.get("rol") or {}).get("nivel") or 0) >= 3:
+                return False
+        return bool((usuario.get("permisos_secciones") or {}).get("contador"))
+
+    @app.before_request
+    def _guard_perfil_contador():
+        if request.method == "OPTIONS":
+            return None
+        path = request.path or ""
+        if path.startswith("/app/api/"):
+            path = path[4:]
+        if not path.startswith("/api/"):
+            return None                    # la SPA, estáticos, /app/auth/* (login)
+        usuario = _panel_tickets_usuario()
+        if not _es_perfil_contador(usuario):
+            return None
+        import re as _re
+
+        if request.method in ("GET", "HEAD"):
+            if path.startswith(_CONTADOR_LECTURA):
+                return None
+        else:
+            if path.startswith(_CONTADOR_ESCRITURA):
+                return None
+            if request.method == "POST" and _re.fullmatch(r"/api/contabilidad/cc/terceros/\d+/historial", path):
+                return None
+        return jsonify({"error": "Perfil contador: solo consulta de la contabilidad "
+                                 "(y comentarios en el historial de terceros)."}), 403
+
+    # ── Perfil «colaborador externo»: solo Colaboradores y su Agenda con Armando ──
+    #
+    # Un colaborador (primero Sebastián) arma con Armando un diagrama de flujo
+    # compartido y se comunica con él por solicitudes y acciones. No es de la
+    # casa: no ve a los demás usuarios ni sus tickets, ni el resto de la app.
+    # Mismo criterio que el contador: LISTA BLANCA en el backend, porque casi
+    # todo /api/* acepta cualquier sesión. Los tickets se revisan uno por uno:
+    # solo los que son entre él y el anfitrión.
+    _COLAB_TICKETS_GET = (
+        "/api/tickets/usuarios", "/api/tickets/presencia/", "/api/tickets/actividad-equipo",
+        "/api/tickets/categorias/", "/api/tickets/departamentos", "/api/tickets/acciones/frecuentes",
+        "/api/tickets/acciones/historial",
+    )
+    # Acciones sobre un ticket que involucran a terceros o a otros módulos.
+    _COLAB_TICKET_SUB_PROHIBIDAS = (
+        "asignar", "participantes", "delegar-compras", "guardar-como-protocolo",
+        "vincular-protocolo", "guardar-procedimiento", "pedir-intervencion", "corridas", "lista-compras",
+        "materiales", "consumo",
+    )
+
+    def _colab_ruta(path: str) -> str:
+        return path[4:] if path.startswith("/app/api/") else path
+
+    @app.before_request
+    def _guard_colaborador_externo():
+        if request.method == "OPTIONS":
+            return None
+        path = _colab_ruta(request.path or "")
+        if not path.startswith("/api/"):
+            return None
+        usuario = _panel_tickets_usuario()
+        from app.services.colaboradores import anfitrion_id, es_colaborador_externo
+
+        if not es_colaborador_externo(usuario):
+            return None
+        import re as _re
+
+        metodo = request.method
+        if path.startswith(("/api/colaboradores/", "/api/tickets/auth/", "/api/tickets/panel/")):
+            return None
+        if metodo in ("GET", "HEAD") and path == "/api/status":
+            # El health check dice qué integraciones tiene la casa (MeLi, Google,
+            # Alegra…): para el colaborador solo «está viva».
+            return jsonify({"estado": "activo", "version": "2.0.0", "servicios": {}})
+        if metodo in ("GET", "HEAD") and path.startswith(_COLAB_TICKETS_GET):
+            return None
+        if path == "/api/tickets/" and metodo in ("GET", "POST"):
+            return None                     # listar (sin vista de equipo) / crear (solo con el anfitrión)
+        m = _re.fullmatch(r"/api/tickets/(\d+)(/.*)?", path)
+        if m:
+            sub_ruta = (m.group(2) or "").strip("/")
+            if metodo == "DELETE" and not sub_ruta:
+                return jsonify({"error": "No puedes eliminar tickets."}), 403
+            if sub_ruta.split("/")[0] in _COLAB_TICKET_SUB_PROHIBIDAS:
+                return jsonify({"error": "Esa acción no está disponible para colaboradores."}), 403
+            try:
+                from app.services import tickets_db as _tdb
+
+                with _tdb._conn() as db:
+                    t = db.execute("SELECT creado_por, asignado_a FROM tickets WHERE id=?", (int(m.group(1)),)).fetchone()
+            except Exception:
+                t = None
+            permitidos = {int(usuario["id"]), anfitrion_id()}
+            if t and int(t["creado_por"] or 0) in permitidos and (t["asignado_a"] is None or int(t["asignado_a"]) in permitidos) \
+                    and int(usuario["id"]) in (int(t["creado_por"] or 0), int(t["asignado_a"] or 0)):
+                return None
+            return jsonify({"error": "Ese ticket no es entre tú y Armando."}), 403
+        return jsonify({"error": "Perfil colaborador: solo Colaboradores y tu Agenda con Armando."}), 403
+
     def _api_lanzar_en_hilo(fn, *args, job: str | None = None):
         """Ejecuta fn(*args) en hilo daemon y registra resultado en panel_activity."""
         from app.panel_activity import run_logged_job
@@ -5419,6 +5557,57 @@ def register_routes(app):
             log_line(f"✖ fichas/generar: {e!r}")
             return jsonify({"error": str(e)}), 500
 
+    def _sds_con_lo_guardado(slug_auto: str, datos_sds):
+        """Fusiona la SDS del formulario con la ya guardada (definitivo o borrador),
+        para no borrar las secciones que el formulario no manda."""
+        if not isinstance(datos_sds, dict):
+            return datos_sds
+        from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+        from app.services.sds_estructura import fusionar_sds
+
+        for nombre in (f"ft_coa_sds_{slug_auto}", f"borrador_ft_coa_sds_{slug_auto}"):
+            for ext in (".yaml", ".yml"):
+                path = DATOS_DIR / f"{nombre}{ext}"
+                if path.is_file():
+                    try:
+                        previa = (cargar_datos_desde_archivo(path) or {}).get("_sds")
+                    except Exception:
+                        previa = None
+                    return fusionar_sds(previa, datos_sds)
+        return fusionar_sds(None, datos_sds)
+
+    @app.route("/app/api/fichas/sds/normalizar", methods=["POST"])
+    @app.route("/api/fichas/sds/normalizar", methods=["POST"])
+    def api_fichas_sds_normalizar():
+        """SDS de cualquier época → esquema 2, sin escribir nada (lo usa el formulario al abrir)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds_estructura import normalizar_sds
+
+        body = request.get_json(silent=True) or {}
+        sds, avisos = normalizar_sds(body.get("sds") or {})
+        return jsonify({"sds": sds, "avisos": avisos})
+
+    @app.route("/app/api/fichas/sds/sugerir", methods=["POST"])
+    @app.route("/api/fichas/sds/sugerir", methods=["POST"])
+    def api_fichas_sds_sugerir():
+        """Propone la SDS completa según el título (una llamada IA, con llm_budget)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        titulo = (body.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "Se requiere el nombre del producto"}), 400
+        try:
+            from app.panel_activity import log_line
+            from app.services.sds_estructura import sugerir_sds
+
+            sds = sugerir_sds(titulo, body.get("ft") or {}, body.get("identificacion") or {})
+            log_line(f"✔ SDS sugerida por IA: {titulo[:60]!r}")
+            return jsonify({"ok": True, "sds": sds})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/app/api/fichas/generar-completo", methods=["POST"])
     @app.route("/api/fichas/generar-completo", methods=["POST"])
     def api_fichas_generar_completo():
@@ -5430,6 +5619,19 @@ def register_routes(app):
         datos_sds = body.get("sds") or None
         if not isinstance(datos_ft, dict) or not _titulo_documento_datos(datos_ft):
             return jsonify({"error": "Se requiere 'ft' con al menos 'titulo' o 'nombre_producto'"}), 400
+        # Una SDS sugerida por IA a partir del título no circula sin que alguien la revise.
+        sds_pendiente = bool(
+            isinstance(datos_sds, dict) and datos_sds.get("sugerida_ia")
+            and not (datos_sds.get("visto_bueno") or {}).get("en")
+        )
+        # La vista previa sí se permite, pero sale con la banda BORRADOR y sin firma.
+        if sds_pendiente and not body.get("vista_previa"):
+            return jsonify({
+                "error": "La hoja de seguridad es una sugerencia de IA sin visto bueno. "
+                         "Revísela y dé el visto bueno antes de generar el documento final "
+                         "(la vista previa y el borrador sí están disponibles).",
+                "codigo": "sds_sin_visto_bueno",
+            }), 409
         try:
             from app.panel_activity import log_line
             from app.services.ficha_tecnica import (
@@ -5440,6 +5642,7 @@ def register_routes(app):
             # Slug que coincide con el nombre del PDF: "FT COA SDS {titulo}" → "ft_coa_sds_{slug}"
             slug_completo = f"ft_coa_sds_{slug_auto}"
             log_line(f"HTTP fichas/generar-completo: {titulo[:80]!r}")
+            datos_sds = _sds_con_lo_guardado(slug_auto, datos_sds)
             datos_para_guardar = normalizar_datos_ficha(datos_ft)
             datos_para_guardar["_tipo"] = "completo"
             if datos_coa:
@@ -5462,6 +5665,7 @@ def register_routes(app):
                 datos_coa=datos_coa,
                 datos_sds=datos_sds,
                 cabezote_id=body.get("cabezote_id"),
+                borrador=sds_pendiente,
             )
             from app.services.lotes_materia_prima import registrar_lote_desde_documento
 
@@ -5509,6 +5713,7 @@ def register_routes(app):
             titulo = _titulo_documento_datos(datos_ft)
             slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
             slug_borrador = f"borrador_ft_coa_sds_{slug_auto}"
+            datos_sds = _sds_con_lo_guardado(slug_auto, datos_sds)
             datos_para_guardar = normalizar_datos_ficha(datos_ft)
             datos_para_guardar["_tipo"] = "completo"
             datos_para_guardar["_borrador"] = True
@@ -6535,13 +6740,21 @@ def register_routes(app):
 
             u = _panel_tickets_usuario()
             revisado_por = (u.get("username") or u.get("nombre") or "") if u else ""
-            entry = marcar_revisado(
-                body.get("producto_ref") or body.get("ref") or "",
-                bool(body.get("revisado", True)),
-                revisado_por=revisado_por,
-                notas=body.get("notas") or "",
-            )
-            return jsonify({"ok": True, "revision": entry})
+            ref = body.get("producto_ref") or body.get("ref") or ""
+            # El documento es de la materia prima: con `con_presentaciones` el visto bueno
+            # alcanza a todas las presentaciones que lo heredan (taller de combos).
+            refs = [ref]
+            if body.get("con_presentaciones"):
+                try:
+                    from app.services.mapa_producto import presentaciones_de
+                    refs = presentaciones_de(ref) or [ref]
+                except Exception:
+                    refs = [ref]
+            entradas = {
+                r: marcar_revisado(r, bool(body.get("revisado", True)), revisado_por=revisado_por, notas=body.get("notas") or "")
+                for r in refs
+            }
+            return jsonify({"ok": True, "revision": entradas.get(ref) or next(iter(entradas.values())), "refs": list(entradas)})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:
@@ -7103,7 +7316,10 @@ def register_routes(app):
         try:
             from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado_sin_espera
 
+            from app.services.facturacion_ventas_unificado import anotar_filas
+
             data = listar_ventas_meli_unificado_sin_espera(dias=dias, segmento=segmento, limite=limite, forzar=forzar)
+            anotar_filas(data.get("ventas") or [])
             return jsonify(data)
         except Exception as e:
             return jsonify({"error": str(e)[:300], "ventas": []}), 502
@@ -7158,6 +7374,9 @@ def register_routes(app):
             fila = consultar_venta_individual(identificador)
             if not fila:
                 return jsonify({"ok": False, "error": "No se encontró esa orden/pack en MeLi."}), 404
+            from app.services.facturacion_ventas_unificado import anotar_filas
+
+            anotar_filas([fila])
             return jsonify({"ok": True, "venta": fila})
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
@@ -7185,6 +7404,18 @@ def register_routes(app):
                 limite=int(request.args.get("limit") or 500),
                 offset=int(request.args.get("offset") or 0),
             )
+            from app.services.facturacion_ventas_unificado import (
+                anotar_filas,
+                estado_revalidacion,
+                revalidar_historial_en_segundo_plano,
+            )
+
+            anotar_filas(data.get("ventas") or [])
+            # La foto del histórico envejece (una venta se factura o se entrega
+            # después): cada lectura dispara, como mucho cada 5 min, la
+            # revalidación de las filas que pueden haber cambiado.
+            revalidar_historial_en_segundo_plano()
+            data["revalidacion"] = estado_revalidacion()
             data["estadisticas"] = estadisticas()
             return jsonify(data)
         except Exception as e:
@@ -7205,6 +7436,9 @@ def register_routes(app):
             fila = consultar_venta_individual(str(order_id))
             if not fila:
                 return jsonify({"ok": False, "error": "No se encontró esa orden/pack en MeLi."}), 404
+            from app.services.facturacion_ventas_unificado import anotar_filas
+
+            anotar_filas([fila])
             return jsonify({"ok": True, "venta": fila})
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:300]}), 500
@@ -7272,6 +7506,22 @@ def register_routes(app):
             from app.tools.meli_autofactura_entrega import facturar_pack_meli_manual
 
             resultado = facturar_pack_meli_manual(order_id)
+            if resultado.get("ok"):
+                # Sin esto la venta seguía "sin facturar" en el listado y en el
+                # histórico (la foto era de antes de facturar) — alerta falsa.
+                try:
+                    from app.services.facturacion_ventas_unificado import (
+                        anotar_filas,
+                        consultar_venta_individual,
+                        invalidar_caches,
+                    )
+
+                    invalidar_caches()
+                    fila = consultar_venta_individual(order_id)
+                    if fila:
+                        resultado["venta"] = anotar_filas([fila])[0]
+                except Exception as e:  # noqa: BLE001 - la factura ya salió; el refresco es secundario
+                    resultado["aviso_refresco"] = str(e)[:200]
             # 200 siempre que el endpoint mismo respondió bien: un fallo de negocio
             # (producto sin mapear en Alegra, datos de facturación incompletos, etc.)
             # no es un "Bad Gateway" — antes se mapeaba a 502 y el panel lo mostraba
@@ -7280,6 +7530,164 @@ def register_routes(app):
             return jsonify(resultado), 200
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)[:300]}), 500
+
+    @app.route("/api/facturacion/ventas-unificadas/revalidar", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/revalidar", methods=["POST"])
+    def api_facturacion_ventas_revalidar():
+        """Revalida YA las filas del histórico que pueden estar viejas (botón
+        del panel). Corre en segundo plano; el panel consulta el avance en
+        `revalidacion` del historial."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.facturacion_ventas_unificado import (
+            estado_revalidacion,
+            revalidar_historial_en_segundo_plano,
+        )
+
+        try:
+            max_filas = max(1, min(400, int(request.args.get("max") or 150)))
+        except ValueError:
+            max_filas = 150
+        arranco = revalidar_historial_en_segundo_plano(max_filas=max_filas, forzar=True)
+        return jsonify({"ok": True, "arranco": arranco, "revalidacion": estado_revalidacion()})
+
+    def _venta_para_accion(order_id: str) -> dict | None:
+        from app.services.facturacion_ventas_cache import obtener_venta
+        from app.services.facturacion_ventas_unificado import consultar_venta_individual
+
+        return obtener_venta(order_id) or consultar_venta_individual(order_id)
+
+    @app.route("/api/facturacion/ventas-unificadas/marcar-revisado", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/marcar-revisado", methods=["POST"])
+    def api_facturacion_ventas_marcar_revisado():
+        """Marca UNA venta como revisada (con el motivo), sin ticket de por medio."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.routes_declarador import _usuario_sesion
+        from app.services.facturacion_ventas_cache import marcar_revisado
+
+        body = request.get_json(silent=True) or {}
+        order_id = str(body.get("order_id") or "").strip()
+        if not order_id:
+            return jsonify({"ok": False, "error": "order_id requerido"}), 400
+        venta = _venta_para_accion(order_id) or {}
+        u = _usuario_sesion() or {}
+        from app.services.facturacion_ventas_unificado import problema_de_venta
+
+        marcar_revisado(
+            order_id, pack_id=str(venta.get("pack_id") or ""), notas=str(body.get("notas") or ""),
+            usuario_id=u.get("id"), usuario_nombre=u.get("nombre") or u.get("username") or "",
+            tipo=problema_de_venta(venta)[0],
+        )
+        return jsonify({"ok": True})
+
+    @app.route("/api/facturacion/ventas-unificadas/pedir-intervencion", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/pedir-intervencion", methods=["POST"])
+    def api_facturacion_ventas_pedir_intervencion():
+        """El operador elige UNA venta con problema y a quién le pide que lo
+        resuelva: crea una solicitud en el Centro de Mando para esa venta, con
+        su contexto. Reemplaza el ticket global de revisión."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.routes_declarador import _usuario_sesion
+        from app.services.facturacion_ventas_unificado import problema_de_venta
+        from app.tools.revision_facturacion import _db_path, _get_creator_user_id, pedir_intervencion
+
+        body = request.get_json(silent=True) or {}
+        order_id = str(body.get("order_id") or "").strip()
+        try:
+            asignado_a = int(body.get("asignado_a") or 0)
+        except (TypeError, ValueError):
+            asignado_a = 0
+        if not order_id or not asignado_a:
+            return jsonify({"ok": False, "error": "order_id y asignado_a son obligatorios"}), 400
+        venta = _venta_para_accion(order_id)
+        if not venta:
+            return jsonify({"ok": False, "error": "No se encontró esa venta."}), 404
+        u = _usuario_sesion() or {}
+        creador_id = u.get("id") or _get_creator_user_id(_db_path())
+        if not creador_id:
+            return jsonify({"ok": False, "error": "No se pudo identificar quién pide la intervención."}), 400
+        problema = str(body.get("problema") or "").strip() or (problema_de_venta(venta)[0] or "otro")
+        ok, res = pedir_intervencion(
+            venta, asignado_a=asignado_a, creador_id=int(creador_id), problema=problema,
+            mensaje=str(body.get("mensaje") or ""),
+        )
+        if not ok:
+            return jsonify({"ok": False, "error": res}), 400
+        return jsonify({"ok": True, "intervencion": res})
+
+    @app.route("/api/facturacion/ventas-unificadas/contexto/<order_id>", methods=["GET", "POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/contexto/<order_id>", methods=["GET", "POST"])
+    def api_facturacion_ventas_contexto(order_id):
+        """«¿Por qué pasó?» de una venta: reclamos, reembolsos, cancelaciones y
+        la línea de tiempo de sus facturas. GET devuelve el reporte guardado;
+        POST lo vuelve a armar contra MeLi y Alegra (sin LLM)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.facturacion_resolucion import contextos_map, generar_y_guardar_contexto
+        from app.services.facturacion_ventas_unificado import consultar_venta_individual
+
+        if request.method == "GET":
+            ctx = contextos_map().get(str(order_id))
+            if ctx:
+                return jsonify({"ok": True, "contexto": ctx})
+        venta = consultar_venta_individual(str(order_id))
+        if not venta:
+            return jsonify({"ok": False, "error": "No se encontró esa venta en MeLi."}), 404
+        return jsonify({"ok": True, "contexto": generar_y_guardar_contexto(venta)})
+
+    @app.route("/api/facturacion/ventas-unificadas/resolver/anular", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/resolver/anular", methods=["POST"])
+    def api_facturacion_ventas_resolver_anular():
+        """Doble facturación: sin `confirmar` devuelve el plan (qué se conserva y
+        qué se anula); con `confirmar: true` emite las notas crédito en Alegra
+        (DIAN). Siempre sobre el estado RECIÉN consultado de la venta."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.routes_declarador import _usuario_sesion
+        from app.services.facturacion_resolucion import anular_sobrantes, plan_anular_sobrantes
+        from app.services.facturacion_ventas_unificado import (
+            anotar_filas,
+            consultar_venta_individual,
+            invalidar_caches,
+        )
+
+        body = request.get_json(silent=True) or {}
+        order_id = str(body.get("order_id") or "").strip()
+        if not order_id:
+            return jsonify({"ok": False, "error": "order_id requerido"}), 400
+        venta = consultar_venta_individual(order_id)
+        if not venta:
+            return jsonify({"ok": False, "error": "No se encontró esa venta en MeLi."}), 404
+        if not body.get("confirmar"):
+            return jsonify(plan_anular_sobrantes(venta))
+        u = _usuario_sesion() or {}
+        res = anular_sobrantes(venta, usuario=u.get("nombre") or u.get("username") or "")
+        invalidar_caches()
+        fila = consultar_venta_individual(order_id)
+        if fila:
+            res["venta"] = anotar_filas([fila])[0]
+        return jsonify(res)
+
+    @app.route("/api/facturacion/ventas-unificadas/resolver/subir-meli", methods=["POST"])
+    @app.route("/app/api/facturacion/ventas-unificadas/resolver/subir-meli", methods=["POST"])
+    def api_facturacion_ventas_resolver_subir_meli():
+        """La factura existe en Alegra pero MeLi no tiene el PDF: lo sube."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.facturacion_resolucion import subir_pdf_meli
+        from app.services.facturacion_ventas_unificado import anotar_filas, consultar_venta_individual
+
+        order_id = str((request.get_json(silent=True) or {}).get("order_id") or "").strip()
+        venta = consultar_venta_individual(order_id) if order_id else None
+        if not venta:
+            return jsonify({"ok": False, "error": "No se encontró esa venta."}), 404
+        res = subir_pdf_meli(venta)
+        fila = consultar_venta_individual(order_id)
+        if fila:
+            res["venta"] = anotar_filas([fila])[0]
+        return jsonify(res)
 
     @app.route("/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
     @app.route("/app/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
@@ -10975,6 +11383,12 @@ def register_routes(app):
             d = request.get_json(silent=True) or {}
             from datetime import date as _d
 
+            # El contador externo solo deja «Indicación del contador», firmada:
+            # un historial sirve si se sabe quién dijo qué.
+            _u = _panel_tickets_usuario()
+            if _es_perfil_contador(_u):
+                d = {**d, "tipo": "contador", "por": (_u or {}).get("nombre") or (_u or {}).get("username") or "Contador",
+                     "monto": None, "referencia": ""}
             return jsonify(registrar(
                 tid,
                 titulo=str(d.get("titulo") or ""),
@@ -11966,6 +12380,54 @@ def register_routes(app):
             return jsonify(aprobar(sid, aprobada_por=_cc_uid(), espejar=bool(d.get("espejar", True))))
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ─── Documentos soporte: borrador al aprobar, emisión manual a la DIAN ──
+    # Como en Ventas AstroKiller: el sistema deja todo listo y un operador de
+    # Administración pulsa «Emitir a la DIAN». Transmitido no se borra.
+    @app.route("/api/pagos/documentos-soporte", methods=["GET"])
+    @app.route("/app/api/pagos/documentos-soporte", methods=["GET"])
+    def api_pagos_documentos_soporte():
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.doc_soporte_pagos import listar
+
+            return jsonify({"documentos": listar(
+                desde=request.args.get("desde") or None, hasta=request.args.get("hasta") or None,
+                estado=request.args.get("estado") or None)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/documento-soporte", methods=["GET"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/documento-soporte", methods=["GET"])
+    def api_pagos_documento_soporte(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        from app.services.doc_soporte_pagos import obtener_por_solicitud
+
+        return jsonify({"documento": obtener_por_solicitud(sid)})
+
+    @app.route("/api/pagos/solicitudes/<int:sid>/documento-soporte/emitir", methods=["POST"])
+    @app.route("/app/api/pagos/solicitudes/<int:sid>/documento-soporte/emitir", methods=["POST"])
+    def api_pagos_documento_soporte_emitir(sid: int):
+        _no = _pagos_rechazo()
+        if _no:
+            return _no
+        try:
+            from app.services.doc_soporte_pagos import emitir_a_dian
+            from app.services.pagos_wizard import puede_registrar_directo
+
+            u = _panel_tickets_usuario()
+            if u and not puede_registrar_directo(u):
+                return jsonify({"error": "Solo Administración puede emitir documentos a la DIAN"}), 403
+            r = emitir_a_dian(sid, por=_cc_uid())
+            if r.get("status") == "error":
+                return jsonify({"error": r.get("message"), **r}), 400
+            return jsonify(r)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -15790,9 +16252,17 @@ def register_routes(app):
 
     @app.route("/app/assets/<path:filename>")
     def serve_spa_assets(filename):
-        """Serve JS/CSS hashed assets from the Vite build."""
+        """El bundle del panel: solo con sesión (ver app/spa_sesion.py)."""
+        from app import spa_sesion
+
+        if spa_sesion.gate_activo() and not spa_sesion.usuario_de_cookie():
+            return jsonify({"error": "Sesión requerida"}), 403
         assets_dir = os.path.join(_SPA_DIR, "assets")
-        return send_from_directory(assets_dir, filename)
+        resp = send_from_directory(assets_dir, filename)
+        # `private`: el nombre lleva hash, pero si un proxy (Cloudflare) guardara
+        # una copia compartida, la serviría sin pasar por el guardia.
+        resp.headers["Cache-Control"] = "private, max-age=31536000, immutable"
+        return resp
 
     @app.route("/app/fonts/<path:filename>")
     def serve_spa_fonts(filename):
@@ -15819,6 +16289,27 @@ def register_routes(app):
         resp.headers["Service-Worker-Allowed"] = "/app/"
         resp.headers["Cache-Control"] = "no-cache, no-store"
         resp.headers["Content-Type"] = "application/javascript"
+        return resp
+
+    # Agenda → Juegos. El panel los carga en <iframe sandbox="allow-scripts"> (origen opaco:
+    # no ven el token del panel en localStorage ni sus cookies). La CSP repite el sandbox por
+    # si alguien abre la URL directa, y les quita la red. Solo la página exige sesión: desde un
+    # origen opaco el navegador ya no manda la cookie SameSite=Lax con sus imágenes y sonidos,
+    # que son los assets públicos del repositorio original (ver desktop/public/juegos/*/LEEME.md).
+    _CSP_JUEGOS = ("sandbox allow-scripts; default-src 'self' 'unsafe-inline'; connect-src 'none'; "
+                   "object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
+
+    @app.route("/app/juegos/<path:ruta>", methods=["GET", "HEAD"])
+    def serve_spa_juegos(ruta):
+        from app import spa_sesion
+
+        if ruta.endswith(".html") and spa_sesion.gate_activo() and not spa_sesion.usuario_de_cookie():
+            return jsonify({"error": "Sesión requerida"}), 403
+        resp = send_from_directory(os.path.join(_SPA_DIR, "juegos"), ruta)
+        resp.headers["Content-Security-Policy"] = _CSP_JUEGOS
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        # Sin hash en los nombres: revalidar siempre (ETag), o un celular sigue con el juego viejo.
+        resp.headers["Cache-Control"] = "private, no-cache"
         return resp
 
     @app.route("/.well-known/assetlinks.json")
@@ -24846,9 +25337,29 @@ REGLAS:
             }), 404
         if not os.path.isdir(_SPA_DIR):
             return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404
+
+        # Sin sesión no se entrega el panel, solo la pantalla de ingreso: el
+        # bundle es el mapa de la casa (ver app/spa_sesion.py).
+        from app import spa_sesion
+
+        token_url = (request.args.get("_token") or "").strip()
+        nuevo = None
+        if not spa_sesion.gate_activo():
+            pass
+        elif spa_sesion.usuario_de_cookie():
+            pass
+        elif token_url and spa_sesion.token_valido(token_url):
+            nuevo = token_url                     # vuelta de Google o enlace de la APK
+        else:
+            ingreso = make_response(spa_sesion.pagina_ingreso())
+            ingreso.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return ingreso, 200
+
         resp = send_from_directory(_SPA_DIR, "index.html")
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         resp.headers["Pragma"] = "no-cache"
+        if nuevo:
+            spa_sesion.marcar(resp, nuevo)
         return resp
 
     # POST/PUT/DELETE a /app/api/… sin ruta registrada: sin esto Flask responde 405

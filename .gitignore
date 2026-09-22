@@ -252,3 +252,8 @@ app/data/arquitectura_cbm/
 # (112 archivos, 14 MB). desktop/dist/ ya estaba ignorado; esta copia se
 # escapo del patron. Es derivado: se regenera con `npm run build`.
 desktop/dist_cynthia_backup_*/
+
+# Colaboradores (diagramas compartidos): base y exportaciones Archify generadas en runtime
+app/data/colaboradores.db
+app/data/colaboradores.db-*
+app/data/colaboradores_archify/

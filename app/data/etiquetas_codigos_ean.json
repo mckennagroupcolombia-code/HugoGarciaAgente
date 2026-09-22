@@ -537,15 +537,15 @@
     },
     {
       "id": "04e7eef86a46",
-      "sku": "C-ACEESECORCED5mL",
-      "nombre_producto": "ACEITE ESENCIAL CORTEZA CEDRO 5mL",
+      "sku": "C-ACEESECORTCED5mL",
+      "nombre_producto": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
       "numero_producto": 48,
       "presentacion": "005",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700480052638",
       "creado_at": "2026-07-14T15:35:25",
-      "actualizado_at": "2026-09-19T19:18:54"
+      "actualizado_at": "2026-09-21T17:44:47"
     },
     {
       "id": "32255c17865a",
@@ -671,14 +671,15 @@
     },
     {
       "id": "390aa6f450d5",
-      "sku": "C-ACEESNMEN5mL",
-      "nombre_producto": "ACEITE ESENCIAL MENTA 5mL",
+      "sku": "C-ACEESEMEN5mL",
+      "nombre_producto": "ACEITE ESENCIAL MENTA 5 mL",
       "numero_producto": 60,
       "presentacion": "005",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700600052630",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-21T15:41:23"
     },
     {
       "id": "a4f11d1e6b42",

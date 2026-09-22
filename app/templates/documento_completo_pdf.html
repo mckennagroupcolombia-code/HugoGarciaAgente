@@ -244,6 +244,20 @@ ul.apps li, ul.beneficios li { margin-bottom: 3px; font-size: 10.1pt; text-align
 
 /* ── Firma / código de verificación ─── */
 .coa-firma { margin-top: 0.7cm; display: table; page-break-inside: avoid; }
+/* SDS esquema 2: remisiones, pictogramas y frases H/P */
+.ref-nota { font-size: 8.5pt; color: #4a5a60; font-style: italic; margin: 3px 0 2px; }
+.ghs-pictos { margin: 6px 0 4px; page-break-inside: avoid; }
+.ghs-picto { display: inline-block; width: 2.3cm; margin-right: 0.25cm; text-align: center; vertical-align: top; }
+.ghs-picto img { width: 1.7cm; height: 1.7cm; }
+.ghs-picto-lbl { font-size: 6.5pt; color: #4a5a60; line-height: 1.2; margin-top: 2px; }
+.senal { font-weight: 700; letter-spacing: 0.08em; }
+.senal-peligro { color: #b3261e; }
+.senal-atencion { color: #8a5a00; }
+.frases-tit { font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin: 7px 0 2px; }
+table.frases { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+table.frases td { padding: 1.5px 4px; vertical-align: top; border-bottom: 0.5px solid #e3e8ea; }
+table.frases td.frase-cod { width: 2.6cm; font-family: monospace; white-space: nowrap; }
+table.frases td.frase-grupo { font-weight: 700; font-size: 7.5pt; text-transform: uppercase; color: #4a5a60; padding-top: 5px; }
 .coa-firma-box { display: table-cell; min-width: 7.5cm; }
 .coa-firma-lbl {
   font-family: 'DejaVu Sans Mono', 'Courier New', monospace; font-size: 7.6pt; font-weight: 700; color: var(--ink-muted);
@@ -275,6 +289,16 @@ sub { font-size: 0.72em; vertical-align: sub; }
 </style>
 </head>
 <body>
+{# Tabla sin casillas vacías: solo las columnas con algún dato (limpiar_tabla en ficha_tecnica.py). #}
+{% macro tabla(celdas, cols, titulos) %}
+    <div class="tablewrap"><table class="datatab">
+      <tr>{% for i in cols %}<th>{{ titulos[i] }}</th>{% endfor %}</tr>
+      {% for fila in celdas %}
+      <tr>{% for texto, span, i in fila %}<td class="{{ 'prose' if i == 0 else 'mono' }}"{% if span > 1 %} colspan="{{ span }}"{% endif %}>{{ texto }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </table></div>
+{% endmacro %}
+
 {% if borrador %}
 <div style="position:fixed; top:-0.9cm; left:0; right:0; text-align:center; font-size:7.5pt; letter-spacing:.12em; color:#B00020; font-weight:700;">BORRADOR · SIN VALIDEZ · PENDIENTE DE REVISIÓN DE CALIDAD</div>
 {% endif %}
@@ -306,18 +330,14 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if ft.cas or ft.pais_origen or ft.lote or ft.concentracion or ft.grado or ft.hs_code %}
+  {# Solo los datos que existen, sin huecos en la cuadrícula. #}
+  {% set meta = [] %}
+  {% for lbl, val in [("N° CAS", ft.cas), ("Grado", ft.grado), ("Pureza", ft.concentracion), ("Origen", ft.pais_origen), ("Cód. arancelario", ft.hs_code), ("Lote", ft.lote)] %}{% if val %}{% set _ = meta.append((lbl, val)) %}{% endif %}{% endfor %}
+  {% if meta %}
   <table class="meta-table">
-    <tr>
-      <td>{% if ft.cas %}<b class="mono-lbl">N° CAS</b> <span class="mono-val">{{ ft.cas }}</span>{% endif %}</td>
-      <td>{% if ft.grado %}<b class="mono-lbl">Grado</b> <span class="mono-val">{{ ft.grado }}</span>{% endif %}</td>
-      <td>{% if ft.concentracion %}<b class="mono-lbl">Pureza</b> <span class="mono-val">{{ ft.concentracion }}</span>{% endif %}</td>
-    </tr>
-    <tr>
-      <td>{% if ft.pais_origen %}<b class="mono-lbl">Origen</b> <span class="mono-val">{{ ft.pais_origen }}</span>{% endif %}</td>
-      <td>{% if ft.hs_code %}<b class="mono-lbl">Cód. arancelario</b> <span class="mono-val">{{ ft.hs_code }}</span>{% endif %}</td>
-      <td>{% if ft.lote %}<b class="mono-lbl">Lote</b> <span class="mono-val">{{ ft.lote }}</span>{% endif %}</td>
-    </tr>
+    {% for grupo in meta | batch(3) %}
+    <tr>{% for lbl, val in grupo %}<td><b class="mono-lbl">{{ lbl }}</b> <span class="mono-val">{{ val }}</span></td>{% endfor %}</tr>
+    {% endfor %}
   </table>
   {% endif %}
 
@@ -358,16 +378,12 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if ft.composicion %}
+  {# La composición es un resultado del lote: va en el COA. Solo sin COA queda aquí. #}
+  {% if ft.composicion and not coa %}
   {% set nft.i = nft.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nft.i }}</span><span class="t">Composición típica</span></div>
-    <div class="tablewrap"><table class="datatab">
-      <tr><th>Componente</th><th>% / Concentración</th></tr>
-      {% for componente, valor in ft.composicion %}
-      <tr><td class="prose">{{ componente }}</td><td class="mono">{{ valor }}</td></tr>
-      {% endfor %}
-    </table></div>
+    {{ tabla(ft.composicion_celdas, ft.composicion_cols or [0, 1], ["Componente", "% / Concentración"]) }}
   </div>
   {% endif %}
 
@@ -450,7 +466,9 @@ sub { font-size: 0.72em; vertical-align: sub; }
     {% include "_pdf_hdr_logo.html" %}
   </div>
 
-  {% set nco = namespace(i=1) %}
+  {% set nco = namespace(i=0) %}
+  {% if coa.tiene_identificacion %}
+  {% set nco.i = nco.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Identificación del producto</span></div>
     <div class="kv-grid">
@@ -464,6 +482,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
       {% if coa.incluye %}<div class="kv-row"><div class="kv-key">Incluye</div><div class="kv-val">{{ coa.incluye }}</div></div>{% endif %}
     </div>
   </div>
+  {% endif %}
 
   {% if coa.lote_numero or coa.lote_fab or coa.lote_venc or coa.pais_origen %}
   {% set nco.i = nco.i + 1 %}
@@ -482,20 +501,20 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
+  {# mover_composicion_al_coa() junta aquí la composición de la FT o de la SDS #}
+  {% if coa.composicion %}
+  {% set nco.i = nco.i + 1 %}
+  <div class="sec">
+    <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Composición</span></div>
+    {{ tabla(coa.composicion_celdas, coa.composicion_cols or [0, 1, 2], ["Componente", "% / Concentración", "N° CAS"]) }}
+  </div>
+  {% endif %}
+
   {% if coa.parametros %}
   {% set nco.i = nco.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Ensayos fisicoquímicos</span></div>
-    <div class="tablewrap"><table class="datatab">
-      <tr><th>Parámetro</th><th>Especificación</th><th>Resultado</th></tr>
-      {% for fila in coa.parametros %}
-      <tr>
-        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
-        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
-        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
-      </tr>
-      {% endfor %}
-    </table></div>
+    {{ tabla(coa.parametros_celdas, coa.parametros_cols or [0, 1, 2], ["Parámetro", "Especificación", "Resultado"]) }}
   </div>
   {% endif %}
 
@@ -503,17 +522,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   {% set nco.i = nco.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Metales pesados</span></div>
-    <div class="tablewrap"><table class="datatab">
-      <tr><th>Metal</th><th>Límite</th><th>Resultado</th><th>Método</th></tr>
-      {% for fila in coa.metales %}
-      <tr>
-        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
-        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
-        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
-        <td class="mono">{{ fila[3] if fila|length > 3 }}</td>
-      </tr>
-      {% endfor %}
-    </table></div>
+    {{ tabla(coa.metales_celdas, coa.metales_cols or [0, 1, 2, 3], ["Metal", "Límite", "Resultado", "Método"]) }}
   </div>
   {% endif %}
 
@@ -521,17 +530,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   {% set nco.i = nco.i + 1 %}
   <div class="sec">
     <div class="sec-title"><span class="n">{{ nco.i }}</span><span class="t">Análisis microbiológico</span></div>
-    <div class="tablewrap"><table class="datatab">
-      <tr><th>Ensayo</th><th>Especificación</th><th>Resultado</th><th>Método</th></tr>
-      {% for fila in coa.microbiologia %}
-      <tr>
-        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
-        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
-        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
-        <td class="mono">{{ fila[3] if fila|length > 3 }}</td>
-      </tr>
-      {% endfor %}
-    </table></div>
+    {{ tabla(coa.microbiologia_celdas, coa.microbiologia_cols or [0, 1, 2, 3], ["Ensayo", "Especificación", "Resultado", "Método"]) }}
   </div>
   {% endif %}
 
@@ -579,6 +578,11 @@ sub { font-size: 0.72em; vertical-align: sub; }
    SECCIÓN — HOJA DE SEGURIDAD (SDS/MSDS) · 16 SECCIONES GHS
 ═══════════════════════════════════════════════════════ #}
 {% if sds and (not seccion_sola or seccion_sola == 'sds') %}
+{# Esquema 2 (app/services/sds_estructura.py): cada dato una vez. En el documento
+   combinado la SDS remite a la FT y al COA en vez de repetir; impresa sola
+   (seccion_sola='sds') trae esos datos de su fuente. #}
+{% set remitir = not seccion_sola %}
+{% set pel = sds.peligros %}
 <div class="doc-section">
   <div class="section-banner">Hoja de Seguridad (SDS/MSDS) — Sistema Globalmente Armonizado (SGA/GHS)</div>
 
@@ -593,38 +597,62 @@ sub { font-size: 0.72em; vertical-align: sub; }
   <div class="sec">
     <div class="sec-title"><span class="n">1</span><span class="t">Identificación de la sustancia y de la sociedad</span></div>
     <div class="kv-grid">
-      {% if sds.inci %}<div class="kv-row"><div class="kv-key">INCI / Nombre químico</div><div class="kv-val">{{ sds.inci }}</div></div>{% endif %}
       {% if sds.cas %}<div class="kv-row"><div class="kv-key">N.º CAS</div><div class="kv-val mono">{{ sds.cas }}</div></div>{% endif %}
+      {% if not remitir %}
+      {% if sds.inci %}<div class="kv-row"><div class="kv-key">INCI / Nombre químico</div><div class="kv-val">{{ sds.inci }}</div></div>{% endif %}
       {% if sds.numero_ce and sds.numero_ce != "No aplica" %}<div class="kv-row"><div class="kv-key">N.º CE (EINECS)</div><div class="kv-val mono">{{ sds.numero_ce }}</div></div>{% endif %}
       {% if sds.formula %}<div class="kv-row"><div class="kv-key">Fórmula molecular</div><div class="kv-val mono">{{ sds.formula | formula_sub | safe }}</div></div>{% endif %}
+      {% endif %}
       {% if sds.usos %}<div class="kv-row"><div class="kv-key">Usos recomendados</div><div class="kv-val">{{ sds.usos }}</div></div>{% endif %}
       <div class="kv-row"><div class="kv-key">Proveedor</div><div class="kv-val">McKenna Group S.A.S. · NIT 901316016-3</div></div>
       {% if sds.telefono %}<div class="kv-row"><div class="kv-key">Teléfono de emergencia</div><div class="kv-val mono">{{ sds.telefono }}</div></div>{% endif %}
     </div>
+    {% if remitir and (sds.inci or sds.formula or (sds.numero_ce and sds.numero_ce != "No aplica")) %}
+    <div class="ref-nota">INCI, EINECS y fórmula: ver Certificado de Análisis, «Identificación del producto».</div>
+    {% endif %}
   </div>
 
-  {% if sds.clasificacion or sds.pictogramas %}
+  {% if pel.tiene_contenido %}
   <div class="sec">
     <div class="sec-title"><span class="n">2</span><span class="t">Identificación de peligros</span></div>
-    {% if sds.clasificacion %}<div class="two-col-fila"><span class="two-col-key">Clasificación GHS:</span><span class="two-col-val">{{ sds.clasificacion }}</span></div>{% endif %}
-    {% if sds.pictogramas %}<div class="two-col-fila"><span class="two-col-key">Pictogramas / frases H-P:</span><span class="two-col-val">{{ sds.pictogramas }}</span></div>{% endif %}
+    {% if pel.clasificacion %}<div class="two-col-fila"><span class="two-col-key">Clasificación:</span><span class="two-col-val">{{ pel.clasificacion }}</span></div>{% endif %}
+    {% if pel.sin_peligro %}
+    <div class="two-col-fila"><span class="two-col-key">Etiquetado:</span><span class="two-col-val">No requiere pictogramas, palabra de advertencia ni indicaciones de peligro.</span></div>
+    {% else %}
+    {% if pel.senal %}<div class="two-col-fila"><span class="two-col-key">Palabra de advertencia:</span><span class="two-col-val"><span class="senal senal-{{ 'peligro' if pel.senal == 'Peligro' else 'atencion' }}">{{ pel.senal | upper }}</span></span></div>{% endif %}
+    {% if pel.pictogramas %}
+    <div class="ghs-pictos">
+      {% for pic in pel.pictogramas %}
+      <div class="ghs-picto"><img src="{{ pic.archivo }}" alt="{{ pic.codigo }}"><div class="ghs-picto-lbl">{{ pic.codigo }} · {{ pic.nombre }}</div></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if pel.frases_h %}
+    <div class="frases-tit">Indicaciones de peligro (H)</div>
+    <table class="frases">
+      {% for cod, texto in pel.frases_h %}<tr>{% if cod %}<td class="frase-cod">{{ cod }}</td><td>{{ texto }}</td>{% else %}<td colspan="2">{{ texto }}</td>{% endif %}</tr>{% endfor %}
+    </table>
+    {% endif %}
+    {% endif %}
+    {% if pel.frases_p %}
+    <div class="frases-tit">Consejos de prudencia (P)</div>
+    <table class="frases">
+      {% for grupo, frases in pel.frases_p %}
+      <tr><td class="frase-grupo" colspan="2">{{ grupo }}</td></tr>
+      {% for cod, texto in frases %}<tr>{% if cod %}<td class="frase-cod">{{ cod }}</td><td>{{ texto }}</td>{% else %}<td colspan="2">{{ texto }}</td>{% endif %}</tr>{% endfor %}
+      {% endfor %}
+    </table>
+    {% endif %}
   </div>
+
   {% endif %}
 
-  {% if sds.composicion %}
+  {# Sin sección 3: la composición vive en el COA (o en la FT si no hay COA). Decisión 21-sep-2026. #}
+
+  {% if pel.tiene_respuesta %}
   <div class="sec">
-    <div class="sec-title"><span class="n">3</span><span class="t">Composición / información sobre componentes</span></div>
-    <div class="tablewrap"><table class="datatab">
-      {# Orden de las filas, igual que el editor: componente | concentración | CAS #}
-      <tr><th>Componente</th><th>Concentración</th><th>N° CAS</th></tr>
-      {% for fila in sds.composicion %}
-      <tr>
-        <td class="prose">{{ fila[0] if fila|length > 0 }}</td>
-        <td class="mono">{{ fila[1] if fila|length > 1 }}</td>
-        <td class="mono">{{ fila[2] if fila|length > 2 }}</td>
-      </tr>
-      {% endfor %}
-    </table></div>
+    <div class="sec-title"><span class="n">4</span><span class="t">Primeros auxilios</span></div>
+    <div class="ref-nota">Ver los consejos de prudencia de respuesta en la sección 2.</div>
   </div>
   {% endif %}
 
@@ -642,12 +670,15 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if sds.almacenamiento %}
+  {% if sds.almacenamiento or ft.conservacion %}
   <div class="sec">
     <div class="sec-title"><span class="n">7</span><span class="t">Almacenamiento</span></div>
-    <div class="kv-grid">
-      <div class="kv-row"><div class="kv-key">Almacenamiento</div><div class="kv-val">{{ sds.almacenamiento }}</div></div>
-    </div>
+    {% if remitir and sds.ft_tiene_conservacion %}
+    <div class="ref-nota">Condiciones generales: ver Ficha Técnica, «Conservación y almacenamiento».</div>
+    {% if sds.almacenamiento %}<div class="desc-text">{{ sds.almacenamiento }}</div>{% endif %}
+    {% else %}
+    <div class="desc-text">{{ sds.almacenamiento or ft.conservacion }}</div>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -658,14 +689,20 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if sds.propiedades %}
+  {% set props = sds.propiedades_propias if remitir else sds.propiedades %}
+  {% if props or (remitir and sds.propiedades_en_ft) %}
   <div class="sec">
     <div class="sec-title"><span class="n">9</span><span class="t">Propiedades físicas y químicas</span></div>
+    {% if props %}
     <div class="framed-body">
-      {% for nombre, valor in sds.propiedades %}
+      {% for nombre, valor in props %}
       <div class="two-col-fila"><span class="two-col-key">{{ nombre }}:</span><span class="two-col-val">{{ valor }}</span></div>
       {% endfor %}
     </div>
+    {% endif %}
+    {% if remitir and sds.propiedades_en_ft %}
+    <div class="ref-nota">{{ sds.propiedades_en_ft_texto }}: ver Ficha Técnica, «Especificaciones fisicoquímicas».</div>
+    {% endif %}
   </div>
   {% endif %}
 
@@ -714,22 +751,7 @@ sub { font-size: 0.72em; vertical-align: sub; }
   </div>
   {% endif %}
 
-  {% if sds.recomendaciones %}
-  <div class="sec ghs-sec">
-    <div class="sec-title"><span class="n">16</span><span class="t">Otra información — recomendaciones GHS/SGA</span></div>
-    <div class="ghs-body">
-      {% for linea in sds.recomendaciones %}
-      {% set partes = linea.split(':', 1) %}
-      {% if partes|length == 2 %}
-      <div class="ghs-fila"><span class="ghs-cat">{{ partes[0].strip() }}:</span><span class="ghs-val">{{ partes[1].strip() }}</span></div>
-      {% else %}
-      <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
-      {% endif %}
-      {% endfor %}
-      {% if sds.otra_info %}<div class="ghs-fila"><span class="ghs-val">{{ sds.otra_info }}</span></div>{% endif %}
-    </div>
-  </div>
-  {% elif sds.otra_info %}
+  {% if sds.otra_info %}
   <div class="sec">
     <div class="sec-title"><span class="n">16</span><span class="t">Otra información</span></div>
     <div class="desc-text">{{ sds.otra_info }}</div>

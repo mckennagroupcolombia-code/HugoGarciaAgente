@@ -115,17 +115,11 @@ OVERRIDES: dict[str, str] = {
     "1325": "132505",
     # Cajón de sastre legítimo de Servicios mientras el gasto no se clasifique.
     "5135": "513595",
-    # El flete de ventas (523550) NO existe en el catálogo PUC de Alegra: bajo
-    # `5235 Servicios (ventas)` la única subcuenta movible que trae es
-    # `523560 Publicidad`. Se asienta entonces contra `513550 Transporte, fletes
-    # y acarreos`, que es exactamente el mismo concepto — en el Libro Mayor
-    # propio sí quedan separados el flete administrativo y el de ventas, que es
-    # donde importa para el estado de resultados.
-    #
-    # Sin esto, el espejo se NIEGA a postear (con razón: dejaría el comprobante
-    # descuadrado) y el asiento se queda fuera de Alegra, que es de donde el
-    # contador arma las declaraciones. Pasó con el pago a Fidel del 18-sep-2026.
-    "523550": "513550",
+    # `523550` (flete de ventas) NO tiene override desde el 21-sep-2026: se creó
+    # en Alegra bajo `5235 Servicios (ventas)` (id 6296) y empareja por código
+    # exacto. Antes se forzaba a `513550`, y el flete de ventas quedaba en Alegra
+    # como gasto de ADMINISTRACIÓN (DSMG1 de Fidel) mientras el libro lo llevaba
+    # a ventas: mismos impuestos, pero estados de resultados distintos.
     # ⚠️ `5235` a secas queda SIN equivalente a propósito. El emparejador baja al
     # único descendiente movible, y en Alegra ese es `523560 Publicidad`: un
     # servicio del área comercial se habría espejado como publicidad, mezclado

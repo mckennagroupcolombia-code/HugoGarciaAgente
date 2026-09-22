@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -977,7 +978,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                       : "border-border text-muted hover:border-accent/30 hover:text-ink"
                   }`}
                 >
-                  <span className="block text-lg">{p.emoji}</span>
+                  <span className="block text-lg"><Ico e={p.emoji} /></span>
                   {p.label}
                 </button>
               ))}
@@ -1783,13 +1784,20 @@ function SkuEanCombobox({
 
 // ── Crear publicación desde cero (sin ítem origen) ─────────────────────────
 
-export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
+export function CrearDesdeCeroPanel({
+  onDone,
+  inicial,
+}: {
+  onDone?: () => void;
+  /** Llegada desde el taller de combos: el formulario abre con el combo ya escrito. */
+  inicial?: { nombre: string; sku: string; presentacion?: string; precio?: number };
+}) {
   const queryClient = useQueryClient();
   const formTopRef = useRef<HTMLDivElement>(null);
-  const [nombre, setNombre] = useState("");
-  const [sku, setSku] = useState("");
-  const [presentacion, setPresentacion] = useState("250g");
-  const [precio, setPrecio] = useState("");
+  const [nombre, setNombre] = useState(inicial?.nombre ?? "");
+  const [sku, setSku] = useState(inicial?.sku ?? "");
+  const [presentacion, setPresentacion] = useState(inicial?.presentacion || "250g");
+  const [precio, setPrecio] = useState(inicial?.precio ? String(Math.round(inicial.precio)) : "");
   const [perfil, setPerfil] = useState("materia_prima_alimentaria");
   const [fichaTecnica, setFichaTecnica] = useState("");
   const [usarFichaBiblioteca, setUsarFichaBiblioteca] = useState(true);
@@ -2383,7 +2391,7 @@ export function CrearDesdeCeroPanel({ onDone }: { onDone?: () => void }) {
                     : "border-border text-muted hover:border-accent/30 hover:text-ink"
                 }`}
               >
-                <span className="block text-lg">{p.emoji}</span>
+                <span className="block text-lg"><Ico e={p.emoji} /></span>
                 {p.label}
               </button>
             ))}

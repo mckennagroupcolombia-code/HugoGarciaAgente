@@ -174,7 +174,7 @@
       "ultimo_mensaje": "Hola, me contacto desde el sitio web. Nombre: Jorge Ortiz Empresa: Persona Email: correocesde@gmail.com Mensaje: Para pedri Lecitina de Soya."
     }
   },
-  "bot_global_activo": true,
+  "bot_global_activo": false,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

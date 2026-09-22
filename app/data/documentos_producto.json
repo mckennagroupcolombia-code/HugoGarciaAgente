@@ -246,11 +246,25 @@
           "codigo_verificacion": "C72KPB",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "06082026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "KKAZYA",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:46:20+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T20:46:20+00:00"
     },
     "C-ACEESEHIEBUE5ML": {
       "ref": "C-ACEESEHIEBUE5ML",
@@ -267,11 +281,25 @@
           "codigo_verificacion": "Y9RK5K",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "05062026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "QL8YE7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:54:24+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T20:54:24+00:00"
     },
     "ACEESEHIEBUE5M": {
       "ref": "ACEESEHIEBUE5M",
@@ -296,7 +324,7 @@
     },
     "C-ACEESEJAZ5ML": {
       "ref": "C-ACEESEJAZ5ML",
-      "nombre": "ACEITE ESENCIAL JAZMIN",
+      "nombre": "ACEITE ESENCIAL JAZMÍN",
       "lotes": [
         {
           "lote_numero": "HGX675",
@@ -309,11 +337,25 @@
           "codigo_verificacion": "J7TEKC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "04062026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "GKQ3CL",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:57:43+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T20:57:43+00:00"
     },
     "C-ACEESEJEN5ML": {
       "ref": "C-ACEESEJEN5ML",
@@ -330,11 +372,39 @@
           "codigo_verificacion": "PJD9UC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "060426",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "W4K3B2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": false,
+          "registrado_en": "2026-09-21T23:53:45+00:00"
+        },
+        {
+          "lote_numero": "06042026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "SP7MC9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T23:54:17+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T23:54:17+00:00"
     },
     "C-ACEESNMAN5ML": {
       "ref": "C-ACEESNMAN5ML",
@@ -351,11 +421,25 @@
           "codigo_verificacion": "2GRWR3",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "30032026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "N6NQA9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:16:30+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-22T00:16:30+00:00"
     },
     "C-ACEESEMANZ5ML": {
       "ref": "C-ACEESEMANZ5ML",
@@ -393,11 +477,25 @@
           "codigo_verificacion": "U32C7B",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "061526",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "WPWKNB",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:42:52+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T20:42:52+00:00"
     },
     "C-ACEESENAR5ML": {
       "ref": "C-ACEESENAR5ML",
@@ -414,11 +512,39 @@
           "codigo_verificacion": "VPND57",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "25062026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "LAQFF7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": false,
+          "registrado_en": "2026-09-21T23:46:35+00:00"
+        },
+        {
+          "lote_numero": "15062026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "CFGEFF",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T23:48:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-21T23:48:37+00:00"
     },
     "C-ACEESNPIN5ML": {
       "ref": "C-ACEESNPIN5ML",
@@ -435,15 +561,29 @@
           "codigo_verificacion": "9XYHME",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "09082026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "WCXCPK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:48:00+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-22T00:48:00+00:00"
     },
     "C-ACEESETOM5ML": {
       "ref": "C-ACEESETOM5ML",
-      "nombre": "ACEITE ESENCIAL TOMILLO",
+      "nombre": "ACEITE DE TOMILLO",
       "lotes": [
         {
           "lote_numero": "EYK633",
@@ -456,11 +596,25 @@
           "codigo_verificacion": "RJWT6L",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "06082026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "INDIA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "K74XQH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:06:20+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-22T00:06:20+00:00"
     },
     "C-ACEESETOM": {
       "ref": "C-ACEESETOM",
@@ -1597,11 +1751,25 @@
           "codigo_verificacion": "J8KQDK",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "DA25L221FA",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "22/11/25",
+          "fecha_vencimiento": "22/11/30",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "W2TUZ3",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:11:23+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-21T20:11:23+00:00"
     },
     "C-CLOCAL500G": {
       "ref": "C-CLOCAL500G",
@@ -2886,7 +3054,7 @@
     },
     "C-ACEJOJ30ML": {
       "ref": "C-ACEJOJ30ML",
-      "nombre": "ACEITE DE JOJOBA",
+      "nombre": "NATURA-TEC JOJOBA OIL - GOLDEN",
       "lotes": [
         {
           "lote_numero": "SGK272",
@@ -2899,11 +3067,25 @@
           "codigo_verificacion": "W9YESN",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:49:46+00:00"
+        },
+        {
+          "lote_numero": "2508-70031/2",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "Argentina",
+          "fecha_fabricacion": "2025-08-01",
+          "fecha_vencimiento": "2027-08-01",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "BJKHHW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T18:16:17+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:49:46+00:00"
+      "updated_at": "2026-09-21T18:16:17+00:00"
     },
     "C-ACERIC205ML": {
       "ref": "C-ACERIC205ML",
@@ -4563,6 +4745,153 @@
         }
       ],
       "updated_at": "2026-09-15T04:45:41+00:00"
+    },
+    "C-ACEESECAN5ML": {
+      "ref": "C-ACEESECAN5ML",
+      "nombre": "ACEITE ESENCIAL CANELA",
+      "lotes": [
+        {
+          "lote_numero": "080826",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Sri Lanka",
+          "fecha_fabricacion": "08/08/26",
+          "fecha_vencimiento": "08/08/2030",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "UTUBEN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T20:26:57+00:00"
+        }
+      ],
+      "updated_at": "2026-09-21T20:26:57+00:00"
+    },
+    "C-CERABEREFAMA500G": {
+      "ref": "C-CERABEREFAMA500G",
+      "nombre": "Cera de Abejas Amarilla",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-130128",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "75X2WN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T21:06:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-21T21:06:04+00:00"
+    },
+    "C-CERABREFKG": {
+      "ref": "C-CERABREFKG",
+      "nombre": "Cera de Abejas Amarilla",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-130128",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "75X2WN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T21:06:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-21T21:06:04+00:00"
+    },
+    "C-CERABEREFAMAKG": {
+      "ref": "C-CERABEREFAMAKG",
+      "nombre": "Cera de Abejas Amarilla",
+      "lotes": [
+        {
+          "lote_numero": "CP020-01-05-25-130128",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "75X2WN",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-21T21:06:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-21T21:06:04+00:00"
+    },
+    "C-ACEESELIM5ML": {
+      "ref": "C-ACEESELIM5ML",
+      "nombre": "ACEITE ESENCIAL LIMÓN",
+      "lotes": [
+        {
+          "lote_numero": "04072026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "INDIA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-21",
+          "codigo_verificacion": "FYBU4V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:19:51+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T00:19:51+00:00"
+    },
+    "ACEESEYLAML": {
+      "ref": "ACEESEYLAML",
+      "nombre": "ACEITE DE YLANG YLANG",
+      "lotes": [
+        {
+          "lote_numero": "20052026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "92Q67X",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:27:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T00:27:04+00:00"
+    },
+    "ACEESECLAML": {
+      "ref": "ACEESECLAML",
+      "nombre": "ACEITE ESENCIAL CLAVOS",
+      "lotes": [
+        {
+          "lote_numero": "24082026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "India",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "HS4UH9",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T00:53:37+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T00:53:37+00:00"
     }
   }
 }

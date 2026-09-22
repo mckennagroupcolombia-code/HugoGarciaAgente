@@ -282,6 +282,65 @@ def _parece_solicitud_de_pago(texto: str) -> bool:
     return bool(verbo and objeto)
 
 
+_LOGIN_FALLOS: dict = {}
+
+
+def _visibles_para(usuario, filas, clave="id"):
+    """Un colaborador externo solo ve a sí mismo y al anfitrión (Armando).
+
+    Se filtra en cada ruta y no en un `after_request` genérico: las respuestas
+    tienen formas distintas (lista de usuarios, `usuario_ids` con enteros,
+    eventos con `usuario_id`) y un filtro genérico dejó pasar la lista completa.
+    """
+    from app.services.colaboradores import anfitrion_id, es_colaborador_externo
+
+    if not es_colaborador_externo(usuario):
+        return filas
+    permitidos = {int(usuario["id"]), anfitrion_id()}
+    out = []
+    for f in filas or []:
+        v = f if isinstance(f, int) else (f or {}).get(clave)
+        try:
+            if int(v) in permitidos:
+                out.append(f)
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
+_CAMPOS_PUBLICOS_USUARIO = ("id", "nombre", "foto", "activo")
+
+
+def _publico_para(usuario, filas):
+    """Recorta los datos de los OTROS usuarios para un colaborador externo.
+
+    `_visibles_para` decide a quién ve (él y el anfitrión); esto decide QUÉ ve de
+    esa persona. El registro completo trae correo, teléfono, cédula y el mapa de
+    permisos —o sea, la lista de módulos internos—: nada de eso es asunto de
+    alguien de afuera. Su propio registro va completo (la SPA lo necesita).
+    """
+    from app.services.colaboradores import es_colaborador_externo
+
+    if not es_colaborador_externo(usuario):
+        return filas
+    yo = int(usuario.get("id") or 0)
+    out = []
+    for f in filas or []:
+        if not isinstance(f, dict):
+            out.append(f)
+            continue
+        if int(f.get("id") or 0) == yo:
+            out.append(f)
+            continue
+        limpio = {k: f.get(k) for k in _CAMPOS_PUBLICOS_USUARIO}
+        limpio.update({"username": "", "email": "", "telefono": "", "documento_identidad": "",
+                       "permisos_secciones": {}, "preferencias_ui": None,
+                       "rol": {"id": None, "nombre": "", "nivel": 1},
+                       "departamento": None, "departamentos": [], "creado_en": None})
+        out.append(limpio)
+    return out
+
+
 def register_tickets_routes(app):
     init_db()
 
@@ -301,15 +360,43 @@ def register_tickets_routes(app):
         password = data.get("password") or ""
         if not username or not password:
             return jsonify({"error": "username y password son requeridos"}), 400
+        # Freno a la fuerza bruta: el formulario de contraseña está expuesto a
+        # internet (lo usa el contador externo). 5 fallos → 15 minutos.
+        import time as _t
+
+        clave = (username.lower(), request.headers.get("X-Forwarded-For", request.remote_addr or ""))
+        fallos = [x for x in _LOGIN_FALLOS.get(clave, []) if _t.time() - x < 900]
+        if len(fallos) >= 5:
+            return jsonify({"error": "Demasiados intentos. Espera 15 minutos."}), 429
         result, err = login_usuario(username, password)
         if err:
+            _LOGIN_FALLOS[clave] = fallos + [_t.time()]
             return jsonify({"error": err}), 401
+        _LOGIN_FALLOS.pop(clave, None)
         usuario = aplicar_privilegios_admin_cynthia(result.get("usuario"))
         if usuario is not None:
             result = {**result, "usuario": usuario}
             if es_admin_efectivo(usuario):
                 usuario["api_token"] = _os.environ.get("CHAT_API_TOKEN", "")
-        return jsonify(result), 200
+        from app import spa_sesion
+
+        return spa_sesion.marcar(jsonify(result), result.get("token")), 200
+
+    @app.route("/api/tickets/auth/sesion-panel", methods=["POST"])
+    @app.route("/app/api/tickets/auth/sesion-panel", methods=["POST"])
+    def tickets_sesion_panel():
+        """Cambia un token de sesión vivo por la cookie que abre el panel.
+
+        Lo usa la pantalla de ingreso cuando el navegador ya tenía sesión: sin
+        esto, cerrar el bundle obligaría a todo el equipo a escribir la
+        contraseña otra vez aunque su sesión siguiera viva.
+        """
+        from app import spa_sesion
+
+        token = ((request.get_json(silent=True) or {}).get("token") or "").strip()
+        if not spa_sesion.token_valido(token):
+            return jsonify({"error": "Sesión vencida"}), 401
+        return spa_sesion.marcar(jsonify({"ok": True}), token), 200
 
     # ── Google OAuth ─────────────────────────────────────────────────────────
 
@@ -360,7 +447,9 @@ def register_tickets_routes(app):
             import urllib.parse
             q = urllib.parse.quote(token, safe="")
             return redirect(f"/app/auth/android-return?token={q}")
-        return redirect(f"/app?_token={token}")
+        from app import spa_sesion
+
+        return spa_sesion.marcar(redirect(f"/app?_token={token}"), token)
 
     @app.route("/app/auth/android-return", methods=["GET"])
     def tickets_android_auth_return():
@@ -512,7 +601,11 @@ def register_tickets_routes(app):
             cerrar_sesion_panel(request.tickets_usuario["id"], sid)
         token = request.headers.get("Authorization", "")[7:].strip()
         logout_usuario(token)
-        return jsonify({"ok": True}), 200
+        from app import spa_sesion
+
+        # Se va también la cookie del panel: si no, el bundle seguiría abierto
+        # para el siguiente que use el navegador.
+        return spa_sesion.borrar(jsonify({"ok": True})), 200
 
     # ── Presencia / sesión panel ─────────────────────────────────────────────
 
@@ -608,7 +701,7 @@ def register_tickets_routes(app):
     def panel_presencia_en_linea():
         from app.services.panel_presencia import usuarios_en_linea_ahora
 
-        return jsonify({"usuario_ids": sorted(usuarios_en_linea_ahora())}), 200
+        return jsonify({"usuario_ids": _visibles_para(request.tickets_usuario, sorted(usuarios_en_linea_ahora()))}), 200
 
     @app.route("/api/tickets/panel/metricas", methods=["GET"])
     @_auth
@@ -641,7 +734,13 @@ def register_tickets_routes(app):
         aviso de ticket nuevo asignado + el resumen diario (ver
         scripts/resumen_actividad_sede_sur_cron.py).
         """
-        return jsonify({"eventos": actividad_equipo_hoy()}), 200
+        from app.services.colaboradores import es_colaborador_externo
+
+        # El colaborador externo no ve NINGÚN feed: los eventos del anfitrión son
+        # trabajo interno (títulos de tickets con terceros, paneles que abre).
+        if es_colaborador_externo(request.tickets_usuario):
+            return jsonify({"eventos": []}), 200
+        return jsonify({"eventos": _visibles_para(request.tickets_usuario, actividad_equipo_hoy(), "usuario_id")}), 200
 
     @app.route("/api/tickets/admin/metricas-acciones", methods=["GET"])
     @_auth
@@ -781,6 +880,10 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/departamentos", methods=["GET"])
     @_auth
     def tickets_get_departamentos():
+        from app.services.colaboradores import es_colaborador_externo
+
+        if es_colaborador_externo(request.tickets_usuario):
+            return jsonify([]), 200          # el organigrama no es asunto suyo
         return jsonify(listar_departamentos()), 200
 
     @app.route("/api/tickets/departamentos", methods=["POST"])
@@ -861,7 +964,8 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/usuarios", methods=["GET"])
     @_auth
     def tickets_get_usuarios():
-        return jsonify(listar_usuarios()), 200
+        u = request.tickets_usuario
+        return jsonify(_publico_para(u, _visibles_para(u, listar_usuarios()))), 200
 
     @app.route("/api/tickets/usuarios/invitables", methods=["GET"])
     @_auth
@@ -870,7 +974,8 @@ def register_tickets_routes(app):
         activos, sin admin/tester/cuentas legadas — ver
         `usuarios_invitables()` en tickets_db.py."""
         from app.services.tickets_db import usuarios_invitables
-        return jsonify(usuarios_invitables()), 200
+        u = request.tickets_usuario
+        return jsonify(_publico_para(u, _visibles_para(u, usuarios_invitables()))), 200
 
     @app.route("/api/tickets/usuarios/activos", methods=["GET"])
     @_auth
@@ -880,7 +985,8 @@ def register_tickets_routes(app):
             limite = int(request.args.get("limite", 4))
         except (TypeError, ValueError):
             limite = 4
-        return jsonify(usuarios_activos_recientes(max(1, min(limite, 20)))), 200
+        u = request.tickets_usuario
+        return jsonify(_publico_para(u, _visibles_para(u, usuarios_activos_recientes(max(1, min(limite, 20)))))), 200
 
     @app.route("/api/tickets/usuarios", methods=["POST"])
     @_auth
@@ -986,7 +1092,11 @@ def register_tickets_routes(app):
         if request.args.get("sin_mision"):
             filtros["sin_mision"] = True
         if request.args.get("vista_equipo") in ("1", "true", "yes"):
-            filtros["vista_equipo"] = True
+            from app.services.colaboradores import es_colaborador_externo
+
+            # Un colaborador externo no ve las solicitudes del equipo: solo las suyas.
+            if not es_colaborador_externo(request.tickets_usuario):
+                filtros["vista_equipo"] = True
         if request.args.get("activas") in ("1", "true", "yes"):
             filtros["activas"] = True
         return jsonify(listar_tickets(request.tickets_usuario, filtros)), 200
@@ -1068,6 +1178,16 @@ def register_tickets_routes(app):
                              "(proveedor, productos con SKU y factura cotejada). Ahí llega al aprobador con su ticket.",
                     "redirigir": "pagos",
                 }), 400
+
+        # Colaborador externo: sus solicitudes y acciones son SOLO con el anfitrión.
+        from app.services.colaboradores import anfitrion_id, es_colaborador_externo
+
+        if es_colaborador_externo(usuario):
+            permitidos = {int(usuario["id"]), anfitrion_id()}
+            if data.get("asignado_a") and int(data["asignado_a"]) not in permitidos:
+                return jsonify({"error": "Solo puedes asignarle solicitudes a Armando."}), 403
+            if tipo_ticket == "solicitud" and not data.get("asignado_a"):
+                data["asignado_a"] = anfitrion_id()
 
         ticket, err = crear_ticket(data, usuario["id"], archivo_nombre)
         if err:

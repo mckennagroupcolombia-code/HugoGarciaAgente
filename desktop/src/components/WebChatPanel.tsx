@@ -1,3 +1,4 @@
+import { ico } from "../icons/icoTexto";
 import { useState } from "react";
 import {
   useWebChat,
@@ -153,7 +154,7 @@ function RespuestasRapidasSection() {
                   title={item.texto}
                 >
                   <span className="block truncate text-[11px] font-semibold text-ink">
-                    {scope === "global" ? "🌐 " : ""}
+                    {scope === "global" ? ico("🌐 ") : ""}
                     {item.titulo}
                     {copiedId === item.id && (
                       <span className="ml-1 text-emerald-400 font-normal">· copiado</span>

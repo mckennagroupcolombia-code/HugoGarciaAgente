@@ -260,7 +260,8 @@ export function puedeVerModuloContabilidad(
     // Préstamos salió a su propia sección el 2026-09-10 y tiene su regla arriba.
     // El Diario ya expone movimientos de socios/préstamos, así que exigir el
     // mismo permiso estricto para todo el hub es lo correcto, no solo lo más simple.
-    return Boolean(p["libro-mayor"]);
+    // `contador`: el contador externo lo ve en modo consulta (ver contadorAccess).
+    return Boolean(p["libro-mayor"] || p.contador);
   }
   if (seccion === "contabilidad-inicio") {
     // El checklist guiado no expone nada que el usuario no pueda ya ver en

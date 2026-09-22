@@ -166,6 +166,9 @@ export interface EntradaFormularioEtiqueta {
   nuevaEtiquetaDePlantilla?: string | null;
   /** Nueva plantilla para esta categoría (pide el tamaño). */
   nuevaPlantillaCategoria?: string | null;
+  /** Etiqueta nueva para este SKU: el creador arranca con el producto ya elegido
+   *  (lo usa el taller de combos). */
+  sku?: string | null;
 }
 
 /** Ventana de desenfoque por recuadro (la misma de Studio Visual), cargada
@@ -1416,6 +1419,7 @@ function ProductLabelFormInner({
         plantillasGuardadas={plantillasGuardadas}
         tienePlantillaBase={Boolean(plantillaBase)}
         categoriasConPlantilla={plantillasPorCategoria}
+        skuInicial={entrada?.sku ?? null}
         onCrear={(tipoNom, codigo, cat) => void crearFichaDesdeSku(tipoNom, codigo, cat)}
         onAbrir={abrirFichaGuardada}
         onDuplicar={duplicarFichaGuardada}
@@ -2243,6 +2247,7 @@ function PantallaInicio({
   plantillasGuardadas,
   tienePlantillaBase,
   categoriasConPlantilla,
+  skuInicial,
   onCrear,
   onAbrir,
   onDuplicar,
@@ -2255,6 +2260,7 @@ function PantallaInicio({
   plantillasGuardadas: FichaEtiquetaGuardada[];
   tienePlantillaBase: boolean;
   categoriasConPlantilla: Map<string, FichaEtiquetaGuardada>;
+  skuInicial?: string | null;
   onCrear: (tipoNombre: string, codigo: CodigoEan, categoria: string) => void;
   onAbrir: (f: FichaEtiquetaGuardada) => void;
   onDuplicar: (f: FichaEtiquetaGuardada) => void;
@@ -2268,6 +2274,16 @@ function PantallaInicio({
   const [categoriaManual, setCategoriaManual] = useState<string | null>(null);
   const { data: codigos, isLoading: codigosLoading } = useCodigosEan();
   const sugeridos = useMemo(() => filtrarCodigosEanPorTexto(codigos ?? [], q, 12), [codigos, q]);
+  // Llegada con el SKU ya decidido (taller de combos): se elige solo, una vez.
+  const skuPrecargado = useRef(false);
+  useEffect(() => {
+    if (skuPrecargado.current || !skuInicial || !codigos?.length) return;
+    const obj = skuInicial.trim().toUpperCase();
+    const hallado = codigos.find((c) => (c.sku || "").trim().toUpperCase() === obj);
+    skuPrecargado.current = true;
+    setQ(skuInicial);
+    if (hallado) setSku(hallado);
+  }, [skuInicial, codigos]);
   const categoriaDetectada = useMemo(
     () => (sku ? detectarCategoriaEtiqueta(sku.nombre_producto || sku.sku) : CATEGORIA_ETIQUETA_OTROS),
     [sku],

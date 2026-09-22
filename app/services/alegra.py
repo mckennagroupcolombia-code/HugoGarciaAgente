@@ -3449,8 +3449,13 @@ def crear_documento_soporte_alegra(
     retencion_ica: float = 0.0,
     ica_por_mil: float = 0.0,
     dry_run: bool = False,
+    enviar_dian: bool = False,
 ) -> dict:
     """Emite un documento soporte en Alegra por `valor` (una sola línea).
+
+    `enviar_dian=True` pide el sello (`stamp.generateStamp`), igual que las
+    facturas de venta. Sin él el documento queda creado en Alegra pero NO
+    transmitido: no tiene CUDS y todavía se puede borrar.
 
     `dry_run=True` arma y devuelve el payload SIN enviarlo. Un documento soporte
     emitido ya viajó a la DIAN y solo se corrige con nota de ajuste, así que el
@@ -3495,6 +3500,8 @@ def crear_documento_soporte_alegra(
     }
     if observaciones:
         payload["observations"] = observaciones[:500]
+    if enviar_dian:
+        payload["stamp"] = {"generateStamp": True}
 
     # Retención practicada sobre este documento. Se manda el id de Alegra, no la
     # tarifa: así queda registrada en sus reportes y el contador entra a pagarla
@@ -3569,8 +3576,26 @@ def crear_documento_soporte_alegra(
     if r.status_code in (200, 201):
         data = r.json()
         numero = data.get("numberTemplate", {}).get("fullNumber") or str(data.get("number") or "")
-        print(f"✅ Documento soporte creado en Alegra: {data.get('id')} ({numero})", flush=True)
-        return {"status": "success", "id": str(data.get("id")), "numero": numero, "data": data}
+        sello = (data.get("stamp") or {}).get("legalStatus") or ""
+        print(f"✅ Documento soporte creado en Alegra: {data.get('id')} ({numero})"
+              + (f" · DIAN: {sello}" if sello else " · sin transmitir"), flush=True)
+        return {"status": "success", "id": str(data.get("id")), "numero": numero, "data": data,
+                "transmitido": bool(sello), "estado_dian": sello}
+    # ⚠️ Si la DIAN no responde, Alegra contesta 400 (código 3051) PERO el
+    # documento ya quedó creado —sin sello— y viene en `bill`. Tratarlo como un
+    # fallo hacía que el reintento creara otro: DSMG2 y DSMG3 duplicados para
+    # William el 21-sep-2026. Se devuelve el documento para poder retomarlo.
+    try:
+        cuerpo = r.json()
+    except ValueError:
+        cuerpo = {}
+    creado = cuerpo.get("bill") if isinstance(cuerpo, dict) else None
+    if isinstance(creado, dict) and creado.get("id"):
+        numero = (creado.get("numberTemplate") or {}).get("fullNumber") or str(creado.get("number") or "")
+        motivo = ((cuerpo.get("error") or {}).get("message") or r.text[:200])
+        print(f"⚠️ Documento soporte {numero} creado en Alegra pero NO transmitido: {motivo}", flush=True)
+        return {"status": "creado_sin_transmitir", "id": str(creado["id"]), "numero": numero,
+                "data": creado, "message": motivo}
     print(f"❌ Alegra rechazó el documento soporte: {r.status_code} - {r.text[:300]}", flush=True)
     return {"status": "error", "message": f"HTTP {r.status_code}: {r.text[:300]}"}
 
@@ -3626,7 +3651,7 @@ def crear_item_servicio_alegra(
 
 def registrar_pago_documento_soporte(
     *, bill_id: str, fecha: str, valor: float, observaciones: str = "",
-    cuenta_banco: int | None = None,
+    cuenta_banco: int | None = None, retenciones: list[dict] | None = None,
 ) -> dict:
     """Registra en Alegra el pago de un documento soporte ya emitido.
 
@@ -3646,7 +3671,10 @@ def registrar_pago_documento_soporte(
         "bankAccount": {"id": int(cuenta_banco or ALEGRA_CUENTA_BANCO_PAGOS)},
         "paymentMethod": "transfer",
         "observations": (observaciones or "")[:500],
-        "bills": [{"id": str(bill_id), "amount": valor}],
+        "bills": [{"id": str(bill_id), "amount": valor,
+                   # Retenciones practicadas AL PAGAR (el ReteICA de un documento
+                   # soporte: la DIAN no lo admite dentro del documento).
+                   **({"retentions": retenciones} if retenciones else {})}],
     }
     try:
         r = requests.post(f"{_ALEGRA_BASE}/payments", headers=_alegra_headers(),

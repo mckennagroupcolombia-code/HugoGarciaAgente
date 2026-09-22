@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
@@ -159,10 +160,10 @@ function UnirPorSku() {
               aria-label={`Unir ${p.doc_titulo}`}
             />
             <label htmlFor={`sku-${p.archivo}`} className="truncate text-ink">
-              📄 {p.doc_titulo}
+              <Ico e="📄" /> {p.doc_titulo}
             </label>
             <span className="col-start-2 truncate text-ink-secondary sm:col-start-auto">
-              ⚗️ {p.mp_nombre} <code className="text-[10px] text-muted">{p.sku}</code>
+              <Ico e="⚗️" /> {p.mp_nombre} <code className="text-[10px] text-muted">{p.sku}</code>
               {p.conflicto && <span className="text-accent-rose"> · también {p.otros.map((o) => o.sku).join(", ")}</span>}
             </span>
             <span

@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 
@@ -487,16 +488,16 @@ export default function CotizarFacturarPanel() {
               <p className="text-xs text-muted">
                 {cliente.identificacion ? `CC/NIT ${cliente.identificacion}` : "Sin identificación — solo se puede cotizar"}
               </p>
-              <p className="text-xs text-muted">📱 {telefonoVisible(telefono)}</p>
-              {cliente.correo && <p className="text-xs text-muted">✉️ {cliente.correo}</p>}
-              {cliente.direccion && <p className="text-xs text-muted">📍 {cliente.direccion}</p>}
+              <p className="text-xs text-muted"><Ico e="📱" /> {telefonoVisible(telefono)}</p>
+              {cliente.correo && <p className="text-xs text-muted"><Ico e="✉️" /> {cliente.correo}</p>}
+              {cliente.direccion && <p className="text-xs text-muted"><Ico e="📍" /> {cliente.direccion}</p>}
             </div>
             <Totales calc={calc} />
           </div>
           <TablaResumen calc={calc} />
           {calc && calc.sin_alegra.length > 0 && (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-              ⚠️ No existen en Alegra: {calc.sin_alegra.join(", ")}. Se puede cotizar (solo PDF), pero no facturar.
+              <Ico e="⚠️" /> No existen en Alegra: {calc.sin_alegra.join(", ")}. Se puede cotizar (solo PDF), pero no facturar.
             </p>
           )}
           <textarea
@@ -521,7 +522,7 @@ export default function CotizarFacturarPanel() {
       {paso === 5 && (
         <div className="grid gap-4 md:grid-cols-2">
           <div className={`${card} space-y-3`}>
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">📋 Cotizar</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-muted"><Ico e="📋" /> Cotizar</p>
             <p className="text-xs text-muted">
               PDF sin efecto ante la DIAN, válido 15 días. Se envía al WhatsApp del cliente y queda registrado en
               Alegra{cliente.identificacion ? "" : " (esto último solo si hay identificación)"}.
@@ -545,7 +546,7 @@ export default function CotizarFacturarPanel() {
           </div>
 
           <div className={`${card} space-y-3`}>
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">🧾 Facturar (el cliente ya pagó)</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-muted"><Ico e="🧾" /> Facturar (el cliente ya pagó)</p>
             {venta?.estado === "facturada" ? (
               <div className="space-y-1 text-sm">
                 <p className="font-semibold text-green-700 dark:text-green-400">✅ Factura {venta.factura_numero} emitida</p>
@@ -611,7 +612,7 @@ export default function CotizarFacturarPanel() {
           {avisos.length > 0 && (
             <div className="rounded-xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 md:col-span-2">
               {avisos.map((a) => (
-                <p key={a}>⚠️ {a}</p>
+                <p key={a}><Ico e="⚠️" /> {a}</p>
               ))}
             </div>
           )}
@@ -792,7 +793,7 @@ function PasoOrigen({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className={card}>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">🪄 Manual · desde una conversación</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted"><Ico e="🪄" /> Manual · desde una conversación</p>
           <button
             type="button"
             className={btn}
@@ -849,7 +850,7 @@ function PasoOrigen({
 
         <div className={`${card} flex flex-col justify-between gap-3`}>
           <div>
-            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">✍️ Manual · desde cero</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted"><Ico e="✍️" /> Manual · desde cero</p>
             <p className="text-xs text-muted">Buscas el cliente, agregas los productos y listo.</p>
           </div>
           <button type="button" className={btnPrimario} onClick={onManual}>
@@ -860,7 +861,7 @@ function PasoOrigen({
 
       <div className={card}>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">🗂 Ventas directas recientes</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-muted"><Ico e="🗂" /> Ventas directas recientes</p>
           <input
             value={filtroVentas}
             onChange={(e) => setFiltroVentas(e.target.value)}

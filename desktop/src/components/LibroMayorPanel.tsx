@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api } from "../api/client";
@@ -9,12 +10,15 @@ import { usePanelTheme } from "../stores/panelTheme";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
 import { AddIconButton } from "./AddIconButton";
 import { useAppStore } from "../stores/app";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+import { esContador } from "../lib/contadorAccess";
 import "./libroMayor.css";
 
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const SociosPanel = lazy(() => import("./SociosPanel"));
 const MayorCuentasPanel = lazy(() => import("./MayorCuentasPanel"));
+const DocumentosSoporteTab = lazy(() => import("./DocumentosSoporte"));
 
 /* ─── Tipos ──────────────────────────────────────────────────────────────── */
 
@@ -232,9 +236,12 @@ export default function LibroMayorPanel() {
   const skin = usePanelTheme((s) => s.skin);
   const libroMayorBootTab = useAppStore((s) => s.libroMayorBootTab);
   const setLibroMayorBootTab = useAppStore((s) => s.setLibroMayorBootTab);
-  const [ambito, setAmbito] = useState<Ambito>(() =>
+  const contador = esContador(useTicketsAuth((s) => s.user));
+  const [ambitoGuardado, setAmbito] = useState<Ambito>(() =>
     leerLS(AMBITO_KEY, (v): v is Ambito => v === "empresa" || v === "socios", "empresa"),
   );
+  // La contabilidad personal de los socios no es parte del trabajo del contador de la empresa.
+  const ambito: Ambito = contador ? "empresa" : ambitoGuardado;
 
   function cambiarAmbito(a: Ambito) {
     setAmbito(a);
@@ -264,6 +271,7 @@ export default function LibroMayorPanel() {
               : "Contabilidad personal de cada socio, dentro de la de la empresa: extractos propios, cuenta con McKenna, cruces y declaración de renta."}
           </p>
         </div>
+        {!contador && (
         <div
           className="inline-flex shrink-0 rounded-xl border border-border bg-surface-panel p-0.5 shadow-paper-sm"
           role="tablist"
@@ -290,6 +298,7 @@ export default function LibroMayorPanel() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {ambito === "empresa" ? (
@@ -358,7 +367,7 @@ function BannerPendientes() {
       className="lm-card flex w-full flex-wrap items-center justify-between gap-2 border-amber-600/40 bg-amber-600/10 px-4 py-3 text-left hover:bg-amber-600/15"
     >
       <span className="text-sm font-bold text-amber-800 dark:text-amber-300">
-        ⚠️ {n} movimiento{n === 1 ? "" : "s"} del banco sin contabilizar (últimos 90 días)
+        <Ico e="⚠️" /> {n} movimiento{n === 1 ? "" : "s"} del banco sin contabilizar (últimos 90 días)
       </span>
       <span className="text-xs font-bold text-amber-800 underline dark:text-amber-300">Clasificarlos →</span>
     </button>
@@ -531,7 +540,7 @@ function EspejoAlegra({ m }: { m: Movimiento }) {
     <div className="flex flex-wrap items-center gap-2 text-[11px]">
       {m.alegra_journal_id ? (
         <>
-          <span className="font-semibold text-emerald-600">🧾 Alegra #{m.alegra_journal_id}</span>
+          <span className="font-semibold text-emerald-600"><Ico e="🧾" /> Alegra #{m.alegra_journal_id}</span>
           <button
             type="button"
             disabled={ocupado}
@@ -1279,6 +1288,7 @@ function FormCompraProveedor({
 type SubvistaAvanzada =
   | "diario"
   | "libro-diario"
+  | "documentos-soporte"
   | "mayor"
   | "rapido"
   | "plan-cuentas"
@@ -1322,6 +1332,9 @@ const GRUPOS: Grupo[] = [
       // El Mayor responde «cómo se movió esta cuenta»; el Diario, «qué pasó ese
       // día»: el asiento completo con el nombre de cada cuenta, débito y crédito.
       { id: "libro-diario", label: "Libro Diario", icon: "listChecks", desc: "Asientos del día con cuenta, débito y crédito" },
+      // Los documentos soporte de pagos a quien no factura: borradores por
+      // emitir y los ya transmitidos. Se emiten a mano, como en AstroKiller.
+      { id: "documentos-soporte", label: "Documentos soporte", icon: "receipt", desc: "Borradores por emitir y emitidos a la DIAN" },
       { id: "balance", label: "Balance", icon: "chartBar", desc: "Comprobación débito = crédito" },
       { id: "movimientos", label: "Asientos", icon: "listChecks", desc: "Todos los comprobantes" },
       { id: "cuentas-t", label: "Cuentas T", icon: "receipt", desc: "Debe / haber a dos columnas" },
@@ -1361,6 +1374,20 @@ const GRUPOS: Grupo[] = [
   },
 ];
 
+/**
+ * El contador externo solo CONSULTA: la etapa «Libro Mayor» completa y los
+ * terceros en solo lectura, donde deja sus indicaciones en el historial.
+ * Registrar, conciliar y configurar no le aparecen (y el backend los niega).
+ */
+const GRUPOS_CONTADOR: Grupo[] = [{
+  ...GRUPOS[0],
+  subs: [
+    ...GRUPOS[0].subs,
+    { id: "terceros", label: "Terceros", icon: "users", desc: "Fichas e historial, con tus indicaciones" },
+  ],
+}];
+const SUBS_CONTADOR = new Set<string>(GRUPOS_CONTADOR[0].subs.map((s) => s.id));
+
 function grupoDeSub(sub: SubvistaAvanzada | null | undefined): GrupoId {
   for (const g of GRUPOS) if (g.subs.some((x) => x.id === sub)) return g.id;
   return "consultar";
@@ -1381,12 +1408,18 @@ function VistaEmpresa({
   bootSub?: SubvistaAvanzada | null;
   onBootConsumido?: () => void;
 }) {
-  const [sub, setSub] = useState<SubvistaAvanzada>(() =>
+  const contador = esContador(useTicketsAuth((s) => s.user));
+  const [subGuardada, setSub] = useState<SubvistaAvanzada>(() =>
     bootSub && subValida(bootSub) ? bootSub : leerLS(SUB_KEY, subValida, "mayor"),
   );
-  const [grupo, setGrupo] = useState<GrupoId>(() =>
+  const [grupoGuardado, setGrupo] = useState<GrupoId>(() =>
     bootSub && subValida(bootSub) ? grupoDeSub(bootSub) : leerLS(GRUPO_KEY, grupoValido, "consultar"),
   );
+  // El contador solo tiene la etapa de consulta: cualquier otra subvista
+  // recordada (o pedida por un atajo) cae en el plan de cuentas.
+  const sub: SubvistaAvanzada = contador && !SUBS_CONTADOR.has(subGuardada) ? "mayor" : subGuardada;
+  const grupo: GrupoId = contador ? "consultar" : grupoGuardado;
+  const grupos = contador ? GRUPOS_CONTADOR : GRUPOS;
   const [pendientesSignal, setPendientesSignal] = useState(0);
   const [cargaSignal, setCargaSignal] = useState(0);
   const [sugerenciasSignal, setSugerenciasSignal] = useState(0);
@@ -1401,7 +1434,7 @@ function VistaEmpresa({
   }
 
   function elegirGrupo(g: GrupoId) {
-    const def = GRUPOS.find((x) => x.id === g)!.subs[0].id;
+    const def = grupos.find((x) => x.id === g)!.subs[0].id;
     // Si la subvista actual ya pertenece al grupo, se conserva.
     irA(grupoDeSub(sub) === g ? sub : def);
   }
@@ -1423,13 +1456,20 @@ function VistaEmpresa({
     setPendientesSignal((n) => n + 1);
   }
 
-  const grupoActual = GRUPOS.find((g) => g.id === grupo)!;
+  const grupoActual = grupos.find((g) => g.id === grupo)!;
 
   return (
     <div className="space-y-4">
+      {contador && (
+        <p className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-xs text-sky-700 dark:text-sky-300">
+          Acceso de contador: consulta de toda la contabilidad y exportaciones. Tus indicaciones quedan en el
+          historial de cada tercero (Terceros → Historial). No se puede modificar nada desde este perfil.
+        </p>
+      )}
       {/* Nivel 1: etapas */}
+      {grupos.length > 1 && (
       <div className="mck-stagger grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Etapas del libro">
-        {GRUPOS.map((g) => {
+        {grupos.map((g) => {
           const activo = g.id === grupo;
           return (
             <button
@@ -1460,6 +1500,7 @@ function VistaEmpresa({
           );
         })}
       </div>
+      )}
 
       {/* Nivel 2: vistas de la etapa (solo si hay más de una) */}
       {grupoActual.subs.length > 1 && (
@@ -1506,9 +1547,14 @@ function VistaEmpresa({
       )}
       {sub === "rapido" && <VistaSimple />}
       {sub === "plan-cuentas" && <PlanCuentasTab />}
-      {sub === "terceros" && <TercerosTab />}
+      {sub === "terceros" && <TercerosTab soloLectura={contador} />}
       {sub === "movimientos" && <MovimientosTab />}
       {sub === "libro-diario" && <LibroDiarioTab />}
+      {sub === "documentos-soporte" && (
+        <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+          <DocumentosSoporteTab />
+        </Suspense>
+      )}
       {sub === "cuentas-t" && <CuentasTTab />}
       {sub === "balance" && <BalanceTab />}
       {sub === "asiento-manual" && <AsientoManualTab />}
@@ -1779,7 +1825,7 @@ function emptyTerceroForm() {
   };
 }
 
-function TercerosTab() {
+function TercerosTab({ soloLectura = false }: { soloLectura?: boolean } = {}) {
   const qc = useQueryClient();
   const terceros = useTerceros();
   const cuentasQ = usePlanCuentas();
@@ -1813,7 +1859,7 @@ function TercerosTab() {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted">{lista.length} terceros registrados.</p>
-        <AddIconButton title="Nuevo tercero" open={showForm} onClick={() => setShowForm((v) => !v)} />
+        {!soloLectura && <AddIconButton title="Nuevo tercero" open={showForm} onClick={() => setShowForm((v) => !v)} />}
       </div>
       {msg && <p className="text-xs font-semibold text-emerald-600">{msg}</p>}
       {showForm && (
@@ -1919,7 +1965,7 @@ function TercerosTab() {
                           className="mr-3 text-[10px] font-bold text-accent hover:underline">
                     Historial
                   </button>
-                  {t.activo && (
+                  {t.activo && !soloLectura && (
                     <button type="button" onClick={() => toggleMut.mutate(t.id)} className="text-[10px] font-bold text-danger hover:underline">
                       Desactivar
                     </button>
@@ -1932,7 +1978,7 @@ function TercerosTab() {
       </div>
 
       {historialDe !== null && (
-        <HistorialTercero terceroId={historialDe} onCerrar={() => setHistorialDe(null)} />
+        <HistorialTercero terceroId={historialDe} onCerrar={() => setHistorialDe(null)} comoContador={soloLectura} />
       )}
     </div>
   );
@@ -1969,7 +2015,9 @@ const COLOR_EVENTO: Record<string, string> = {
   nota: "border-l-border",
 };
 
-function HistorialTercero({ terceroId, onCerrar }: { terceroId: number; onCerrar: () => void }) {
+function HistorialTercero({ terceroId, onCerrar, comoContador = false }: {
+  terceroId: number; onCerrar: () => void; comoContador?: boolean;
+}) {
   const qc = useQueryClient();
   const [abierto, setAbierto] = useState<number | null>(null);
   const [nota, setNota] = useState({ titulo: "", detalle: "", tipo: "nota" });
@@ -2038,6 +2086,9 @@ function HistorialTercero({ terceroId, onCerrar }: { terceroId: number; onCerrar
         <div className="mt-4 space-y-2 rounded-lg border border-dashed border-border p-3">
           <p className="text-xs font-bold uppercase text-muted">Anotar algo</p>
           <div className="flex flex-wrap gap-2">
+            {comoContador ? (
+              <span className="rounded bg-sky-500/10 px-2 py-1 text-sm font-bold text-sky-600">Indicación del contador</span>
+            ) : (
             <select value={nota.tipo} onChange={(e) => setNota({ ...nota, tipo: e.target.value })}
                     className="rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink">
               <option value="nota">Nota</option>
@@ -2046,6 +2097,7 @@ function HistorialTercero({ terceroId, onCerrar }: { terceroId: number; onCerrar
               <option value="incidente">Incidente</option>
               <option value="fiscal">Cambio de perfil tributario</option>
             </select>
+            )}
             <input value={nota.titulo} onChange={(e) => setNota({ ...nota, titulo: e.target.value })}
                    placeholder="Qué pasó, en una línea"
                    className="min-w-[14rem] flex-1 rounded border border-border bg-surface-input px-2 py-1 text-sm text-ink" />

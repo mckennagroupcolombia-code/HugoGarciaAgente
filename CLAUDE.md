@@ -563,6 +563,8 @@ Reglas que no se rompen:
   debe cuadrar para aprobar. Combos (`C-…`) fuera del picker.
 - **Documento soporte** (plantilla 10 DSMG, `PAGOS_DOC_SOPORTE_ACTIVO`): solo a personas naturales
   no obligadas a facturar; cuenta vía `alegra_espejo.cuenta_alegra()`; ReteICA dentro del documento.
+  Con documento soporte el asiento **no se espeja** (duplicaba el gasto en Alegra). Nace BORRADOR al
+  aprobar y se transmite con el botón **«Emitir a la DIAN»** (Administración); todo al peso; nunca PUT a /bills.
   ⚠️ **Un PUT a Alegra reemplaza, no es parcial** (reenviar el documento entero); el documento
   congela una foto del proveedor; personas naturales van como **NIT con DV**, no CC.
 - ⛔ **Fecha de corte contable** `CONTABILIDAD_FECHA_CORTE` (default **2026-09-01**): lo anterior es
@@ -576,6 +578,12 @@ Reglas que no se rompen:
 - Otros módulos del mismo ciclo: `terceros_historial.py` (append-only), `contabilidad_mayor.libro_diario()`,
   `pagos_impuestos.py` (recibos del contador → 2365/2367/2368…, no es gasto),
   `puc_colombia.DESCRIPCIONES` (guía de las 79 cuentas; test exige que ninguna quede sin guía).
+
+### Colaboradores (diagramas compartidos, 21-sep-2026)
+Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
+versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
+Agenda con Armando. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
 
 ### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
 
@@ -937,6 +945,71 @@ corrige referencias caducas y solo comparte un documento si se confirma. Tambié
 Alegra en el kit— vía `saltarDesdeTaller()` / `tallerSalto` en `stores/app.ts`, y queda un botón flotante «← Seguir con
 <combo>» (`tallerRetorno`, en `Layout.tsx`; flotante porque el Studio inmersivo oculta el cabezote) que devuelve al mismo caso.
 
+**La lista de todos los combos vive en la misma ventana del taller (21-sep-2026).** Tres columnas: lista · tablero ·
+inspector. La lista (`ListaCombos` en `MisionCombos.tsx`) es a la vez la galería y **la cola**: lo que se busca o se filtra
+(Por completar · A una pieza · Sin documento · Sin código · Sin etiqueta · Receta rota · Completos · Todos) es lo que
+recorren «Anterior / Siguiente»; el combo en curso nunca sale de la lista aunque deje de cumplir el filtro al completarse.
+Cada fila trae sus seis segmentos y **cada segmento es un botón**: abre ese combo directamente en esa pieza. Teclado: ← →
+cambian de combo, 1–6 abren una pieza, F las fotos (no actúan mientras se escribe en un campo). La galería anterior quedó
+como enlace «vista clásica».
+
+**El taller cabe en la ventana, sin desplazar la página.** `useAltoDisponible()` (en `MisionCombos.tsx`) mide lo que queda bajo
+el cabezote —que cambia de alto al desplegar una etapa— y fija ese alto a la raíz; adentro todo es `flex`/`grid` con
+`min-h-0`, y solo la lista y el inspector tienen desplazamiento propio. El tablero se ajusta al alto QUE QUEDA, no solo al
+ancho: `.mck-mision-lienzo` es un contenedor con tamaño y el tablero mide `min(100cqw, 100cqh × 1000/640)`; con el tablero
+bajo 640 px los nodos se ensanchan y usan nombre corto (`CORTO`, por `@container`). ≥1280 px: tres columnas · 1024–1279:
+la lista pasa a franja horizontal sobre tablero + inspector · <1024: se apila y la página fluye normal. Los productos sin
+combo dejaron de ser un bloque al pie: son el filtro «Sin combo» de la lista. Verificado sin desplazamiento de página en
+1920×1080, 1600×1000, 1440×900, 1366×768, 1280×720 y 1100×800.
+
+**El taller no tiene barra lateral: todo se resuelve en emergentes guiados (21-sep-2026).** La columna derecha del inspector
+se quitó —casi siempre traía un solo botón— y el tablero ocupa ese espacio (lista · tablero). Tocar una pieza (o las teclas
+1–6 / F, o un segmento de la lista) abre `PiezaEmergente` sobre el tablero: arriba la **pregunta que guía** (`preguntaGuia()`:
+qué pasa y qué se propone — «No tiene código de barras. Este es el siguiente número libre: ¿lo creamos?»), en el cuerpo el
+mismo `Inspector`, y abajo «Siguiente pendiente: <pieza> →». El banner «siguiente paso» trae **«Resolver ahora →»**. Al
+resolver una pieza el emergente **pasa solo a la siguiente pendiente** con la tira «Listo: <pieza> — seguimos…»; si el combo
+quedó completo se cierra para que se vea la celebración. La publicación y la etiqueta tienen su emergente propio
+(`PublicacionEmergente`, `EtiquetaEmergente`). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
+(`z-70`); Esc cierra la pieza solo si no hay otro emergente encima, y con un emergente abierto las flechas no cambian de combo.
+
+**El premio suena, y la foto avisa.** Al completarse las seis piezas suena una moneda (`combos/sonidoMoneda.ts`: dos
+notas de onda cuadrada, si5 → mi6, **sintetizadas** con Web Audio — no se carga ni se distribuye ningún audio ajeno); se
+silencia con el interruptor «sonido» del marcador (queda en `localStorage`). Y si el combo quedó completo pero **su foto no
+está al día**, la imagen del centro **parpadea** (`.mck-mision-foto-parpadea`: late un halo ámbar por FUERA y la foto se
+atenúa, pero el círculo sigue blanco y opaco — con opacidad en el círculo se veían cruzadas las seis líneas que pasan por
+detrás; con `prefers-reduced-motion` queda un aro fijo) y el aviso dice «Solo queda la foto». `mapa_producto._estado_foto()` decide: `sin_foto` · `prestada` (la vitrina la
+tomó de otra publicación por parecido de nombre, `photo_match_type: identity`) · `anterior_a_etiqueta` (la fecha del
+archivo de MeLi, `…_042023-O.jpg`, es anterior al último rediseño de la etiqueta → muestra la etiqueta vieja) · `ok`. El
+21-sep-2026: 28 de 243 al día, 146 con la etiqueta anterior, 54 sin foto, 15 prestadas. Antes de completarse solo se ve un
+aro ámbar y «foto por actualizar» bajo el contador: no parpadea para no distraer mientras se trabaja.
+
+**El documento técnico se revisa en un emergente.** En la pieza «Documento técnico», «Revisar el documento aquí…» abre
+`combos/DocumentoEmergente.tsx`: cabecera con estado y SKU declarado, primero **lo que impide publicarlo** (`_vacio_motivo`,
+`_vacio_pendientes`, `_pedido_proveedor`, o por qué un borrador/antigua no cuenta como listo), y en pestañas sus tres partes
+—Ficha técnica · COA · SDS— con cuántos campos van sin dato y si está firmada, más las fuentes. Abajo, las acciones que
+cierran la pieza: **«Es este: unirlo a <SKU>»** (o corregir/compartir el enlace), «No es este: elegir otro…» y «Editarlo en
+Docs técnicos →». Datos de `GET /api/mapa-sistema/documentos/<archivo>/revision` → `mapa_producto.revisar_documento()`:
+solo lectura, **no genera PDF** ni toca el YAML, y no envía las imágenes embebidas (firma en base64). «Sin dato» no es un
+error: muchos campos no aplican al producto (sabor de un aceite, INS de un cosmético).
+
+**…y se EDITA ahí mismo.** «Editar aquí» convierte cada valor del emergente en campo (textos, filas, ítems de lista y celdas
+de las tablas del COA/SDS); lo cambiado se resalta y se guarda todo junto por `POST …/documentos/<archivo>/editar` →
+`mapa_producto.editar_documento()` (administrador o permiso `fichas`). Reglas: solo valores que YA existen (no crea
+claves), por RUTA dentro del YAML (`["_coa","parametros",1,2]`); **no** deja tocar `referencia` (eso es «Unir», que valida
+el SKU contra Alegra), ni el nombre (de él salen el archivo y el emparejamiento), ni imágenes, ni claves privadas; la tabla
+`propiedades` es DERIVADA y se rehace con `normalizar_datos_ficha` como al guardar desde Docs técnicos. Guarda con el mismo
+`yaml.dump` de Docs técnicos, con **respaldo** en `fichas_word/datos/_respaldo_edicion/` y **rastro** en `_ediciones` (quién,
+cuándo, qué campos). ⚠️ Un documento **publicado** (`_tipo: completo`, sin `_borrador`) lo muestra la web directamente desde
+ese archivo: editarlo cambia lo que ve el cliente y NO regenera el PDF ya emitido → exige marcar una confirmación
+(`confirmar_publicado`); firmar, generar el PDF o cambiar el nombre sigue siendo de Docs técnicos.
+
+**La receta se corrige en un emergente, sin salir del taller.** En las piezas «Receta» y «Etiqueta en la receta» el botón
+ya no navega: abre `combos/KitEmergente.tsx`, que es el **mismo** `EditarModal` de Catálogo Alegra (exportado de
+`CatalogoAlegraPanel.tsx`) montado con `createPortal`, y guarda por el mismo `PATCH /api/alegra/catalogo/<sku>` con sus
+mismas reglas (si el kit ya tiene movimientos en Alegra deja cambiar nombre y precio, no la receta). Al guardar, el
+endpoint actualiza la copia local del catálogo y el taller refresca sus piezas. El enlace «abrir en Catálogo Alegra» queda
+como salida secundaria. ⚠️ Esto SÍ escribe en Alegra: en pruebas de navegador se intercepta el PATCH.
+
 **Fotos, presentaciones y componentes en el taller (21-sep-2026).** La **foto del centro se toca**: abre la principal y
 las secundarias (`fotos`, del `cache.json` de la web) y salta a Publicaciones en ese SKU, que es donde se cambian, ordenan y
 suben (web y MeLi por separado). **Presentaciones:** `familia` = la materia prima única de la receta; los combos que la
@@ -969,6 +1042,33 @@ Reglas de las acciones:
   columnas, y una etiqueta de arista larga deja la ruta «imposible» sin decir por qué.
 - En «Unir por SKU» solo vienen marcados los de **nombre idéntico**; los *conflictos* (dos materias primas
   reclaman el mismo documento: karité amarilla/blanca, colágeno g/mL) no se pueden marcar.
+
+### V. Iconografía minimalista de todo /app (21-sep-2026)
+
+La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,
+sin relleno) que ya existía para el menú. Tres piezas:
+- **`<Ico e="📦" />`** (`icons/Ico.tsx`): icono EN LÍNEA con el texto, mide lo que la letra (`svg.mck-ico` = 1,1 em) y
+  toma su color. El valor sigue siendo el emoji —el código dice qué se quiso decir— y **`icons/emojiMap.ts`** decide qué
+  se dibuja (~200 emojis → 111 iconos; se agregaron 18: gear, globe, sparkle, trophy, bag, bottle, cap, spoon, shield,
+  puzzle, bulb, coins, ruler, compass, tree, scale, hand, broom). Un emoji sin icono asignado se muestra tal cual, nunca
+  como un círculo genérico. Un test exige que todo lo mapeado apunte a un icono que exista (si no, `Icon` devuelve
+  `null` y el botón queda sin icono y sin aviso).
+- **`ico("🎫 Generar ticket")`** (`icons/icoTexto.tsx`): para textos que llegan como CADENA (ternarios, el `label` de una
+  tabla de estados): dibuja el emoji inicial como icono y deja el resto igual.
+- **`<PanelIcon panel=… bubble={false} />`**: el icono PROPIO de cada panel; es lo que usan la navegación por flujo y el Mapa.
+
+Para un emoji nuevo: mapearlo en `emojiMap.ts` y correr desde `desktop/src/` los dos scripts de
+`desktop/scripts/iconos/` (`emoji_a_ico.py` y `cadenas_a_ico.py`, con `--aplicar`; sin él, ensayo en seco). Reglas que
+NO se rompen: solo se reemplaza un emoji que es **texto JSX inequívoco** (justo tras el cierre de una etiqueta, o que
+abre la línea bajo una); nunca dentro de cadenas, template literals (mensajes de WhatsApp, HTML de impresión),
+atributos, `<option>` (no admite SVG), ni en lo que **dibuja etiquetas imprimibles** (`etiqueta-*`, `VisualCanvasEditor`,
+pictogramas GHS). El primer intento, más laxo, metió un `<Ico>` dentro de una cadena por confundir un `>` de
+comparación con el cierre de una etiqueta: por eso la regla es estricta. Lo que queda con emoji es contenido, no
+interfaz: mensajes de clientes en WhatsApp y el texto de commits y recaps.
+
+**Build con dos usuarios (mckg y cynthia):** `dist/` y `public/assets/ocr/` quedaron con grupo `mckg` (cynthia
+pertenece a él), `g+w` y setgid, y `scripts/copy-ocr-assets.mjs` ya no hace `copyFileSync` encima de un archivo del otro
+(daba EPERM y el build moría antes de tsc): si pesa lo mismo no lo toca; si no, lo borra y lo copia.
 
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
@@ -1085,7 +1185,15 @@ fiscal solo en `app/services/empresa.py`; dígito del calendario DIAN = **6** (n
 
 **URL**: `http://localhost:8081/app`  
 **Stack**: React 19 + TypeScript + Vite + Tailwind CSS + Zustand + React Query  
-**Build**: `desktop/dist/` (servido por Flask como archivos estáticos)
+**Build**: `desktop/dist/` (servido por Flask como archivos estáticos, **solo con sesión**)
+
+**Acceso al panel** (`app/spa_sesion.py`): `/app` y `/app/assets/*` exigen la cookie `mck_panel`
+(HttpOnly, 8 h, la misma vida que la fila en `sesiones`). Sin ella se entrega `app/templates/
+ingreso_panel.html`, HTML plano que no cuenta nada del proyecto; ese archivo es lo único público.
+La cookie la dejan el login, la vuelta de Google, `/app?_token=` y `POST /api/tickets/auth/sesion-panel`
+(la pantalla de ingreso la usa para revalidar una sesión que ya estaba en el navegador, sin volver a
+pedir la contraseña). `PANEL_SIN_SESION=1` en el `.env` es el interruptor de emergencia. La API no
+cambió: sigue con el token Bearer.
 
 ### Paneles disponibles
 

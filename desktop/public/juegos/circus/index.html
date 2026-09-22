@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<title>Circus Charlie</title>
+	<style>
+		html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 512px; height: 448px; }
+		html, body, canvas, button {
+			touch-action: none; -webkit-user-select: none; user-select: none;
+			-webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+		}
+		canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+		/* Controles táctiles: solo se muestran cuando hay un toque (ver juego.js). */
+		#tactil { position: absolute; inset: 0; display: none; pointer-events: none; }
+		#tactil.visible { display: block; }
+		#tactil button {
+			position: absolute; bottom: 14px; width: 64px; height: 64px; border-radius: 50%;
+			border: 2px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff;
+			font: bold 22px monospace; pointer-events: auto; padding: 0;
+		}
+		#tactil button:active, #tactil button.activo { background: rgba(255,255,255,.4); }
+		#izq { left: 14px; } #der { left: 92px; }
+		#tactil #salto { right: 14px; width: 84px; height: 84px; bottom: 10px; font-size: 14px; }
+	</style>
+</head>
+<body>
+	<canvas id="lienzo" width="512" height="448" tabindex="0"></canvas>
+	<div id="tactil">
+		<button id="izq" type="button" aria-label="Izquierda">&#9664;</button>
+		<button id="der" type="button" aria-label="Derecha">&#9654;</button>
+		<button id="salto" type="button" aria-label="Saltar">SALTAR</button>
+	</div>
+	<script src="musica.js"></script>
+	<script src="juego.js"></script>
+</body>
+</html>

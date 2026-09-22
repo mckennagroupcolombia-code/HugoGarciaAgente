@@ -116,6 +116,26 @@ def _es_inventario_activo(cat: dict, ref: str) -> bool:
     return bool(item) and item.get("type") != "kit"
 
 
+def _estado_foto(w: dict | None, etq: dict | None) -> tuple[str, str, str]:
+    """¿La foto con la que se vende está al día? → (estado, fecha AAAA-MM, por qué).
+
+    sin_foto · prestada (la vitrina la tomó de OTRA publicación por parecido de nombre) ·
+    anterior_a_etiqueta (la foto se subió antes del último rediseño de la etiqueta, así que
+    muestra la etiqueta vieja) · ok. La fecha sale del nombre del archivo de MeLi (`…_072026-O.jpg`).
+    """
+    foto = (w or {}).get("photo") or ""
+    if not foto:
+        return "sin_foto", "", "No tiene foto en la vitrina."
+    m = re.search(r"_(\d{2})(20\d{2})-", foto)
+    fecha = f"{m.group(2)}-{m.group(1)}" if m else ""
+    if (w or {}).get("photo_match_type") == "identity":
+        return "prestada", fecha, "La foto no es de esta presentación: la vitrina la tomó de otra publicación por parecido de nombre."
+    rediseno = ((etq or {}).get("actualizado") or "")[:7]
+    if fecha and rediseno and fecha < rediseno:
+        return "anterior_a_etiqueta", fecha, f"La foto es de {fecha} y la etiqueta se rediseñó en {rediseno}: muestra la etiqueta anterior."
+    return "ok", fecha, ""
+
+
 def _casilla(nombre: str, es_mp: bool) -> str:
     if es_mp:
         return "materia_prima"
@@ -307,12 +327,14 @@ def _construir() -> dict:
                 "modo": "fijar" if not actual else ("compartir" if vigente else "reemplazar"),
             }
 
+        foto_estado, foto_fecha, foto_motivo = _estado_foto(w, etq)
         estados = [e["estado"] for e in esl.values()]
         combos.append({
             "ref": ref,
             "nombre": nombre,
             "precio_lista": k.get("precio_lista"),
             "foto": (w or {}).get("photo"),
+            "foto_estado": foto_estado, "foto_fecha": foto_fecha, "foto_motivo": foto_motivo,
             "fotos": [f for f in ((w or {}).get("photos") or []) if isinstance(f, str)][:8]
                      if isinstance((w or {}).get("photos"), list) else [],
             # Un producto puede venderse en varias presentaciones (250 g, 500 g, 1 kg): todas
@@ -351,6 +373,22 @@ def _datos(refrescar: bool = False) -> dict:
         data = _construir()
         _memo.update(t=time.time(), data=data)
         return data
+
+
+def presentaciones_de(ref: str) -> list[str]:
+    """SKU de venta del combo y de sus presentaciones hermanas (misma materia prima: 250 g, 500 g, kg).
+    Comparten documento técnico, así que un visto bueno al documento vale para todas. Sin familia
+    reconocible (kit con varias materias primas), solo el propio combo."""
+    ref_u = (ref or "").strip().upper()
+    if not ref_u:
+        return []
+    combos = _datos().get("combos") or []
+    propio = next((c for c in combos if (c.get("ref") or "").upper() == ref_u), None)
+    familia = (propio or {}).get("familia") or ""
+    if not familia:
+        return [ref.strip()]
+    refs = [c["ref"] for c in combos if c.get("familia") == familia and c.get("ref")]
+    return refs or [ref.strip()]
 
 
 def anatomia_combos(buscar: str = "", filtro: str = "", refrescar: bool = False) -> dict:
@@ -647,6 +685,204 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict
     ruta.write_text(nuevo, encoding="utf-8")
     invalidar()
     return {"ok": True, "archivo": archivo, "sku": sku, "modo": modo, "antes": actual}
+
+
+_DOC_OCULTOS = {"imagen_b64", "color_acento", "identidad", "titulo", "nombre_producto"}
+_DOC_NOMBRES = {
+    "cas": "CAS", "ins": "INS", "ph": "pH", "einces": "EINECS", "numero_ce": "Número CE", "nombre_inci": "Nombre INCI",
+    "pais_origen": "País de origen", "fecha_revision": "Fecha de revisión", "modo_uso": "Modo de uso",
+    "caracteristicas_fisicas": "Características físicas", "propiedades_lista": "Propiedades funcionales",
+    "composicion": "Composición", "conservacion": "Conservación", "descripcion": "Descripción",
+    "sinonimos": "Sinónimos", "parametros": "Parámetros analizados", "identificacion": "Identificación",
+    "toxicologia": "Toxicología", "ecologia": "Ecología", "eliminacion": "Eliminación", "exposicion": "Controles de exposición",
+    "otra_info": "Otra información", "primeros_auxilios": "Primeros auxilios", "manipulacion": "Manipulación y almacenamiento",
+}
+
+
+def _doc_nombre(clave: str) -> str:
+    return _DOC_NOMBRES.get(clave) or clave.strip("_").replace("_", " ").capitalize()
+
+
+# Lo que NO se edita desde el taller: el enlace con la materia prima (va por `fijar_sku_documento`,
+# que valida el SKU contra Alegra), el nombre (de él salen el archivo y el emparejamiento) y las imágenes.
+_DOC_NO_EDITABLES = {"referencia", "referencia_interna", "titulo", "nombre_producto", "imagen_b64", "color_acento"}
+
+
+def _doc_bloques(datos: dict, base: list | None = None) -> tuple[list[dict], int]:
+    """Un dict del YAML → bloques para leer (texto · filas · tabla · lista) y cuántos campos están
+    vacíos. Cada valor lleva su RUTA dentro del YAML (`["_coa", "lote", "numero"]`) para editarlo."""
+    base = list(base or [])
+    bloques: list[dict] = []
+    vacios = 0
+    sueltos: list[list] = []
+    for k, v in datos.items():
+        if k.startswith("_") or k in _DOC_OCULTOS:
+            continue
+        nombre = _doc_nombre(k)
+        ruta = [*base, k]
+        editable = k not in _DOC_NO_EDITABLES
+        if v is None or v == "" or v == [] or v == {}:
+            vacios += 1
+            sueltos.append([nombre, "", ruta if editable and not isinstance(v, (list, dict)) else None])
+        elif isinstance(v, dict):
+            sub, n = _doc_bloques(v, ruta)
+            vacios += n
+            for b in sub:
+                b["titulo"] = b.get("titulo") or nombre
+                bloques.append(b)
+        elif isinstance(v, list):
+            if not base and k == "propiedades":
+                ruta = None  # tabla DERIVADA de los campos sueltos: se rehace al guardar, no se edita
+            if all(isinstance(x, (list, tuple)) for x in v):
+                bloques.append({"tipo": "tabla", "titulo": nombre, "ruta": ruta, "filas": [[str(c) for c in x] for x in v]})
+            else:
+                bloques.append({"tipo": "lista", "titulo": nombre, "ruta": ruta, "items": [str(x) for x in v]})
+        elif len(str(v)) > 90 or "\n" in str(v):
+            bloques.append({"tipo": "texto", "titulo": nombre, "texto": str(v), "ruta": ruta if editable else None})
+        else:
+            sueltos.append([nombre, str(v), ruta if editable else None])
+    if sueltos:
+        bloques.insert(0, {"tipo": "filas", "titulo": "", "filas": sueltos})
+    return bloques, vacios
+
+
+def revisar_documento(archivo: str) -> dict:
+    """El documento técnico listo para LEERSE en el taller de combos, sin abrir Docs técnicos:
+    sus tres partes (ficha, COA, SDS), las fuentes, lo que tiene pendiente y cuántos campos le
+    faltan a cada una. Solo lectura; no genera PDF ni toca el YAML."""
+    import yaml
+
+    from app.services import ficha_tecnica as ft
+
+    archivo = (archivo or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,120}\.yaml", archivo):
+        raise ValueError("Nombre de documento inválido")
+    ruta = ft.DATOS_DIR / archivo
+    if not ruta.is_file():
+        raise ValueError("Ese documento no existe")
+    d = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
+    meta = next((x for x in _datos()["documentos"] if x["archivo"] == archivo), None) or {}
+
+    secciones = []
+    for clave, titulo, datos in (("tds", "Ficha técnica", {k: v for k, v in d.items() if not k.startswith("_")}),
+                                 ("coa", "Certificado de análisis (COA)", d.get("_coa") or {}),
+                                 ("sds", "Hoja de seguridad (SDS)", d.get("_sds") or {})):
+        if not isinstance(datos, dict) or not datos:
+            secciones.append({"id": clave, "titulo": titulo, "bloques": [], "vacios": 0, "existe": False})
+            continue
+        bloques, vacios = _doc_bloques(datos, [] if clave == "tds" else [f"_{clave}"])
+        firma = (datos.get("firma") or {}) if isinstance(datos.get("firma"), dict) else {}
+        secciones.append({"id": clave, "titulo": titulo, "bloques": bloques, "vacios": vacios, "existe": True,
+                          "firmado": bool(firma.get("imagen_b64"))})
+
+    pendientes = []
+    if d.get("_vacio_motivo"):
+        pendientes.append({"titulo": "Por qué está marcado como vacío", "items": [str(d["_vacio_motivo"])]})
+    for clave, titulo in (("_vacio_pendientes", "Pendientes para poder publicarlo"), ("_pedido_proveedor", "Hay que pedírselo al proveedor")):
+        if isinstance(d.get(clave), list) and d[clave]:
+            pendientes.append({"titulo": titulo, "items": [str(x) for x in d[clave]]})
+    return {
+        "archivo": archivo, "titulo": (d.get("titulo") or d.get("nombre_producto") or archivo),
+        "estado": meta.get("estado") or "", "referencia": meta.get("referencia") or "", "equivalentes": meta.get("equivalentes") or [],
+        "borrador": bool(d.get("_borrador")), "secciones": secciones, "pendientes": pendientes,
+        # Publicado = la web lo muestra tal cual está en este archivo: editarlo cambia lo que ve el cliente.
+        "publicado": d.get("_tipo") == "completo" and not d.get("_borrador") and d.get("_estado") != "vacio",
+        "ediciones": [e for e in (d.get("_ediciones") or []) if isinstance(e, dict)][-5:],
+        "fuentes": [str(x) for x in (d.get("_fuentes") or [])] if isinstance(d.get("_fuentes"), list) else [],
+        "proveedor": d.get("_proveedor_factura") if isinstance(d.get("_proveedor_factura"), dict) else None,
+    }
+
+
+def editar_documento(archivo: str, cambios: list, usuario: str = "", confirmar_publicado: bool = False) -> dict:
+    """Corrige valores de un documento técnico desde el taller de combos, sin abrir Docs técnicos.
+
+    `cambios` = [{"ruta": ["caracteristicas_fisicas", "ph"], "valor": "7,0"}, …]. Solo valores que YA
+    existen y son texto o número (incluye celdas de tabla e ítems de lista por índice): no crea claves,
+    no toca `referencia` (eso es `fijar_sku_documento`), ni el nombre, ni imágenes, ni claves privadas.
+
+    Guarda como guarda Docs técnicos (`yaml.dump`, mismo formato), con respaldo previo en
+    `_respaldo_edicion/` y un rastro en `_ediciones`. Relee y exige que SOLO hayan cambiado las rutas
+    pedidas. Un documento PUBLICADO se muestra en la web desde este archivo: cambiarlo cambia lo que ve
+    el cliente y no regenera el PDF ya emitido, por eso pide `confirmar_publicado`.
+    """
+    import copy
+    import shutil
+
+    import yaml
+
+    from app.services import ficha_tecnica as ft
+
+    archivo = (archivo or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,120}\.yaml", archivo):
+        raise ValueError("Nombre de documento inválido")
+    ruta_archivo = ft.DATOS_DIR / archivo
+    if not ruta_archivo.is_file():
+        raise ValueError("Ese documento no existe")
+    if not isinstance(cambios, list) or not cambios:
+        raise ValueError("Nada que cambiar")
+    if len(cambios) > 200:
+        raise ValueError("Demasiados cambios en una sola vez")
+
+    antes = yaml.safe_load(ruta_archivo.read_text(encoding="utf-8")) or {}
+    publicado = antes.get("_tipo") == "completo" and not antes.get("_borrador") and antes.get("_estado") != "vacio"
+    if publicado and not confirmar_publicado:
+        raise ValueError("Este documento está publicado: el cambio se verá en la página web. Confírmalo para guardar")
+
+    nuevo = copy.deepcopy(antes)
+    hechos = []
+    for c in cambios:
+        ruta = (c or {}).get("ruta")
+        valor = (c or {}).get("valor")
+        if not isinstance(ruta, list) or not ruta or not isinstance(valor, str) or len(valor) > 8000:
+            raise ValueError("Cambio mal formado")
+        if str(ruta[0]).startswith("_") and ruta[0] not in ("_coa", "_sds"):
+            raise ValueError(f"`{ruta[0]}` no se edita desde aquí")
+        if any(isinstance(x, str) and x in _DOC_NO_EDITABLES for x in ruta):
+            raise ValueError(f"`{'.'.join(map(str, ruta))}` no se edita desde aquí (el enlace con la materia prima va por «Unir»; el nombre, por Docs técnicos)")
+        nodo = nuevo
+        for paso in ruta[:-1]:
+            if isinstance(nodo, dict) and paso in nodo:
+                nodo = nodo[paso]
+            elif isinstance(nodo, list) and isinstance(paso, int) and 0 <= paso < len(nodo):
+                nodo = nodo[paso]
+            else:
+                raise ValueError(f"La ruta `{'.'.join(map(str, ruta))}` no existe en el documento")
+        ultimo = ruta[-1]
+        existe = (isinstance(nodo, dict) and ultimo in nodo) or (isinstance(nodo, list) and isinstance(ultimo, int) and 0 <= ultimo < len(nodo))
+        if not existe:
+            raise ValueError(f"La ruta `{'.'.join(map(str, ruta))}` no existe en el documento")
+        actual = nodo[ultimo]
+        if isinstance(actual, (dict, list)):
+            raise ValueError(f"`{'.'.join(map(str, ruta))}` no es un valor suelto")
+        if str(actual if actual is not None else "") != valor:
+            nodo[ultimo] = valor
+            hechos.append(".".join(map(str, ruta)))
+    if not hechos:
+        return {"ok": True, "archivo": archivo, "sin_cambios": True, "cambiados": []}
+
+    # Las tablas `identidad` / `propiedades` se DERIVAN de los campos sueltos: se rehacen como al guardar
+    # desde Docs técnicos. Si rehacerlas tocara algo privado, se deja el documento sin re-derivar.
+    if any(not h.startswith("_") for h in hechos):
+        try:
+            derivado = ft.normalizar_datos_ficha(nuevo)
+            if {k: v for k, v in derivado.items() if k.startswith("_")} == {k: v for k, v in nuevo.items() if k.startswith("_")}:
+                nuevo = derivado
+        except Exception:
+            pass
+    rastro = [e for e in (nuevo.get("_ediciones") or []) if isinstance(e, dict)][-19:]
+    rastro.append({"cuando": time.strftime("%Y-%m-%dT%H:%M:%S"), "quien": (usuario or "").strip()[:60] or "panel",
+                   "desde": "taller de combos", "campos": hechos[:40]})
+    nuevo["_ediciones"] = rastro
+
+    texto = yaml.dump(nuevo, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    if (yaml.safe_load(texto) or {}) != nuevo:
+        raise ValueError("El documento no se pudo volver a escribir igual: no se guardó")
+    respaldo = ft.DATOS_DIR / "_respaldo_edicion"
+    respaldo.mkdir(exist_ok=True)
+    shutil.copy2(ruta_archivo, respaldo / f"{ruta_archivo.stem}.{time.strftime('%Y%m%d_%H%M%S')}.yaml")
+    ruta_archivo.write_text(texto, encoding="utf-8")
+    invalidar()
+    return {"ok": True, "archivo": archivo, "cambiados": hechos, "publicado": publicado}
 
 
 def listar_documentos(q: str = "", limite: int = 40) -> list[dict]:

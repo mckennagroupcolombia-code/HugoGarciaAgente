@@ -1,7 +1,10 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useAppStore } from "../stores/app";
+import { useUsuariosEquipo } from "../hooks/useConversaciones";
 
 type Segmento = "concretadas" | "canceladas" | "todas";
 
@@ -84,6 +87,42 @@ interface VentaUnificada {
   ordenes_ids?: string[];
   cache_actualizado_en?: string;
   desde_cache?: boolean;
+  /** Solicitud pedida a otra persona para ESTA venta (Centro de Mando). */
+  intervencion?: Intervencion | null;
+  /** Dos o más facturas vigentes de Alegra para la misma venta. */
+  duplicado_alegra?: boolean;
+  /** «¿Por qué pasó?»: evidencia de MeLi y Alegra, guardada por venta. */
+  contexto?: ContextoVenta | null;
+}
+
+interface Hallazgo {
+  tipo: string;
+  texto: string;
+  fuente: string;
+}
+
+interface ContextoVenta {
+  hallazgos: Hallazgo[];
+  reembolsado?: number;
+  generado_en?: string;
+}
+
+interface Intervencion {
+  ticket_id: number;
+  numero: string | null;
+  estado: string;
+  asignado_a: number | null;
+  asignado_nombre: string | null;
+  creado_en: string | null;
+  abierta: boolean;
+  ya_existia?: boolean;
+}
+
+interface Revalidacion {
+  corriendo: boolean;
+  pendientes: number;
+  hechas: number;
+  ultimo_ts: number;
 }
 
 interface LineaCruce {
@@ -117,6 +156,8 @@ interface VentasResp {
   actualizado_en: string | null;
   /** El servidor devolvió el último listado conocido y está recalculando. */
   recalculando?: boolean;
+  /** Histórico: avance de la revalidación de filas con foto vieja. */
+  revalidacion?: Revalidacion;
 }
 
 /** Límite por defecto según el rango elegido — más días, más filas
@@ -359,7 +400,7 @@ function RefrescarBoton({
             : "Volver a consultar el estado de esta venta en MeLi"
       }
     >
-      {cargando ? "…" : "🔄"}
+      {cargando ? "…" : ico("🔄")}
     </button>
   );
 }
@@ -378,7 +419,7 @@ function CruceFacturacionBloque({ cruce, estado }: { cruce: CruceFacturacion; es
     return (
       <div className="mt-2 rounded-lg border border-border bg-surface px-3 py-2">
         <p className="text-[11px] text-muted">
-          🕒 Todavía sin facturar — {cruce.comprado.length} producto(s) por{" "}
+          <Ico e="🕒" /> Todavía sin facturar — {cruce.comprado.length} producto(s) por{" "}
           <span className="font-semibold text-ink">{pesos(cruce.total_comprado)}</span>.{" "}
           {estado === "en_transito"
             ? "Se factura cuando el pedido se entregue."
@@ -400,7 +441,7 @@ function CruceFacturacionBloque({ cruce, estado }: { cruce: CruceFacturacion; es
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className={`text-[11px] font-bold ${grave ? "text-danger" : cruce.ok ? "text-emerald-600 dark:text-emerald-400" : "text-muted"}`}>
-          {grave ? "🔴 " : cruce.ok ? "✅ " : "ℹ️ "}
+          {grave ? ico("🔴 ") : cruce.ok ? "✅ " : "ℹ️ "}
           {cruce.resumen}
         </p>
         {/* Si cuadra, el desglose comprado/facturado/diferencia es ruido: basta
@@ -442,8 +483,9 @@ function CruceFacturacionBloque({ cruce, estado }: { cruce: CruceFacturacion; es
   );
 }
 
-/** Botón "Revisar" inline: crea/reusa el paso del ticket de Centro de Mando y lo marca completado con un motivo opcional. */
-function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias: number; onRevisado: () => void }) {
+/** Botón "Revisar" inline: deja constancia de que la venta se revisó (con el
+ * motivo) directamente sobre la venta — ya no hace falta un ticket global. */
+function RevisarBoton({ venta, onRevisado }: { venta: VentaUnificada; onRevisado: () => void }) {
   const [abierto, setAbierto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -453,16 +495,10 @@ function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias
     setEnviando(true);
     setError(null);
     try {
-      let ticketId = venta.ticket_id;
-      let pasoId = venta.paso_id;
-      if (!pasoId) {
-        await api.post(`/api/facturacion/ventas-unificadas/generar-ticket-revision?segmento=todas&dias=${dias}`);
-        onRevisado(); // fuerza refetch para traer ticket_id/paso_id nuevos
-        setError("Se creó el ticket de revisión — pulsa \"Revisar\" de nuevo para marcarlo.");
-        setEnviando(false);
-        return;
-      }
-      await api.put(`/api/tickets/${ticketId}/pasos/${pasoId}`, { completado: true, notas: motivo || undefined });
+      await api.post("/api/facturacion/ventas-unificadas/marcar-revisado", {
+        order_id: venta.order_id,
+        notas: motivo || undefined,
+      });
       setAbierto(false);
       setMotivo("");
       onRevisado();
@@ -487,8 +523,9 @@ function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias
         type="button"
         onClick={() => setAbierto(true)}
         className="rounded-paper border border-border px-2 py-1 text-[10px] font-bold text-ink hover:border-accent hover:text-accent"
+        title="Ya lo revisé y no hay nada que hacer (queda el motivo como registro)"
       >
-        Revisar
+        Revisado
       </button>
     );
   }
@@ -520,6 +557,580 @@ function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias
   );
 }
 
+const PROBLEMAS: { valor: string; label: string }[] = [
+  { valor: "error_al_facturar", label: "Error al facturar" },
+  { valor: "posible_duplicado", label: "Doble facturación" },
+  { valor: "facturacion_parcial", label: "Factura incompleta" },
+  { valor: "sin_facturar", label: "Sin facturar" },
+  { valor: "facturada_pendiente_subir_meli", label: "Factura sin subir a MeLi" },
+  { valor: "cancelada_pendiente_nc", label: "Cancelada sin nota crédito" },
+  { valor: "otro", label: "Otro" },
+];
+
+function problemaSugerido(venta: VentaUnificada, errorFacturar?: string): string {
+  if (errorFacturar) return "error_al_facturar";
+  if (venta.facturacion_parcial || venta.estado_facturacion === "facturada_parcial") return "facturacion_parcial";
+  if (venta.posible_duplicado) return "posible_duplicado";
+  if (PROBLEMAS.some((p) => p.valor === venta.estado_facturacion)) return venta.estado_facturacion;
+  return "otro";
+}
+
+/** "Pedir intervención": el operador elige a quién le pide resolver el
+ * problema de ESTA venta. Crea una solicitud en el Centro de Mando con el
+ * contexto de la venta (una por venta, no un checklist global). */
+function IntervencionBoton({
+  venta, errorFacturar, onListo,
+}: { venta: VentaUnificada; errorFacturar?: string; onListo: () => void }) {
+  const usuarios = useUsuariosEquipo();
+  const [abierto, setAbierto] = useState(false);
+  const [asignado, setAsignado] = useState<string>("");
+  const [problema, setProblema] = useState<string>(problemaSugerido(venta, errorFacturar));
+  const [mensaje, setMensaje] = useState<string>(errorFacturar ? `Al facturar salió: ${errorFacturar}` : "");
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const iv = venta.intervencion;
+
+  useEffect(() => {
+    if (errorFacturar) {
+      setProblema("error_al_facturar");
+      setMensaje(`Al facturar salió: ${errorFacturar}`);
+    }
+  }, [errorFacturar]);
+
+  async function enviar() {
+    if (!asignado) {
+      setError("Elige a quién le pides la intervención.");
+      return;
+    }
+    setEnviando(true);
+    setError(null);
+    try {
+      const r = await api.post<{ ok: boolean; error?: string }>("/api/facturacion/ventas-unificadas/pedir-intervencion", {
+        order_id: venta.order_id,
+        asignado_a: Number(asignado),
+        problema,
+        mensaje,
+      });
+      if (!r.ok) {
+        setError(r.error || "No se pudo pedir la intervención.");
+        return;
+      }
+      setAbierto(false);
+      onListo();
+    } catch (e) {
+      setError((e as Error).message || "No se pudo pedir la intervención.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (iv && !abierto) {
+    return (
+      <span className="flex items-center gap-1.5">
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+            iv.abierta ? "bg-violet-500/15 text-violet-600 dark:text-violet-300" : "bg-emerald-500/15 text-emerald-600"
+          }`}
+          title={`Solicitud ${iv.numero ?? iv.ticket_id} · ${iv.estado}${iv.creado_en ? ` · ${formatFecha(iv.creado_en)}` : ""}`}
+        >
+          <Ico e="🎫" /> {iv.numero ?? `#${iv.ticket_id}`} ·{" "}
+          {iv.abierta ? `con ${iv.asignado_nombre ?? "—"}` : `resuelta por ${iv.asignado_nombre ?? "—"}`}
+        </span>
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="text-[10px] font-semibold text-muted hover:text-ink"
+          title={iv.abierta ? "Agregar un mensaje a la solicitud abierta" : "Pedir una nueva intervención para esta venta"}
+        >
+          {iv.abierta ? "+ mensaje" : "pedir otra"}
+        </button>
+      </span>
+    );
+  }
+
+  if (!abierto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="rounded-paper border border-violet-400/60 px-2 py-1 text-[10px] font-bold text-violet-600 hover:bg-violet-500/10 dark:text-violet-300"
+        title="Pedirle a otra persona que resuelva el problema de facturación de esta venta"
+      >
+        <Ico e="🙋" /> Pedir intervención
+      </button>
+    );
+  }
+
+  async function enviarMensaje() {
+    if (!mensaje.trim() || !iv) return;
+    setEnviando(true);
+    setError(null);
+    try {
+      await api.post("/api/facturacion/ventas-unificadas/pedir-intervencion", {
+        order_id: venta.order_id,
+        asignado_a: iv.asignado_a,
+        problema,
+        mensaje,
+      });
+      setMensaje("");
+      setAbierto(false);
+      onListo();
+    } catch (e) {
+      setError((e as Error).message || "No se pudo enviar el mensaje.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  const yaAbierta = Boolean(iv?.abierta);
+  return (
+    <div className="w-72 space-y-1.5 rounded-lg border border-border bg-surface p-2 text-left">
+      <p className="text-[11px] font-bold text-ink">
+        {yaAbierta ? `Mensaje a ${iv?.asignado_nombre ?? "la solicitud"}` : "Pedir intervención en esta venta"}
+      </p>
+      {!yaAbierta && (
+        <>
+          <select
+            value={asignado}
+            onChange={(e) => setAsignado(e.target.value)}
+            className="w-full rounded border border-border bg-surface-input px-2 py-1 text-[11px] text-ink"
+          >
+            <option value="">¿A quién?</option>
+            {(usuarios.data ?? [])
+              .filter((u) => u.activo !== 0)
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre}
+                </option>
+              ))}
+          </select>
+          <select
+            value={problema}
+            onChange={(e) => setProblema(e.target.value)}
+            className="w-full rounded border border-border bg-surface-input px-2 py-1 text-[11px] text-ink"
+          >
+            {PROBLEMAS.map((p) => (
+              <option key={p.valor} value={p.valor}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+      <textarea
+        value={mensaje}
+        onChange={(e) => setMensaje(e.target.value)}
+        placeholder="Qué pasa y qué necesitas (el ticket ya lleva facturas, productos y enlace a MeLi)…"
+        rows={3}
+        className="w-full rounded border border-border bg-surface-input px-2 py-1 text-[11px] text-ink outline-none focus:border-accent"
+      />
+      {error && <p className="text-[10px] text-danger">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={() => setAbierto(false)} className="text-[10px] text-muted hover:text-ink">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={() => (yaAbierta ? void enviarMensaje() : void enviar())}
+          disabled={enviando}
+          className="rounded bg-violet-600 px-2 py-1 text-[10px] font-bold text-white disabled:opacity-40"
+        >
+          {enviando ? "Enviando…" : yaAbierta ? "Enviar mensaje" : "Pedir intervención"}
+        </button>
+      </div>
+    </div>
+  );
+
+}
+
+
+/** Candado del botón «Facturar» por venta, del lado del navegador.
+ *
+ * Tras un clic, el botón de ESA venta no se vuelve a habilitar hasta que la
+ * ventana traiga datos nuevos DESPUÉS de que terminó la petición (el listado
+ * dirá si ya quedó facturada). Si la conexión se cortó (Cloudflare corta a
+ * ~100 s pero el servidor sigue emitiendo), además hay que esperar 2 minutos
+ * antes de que un «Actualizar» lo libere. El servidor tiene su propio candado;
+ * este evita siquiera mandar la segunda petición (21-sep-2026: 22 facturas de
+ * más por clics y reenvíos repetidos). */
+const ESPERA_TRAS_CORTE_MS = 120_000;
+
+function useCandadoFacturar(dataUpdatedAt: number) {
+  const [marcas, setMarcas] = useState<Record<string, { hasta: number | null }>>({});
+  const [, setTic] = useState(0);
+  const bloquear = (id: string) => setMarcas((p) => ({ ...p, [id]: { hasta: null } }));
+  const terminar = (id: string, cortada: boolean) => {
+    setMarcas((p) => ({ ...p, [id]: { hasta: Date.now() + (cortada ? ESPERA_TRAS_CORTE_MS : 0) } }));
+    if (cortada) window.setTimeout(() => setTic((t) => t + 1), ESPERA_TRAS_CORTE_MS + 500);
+  };
+  const estado = (id: string): "libre" | "enviando" | "esperando" => {
+    const m = marcas[id];
+    if (!m) return "libre";
+    if (m.hasta === null) return "enviando";
+    return dataUpdatedAt > m.hasta ? "libre" : "esperando";
+  };
+  return { bloquear, terminar, estado };
+}
+
+function esCorte(e: unknown): boolean {
+  const msg = (e as Error)?.message || "";
+  return /tardó demasiado|se cortó|timeout|Failed to fetch|NetworkError|HTML|conexión/i.test(msg);
+}
+
+function etiquetaFacturar(estado: "libre" | "enviando" | "esperando", texto: string): string {
+  if (estado === "enviando") return "Facturando…";
+  if (estado === "esperando") return "Actualiza la ventana para reintentar";
+  return texto;
+}
+
+type TipoProblema = "doble" | "sin_facturar" | "incompleta" | "subir_meli" | "cancelada_nc";
+
+const TIPOS_BANDEJA: { id: TipoProblema; label: string; ayuda: string }[] = [
+  { id: "doble", label: "Doble factura", ayuda: "La venta tiene más facturas vigentes de las que corresponden. Se anula la sobrante con nota crédito." },
+  { id: "sin_facturar", label: "Sin facturar", ayuda: "Entregada hace más de 48 h y sin factura. Se factura desde aquí, una o varias." },
+  { id: "incompleta", label: "Factura incompleta", ayuda: "La factura no cubre todo lo vendido. Mira el «¿Por qué?»: si fue un reembolso de MeLi, es correcta." },
+  { id: "subir_meli", label: "Sin subir a MeLi", ayuda: "La factura existe en Alegra pero el comprador no la ve en MeLi." },
+  { id: "cancelada_nc", label: "Cancelada sin NC", ayuda: "Venta cancelada con factura y sin nota crédito." },
+];
+
+function tipoProblema(v: VentaUnificada): TipoProblema | null {
+  if (v.revisado) return null;
+  if (v.posible_duplicado || v.duplicado_alegra) return "doble";
+  if (v.facturacion_parcial || v.estado_facturacion === "facturada_parcial") return "incompleta";
+  if (v.estado_facturacion === "sin_facturar") return "sin_facturar";
+  if (v.estado_facturacion === "facturada_pendiente_subir_meli") return "subir_meli";
+  if (v.estado_facturacion === "cancelada_pendiente_nc") return "cancelada_nc";
+  return null;
+}
+
+/** «¿Por qué pasó?»: el reporte guardado de la venta, o armarlo ahora. */
+function PorQue({ venta, onListo }: { venta: VentaUnificada; onListo: () => void }) {
+  const [abierto, setAbierto] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [ctx, setCtx] = useState<ContextoVenta | null>(venta.contexto ?? null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function armar() {
+    setCargando(true);
+    setError(null);
+    try {
+      const r = await api.post<{ ok: boolean; contexto?: ContextoVenta; error?: string }>(
+        `/api/facturacion/ventas-unificadas/contexto/${venta.order_id}`,
+      );
+      if (!r.ok || !r.contexto) setError(r.error || "No se pudo armar el reporte.");
+      else {
+        setCtx(r.contexto);
+        onListo();
+      }
+    } catch (e) {
+      setError((e as Error).message || "No se pudo armar el reporte.");
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  return (
+    <div className="text-[11px]">
+      <button
+        type="button"
+        onClick={() => {
+          setAbierto((a) => !a);
+          if (!ctx && !cargando) void armar();
+        }}
+        className="font-semibold text-accent hover:underline"
+      >
+        {abierto ? "▾" : "▸"} ¿Por qué pasó?
+      </button>
+      {abierto && (
+        <div className="mt-1 space-y-1 rounded-lg border border-border bg-surface px-2.5 py-2">
+          {cargando && <p className="text-muted">Consultando MeLi y Alegra…</p>}
+          {error && <p className="text-danger">{error}</p>}
+          {ctx?.hallazgos.map((h, i) => (
+            <p key={i} className="text-ink">
+              <span className="mr-1 rounded bg-surface-hover px-1 text-[10px] font-bold uppercase text-muted">{h.fuente}</span>
+              {h.texto}
+            </p>
+          ))}
+          {ctx && (
+            <p className="flex items-center justify-between pt-1 text-[10px] text-muted">
+              <span>{ctx.generado_en ? `Reporte del ${formatFecha(ctx.generado_en)}` : ""}</span>
+              <button type="button" onClick={() => void armar()} disabled={cargando} className="font-semibold hover:text-ink">
+                {ico("🔄")} volver a consultar
+              </button>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PlanAnular {
+  ok: boolean;
+  error?: string;
+  conservar?: string;
+  anular?: { id: string; numero: string | null; total: number | null }[];
+  regla?: string;
+}
+
+/** Doble factura: primero el plan (qué se conserva, qué se anula), luego la confirmación. */
+function AnularSobrantes({ venta, onListo }: { venta: VentaUnificada; onListo: () => void }) {
+  const [plan, setPlan] = useState<PlanAnular | null>(null);
+  const [cargando, setCargando] = useState(false);
+  const [resultado, setResultado] = useState<string | null>(null);
+
+  async function verPlan() {
+    setCargando(true);
+    setResultado(null);
+    try {
+      setPlan(await api.post<PlanAnular>("/api/facturacion/ventas-unificadas/resolver/anular", { order_id: venta.order_id }));
+    } catch (e) {
+      setPlan({ ok: false, error: (e as Error).message });
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  async function confirmar() {
+    setCargando(true);
+    try {
+      const r = await api.post<{ ok: boolean; error?: string; resultados?: { numero: string | null; ok: boolean; nota_credito?: string; error?: string; nota?: string }[] }>(
+        "/api/facturacion/ventas-unificadas/resolver/anular",
+        { order_id: venta.order_id, confirmar: true },
+      );
+      setResultado(
+        r.error ||
+          (r.resultados ?? [])
+            .map((x) => `${x.numero}: ${x.ok ? (x.nota ?? `anulada con ${x.nota_credito ?? "NC"}`) : `falló — ${x.error}`}`)
+            .join(" · "),
+      );
+      setPlan(null);
+      onListo();
+    } catch (e) {
+      setResultado((e as Error).message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  if (resultado) return <p className="text-[11px] text-ink">{resultado}</p>;
+  if (!plan) {
+    return (
+      <button type="button" onClick={() => void verPlan()} disabled={cargando}
+        className="rounded-lg bg-danger/10 px-2.5 py-1 text-[11px] font-bold text-danger hover:bg-danger/20 disabled:opacity-40">
+        {cargando ? "Calculando…" : "Anular la sobrante…"}
+      </button>
+    );
+  }
+  if (!plan.ok) return <p className="text-[11px] text-danger">{plan.error}</p>;
+  return (
+    <div className="space-y-1 rounded-lg border border-danger/40 bg-danger/5 px-2.5 py-2 text-[11px]">
+      <p className="text-ink">Se conserva <b>{plan.conservar}</b>. Se anulan con nota crédito:{" "}
+        <b>{(plan.anular ?? []).map((a) => `${a.numero} (${pesos(a.total)})`).join(", ")}</b>.</p>
+      <p className="text-muted">{plan.regla} Cada nota crédito es un documento ante la DIAN.</p>
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={() => setPlan(null)} className="text-muted hover:text-ink">Cancelar</button>
+        <button type="button" onClick={() => void confirmar()} disabled={cargando}
+          className="rounded bg-danger px-2 py-1 font-bold text-white disabled:opacity-40">
+          {cargando ? "Anulando…" : `Confirmar: emitir ${(plan.anular ?? []).length} nota(s) crédito`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Bandeja de resolución: cada caso con su «por qué» y el botón que lo resuelve,
+ * sin salir de la aplicación. Reemplaza revisar venta por venta en la lista. */
+function BandejaResolucion() {
+  const qc = useQueryClient();
+  const q = useQuery<VentasResp>({
+    queryKey: ["ventas-bandeja"],
+    queryFn: () => api.get("/api/facturacion/ventas-unificadas/historial?segmento=todas&limit=5000"),
+    staleTime: 30_000,
+    refetchInterval: (query) => (query.state.data?.revalidacion?.corriendo ? 8_000 : false),
+  });
+  const [tipo, setTipo] = useState<TipoProblema>("doble");
+  const [verIntervenidas, setVerIntervenidas] = useState(false);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [lote, setLote] = useState<{ total: number; hechas: number; corriendo: boolean; cancelar: boolean } | null>(null);
+  const [resultados, setResultados] = useState<Record<string, { ok: boolean; texto: string }>>({});
+  const [subiendo, setSubiendo] = useState<string | null>(null);
+  const candado = useCandadoFacturar(q.dataUpdatedAt);
+  const cancelarRef = useState({ v: false })[0];
+
+  const refrescar = () => void qc.invalidateQueries({ queryKey: ["ventas-bandeja"] });
+  const ventas = q.data?.ventas ?? [];
+  const casos = ventas.filter((v) => tipoProblema(v) && (verIntervenidas || !v.intervencion?.abierta));
+  const porTipo = (t: TipoProblema) => casos.filter((v) => tipoProblema(v) === t);
+  const lista = porTipo(tipo).sort((a, b) => (a.fecha ?? "").localeCompare(b.fecha ?? ""));
+  const intervenidas = ventas.filter((v) => tipoProblema(v) && v.intervencion?.abierta).length;
+
+  async function facturarUna(orderId: string): Promise<boolean> {
+    if (candado.estado(orderId) !== "libre") return false;
+    candado.bloquear(orderId);
+    try {
+      const r = await api.post<{ ok: boolean; mensaje?: string; error?: string }>(
+        "/api/facturacion/ventas-unificadas/facturar-ahora", { order_id: orderId },
+      );
+      setResultados((p) => ({ ...p, [orderId]: { ok: !!r.ok, texto: r.mensaje || r.error || (r.ok ? "Facturada." : "No se pudo facturar.") } }));
+      candado.terminar(orderId, false);
+      return !!r.ok;
+    } catch (e) {
+      const cortada = esCorte(e);
+      candado.terminar(orderId, cortada);
+      setResultados((p) => ({
+        ...p,
+        [orderId]: {
+          ok: false,
+          texto: cortada
+            ? "Se cortó la conexión y la factura pudo haber salido. Espera 2 minutos y actualiza la ventana antes de reintentar."
+            : (e as Error).message || "No se pudo facturar.",
+        },
+      }));
+      return false;
+    }
+  }
+
+  // De UNA en UNA: cada factura tarda 30-100 s y el servidor rechaza dos a la vez
+  // sobre la misma venta. Se puede detener entre una y otra.
+  async function facturarSeleccionadas() {
+    const ids = lista.filter((v) => sel.has(v.order_id) && candado.estado(v.order_id) === "libre").map((v) => v.order_id);
+    cancelarRef.v = false;
+    setLote({ total: ids.length, hechas: 0, corriendo: true, cancelar: false });
+    for (let i = 0; i < ids.length; i++) {
+      if (cancelarRef.v) break;
+      await facturarUna(ids[i]);
+      setLote((l) => (l ? { ...l, hechas: i + 1 } : l));
+    }
+    setLote((l) => (l ? { ...l, corriendo: false } : l));
+    setSel(new Set());
+    refrescar();
+  }
+
+  async function subirMeli(orderId: string) {
+    setSubiendo(orderId);
+    try {
+      const r = await api.post<{ ok: boolean; error?: string; factura?: string }>(
+        "/api/facturacion/ventas-unificadas/resolver/subir-meli", { order_id: orderId },
+      );
+      setResultados((p) => ({ ...p, [orderId]: { ok: !!r.ok, texto: r.ok ? `PDF de ${r.factura} subido a MeLi.` : r.error || "No se pudo subir." } }));
+      refrescar();
+    } finally {
+      setSubiendo(null);
+    }
+  }
+
+  const reval = q.data?.revalidacion;
+  const ayuda = TIPOS_BANDEJA.find((t) => t.id === tipo)?.ayuda;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {TIPOS_BANDEJA.map((t) => {
+          const n = porTipo(t.id).length;
+          return (
+            <button key={t.id} type="button" onClick={() => { setTipo(t.id); setSel(new Set()); }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                tipo === t.id ? "border-accent bg-accent text-white" : n ? "border-danger/40 text-ink hover:border-accent" : "border-border text-muted"
+              }`}>
+              {t.label} <span className="ml-1 rounded-full bg-black/10 px-1.5">{n}</span>
+            </button>
+          );
+        })}
+        <label className="ml-auto flex items-center gap-1.5 text-xs text-muted">
+          <input type="checkbox" checked={verIntervenidas} onChange={(e) => setVerIntervenidas(e.target.checked)} />
+          Incluir las que ya tienen intervención pedida ({intervenidas})
+        </label>
+      </div>
+      {reval?.corriendo && (
+        <p className="text-xs text-muted">Revalidando contra MeLi y Alegra ({reval.hechas}/{reval.pendientes})… la bandeja se actualiza sola.</p>
+      )}
+      {ayuda && <p className="text-xs text-muted">{ayuda}</p>}
+
+      {tipo === "sin_facturar" && lista.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-panel px-3 py-2 text-xs">
+          <button type="button" onClick={() => setSel(sel.size === lista.length ? new Set() : new Set(lista.map((v) => v.order_id)))}
+            className="font-semibold text-accent hover:underline">
+            {sel.size === lista.length ? "Quitar selección" : `Seleccionar las ${lista.length}`}
+          </button>
+          <span className="text-muted">{sel.size} seleccionada(s)</span>
+          {lote?.corriendo ? (
+            <>
+              <span className="font-semibold text-ink">Facturando {lote.hechas}/{lote.total}…</span>
+              <button type="button" onClick={() => { cancelarRef.v = true; }} className="font-semibold text-danger hover:underline">
+                Detener después de la actual
+              </button>
+            </>
+          ) : (
+            <button type="button" disabled={!sel.size} onClick={() => void facturarSeleccionadas()}
+              className="rounded-lg bg-emerald-600 px-3 py-1 font-bold text-white disabled:opacity-40">
+              {ico("🧾")} Facturar seleccionadas ({sel.size}) — una por una
+            </button>
+          )}
+          {lote && !lote.corriendo && <span className="text-muted">Terminado: {lote.hechas} procesada(s). Revisa el resultado en cada fila.</span>}
+        </div>
+      )}
+
+      {q.isLoading && <p className="text-sm text-muted">Cargando casos…</p>}
+      {!q.isLoading && lista.length === 0 && <p className="text-sm text-muted">Nada pendiente en esta categoría.</p>}
+
+      <div className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface-panel">
+        {lista.map((v) => {
+          const res = resultados[v.order_id];
+          const vigentes = v.facturas.filter((f) => !f.notas_credito.length);
+          return (
+            <div key={v.order_id} className="grid gap-2 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  {tipo === "sin_facturar" && (
+                    <input type="checkbox" checked={sel.has(v.order_id)} disabled={lote?.corriendo || candado.estado(v.order_id) !== "libre"}
+                      onChange={(e) => setSel((p) => { const n = new Set(p); if (e.target.checked) n.add(v.order_id); else n.delete(v.order_id); return n; })} />
+                  )}
+                  <a href={v.meli_url ?? undefined} target="_blank" rel="noreferrer" className="font-mono font-semibold text-accent hover:underline">
+                    {v.pack_id} ↗
+                  </a>
+                  <span className="text-muted">{formatFecha(v.fecha)}</span>
+                  <span className="font-semibold text-ink">{pesos(v.total ?? v.venta_original?.total_pagado)}</span>
+                  {(v.ordenes_del_pack ?? 1) > 1 && <span className="text-muted">· carrito de {v.ordenes_del_pack}</span>}
+                  {vigentes.length > 0 && (
+                    <span className="text-muted">· {vigentes.map((f) => f.numero).join(", ")}{v.factura_legado ? ` + ${v.factura_legado.factura_numero} (Siigo)` : ""}</span>
+                  )}
+                </div>
+                <p className="truncate text-[11px] text-muted">
+                  {(v.venta_original?.items ?? []).map((i) => `${i.sku} ×${i.cantidad}`).join(" · ")}
+                </p>
+                {v.cruce?.resumen && tipo !== "sin_facturar" && <p className="text-[11px] text-ink">{v.cruce.resumen}</p>}
+                <PorQue venta={v} onListo={refrescar} />
+                {res && <p className={`text-[11px] ${res.ok ? "text-emerald-600" : "text-danger"}`}>{res.texto}</p>}
+              </div>
+              <div className="flex flex-wrap items-start justify-end gap-2">
+                {(tipo === "doble" || (tipo === "cancelada_nc" && vigentes.length > 0)) && (
+                  <AnularSobrantes venta={v} onListo={refrescar} />
+                )}
+                {tipo === "sin_facturar" && !lote?.corriendo && (
+                  <button type="button" onClick={() => void facturarUna(v.order_id).then(refrescar)}
+                    disabled={candado.estado(v.order_id) !== "libre"}
+                    className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 hover:bg-emerald-500/25 disabled:opacity-40">
+                    {candado.estado(v.order_id) === "libre" ? ico("🧾 Facturar") : etiquetaFacturar(candado.estado(v.order_id), "")}
+                  </button>
+                )}
+                {tipo === "subir_meli" && (
+                  <button type="button" onClick={() => void subirMeli(v.order_id)} disabled={subiendo === v.order_id}
+                    className="rounded-lg bg-accent/15 px-2.5 py-1 text-[11px] font-bold text-accent hover:bg-accent/25 disabled:opacity-40">
+                    {subiendo === v.order_id ? "Subiendo…" : "Subir PDF a MeLi"}
+                  </button>
+                )}
+                <IntervencionBoton venta={v} errorFacturar={res && !res.ok ? res.texto : undefined} onListo={refrescar} />
+                {!v.intervencion?.abierta && <RevisarBoton venta={v} onRevisado={refrescar} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Facturación → Ventas, NC y Astro Killer: fusiona lo que antes eran dos
  * paneles separados ("Astro Killer" y "Ventas y NC") en un solo lugar — cada
@@ -530,6 +1141,8 @@ function RevisarBoton({ venta, dias, onRevisado }: { venta: VentaUnificada; dias
  */
 export default function VentasAstroKillerPanel() {
   const [segmento, setSegmento] = useState<Segmento>("concretadas");
+  // La bandeja es la vista de trabajo: los casos por resolver, agrupados.
+  const [vista, setVista] = useState<"bandeja" | "ventas">("bandeja");
   // Con el volumen real de ventas MeLi de McKenna, listar 30 días implica
   // ~1.600 órdenes y puede tardar >40s en frío (sin caché) — arriesga un 504
   // de proxy/túnel (confirmado en vivo 2026-09-04). 7 días por defecto: es
@@ -547,9 +1160,8 @@ export default function VentasAstroKillerPanel() {
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [verLoading, setVerLoading] = useState<string | null>(null);
   const [verError, setVerError] = useState<string | null>(null);
-  const [generando, setGenerando] = useState(false);
-  const [generarMsg, setGenerarMsg] = useState<string | null>(null);
-  const [facturando, setFacturando] = useState<string | null>(null);
+  const [revalidandoMsg, setRevalidandoMsg] = useState<string | null>(null);
+
   const [facturarMsg, setFacturarMsg] = useState<Record<string, { ok: boolean; texto: string }>>({});
   const qc = useQueryClient();
 
@@ -585,9 +1197,12 @@ export default function VentasAstroKillerPanel() {
       ),
     staleTime: 30_000,
     enabled: modo === "historico",
+    // Mientras el servidor revalida las filas con foto vieja, se refresca solo.
+    refetchInterval: (query) => (query.state.data?.revalidacion?.corriendo ? 8_000 : false),
   });
 
   const q = modo === "vivo" ? qVivo : qHistorial;
+  const candado = useCandadoFacturar(q.dataUpdatedAt);
   const ventas = q.data?.ventas ?? [];
   const totalEnRango = q.data?.total_en_rango ?? ventas.length;
   const hayMas = totalEnRango > ventas.length;
@@ -598,7 +1213,13 @@ export default function VentasAstroKillerPanel() {
         return v.order_id.includes(q) || v.pack_id.includes(q) || (v.ordenes_ids ?? []).some((o) => o.includes(q));
       })
     : ventas;
-  const pendientesRevision = ventas.filter((v) => !v.revisado && (v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion)));
+  const requiereAccion = (v: VentaUnificada) =>
+    !v.revisado && (v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion));
+  // Lo que ya se le pidió a otra persona no se cuenta como "por revisar": ya
+  // tiene dueño. Se muestra aparte.
+  const pendientesRevision = ventas.filter((v) => requiereAccion(v) && !v.intervencion?.abierta);
+  const conIntervencion = ventas.filter((v) => requiereAccion(v) && v.intervencion?.abierta);
+  const revalidacion = modo === "historico" ? qHistorial.data?.revalidacion : undefined;
 
   // Búsqueda puntual en MeLi: la lista cargada solo trae `limite` filas del
   // rango — un ID que exista pero no esté entre esas filas daba "sin
@@ -610,7 +1231,7 @@ export default function VentasAstroKillerPanel() {
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const idBuscable = /^\d{9,17}$/.test(busqueda.trim());
   const filtradas = (resultadoBusqueda ? [resultadoBusqueda] : filtradasLocal).filter(
-    (v) => !soloPendientes || v.posible_duplicado || NEEDS_REVIEW.has(v.estado_facturacion),
+    (v) => !soloPendientes || requiereAccion(v) || Boolean(v.intervencion?.abierta),
   );
 
   // Contexto de llegada (paso de ticket → una venta; checklist → solo
@@ -623,8 +1244,10 @@ export default function VentasAstroKillerPanel() {
     if (ventasBoot.soloPendientes) {
       setSoloPendientes(true);
       setModo("historico");
+      setVista("bandeja");
     }
     if (ventasBoot.busqueda) {
+      setVista("ventas");
       setBusqueda(ventasBoot.busqueda);
       setBusquedaPendienteEnMeli(ventasBoot.busqueda);
     }
@@ -671,6 +1294,7 @@ export default function VentasAstroKillerPanel() {
   function refrescar() {
     void qc.invalidateQueries({ queryKey: ["ventas-unificadas", segmento, dias, limite] });
     void qc.invalidateQueries({ queryKey: ["ventas-historial", segmento, busqueda] });
+    void qc.invalidateQueries({ queryKey: ["ventas-bandeja"] });
   }
 
   // Incremental, no directo al máximo: con volumen real (miles de órdenes en
@@ -704,7 +1328,8 @@ export default function VentasAstroKillerPanel() {
   }
 
   async function facturarAhora(orderId: string) {
-    setFacturando(orderId);
+    if (candado.estado(orderId) !== "libre") return;
+    candado.bloquear(orderId);
     setFacturarMsg((prev) => {
       const next = { ...prev };
       delete next[orderId];
@@ -719,28 +1344,76 @@ export default function VentasAstroKillerPanel() {
         ...prev,
         [orderId]: { ok: !!res.ok, texto: res.mensaje || res.error || (res.ok ? "Factura creada." : "No se pudo facturar.") },
       }));
-      if (res.ok) refrescar();
+      candado.terminar(orderId, false);
+      refrescar();
     } catch (e) {
-      setFacturarMsg((prev) => ({ ...prev, [orderId]: { ok: false, texto: (e as Error).message || "No se pudo facturar." } }));
-    } finally {
-      setFacturando(null);
+      const cortada = esCorte(e);
+      candado.terminar(orderId, cortada);
+      setFacturarMsg((prev) => ({
+        ...prev,
+        [orderId]: {
+          ok: false,
+          texto: cortada
+            ? "Se cortó la conexión y la factura pudo haber salido. Espera 2 minutos y actualiza la ventana antes de reintentar."
+            : (e as Error).message || "No se pudo facturar.",
+        },
+      }));
     }
   }
 
-  async function generarTicketRevision() {
-    setGenerando(true);
-    setGenerarMsg(null);
+  async function revalidarAhora() {
+    setRevalidandoMsg(null);
     try {
-      const res = await api.post<{ ok: boolean; mensaje: string; casos: number }>(
-        `/api/facturacion/ventas-unificadas/generar-ticket-revision?segmento=${segmento}&dias=${dias}`,
+      const r = await api.post<{ ok: boolean; arranco: boolean; revalidacion: Revalidacion }>(
+        "/api/facturacion/ventas-unificadas/revalidar",
       );
-      setGenerarMsg(res.mensaje);
+      setRevalidandoMsg(
+        r.arranco
+          ? `Revalidando ${r.revalidacion.pendientes} venta(s) contra MeLi y Alegra…`
+          : r.revalidacion.corriendo
+            ? "Ya hay una revalidación en curso."
+            : "No hay ventas con estado viejo por revalidar.",
+      );
+      if (modo !== "historico") setModo("historico");
       refrescar();
     } catch (e) {
-      setGenerarMsg((e as Error).message || "No se pudo generar el ticket.");
-    } finally {
-      setGenerando(false);
+      setRevalidandoMsg((e as Error).message || "No se pudo revalidar.");
     }
+  }
+
+  const selectorVista = (
+    <div className="flex gap-1 rounded-lg border border-border bg-surface-panel p-1">
+      {(["bandeja", "ventas"] as const).map((v) => (
+        <button key={v} type="button" onClick={() => setVista(v)}
+          className={`rounded-md px-3 py-1.5 text-xs font-bold ${vista === v ? "bg-accent text-white" : "text-muted hover:text-ink"}`}>
+          {v === "bandeja" ? "Bandeja de resolución" : "Todas las ventas"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (vista === "bandeja") {
+    return (
+      <div className="mx-auto max-w-6xl space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink">Ventas, NC y Astro Killer — bandeja de resolución</h2>
+            <p className="mt-1 text-xs text-muted">
+              Cada venta que pide acción, con el porqué (reclamos, reembolsos, horas de emisión) y el botón que la resuelve.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectorVista}
+            <button type="button" onClick={() => void revalidarAhora()}
+              className="rounded-paper border-2 border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent hover:text-accent">
+              {ico("🔄 Revalidar pendientes")}
+            </button>
+          </div>
+        </div>
+        {revalidandoMsg && <p className="text-xs text-muted">{revalidandoMsg}</p>}
+        <BandejaResolucion />
+      </div>
+    );
   }
 
   return (
@@ -756,18 +1429,32 @@ export default function VentasAstroKillerPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {selectorVista}
           {pendientesRevision.length > 0 && (
-            <span className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold uppercase text-red-700 dark:bg-red-900/30 dark:text-red-400">
-              ⚠️ {pendientesRevision.length} caso{pendientesRevision.length !== 1 ? "s" : ""} por revisar
+            <button
+              type="button"
+              onClick={() => setSoloPendientes(true)}
+              className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-bold uppercase text-red-700 dark:bg-red-900/30 dark:text-red-400"
+              title="Ver solo las ventas que piden acción"
+            >
+              <Ico e="⚠️" /> {pendientesRevision.length} caso{pendientesRevision.length !== 1 ? "s" : ""} por revisar
+            </button>
+          )}
+          {conIntervencion.length > 0 && (
+            <span className="rounded-full bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold uppercase text-violet-600 dark:text-violet-300">
+              <Ico e="🎫" /> {conIntervencion.length} con intervención pedida
             </span>
           )}
           <button
             type="button"
-            onClick={() => void generarTicketRevision()}
-            disabled={generando || pendientesRevision.length === 0}
+            onClick={() => void revalidarAhora()}
+            disabled={Boolean(revalidacion?.corriendo)}
             className="rounded-paper border-2 border-border px-3 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:opacity-40"
+            title="Vuelve a consultar en MeLi y Alegra las ventas cuyo estado guardado puede estar viejo (sin facturar, en tránsito, en margen, posibles dobles)"
           >
-            {generando ? "Generando…" : "🎫 Generar ticket de revisión"}
+            {revalidacion?.corriendo
+              ? `Revalidando ${revalidacion.hechas}/${revalidacion.pendientes}…`
+              : ico("🔄 Revalidar pendientes")}
           </button>
           <button
             type="button"
@@ -780,7 +1467,7 @@ export default function VentasAstroKillerPanel() {
         </div>
       </div>
 
-      {generarMsg && <p className="text-xs text-muted">{generarMsg}</p>}
+      {revalidandoMsg && <p className="text-xs text-muted">{revalidandoMsg}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex gap-1 rounded-lg border border-border bg-surface-panel p-1">
@@ -929,7 +1616,10 @@ export default function VentasAstroKillerPanel() {
             label: venta.estado_facturacion,
             cls: "bg-surface text-muted",
           };
-          const necesitaRevision = !venta.revisado && (venta.posible_duplicado || NEEDS_REVIEW.has(venta.estado_facturacion));
+          const necesitaRevision = requiereAccion(venta);
+          const errorFacturar = facturarMsg[venta.order_id] && !facturarMsg[venta.order_id].ok
+            ? facturarMsg[venta.order_id].texto
+            : undefined;
 
           return (
             <div
@@ -962,10 +1652,10 @@ export default function VentasAstroKillerPanel() {
                   ) : (
                     <span className="font-mono text-sm font-semibold text-ink">{venta.order_id}</span>
                   )}
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.cls}`}>{badge.label}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${badge.cls}`}>{ico(badge.label)}</span>
                   {venta.posible_duplicado && (
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                      ⚠️ Posible doble
+                      <Ico e="⚠️" /> Posible doble
                     </span>
                   )}
                   {venta.monto_discrepancia && (
@@ -973,7 +1663,7 @@ export default function VentasAstroKillerPanel() {
                       className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase text-red-700 dark:bg-red-900/30 dark:text-red-400"
                       title="El total facturado no coincide con lo que pagó el cliente"
                     >
-                      ⚠️ Monto no coincide
+                      <Ico e="⚠️" /> Monto no coincide
                     </span>
                   )}
                   {(venta.ordenes_del_pack ?? 1) > 1 && (
@@ -981,7 +1671,7 @@ export default function VentasAstroKillerPanel() {
                       className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-bold text-muted"
                       title="Carrito con varias órdenes MeLi: la factura debe cubrir todos los productos"
                     >
-                      🛒 Pack de {venta.ordenes_del_pack}
+                      <Ico e="🛒" /> Pack de {venta.ordenes_del_pack}
                     </span>
                   )}
                   <RefrescarBoton orderId={venta.order_id} actualizadoEn={venta.cache_actualizado_en} onListo={refrescar} />
@@ -989,7 +1679,12 @@ export default function VentasAstroKillerPanel() {
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted">{formatFecha(venta.fecha)}</span>
                   <span className="font-semibold text-ink">{pesos(venta.total ?? venta.venta_original?.total_pagado)}</span>
-                  {necesitaRevision && <RevisarBoton venta={venta} dias={dias} onRevisado={refrescar} />}
+                  {/* En toda venta: el problema puede no estar detectado por
+                      las reglas (NIT equivocado, cliente que pide corrección). */}
+                  {(venta.es_meli || necesitaRevision || venta.intervencion) && (
+                    <IntervencionBoton venta={venta} errorFacturar={errorFacturar} onListo={refrescar} />
+                  )}
+                  {necesitaRevision && !venta.intervencion?.abierta && <RevisarBoton venta={venta} onRevisado={refrescar} />}
                 </div>
               </div>
 
@@ -1056,12 +1751,12 @@ export default function VentasAstroKillerPanel() {
                           <button
                             type="button"
                             onClick={() => void facturarAhora(venta.order_id)}
-                            disabled={facturando === venta.order_id}
+                            disabled={candado.estado(venta.order_id) !== "libre"}
                             className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40 dark:text-emerald-400"
                             title={`Emite UNA factura electrónica en Alegra con todos los productos del carrito (${venta.venta_original?.items.length ?? "?"}) por ${pesos(venta.total ?? venta.venta_original?.total_pagado)}`}
                           >
-                            {facturando === venta.order_id
-                              ? "Facturando…"
+                            {candado.estado(venta.order_id) !== "libre"
+                              ? etiquetaFacturar(candado.estado(venta.order_id), "")
                               : `🧾 Facturar ahora${(venta.ordenes_del_pack ?? 1) > 1 ? ` (${venta.ordenes_del_pack} productos, una factura)` : ""}`}
                           </button>
                           {facturarMsg[venta.order_id] && (

@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function fmtTiempo(seg: number): string {
@@ -373,7 +374,7 @@ export function AccionAlarmaRecordatorio({
           onChange={(e) => setActiva(e.target.checked)}
           className="rounded border-border accent-accent"
         />
-        🔔 Recordatorio
+        <Ico e="🔔" /> Recordatorio
       </label>
       {activa && (
         <>
@@ -469,7 +470,7 @@ export function CronometroPanel({
               className={`${btn} border-sky-600 bg-sky-600 text-white disabled:opacity-50`}
               title="Guarda el tiempo acumulado sin cerrar el cronómetro"
             >
-              💾 {compact ? "Guardar" : "Guardar tiempo"}
+              <Ico e="💾" /> {compact ? "Guardar" : "Guardar tiempo"}
             </button>
           )}
           <button type="button" onClick={onReiniciar} className={`${btn} border-border text-muted`}>
@@ -559,7 +560,7 @@ export function CorridaCronometroBlock({
               className={`${btn} border-sky-600 bg-sky-600 text-white disabled:opacity-50`}
               title="Guarda el tiempo acumulado sin cerrar el cronómetro"
             >
-              💾 {compact ? "Guardar" : "Guardar tiempo"}
+              <Ico e="💾" /> {compact ? "Guardar" : "Guardar tiempo"}
             </button>
           )}
           <button type="button" onClick={onFinalizar} className={`${btn} border-emerald-500 bg-emerald-500 text-white`}>

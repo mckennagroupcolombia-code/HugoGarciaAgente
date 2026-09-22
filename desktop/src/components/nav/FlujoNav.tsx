@@ -1,3 +1,4 @@
+import { PanelIcon } from "../../icons";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../api/client";
@@ -147,8 +148,9 @@ export default function FlujoNav() {
         )}
       </div>
 
-      {/* Con la Agenda abierta y ninguna etapa desplegada: solo las vistas de la Agenda. */}
-      {enAgenda && !etapa && (
+      {/* Con la Agenda abierta (o en Colaboradores, que vive dentro de ella) y ninguna
+          etapa desplegada: solo las vistas de la Agenda — así se ve dónde estás y se vuelve. */}
+      {(enAgenda || panelNorm === "colaboradores" || panelNorm === "juegos") && !etapa && (
         <div className="mck-flujo-vistas flex min-w-0 items-center gap-1.5">
           <InicioNavTabs soloVistas />
         </div>
@@ -209,7 +211,7 @@ export default function FlujoNav() {
                             : `${esAvanzado(p.panel) ? "border-dashed" : ""} border-border bg-surface-input text-ink-secondary hover:border-accent/50 hover:text-ink`
                         }`}
                       >
-                        <span aria-hidden="true">{inf?.emoji}</span>
+                        <PanelIcon panel={p.panel} size={14} bubble={false} active={activo} className="shrink-0" />
                         {inf?.label ?? p.panel}
                         {n > 0 && <span className={`rounded-full px-1.5 text-[10px] tabular-nums ${activo ? "bg-white/25 text-white" : "bg-accent-rose text-white"}`}>{n}</span>}
                       </button>

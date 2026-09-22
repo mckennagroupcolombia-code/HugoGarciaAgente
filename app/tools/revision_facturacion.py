@@ -78,7 +78,10 @@ def _pasos_ticket_revision(*, solo_completados: bool) -> dict[str, dict]:
             oid = _order_id_desde_descripcion(r["descripcion"])
             if not oid or oid in out:
                 continue
-            out[oid] = {"ticket_id": r["ticket_id"], "paso_id": r["paso_id"]}
+            m_tipo = re.match(r"Orden \S+ — ([a-z_]+)", r["descripcion"] or "")
+            # De qué problema era el paso: un «hecho» sobre «sin_facturar» no
+            # dice nada de una doble factura que apareció después.
+            out[oid] = {"ticket_id": r["ticket_id"], "paso_id": r["paso_id"], "tipo": m_tipo.group(1) if m_tipo else None}
             if solo_completados:
                 out[oid]["notas"] = r["notas"]
                 out[oid]["completado_en"] = r["completado_en"]
@@ -95,8 +98,20 @@ def _pasos_ticket_revision(*, solo_completados: bool) -> dict[str, dict]:
 
 def revisado_map_facturacion() -> dict[str, dict]:
     """order_id -> {"ticket_id","paso_id","notas","completado_en"} ya marcados
-    revisados. Consumida por `app/services/facturacion_ventas_unificado.py`."""
-    return _pasos_ticket_revision(solo_completados=True)
+    revisados. Consumida por `app/services/facturacion_ventas_unificado.py`.
+
+    Junta las dos fuentes: los pasos completados de los tickets globales de
+    antes y las revisiones por venta (`facturacion_ventas_cache.revisiones_venta`),
+    que es como se marca ahora — sin crear ningún ticket."""
+    out = _pasos_ticket_revision(solo_completados=True)
+    try:
+        from app.services.facturacion_ventas_cache import revisiones_map
+
+        for oid, d in revisiones_map().items():
+            out.setdefault(oid, {"ticket_id": None, "paso_id": None, **d})
+    except Exception:
+        pass
+    return out
 
 
 def pasos_abiertos_facturacion() -> dict[str, dict]:
@@ -321,3 +336,140 @@ def sugerir_resolucion(order_id: str, tipo: str, contexto: dict[str, Any] | None
         return {"ok": True, "sugerencia": texto}
     except Exception as e:
         return {"ok": False, "motivo": f"Error llamando al modelo: {e}"}
+
+
+# ── Intervención por venta ────────────────────────────────────────────────
+# Reemplaza el ticket GLOBAL "Revisión facturación MeLi — <fecha>" (un
+# checklist con decenas de ventas, la mayoría ya resueltas por otra vía) por
+# UNA solicitud por venta: el operador elige la venta que tiene el problema y
+# a quién le pide que lo resuelva. El ticket lleva el contexto de esa venta y
+# el pack_id en el título, que es como se vuelve a encontrar desde el panel.
+
+MARCADOR_INTERVENCION = "Intervención facturación MeLi"
+_RE_PACK_TITULO = re.compile(re.escape(MARCADOR_INTERVENCION) + r" · (\d+)")
+
+ETIQUETA_PROBLEMA = {
+    "posible_duplicado": "doble facturación",
+    "facturacion_parcial": "factura incompleta",
+    "facturada_pendiente_subir_meli": "factura sin subir a MeLi",
+    "sin_facturar": "sin facturar",
+    "cancelada_pendiente_nc": "cancelada sin nota crédito",
+    "error_al_facturar": "error al facturar",
+    "otro": "revisar facturación",
+}
+
+
+def intervenciones_map() -> dict[str, dict]:
+    """pack_id -> la intervención más reciente de esa venta
+    {ticket_id, numero, estado, asignado_a, asignado_nombre, creado_en, abierta}."""
+    out: dict[str, dict] = {}
+    db = None
+    try:
+        db = sqlite3.connect(_db_path())
+        db.row_factory = sqlite3.Row
+        rows = db.execute(
+            """
+            SELECT t.id, t.numero, t.titulo, t.estado, t.asignado_a, t.creado_en,
+                   u.nombre AS asignado_nombre
+            FROM tickets t LEFT JOIN usuarios u ON u.id = t.asignado_a
+            WHERE t.titulo LIKE ?
+            ORDER BY t.id ASC
+            """,
+            (f"{MARCADOR_INTERVENCION} · %",),
+        ).fetchall()
+        for r in rows:
+            m = _RE_PACK_TITULO.match(r["titulo"] or "")
+            if not m:
+                continue
+            out[m.group(1)] = {
+                "ticket_id": r["id"],
+                "numero": r["numero"],
+                "estado": r["estado"],
+                "asignado_a": r["asignado_a"],
+                "asignado_nombre": r["asignado_nombre"],
+                "creado_en": r["creado_en"],
+                "abierta": r["estado"] not in ("resuelto", "cerrado", "cancelado", "rechazado"),
+            }
+    except Exception:
+        pass
+    finally:
+        if db is not None:
+            try:
+                db.close()
+            except Exception:
+                pass
+    return out
+
+
+def _contexto_venta(venta: dict) -> str:
+    """Lo que necesita saber quien recibe la solicitud, sin abrir el panel."""
+    lineas = [
+        f"Venta MeLi (pack): {venta.get('pack_id')}",
+        f"Órdenes: {', '.join(venta.get('ordenes_ids') or [venta.get('order_id') or ''])}",
+        f"Fecha: {(venta.get('fecha') or '')[:10]} · Total pagado: ${float(venta.get('total') or 0):,.0f}",
+        f"Estado en el panel: {venta.get('estado_facturacion') or '—'}",
+    ]
+    for f in venta.get("facturas") or []:
+        nc = f.get("notas_credito") or []
+        lineas.append(
+            f"Factura Alegra {f.get('numero') or f.get('factura_id')} ${float(f.get('total') or 0):,.0f}"
+            + (f" — anulada con {', '.join(str(n.get('numero') or n.get('id')) for n in nc)}" if nc else " — vigente")
+        )
+    leg = venta.get("factura_legado") or {}
+    if leg:
+        lineas.append(
+            f"Factura {leg.get('integracion') or 'Siigo'}: {leg.get('factura_numero') or leg.get('factura_id')} "
+            f"${float(leg.get('total') or 0):,.0f} ({leg.get('factura_fecha') or '—'})"
+        )
+    cruce = venta.get("cruce") or {}
+    if cruce.get("resumen"):
+        lineas.append(f"Cruce comprado vs facturado: {cruce['resumen']}")
+    items = (venta.get("venta_original") or {}).get("items") or []
+    if items:
+        lineas.append("Productos: " + "; ".join(
+            f"{i.get('sku')} x{float(i.get('cantidad') or 0):g}" for i in items[:8]
+        ))
+    if venta.get("meli_url"):
+        lineas.append(f"MeLi: {venta['meli_url']}")
+    return "\n".join(lineas)
+
+
+def pedir_intervencion(
+    venta: dict, *, asignado_a: int, creador_id: int, problema: str, mensaje: str = "",
+) -> tuple[bool, dict | str]:
+    """Crea UNA solicitud en el Centro de Mando para UNA venta, asignada a
+    quien el operador eligió. Si esa venta ya tiene una intervención abierta,
+    no crea otra: le agrega el mensaje como comentario y la devuelve."""
+    from app.services import tickets_db as _tdb
+
+    pack_id = str(venta.get("pack_id") or venta.get("order_id") or "").strip()
+    if not pack_id:
+        return False, "La venta no tiene pack_id."
+    etiqueta = ETIQUETA_PROBLEMA.get(problema) or ETIQUETA_PROBLEMA["otro"]
+    mensaje = (mensaje or "").strip()
+
+    previa = intervenciones_map().get(pack_id)
+    if previa and previa.get("abierta"):
+        if mensaje:
+            _tdb.agregar_comentario(previa["ticket_id"], creador_id, mensaje, es_interno=False)
+        return True, {**previa, "ya_existia": True}
+
+    descripcion = (
+        (f"{mensaje}\n\n" if mensaje else "")
+        + f"Problema: {etiqueta}.\n\n"
+        + _contexto_venta(venta)
+        + "\n\nSe resuelve desde Facturación → Ventas (buscar el pack). Cuando quede resuelto, "
+        "marca este ticket como resuelto: el panel lo muestra en la venta."
+    )
+    data = {
+        "tipo": "solicitud",
+        "titulo": f"{MARCADOR_INTERVENCION} · {pack_id} · {etiqueta}",
+        "categoria": "contabilidad",
+        "descripcion": descripcion,
+        "prioridad": "alta",
+        "asignado_a": int(asignado_a),
+    }
+    ticket, err = _tdb.crear_ticket(data, int(creador_id), None)
+    if err:
+        return False, f"No se pudo crear la solicitud: {err}"
+    return True, (intervenciones_map().get(pack_id) or {"ticket_id": ticket.get("id"), "numero": ticket.get("numero")})

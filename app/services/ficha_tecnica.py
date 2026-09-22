@@ -1316,6 +1316,7 @@ def generar_pdf_html(
     FICHAS_PDF_DIR.mkdir(parents=True, exist_ok=True)
 
     ctx = _contexto_html(datos, cabezote_id)
+    limpiar_contextos_documento(ctx, None, None)
     titulo = ctx["titulo"]
     nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
     destino = salida or (FICHAS_PDF_DIR / nombre_pdf)
@@ -1428,6 +1429,7 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
         "fecha_emision": (lote.get("fecha_emision") or "").strip(),
         "parametros": filas,
+        "composicion": [f for f in _filas_tabla_n(datos_coa.get("composicion"), 3) if any(c.strip() for c in f)],
         "metales": _filas_tabla_n(datos_coa.get("metales"), 4),
         "microbiologia": _filas_tabla_n(datos_coa.get("microbiologia"), 4),
         "dictamen": (datos_coa.get("dictamen") or "").strip(),
@@ -1459,11 +1461,171 @@ _COA_CAMPOS_EXCLUSIVOS = (
 )
 
 
+
+# ── Nada sin diligenciar en el PDF (21-sep-2026) ──────────────────────────────
+# Una casilla vacía — o con un relleno como «-», «—», «N/A», «— completar —» —
+# no se imprime: ni la fila sin valores, ni la columna vacía en toda la tabla,
+# ni la sección que queda sin contenido. Se aplica a los contextos ya armados
+# (FT, COA, SDS) justo antes de renderizar, en el PDF y en la web.
+
+_RE_RELLENO = re.compile(
+    r"^\s*(?:[-—–_.·]+|n\s*/?\s*a|n\.?d\.?|none|null|s/?d|sin\s+dato|—?\s*completar\s*—?|por\s+completar)\s*$",
+    re.I,
+)
+
+
+def es_relleno(valor) -> bool:
+    """True si el valor está vacío o es solo un relleno."""
+    if valor is None:
+        return True
+    texto = str(valor).strip()
+    return not texto or bool(_RE_RELLENO.match(texto))
+
+
+def _celda(valor) -> str:
+    return "" if es_relleno(valor) else str(valor).strip()
+
+
+def limpiar_tabla(filas, n: int, *, rotulo_basta: bool = False) -> tuple[list[list[str]], list[int]]:
+    """(filas, columnas visibles). La primera columna es el rótulo: una fila sin
+    ningún valor después del rótulo se quita, y una columna vacía en todas las
+    filas no se dibuja. `rotulo_basta`: el rótulo solo ya es dato (un componente
+    sin porcentaje sigue siendo un componente)."""
+    limpias: list[list[str]] = []
+    for fila in filas or []:
+        celdas = [_celda(c) for c in list(fila)[:n]]
+        celdas += [""] * (n - len(celdas))
+        valores = celdas if (rotulo_basta or n == 1) else celdas[1:]
+        if any(valores):
+            limpias.append(celdas)
+    cols = [0] + [i for i in range(1, n) if any(f[i] for f in limpias)]
+    return limpias, cols
+
+
+def celdas_sin_huecos(filas: list[list[str]], cols: list[int]) -> list[list[tuple[str, int, int]]]:
+    """Cada fila como [(texto, colspan, columna)]: una celda vacía que queda en
+    una fila con datos se une a la celda con dato de su izquierda, para que la
+    tabla no muestre huecos (menta: «Calidad | — | 100 % puro»)."""
+    salida = []
+    for fila in filas:
+        celdas: list[list] = []
+        for i in cols:
+            texto = fila[i] if i < len(fila) else ""
+            if texto or not celdas:
+                celdas.append([texto, 1, i])
+            else:
+                celdas[-1][1] += 1
+        salida.append([tuple(c) for c in celdas])
+    return salida
+
+
+def _limpiar_textos(ctx: dict) -> None:
+    for clave, valor in list(ctx.items()):
+        if isinstance(valor, str) and es_relleno(valor):
+            ctx[clave] = ""
+
+
+def limpiar_contextos_documento(ft_ctx: dict | None, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    """Quita del documento todo lo que no está diligenciado (ver arriba)."""
+    if ft_ctx:
+        _limpiar_textos(ft_ctx)
+        ft_ctx["propiedades"] = [tuple(f) for f in limpiar_tabla(ft_ctx.get("propiedades"), 2)[0]]
+        comp, cols = limpiar_tabla(ft_ctx.get("composicion"), 2, rotulo_basta=True)
+        ft_ctx["composicion"] = [tuple(f) for f in comp]
+        ft_ctx["composicion_cols"] = cols
+        ft_ctx["composicion_celdas"] = celdas_sin_huecos(comp, cols)
+        ft_ctx["marco_normativo"] = [
+            (_celda(c), _celda(d)) for c, d in (ft_ctx.get("marco_normativo") or []) if _celda(d)
+        ]
+        for clave in ("aplicaciones", "recomendaciones"):
+            if isinstance(ft_ctx.get(clave), list):
+                ft_ctx[clave] = [x for x in ft_ctx[clave] if not es_relleno(x)]
+        if isinstance(ft_ctx.get("propiedades_extra"), list):
+            ft_ctx["propiedades_extra"] = [
+                (_celda(a), _celda(b)) for a, b in ft_ctx["propiedades_extra"] if _celda(a) or _celda(b)
+            ]
+    if coa_ctx:
+        _limpiar_textos(coa_ctx)
+        for clave, n in (("parametros", 3), ("metales", 4), ("microbiologia", 4), ("composicion", 3)):
+            filas, cols = limpiar_tabla(coa_ctx.get(clave), n, rotulo_basta=clave == "composicion")
+            coa_ctx[clave] = filas
+            coa_ctx[f"{clave}_cols"] = cols
+            coa_ctx[f"{clave}_celdas"] = celdas_sin_huecos(filas, cols)
+        coa_ctx["composicion_con_cas"] = 2 in coa_ctx["composicion_cols"]
+        # Sin el nombre comercial: el PDF no lo imprime en esta sección (va en el título).
+        coa_ctx["tiene_identificacion"] = any(coa_ctx.get(k) for k in (
+            "inci", "cas", "formula", "einces", "concentracion", "grado", "presentacion", "incluye",
+        ))
+    if sds_ctx:
+        _limpiar_textos(sds_ctx)
+        for clave in ("propiedades", "propiedades_propias"):
+            sds_ctx[clave] = [tuple(f) for f in limpiar_tabla(sds_ctx.get(clave), 2)[0]]
+        pel = sds_ctx.get("peligros") or {}
+        if pel:
+            pel["frases_h"] = [(c, t) for c, t in pel.get("frases_h") or [] if c or not es_relleno(t)]
+            pel["frases_p"] = [
+                (g, [(c, t) for c, t in frases if c or not es_relleno(t)]) for g, frases in pel.get("frases_p") or []
+            ]
+            pel["frases_p"] = [(g, fr) for g, fr in pel["frases_p"] if fr]
+            pel["tiene_contenido"] = bool(
+                pel.get("clasificacion") or pel.get("senal") or pel.get("pictogramas")
+                or pel.get("frases_h") or pel.get("frases_p")
+            )
+
+def sds_con_recomendaciones_ft(datos_sds: dict, ft_ctx: dict) -> dict:
+    """SDS vieja sin recomendaciones propias + FT con recomendaciones GHS → se las pasa."""
+    recs_ft = list(ft_ctx.get("recomendaciones") or [])
+    if not recs_ft or not isinstance(datos_sds, dict) or datos_sds.get("esquema") == 2:
+        return datos_sds
+    pel = datos_sds.get("peligros") if isinstance(datos_sds.get("peligros"), dict) else {}
+    if datos_sds.get("recomendaciones") or pel.get("recomendaciones"):
+        return datos_sds
+    return {**datos_sds, "recomendaciones": recs_ft, "_recomendaciones_de_ft": True}
+
+
+def preparar_sds_documento(ft_ctx: dict, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    from app.services.sds_estructura import preparar_sds_documento as _preparar
+
+    _preparar(ft_ctx, coa_ctx, sds_ctx)
+
+
+def mover_composicion_al_coa(ft_ctx: dict, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    """La tabla de composición se imprime en el COA (decisión 21-sep-2026).
+
+    El formulario la guardaba en la SDS (`_sds.composicion`) y la FT tenía la
+    suya (`composicion`); los documentos viejos siguen así. Si hay COA, la
+    primera que exista — la del COA, la de la SDS o la de la FT — pasa al COA
+    y se quita de las otras dos secciones para que no salga repetida. Sin COA,
+    la de la SDS pasa a la FT: la SDS no lleva sección de composición."""
+    if not coa_ctx:
+        # La SDS ya no imprime composición: sin COA, la de la SDS pasa a la FT.
+        if sds_ctx and sds_ctx.get("composicion") and not ft_ctx.get("composicion"):
+            ft_ctx["composicion"] = [
+                (f[0], f[1] if len(f) > 1 else "") for f in sds_ctx["composicion"]
+                if any((c or "").strip() for c in f)
+            ]
+        if sds_ctx:
+            sds_ctx["composicion"] = []
+        return
+    filas = list(coa_ctx.get("composicion") or [])
+    if not filas and sds_ctx:
+        filas = [list(f) for f in (sds_ctx.get("composicion") or []) if any((c or "").strip() for c in f)]
+    if not filas:
+        filas = [[c, v, ""] for c, v in (ft_ctx.get("composicion") or [])]
+    coa_ctx["composicion"] = filas
+    coa_ctx["composicion_con_cas"] = any(len(f) > 2 and (f[2] or "").strip() for f in filas)
+    ft_ctx["composicion"] = []
+    if sds_ctx:
+        # La SDS impresa sola (seccion_sola='sds') sí la trae, desde el COA.
+        sds_ctx["composicion"] = []
+        sds_ctx["composicion_coa"] = filas
+
+
 def _coa_diligenciado(coa_ctx: dict) -> bool:
     """True si el COA trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((coa_ctx.get(campo) or "").strip() for campo in _COA_CAMPOS_EXCLUSIVOS):
         return True
-    for clave in ("parametros", "metales", "microbiologia"):
+    for clave in ("parametros", "composicion", "metales", "microbiologia"):
         for fila in coa_ctx.get(clave) or []:
             if any((celda or "").strip() for celda in fila):
                 return True
@@ -1487,7 +1649,18 @@ def _con_firma_default(coa_ctx: dict) -> dict:
 
 
 def _contexto_sds(datos_sds: dict) -> dict:
-    """Aplana los datos del formulario SDS para el template HTML combinado."""
+    """Aplana los datos del formulario SDS para el template HTML combinado.
+
+    Cualquier SDS se lee en el esquema 2 (`sds_estructura.normalizar_sds`):
+    peligros estructurados y sin el bloque de «recomendaciones» que los repetía."""
+    from app.services.sds_estructura import normalizar_sds, peligros_para_documento
+
+    # Una SDS vieja cuyo único contenido eran recomendaciones (texto de la FT)
+    # queda vacía al normalizar; se sigue considerando diligenciada para no
+    # despublicar el documento de la web por el cambio de formato.
+    contenido_previo = bool(_lineas_recomendaciones_sds(datos_sds or {}))
+    recs_de_ft = bool((datos_sds or {}).get("_recomendaciones_de_ft"))
+    datos_sds, _avisos = normalizar_sds(datos_sds)
     ident = (datos_sds.get("identificacion") or {})
     pel = (datos_sds.get("peligros") or {})
     man = (datos_sds.get("manipulacion") or {})
@@ -1548,13 +1721,14 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "usos": (ident.get("usos") or "").strip(),
         "telefono": (ident.get("telefono_emergencia") or "").strip(),
         "clasificacion": (pel.get("clasificacion") or "").strip(),
-        "pictogramas": (pel.get("pictogramas") or "").strip(),
+        "peligros": peligros_para_documento(datos_sds),
+        "contenido_previo": contenido_previo,
+        "contenido_previo_es_de_ft": contenido_previo and recs_de_ft,
         "composicion": _filas3(datos_sds.get("composicion")),
         "almacenamiento": (man.get("almacenamiento") or "").strip(),
         "propiedades": _filas2(datos_sds.get("propiedades")),
         "normativa": (reg.get("normativa") or "").strip(),
         "observaciones": (reg.get("observaciones") or "").strip(),
-        "recomendaciones": _lineas_recomendaciones_sds(datos_sds),
         # Secciones 5,6,8,10,11,12,13,14,16 (GHS 16 secciones) — opcionales,
         # solo se muestran si vienen diligenciadas para ese producto.
         "incendios": (datos_sds.get("incendios") or "").strip(),
@@ -1596,18 +1770,23 @@ def _lineas_recomendaciones_sds(datos_sds: dict) -> list[str]:
 
 
 _SDS_CAMPOS_EXCLUSIVOS = (
-    "usos", "telefono", "clasificacion", "pictogramas",
+    "usos", "telefono", "clasificacion",
     "almacenamiento", "normativa", "observaciones",
     "incendios", "vertidos", "exposicion", "estabilidad", "toxicologia",
     "ecologia", "eliminacion", "transporte", "otra_info",
 )
 
 
-def _sds_diligenciado(sds_ctx: dict) -> bool:
+def _sds_diligenciado(sds_ctx: dict, *, contar_recomendaciones_ft: bool = True) -> bool:
     """True si el SDS trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((sds_ctx.get(campo) or "").strip() for campo in _SDS_CAMPOS_EXCLUSIVOS):
         return True
-    if any((linea or "").strip() for linea in (sds_ctx.get("recomendaciones") or [])):
+    if sds_ctx.get("contenido_previo") and (
+        contar_recomendaciones_ft or not sds_ctx.get("contenido_previo_es_de_ft")
+    ):
+        return True
+    pel = sds_ctx.get("peligros") or {}
+    if pel.get("clasificacion") or pel.get("pictogramas") or pel.get("frases_h") or pel.get("frases_p") or pel.get("senal"):
         return True
     for clave in ("composicion", "propiedades"):
         for fila in sds_ctx.get(clave) or []:
@@ -1649,19 +1828,19 @@ def generar_pdf_completo(
         coa_ctx = None
     elif coa_ctx and not borrador:
         coa_ctx = _con_firma_default(coa_ctx)
-    sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
-
-    # GHS/SGA pertenece a SDS: migrar recomendaciones históricas guardadas en FT
-    recs_ft = list(ft_ctx.get("recomendaciones") or [])
+    # GHS/SGA pertenece a SDS: las recomendaciones históricas guardadas en la FT
+    # entran a la SDS antes de normalizarla, para repartirse en su sección.
+    # Solo si el documento ya tiene una SDS propia: crear una para alojarlas
+    # producía una hoja de seguridad sin clasificación GHS.
+    sds_ctx = _contexto_sds(sds_con_recomendaciones_ft(datos_sds, ft_ctx)) if datos_sds else None
     if sds_ctx is not None:
-        # Solo se mueven si el documento ya tiene una SDS propia. Crear una SDS
-        # para alojarlas producia una hoja de seguridad sin clasificacion GHS.
         ft_ctx["recomendaciones"] = []
-        if recs_ft and not (sds_ctx.get("recomendaciones") or []):
-            sds_ctx["recomendaciones"] = recs_ft
 
     if sds_ctx and not _sds_diligenciado(sds_ctx):
         sds_ctx = None
+    mover_composicion_al_coa(ft_ctx, coa_ctx, sds_ctx)
+    preparar_sds_documento(ft_ctx, coa_ctx, sds_ctx)
+    limpiar_contextos_documento(ft_ctx, coa_ctx, sds_ctx)
 
     from app.services.formula_molecular import formula_a_html_sub
 

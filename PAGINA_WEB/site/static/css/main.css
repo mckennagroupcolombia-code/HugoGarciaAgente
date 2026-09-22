@@ -3779,6 +3779,20 @@ body.tema-pureza .producto-page .btn-icon-only.btn-primary:hover {
   padding: 6px 8px;
 }
 .doc-protocol .cod-verif b { color: var(--doc-accent); }
+/* SDS esquema 2: remisiones, pictogramas y frases H/P */
+.doc-protocol .sds-ref { border: 1px solid var(--doc-accent); border-top: 0; color: #56656b; font-size: 13px; font-style: italic; margin: 0; padding: 6px 10px; }
+.doc-protocol .sds-ref a { color: var(--doc-accent); }
+.doc-protocol .sds-pictos { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0 4px; }
+.doc-protocol .sds-picto { margin: 0; text-align: center; width: 96px; }
+.doc-protocol .sds-picto img { height: 72px; width: 72px; }
+.doc-protocol .sds-picto figcaption { color: #56656b; font-size: 11px; line-height: 1.25; }
+.doc-protocol .sds-senal { letter-spacing: 0.08em; }
+.doc-protocol .sds-senal-peligro { color: #b3261e; }
+.doc-protocol .sds-senal-atencion { color: #8a5a00; }
+.doc-protocol .sds-frases-tit { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; margin: 12px 0 4px; text-transform: uppercase; }
+.doc-protocol table.sds-frases td { vertical-align: top; }
+.doc-protocol table.sds-frases td.sds-cod { font-family: ui-monospace, monospace; white-space: nowrap; width: 120px; }
+.doc-protocol table.sds-frases td.sds-grupo { color: var(--doc-accent); font-size: 11px; font-weight: 700; text-transform: uppercase; }
 .doc-protocol-foot {
   color: #888;
   font-size: 12px;

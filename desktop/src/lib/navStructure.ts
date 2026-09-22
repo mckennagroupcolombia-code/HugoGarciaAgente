@@ -47,6 +47,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
       { panel: "mapa-sistema", tier: "core" },
+      { panel: "colaboradores", tier: "core" },
+      { panel: "juegos", tier: "core" },
     ],
   },
   {

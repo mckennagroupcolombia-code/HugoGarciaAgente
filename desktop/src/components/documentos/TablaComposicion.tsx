@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ClipboardEvent, type ReactNode } from "react";
+import { separarComposicion } from "../../lib/composicionPegada";
 import { Icon } from "../../icons";
 
 type FilaComposicion = { componente: string; porcentaje: string; resto: string };
@@ -7,17 +8,21 @@ const FILA_VACIA: FilaComposicion = { componente: "", porcentaje: "", resto: "" 
 
 /** El valor viaja como texto `componente|porcentaje|CAS` por línea (el mismo
  *  que usan la IA, el escáner y `filasTresDesdeTexto`). La tabla solo edita las
- *  dos primeras columnas; la tercera (CAS del componente) se conserva tal cual. */
+ *  dos primeras columnas; la tercera (CAS del componente) se conserva tal cual.
+ *  No recorta espacios: se parsea en cada tecla y recortar se comía el espacio
+ *  entre palabras («Ácido » → «Ácido»). `filasTresDesdeTexto` limpia al guardar. */
 function parsear(texto: string): FilaComposicion[] {
   return texto
     .split("\n")
-    .filter((l) => l.trim())
+    // Solo se descarta la línea vacía de verdad: una fila recién agregada con «+» viaja como
+    // «||» y tiene que sobrevivir hasta que se escriba en ella (filasTresDesdeTexto la limpia al guardar).
+    .filter((l) => l.length > 0)
     .map((l) => {
       const p = l.split("|");
       return {
-        componente: (p[0] ?? "").trim(),
-        porcentaje: (p[1] ?? "").trim(),
-        resto: p.slice(2).join("|").trim(),
+        componente: p[0] ?? "",
+        porcentaje: p[1] ?? "",
+        resto: p.slice(2).join("|"),
       };
     });
 }
@@ -44,7 +49,7 @@ export function TablaComposicion({
 }) {
   const filas = parsear(value);
   const filasTabla = filas.length ? filas : [FILA_VACIA];
-  const tieneDatos = filas.some((f) => f.componente || f.porcentaje);
+  const tieneDatos = filas.some((f) => f.componente.trim() || f.porcentaje.trim());
 
   const actualizar = (i: number, campo: "componente" | "porcentaje", v: string) => {
     // "|" y el salto de línea son los separadores del formato.
@@ -52,6 +57,21 @@ export function TablaComposicion({
     onChange(serializar(filasTabla.map((f, idx) => (idx === i ? { ...f, [campo]: limpio } : f))));
   };
   const agregar = () => onChange(serializar([...filasTabla, FILA_VACIA]));
+
+  /** Pegar una lista de componentes (de un COA, Excel o una IA) la reparte en filas. */
+  const [aviso, setAviso] = useState<string | null>(null);
+  const alPegar = (i: number, ev: ClipboardEvent<HTMLInputElement>) => {
+    const nuevas = separarComposicion(ev.clipboardData.getData("text"));
+    if (!nuevas.length) return; // texto normal: se pega como siempre
+    ev.preventDefault();
+    const filas = nuevas.map((f) => ({ componente: f.componente, porcentaje: f.porcentaje, resto: f.cas }));
+    const actual = filasTabla[i];
+    const vacia = !actual.componente.trim() && !actual.porcentaje.trim();
+    const antes = filasTabla.slice(0, vacia ? i : i + 1);
+    const despues = filasTabla.slice(i + 1);
+    onChange(serializar([...antes, ...filas, ...despues]));
+    setAviso(`Se separaron ${filas.length} componente${filas.length === 1 ? "" : "s"}. Revise que cada nombre y porcentaje haya quedado en su fila.`);
+  };
   const quitar = (i: number) => {
     const next = filasTabla.filter((_, idx) => idx !== i);
     onChange(next.length ? serializar(next) : "");
@@ -92,7 +112,8 @@ export function TablaComposicion({
                   <input
                     value={fila.componente}
                     onChange={(e) => actualizar(i, "componente", e.target.value)}
-                    placeholder="Ej. Linalool"
+                    onPaste={(e) => alPegar(i, e)}
+                    placeholder={i === 0 ? "Ej. Linalool — o pegue aquí la lista completa" : "Ej. Linalool"}
                     aria-label={`Componente ${i + 1}`}
                     className={celda}
                   />
@@ -121,6 +142,12 @@ export function TablaComposicion({
           </tbody>
         </table>
       </div>
+      {aviso && (
+        <p className="mt-1.5 text-[11px] text-accent">
+          {aviso}{" "}
+          <button type="button" onClick={() => setAviso(null)} className="text-muted underline">ocultar</button>
+        </p>
+      )}
       <button
         type="button"
         onClick={agregar}

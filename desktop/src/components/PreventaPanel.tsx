@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState } from "react";
 import { usePreventa, usePreventaMetricas, useResponderPreventa } from "../hooks/usePreventa";
 import type { PreventaConversionBloque, PreventaMetricas } from "../hooks/usePreventa";
@@ -258,7 +259,7 @@ export default function PreventaPanel() {
     <div className="mx-auto max-w-6xl space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-extrabold text-ink">
-          🛒 Preventa MeLi
+          <Ico e="🛒" /> Preventa MeLi
           {data && (
             <span className="ml-2 text-lg font-normal text-muted">
               ({data.total} pendiente{data.total !== 1 ? "s" : ""})

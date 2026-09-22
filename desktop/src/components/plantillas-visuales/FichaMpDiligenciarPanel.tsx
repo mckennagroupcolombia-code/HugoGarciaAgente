@@ -2,6 +2,7 @@
  * Formulario para diligenciar (como fichas técnicas) + vista previa en vivo
  * de la etiqueta MP tipo SCI. El PNG se exporta desde el HTML, no del lienzo.
  */
+import { Ico } from "../../icons/Ico";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { api } from "../../api/client";
 import { Field } from "../documentos/DocumentoGeneradorTab";
@@ -136,7 +137,7 @@ function AjustesDiagramacionCompleta({
     <div className="rounded-xl border border-border bg-surface-panel p-3 shadow-sm">
       <div className="flex items-center justify-between border-b border-border pb-2">
         <span className="text-xs font-bold uppercase tracking-wider text-ink flex items-center gap-1.5">
-          <span>⚙️</span> Ajustes de Diagramación
+          <span><Ico e="⚙️" /></span> Ajustes de Diagramación
         </span>
         <button
           type="button"
@@ -156,7 +157,7 @@ function AjustesDiagramacionCompleta({
             tab === "cajas" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
           }`}
         >
-          📐 Cajas
+          <Ico e="📐" /> Cajas
         </button>
         <button
           type="button"
@@ -174,7 +175,7 @@ function AjustesDiagramacionCompleta({
             tab === "relleno" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
           }`}
         >
-          🎨 Rellenos
+          <Ico e="🎨" /> Rellenos
         </button>
         <button
           type="button"
@@ -183,7 +184,7 @@ function AjustesDiagramacionCompleta({
             tab === "iconos" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
           }`}
         >
-          🔣 Iconos
+          <Ico e="🔣" /> Iconos
         </button>
         <button
           type="button"
@@ -192,7 +193,7 @@ function AjustesDiagramacionCompleta({
             tab === "textos" ? "bg-accent text-white shadow-sm" : "text-muted hover:text-ink"
           }`}
         >
-          ✍️ Textos
+          <Ico e="✍️" /> Textos
         </button>
       </div>
 
@@ -364,7 +365,7 @@ function AjustesDiagramacionCompleta({
                       : "border-border bg-surface text-ink hover:bg-surface-hover"
                   }`}
                 >
-                  🌫️ Suave
+                  <Ico e="🌫️" /> Suave
                   <span className="block text-[10px] font-normal text-muted">Tinte al 12%</span>
                 </button>
                 <button
@@ -376,7 +377,7 @@ function AjustesDiagramacionCompleta({
                       : "border-border bg-surface text-ink hover:bg-surface-hover"
                   }`}
                 >
-                  🎨 Personalizado
+                  <Ico e="🎨" /> Personalizado
                   <span className="block text-[10px] font-normal text-muted">Elegir color</span>
                 </button>
               </div>
@@ -759,7 +760,7 @@ function EtiquetaMpHtml({
       >
         <div className="flex flex-col items-center justify-center p-6 text-center">
           <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f8fafc] text-3xl shadow-inner">
-            📄
+            <Ico e="📄" />
           </div>
           <span className="text-sm font-bold uppercase tracking-wider text-[#1e293b]">
             Lienzo en blanco
@@ -1897,7 +1898,7 @@ export default function FichaMpDiligenciarPanel({
                   disabled={escaneandoIA}
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:opacity-50"
                 >
-                  📷 Subir captura para abstraer
+                  <Ico e="📷" /> Subir captura para abstraer
                 </button>
                 {capturaRefUrl && (
                   <button
@@ -1923,7 +1924,7 @@ export default function FichaMpDiligenciarPanel({
                   }}
                   className="text-[11px] text-red-500 underline hover:text-red-700 dark:hover:text-red-400"
                 >
-                  🧹 Vaciar / Lienzo en blanco
+                  <Ico e="🧹" /> Vaciar / Lienzo en blanco
                 </button>
                 <span className="text-muted">·</span>
                 <button
@@ -2060,14 +2061,14 @@ export default function FichaMpDiligenciarPanel({
 
             <div className="mb-4 flex flex-wrap items-center justify-center gap-3 text-xs text-white/90">
               <span className="rounded-full bg-black/40 px-3 py-1 font-semibold">
-                📐 Escaneo de formato: {tipo.nombre} ({tipo.ancho_mm}×{tipo.alto_mm} mm)
+                <Ico e="📐" /> Escaneo de formato: {tipo.nombre} ({tipo.ancho_mm}×{tipo.alto_mm} mm)
               </span>
               <span className="rounded-full bg-black/40 px-3 py-1 font-semibold">
-                🎨 Tinta: <span className="inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: color }} /> {color}
+                <Ico e="🎨" /> Tinta: <span className="inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ background: color }} /> {color}
               </span>
               {capturaRefUrl && (
                 <span className="rounded-full bg-accent px-3 py-1 font-semibold text-white">
-                  📷 Captura vinculada ({modoComparacion})
+                  <Ico e="📷" /> Captura vinculada ({modoComparacion})
                 </span>
               )}
             </div>
@@ -2431,7 +2432,7 @@ export default function FichaMpDiligenciarPanel({
                 }}
                 className="text-[11px] text-red-500 underline hover:text-red-700 dark:hover:text-red-400"
               >
-                🧹 Vaciar / Lienzo en blanco
+                <Ico e="🧹" /> Vaciar / Lienzo en blanco
               </button>
               <span className="text-muted">·</span>
               <button

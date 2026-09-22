@@ -1457,8 +1457,11 @@ def _log(db, ticket_id: int, usuario_id: int | None, accion: str,
 
 def login_usuario(username: str, password: str):
     with _conn() as db:
+        # Se entra con el usuario o con el correo registrado (el contador externo
+        # no tiene por qué recordar un «username»).
         row = db.execute(
-            "SELECT * FROM usuarios WHERE username=? AND activo=1", (username,)
+            "SELECT * FROM usuarios WHERE (username=? OR LOWER(email)=LOWER(?)) AND activo=1",
+            (username, username),
         ).fetchone()
         if not row or not check_password_hash(row["password_hash"], password):
             return None, "Credenciales inválidas"

@@ -1144,3 +1144,91 @@ def test_una_ficha_incompleta_no_le_gana_a_la_buena():
 
     r = productos("urea")
     assert r and r[0]["sku"] == "UREg"
+
+
+# ─── 21-sep-2026: con documento soporte, el asiento no se espeja a Alegra ────
+
+def _aprobar_con(mods, monkeypatch, estado_doc):
+    import app.services.alegra_espejo as esp
+    from app.services import doc_soporte_pagos as ds
+
+    _cc, w, t, m, _ = mods
+    espejados = []
+    monkeypatch.setattr(esp, "espejar_movimiento",
+                        lambda mid, **kw: espejados.append(mid) or {"status": "success", "id": "J1"})
+    monkeypatch.setattr(ds, "emitir_por_solicitud",
+                        lambda sid, **kw: {"status": estado_doc, "numero": "DSMG9", "id": "9"})
+    s = w.crear_solicitud(_pago(t, m))
+    return w.aprobar(s["id"]), espejados
+
+
+@pytest.mark.parametrize("estado_doc", ["success", "borrador"])
+def test_con_documento_soporte_el_asiento_no_se_espeja(mods, monkeypatch, estado_doc):
+    """El documento ya lleva a Alegra el gasto y las retenciones; espejar además
+    el asiento lo duplicaba (DSMG1 + comprobante 134 de Fidel, 18-sep-2026)."""
+    r, espejados = _aprobar_con(mods, monkeypatch, estado_doc)
+    assert espejados == []
+    assert r["alegra"]["status"] == "cubierto_por_doc_soporte"
+    assert r["movimiento"]["id"]          # el Libro Mayor sí lleva su asiento
+
+
+def test_sin_documento_soporte_el_asiento_se_espeja_como_siempre(mods, monkeypatch):
+    r, espejados = _aprobar_con(mods, monkeypatch, "no_aplica")
+    assert espejados == [r["movimiento"]["id"]]
+    assert r["alegra"]["status"] == "success"
+
+
+def test_si_el_documento_falla_el_asiento_igual_llega_a_alegra(mods, monkeypatch):
+    """Un error del documento no puede dejar el pago invisible en Alegra."""
+    r, espejados = _aprobar_con(mods, monkeypatch, "error")
+    assert espejados == [r["movimiento"]["id"]]
+
+
+# ─── 21-sep-2026: todo al peso, para que el libro y Alegra cuadren exacto ───
+
+def test_el_reteica_asumido_da_una_base_entera_y_el_neto_exacto(mods):
+    """Pactado libre de retención con ReteICA 9,66 por mil: base, ICA y giro en pesos enteros."""
+    cc, w, _t, m, _ = mods
+    t = cc.crear_tercero({"nombre": "Victor", "tipo": "otro", "tipo_persona": "natural",
+                          "identificacion": "3241821"})
+    cc.actualizar_tercero(t["id"], {"retefuente_exento": 1, "ica_por_mil": 9.66,
+                                    "retencion_asume_mckenna": 1})
+    for neto in (1_100_000, 1_250_000, 1_599_000, 2_500_000):
+        prev = w.previsualizar({"categoria": "servicios", "cuenta_debito": "511035",
+                                "monto": neto, "concepto": "Asesoría", "tercero_id": t["id"],
+                                "medio_pago_id": m["id"], "fecha": "2026-09-21",
+                                "retencion_modo": "mckenna"})
+        assert prev["retencion_ica"] > 0
+        assert prev["monto"] == int(prev["monto"])
+        assert prev["retencion_ica"] == int(prev["retencion_ica"])
+        assert prev["girado"] == neto
+        assert prev["cuadra"] is True
+
+
+def test_pesos_redondea_la_mitad_hacia_arriba():
+    from app.services.pagos_wizard import _pesos
+
+    assert _pesos(10_729.65) == 10_730
+    assert _pesos(24_385.5) == 24_386      # round() de Python daría 24_386 aquí…
+    assert _pesos(12_192.5) == 12_193      # …pero 12_192 aquí: por eso no se usa
+
+
+def test_rearmar_una_solicitud_guardada_no_repite_el_gross_up(mods):
+    """Lo guardado ya es la base bruta: recalcularla como neto la inflaba otra vez."""
+    cc, w, _t, m, _ = mods
+    t = cc.crear_tercero({"nombre": "William", "tipo": "proveedor", "tipo_persona": "natural",
+                          "identificacion": "1022349819"})
+    cc.actualizar_tercero(t["id"], {"retefuente_exento": 1, "ica_por_mil": 8.66,
+                                    "retencion_asume_mckenna": 1})
+    s = w.crear_solicitud({"categoria": "servicios", "cuenta_debito": "511035", "monto": 1_200_000,
+                           "concepto": "Contabilidad", "tercero_id": t["id"],
+                           "medio_pago_id": m["id"], "fecha": "2026-09-21"})
+    assert s["monto"] == 1_210_483 and s["retencion_ica"] == 10_483 and s["girado"] == 1_200_000
+    prev = w.previsualizacion_de(s["id"])
+    assert prev["monto"] == 1_210_483 and prev["girado"] == 1_200_000
+    assert not prev["difiere_de_lo_guardado"]
+    r = w.aprobar(s["id"], espejar=False)
+    por_cuenta = {l["cuenta_codigo"]: l for l in r["movimiento"]["lineas"]}
+    assert por_cuenta["511035"]["debito"] == 1_210_483
+    assert por_cuenta["2368"]["credito"] == 10_483
+    assert por_cuenta["1110"]["credito"] == 1_200_000

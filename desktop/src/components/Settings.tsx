@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
@@ -287,7 +288,7 @@ export default function Settings() {
             onClick={() => refetchServicios()}
             className="text-xs text-muted hover:text-ink transition"
           >
-            🔄 Actualizar
+            <Ico e="🔄" /> Actualizar
           </button>
         </div>
 
@@ -320,7 +321,7 @@ export default function Settings() {
             onClick={() => refetchGit()}
             className="text-xs text-muted hover:text-ink transition"
           >
-            🔄
+            <Ico e="🔄" />
           </button>
         </div>
 
@@ -342,7 +343,7 @@ export default function Settings() {
             </div>
             {gitData.commits_behind > 0 && (
               <div className="col-span-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
-                ⚠️ {gitData.commits_behind} commit{gitData.commits_behind !== 1 ? "s" : ""} por detrás del remoto
+                <Ico e="⚠️" /> {gitData.commits_behind} commit{gitData.commits_behind !== 1 ? "s" : ""} por detrás del remoto
               </div>
             )}
           </dl>
@@ -474,7 +475,7 @@ function ApkBuilderSection() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>📱</span> App Android (TWA)
+            <span><Ico e="📱" /></span> App Android (TWA)
           </h3>
           <p className="text-xs text-muted mt-0.5">
             Genera el APK firmado para distribuir a los colaboradores
@@ -1209,7 +1210,7 @@ function AgentScheduleSection() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>🤖</span> Agente Hugo — WhatsApp
+            <span><Ico e="🤖" /></span> Agente Hugo — WhatsApp
           </h3>
           <p className="text-xs text-muted mt-0.5">
             Controla cuándo Hugo responde automáticamente a los clientes
@@ -1291,11 +1292,11 @@ function AgentScheduleSection() {
             <div className="rounded-lg bg-surface-hover border border-border px-4 py-3 text-xs text-muted space-y-1.5">
               <p className="font-semibold text-ink text-[12px]">¿Cómo funciona?</p>
               <div className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">👤</span>
+                <span className="text-emerald-400 mt-0.5"><Ico e="👤" /></span>
                 <span><strong className="text-ink">Dentro del horario</strong> → el equipo atiende. Hugo queda en silencio para no interrumpir.</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-accent mt-0.5">🤖</span>
+                <span className="text-accent mt-0.5"><Ico e="🤖" /></span>
                 <span><strong className="text-ink">Fuera del horario</strong> (noches, fines de semana, festivos) → Hugo responde automáticamente para no perder clientes.</span>
               </div>
             </div>

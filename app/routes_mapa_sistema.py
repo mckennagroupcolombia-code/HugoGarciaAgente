@@ -220,6 +220,36 @@ def register_mapa_sistema_routes(app):
         """Buscar un documento técnico para unirlo a mano a una materia prima."""
         return jsonify({"documentos": M.listar_documentos(request.args.get("q") or "", request.args.get("limite") or 40)})
 
+    @_dual(app, "/api/mapa-sistema/documentos/<archivo>/revision", methods=["GET"])
+    @_auth
+    def mapa_sistema_documento_revision(archivo: str):
+        """El documento técnico organizado para leerlo en un emergente del taller de combos."""
+        try:
+            return jsonify(M.revisar_documento(archivo))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 404
+
+    @_dual(app, "/api/mapa-sistema/documentos/<archivo>/editar", methods=["POST"])
+    @_auth_escritura
+    def mapa_sistema_documento_editar(archivo: str):
+        """Corregir valores del documento desde el emergente del taller (administrador o permiso `fichas`)."""
+        body = request.get_json(silent=True) or {}
+        quien = ""
+        try:
+            from app.api_auth import bearer_token_from_request
+            from app.services.tickets_db import get_usuario_by_token
+
+            tok = (request.headers.get("X-Tickets-Token") or "").strip() or bearer_token_from_request()
+            u = get_usuario_by_token(tok) if tok else None
+            quien = (u or {}).get("nombre") or (u or {}).get("username") or ""
+        except Exception:
+            pass
+        try:
+            r = M.editar_documento(archivo, body.get("cambios"), usuario=quien, confirmar_publicado=bool(body.get("confirmar_publicado")))
+        except ValueError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify({**r, "revision": M.revisar_documento(archivo)})
+
     @_dual(app, "/api/mapa-sistema/documentos/fijar-sku", methods=["POST"])
     @_auth_escritura
     def mapa_sistema_fijar_sku():

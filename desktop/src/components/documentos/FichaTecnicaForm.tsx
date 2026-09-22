@@ -885,44 +885,6 @@ export default function FichaTecnicaForm({
           />
         </section>
       )}
-      {!hideColorAcento && (
-        <section className="space-y-3">
-          <SectionTitle>Color del formato</SectionTitle>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { hex: "#069DC2", nombre: "Azul McKenna" },
-              { hex: "#003DA5", nombre: "Azul marino" },
-              { hex: "#5CB85C", nombre: "Verde claro" },
-              { hex: "#37474F", nombre: "Gris antracita" },
-              { hex: "#6A1B9A", nombre: "Morado" },
-              { hex: "#B71C1C", nombre: "Rojo" },
-              { hex: "#FFA040", nombre: "Naranja claro" },
-              { hex: "#000000", nombre: "Negro" },
-            ].map(({ hex, nombre }) => (
-              <button
-                key={hex}
-                type="button"
-                title={nombre}
-                onClick={() => patch({ colorAcento: hex })}
-                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: hex,
-                  borderColor: state.colorAcento === hex ? "#fff" : hex,
-                  outline: state.colorAcento === hex ? `2px solid ${hex}` : "none",
-                }}
-              />
-            ))}
-            <input
-              type="color"
-              value={state.colorAcento}
-              onChange={(e) => patch({ colorAcento: e.target.value })}
-              title="Color personalizado"
-              className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
-            />
-          </div>
-          <p className="text-[10px] text-muted">Selecciona una paleta o usa el selector para un color personalizado.</p>
-        </section>
-      )}
 
     </div>
   );

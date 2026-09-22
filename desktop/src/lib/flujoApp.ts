@@ -302,6 +302,7 @@ export const ETAPAS_APP: EtapaApp[] = [
         titulo: "Ver el conjunto", datos: ["bloqueos por etapa", "diagramas de Archify", "errores y métricas"],
         pasos: [
           { panel: "mapa-sistema", hace: "Este mapa, los flujos y la cadena del producto" },
+          { panel: "arquitectura", hace: "Qué archivo llama a cuál y qué código no usa nadie" },
           { panel: "telemetria", hace: "Errores y métricas técnicas" },
         ],
       },
@@ -325,7 +326,10 @@ export const ETAPAS_APP: EtapaApp[] = [
 ];
 
 /** Paneles que existen pero no pertenecen a la secuencia de este negocio. */
-export const FUERA_DEL_FLUJO: PasoApp[] = [{ panel: "placas-concreto", hace: "Calculadora de placas de concreto (otro taller)" }];
+export const FUERA_DEL_FLUJO: PasoApp[] = [
+  { panel: "placas-concreto", hace: "Calculadora de placas de concreto (otro taller)" },
+  { panel: "juegos", hace: "Juegos para un descanso (dentro de la Agenda)" },
+];
 
 /** Dónde vive un panel dentro de la secuencia (para la miga del cabezote). */
 export function ubicacionDe(panel: Panel): { etapa: EtapaApp; tramo: TramoApp; n: number } | null {

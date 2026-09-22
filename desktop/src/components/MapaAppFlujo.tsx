@@ -1,3 +1,4 @@
+import { PanelIcon } from "../icons";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -163,7 +164,7 @@ export default function MapaAppFlujo({
         } ${ok ? "hover:border-accent/60 hover:bg-surface-hover" : "cursor-not-allowed opacity-50"}`}
       >
         <span className="flex items-center gap-1.5">
-          <span className="text-[13px] leading-none" aria-hidden="true">{i.emoji}</span>
+          <PanelIcon panel={paso.panel} size={15} bubble={false} className="shrink-0" />
           <span className="min-w-0 flex-1 break-words text-[11.5px] font-bold leading-tight text-ink">{i.label}</span>
           {(alta > 0 || media > 0) && <span className={`shrink-0 rounded-full px-1.5 text-[10px] font-bold tabular-nums text-white ${alta ? "bg-accent-rose" : "bg-accent-sun"}`}>{alta || media}</span>}
         </span>

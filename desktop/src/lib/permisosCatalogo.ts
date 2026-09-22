@@ -78,6 +78,7 @@ const NOTAS: Record<string, string> = {
   "guias-envio": "también se abre con Pedidos Web o Empaque",
   "entregas-flex": "también se abre con Pedidos Web, Empaque o Guías de envío",
   "mapa-sistema": "vista de administración: sin este permiso solo la ve un administrador",
+  colaboradores: "diagramas compartidos con colaboradores externos (el anfitrión es Armando)",
   arquitectura: "solo administrador: es el mapa interno del sistema y con él se planean borrados",
   combos: "también abre el Mapa del sistema en la API",
   "libro-mayor": "permiso propio: no se hereda de Facturación ni Sync",
@@ -96,6 +97,11 @@ const NOTAS: Record<string, string> = {
 const EXTRAS: Partial<Record<NavCategory, PermisoDef[]>> = {
   inicio: [
     {
+      id: "colaborador_externo",
+      label: "Colaborador externo (solo Colaboradores + Agenda con Armando)",
+      nota: "no ve a los demás usuarios ni el resto de la app",
+    },
+    {
       id: "tickets_protocolos_crear",
       label: "Crear protocolos",
       nota: "acción dentro de Agenda, no un panel",
@@ -107,6 +113,11 @@ const EXTRAS: Partial<Record<NavCategory, PermisoDef[]>> = {
     { id: "mensajeria", label: "Pagos de mensajería / envíos" },
     { id: "rrhh", label: "RR.HH. · Compensaciones", nota: "vive dentro de Operativos" },
     { id: "productos-siigo", label: "Productos Alegra (crear/editar)" },
+    {
+      id: "contador",
+      label: "Contador externo (solo consulta)",
+      nota: "ve todo el Libro Mayor y comenta en el historial de terceros; no modifica nada ni ve el resto de la app",
+    },
   ],
   facturacion: [
     { id: "facturas", label: "Facturas de compra" },

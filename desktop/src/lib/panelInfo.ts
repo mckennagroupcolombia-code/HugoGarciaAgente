@@ -155,6 +155,33 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "sistemas",
   },
+  juegos: {
+    emoji: "🎮",
+    label: "Juegos",
+    description:
+      "Un rato de descanso dentro de la Agenda. Los juegos corren aislados del panel: no ven tu sesión ni tus datos y no se conectan a internet.",
+    tips: [
+      "Duck Hunt: apunta con el mouse y dispara con clic. Tienes 3 tiros por pato.",
+      "Circus Charlie: ← → corre, Espacio salta. Aro 100, jarrón 200, aro con premio 1.000; el bonus baja con el tiempo.",
+      "El sonido arranca después del primer clic (el navegador no deja reproducir audio antes).",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  colaboradores: {
+    emoji: "🤝",
+    label: "Colaboradores",
+    description:
+      "Diagramas de flujo que Armando construye con un colaborador externo, a mano y desde el celular: cajas que se arrastran, flechas que las unen y un texto por paso, hasta acordar entre los dos cómo se relacionan en un proyecto conjunto.",
+    tips: [
+      "Toca «＋ Caja» y arrástrala con el dedo. Para unir dos cajas: toca una → «Unir con otra caja» → toca la otra.",
+      "Lo que guarda uno lo ve el otro en segundos; si los dos editan a la vez, los cambios se combinan.",
+      "Cada guardado es una versión: en «Historial» se puede volver a cualquiera.",
+      "«Ver en Archify» genera la versión presentable (solo lectura), con el acabado de los diagramas del Mapa del sistema.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
   "mapa-sistema": {
     emoji: "🗺️",
     label: "Mapa del sistema",

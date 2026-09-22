@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -347,7 +348,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
             carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
           }`}
         >
-          📁 Raíz
+          <Ico e="📁" /> Raíz
         </button>
         {segmentosRuta.map((seg, i) => {
           const rel = segmentosRuta.slice(0, i + 1).join("/");
@@ -447,7 +448,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                   disabled={carpetaActual === ""}
                   className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
                 >
-                  📁 Raíz
+                  <Ico e="📁" /> Raíz
                 </button>
                 {(carpetasTodasData?.carpetas ?? [])
                   .filter((c) => c !== carpetaActual)
@@ -459,7 +460,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                       className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
                       title={c}
                     >
-                      📁 {c}
+                      <Ico e="📁" /> {c}
                     </button>
                   ))}
               </div>
@@ -542,7 +543,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                 >
                   ✎
                 </button>
-                <span className="text-3xl">📁</span>
+                <span className="text-3xl"><Ico e="📁" /></span>
                 <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
               </div>
             );
@@ -1376,7 +1377,7 @@ export default function PlantillasVisualesPanel({
                   </p>
                   {previewExport.desenfocado && (
                     <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
-                      🔒 Zonas desenfocadas
+                      <Ico e="🔒" /> Zonas desenfocadas
                     </span>
                   )}
                 </div>
@@ -1642,7 +1643,7 @@ export default function PlantillasVisualesPanel({
                   disabled={carpetaActual === ""}
                   className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
                 >
-                  📁 Raíz
+                  <Ico e="📁" /> Raíz
                 </button>
                 {(carpetasTodasData?.carpetas ?? [])
                   .filter((c) => c !== carpetaActual)
@@ -1654,7 +1655,7 @@ export default function PlantillasVisualesPanel({
                       className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
                       title={c}
                     >
-                      📁 {c}
+                      <Ico e="📁" /> {c}
                     </button>
                   ))}
               </div>
@@ -1710,7 +1711,7 @@ export default function PlantillasVisualesPanel({
             carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
           }`}
         >
-          📁 Raíz
+          <Ico e="📁" /> Raíz
         </button>
         {segmentosRuta.map((seg, i) => {
           const rel = segmentosRuta.slice(0, i + 1).join("/");
@@ -1843,7 +1844,7 @@ export default function PlantillasVisualesPanel({
                 >
                   ✎
                 </button>
-                <span className="text-3xl">📁</span>
+                <span className="text-3xl"><Ico e="📁" /></span>
                 <span className="w-full truncate text-xs font-medium text-ink">{nombreCarpeta}</span>
               </div>
             );
@@ -1909,7 +1910,7 @@ export default function PlantillasVisualesPanel({
                       }}
                       className="mt-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/20"
                     >
-                      📋 Aplicar en lote
+                      <Ico e="📋" /> Aplicar en lote
                     </button>
                   )}
                   {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
@@ -1922,7 +1923,7 @@ export default function PlantillasVisualesPanel({
                       }}
                       className="mt-1 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-muted transition hover:border-accent hover:text-accent"
                     >
-                      📁 {p.carpeta || "raíz"}
+                      <Ico e="📁" /> {p.carpeta || "raíz"}
                     </button>
                   )}
                 </div>

@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
@@ -178,7 +180,7 @@ export default function ConciliacionContadorPanel() {
           </button>
           <button type="button" disabled={corriendo || analizar.isPending} onClick={() => analizar.mutate(true)}
             className="rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white hover:bg-accent-hover disabled:opacity-50">
-            📥 Bajar del correo y analizar
+            <Ico e="📥" /> Bajar del correo y analizar
           </button>
         </div>
       </header>
@@ -206,7 +208,7 @@ export default function ConciliacionContadorPanel() {
         ) : !r || r.total === 0 ? (
           <Caja>
             <div className="space-y-2 text-center">
-              <div className="text-4xl">🧭</div>
+              <div className="text-4xl"><Ico e="🧭" /></div>
               <p className="text-sm font-bold text-ink">Todavía no se ha corrido el cruce</p>
               <p className="text-xs text-muted">
                 {sinSoportes
@@ -215,14 +217,14 @@ export default function ConciliacionContadorPanel() {
               </p>
               <button type="button" disabled={corriendo} onClick={() => analizar.mutate(sinSoportes)}
                 className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent-hover disabled:opacity-50">
-                {sinSoportes ? "📥 Bajar del correo y analizar" : "↻ Cruzar ahora"}
+                {sinSoportes ? ico("📥 Bajar del correo y analizar") : "↻ Cruzar ahora"}
               </button>
             </div>
           </Caja>
         ) : pendientes.length === 0 ? (
           <Caja>
             <div className="space-y-2 text-center">
-              <div className="text-5xl">🎉</div>
+              <div className="text-5xl"><Ico e="🎉" /></div>
               <p className="text-base font-bold text-ink">¡Cruce al día!</p>
               <p className="text-xs text-muted">
                 {r.con_ticket} hallazgo(s) esperando en tickets · {r.resueltos} resuelto(s) · {r.descartados} descartado(s).
@@ -310,14 +312,14 @@ function Tarjeta({ h, titulo, notas, setNotas, ocupado, onDecidir, onSaltar, onA
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-bold uppercase tracking-wide text-muted">{titulo}</span>
           <div className="flex gap-2">
-            <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-muted">{meta.label}</span>
+            <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-muted">{ico(meta.label)}</span>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${sev.cls}`}>Prioridad {sev.label}</span>
             {h.periodo && <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-muted">{h.periodo}</span>}
           </div>
         </div>
 
         <div className="flex items-start gap-4">
-          <div className="text-5xl leading-none">{meta.emoji}</div>
+          <div className="text-5xl leading-none"><Ico e={meta.emoji} /></div>
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold leading-snug text-ink">{h.titulo}</h3>
             <p className="mt-1 text-sm text-ink/90">{h.resumen}</p>
@@ -405,7 +407,7 @@ function Historial({ items, cargando, onReabrir, onIrTicket }: {
         const est = ESTADO_BADGE[h.estado] ?? ESTADO_BADGE.pendiente;
         return (
           <div key={h.id} className={`flex flex-wrap items-start gap-3 rounded-xl border border-border bg-surface-elevated p-3 ${h.vigente ? "" : "opacity-70"}`}>
-            <div className="text-2xl leading-none">{meta.emoji}</div>
+            <div className="text-2xl leading-none"><Ico e={meta.emoji} /></div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold text-ink">{h.titulo}</p>
               <p className="text-[11px] text-muted">
@@ -416,7 +418,7 @@ function Historial({ items, cargando, onReabrir, onIrTicket }: {
               {h.notas && <p className="mt-1 text-[11px] italic text-ink/80">“{h.notas}”</p>}
             </div>
             <div className="flex flex-col items-end gap-1">
-              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${est.cls}`}>{est.label}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${est.cls}`}>{ico(est.label)}</span>
               {h.ticket_numero && (
                 <button type="button" onClick={onIrTicket} className="font-mono text-[11px] text-accent hover:underline">
                   {h.ticket_numero}{h.ticket_estado ? ` · ${h.ticket_estado}` : ""}

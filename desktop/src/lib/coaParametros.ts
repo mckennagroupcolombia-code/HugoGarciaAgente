@@ -15,15 +15,19 @@ export const PARAMETROS_COA_FALLBACK = [
   "Salmonella spp.|Ausente|Conforme",
 ].join("\n");
 
-export function parseParamRows(text: string): ParamRow[] {
-  const lines = text.trim().split("\n").filter(Boolean);
+/** `editable`: para la tabla que se edita tecla a tecla. No recorta espacios,
+ *  porque recortar en cada tecla se comía el espacio entre palabras. */
+export function parseParamRows(text: string, { editable = false }: { editable?: boolean } = {}): ParamRow[] {
+  // En edición, una fila recién agregada («||») se conserva hasta que se escriba en ella.
+  const lines = editable ? text.split("\n").filter((l) => l.length > 0) : text.trim().split("\n").filter(Boolean);
   if (!lines.length) return [];
+  const limpiar = (v: string | undefined) => (editable ? v ?? "" : (v ?? "").trim());
   return lines.map((line) => {
     const parts = line.split("|");
     return {
-      parametro: (parts[0] ?? "").trim(),
-      especificacion: (parts[1] ?? "").trim(),
-      resultado: (parts[2] ?? "").trim(),
+      parametro: limpiar(parts[0]),
+      especificacion: limpiar(parts[1]),
+      resultado: limpiar(parts[2]),
     };
   });
 }

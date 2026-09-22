@@ -21,7 +21,7 @@ import json
 import os
 import sqlite3
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "facturacion_ventas_cache.db")
@@ -225,3 +225,96 @@ def estadisticas() -> dict:
         "desde": rango["mn"] if rango else None,
         "hasta": rango["mx"] if rango else None,
     }
+
+
+# ── Revisiones por venta ──────────────────────────────────────────────────
+# "Revisado" era un paso completado dentro del ticket GLOBAL del día: para
+# marcar una sola venta había que crear primero ese ticket. Ahora la decisión
+# del operador vive acá, pegada a la venta, y no hace falta ningún ticket.
+
+def _init_revisiones(con: sqlite3.Connection) -> None:
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS revisiones_venta (
+            order_id        TEXT PRIMARY KEY,
+            pack_id         TEXT,
+            notas           TEXT,
+            usuario_id      INTEGER,
+            usuario_nombre  TEXT,
+            creado_en       TEXT NOT NULL
+        )
+        """
+    )
+    cols = {r[1] for r in con.execute("PRAGMA table_info(revisiones_venta)")}
+    if "tipo" not in cols:
+        con.execute("ALTER TABLE revisiones_venta ADD COLUMN tipo TEXT")
+
+
+def marcar_revisado(order_id: str, *, pack_id: str = "", notas: str = "",
+                    usuario_id: int | None = None, usuario_nombre: str = "", tipo: str | None = None) -> None:
+    init_db()
+    with _LOCK, _conn() as con:
+        _init_revisiones(con)
+        con.execute(
+            "INSERT OR REPLACE INTO revisiones_venta (order_id, pack_id, notas, usuario_id, usuario_nombre, creado_en, tipo) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (str(order_id), str(pack_id or ""), (notas or "").strip() or None, usuario_id,
+             usuario_nombre or None, datetime.now().isoformat(timespec="seconds"), tipo),
+        )
+
+
+def revisiones_map() -> dict[str, dict]:
+    """order_id -> {"notas","usuario_nombre","completado_en"}; también indexado por pack_id."""
+    init_db()
+    out: dict[str, dict] = {}
+    with _LOCK, _conn() as con:
+        _init_revisiones(con)
+        for r in con.execute("SELECT * FROM revisiones_venta"):
+            d = {"notas": r["notas"], "usuario_nombre": r["usuario_nombre"], "completado_en": r["creado_en"],
+                 "tipo": r["tipo"]}
+            out[r["order_id"]] = d
+            if r["pack_id"]:
+                out.setdefault(r["pack_id"], d)
+    return out
+
+
+# Estados cuya foto envejece: una venta en tránsito se entrega, una sin
+# facturar se factura. Las ya resueltas (facturada_completa, cancelada_resuelta)
+# no cambian solas y no vale la pena volver a consultarlas.
+ESTADOS_QUE_ENVEJECEN = (
+    "sin_facturar",
+    "facturada_parcial",
+    "facturada_pendiente_subir_meli",
+    "cancelada_pendiente_nc",
+    "en_transito",
+    "en_margen_entrega",
+    "cancelada_en_margen",
+)
+_ACCIONABLES = ("sin_facturar", "facturada_parcial", "facturada_pendiente_subir_meli", "cancelada_pendiente_nc")
+
+
+def filas_para_revalidar(*, max_filas: int = 60, edad_minima_min: int = 20) -> list[str]:
+    """order_id de las filas cuya foto puede estar vieja, primero las que hoy
+    piden acción (son las que generan alertas falsas si ya se resolvieron),
+    luego las en tránsito / en margen. Incluye también las marcadas como
+    posible duplicado o con más de una factura aunque su estado sea
+    'facturada_completa' (así aparecen los dobles Alegra↔Alegra)."""
+    init_db()
+    limite_ts = (datetime.now() - timedelta(minutes=edad_minima_min)).isoformat(timespec="seconds")
+    marcas = ",".join("?" * len(ESTADOS_QUE_ENVEJECEN))
+    acc = ",".join("?" * len(_ACCIONABLES))
+    with _LOCK, _conn() as con:
+        rows = con.execute(
+            f"""
+            SELECT order_id FROM ventas_cache
+            WHERE es_meli = 1 AND actualizado_en < ?
+              AND (estado IN ({marcas}) OR payload LIKE '%"posible_duplicado": true%'
+                   OR factura_numero LIKE '%,%')
+            ORDER BY CASE WHEN estado IN ({acc}) OR payload LIKE '%"posible_duplicado": true%'
+                               OR factura_numero LIKE '%,%' THEN 0 ELSE 1 END,
+                     actualizado_en ASC
+            LIMIT ?
+            """,
+            [limite_ts, *ESTADOS_QUE_ENVEJECEN, *_ACCIONABLES, max(1, int(max_filas))],
+        ).fetchall()
+    return [r["order_id"] for r in rows]
