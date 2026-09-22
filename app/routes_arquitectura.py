@@ -19,9 +19,10 @@ ya. El script se corre a mano o por cron, y cada respuesta trae el campo
 Visor 3D (22-sep-2026): el binario trae una interfaz HTTP del grafo
 (`--ui=true`, puerto 9749, solo en 127.0.0.1, sin autenticación, con
 `frame-ancestors 'none'`). Como el panel se usa por LAN y por el túnel de
-Cloudflare, ese puerto no se alcanza desde el navegador: /cbm/... lo proxea con
-la sesión del panel (cookie `mck_panel`) y exige administrador, reescribe las
-rutas absolutas del bundle (/assets, /api, /rpc → /cbm/...) y cambia la CSP
+Cloudflare, ese puerto no se alcanza desde el navegador: /app/cbm/... lo proxea con
+la sesión del panel (cookie `mck_panel`, que lleva path=/app: por eso el proxy
+vive bajo /app y no en la raíz) y exige administrador, reescribe las rutas
+absolutas del bundle (/assets, /api, /rpc → /app/cbm/...) y cambia la CSP
 para que quepa en un iframe del propio /app. El visor muestra el índice del
 demonio que esté escuchando en ese puerto, que no es necesariamente el mismo
 snapshot de los JSON.
@@ -117,7 +118,7 @@ def _leer(pieza: str):
 
 # ---------------------------------------------------------------- visor 3D (proxy)
 
-PREFIJO_VISOR = "/cbm"
+PREFIJO_VISOR = "/app/cbm"
 
 
 def _url_visor() -> str:
