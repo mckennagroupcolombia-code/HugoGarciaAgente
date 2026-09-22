@@ -1,3 +1,15 @@
+### 2026-09-22 - Arquitectura del código: diagrama de Archify «Cómo se compone el código» en vez de la nube 3D
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña Diagrama, ahora la primera). Sin LLM.
+- **Qué se implementó:**
+  - **El grafo 3D del binario no sirve para leer el proyecto** (oscuro, 40.000 puntos, sin pregunta que responda). Lo que sí gustó fue ver de qué se compone el repo y qué depende de qué, así que eso se dibuja con Archify, el mismo lenguaje de «Los flujos del proyecto».
+  - **`scripts/arquitectura_diagrama.py`** agrupa el snapshot de codebase-memory-mcp en 9 grupos de archivos (raíz, panel React, app/agent, scripts, tienda, app/ rutas y núcleo, app/services, app/tools, tests) y escribe `docs/arquitectura/07-codigo.architecture.json`; el HTML sale de `diagramas_arquitectura.py entregar`. Las posiciones son fijas (elegidas para que ninguna flecha atraviese un nodo ni se cruce con otra); las cifras salen del snapshot.
+  - **Qué muestra:** todo converge en `app/services` (950 llamadas de fuera), el ciclo `app/ ↔ app/services` (97 / 94 llamadas: por eso hay imports dentro de funciones) y el paso por `app/tools`. Solo cuenta llamadas dentro del mismo lenguaje: CBM también «resuelve» nombres iguales entre Python y TypeScript (134 falsas, la mayor services → panel 68) y eso no es dependencia. Se dibujan 10 aristas; los pesos menores siguen en la tabla «Mapa de dependencias».
+  - El panel lo incrusta por el endpoint de diagramas del Mapa del sistema (Bearer + blob). La pestaña «Grafo 3D» queda de última por si alguien la quiere.
+  - Validación Archify showcase: 9 comprobaciones, 0 errores; `visual-check` en 1440×900, 1600×1000, 1920×1080 y 2048×1320 sin desbordes. Revisado a ojo en Chrome dentro del panel.
+  - ⚠️ `tests/test_mapa_producto.py::test_todo_panel_tiene_un_lugar_en_el_flujo_de_la_app` falla desde antes: `colaboradores` no está en `flujoApp.ts`. No es de esta tarea.
+- **Archivos Modificados:** `scripts/arquitectura_diagrama.py` (nuevo), `docs/arquitectura/07-codigo.architecture.json` (nuevo), `docs/arquitectura/indice.json`, `desktop/src/components/ArquitecturaPanel.tsx`
+
 ### 2026-09-22 - Arquitectura del código: botón «◇ Código» en el cabezote, binario para mckg y snapshot regenerado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de navegación + corrección de script (Sistema → Arquitectura del código). Sin LLM.
