@@ -442,6 +442,16 @@ def _resolver_o_crear_contacto_alegra(
         # MeLi ya trae el DV pegado; Alegra lo quiere aparte.
         identificacion = identificacion[:-1]
 
+    # El NIT genérico de consumidor final es UN contacto compartido por todas las
+    # ventas sin datos de facturación: nunca se le cambia nombre ni tipo. Antes se
+    # actualizaba con los datos del comprador — FE308 lo renombró «Diana Orozco»
+    # (NIT) y FE486 «Jaiver Quintero pinzon» (NIT); desde ahí las facturas a
+    # consumidor final salían a nombre de esa persona, y Alegra rechazaba anular
+    # las anteriores (error 9228: el tipo de identificación cambió). 22-sep-2026.
+    es_consumidor_final = identificacion == "".join(ch for ch in NIT_CONSUMIDOR_FINAL_MELI if ch.isdigit())
+    if es_consumidor_final:
+        nombre, id_type, email, telefono, direccion = NOMBRE_CONSUMIDOR_FINAL_MELI, "CC", "", "", ""
+
     if identificacion in _contacto_cache:
         return _contacto_cache[identificacion], ""
 
@@ -488,7 +498,7 @@ def _resolver_o_crear_contacto_alegra(
                 # sin departamento, así que se guarda en observations en vez de
                 # bloquear la creación/actualización del contacto.
                 update_payload["observations"] = f"Dirección: {direccion}"
-            if update_payload:
+            if update_payload and not es_consumidor_final:
                 try:
                     requests.put(f"{_ALEGRA_BASE}/contacts/{cid}", headers=headers, json=update_payload, timeout=15)
                 except requests.RequestException:

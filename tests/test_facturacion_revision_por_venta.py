@@ -220,3 +220,25 @@ def test_plan_anular_sobrantes(monkeypatch):
     assert "FV-2-71416" in plan["conservar"] and [a["numero"] for a in plan["anular"]] == ["FE56"]
 
     assert r.plan_anular_sobrantes(_venta())["ok"] is False
+
+
+def test_contacto_consumidor_final_no_se_sobrescribe(monkeypatch):
+    """22-sep-2026: FE486 renombró el contacto genérico a «Jaiver Quintero pinzon» (NIT)."""
+    from app.services import alegra as a
+
+    monkeypatch.setattr(a, "_alegra_headers", lambda: {})
+    a._contacto_cache.clear()
+
+    class R:
+        status_code = 200
+        def json(self): return [{"id": 1}]
+
+    puts: list = []
+    monkeypatch.setattr(a.requests, "get", lambda *x, **k: R())
+    monkeypatch.setattr(a.requests, "put", lambda *x, **k: puts.append(k))
+    cid, err = a._resolver_o_crear_contacto_alegra(nombre="Jaiver Quintero", identificacion="222222222222", tipo_documento="NIT")
+    assert cid == "1" and not err and puts == []
+    a._contacto_cache.clear()
+    a._resolver_o_crear_contacto_alegra(nombre="Ana Real", identificacion="52378053", tipo_documento="CC")
+    assert len(puts) == 1 and puts[0]["json"]["name"] == "Ana Real"
+    a._contacto_cache.clear()
