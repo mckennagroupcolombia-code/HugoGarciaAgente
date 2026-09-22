@@ -1,3 +1,15 @@
+### 2026-09-22 - Arquitectura del código: botón «◇ Código» en el cabezote, binario para mckg y snapshot regenerado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de navegación + corrección de script (Sistema → Arquitectura del código). Sin LLM.
+- **Qué se implementó:**
+  - **El panel existía desde el 21-sep pero nadie lo veía:** vive en la etapa «Sistema» como panel avanzado (solo tras «+N avanzado») y solo para administrador. Ahora el cabezote de flujo tiene **«◇ Código»** al lado de «◇ Todo el flujo»: «Todo el flujo» cuenta el negocio, «Código» cuenta qué archivo llama a cuál y qué funciones no usa nadie (codebase-memory-mcp).
+  - **Binario `codebase-memory-mcp` v0.11.0 instalado para mckg** (`~/.local/bin`, copiado de la cuenta de cynthia; `CBM_BIN` lo sobreescribe). El índice de CBM es por usuario: en una cuenta nueva hay que correr `python3 scripts/arquitectura_cbm.py --reindexar` (~8 min).
+  - **`--reindexar` no funcionaba:** el ayudante pasaba `--format json` a todas las herramientas y `index_repository` lo rechaza. Ahora esa llamada va sin la bandera y con `--name` fijo para que las consultas encuentren el proyecto.
+  - **El informe se contaba a sí mismo:** el escáner de menciones lee `.md`, y `docs/arquitectura/codigo-muerto.md` lista por nombre las 196 funciones confirmadas; en la segunda corrida todas tenían «una mención más» y las confirmadas cayeron a 2. `EXCLUIR_MENCIONES` deja fuera ese informe y la carpeta del snapshot. Snapshot del 22-sep: 42.442 nodos, 105.759 aristas, 197 confirmadas.
+  - Los archivos del módulo eran del grupo `cynthia`; pasaron a grupo `mckg` con escritura para que ambos usuarios puedan regenerar.
+  - **Nota de historial:** el código de este cambio entró en el auto-commit del backup nocturno `0f3570a` (02:00) antes de poder commitearlo aparte; este recap queda en commit propio para dejar rastro.
+- **Archivos Modificados:** `desktop/src/components/nav/FlujoNav.tsx`, `scripts/arquitectura_cbm.py`
+
 ### 2026-09-22 - Juegos en la Agenda: emuladores de NES, SNES y GBA con partidas guardadas y traducciones
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Agenda → Juegos). Sin LLM.
