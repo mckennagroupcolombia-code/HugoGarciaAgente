@@ -34,6 +34,17 @@
         "note": "Los cron, la tienda y el webhook llegan directo a servicios sin pasar por el panel."
       },
       {
+        "id": "muerto",
+        "label": "Dónde está el código muerto",
+        "focus": [
+          "panel",
+          "herramientas",
+          "servicios",
+          "tienda"
+        ],
+        "note": "Funciones que nadie llama ni menciona: desktop/src/ 93, app/tools/ 41, app/services/ 38. Lista por archivo en «Código muerto»."
+      },
+      {
         "id": "pruebas",
         "label": "Qué cubren los tests",
         "focus": [
@@ -49,7 +60,7 @@
       "url": "https://github.com/mckennagroupcolombia-code/HugoGarciaAgente",
       "provider": "github",
       "link_mode": "local-only",
-      "revision": "0ef413e0984cff03f96f4724a3f7dc051a96ae83"
+      "revision": "daf0de66646a9be6e403fcc3f6cdea9d71edcb8f"
     }
   },
   "components": [
@@ -66,7 +77,7 @@
         170,
         64
       ],
-      "tag": "3 archivos · 0 llamadas internas",
+      "tag": "3 archivos · 0 muertas",
       "sources": [
         {
           "path": "webhook_meli.py",
@@ -87,7 +98,7 @@
         170,
         64
       ],
-      "tag": "275 archivos · 1431 llamadas internas",
+      "tag": "275 archivos · 93 muertas",
       "sources": [
         {
           "path": "desktop/src/App.tsx",
@@ -108,7 +119,7 @@
         170,
         64
       ],
-      "tag": "9 archivos · 43 llamadas internas",
+      "tag": "9 archivos · 3 muertas",
       "sources": [
         {
           "path": "app/agent/ventas_wa/agente.py",
@@ -129,7 +140,7 @@
         170,
         64
       ],
-      "tag": "42 archivos · 7 llamadas internas",
+      "tag": "42 archivos · 1 muertas",
       "sources": [
         {
           "path": "scripts/instalar_cron_mcKenna.sh",
@@ -150,7 +161,7 @@
         170,
         64
       ],
-      "tag": "3 archivos · 33 llamadas internas",
+      "tag": "3 archivos · 11 muertas",
       "sources": [
         {
           "path": "PAGINA_WEB/site/website.py",
@@ -171,7 +182,7 @@
         190,
         76
       ],
-      "tag": "27 archivos · 109 llamadas internas",
+      "tag": "27 archivos · 10 muertas",
       "sources": [
         {
           "path": "app/routes.py",
@@ -192,7 +203,7 @@
         190,
         76
       ],
-      "tag": "106 archivos · 545 llamadas internas",
+      "tag": "106 archivos · 38 muertas",
       "sources": [
         {
           "path": "app/services/contabilidad_core.py",
@@ -213,7 +224,7 @@
         190,
         76
       ],
-      "tag": "46 archivos · 84 llamadas internas",
+      "tag": "46 archivos · 41 muertas",
       "sources": [
         {
           "path": "app/tools/backup_drive.py",
@@ -234,7 +245,7 @@
         170,
         64
       ],
-      "tag": "122 archivos · 0 llamadas internas",
+      "tag": "122 archivos · 0 muertas",
       "sources": [
         {
           "path": "tests/test_smoke.py",
@@ -343,24 +354,23 @@
       "dot": "emerald",
       "title": "Dónde se concentra la lógica",
       "items": [
-        "app/services/ recibe 950 llamadas de fuera; es el centro de gravedad",
-        "app/tools/ recibe 399 y app/ (rutas) 333"
+        "app/services/ recibe 950 llamadas de fuera; app/tools/ 399 y app/ (rutas) 333",
+        "ciclo app/ ↔ services/: 97 y 94 llamadas; por eso hay imports dentro de funciones"
       ]
     },
     {
       "dot": "rose",
-      "title": "El ciclo que impide partir el monolito",
+      "title": "Código muerto: 197 funciones confirmadas",
       "items": [
-        "rutas → servicios: 97 llamadas; servicios → rutas: 94",
-        "servicios importa utils.py y core.py de app/: por eso hay imports dentro de funciones"
+        "desktop/src/ 93, app/tools/ 41, app/services/ 38, PAGINA_WEB/site/ 11",
+        "de 3500 sin llamadores, 990 sí se mencionan (JSX, rutas Flask) y 42 llevan decorador"
       ]
     },
     {
       "dot": "cyan",
       "title": "Lo que el grafo NO dice",
       "items": [
-        "134 «llamadas» Python↔TypeScript descartadas (nombres iguales, no dependencias)",
-        "la mayor: servicios → panel (68); las aristas menores van solo en la tabla",
+        "134 «llamadas» Python↔TypeScript descartadas (nombres iguales); la mayor servicios → panel (68)",
         "snapshot del 2026-09-22 01:52 · scripts/arquitectura_diagrama.py"
       ]
     }

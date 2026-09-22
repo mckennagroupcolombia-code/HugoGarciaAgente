@@ -23,6 +23,8 @@ Reglas:
     Archify (cruces) y tampoco se lee.
   · Panel React ↔ Flask no aparece como llamada (es HTTP): se dibuja punteado
     con esa etiqueta para no mentir con el grafo.
+  · Cada caja trae sus funciones muertas confirmadas (mismo dato que la pestaña
+    «Código muerto»), con recorrido guiado y tarjeta propios.
 Sin LLM.
 """
 
@@ -122,8 +124,21 @@ def revision_git() -> str:
         return "0" * 40
 
 
-def construir(grafo: dict, resumen: dict) -> dict:
+def muertas_por_grupo(codigo_muerto: dict) -> collections.Counter:
+    """Funciones muertas CONFIRMADAS (ya pasadas por el embudo de menciones y
+    decoradores) por grupo. Es el mismo dato de la pestaña «Código muerto»."""
+    c: collections.Counter = collections.Counter()
+    for f in codigo_muerto.get("funciones") or []:
+        g = grupo_de(str(f.get("archivo", "")))
+        if g:
+            c[g] += 1
+    return c
+
+
+def construir(grafo: dict, resumen: dict, codigo_muerto: dict | None = None) -> dict:
     archivos, entre, dentro, cruzadas = agregar(grafo)
+    muertas = muertas_por_grupo(codigo_muerto or {})
+    embudo = (codigo_muerto or {}).get("embudo") or {}
 
     componentes = []
     for gid in ORDEN:
@@ -132,7 +147,7 @@ def construir(grafo: dict, resumen: dict) -> dict:
         comp = {
             "id": gid, "type": tipo, "label": label, "sublabel": sub,
             "pos": list(pos), "size": list(size),
-            "tag": f"{n} archivos · {dentro.get(gid, 0)} llamadas internas",
+            "tag": f"{n} archivos · {muertas.get(gid, 0)} muertas",
             "sources": [{"path": fuente, "label": label}],
         }
         componentes.append(comp)
@@ -163,16 +178,15 @@ def construir(grafo: dict, resumen: dict) -> dict:
 
     cards = [
         {"dot": "emerald", "title": "Dónde se concentra la lógica", "items": [
-            f"app/services/ recibe {entrantes['servicios']} llamadas de fuera; es el centro de gravedad",
-            f"app/tools/ recibe {entrantes['herramientas']} y app/ (rutas) {entrantes['rutas']}",
+            f"app/services/ recibe {entrantes['servicios']} llamadas de fuera; app/tools/ {entrantes['herramientas']} y app/ (rutas) {entrantes['rutas']}",
+            f"ciclo app/ ↔ services/: {ciclo[0]} y {ciclo[1]} llamadas; por eso hay imports dentro de funciones",
         ]},
-        {"dot": "rose", "title": "El ciclo que impide partir el monolito", "items": [
-            f"rutas → servicios: {ciclo[0]} llamadas; servicios → rutas: {ciclo[1]}",
-            "servicios importa utils.py y core.py de app/: por eso hay imports dentro de funciones",
+        {"dot": "rose", "title": f"Código muerto: {embudo.get('confirmadas', sum(muertas.values()))} funciones confirmadas", "items": [
+            ", ".join(f"{GRUPOS[g][1]} {n}" for g, n in muertas.most_common(4)) or "sin datos",
+            f"de {embudo.get('sin_llamadores', '?')} sin llamadores, {embudo.get('descartadas_por_mencion', '?')} sí se mencionan (JSX, rutas Flask) y {embudo.get('descartadas_por_decorador', '?')} llevan decorador",
         ]},
         {"dot": "cyan", "title": "Lo que el grafo NO dice", "items": [
-            f"{cruz_total} «llamadas» Python↔TypeScript descartadas (nombres iguales, no dependencias)",
-            f"la mayor: {top_cruz[0][0]} → {top_cruz[0][1]} ({top_cruz[1]}); las aristas menores van solo en la tabla",
+            f"{cruz_total} «llamadas» Python↔TypeScript descartadas (nombres iguales); la mayor {top_cruz[0][0]} → {top_cruz[0][1]} ({top_cruz[1]})",
             f"snapshot del {str(resumen.get('generado') or '')[:16].replace('T', ' ')} · scripts/arquitectura_diagrama.py",
         ]},
     ]
@@ -190,6 +204,9 @@ def construir(grafo: dict, resumen: dict) -> dict:
                  "note": f"Rutas, herramientas y el agente apuntan a services/; y services/ devuelve {ciclo[1]} llamadas a app/: un ciclo."},
                 {"id": "entradas", "label": "Quién entra desde fuera de app/", "focus": ["scripts", "tienda", "procesos", "rutas", "servicios"],
                  "note": "Los cron, la tienda y el webhook llegan directo a servicios sin pasar por el panel."},
+                {"id": "muerto", "label": "Dónde está el código muerto",
+                 "focus": [g for g, _ in muertas.most_common(4)] or ["panel"],
+                 "note": ("Funciones que nadie llama ni menciona: " + ", ".join(f"{GRUPOS[g][1]} {n}" for g, n in muertas.most_common(3)) + ". Lista por archivo en «Código muerto».")[:140]},
                 {"id": "pruebas", "label": "Qué cubren los tests", "focus": ["tests", "servicios", "herramientas", "rutas"],
                  "note": f"Los tests llaman {entrantes and entre.get(('tests', 'servicios'), 0)} veces a services/ y {entre.get(('tests', 'herramientas'), 0)} a tools/; al panel React no lo prueban desde Python."},
             ],
@@ -212,9 +229,10 @@ def main() -> int:
     try:
         grafo = json.loads((SNAPSHOT / "grafo.json").read_text("utf-8"))
         resumen = json.loads((SNAPSHOT / "resumen.json").read_text("utf-8"))
+        codigo_muerto = json.loads((SNAPSHOT / "codigo_muerto.json").read_text("utf-8"))
     except OSError as e:
         sys.exit(f"Falta el snapshot ({e}). Genera primero: python3 scripts/arquitectura_cbm.py")
-    datos = construir(grafo, resumen)
+    datos = construir(grafo, resumen, codigo_muerto)
     SALIDA.write_text(json.dumps(datos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"→ {SALIDA.relative_to(RAIZ)}  ({len(datos['components'])} grupos, {len(datos['connections'])} aristas)")
     print("Ahora: python3 scripts/diagramas_arquitectura.py entregar")
