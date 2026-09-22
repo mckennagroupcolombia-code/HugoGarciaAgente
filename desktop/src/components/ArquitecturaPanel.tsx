@@ -77,9 +77,10 @@ type Grafo = {
   mensaje?: string;
 };
 
-type Pestana = "diagrama" | "mapa" | "muerto" | "resumen" | "grafo3d";
+type Pestana = "diagrama" | "grafo" | "mapa" | "muerto" | "resumen";
 
-type Visor = { activo: boolean; url: string; version?: string; upstream?: string; comando?: string; motivo?: string };
+type Emerge = { generado: string | null; comando: string; analisis: { id: string; titulo: string; presente: boolean; url: string }[] };
+
 
 const COLOR_MODULO: Record<string, string> = {
   app: "#2563eb",
@@ -336,43 +337,50 @@ function CodigoMuertoVista({ datos }: { datos: CodigoMuerto }) {
 }
 
 /**
- * El grafo en 3D, tal cual lo dibuja codebase-memory-mcp.
- *
- * Es la interfaz HTTP del propio binario (sigma + three.js), servida por Flask
- * bajo /cbm/ con la sesión del panel — el puerto 9749 solo escucha en la
- * máquina y nunca se ve desde la LAN ni por el túnel. Muestra el índice del
- * demonio que esté encendido, que puede ser de otra fecha que los JSON del
- * snapshot: por eso va aparte y con su propio aviso.
+ * Grafo interactivo de Emerge (https://github.com/glato/emerge): un grafo de fuerzas
+ * d3 de archivos y sus imports, coloreado por comunidades (Louvain), con buscador,
+ * tamaño por líneas o por fan-in y modo claro/oscuro. Reemplaza al visor 3D de
+ * codebase-memory-mcp, que dibujaba 5.000 puntos sueltos en rojo sobre negro.
+ * Dos análisis, uno por lenguaje: el Python del servidor y el TypeScript del panel.
+ * Es HTML estático que sirve Flask bajo /app/arquitectura-emerge/… con la cookie
+ * del panel (un <iframe src> plano no manda el Bearer).
  */
-function Grafo3D() {
-  const visor = useQuery({
-    queryKey: ["arquitectura-visor"],
-    queryFn: () => api.get<Visor>("/api/arquitectura/visor"),
-    refetchInterval: 30_000,
+function GrafoEmerge() {
+  const estado = useQuery({
+    queryKey: ["arquitectura-emerge"],
+    queryFn: () => api.get<Emerge>("/api/arquitectura/emerge"),
   });
+  const [cual, setCual] = useState<string>("python");
   const [alto, setAlto] = useState<"normal" | "grande">("normal");
-
-  if (visor.isLoading) return <p className="text-sm text-slate-500">Buscando el visor…</p>;
-  if (!visor.data?.activo) {
+  if (estado.isLoading) return <p className="text-sm text-slate-500">Buscando el grafo…</p>;
+  const lista = estado.data?.analisis ?? [];
+  const sel = lista.find((a) => a.id === cual) ?? lista[0];
+  if (!sel || !lista.some((a) => a.presente)) {
     return (
       <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-medium">El visor 3D está apagado.</p>
-        <p className="mt-1">
-          Lo sirve el demonio de codebase-memory-mcp en la máquina del servidor (puerto 9749). Enciéndelo
-          desde una terminal y vuelve a esta pestaña:
-        </p>
-        <pre className="mt-2 overflow-x-auto rounded bg-amber-100 p-2 text-xs">{visor.data?.comando ?? "codebase-memory-mcp --ui=true"}</pre>
-        {visor.data?.motivo && <p className="mt-1 text-xs text-amber-700">({visor.data.motivo} en {visor.data.upstream})</p>}
+        <p className="font-medium">Todavía no hay grafo generado.</p>
+        <pre className="mt-2 overflow-x-auto rounded bg-amber-100 p-2 text-xs">{estado.data?.comando ?? "python3 scripts/arquitectura_emerge.py"}</pre>
       </div>
     );
   }
-  const src = visor.data.url;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        <span>
-          Visor de codebase-memory-mcp {visor.data.version ? `v${visor.data.version}` : ""} · arrastra para girar, rueda
-          para acercar, toca un nodo para ver sus relaciones.
+        <span className="flex flex-wrap items-center gap-1">
+          {lista.map((a) => (
+            <button
+              key={a.id}
+              onClick={() => setCual(a.id)}
+              disabled={!a.presente}
+              className={`rounded-full px-3 py-1 ${sel.id === a.id ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-700"} disabled:opacity-40`}
+            >
+              {a.titulo}
+            </button>
+          ))}
+          <span className="ml-2">
+            Cada punto es un archivo; cada línea, un import. Color por comunidad; arrastra, acerca con la rueda y busca
+            arriba. Generado el {fecha(estado.data?.generado ?? undefined)}.
+          </span>
         </span>
         <span className="flex items-center gap-2">
           <button
@@ -381,17 +389,17 @@ function Grafo3D() {
           >
             {alto === "normal" ? "Más alto" : "Más bajo"}
           </button>
-          <a href={src} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          <a href={sel.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
             Abrir en pestaña nueva ↗
           </a>
         </span>
       </div>
       <iframe
-        title="Grafo 3D del código"
-        src={src}
-        className="w-full rounded-lg border border-slate-200 bg-[#0a0a10]"
-        style={{ height: alto === "normal" ? "70vh" : "88vh" }}
-        allow="fullscreen"
+        key={sel.id}
+        title={`Grafo de dependencias: ${sel.titulo}`}
+        src={sel.url}
+        className="w-full rounded-lg border border-slate-200 bg-white"
+        style={{ height: alto === "normal" ? "74vh" : "90vh" }}
       />
     </div>
   );
@@ -502,10 +510,10 @@ export default function ArquitecturaPanel() {
 
   const pestanas: { id: Pestana; label: string }[] = [
     { id: "diagrama", label: "Diagrama" },
+    { id: "grafo", label: "Grafo interactivo" },
     { id: "mapa", label: "Mapa de dependencias" },
     { id: "muerto", label: "Código muerto" },
     { id: "resumen", label: "Resumen" },
-    { id: "grafo3d", label: "Grafo 3D" },
   ];
 
   return (
@@ -543,7 +551,7 @@ export default function ArquitecturaPanel() {
 
       {pestana === "diagrama" && <DiagramaCodigo />}
 
-      {pestana === "grafo3d" && <Grafo3D />}
+      {pestana === "grafo" && <GrafoEmerge />}
 
       {pestana === "mapa" && (
         <>

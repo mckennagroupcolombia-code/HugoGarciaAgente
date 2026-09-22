@@ -27,6 +27,13 @@ para que quepa en un iframe del propio /app. El visor muestra el índice del
 demonio que esté escuchando en ese puerto, que no es necesariamente el mismo
 snapshot de los JSON.
 
+Grafo interactivo (Emerge, 22-sep-2026): el visor 3D de CBM no gustó (5.000 puntos
+sueltos en rojo sobre negro, sin filtros por URL ni modo claro). Emerge
+(https://github.com/glato/emerge) analiza el código por su cuenta y deja un HTML
+estático con un grafo de fuerzas d3 por comunidades, buscador y modo claro/oscuro:
+/app/arquitectura-emerge/<python|panel>/… lo sirve con la misma guarda que el
+proxy de CBM. Se genera con scripts/arquitectura_emerge.py.
+
 Ninguna ruta llama a un LLM ni escribe nada.
 """
 
@@ -210,6 +217,28 @@ def estado_visor(timeout: float = 2.0) -> dict:
                 "motivo": type(e).__name__,
                 "comando": "codebase-memory-mcp --ui=true"}
 
+# ---------------------------------------------------------------- grafo interactivo (Emerge)
+
+DIR_EMERGE = Path(__file__).resolve().parent / "data" / "arquitectura_emerge"
+ANALISIS_EMERGE = {"python": "Python (Flask, servicios, scripts, tienda)", "panel": "Panel React (desktop/src)"}
+PREFIJO_EMERGE = "/app/arquitectura-emerge"
+
+
+def estado_emerge() -> dict:
+    """Qué análisis de Emerge hay generados y de cuándo son (scripts/arquitectura_emerge.py)."""
+    generado = None
+    try:
+        generado = (DIR_EMERGE / "generado.txt").read_text("utf-8").strip() or None
+    except OSError:
+        pass
+    analisis = []
+    for clave, titulo in ANALISIS_EMERGE.items():
+        html = DIR_EMERGE / clave / "html" / "emerge.html"
+        analisis.append({"id": clave, "titulo": titulo, "presente": html.exists(),
+                         "url": f"{PREFIJO_EMERGE}/{clave}/emerge.html"})
+    return {"generado": generado, "analisis": analisis,
+            "comando": "python3 scripts/arquitectura_emerge.py"}
+
 
 def register_arquitectura_routes(app):
     @_dual(app, "/api/arquitectura/resumen", methods=["GET"])
@@ -326,6 +355,43 @@ def register_arquitectura_routes(app):
                      methods=["GET"])
     app.add_url_rule(PREFIJO_VISOR + "/<path:ruta>", endpoint="cbm_visor", view_func=_proxy_visor,
                      methods=["GET", "POST", "DELETE"])
+
+    @_dual(app, "/api/arquitectura/emerge", methods=["GET"])
+    @_auth
+    def arquitectura_emerge():
+        """Estado del grafo interactivo de Emerge (dos análisis: Python y panel React)."""
+        return jsonify(estado_emerge())
+
+    def _servir_emerge(analisis: str, ruta: str = "emerge.html"):
+        """Sirve el HTML estático que deja Emerge (html/ con sus vendors y resources).
+
+        Misma guarda que el visor de CBM: cookie del panel o Bearer, y administrador.
+        Solo lo que está dentro de html/ de un análisis conocido (send_from_directory
+        rechaza `..`); nada se ejecuta ni se genera aquí.
+        """
+        from flask import send_from_directory
+        from app.api_auth import chat_api_token_matches_request
+
+        if not chat_api_token_matches_request():
+            usuario = _usuario_de_peticion()
+            if not usuario:
+                return jsonify({"error": "Abre el panel con tu sesión para ver el grafo"}), 401
+            if not _es_admin(usuario):
+                return jsonify({"error": "Arquitectura requiere rol administrador"}), 403
+        if analisis not in ANALISIS_EMERGE:
+            return jsonify({"error": "análisis desconocido"}), 404
+        base = DIR_EMERGE / analisis / "html"
+        if not (base / "emerge.html").exists():
+            return jsonify({"error": "sin_grafo", "comando": "python3 scripts/arquitectura_emerge.py"}), 404
+        resp = send_from_directory(base, ruta)
+        resp.headers["Content-Security-Policy"] = "frame-ancestors 'self'"
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+    app.add_url_rule(PREFIJO_EMERGE + "/<analisis>/", endpoint="emerge_raiz", view_func=_servir_emerge,
+                     methods=["GET"])
+    app.add_url_rule(PREFIJO_EMERGE + "/<analisis>/<path:ruta>", endpoint="emerge_archivo",
+                     view_func=_servir_emerge, methods=["GET"])
 
     @_dual(app, "/api/arquitectura/estado", methods=["GET"])
     @_auth

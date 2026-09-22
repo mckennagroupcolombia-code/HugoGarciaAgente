@@ -1,3 +1,14 @@
+### 2026-09-22 - Arquitectura del código: grafo interactivo con Emerge en lugar de la nube 3D de CBM
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña «Grafo interactivo»); se retira la pestaña «Grafo 3D». Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** el visor 3D de codebase-memory-mcp abría con 5.000 de 40.456 nodos (variables y rutas, 1 arista): puntos rojos sueltos sobre negro, sin filtros por URL ni modo claro. No se puede arreglar desde fuera sin parchear su JavaScript.
+  - **Emerge** (github.com/glato/emerge) analiza el código por su cuenta y deja un HTML estático con un grafo de fuerzas d3: cada punto un archivo, cada línea un import, color por comunidad (Louvain), tamaño por líneas o fan-in, buscador, mapa de calor y modo claro/oscuro. Dos análisis: **Python** del servidor (app/, scripts, tienda; ~2.300 nodos) y **TypeScript** del panel (desktop/src; ~1.000).
+  - `scripts/emerge_config.yaml` (qué carpetas entran y cuáles no) + `scripts/arquitectura_emerge.py` (runner). Flask sirve la salida en `/app/arquitectura-emerge/<python|panel>/…` con la cookie del panel y rol administrador; `GET /api/arquitectura/emerge` dice qué hay generado y de cuándo.
+  - Trampas que costaron: Emerge no arranca en Python 3.12 (importa `pkg_resources` y `pip` internos) → entorno propio `~/.venvs/emerge` con Python 3.10 (uv) + `emerge-viz`, `setuptools<70` y `pip`. Al terminar cada análisis copia la URL al portapapeles (pyperclip) y en un servidor sin X11 revienta **después** del primer análisis, así que el segundo nunca corría: el runner anula `pyperclip.copy`. Su exportador d3 escribe siempre `html/emerge.html`, por eso cada análisis va a su carpeta.
+  - Verificado en Chrome dentro del panel: los dos grafos cargan y se cambia entre ellos. El proxy `/app/cbm/` del visor de CBM sigue en el código sin pestaña; se puede retirar cuando se quiera.
+- **Archivos Modificados:** `scripts/emerge_config.yaml` (nuevo), `scripts/arquitectura_emerge.py` (nuevo), `app/routes_arquitectura.py`, `desktop/src/components/ArquitecturaPanel.tsx`, `.gitignore`
+
 ### 2026-09-22 - Arquitectura del código: diagrama de Archify «Cómo se compone el código» en vez de la nube 3D
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña Diagrama, ahora la primera). Sin LLM.

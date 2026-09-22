@@ -1,0 +1,59 @@
+# Configuración de Emerge (https://github.com/glato/emerge) para el grafo interactivo
+# de dependencias del panel Sistema → Arquitectura del código → «Grafo interactivo».
+# Se corre con: python3 scripts/arquitectura_emerge.py   (usa ~/.venvs/emerge, Python 3.10)
+# Salida: app/data/arquitectura_emerge/{python,panel}/html/emerge.html (gitignored; se regenera).
+# Cada análisis exporta a su carpeta: el d3 de Emerge escribe siempre html/emerge.html y dos
+# análisis en la misma carpeta se pisarían.
+---
+project_name: mi-agente
+loglevel: info
+analyses:
+- analysis_name: Python (Flask, servicios, scripts, tienda)
+  source_directory: /home/mckg/mi-agente
+  only_permit_languages:
+  - py
+  only_permit_file_extensions:
+  - .py
+  ignore_directories_containing:
+  - __pycache__
+  - venv
+  - node_modules
+  - backups_drive
+  - .git
+  - memoria_vectorial
+  - Declarador
+  - desktop
+  - bot-mckenna
+  - .agents
+  - .cursor
+  ignore_files_containing:
+  - test_
+  file_scan:
+  - number_of_methods
+  - source_lines_of_code
+  - dependency_graph
+  - louvain_modularity
+  - fan_in_out
+  export:
+  - directory: /home/mckg/mi-agente/app/data/arquitectura_emerge/python
+  - json
+  - d3
+- analysis_name: Panel React (desktop/src)
+  source_directory: /home/mckg/mi-agente/desktop/src
+  only_permit_languages:
+  - typescript
+  only_permit_file_extensions:
+  - .ts
+  - .tsx
+  ignore_directories_containing:
+  - node_modules
+  file_scan:
+  - number_of_methods
+  - source_lines_of_code
+  - dependency_graph
+  - louvain_modularity
+  - fan_in_out
+  export:
+  - directory: /home/mckg/mi-agente/app/data/arquitectura_emerge/panel
+  - json
+  - d3

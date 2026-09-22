@@ -247,6 +247,8 @@ desktop/tsconfig.tsbuildinfo
 # regenera con `python3 scripts/arquitectura_cbm.py`. El grafo cambia en cada
 # commit, así que versionarlo repetiría el problema de los auto-commits.
 app/data/arquitectura_cbm/
+# Grafo interactivo de Emerge (derivado del código): python3 scripts/arquitectura_emerge.py
+app/data/arquitectura_emerge/
 
 # Respaldo de un build del SPA que quedo versionado por error el 5-sep-2026
 # (112 archivos, 14 MB). desktop/dist/ ya estaba ignorado; esta copia se
