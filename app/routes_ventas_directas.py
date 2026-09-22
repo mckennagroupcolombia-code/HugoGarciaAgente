@@ -161,6 +161,16 @@ def register_ventas_directas_routes(app):
             return jsonify({"error": "La cotización aún no tiene PDF"}), 404
         return send_file(ruta, mimetype="application/pdf", download_name=f"{venta['numero']}.pdf")
 
+    @_dual(app, "/api/ventas-directas/meli/<ref>", methods=["GET"])
+    @_auth
+    def vd_venta_meli(ref: str):
+        """Comprador, productos y si ya está facturada una venta de MeLi (pack u orden)."""
+        try:
+            r = V.consultar_venta_meli(ref)
+        except Exception as e:  # noqa: BLE001
+            r = {"ok": False, "error": f"No se pudo consultar MeLi: {e}"}
+        return jsonify(r), (200 if r.get("ok") else 400)
+
     @_dual(app, "/api/ventas-directas/pedidos-ia", methods=["GET"])
     @_auth
     def vd_pedidos_ia():

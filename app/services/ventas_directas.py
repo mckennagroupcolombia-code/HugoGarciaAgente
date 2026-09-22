@@ -36,6 +36,7 @@ Sin LLM en este módulo.
 from __future__ import annotations
 
 import json
+import re
 import os
 import sqlite3
 import threading
@@ -50,7 +51,7 @@ _lock = threading.Lock()
 
 # "facturando" es transitorio: la factura se pidió a Alegra y aún no volvió.
 ESTADOS = ("borrador", "cotizada", "facturando", "facturada", "anulada")
-ORIGENES = ("manual", "pedido_ia", "conversacion")
+ORIGENES = ("manual", "pedido_ia", "conversacion", "meli")
 VIGENCIA_DIAS = int(os.getenv("VENTAS_DIRECTAS_VIGENCIA_DIAS", "15"))
 ENVIO_SKU_GENERICO = os.getenv("WEB_SIIGO_SHIPPING_CODE_GENERIC", "WEB-ENVIO-VAR").strip() or "WEB-ENVIO-VAR"
 
@@ -253,7 +254,7 @@ def guardar(datos: dict, *, usuario: str = "", venta_id: int | None = None) -> d
     if origen not in ORIGENES:
         origen = "manual"
     cliente = {k: str((datos.get("cliente") or {}).get(k) or "").strip()
-               for k in ("nombre", "identificacion", "correo", "direccion", "ciudad")}
+               for k in ("nombre", "identificacion", "tipo_documento", "correo", "direccion", "ciudad")}
     calc = calcular(datos.get("lineas") or datos.get("productos") or [], datos.get("envio") or 0)
     ahora = _ahora()
     campos = {
@@ -333,7 +334,9 @@ def crear_cotizacion_alegra(venta: dict) -> dict:
     )
 
     cli = venta.get("cliente") or {}
-    ident = "".join(ch for ch in str(cli.get("identificacion") or "") if ch.isdigit())
+    tipo_doc, ident, err_ident = identificacion_fiscal(cli)
+    if err_ident:
+        return {"ok": False, "error": err_ident}
     if not ident:
         return {"ok": False, "error": "Sin identificación: la cotización no se registra en Alegra (el PDF sí sale)."}
     try:
@@ -343,6 +346,7 @@ def crear_cotizacion_alegra(venta: dict) -> dict:
     contacto_id, err = _resolver_o_crear_contacto_alegra(
         nombre=cli.get("nombre") or "", identificacion=ident, email=cli.get("correo") or "",
         telefono=venta.get("telefono") or "", direccion=cli.get("direccion") or "",
+        tipo_documento=tipo_doc,
     )
     if not contacto_id:
         return {"ok": False, "error": f"No se pudo resolver el cliente en Alegra. {err or ''}".strip()}
@@ -402,10 +406,167 @@ def crear_cotizacion_alegra(venta: dict) -> dict:
 # --------------------------------------------------------------------------- acciones
 
 
+_EMPRESA = re.compile(
+    r"\b(S\.?\s?A\.?\s?S|S\.?\s?A|LTDA|E\.?\s?U|S\.?\s?C\.?\s?A|SOCIEDAD|FUNDACI[OÓ]N|CORPORACI[OÓ]N|"
+    r"UNIVERSIDAD|ASOCIACI[OÓ]N|COOPERATIVA|INSTITUTO|CL[IÍ]NICA|HOSPITAL|COLEGIO|EMPRESA)\b\.?",
+    re.I,
+)
+
+
+def identificacion_fiscal(cliente: dict) -> tuple[str, str, str | None]:
+    """(tipo_documento, identificación, error) para Alegra.
+
+    Sin tipo, Alegra lo adivina por longitud y un NIT de empresa de 9-10 dígitos
+    queda como CC: EQUISURE S.A.S (FE465) salió así. Se toma el tipo elegido en
+    el panel; si no hay, es NIT cuando el nombre es de empresa o el número tiene
+    forma de NIT (9-10 dígitos que empiezan en 8 o 9). Un NIT con DV (con guion,
+    o 10 dígitos como lo entrega MeLi) se comprueba con el algoritmo de la DIAN.
+    """
+    from app.services.empresa import digito_verificacion
+
+    crudo = str(cliente.get("identificacion") or "").strip()
+    digitos = re.sub(r"\D", "", crudo)
+    tipo = str(cliente.get("tipo_documento") or "").strip().upper()
+    if tipo not in ("NIT", "CC"):
+        forma_nit = len(digitos) in (9, 10) and digitos[:1] in ("8", "9")
+        tipo = "NIT" if (_EMPRESA.search(cliente.get("nombre") or "") or forma_nit) else "CC"
+    if tipo != "NIT" or not digitos:
+        return tipo, digitos, None
+    if "-" in crudo:
+        base, _, dv = crudo.rpartition("-")
+        base, dv = re.sub(r"\D", "", base), re.sub(r"\D", "", dv)
+        if dv and digito_verificacion(base) != int(dv):
+            return tipo, digitos, (f"El NIT {crudo} no cuadra: a {base} le corresponde el dígito de verificación "
+                                   f"{digito_verificacion(base)}. Revísalo en el RUT.")
+        return tipo, base, None  # Alegra quiere la base y calcula el DV
+    if len(digitos) == 10 and digito_verificacion(digitos[:-1]) != int(digitos[-1]):
+        return tipo, digitos, (f"El NIT {digitos} tiene 10 dígitos pero el último no es su dígito de verificación. "
+                               "Escríbelo como en el RUT: 900409216-6.")
+    return tipo, (digitos[:-1] if len(digitos) == 10 else digitos), None
+
+
 def _jid(telefono: str) -> str | None:
     from app.tools.facturacion_directa import _telefono_a_jid
 
     return _telefono_a_jid(telefono)
+
+
+def _destino_whatsapp(telefono: str, enviar: bool) -> tuple[str | None, str | None]:
+    """(jid, error). Sin teléfono (una venta de MeLi no lo trae: el operador ponía
+    «.» y la factura nunca salía) no se envía por WhatsApp y se sigue. Un número
+    escrito pero mal formado sí detiene: probablemente es un error de digitación."""
+    if not enviar:
+        return None, None
+    jid = _jid(telefono)
+    if jid:
+        return jid, None
+    if not re.sub(r"\D", "", telefono or ""):
+        return None, None
+    return None, f"Teléfono inválido: {telefono!r} (10 dígitos empezando en 3, o déjalo vacío)."
+
+
+# ── Venta de Mercado Libre facturada desde aquí ──────────────────────────────
+# Caso recurrente: una empresa compra en MeLi y manda el RUT pidiendo factura con
+# sus datos. Se factura por este wizard, pero la factura queda ligada al PACK
+# (purchase_order = pack_id, igual que «Facturar ahora»): así ninguna de las dos
+# vías emite una segunda factura y el PDF queda subido en la venta de MeLi.
+
+
+def _claves_meli(ref: str) -> dict:
+    """Pack u orden → {pack_id, order_ids, orden}. Error si MeLi no la encuentra."""
+    from app.tools.meli_autofactura_entrega import consultar_orden_meli_completa, consultar_pack_meli
+
+    ref = re.sub(r"\D", "", str(ref or ""))
+    if not ref:
+        return {"ok": False, "error": "Escribe el número de la venta de MeLi (pack u orden)."}
+    orden = consultar_orden_meli_completa(ref)
+    pack = None
+    if not orden:
+        pack = consultar_pack_meli(ref)
+        oid = str((((pack or {}).get("orders") or [{}])[0]).get("id") or "")
+        orden = consultar_orden_meli_completa(oid) if oid else None
+    if not orden:
+        return {"ok": False, "error": f"MeLi no encontró la venta {ref}."}
+    pack_id = str(orden.get("pack_id") or orden.get("id"))
+    if pack is None and pack_id != str(orden.get("id")):
+        pack = consultar_pack_meli(pack_id)
+    order_ids = [str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]
+    if str(orden.get("id")) not in order_ids:
+        order_ids.append(str(orden.get("id")))
+    return {"ok": True, "pack_id": pack_id, "order_ids": order_ids, "orden": orden}
+
+
+def _bloqueo_meli(pack_id: str, order_ids: list[str], *, revisar_alegra: bool = True) -> str | None:
+    """Las mismas barreras de «Facturar ahora»: si algo ya facturó esta venta, no se emite.
+    Revisar Alegra tarda ~30 s (dos páginas de /invoices): al consultar la venta se
+    omite y se hace siempre justo antes de emitir."""
+    from app.services.meli import meli_pack_tiene_documento_fiscal
+    from app.tools.meli_autofactura_entrega import (
+        _ESTADOS_TERMINALES,
+        _estado_existente_orden,
+        _facturas_alegra_existentes,
+    )
+
+    for oid in order_ids:
+        previo = _estado_existente_orden(oid) or {}
+        if previo.get("estado") in _ESTADOS_TERMINALES:
+            return (f"La orden {oid} de esa venta ya está {previo.get('estado')!r} "
+                    f"({previo.get('siigo_invoice_number') or 'sin número'}). No se emite otra factura.")
+    if meli_pack_tiene_documento_fiscal(pack_id):
+        return (f"La venta {pack_id} ya tiene un documento fiscal cargado en MeLi. "
+                "Si esa factura está mal, primero anúlala con nota crédito.")
+    if not revisar_alegra:
+        return None
+    try:
+        existentes = _facturas_alegra_existentes({pack_id, *order_ids})
+    except Exception as e:  # noqa: BLE001 - sin poder verificar, no se emite
+        return f"No se pudo verificar en Alegra si la venta ya tiene factura ({e}). No se emitió nada."
+    if existentes:
+        nums = ", ".join((f.get("numberTemplate") or {}).get("fullNumber") or str(f.get("id")) for f in existentes)
+        return f"La venta de MeLi {pack_id} ya tiene factura en Alegra ({nums}). No se emite otra."
+    return None
+
+
+def consultar_venta_meli(ref: str) -> dict:
+    """Para el wizard: comprador (billing_info de MeLi), productos y si ya está facturada."""
+    from app.tools.meli_autofactura_entrega import (
+        _construir_lineas_factura_desde_orden_meli,
+        _extraer_datos_comprador,
+        consultar_orden_meli_completa,
+    )
+
+    r = _claves_meli(ref)
+    if not r.get("ok"):
+        return r
+    pack_id, order_ids, orden = r["pack_id"], r["order_ids"], r["orden"]
+    lineas: list[dict] = []
+    avisos: list[str] = []
+    for oid in order_ids:
+        o = orden if oid == str(orden.get("id")) else consultar_orden_meli_completa(oid)
+        if not o:
+            avisos.append(f"No se pudo leer la orden {oid}.")
+            continue
+        ls, err = _construir_lineas_factura_desde_orden_meli(o)
+        if err:
+            avisos.append(err)
+        lineas.extend(ls)
+    comprador = _extraer_datos_comprador(str(orden.get("id")), {})
+    return {
+        "ok": True,
+        "pack_id": pack_id,
+        "order_ids": order_ids,
+        "cliente": {
+            "nombre": comprador.get("nombre_cliente") or "",
+            "identificacion": comprador.get("identificacion") or "",
+            "tipo_documento": (comprador.get("tipo_documento") or "").upper(),
+            "direccion": comprador.get("direccion_envio") or "",
+            "correo": comprador.get("email") or "",
+        },
+        "lineas": [{"codigo": l["codigo"], "nombre": l.get("nombre") or l["codigo"],
+                    "cantidad": l["cantidad"], "precio_unitario": l["precio_unitario"]} for l in lineas],
+        "bloqueo": _bloqueo_meli(pack_id, order_ids, revisar_alegra=False),
+        "avisos": avisos,
+    }
 
 
 def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra: bool = True) -> dict:
@@ -419,9 +580,9 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
         return {"ok": False, "error": f"La venta está {venta['estado']}."}
     if not venta["lineas"]:
         return {"ok": False, "error": "La cotización no tiene productos."}
-    jid = _jid(venta["telefono"]) if enviar_whatsapp else None
-    if enviar_whatsapp and not jid:
-        return {"ok": False, "error": f"Teléfono inválido: {venta['telefono']!r}."}
+    jid, err = _destino_whatsapp(venta["telefono"], enviar_whatsapp)
+    if err:
+        return {"ok": False, "error": err}
 
     avisos: list[str] = []
     campos: dict = {}
@@ -492,14 +653,26 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
     cli = venta["cliente"]
     if not (cli.get("nombre") or "").strip() or not (cli.get("identificacion") or "").strip():
         return {"ok": False, "error": "Faltan nombre o identificación del cliente — obligatorios para facturar."}
+    tipo_doc, ident, err_ident = identificacion_fiscal(cli)
+    if err_ident:
+        return {"ok": False, "error": err_ident}
     calc = calcular(venta["lineas"], venta["envio"])
     if calc["errores"]:
         return {"ok": False, "error": " ".join(calc["errores"])}
     if calc["sin_alegra"]:
         return {"ok": False, "error": "No existen en Alegra: " + ", ".join(calc["sin_alegra"])}
-    jid = _jid(venta["telefono"]) if enviar_whatsapp else None
-    if enviar_whatsapp and not jid:
-        return {"ok": False, "error": f"Teléfono inválido: {venta['telefono']!r}."}
+    jid, err = _destino_whatsapp(venta["telefono"], enviar_whatsapp)
+    if err:
+        return {"ok": False, "error": err}
+
+    meli = None
+    if venta.get("origen") == "meli":
+        meli = _claves_meli(venta.get("origen_ref") or "")
+        if not meli.get("ok"):
+            return meli
+        bloqueo = _bloqueo_meli(meli["pack_id"], meli["order_ids"])
+        if bloqueo:
+            return {"ok": False, "error": bloqueo}
 
     # Se marca antes de llamar a Alegra: si el proceso muere entre la factura y
     # la respuesta, un segundo clic no debe emitir otra (pasó con FE275/278/295).
@@ -513,17 +686,24 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
 
     medio = medio_pago or venta.get("medio_pago") or ""
     ref = venta["numero"]
+    if meli:
+        observaciones = (f"Venta MercadoLibre — Pack {meli['pack_id']}. Órdenes: {', '.join(meli['order_ids'])}. "
+                         f"Facturada con los datos del RUT del cliente ({ref}).")
+        orden_compra = meli["pack_id"]
+    else:
+        observaciones, orden_compra = f"Venta directa WhatsApp — {ref}.", ref
     try:
         res = crear_factura_venta_alegra(
             nombre_cliente=cli["nombre"],
-            identificacion=cli["identificacion"],
+            identificacion=ident,
+            tipo_documento=tipo_doc,
             direccion_envio=cli.get("direccion") or "",
             productos=_lineas_para_documento(calc),
             total=calc["total"],
             email=cli.get("correo") or "",
-            telefono=venta["telefono"],
-            observaciones=f"Venta directa WhatsApp — {ref}.",
-            purchase_order=ref,
+            telefono=venta["telefono"] if jid else "",
+            observaciones=observaciones,
+            purchase_order=orden_compra,
             medio_pago=medio,
             descargar_pdf=True,
             enviar_dian=True,
@@ -551,6 +731,8 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         enviado = bool(enviar_whatsapp_archivo(res["pdf_path"], caption, numero_destino=jid))
     if jid and not enviado:
         avisos.append("La factura quedó emitida pero el PDF no llegó por WhatsApp — envíalo a mano.")
+    if meli:
+        avisos += _registrar_en_meli(meli, res)
 
     _actualizar(
         venta_id, estado="facturada", facturado=_ahora(), facturado_por=usuario or "",
@@ -571,6 +753,35 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
     except Exception:
         pass
     return {"ok": True, "venta": obtener(venta_id), "avisos": avisos, "enviado_whatsapp": enviado}
+
+
+def _registrar_en_meli(meli: dict, res: dict) -> list[str]:
+    """Sube el PDF a la venta de MeLi y marca sus órdenes como facturadas en el
+    mismo registro que usa «Facturar ahora» (así esa vía ve que ya está hecha)."""
+    from app.services.meli import subir_factura_meli
+    from app.tools.meli_autofactura_entrega import _registrar_estado_orden
+
+    avisos: list[str] = []
+    subido = False
+    if res.get("pdf_base64"):
+        subida = subir_factura_meli(meli["pack_id"], res["pdf_base64"], formato="pdf", prefijo_archivo="Fac")
+        subido = subida == "✅"
+        if not subido:
+            avisos.append(f"No se pudo subir el PDF a MeLi ({subida}) — súbelo a mano en la venta.")
+    else:
+        avisos.append("No se descargó el PDF de Alegra — súbelo a mano en la venta de MeLi.")
+    for i, oid in enumerate(meli["order_ids"]):
+        try:
+            _registrar_estado_orden(
+                oid, estado="facturada", proveedor="alegra", pack_id=meli["pack_id"],
+                siigo_invoice_id=res.get("invoice_id"), siigo_invoice_number=res.get("number"),
+                siigo_invoice_status=res.get("status"), siigo_invoice_cufe=res.get("cufe") or None,
+                pdf_subido_meli=subido and i == 0,
+                nota="Facturada desde Cotizar/Facturar con los datos del RUT del cliente.",
+            )
+        except Exception as e:  # noqa: BLE001
+            avisos.append(f"No se pudo marcar la orden {oid} como facturada: {e}")
+    return avisos
 
 
 def _cerrar_pedido_origen(venta: dict) -> None:

@@ -1,3 +1,23 @@
+### 2026-09-22 - Cotizar/Facturar: ventas de Mercado Libre con RUT ya se facturan (teléfono opcional, factura ligada al pack, NIT vs CC)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + nueva funcionalidad (Facturación → Cotizar/Facturar). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué no salía la factura:** caso recurrente de empresas que compran en MeLi y mandan el RUT. MeLi no da teléfono ni correo; el panel exigía «WhatsApp del cliente», el operador ponía «.» y cotizar/facturar respondía «Teléfono inválido». La venta 2000015079567449 (JP BIOINGENIERIA, `COT-20260922-001`) quedó en borrador sin llegar a Alegra.
+  - **WhatsApp opcional:** sin número se factura igual y solo no se envía el PDF; un número a medio escribir sí se detiene.
+  - **«Venta de Mercado Libre» en el paso 1** (`GET /api/ventas-directas/meli/<pack u orden>`): trae comprador (billing_info) y productos. Al facturar aplica las barreras de «Facturar ahora» (registro local, documento fiscal en MeLi, factura en Alegra), emite con `purchase_order=pack_id`, sube el PDF a MeLi y marca las órdenes `facturada`: ninguna de las dos vías emite una segunda factura.
+  - **NIT vs CC:** Cotizar/Facturar no mandaba el tipo y Alegra adivinaba por longitud — EQUISURE S.A.S (FE465) quedó como **CC**. `identificacion_fiscal()` manda NIT/CC (selector en el paso 2 o deducido por nombre de empresa / forma de NIT) y comprueba el dígito de verificación.
+  - ⚠️ Pendiente: decidir qué hacer con el contacto CC de EQUISURE y su FE465; la venta de JP BIOINGENIERIA hay que facturarla por el nuevo camino con el correo del RUT.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `CLAUDE.md`
+
+### 2026-09-22 - Abonos de Bancolombia a la asesora también por WhatsApp
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (cron `reenvio_alertas_banco`, cada 5 min). Sin LLM.
+- **Qué se implementó:**
+  - Además de la copia del correo a Jenniffer, cada abono («Recibiste $… por QR de …») llega como mensaje al +57 318 243 2463 (`REENVIO_BANCO_WA`), con la frase del movimiento sin saludo ni pie. Sale por la cuenta supervisora (:3001) con el puente principal de respaldo.
+  - Primero sale el correo; si el WhatsApp falla queda en `wa_pendientes` y se reintenta hasta ~1 h sin repetir el correo. OTP, claves y aprobaciones siguen sin salir nunca.
+  - Mensaje de prueba entregado (salió por el puente principal: el supervisor no respondió «success»).
+- **Archivos Modificados:** `app/tools/reenvio_alertas_banco.py`, `scripts/reenvio_alertas_banco_cron.py`, `scripts/instalar_cron_mcKenna.sh`, `.env.example`, `tests/test_reenvio_alertas_banco.py`
+
 ### 2026-09-22 - Arquitectura del código: grafo interactivo con Emerge en lugar de la nube 3D de CBM
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña «Grafo interactivo»); se retira la pestaña «Grafo 3D». Sin LLM.

@@ -706,6 +706,18 @@ facturar a mano en Alegra mientras la lista siga con IVA incluido.** Cambiar la 
 base es la corrección de fondo, pero toca todo lo que lee `price` de Alegra como precio final
 (precios_canales, precios_trm, rentabilidad, picker del panel) — decisión pendiente.
 
+**Venta de MeLi con RUT (22-sep-2026):** empresas compran en MeLi y mandan el RUT para que la
+factura salga a su nombre; MeLi no da correo ni teléfono. En el paso 1, «Venta de Mercado Libre»
+(`GET /api/ventas-directas/meli/<pack u orden>`) trae comprador (billing_info) y productos y deja
+`origen=meli`, `origen_ref=pack_id`. Al facturar se aplican las barreras de «Facturar ahora»
+(registro local, documento fiscal en MeLi, factura en Alegra por `purchase_order`), la factura
+sale con `purchase_order=pack_id`, el PDF se sube a MeLi y las órdenes quedan `facturada` en
+`meli_facturas_entrega.json` — así ninguna de las dos vías emite otra. El **WhatsApp del cliente
+es opcional** (antes era obligatorio: el operador ponía «.» y cotizar/facturar fallaba con
+«Teléfono inválido»). **Tipo de documento:** `identificacion_fiscal()` manda NIT/CC a Alegra
+(selector en el paso 2, o deducido por nombre de empresa / forma de NIT) y comprueba el DV; sin
+esto Alegra adivinaba por longitud y EQUISURE S.A.S (FE465) quedó como CC.
+
 Facturar marca la venta `facturando` **antes** de llamar a Alegra (un segundo clic o una pestaña
 duplicada no emite otra factura) y la devuelve a su estado si Alegra falla. Un pedido IA facturado
 se cierra en `ventas_wa`. Los endpoints viejos `/api/facturacion/cotizar` y `/facturar-directo`

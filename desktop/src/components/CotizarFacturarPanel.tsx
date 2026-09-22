@@ -59,13 +59,15 @@ interface Calculo {
 interface Cliente {
   nombre: string;
   identificacion: string;
+  /** "NIT" | "CC" | "" (vacío = el backend lo deduce del nombre y el número). */
+  tipo_documento?: string;
   correo: string;
   direccion: string;
   ciudad: string;
 }
 
 type Estado = "borrador" | "cotizada" | "facturando" | "facturada" | "anulada";
-type Origen = "manual" | "pedido_ia" | "conversacion";
+type Origen = "manual" | "pedido_ia" | "conversacion" | "meli";
 
 interface Venta {
   id: number;
@@ -145,7 +147,7 @@ const ESTADO_UI: Record<Estado, { label: string; cls: string }> = {
   anulada: { label: "Anulada", cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
 };
 
-const CLIENTE_VACIO: Cliente = { nombre: "", identificacion: "", correo: "", direccion: "", ciudad: "" };
+const CLIENTE_VACIO: Cliente = { nombre: "", identificacion: "", tipo_documento: "", correo: "", direccion: "", ciudad: "" };
 
 const input =
   "w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent";
@@ -170,6 +172,7 @@ function hace(ts: number | string): string {
 }
 
 function telefonoVisible(tel: string): string {
+  if (!tel.replace(/\D/g, "") && !tel.includes("@")) return "sin WhatsApp — no se envía el PDF";
   if (tel.includes("@")) return tel.endsWith("@lid") ? "chat de WhatsApp" : tel.split("@")[0];
   const d = tel.replace(/\D/g, "");
   const local = d.length === 12 && d.startsWith("57") ? d.slice(2) : d;
@@ -289,7 +292,8 @@ export default function CotizarFacturarPanel() {
     setPaso(a);
   }
 
-  const clienteOk = cliente.nombre.trim().length > 0 && telefono.trim().length > 0;
+  // El WhatsApp es opcional: una venta de MeLi no lo trae y sin él solo no se envía el PDF.
+  const clienteOk = cliente.nombre.trim().length > 0;
   const productosOk = lineas.length > 0 && lineas.every((l) => l.cantidad > 0 && l.precio_unitario >= 0);
   const puedeFacturar =
     clienteOk && cliente.identificacion.trim().length > 0 && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length);
@@ -326,7 +330,8 @@ export default function CotizarFacturarPanel() {
     try {
       const r = await api.post<{ venta: Venta; avisos: string[] }>(`/api/ventas-directas/${v.id}/facturar`, {
         medio_pago: medioPago,
-      }, { timeoutMs: 90_000 });
+        // Una venta de MeLi revisa antes en Alegra que no exista otra factura (~30 s).
+      }, { timeoutMs: origen === "meli" ? 150_000 : 90_000 });
       cargarVenta(r.venta);
       setAvisos(r.avisos ?? []);
     } catch (e) {
@@ -414,6 +419,7 @@ export default function CotizarFacturarPanel() {
           {venta.alegra_cotizacion_numero && <span className="text-muted">Alegra cotización #{venta.alegra_cotizacion_numero}</span>}
           {venta.factura_numero && <span className="text-muted">· Factura {venta.factura_numero}</span>}
           {venta.origen === "pedido_ia" && <span className="text-muted">· desde pedido IA #{venta.origen_ref}</span>}
+          {venta.origen === "meli" && <span className="text-muted">· venta MeLi {venta.origen_ref}</span>}
         </div>
       )}
 
@@ -429,6 +435,21 @@ export default function CotizarFacturarPanel() {
           onVenta={(v) => cargarVenta(v, v.estado === "borrador" ? 3 : 5)}
           onManual={() => {
             setOrigen("manual");
+            setPaso(2);
+          }}
+          onMeli={(d) => {
+            setOrigen("meli");
+            setOrigenRef(d.pack_id);
+            setCliente((c) => ({
+              ...c,
+              nombre: d.cliente.nombre || c.nombre,
+              identificacion: d.cliente.identificacion || c.identificacion,
+              tipo_documento: d.cliente.tipo_documento || c.tipo_documento,
+              direccion: d.cliente.direccion || c.direccion,
+              correo: c.correo || d.cliente.correo,
+            }));
+            setLineas(d.lineas);
+            setAvisos(d.avisos ?? []);
             setPaso(2);
           }}
           onConversacion={(datos) => {
@@ -448,6 +469,14 @@ export default function CotizarFacturarPanel() {
             setPaso(2);
           }}
         />
+      )}
+
+      {paso === 2 && origen === "meli" && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          <Ico e="🧾" /> Venta de Mercado Libre {origenRef}: los datos vienen de la facturación que el comprador cargó en MeLi.
+          Compáralos con el RUT que envió y escribe el <b>correo</b> del RUT (MeLi no lo entrega). La factura queda ligada a
+          la venta, se sube a MeLi y «Facturar ahora» ya no emite otra.
+        </p>
       )}
 
       {paso === 2 && (
@@ -486,7 +515,9 @@ export default function CotizarFacturarPanel() {
             <div className="rounded-lg border border-border/70 p-3 text-sm">
               <p className="font-semibold text-ink">{cliente.nombre || "—"}</p>
               <p className="text-xs text-muted">
-                {cliente.identificacion ? `CC/NIT ${cliente.identificacion}` : "Sin identificación — solo se puede cotizar"}
+                {cliente.identificacion
+                  ? `${cliente.tipo_documento || "CC/NIT"} ${cliente.identificacion}`
+                  : "Sin identificación — solo se puede cotizar"}
               </p>
               <p className="text-xs text-muted"><Ico e="📱" /> {telefonoVisible(telefono)}</p>
               {cliente.correo && <p className="text-xs text-muted"><Ico e="✉️" /> {cliente.correo}</p>}
@@ -635,6 +666,17 @@ export default function CotizarFacturarPanel() {
 
 /* ─────────────────────────────── Paso 1 · Origen ─────────────────────────────── */
 
+interface VentaMeli {
+  ok: boolean;
+  error?: string;
+  pack_id: string;
+  order_ids: string[];
+  cliente: { nombre: string; identificacion: string; tipo_documento: string; direccion: string; correo: string };
+  lineas: Linea[];
+  bloqueo: string | null;
+  avisos: string[];
+}
+
 interface DatosConversacion {
   ref: string;
   cliente: Cliente;
@@ -659,11 +701,13 @@ function PasoOrigen({
   onPedido,
   onVenta,
   onManual,
+  onMeli,
   onConversacion,
 }: {
   onPedido: (v: Venta) => void;
   onVenta: (v: Venta) => void;
   onManual: () => void;
+  onMeli: (d: VentaMeli) => void;
   onConversacion: (d: DatosConversacion) => void;
 }) {
   const [pedidos, setPedidos] = useState<PedidoIA[] | null>(null);
@@ -674,6 +718,26 @@ function PasoOrigen({
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const q = useDebounced(filtroVentas, 300);
+  const [refMeli, setRefMeli] = useState("");
+  const [bloqueoMeli, setBloqueoMeli] = useState<string | null>(null);
+
+  async function traerMeli() {
+    setOcupado("meli");
+    setError(null);
+    setBloqueoMeli(null);
+    try {
+      const d = await api.get<VentaMeli>(`/api/ventas-directas/meli/${encodeURIComponent(refMeli.replace(/\D/g, ""))}`, {
+        timeoutMs: 60_000,
+      });
+      if (!d.ok) throw new Error(d.error || "No se pudo leer la venta de MeLi.");
+      if (d.bloqueo) setBloqueoMeli(d.bloqueo);
+      else onMeli(d);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  }
 
   useEffect(() => {
     api
@@ -789,6 +853,26 @@ function PasoOrigen({
             ))}
           </div>
         )}
+      </div>
+
+      <div className={card}>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted"><Ico e="🧾" /> Venta de Mercado Libre · el cliente envió su RUT</p>
+        <p className="mb-2 text-[11px] text-muted">
+          Trae comprador y productos de la venta, y liga la factura a ella (sin duplicar con «Facturar ahora»).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={refMeli}
+            onChange={(e) => setRefMeli(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && refMeli.trim() && void traerMeli()}
+            placeholder="Venta # (pack u orden, ej. 2000015079567449)"
+            className={`${input} min-w-0 flex-1`}
+          />
+          <button type="button" className={btn} disabled={ocupado !== null || !refMeli.replace(/\D/g, "")} onClick={() => void traerMeli()}>
+            {ocupado === "meli" ? "Consultando…" : "Traer de MeLi"}
+          </button>
+        </div>
+        {bloqueoMeli && <p className="mt-2 text-xs text-red-600"><Ico e="⚠️" /> {bloqueoMeli}</p>}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -970,19 +1054,32 @@ function PasoCliente({
       )}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <input value={cliente.nombre} onChange={set("nombre")} disabled={soloLectura} placeholder="Nombre o razón social *" className={input} />
-        <input
-          value={cliente.identificacion}
-          onChange={set("identificacion")}
-          disabled={soloLectura}
-          placeholder="Cédula / NIT (obligatorio para facturar)"
-          className={input}
-        />
+        <div className="flex gap-2">
+          <select
+            value={cliente.tipo_documento ?? ""}
+            onChange={(e) => onCliente({ ...cliente, tipo_documento: e.target.value })}
+            disabled={soloLectura}
+            title="Una empresa se factura con NIT. «Detectar» lo decide por el nombre (S.A.S, LTDA…) y el número."
+            className={`${input} w-28 shrink-0`}
+          >
+            <option value="">Detectar</option>
+            <option value="NIT">NIT</option>
+            <option value="CC">CC</option>
+          </select>
+          <input
+            value={cliente.identificacion}
+            onChange={set("identificacion")}
+            disabled={soloLectura}
+            placeholder="Cédula / NIT con DV, ej. 900409216-6 (para facturar)"
+            className={`${input} min-w-0 flex-1`}
+          />
+        </div>
         <input
           value={telefono.includes("@") ? telefonoVisible(telefono) : telefono}
           onChange={(e) => onTelefono(e.target.value)}
           disabled={soloLectura || telefono.includes("@")}
           title={telefono.includes("@") ? "Se responde en el mismo chat donde el cliente hizo el pedido" : undefined}
-          placeholder="WhatsApp del cliente * (3001234567)"
+          placeholder="WhatsApp del cliente (opcional, 3001234567)"
           className={input}
         />
         <input value={cliente.correo} onChange={set("correo")} disabled={soloLectura} placeholder="Correo (opcional)" className={input} />
