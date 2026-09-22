@@ -77,7 +77,9 @@ type Grafo = {
   mensaje?: string;
 };
 
-type Pestana = "mapa" | "muerto" | "resumen";
+type Pestana = "grafo3d" | "mapa" | "muerto" | "resumen";
+
+type Visor = { activo: boolean; url: string; version?: string; upstream?: string; comando?: string; motivo?: string };
 
 const COLOR_MODULO: Record<string, string> = {
   app: "#2563eb",
@@ -333,6 +335,68 @@ function CodigoMuertoVista({ datos }: { datos: CodigoMuerto }) {
   );
 }
 
+/**
+ * El grafo en 3D, tal cual lo dibuja codebase-memory-mcp.
+ *
+ * Es la interfaz HTTP del propio binario (sigma + three.js), servida por Flask
+ * bajo /cbm/ con la sesión del panel — el puerto 9749 solo escucha en la
+ * máquina y nunca se ve desde la LAN ni por el túnel. Muestra el índice del
+ * demonio que esté encendido, que puede ser de otra fecha que los JSON del
+ * snapshot: por eso va aparte y con su propio aviso.
+ */
+function Grafo3D() {
+  const visor = useQuery({
+    queryKey: ["arquitectura-visor"],
+    queryFn: () => api.get<Visor>("/api/arquitectura/visor"),
+    refetchInterval: 30_000,
+  });
+  const [alto, setAlto] = useState<"normal" | "grande">("normal");
+
+  if (visor.isLoading) return <p className="text-sm text-slate-500">Buscando el visor…</p>;
+  if (!visor.data?.activo) {
+    return (
+      <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="font-medium">El visor 3D está apagado.</p>
+        <p className="mt-1">
+          Lo sirve el demonio de codebase-memory-mcp en la máquina del servidor (puerto 9749). Enciéndelo
+          desde una terminal y vuelve a esta pestaña:
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded bg-amber-100 p-2 text-xs">{visor.data?.comando ?? "codebase-memory-mcp --ui=true"}</pre>
+        {visor.data?.motivo && <p className="mt-1 text-xs text-amber-700">({visor.data.motivo} en {visor.data.upstream})</p>}
+      </div>
+    );
+  }
+  const src = visor.data.url;
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <span>
+          Visor de codebase-memory-mcp {visor.data.version ? `v${visor.data.version}` : ""} · arrastra para girar, rueda
+          para acercar, toca un nodo para ver sus relaciones.
+        </span>
+        <span className="flex items-center gap-2">
+          <button
+            onClick={() => setAlto((a) => (a === "normal" ? "grande" : "normal"))}
+            className="rounded border border-slate-300 px-2 py-0.5 text-slate-700 hover:bg-slate-100"
+          >
+            {alto === "normal" ? "Más alto" : "Más bajo"}
+          </button>
+          <a href={src} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            Abrir en pestaña nueva ↗
+          </a>
+        </span>
+      </div>
+      <iframe
+        title="Grafo 3D del código"
+        src={src}
+        className="w-full rounded-lg border border-slate-200 bg-[#0a0a10]"
+        style={{ height: alto === "normal" ? "70vh" : "88vh" }}
+        allow="fullscreen"
+      />
+    </div>
+  );
+}
+
 function TablaSimple({ titulo, tabla, limite = 12 }: { titulo: string; tabla?: Tabla; limite?: number }) {
   if (!tabla?.rows?.length) return null;
   return (
@@ -359,7 +423,7 @@ function TablaSimple({ titulo, tabla, limite = 12 }: { titulo: string; tabla?: T
 }
 
 export default function ArquitecturaPanel() {
-  const [pestana, setPestana] = useState<Pestana>("mapa");
+  const [pestana, setPestana] = useState<Pestana>("grafo3d");
 
   const resumen = useQuery({
     queryKey: ["arquitectura-resumen"],
@@ -382,6 +446,7 @@ export default function ArquitecturaPanel() {
     : resumen.data?.generado;
 
   const pestanas: { id: Pestana; label: string }[] = [
+    { id: "grafo3d", label: "Grafo 3D" },
     { id: "mapa", label: "Mapa de dependencias" },
     { id: "muerto", label: "Código muerto" },
     { id: "resumen", label: "Resumen" },
@@ -419,6 +484,8 @@ export default function ArquitecturaPanel() {
           </button>
         ))}
       </nav>
+
+      {pestana === "grafo3d" && <Grafo3D />}
 
       {pestana === "mapa" && (
         <>

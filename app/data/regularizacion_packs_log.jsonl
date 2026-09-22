@@ -54,3 +54,12 @@
 {"pack_id": "2000014869441191", "tipo": "regularizar", "ok": true, "anuladas": ["NC95"], "nueva": "FE227", "fallos": [], "total_carrito": 44475, "ts": "2026-09-09T16:49:37"}
 {"pack_id": "2000014854789003", "tipo": "regularizar", "ok": true, "anuladas": ["NC96"], "nueva": "FE228", "fallos": [], "total_carrito": 45645, "ts": "2026-09-09T16:50:07"}
 {"pack_id": "2000014816067223", "tipo": "duplicado", "ok": true, "anuladas": ["NC97"], "nueva": null, "fallos": [], "total_carrito": 87775, "ts": "2026-09-09T17:09:37"}
+{"pack_id": "2000015139162379", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE546"], "nota_credito": "NC98", "conserva": "FE545", "error": null, "ts": "2026-09-22T02:10:08"}
+{"pack_id": "2000015132596745", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE548"], "nota_credito": "NC99", "conserva": "FE547", "error": null, "ts": "2026-09-22T02:10:35"}
+{"pack_id": "2000015132596745", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE549"], "nota_credito": "NC100", "conserva": "FE547", "error": null, "ts": "2026-09-22T02:11:03"}
+{"pack_id": "2000015129825073", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE551"], "nota_credito": "NC101", "conserva": "FE550", "error": null, "ts": "2026-09-22T02:11:30"}
+{"pack_id": "2000015101305885", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE533"], "nota_credito": "NC102", "conserva": "FE532", "error": null, "ts": "2026-09-22T02:11:57"}
+{"pack_id": "2000015094717553", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE535"], "nota_credito": "NC103", "conserva": "FE534", "error": null, "ts": "2026-09-22T02:12:24"}
+{"pack_id": "2000015090987681", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE539"], "nota_credito": "NC104", "conserva": "FE538", "error": null, "ts": "2026-09-22T02:12:52"}
+{"pack_id": "2000015087159671", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE517"], "nota_credito": "NC105", "conserva": "FE516", "error": null, "ts": "2026-09-22T02:13:21"}
+{"pack_id": "2000015087159671", "tipo": "doble_alegra_alegra_22sep", "ok": true, "anuladas": ["FE518"], "nota_credito": "NC106", "conserva": "FE516", "error": null, "ts": "2026-09-22T02:13:48"}

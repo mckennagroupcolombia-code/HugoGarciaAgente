@@ -13,6 +13,8 @@ export default defineConfig({
       "/chat": "http://localhost:8081",
       // Galería Publicaciones / catálogo (también hay ruta /api/publicaciones/imagen-archivo)
       "/imagenes-productos-catalogo": "http://localhost:8081",
+      // Visor 3D del grafo de código (proxy con sesión en app/routes_arquitectura.py)
+      "/cbm": "http://localhost:8081",
     },
   },
   build: {
