@@ -1,0 +1,368 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Cómo se compone el código — quién depende de quién",
+    "output": "07-codigo.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1130,
+      552
+    ],
+    "views": [
+      {
+        "id": "centro",
+        "label": "El centro: app/services",
+        "focus": [
+          "rutas",
+          "herramientas",
+          "servicios",
+          "agente"
+        ],
+        "note": "Rutas, herramientas y el agente apuntan a services/; y services/ devuelve 94 llamadas a app/: un ciclo."
+      },
+      {
+        "id": "entradas",
+        "label": "Quién entra desde fuera de app/",
+        "focus": [
+          "scripts",
+          "tienda",
+          "procesos",
+          "rutas",
+          "servicios"
+        ],
+        "note": "Los cron, la tienda y el webhook llegan directo a servicios sin pasar por el panel."
+      },
+      {
+        "id": "pruebas",
+        "label": "Qué cubren los tests",
+        "focus": [
+          "tests",
+          "servicios",
+          "herramientas",
+          "rutas"
+        ],
+        "note": "Los tests llaman 589 veces a services/ y 325 a tools/; al panel React no lo prueban desde Python."
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/mckennagroupcolombia-code/HugoGarciaAgente",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "0ef413e0984cff03f96f4724a3f7dc051a96ae83"
+    }
+  },
+  "components": [
+    {
+      "id": "procesos",
+      "type": "backend",
+      "label": "raíz: webhook, posventa",
+      "sublabel": "webhook_meli.py :8080",
+      "pos": [
+        40,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "3 archivos · 0 llamadas internas",
+      "sources": [
+        {
+          "path": "webhook_meli.py",
+          "label": "raíz: webhook, posventa"
+        }
+      ]
+    },
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "desktop/src/",
+      "sublabel": "panel React /app",
+      "pos": [
+        260,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "275 archivos · 1431 llamadas internas",
+      "sources": [
+        {
+          "path": "desktop/src/App.tsx",
+          "label": "desktop/src/"
+        }
+      ]
+    },
+    {
+      "id": "agente",
+      "type": "backend",
+      "label": "app/agent/ · memory/",
+      "sublabel": "agente de ventas v2",
+      "pos": [
+        480,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "9 archivos · 43 llamadas internas",
+      "sources": [
+        {
+          "path": "app/agent/ventas_wa/agente.py",
+          "label": "app/agent/ · memory/"
+        }
+      ]
+    },
+    {
+      "id": "scripts",
+      "type": "backend",
+      "label": "scripts/",
+      "sublabel": "cron y utilidades",
+      "pos": [
+        700,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "42 archivos · 7 llamadas internas",
+      "sources": [
+        {
+          "path": "scripts/instalar_cron_mcKenna.sh",
+          "label": "scripts/"
+        }
+      ]
+    },
+    {
+      "id": "tienda",
+      "type": "backend",
+      "label": "PAGINA_WEB/site/",
+      "sublabel": "website.py :8083",
+      "pos": [
+        920,
+        40
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "3 archivos · 33 llamadas internas",
+      "sources": [
+        {
+          "path": "PAGINA_WEB/site/website.py",
+          "label": "PAGINA_WEB/site/"
+        }
+      ]
+    },
+    {
+      "id": "rutas",
+      "type": "backend",
+      "label": "app/ (rutas y núcleo)",
+      "sublabel": "routes.py · core.py · utils.py",
+      "pos": [
+        250,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "tag": "27 archivos · 109 llamadas internas",
+      "sources": [
+        {
+          "path": "app/routes.py",
+          "label": "app/ (rutas y núcleo)"
+        }
+      ]
+    },
+    {
+      "id": "servicios",
+      "type": "backend",
+      "label": "app/services/",
+      "sublabel": "dominio y contabilidad",
+      "pos": [
+        690,
+        250
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "tag": "106 archivos · 545 llamadas internas",
+      "sources": [
+        {
+          "path": "app/services/contabilidad_core.py",
+          "label": "app/services/"
+        }
+      ]
+    },
+    {
+      "id": "herramientas",
+      "type": "backend",
+      "label": "app/tools/",
+      "sublabel": "integraciones y lotes",
+      "pos": [
+        480,
+        430
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "tag": "46 archivos · 84 llamadas internas",
+      "sources": [
+        {
+          "path": "app/tools/backup_drive.py",
+          "label": "app/tools/"
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "type": "backend",
+      "label": "tests/",
+      "sublabel": "pruebas pytest",
+      "pos": [
+        920,
+        436
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "tag": "122 archivos · 0 llamadas internas",
+      "sources": [
+        {
+          "path": "tests/test_smoke.py",
+          "label": "tests/"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Paquete app/ — lo que corre en agente_pro.py :8081",
+      "wraps": [
+        "rutas",
+        "agente",
+        "herramientas",
+        "servicios"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "procesos-rutas",
+      "from": "procesos",
+      "to": "rutas",
+      "label": "19×"
+    },
+    {
+      "id": "agente-servicios",
+      "from": "agente",
+      "to": "servicios",
+      "label": "15×"
+    },
+    {
+      "id": "scripts-servicios",
+      "from": "scripts",
+      "to": "servicios",
+      "label": "126×",
+      "labelDy": 24
+    },
+    {
+      "id": "tienda-servicios",
+      "from": "tienda",
+      "to": "servicios",
+      "label": "20×"
+    },
+    {
+      "id": "rutas-servicios",
+      "from": "rutas",
+      "to": "servicios",
+      "label": "97×",
+      "variant": "emphasis",
+      "labelAt": [
+        500,
+        240
+      ]
+    },
+    {
+      "id": "servicios-rutas",
+      "from": "servicios",
+      "to": "rutas",
+      "label": "94×",
+      "variant": "emphasis",
+      "labelAt": [
+        500,
+        338
+      ]
+    },
+    {
+      "id": "rutas-herramientas",
+      "from": "rutas",
+      "to": "herramientas",
+      "label": "18×"
+    },
+    {
+      "id": "herramientas-servicios",
+      "from": "herramientas",
+      "to": "servicios",
+      "label": "103×"
+    },
+    {
+      "id": "tests-servicios",
+      "from": "tests",
+      "to": "servicios",
+      "label": "589×",
+      "variant": "dashed"
+    },
+    {
+      "id": "tests-herramientas",
+      "from": "tests",
+      "to": "herramientas",
+      "label": "325×",
+      "variant": "dashed"
+    },
+    {
+      "id": "panel-rutas",
+      "from": "panel",
+      "to": "rutas",
+      "label": "HTTP /api",
+      "variant": "dashed",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Dónde se concentra la lógica",
+      "items": [
+        "app/services/ recibe 950 llamadas de fuera; es el centro de gravedad",
+        "app/tools/ recibe 399 y app/ (rutas) 333"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "El ciclo que impide partir el monolito",
+      "items": [
+        "rutas → servicios: 97 llamadas; servicios → rutas: 94",
+        "servicios importa utils.py y core.py de app/: por eso hay imports dentro de funciones"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Lo que el grafo NO dice",
+      "items": [
+        "134 «llamadas» Python↔TypeScript descartadas (nombres iguales, no dependencias)",
+        "la mayor: servicios → panel (68); las aristas menores van solo en la tabla",
+        "snapshot del 2026-09-22 01:52 · scripts/arquitectura_diagrama.py"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { api } from "../api/client";
+import { useEffect, useMemo, useState } from "react";
+import { api, fetchAuthBlobUrl } from "../api/client";
 
 /**
  * Arquitectura del código: qué depende de qué, y qué código no usa nadie.
@@ -77,7 +77,7 @@ type Grafo = {
   mensaje?: string;
 };
 
-type Pestana = "grafo3d" | "mapa" | "muerto" | "resumen";
+type Pestana = "diagrama" | "mapa" | "muerto" | "resumen" | "grafo3d";
 
 type Visor = { activo: boolean; url: string; version?: string; upstream?: string; comando?: string; motivo?: string };
 
@@ -397,6 +397,61 @@ function Grafo3D() {
   );
 }
 
+/**
+ * El diagrama de Archify «Cómo se compone el código»: los grupos de archivos y
+ * cuántas llamadas van de uno a otro. Mismo lenguaje visual que «Los flujos del
+ * proyecto» del Mapa del sistema, y el mismo endpoint (HTML servido con Bearer y
+ * montado como blob, porque un <iframe src> plano no manda el token).
+ * Fuente: docs/arquitectura/07-codigo.architecture.json, que escribe
+ * scripts/arquitectura_diagrama.py a partir del snapshot; el HTML sale de
+ * `python3 scripts/diagramas_arquitectura.py entregar`.
+ */
+function DiagramaCodigo() {
+  const [url, setUrl] = useState<string | null>(null);
+  const [falla, setFalla] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    setUrl(null);
+    setFalla(null);
+    fetchAuthBlobUrl("/api/mapa-sistema/diagramas/07-codigo").then((u) => {
+      if (!vivo) return;
+      if (u) setUrl(u);
+      else setFalla("No hay diagrama generado. Genéralo con: python3 scripts/arquitectura_diagrama.py && python3 scripts/diagramas_arquitectura.py entregar");
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  if (falla) {
+    return (
+      <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="font-medium">Todavía no hay diagrama.</p>
+        <pre className="mt-2 overflow-x-auto rounded bg-amber-100 p-2 text-xs">{falla}</pre>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <span>
+          Cada caja es un grupo de archivos; cada flecha, cuántas llamadas van de un grupo a otro (solo dentro del mismo
+          lenguaje). Zoom con la rueda, búsqueda y recorridos guiados dentro del diagrama.
+        </span>
+        {url && (
+          <a href={url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            Abrir en pestaña nueva ↗
+          </a>
+        )}
+      </div>
+      {url ? (
+        <iframe title="Cómo se compone el código" src={url} className="w-full rounded-lg border border-slate-200 bg-white" style={{ height: "78vh" }} />
+      ) : (
+        <p className="text-sm text-slate-500">Cargando el diagrama…</p>
+      )}
+    </div>
+  );
+}
+
 function TablaSimple({ titulo, tabla, limite = 12 }: { titulo: string; tabla?: Tabla; limite?: number }) {
   if (!tabla?.rows?.length) return null;
   return (
@@ -423,7 +478,7 @@ function TablaSimple({ titulo, tabla, limite = 12 }: { titulo: string; tabla?: T
 }
 
 export default function ArquitecturaPanel() {
-  const [pestana, setPestana] = useState<Pestana>("grafo3d");
+  const [pestana, setPestana] = useState<Pestana>("diagrama");
 
   const resumen = useQuery({
     queryKey: ["arquitectura-resumen"],
@@ -446,10 +501,11 @@ export default function ArquitecturaPanel() {
     : resumen.data?.generado;
 
   const pestanas: { id: Pestana; label: string }[] = [
-    { id: "grafo3d", label: "Grafo 3D" },
+    { id: "diagrama", label: "Diagrama" },
     { id: "mapa", label: "Mapa de dependencias" },
     { id: "muerto", label: "Código muerto" },
     { id: "resumen", label: "Resumen" },
+    { id: "grafo3d", label: "Grafo 3D" },
   ];
 
   return (
@@ -484,6 +540,8 @@ export default function ArquitecturaPanel() {
           </button>
         ))}
       </nav>
+
+      {pestana === "diagrama" && <DiagramaCodigo />}
 
       {pestana === "grafo3d" && <Grafo3D />}
 

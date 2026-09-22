@@ -54,6 +54,12 @@
       "corto": "Procesos y puertos",
       "grupo": "Infraestructura",
       "resumen": "Qué proceso escucha en qué puerto y el monolito de rutas."
+    },
+    {
+      "nombre": "07-codigo",
+      "corto": "Composición del código",
+      "grupo": "Infraestructura",
+      "resumen": "Qué grupo de archivos depende de cuál y con cuántas llamadas, derivado del snapshot de codebase-memory-mcp."
     }
   ]
 }
