@@ -403,10 +403,12 @@ def _nombre_object_persona(nombre: str) -> dict:
 
 def _resolver_o_crear_contacto_alegra(
     *, nombre: str, identificacion: str, email: str = "", telefono: str = "", direccion: str = "",
-    tipo_documento: str = "",
+    tipo_documento: str = "", resultado: dict | None = None,
 ) -> tuple[str | None, str]:
     """Busca un contacto por identificación; si no existe, lo crea. Retorna
-    (id_de_alegra, error) — error vacío si ok. El detalle de error se propaga
+    (id_de_alegra, error) — error vacío si ok. Si se pasa `resultado` (dict),
+    deja en él `creado=True/False` para que el llamador pueda decir «ya
+    existía en Alegra» en vez de «creado» (panel Cotizar/Facturar → Cliente). El detalle de error se propaga
     al operador (panel Cotizar/Facturar) en vez de quedarse solo en el print
     de consola, que se puede perder si el proceso se reinicia justo después.
 
@@ -452,6 +454,8 @@ def _resolver_o_crear_contacto_alegra(
     if es_consumidor_final:
         nombre, id_type, email, telefono, direccion = NOMBRE_CONSUMIDOR_FINAL_MELI, "CC", "", "", ""
 
+    if resultado is not None:
+        resultado["creado"] = False
     if identificacion in _contacto_cache:
         return _contacto_cache[identificacion], ""
 
@@ -541,6 +545,8 @@ def _resolver_o_crear_contacto_alegra(
         return None, f"Alegra rechazó el contacto (HTTP {res.status_code}): {detalle}"
     cid = str(res.json().get("id"))
     _contacto_cache[identificacion] = cid
+    if resultado is not None:
+        resultado["creado"] = True
     return cid, ""
 
 

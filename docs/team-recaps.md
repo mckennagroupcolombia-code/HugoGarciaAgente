@@ -1,3 +1,13 @@
+### 2026-09-23 - Cotizar/Facturar: crear el cliente desde «¿A quién le vendemos?» en Alegra y en el Libro Mayor
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Facturación → Cotizar/Facturar → paso Cliente). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** al cotizar y luego facturar, la venta se causa en el Libro Mayor buscando el tercero por identificación; si el cliente no existía como tercero, el asiento nacía sin contraparte (caso EQUISURE, FE465). El paso 2 solo buscaba contactos existentes en Alegra y el cliente nuevo se creaba «a escondidas» al facturar.
+  - **Botón «Crear cliente en Alegra y Libro Mayor»** en el paso 2 (`CotizarFacturarPanel.tsx`): con nombre e identificación llenos, crea el contacto en Alegra con el tipo de documento real (NIT/CC, DV validado con el algoritmo de la DIAN, base sin DV hacia Alegra) y el tercero tipo `cliente` en el Libro Mayor. Si ya existía en Alegra o en el libro, lo reutiliza y lo dice; en el libro completa correo/teléfono vacíos sin pisar lo que había. Si Alegra rechaza, no se crea nada y muestra el motivo.
+  - Backend: `ventas_directas.crear_cliente()` + `registrar_tercero_cliente()` (reutilizada por `asegurar_tercero_cliente`, que sigue corriendo al cotizar y facturar como red), `POST /api/ventas-directas/clientes` (permiso `cotizar-facturar` o admin). `alegra._resolver_o_crear_contacto_alegra` acepta `resultado={}` para saber si creó o encontró el contacto.
+  - Tests: 4 nuevos en `tests/test_ventas_directas.py` (alta en Alegra + libro, sin duplicar tercero, rechazo de Alegra no toca el libro, NIT mal escrito). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/services/alegra.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Cotización en PDF: nuevo formato de marca y textos que ya no se montan
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + rediseño (Facturación → Cotizar/Facturar → PDF de cotización). Sin LLM.

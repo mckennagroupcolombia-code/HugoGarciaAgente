@@ -98,6 +98,16 @@ def register_ventas_directas_routes(app):
             return jsonify({"error": "codigo es obligatorio"}), 400
         return jsonify(V.precio_sugerido(codigo))
 
+    @_dual(app, "/api/ventas-directas/clientes", methods=["POST"])
+    @_auth
+    def vd_crear_cliente():
+        """Alta de cliente desde el paso 2 del wizard: contacto en Alegra + tercero del Libro Mayor."""
+        try:
+            r = V.crear_cliente(request.get_json(silent=True) or {}, usuario=g.ventas_directas_usuario)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 502
+        return jsonify(r), (200 if r.get("ok") else 400)
+
     @_dual(app, "/api/ventas-directas", methods=["POST"])
     @_auth
     def vd_crear():

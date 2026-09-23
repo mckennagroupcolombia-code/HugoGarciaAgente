@@ -580,9 +580,18 @@ def asegurar_tercero_cliente(venta: dict) -> dict | None:
 
     Nunca frena la venta: si el libro falla, se sigue sin tercero.
     """
+    return registrar_tercero_cliente(
+        venta.get("cliente") or {}, telefono=venta.get("telefono") or "",
+        nota=f"Cliente registrado desde la venta directa {venta.get('numero') or ''}",
+    )
+
+
+def registrar_tercero_cliente(cli: dict, *, telefono: str = "", nota: str = "") -> dict | None:
+    """El cliente como tercero tipo `cliente` del Libro Mayor: lo busca por
+    identificación y, si no está, lo crea. Si ya existe, completa correo y
+    teléfono que estuvieran vacíos (nunca pisa lo que ya había)."""
     import re
 
-    cli = venta.get("cliente") or {}
     nombre = (cli.get("nombre") or "").strip()
     ident = re.sub(r"\D", "", cli.get("identificacion") or "")
     if not nombre or not ident:
@@ -591,18 +600,87 @@ def asegurar_tercero_cliente(venta: dict) -> dict | None:
 
     for t in cc.listar_terceros(solo_activos=False):
         if cc.mismo_documento(t.get("identificacion") or "", ident):
+            faltantes = {k: v for k, v in (("email", cli.get("correo") or ""), ("telefono", telefono or ""))
+                         if v and not (t.get(k) or "").strip()}
+            if faltantes:
+                try:
+                    return cc.actualizar_tercero(int(t["id"]), faltantes)
+                except Exception:  # noqa: BLE001 — completar datos no frena nada
+                    pass
             return t
+    tipo = str(cli.get("tipo_documento") or "").strip().upper()
+    if tipo in ("NIT", "CC"):
+        tipo_persona = "juridica" if tipo == "NIT" else "natural"
+    else:
+        # NIT de 9 dígitos = persona jurídica; cédula = natural. Alegra lo sabe
+        # mejor, pero acá alcanza para que el tercero nazca bien clasificado.
+        tipo_persona = "juridica" if len(ident) in (9, 10) else "natural"
     return cc.crear_tercero({
         "nombre": nombre,
         "tipo": "cliente",
         "identificacion": cli.get("identificacion") or ident,
-        # NIT de 9 dígitos = persona jurídica; cédula = natural. Alegra lo sabe
-        # mejor, pero acá alcanza para que el tercero nazca bien clasificado.
-        "tipo_persona": "juridica" if len(ident) in (9, 10) else "natural",
+        "tipo_persona": tipo_persona,
         "email": cli.get("correo") or "",
-        "telefono": venta.get("telefono") or "",
-        "notas": f"Cliente registrado desde la venta directa {venta.get('numero') or ''}",
+        "telefono": telefono or "",
+        "notas": nota,
     })
+
+
+def crear_cliente(datos: dict, *, usuario: str = "") -> dict:
+    """Alta de un cliente desde el paso «¿A quién le vendemos?» del wizard:
+    contacto en Alegra (con el tipo de documento correcto) + tercero tipo
+    cliente en el Libro Mayor, en un solo paso.
+
+    Por qué los dos: la factura nace en Alegra con ese contacto, y la venta se
+    causa en el libro (`causar_venta_directa`) buscando el tercero por
+    identificación — sin tercero el asiento quedaba sin contraparte (FE465).
+    Alegra manda: si rechaza el contacto no se crea nada y se devuelve el
+    motivo; el operador puede corregir y volver a intentar.
+    """
+    from app.services.alegra import _resolver_o_crear_contacto_alegra
+
+    cli = {k: str(datos.get(k) or "").strip()
+           for k in ("nombre", "identificacion", "tipo_documento", "correo", "direccion", "ciudad")}
+    telefono = str(datos.get("telefono") or "").strip()
+    if not cli["nombre"]:
+        return {"ok": False, "error": "El nombre o razón social es obligatorio."}
+    if not cli["identificacion"]:
+        return {"ok": False, "error": "La cédula o NIT es obligatoria para crear el cliente."}
+    tipo_doc, ident, err = identificacion_fiscal(cli)
+    if err:
+        return {"ok": False, "error": err}
+    if not ident:
+        return {"ok": False, "error": "La identificación debe tener dígitos."}
+    cli["tipo_documento"] = tipo_doc
+
+    resultado: dict = {}
+    telefono_alegra = telefono if _jid(telefono) else ""
+    alegra_id, err_alegra = _resolver_o_crear_contacto_alegra(
+        nombre=cli["nombre"], identificacion=ident, tipo_documento=tipo_doc,
+        email=cli["correo"], telefono=telefono_alegra, direccion=cli["direccion"],
+        resultado=resultado,
+    )
+    if not alegra_id:
+        return {"ok": False, "error": f"Alegra no aceptó el cliente: {err_alegra}"}
+
+    avisos: list[str] = []
+    tercero = None
+    try:
+        tercero = registrar_tercero_cliente(
+            cli, telefono=telefono,
+            nota=f"Cliente creado desde Cotizar/Facturar por {usuario or 'panel'}; contacto Alegra {alegra_id}",
+        )
+    except Exception as e:  # noqa: BLE001 — el libro no frena el alta; se reintenta al cotizar
+        avisos.append(f"No se pudo registrar el tercero en el Libro Mayor: {e}")
+
+    return {
+        "ok": True,
+        "cliente": {**cli, "telefono": telefono},
+        "alegra_id": str(alegra_id),
+        "alegra_creado": bool(resultado.get("creado")),
+        "tercero_id": int(tercero["id"]) if tercero else None,
+        "avisos": avisos,
+    }
 
 
 def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra: bool = True) -> dict:

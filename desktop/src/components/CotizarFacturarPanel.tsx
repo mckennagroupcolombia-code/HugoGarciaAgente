@@ -1005,6 +1005,43 @@ function PasoCliente({
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<ClienteResultado[]>([]);
   const q = useDebounced(busqueda.trim(), 250);
+  // Alta del cliente desde aquí: contacto en Alegra + tercero del Libro Mayor,
+  // para que la factura y su causación nazcan con el mismo tercero.
+  const [creando, setCreando] = useState(false);
+  const [alta, setAlta] = useState<{ ok: boolean; texto: string } | null>(null);
+  const puedeCrear = !soloLectura && cliente.nombre.trim().length > 0 && cliente.identificacion.trim().length > 0;
+
+  const crearCliente = async () => {
+    setCreando(true);
+    setAlta(null);
+    try {
+      const r = await api.post<{
+        ok: boolean;
+        error?: string;
+        cliente?: Cliente & { telefono?: string };
+        alegra_id?: string;
+        alegra_creado?: boolean;
+        tercero_id?: number | null;
+        avisos?: string[];
+      }>("/api/ventas-directas/clientes", { ...cliente, telefono });
+      if (!r.ok) throw new Error(r.error || "No se pudo crear el cliente.");
+      if (r.cliente) {
+        const { telefono: _tel, ...datos } = r.cliente;
+        void _tel;
+        onCliente({ ...cliente, ...datos });
+      }
+      const partes = [
+        r.alegra_creado ? `Creado en Alegra (contacto ${r.alegra_id})` : `Ya existía en Alegra (contacto ${r.alegra_id})`,
+        r.tercero_id ? "tercero listo en el Libro Mayor" : "sin tercero en el Libro Mayor",
+        ...(r.avisos ?? []),
+      ];
+      setAlta({ ok: true, texto: partes.join(" · ") });
+    } catch (e) {
+      setAlta({ ok: false, texto: (e as Error).message });
+    } finally {
+      setCreando(false);
+    }
+  };
 
   useEffect(() => {
     if (q.length < 2) return setResultados([]);
@@ -1033,7 +1070,9 @@ function PasoCliente({
           />
           {q.length >= 2 && (
             <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
-              {resultados.length === 0 && <p className="px-3 py-2 text-xs text-muted">Sin resultados — se creará como cliente nuevo.</p>}
+              {resultados.length === 0 && (
+                <p className="px-3 py-2 text-xs text-muted">Sin resultados — llena los datos de abajo y pulsa «Crear cliente».</p>
+              )}
               {resultados.map((c) => (
                 <button
                   key={c.id}
@@ -1091,7 +1130,31 @@ function PasoCliente({
           className={`${input} sm:col-span-2`}
         />
       </div>
-      <div className="flex justify-end">
+      {alta && (
+        <p
+          className={`rounded-lg px-3 py-2 text-xs ${
+            alta.ok
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+              : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300"
+          }`}
+        >
+          {alta.texto}
+        </p>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {!soloLectura ? (
+          <button
+            type="button"
+            className={btn}
+            disabled={!puedeCrear || creando}
+            onClick={() => void crearCliente()}
+            title="Crea el contacto en Alegra y el tercero del Libro Mayor con estos datos. Si ya existe, lo reutiliza."
+          >
+            {creando ? "Creando…" : "Crear cliente en Alegra y Libro Mayor"}
+          </button>
+        ) : (
+          <span />
+        )}
         <button type="button" className={btnPrimario} disabled={!habilitado} onClick={onSiguiente}>
           Productos →
         </button>

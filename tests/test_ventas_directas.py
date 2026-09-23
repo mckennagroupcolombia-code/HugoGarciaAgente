@@ -237,3 +237,74 @@ def test_factura_manda_el_tipo_a_alegra(monkeypatch):
     v = _venta(telefono="", cliente={"nombre": "JP BIOINGENIERIA S.A.S.", "identificacion": "900409216-6"})
     assert V.facturar(v["id"])["ok"]
     assert llamadas[0]["tipo_documento"] == "NIT" and llamadas[0]["identificacion"] == "900409216"
+
+
+# ── Alta de cliente desde el paso «¿A quién le vendemos?» ──────────────────────
+
+@pytest.fixture
+def _libro(tmp_path, monkeypatch):
+    import app.services.contabilidad_core as cc
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "contabilidad.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
+    cc.init_db()
+    return cc
+
+
+def _alegra_falso(llamadas, *, creado=True, error=""):
+    def fake(**kw):
+        llamadas.append(kw)
+        if error:
+            return None, error
+        if kw.get("resultado") is not None:
+            kw["resultado"]["creado"] = creado
+        return "777", ""
+    return fake
+
+
+def test_crear_cliente_nace_en_alegra_y_en_el_libro(monkeypatch, _libro):
+    from app.services import alegra as A
+
+    llamadas: list = []
+    monkeypatch.setattr(A, "_resolver_o_crear_contacto_alegra", _alegra_falso(llamadas))
+    r = V.crear_cliente({"nombre": "EQUISURE S.A.S", "identificacion": "900409216-6",
+                         "correo": "pagos@equisure.co", "telefono": "3001234567"}, usuario="jerry")
+    assert r["ok"], r
+    assert r["alegra_id"] == "777" and r["alegra_creado"] is True
+    # Alegra recibe el tipo real y la base del NIT sin el dígito de verificación.
+    assert llamadas[0]["tipo_documento"] == "NIT" and llamadas[0]["identificacion"] == "900409216"
+    assert llamadas[0]["email"] == "pagos@equisure.co" and llamadas[0]["telefono"] == "3001234567"
+    # Y el tercero del Libro Mayor queda listo para que la venta se cause con él.
+    t = _libro.obtener_tercero(r["tercero_id"])
+    assert t["tipo"] == "cliente" and t["tipo_persona"] == "juridica" and t["email"] == "pagos@equisure.co"
+    assert _libro.mismo_documento(t["identificacion"], "900409216")
+
+
+def test_crear_cliente_no_duplica_el_tercero_y_completa_datos(monkeypatch, _libro):
+    from app.services import alegra as A
+
+    monkeypatch.setattr(A, "_resolver_o_crear_contacto_alegra", _alegra_falso([], creado=False))
+    previo = _libro.crear_tercero({"nombre": "Juan Pérez", "tipo": "cliente", "identificacion": "1013630698",
+                                   "tipo_persona": "natural"})
+    r = V.crear_cliente({"nombre": "Juan Pérez", "identificacion": "1013630698", "tipo_documento": "CC",
+                         "correo": "juan@correo.co"})
+    assert r["ok"] and r["alegra_creado"] is False
+    assert r["tercero_id"] == previo["id"]
+    assert len([t for t in _libro.listar_terceros(solo_activos=False) if t["tipo"] == "cliente"]) == 1
+    assert _libro.obtener_tercero(previo["id"])["email"] == "juan@correo.co"
+
+
+def test_crear_cliente_si_alegra_rechaza_no_toca_el_libro(monkeypatch, _libro):
+    from app.services import alegra as A
+
+    monkeypatch.setattr(A, "_resolver_o_crear_contacto_alegra", _alegra_falso([], error="HTTP 400 correo inválido"))
+    r = V.crear_cliente({"nombre": "Prueba", "identificacion": "79000000"})
+    assert not r["ok"] and "Alegra" in r["error"]
+    assert not [t for t in _libro.listar_terceros(solo_activos=False) if t["tipo"] == "cliente"]
+
+
+def test_crear_cliente_valida_el_nit():
+    r = V.crear_cliente({"nombre": "EQUISURE S.A.S", "identificacion": "900409216-1"})
+    assert not r["ok"] and "dígito de verificación" in r["error"]
+    r = V.crear_cliente({"nombre": "Sin cédula"})
+    assert not r["ok"]
