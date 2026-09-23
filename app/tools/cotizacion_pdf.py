@@ -183,21 +183,30 @@ def _empresa() -> dict:
 _LOGO_CACHE: dict = {}
 
 
-def _logo() -> tuple[str | None, float]:
-    """(ruta, ancho/alto) del logotipo; la proporción se cachea (el PNG pesa ~0,5 MB)."""
-    if "ruta" in _LOGO_CACHE:
-        return _LOGO_CACHE["ruta"], _LOGO_CACHE.get("aspect", 3.0)
-    _LOGO_CACHE["ruta"] = None
+def _logo() -> tuple[bytes | None, float]:
+    """(PNG, ancho/alto) del logotipo reducido a ~800 px: a 5,6 cm de ancho eso
+    son ~360 ppp, de sobra para imprimir, y el PDF pasa de ~640 KB a ~80 KB (el
+    original de 2158 px iba entero en cada cotización enviada por WhatsApp)."""
+    if "png" in _LOGO_CACHE:
+        return _LOGO_CACHE["png"], _LOGO_CACHE.get("aspect", 3.0)
+    _LOGO_CACHE["png"] = None
     ruta = _LOGO if os.path.isfile(_LOGO) else _LOGO_ISOTIPO
     try:
+        import io
+
         from PIL import Image as PILImage
 
         with PILImage.open(ruta) as img:
+            img = img.convert("RGBA")
             _LOGO_CACHE["aspect"] = img.size[0] / max(1, img.size[1])
-        _LOGO_CACHE["ruta"] = ruta
+            if img.size[0] > 800:
+                img = img.resize((800, round(800 / _LOGO_CACHE["aspect"])), PILImage.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG", optimize=True)
+        _LOGO_CACHE["png"] = buf.getvalue()
     except Exception:
         pass
-    return _LOGO_CACHE["ruta"], _LOGO_CACHE.get("aspect", 3.0)
+    return _LOGO_CACHE["png"], _LOGO_CACHE.get("aspect", 3.0)
 
 
 # ─── Documento ──────────────────────────────────────────────────────────────
@@ -301,7 +310,7 @@ def _bloque_datos(titulo: str, filas: list[tuple[str, str]], nombre: str, st: di
     return t
 
 
-def generar_cotizacion_pdf(cotizacion: dict) -> str:
+def generar_cotizacion_pdf(cotizacion: dict, *, carpeta: str | None = None) -> str:
     """
     Genera PDF de cotización con membrete corporativo.
 
@@ -321,7 +330,7 @@ def generar_cotizacion_pdf(cotizacion: dict) -> str:
     Retorna la ruta del PDF generado.
     """
     numero = cotizacion.get("numero", f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}")
-    filename = os.path.join(CARPETA, f"{numero}.pdf")
+    filename = os.path.join(carpeta or CARPETA, f"{numero}.pdf")
 
     fuentes = _fuentes()
     st = _estilos()
@@ -343,10 +352,14 @@ def generar_cotizacion_pdf(cotizacion: dict) -> str:
     story: list = []
 
     # ── Cabecera: logotipo a la izquierda, datos del documento a la derecha
-    logo_ruta, aspecto = _logo()
+    logo_png, aspecto = _logo()
     logo_w = 5.6 * cm
-    celda_logo = (Image(logo_ruta, width=logo_w, height=logo_w / aspecto)
-                  if logo_ruta else Paragraph(_esc(empresa["razon_social"]), st["nombre"]))
+    if logo_png:
+        import io
+
+        celda_logo = Image(io.BytesIO(logo_png), width=logo_w, height=logo_w / aspecto)
+    else:
+        celda_logo = Paragraph(_esc(empresa["razon_social"]), st["nombre"])
     celda_logo.hAlign = "LEFT"
     meta = [
         Paragraph("COTIZACIÓN", st["titulo_doc"]),

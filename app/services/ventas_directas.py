@@ -683,6 +683,66 @@ def crear_cliente(datos: dict, *, usuario: str = "") -> dict:
     }
 
 
+def _telefono_visible(telefono: str) -> str:
+    """WhatsApp para imprimir en el PDF: un JID de chat (…@lid) no es un número."""
+    t = str(telefono or "")
+    if "@" in t:
+        t = t.split("@")[0] if t.endswith("@c.us") or t.endswith("@s.whatsapp.net") else ""
+    return t
+
+
+def documento_cotizacion(venta: dict) -> dict:
+    """Lo que recibe `generar_cotizacion_pdf` a partir de una venta (guardada o no).
+    Una sola función para la cotización real y para la vista previa del panel:
+    lo que el operador ve antes de enviar es exactamente lo que recibe el cliente."""
+    cli = venta.get("cliente") or {}
+    envio = float(venta.get("envio") or 0)
+    return {
+        "numero": venta.get("numero") or "BORRADOR",
+        "fecha": datetime.now().strftime("%d/%m/%Y"),
+        "vigencia_dias": VIGENCIA_DIAS,
+        "cliente": {"nombre": cli.get("nombre") or "Cliente", "nit": cli.get("identificacion") or "",
+                    "correo": cli.get("correo") or "", "direccion": cli.get("direccion") or "",
+                    "telefono": _telefono_visible(venta.get("telefono") or "")},
+        "productos": [
+            {"nombre": ln["nombre"], "sku": ln["codigo"], "cantidad": ln["cantidad"],
+             "precio_unit": ln["precio_unitario"], "subtotal": ln["total"],
+             "iva_pct": ln.get("iva_pct", 0)}
+            for ln in venta.get("lineas") or []
+        ] + ([{"nombre": "Envío", "sku": "", "cantidad": 1, "precio_unit": envio,
+               "subtotal": envio, "iva_pct": 0}] if envio else []),
+        "subtotal": venta.get("subtotal") or 0,
+        "iva": venta.get("iva") or 0,
+        "total": venta.get("total") or 0,
+        "notas": venta.get("notas") or "",
+    }
+
+
+def vista_previa_pdf(datos: dict) -> bytes:
+    """PDF de cotización con lo que hay en pantalla, SIN guardar la venta, sin
+    Alegra y sin WhatsApp. Los totales se recalculan igual que al cotizar."""
+    import tempfile
+
+    from app.tools.cotizacion_pdf import generar_cotizacion_pdf
+
+    calc = calcular(datos.get("lineas") or [], datos.get("envio") or 0)
+    venta = {
+        "numero": str(datos.get("numero") or "").strip() or "BORRADOR",
+        "cliente": datos.get("cliente") or {},
+        "telefono": datos.get("telefono") or "",
+        "lineas": calc["lineas"],
+        "envio": calc["envio"],
+        "subtotal": calc["subtotal"],
+        "iva": calc["iva"],
+        "total": calc["total"],
+        "notas": datos.get("notas") or "",
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        ruta = generar_cotizacion_pdf(documento_cotizacion(venta), carpeta=tmp)
+        with open(ruta, "rb") as f:
+            return f.read()
+
+
 def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra: bool = True) -> dict:
     """PDF de cotización (sin DIAN) + registro en Alegra + envío al cliente."""
     from app.tools.cotizacion_pdf import generar_cotizacion_pdf
@@ -714,26 +774,7 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
         else:
             avisos.append(f"Alegra: {r.get('error')}")
 
-    cli = venta["cliente"]
-    doc = {
-        "numero": venta["numero"],
-        "fecha": datetime.now().strftime("%d/%m/%Y"),
-        "vigencia_dias": VIGENCIA_DIAS,
-        "cliente": {"nombre": cli.get("nombre") or "Cliente", "nit": cli.get("identificacion") or "",
-                    "correo": cli.get("correo") or "", "direccion": cli.get("direccion") or "",
-                    "telefono": venta.get("telefono") or ""},
-        "productos": [
-            {"nombre": ln["nombre"], "sku": ln["codigo"], "cantidad": ln["cantidad"],
-             "precio_unit": ln["precio_unitario"], "subtotal": ln["total"],
-             "iva_pct": ln.get("iva_pct", 0)}
-            for ln in venta["lineas"]
-        ] + ([{"nombre": "Envío", "sku": "", "cantidad": 1, "precio_unit": venta["envio"],
-               "subtotal": venta["envio"], "iva_pct": 0}] if venta["envio"] else []),
-        "subtotal": venta["subtotal"],
-        "iva": venta["iva"],
-        "total": venta["total"],
-        "notas": venta["notas"],
-    }
+    doc = documento_cotizacion(venta)
     try:
         ruta = generar_cotizacion_pdf(doc)
     except Exception as e:

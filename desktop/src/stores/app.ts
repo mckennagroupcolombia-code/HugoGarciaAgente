@@ -248,6 +248,9 @@ interface AppState {
   /** Libro Mayor en modo enfoque: sin cabezote ni pestañas del hub; el riel y el contenido a toda la ventana. */
   libroMayorEnfoque: boolean;
   setLibroMayorEnfoque: (v: boolean) => void;
+  /** Cotizar/Facturar sin cabezote ni pestañas de Facturación: el módulo a toda la ventana. No se persiste. */
+  cotizarEnfoque: boolean;
+  setCotizarEnfoque: (v: boolean) => void;
   studioSubvista: StudioSubvista;
   setStudioSubvista: (v: StudioSubvista) => void;
   /** Categoría a la que se entró desde una tarjeta de la portada; "" = todas. */
@@ -395,6 +398,11 @@ export const useAppStore = create<AppState>()(
       setLibroMayorEnfoque: (libroMayorEnfoque) => {
         if (get().libroMayorEnfoque === libroMayorEnfoque) return;
         set({ libroMayorEnfoque });
+      },
+      cotizarEnfoque: false,
+      setCotizarEnfoque: (cotizarEnfoque) => {
+        if (get().cotizarEnfoque === cotizarEnfoque) return;
+        set({ cotizarEnfoque });
       },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),

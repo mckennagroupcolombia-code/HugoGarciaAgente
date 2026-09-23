@@ -98,6 +98,20 @@ def register_ventas_directas_routes(app):
             return jsonify({"error": "codigo es obligatorio"}), 400
         return jsonify(V.precio_sugerido(codigo))
 
+    @_dual(app, "/api/ventas-directas/vista-previa.pdf", methods=["POST"])
+    @_auth
+    def vd_vista_previa_pdf():
+        """El PDF exacto que recibiría el cliente, con lo que hay en pantalla. No guarda nada."""
+        import io
+
+        from flask import send_file
+
+        try:
+            pdf = V.vista_previa_pdf(request.get_json(silent=True) or {})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": f"No se pudo generar la vista previa: {e}"}), 500
+        return send_file(io.BytesIO(pdf), mimetype="application/pdf", download_name="cotizacion-borrador.pdf")
+
     @_dual(app, "/api/ventas-directas/clientes", methods=["POST"])
     @_auth
     def vd_crear_cliente():

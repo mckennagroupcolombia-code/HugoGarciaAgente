@@ -54,6 +54,7 @@ export default function Layout({
   const { advanced: advancedToggle, navClasica } = useUiMode();
   // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
   const navFlujo = !navClasica;
+  const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);
   const tallerRetorno = useAppStore((st) => st.tallerRetorno);
   const volverAlTaller = useAppStore((st) => st.volverAlTaller);
   const enOrigen = panel === "hugo" || panel === "tickets";
@@ -82,7 +83,9 @@ export default function Layout({
   // Sin cromo: el Studio de etiquetas en su lienzo, y el Libro Mayor en modo
   // enfoque. Mismo trato: nada de cabezote ni pestañas, el contenido llena.
   const studioEtiquetasFill =
-    (panel === "etiquetas" && etiquetasStudioInmersivo) || (esPanelContabilidad(panel) && libroMayorEnfoque);
+    (panel === "etiquetas" && etiquetasStudioInmersivo) ||
+    (esPanelContabilidad(panel) && libroMayorEnfoque) ||
+    (panel === "facturacion" && cotizarEnfoque);
   const contentScrollClass = isCentroMando
     ? hubIntegrado
       ? "flex min-h-0 flex-col overflow-hidden px-2 pt-2 sm:px-3 sm:pt-2.5 lg:px-4 lg:pt-3"

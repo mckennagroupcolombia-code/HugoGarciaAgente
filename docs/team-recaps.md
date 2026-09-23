@@ -1,3 +1,16 @@
+### 2026-09-23 - Cotizar/Facturar reorganizado: cliente primero, WhatsApp como herramienta, vista previa en vivo y modo sin menú
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Facturación → Cotizar/Facturar). Sin LLM nuevo.
+- **Qué se implementó:**
+  - **Por qué:** el módulo abría obligando a elegir un «origen» (pedido IA, MeLi, chat de WhatsApp, desde cero) y la cotización normal quedaba como una opción más. Se entendía mal y el cliente se creaba casi a escondidas.
+  - **Tres pasos:** 1 Cliente → 2 Productos → 3 Cotizar o facturar (el antiguo «Revisar» se reemplazó por la vista previa). Paso 1 con los datos que exige Alegra: tipo de cliente (Empresa · NIT / Persona natural · cédula), documento con el dígito de verificación calculado y validado en vivo, razón social o nombres, correo para la factura electrónica, WhatsApp, dirección y ciudad; qué falta para cotizar y para facturar; estado «Sin guardar / Creado / Ya estaba en Alegra · #id · Libro Mayor ✓» y botón «Guardar cliente en Alegra».
+  - **«Completar desde…»** como herramienta dentro de los pasos: chat de WhatsApp (chats recientes o texto pegado; solo llena lo que está vacío y dice qué completó), venta de Mercado Libre con RUT y pedido del agente IA. En Productos, «Traer productos de un chat».
+  - **Vista previa en vivo** a la derecha: réplica del PDF con logotipo, colores de la web, De/Para, tabla con IVA y totales, que se dibuja mientras se llena. «Ver PDF exacto» genera el PDF real sin guardar ni enviar (`POST /api/ventas-directas/vista-previa.pdf`, misma función `documento_cotizacion()` que la cotización real).
+  - **Ocultar menú** (quita el cabezote de la app y las pestañas de Facturación; Esc lo devuelve; flag `cotizarEnfoque` del store, no persistido) y **Pantalla completa** del navegador. «Ventas recientes» pasó a un panel lateral.
+  - El logo embebido en el PDF se reduce a 800 px: la cotización pasa de ~640 KB a ~170 KB.
+  - Verificado en Chrome a 1440×900 y 400×860 con la creación en Alegra interceptada. 17 tests de ventas directas en verde.
+- **Archivos Modificados:** `desktop/src/components/CotizarFacturarPanel.tsx`, `desktop/src/components/FacturacionPanel.tsx`, `desktop/src/components/Layout.tsx`, `desktop/src/stores/app.ts`, `desktop/src/assets/marca/logotipo-turquesa.png`, `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `app/tools/cotizacion_pdf.py`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Cotizar/Facturar: crear el cliente desde «¿A quién le vendemos?» en Alegra y en el Libro Mayor
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Facturación → Cotizar/Facturar → paso Cliente). Sin LLM.
