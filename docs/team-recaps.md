@@ -1,3 +1,13 @@
+### 2026-09-23 - Cotización en PDF: nuevo formato de marca y textos que ya no se montan
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + rediseño (Facturación → Cotizar/Facturar → PDF de cotización). Sin LLM.
+- **Qué se implementó:**
+  - **Problema:** la cotización salía con la razón social del cliente y la descripción del producto montadas sobre la columna siguiente. La tabla usaba cadenas planas, que ReportLab no parte en líneas. Además el pie decía «NIT 901.XXX.XXX-X».
+  - **Rediseño** (`app/tools/cotizacion_pdf.py`, reescrito): mismo logotipo que la factura de Alegra (`LOGOTIPO TURQUESA.png`), paleta del tema clásico de la web (#0c6069 / #045159 / #022d33 / #3a7e87) y Montserrat (cae a Helvetica si falta). Cabecera con logo, número, fecha y fecha de vencimiento; tarjetas De / Para con NIT real desde `empresa.py` y contacto desde el remitente de Guías de envío; tabla con referencia bajo el nombre, columna IVA por línea y cabecera repetida en cada página; bloque «TOTAL A PAGAR»; condiciones; pie con identidad y numeración. Todo texto variable en `Paragraph`: verificado con nombres de 100 caracteres y 35 líneas en 4 páginas.
+  - `ventas_directas.cotizar()` ahora pasa al PDF el IVA de cada línea, el WhatsApp del cliente y `VIGENCIA_DIAS`. `facturacion_directa.enviar_cotizacion` sigue funcionando sin cambios (sin `iva_pct` la columna IVA no se muestra).
+  - Servicio `agente-pro` reiniciado con el cambio. Pendiente del usuario: cargar la dirección de McKenna en Atención → Guías de envío → Remitente para que salga en la cotización.
+- **Archivos Modificados:** `app/tools/cotizacion_pdf.py`, `app/services/ventas_directas.py`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Colaboradores externos: app y APK propias; el código fuente del panel ya no se entrega
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de seguridad + nueva app (Agenda → Colaboradores). Sin LLM.

@@ -640,14 +640,17 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
     doc = {
         "numero": venta["numero"],
         "fecha": datetime.now().strftime("%d/%m/%Y"),
+        "vigencia_dias": VIGENCIA_DIAS,
         "cliente": {"nombre": cli.get("nombre") or "Cliente", "nit": cli.get("identificacion") or "",
-                    "correo": cli.get("correo") or "", "direccion": cli.get("direccion") or ""},
+                    "correo": cli.get("correo") or "", "direccion": cli.get("direccion") or "",
+                    "telefono": venta.get("telefono") or ""},
         "productos": [
             {"nombre": ln["nombre"], "sku": ln["codigo"], "cantidad": ln["cantidad"],
-             "precio_unit": ln["precio_unitario"], "subtotal": ln["total"]}
+             "precio_unit": ln["precio_unitario"], "subtotal": ln["total"],
+             "iva_pct": ln.get("iva_pct", 0)}
             for ln in venta["lineas"]
         ] + ([{"nombre": "Envío", "sku": "", "cantidad": 1, "precio_unit": venta["envio"],
-               "subtotal": venta["envio"]}] if venta["envio"] else []),
+               "subtotal": venta["envio"], "iva_pct": 0}] if venta["envio"] else []),
         "subtotal": venta["subtotal"],
         "iva": venta["iva"],
         "total": venta["total"],
