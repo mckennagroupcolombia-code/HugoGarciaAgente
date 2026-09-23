@@ -1,3 +1,15 @@
+### 2026-09-23 - Cuenta de cobro del contador: respuesta automática con el soporte del pago (Libro Mayor + Alegra + DIAN)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (cron del contador). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** William (contador) manda su cuenta de cobro por correo y había que responderle a mano. Además, el cron viejo buscaba la cuenta de cobro del mes EN CURSO y William cobra el mes anterior: nunca creó un ticket de pago solo.
+  - **Apenas llega su cuenta de cobro** (`scripts/cuenta_cobro_contador_cron.py`, cada 5 min; solo lee encabezados y procesa si hay un correo nuevo suyo): si ya está pagada y con documento soporte emitido, se le responde **en el mismo hilo** con un solo PDF (`app/tools/expediente_pago.py`): cruce de las tres fuentes (Libro Mayor · Alegra · DIAN), el asiento con códigos PUC, la contabilización en Alegra (documento soporte + comprobante de egreso + efecto neto, con la cuenta por pagar en $0) y el documento soporte como anexo; aparte, el XML firmado. Las páginas 1 y 2 van como imagen en el cuerpo del correo.
+  - **Si no está pagada:** ticket a Jenniffer con la cuenta de cobro adjunta y un borrador en Solicitudes de pago. Cuando el pago se confirma y sale el documento soporte, la siguiente corrida le responde sola. Pagado pero con documento soporte en borrador → espera, no le escribe.
+  - **Mismo pago, dos cifras:** a William se le giran $1.200.000 libres y el documento soporte va por $1.210.483 porque McKenna asume el ReteICA 8,66 ‰; su cuenta de cobro puede traer cualquiera de las dos. Se aceptan pagos anticipados (hasta 60 días antes; el de septiembre se pagó el 21-sep). El borrador se monta por lo girado: el asistente suma el ICA encima y con el bruto lo contaba dos veces ($1.221.057).
+  - El XML de la DIAN no trae retenciones (el formato no discrimina el ICA): la columna DIAN muestra el valor total y el ICA queda en el Libro Mayor (2368) y en Alegra. La API de Alegra no entrega el PDF de un documento soporte: la representación gráfica la arma McKenna.
+  - Candado para que el cron rápido y el de las 9:00 nunca respondan dos veces. `cuentas_cobro_correo` guarda el Message-ID para responder en el hilo. Cron de 5 min instalado en el crontab. 15 tests nuevos en verde; correos de prueba solo al buzón de McKenna.
+- **Archivos Modificados:** `app/services/cuenta_cobro_contador.py`, `app/tools/expediente_pago.py`, `app/tools/comprobante_contable.py`, `app/services/cuentas_cobro_correo.py`, `scripts/cuenta_cobro_contador_cron.py`, `scripts/recordatorio_pago_contador_cron.py`, `scripts/instalar_cron_mcKenna.sh`, `tests/test_cuenta_cobro_contador.py`, `.env.example`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Cotizar/Facturar reorganizado: cliente primero, WhatsApp como herramienta, vista previa en vivo y modo sin menú
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de interfaz (Facturación → Cotizar/Facturar). Sin LLM nuevo.

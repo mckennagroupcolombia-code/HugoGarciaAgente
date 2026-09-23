@@ -73,6 +73,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "15 23 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/entregas_flex_cron.py >>${LOG} 2>&1"
   echo "# Pago mensual contador (William Novoa): cuenta de cobro llegada → ticket de aprobación; si no llega, aviso (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "0 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_contador_cron.py >>${LOG} 2>&1"
+  echo "# Cuenta de cobro del contador: apenas llega, pagada → respuesta con documento soporte + comprobante contable; sin pagar → TKT a Jenniffer"
+  echo "*/5 * * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/cuenta_cobro_contador_cron.py >>${LOG} 2>&1"
   echo "# Pago de nómina (quincenal, día 15 y fin de mes): ticket de aprobación asignado a Jenniffer (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "5 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_nomina_cron.py >>${LOG} 2>&1"
   echo "# Reintento avisos WhatsApp pedidos web: red de seguridad si el bridge estaba caído al pagarse (frecuencia real vía Sistemas → Tareas Programadas)"

@@ -1,29 +1,24 @@
 #!/usr/bin/env python3
 """
-Cron: recordatorio + ticket de aprobación para el pago mensual a William
-Fernando Novoa Molano (contador externo), igual que ya existe para nómina
-("APROBAR PAGO NOMINA"). Antes este pago solo se aprobaba si alguien se
-acordaba de crear el ticket a mano — no había nada que corriera solo.
+Cron: cuenta de cobro mensual de William Fernando Novoa Molano (contador externo).
 
 Cada vez que corre (frecuencia real vía Sistemas → Tareas Programadas):
-  1. Relee Gmail (cuentas de cobro, ver app/services/cuentas_cobro_correo.py)
-     y busca si ya llegó la cuenta de cobro de William para el mes en curso.
-  2. Si llegó y no se ha creado ticket para ese periodo, crea
-     "APROBAR PAGO CONTADOR" (tipo solicitud, mismo patrón que nómina) con
-     el monto exacto y la cuenta bancaria, asignado para aprobación.
-  3. Si aún no ha llegado su cuenta de cobro y ya estamos a partir del día
-     RECORDATORIO_PAGO_CONTADOR_DIA_AVISO (default 25) del mes, manda un
-     aviso de WhatsApp al grupo de contabilidad (una sola vez por mes).
+  1. Relee Gmail y atiende cada cuenta de cobro nueva de William
+     (app/services/cuenta_cobro_contador.py):
+       - ya pagada y con documento soporte emitido → le responde en el mismo
+         correo con el documento soporte adjunto (XML firmado + PDF);
+       - sin pagar → TKT a Jenniffer para que solicite el pago, con la cuenta
+         de cobro adjunta y un borrador en Solicitudes de pago. Cuando el pago
+         se confirma, una corrida siguiente le responde a William.
+  2. William cobra el mes ANTERIOR (la de agosto llegó el 4-sep). Si a partir
+     del día RECORDATORIO_PAGO_CONTADOR_DIA_AVISO (default 10) no ha llegado la
+     del mes anterior, avisa por WhatsApp al grupo de contabilidad, una vez.
 
-Origen: corrección de ago-2026 — un encargado negoció el aumento mensual de
-William al 15% cuando él había pedido 23% (confirmado con los PDFs: la
-cuenta de cobro original de junio-2026 pedía $573.243 = 466.051×1.23; la
-corregida y la de julio-2026 quedaron en $535.959 = 466.051×1.15). El ajuste
-retroactivo de ese saldo se resolvió aparte, a mano, una sola vez — este
-cron es solo para que el pago MENSUAL de aquí en adelante no vuelva a
-depender de que alguien se acuerde de crear el ticket, como ya pasaba con
-nómina. También avisa si el monto facturado no coincide con la tarifa
-vigente acordada, para no repetir el mismo error de negociación.
+Historia: la primera versión (ago-2026) buscaba la cuenta de cobro del mes EN
+CURSO; como William cobra el mes anterior, nunca la encontró y el ticket de
+pago jamás se creó solo (`tickets_creados` seguía vacío el 23-sep-2026). La
+comparación contra una tarifa fija ($573.243) se quitó: desde oct-2026 cobra
+$1.210.483 y el valor lo coteja quien envía el borrador a aprobación.
 
 Uso típico (crontab, desde la raíz del repo):
   0 9 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/recordatorio_pago_contador_cron.py >>${LOG} 2>&1
@@ -31,14 +26,15 @@ Uso típico (crontab, desde la raíz del repo):
 Variables:
   RECORDATORIO_PAGO_CONTADOR_CRON_ACTIVO=0   — desactiva el cron sin tocar el crontab (default: activo)
   RECORDATORIO_PAGO_CONTADOR_QUIET=1         — no envía WhatsApp aunque haya actividad (pruebas)
-  RECORDATORIO_PAGO_CONTADOR_DIA_AVISO       — día del mes desde el que se avisa si aún no ha llegado su cuenta de cobro (default 25)
+  RECORDATORIO_PAGO_CONTADOR_DIA_AVISO       — día del mes desde el que se avisa si no ha llegado la cuenta de cobro del mes anterior (default 10)
+  CONTADOR_COBRO_RESPUESTA_ACTIVO=0          — solo informa: no responde correos ni crea tickets (ver cuenta_cobro_contador.py)
 """
 from __future__ import annotations
 
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -53,7 +49,6 @@ load_dotenv(REPO / ".env")
 
 JOB_ID = "recordatorio_pago_contador"
 ESTADO_PATH = REPO / "app" / "data" / "recordatorio_pago_contador_log.json"
-TARIFA_VIGENTE = 573243.0  # 23% acordado realmente sobre $466.051 (corrección ago-2026)
 
 
 def _activo() -> bool:
@@ -66,9 +61,9 @@ def _quiet() -> bool:
 
 def _dia_aviso() -> int:
     try:
-        return int(os.getenv("RECORDATORIO_PAGO_CONTADOR_DIA_AVISO", "25") or "25")
+        return int(os.getenv("RECORDATORIO_PAGO_CONTADOR_DIA_AVISO", "10") or "10")
     except ValueError:
-        return 25
+        return 10
 
 
 def _leer_estado() -> dict:
@@ -92,123 +87,9 @@ def _guardar_estado(data: dict) -> None:
     os.replace(tmp, ESTADO_PATH)
 
 
-def _tercero_contador():
-    """El contador en el Libro Mayor, o None si nadie lo ha registrado.
-
-    No se crea solo: un tercero nace con cédula, correo y cuenta, y un cron que
-    los invente deja datos maestros equivocados que después nadie corrige.
-    """
-    try:
-        import app.services.contabilidad_core as cc
-
-        for t in cc.listar_terceros():
-            n = (t.get("nombre") or "").lower()
-            if "novoa" in n and "william" in n:
-                return t
-    except Exception as e:
-        print(f"⚠️ No se pudo buscar al contador entre los terceros: {e}")
-    return None
-
-
-def _borrador_honorarios(periodo: str, monto: float, cobro: dict, creado_por) -> int | None:
-    """Deja la cuenta de cobro del contador como borrador de pago. Idempotente."""
-    tercero = _tercero_contador()
-    if not tercero or monto <= 0:
-        return None
-    try:
-        from app.services import pagos_wizard as _pw
-        import app.services.contabilidad_core as cc
-
-        activos = [m for m in cc.listar_medios_pago() if m.get("activo")]
-        bancos = [m for m in activos if m.get("tipo") == "banco"] or activos
-        sol = _pw.crear_borrador_idempotente(
-            {
-                "categoria": "honorarios",
-                "concepto": f"Honorarios contador — {periodo}",
-                "monto": monto,
-                "fecha": datetime.now().strftime("%Y-%m-%d"),
-                "tercero_id": tercero["id"],
-                "medio_pago_id": bancos[0]["id"] if bancos else None,
-                "origen_ref": f"contador:{periodo}",
-                "origen_sistema": "contador",
-                "periodo": periodo,
-                "notas": (
-                    f"{cobro.get('concepto', '')} · Cuenta: Bancolombia ahorros "
-                    "No 24178692751 a nombre William Novoa"
-                ),
-            },
-            created_by=creado_por,
-        )
-        return int(sol["id"])
-    except Exception as e:
-        print(f"⚠️ No se pudo montar el borrador de honorarios: {e}")
-        return None
-
-
-def _crear_ticket_pago(periodo: str, cobro: dict) -> int | None:
-    from app.services import tickets_db as tdb
-    import sqlite3
-
-    tdb.init_db()
-    with sqlite3.connect(tdb.DB_PATH) as db:
-        db.row_factory = sqlite3.Row
-        admin_row = db.execute("SELECT id FROM usuarios WHERE username='admin'").fetchone()
-        jerry_row = db.execute("SELECT id FROM usuarios WHERE username='jerry'").fetchone()
-    creado_por = admin_row["id"] if admin_row else None
-    asignado_a = jerry_row["id"] if jerry_row else None
-    if not creado_por:
-        print("🔴 No existe usuario 'admin' — no se pudo crear el ticket.")
-        return None
-
-    monto = float(cobro.get("monto") or 0)
-    aviso_tarifa = ""
-    if monto and abs(monto - TARIFA_VIGENTE) > 500:
-        aviso_tarifa = (
-            f"\n\n⚠️ El monto facturado (${monto:,.0f}) no coincide con la tarifa "
-            f"vigente acordada (${TARIFA_VIGENTE:,.0f} = 23% sobre $466.051, "
-            f"corrección ago-2026) — revisar antes de aprobar."
-        )
-
-    # El monto va en la SOLICITUD, no en el texto del ticket: ahí se recalcula
-    # el asiento (5110 honorarios, con su retención) y se puede corregir contra
-    # la cuenta de cobro real. Un valor escrito en un ticket se congela.
-    sid = _borrador_honorarios(periodo, monto, cobro, creado_por)
-
-    if sid:
-        descripcion = (
-            f"Cuenta de cobro del contador — periodo {periodo}.\n\n"
-            f"Ya quedó como **borrador #{sid}** en **Contabilidad → Solicitudes de "
-            "pago**, filtro «Borradores».\n\n"
-            "Ábrelo, coteja contra la cuenta de cobro que él envió, verifica el asiento "
-            "(honorarios con su retención) y envíalo a aprobación."
-            f"{aviso_tarifa}"
-        )
-    else:
-        descripcion = (
-            f"Cuenta de cobro de William Fernando Novoa Molano (contador) — periodo {periodo}.\n"
-            f"Valor a girar: ${monto:,.0f} COP\n"
-            f"Concepto: {cobro.get('concepto', '')}\n"
-            f"Cuenta: Bancolombia ahorros No 24178692751 a nombre William Novoa\n\n"
-            "⚠️ No se pudo montar la solicitud de pago automáticamente: **el contador no "
-            "está registrado como tercero** en el Libro Mayor. Créalo una vez en "
-            "Contabilidad → Terceros (persona natural, con su cédula) y de ahí en "
-            "adelante el borrador se monta solo, con su asiento y su retención."
-            f"{aviso_tarifa}"
-        )
-
-    data = {
-        "tipo": "solicitud",
-        "titulo": f"Pago contador — {periodo}",
-        "categoria": "logistica",
-        "descripcion": descripcion,
-        "prioridad": "urgente",
-        "asignado_a": asignado_a,
-    }
-    ticket, error = tdb.crear_ticket(data, creado_por, None)
-    if error:
-        print(f"🔴 No se pudo crear el ticket de pago: {error}")
-        return None
-    return ticket["id"]
+def _periodo_anterior(hoy: datetime) -> str:
+    primero = hoy.replace(day=1)
+    return (primero - timedelta(days=1)).strftime("%Y-%m")
 
 
 def main() -> int:
@@ -222,61 +103,56 @@ def main() -> int:
         print("⏸️  RECORDATORIO_PAGO_CONTADOR_CRON_ACTIVO=0 — cron desactivado, no se hace nada.")
         return 0
 
-    from app.services.cuentas_cobro_correo import sincronizar_desde_gmail, cargar_cobros
+    from app.services import cuenta_cobro_contador as ccc
+    from app.services.cuentas_cobro_correo import cargar_cobros
     from app.utils import enviar_whatsapp_reporte
 
     hoy = datetime.now()
-    periodo_actual = hoy.strftime("%Y-%m")
-
-    try:
-        sincronizar_desde_gmail()
-    except Exception as e:
-        print(f"⚠️ No se pudo releer Gmail ({e}); se usa el último caché disponible.")
-
-    cobros = cargar_cobros()
-    william_mes = next(
-        (c for c in cobros if c.get("proveedor") == "william" and c.get("periodo") == periodo_actual),
-        None,
-    )
-
-    estado = _leer_estado()
     grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
 
-    if william_mes:
-        if estado["tickets_creados"].get(periodo_actual):
-            print(f"✅ Ya existe ticket para {periodo_actual} (ticket #{estado['tickets_creados'][periodo_actual]}).")
-            registrar_ejecucion(JOB_ID)
-            return 0
-        tid = _crear_ticket_pago(periodo_actual, william_mes)
-        if tid:
-            estado["tickets_creados"][periodo_actual] = tid
-            _guardar_estado(estado)
-            print(f"✅ Ticket #{tid} creado: APROBAR PAGO CONTADOR ({periodo_actual}, ${william_mes['monto']:,.0f}).")
-            if not _quiet():
-                mensaje = (
-                    f"🎫 *Cuenta de cobro de William (contador) — {periodo_actual}*\n\n"
-                    f"Llegó su cuenta de cobro por ${william_mes['monto']:,.0f} COP. "
-                    f"Se creó el ticket de aprobación de pago.\n"
-                    f"Revisar en Centro de Mando → Solicitudes."
-                )
-                enviar_whatsapp_reporte(mensaje, grupo)
-        registrar_ejecucion(JOB_ID)
-        return 0
-
-    # Aún no llega su cuenta de cobro este mes.
-    if hoy.day >= _dia_aviso() and not estado["avisos_enviados"].get(periodo_actual):
-        print(f"ℹ️ Aún no llega la cuenta de cobro de William para {periodo_actual} (día {hoy.day}).")
-        if not _quiet():
-            mensaje = (
-                f"📌 *Recordatorio: pago contador (William)*\n\n"
-                f"Aún no ha llegado la cuenta de cobro de William Novoa correspondiente a "
-                f"{periodo_actual}. Verificar con él o revisar mckenna.group.colombia@gmail.com."
+    # 1. Cada cuenta de cobro nueva: pagada → se le responde con el documento
+    #    soporte; sin pagar → TKT a Jenniffer (ver cuenta_cobro_contador.py).
+    try:
+        acciones = ccc.procesar()
+    except Exception as e:
+        print(f"🔴 Falló la respuesta a la cuenta de cobro del contador: {e}")
+        acciones = []
+    for a in acciones:
+        print(f"• {a}")
+        if _quiet():
+            continue
+        if a.get("accion") == "soporte_enviado":
+            enviar_whatsapp_reporte(
+                f"✅ *Contador (William) — {a['periodo']}*\n\nSe le respondió por correo la cuenta de cobro "
+                f"con el documento soporte {a['documento']} (pago confirmado, solicitud #{a['solicitud_id']}).",
+                grupo,
             )
-            enviar_whatsapp_reporte(mensaje, grupo)
-        estado["avisos_enviados"][periodo_actual] = True
+        elif a.get("accion") == "ticket_creado":
+            enviar_whatsapp_reporte(
+                f"🎫 *Cuenta de cobro de William (contador) — {a['periodo']}*\n\n"
+                f"Llegó por ${float(a['monto'] or 0):,.0f} COP y aún no se le ha pagado. "
+                f"Ticket #{a['ticket_id']} a Jenniffer para solicitar el pago"
+                + (f" (borrador #{a['borrador_id']} en Solicitudes de pago)." if a.get("borrador_id") else "."),
+                grupo,
+            )
+
+    # 2. William cobra el mes ANTERIOR (la de agosto llegó el 4-sep). Si pasado el
+    #    día de aviso aún no ha llegado, se avisa una vez. Antes se buscaba la del
+    #    mes en curso, que por eso nunca aparecía: el ticket jamás se creó solo.
+    periodo = _periodo_anterior(hoy)
+    llego = any(c.get("proveedor") == "william" and c.get("periodo") == periodo for c in cargar_cobros())
+    estado = _leer_estado()
+    if not llego and hoy.day >= _dia_aviso() and not estado["avisos_enviados"].get(periodo):
+        print(f"ℹ️ Aún no llega la cuenta de cobro de William de {periodo} (día {hoy.day}).")
+        if not _quiet():
+            enviar_whatsapp_reporte(
+                f"📌 *Recordatorio: pago contador (William)*\n\n"
+                f"Aún no ha llegado la cuenta de cobro de William Novoa de {periodo}. "
+                f"Verificar con él o revisar mckenna.group.colombia@gmail.com.",
+                grupo,
+            )
+        estado["avisos_enviados"][periodo] = True
         _guardar_estado(estado)
-    else:
-        print(f"⏭  Sin novedades para {periodo_actual}.")
 
     registrar_ejecucion(JOB_ID)
     return 0
