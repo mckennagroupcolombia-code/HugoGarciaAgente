@@ -101,13 +101,13 @@ def _oauth_states_save_disk() -> None:
         pass
 
 
-def _oauth_state_put(state: str, *, android: bool = False) -> None:
+def _oauth_state_put(state: str, *, android: bool = False, app: str = "") -> None:
     _oauth_states_load_disk()
     now = time.time()
     expired = [k for k, v in _oauth_states.items() if now - float(v.get("t", 0)) > _OAUTH_STATE_TTL]
     for k in expired:
         del _oauth_states[k]
-    _oauth_states[state] = {"t": now, "android": android}
+    _oauth_states[state] = {"t": now, "android": android, "app": app}
     _oauth_states_save_disk()
 
 
@@ -405,8 +405,10 @@ def register_tickets_routes(app):
         if not _google_oauth_configured():
             return "<p>Google OAuth no configurado. Agrega GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET al .env del agente.</p>", 503
         state = secrets.token_urlsafe(32)
-        android = request.args.get("app", "").lower() in ("android", "1", "true")
-        _oauth_state_put(state, android=android)
+        app_arg = request.args.get("app", "").lower()
+        # «colab»: la APK de colaboradores (android-colab/), otro paquete y otro esquema.
+        android = app_arg in ("android", "1", "true", "colab")
+        _oauth_state_put(state, android=android, app="colab" if app_arg == "colab" else "")
         return redirect(_build_google_url(state))
 
     @app.route("/app/auth/callback", methods=["GET"])
@@ -417,12 +419,13 @@ def register_tickets_routes(app):
 
         stored = _oauth_state_pop(state) if state else None
         is_android = bool(stored and stored.get("android"))
+        sufijo_app = "&app=colab" if stored and stored.get("app") == "colab" else ""
 
         def _fail(msg: str):
             import urllib.parse
             q = urllib.parse.quote(msg, safe="")
             if is_android:
-                return redirect(f"/app/auth/android-return?error={q}")
+                return redirect(f"/app/auth/android-return?error={q}{sufijo_app}")
             return redirect(f"/app?auth_error={q}")
 
         if error:
@@ -446,7 +449,7 @@ def register_tickets_routes(app):
         if is_android:
             import urllib.parse
             q = urllib.parse.quote(token, safe="")
-            return redirect(f"/app/auth/android-return?token={q}")
+            return redirect(f"/app/auth/android-return?token={q}{sufijo_app}")
         from app import spa_sesion
 
         return spa_sesion.marcar(redirect(f"/app?_token={token}"), token)
@@ -462,14 +465,21 @@ def register_tickets_routes(app):
         import json
         import urllib.parse
 
+        # La APK de colaboradores (android-colab/) convive con la del panel en el
+        # mismo celular: cada una tiene su paquete y su esquema, o el token de un
+        # colaborador podría abrir la app equivocada.
+        if (request.args.get("app") or "").lower() == "colab":
+            esquema, paquete, nombre_app = "mckennacolab", "co.mckennagroup.colaboradores", "McKenna Colaboradores"
+        else:
+            esquema, paquete, nombre_app = "mckennaapp", "co.mckennagroup.panel", "panel McKenna"
+
         err = (request.args.get("error") or "").strip()
         if err:
-            deeplink = f"mckennaapp://auth?error={urllib.parse.quote(err, safe='')}"
             panel = f"https://bot.mckennagroup.co/app?auth_error={urllib.parse.quote(err, safe='')}"
             intent_url = (
                 f"intent://auth?error={urllib.parse.quote(err, safe='')}#Intent;"
-                "scheme=mckennaapp;"
-                "package=co.mckennagroup.panel;"
+                f"scheme={esquema};"
+                f"package={paquete};"
                 f"S.browser_fallback_url={urllib.parse.quote(panel, safe='')};"
                 "end"
             )
@@ -492,13 +502,13 @@ def register_tickets_routes(app):
             return redirect("/app?auth_error=sin_token")
 
         tok_q = urllib.parse.quote(token, safe="")
-        deeplink = f"mckennaapp://auth?token={tok_q}"
+        deeplink = f"{esquema}://auth?token={tok_q}"
         panel_https = f"https://bot.mckennagroup.co/app?_token={tok_q}"
         # Chrome/Custom Tab resuelve mejor intent:// con package que el esquema custom solo.
         intent_url = (
             f"intent://auth?token={tok_q}#Intent;"
-            "scheme=mckennaapp;"
-            "package=co.mckennagroup.panel;"
+            f"scheme={esquema};"
+            f"package={paquete};"
             f"S.browser_fallback_url={urllib.parse.quote(panel_https, safe='')};"
             "end"
         )
@@ -525,13 +535,13 @@ def register_tickets_routes(app):
             "<p style=\"font-size:1.1rem;margin:0 0 1rem\">Sesión lista. Abriendo McKenna…</p>"
             f'<p style="margin:1.5rem 0"><a href="{href_intent}" style="display:inline-block;'
             "padding:14px 22px;background:#0c6069;color:#fff;text-decoration:none;"
-            'border-radius:10px;font-weight:700;font-size:1rem">Abrir panel McKenna</a></p>'
+            f'border-radius:10px;font-weight:700;font-size:1rem">Abrir {nombre_app}</a></p>'
             f'<p style="margin:0.75rem 0"><a href="{href_deep}" style="color:#7dd3c0">'
             "Reintentar enlace de la app</a></p>"
             f'<p style="margin:0.75rem 0"><a href="{href_https}" style="color:#9aa0a6;font-size:0.9rem">'
             "Abrir en el navegador (mismo token)</a></p>"
             "<p style=\"margin-top:2rem;color:#9aa0a6;font-size:0.85rem\">"
-            "Si no vuelve solo, toca <b>Abrir panel McKenna</b> y elige la app McKenna."
+            f"Si no vuelve solo, toca <b>Abrir {nombre_app}</b>."
             "</p>"
             "</body></html>"
         )
@@ -1291,8 +1301,14 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/<int:ticket_id>/comentarios", methods=["GET"])
     @_auth
     def tickets_listar_comentarios(ticket_id):
+        from app.services.colaboradores import es_colaborador_externo
         from app.services.tickets_db import listar_comentarios
-        return jsonify(listar_comentarios(ticket_id)), 200
+
+        filas = listar_comentarios(ticket_id)
+        # Una nota interna es del equipo: al colaborador externo no le llega.
+        if es_colaborador_externo(request.tickets_usuario):
+            filas = [c for c in filas if not c.get("es_interno")]
+        return jsonify(filas), 200
 
     @app.route("/api/tickets/<int:ticket_id>/comentarios", methods=["POST"])
     @_auth

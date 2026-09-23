@@ -3856,8 +3856,10 @@ def register_routes(app):
     # todo /api/* acepta cualquier sesión. Los tickets se revisan uno por uno:
     # solo los que son entre él y el anfitrión.
     _COLAB_TICKETS_GET = (
+        # Sin /api/tickets/categorias/: son los nombres de las áreas internas y su
+        # app (dist-colab) no las usa — crea siempre con la categoría «colaboradores».
         "/api/tickets/usuarios", "/api/tickets/presencia/", "/api/tickets/actividad-equipo",
-        "/api/tickets/categorias/", "/api/tickets/departamentos", "/api/tickets/acciones/frecuentes",
+        "/api/tickets/departamentos", "/api/tickets/acciones/frecuentes",
         "/api/tickets/acciones/historial",
     )
     # Acciones sobre un ticket que involucran a terceros o a otros módulos.
@@ -16365,15 +16367,28 @@ def register_routes(app):
     #  SPA — React build served from desktop/dist/
     # ══════════════════════════════════════════════════════════════════════════
     _SPA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "desktop", "dist")
+    # Build aparte para colaboradores externos (desktop/vite.colab.config.ts): solo
+    # Colaboradores y su Agenda con Armando. No es el panel con partes ocultas.
+    _SPA_COLAB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "desktop", "dist-colab")
 
     @app.route("/app/assets/<path:filename>")
     def serve_spa_assets(filename):
         """El bundle del panel: solo con sesión (ver app/spa_sesion.py)."""
         from app import spa_sesion
 
-        if spa_sesion.gate_activo() and not spa_sesion.usuario_de_cookie():
+        # Los sourcemaps traen el código fuente completo, con sus comentarios: se
+        # generan para depurar en el servidor, nunca se entregan (ni a un admin).
+        if filename.lower().endswith(".map"):
+            return jsonify({"error": "No encontrado"}), 404
+        usuario = spa_sesion.usuario_de_cookie()
+        if spa_sesion.gate_activo() and not usuario:
             return jsonify({"error": "Sesión requerida"}), 403
-        assets_dir = os.path.join(_SPA_DIR, "assets")
+        # Un colaborador externo solo recibe su propio build: pedir un chunk del
+        # panel por su nombre (ContabilidadPanel-….js) le da 404.
+        if spa_sesion.es_colaborador(usuario):
+            assets_dir = os.path.join(_SPA_COLAB_DIR, "assets")
+        else:
+            assets_dir = os.path.join(_SPA_DIR, "assets")
         resp = send_from_directory(assets_dir, filename)
         # `private`: el nombre lleva hash, pero si un proxy (Cloudflare) guardara
         # una copia compartida, la serviría sin pasar por el guardia.
@@ -25540,18 +25555,25 @@ REGLAS:
 
         token_url = (request.args.get("_token") or "").strip()
         nuevo = None
-        if not spa_sesion.gate_activo():
-            pass
-        elif spa_sesion.usuario_de_cookie():
-            pass
-        elif token_url and spa_sesion.token_valido(token_url):
-            nuevo = token_url                     # vuelta de Google o enlace de la APK
+        # El token de la URL manda sobre la cookie: es el ingreso recién hecho
+        # (vuelta de Google, enlace de la APK) y puede ser de otra persona.
+        usuario = spa_sesion.usuario_de_token(token_url) if token_url else None
+        if usuario:
+            nuevo = token_url
         else:
+            usuario = spa_sesion.usuario_de_cookie()
+        if spa_sesion.gate_activo() and not usuario:
             ingreso = make_response(spa_sesion.pagina_ingreso())
             ingreso.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
             return ingreso, 200
 
-        resp = send_from_directory(_SPA_DIR, "index.html")
+        if spa_sesion.es_colaborador(usuario):
+            # Falla cerrado: sin el build de colaboradores no se le entrega el panel.
+            if not os.path.isfile(os.path.join(_SPA_COLAB_DIR, "colaboradores.html")):
+                return jsonify({"error": "App de colaboradores no compilada. Ejecutar: cd desktop && npm run build:colab"}), 503
+            resp = send_from_directory(_SPA_COLAB_DIR, "colaboradores.html")
+        else:
+            resp = send_from_directory(_SPA_DIR, "index.html")
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         resp.headers["Pragma"] = "no-cache"
         if nuevo:

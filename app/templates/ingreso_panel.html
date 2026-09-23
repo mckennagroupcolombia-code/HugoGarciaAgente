@@ -65,6 +65,15 @@
     } catch (e) { return ""; }
   }
 
+  // Dentro de la app Android (WebView), Google se abre en una pestaña de Chrome:
+  // sin ?app=android la vuelta se queda en Chrome y la app nunca recibe la
+  // sesión (21/22-sep-2026: Victor y Stella no podían entrar desde la app).
+  if (/McKennaPanelAndroid/i.test(navigator.userAgent)) {
+    document.querySelector("a.google").href = "/app/auth/google/start?app=android";
+  } else if (/McKennaColabAndroid/i.test(navigator.userAgent)) {
+    document.querySelector("a.google").href = "/app/auth/google/start?app=colab";
+  }
+
   var params = new URLSearchParams(location.search);
   var authError = params.get("auth_error");
   var tok = guardado();

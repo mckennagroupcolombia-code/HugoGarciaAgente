@@ -1,0 +1,56 @@
+/*
+ * APK de colaboradores externos. No es la app del panel con otro nombre: un
+ * WebView y nada más (sin alarmas, micrófono, cámara ni puentes nativos), con
+ * su propio paquete y su propio esquema de retorno del login de Google
+ * (mckennacolab://), para convivir con la del panel en el mismo celular.
+ * Lo que se ve adentro lo decide el servidor por el perfil del usuario
+ * (app/routes.py::serve_spa → desktop/dist-colab/).
+ *
+ * Firmar: keystore.properties (no versionado) apunta a colaboradores.keystore.
+ * Compilar: ./compilar.sh
+ */
+plugins {
+    id 'com.android.application'
+}
+
+def firma = new Properties()
+def firmaArchivo = rootProject.file('keystore.properties')
+if (firmaArchivo.exists()) firmaArchivo.withInputStream { firma.load(it) }
+
+android {
+    namespace "co.mckennagroup.colaboradores"
+    compileSdk 36
+    defaultConfig {
+        applicationId "co.mckennagroup.colaboradores"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+    }
+    signingConfigs {
+        release {
+            if (firma['storeFile']) {
+                storeFile rootProject.file(firma['storeFile'])
+                storePassword firma['storePassword']
+                keyAlias firma['keyAlias']
+                keyPassword firma['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Sin librerías que R8 pueda romper: se ofusca y se recorta.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            signingConfig signingConfigs.release
+            // Sin el commit de git dentro de la APK.
+            vcsInfo { include false }
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    lint { checkReleaseBuilds false }
+}

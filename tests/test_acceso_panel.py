@@ -73,3 +73,68 @@ def test_la_pantalla_de_ingreso_no_cuenta_nada_del_proyecto():
                     "inventario", "nómina", "/api/pagos", "/api/contabilidad"):
         assert palabra not in html
     assert html.count("/api/") == 2 and "/api/tickets/auth/" in html
+
+
+# ── Build de colaboradores (dist-colab) y sourcemaps ─────────────────────────
+# Un colaborador externo recibe otra aplicación (desktop/vite.colab.config.ts),
+# no el panel con partes ocultas; y nadie recibe los .map (traen el código fuente).
+
+from pathlib import Path
+
+COLAB = {"id": 13, "nombre": "Colaborador", "rol": {"nivel": 1},
+         "permisos_secciones": {"colaborador_externo": True, "colaboradores": True, "tickets": True}}
+_DESKTOP = Path(__file__).resolve().parent.parent / "desktop"
+
+
+@pytest.fixture()
+def cliente2(monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "token-sistema")
+    from app.routes import register_routes
+    from app.services import tickets_db
+
+    usuarios = {"sesion-viva": USUARIO, "sesion-colab": COLAB}
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda t: usuarios.get(t))
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        yield c
+
+
+def _un_archivo(carpeta: Path, patron: str):
+    hits = sorted(carpeta.glob(patron)) if carpeta.is_dir() else []
+    return hits[0].name if hits else None
+
+
+def test_los_sourcemaps_no_se_entregan_ni_con_sesion(cliente2):
+    cliente2.set_cookie(spa_sesion.COOKIE, "sesion-viva", path="/app")
+    nombre = _un_archivo(_DESKTOP / "dist" / "assets", "*.js.map") or "index-abc.js.map"
+    assert cliente2.get(f"/app/assets/{nombre}").status_code == 404
+    assert cliente2.get(f"/app/assets/{nombre.upper()}").status_code == 404
+
+
+def test_el_colaborador_recibe_su_propia_app(cliente2):
+    if not (_DESKTOP / "dist-colab" / "colaboradores.html").is_file():
+        pytest.skip("sin build de colaboradores en esta máquina")
+    cliente2.set_cookie(spa_sesion.COOKIE, "sesion-colab", path="/app")
+    html = cliente2.get("/app").get_data(as_text=True)
+    assert "Colaboradores" in html and "Panel de Operaciones" not in html
+
+
+def test_el_colaborador_no_descarga_chunks_del_panel(cliente2):
+    nombre = _un_archivo(_DESKTOP / "dist" / "assets", "index-*.js")
+    if not nombre:
+        pytest.skip("sin build del panel en esta máquina")
+    cliente2.set_cookie(spa_sesion.COOKIE, "sesion-colab", path="/app")
+    assert cliente2.get(f"/app/assets/{nombre}").status_code == 404
+    cliente2.set_cookie(spa_sesion.COOKIE, "sesion-viva", path="/app")
+    assert cliente2.get(f"/app/assets/{nombre}").status_code == 200
+
+
+def test_el_token_de_la_url_manda_sobre_la_cookie(cliente2):
+    if not (_DESKTOP / "dist-colab" / "colaboradores.html").is_file():
+        pytest.skip("sin build de colaboradores en esta máquina")
+    cliente2.set_cookie(spa_sesion.COOKIE, "sesion-viva", path="/app")
+    r = cliente2.get("/app?_token=sesion-colab")
+    assert "Panel de Operaciones" not in r.get_data(as_text=True)
+    assert "sesion-colab" in r.headers.get("Set-Cookie", "")

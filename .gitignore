@@ -93,6 +93,7 @@ package-lock.json
 
 # React SPA build output
 desktop/dist/
+desktop/dist-colab/
 
 # Puente WhatsApp (sesión y caché local; no commitear)
 bot-mckenna/.wwebjs_auth_nueva/
@@ -260,3 +261,13 @@ app/data/colaboradores.db
 app/data/colaboradores.db-*
 app/data/colaboradores_archify/
 juegos_partidas/
+
+# APK de colaboradores: la llave de firma y su contraseña no se versionan;
+# la APK y el build tampoco (se regeneran con android-colab/compilar.sh).
+android-colab/keystore.properties
+android-colab/*.keystore
+android-colab/*.apk
+android-colab/app/build/
+android-colab/build/
+android-colab/.gradle/
+android-colab/local.properties

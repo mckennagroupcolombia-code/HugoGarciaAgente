@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/copy-ocr-assets.mjs && vite",
-    "build": "node scripts/copy-ocr-assets.mjs && tsc -b && vite build",
+    "build": "node scripts/copy-ocr-assets.mjs && tsc -b && vite build && npm run build:colab",
     "preview": "vite preview",
     "qa:smoke": "npm run build && node scripts/qa-smoke.mjs",
     "qa:alegra-nombre": "node scripts/qa-alegra-nombre.mjs",
     "qa:behavior": "node scripts/qa-behavior.mjs",
     "qa:panel-access": "node scripts/qa-panel-access.mjs",
-    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior && npm run qa:panel-access"
+    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior && npm run qa:panel-access",
+    "build:colab": "vite build -c vite.colab.config.ts && node scripts/verificar-build-colab.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.75.0",

@@ -58,6 +58,30 @@ def usuario_de_cookie():
         return None
 
 
+def usuario_de_token(token: str):
+    token = (token or "").strip()
+    if not token:
+        return None
+    try:
+        from app.services.tickets_db import get_usuario_by_token
+
+        return get_usuario_by_token(token)
+    except Exception:
+        return None
+
+
+def es_colaborador(usuario) -> bool:
+    """¿A este usuario le toca el build de colaboradores (dist-colab/)?"""
+    if not usuario:
+        return False
+    try:
+        from app.services.colaboradores import es_colaborador_externo
+
+        return es_colaborador_externo(usuario)
+    except Exception:
+        return False
+
+
 def token_valido(token: str) -> bool:
     token = (token or "").strip()
     if not token:

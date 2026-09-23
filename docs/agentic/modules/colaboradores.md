@@ -48,3 +48,24 @@ comercial para un proyecto conjunto, a mano y desde el celular.
 - **El bundle ya no es público** (21-sep-2026): `/app` y `/app/assets/*` piden la cookie de sesión —
   ver `app/spa_sesion.py` y `tests/test_acceso_panel.py`. Antes los servía a cualquiera que llegara al
   dominio, con la estructura de módulos y la superficie de la API adentro.
+- **Una aplicación aparte, no el panel recortado** (23-sep-2026). Antes, con sesión, el colaborador
+  recibía el mismo bundle que todos (1,2 MB con los 61 paneles nombrados), podía bajar cualquier chunk
+  por su nombre y también los `.map`, que traían **134 archivos TypeScript completos con comentarios**.
+  Ahora:
+  - `/app/assets/*.map` → 404 para todo el mundo (se siguen generando, `hidden`, para depurar en el servidor).
+  - Build propio `desktop/vite.colab.config.ts` → `desktop/dist-colab/` (entrada `colaboradores.html` →
+    `src/colab/main.tsx`: `ColaboradoresPanel` + `AgendaColab`). Los stores de sesión del panel se
+    reemplazan por alias (`src/colab/stubs/`), sin sourcemaps, Tailwind solo con sus archivos.
+    `npm run build` lo compila al final; `scripts/verificar-build-colab.mjs` hace fallar el build si se
+    cuela una ruta `/api/` ajena o un nombre de módulo (Contabilidad, Alegra, Cynthia…).
+  - `serve_spa` entrega `dist-colab/colaboradores.html` a quien tiene el perfil (falla cerrado con 503 si
+    no está compilado) y `serve_spa_assets` solo le sirve `dist-colab/assets/`. El `?_token=` de la URL
+    manda sobre la cookie (cambio de cuenta en el mismo navegador).
+  - La Agenda del colaborador: lista (Te pidió / Le pediste), crear solicitud (categoría fija
+    `colaboradores`, el backend la asigna a Armando), comentar, «Marcar como hecha». Se le quitó
+    `/api/tickets/categorias/` (nombres de las áreas internas) y `GET …/comentarios` ya no le devuelve
+    los comentarios `es_interno`.
+  - **APK propia** `android-colab/` (ver su `LEEME.md`): paquete `co.mckennagroup.colaboradores`, un
+    WebView de 44 KB, solo permiso de red, llave de firma propia (no versionada). El login de Google va por
+    `/app/auth/google/start?app=colab` (la pantalla de ingreso lo elige por el UA `McKennaColabAndroid`) y
+    vuelve por `mckennacolab://auth`. Pruebas: `tests/test_acceso_panel.py`.

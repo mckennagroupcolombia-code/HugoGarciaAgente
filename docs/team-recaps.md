@@ -1,3 +1,15 @@
+### 2026-09-23 - Colaboradores externos: app y APK propias; el código fuente del panel ya no se entrega
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de seguridad + nueva app (Agenda → Colaboradores). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** un colaborador externo (Sebastián) recibía el mismo bundle del panel que el equipo (1,2 MB con los 61 paneles nombrados), podía descargar cualquier chunk por su nombre y los `.map`, que traían 134 archivos TypeScript completos con sus comentarios. La API ya estaba cerrada; el frontend no.
+  - **Sourcemaps:** `/app/assets/*.map` → 404 para todos (se siguen generando para depurar en el servidor). Verificado en producción.
+  - **Otra aplicación para el colaborador:** build aparte `desktop/vite.colab.config.ts` → `desktop/dist-colab/` con solo Colaboradores y una Agenda mínima con Armando (pedirle algo, comentar, marcar como hecha). 460 KB, sin sourcemaps, sin nombres de otros módulos. `npm run build` la compila y `verificar-build-colab.mjs` falla si se cuela algo del panel. El servidor se la entrega a quien tiene el perfil `colaborador_externo` y le niega los archivos del panel.
+  - **API de la Agenda:** el colaborador ya no ve comentarios internos ni la lista de categorías (nombres de áreas internas).
+  - **APK propia** `android-colab/` («McKenna Colaboradores», `co.mckennagroup.colaboradores`, 44 KB): un WebView, solo permiso de red, llave de firma propia no versionada. El login de Google vuelve por `mckennacolab://` y convive con la APK del panel en el mismo celular.
+  - ⚠️ Falta probar con la sesión real del colaborador y la APK instalada en un celular (Google login incluido).
+- **Archivos Modificados:** `app/routes.py`, `app/spa_sesion.py`, `app/routes_tickets.py`, `app/templates/ingreso_panel.html`, `desktop/src/colab/*`, `desktop/vite.colab.config.ts`, `desktop/tailwind.colab.config.ts`, `desktop/colaboradores.html`, `desktop/scripts/verificar-build-colab.mjs`, `desktop/package.json`, `android-colab/*`, `tests/test_acceso_panel.py`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`, `.gitignore`
+
 ### 2026-09-22 - Cotizar/Facturar: ventas de Mercado Libre con RUT ya se facturan (teléfono opcional, factura ligada al pack, NIT vs CC)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + nueva funcionalidad (Facturación → Cotizar/Facturar). Sin LLM.

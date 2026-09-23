@@ -582,7 +582,8 @@ Reglas que no se rompen:
 ### Colaboradores (diagramas compartidos, 21-sep-2026)
 Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
 versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
-Agenda con Armando. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
+`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
 terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
 
 ### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
