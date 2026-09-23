@@ -116,6 +116,10 @@ CATEGORIAS: dict[str, dict] = {
         # `compra_proveedor` sigue existiendo con `requiere_factura` para las
         # compras que sí deben cotejarse contra el documento antes de pagar.
         "con_productos": True,
+        # Una compra con productos se puede pagar por otro valor que el de la
+        # factura: de más (la transferencia salió por la cotización) o de menos.
+        # Sin esto, el taller no podía registrar lo que de verdad salió del banco.
+        "permite_parcial": True,
         "productos_opcionales": True,
     },
     "servicios": {
@@ -143,6 +147,10 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_tercero": True,
         "icono": "🧾",
         "con_productos": True,
+        # Una compra con productos se puede pagar por otro valor que el de la
+        # factura: de más (la transferencia salió por la cotización) o de menos.
+        # Sin esto, el taller no podía registrar lo que de verdad salió del banco.
+        "permite_parcial": True,
         "requiere_factura": True,
         "concepto_retencion": "compras",
     },
@@ -154,6 +162,10 @@ CATEGORIAS: dict[str, dict] = {
         "requiere_tercero": True,
         "icono": "📄",
         "con_productos": True,
+        # Una compra con productos se puede pagar por otro valor que el de la
+        # factura: de más (la transferencia salió por la cotización) o de menos.
+        # Sin esto, el taller no podía registrar lo que de verdad salió del banco.
+        "permite_parcial": True,
         "requiere_factura": True,
     },
     # ── Ocultas desde sep-2026: ahora son una cuenta, no un botón ──────────
@@ -719,6 +731,22 @@ def _validar_cuenta_elegida(codigo: str) -> str:
     return codigo
 
 
+def _asegurar_cuenta_anticipos() -> int:
+    """133005 Anticipos y avances a proveedores, creándola (y su mayor 1330) si el plan no la trae."""
+    import app.services.contabilidad_core as cc
+
+    with cc._conn() as con:
+        cid = cc._cuenta_id_por_codigo(con, "133005")
+    if cid:
+        return int(cid)
+    with cc._conn() as con:
+        padre = cc._cuenta_id_por_codigo(con, "1330")
+    if not padre:
+        padre = int(cc.crear_cuenta({"codigo": "1330", "nombre": "Anticipos y avances", "tipo": "activo", "naturaleza": "debito", "es_movimiento": 0})["id"])
+    return int(cc.crear_cuenta({"codigo": "133005", "nombre": "Anticipos y avances a proveedores", "tipo": "activo", "naturaleza": "debito",
+                                "cuenta_padre_id": padre})["id"])
+
+
 def previsualizar(payload: dict) -> dict:
     """Arma el asiento que se crearía, **sin guardarlo**.
 
@@ -1075,6 +1103,8 @@ def previsualizar(payload: dict) -> dict:
     pagado_ahora = girado
     saldo_pendiente = 0.0
     cuenta_saldo = ""
+    anticipo = 0.0
+    CUENTA_ANTICIPO = "133005"
     if cat.get("permite_parcial") and payload.get("pagado_ahora") not in (None, ""):
         try:
             pagado_ahora = round(float(payload.get("pagado_ahora")), 2)
@@ -1082,15 +1112,28 @@ def previsualizar(payload: dict) -> dict:
             raise ValueError("«Cuánto se paga ahora» debe ser un número") from None
         if pagado_ahora < 0:
             raise ValueError("Lo que se paga ahora no puede ser negativo")
-        if pagado_ahora > girado + 0.01:
-            raise ValueError(
-                f"Lo que se paga ahora ({_fmt(pagado_ahora)}) no puede superar lo que le corresponde "
-                f"recibir ({_fmt(girado)})"
-            )
         saldo_pendiente = round(girado - pagado_ahora, 2)
         if saldo_pendiente > 0.01:
-            # Socio → 2380; cualquier otro prestador → 2367 costos y gastos por pagar.
-            cuenta_saldo = "2355" if (tercero or {}).get("tipo") == "socio" else "2335"
+            if (tercero or {}).get("tipo") == "socio":
+                cuenta_saldo = "2355"
+            elif items and (tercero or {}).get("tipo") == "proveedor":
+                # Mercancía comprada a un proveedor: lo que queda debiendo es su
+                # cuenta corriente, 2205 Proveedores nacionales — donde ya vive
+                # el histórico de ese proveedor y donde mira quien pregunta
+                # «¿cuánto le debemos?». 2335 es para costos y gastos, y mandar
+                # ahí el saldo de una factura de mercancía lo esconde.
+                cuenta_saldo = "2205"
+            else:
+                cuenta_saldo = "2335"
+        elif saldo_pendiente < -0.01:
+            # Se giró MÁS de lo que dice la factura (sep-2026: la transferencia
+            # salió por la cotización, 1.300.000, y la factura vino por menos).
+            # Eso no es gasto ni error: es plata a favor con el proveedor, que se
+            # descuenta en la próxima factura. Queda en 133005 Anticipos a
+            # proveedores, con el tercero, para que el saldo lo cobre quien
+            # concilie la siguiente compra y no se pierda en Bancos.
+            anticipo = round(-saldo_pendiente, 2)
+            saldo_pendiente = 0.0
         else:
             saldo_pendiente = 0.0
 
@@ -1176,6 +1219,13 @@ def previsualizar(payload: dict) -> dict:
                 "debito": gmf, "credito": 0,
                 "descripcion": f"GMF 4x1000 sobre {_fmt(pagado_ahora)}",
             })
+        if anticipo > 0:
+            id_anticipo = _asegurar_cuenta_anticipos()
+            lineas.append({
+                "cuenta_codigo": CUENTA_ANTICIPO, "cuenta_id": id_anticipo,
+                "debito": anticipo, "credito": 0, "tercero_id": tercero_id,
+                "descripcion": f"Anticipo a favor con {nombre_tercero} — se descuenta en la próxima factura",
+            })
         if saldo_pendiente > 0:
             with cc._conn() as con:
                 id_saldo = cc._cuenta_id_por_codigo(con, cuenta_saldo)
@@ -1221,6 +1271,8 @@ def previsualizar(payload: dict) -> dict:
         "pagado_ahora": pagado_ahora,
         "saldo_pendiente": saldo_pendiente,
         "cuenta_saldo": cuenta_saldo,
+        "anticipo": anticipo,
+        "cuenta_anticipo": CUENTA_ANTICIPO if anticipo > 0 else "",
         "permite_parcial": bool(cat.get("permite_parcial")),
         "tercero": {"id": tercero_id, "nombre": nombre_tercero} if tercero_id else None,
         "medio_pago": medio["nombre"],
@@ -2556,15 +2608,17 @@ def registrar_pago_directo(
 
     if respaldo:
         prev = previsualizar(payload)
-        girado = round(float(prev.get("girado") or 0))
+        # Lo que salió del banco: lo pagado ahora (que puede ser más o menos que
+        # lo facturado — anticipo o saldo pendiente), no el «girado» teórico.
+        salio = round(float(prev.get("pagado_ahora") if prev.get("pagado_ahora") is not None else prev.get("girado") or 0))
         banco = round(float(respaldo["monto"] or 0))
-        if girado != banco:
+        if salio != banco:
             raise ValueError(
-                f"El banco giró {banco:,.0f} y este asiento gira {girado:,.0f} "
-                f"(total {float(prev.get('monto') or 0):,.0f}, retención "
+                f"El banco giró {banco:,.0f} y este asiento saca {salio:,.0f} "
+                f"(factura {float(prev.get('monto') or 0):,.0f}, retención "
                 f"{float(prev.get('retencion') or 0) + float(prev.get('retencion_ica') or 0):,.0f}). "
-                "Revisa el total de la factura, el IVA de cada línea o la retención: "
-                "lo que se registra tiene que ser lo que salió del banco.".replace(",", ".")
+                "Pon en «Se transfirió» lo que salió del banco: si es más que la factura queda "
+                "un anticipo a favor; si es menos, un saldo por pagar.".replace(",", ".")
             )
 
     s = crear_solicitud({**payload, "_sin_ticket": True}, created_by=uid)

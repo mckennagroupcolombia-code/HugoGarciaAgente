@@ -81,6 +81,7 @@ const NOTAS: Record<string, string> = {
   colaboradores: "diagramas compartidos con colaboradores externos (el anfitrión es Armando)",
   arquitectura: "solo administrador: es el mapa interno del sistema y con él se planean borrados",
   combos: "también abre el Mapa del sistema en la API",
+  producto: "también se abre con Combos o Mapa del sistema",
   "libro-mayor": "permiso propio: no se hereda de Facturación ni Sync",
   pagos: "mueve plata y crea asientos — permiso propio",
   prestamos: "datos de socios y familiares — permiso propio",

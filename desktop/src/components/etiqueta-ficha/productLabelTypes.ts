@@ -99,6 +99,11 @@ export interface ProductLabelData {
   /** Ficha técnica enlazada (id de `/api/fichas/datos`) y su título. */
   fichaTecnicaId?: string;
   fichaTecnicaTitulo?: string;
+  /** Cómo venían los datos de la ficha técnica la última vez que se pasaron a
+   *  la etiqueta. Al abrirla se compara con la ficha actual y se aplica SOLO lo
+   *  que cambió allá: lo corregido en la ficha llega solo y lo ajustado a mano
+   *  en la etiqueta (sin tocar la ficha) se respeta. Ver `lib/fichaTecnicaSync`. */
+  fichaTecnicaBase?: Record<string, string>;
 
   city: string;
   phone: string;
@@ -317,6 +322,7 @@ export const CAMPOS_PRODUCTO = [
   "barcodeTitle",
   "fichaTecnicaId",
   "fichaTecnicaTitulo",
+  "fichaTecnicaBase",
   "descripcionProducto",
   "aplicaciones",
   "registro",

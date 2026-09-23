@@ -7272,7 +7272,11 @@ export default function EtiquetasPanel() {
         ? "flex h-full min-h-0 flex-1 flex-col"
         : tab === "imprimir"
           ? "mx-auto max-w-[min(100%,1600px)]"
-          : "mx-auto max-w-6xl space-y-5"
+          : tab === "studio"
+            // Studio fija su propio ancho: la portada en 6xl y, con una etiqueta
+            // abierta al lado de las categorías, más ancho para que quepa el editor.
+            ? "mx-auto max-w-[min(100%,1500px)] space-y-5"
+            : "mx-auto max-w-6xl space-y-5"
     }`}>
       {tab === "imprimir" && (
         <TabImprimir

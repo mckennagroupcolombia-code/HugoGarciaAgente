@@ -7,6 +7,8 @@ import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { Icon, type UiIconName } from "../../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
 import ScrollableTabList from "./ScrollableTabList";
+import { PanelIcon } from "../../icons/PanelIcon";
+import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 import { precargarDiseno } from "../../lib/etiquetasPrefetch";
 
 const TABS: { id: EtiquetasTab; label: string; shortLabel: string; icon: UiIconName }[] = [
@@ -29,11 +31,14 @@ export default function DisenoNavTabs() {
   const allowed = tabsEtiquetasVisibles(user);
   const tabs = TABS.filter((t) => allowed.includes(t.id));
   const activo = tabs.some((t) => t.id === tab) ? tab : (tabs[0]?.id ?? "imprimir");
+  const enProducto = panel === "producto";
+  const verProducto = Boolean(user && puedeVerSeccionPanel(user, "producto"));
 
   useEffect(() => {
     if (panel === "etiquetas" || panel === "etiquetas-config") {
       guardarUltimoPanelHub("diseno", "etiquetas");
     }
+    if (panel === "producto") guardarUltimoPanelHub("diseno", "producto");
   }, [panel]);
 
   // Con el hub de Diseño visible ya se pueden pedir las etiquetas de todas las
@@ -42,7 +47,7 @@ export default function DisenoNavTabs() {
     precargarDiseno(qc, user);
   }, [qc, user]);
 
-  if (tabs.length === 0) return null;
+  if (tabs.length === 0 && !verProducto) return null;
 
   function irAEtiquetas(id: EtiquetasTab) {
     setPanel("etiquetas");
@@ -51,8 +56,24 @@ export default function DisenoNavTabs() {
 
   return (
     <ScrollableTabList aria-label="Secciones de Diseño" justify="start">
+      {/* Un producto con todo lo suyo (ficha técnica, etiqueta, EAN, PNG): la misma
+          pestaña está en Docs técnicos, porque une las dos secciones. */}
+      {verProducto && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={enProducto}
+          aria-label="Por producto"
+          title="Espacio de producto: ficha técnica, etiqueta, EAN y PNG de una presentación"
+          onClick={() => setPanel("producto")}
+          className={hubTabClass(enProducto, "mck-hub-tab-etiquetado flex-col")}
+        >
+          <PanelIcon panel="producto" size={22} bubble={false} className="shrink-0" />
+          <span className={HUB_TAB_LABEL}>Por producto</span>
+        </button>
+      )}
       {tabs.map((t) => {
-        const selected = activo === t.id;
+        const selected = !enProducto && activo === t.id;
         return (
           <button
             key={t.id}

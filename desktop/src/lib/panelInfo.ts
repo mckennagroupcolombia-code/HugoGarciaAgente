@@ -195,6 +195,19 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "inventario",
   },
+  producto: {
+    emoji: "🏷️",
+    label: "Espacio de producto",
+    description:
+      "Una presentación de venta con todo lo que la respalda en un solo lugar: su ficha técnica (TDS · COA · SDS), su etiqueta, su código EAN y los PNG aprobados. Se elige el producto una vez; cada pestaña es el apartado de siempre ya abierto en él.",
+    tips: [
+      "Los puntos de cada pestaña dicen si esa pieza está completa (verde), a medias (ámbar) o falta (rojo).",
+      "Si corriges la ficha técnica y pasas a la etiqueta, la barra de estado ofrece traer lo corregido.",
+      "Diseño y Docs técnicos siguen existiendo para el trabajo en lote (varias etiquetas, la biblioteca de PDF).",
+    ],
+    tier: "core",
+    category: "diseno",
+  },
   combos: {
     emoji: "🧩",
     label: "Combos",

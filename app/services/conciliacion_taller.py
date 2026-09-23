@@ -214,15 +214,27 @@ def _armar_en_segundo_plano(clave: str, traer: Callable[[], tuple[list[dict[str,
     threading.Thread(target=_correr, name=f"taller-libro:{clave}", daemon=True).start()
 
 
-def _libro_cacheado(clave: str, *, refrescar: bool) -> tuple[list[dict[str, Any]], list[str]] | None:
+def _libro_cacheado(clave: str, *, refrescar: bool) -> tuple[list[dict[str, Any]], list[str], bool] | None:
+    """El libro guardado, y si todavía está fresco.
+
+    Vencido no es lo mismo que ausente: se devuelve igual, marcado como viejo, y
+    el llamador dispara la reconstrucción en segundo plano. Devolver `None` al
+    vencer era lo que hacía que cada cinco minutos el taller entero volviera a
+    «revisando» durante los ~30 s que tarda Alegra —y que el operador viera
+    desaparecer el botón de causar justo cuando le estaba dando clic—.
+
+    Un libro de hace seis minutos no miente sobre lo que ya está asentado: lo
+    único que puede faltarle es un asiento creado en ese rato, y ese caso lo
+    cubre el hilo que ya se está ejecutando.
+    """
     with _lock:
         hit = _libro_cache.get(clave)
         if refrescar and hit:
             del _libro_cache[clave]
             return None
-    if hit and (time.time() - hit[0]) < _TTL_S:
-        return copy.deepcopy(hit[1]), list(hit[2])
-    return None
+    if not hit:
+        return None
+    return copy.deepcopy(hit[1]), list(hit[2]), (time.time() - hit[0]) < _TTL_S
 
 
 def invalidar_cache_taller() -> None:
@@ -294,6 +306,111 @@ def _asientos_vinculados(
     return salida
 
 
+
+def _grupo_fiscal(mov: dict[str, Any]) -> dict[str, Any]:
+    """La operación completa detrás de un asiento: él, sus ajustes y su documento.
+
+    Un pago se causa y después se corrige: el 16-sep-2026 un «ajuste PUC» sacó
+    la retención que no iba y movió la quincena de 5135 a 511095; el 21-sep un
+    «ajuste ICA» la llevó a 511035 con el ICA asumido; y ese mismo día salió el
+    documento soporte DSMG6 a la DIAN por la quincena y su complemento juntos.
+    El asiento original (#1872) sigue diciendo 5135 + retención 4 %, y quien lo
+    mira suelto cree que está mal registrado. No lo está: está corregido, y lo
+    que hay que enseñar es el NETO de la cadena.
+
+    Las referencias que atan la cadena son las que ya usa el libro:
+    `pago:<sol>` / `complemento-<sol>` en el original, `ajuste-puc:<mov>` y
+    `ajuste-ica*:<sol>` en los ajustes, y `cc_doc_soporte` (solicitud_id,
+    incluido_en, detalle_json.solicitudes) cuando un documento cubre varias
+    solicitudes. Se ignoran los anulados.
+    """
+    import json
+    import re
+
+    import app.services.contabilidad_core as cc
+
+    import sqlite3
+
+    ref = str(mov.get("referencia") or "")
+    m_sol = re.match(r"^(?:pago:|complemento-)(\d+)$", ref)
+    solicitudes: set[int] = {int(m_sol.group(1))} if m_sol else set()
+    ds: dict[str, Any] | None = None
+    try:
+        return _grupo_fiscal_con_solicitudes(mov, solicitudes, ds, cc, json)
+    except sqlite3.OperationalError:
+        # Sin las tablas de solicitudes/documento soporte (una base recién
+        # creada, las pruebas) no hay cadena que reconstruir: el asiento solo.
+        return {"movimientos": [int(mov["id"])], "originales": [int(mov["id"])], "ajustes": [], "documento_soporte": None,
+                "solicitudes": [], "lineas": [], "patas_banco": []}
+
+
+def _grupo_fiscal_con_solicitudes(mov: dict[str, Any], solicitudes: set, ds, cc, json) -> dict[str, Any]:
+    with cc._conn() as con:
+        if not solicitudes:
+            fila = con.execute("SELECT id FROM cc_solicitudes_pago WHERE movimiento_id = ?", (mov["id"],)).fetchone()
+            if fila:
+                solicitudes.add(int(fila[0]))
+        if solicitudes:
+            sid = next(iter(solicitudes))
+            fila = con.execute(
+                """SELECT * FROM cc_doc_soporte WHERE (solicitud_id = ? OR incluido_en = ?) ORDER BY id DESC LIMIT 1""",
+                (sid, sid),
+            ).fetchone()
+            if fila:
+                d = dict(fila)
+                if d.get("incluido_en"):
+                    padre = con.execute("SELECT * FROM cc_doc_soporte WHERE solicitud_id = ? ORDER BY id DESC LIMIT 1", (d["incluido_en"],)).fetchone()
+                    d = dict(padre) if padre else d
+                try:
+                    detalle = json.loads(d.get("detalle_json") or "{}")
+                except ValueError:
+                    detalle = {}
+                for x in detalle.get("solicitudes") or []:
+                    solicitudes.add(int(x))
+                if d.get("solicitud_id"):
+                    solicitudes.add(int(d["solicitud_id"]))
+                ds = {"numero": d.get("numero") or "", "estado": d.get("estado") or "", "estado_dian": d.get("estado_dian") or "",
+                      "cuds": (d.get("cuds") or "")[:12], "fecha": d.get("fecha") or "", "base": detalle.get("base"),
+                      "retencion_ica": detalle.get("retencion_ica"), "girado": detalle.get("girado"), "cuenta_puc": detalle.get("cuenta_puc")}
+        originales: list[int] = []
+        for sid in sorted(solicitudes):
+            fila = con.execute("SELECT movimiento_id FROM cc_solicitudes_pago WHERE id = ?", (sid,)).fetchone()
+            if fila and fila[0]:
+                originales.append(int(fila[0]))
+        if int(mov["id"]) not in originales:
+            originales.append(int(mov["id"]))
+        refs = [f"ajuste-puc:{o}" for o in originales] + [f"ajuste-ica:{sid}" for sid in solicitudes] + [f"ajuste-ica-pesos:{sid}" for sid in solicitudes]
+        ajustes = [dict(r) for r in con.execute(
+            f"""SELECT id, fecha, concepto, referencia FROM cc_movimientos
+                 WHERE estado <> 'anulado' AND referencia IN ({",".join("?" * len(refs))}) ORDER BY id""", refs,
+        ).fetchall()] if refs else []
+
+    ids = originales + [a["id"] for a in ajustes]
+    netas: dict[tuple, dict[str, Any]] = {}
+    patas: list[dict[str, Any]] = []
+    for mid in ids:
+        m = cc.obtener_movimiento(mid)
+        if not m or m.get("estado") == "anulado":
+            continue
+        for l in m.get("lineas") or []:
+            k = (l.get("cuenta_codigo") or "", l.get("tercero_nombre") or "")
+            t = netas.setdefault(k, {"cuenta": k[0], "nombre": l.get("cuenta_nombre") or "", "tercero": k[1], "debito": 0.0, "credito": 0.0, "descripcion": l.get("descripcion") or ""})
+            t["debito"] += float(l.get("debito") or 0)
+            t["credito"] += float(l.get("credito") or 0)
+            if mid in originales and str(l.get("cuenta_codigo") or "").startswith("11"):
+                patas.append({"movimiento_id": mid, "fecha": m.get("fecha"), "monto": round(float(l.get("credito") or l.get("debito") or 0), 2)})
+    lineas = []
+    for t in netas.values():
+        neto = round(t["debito"] - t["credito"], 2)
+        if abs(neto) < 0.5:
+            continue
+        lineas.append({"cuenta": t["cuenta"], "nombre": t["nombre"], "tercero": t["tercero"], "descripcion": t["descripcion"],
+                       "debito": neto if neto > 0 else 0.0, "credito": -neto if neto < 0 else 0.0})
+    lineas.sort(key=lambda x: (0 if x["debito"] else 1, x["cuenta"]))
+    return {"movimientos": ids, "originales": originales, "ajustes": ajustes, "documento_soporte": ds, "solicitudes": sorted(solicitudes),
+            "lineas": lineas, "patas_banco": patas}
+
+
 def _detalle_asiento_propio(movimiento_id: int, base: dict[str, Any] | None) -> dict[str, Any]:
     """Un asiento del libro propio con todo lo que hay que mirar de él."""
     import json
@@ -305,7 +422,9 @@ def _detalle_asiento_propio(movimiento_id: int, base: dict[str, Any] | None) -> 
     if not mov:
         return {**(base or {}), "fecha": "", "concepto": "", "fuente": "cc", "tipo": "", "monto": 0.0, "existe": False,
                 "lineas": [], "items": [], "cuentas": [], "inventario": False, "iva_descontable": False}
-    lineas = [
+    grupo = _grupo_fiscal(mov)
+    corregido = bool(grupo["ajustes"])
+    lineas = grupo["lineas"] if corregido else [
         {
             "cuenta": l.get("cuenta_codigo") or "",
             "nombre": l.get("cuenta_nombre") or "",
@@ -322,7 +441,10 @@ def _detalle_asiento_propio(movimiento_id: int, base: dict[str, Any] | None) -> 
     # debita inventario e IVA por el total de la factura y acredita a bancos
     # solo lo girado. Comparar contra el total marcaba descuadre en cada
     # asiento con retención, que es justo el que estaba bien hecho.
-    en_banco = [l for l in lineas if l["cuenta"].startswith("11")]
+    # La pata del banco de ESTE asiento (no del grupo): un documento soporte
+    # puede cubrir dos pagos y el banco los muestra por separado.
+    propias = [l for l in (mov.get("lineas") or []) if str(l.get("cuenta_codigo") or "").startswith("11")]
+    en_banco = [{"credito": float(l.get("credito") or 0), "debito": float(l.get("debito") or 0)} for l in propias]
     monto_banco = round(max(sum(l["credito"] for l in en_banco), sum(l["debito"] for l in en_banco)), 2)
     # La solicitud de pago que lo originó, si la hubo: ahí viven los ítems con
     # SKU, la factura cotejada, el comprobante y el espejo en Alegra.
@@ -358,6 +480,11 @@ def _detalle_asiento_propio(movimiento_id: int, base: dict[str, Any] | None) -> 
         # Partida doble: si débitos y créditos no dan lo mismo, alguien tocó una
         # línea por debajo. Un asiento así no cuadra con nada, diga lo que diga bancos.
         "balanceado": abs(float(mov.get("total_debito") or 0) - float(mov.get("total_credito") or 0)) < 0.5,
+        # La cadena: el asiento fue corregido por ajustes y/o cubierto por un documento soporte.
+        "corregido": corregido,
+        "ajustes": grupo["ajustes"],
+        "documento_soporte": grupo["documento_soporte"],
+        "patas_banco": grupo["patas_banco"],
         "existe": (mov.get("estado") or "confirmado") != "anulado",
         "lineas": lineas,
         "cuentas": cuentas,
@@ -443,24 +570,38 @@ def _asiento_vista(linea: dict[str, Any], cands: list[dict[str, Any]],
     """
     import app.services.contabilidad_core as cc
 
+    extra: dict[str, Any] = {}
+
     def lineas_de_cc(mid: str) -> list[dict[str, Any]]:
         mov = _movimiento_propio(mid)
+        if not mov:
+            return []
+        grupo = _grupo_fiscal(mov)
+        if grupo["ajustes"] or grupo["documento_soporte"]:
+            extra["ajustes"] = grupo["ajustes"]
+            extra["documento_soporte"] = grupo["documento_soporte"]
+            extra["patas_banco"] = grupo["patas_banco"]
+            return [
+                {"cuenta_codigo": l["cuenta"], "cuenta_nombre": l["nombre"], "debito": l["debito"], "credito": l["credito"],
+                 "descripcion": l["descripcion"], "tercero": l["tercero"]}
+                for l in grupo["lineas"]
+            ]
         return [
             {"cuenta_codigo": l.get("cuenta_codigo") or "", "cuenta_nombre": l.get("cuenta_nombre") or "",
              "debito": round(float(l.get("debito") or 0), 2), "credito": round(float(l.get("credito") or 0), 2),
              "descripcion": l.get("descripcion") or "", "tercero": l.get("tercero_nombre") or ""}
-            for l in (mov or {}).get("lineas") or []
+            for l in mov.get("lineas") or []
         ]
 
     if linea.get("vinculo_id"):
         lineas = lineas_de_cc(str(linea.get("movimiento_id") or ""))
         return {"origen": "real", "lineas": lineas, "cuentas_t": _cuentas_t(lineas, posteado=True) if lineas else [],
-                "titulo": (comprobacion or {}).get("concepto") or "Asiento vinculado"}
+                "titulo": (comprobacion or {}).get("concepto") or "Asiento vinculado", **extra}
     if cands:
         c = cands[0]
         lineas = lineas_de_cc(str(c["movimiento_id"]))
         return {"origen": "candidato", "lineas": lineas, "cuentas_t": _cuentas_t(lineas, posteado=True) if lineas else [],
-                "titulo": c.get("concepto") or "", "fuente": c.get("fuente") or "", "monto": c.get("monto")}
+                "titulo": c.get("concepto") or "", "fuente": c.get("fuente") or "", "monto": c.get("monto"), **extra}
     if prop and prop.get("cuenta"):
         with cc._conn() as con:
             cta = con.execute("SELECT codigo, nombre FROM cc_plan_cuentas WHERE codigo=?", (prop["cuenta"],)).fetchone()
@@ -546,16 +687,17 @@ def tablero(
     clave = _clave(desde, hasta, incluir_meli, incluir_siigo)
 
     cache = _libro_cacheado(clave, refrescar=refrescar)
-    if cache is None and esperar:
+    if (cache is None or not cache[2]) and esperar:
         movs, avisos = _traer(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
         with _lock:
             _libro_cache[clave] = (time.time(), copy.deepcopy(movs), list(avisos))
-        cache = movs, avisos
-    if cache is None:
+        cache = movs, avisos, True
+    if cache is None or not cache[2]:
         _armar_en_segundo_plano(
             clave, lambda: _traer(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
         )
     libro_listo = cache is not None
+    libro_fresco = bool(cache and cache[2])
     libro = _con_vinculos(cache[0]) if cache else []
     avisos = cache[1] if cache else []
 
@@ -667,6 +809,7 @@ def tablero(
         "desde": desde,
         "hasta": hasta,
         "libro_listo": libro_listo,
+        "libro_fresco": libro_fresco,
         "avisos": avisos,
         "totales": {
             "lineas": len(lineas),

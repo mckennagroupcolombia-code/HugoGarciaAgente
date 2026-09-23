@@ -279,6 +279,23 @@ def _afinar_pago_a_tercero(linea: dict, terceros: list[tuple[str, dict]]) -> dic
 
     ficha = {"id": t["id"], "nombre": t["nombre"]}
     if str(t.get("tipo_persona") or "").lower() != "natural":
+        # La cuenta la dice la FICHA del proveedor, no la etiqueta del banco.
+        # A TODO CAJAS, a CADIEP o a Comercializadora se les compra mercancía
+        # (1435): proponer 2205 mandaba una compra a la cuenta por pagar, y así
+        # el inventario no entraba al libro y el IVA descontable se perdía —los
+        # tres asientos de sep-2026 que hubo que rehacer. 2205 queda para el
+        # proveedor sin cuenta propia, donde sí es probable que se esté saldando
+        # una factura ya causada.
+        cuenta = str(t.get("cuenta_gasto_default") or "").strip()
+        if cuenta:
+            es_compra = cuenta.startswith(("14", "6"))
+            return {
+                "tercero": ficha, "cuenta": cuenta, "confianza": ALTA,
+                "concepto": "Compra a proveedor" if es_compra else "Pago a proveedor",
+                "nota": ("Compra de mercancía: va a inventario con su IVA descontable. "
+                         "Regístrala con los productos de la factura, no como un gasto suelto.")
+                if es_compra else "",
+            }
         return {"tercero": ficha, "confianza": ALTA}
 
     if str(t.get("tipo") or "").lower() == "socio" or t.get("usuario_id"):

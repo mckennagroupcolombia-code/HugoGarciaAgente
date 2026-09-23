@@ -80,7 +80,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "diseno",
     label: "Diseño",
     hub: true,
-    items: [{ panel: "etiquetas", tier: "core" }],
+    items: [
+      { panel: "producto", tier: "core" },
+      { panel: "etiquetas", tier: "core" },
+    ],
   },
   {
     id: "docs",

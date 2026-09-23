@@ -4,6 +4,11 @@ import { useLayoutEffect, useRef, useState, type RefObject } from "react";
  *  se deja que el marco se recorra como antes. */
 export const ESCALA_MINIMA = 0.3;
 
+/** Hasta cuánto se agranda una etiqueta en la mesa de trabajo del editor. */
+export const ESCALA_MAXIMA_MESA = 2.2;
+/** Aire alrededor de la etiqueta dentro de la mesa (px). */
+export const MARGEN_MESA = 28;
+
 /** Aire bajo el marco para que no quede pegado al borde de la ventana. */
 const RESPIRO_INFERIOR = 24;
 
@@ -20,12 +25,18 @@ const RESPIRO_INFERIOR = 24;
  * hacer —y por eso el marco iba al 100 % fijo— era encoger la etiqueta
  * cambiando sus medidas: ahí sí se descuadraba todo.
  *
- * Nunca agranda (tope en 1): la etiqueta se ve, como mucho, a tamaño real.
+ * Por defecto nunca agranda (tope en 1). En la mesa de trabajo del editor
+ * (`llenar`) el elemento medido ES el hueco —ocupa todo el alto disponible— y
+ * la etiqueta puede agrandarse hasta `maximo`: el lienzo es lo protagonista.
+ * Agrandar con `transform` es tan seguro como encoger (ver arriba), y la
+ * exportación a PNG no lo ve: rasteriza la etiqueta, no el marco escalado.
  */
 export function useEscalaAjuste(
   anchoNecesario: number,
   altoNecesario: number,
+  opciones: { llenar?: boolean; maximo?: number; margen?: number } = {},
 ): { ref: RefObject<HTMLDivElement | null>; escala: number } {
+  const { llenar = false, maximo = 1, margen = 0 } = opciones;
   const ref = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(1);
 
@@ -33,13 +44,15 @@ export function useEscalaAjuste(
     const el = ref.current;
     if (!el) return;
     const medir = () => {
-      const ancho = el.clientWidth;
-      // Alto libre hasta el borde de la ventana desde donde arranca el marco.
-      const arriba = el.getBoundingClientRect().top;
-      const alto = window.innerHeight - arriba - RESPIRO_INFERIOR;
+      const ancho = el.clientWidth - margen * 2;
+      // Alto: el del propio hueco (mesa de trabajo) o, si no, lo que queda
+      // hasta el borde de la ventana desde donde arranca el marco.
+      const alto = llenar
+        ? el.clientHeight - margen * 2
+        : window.innerHeight - el.getBoundingClientRect().top - RESPIRO_INFERIOR;
       const porAncho = ancho > 0 ? ancho / anchoNecesario : 1;
       const porAlto = alto > 0 ? alto / altoNecesario : 1;
-      const k = Math.min(1, porAncho, porAlto);
+      const k = Math.min(maximo, porAncho, porAlto);
       setEscala(Math.max(ESCALA_MINIMA, Number.isFinite(k) ? k : 1));
     };
     medir();
@@ -52,7 +65,7 @@ export function useEscalaAjuste(
       ro.disconnect();
       window.removeEventListener("resize", medir);
     };
-  }, [anchoNecesario, altoNecesario]);
+  }, [anchoNecesario, altoNecesario, llenar, maximo, margen]);
 
   return { ref, escala };
 }

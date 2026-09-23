@@ -124,6 +124,7 @@ export const ETAPAS_APP: EtapaApp[] = [
       {
         titulo: "Respaldarlo", datos: ["documento TDS · COA · SDS (referencia = SKU base)", "EAN-13 (nace del SKU de venta)", "tamaño de etiqueta: cantidad · categoría · polvo o líquido"],
         pasos: [
+          { panel: "producto", hace: "Ficha técnica, etiqueta, EAN y PNG de una presentación, en un solo lugar" },
           { panel: "fichas", hace: "Ficha técnica, COA y SDS" },
           { panel: "etiquetas", hace: "Código EAN, diseño e impresión de etiquetas" },
           { panel: "etiquetas-config", hace: "Formatos y campos de las etiquetas" },

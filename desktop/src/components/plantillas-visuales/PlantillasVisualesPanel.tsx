@@ -739,7 +739,6 @@ export default function PlantillasVisualesPanel({
       vista === "editor"
         || vista === "diligenciar"
         || vista === "lote"
-        || vista === "formularios-etiquetas"
         || vista === "nueva-plantilla-categoria",
     );
     return () => onInmersivoChange?.(false);
@@ -1265,19 +1264,13 @@ export default function PlantillasVisualesPanel({
     );
   }
 
-  if (vista === "formularios-etiquetas") {
-    return (
-      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
-        <FormulariosEtiquetadosPanel
-          entrada={entradaFormulario}
-          onVolver={() => {
-            setEntradaFormulario(null);
-            setVista("lista");
-          }}
-        />
-      </div>
-    );
-  }
+  // El formulario de etiqueta ya no es pantalla aparte: se abre dentro de la
+  // pestaña Categorías, al lado de la lista (ver `editorEtiqueta` más abajo).
+  const editandoEtiqueta = vista === "formularios-etiquetas";
+  const cerrarFormulario = () => {
+    setEntradaFormulario(null);
+    setVista("lista");
+  };
 
   if (vista === "lote" && plantillaLote) {
     return (
@@ -1480,7 +1473,7 @@ export default function PlantillasVisualesPanel({
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className={editandoEtiqueta ? "mx-auto max-w-[min(100%,1500px)]" : "mx-auto max-w-6xl"}>
       {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
           con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
           es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
@@ -1491,13 +1484,14 @@ export default function PlantillasVisualesPanel({
             key={sv.id}
             type="button"
             onClick={() => {
+              if (editandoEtiqueta) cerrarFormulario();
               setSubvista(sv.id);
               // Entrar por la pestaña es "muéstrame todo": si no se limpia, el
               // filtro que dejó una tarjeta esconde los diseños nuevos.
               setCategoriaFiltro("");
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-              subvista === sv.id
+              (editandoEtiqueta ? sv.id === "categorias" : subvista === sv.id)
                 ? "bg-accent text-white"
                 : "border border-border text-ink-secondary hover:bg-surface-hover"
             }`}
@@ -1525,7 +1519,11 @@ export default function PlantillasVisualesPanel({
           <input
             type="search"
             value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
+            onChange={(e) => {
+              // Buscar es ir a los resultados: con una etiqueta abierta, el editor los taparía.
+              if (editandoEtiqueta) cerrarFormulario();
+              setBuscar(e.target.value);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Escape") setBuscar("");
             }}
@@ -1536,9 +1534,19 @@ export default function PlantillasVisualesPanel({
         </label>
       </div>
 
-      {subvista === "categorias" && (
+      {(subvista === "categorias" || editandoEtiqueta) && (
         <StudioCategoriasPanel
           buscar={buscar}
+          editor={
+            editandoEtiqueta ? (
+              // key: abrir otra etiqueta desde el árbol monta el editor de nuevo con ella.
+              <FormulariosEtiquetadosPanel key={JSON.stringify(entradaFormulario)} entrada={entradaFormulario} onVolver={cerrarFormulario} />
+            ) : undefined
+          }
+          onElegirCategoria={() => {
+            if (editandoEtiqueta) cerrarFormulario();
+          }}
+          etiquetaAbiertaId={editandoEtiqueta ? entradaFormulario?.fichaId ?? undefined : undefined}
           onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onAbrirPlantilla={(pl) => {
@@ -1554,6 +1562,7 @@ export default function PlantillasVisualesPanel({
               return;
             }
             // PNG ya terminado: se ve e imprime desde Diseño → Imprimir.
+            if (editandoEtiqueta) cerrarFormulario();
             setSubvista("recursos");
             setMsg(`«${e.nombre}» está lista: se imprime desde Diseño → Imprimir.`);
             setTimeout(() => setMsg(null), 5000);
@@ -1569,7 +1578,7 @@ export default function PlantillasVisualesPanel({
         />
       )}
 
-      {subvista === "etiquetas" && (
+      {subvista === "etiquetas" && !editandoEtiqueta && (
         <StudioEtiquetasPanel
           buscar={buscar}
           categoriaFiltro={categoriaFiltro}
@@ -1578,9 +1587,9 @@ export default function PlantillasVisualesPanel({
         />
       )}
 
-      {subvista === "publicaciones" && <StudioPublicacionesPanel buscar={buscar} />}
+      {subvista === "publicaciones" && !editandoEtiqueta && <StudioPublicacionesPanel buscar={buscar} />}
 
-      {subvista === "recursos" && (
+      {subvista === "recursos" && !editandoEtiqueta && (
         <div>
           <p className="mb-3 text-xs text-muted">
             Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
@@ -1590,7 +1599,7 @@ export default function PlantillasVisualesPanel({
         </div>
       )}
 
-      {subvista === "disenos" && (
+      {subvista === "disenos" && !editandoEtiqueta && (
       <>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {categoriaFiltro && (

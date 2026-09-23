@@ -19,6 +19,8 @@ type Props = {
   /** Título y texto de ayuda de la cabecera (por defecto, los de MeLi). */
   titulo?: string;
   subtitulo?: string;
+  /** Radio de desenfoque con que abre (por defecto 28). */
+  radioInicial?: number;
   /** Motor alternativo: recibe el original y las zonas y devuelve la imagen
    *  desenfocada. Sin él se usa el endpoint del servidor. */
   desenfocar?: (
@@ -63,6 +65,7 @@ export default function DesenfoquePlantillaModal({
   titulo,
   subtitulo,
   desenfocar,
+  radioInicial = 28,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -70,7 +73,7 @@ export default function DesenfoquePlantillaModal({
 
   const [regiones, setRegiones] = useState<RegionDesenfoque[]>([]);
   const [piePct, setPiePct] = useState(0.15);
-  const [radio, setRadio] = useState(28);
+  const [radio, setRadio] = useState(radioInicial);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [msg, setMsg] = useState("");
@@ -188,7 +191,7 @@ export default function DesenfoquePlantillaModal({
     if (!open) return;
     setRegiones([]);
     setPiePct(0.15);
-    setRadio(28);
+    setRadio(radioInicial);
     setPreviewUrl(null);
     setPreviewBlob(null);
     setMsg("");

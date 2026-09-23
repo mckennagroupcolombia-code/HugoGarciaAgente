@@ -53,6 +53,12 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "juegos") return true;
   if (seccion === "etiquetas") return true;
   if (seccion === "empaque") return true;
+  // Espacio de producto: lee el Mapa del sistema, así que se abre con su permiso
+  // propio o con los que ya abren esa API (combos, mapa-sistema).
+  if (seccion === "producto") {
+    const pp = user.permisos_secciones;
+    return Boolean(pp && (pp.producto || pp.combos || pp["mapa-sistema"]));
+  }
   // Rótulos de envío: los hace quien despacha (pedidos/empaque). Debe decir lo
   // mismo que `puedeVerPanel` en App.tsx — si diverge, el panel es accesible
   // pero el botón no aparece en ningún menú (pasó con TKT-2026-1307).

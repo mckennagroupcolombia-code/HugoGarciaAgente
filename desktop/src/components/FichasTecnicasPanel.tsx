@@ -2604,9 +2604,12 @@ function DocumentoCompletoTabContent({
   );
 }
 
-export default function FichasTecnicasPanel({ onVolver }: {
+export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
   /** Montado en la ventana del taller de combos: «Volver al combo» cierra la ventana. */
   onVolver?: () => void;
+  /** Documento (slug o nombre del YAML) a abrir de una vez en el editor: lo usa el
+   *  editor de etiquetas para corregir la ficha técnica sin salir de la etiqueta. */
+  archivoInicial?: string;
 } = {}) {
   // La pestaña vive en el store: la barra está en el cabezote (DocsNavTabs).
   const tab = useAppStore((st) => st.docsTab);
@@ -2687,8 +2690,33 @@ export default function FichasTecnicasPanel({ onVolver }: {
     handleEditarRef.current({ tipo: "completo", titulo: String(datos.titulo || ""), datos, yaml: "", tiene_datos: true });
   }, []);
 
+  const slugInicial = (archivoInicial || "").replace(/\.ya?ml$/i, "");
+  const [errorInicial, setErrorInicial] = useState<string | null>(null);
+  const [cargandoInicial, setCargandoInicial] = useState(Boolean(slugInicial));
+  useEffect(() => {
+    if (!slugInicial) return;
+    let vivo = true;
+    setCargandoInicial(true);
+    api
+      .get<{ datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(slugInicial)}`)
+      .then((r) => {
+        if (vivo) abrirDesdeTaller(r.datos);
+      })
+      .catch((e: unknown) => {
+        if (vivo) setErrorInicial(e instanceof Error ? e.message : "No se pudo abrir la ficha técnica");
+      })
+      .finally(() => {
+        if (vivo) setCargandoInicial(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [slugInicial, abrirDesdeTaller]);
+
   return (
     <div className="mx-auto max-w-4xl space-y-3 pb-4">
+      {cargandoInicial && <p className="p-4 text-sm text-muted">Abriendo la ficha técnica…</p>}
+      {errorInicial && <p className="p-4 text-sm text-red-600">{errorInicial}</p>}
       <DocDelCombo onAbrir={abrirDesdeTaller} editando={tab === "completo"} onVolver={onVolver} />
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}

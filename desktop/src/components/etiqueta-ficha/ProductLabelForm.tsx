@@ -15,7 +15,7 @@
  * VIEW MODE: se ve como la etiqueta terminada. EDIT MODE: cada valor se
  * vuelve editable in-place sin cambiar el tamaño de ningún bloque.
  */
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import ProductHeader from "./ProductHeader";
 import ProductAttributeGrid, { type IconoKey } from "./ProductAttributeGrid";
@@ -30,7 +30,7 @@ import {
 } from "../etiqueta-vertical/etiquetaVerticalTypes";
 import NetContent from "./NetContent";
 import BarcodeBlock from "./BarcodeBlock";
-import { ESCALA_MINIMA, useEscalaAjuste } from "./useEscalaAjuste";
+import { ESCALA_MAXIMA_MESA, ESCALA_MINIMA, MARGEN_MESA, useEscalaAjuste } from "./useEscalaAjuste";
 import { ajustarAltoTextarea } from "./EditableField";
 import ContactFooter from "./ContactFooter";
 import { desenfocarBlobLocal } from "../../lib/desenfoqueLocal";
@@ -49,6 +49,8 @@ import {
 } from "./productLabelTypes";
 import { useCodigosEan, type CodigoEan } from "../../lib/etiquetasCodigosEan";
 import { cargarPatchDesdeFichaTecnica, listarFichasTecnicas } from "../../lib/fichaTecnicaAplicar";
+import { cambiosDesdeFicha, fotoFicha, NOMBRE_CAMPO } from "../../lib/fichaTecnicaSync";
+import { api } from "../../api/client";
 import { contenidoNetoDesdeCodigo, filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
 import {
   candidatasParaTitulo,
@@ -88,7 +90,6 @@ import {
 import LabelPreview from "../etiqueta-30ml/LabelPreview";
 import Marco30ml from "../etiqueta-30ml/Marco30ml";
 import { ANCHO_30ML, esFormato30ml, esPeligrosoGhs, reticula30ml } from "../etiqueta-30ml/etiqueta30mlTypes";
-import { imprimirImagenEtiqueta } from "../etiqueta-30ml/imprimirEtiqueta";
 import EtiquetaSimple from "../etiqueta-simple/EtiquetaSimple";
 import {
   parcheOrtografia,
@@ -174,6 +175,10 @@ export interface EntradaFormularioEtiqueta {
 
 /** Ventana de desenfoque por recuadro (la misma de Studio Visual), cargada
  *  aparte para no arrastrar la librería de exportación al chunk de la ficha. */
+/** Editor de Docs técnicos, para corregir la ficha técnica enlazada sin salir de la etiqueta. */
+const FichasTecnicasPanel = lazy(() => import("../FichasTecnicasPanel"));
+/** Radio del desenfoque del PNG digital de la etiqueta (automático y a mano). */
+const RADIO_DESENFOQUE_ETIQUETA = 10;
 const DesenfoquePlantillaModal = lazy(() => import("../plantillas-visuales/DesenfoquePlantillaModal"));
 
 /** Escala de rasterizado para imprimir. Debe ser un entero PAR: las líneas de
@@ -191,16 +196,21 @@ function dpiDeEscala(anchoMm: number, anchoDiseno: number, escala: number): numb
   return Math.round((anchoDiseno * escala) / (anchoMm / 25.4));
 }
 
-export default function ProductLabelForm({
-  onVolver,
-  entrada,
-}: {
+interface PropsFormulario {
   onVolver: () => void;
   entrada?: EntradaFormularioEtiqueta | null;
-}) {
+  /** Dónde se corrige la ficha técnica. Sin esto, el botón «Ficha técnica» la
+   *  abre en un emergente; el Espacio de producto la tiene en su propia pestaña. */
+  onAbrirFichaTecnica?: () => void;
+  /** Cómo estaba la ficha técnica antes de que se editara en otra pestaña (Espacio
+   *  de producto): sirve de punto de comparación si la etiqueta aún no tiene el suyo. */
+  fichaAntes?: { id: string; foto: Record<string, string> } | null;
+}
+
+export default function ProductLabelForm(props: PropsFormulario) {
   return (
     <TextStyleProvider>
-      <ProductLabelFormInner onVolver={onVolver} entrada={entrada} />
+      <ProductLabelFormInner {...props} />
     </TextStyleProvider>
   );
 }
@@ -208,10 +218,9 @@ export default function ProductLabelForm({
 function ProductLabelFormInner({
   onVolver,
   entrada,
-}: {
-  onVolver: () => void;
-  entrada?: EntradaFormularioEtiqueta | null;
-}) {
+  onAbrirFichaTecnica,
+  fichaAntes = null,
+}: PropsFormulario) {
   const { data: tiposData, isLoading: tiposLoading } = useTiposEtiqueta();
   const tipos = tiposData?.tipos ?? [];
 
@@ -291,28 +300,59 @@ function ProductLabelFormInner({
       if (p) URL.revokeObjectURL(p.url);
       return null;
     });
+    cerrarDigital();
   };
 
-  /** Casilla "Desenfoque" de la cabecera: al confirmar el PNG para imprimir
-   *  se abre la ventana para marcar por recuadro los datos a ocultar, y esa
-   *  versión se guarda en PUBLICACIONES DIGITALES/<Categoría> (fuera de
-   *  impresión) como base para publicaciones digitales con restricciones.
-   *  Marcada por defecto: cada etiqueta necesita sus dos PNG (impresión y
-   *  digital desenfocado); se desmarca solo para un caso puntual. */
+  /** Casilla "Desenfoque" de la cabecera. Marcada por defecto: cada etiqueta
+   *  necesita sus dos PNG. Al terminar se generan a la vez el de impresión y el
+   *  digital (OCR de "MCKENNA GROUP" + desenfoque local, sin marcar nada a mano);
+   *  la persona solo revisa las dos vistas previas y aprueba. El digital va a
+   *  PUBLICACIONES DIGITALES/<Categoría>, fuera de impresión. */
   const [desenfoqueActivo, setDesenfoqueActivo] = useState(true);
-  const [desenfoqueFuente, setDesenfoqueFuente] = useState<{
-    blob: Blob;
-    url: string;
-    anchoMm?: number;
-    altoMm?: number;
-    dpi?: number;
-    pixelRatio: number;
+  /** Versión desenfocada que acompaña a `previa`. */
+  const [digital, setDigital] = useState<{
+    estado: "preparando" | "listo" | "error";
+    blob?: Blob;
+    url?: string;
+    msg?: string;
   } | null>(null);
-  const cerrarDesenfoque = () => {
-    setDesenfoqueFuente((p) => {
-      if (p) URL.revokeObjectURL(p.url);
+  const turnoDigitalRef = useRef(0);
+  const cerrarDigital = () => {
+    turnoDigitalRef.current++;
+    setDigital((d) => {
+      if (d?.url) URL.revokeObjectURL(d.url);
       return null;
     });
+  };
+  /** Ventana de desenfoque a mano: solo si el automático no tapó algo. */
+  const [ajusteManual, setAjusteManual] = useState(false);
+  const fijarDigital = (blob: Blob, msg?: string) => {
+    setDigital((d) => {
+      if (d?.url) URL.revokeObjectURL(d.url);
+      return { estado: "listo", blob, url: URL.createObjectURL(blob), msg };
+    });
+  };
+  /** OCR → zonas de la marca → desenfoque en el navegador, con el mismo radio
+   *  que la ventana manual (RADIO_DESENFOQUE_ETIQUETA). Sin zonas, se pide
+   *  marcarlas a mano. */
+  const prepararDigital = async (blob: Blob) => {
+    const turno = ++turnoDigitalRef.current;
+    setDigital({ estado: "preparando" });
+    try {
+      const { detectarMarcaPorOcr } = await import("../../lib/ocrMarca");
+      const zonas = await detectarMarcaPorOcr(blob);
+      if (turno !== turnoDigitalRef.current) return;
+      if (!zonas.length) {
+        setDigital({ estado: "error", msg: 'El OCR no encontró "MCKENNA GROUP". Marca las zonas a mano.' });
+        return;
+      }
+      const b = await desenfocarBlobLocal(blob, zonas, { radio: RADIO_DESENFOQUE_ETIQUETA, formato: "png" });
+      if (turno !== turnoDigitalRef.current) return;
+      fijarDigital(b, `${zonas.length} ${zonas.length === 1 ? "zona desenfocada" : "zonas desenfocadas"} automáticamente.`);
+    } catch (e) {
+      if (turno !== turnoDigitalRef.current) return;
+      setDigital({ estado: "error", msg: `No se pudo desenfocar solo (${e instanceof Error ? e.message : "error"}). Marca las zonas a mano.` });
+    }
   };
 
   /** Cambios del GHS hechos a mano (galería): la ficha técnica llega en
@@ -684,6 +724,7 @@ function ProductLabelFormInner({
         ...(neto ? { netContent: neto } : {}),
         fichaTecnicaId: mejor.ficha.id,
         fichaTecnicaTitulo: mejor.ficha.titulo,
+        fichaTecnicaBase: fotoFicha(patch),
       });
       // Hay productos con dos fichas (p. ej. "GLICERINA" y "GLICERINA
       // VEGETAL"): la del título más parecido gana, pero puede no ser la que
@@ -803,7 +844,11 @@ function ProductLabelFormInner({
   // Y encima de esa escala, la que haga falta para que el marco entero quepa
   // en el hueco disponible (el mismo criterio que usa `Marco30ml` para los
   // demás formatos): la etiqueta se ve completa, sin barras que recorrer.
-  const ajusteFicha = useEscalaAjuste(marco?.ancho ?? 0, marco?.alto ?? 0);
+  const ajusteFicha = useEscalaAjuste(marco?.ancho ?? 0, marco?.alto ?? 0, {
+    llenar: true,
+    maximo: ESCALA_MAXIMA_MESA,
+    margen: MARGEN_MESA,
+  });
 
   /** Renderiza el PNG listo para imprimir (300 DPI si hay Formato elegido;
    *  si no, una escala fija alta) y lo muestra en una vista previa. La
@@ -865,6 +910,8 @@ function ProductLabelFormInner({
         dpi: anchoMm ? dpiDeEscala(anchoMm, anchoDiseno, pixelRatio) : undefined,
         pixelRatio,
       });
+      // La versión digital se prepara mientras se revisa la de impresión.
+      if (desenfoqueActivo) void prepararDigital(blob);
     } catch (e) {
       setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo generar el PNG" });
     } finally {
@@ -960,29 +1007,6 @@ function ProductLabelFormInner({
     return { blob, anchoMm, altoMm, ratio };
   };
 
-  /** Imprime solo la etiqueta (formato 30 mL): se rasteriza en modo vista a
-   *  600 dpi y va a un iframe con la hoja del tamaño real, sin el formulario. */
-  const [imprimiendo, setImprimiendo] = useState(false);
-  const imprimirEtiqueta = async () => {
-    if (imprimiendo || guardando) return;
-    setImprimiendo(true);
-    setGuardarMsg(null);
-    const estabaEditando = editMode;
-    try {
-      if (estabaEditando) {
-        setEditMode(false);
-        await esperarRepintado();
-      }
-      const { blob, anchoMm, altoMm } = await rasterizarFichaActual();
-      await imprimirImagenEtiqueta(blob, anchoMm ?? 102, altoMm ?? 38);
-    } catch (e) {
-      setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo imprimir la etiqueta" });
-    } finally {
-      if (estabaEditando) setEditMode(true);
-      setImprimiendo(false);
-    }
-  };
-
   /** Exporta la etiqueta redonda como SVG VECTORIAL (§16): los textos siguen
    *  siendo texto —los curvos con su `textPath`—, las barras siguen siendo
    *  barras y el archivo trae sus milímetros escritos, así que la imprenta lo
@@ -994,7 +1018,7 @@ function ProductLabelFormInner({
   const [exportandoSvg, setExportandoSvg] = useState(false);
   const exportarSvg = async () => {
     const el = fichaRef.current;
-    if (!el || exportandoSvg || guardando || imprimiendo) return;
+    if (!el || exportandoSvg || guardando) return;
     setExportandoSvg(true);
     setGuardarMsg(null);
     const estabaEditando = editMode;
@@ -1044,6 +1068,109 @@ function ProductLabelFormInner({
    *  escribiera aquí. Avisa; no bloquea imprimir. */
   const ortografia = useMemo(() => revisarOrtografiaEtiqueta(data), [data]);
   const [detalleOrto, setDetalleOrto] = useState(false);
+  /** Menú «Más» de la barra de herramientas (acciones ocasionales). */
+  const [menuMas, setMenuMas] = useState(false);
+  /** Ficha técnica enlazada abierta en un emergente para corregirla. */
+  const [fichaTecnicaAbierta, setFichaTecnicaAbierta] = useState(false);
+  /** Foto de la ficha tomada al abrir el emergente, por si la etiqueta aún no
+   *  tiene la suya guardada: sin punto de comparación no se sabría qué cambió. */
+  const fotoAntesRef = useRef<{ id: string; foto: Record<string, string> } | null>(fichaAntes);
+  /** Datos vigentes para después de un `await` (el cierre de la función ve los de antes). */
+  const dataVigenteRef = useRef(data);
+  dataVigenteRef.current = data;
+
+  /** Ficha técnica → etiqueta: aplica lo que cambió en la ficha desde la última
+   *  vez (ver lib/fichaTecnicaSync). Sin foto previa solo la toma, no cambia nada. */
+  const sincronizarConFicha = async () => {
+    const id = data.fichaTecnicaId;
+    if (!id) return;
+    // ¿Sigue siendo ESTE el documento del producto? Guardar un documento con otro
+    // título crea otro archivo con el mismo SKU (el viejo se queda), y la etiqueta
+    // seguía leyendo el viejo: lo editado no le llegaba nunca.
+    let vigenteId = id;
+    let vigenteTitulo = data.fichaTecnicaTitulo || "";
+    try {
+      const v = await api.get<{ id: string; titulo: string }>(`/api/fichas/datos/${encodeURIComponent(id)}/vigente`);
+      if (v.id) {
+        vigenteId = v.id;
+        vigenteTitulo = v.titulo || vigenteTitulo;
+      }
+    } catch {
+      /* sin respuesta: se sigue con el documento enlazado */
+    }
+    const relinkado = vigenteId !== id;
+    let patch: Partial<ProductLabelData>;
+    let fotoDelEnlazado: Record<string, string> | undefined;
+    try {
+      patch = await cargarPatchDesdeFichaTecnica(vigenteId);
+      // Al cambiar de documento, lo que la etiqueta trajo del viejo es el punto de
+      // comparación si todavía no guarda el suyo.
+      if (relinkado) fotoDelEnlazado = fotoFicha(await cargarPatchDesdeFichaTecnica(id).catch(() => ({})));
+    } catch {
+      return; // sin conexión con la ficha: la etiqueta queda como estaba
+    }
+    const respaldo = (fotoAntesRef.current?.id === id ? fotoAntesRef.current.foto : undefined) ?? fotoDelEnlazado;
+    fotoAntesRef.current = null;
+    const foto = fotoFicha(patch);
+    const actual = dataVigenteRef.current;
+    if (actual.fichaTecnicaId !== id) return;
+    const cambiados = Object.keys(cambiosDesdeFicha(actual, patch, actual.fichaTecnicaBase ?? respaldo));
+    setData((d) => {
+      if (d.fichaTecnicaId !== id) return d;
+      const cambios = cambiosDesdeFicha(d, patch, d.fichaTecnicaBase ?? respaldo);
+      const mismaFoto = JSON.stringify(d.fichaTecnicaBase ?? null) === JSON.stringify(foto);
+      if (!relinkado && Object.keys(cambios).length === 0 && mismaFoto) return d;
+      return {
+        ...d,
+        ...cambios,
+        fichaTecnicaBase: foto,
+        ...(relinkado ? { fichaTecnicaId: vigenteId, fichaTecnicaTitulo: vigenteTitulo } : {}),
+      };
+    });
+    if (relinkado || cambiados.length > 0) {
+      setGuardarMsg({
+        ok: true,
+        texto:
+          (relinkado ? `Ahora sigue el documento vigente «${vigenteTitulo}». ` : "")
+          + (cambiados.length > 0
+            ? `Actualizado desde la ficha técnica: ${cambiados.map((k) => NOMBRE_CAMPO[k] ?? k).join(", ")}.`
+            : "Sin datos distintos que traer."),
+      });
+    }
+  };
+
+  // Al abrir una etiqueta con ficha técnica enlazada, traer lo que cambió allá.
+  const sincronizadaRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (etapa !== "formulario" || !fichaId || !data.fichaTecnicaId) return;
+    const clave = `${fichaId}:${data.fichaTecnicaId}`;
+    if (sincronizadaRef.current === clave) return;
+    sincronizadaRef.current = clave;
+    void sincronizarConFicha();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etapa, fichaId, data.fichaTecnicaId]);
+
+  const abrirFichaTecnica = async () => {
+    if (onAbrirFichaTecnica) {
+      onAbrirFichaTecnica();
+      return;
+    }
+    const id = data.fichaTecnicaId;
+    if (!id) return;
+    if (!data.fichaTecnicaBase) {
+      try {
+        fotoAntesRef.current = { id, foto: fotoFicha(await cargarPatchDesdeFichaTecnica(id)) };
+      } catch {
+        fotoAntesRef.current = null;
+      }
+    }
+    setFichaTecnicaAbierta(true);
+  };
+  const cerrarFichaTecnica = () => {
+    setFichaTecnicaAbierta(false);
+    void sincronizarConFicha();
+  };
+
   const corregirOrtografia = (campos: CampoOrtografia[]) => {
     if (!campos.length) return;
     onChange(parcheOrtografia(campos));
@@ -1108,6 +1235,7 @@ function ProductLabelFormInner({
           barcodeTitle: titulo,
           fichaTecnicaId: mejor.ficha.id,
           fichaTecnicaTitulo: mejor.ficha.titulo,
+          fichaTecnicaBase: fotoFicha(patch),
           ...(neto ? { netContent: neto } : {}),
           // Conservación de la familia, igual que en `onChange`, con «envase» o «empaque»
           // según la receta del combo de este código.
@@ -1185,42 +1313,56 @@ function ProductLabelFormInner({
   const nombreArchivoPng = () =>
     `${nombreArchivoDesdeTitulo(data.barcodeTitle || nombreFicha || data.productName) || "ficha"}.png`;
 
-  /** Confirmación de la vista previa: sube el PNG a Diseño → Imprimir. */
+  /** «Aprobar»: sube a la vez el PNG de impresión (Diseño → Imprimir) y, con
+   *  Desenfoque, el digital (PUBLICACIONES DIGITALES). Cada uno informa su
+   *  resultado: si falla uno, el otro queda guardado igual. */
   const confirmarGuardarPng = async () => {
     if (!previa || guardando) return;
+    if (desenfoqueActivo && digital?.estado !== "listo") return;
     setGuardando(true);
     try {
       const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
-      const res = await subirImagenBlobAEtiquetas(previa.blob, nombreArchivoPng(), {
-        // Subcarpeta por categoría: así la etiqueta aparece dentro de su
-        // categoría en Studio y no se mezcla con el catálogo viejo de la raíz.
-        carpeta: `ETIQUETAS STUDIO/${nombreCategoria(categoria)}`,
+      const formato = {
         tipo_etiqueta: tipo?.nombre,
         ancho_mm: previa.anchoMm,
         alto_mm: previa.altoMm,
         dpi: previa.dpi,
         escala: previa.pixelRatio,
-      });
-      setGuardarMsg({
-        ok: true,
-        texto: tipo
-          ? `Guardado como ${res.nombre} (${tipo.nombre}, ${previa.dpi} dpi) — ya está en Diseño → Imprimir.`
-          : `Guardado como ${res.nombre} — ya está en Diseño → Imprimir.`,
-      });
-      if (desenfoqueActivo) {
-        // URL propia: cerrarPrevia revoca la de la vista previa.
-        setDesenfoqueFuente({
-          blob: previa.blob,
-          url: URL.createObjectURL(previa.blob),
-          anchoMm: previa.anchoMm,
-          altoMm: previa.altoMm,
-          dpi: previa.dpi,
-          pixelRatio: previa.pixelRatio,
-        });
+      };
+      const [imp, dig] = await Promise.allSettled([
+        subirImagenBlobAEtiquetas(previa.blob, nombreArchivoPng(), {
+          // Subcarpeta por categoría: así la etiqueta aparece dentro de su
+          // categoría en Studio y no se mezcla con el catálogo viejo de la raíz.
+          carpeta: `ETIQUETAS STUDIO/${nombreCategoria(categoria)}`,
+          ...formato,
+        }),
+        desenfoqueActivo && digital?.blob
+          ? subirImagenBlobAEtiquetas(digital.blob, nombreArchivoPngDigital(), {
+              carpeta: carpetaPublicacionesDigitales(),
+              ...formato,
+            })
+          : Promise.resolve(null),
+      ]);
+      const partes: string[] = [];
+      let ok = true;
+      if (imp.status === "fulfilled") {
+        partes.push(
+          tipo
+            ? `Impresión: ${imp.value.nombre} (${tipo.nombre}, ${previa.dpi} dpi) en Diseño → Imprimir.`
+            : `Impresión: ${imp.value.nombre} en Diseño → Imprimir.`,
+        );
+      } else {
+        ok = false;
+        partes.push(`No se guardó el PNG de impresión: ${imp.reason instanceof Error ? imp.reason.message : "error"}.`);
       }
-      cerrarPrevia();
-    } catch (e) {
-      setGuardarMsg({ ok: false, texto: e instanceof Error ? e.message : "No se pudo guardar el PNG" });
+      if (dig.status === "fulfilled" && dig.value) {
+        partes.push(`Digital: ${dig.value.nombre} en ${carpetaPublicacionesDigitales()}.`);
+      } else if (dig.status === "rejected") {
+        ok = false;
+        partes.push(`No se guardó el PNG desenfocado: ${dig.reason instanceof Error ? dig.reason.message : "error"}.`);
+      }
+      setGuardarMsg({ ok, texto: partes.join(" ") });
+      if (ok) cerrarPrevia();
     } finally {
       setGuardando(false);
     }
@@ -1237,39 +1379,6 @@ function ProductLabelFormInner({
   const nombreArchivoPngDigital = () => `${nombreArchivoPng().replace(/\.png$/i, "")}_digital.png`;
   const carpetaPublicacionesDigitales = () =>
     `${CARPETA_PUBLICACIONES_DIGITALES}/${nombreCategoria(categoria)}`;
-
-  /** "Usar esta versión" en la ventana de desenfoque: sube el PNG desenfocado
-   *  a PUBLICACIONES DIGITALES/<Categoría>. Lleva el mismo formato (mm, dpi)
-   *  que el de impresión, pero no aparece en Diseño → Imprimir. */
-  const guardarPngDesenfocado = async (blob: Blob) => {
-    const fuente = desenfoqueFuente;
-    if (!fuente || guardando) return;
-    setGuardando(true);
-    setGuardarMsg(null);
-    try {
-      const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
-      const res = await subirImagenBlobAEtiquetas(blob, nombreArchivoPngDigital(), {
-        carpeta: carpetaPublicacionesDigitales(),
-        tipo_etiqueta: tipo?.nombre,
-        ancho_mm: fuente.anchoMm,
-        alto_mm: fuente.altoMm,
-        dpi: fuente.dpi,
-        escala: fuente.pixelRatio,
-      });
-      setGuardarMsg({
-        ok: true,
-        texto: `Versión desenfocada guardada como ${res.nombre} en ${carpetaPublicacionesDigitales()} — fuera de impresión, base para publicaciones digitales.`,
-      });
-    } catch (e) {
-      setGuardarMsg({
-        ok: false,
-        texto: e instanceof Error ? e.message : "No se pudo guardar la versión desenfocada",
-      });
-    } finally {
-      setGuardando(false);
-      cerrarDesenfoque();
-    }
-  };
 
   const ficha = (
     <div
@@ -1447,146 +1556,220 @@ function ProductLabelFormInner({
     );
   }
 
+  // ── Maqueta del editor: el lienzo es lo protagonista ─────────────────────
+  // Tres franjas: una barra de herramientas de UNA línea (lo que se usa en
+  // cada etiqueta), la mesa de trabajo, que se queda con todo el alto y ancho
+  // restante y agranda la etiqueta hasta llenarlo, y una barra de estado con
+  // los datos y los avisos en fichas que se despliegan. Lo ocasional (plantilla,
+  // restablecer, retícula, desenfoque, SVG…) vive en el menú «Más».
+  const formatoCorto = tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "tamaño libre";
+  const descripcionFormato = es30ml
+    ? "Los tres paneles del 30 mL. En edición, lo gris es un ejemplo de referencia y no se imprime."
+    : es5ml
+      ? "Los tres paneles del 30 mL en dos filas: matriz técnica de 2×2, marca con el nombre y el contenido neto, y pictograma GHS + Pureza/CAS sobre el código de barras."
+      : esSimple
+        ? "Diagramación simple de dos columnas. En edición, lo gris es un ejemplo de referencia y no se imprime."
+        : esVertical
+          ? "Etiqueta vertical de siete bloques: cabecera, dos filas de casillas, beneficios, contenido neto, marca con el código de barras y pie de contacto."
+          : esCircular
+            ? "Etiqueta redonda: el nombre y los datos del borde van sobre arcos (se editan con un clic) y el bloque central se apila dentro del círculo."
+            : marco
+              ? "El marco punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño."
+              : "Sin Formato: se ve a su tamaño de diseño. Elige un Formato para imprimir a tamaño real.";
+  const mensaje = discrepancia ? null : (guardarMsg ?? plantillaMsg ?? (enlace ? { ok: enlace.tipo !== "error", texto: enlace.texto } : null));
+  const itemMenu =
+    "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-ink hover:bg-surface-hover disabled:opacity-40";
+
+  let lienzo: ReactNode;
+  if (es30ml) {
+    lienzo = (
+      <Marco30ml reticula={reticula30}>
+        <LabelPreview
+          ref={fichaRef}
+          data={data}
+          reticula={reticula30}
+          editMode={editMode}
+          attributeIcons={attributeIcons}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onIconChange={onIconChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+        />
+      </Marco30ml>
+    );
+  } else if (es5ml) {
+    lienzo = (
+      <Marco30ml reticula={ret5ml}>
+        <Etiqueta5ml
+          ref={fichaRef}
+          data={data}
+          reticula={ret5ml}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+          attributeIcons={attributeIcons}
+          onIconChange={onIconChange}
+        />
+      </Marco30ml>
+    );
+  } else if (esSimple) {
+    lienzo = (
+      <Marco30ml reticula={retSimple}>
+        <EtiquetaSimple
+          ref={fichaRef}
+          data={data}
+          reticula={retSimple}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+          attributeIcons={attributeIcons}
+          onIconChange={onIconChange}
+        />
+      </Marco30ml>
+    );
+  } else if (esVertical) {
+    lienzo = (
+      <Marco30ml reticula={retVertical}>
+        <EtiquetaVertical
+          ref={fichaRef}
+          data={data}
+          reticula={retVertical}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+          attributeIcons={attributeIcons}
+          onIconChange={onIconChange}
+        />
+      </Marco30ml>
+    );
+  } else if (esCircular) {
+    lienzo = (
+      <Marco30ml reticula={{ ancho: retCircular.diametro, alto: retCircular.diametro }}>
+        <EtiquetaCircular
+          ref={fichaRef}
+          data={data}
+          reticula={retCircular}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+        />
+      </Marco30ml>
+    );
+  } else if (marco) {
+    lienzo = (
+      <div
+        ref={ajusteFicha.ref}
+        className={`flex h-full w-full items-center justify-center ${ajusteFicha.escala <= ESCALA_MINIMA ? "overflow-auto" : "overflow-hidden"}`}
+      >
+        {/* Caja del tamaño YA escalado: un `transform` no cambia el hueco
+            que el elemento reserva en la maqueta. */}
+        <div
+          className="shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+          style={{ width: marco.ancho * ajusteFicha.escala, height: marco.alto * ajusteFicha.escala }}
+        >
+          <div
+            className="relative overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
+            style={{
+              width: marco.ancho,
+              height: marco.alto,
+              transform: `scale(${ajusteFicha.escala})`,
+              transformOrigin: "top left",
+            }}
+          >
+            {/* Centrada: solo se nota con el ancho ya en el tope y la ficha
+                escalada por alto, que si no dejaba todo el hueco a la derecha. */}
+            <div
+              className="absolute top-0"
+              style={{
+                left: Math.max(0, (marco.ancho - anchoLayout * marco.escala) / 2),
+                width: anchoLayout,
+                transform: `scale(${marco.escala})`,
+                transformOrigin: "top left",
+              }}
+            >
+              {ficha}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } else {
+    lienzo = <div className="flex min-h-full w-full items-start justify-center overflow-auto p-6">{ficha}</div>;
+  }
+
   return (
     <div
-      className="mx-auto flex h-full max-w-[1100px] min-h-0 flex-col overflow-auto p-4"
+      className="flex h-full min-h-0 flex-1 flex-col gap-2 p-2 sm:p-3"
       style={variablesAcento(data.accentColor)}
     >
-      <header className="mb-3 flex shrink-0 flex-wrap items-center gap-3">
+      {/* ── Barra de herramientas: una sola línea ── */}
+      <header className="flex shrink-0 flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={onVolver}
-          className="rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
+          title="Volver"
+          className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover"
         >
           ← Volver
         </button>
-        <h2 className="text-base font-bold text-ink">Etiqueta suelta</h2>
-
         <input
           type="text"
           value={nombreFicha}
           onChange={(e) => setNombreFicha(e.target.value)}
-          placeholder="Nombre de esta ficha (para guardarla)…"
-          className="w-56 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink placeholder:text-muted"
+          placeholder="Nombre de esta etiqueta…"
+          title="Nombre de esta etiqueta (para guardarla)"
+          className="w-48 min-w-0 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-bold text-ink placeholder:font-normal placeholder:text-muted hover:border-border focus:border-accent/60 sm:w-64"
         />
-        <span className="text-[11px] text-muted">
-          {autoguardado.estado === "pendiente" && "Sin guardar…"}
-          {autoguardado.estado === "guardando" && "Guardando…"}
-          {autoguardado.estado === "ok" && "✓ Guardado"}
-          {autoguardado.estado === "error" && (
-            <span className="text-red-600">✗ {autoguardado.texto}</span>
-          )}
-        </span>
+        <span
+          className={`h-2 w-2 shrink-0 rounded-full ${
+            autoguardado.estado === "error"
+              ? "bg-red-500"
+              : autoguardado.estado === "ok"
+                ? "bg-emerald-500"
+                : autoguardado.estado === "idle"
+                  ? "bg-border"
+                  : "animate-pulse bg-amber-400"
+          }`}
+          title={
+            autoguardado.estado === "pendiente"
+              ? "Sin guardar…"
+              : autoguardado.estado === "guardando"
+                ? "Guardando…"
+                : autoguardado.estado === "ok"
+                  ? "Guardado"
+                  : autoguardado.estado === "error"
+                    ? `No se guardó: ${autoguardado.texto}`
+                    : "Se guarda sola al cambiar algo"
+          }
+        />
+        {autoguardado.estado === "error" && <span className="text-[11px] text-red-600">No se guardó</span>}
 
-        <button
-          type="button"
-          onClick={nuevaFicha}
-          title="Volver a la lista de etiquetas guardadas"
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover"
+        <select
+          value={tipoNombre}
+          onChange={(e) => setTipoNombre(e.target.value)}
+          disabled={tiposLoading}
+          title="Formato (tamaño de la etiqueta)"
+          className="max-w-[13rem] rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink disabled:opacity-50"
         >
-          ← Etiquetas
-        </button>
-
-        {esPlantillaDeCategoria ? (
-          <button
-            type="button"
-            onClick={() => setLoteAbierto(true)}
-            disabled={guardando}
-            title="Aplicar este formato a varios productos de la categoría"
-            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-          >
-            Generar etiquetas de la categoría
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={marcarComoPlantilla}
-            disabled={!fichaId || guardarFichaMutation.isPending}
-            title="Este formato pasa a ser la plantilla de su categoría"
-            className="rounded-lg border border-accent/40 bg-accent/5 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-50"
-          >
-            Usar como plantilla de «{nombreCategoria(categoria)}»
-          </button>
-        )}
-
-        {(esPlantillaDeCategoria || esPlantillaNueva) &&
-          (confirmarLimpiar ? (
-            <span className="flex flex-wrap items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-[11px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-              ¿Borrar nombre, composición, CAS, código y demás datos de producto? El diseño se conserva.
-              <button
-                type="button"
-                onClick={limpiarPlantilla}
-                className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
-              >
-                Sí, limpiar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmarLimpiar(false)}
-                className="rounded border border-red-300 bg-white px-2 py-0.5 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
-              >
-                No
-              </button>
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmarLimpiar(true)}
-              disabled={!plantillaConDatos}
-              title={
-                plantillaConDatos
-                  ? "Quita los datos del producto con que se armó la plantilla y deja solo el diseño"
-                  : "La plantilla ya no tiene datos de producto"
-              }
-              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
-            >
-              {plantillaConDatos ? "Limpiar plantilla" : "✓ Plantilla limpia"}
-            </button>
+          <option value="">{tiposLoading ? "Cargando…" : "Sin ajustar (tamaño libre)"}</option>
+          {tipos.map((t) => (
+            <option key={t.nombre} value={t.nombre}>
+              {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
+            </option>
           ))}
-
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          Categoría:
-          <select
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            title="Categoría de producto: decide de qué plantilla parten las fichas nuevas"
-            className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
-          >
-            {CATEGORIAS_ETIQUETA.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.etiqueta}
-                {plantillasPorCategoria.has(c.id) ? " ✓" : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="flex items-center gap-1.5 text-xs text-muted">
-          Formato:
-          <select
-            value={tipoNombre}
-            onChange={(e) => setTipoNombre(e.target.value)}
-            disabled={tiposLoading}
-            className="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink disabled:opacity-50"
-          >
-            <option value="">{tiposLoading ? "Cargando…" : "Sin ajustar (tamaño libre)"}</option>
-            {tipos.map((t) => (
-              <option key={t.nombre} value={t.nombre}>
-                {etiquetaTamanoFormato(t.nombre, t.ancho_mm, t.alto_mm)}
-              </option>
-            ))}
-          </select>
-        </label>
-
+        </select>
         {/* Diámetro de impresión (§14): solo la redonda. Cambia el tamaño
-            FÍSICO del PNG, del SVG y de la impresión; el diseño en pantalla se
-            maqueta 1:1 y no se mueve. */}
+            FÍSICO del PNG, del SVG y de la impresión; el diseño no se mueve. */}
         {esCircular && (
           <label
-            className="flex items-center gap-1.5 text-xs text-muted"
+            className="flex items-center gap-1 text-xs text-muted"
             title="Diámetro final impreso. El diseño no cambia: cambia a cuántos milímetros se exporta e imprime."
           >
-            Diámetro:
+            ⌀
             <input
               type="number"
               min={20}
@@ -1597,7 +1780,7 @@ function ProductLabelFormInner({
                 const n = Number(e.target.value);
                 setDiametroMm(Number.isFinite(n) && n >= 20 && n <= 200 ? n : null);
               }}
-              className="w-16 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-ink"
+              className="w-14 rounded-lg border border-border bg-surface px-1.5 py-1 text-xs text-ink"
             />
             mm
             {diametroMm !== null && diametroMm !== tipo?.ancho_mm && (
@@ -1613,140 +1796,285 @@ function ProductLabelFormInner({
           </label>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs text-muted">
-            <input
-              type="checkbox"
-              checked={showGrid}
-              onChange={(e) => setShowGrid(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-border"
-            />
-            Retícula
-          </label>
-          <label
-            className="flex items-center gap-1.5 text-xs text-muted"
-            title={`Al guardar el PNG para imprimir se abre una ventana para marcar por recuadro los datos a desenfocar. Esa versión se guarda en ${CARPETA_PUBLICACIONES_DIGITALES}, fuera de la carpeta de impresión, como base para publicaciones digitales.`}
-          >
-            <input
-              type="checkbox"
-              checked={desenfoqueActivo}
-              onChange={(e) => setDesenfoqueActivo(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-border"
-            />
-            Desenfoque
-          </label>
+        <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setEditMode((v) => !v)}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-              editMode ? "bg-accent text-white hover:opacity-90" : "border border-border text-ink hover:bg-surface-hover"
-            }`}
+            onClick={() => void abrirFichaTecnica()}
+            disabled={!onAbrirFichaTecnica && !data.fichaTecnicaId}
+            title={
+              data.fichaTecnicaId
+                ? `Corregir la ficha técnica «${data.fichaTecnicaTitulo || data.fichaTecnicaId}» de donde salen los datos de la etiqueta`
+                : "Esta etiqueta no tiene ficha técnica enlazada (usa la lupa junto al nombre)"
+            }
+            className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
           >
-            {editMode ? "Terminar edición" : "Editar"}
+            Ficha técnica
           </button>
+          {/* Editar / Vista como interruptor de dos posiciones. */}
+          <div className="flex rounded-lg border border-border p-0.5 text-xs font-semibold" role="group" aria-label="Modo">
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              aria-pressed={editMode}
+              className={`rounded-md px-2.5 py-1 ${editMode ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditMode(false)}
+              aria-pressed={!editMode}
+              className={`rounded-md px-2.5 py-1 ${!editMode ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+            >
+              Vista
+            </button>
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuMas((v) => !v)}
+              aria-expanded={menuMas}
+              className="rounded-lg border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover"
+            >
+              Más ▾
+            </button>
+            {menuMas && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMenuMas(false)} aria-hidden="true" />
+                <div className="absolute right-0 top-full z-40 mt-1 w-72 rounded-xl border border-border bg-surface-panel p-1.5 shadow-xl">
+                  <label className="flex items-center gap-2 px-2.5 py-1.5 text-[12px] text-muted">
+                    Categoría
+                    <select
+                      value={categoria}
+                      onChange={(e) => setCategoria(e.target.value)}
+                      title="Categoría de producto: decide de qué plantilla parten las fichas nuevas"
+                      className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink"
+                    >
+                      {CATEGORIAS_ETIQUETA.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.etiqueta}
+                          {plantillasPorCategoria.has(c.id) ? " ✓" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={itemMenu}>
+                    <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} className="h-3.5 w-3.5" />
+                    Retícula
+                  </label>
+                  <label
+                    className={itemMenu}
+                    title={`Al terminar se genera también la versión con la marca desenfocada (automático), en ${CARPETA_PUBLICACIONES_DIGITALES}.`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={desenfoqueActivo}
+                      onChange={(e) => setDesenfoqueActivo(e.target.checked)}
+                      className="h-3.5 w-3.5"
+                    />
+                    Desenfoque (PNG digital)
+                  </label>
+                  <div className="my-1 border-t border-border" />
+                  {esPlantillaDeCategoria ? (
+                    <button
+                      type="button"
+                      className={itemMenu}
+                      disabled={guardando}
+                      onClick={() => {
+                        setMenuMas(false);
+                        setLoteAbierto(true);
+                      }}
+                    >
+                      Generar etiquetas de la categoría…
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={itemMenu}
+                      disabled={!fichaId || guardarFichaMutation.isPending}
+                      onClick={() => {
+                        setMenuMas(false);
+                        marcarComoPlantilla();
+                      }}
+                      title="Este formato pasa a ser la plantilla de su categoría"
+                    >
+                      Usar como plantilla de «{nombreCategoria(categoria)}»
+                    </button>
+                  )}
+                  {esPlantillaEnEdicion ? (
+                    confirmarLimpiar ? (
+                      <div className="rounded-md bg-red-50 p-2 text-[11px] text-red-800 dark:bg-red-950/30 dark:text-red-200">
+                        ¿Borrar nombre, composición, CAS, código y demás datos de producto? El diseño se conserva.
+                        <div className="mt-1.5 flex gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              limpiarPlantilla();
+                              setMenuMas(false);
+                            }}
+                            className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
+                          >
+                            Sí, limpiar
+                          </button>
+                          <button type="button" onClick={() => setConfirmarLimpiar(false)} className="rounded border border-red-300 px-2 py-0.5 font-semibold">
+                            No
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className={itemMenu}
+                        onClick={() => setConfirmarLimpiar(true)}
+                        disabled={!plantillaConDatos}
+                        title="Quita los datos del producto con que se armó la plantilla y deja solo el diseño"
+                      >
+                        {plantillaConDatos ? "Limpiar plantilla…" : "✓ Plantilla limpia"}
+                      </button>
+                    )
+                  ) : confirmarRestablecer ? (
+                    <div className="rounded-md bg-red-50 p-2 text-[11px] text-red-800 dark:bg-red-950/30 dark:text-red-200">
+                      ¿Borrar lo escrito a mano y volver a cargar los datos del SKU y su ficha técnica? El diseño se conserva.
+                      <div className="mt-1.5 flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            restablecerDatos();
+                            setConfirmarRestablecer(false);
+                            setMenuMas(false);
+                          }}
+                          className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
+                        >
+                          Sí, restablecer
+                        </button>
+                        <button type="button" onClick={() => setConfirmarRestablecer(false)} className="rounded border border-red-300 px-2 py-0.5 font-semibold">
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className={itemMenu}
+                      onClick={() => setConfirmarRestablecer(true)}
+                      title="Vuelve a cargar los datos del SKU y su ficha técnica"
+                    >
+                      Restablecer datos…
+                    </button>
+                  )}
+                  {esCircular && (
+                    <button
+                      type="button"
+                      className={itemMenu}
+                      onClick={() => {
+                        setMenuMas(false);
+                        void exportarSvg();
+                      }}
+                      disabled={exportandoSvg || guardando}
+                      title="Descarga la etiqueta como SVG vectorial, con sus milímetros, para la imprenta"
+                    >
+                      {exportandoSvg ? "Exportando…" : "Exportar SVG"}
+                    </button>
+                  )}
+                  <div className="my-1 border-t border-border" />
+                  <button
+                    type="button"
+                    className={itemMenu}
+                    onClick={() => {
+                      setMenuMas(false);
+                      nuevaFicha();
+                    }}
+                    title="Volver a la lista de etiquetas guardadas"
+                  >
+                    ← Lista de etiquetas guardadas
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => void generarPng()}
             disabled={guardando}
-            title="Genera un PNG listo para imprimir (alta resolución, ≥ 600 dpi, si hay Formato elegido), lo muestra en vista previa y, al confirmar, lo guarda junto con el Formato en Diseño → Imprimir"
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
-          >
-            {guardando && !previa ? "Generando…" : "Guardar PNG para imprimir"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void imprimirEtiqueta()}
-            disabled={imprimiendo || guardando || !tipo}
             title={
-              tipo
-                ? "Imprime solo la etiqueta, a su tamaño real y sin el formulario"
-                : "Elige un Formato para imprimir a tamaño real"
+              desenfoqueActivo
+                ? "Genera el PNG para imprimir (≥ 600 dpi si hay Formato) y a la vez el PNG con la marca desenfocada. Revisas las dos vistas previas y, al aprobar, cada uno se guarda en su carpeta"
+                : "Genera el PNG para imprimir (≥ 600 dpi si hay Formato), lo revisas en vista previa y, al aprobar, se guarda en Diseño → Imprimir"
             }
-            className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
           >
-            {imprimiendo ? "Preparando…" : "Imprimir"}
+            {guardando && !previa ? "Generando…" : desenfoqueActivo ? "Terminar y aprobar los PNG" : "Terminar y aprobar el PNG"}
           </button>
-          {esCircular && (
-            <button
-              type="button"
-              onClick={() => void exportarSvg()}
-              disabled={exportandoSvg || guardando || imprimiendo}
-              title="Descarga la etiqueta como SVG vectorial: los textos siguen siendo texto (también los curvos) y el archivo trae sus milímetros, para la imprenta"
-              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
-            >
-              {exportandoSvg ? "Exportando…" : "Exportar SVG"}
-            </button>
-          )}
         </div>
       </header>
 
-      {/* Restablecer (etiquetas de producto; en una plantilla hace lo mismo
-          «Limpiar plantilla»). */}
-      {!esPlantillaEnEdicion && (
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
-          {confirmarRestablecer ? (
-            <span className="flex flex-wrap items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-2 py-1 text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-              ¿Borrar lo escrito a mano y volver a cargar los datos del SKU y su ficha técnica? El diseño se conserva.
+      {/* Lo único que puede ocupar una franja propia: una etiqueta con el código
+          de un producto y los datos de otro no se debe imprimir sin mirarla. */}
+      {discrepancia && (
+        <div
+          role="alert"
+          className="flex shrink-0 flex-wrap items-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-[12px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
+        >
+          <span className="font-semibold">
+            ⚠ El código de barras es de «{data.barcodeTitle}», pero{" "}
+            {discrepancia.origen === "ficha"
+              ? `la ficha técnica enlazada es «${discrepancia.contra}»`
+              : `el nombre en la etiqueta es «${discrepancia.contra}»`}
+            .
+          </span>
+          <span>Usa la lupa junto al nombre para elegir la ficha técnica correcta.</span>
+          {confirmarDiscrepancia && (
+            <span className="flex items-center gap-1.5">
+              <b>¿Generar así de todos modos?</b>
               <button
                 type="button"
-                onClick={() => {
-                  restablecerDatos();
-                  setConfirmarRestablecer(false);
-                }}
-                className="rounded bg-red-600 px-2 py-0.5 font-semibold text-white hover:bg-red-700"
+                onClick={() => void generarPng(true)}
+                disabled={guardando}
+                className="rounded-md bg-red-600 px-2.5 py-0.5 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
-                Sí, restablecer
+                Sí, generar igual
               </button>
               <button
                 type="button"
-                onClick={() => setConfirmarRestablecer(false)}
-                className="rounded border border-red-300 bg-white px-2 py-0.5 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
+                onClick={() => setConfirmarDiscrepancia(false)}
+                className="rounded-md border border-red-300 bg-white px-2.5 py-0.5 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
               >
-                No
+                Cancelar
               </button>
             </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setConfirmarRestablecer(true)}
-              title="Vuelve a cargar los datos del SKU y su ficha técnica"
-              className="rounded-lg border border-border bg-surface px-3 py-1 font-semibold text-ink hover:bg-surface-hover"
-            >
-              Restablecer datos
-            </button>
           )}
         </div>
       )}
 
-      {/* Ortografía de la etiqueta — ver `lib/ortografiaEtiqueta`. */}
-      {ortografia.length > 0 && (
-        <div className="mb-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">
-              ⚠ Ortografía: {ortografia.length}{" "}
-              {ortografia.length === 1 ? "casilla por revisar" : "casillas por revisar"}
-            </span>
-            <button
-              type="button"
-              onClick={() => corregirOrtografia(ortografia)}
-              className="rounded bg-amber-600 px-2 py-0.5 font-semibold text-white hover:bg-amber-700"
-            >
-              Corregir todo
-            </button>
-            <button
-              type="button"
-              onClick={() => setDetalleOrto((v) => !v)}
-              className="rounded border border-amber-400 bg-white px-2 py-0.5 font-semibold text-amber-800 hover:bg-amber-100 dark:bg-transparent dark:text-amber-100"
-            >
-              {detalleOrto ? "Ocultar detalle" : "Ver detalle"}
-            </button>
-            <span className="text-amber-800/80 dark:text-amber-200/70">
-              Tildes, espacios y palabras repetidas. Lo demás lo subraya el corrector del navegador
-              al escribir.
-            </span>
-          </div>
-          {detalleOrto && (
-            <ul className="mt-1.5 space-y-1">
+      {/* ── Mesa de trabajo: todo el espacio que queda ── */}
+      <div
+        className="relative min-h-[55dvh] flex-1 overflow-hidden rounded-xl border border-border bg-[#e7e7e3] dark:bg-[#1c1f22] lg:min-h-0"
+        style={{
+          backgroundImage: "radial-gradient(rgba(0,0,0,0.07) 1px, transparent 1px)",
+          backgroundSize: "18px 18px",
+        }}
+      >
+        <div className="absolute inset-0">{lienzo}</div>
+
+        {/* Detalle de ortografía: se abre sobre la mesa, sin empujar el lienzo. */}
+        {detalleOrto && ortografia.length > 0 && (
+          <div className="absolute inset-x-3 bottom-3 z-10 max-h-[45%] overflow-auto rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-[11px] text-amber-900 shadow-lg dark:border-amber-900/50 dark:bg-amber-950/90 dark:text-amber-100">
+            <div className="mb-1.5 flex items-center gap-2">
+              <span className="font-semibold">Ortografía — tildes, espacios y palabras repetidas</span>
+              <button
+                type="button"
+                onClick={() => corregirOrtografia(ortografia)}
+                className="rounded bg-amber-600 px-2 py-0.5 font-semibold text-white hover:bg-amber-700"
+              >
+                Corregir todo
+              </button>
+              <button type="button" onClick={() => setDetalleOrto(false)} className="ml-auto px-1 font-semibold" aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+            <ul className="space-y-1">
               {ortografia.map((c) => (
                 <li key={c.campo as string} className="flex flex-wrap items-center gap-1.5">
                   <span className="font-semibold">{c.titulo}:</span>
@@ -1765,250 +2093,86 @@ function ProductLabelFormInner({
                 </li>
               ))}
             </ul>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
-      {guardarMsg && (
-        <p className={`mb-2 text-[12px] ${guardarMsg.ok ? "text-accent" : "text-red-600"}`}>
-          {guardarMsg.ok ? "✓ " : "✗ "}
-          {guardarMsg.texto}
-        </p>
-      )}
-      {plantillaMsg && (
-        <p className={`mb-2 text-[12px] ${plantillaMsg.ok ? "text-accent" : "text-red-600"}`}>
-          {plantillaMsg.ok ? "✓ " : "✗ "}
-          {plantillaMsg.texto}
-        </p>
-      )}
-      {enlace && (
-        <p
-          className={`mb-2 text-[12px] ${
-            enlace.tipo === "error" ? "text-red-600" : enlace.tipo === "ok" ? "text-accent" : "text-muted"
-          }`}
-        >
-          {enlace.tipo === "ok" ? "✓ " : enlace.tipo === "error" ? "✗ " : "ℹ "}
-          {enlace.texto}
-        </p>
-      )}
-      {discrepancia && (
-        <div
-          role="alert"
-          className="mb-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[12px] text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200"
-        >
-          <p className="font-semibold">
-            ⚠ El código de barras es de «{data.barcodeTitle}», pero{" "}
-            {discrepancia.origen === "ficha"
-              ? `la ficha técnica enlazada es «${discrepancia.contra}»`
-              : `el nombre en la etiqueta es «${discrepancia.contra}»`}
-            .
-          </p>
-          <p className="mt-0.5">
-            Parecen productos distintos. Usa la lupa junto al nombre para elegir la ficha técnica correcta antes de
-            imprimir.
-          </p>
-          {confirmarDiscrepancia && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="font-semibold">¿Guardar el PNG así de todos modos?</span>
-              <button
-                type="button"
-                onClick={() => void generarPng(true)}
-                disabled={guardando}
-                className="rounded-md bg-red-600 px-3 py-1 font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                Sí, generar igual
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmarDiscrepancia(false)}
-                className="rounded-md border border-red-300 bg-white px-3 py-1 font-semibold text-red-700 hover:bg-red-100 dark:bg-transparent"
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-      {(data.barcodeTitle || data.fichaTecnicaTitulo) && (
-        <p className="mb-2 text-[11px] text-muted">
-          Código de barras: <span className="font-semibold text-ink">{data.barcodeTitle || "—"}</span>
-          {" · "}
-          Ficha técnica: <span className="font-semibold text-ink">{data.fichaTecnicaTitulo || "sin enlazar"}</span>
-        </p>
-      )}
-
-      {marco && !es30ml && !es5ml && !esSimple && !esCircular && !esVertical && (
-        <p className="mb-2 text-[11px] text-muted">
-          Ajustada a {tipo && etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm)} — el marco
-          punteado es el tamaño real de la etiqueta; lo que quede fuera de foco no cabe a ese tamaño.
-        </p>
-      )}
-
-      {es30ml && clasificacionContradice && (
-        <p role="alert" className="mb-2 text-[12px] font-semibold text-red-600">
-          ⚠ El producto tiene pictograma de peligro ({data.ghs}), pero la clasificación dice que no
-          está clasificado como peligroso. Corrige el texto antes de imprimir.
-        </p>
-      )}
-
-      {es30ml ? (
-        <>
-          <p className="mb-2 text-[11px] text-muted">
-            Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "4.02×1.5 in · 102×38 mm"} — el marco
-            punteado es el tamaño real de la etiqueta. En edición, lo gris es un ejemplo de
-            referencia y no se imprime.
-          </p>
-          <Marco30ml reticula={reticula30}>
-            <LabelPreview
-              ref={fichaRef}
-              data={data}
-              reticula={reticula30}
-              editMode={editMode}
-              attributeIcons={attributeIcons}
-              guias={showGrid && editMode}
-              onChange={onChange}
-              onIconChange={onIconChange}
-              onElegirCodigo={(c) => void onElegirCodigo(c)}
-            />
-          </Marco30ml>
-        </>
-      ) : es5ml ? (
-        <>
-          <p className="mb-2 text-[11px] text-muted">
-            Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.6×0.87 in · 66×22 mm"} —
-            los tres paneles del 30 mL en dos filas: matriz técnica de 2×2, marca con el nombre y el
-            contenido neto, y pictograma GHS + Pureza/CAS sobre el código de barras. En edición, lo
-            gris es un ejemplo de referencia y no se imprime.
-          </p>
-          <Marco30ml reticula={ret5ml}>
-            <Etiqueta5ml
-              ref={fichaRef}
-              data={data}
-              reticula={ret5ml}
-              editMode={editMode}
-              guias={showGrid && editMode}
-              onChange={onChange}
-              onElegirCodigo={(c) => void onElegirCodigo(c)}
-              attributeIcons={attributeIcons}
-              onIconChange={onIconChange}
-            />
-          </Marco30ml>
-        </>
-      ) : esSimple ? (
-        <>
-          <p className="mb-2 text-[11px] text-muted">
-            Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.72×2.01 in · 69×51 mm"} — diagramación
-            simple de dos columnas. En edición, lo gris es un ejemplo de referencia y no se imprime.
-          </p>
-          <Marco30ml reticula={retSimple}>
-            <EtiquetaSimple
-              ref={fichaRef}
-              data={data}
-              reticula={retSimple}
-              editMode={editMode}
-              guias={showGrid && editMode}
-              onChange={onChange}
-              onElegirCodigo={(c) => void onElegirCodigo(c)}
-              attributeIcons={attributeIcons}
-              onIconChange={onIconChange}
-            />
-          </Marco30ml>
-        </>
-      ) : esVertical ? (
-        <>
-          <p className="mb-2 text-[11px] text-muted">
-            Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "1.5×4.02 in · 38×102 mm"} —
-            etiqueta vertical de siete bloques: cabecera, dos filas de casillas, beneficios, contenido
-            neto, marca con el código de barras debajo del logo y pie de contacto. En edición, lo gris
-            es un ejemplo de referencia y no se imprime.
-          </p>
-          <Marco30ml reticula={retVertical}>
-            <EtiquetaVertical
-              ref={fichaRef}
-              data={data}
-              reticula={retVertical}
-              editMode={editMode}
-              guias={showGrid && editMode}
-              onChange={onChange}
-              onElegirCodigo={(c) => void onElegirCodigo(c)}
-              attributeIcons={attributeIcons}
-              onIconChange={onIconChange}
-            />
-          </Marco30ml>
-        </>
-      ) : esCircular ? (
-        <>
-          <p className="mb-2 text-[11px] text-muted">
-            Ajustada a{" "}
-            {tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "2.09×2.09 in · 53×53 mm"} —
-            etiqueta redonda: el nombre y los datos del borde van sobre arcos (se editan con un clic)
-            y el bloque central se apila dentro del círculo. En edición, lo gris es un ejemplo de
-            referencia y no se imprime.
-            {diametroMm !== null && diametroMm !== tipo?.ancho_mm && (
-              <>
-                {" "}
-                <span className="font-semibold text-ink">
-                  Se exportará e imprimirá a {diametroMm} mm de diámetro
-                </span>
-                , no a los del Formato.
-              </>
-            )}
-          </p>
-          <Marco30ml reticula={{ ancho: retCircular.diametro, alto: retCircular.diametro }}>
-            <EtiquetaCircular
-              ref={fichaRef}
-              data={data}
-              reticula={retCircular}
-              editMode={editMode}
-              guias={showGrid && editMode}
-              onChange={onChange}
-              onElegirCodigo={(c) => void onElegirCodigo(c)}
-            />
-          </Marco30ml>
-        </>
-      ) : marco ? (
-        <div
-          ref={ajusteFicha.ref}
-          className={`w-full pb-1 ${ajusteFicha.escala <= ESCALA_MINIMA ? "overflow-x-auto" : ""}`}
-        >
-          {/* Caja del tamaño YA escalado: un `transform` no cambia el hueco
-              que el elemento reserva en la maqueta. */}
-          <div
-            className="mx-auto"
-            style={{ width: marco.ancho * ajusteFicha.escala, height: marco.alto * ajusteFicha.escala }}
-          >
-            <div
-              className="relative overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
-              style={{
-                width: marco.ancho,
-                height: marco.alto,
-                transform: `scale(${ajusteFicha.escala})`,
-                transformOrigin: "top left",
-              }}
+      {/* ── Barra de estado ── */}
+      <footer className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 px-1 text-[11px] text-muted">
+        <span title={descripcionFormato}>
+          <span className="font-semibold text-ink">{formatoCorto}</span>
+          {esCircular && diametroMm !== null && diametroMm !== tipo?.ancho_mm && ` · se imprime a ⌀ ${diametroMm} mm`}
+        </span>
+        {(data.barcodeTitle || data.fichaTecnicaTitulo) && (
+          <span className="min-w-0 truncate">
+            Código: <span className="text-ink">{data.barcodeTitle || "—"}</span> · Ficha técnica:{" "}
+            <span className="text-ink">{data.fichaTecnicaTitulo || "sin enlazar"}</span>
+          </span>
+        )}
+        {nombreCategoria(categoria) && <span>{nombreCategoria(categoria)}</span>}
+        <span className="ml-auto flex flex-wrap items-center gap-1.5">
+          {es30ml && clasificacionContradice && (
+            <span
+              role="alert"
+              className="rounded-full bg-red-100 px-2 py-0.5 font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-200"
+              title={`El producto tiene pictograma de peligro (${data.ghs}), pero la clasificación dice que no está clasificado como peligroso. Corrige el texto antes de imprimir.`}
             >
-              {/* Centrada: solo se nota con el ancho ya en el tope y la ficha
-                  escalada por alto, que si no dejaba todo el hueco a la derecha. */}
-              <div
-                className="absolute top-0"
-                style={{
-                  left: Math.max(0, (marco.ancho - anchoLayout * marco.escala) / 2),
-                  width: anchoLayout,
-                  transform: `scale(${marco.escala})`,
-                  transformOrigin: "top left",
-                }}
-              >
-                {ficha}
+              ⚠ GHS contradice la clasificación
+            </span>
+          )}
+          {ortografia.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setDetalleOrto((v) => !v)}
+              className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800 hover:bg-amber-200 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+              ⚠ Ortografía: {ortografia.length}
+            </button>
+          )}
+          {mensaje && (
+            <span className={`max-w-[42rem] truncate ${mensaje.ok ? "text-accent" : "text-red-600"}`} title={mensaje.texto}>
+              {mensaje.ok ? "✓ " : "✗ "}
+              {mensaje.texto}
+            </span>
+          )}
+        </span>
+      </footer>
+
+      {fichaTecnicaAbierta &&
+        data.fichaTecnicaId &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 z-[640] flex items-center justify-center bg-black/45 p-2 sm:p-3" role="dialog" aria-modal="true" aria-label="Ficha técnica">
+            <div className="flex h-[94vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl">
+              <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                    Ficha técnica · {data.fichaTecnicaTitulo || data.fichaTecnicaId}
+                  </p>
+                  <p className="text-[12px] text-ink">
+                    Corrige el dato aquí, en su origen. Al cerrar, la etiqueta toma solo lo que cambiaste.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={cerrarFichaTecnica}
+                  className="shrink-0 rounded-md border border-border px-3 py-1 text-[12px] font-semibold text-ink hover:bg-surface-hover"
+                >
+                  Cerrar · volver a la etiqueta
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto bg-surface p-3">
+                <Suspense fallback={<p className="p-6 text-sm text-muted">Abriendo la ficha técnica…</p>}>
+                  <FichasTecnicasPanel
+                    archivoInicial={data.fichaTecnicaId}
+                    onVolver={cerrarFichaTecnica}
+                  />
+                </Suspense>
               </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        ficha
-      )}
+          </div>,
+          document.body,
+        )}
 
       {previa &&
         typeof document !== "undefined" &&
@@ -2018,14 +2182,16 @@ function ProductLabelFormInner({
             onClick={cerrarPrevia}
           >
             <div
-              className="flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-2xl"
+              className={`flex max-h-[94vh] w-full ${desenfoqueActivo ? "max-w-6xl" : "max-w-4xl"} flex-col overflow-hidden rounded-2xl border border-border bg-surface-panel shadow-2xl`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div>
-                  <h3 className="text-sm font-bold text-ink">Vista previa del PNG para imprimir</h3>
+                  <h3 className="text-sm font-bold text-ink">
+                    {desenfoqueActivo ? "Revisa y aprueba los dos PNG" : "Revisa y aprueba el PNG para imprimir"}
+                  </h3>
                   <p className="text-[11px] text-muted">
-                    {nombreArchivoPng()} · {previa.anchoPx} × {previa.altoPx} px
+                    {previa.anchoPx} × {previa.altoPx} px
                     {previa.anchoMm && previa.altoMm
                       ? ` · ${previa.anchoMm} × ${previa.altoMm} mm a ${previa.dpi} dpi`
                       : " · tamaño libre (sin Formato elegido)"}
@@ -2040,24 +2206,58 @@ function ProductLabelFormInner({
                 </button>
               </div>
               {/* Fondo gris neutro: deja ver el borde real de la etiqueta blanca. */}
-              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#e9e9e6] p-4">
-                <img
-                  src={previa.url}
-                  alt="Vista previa de la etiqueta"
-                  className="max-h-[70vh] max-w-full object-contain shadow-lg"
-                  style={{ background: "#fff" }}
-                />
+              <div className={`grid min-h-0 flex-1 gap-3 overflow-auto bg-[#e9e9e6] p-4 ${desenfoqueActivo ? "md:grid-cols-2" : ""}`}>
+                <figure className="flex min-h-0 flex-col items-center gap-2">
+                  <figcaption className="text-center text-[11px] text-ink">
+                    <span className="font-bold">Para imprimir</span> · {nombreArchivoPng()}
+                    <span className="block text-muted">→ ETIQUETAS STUDIO/{nombreCategoria(categoria)} (Diseño → Imprimir)</span>
+                  </figcaption>
+                  <img
+                    src={previa.url}
+                    alt="Vista previa de la etiqueta para imprimir"
+                    className={`${desenfoqueActivo ? "max-h-[58vh]" : "max-h-[70vh]"} max-w-full object-contain shadow-lg`}
+                    style={{ background: "#fff" }}
+                  />
+                </figure>
+                {desenfoqueActivo && (
+                  <figure className="flex min-h-0 flex-col items-center gap-2">
+                    <figcaption className="text-center text-[11px] text-ink">
+                      <span className="font-bold">Digital, con la marca desenfocada</span> · {nombreArchivoPngDigital()}
+                      <span className="block text-muted">→ {carpetaPublicacionesDigitales()}</span>
+                    </figcaption>
+                    {digital?.estado === "listo" && digital.url ? (
+                      <img
+                        src={digital.url}
+                        alt="Vista previa de la etiqueta desenfocada"
+                        className="max-h-[58vh] max-w-full object-contain shadow-lg"
+                        style={{ background: "#fff" }}
+                      />
+                    ) : (
+                      <div className="flex min-h-[160px] w-full flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-surface/70 p-4 text-center text-[12px] text-muted">
+                        {digital?.estado === "error" ? (
+                          <span className="text-accent-rose">{digital.msg}</span>
+                        ) : (
+                          "Buscando la marca y desenfocando…"
+                        )}
+                      </div>
+                    )}
+                    {digital?.estado === "listo" && digital.msg && <p className="text-[11px] text-muted">{digital.msg}</p>}
+                    {digital && digital.estado !== "preparando" && (
+                      <button
+                        type="button"
+                        onClick={() => setAjusteManual(true)}
+                        className="rounded-lg border border-border bg-surface px-3 py-1 text-[11px] font-semibold text-ink hover:bg-surface-hover"
+                      >
+                        {digital.estado === "error" ? "Marcar zonas a mano…" : "¿Falta tapar algo? Ajustar a mano…"}
+                      </button>
+                    )}
+                  </figure>
+                )}
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3">
                 <p className="text-[11px] text-muted">
-                  Así quedará impresa. Si algo no cuadra, cierra, corrige la ficha y vuelve a generar.
-                  {desenfoqueActivo && (
-                    <>
-                      {" "}
-                      Al guardar se abre la ventana de desenfoque; esa copia va a{" "}
-                      <span className="font-semibold text-ink">{carpetaPublicacionesDigitales()}</span>.
-                    </>
-                  )}
+                  Si algo no cuadra, cancela, corrige la etiqueta y vuelve a terminar.
+                  {desenfoqueActivo && " Al aprobar se guardan los dos, cada uno en su carpeta."}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -2077,14 +2277,17 @@ function ProductLabelFormInner({
                   <button
                     type="button"
                     onClick={() => void confirmarGuardarPng()}
-                    disabled={guardando}
-                    className="rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+                    disabled={guardando || (desenfoqueActivo && digital?.estado !== "listo")}
+                    title={desenfoqueActivo && digital?.estado !== "listo" ? "Falta la versión desenfocada" : undefined}
+                    className="rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {guardando
                       ? "Guardando…"
                       : desenfoqueActivo
-                        ? "Guardar e ir a desenfoque"
-                        : "Guardar en Diseño → Imprimir"}
+                        ? digital?.estado === "preparando"
+                          ? "Preparando el desenfocado…"
+                          : "Aprobar y guardar los dos"
+                        : "Aprobar y guardar"}
                   </button>
                 </div>
               </div>
@@ -2093,20 +2296,27 @@ function ProductLabelFormInner({
           document.body,
         )}
 
-      {desenfoqueFuente &&
+      {ajusteManual &&
+        previa &&
         typeof document !== "undefined" &&
         createPortal(
           <Suspense fallback={null}>
             <DesenfoquePlantillaModal
               open
-              onClose={cerrarDesenfoque}
-              blobOriginal={desenfoqueFuente.blob}
-              imageUrl={desenfoqueFuente.url}
+              onClose={() => setAjusteManual(false)}
+              blobOriginal={previa.blob}
+              imageUrl={previa.url}
               formato="png"
               titulo="Desenfocar datos para publicaciones digitales"
-              subtitulo={`"MCKENNA GROUP" se detecta solo por OCR; arrastra un recuadro para ocultar otro dato. Se guarda en ${carpetaPublicacionesDigitales()}, fuera de impresión`}
+              subtitulo={`Arrastra un recuadro sobre lo que falte tapar. Reemplaza la versión automática; se guarda en ${carpetaPublicacionesDigitales()} al aprobar`}
               desenfocar={desenfocarBlobLocal}
-              onAplicado={(b) => void guardarPngDesenfocado(b)}
+              radioInicial={RADIO_DESENFOQUE_ETIQUETA}
+              onAplicado={(b) => {
+                // Reemplaza la versión automática en la vista previa; se guarda al aprobar.
+                turnoDigitalRef.current++;
+                fijarDigital(b, "Ajustada a mano.");
+                setAjusteManual(false);
+              }}
             />
           </Suspense>,
           document.body,

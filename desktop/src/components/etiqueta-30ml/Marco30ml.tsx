@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ESCALA_MINIMA, useEscalaAjuste } from "../etiqueta-ficha/useEscalaAjuste";
+import { ESCALA_MAXIMA_MESA, ESCALA_MINIMA, MARGEN_MESA, useEscalaAjuste } from "../etiqueta-ficha/useEscalaAjuste";
 
 /** Marco de formato de las etiquetas de retícula fija (30 mL, 69 × 51 mm,
  *  circular 53) — el mismo marco punteado de la ficha de 76 × 66, que es el
@@ -26,14 +26,23 @@ export default function Marco30ml({
   // `box-sizing: border-box` el hueco de adentro mide justo la etiqueta.
   const anchoMarco = reticula.ancho + 4;
   const altoMarco = reticula.alto + 4;
-  const { ref, escala } = useEscalaAjuste(anchoMarco, altoMarco);
+  // Llena la mesa de trabajo del editor (el hueco entre la barra de
+  // herramientas y la de estado) y puede agrandarse: el lienzo manda.
+  const { ref, escala } = useEscalaAjuste(anchoMarco, altoMarco, {
+    llenar: true,
+    maximo: ESCALA_MAXIMA_MESA,
+    margen: MARGEN_MESA,
+  });
 
   return (
-    <div ref={ref} className={`w-full pb-1 ${escala <= ESCALA_MINIMA ? "overflow-x-auto" : ""}`}>
+    <div
+      ref={ref}
+      className={`flex h-full w-full items-center justify-center ${escala <= ESCALA_MINIMA ? "overflow-auto" : "overflow-hidden"}`}
+    >
       {/* Esta caja mide lo que ocupa la etiqueta YA escalada: un `transform`
           no cambia el hueco que el elemento reserva en la maqueta, así que
           sin ella quedaría un vacío del tamaño sin escalar debajo. */}
-      <div className="mx-auto" style={{ width: anchoMarco * escala, height: altoMarco * escala }}>
+      <div className="shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.12)]" style={{ width: anchoMarco * escala, height: altoMarco * escala }}>
         <div
           className="relative overflow-hidden border-2 border-dashed border-[color:var(--acento-60)] bg-[#f4f4f2]"
           style={{

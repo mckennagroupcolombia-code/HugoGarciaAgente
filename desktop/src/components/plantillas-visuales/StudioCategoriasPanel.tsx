@@ -6,7 +6,7 @@
  * la categoría: tiene su plantilla, sus diseños de partida y las etiquetas ya
  * hechas con ella.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -193,6 +193,7 @@ function tamanoCorto(texto: string): string {
 }
 
 const CLAVE_CATEGORIA_ABIERTA = "mck-studio-categoria-abierta";
+const CLAVE_LISTA_PLEGADA = "mck-studio-lista-plegada";
 
 interface Props {
   /** Texto del buscador de Studio: filtra categorías, plantillas y etiquetas. */
@@ -207,6 +208,13 @@ interface Props {
   onNuevaEtiqueta: (p: PlantillaDeCategoria) => void;
   /** Abrir una etiqueta ya hecha de la categoría. */
   onAbrirEtiqueta: (e: EtiquetaDeCategoria) => void;
+  /** Editor de una etiqueta abierto: ocupa el lugar del detalle, al lado de la
+   *  lista, dentro de la pestaña Categorías (no como pantalla aparte). */
+  editor?: ReactNode;
+  /** Etiqueta abierta en el editor: se resalta en el árbol de la lista. */
+  etiquetaAbiertaId?: string;
+  /** Se eligió una categoría en la lista (con `editor`, para cerrarlo y ver su detalle). */
+  onElegirCategoria?: (id: string) => void;
 }
 
 export default function StudioCategoriasPanel({
@@ -216,6 +224,9 @@ export default function StudioCategoriasPanel({
   onAbrirPlantilla,
   onNuevaEtiqueta,
   onAbrirEtiqueta,
+  editor,
+  etiquetaAbiertaId,
+  onElegirCategoria,
 }: Props) {
   const { resumen, categorias, cargando } = useResumenCategorias();
   const qc = useQueryClient();
@@ -237,7 +248,44 @@ export default function StudioCategoriasPanel({
     } catch {
       /* sin almacenamiento: solo no se recuerda */
     }
+    onElegirCategoria?.(id);
   }
+  /** Con una etiqueta abierta la lista se pliega a un riel para dejarle el
+   *  ancho al lienzo; se recuerda lo que cada quien prefiera. */
+  const [plegada, setPlegada] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(CLAVE_LISTA_PLEGADA) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const cambiarPlegada = (v: boolean) => {
+    setPlegada(v);
+    try {
+      localStorage.setItem(CLAVE_LISTA_PLEGADA, v ? "1" : "0");
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
+  /** Categorías desplegadas en la lista lateral (muestran sus etiquetas debajo). */
+  const [desplegadas, setDesplegadas] = useState<Set<string>>(() => new Set());
+  const alternarDesplegada = (id: string) =>
+    setDesplegadas((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  /** Abrir una etiqueta desde el árbol: marca su categoría sin cerrar el editor. */
+  const abrirDesdeArbol = (catId: string, e: EtiquetaDeCategoria) => {
+    setSelId(catId);
+    try {
+      localStorage.setItem(CLAVE_CATEGORIA_ABIERTA, catId);
+    } catch {
+      /* sin almacenamiento */
+    }
+    onAbrirEtiqueta(e);
+  };
   const [creandoCat, setCreandoCat] = useState(false);
   const [nombreCat, setNombreCat] = useState("");
   const [clavesCat, setClavesCat] = useState("");
@@ -368,26 +416,34 @@ export default function StudioCategoriasPanel({
     [resumen],
   );
 
-  // Buscador: si coincide la categoría (nombre o palabras clave) o una de sus
-  // plantillas, la tarjeta sale entera; si solo coinciden etiquetas, la tarjeta
-  // muestra únicamente esas.
+  // Buscador: manda lo que coincide en las ETIQUETAS. Si alguna coincide, la
+  // categoría muestra solo esas. Antes la categoría salía entera cuando la
+  // búsqueda caía en sus palabras clave: «chia» es clave de Semillas & Frutos
+  // Secos y mostraba sus 33 etiquetas, como si el buscador no filtrara. Entera
+  // solo sale si ninguna etiqueta coincide pero sí su nombre, claves o plantillas.
   const q = normalizarBusqueda(buscar);
   const visibles = useMemo(() => {
     if (!q) return ordenadas;
-    const out: ResumenCategoria[] = [];
+    const conEtiquetas: ResumenCategoria[] = [];
+    const soloCategoria: ResumenCategoria[] = [];
     for (const r of ordenadas) {
+      const etiquetas = r.etiquetas.filter((e) => coincideBusqueda(`${e.nombre} ${e.detalle}`, q));
+      if (etiquetas.length > 0) {
+        conEtiquetas.push({ ...r, etiquetas });
+        continue;
+      }
       const porCategoria =
         coincideBusqueda(`${r.categoria.etiqueta} ${(r.categoria.claves || []).join(" ")}`, q) ||
         r.plantillas.some((p) => coincideBusqueda(`${p.nombre} ${p.formato}`, q));
-      if (porCategoria) {
-        out.push(r);
-        continue;
-      }
-      const etiquetas = r.etiquetas.filter((e) => coincideBusqueda(`${e.nombre} ${e.detalle}`, q));
-      if (etiquetas.length > 0) out.push({ ...r, etiquetas });
+      if (porCategoria) soloCategoria.push(r);
     }
-    return out;
+    // Primero donde hay etiquetas que coinciden: es la que se abre en el detalle.
+    return [...conEtiquetas, ...soloCategoria];
   }, [ordenadas, q]);
+  const conCoincidencias = useMemo(
+    () => new Set(q ? ordenadas.filter((r) => r.etiquetas.some((e) => coincideBusqueda(`${e.nombre} ${e.detalle}`, q))).map((r) => r.categoria.id) : []),
+    [ordenadas, q],
+  );
 
   if (cargando) {
     return (
@@ -397,22 +453,38 @@ export default function StudioCategoriasPanel({
     );
   }
 
-  const sel = visibles.find((r) => r.categoria.id === selId) ?? visibles[0] ?? null;
+  // Con búsqueda, la categoría recordada solo se conserva si tiene etiquetas que
+  // coinciden; si no, se abre la primera con resultados.
+  const recordada = visibles.find((r) => r.categoria.id === selId);
+  const sel =
+    (q && recordada && visibles[0] && recordada.etiquetas.length === 0 && visibles[0].etiquetas.length > 0
+      ? visibles[0]
+      : recordada) ?? visibles[0] ?? null;
   // Con el buscador activo `sel.etiquetas` viene filtrada; los avisos cuentan todas.
   const totalEtiquetasSel = sel
     ? (resumen.find((r) => r.categoria.id === sel.categoria.id)?.etiquetas.length ?? sel.etiquetas.length)
     : 0;
 
-  return (
-    // Lista + detalle: las categorías caben todas a la izquierda y a la derecha
-    // se ve solo la elegida. La portada anterior (una tarjeta alta por categoría)
-    // pedía 3,4 pantallas de scroll y una lista con scroll propio en cada tarjeta.
-    <div className="lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:items-start lg:gap-4">
-      <nav className="mb-3 lg:sticky lg:top-0 lg:mb-0" aria-label="Categorías de producto">
+  const lista = (
+      <nav
+        className="mb-3 lg:sticky lg:top-0 lg:mb-0"
+        aria-label="Categorías de producto"
+      >
         <div className="mb-1.5 flex items-center gap-2">
           <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
             Categorías ({q ? `${visibles.length} de ${ordenadas.length}` : ordenadas.length})
           </p>
+          {editor && (
+            <button
+              type="button"
+              onClick={() => cambiarPlegada(true)}
+              title="Plegar la lista para darle más espacio al lienzo"
+              className="hidden shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:bg-surface-hover hover:text-ink lg:block"
+            >
+              «
+            </button>
+          )}
+          {!editor && (
           <button
             type="button"
             onClick={() => setCreandoCat((v) => !v)}
@@ -420,19 +492,36 @@ export default function StudioCategoriasPanel({
           >
             {creandoCat ? "Cancelar" : "+ Categoría"}
           </button>
+          )}
         </div>
         {/* En pantallas angostas la lista es una tira horizontal: no empuja el detalle hacia abajo. */}
-        <ul className="flex gap-1 overflow-x-auto pb-1 lg:max-h-[calc(100dvh-13.5rem)] lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1">
+        <ul
+          className="flex gap-1 overflow-x-auto pb-1 lg:max-h-[calc(100dvh-13.5rem)] lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1"
+        >
           {visibles.map((r) => {
             const activa = sel?.categoria.id === r.categoria.id;
+            const abierto = desplegadas.has(r.categoria.id) || conCoincidencias.has(r.categoria.id);
             return (
               <li key={r.categoria.id} className="shrink-0 lg:shrink">
+                <div className="flex items-center gap-0.5">
+                {/* Desplegar: solo en la columna (lg); en la tira horizontal no cabe un árbol. */}
+                <button
+                  type="button"
+                  onClick={() => alternarDesplegada(r.categoria.id)}
+                  disabled={r.etiquetas.length === 0}
+                  aria-expanded={abierto}
+                  aria-label={`${abierto ? "Recoger" : "Desplegar"} las etiquetas de ${r.categoria.etiqueta}`}
+                  title={r.etiquetas.length === 0 ? "Sin etiquetas" : abierto ? "Recoger" : "Ver sus etiquetas"}
+                  className="hidden h-6 w-5 shrink-0 items-center justify-center rounded text-[10px] text-muted hover:bg-surface-hover hover:text-ink disabled:opacity-30 lg:flex"
+                >
+                  <span className={`inline-block transition-transform ${abierto ? "rotate-90" : ""}`}>▶</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => elegirCategoria(r.categoria.id)}
                   aria-current={activa ? "true" : undefined}
                   title={r.categoria.etiqueta}
-                  className={`flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left text-xs transition lg:whitespace-normal ${
+                  className={`flex w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left text-xs transition lg:whitespace-normal ${
                     activa
                       ? "bg-accent font-semibold text-white"
                       : "border border-border text-ink hover:bg-surface-hover lg:border-transparent"
@@ -454,12 +543,70 @@ export default function StudioCategoriasPanel({
                     </span>
                   )}
                 </button>
+                </div>
+                {abierto && r.etiquetas.length > 0 && (
+                  <ul className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
+                    {r.etiquetas.map((e) => {
+                      const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
+                      return (
+                        <li key={e.clave}>
+                          <button
+                            type="button"
+                            onClick={() => abrirDesdeArbol(r.categoria.id, e)}
+                            aria-current={esta ? "true" : undefined}
+                            title={`${e.nombre}${e.detalle ? ` · ${e.detalle}` : ""}${e.fichaId ? "" : " · PNG terminado (se ve en Recursos)"}`}
+                            className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] ${
+                              esta ? "bg-accent/15 font-semibold text-ink" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
+                            }`}
+                          >
+                            {e.nombre}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
             );
           })}
         </ul>
       </nav>
+  );
 
+  return (
+    // Lista + detalle: las categorías caben todas a la izquierda y a la derecha
+    // se ve solo la elegida. La portada anterior (una tarjeta alta por categoría)
+    // pedía 3,4 pantallas de scroll y una lista con scroll propio en cada tarjeta.
+    <div
+      className={`lg:grid lg:items-start ${
+        editor && plegada ? "lg:grid-cols-[2.25rem_minmax(0,1fr)] lg:gap-2" : "lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-4"
+      }`}
+    >
+      {editor && plegada ? (
+        <>
+          {/* Riel: la lista plegada. En celular la tira horizontal sigue igual. */}
+          <button
+            type="button"
+            onClick={() => cambiarPlegada(false)}
+            title="Mostrar las categorías y sus etiquetas"
+            className="hidden h-[calc(100dvh-11rem)] w-9 flex-col items-center gap-2 rounded-xl border border-border bg-surface-panel py-3 text-muted hover:bg-surface-hover hover:text-ink lg:flex"
+          >
+            <span className="text-sm">»</span>
+            <span className="text-[11px] font-semibold tracking-wide [writing-mode:vertical-rl]">
+              Categorías · {sel?.categoria.etiqueta ?? ""}
+            </span>
+          </button>
+          <div className="lg:hidden">{lista}</div>
+        </>
+      ) : (
+        lista
+      )}
+
+      {editor ? (
+        <div className="flex min-h-[70dvh] min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:h-[calc(100dvh-11rem)] lg:min-h-0">
+          {editor}
+        </div>
+      ) : (
       <div className="min-w-0">
         {creandoCat && (
           <div className="mb-3 rounded-xl border border-border bg-surface-panel p-3">
@@ -724,6 +871,7 @@ export default function StudioCategoriasPanel({
           </section>
         )}
       </div>
+      )}
     </div>
   );
 }

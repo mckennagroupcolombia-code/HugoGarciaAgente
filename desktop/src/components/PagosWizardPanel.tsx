@@ -58,6 +58,7 @@ type Previsualizacion = {
   aviso_documento?: string; diferencia_documento?: number; total_documento?: number;
   perfil_cuenta?: { nota?: string; advertencia?: string; cuenta_nombre?: string };
   pagado_ahora?: number; saldo_pendiente?: number; cuenta_saldo?: string; permite_parcial?: boolean;
+  anticipo?: number; cuenta_anticipo?: string;
   // Solo en el recálculo de una solicitud guardada: avisa si el origen cambió.
   difiere_de_lo_guardado?: boolean; monto_guardado?: number;
 };
@@ -1141,6 +1142,21 @@ export function Wizard({
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const [proveedor, setProveedor] = useState<Proveedor | null>(null);
+  // Impuestos de la compra con productos. Antes este recorrido no los mostraba
+  // —el motor los liquidaba por la ficha del tercero y la cuenta— y quien
+  // registraba una compra no tenía dónde ver ni decidir la retención en la
+  // fuente ni el ICA: se causaban a ciegas. Mismas reglas que WizardSimple.
+  const [icaPorMil, setIcaPorMil] = useState("");
+  const [gmf, setGmf] = useState(false);
+  // Lo que de verdad salió del banco (modo directo): si difiere de la factura,
+  // el motor deja anticipo (pagó de más) o saldo por pagar (pagó de menos).
+  const [seTransfirio, setSeTransfirio] = useState(inicial?.girado_esperado != null ? String(Math.round(inicial.girado_esperado)) : "");
+  useEffect(() => {
+    if (!proveedor) return;
+    const ica = Number(proveedor.ica_por_mil ?? 0);
+    setIcaPorMil(ica > 0 ? String(ica) : "");
+    if (proveedor.gmf_por_defecto) setGmf(true);
+  }, [proveedor?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Precarga del proveedor: el listado trae la ficha completa (retenciones,
   // cuenta y medio por defecto), que es lo que el wizard necesita para no
   // preguntar de nuevo lo que ya se le pagó a ese tercero otras veces.
@@ -1217,7 +1233,12 @@ export function Wizard({
     medio_pago_id: f.medio_pago_id ? Number(f.medio_pago_id) : null,
     cuenta_debito: f.cuenta_debito, tipo_servicio: f.tipo_servicio,
     items: conProductos ? itemsCuerpo : undefined,
-  }), [cat, f, conProductos, tot.total, itemsCuerpo]);
+    // Quién asume la retención vive en la ficha del tercero, no en un botón.
+    retencion_modo: proveedor?.regimen_simple || proveedor?.retefuente_exento ? "ninguna" : proveedor?.retencion_asume_mckenna ? "mckenna" : "beneficiario",
+    ica_por_mil: parseFloat(icaPorMil.replace(",", ".")) || 0,
+    gmf,
+    ...(modo === "directo" && seTransfirio !== "" && cat?.permite_parcial ? { pagado_ahora: parseFloat(seTransfirio.replace(",", ".")) || 0 } : {}),
+  }), [cat, f, conProductos, tot.total, itemsCuerpo, proveedor, icaPorMil, gmf, modo, seTransfirio]);
 
   const pasoFinal = pasos.length;
   const prevQ = useQuery<Previsualizacion>({
@@ -1446,16 +1467,65 @@ export function Wizard({
               {(prevQ.error as Error).message}
             </p>
           )}
+          <div className="space-y-3 rounded-lg border border-accent/40 bg-accent/5 p-3">
+            <p className="text-sm font-bold text-ink">Cuenta e impuestos de esta compra</p>
+            {/* El recorrido con productos no tenía selector de cuenta: la
+                compra caía siempre en la que trajera la ficha del proveedor y
+                no había forma de verla ni de cambiarla antes de contabilizar. */}
+            <SelectorCuentaPuc
+              cuentas={cuentasQ.data?.cuentas ?? []}
+              value={f.cuenta_debito}
+              sugerida={proveedor?.cuenta_gasto_default || cat?.cuenta_sugerida || "1435"}
+              obligatoria={false}
+              onChange={(v) => set("cuenta_debito", v)}
+            />
+            <div className="rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+              <p className="font-bold text-ink">Retención en la fuente</p>
+              {proveedor?.regimen_simple ? (
+                <p className="text-muted">No se practica: {proveedor.nombre} es del Régimen SIMPLE (Art. 911 E.T.).</p>
+              ) : proveedor?.retefuente_exento ? (
+                <p className="text-muted">No se practica: en la ficha de {proveedor.nombre} está marcado como exento.</p>
+              ) : proveedor?.retencion_asume_mckenna ? (
+                <p className="text-ink"><span className="font-bold text-accent">La asume McKenna:</span> {proveedor.nombre} recibe el valor completo y la retención se suma al costo.</p>
+              ) : (
+                <p className="text-muted">Se le descuenta a <span className="font-bold text-ink">{proveedor?.nombre || "el proveedor"}</span> según la cuenta (compras: 2,5 % sobre la base sin IVA, si supera la cuantía mínima). El valor exacto sale en el asiento de abajo.</p>
+              )}
+              <p className="text-xs text-muted">Quién la asume o si está exento se decide en la ficha del tercero, no pago por pago.</p>
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <span className="font-bold text-ink">Tarifa de ICA</span>
+              <input type="number" min="0" step="0.01" value={icaPorMil} onChange={(e) => setIcaPorMil(e.target.value)} placeholder="0"
+                     className="w-24 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm text-ink" />
+              <span className="text-sm text-muted">por mil (0 = no lleva) · cuenta 2368</span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 text-sm">
+              <input type="checkbox" checked={gmf} onChange={(e) => setGmf(e.target.checked)} className="mt-1" />
+              <span><span className="font-bold text-ink">Sumar el 4x1000 (GMF)</span><span className="block text-xs text-muted">Normalmente NO: Bancolombia lo cobra en una línea diaria que ya se concilia sola.</span></span>
+            </label>
+            {modo === "directo" && cat?.permite_parcial && (
+              <label className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-bold text-ink">Se transfirió</span>
+                <input type="number" min="0" step="1" value={seTransfirio} onChange={(e) => setSeTransfirio(e.target.value)}
+                       className="w-36 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-sm tabular-nums text-ink" />
+                <span className="text-xs text-muted">lo que salió del banco. Si es más que la factura queda un anticipo a favor (133005); si es menos, un saldo por pagar.</span>
+              </label>
+            )}
+          </div>
           {prevQ.data && <AsientoPreview p={prevQ.data} />}
+          {prevQ.data && (prevQ.data.anticipo ?? 0) > 0 && (
+            <p className="rounded-lg border border-accent-sun/60 bg-accent-sun/10 px-3 py-2 text-sm text-ink">
+              <b>Anticipo a favor:</b> se transfirió {cop(prevQ.data.pagado_ahora ?? 0)} y la factura es por {cop(prevQ.data.girado)}. Los {cop(prevQ.data.anticipo ?? 0)} de más quedan en 133005 a nombre de {prevQ.data.tercero?.nombre || "el proveedor"}, para descontarlos en la próxima factura.
+            </p>
+          )}
           {prevQ.data && inicial?.girado_esperado != null && (
-            Math.round(prevQ.data.girado) === Math.round(inicial.girado_esperado) ? (
+            Math.round(prevQ.data.pagado_ahora ?? prevQ.data.girado) === Math.round(inicial.girado_esperado) ? (
               <p className="rounded-lg border border-emerald-600/40 bg-emerald-600/10 px-3 py-2 text-sm font-bold text-ink">
-                ✓ Gira {cop(prevQ.data.girado)}: exactamente lo que salió del banco.
+                ✓ Del banco salen {cop(prevQ.data.pagado_ahora ?? prevQ.data.girado)}: exactamente lo que dice el extracto.
                 {prevQ.data.retencion > 0 ? ` La factura es por ${cop(prevQ.data.monto)}; ${cop(prevQ.data.retencion)} quedan retenidos.` : ""}
               </p>
             ) : (
               <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-bold text-red-600">
-                ✗ El banco giró {cop(inicial.girado_esperado)} y este asiento gira {cop(prevQ.data.girado)}
+                ✗ El banco giró {cop(inicial.girado_esperado)} y este asiento saca {cop(prevQ.data.pagado_ahora ?? prevQ.data.girado)}
                 {prevQ.data.retencion > 0 ? ` (factura ${cop(prevQ.data.monto)} − retención ${cop(prevQ.data.retencion)})` : ""}.
                 Revisa el total de la factura, el IVA de cada línea o la retención: lo que se registra tiene que ser lo que salió del banco.
               </p>
@@ -1486,7 +1556,7 @@ export function Wizard({
                   directoMut.mutate();
                 }}
                 disabled={!prevQ.data?.cuadra || directoMut.isPending || crearMut.isPending
-                  || (modo === "directo" && inicial?.girado_esperado != null && Math.round(prevQ.data?.girado ?? -1) !== Math.round(inicial.girado_esperado))}
+                  || (modo === "directo" && inicial?.girado_esperado != null && Math.round(prevQ.data?.pagado_ahora ?? prevQ.data?.girado ?? -1) !== Math.round(inicial.girado_esperado))}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
               >
                 {directoMut.isPending ? "Registrando…" : modo === "directo" ? "Registrar · ya pagado por el banco" : "Registrar y contabilizar ya"}
@@ -1660,6 +1730,12 @@ function TablaProductos({
   });
   const resultados = prodQ.data?.productos ?? [];
 
+  /** Una línea que no está en el catálogo: se escribe a mano y queda sin SKU. */
+  function agregarLibre(nombre: string) {
+    setItems([...items, { sku: "", nombre: nombre.trim(), cantidad: "1", precio: "", iva_pct: "19", unidad: "" }]);
+    setQ("");
+  }
+
   function agregar(p: ProductoCat) {
     if (items.some((it) => it.sku === p.sku)) return;
     setItems([...items, {
@@ -1695,7 +1771,24 @@ function TablaProductos({
               </button>
             ))}
             {!prodQ.isLoading && !resultados.length && (
-              <p className="px-3 py-2 text-sm text-muted">Sin resultados entre las materias primas del catálogo Alegra. Si es un insumo nuevo, créalo primero en Catálogo Alegra.</p>
+              // Antes esto era el final del camino: «créalo primero en Catálogo
+              // Alegra» y el recorrido se quedaba ahí, sin poder registrar la
+              // compra. El propionato y la glicina de CADIEP, o las bolsas
+              // PET/PBD de Comercializadora, no están en el catálogo y aun así
+              // hay que contabilizar su factura. Se agrega la línea con su
+              // nombre; crear el producto en Alegra es otra tarea, no un
+              // requisito para causar lo que ya se pagó.
+              <div className="px-3 py-2">
+                <p className="text-sm text-muted">No está en el catálogo de Alegra.</p>
+                <button type="button" onClick={() => agregarLibre(q)}
+                        className="mt-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">
+                  Agregar «{q.trim()}» sin referencia
+                </button>
+                <p className="mt-1 text-xs text-muted">
+                  Queda en el asiento por su nombre y en la cuenta que elijas. Si es un insumo que se
+                  va a volver a comprar, conviene crearlo después en Catálogo Alegra.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -1748,7 +1841,12 @@ function PasoProductos({
   tot: { subtotal: number; iva: number; total: number };
   onAtras: () => void; onSiguiente: () => void;
 }) {
-  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && it.sku);
+  // Basta el NOMBRE. Exigir la referencia del catálogo dejaba sin salida a
+  // cualquier compra de algo que Alegra no tenga creado —el propionato y la
+  // glicina de CADIEP, las bolsas PET/PBD de Comercializadora— y el operador
+  // se quedaba en este paso sin poder seguir ni saber por qué. El backend
+  // (`normalizar_items`) nunca necesitó el SKU: pide sku O nombre.
+  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && (it.sku || it.nombre.trim()));
   return (
     <div className="space-y-3">
       <p className="text-sm font-bold text-accent">¿Qué materias primas se compran? (referencia del catálogo Alegra)</p>
@@ -1954,7 +2052,9 @@ function AsientoPreview({ p }: { p: Previsualizacion }) {
       <div className="grid gap-2 sm:grid-cols-3">
         <Mini label="Monto" valor={cop(p.monto)} />
         {p.retencion > 0 && <Mini label="Retención" valor={`− ${cop(p.retencion)}`} />}
+        {(p.retencion_ica ?? 0) > 0 && <Mini label="ICA" valor={`− ${cop(p.retencion_ica ?? 0)}`} />}
         <Mini label="Se gira" valor={cop(p.girado)} acento />
+        {(p.anticipo ?? 0) > 0 && <Mini label="Anticipo a favor" valor={cop(p.anticipo ?? 0)} />}
       </div>
       {cuentas.length > 0 && (
         <div className="flex gap-1" role="tablist" aria-label="Cómo ver el asiento">

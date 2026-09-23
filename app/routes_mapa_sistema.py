@@ -17,7 +17,7 @@ from pathlib import Path
 
 from flask import jsonify, request, send_file
 
-_PERMISOS = ("mapa-sistema", "combos")
+_PERMISOS = ("mapa-sistema", "combos", "producto")  # «producto» = Espacio de producto (lee /combos)
 _DIAGRAMAS_DIR = Path(__file__).resolve().parents[1] / "docs" / "arquitectura"
 
 

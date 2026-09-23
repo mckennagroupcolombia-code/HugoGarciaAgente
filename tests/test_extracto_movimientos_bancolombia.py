@@ -13,17 +13,31 @@ import pytest
 
 @pytest.fixture()
 def extracto_db(monkeypatch, tmp_path):
+    """Base de contabilidad aislada — las DOS rutas.
+
+    `contabilidad_db` y `contabilidad_core` apuntan cada uno a su propio
+    `_DB_PATH`. Aislar solo el primero dejó al segundo escribiendo en la base
+    REAL: el 22-sep-2026 cada corrida de esta suite creó en producción once
+    «Compra empaques», un «Pago proveedor», un «Intereses» y un «Cobro» que
+    hubo que borrar a mano. Cualquier fixture que toque el libro tiene que
+    aislar las dos.
+    """
     db = tmp_path / "contabilidad_test.db"
     extractos_dir = tmp_path / "extractos"
     extractos_dir.mkdir()
 
+    import app.services.contabilidad_core as cc
     import app.services.contabilidad_db as cdb
     import app.services.extracto_bancario as eb
 
     monkeypatch.setattr(cdb, "_DB_PATH", str(db))
     monkeypatch.setattr(cdb, "_initialized", False)
+    monkeypatch.setattr(cc, "_DB_PATH", str(db))
+    monkeypatch.setattr(cc, "_initialized", False)
     monkeypatch.setattr(eb, "_EXTRACTOS_DIR", str(extractos_dir))
+    monkeypatch.setenv("CONTABILIDAD_FECHA_CORTE", "2026-01-01")
     cdb.init_db()
+    cc.init_db()
     eb.ensure_extracto_tables()
     return eb
 
@@ -249,6 +263,34 @@ def test_con_el_libro_listo_empareja(tablero_db):
     assert por_monto[1_300_000.0]["estado"] == "sugerida"
     assert por_monto[1_300_000.0]["candidatos"][0]["movimiento_id"] == "asiento-1"
     assert por_monto[39_600.0]["estado"] == "sin_causar"
+
+
+def test_el_libro_vencido_se_sigue_usando_mientras_se_rearma(tablero_db, monkeypatch):
+    """Un libro vencido NO devuelve el taller a «revisando».
+
+    Esto fue un bug reportado: cada cinco minutos vencía la caché y, durante los
+    ~30 s que tarda Alegra, todas las líneas volvían a `revisando`. El emergente
+    del asiento reemplaza entonces los botones por «Buscando en el libro…», así
+    que el operador le daba clic a «Causar así» y no pasaba nada —el botón se
+    había ido debajo del cursor—. El libro viejo se sigue sirviendo mientras el
+    hilo trae el nuevo.
+    """
+    ct = tablero_db
+    t = ct.tablero("2026-09-01", "2026-09-30", esperar=True, _traer=_libro_de_prueba)
+    assert t["libro_listo"] is True and t["libro_fresco"] is True
+
+    monkeypatch.setattr(ct, "_TTL_S", -1.0)  # todo lo guardado queda vencido
+    arranques = []
+    monkeypatch.setattr(ct, "_armar_en_segundo_plano", lambda clave, traer: arranques.append(clave))
+
+    t2 = ct.tablero("2026-09-01", "2026-09-30", _traer=_libro_de_prueba)
+    assert t2["libro_listo"] is True, "el libro viejo se sigue usando"
+    assert t2["libro_fresco"] is False, "pero se avisa que está viejo"
+    assert arranques, "y se rearma en segundo plano"
+    por_monto = {l["monto"]: l for l in t2["lineas"]}
+    assert por_monto[1_300_000.0]["estado"] == "sugerida"
+    assert por_monto[39_600.0]["estado"] == "sin_causar"
+    assert "revisando" not in {l["estado"] for l in t2["lineas"]}
 
 
 def test_vincular_no_vuelve_a_pedir_el_libro(tablero_db):
@@ -626,9 +668,10 @@ def test_la_venta_meli_se_postea_contra_mercadopago_no_contra_bancos(libro_propi
 
     r = ap.postear_fila(_row(fecha="2026-09-15", tipo="ingreso", fuente="meli_venta", concepto="Venta MeLi",
                              monto=67_915, referencia="2000015039438233", contraparte="X", extra={"order_id": "2000018591066186"}))
-    mp = libro_propio.codigo_vivo("111010")   # 112515 mientras 111010 sea alias
-    assert mp != "1110"
+    PLATAFORMA = {"111010", "112515"}   # 111010 o su cuenta viva; nunca Bancos
     mov = libro_propio.obtener_movimiento(r["movimiento_id"])
+    mp = next(l["cuenta_codigo"] for l in mov["lineas"] if l["debito"] > 0)
+    assert mp in PLATAFORMA
     assert {(l["cuenta_codigo"], l["debito"], l["credito"]) for l in mov["lineas"]} == {(mp, 67_915.0, 0.0), ("4135", 0.0, 67_915.0)}
     r2 = ap.postear_fila(_row(fecha="2026-09-15", tipo="egreso", fuente="meli_cobro", concepto="Comisión MeLi",
                               monto=8_000, referencia="2000015039438233", contraparte="X", extra={"order_id": "2000018591066186"}))
@@ -644,8 +687,7 @@ def test_el_retiro_de_mercadopago_se_propone_como_traslado(tablero_db, monkeypat
     csv = "428-000009-74, 428, , 20260921, , 9000000.00, 2142, PAGO INTERBANC MERCADOPAGO SA, 0,\n".encode("latin-1")
     eb.importar_extracto(csv, "mp.csv", banco="Bancolombia")
     l = next(x for x in ct.tablero("2026-09-01", "2026-09-30")["lineas"] if x["monto"] == 9_000_000.0)
-    import app.services.contabilidad_core as cc
-    assert l["propuesta"]["cuenta"] == cc.codigo_vivo("111010") and l["propuesta"]["confianza"] == "alta"
+    assert l["propuesta"]["cuenta"] in ("111010", "112515") and l["propuesta"]["confianza"] == "alta"
 
 
 def test_el_lote_de_un_retiro_es_lo_liberado_desde_el_anterior(tablero_db, monkeypatch, tmp_path):
@@ -686,3 +728,34 @@ def test_el_lote_de_un_retiro_es_lo_liberado_desde_el_anterior(tablero_db, monke
     p1 = next(p for p in lote["pagos"] if p["order_id"] == "O1")
     assert p1["asiento"]["monto"] == 100_000 and p1["factura"]["numero"] == "FV-2-71423"
     assert lote["n_con_asiento"] == 1 and lote["n_con_factura"] == 1
+
+
+# ── Pagar de más deja un anticipo a favor con el proveedor ──────────────────
+
+
+def test_pagar_mas_que_la_factura_deja_anticipo_al_proveedor(libro_propio, monkeypatch):
+    """La transferencia salió por la cotización (1.300.000); la factura vino por
+    1.190.000. El exceso no es gasto: es un anticipo (133005) con el tercero."""
+    from app.services import pagos_wizard as pw
+
+    cc = libro_propio
+    monkeypatch.setattr(pw, "_DB_PATH", cc._DB_PATH, raising=False)
+    pw._ensure()
+    prov = cc.crear_tercero({"nombre": "COMERCIALIZADORA INTERNACIONAL C.I. S.A.S.", "tipo": "proveedor", "tipo_persona": "juridica", "identificacion": "811000608"})
+    with cc._conn() as con:
+        banco = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo='1110'").fetchone()[0]
+        medio = con.execute("SELECT id FROM cc_medios_pago LIMIT 1").fetchone()
+        medio_id = medio[0] if medio else con.execute("INSERT INTO cc_medios_pago (nombre, cuenta_id, activo) VALUES ('Bancolombia', ?, 1)", (banco,)).lastrowid
+    cat_id = next(k for k, c in pw.CATEGORIAS.items() if c.get("con_productos") and c.get("permite_parcial"))
+    prev = pw.previsualizar({
+        "categoria": cat_id, "fecha": "2026-09-01", "tercero_id": prov["id"], "medio_pago_id": medio_id,
+        "concepto": "Compra insumos", "monto": 0,
+        "items": [{"sku": "X1", "nombre": "Insumo", "cantidad": 1, "precio": 1_000_000, "iva_pct": 19}],
+        "pagado_ahora": 1_300_000, "retencion_modo": "ninguna", "ica_por_mil": 0,
+    })
+    assert prev["monto"] == 1_190_000
+    assert prev["anticipo"] == 110_000 and prev["cuenta_anticipo"] == "133005"
+    por_cuenta = {l["cuenta_codigo"]: l for l in prev["lineas"]}
+    assert por_cuenta["133005"]["debito"] == 110_000
+    assert por_cuenta["1110"]["credito"] == 1_300_000
+    assert prev["cuadra"] is True

@@ -95,6 +95,10 @@ interface Comprobacion {
   dias: number | null;
   cuadra: boolean;
   documento?: Documento | null;
+  corregido?: boolean;
+  ajustes?: Ajuste[];
+  documento_soporte?: DocSoporte | null;
+  patas_banco?: { movimiento_id: number; fecha: string; monto: number }[];
   /** Solo para asientos propios (`cc:`): cómo quedó, línea por línea. */
   lineas?: { cuenta: string; nombre: string; debito: number; credito: number; tercero: string; descripcion: string }[];
   cuentas?: string[];
@@ -134,6 +138,11 @@ interface CuentaT {
 }
 interface LineaAsiento { cuenta_codigo: string; cuenta_nombre: string; debito: number; credito: number; descripcion: string; tercero: string }
 /** El asiento que explica la línea del banco: el real, el candidato del libro, o el que se propone causar. */
+/** Un ajuste que corrigió el asiento original (ajuste PUC, ajuste ICA…). */
+interface Ajuste { id: number; fecha: string; concepto: string; referencia: string }
+/** El documento soporte emitido a la DIAN por esta operación. */
+interface DocSoporte { numero: string; estado: string; estado_dian: string; cuds: string; fecha: string; base?: number; retencion_ica?: number; girado?: number; cuenta_puc?: string }
+
 interface AsientoVista {
   origen: "real" | "candidato" | "propuesto";
   titulo: string;
@@ -142,6 +151,10 @@ interface AsientoVista {
   fuente?: string;
   monto?: number;
   confianza?: "alta" | "revisar";
+  /** Si el asiento fue corregido: las líneas son el NETO de la cadena. */
+  ajustes?: Ajuste[];
+  documento_soporte?: DocSoporte | null;
+  patas_banco?: { movimiento_id: number; fecha: string; monto: number }[];
 }
 type CompraAbierta = { tipo: "productos" | "servicios" };
 
@@ -668,6 +681,7 @@ function FichaComprobacion({ l }: { l: LineaBanco }) {
         </span>
       </div>
       {v.estado !== "ok" && <p className="mt-1.5 text-[11.5px] text-ink">{v.detalle}</p>}
+      {c?.corregido && <div className="mt-2"><Cadena ajustes={c.ajustes} ds={c.documento_soporte} patas={c.patas_banco} /></div>}
 
       {c?.lineas && c.lineas.length > 0 && (
         <div className="mt-2 overflow-hidden rounded-md border border-border bg-surface-panel">
@@ -701,6 +715,33 @@ function FichaComprobacion({ l }: { l: LineaBanco }) {
         </ul>
       )}
       <p className="mt-1 font-mono text-[9.5px] text-muted">vínculo #{l.vinculo?.vinculo_id} → {l.vinculo?.movimiento_id}{c?.solicitud_id ? ` · solicitud #${c.solicitud_id}` : ""}</p>
+    </div>
+  );
+}
+
+/**
+ * La cadena de una operación corregida: el original ya no dice la verdad solo;
+ * los ajustes y el documento soporte sí. Se enseña para que nadie crea que el
+ * pago está mal registrado cuando lo que está es corregido.
+ */
+function Cadena({ ajustes, ds, patas }: { ajustes?: Ajuste[]; ds?: DocSoporte | null; patas?: { movimiento_id: number; fecha: string; monto: number }[] }) {
+  if (!ajustes?.length && !ds) return null;
+  const dianOk = /ACCEPTED|success/i.test(ds?.estado_dian || ds?.estado || "");
+  return (
+    <div className="rounded-md border border-accent-leaf/50 bg-accent-leaf/10 px-2.5 py-1.5 text-[11.5px] text-ink">
+      <p className="font-bold"><Ico e="✅" /> Corregido: lo que se muestra es el neto de la operación.</p>
+      {ajustes && ajustes.length > 0 && (
+        <p className="mt-0.5 text-muted">Ajustes: {ajustes.map((a) => `#${a.id} (${diaCorto(a.fecha)}) ${a.concepto.replace(/^Ajuste( PUC)? — /, "").slice(0, 60)}`).join(" · ")}</p>
+      )}
+      {ds && (
+        <p className={`mt-0.5 font-mono ${dianOk ? "text-accent-leaf" : "text-accent-sun"}`}>
+          Documento soporte <b>{ds.numero}</b> {dianOk ? "· aceptado por la DIAN" : `· ${ds.estado_dian || ds.estado}`}
+          {ds.cuenta_puc ? ` · ${ds.cuenta_puc}` : ""}{ds.base ? ` · base ${formatCop(ds.base)}` : ""}{ds.retencion_ica ? ` · ICA ${formatCop(ds.retencion_ica)}` : ""}{ds.girado ? ` · girado ${formatCop(ds.girado)}` : ""}
+        </p>
+      )}
+      {patas && patas.length > 1 && (
+        <p className="mt-0.5 font-mono text-muted">Pagado en {patas.length} giros: {patas.map((p) => `${diaCorto(p.fecha)} ${formatCop(p.monto)}`).join(" + ")}. Esta línea es uno de ellos.</p>
+      )}
     </div>
   );
 }
@@ -1011,7 +1052,8 @@ function TableroContable({ l, piezas, sel, guia, destello, premio, onSel }: {
   const totalD = (v?.lineas ?? []).reduce((a, x) => a + x.debito, 0);
   const totalC = (v?.lineas ?? []).reduce((a, x) => a + x.credito, 0);
   const enBanco = (v?.lineas ?? []).filter((x) => x.cuenta_codigo.startsWith("11"));
-  const giraAsiento = enBanco.length ? Math.max(enBanco.reduce((a, x) => a + x.credito, 0), enBanco.reduce((a, x) => a + x.debito, 0)) : null;
+  const pata = v?.patas_banco?.find((p) => Math.round(p.monto) === Math.round(l.monto));
+  const giraAsiento = pata ? pata.monto : enBanco.length ? Math.max(enBanco.reduce((a, x) => a + x.credito, 0), enBanco.reduce((a, x) => a + x.debito, 0)) : null;
   const posteado = v?.origen !== "propuesto";
   const ORIGEN = {
     real: { rotulo: "Asiento vinculado", tono: "border-accent-leaf/50 bg-accent-leaf/5" },
@@ -1082,6 +1124,7 @@ function TableroContable({ l, piezas, sel, guia, destello, premio, onSel }: {
             )}
           </div>
 
+          {(v.ajustes?.length || v.documento_soporte) ? <div className="mt-2"><Cadena ajustes={v.ajustes} ds={v.documento_soporte} patas={v.patas_banco} /></div> : null}
           {v.lineas.length === 0 ? (
             <p className="mt-2 text-[12px] text-muted">Es un asiento de {v.fuente || "otra fuente"} por {formatCop(v.monto ?? 0)}: sus cuentas viven en esa fuente, no en el libro propio.</p>
           ) : vista === "t" && v.cuentas_t.length > 0 ? (
@@ -1673,7 +1716,7 @@ export default function TallerConciliacion() {
           ayuda={<>
             Proveedor, fecha, monto y medio ya vienen de la línea del banco. Agrega los productos por su referencia del catálogo de Alegra
             {compra.tipo === "productos" && <> — o <button type="button" className="font-bold text-accent underline-offset-2 hover:underline" onClick={() => setCrearProducto(true)}>crea el producto</button> si no existe</>}
-            , coteja la factura y registra: el asiento queda contra inventario, se espeja en Alegra y se vincula a esta línea.
+            , coteja la factura y registra. No pasa por aprobación ni por dos tokens: el pago ya salió del banco y el extracto es la aprobación. Lo único que se exige es que del banco salgan exactamente {formatCop(l.monto)}: si la factura es por otro valor, la diferencia queda como anticipo a favor o saldo por pagar con el proveedor.
           </>}>
           {categoriaCompra ? (
             <Suspense fallback={<p className="p-6 text-sm text-muted">Abriendo la solicitud de compra…</p>}>

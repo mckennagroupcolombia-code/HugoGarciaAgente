@@ -138,7 +138,8 @@ def documentos_por_titulo() -> list[dict]:
             memo = (firma, _entrada_documento(ft, y))
             _DOCS_MEMO[y.name] = memo
         if memo[1] is not None:
-            out.append(dict(memo[1]))
+            # La fecha va aparte del memo: desempata entre documentos del mismo producto.
+            out.append({**memo[1], "mtime": st.st_mtime})
     for k in set(_DOCS_MEMO) - vistos:
         del _DOCS_MEMO[k]
     return out
@@ -196,8 +197,28 @@ def mejor_documento(ref: str, nombre: str, docs: list[dict]) -> dict | None:
             cand.append((inter / max(len(tn), len(d["toks"])) + 1, d))
     if not cand:
         return None
-    cand.sort(key=lambda x: (-x[0], _ORDEN_DOC.index(x[1]["estado"])))
+    # Empate (mismo SKU y mismo estado): gana el editado más recientemente. Guardar un
+    # documento con otro título crea OTRO archivo (p. ej. «SEMILLLA DE CHÍA» junto a
+    # «CHÍA», los dos con referencia SEMCHIg); el orden alfabético elegía el viejo y lo
+    # corregido nunca llegaba a la etiqueta ni al taller.
+    cand.sort(key=lambda x: (-x[0], _ORDEN_DOC.index(x[1]["estado"]), -float(x[1].get("mtime") or 0)))
     return cand[0][1]
+
+
+def documento_vigente(archivo: str) -> dict | None:
+    """El documento que hoy vale para el producto de `archivo`: el mejor de los que
+    declaran su mismo SKU de referencia (completo antes que borrador o vacío; a igual
+    estado, el más reciente). Sin referencia, el propio archivo."""
+    docs = documentos_por_titulo()
+    nombre = archivo if archivo.endswith((".yaml", ".yml")) else f"{archivo}.yaml"
+    propio = next((d for d in docs if d["archivo"] == nombre), None)
+    if not propio:
+        return None
+    ref = propio.get("referencia") or ""
+    if not ref:
+        return propio
+    mismos = [d for d in docs if ref.lower() in {x.lower() for x in [d["referencia"], *d.get("equivalentes", [])] if x}]
+    return mejor_documento(ref, propio["titulo"], mismos) or propio
 
 
 def auditar() -> dict:

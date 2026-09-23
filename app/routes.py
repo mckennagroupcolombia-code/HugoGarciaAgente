@@ -5488,6 +5488,28 @@ def register_routes(app):
 
         return jsonify({"items": listar_yaml_datos()})
 
+    @app.route("/app/api/fichas/datos/<slug>/vigente", methods=["GET"])
+    @app.route("/api/fichas/datos/<slug>/vigente", methods=["GET"])
+    def api_fichas_datos_vigente(slug: str):
+        """Qué documento vale hoy para el producto de `slug` (mismo SKU de referencia,
+        el más completo y, a igual estado, el más reciente). Lo usa la etiqueta para
+        seguir al documento que se edita aunque se haya guardado con otro nombre."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mapa_producto import _auditoria
+
+        slug_safe = re.sub(r"[^a-zA-Z0-9_-]", "", slug)
+        doc = _auditoria().documento_vigente(slug_safe)
+        if not doc:
+            return jsonify({"error": "No encontrado"}), 404
+        return jsonify({
+            "id": doc["archivo"].rsplit(".", 1)[0],
+            "titulo": doc["titulo"],
+            "estado": doc["estado"],
+            "referencia": doc.get("referencia") or "",
+            "cambio": doc["archivo"].rsplit(".", 1)[0] != slug_safe,
+        })
+
     @app.route("/app/api/fichas/datos/<slug>", methods=["GET"])
     @app.route("/api/fichas/datos/<slug>", methods=["GET"])
     def api_fichas_datos_get(slug: str):

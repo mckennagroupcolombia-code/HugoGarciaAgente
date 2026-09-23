@@ -29,6 +29,7 @@ export type Panel =
   | "juegos"
   | "arquitectura"
   | "combos"
+  | "producto"
   | "publicaciones"
   | "vitrina-web"
   | "facturacion"

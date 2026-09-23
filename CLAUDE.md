@@ -981,7 +981,7 @@ qué pasa y qué se propone — «No tiene código de barras. Este es el siguien
 mismo `Inspector`, y abajo «Siguiente pendiente: <pieza> →». El banner «siguiente paso» trae **«Resolver ahora →»**. Al
 resolver una pieza el emergente **pasa solo a la siguiente pendiente** con la tira «Listo: <pieza> — seguimos…»; si el combo
 quedó completo se cierra para que se vea la celebración. La publicación y la etiqueta tienen su emergente propio
-(`PublicacionEmergente`, `EtiquetaEmergente`). Si el combo ya tiene etiqueta, tocar la pieza abre **de una vez** el editor (formato y exportación) y al cerrarlo se cierra también la pieza. En ese editor la casilla **«Desenfoque» viene marcada** por defecto: toda etiqueta lleva sus dos PNG (impresión + `_digital` desenfocado). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
+(`PublicacionEmergente`, `EtiquetaEmergente`). Si el combo ya tiene etiqueta, tocar la pieza abre **de una vez** el editor (formato y exportación) y al cerrarlo se cierra también la pieza. En ese editor (el mismo del Studio) hay **un solo botón, «Terminar y aprobar los PNG»** (se quitaron «Guardar PNG para imprimir» e «Imprimir»): genera el PNG de impresión y, con la casilla **«Desenfoque»** (marcada por defecto), a la vez el `_digital` —OCR de «MCKENNA GROUP» + desenfoque en el navegador con **radio 10** (`RADIO_DESENFOQUE_ETIQUETA`; Studio Visual/MeLi sigue en 28), sin marcar nada—; la persona revisa las dos vistas previas lado a lado y «Aprobar y guardar los dos» sube cada uno a su carpeta (`ETIQUETAS STUDIO/<Cat>` y `PUBLICACIONES DIGITALES/<Cat>`). Si el OCR no encuentra la marca, la aprobación queda bloqueada hasta marcar las zonas a mano. En Diseño → Studio el editor de una etiqueta se abre **dentro de la pestaña «Categorías»**, en el lugar del detalle y al lado de la lista (`StudioCategoriasPanel editor=…`); ya no es vista inmersiva: quedan el cabezote, las pestañas y el buscador. Tocar otra categoría o pestaña cierra el editor. Cada categoría de la lista se **despliega** (▶) y muestra sus etiquetas como árbol; tocar una la abre en el editor (la abierta queda resaltada). El buscador filtra por **etiqueta** primero: antes, «chia» caía en las palabras clave de Semillas y mostraba sus 33 etiquetas, como si no filtrara; escribir en él cierra el editor para ver los resultados. **El lienzo es lo protagonista (23-sep):** el editor (`ProductLabelForm`, también en el taller) son tres franjas — barra de herramientas de UNA línea (volver · nombre · punto de autoguardado · formato · Editar/Vista · «Más» · «Terminar y aprobar»), **mesa de trabajo** que llena el resto y agranda la etiqueta hasta ×2,2 (`useEscalaAjuste` con `llenar`, `ESCALA_MAXIMA_MESA`) y barra de estado (formato, código, ficha técnica, avisos como fichas). Categoría, retícula, desenfoque, plantilla, restablecer y SVG viven en «Más». El botón **«Ficha técnica»** de la barra abre en un emergente el documento técnico enlazado (`FichasTecnicasPanel archivoInicial=<fichaTecnicaId>`) para corregir el dato en su origen; **la etiqueta se actualiza sola** (`lib/fichaTecnicaSync.ts`): guarda en `data.fichaTecnicaBase` la foto de lo que trajo de la ficha la última vez y, al abrirse o al volver de la ficha, aplica SOLO los campos que cambiaron en la ficha desde esa foto — lo ajustado a mano en la etiqueta sin tocar la ficha se respeta. Fuera: contenido neto (manda el EAN) y conservación (manda la sugerida de la familia). Una etiqueta sin foto (las anteriores al 23-sep) la toma al abrirse la primera vez; si la ficha se editó antes desde el propio editor o el Espacio de producto, se compara con la foto tomada al entrar a editarla. Reemplaza el «Ajustar la ficha técnica» que solo tenía el emergente del taller. Con una etiqueta abierta la lista de categorías se pliega a un riel (`mck-studio-lista-plegada`). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
 (`z-70`); Esc cierra la pieza solo si no hay otro emergente encima, y con un emergente abierto las flechas no cambian de combo.
 
 **El premio suena, y la foto avisa.** Al completarse las seis piezas suena una moneda (`combos/sonidoMoneda.ts`: dos
@@ -1056,6 +1056,25 @@ Reglas de las acciones:
   columnas, y una etiqueta de arista larga deja la ruta «imposible» sin decir por qué.
 - En «Unir por SKU» solo vienen marcados los de **nombre idéntico**; los *conflictos* (dos materias primas
   reclaman el mismo documento: karité amarilla/blanca, colágeno g/mL) no se pueden marcar.
+
+### W. Espacio de producto (23-sep-2026)
+
+```
+/app → Diseño → «Por producto»  (también desde Docs técnicos; en el flujo: Preparar → Respaldarlo)
+  EspacioProductoPanel.tsx — se elige la presentación (combo C-…) una vez y cada pestaña es el
+  apartado de siempre ya abierto en ella:
+    Ficha técnica   FichasTecnicasPanel archivoInicial=<documento.archivo>
+    Etiqueta        ProductLabelForm (su «Ficha técnica» salta a la pestaña; al volver ofrece «Traer»)
+    Código EAN      CodigosEanPanel filtrado (sin código: alta precargada con el SKU, como el taller)
+    PNG aprobados   ETIQUETAS STUDIO + PUBLICACIONES DIGITALES por nombre de archivo
+```
+
+**Por qué:** el trabajo de un producto saltaba entre dos secciones del menú (Diseño y Docs técnicos)
+buscando el mismo producto en cada una. La unión documento ↔ etiqueta ↔ EAN es la de
+`/api/mapa-sistema/combos` (la del taller); no nace otra forma de escribir. Permiso: `producto`,
+o `combos` / `mapa-sistema` (el backend lo acepta en `_PERMISOS` de `routes_mapa_sistema.py`).
+Diseño y Docs siguen para el trabajo en lote. Los PNG se reconocen por el nombre del archivo
+(nace del título del código de barras): si la etiqueta tiene otro título, no aparecen.
 
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 

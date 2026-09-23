@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
  *
  * Solo se cierra con «Cerrar» (no con Escape ni clic fuera): varios de estos apartados guardan por
  * acciones o autoguardan, y un cierre accidental cortaría lo que se está haciendo.
+ * z-75: se abre por encima del editor de etiqueta (z-70), p. ej. «Ajustar la ficha técnica».
  * `role="dialog"` + `aria-modal` hacen que el taller suspenda sus atajos (← → 1–6) mientras está abierta.
  */
 export default function VentanaTaller({ titulo, combo, ayuda, ancho = "max-w-[1300px]", onCerrar, children }: {
@@ -21,7 +22,7 @@ export default function VentanaTaller({ titulo, combo, ayuda, ancho = "max-w-[13
   children: ReactNode;
 }) {
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-2 sm:p-3" role="dialog" aria-modal="true" aria-label={titulo}>
+    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/45 p-2 sm:p-3" role="dialog" aria-modal="true" aria-label={titulo}>
       <div className={`flex h-[94vh] w-full ${ancho} flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl`}>
         <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-2">
           <div className="min-w-0 flex-1">
