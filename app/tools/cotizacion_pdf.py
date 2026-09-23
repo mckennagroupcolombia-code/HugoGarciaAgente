@@ -152,13 +152,13 @@ def _fecha_texto(fecha) -> tuple[str, datetime]:
 # ─── Identidad de la empresa ────────────────────────────────────────────────
 
 def _empresa() -> dict:
-    """Identidad fiscal desde `app/services/empresa.py` (fuente única) y datos
-    de contacto desde el remitente editable en el panel (Guías de envío)."""
+    """Identidad fiscal desde `app/services/empresa.py` (fuente única) y el
+    WhatsApp desde el remitente editable en el panel (Guías de envío). La
+    cotización no lleva dirección física (decisión del 23-sep-2026): ciudad basta."""
     datos = {
         "razon_social": "McKenna Group S.A.S.",
         "nit": "901.316.016-3",
         "ciudad": "Bogotá D.C.",
-        "direccion": "",
         "telefono": "319 518 35 96",
         "correo": os.getenv("EMPRESA_CORREO", "mckenna.group.colombia@gmail.com"),
         "web": os.getenv("EMPRESA_WEB", "mckennagroup.co"),
@@ -173,8 +173,6 @@ def _empresa() -> dict:
         from app.tools.guias_envio import leer_remitente
 
         rem = leer_remitente()
-        if rem.get("direccion"):
-            datos["direccion"] = rem["direccion"]
         if rem.get("telefono"):
             datos["telefono"] = rem["telefono"]
     except Exception:
@@ -373,10 +371,9 @@ def generar_cotizacion_pdf(cotizacion: dict) -> str:
 
     # ── De / Para
     cliente = cotizacion.get("cliente") or {}
-    ubicacion = ", ".join(x for x in (empresa["direccion"], empresa["ciudad"]) if x)
     de = _bloque_datos("DE", [
         ("NIT", empresa["nit"]),
-        ("", ubicacion),
+        ("", empresa["ciudad"]),
         ("WhatsApp", empresa["telefono"]),
         ("", empresa["correo"]),
     ], empresa["razon_social"], st, ancho_util * 0.47)
