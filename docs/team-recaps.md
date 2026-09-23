@@ -1,3 +1,26 @@
+### 2026-09-23 19:10 - Agenda: «Mi mes en el panel» y ficha de rendimiento en letra grande
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda / RRHH). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** medir el desempeño de cada quien con lo que ya registra el panel, igual que la ficha del artefacto «Mapa de funciones» de la revisión de honorarios, pero en vivo y visible para cada persona.
+  - `app/services/rendimiento.py`: últimos 30 días (llevado a un mes) — cada función con veces, promedio por vez (cronómetro), horas; tipos de trabajo N1–N5; comparación con los 30 días anteriores; días activos. Tareas de más de 10 h no cuentan; tiempo por módulo hasta la siguiente acción (máx. 30 min); si hay cronómetro y panel se toma el mayor. Quien desarrolla (`RENDIMIENTO_DESARROLLADORES`) no «empaca»: ese tiempo es trabajo sobre el módulo; quien imprime (`RENDIMIENTO_IMPRIMEN`) no «diseña».
+  - `GET /api/tickets/rendimiento`: cada quien ve la suya; nivel 3 puede pedir `?usuario_id=` y recibe la lista del equipo. Colaborador externo: 403.
+  - Agenda: tarjeta «Mi mes en el panel» (horas, días activos, variación, 3 funciones principales) y «Ver mi ficha»: ficha a pantalla completa en letra de 20 px (24 px con «Letra más grande»), alto contraste, frases cortas. **Sin pagos ni valoraciones** (la propuesta de honorarios no está decidida).
+  - 3 tests en `tests/test_rendimiento.py`. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/rendimiento.py`, `app/routes_tickets.py`, `desktop/src/components/MiRendimiento.tsx`, `desktop/src/components/TicketsPanel.tsx`, `tests/test_rendimiento.py`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 17:55 - Cotizar/Facturar: comisión del 3 % sobre las ventas de WhatsApp
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Facturación → Cotizar/Facturar). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** en la revisión de honorarios del equipo se acordó que quien atiende WhatsApp cobra una comisión del 3 % sobre lo que vende por ese canal (parte variable de Jenniffer). Hacía falta una cifra exacta y no a mano.
+  - `ventas_directas.comisiones_mes(mes)`: ventas **facturadas** en el mes, por quien creó la venta (quien atendió al cliente). Base = productos **sin IVA ni envío** (`subtotal − envio`). Excluye anuladas y las de origen `meli` (MeLi facturada con RUT). Porcentaje en `VENTAS_DIRECTAS_COMISION_PCT` (default 3).
+  - `GET /api/ventas-directas/comisiones?mes=AAAA-MM`: el vendedor ve solo lo suyo; administración ve a todos.
+  - Panel: en la barra de Cotizar/Facturar, «septiembre: $… · comisión 3 % $…» (se recarga al facturar) y el detalle por vendedor arriba de «Ventas recientes».
+  - Septiembre al 23: 4 ventas de jerry, $2.531.400, base $2.136.296 → $64.089. Incluye FE465 (EQUISURE, $2.353.000): venta de WhatsApp (tiene teléfono del cliente y ninguna referencia de pack de MeLi), así que sí cuenta para la comisión.
+  - 1 test nuevo en `tests/test_ventas_directas.py` (18 en verde). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Cese de actividades global: MeLi pausado, web en mantenimiento y WhatsApp con aviso automático
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (operación). Sin LLM.

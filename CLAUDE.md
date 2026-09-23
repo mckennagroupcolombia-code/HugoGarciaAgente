@@ -579,6 +579,12 @@ Reglas que no se rompen:
   `pagos_impuestos.py` (recibos del contador → 2365/2367/2368…, no es gasto),
   `puc_colombia.DESCRIPCIONES` (guía de las 79 cuentas; test exige que ninguna quede sin guía).
 
+### Mi mes en el panel (ficha de rendimiento, 23-sep-2026)
+En la Agenda, cada persona ve sus horas del último mes, sus funciones (veces, promedio por vez, horas) y el tipo
+de trabajo, y abre «Ver mi ficha» en letra grande (`MiRendimiento.tsx` → `GET /api/tickets/rendimiento`,
+`app/services/rendimiento.py`, sin LLM). Administración ve la de cualquiera. **No muestra pagos ni valoraciones.**
+Solo cuenta lo registrado en el panel; el desarrollo con IA y el trabajo físico sin tarea abierta no suman.
+
 ### Colaboradores (diagramas compartidos, 21-sep-2026)
 Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
 versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
@@ -718,6 +724,10 @@ es opcional** (antes era obligatorio: el operador ponía «.» y cotizar/factura
 «Teléfono inválido»). **Tipo de documento:** `identificacion_fiscal()` manda NIT/CC a Alegra
 (selector en el paso 2, o deducido por nombre de empresa / forma de NIT) y comprueba el DV; sin
 esto Alegra adivinaba por longitud y EQUISURE S.A.S (FE465) quedó como CC.
+
+**Comisión WhatsApp (23-sep-2026):** `comisiones_mes()` / `GET /api/ventas-directas/comisiones` — 3 %
+(`VENTAS_DIRECTAS_COMISION_PCT`) sobre productos sin IVA ni envío de las ventas facturadas del mes, a quien
+creó la venta; excluye origen `meli`. Chip en la barra del módulo y detalle en «Ventas recientes».
 
 Facturar marca la venta `facturando` **antes** de llamar a Alegra (un segundo clic o una pestaña
 duplicada no emite otra factura) y la devuelve a su estado si Alegra falla. Un pedido IA facturado

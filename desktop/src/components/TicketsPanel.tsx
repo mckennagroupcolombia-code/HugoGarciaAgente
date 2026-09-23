@@ -31,6 +31,7 @@ import DolarHoraGadget from "./DolarHoraGadget";
 import InicioLauncher from "./InicioLauncher";
 import { useUiMode } from "../stores/uiMode";
 import AgendaFlujo from "./AgendaFlujo";
+import MiRendimiento from "./MiRendimiento";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
@@ -4334,6 +4335,8 @@ function CentroMandoHome({
       </div>
 
       <InicioLauncher />
+
+      <MiRendimiento token={token} />
 
       <DolarHoraGadget />
 

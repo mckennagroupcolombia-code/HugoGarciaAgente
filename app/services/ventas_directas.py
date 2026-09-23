@@ -1049,3 +1049,59 @@ def precio_sugerido(codigo: str) -> dict:
         "iva_pct": tasa,
         "existe_en_alegra": bool(prod),
     }
+
+
+# ─── Comisión por ventas de WhatsApp ─────────────────────────────────────────
+# Quien atiende WhatsApp cobra un porcentaje de lo que vende por ese canal
+# (decisión del 23-sep-2026: 3 %). La base es el valor de los productos sin IVA
+# ni envío (el IVA es de la DIAN y el envío se le paga a la transportadora).
+# Cuenta solo lo facturado —la factura se emite
+# con el pago confirmado— y lo atribuye a quien creó la venta, que es quien
+# atendió al cliente. Las ventas de MeLi facturadas con RUT (origen "meli") no
+# entran: esa venta la trajo Mercado Libre, no el chat.
+
+COMISION_PCT = float(os.getenv("VENTAS_DIRECTAS_COMISION_PCT", "3") or 0)
+
+
+def comisiones_mes(mes: str | None = None, *, vendedor: str | None = None) -> dict:
+    mes = (mes or datetime.now().strftime("%Y-%m")).strip()
+    if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", mes):
+        raise ValueError("Mes inválido: use AAAA-MM.")
+    with _lock, _conn() as c:
+        filas = c.execute(
+            """SELECT numero, factura_numero, origen, total, subtotal, envio, creado_por, facturado_por, facturado
+               FROM ventas_directas WHERE estado='facturada' AND substr(facturado,1,7)=?
+               ORDER BY facturado""",
+            (mes,),
+        ).fetchall()
+    por: dict[str, dict] = {}
+    meli = {"ventas": 0, "total": 0.0}
+    for r in filas:
+        if r["origen"] == "meli":
+            meli["ventas"] += 1
+            meli["total"] += float(r["total"] or 0)
+            continue
+        quien = (r["creado_por"] or r["facturado_por"] or "sin asignar").strip()
+        if vendedor and quien != vendedor:
+            continue
+        base = max(0.0, float(r["subtotal"] or 0) - float(r["envio"] or 0))
+        v = por.setdefault(quien, {"vendedor": quien, "ventas": 0, "total": 0.0, "base": 0.0, "detalle": []})
+        v["ventas"] += 1
+        v["total"] += float(r["total"] or 0)
+        v["base"] += base
+        v["detalle"].append({"numero": r["numero"], "factura": r["factura_numero"], "origen": r["origen"],
+                             "total": float(r["total"] or 0), "base": _redondear(base, 0), "facturado": r["facturado"]})
+    vendedores = sorted(por.values(), key=lambda x: -x["total"])
+    for v in vendedores:
+        v["total"] = _redondear(v["total"], 0)
+        v["comision"] = _redondear(v["base"] * COMISION_PCT / 100, 0)
+        v["base"] = _redondear(v["base"], 0)
+    return {
+        "mes": mes,
+        "pct": COMISION_PCT,
+        "vendedores": vendedores,
+        "total": _redondear(sum(v["total"] for v in vendedores), 0),
+        "base": _redondear(sum(v["base"] for v in vendedores), 0),
+        "comision_total": _redondear(sum(v["comision"] for v in vendedores), 0),
+        "excluidas_meli": {"ventas": meli["ventas"], "total": _redondear(meli["total"], 0)},
+    }

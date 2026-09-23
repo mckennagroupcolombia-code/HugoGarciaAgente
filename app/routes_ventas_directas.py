@@ -46,12 +46,19 @@ def _auth(f):
 
         if chat_api_token_matches_request():
             g.ventas_directas_usuario = (usuario or {}).get("username") or "sistema"
+            g.ventas_directas_admin = True
             return f(*args, **kwargs)
         if not usuario:
             return jsonify({"error": "No autorizado"}), 401
         if not _usuario_puede(usuario):
             return jsonify({"error": "Cotizar/Facturar requiere el permiso 'cotizar-facturar'"}), 403
         g.ventas_directas_usuario = usuario.get("username") or "?"
+        try:
+            from app.services.tickets_db import es_admin_efectivo
+
+            g.ventas_directas_admin = bool(es_admin_efectivo(usuario))
+        except Exception:
+            g.ventas_directas_admin = False
         return f(*args, **kwargs)
 
     return wrapper
@@ -68,6 +75,17 @@ def _dual(app, rule: str, **opts):
 
 def register_ventas_directas_routes(app):
     from app.services import ventas_directas as V
+
+    @_dual(app, "/api/ventas-directas/comisiones", methods=["GET"])
+    @_auth
+    def vd_comisiones():
+        """Ventas de WhatsApp facturadas en el mes y la comisión de quien las
+        atendió. Un vendedor ve solo lo suyo; administración ve a todos."""
+        vendedor = None if getattr(g, "ventas_directas_admin", False) else g.ventas_directas_usuario
+        try:
+            return jsonify(V.comisiones_mes(request.args.get("mes") or None, vendedor=vendedor))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     @_dual(app, "/api/ventas-directas", methods=["GET"])
     @_auth

@@ -308,3 +308,33 @@ def test_crear_cliente_valida_el_nit():
     assert not r["ok"] and "dígito de verificación" in r["error"]
     r = V.crear_cliente({"nombre": "Sin cédula"})
     assert not r["ok"]
+
+
+def test_comision_whatsapp_por_mes_y_vendedor(monkeypatch):
+    monkeypatch.setattr(V, "COMISION_PCT", 3.0)
+    a = _venta()
+    b = V.guardar({"cliente": {"nombre": "Otra"}, "telefono": "3000000000",
+                   "lineas": [{"codigo": "EXENTO-1", "nombre": "Exento", "cantidad": 20, "precio_unitario": 5000}]},
+                  usuario="stella")
+    m = V.guardar({"origen": "meli", "origen_ref": "2000001", "cliente": {"nombre": "Empresa"},
+                   "lineas": [{"codigo": "EXENTO-1", "nombre": "Exento", "cantidad": 10, "precio_unitario": 5000}]},
+                  usuario="jerry")
+    anulada = _venta()
+    for v in (a, b, m):
+        V._actualizar(v["id"], estado="facturada", facturado="2026-09-20T10:00:00", facturado_por="jerry")
+    V._actualizar(anulada["id"], estado="anulada")
+
+    r = V.comisiones_mes("2026-09")
+    por = {x["vendedor"]: x for x in r["vendedores"]}
+    assert set(por) == {"jerry", "stella"}  # la anulada y la de MeLi no cuentan
+    assert por["jerry"]["ventas"] == 1 and por["jerry"]["total"] == round(a["total"])
+    # base = productos sin IVA ni envío
+    base_a = a["subtotal"] - a["envio"]
+    assert por["jerry"]["base"] == round(base_a) and por["jerry"]["comision"] == round(base_a * 0.03)
+    assert por["stella"]["base"] == 100000 and por["stella"]["comision"] == 3000
+    assert r["excluidas_meli"] == {"ventas": 1, "total": 50000}
+    # un vendedor solo se ve a sí mismo; otro mes no trae nada
+    assert [x["vendedor"] for x in V.comisiones_mes("2026-09", vendedor="stella")["vendedores"]] == ["stella"]
+    assert V.comisiones_mes("2026-08")["vendedores"] == []
+    with pytest.raises(ValueError):
+        V.comisiones_mes("sep-2026")

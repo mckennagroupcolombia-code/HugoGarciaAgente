@@ -734,6 +734,36 @@ def register_tickets_routes(app):
         mine = next((o for o in data["operadores"] if o["usuario_id"] == uid), None)
         return jsonify({"fecha": data["fecha"], "resumen": mine}), 200
 
+    @app.route("/api/tickets/rendimiento", methods=["GET"])
+    @_auth
+    def tickets_rendimiento():
+        """Ficha de rendimiento (funciones, veces, promedio por vez, horas al mes).
+        Cada quien ve la suya; administración puede pedir la de otro con ?usuario_id=."""
+        from app.services.colaboradores import es_colaborador_externo
+        from app.services.rendimiento import equipo_para_selector, rendimiento_usuario
+
+        yo = request.tickets_usuario
+        if es_colaborador_externo(yo):
+            return jsonify({"error": "No disponible"}), 403
+        admin = (yo.get("rol") or {}).get("nivel", 0) >= 3
+        uid = yo["id"]
+        pedido = (request.args.get("usuario_id") or "").strip()
+        if pedido and pedido.isdigit() and int(pedido) != uid:
+            if not admin:
+                return jsonify({"error": "Solo administradores pueden ver la ficha de otra persona"}), 403
+            uid = int(pedido)
+        try:
+            dias = max(7, min(int(request.args.get("dias") or 30), 90))
+        except ValueError:
+            dias = 30
+        try:
+            data = rendimiento_usuario(uid, dias=dias)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
+        if admin:
+            data["equipo"] = equipo_para_selector()
+        return jsonify(data), 200
+
     @app.route("/api/tickets/actividad-equipo", methods=["GET"])
     @_auth
     def tickets_actividad_equipo():

@@ -560,6 +560,7 @@ export default function CotizarFacturarPanel() {
           {origen === "pedido_ia" && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[11px] text-muted">pedido IA #{origenRef}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
+          <ComisionChip recargar={venta?.estado === "facturada" ? venta.id : 0} onAbrir={() => setVerRecientes(true)} />
           <button type="button" className={btnHerramienta} onClick={() => setVerRecientes(true)}>
             <Icon name="clock" size={14} weight="bold" /> Ventas recientes
           </button>
@@ -1642,6 +1643,84 @@ function VistaPrevia({
   );
 }
 
+/* ═══════════════════════════════ Comisión por ventas de WhatsApp ═══════════════════════════════ */
+
+type Comisiones = {
+  mes: string;
+  pct: number;
+  total: number;
+  base: number;
+  comision_total: number;
+  vendedores: { vendedor: string; ventas: number; total: number; base: number; comision: number; detalle: { numero: string; factura: string | null; total: number; base: number }[] }[];
+  excluidas_meli: { ventas: number; total: number };
+};
+
+function nombreMes(mes: string): string {
+  const [a, m] = mes.split("-").map(Number);
+  return new Date(a, (m || 1) - 1, 1).toLocaleDateString("es-CO", { month: "long" });
+}
+
+function useComisiones(recargar: number | string = 0) {
+  const [d, setD] = useState<Comisiones | null>(null);
+  useEffect(() => {
+    api
+      .get<Comisiones>("/api/ventas-directas/comisiones")
+      .then(setD)
+      .catch(() => setD(null));
+  }, [recargar]);
+  return d;
+}
+
+/** Ventas de WhatsApp facturadas este mes y la comisión: a la vista de quien vende. */
+function ComisionChip({ recargar, onAbrir }: { recargar: number; onAbrir: () => void }) {
+  const d = useComisiones(recargar);
+  if (!d) return null;
+  return (
+    <button
+      type="button"
+      onClick={onAbrir}
+      className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-panel px-2.5 py-1 text-[11px] text-muted hover:text-ink"
+      title="Ventas facturadas este mes desde Cotizar/Facturar (sin ventas de MeLi). Base: productos sin IVA ni envío."
+    >
+      <span className="capitalize">{nombreMes(d.mes)}</span>: <span className="font-semibold tabular-nums text-ink">{pesos(d.total)}</span>
+      <span aria-hidden>·</span> comisión {d.pct}% <span className="font-semibold tabular-nums text-ink">{pesos(d.comision_total)}</span>
+    </button>
+  );
+}
+
+function ComisionDetalle() {
+  const d = useComisiones();
+  if (!d) return null;
+  return (
+    <div className="rounded-lg border border-border bg-surface-hover/40 p-3 text-xs">
+      <p className="font-semibold text-ink">
+        Comisión de <span className="capitalize">{nombreMes(d.mes)}</span> · {d.pct}% sobre productos sin IVA ni envío
+      </p>
+      {d.vendedores.length === 0 ? (
+        <p className="mt-1 text-muted">Todavía no hay ventas facturadas este mes.</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {d.vendedores.map((v) => (
+            <li key={v.vendedor} className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-ink">
+                {v.vendedor} · {v.ventas} {v.ventas === 1 ? "venta" : "ventas"} · {pesos(v.total)}
+              </span>
+              <span className="tabular-nums text-muted">
+                base {pesos(v.base)} → <span className="font-semibold text-ink">{pesos(v.comision)}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {d.excluidas_meli.ventas > 0 && (
+        <p className="mt-1 text-[11px] text-muted">
+          No cuentan {d.excluidas_meli.ventas} ventas de MeLi facturadas con RUT ({pesos(d.excluidas_meli.total)}).
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ═══════════════════════════════ Ventas recientes ═══════════════════════════════ */
 
 function PanelRecientes({
@@ -1683,6 +1762,7 @@ function PanelRecientes({
           </button>
         </div>
         <div className="space-y-3 overflow-y-auto p-4">
+          <ComisionDetalle />
           <input
             id="cf-filtro-recientes"
             value={filtro}
