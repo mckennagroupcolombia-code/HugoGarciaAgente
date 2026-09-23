@@ -1,3 +1,15 @@
+### 2026-09-23 - Cese de actividades global: MeLi pausado, web en mantenimiento y WhatsApp con aviso automático
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (operación). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** se pausan todos los canales de venta mientras se reestructura la operación y se hace control de inventarios.
+  - **Un solo interruptor:** `scripts/cese_actividades.py --activar | --desactivar | --estado`. Cada pieza lee su archivo en cada petición: no hace falta reiniciar para prender o apagar.
+  - **MeLi:** `scripts/pausa_global_meli.py` guarda la lista de lo activo ANTES de pausar (279 publicaciones, 0 fallos; las 175 que ya estaban pausadas no se tocan) y al reactivar solo toca esa lista. Mientras dure, la sincronización de stock ya no reactiva publicaciones sola (`meli.pausa_global_meli_activa()`).
+  - **Web:** la bandera `MANTENIMIENTO` con «cese» sirve `mantenimiento/cese.html` (503): «Tendremos un mantenimiento para seguir mejorando tu experiencia… no estamos recibiendo pedidos nuevos». El IPN de MercadoPago sigue pasando.
+  - **WhatsApp:** un cliente 1:1 recibe el aviso (una vez cada 6 h por chat) y su mensaje no llega ni al bot ni a modo humano. El puente rechaza con 423 `/enviar`, `/enviar-archivo` y `/enviar-ptt` a todo lo que no sea grupo ni número interno: ninguna respuesta humana desde el panel llega al cliente. Lo escrito desde el teléfono no se puede frenar.
+  - Tras reiniciar, el puente tardó ~25 min en quedar listo (error «r» de whatsapp-web.js ya conocido; la librería está en su última versión).
+- **Archivos Modificados:** `app/services/cese_actividades.py`, `app/services/meli.py`, `app/tools/meli_compliance.py`, `app/routes.py`, `bot-mckenna/server.js`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/mantenimiento/cese.html`, `scripts/cese_actividades.py`, `scripts/pausa_global_meli.py`, `app/data/cese_actividades.json`, `app/data/meli_pausa_global.json`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-23 - Cuenta de cobro del contador: respuesta automática con el soporte del pago (Libro Mayor + Alegra + DIAN)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección (cron del contador). Sin LLM.

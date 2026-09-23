@@ -2161,6 +2161,23 @@ def register_routes(app):
         if _intentar_ok_preventa(message_text):
             return jsonify({"status": "ok", "respuesta": None})
 
+        # Cese de actividades global: a un cliente 1:1 solo se le avisa que no recibimos
+        # pedidos; no pasa al bot ni a modo humano (ver app/services/cese_actividades.py).
+        try:
+            from app.services import cese_actividades as _cese
+
+            _es_grupo = any("@g.us" in str(j or "") for j in (remote_jid, sender_raw, reply_to_wa))
+            if (
+                _cese.activo()
+                and not _es_grupo
+                and not _cese.es_interno(sender_raw, sender_phone, reply_to_wa)
+            ):
+                aviso = _cese.aviso_para(sender_id)
+                log_json("whatsapp_cese_actividades", sender_preview=str(sender_id)[-24:], aviso=bool(aviso))
+                return jsonify({"status": "ok", "respuesta": aviso})
+        except Exception as e:
+            print(f"⚠️ [CESE] no se pudo evaluar el cese de actividades: {e}")
+
         # --- Comandos pedidos web: facturar / entregado / envio (varios grupos operativos) ---
         if _remote_es_grupo_web_pedido(remote_jid) and message_text:
             tn = _normalizar_texto_comando_wa(message_text)

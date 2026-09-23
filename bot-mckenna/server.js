@@ -734,6 +734,26 @@ client.on('message', async (msg) => {
 // ==========================================
 // 4. API PARA PYTHON (REPORTES MELI)
 // ==========================================
+// ── Cese de actividades global (app/data/cese_actividades.json) ─────────────
+// Mientras esté activo, ningún envío por API llega a un cliente: solo grupos y los
+// números internos listados. Lo escrito desde el teléfono no pasa por aquí.
+const CESE_ARCHIVO = path.join(__dirname, '..', 'app', 'data', 'cese_actividades.json');
+function ceseBloquea(chatId) {
+    let cfg = null;
+    try { cfg = JSON.parse(fs.readFileSync(CESE_ARCHIVO, 'utf8')); } catch (e) { return false; }
+    if (!cfg || !cfg.activa) return false;
+    const id = String(chatId || '');
+    if (id.endsWith('@g.us')) return false;
+    const dig = (x) => String(x || '').split('@')[0].replace(/\D/g, '');
+    const internos = new Set((cfg.numeros_internos || []).map(dig).filter(Boolean));
+    return !internos.has(dig(id));
+}
+function responderCese(res, chatId, origen) {
+    console.log(`⛔ [CESE] envío a cliente bloqueado (${origen}): ${chatId}`);
+    logActividad('ERROR', { texto: `Cese de actividades: envío bloqueado (${origen})`, de: chatId });
+    return res.status(423).json({ status: "error", error: "Cese de actividades: no se envían mensajes a clientes" });
+}
+
 app.post('/enviar', async (req, res) => {
     const { numero, mensaje } = req.body;
 
@@ -746,6 +766,7 @@ app.post('/enviar', async (req, res) => {
         }
 
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar');
 
         const sentMsg = await client.sendMessage(chatId, mensaje);
         // Registrar ID para evitar loop en SEDE SUR (mensaje fromMe del propio bot)
@@ -789,6 +810,7 @@ app.post('/enviar-archivo', async (req, res) => {
         }
         const { MessageMedia } = require('whatsapp-web.js');
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar-archivo');
         if (!filePath || !fs.existsSync(filePath)) {
             return res.status(400).json({ status: "error", error: `Archivo no encontrado: ${filePath}` });
         }
@@ -876,6 +898,7 @@ app.post('/enviar-ptt', async (req, res) => {
         }
         const { MessageMedia } = require('whatsapp-web.js');
         const chatId = numero.includes('@') ? numero : `${numero}@c.us`;
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar-ptt');
         const mime = mimeType || 'audio/mpeg';
         const media = new MessageMedia(mime, audioBase64, 'voice.mp3');
         await client.sendMessage(chatId, media, { sendAudioAsVoice: true });

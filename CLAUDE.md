@@ -1077,6 +1077,22 @@ o `combos` / `mapa-sistema` (el backend lo acepta en `_PERMISOS` de `routes_mapa
 Diseño y Docs siguen para el trabajo en lote. Los PNG se reconocen por el nombre del archivo
 (nace del título del código de barras): si la etiqueta tiene otro título, no aparecen.
 
+### Y. Cese de actividades global (23-sep-2026)
+
+Un comando pausa todos los canales de venta (reestructuración, control de inventario):
+`python3 scripts/cese_actividades.py --activar | --desactivar | --estado`. Sin reinicios: cada pieza lee su archivo.
+- **MeLi**: `scripts/pausa_global_meli.py` guarda en `app/data/meli_pausa_global.json` la lista de lo que
+  estaba activo ANTES de pausar y al reactivar solo toca esa lista. Mientras esté activa,
+  `meli.pausa_global_meli_activa()` impide que la sincronización de stock reactive publicaciones (lo hacía
+  sola al cargar stock). Reactivar a mano una por una desde el panel sigue funcionando.
+- **Web**: `PAGINA_WEB/site/data/MANTENIMIENTO` con «cese» → `mantenimiento/cese.html` (503; el IPN de
+  MercadoPago sigue pasando).
+- **WhatsApp**: `app/data/cese_actividades.json`. En `/whatsapp` un cliente 1:1 recibe el aviso de
+  suspensión (una vez cada 6 h por chat) y el mensaje no llega al bot ni a modo humano. El puente
+  (`server.js`) rechaza con 423 `/enviar`, `/enviar-archivo` y `/enviar-ptt` a todo lo que no sea grupo ni
+  `numeros_internos` → ningún envío del panel (asesor desde /app, confirmaciones de pago) llega al cliente.
+  ⚠️ Lo que alguien escriba **desde el teléfono** no se puede frenar por software.
+
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 
 La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,
