@@ -208,5 +208,599 @@
     "revisado_por": "@cynthia",
     "revisado_en": "2026-09-22T06:46:01.043813+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CAFEINA.pdf)"
+  },
+  "C-CAOARC500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:11:04.420242+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ARCILLA BLANCA CAOLIN.pdf)"
+  },
+  "C-CAOCARCKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:11:04.425687+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ARCILLA BLANCA CAOLIN.pdf)"
+  },
+  "C-CITPOT250gMAG250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:16:43.001836+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CITRATO DE MAGNESIO.pdf)"
+  },
+  "C-INU250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:17:37.183558+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS INULINA.pdf)"
+  },
+  "C-INU500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:17:37.197847+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS INULINA.pdf)"
+  },
+  "C-INUKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:17:37.228192+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS INULINA.pdf)"
+  },
+  "C-LECSOY500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:20:03.274727+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS LECITINA DE SOYA EN POLVO.pdf)"
+  },
+  "C-MANKARAMA250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:23:27.132520+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA KARITE.pdf)"
+  },
+  "C-MANKARAMA500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:23:27.134451+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA KARITE.pdf)"
+  },
+  "C-MANTKARAMA125g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:23:27.140688+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA KARITE.pdf)"
+  },
+  "C-ACISORKG": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:24:27.157999+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALULOSA.pdf)"
+  },
+  "C-ALFARB10g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:25:10.815082+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALFA ARBUTINA.pdf)"
+  },
+  "C-PAP100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:25:50.452966+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS PAPAINA.pdf)"
+  },
+  "C-GOMGUA500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T16:27:35.384047+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GOMA GUAR.pdf)"
+  },
+  "C-CARACTPEL800g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T17:36:11.086413+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CARBON ACTIVADO PELLETS.pdf)"
+  },
+  "C-CERCAR250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T17:37:49.961218+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA CARNAUBA.pdf)"
+  },
+  "C-CERCAR500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T17:37:49.962996+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA CARNAUBA.pdf)"
+  },
+  "C-CERCARKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T17:37:49.973591+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA CARNAUBA.pdf)"
+  },
+  "C-MAL500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:11:20.749660+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MALTODEXTRINA.pdf)"
+  },
+  "C-LHIS100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T17:59:26.198698+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS L HISTIDINA.pdf)"
+  },
+  "C-ALMNAT250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:08:31.628366+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALMENDRA NATURAL SIN CASCARA.pdf)"
+  },
+  "C-ALMNAT500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:08:31.636548+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALMENDRA NATURAL SIN CASCARA.pdf)"
+  },
+  "C-CIA100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:14:31.047583+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CIANOCOBALAMINA.pdf)"
+  },
+  "C-CITMAG250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:15:44.130709+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CITRATO DE MAGNESIO.pdf)"
+  },
+  "C-CITMAG500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:15:44.131495+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CITRATO DE MAGNESIO.pdf)"
+  },
+  "C-CITMAGKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:15:44.139369+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CITRATO DE MAGNESIO.pdf)"
+  },
+  "C-SOR500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:19:37.668978+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SORBITOL LIQUIDO POLVO.pdf)"
+  },
+  "C-COLHID500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:26:02.192932+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS COLAGENO HIDROLIZADO.pdf)"
+  },
+  "C-DEXKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:31:51.016698+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DEXTROSA.pdf)"
+  },
+  "C-ACIDIH10g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:39:29.375135+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DIHIDROXIACETONA.pdf)"
+  },
+  "C-DIOTIT500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:51:16.256475+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DIOXIDO DE TITANIO.pdf)"
+  },
+  "C-EXTTEMATVER100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:54:26.705016+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS EXTRACTO DE TE VERDE MATCHA EN POLVO.pdf)"
+  },
+  "C-FRU500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:57:05.437583+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS FRUCTOSA.pdf)"
+  },
+  "C-GELSINSAB500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T18:59:55.058159+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GELATINA SIN SABOR BLOOM 280.pdf)"
+  },
+  "C-GLICVEG500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:01:18.475958+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GLICERINA VEGETAL.pdf)"
+  },
+  "C-GLIVEG250mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:01:18.482820+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GLICERINA VEGETAL.pdf)"
+  },
+  "C-PROCONSUE80PKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:02:49.487656+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS PROTEINA CONCENTRADA DE SUERO DE LECHE.pdf)"
+  },
+  "C-PROAISSOY500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:03:51.421634+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS PROTEINA AISLADA DE SOYA.pdf)"
+  },
+  "C-GOMXAN500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:06:16.398518+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GOMA XANTANA.pdf)"
+  },
+  "C-GOMXANKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:06:16.399476+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GOMA XANTANA.pdf)"
+  },
+  "C-MANKARBLA125g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:07:06.072349+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA KARITE.pdf)"
+  },
+  "C-MANKARBLA500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:07:06.074286+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA KARITE.pdf)"
+  },
+  "C-TEGBET250mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:07:51.361140+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS TEGO BETAINA DE COCO.pdf)"
+  },
+  "C-TEGBET500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:07:51.374263+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS TEGO BETAINA DE COCO.pdf)"
+  },
+  "C-TAU250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:09:29.836980+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS TAURINA.pdf)"
+  },
+  "C-URE250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:10:21.623196+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS UREA.pdf)"
+  },
+  "C-URE500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:10:21.630668+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS UREA.pdf)"
+  },
+  "C-TENSCI100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:12:44.981259+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SCI.pdf)"
+  },
+  "C-TENSCI250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:12:45.004096+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SCI.pdf)"
+  },
+  "C-TENSCI500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:12:45.045076+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SCI.pdf)"
+  },
+  "C-TENSCIKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:12:45.067469+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SCI.pdf)"
+  },
+  "C-OXIZIN250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:15:05.858717+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS OXIDO DE ZINC.pdf)"
+  },
+  "C-PARKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:17:02.376999+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS PARAFINA.pdf)"
+  },
+  "C-NIA100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:19:02.674133+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS NIACINAMIDA.pdf)"
+  },
+  "C-EXTRAMAL500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:21:20.759171+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS EXTRACTO DE MALTA.pdf)"
+  },
+  "C-DPG500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:23:16.264765+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DIPROPILENGLICOL DPG.pdf)"
+  },
+  "C-COCPROBET500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:24:20.712039+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS COCOAMIDA DEA.pdf)"
+  },
+  "C-CLOMAGHEXKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:25:34.070319+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CLORURO DE MAGNESIO.pdf)"
+  },
+  "C-DPAN50mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:28:32.022393+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS D PANTENOL.pdf)"
+  },
+  "C-DPAN85P120mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:28:32.040311+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS D PANTENOL.pdf)"
+  },
+  "C-VAS900g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:41:23.354697+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS VASELINA.pdf)"
+  },
+  "C-BAYGOJ250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:42:36.426913+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS BAYAS DE GOJI.pdf)"
+  },
+  "C-BAYGOJ500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:42:36.434355+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS BAYAS DE GOJI.pdf)"
+  },
+  "C-GLU100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:49:00.234630+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS L GLUTAMINA.pdf)"
+  },
+  "C-MANNATTOS500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:53:25.819398+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANI NATURAL TOSTADO.pdf)"
+  },
+  "C-DATSAY250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:56:45.838273+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DATILES SIN HUESO.pdf)"
+  },
+  "C-DATSAY500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:56:45.840508+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS DATILES SIN HUESO.pdf)"
+  },
+  "C-ACEESEPIN5mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:57:31.395165+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL PINO.pdf)"
+  },
+  "C-ACEESEMAN5mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T19:59:32.645127+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL MANZANILLA.pdf)"
+  },
+  "C-ACEESEBER5mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:00:55.511567+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL BERGAMOTA.pdf)"
+  },
+  "C-ACENEE60mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:03:50.716152+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE NEEM.pdf)"
+  },
+  "C-GLUMON500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:05:03.892677+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GLUTAMATO MONOSODICO.pdf)"
+  },
+  "C-GLUMONKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:05:03.900548+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GLUTAMATO MONOSODICO.pdf)"
+  },
+  "C-SEBCOR150g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:08:17.143980+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SEBO DE CORDERO.pdf)"
+  },
+  "C-CARMAG500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:10:23.076954+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CARBONATO DE CALCIO.pdf)"
+  },
+  "C-VITE30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:12:31.427804+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS VITAMINA E.pdf)"
+  },
+  "C-GLU2P500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:13:59.795117+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GLUTARALDEHIDO 2.pdf)"
+  },
+  "C-MANCACNAT500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:16:13.569780+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA DE CACAO NATURAL.pdf)"
+  },
+  "C-POLTWE20P250mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:18:25.783454+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS POLISORBATO 20.pdf)"
+  },
+  "C-POLTWE80P500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:18:54.904099+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS POLISORBATO 20.pdf)"
+  },
+  "C-VITCACIASC250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:20:54.330673+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACIDO ASCORBICO.pdf)"
+  },
+  "C-VITCACIASC500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:20:54.333367+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACIDO ASCORBICO.pdf)"
+  },
+  "C-CLOCAL500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:22:28.891561+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CLORURO DE CALCIO.pdf)"
+  },
+  "C-SORPOLKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:23:24.836650+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SORBITOL POLVO.pdf)"
+  },
+  "C-ACEESEROM5mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:24:09.996257+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL ROMERO.pdf)"
+  },
+  "C-BICSOD500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:25:30.326018+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS BICARBONATO DE SODIO.pdf)"
+  },
+  "C-ACITRA10g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:28:50.354312+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACIDO TRANEXAMICO.pdf)"
+  },
+  "C-AJONEG250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:30:27.086585+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS AJONJOLI NEGRO.pdf)"
+  },
+  "C-AJONEG500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:30:27.111512+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS AJONJOLI NEGRO.pdf)"
+  },
+  "C-ALBHUE500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:31:21.723180+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALBUMINA DE HUEVO.pdf)"
+  },
+  "C-ALBHV500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:31:21.731279+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALBUMINA DE HUEVO.pdf)"
+  },
+  "C-CARCAL500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:32:19.380599+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CARBONATO DE CALCIO.pdf)"
+  },
+  "C-CRETAR500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-22T20:34:32.619709+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CREMOR TARTARO.pdf)"
+  },
+  "C-HARPAN00Kg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T00:48:53.408863+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS HARINA DE PANADERIA 00.pdf)"
+  },
+  "C-CERLAN500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T01:50:49.568873+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA LANETTE ALCOHOL CETOESTEARILICO.pdf)"
+  },
+  "C-ELAHID30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T01:52:26.128690+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ELASTINA.pdf)"
+  },
+  "C-EMBPAT30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T01:53:29.447373+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS EMBRION DE PATO.pdf)"
+  },
+  "C-GUSSED30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T01:56:30.384969+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GUSANO DE SEDA.pdf)"
+  },
+  "C-EXTALOVER30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-23T01:57:13.083543+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALOE VERA.pdf)"
   }
 }

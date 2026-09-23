@@ -12,6 +12,7 @@ import hashlib
 import io
 import os
 import re
+import zipfile
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -955,6 +956,87 @@ def _guardar_pdf_fallido(contenido: bytes, nombre: str, motivo: str) -> str:
         return ""
 
 
+def _es_movimientos_bancolombia(matrix: list[list]) -> bool:
+    """¿Es el CSV de «Movimientos» de la Sucursal Virtual de Bancolombia?
+
+    Sin encabezados y por posición, 10 columnas:
+    cuenta · sucursal · (vacía) · AAAAMMDD · (vacía) · valor con signo ·
+    código de transacción · descripción · 0 · (vacía).
+
+    Es otro archivo distinto del consolidado (`_es_consolidado_bancolombia`):
+    aquí la fecha va en la 4ª columna, no en la 1ª, y no trae líneas de SALDO
+    contra las cuales verificar. Se reconoce porque TODAS las filas del inicio
+    traen fecha de 8 dígitos en esa posición y un valor numérico en la 6ª.
+    """
+    if not matrix:
+        return False
+    vistas = 0
+    for fila in matrix[:20]:
+        if len(fila) < 9:
+            return False
+        # La 1ª columna es el número de cuenta («428-000009-74»): un CSV con
+        # encabezados trae ahí un rótulo y se descarta en la primera fila.
+        cuenta = str(fila[0]).strip()
+        if not cuenta or not any(c.isdigit() for c in cuenta):
+            return False
+        f = str(fila[3]).strip()
+        if len(f) != 8 or not f.isdigit():
+            return False
+        if not (1900 <= int(f[:4]) <= 2199 and 1 <= int(f[4:6]) <= 12 and 1 <= int(f[6:]) <= 31):
+            return False
+        try:
+            float(str(fila[5]).strip())
+        except ValueError:
+            return False
+        vistas += 1
+    # Basta una fila válida: los chequeos de arriba son específicos de este
+    # archivo, y un rango de un solo día también se baja y se carga.
+    return vistas >= 1
+
+
+def _parse_movimientos_bancolombia(matrix: list[list]) -> list[dict[str, Any]]:
+    """Movimientos del CSV de Sucursal Virtual.
+
+    El signo del valor es el que manda: negativo = salió plata (débito),
+    positivo = entró (crédito). El código de transacción (4065 llave, 8162 pago
+    a proveedor, 3339 GMF…) se guarda como referencia: es lo único estable que
+    trae el archivo para reconocer la clase de movimiento cuando la descripción
+    viene truncada a 30 caracteres.
+
+    A diferencia del consolidado, este archivo NO trae saldos, así que no hay
+    contra qué verificar lo leído; por eso se es estricto al reconocerlo.
+    """
+    movs: list[dict[str, Any]] = []
+    for n_fila, fila in enumerate(matrix, start=1):
+        if len(fila) < 9:
+            continue
+        f = str(fila[3]).strip()
+        if len(f) != 8 or not f.isdigit():
+            continue
+        fecha = f"{f[:4]}-{f[4:6]}-{f[6:]}"
+        try:
+            valor = float(str(fila[5]).strip())
+        except ValueError:
+            continue
+        monto = round(abs(valor), 2)
+        if monto < 0.01:
+            continue
+        desc = str(fila[7]).strip()[:220] or "(sin descripción)"
+        ref = str(fila[6]).strip()[:80]
+        tipo = "debito" if valor < 0 else "credito"
+        movs.append({
+            "fecha": fecha,
+            "descripcion": desc,
+            "referencia": ref,
+            "monto": monto,
+            "tipo": tipo,
+            "saldo": None,
+            "fila_origen": n_fila,
+            "hash_linea": _hash_linea(fecha, tipo, monto, desc, ref, n_fila),
+        })
+    return movs
+
+
 def _es_consolidado_bancolombia(matrix: list[list]) -> bool:
     """¿Es el CSV consolidado de Bancolombia, sin encabezados y por posición?
 
@@ -1040,8 +1122,36 @@ def _parse_consolidado_bancolombia(matrix: list[list]) -> list[dict[str, Any]]:
     return movs
 
 
+def _desempacar_zip(contenido: bytes, nombre: str) -> tuple[bytes, str]:
+    """Sucursal Negocios entrega los movimientos dentro de un .zip.
+
+    Pedirle a alguien que descomprima antes de arrastrar es un paso que se
+    olvida y que además deja dos copias del mismo archivo dando vueltas. Si el
+    zip trae un solo archivo de datos, se usa ese; si trae varios, se falla
+    diciendo cuáles, porque elegir uno a la suerte sería peor.
+    """
+    with zipfile.ZipFile(io.BytesIO(contenido)) as z:
+        candidatos = [
+            i for i in z.infolist()
+            if not i.is_dir()
+            and not i.filename.startswith("__MACOSX/")
+            and i.filename.lower().endswith((".csv", ".txt", ".tsv", ".xlsx", ".xlsm", ".pdf"))
+        ]
+        if not candidatos:
+            raise ValueError("El .zip no trae ningún CSV, Excel ni PDF de extracto")
+        if len(candidatos) > 1:
+            cuales = ", ".join(sorted(c.filename for c in candidatos))
+            raise ValueError(
+                f"El .zip trae {len(candidatos)} archivos ({cuales}). "
+                "Descomprímelo y sube el que corresponde."
+            )
+        return z.read(candidatos[0]), candidatos[0].filename
+
+
 def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
-    """Parsea CSV, XLSX o PDF a lista de movimientos normalizados."""
+    """Parsea CSV, XLSX, PDF o un .zip que contenga uno de esos."""
+    if contenido[:2] == b"PK" and (nombre or "").lower().endswith(".zip"):
+        contenido, nombre = _desempacar_zip(contenido, nombre)
     name = (nombre or "").lower()
     if name.endswith(".pdf") or (contenido[:4] == b"%PDF"):
         try:
@@ -1084,6 +1194,8 @@ def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
 
     if _es_consolidado_bancolombia(matrix):
         return _parse_consolidado_bancolombia(matrix)
+    if _es_movimientos_bancolombia(matrix):
+        return _parse_movimientos_bancolombia(matrix)
     return _rows_from_matrix(matrix)
 
 
@@ -1098,6 +1210,83 @@ def _guardar_archivo(contenido: bytes, nombre: str) -> str:
     return fname
 
 
+def _clave_conciliacion(fecha: str, tipo: str, monto: float, orden: int) -> tuple:
+    """Identidad de una línea del banco, estable entre descargas.
+
+    El banco no da un identificador propio de movimiento, y la descripción
+    cambia según de dónde se saque (el PDF trae «Pago A Proveedores», el CSV de
+    movimientos «PAGO A PROVE MARCOS FIDEL RO»). Lo único que siempre coincide
+    es fecha + dirección + monto; `orden` desempata los movimientos realmente
+    repetidos del mismo día (dos giros de $2.500.000 el 21-sep son dos pagos
+    distintos, y ambos deben quedar).
+    """
+    return (fecha, tipo, round(float(monto or 0), 2), orden)
+
+
+def _con_orden(lineas: list[dict[str, Any]]) -> list[tuple[tuple, dict[str, Any]]]:
+    """Empareja cada línea con su clave, numerando los repetidos del mismo día."""
+    vistas: dict[tuple, int] = {}
+    salida = []
+    for ln in lineas:
+        base = (ln["fecha"], ln["tipo"], round(float(ln["monto"] or 0), 2))
+        vistas[base] = vistas.get(base, 0) + 1
+        salida.append((_clave_conciliacion(*base, vistas[base]), ln))
+    return salida
+
+
+def _claves_ya_cargadas(
+    desde: str, hasta: str, tercero_id: int | None
+) -> dict[tuple, tuple]:
+    """Líneas del mismo titular ya guardadas en el rango: clave → (id, desc, ref)."""
+    w_tit, p_tit = _filtro_titular(tercero_id)
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT m.fecha, m.tipo, m.monto, m.id, m.descripcion, m.referencia
+                  FROM extracto_movimientos m
+                  JOIN extractos_bancarios e ON e.id = m.extracto_id
+                 WHERE {w_tit} AND m.fecha BETWEEN ? AND ?
+                 ORDER BY m.fecha, m.id""",
+            (*p_tit, desde, hasta),
+        ).fetchall()
+    previas = [
+        {"fecha": r[0], "tipo": r[1], "monto": r[2], "_id": r[3],
+         "_desc": r[4], "_ref": r[5]}
+        for r in rows
+    ]
+    return {
+        k: (p["_id"], p["_desc"], p["_ref"]) for k, p in _con_orden(previas)
+    }
+
+def _mejorar_descripcion(clave_a_id: dict, clave: tuple, ln: dict[str, Any]) -> bool:
+    """La misma línea, bajada de una fuente mejor, mejora la que ya estaba.
+
+    El PDF del banco entrega «Pago A Proveedores» a secas; el CSV de
+    movimientos, «PAGO A PROVE CYNTHIA ALEXAND». Es el mismo movimiento —por
+    eso se descartó como repetido— pero una descripción sirve para clasificar
+    y la otra no, así que la repetida no se tira: se usa para completar.
+    """
+    fila = clave_a_id.get(clave)
+    if not fila:
+        return False
+    mov_id, desc_vieja, ref_vieja = fila
+    desc_nueva = (ln.get("descripcion") or "").strip()
+    ref_nueva = (ln.get("referencia") or "").strip()
+    mejor_desc = len(desc_nueva) > len((desc_vieja or "").strip())
+    mejor_ref = bool(ref_nueva) and not (ref_vieja or "").strip()
+    if not (mejor_desc or mejor_ref):
+        return False
+    with _conn() as con:
+        con.execute(
+            "UPDATE extracto_movimientos SET descripcion = ?, referencia = ? WHERE id = ?",
+            (
+                desc_nueva if mejor_desc else desc_vieja,
+                ref_nueva if mejor_ref else ref_vieja,
+                mov_id,
+            ),
+        )
+    return True
+
+
 def importar_extracto(
     contenido: bytes,
     nombre_archivo: str,
@@ -1107,15 +1296,50 @@ def importar_extracto(
     notas: str = "",
     nombre: str = "",
     tercero_id: int | None = None,
+    fusionar: bool = True,
 ) -> dict[str, Any]:
+    """Guarda un extracto. Con `fusionar` (por defecto) descarta las líneas que
+    ya estaban cargadas para ese titular.
+
+    La conciliación no se hace una vez al mes: se baja el archivo de Sucursal
+    Negocios (Reportes y archivos → Saldos consolidados → Movimientos) desde el
+    1 del mes hasta hoy, varias veces al mes. Sin esto, cada descarga volvía a
+    insertar los días ya cargados y el banco aparecía con el doble de
+    movimientos, cada copia pidiendo su propio asiento.
+    """
     ensure_extracto_tables()
     lineas = parse_extracto_bytes(contenido, nombre_archivo)
     if not lineas:
         raise ValueError("El archivo no tiene movimientos reconocibles")
 
-    archivo_path = _guardar_archivo(contenido, nombre_archivo)
     fechas = sorted(l["fecha"] for l in lineas)
     periodo_desde, periodo_hasta = fechas[0], fechas[-1]
+    leidas = len(lineas)
+    repetidas = 0
+    mejoradas = 0
+    if fusionar:
+        ya = _claves_ya_cargadas(periodo_desde, periodo_hasta, tercero_id)
+        nuevas = []
+        for clave, ln in _con_orden(lineas):
+            if clave in ya:
+                repetidas += 1
+                if _mejorar_descripcion(ya, clave, ln):
+                    mejoradas += 1
+            else:
+                nuevas.append(ln)
+        lineas = nuevas
+        if not lineas:
+            extra = (
+                f" Se mejoró la descripción de {mejoradas}."
+                if mejoradas
+                else ""
+            )
+            raise ValueError(
+                f"Nada nuevo que cargar: las {leidas} líneas de este archivo "
+                f"({periodo_desde} → {periodo_hasta}) ya están en el libro." + extra
+            )
+
+    archivo_path = _guardar_archivo(contenido, nombre_archivo)
     nombre_l = (nombre or "").strip()[:120]
     if not nombre_l:
         bits = [
@@ -1173,13 +1397,19 @@ def importar_extracto(
             (insertadas, extracto_id),
         )
 
-    return obtener_extracto(extracto_id) or {
+    base = obtener_extracto(extracto_id) or {
         "id": extracto_id,
         "nombre": nombre_l,
         "lineas_count": insertadas,
         "periodo_desde": periodo_desde,
         "periodo_hasta": periodo_hasta,
     }
+    # Para que la pantalla pueda decir «12 nuevas, 98 ya estaban» en vez de
+    # dejar creer que se cargó el archivo entero otra vez.
+    base["lineas_leidas"] = leidas
+    base["lineas_repetidas"] = repetidas
+    base["lineas_mejoradas"] = mejoradas
+    return base
 
 
 def renombrar_extracto(extracto_id: int, nombre: str) -> dict[str, Any] | None:

@@ -223,7 +223,23 @@
       ],
       "primera_vez": "2026-09-21T07:32:10",
       "ultima_vez": "2026-09-21T07:32:10"
+    },
+    "consulta, sí realizo la compra hoy, cuando llegaría el producto.": {
+      "veces": 1,
+      "canales": [
+        "whatsapp"
+      ],
+      "primera_vez": "2026-09-22T13:29:46",
+      "ultima_vez": "2026-09-22T13:29:46"
+    },
+    "soacha, cundinamarca": {
+      "veces": 1,
+      "canales": [
+        "whatsapp"
+      ],
+      "primera_vez": "2026-09-22T13:30:14",
+      "ultima_vez": "2026-09-22T13:30:14"
     }
   },
-  "actualizado": "2026-09-21T08:11:24"
+  "actualizado": "2026-09-22T13:30:14"
 }

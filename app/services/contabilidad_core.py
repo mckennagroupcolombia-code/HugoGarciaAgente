@@ -572,6 +572,23 @@ def _con_guia(cuenta: dict) -> dict:
     return cuenta
 
 
+def codigo_vivo(codigo: str) -> str:
+    """El código de la cuenta VIVA que hoy responde por `codigo`.
+
+    `111010 MercadoPago – saldo en plataforma` está inactiva y es alias de
+    `112515`; quien escriba «111010» en una regla o en una propuesta tiene que
+    terminar en 112515, no en la cuenta muerta (que `crear_movimiento` rechaza).
+    Resuelve por `mapa_cuentas_por_codigo`, que ya sabe de alias y de activas.
+    """
+    cid = mapa_cuentas_por_codigo().get(str(codigo))
+    if not cid:
+        return str(codigo)
+    for c in listar_plan_cuentas(solo_activas=False):
+        if int(c["id"]) == int(cid):
+            return str(c["codigo"])
+    return str(codigo)
+
+
 def mapa_cuentas_por_codigo() -> dict[str, int]:
     """Código PUC → id de la cuenta **viva** que le corresponde hoy.
 
@@ -679,6 +696,20 @@ def eliminar_cuenta(cuenta_id: int) -> bool:
 
 
 # ─── Terceros ───────────────────────────────────────────────────────────────
+
+def mismo_documento(a: str, b: str) -> bool:
+    """¿Son la misma cédula o NIT? Solo dígitos; un NIT con dígito de
+    verificación (10 dígitos) es el mismo que sin él (9)."""
+    import re
+
+    x = re.sub(r"\D", "", a or "")
+    y = re.sub(r"\D", "", b or "")
+    if not x or not y:
+        return False
+    if x == y:
+        return True
+    return (len(x) == 10 and len(y) == 9 and x[:9] == y) or (len(y) == 10 and len(x) == 9 and y[:9] == x)
+
 
 def listar_terceros(
     tipo: str | None = None, q: str | None = None, solo_activos: bool = True

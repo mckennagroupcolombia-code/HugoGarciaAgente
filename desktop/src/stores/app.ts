@@ -244,6 +244,9 @@ interface AppState {
   /** Studio visual en vista de lienzo (editor): Layout usa fill sin padding. */
   etiquetasStudioInmersivo: boolean;
   setEtiquetasStudioInmersivo: (v: boolean) => void;
+  /** Libro Mayor en modo enfoque: sin cabezote ni pestañas del hub; el riel y el contenido a toda la ventana. */
+  libroMayorEnfoque: boolean;
+  setLibroMayorEnfoque: (v: boolean) => void;
   studioSubvista: StudioSubvista;
   setStudioSubvista: (v: StudioSubvista) => void;
   /** Categoría a la que se entró desde una tarjeta de la portada; "" = todas. */
@@ -386,6 +389,11 @@ export const useAppStore = create<AppState>()(
       setEtiquetasStudioInmersivo: (etiquetasStudioInmersivo) => {
         if (get().etiquetasStudioInmersivo === etiquetasStudioInmersivo) return;
         set({ etiquetasStudioInmersivo });
+      },
+      libroMayorEnfoque: false,
+      setLibroMayorEnfoque: (libroMayorEnfoque) => {
+        if (get().libroMayorEnfoque === libroMayorEnfoque) return;
+        set({ libroMayorEnfoque });
       },
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),

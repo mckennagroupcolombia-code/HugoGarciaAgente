@@ -50,6 +50,12 @@
       "resumen": "De cada operación al Libro Mayor, a Alegra, al banco y al contador."
     },
     {
+      "nombre": "08-conciliacion",
+      "corto": "Conciliación bancaria",
+      "grupo": "Contar",
+      "resumen": "Del zip de Bancolombia al vínculo comprobado: traer sin repetir, resolver quién y a dónde, causar, unir y cuadrar al peso."
+    },
+    {
       "nombre": "mi-agente",
       "corto": "Procesos y puertos",
       "grupo": "Infraestructura",

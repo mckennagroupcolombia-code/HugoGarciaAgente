@@ -56,3 +56,41 @@ export function mergeParamStrings(existing: string, incoming: string): string {
   for (const row of parseParamRows(incoming)) take(row, true);
   return rowsToParamString(order.map((k) => merged.get(k)!));
 }
+
+/**
+ * Reparte en filas un bloque de parámetros pegado como texto: el que llega del
+ * COA del proveedor, de una hoja de cálculo o de un PDF copiado. Acepta un
+ * parámetro por línea con columnas separadas por «|», tabulador o «:»:
+ *   «Peso molecular|121.16 g/mol», «Pureza	98.5 ~ 101.05», «Arsénico (As): ≤ 1 ppm»,
+ *   «Aspecto|Polvo blanco|Conforme» (tercera columna = resultado).
+ * Sin LLM: reglas. Devuelve [] si el texto no parece una tabla (se pega normal).
+ */
+export function separarParametrosPegados(textoCrudo: string): ParamRow[] {
+  const lineas = textoCrudo
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!lineas.length) return [];
+
+  const filas: ParamRow[] = [];
+  for (const linea of lineas) {
+    let partes: string[];
+    if (/\t|\|/.test(linea)) {
+      partes = linea.split(/\t|\|/);
+    } else if (lineas.length >= 2 && /^[^:]{2,}[^\d\s:]\s*:\s*\S/.test(linea)) {
+      // «Pureza: 98.5 %» — solo el primer «:» separa (la especificación puede traer otros).
+      // Solo con varias líneas, y nunca un «:» entre dígitos (una hora o un lote no es una columna).
+      const i = linea.indexOf(":");
+      partes = [linea.slice(0, i), linea.slice(i + 1)];
+    } else {
+      partes = [linea];
+    }
+    const [parametro = "", especificacion = "", ...resto] = partes.map((p) => p.trim());
+    if (!parametro) continue;
+    filas.push({ parametro, especificacion, resultado: resto.join(" ").trim() });
+  }
+
+  // Una sola línea sin separador no es una tabla: que se pegue como texto normal.
+  const conColumnas = filas.some((f) => f.especificacion);
+  return filas.length >= 2 || conColumnas ? filas : [];
+}

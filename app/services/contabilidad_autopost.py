@@ -22,6 +22,16 @@ from app.services.contabilidad_ledger import armar_libro
 from app.services.extracto_bancario import id_movimiento_ledger
 
 CUENTA_BANCOS = "1110"
+# Dónde cae la plata de cada fuente. Una venta de MeLi NO llega al banco: la
+# cobra MercadoPago, la libera días después y sale al banco en retiros
+# redondos («PAGO INTERBANC MERCADOPAGO»). Postearla contra Bancos —como se
+# hizo hasta sep-2026— inflaba 1110 con dinero que aún no estaba ahí y dejaba
+# los retiros sin contrapartida. La venta y su comisión van a 111010; el
+# retiro es Debe 1110 / Haber 111010 (lo causa el taller de conciliación).
+FUENTE_CAJA: dict[str, str] = {
+    "meli_venta": "111010",
+    "meli_cobro": "111010",
+}
 
 # fuente (armar_libro) -> código de cuenta PUC contraparte de Bancos.
 # Ingreso: Debe Bancos / Haber esta cuenta. Egreso: Debe esta cuenta / Haber Bancos.
@@ -325,14 +335,16 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
         return _lineas_factura_proveedor(row, cuentas_por_codigo)
 
     monto = round(float(row["monto"] or 0), 2)
-    bancos_id = _cuenta_id(cuentas_por_codigo, CUENTA_BANCOS)
+    caja = FUENTE_CAJA.get(fuente, CUENTA_BANCOS)
+    caja_nombre = "MercadoPago" if caja == "111010" else "Bancos"
+    bancos_id = _cuenta_id(cuentas_por_codigo, caja)
     cuenta_id = _cuenta_id(cuentas_por_codigo, FUENTE_MAPEO[fuente])
     concepto = row["concepto"]
 
     if row["tipo"] == "ingreso":
         return [
             {"cuenta_id": bancos_id, "debito": monto, "credito": 0,
-             "descripcion": f"Entrada vía Bancos — {concepto}"},
+             "descripcion": f"Entrada vía {caja_nombre} — {concepto}"},
             {"cuenta_id": cuenta_id, "debito": 0, "credito": monto,
              "descripcion": concepto},
         ]
@@ -340,8 +352,132 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
         {"cuenta_id": cuenta_id, "debito": monto, "credito": 0,
          "descripcion": concepto},
         {"cuenta_id": bancos_id, "debito": 0, "credito": monto,
-         "descripcion": f"Salida vía Bancos — {concepto}"},
+         "descripcion": f"Salida vía {caja_nombre} — {concepto}"},
     ]
+
+
+def _ya_posteado_documento(fuente: str, referencia_doc: str) -> bool:
+    """¿Ya hay asiento de esta fuente para este documento (factura, pedido)?
+
+    El dedup por hash exige que la fila sea idéntica campo a campo. Cuando la
+    venta se causa EN EL MOMENTO (al facturar) y el cron la vuelve a ver horas
+    después leída de Alegra, cualquier diferencia de formato —la fecha, cómo
+    viene el NIT— cambiaría el hash y la postearía dos veces. El número de
+    factura o la referencia del pedido no cambian: por eso el segundo cerrojo.
+    """
+    if not fuente or not referencia_doc:
+        return False
+    with cc._conn() as con:
+        return con.execute(
+            """SELECT 1 FROM cc_movimientos
+                WHERE tipo_origen = ? AND estado <> 'anulado'
+                  AND json_extract(plantilla_datos_json, '$.referencia') = ?
+                LIMIT 1""",
+            (f"auto_{fuente}", referencia_doc),
+        ).fetchone() is not None
+
+
+def _tercero_por_identificacion(ident: str) -> int | None:
+    """El tercero del libro con esa cédula o NIT, si existe (solo dígitos)."""
+    import re
+
+    if not re.sub(r"\D", "", ident or ""):
+        return None
+    for t in cc.listar_terceros(solo_activos=False):
+        if cc.mismo_documento(t.get("identificacion") or "", ident):
+            return int(t["id"])
+    return None
+
+
+def postear_fila(row: dict[str, Any], *, cuentas_por_codigo: dict[str, int] | None = None,
+                 tercero_id: int | None = None) -> dict[str, Any]:
+    """Postea UNA fila con la forma de `armar_libro()` al libro propio.
+
+    Es el cuerpo del cron, sacado a una función para que la venta se cause en
+    el instante en que nace —al facturar una venta directa, al facturar un
+    pedido web— igual que la solicitud de pago nace con su asiento, y no seis
+    horas después cuando pase el cron. El cron sigue existiendo como red: lo que
+    ya se posteó acá lo omite por hash o por documento.
+
+    Devuelve {"creado": bool, "omitido": bool, "movimiento_id": int|None, "referencia": str}.
+    """
+    fuente = row.get("fuente") or ""
+    referencia = f"auto:{id_movimiento_ledger(row)}"
+    if fuente not in FUENTES_SOPORTADAS:
+        raise ValueError(f"Fuente sin mapeo contable: {fuente}")
+    if float(row.get("monto") or 0) <= 0:
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
+    if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
+    if cc.antes_del_corte(str(row.get("fecha") or "")):
+        raise ValueError(cc.motivo_corte(str(row.get("fecha") or "")))
+    cuentas = cuentas_por_codigo or _mapa_cuentas(cc)
+    # Una venta a un cliente que ya es tercero nace con él: la contraparte de
+    # `siigo_venta` es la identificación que Alegra devuelve de la factura.
+    if tercero_id is None and fuente in ("siigo_venta", "web_venta"):
+        tercero_id = _tercero_por_identificacion(str(row.get("contraparte") or ""))
+    mov = cc.crear_movimiento(
+        fecha=row["fecha"],
+        concepto=row["concepto"],
+        lineas=_lineas_para_fila(row, cuentas),
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen=f"auto_{fuente}",
+        plantilla_datos=row,
+    )
+    return {"creado": True, "omitido": False, "movimiento_id": int(mov["id"]), "referencia": referencia, "tercero_id": tercero_id}
+
+
+def causar_venta_directa(venta: dict[str, Any]) -> dict[str, Any]:
+    """La venta directa recién facturada, al libro, ya.
+
+    La fila se arma exactamente como la armaría `_ingresos_siigo` cuando el
+    cron lea esa factura de Alegra: fecha de emisión, concepto «Venta Alegra»,
+    referencia = número de factura, contraparte = identificación del cliente.
+    Así el hash coincide y el cron la omite; y si no coincidiera, la omite por
+    el número de factura.
+
+    Una venta con origen MeLi NO pasa por acá: esa ya entra como `meli_venta`
+    y la factura se descarta por `factura_ya_contada`.
+    """
+    from app.services.contabilidad_ledger import _row
+
+    if (venta.get("origen") or "") == "meli":
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": "", "motivo": "venta MeLi: entra por meli_venta"}
+    numero = str(venta.get("factura_numero") or "").strip()
+    if not numero:
+        raise ValueError("La venta no tiene número de factura: no se causa hasta que Alegra la emita")
+    cliente = venta.get("cliente") or {}
+    fecha = str(venta.get("facturado") or venta.get("actualizado") or "")[:10]
+    row = _row(
+        fecha=fecha,
+        tipo="ingreso",
+        fuente="siigo_venta",
+        concepto="Venta Alegra",
+        monto=float(venta.get("total") or 0),
+        referencia=numero,
+        contraparte=str(cliente.get("identificacion") or ""),
+    )
+    return postear_fila(row)
+
+
+def causar_pedido_web(order: dict[str, Any]) -> dict[str, Any]:
+    """El pedido web aprobado, al libro, ya — misma fila que `_ingresos_web`."""
+    from app.services.contabilidad_ledger import _row
+
+    if str(order.get("status") or "").lower() != "approved":
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": "", "motivo": "pedido no aprobado"}
+    row = _row(
+        fecha=str(order.get("created_at") or "")[:10],
+        tipo="ingreso",
+        fuente="web_venta",
+        concepto="Venta página web",
+        monto=float(order.get("total") or 0),
+        referencia=str(order.get("reference") or ""),
+        contraparte=str(order.get("buyer_name") or ""),
+        extra={"status": order.get("status")},
+    )
+    return postear_fila(row)
 
 
 def _ya_posteado(referencia: str) -> bool:
@@ -411,7 +547,7 @@ def auto_postear_periodo(
             continue
 
         referencia = f"auto:{id_movimiento_ledger(row)}"
-        if _ya_posteado(referencia):
+        if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
             omitidos += 1
             continue
         if dry_run:

@@ -661,7 +661,11 @@
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
-    color: #ff7eb6;
+    color: #c2185b;
+  }
+  html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+  html[data-mck-skin="barbie"].dark .mck-title {
+    color: #ff9fca;
   }
 
   * {
@@ -1750,10 +1754,19 @@
     background-color: #fff !important;
   }
 
-  /* Native controls without explicit bg still inherit light ink on white UA chrome */
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.mck-paper-white),
-  .dark textarea:not(.mck-paper-white),
-  .dark select:not(.mck-paper-white) {
+  /* Native controls without explicit bg still inherit light ink on white UA chrome.
+   * Nunca dentro de una etiqueta: el papel es siempre blanco y sus casillas
+   * editables (`.e30-campo`, EditableField) heredan el color que fija el diseño;
+   * con esta regla tomaban la tinta clara del tema (rosa en Barbie oscuro). */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ),
+  .dark textarea:not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ),
+  .dark select:not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ) {
     color: rgb(var(--mck-ink));
   }
 
@@ -2267,9 +2280,7 @@ html[data-mck-menu="lg"] .mck-hub-tab.mck-nav-item span {
 html[data-mck-skin="atelier"] .mck-header-glass h1,
 html[data-mck-skin="atelier"] .mck-title,
 html[data-mck-skin="sakura"] .mck-header-glass h1,
-html[data-mck-skin="sakura"] .mck-title,
-html[data-mck-skin="barbie"] .mck-header-glass h1,
-html[data-mck-skin="barbie"] .mck-title {
+html[data-mck-skin="sakura"] .mck-title {
   font-family: "A Note", cursive !important;
   font-weight: 400 !important;
   font-style: normal !important;
@@ -2278,6 +2289,26 @@ html[data-mck-skin="barbie"] .mck-title {
   line-height: 1.15;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Barbie Agenda: cuento de princesas, sin cursivas — títulos en Cinzel Decorative
+   (capitulares romanas con remates de libro de cuentos) con un filo dorado; el cuerpo
+   sigue en Jost para que tablas y formularios se lean como oficina. */
+html[data-mck-skin="barbie"] .mck-header-glass h1,
+html[data-mck-skin="barbie"] .mck-title {
+  font-family: "Cinzel Decorative", "Cinzel", Georgia, serif !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  font-synthesis: none;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 6px rgb(212 175 55 / 0.35);
+}
+html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+html[data-mck-skin="barbie"].dark .mck-title {
+  text-shadow: 0 0 10px rgb(240 200 120 / 0.35);
 }
 
 /* Título de cada ventana (Inicio, Atención…): px fijos, no rem ni menú lateral. */

@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import tempfile
+import threading
 from datetime import datetime as _dt
 import requests as _requests_lib
 
@@ -7483,53 +7484,72 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)[:300]}), 500
 
+    # «Facturar ahora» corre en SEGUNDO PLANO. Emitir tarda 30-210 s (Alegra +
+    # DIAN + PDF + MeLi) y Cloudflare corta a los 100 s: la persona veía «HTTP
+    # 504» aunque la factura sí había salido (22-sep-2026). Ahora el POST
+    # responde al instante y el panel consulta el avance con GET …/estado/<id>.
+    _trabajos_facturar: dict[str, dict] = {}
+    _trabajos_facturar_lock = threading.Lock()
+
+    def _correr_facturacion(order_id: str) -> None:
+        from app.services.facturacion_ventas_unificado import (
+            anotar_filas,
+            consultar_venta_individual,
+            invalidar_caches,
+        )
+        from app.tools.meli_autofactura_entrega import facturar_pack_meli_manual
+
+        try:
+            resultado = facturar_pack_meli_manual(order_id)
+        except Exception as e:  # noqa: BLE001
+            resultado = {"ok": False, "error": str(e)[:300]}
+        with _trabajos_facturar_lock:
+            _trabajos_facturar[order_id].update(estado="terminado", resultado=resultado,
+                                                terminado_en=_dt.now().isoformat(timespec="seconds"))
+        if resultado.get("ok"):
+            # Sin esto la venta seguía «sin facturar» en el listado (la foto era de antes).
+            try:
+                invalidar_caches()
+                fila = consultar_venta_individual(order_id)
+                if fila:
+                    with _trabajos_facturar_lock:
+                        _trabajos_facturar[order_id]["resultado"]["venta"] = anotar_filas([fila])[0]
+            except Exception:  # noqa: BLE001 - la factura ya salió; el refresco es secundario
+                pass
+
     @app.route("/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
     @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora", methods=["POST"])
     def api_facturacion_ventas_unificadas_facturar_ahora():
-        """Botón "Facturar ahora" del panel Ventas y NC (ver TKT-2026-1178):
-        emite en Alegra, desde la aplicación, una venta MeLi entregada sin
-        factura — sin tener que ir a Alegra manualmente.
-
-        Factura el CARRITO COMPLETO, no la orden de la fila: un carrito de N
-        productos son N órdenes con el mismo `pack_id`, y facturar solo una deja
-        el resto sin facturar (el error que obligó a emitir notas crédito y
-        reemitir consolidado a mano en sep-2026). Ver
-        `facturar_pack_meli_manual`, que aborta sin emitir si alguna orden del
-        pack ya está facturada."""
+        """Botón «Facturar ahora»: factura el CARRITO COMPLETO en UNA factura
+        (`facturar_pack_meli_manual`, con su candado por venta y verificación en
+        Alegra). Responde enseguida con `en_curso`; el resultado se consulta en
+        GET …/facturar-ahora/estado/<order_id>. Un segundo POST mientras corre
+        devuelve el mismo trabajo, no lanza otro."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json(silent=True) or {}
         order_id = str(data.get("order_id") or request.args.get("order_id") or "").strip()
         if not order_id:
             return jsonify({"ok": False, "error": "order_id requerido"}), 400
-        try:
-            from app.tools.meli_autofactura_entrega import facturar_pack_meli_manual
+        with _trabajos_facturar_lock:
+            previo = _trabajos_facturar.get(order_id)
+            if previo and previo["estado"] == "corriendo":
+                return jsonify({"ok": True, "en_curso": True, "desde": previo["desde"], "ya_estaba": True}), 202
+            _trabajos_facturar[order_id] = {"estado": "corriendo", "desde": _dt.now().isoformat(timespec="seconds")}
+        threading.Thread(target=_correr_facturacion, args=(order_id,), daemon=True,
+                         name=f"facturar-{order_id}").start()
+        return jsonify({"ok": True, "en_curso": True, "desde": _trabajos_facturar[order_id]["desde"]}), 202
 
-            resultado = facturar_pack_meli_manual(order_id)
-            if resultado.get("ok"):
-                # Sin esto la venta seguía "sin facturar" en el listado y en el
-                # histórico (la foto era de antes de facturar) — alerta falsa.
-                try:
-                    from app.services.facturacion_ventas_unificado import (
-                        anotar_filas,
-                        consultar_venta_individual,
-                        invalidar_caches,
-                    )
-
-                    invalidar_caches()
-                    fila = consultar_venta_individual(order_id)
-                    if fila:
-                        resultado["venta"] = anotar_filas([fila])[0]
-                except Exception as e:  # noqa: BLE001 - la factura ya salió; el refresco es secundario
-                    resultado["aviso_refresco"] = str(e)[:200]
-            # 200 siempre que el endpoint mismo respondió bien: un fallo de negocio
-            # (producto sin mapear en Alegra, datos de facturación incompletos, etc.)
-            # no es un "Bad Gateway" — antes se mapeaba a 502 y el panel lo mostraba
-            # como si el backend se hubiera caído, cuando el error real venía en
-            # `resultado["error"]` (ver TKT facturar-ahora 502 falso positivo, sep-2026).
-            return jsonify(resultado), 200
-        except Exception as e:
-            return jsonify({"ok": False, "error": str(e)[:300]}), 500
+    @app.route("/api/facturacion/ventas-unificadas/facturar-ahora/estado/<order_id>", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora/estado/<order_id>", methods=["GET"])
+    def api_facturacion_ventas_facturar_estado(order_id):
+        """Avance de un «Facturar ahora»: corriendo / terminado (+ resultado) /
+        desconocido (p. ej. el agente se reinició: revisar la venta antes de reintentar)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        with _trabajos_facturar_lock:
+            t = dict(_trabajos_facturar.get(str(order_id)) or {"estado": "desconocido"})
+        return jsonify(t)
 
     @app.route("/api/facturacion/ventas-unificadas/revalidar", methods=["POST"])
     @app.route("/app/api/facturacion/ventas-unificadas/revalidar", methods=["POST"])
@@ -7665,9 +7685,9 @@ def register_routes(app):
         u = _usuario_sesion() or {}
         res = anular_sobrantes(venta, usuario=u.get("nombre") or u.get("username") or "")
         invalidar_caches()
-        fila = consultar_venta_individual(order_id)
-        if fila:
-            res["venta"] = anotar_filas([fila])[0]
+        # La fila se actualiza en segundo plano: esperarla aquí acercaba la
+        # respuesta al corte de 100 s de Cloudflare (504).
+        threading.Thread(target=consultar_venta_individual, args=(order_id,), daemon=True).start()
         return jsonify(res)
 
     @app.route("/api/facturacion/ventas-unificadas/resolver/subir-meli", methods=["POST"])
@@ -7684,9 +7704,7 @@ def register_routes(app):
         if not venta:
             return jsonify({"ok": False, "error": "No se encontró esa venta."}), 404
         res = subir_pdf_meli(venta)
-        fila = consultar_venta_individual(order_id)
-        if fila:
-            res["venta"] = anotar_filas([fila])[0]
+        threading.Thread(target=consultar_venta_individual, args=(order_id,), daemon=True).start()
         return jsonify(res)
 
     @app.route("/api/facturacion/ventas-unificadas/generar-ticket-revision", methods=["POST"])
@@ -10686,13 +10704,13 @@ def register_routes(app):
             return jsonify({"error": "Envíe CSV/Excel/PDF en multipart «archivo»"}), 400
         nombre = archivo.filename
         ext = (nombre.rsplit(".", 1)[-1] if "." in nombre else "").lower()
-        if ext not in {"csv", "xlsx", "xlsm", "txt", "tsv", "pdf"}:
-            return jsonify({"error": "Formatos: .csv, .xlsx, .txt, .tsv, .pdf"}), 400
+        if ext not in {"csv", "xlsx", "xlsm", "txt", "tsv", "pdf", "zip"}:
+            return jsonify({"error": "Formatos: .csv, .xlsx, .txt, .tsv, .pdf, .zip"}), 400
         contenido = archivo.read()
         if not contenido:
             return jsonify({"error": "Archivo vacío"}), 400
         # PDF de extracto suele ser más pesado que CSV
-        max_bytes = 15 * 1024 * 1024 if ext == "pdf" else 8 * 1024 * 1024
+        max_bytes = 15 * 1024 * 1024 if ext in ("pdf", "zip") else 8 * 1024 * 1024
         if len(contenido) > max_bytes:
             return jsonify({
                 "error": f"Archivo demasiado grande (máx {max_bytes // (1024 * 1024)} MB)",
@@ -11000,6 +11018,72 @@ def register_routes(app):
                     )
                 }
             )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/conciliacion/taller", methods=["GET"])
+    @app.route("/app/api/contabilidad/conciliacion/taller", methods=["GET"])
+    def api_contabilidad_conciliacion_taller():
+        """Tablero del Taller de conciliación: cada línea del banco con su
+        estado, los asientos del libro que le calzan y la cuenta propuesta.
+
+        Es de solo lectura — vincular y causar siguen yendo por
+        `/extractos/vincular` y las plantillas de `cc`."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        desde = (request.args.get("desde") or "").strip()
+        hasta = (request.args.get("hasta") or "").strip()
+        if not desde or not hasta:
+            return jsonify({"error": "Parámetros desde y hasta requeridos (YYYY-MM-DD)"}), 400
+        tercero_id = _tercero_id_extracto_param()
+        if tercero_id == -1:
+            return jsonify({"error": "No autorizado para ver los extractos de ese socio"}), 403
+        incluir_meli = (request.args.get("meli") or "1").strip() not in ("0", "false", "no")
+        incluir_siigo = (request.args.get("siigo") or "1").strip() not in ("0", "false", "no")
+        # «refrescar» tira el libro cacheado y lo vuelve a pedir a Alegra/MeLi.
+        # No se hace solo: el taller vuelve a preguntar cada pocos segundos
+        # mientras el libro se arma, y si cada pregunta lo tirara nunca acabaría.
+        refrescar = (request.args.get("refrescar") or "").strip() in ("1", "true", "si")
+        try:
+            from app.services.conciliacion_taller import tablero
+
+            return jsonify(
+                tablero(
+                    desde,
+                    hasta,
+                    incluir_meli=incluir_meli,
+                    incluir_siigo=incluir_siigo,
+                    tercero_id=tercero_id,
+                    refrescar=refrescar,
+                )
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/contabilidad/conciliacion/mp-lote", methods=["GET"])
+    @app.route("/app/api/contabilidad/conciliacion/mp-lote", methods=["GET"])
+    def api_contabilidad_conciliacion_mp_lote():
+        """El lote de MercadoPago detrás de un retiro al banco: pagos liberados
+        entre el retiro anterior y éste, con su orden, su asiento y su factura."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            linea_id = int(request.args.get("linea_id") or 0)
+        except ValueError:
+            return jsonify({"error": "linea_id inválido"}), 400
+        if not linea_id:
+            return jsonify({"error": "Parámetro linea_id requerido"}), 400
+        tercero_id = _tercero_id_extracto_param()
+        if tercero_id == -1:
+            return jsonify({"error": "No autorizado para ver los extractos de ese socio"}), 403
+        try:
+            from app.services.mp_liberaciones import lote_de_retiro
+
+            return jsonify(lote_de_retiro(linea_id, tercero_id=tercero_id))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -11817,6 +11901,16 @@ def register_routes(app):
 
             fn = getattr(cc, fn_nombre)
             payload = request.get_json(silent=True) or {}
+            # Las plantillas no se pusieron de acuerdo en cómo se llama la
+            # plata: `registrar_ingreso`/`registrar_egreso`/`compra-proveedor`
+            # leen «valor» y las de préstamos y socios leen «monto». Quien llama
+            # no tiene por qué saberse esa tabla — mandar la clave equivocada
+            # hacía que `valor` quedara en 0 y la plantilla respondiera «valor
+            # requerido» sin decir cuál de las dos esperaba. Se aceptan las dos.
+            if payload.get("valor") in (None, "") and payload.get("monto") not in (None, ""):
+                payload["valor"] = payload["monto"]
+            elif payload.get("monto") in (None, "") and payload.get("valor") not in (None, ""):
+                payload["monto"] = payload["valor"]
             mov = fn(payload, created_by=_cc_uid())
             return jsonify({"ok": True, "movimiento": mov})
         except ValueError as e:
@@ -20903,7 +20997,7 @@ def register_routes(app):
             if pub:
                 meli_item_id = pub.get("meli_id_efectivo", "")
         try:
-            return jsonify(obtener_fotos_actuales(sku, meli_item_id))
+            return jsonify({**obtener_fotos_actuales(sku, meli_item_id), "meli_item_id": meli_item_id})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -24025,6 +24119,16 @@ REGLAS:
         items = _load_codigos_ean()
 
         if request.method == "GET":
+            # Foto del producto: la misma que administra Publicaciones (no se guarda en el EAN).
+            try:
+                from app.services.publicaciones import fotos_principales_por_sku
+                fotos = fotos_principales_por_sku([str(it.get("sku") or "") for it in items])
+                items = [
+                    {**it, **fotos.get(str(it.get("sku") or "").strip().upper(), {})}
+                    for it in items
+                ]
+            except Exception as e:
+                log_line(f"⚠️ codigos-ean: sin fotos ({e})")
             return jsonify({"codigos": items, "total": len(items)})
 
         denied = _require_cynthia_etiquetas()

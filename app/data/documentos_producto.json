@@ -590,10 +590,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T00:48:00+00:00"
+          "registrado_en": "2026-09-22T19:57:31+00:00"
         }
       ],
-      "updated_at": "2026-09-22T00:48:00+00:00"
+      "updated_at": "2026-09-22T19:57:31+00:00"
     },
     "C-ACEESETOM5ML": {
       "ref": "C-ACEESETOM5ML",
@@ -1156,11 +1156,25 @@
           "codigo_verificacion": "33ZAX6",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "250810C5",
+          "estado": "nuevo",
+          "fabricante": "Andina",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "2TT5ZP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:24:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:24:27+00:00"
     },
     "C-ALU500G": {
       "ref": "C-ALU500G",
@@ -1177,11 +1191,25 @@
           "codigo_verificacion": "33ZAX6",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "250810C5",
+          "estado": "nuevo",
+          "fabricante": "Andina",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "2TT5ZP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:24:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:24:27+00:00"
     },
     "C-ALUKG": {
       "ref": "C-ALUKG",
@@ -1198,11 +1226,25 @@
           "codigo_verificacion": "33ZAX6",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "250810C5",
+          "estado": "nuevo",
+          "fabricante": "Andina",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "2TT5ZP",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:24:27+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:24:27+00:00"
     },
     "C-AZUMMET30ML": {
       "ref": "C-AZUMMET30ML",
@@ -1458,7 +1500,7 @@
     },
     "C-CARCAL500G": {
       "ref": "C-CARCAL500G",
-      "nombre": "CARBONATO DE CALCIO",
+      "nombre": "Calcipur 2 - OG",
       "lotes": [
         {
           "lote_numero": "WZB453",
@@ -1471,11 +1513,25 @@
           "codigo_verificacion": "MT7YLN",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "CAL226071C",
+          "estado": "sin_cambios",
+          "fabricante": "Omya SAS, Orgon",
+          "pais_origen": "Francia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "VMUWEH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T20:32:19+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T20:32:19+00:00"
     },
     "C-CERABEREFBLAKG": {
       "ref": "C-CERABEREFBLAKG",
@@ -1640,10 +1696,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:34:05+00:00"
+          "registrado_en": "2026-09-22T18:15:43+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:34:05+00:00"
+      "updated_at": "2026-09-22T18:15:43+00:00"
     },
     "C-CITMAGKG": {
       "ref": "C-CITMAGKG",
@@ -1675,10 +1731,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:34:05+00:00"
+          "registrado_en": "2026-09-22T18:15:43+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:34:05+00:00"
+      "updated_at": "2026-09-22T18:15:43+00:00"
     },
     "C-CITMAG500G": {
       "ref": "C-CITMAG500G",
@@ -1710,10 +1766,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:34:05+00:00"
+          "registrado_en": "2026-09-22T18:15:43+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:34:05+00:00"
+      "updated_at": "2026-09-22T18:15:43+00:00"
     },
     "C-CITPOTK": {
       "ref": "C-CITPOTK",
@@ -1828,11 +1884,25 @@
           "codigo_verificacion": "4F6XPJ",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "10042026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Chile",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "HQ9278",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T20:22:28+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T20:22:28+00:00"
     },
     "C-COLHID30ML": {
       "ref": "C-COLHID30ML",
@@ -2164,11 +2234,25 @@
           "codigo_verificacion": "ZQXGY9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "26030824301",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "KT4WX7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:17:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:17:37+00:00"
     },
     "C-INU500G": {
       "ref": "C-INU500G",
@@ -2185,11 +2269,25 @@
           "codigo_verificacion": "ZQXGY9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "26030824301",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "KT4WX7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:17:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:17:37+00:00"
     },
     "C-INUKG": {
       "ref": "C-INUKG",
@@ -2206,11 +2304,25 @@
           "codigo_verificacion": "ZQXGY9",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "26030824301",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "KT4WX7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:17:37+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T16:17:37+00:00"
     },
     "C-LACCAL100G": {
       "ref": "C-LACCAL100G",
@@ -2375,7 +2487,7 @@
     },
     "C-GLIVEGLT": {
       "ref": "C-GLIVEGLT",
-      "nombre": "GLICERINA VEGETAL",
+      "nombre": "GLICERINA REFINADA",
       "lotes": [
         {
           "lote_numero": "EJA228",
@@ -2388,15 +2500,29 @@
           "codigo_verificacion": "9FJMKP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "GR902A2605130300",
+          "estado": "nuevo",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "X7N8PR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:01:18+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T19:01:18+00:00"
     },
     "C-GLICVEG500ML": {
       "ref": "C-GLICVEG500ML",
-      "nombre": "GLICERINA VEGETAL",
+      "nombre": "GLICERINA REFINADA",
       "lotes": [
         {
           "lote_numero": "EJA228",
@@ -2409,15 +2535,29 @@
           "codigo_verificacion": "9FJMKP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "GR902A2605130300",
+          "estado": "nuevo",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "X7N8PR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:01:18+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T19:01:18+00:00"
     },
     "C-GLIVEG250ML": {
       "ref": "C-GLIVEG250ML",
-      "nombre": "GLICERINA VEGETAL",
+      "nombre": "GLICERINA REFINADA",
       "lotes": [
         {
           "lote_numero": "EJA228",
@@ -2430,11 +2570,25 @@
           "codigo_verificacion": "9FJMKP",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "GR902A2605130300",
+          "estado": "nuevo",
+          "fabricante": "Aceites Manuelita S.A.",
+          "pais_origen": "Colombia",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "X7N8PR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:01:18+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T19:01:18+00:00"
     },
     "C-GLUMONKG": {
       "ref": "C-GLUMONKG",
@@ -2669,7 +2823,7 @@
     },
     "C-MAL500G": {
       "ref": "C-MAL500G",
-      "nombre": "MALTODEXTRINA",
+      "nombre": "MALTODEXTRINA M100",
       "lotes": [
         {
           "lote_numero": "PLF744",
@@ -2682,11 +2836,25 @@
           "codigo_verificacion": "CKVLPM",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "1B000730809",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Estados Unidos",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "Z6U3QD",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:11:20+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-22T19:11:20+00:00"
     },
     "C-OXIZIN250G": {
       "ref": "C-OXIZIN250G",
@@ -3348,10 +3516,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-16T20:49:53+00:00"
+          "registrado_en": "2026-09-22T19:53:19+00:00"
         }
       ],
-      "updated_at": "2026-09-16T20:49:53+00:00"
+      "updated_at": "2026-09-22T19:53:19+00:00"
     },
     "C-MANNATTOS250G": {
       "ref": "C-MANNATTOS250G",
@@ -3383,10 +3551,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-16T20:49:53+00:00"
+          "registrado_en": "2026-09-22T19:53:19+00:00"
         }
       ],
-      "updated_at": "2026-09-16T20:49:53+00:00"
+      "updated_at": "2026-09-22T19:53:19+00:00"
     },
     "C-PROSUELECKG": {
       "ref": "C-PROSUELECKG",
@@ -3418,10 +3586,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-17T19:18:10+00:00"
+          "registrado_en": "2026-09-22T19:02:49+00:00"
         }
       ],
-      "updated_at": "2026-09-17T19:18:10+00:00"
+      "updated_at": "2026-09-22T19:02:49+00:00"
     },
     "C-MANKAR125G": {
       "ref": "C-MANKAR125G",
@@ -3803,7 +3971,7 @@
     },
     "C-EXTTEMATVER100G": {
       "ref": "C-EXTTEMATVER100G",
-      "nombre": "EXTRACTO DE TÉ MATCHA",
+      "nombre": "EXTRACTO DE TÉ VERDE",
       "lotes": [
         {
           "lote_numero": "PEC854",
@@ -3816,11 +3984,25 @@
           "codigo_verificacion": "U2YGKC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:01+00:00"
+        },
+        {
+          "lote_numero": "MCC260205",
+          "estado": "nuevo",
+          "fabricante": "Andina",
+          "pais_origen": "China",
+          "fecha_fabricacion": "febrero 10, 2026",
+          "fecha_vencimiento": "febrero 09, 2028",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "GRGM25",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T18:54:26+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:01+00:00"
+      "updated_at": "2026-09-22T18:54:26+00:00"
     },
     "L-AMIPRO100G": {
       "ref": "L-AMIPRO100G",
@@ -3964,7 +4146,7 @@
     },
     "C-VITE30ML": {
       "ref": "C-VITE30ML",
-      "nombre": "VITAMINA E",
+      "nombre": "Vitamina E ATFA USP",
       "lotes": [
         {
           "lote_numero": "AHE975",
@@ -3977,11 +4159,25 @@
           "codigo_verificacion": "WDS2K4",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T07:16:02+00:00"
+        },
+        {
+          "lote_numero": "20161250705",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "3SNTGV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T20:12:31+00:00"
         }
       ],
-      "updated_at": "2026-07-19T07:16:02+00:00"
+      "updated_at": "2026-09-22T20:12:31+00:00"
     },
     "ACERIC250ML": {
       "ref": "ACERIC250ML",
@@ -4145,11 +4341,25 @@
           "codigo_verificacion": "V4ZG3U",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-08-12T06:29:13+00:00"
+        },
+        {
+          "lote_numero": "10042026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Chile",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "HQ9278",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T20:22:28+00:00"
         }
       ],
-      "updated_at": "2026-08-12T06:29:13+00:00"
+      "updated_at": "2026-09-22T20:22:28+00:00"
     },
     "C-CLOCAL100G": {
       "ref": "C-CLOCAL100G",
@@ -4166,11 +4376,25 @@
           "codigo_verificacion": "V4ZG3U",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-08-12T06:29:13+00:00"
+        },
+        {
+          "lote_numero": "10042026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Chile",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "HQ9278",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T20:22:28+00:00"
         }
       ],
-      "updated_at": "2026-08-12T06:29:13+00:00"
+      "updated_at": "2026-09-22T20:22:28+00:00"
     },
     "CREMON100G": {
       "ref": "CREMON100G",
@@ -4573,10 +4797,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-26T22:28:41+00:00"
+          "registrado_en": "2026-09-22T20:23:24+00:00"
         }
       ],
-      "updated_at": "2026-08-26T22:28:41+00:00"
+      "updated_at": "2026-09-22T20:23:24+00:00"
     },
     "C-CERABEREFBLA500G": {
       "ref": "C-CERABEREFBLA500G",
@@ -4720,10 +4944,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T18:51:52+00:00"
+          "registrado_en": "2026-09-22T20:30:26+00:00"
         }
       ],
-      "updated_at": "2026-09-12T18:51:52+00:00"
+      "updated_at": "2026-09-22T20:30:26+00:00"
     },
     "C-AJONEG500G": {
       "ref": "C-AJONEG500G",
@@ -4741,10 +4965,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T18:51:52+00:00"
+          "registrado_en": "2026-09-22T20:30:26+00:00"
         }
       ],
-      "updated_at": "2026-09-12T18:51:52+00:00"
+      "updated_at": "2026-09-22T20:30:26+00:00"
     },
     "C-BAYGOJ250G": {
       "ref": "C-BAYGOJ250G",
@@ -4762,10 +4986,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T19:15:56+00:00"
+          "registrado_en": "2026-09-22T19:42:36+00:00"
         }
       ],
-      "updated_at": "2026-09-12T19:15:56+00:00"
+      "updated_at": "2026-09-22T19:42:36+00:00"
     },
     "C-BAYGOJ500G": {
       "ref": "C-BAYGOJ500G",
@@ -4783,10 +5007,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-12T19:15:56+00:00"
+          "registrado_en": "2026-09-22T19:42:36+00:00"
         }
       ],
-      "updated_at": "2026-09-12T19:15:56+00:00"
+      "updated_at": "2026-09-22T19:42:36+00:00"
     },
     "C-GLI250G": {
       "ref": "C-GLI250G",
@@ -5060,6 +5284,174 @@
         }
       ],
       "updated_at": "2026-09-22T05:50:42+00:00"
+    },
+    "CAOARCG": {
+      "ref": "CAOARCG",
+      "nombre": "CAOLIN USP",
+      "lotes": [
+        {
+          "lote_numero": "250312",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "España",
+          "fecha_fabricacion": "11-12/10/2025",
+          "fecha_vencimiento": "2030-10-11",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "PC867X",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:11:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T16:11:04+00:00"
+    },
+    "LECSOYG": {
+      "ref": "LECSOYG",
+      "nombre": "LECITINA DE SOYA EN POLVO",
+      "lotes": [
+        {
+          "lote_numero": "LSF20260601",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "DBVF7V",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T16:20:00+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T16:20:00+00:00"
+    },
+    "ALMNATG": {
+      "ref": "ALMNATG",
+      "nombre": "ALMENDRA NATURAL SIN CASCARA",
+      "lotes": [
+        {
+          "lote_numero": "SA5971301",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "6UTTT8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T18:08:31+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T18:08:31+00:00"
+    },
+    "C-COLHID500G": {
+      "ref": "C-COLHID500G",
+      "nombre": "Colágeno Hidrolizado en Polvo",
+      "lotes": [
+        {
+          "lote_numero": "20250728",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "EVYEA8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T18:26:01+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T18:26:01+00:00"
+    },
+    "GELSINSABG": {
+      "ref": "GELSINSABG",
+      "nombre": "Gelatina 280 Bloom",
+      "lotes": [
+        {
+          "lote_numero": "20260110",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "T9T978",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T18:59:54+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T18:59:54+00:00"
+    },
+    "DPANG": {
+      "ref": "DPANG",
+      "nombre": "VITAMINA D - PANTENOL",
+      "lotes": [
+        {
+          "lote_numero": "260111T061",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "2026-01-11",
+          "fecha_vencimiento": "2028-01-10",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "3B44ZK",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:28:31+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T19:28:31+00:00"
+    },
+    "C-DATSAY250G": {
+      "ref": "C-DATSAY250G",
+      "nombre": "DÁTILES SAYED SIN HUESO",
+      "lotes": [
+        {
+          "lote_numero": "BF.92.062.26",
+          "estado": "nuevo",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA",
+          "pais_origen": "TUNISIA",
+          "fecha_fabricacion": "2026-03-03",
+          "fecha_vencimiento": "2027-09-02",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "7EK7W6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:56:45+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T19:56:45+00:00"
+    },
+    "C-DATSAY500G": {
+      "ref": "C-DATSAY500G",
+      "nombre": "DÁTILES SAYED SIN HUESO",
+      "lotes": [
+        {
+          "lote_numero": "BF.92.062.26",
+          "estado": "nuevo",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA",
+          "pais_origen": "TUNISIA",
+          "fecha_fabricacion": "2026-03-03",
+          "fecha_vencimiento": "2027-09-02",
+          "fecha_recepcion": "2026-09-22",
+          "codigo_verificacion": "7EK7W6",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-22T19:56:45+00:00"
+        }
+      ],
+      "updated_at": "2026-09-22T19:56:45+00:00"
     }
   }
 }

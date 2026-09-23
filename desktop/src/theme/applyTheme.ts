@@ -1,4 +1,4 @@
-import { ensurePanelFont } from "./fontLoader";
+import { ensureBarbieTitleFont, ensurePanelFont } from "./fontLoader";
 import { COLOR_CSS_VARS, THEME_COLOR_KEYS } from "./presets";
 import type { FontScale, PanelThemeConfig, ThemeMode, UiZoom } from "./types";
 
@@ -8,6 +8,7 @@ const FONT_STACKS: Record<PanelThemeConfig["fontSans"], string> = {
   "DM Sans": '"DM Sans", system-ui, sans-serif',
   Nunito: '"Nunito", system-ui, sans-serif',
   Outfit: '"Outfit", system-ui, sans-serif',
+  Jost: '"Jost", system-ui, sans-serif',
   "JetBrains Mono": '"JetBrains Mono", ui-monospace, monospace',
   "Share Tech Mono": '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace',
   "A Note": '"A Note", cursive',
@@ -51,13 +52,10 @@ function resolveDark(mode: ThemeMode): boolean {
 /** Aplica variables CSS y clase .dark en html para todo el panel. */
 export function applyPanelTheme(config: PanelThemeConfig): void {
   ensurePanelFont(config.fontSans);
-  if (
-    config.skin === "sakura" ||
-    config.skin === "barbie" ||
-    config.skin === "atelier"
-  ) {
+  if (config.skin === "sakura" || config.skin === "atelier") {
     ensurePanelFont("A Note");
   }
+  if (config.skin === "barbie") ensureBarbieTitleFont();
   const root = document.documentElement;
   const dark = resolveDark(config.mode);
   const skin =

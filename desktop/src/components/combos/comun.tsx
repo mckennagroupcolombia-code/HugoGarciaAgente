@@ -22,6 +22,8 @@ export type Eslabon = {
   tamano?: string;
   plantilla_id?: string;
   doc_titulo?: string;
+  /** El combo se marcó como «no requiere documento técnico»: la pieza cuenta como completa. */
+  no_requiere?: { motivo?: string; por?: string; fecha?: string };
   accion?: Accion;
 };
 export type MateriaPrima = { codigo: string; nombre: string };

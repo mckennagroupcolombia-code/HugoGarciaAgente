@@ -9,6 +9,7 @@ export type FontChoice =
   | "JetBrains Mono"
   | "Share Tech Mono"
   | "A Note"
+  | "Jost"
   | "system-ui";
 
 export type RadiusScale = "sm" | "md" | "lg";

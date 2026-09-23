@@ -2501,6 +2501,33 @@ def puede_registrar_directo(usuario: dict | None) -> bool:
     return int((usuario.get("rol") or {}).get("nivel") or 0) >= 3
 
 
+def _linea_banco_que_respalda(payload: dict) -> dict | None:
+    """La línea del extracto que respalda este pago, si `origen_ref` la nombra.
+
+    `extracto:<id>` lo pone el Taller de conciliación: el pago ya salió del
+    banco y se está registrando después. Solo cuenta si la línea existe, es una
+    salida y todavía no tiene asiento — una línea ya vinculada no respalda un
+    segundo asiento.
+    """
+    ref = str(payload.get("origen_ref") or "")
+    if not ref.startswith("extracto:") or not ref[9:].isdigit():
+        return None
+    from app.services import extracto_bancario as eb
+
+    eb.ensure_extracto_tables()
+    with eb._conn() as con:
+        fila = con.execute(
+            """SELECT m.id, m.fecha, m.monto, m.tipo, m.descripcion, v.id AS vinculo_id
+                 FROM extracto_movimientos m
+                 LEFT JOIN extracto_vinculos v ON v.extracto_mov_id = m.id
+                WHERE m.id = ?""",
+            (int(ref[9:]),),
+        ).fetchone()
+    if not fila or fila["tipo"] != "debito" or fila["vinculo_id"]:
+        return None
+    return dict(fila)
+
+
 def registrar_pago_directo(
     payload: dict, usuario: dict | None = None, *, espejar: bool = True
 ) -> dict:
@@ -2509,18 +2536,45 @@ def registrar_pago_directo(
     Mismo motor que el flujo con aprobación: `previsualizar` valida y arma, y
     `aprobar` contabiliza. Acá solo se encadenan, así no hay dos caminos que
     puedan divergir en cómo queda el asiento.
+
+    Dos puertas. La de siempre: un administrador registra sin aprobación. La
+    otra: el pago YA salió del banco y se está registrando después, desde el
+    Taller de conciliación, con `origen_ref = extracto:<id>`. Ahí el extracto
+    es la aprobación —el dinero se movió, nadie tiene que autorizarlo— y puede
+    registrarlo cualquiera con permiso sobre el libro. Lo que sí se exige es
+    que el asiento gire exactamente lo que el banco giró: con retención o IVA
+    mal puestos, `girado` no da y no se registra.
     """
     _ensure()
-    if not puede_registrar_directo(usuario):
+    respaldo = _linea_banco_que_respalda(payload)
+    if not puede_registrar_directo(usuario) and not respaldo:
         raise ValueError(
             "Solo un administrador puede registrar un pago sin aprobación. "
             "Usa «Solicitar un pago» para que alguien lo apruebe."
         )
     uid = int(usuario.get("id")) if usuario and usuario.get("id") else None
 
+    if respaldo:
+        prev = previsualizar(payload)
+        girado = round(float(prev.get("girado") or 0))
+        banco = round(float(respaldo["monto"] or 0))
+        if girado != banco:
+            raise ValueError(
+                f"El banco giró {banco:,.0f} y este asiento gira {girado:,.0f} "
+                f"(total {float(prev.get('monto') or 0):,.0f}, retención "
+                f"{float(prev.get('retencion') or 0) + float(prev.get('retencion_ica') or 0):,.0f}). "
+                "Revisa el total de la factura, el IVA de cada línea o la retención: "
+                "lo que se registra tiene que ser lo que salió del banco.".replace(",", ".")
+            )
+
     s = crear_solicitud({**payload, "_sin_ticket": True}, created_by=uid)
     with _conn() as con:
-        nota = "Registrado directamente por " + str((usuario or {}).get("nombre") or "admin")
+        nota = (
+            f"Registrado desde el Taller de conciliación por {(usuario or {}).get('nombre') or 'usuario'} "
+            f"contra la línea del banco #{respaldo['id']} ({respaldo['fecha']} · {respaldo['descripcion']})"
+            if respaldo
+            else "Registrado directamente por " + str((usuario or {}).get("nombre") or "admin")
+        )
         con.execute(
             "UPDATE cc_solicitudes_pago SET notas = TRIM(COALESCE(notas,'') || ' | ' || ?) WHERE id=?",
             (nota, s["id"]),

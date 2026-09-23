@@ -230,6 +230,22 @@ def create_app():
 
             from app.services.facturacion_ventas_unificado import _lanzar_recalculo
 
+            def _prewarm_base_alegra_loop():
+                # La base completa de facturas (búsqueda puntual, botón 🔄,
+                # revalidación): sin ella, la primera consulta tras un reinicio
+                # la bajaba dentro de la petición (~90 s → 504).
+                from app.services.facturacion_ventas_unificado import calentar_base_alegra
+
+                _time.sleep(5)
+                while True:
+                    try:
+                        calentar_base_alegra()
+                    except Exception as _e:
+                        print(f"⚠️ Precalentamiento base Alegra: {_e}")
+                    _time.sleep(1800)
+
+            threading.Thread(target=_prewarm_base_alegra_loop, daemon=True, name="facturacion-base-alegra").start()
+
             def _prewarm_facturacion_loop():
                 _time.sleep(25)  # deja que el resto del arranque termine primero
                 while True:

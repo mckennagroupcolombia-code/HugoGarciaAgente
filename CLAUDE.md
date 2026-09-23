@@ -981,7 +981,7 @@ qué pasa y qué se propone — «No tiene código de barras. Este es el siguien
 mismo `Inspector`, y abajo «Siguiente pendiente: <pieza> →». El banner «siguiente paso» trae **«Resolver ahora →»**. Al
 resolver una pieza el emergente **pasa solo a la siguiente pendiente** con la tira «Listo: <pieza> — seguimos…»; si el combo
 quedó completo se cierra para que se vea la celebración. La publicación y la etiqueta tienen su emergente propio
-(`PublicacionEmergente`, `EtiquetaEmergente`). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
+(`PublicacionEmergente`, `EtiquetaEmergente`). Si el combo ya tiene etiqueta, tocar la pieza abre **de una vez** el editor (formato y exportación) y al cerrarlo se cierra también la pieza. En ese editor la casilla **«Desenfoque» viene marcada** por defecto: toda etiqueta lleva sus dos PNG (impresión + `_digital` desenfocado). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
 (`z-70`); Esc cierra la pieza solo si no hay otro emergente encima, y con un emergente abierto las flechas no cambian de combo.
 
 **El premio suena, y la foto avisa.** Al completarse las seis piezas suena una moneda (`combos/sonidoMoneda.ts`: dos
@@ -1003,6 +1003,8 @@ cierran la pieza: **«Es este: unirlo a <SKU>»** (o corregir/compartir el enlac
 Docs técnicos →». Datos de `GET /api/mapa-sistema/documentos/<archivo>/revision` → `mapa_producto.revisar_documento()`:
 solo lectura, **no genera PDF** ni toca el YAML, y no envía las imágenes embebidas (firma en base64). «Sin dato» no es un
 error: muchos campos no aplican al producto (sabor de un aceite, INS de un cosmético).
+
+**«No requiere documento técnico» (22-sep-2026).** Hay publicaciones que no llevan documento (envases vacíos, accesorios…): en la pieza «Documento técnico» una casilla lo marca **por combo** (`POST /api/mapa-sistema/combos/<ref>/documento-no-requerido`, admin o permiso `fichas`) con motivo opcional; queda en `app/data/documento_no_requerido.json` (quién, cuándo, por qué) y la pieza cuenta como completa. No toca ningún YAML; desmarcar la vuelve a pedir.
 
 **…y se EDITA ahí mismo.** «Editar aquí» convierte cada valor del emergente en campo (textos, filas, ítems de lista y celdas
 de las tablas del COA/SDS); lo cambiado se resalta y se guarda todo junto por `POST …/documentos/<archivo>/editar` →

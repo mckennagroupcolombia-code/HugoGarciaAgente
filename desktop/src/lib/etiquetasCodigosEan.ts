@@ -12,6 +12,11 @@ export interface CodigoEan {
   bimestre: number;
   codigo: string;
   creado_at: string;
+  /** Foto principal del producto (la de Publicaciones; si no hay propia, la de la vitrina). */
+  foto?: string;
+  /** Fotos web propias del SKU (0 cuando la foto viene de la vitrina/MeLi). */
+  fotos_total?: number;
+  origen?: "propia" | "vitrina";
 }
 
 export interface NuevoCodigoEan {

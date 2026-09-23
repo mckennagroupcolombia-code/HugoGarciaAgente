@@ -6,6 +6,7 @@ const GOOGLE_FONTS: Partial<Record<FontChoice, string>> = {
   "DM Sans": "DM+Sans:wght@400;500;600;700",
   Nunito: "Nunito:wght@400;500;600;700;800",
   Outfit: "Outfit:wght@400;500;600;700;800",
+  Jost: "Jost:wght@400;500;600;700",
   "JetBrains Mono": "JetBrains+Mono:wght@400;500;600;700",
   "Share Tech Mono": "Share+Tech+Mono",
 };
@@ -50,5 +51,16 @@ export function ensurePanelFont(font: FontChoice): void {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = `https://fonts.googleapis.com/css2?family=${spec}&display=swap`;
+  document.head.appendChild(link);
+}
+
+/** Títulos de Barbie Agenda: cuento de princesas (Cinzel Decorative), sin cursivas. */
+export function ensureBarbieTitleFont(): void {
+  const id = "mck-font-barbie-titulos";
+  if (document.getElementById(id)) return;
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@500;600;700&display=swap";
   document.head.appendChild(link);
 }

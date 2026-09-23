@@ -37,6 +37,10 @@ _STOCK_JSON = Path(__file__).resolve().parents[1] / "data" / "siigo_stock_cache.
 _ETIQUETAS_JSON = REPO / "app" / "data" / "etiquetas_fichas.json"
 _PNG_JSON = REPO / "app" / "data" / "etiquetas_recursos_png.json"
 _CACHE_WEB = REPO / "PAGINA_WEB" / "site" / "data" / "cache.json"
+# Combos que no necesitan documento técnico (empaques sueltos, accesorios, kits de regalo…):
+# lo marca una persona en el taller y la pieza cuenta como completa. Por combo, no por
+# materia prima: cada publicación se decide por separado.
+_DOC_NO_REQUERIDO_JSON = REPO / "app" / "data" / "documento_no_requerido.json"
 
 _TTL_S = 90
 _lock = threading.Lock()
@@ -211,6 +215,8 @@ def _construir() -> dict:
     # Acá solo se lee el archivo; si no está, los componentes salen sin existencias.
     stock_ref = {str(c).lower(): v for c, v in ((_leer_json(_STOCK_JSON, {}) or {}).get("por_codigo") or {}).items()}
 
+    no_requeridos = _no_requeridos()
+
     combos = []
     for ref, k in sorted(cat.items()):
         if k.get("type") != "kit":
@@ -273,7 +279,14 @@ def _construir() -> dict:
                 break
         if not doc:
             doc = A.mejor_documento(ref, nombre, docs)
-        if doc:
+        exento = no_requeridos.get(ref.upper())
+        if exento:
+            quien = f" por {exento['por']}" if exento.get("por") else ""
+            motivo = f": {exento['motivo']}" if exento.get("motivo") else ""
+            esl["documento"] = _eslabon("ok", "Documento técnico",
+                                        f"No requiere documento técnico (marcado{quien} el {exento.get('fecha', '')[:10]}){motivo}.",
+                                        no_requiere=exento)
+        elif doc:
             declarados = {x.lower() for x in [doc.get("referencia") or "", *doc.get("equivalentes", [])] if x}
             por_sku = any(c["codigo"].lower() in declarados for c in mp)
             estado = "ok" if doc["estado"] in _DOC_OK else "aviso"
@@ -333,7 +346,9 @@ def _construir() -> dict:
             esl["etiqueta"]["accion"] = {"tipo": "disenar_etiqueta"}
         # Las materias primas a las que se puede unir un documento (para elegirlo a mano también).
         mps = [{"codigo": c["codigo"], "nombre": c["nombre"]} for c in mp if c["existe"] and c["nombre"].strip()]
-        if esl["documento"]["estado"] == "falta":
+        if esl["documento"].get("no_requiere"):
+            pass
+        elif esl["documento"]["estado"] == "falta":
             esl["documento"]["accion"] = {"tipo": "crear_documento", "mps": mps}
         elif doc and not esl["documento"].get("por_sku") and mps:
             # El documento se encontró por nombre. Tres casos, según lo que ya declare:
@@ -378,6 +393,15 @@ def _construir() -> dict:
 
     # Documentos huérfanos: existen pero ningún combo llega a ellos (el caso propionato).
     usados = {c["eslabones"]["documento"].get("archivo") for c in combos}
+    # Un combo exento no «usa» el documento que el parecido de nombre le habría encontrado,
+    # pero tampoco lo deja huérfano: ese documento sigue siendo de su materia prima.
+    for c in combos:
+        if c["eslabones"]["documento"].get("no_requiere"):
+            for m in c["componentes"]:
+                if m["casilla"] == "materia_prima":
+                    d = A.mejor_documento(m["codigo"], m["nombre"], docs)
+                    if d:
+                        usados.add(d["archivo"])
     huerfanos = [
         {"archivo": d["archivo"], "titulo": d["titulo"], "estado": d["estado"], "referencia": d["referencia"]}
         for d in docs
@@ -544,7 +568,9 @@ def matriz_productos(refrescar: bool = False) -> dict:
         fila = {
             "ref": m["ref"], "nombre": m["nombre"], "combos": [c["ref"] for c in cs], "doc_estado": m["doc"],
             "combo": "falta" if not cs else ("ok" if all(est(c, "receta") == "ok" for c in cs) else "parcial"),
-            "documento": "ok" if m["doc"] in _DOC_OK else ("parcial" if m["doc"] != "—" else "falta"),
+            # Si TODAS sus presentaciones están marcadas «no requiere documento», no le falta nada.
+            "documento": "ok" if m["doc"] in _DOC_OK or (cs and all(c["eslabones"]["documento"].get("no_requiere") for c in cs))
+                          else ("parcial" if m["doc"] != "—" else "falta"),
             "ean": agrega([est(c, "ean") == "ok" for c in cs]),
             "etiqueta": agrega([est(c, "etiqueta") != "falta" for c in cs]),
             "meli": agrega([c["ref"].upper() in meli for c in cs]),
@@ -614,6 +640,34 @@ def palabra_recipiente(texto: str, recipiente: str) -> str:
         return w[0].upper() + w[1:] if orig[0].isupper() else w
 
     return _RE_RECIPIENTE.sub(cambio, texto)
+
+
+def _no_requeridos() -> dict[str, dict]:
+    datos = _leer_json(_DOC_NO_REQUERIDO_JSON, {}) or {}
+    return {str(k).strip().upper(): v for k, v in (datos.get("combos") or {}).items() if isinstance(v, dict)}
+
+
+def marcar_documento_no_requerido(ref: str, no_requiere: bool, motivo: str = "", usuario: str = "") -> dict:
+    """Marca (o desmarca) que un combo no necesita documento técnico. Solo toca el JSON de
+    exenciones: no borra ni cambia ningún documento."""
+    ref = (ref or "").strip().upper()
+    combo = next((c for c in _datos()["combos"] if c["ref"].upper() == ref), None)
+    if not combo:
+        raise ValueError("Ese combo no existe en la copia local de Alegra")
+    with _lock:
+        datos = _leer_json(_DOC_NO_REQUERIDO_JSON, {}) or {}
+        combos = {str(k).strip().upper(): v for k, v in (datos.get("combos") or {}).items()}
+        if no_requiere:
+            combos[ref] = {"motivo": (motivo or "").strip()[:200], "por": (usuario or "").strip()[:80],
+                           "fecha": time.strftime("%Y-%m-%dT%H:%M:%S"), "nombre": combo["nombre"]}
+        else:
+            combos.pop(ref, None)
+        datos["combos"] = dict(sorted(combos.items()))
+        tmp = _DOC_NO_REQUERIDO_JSON.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(datos, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp.replace(_DOC_NO_REQUERIDO_JSON)
+    invalidar()
+    return {"ok": True, "ref": ref, "no_requiere": bool(no_requiere)}
 
 
 def invalidar() -> None:

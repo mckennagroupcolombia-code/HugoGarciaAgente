@@ -48,9 +48,15 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
     # Cuentas propias. Va primero que nada: si esto se clasifica como ingreso o
     # gasto, se inflan ventas y costos por decenas de millones (jul-ago 2026:
     # $40,7M moviéndose entre Bancolombia y MercadoPago en cuatro líneas).
-    (r"MERCA ?O? ?PAGO|MERCADOPAGO", None, None, "Traslado a/desde MercadoPago", REVISAR,
-     "Plata propia entre cuentas, NO es ingreso ni gasto. Falta crear la cuenta "
-     "de MercadoPago en el plan para poder registrarlo como traslado."),
+    # Ya existe 111010 «MercadoPago – saldo en plataforma»: el retiro es un
+    # traslado entre cuentas propias (Debe Bancos / Haber 111010) y se puede
+    # causar de un clic. Qué ventas trae ese lote lo dice MercadoPago por su
+    # fecha de liberación (mp_liberaciones.lote_de_retiro), no el banco.
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "credito", "111010", "Retiro de MercadoPago al banco", ALTA,
+     "Plata propia que ya estaba en MercadoPago (ventas MeLi liberadas). No es ingreso: "
+     "el ingreso se causó venta por venta contra 111010."),
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "debito", "111010", "Envío del banco a MercadoPago", ALTA,
+     "Plata propia que sale del banco hacia la plataforma. No es gasto."),
 
     # Costos de tener la cuenta. Muchas líneas, montos chicos, cero ambigüedad.
     (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|^COMISION|^COBRO COMISION",
@@ -175,6 +181,12 @@ def clasificar(linea: dict[str, Any], terceros: list[tuple[str, dict]] | None = 
             continue
         if not re.search(patron, desc):
             continue
+        if cuenta:
+            # La regla escribe el código «natural» (111010 MercadoPago); la
+            # propuesta lleva el vivo, que es al que se puede causar.
+            import app.services.contabilidad_core as cc
+
+            cuenta = cc.codigo_vivo(cuenta)
         prop = {
             "extracto_mov_id": linea.get("id"),
             "fecha": linea.get("fecha"),

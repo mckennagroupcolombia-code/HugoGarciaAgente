@@ -1865,7 +1865,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         return []
     fonts = {
         "Montserrat", "Inter", "DM Sans", "Nunito", "Outfit",
-        "JetBrains Mono", "Share Tech Mono", "A Note", "system-ui",
+        "JetBrains Mono", "Share Tech Mono", "A Note", "Jost", "system-ui",
     }
     out: list[dict] = []
     for item in raw[:12]:
@@ -1931,6 +1931,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
                 "JetBrains Mono",
                 "Share Tech Mono",
                 "A Note",
+                "Jost",
                 "system-ui",
             ):
                 return False, "fontSans inválido", None

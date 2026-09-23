@@ -569,6 +569,42 @@ def consultar_venta_meli(ref: str) -> dict:
     }
 
 
+def asegurar_tercero_cliente(venta: dict) -> dict | None:
+    """El cliente de la venta, como tercero del Libro Mayor (tipo cliente).
+
+    Se llama al cotizar y al facturar. Antes el cliente vivía solo en la venta
+    y en Alegra: la factura FE465 (EQUISURE, sep-2026) llegó al taller de
+    conciliación sin que existiera ningún tercero tipo cliente en el libro, y
+    el asiento de la venta nació sin tercero. Un cliente al que se le cotiza ya
+    es un tercero; se registra en ese momento y se reutiliza por identificación.
+
+    Nunca frena la venta: si el libro falla, se sigue sin tercero.
+    """
+    import re
+
+    cli = venta.get("cliente") or {}
+    nombre = (cli.get("nombre") or "").strip()
+    ident = re.sub(r"\D", "", cli.get("identificacion") or "")
+    if not nombre or not ident:
+        return None
+    import app.services.contabilidad_core as cc
+
+    for t in cc.listar_terceros(solo_activos=False):
+        if cc.mismo_documento(t.get("identificacion") or "", ident):
+            return t
+    return cc.crear_tercero({
+        "nombre": nombre,
+        "tipo": "cliente",
+        "identificacion": cli.get("identificacion") or ident,
+        # NIT de 9 dígitos = persona jurídica; cédula = natural. Alegra lo sabe
+        # mejor, pero acá alcanza para que el tercero nazca bien clasificado.
+        "tipo_persona": "juridica" if len(ident) in (9, 10) else "natural",
+        "email": cli.get("correo") or "",
+        "telefono": venta.get("telefono") or "",
+        "notas": f"Cliente registrado desde la venta directa {venta.get('numero') or ''}",
+    })
+
+
 def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra: bool = True) -> dict:
     """PDF de cotización (sin DIAN) + registro en Alegra + envío al cliente."""
     from app.tools.cotizacion_pdf import generar_cotizacion_pdf
@@ -586,6 +622,11 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
 
     avisos: list[str] = []
     campos: dict = {}
+    # El cliente queda en el libro desde la cotización, no desde la conciliación.
+    try:
+        asegurar_tercero_cliente(venta)
+    except Exception as e:  # noqa: BLE001 — el libro no frena una cotización
+        avisos.append(f"No se pudo registrar el cliente en el Libro Mayor: {e}")
     if registrar_en_alegra and not venta.get("alegra_cotizacion_id"):
         r = crear_cotizacion_alegra(venta)
         if r.get("ok"):
@@ -656,6 +697,10 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
     tipo_doc, ident, err_ident = identificacion_fiscal(cli)
     if err_ident:
         return {"ok": False, "error": err_ident}
+    try:
+        asegurar_tercero_cliente(venta)
+    except Exception:  # noqa: BLE001 — se reintenta al causar; la factura no espera al libro
+        pass
     calc = calcular(venta["lineas"], venta["envio"])
     if calc["errores"]:
         return {"ok": False, "error": " ".join(calc["errores"])}
@@ -742,6 +787,19 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         avisos=(venta.get("avisos") or []) + avisos,
     )
     _cerrar_pedido_origen(venta)
+    # La venta nace con su asiento, como la solicitud de pago: no se espera al
+    # cron de seis horas para que el libro y el taller de conciliación la vean.
+    # Si el libro falla, la factura ya está emitida y eso no se deshace: se
+    # avisa y el cron la recoge después.
+    try:
+        from app.services.contabilidad_autopost import causar_venta_directa
+
+        causado = causar_venta_directa(obtener(venta_id) or {})
+        if causado.get("creado"):
+            avisos.append(f"Causada en el Libro Mayor (asiento #{causado['movimiento_id']}).")
+    except Exception as e:  # noqa: BLE001 — el libro no puede tumbar una factura ya emitida
+        avisos.append(f"No se pudo causar en el Libro Mayor ({e}); el cron la posteará.")
+        _actualizar(venta_id, avisos=(obtener(venta_id) or {}).get("avisos", []) + [avisos[-1]])
     try:
         from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
 

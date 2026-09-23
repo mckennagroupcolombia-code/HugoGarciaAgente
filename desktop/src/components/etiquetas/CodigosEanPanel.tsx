@@ -16,6 +16,7 @@ import {
   type CodigoEan,
 } from "../../lib/etiquetasCodigosEan";
 import { Banner, Button, Card, IconButton, Modal, Spinner } from "./ui";
+import { FotosProductoEanModal, MiniaturaFotoEan } from "./FotosProductoEan";
 
 const CrearProductosSiigoPanel = lazy(() => import("../CrearProductosSiigoPanel"));
 
@@ -33,6 +34,12 @@ const SKU_PREFIJO = "C-";
 
 function sinPrefijoSku(sku: string): string {
   return sku.replace(/^c-\s*/i, "");
+}
+
+/** SKU tal como se guarda: con el prefijo de combo o exactamente lo escrito. */
+function skuFinal(usarPrefijo: boolean, sku: string): string {
+  const base = sku.trim();
+  return usarPrefijo ? SKU_PREFIJO + sinPrefijoSku(base) : base;
 }
 
 /** Quita tildes para buscar «karite» ≈ «karité». */
@@ -66,11 +73,15 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
 
   const [filaEditandoId, setFilaEditandoId] = useState<string | null>(null);
   const [filaSeleccionadaId, setFilaSeleccionadaId] = useState<string | null>(null);
+  /** Código cuyas fotos se están administrando (emergente). */
+  const [fotosDe, setFotosDe] = useState<CodigoEan | null>(null);
   const [crearSiigoAbierto, setCrearSiigoAbierto] = useState(false);
   const [accionSiigo, setAccionSiigo] = useState<"crear" | "duplicar">("crear");
   const [siigoInicial, setSiigoInicial] = useState<{ codigo: string; nombre: string } | null>(null);
   const [busquedaLista, setBusquedaLista] = useState(buscarInicial);
   const [sku, setSku] = useState("");
+  /** El prefijo «C-» es el de los combos: se puede apagar para SKU que no lo llevan. */
+  const [usarPrefijo, setUsarPrefijo] = useState(true);
   const [nombreProducto, setNombreProducto] = useState("");
   const [numeroProducto, setNumeroProducto] = useState("");
   const [presentacion, setPresentacion] = useState("000");
@@ -121,7 +132,9 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
   useEffect(() => {
     if (!eanPrefill) return;
     presentacionManual.current = false;
-    setSku(sinPrefijoSku(eanPrefill.sku));
+    const traePrefijo = eanPrefill.sku.trim().toUpperCase().startsWith(SKU_PREFIJO);
+    setUsarPrefijo(traePrefijo);
+    setSku(traePrefijo ? sinPrefijoSku(eanPrefill.sku) : eanPrefill.sku.trim());
     setNombreProducto(eanPrefill.nombre);
     setEanPrefill(null);
   }, [eanPrefill, setEanPrefill]);
@@ -129,9 +142,9 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
   // Sugerir presentación (kg→001, 50→050, 100→100…) al escribir SKU/nombre.
   useEffect(() => {
     if (presentacionManual.current) return;
-    const sugerida = sugerirPresentacionEan(SKU_PREFIJO + sinPrefijoSku(sku), nombreProducto);
+    const sugerida = sugerirPresentacionEan(skuFinal(usarPrefijo, sku), nombreProducto);
     setPresentacion(sugerida);
-  }, [sku, nombreProducto]);
+  }, [sku, usarPrefijo, nombreProducto]);
 
   const numeroValido = /^\d+$/.test(numeroProducto) && Number(numeroProducto) >= 1 && Number(numeroProducto) <= 900;
   const numeroDuplicado = useMemo(
@@ -173,7 +186,15 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
 
   function onSkuChange(valor: string) {
     presentacionManual.current = false;
-    setSku(sinPrefijoSku(valor));
+    setSku(usarPrefijo ? sinPrefijoSku(valor) : valor);
+  }
+
+  function alternarPrefijo() {
+    presentacionManual.current = false;
+    const siguiente = !usarPrefijo;
+    setUsarPrefijo(siguiente);
+    // Al encenderlo se quita un «C-» que el usuario hubiera escrito a mano (no se duplica).
+    if (siguiente) setSku((s) => sinPrefijoSku(s));
   }
 
   function onNombreChange(valor: string) {
@@ -208,7 +229,7 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
   function guardar() {
     if (!puedeGuardar) return;
     const datos = {
-      sku: SKU_PREFIJO + sinPrefijoSku(sku.trim()),
+      sku: skuFinal(usarPrefijo, sku),
       nombre_producto: nombreProducto.trim(),
       numero_producto: Number(numeroProducto),
       presentacion,
@@ -263,18 +284,34 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">SKU</label>
             <div className="flex items-center overflow-hidden rounded-lg border border-border bg-surface focus-within:border-accent">
-              <span className="shrink-0 select-none border-r border-border bg-surface-panel px-2 py-1.5 font-mono text-sm font-semibold text-muted">
+              <button
+                type="button"
+                onClick={alternarPrefijo}
+                aria-pressed={usarPrefijo}
+                title={usarPrefijo ? "Quitar el prefijo C- (SKU que no son combo)" : "Volver a poner el prefijo C-"}
+                className={`shrink-0 select-none border-r border-border px-2 py-1.5 font-mono text-sm font-semibold transition ${
+                  usarPrefijo
+                    ? "bg-surface-panel text-muted hover:text-ink"
+                    : "bg-surface text-muted/50 line-through hover:text-muted"
+                }`}
+              >
                 {SKU_PREFIJO}
-              </span>
+              </button>
               <input
                 type="text"
                 value={sku}
                 onChange={(e) => onSkuChange(e.target.value)}
-                placeholder="ACIASC250g"
+                placeholder={usarPrefijo ? "ACIASC250g" : "ACIASC250g (sin prefijo)"}
                 className="w-full min-w-0 bg-transparent px-2.5 py-1.5 text-sm text-ink outline-none"
               />
             </div>
-            <p className="mt-1 text-[10px] text-muted">Se guarda como {SKU_PREFIJO}{sku.trim() || "…"}</p>
+            <p className="mt-1 text-[10px] text-muted">
+              Se guarda como {skuFinal(usarPrefijo, sku) || "…"}
+              {" · "}
+              <button type="button" onClick={alternarPrefijo} className="underline underline-offset-2 hover:text-ink">
+                {usarPrefijo ? "sin prefijo C-" : "con prefijo C-"}
+              </button>
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">Nombre del producto</label>
@@ -515,12 +552,13 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-xs">
+            <table className="w-full min-w-[780px] text-left text-xs">
               <thead className="bg-surface-panel text-[10px] uppercase text-muted">
                 <tr>
                   <th className="w-10 px-3 py-2">
                     <span className="sr-only">Seleccionar</span>
                   </th>
+                  <th className="px-3 py-2">Foto</th>
                   <th className="px-3 py-2">SKU</th>
                   <th className="px-3 py-2">Producto</th>
                   <th className="px-3 py-2">#</th>
@@ -562,6 +600,9 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
                           className="accent-accent"
                         />
                       </td>
+                      <td className="px-3 py-1.5">
+                        <MiniaturaFotoEan codigo={c} onAbrir={() => setFotosDe(c)} />
+                      </td>
                       <td className="px-3 py-2 font-mono text-accent">{c.sku}</td>
                       <td className="max-w-[220px] truncate px-3 py-2">{c.nombre_producto || "—"}</td>
                       <td className="px-3 py-2 font-mono">{String(c.numero_producto).padStart(3, "0")}</td>
@@ -571,6 +612,12 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
                       <td className="px-3 py-2 font-mono tracking-wide">{c.codigo}</td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <IconButton
+                            icon="camera"
+                            label={`Fotos de ${c.sku}`}
+                            size="sm"
+                            onClick={() => setFotosDe(c)}
+                          />
                           <IconButton
                             icon="pencil"
                             label={`Editar código de ${c.sku}`}
@@ -608,6 +655,8 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
           </div>
         )}
       </Card>
+
+      {fotosDe && <FotosProductoEanModal codigo={fotosDe} onClose={() => setFotosDe(null)} />}
 
       {crearSiigoAbierto && (
         <Modal
@@ -650,7 +699,9 @@ function FilaEdicionEan({
 }) {
   const actualizar = useActualizarCodigoEan();
 
-  const [sku, setSku] = useState(sinPrefijoSku(codigo.sku));
+  const teniaPrefijo = (codigo.sku || "").trim().toUpperCase().startsWith(SKU_PREFIJO);
+  const [usarPrefijo, setUsarPrefijo] = useState(teniaPrefijo);
+  const [sku, setSku] = useState(teniaPrefijo ? sinPrefijoSku(codigo.sku) : (codigo.sku || "").trim());
   const [nombreProducto, setNombreProducto] = useState(codigo.nombre_producto || "");
   const [numeroProducto, setNumeroProducto] = useState(String(codigo.numero_producto));
   const [presentacion, setPresentacion] = useState(codigo.presentacion);
@@ -677,7 +728,7 @@ function FilaEdicionEan({
       {
         id: codigo.id,
         datos: {
-          sku: SKU_PREFIJO + sinPrefijoSku(sku.trim()),
+          sku: skuFinal(usarPrefijo, sku),
           nombre_producto: nombreProducto.trim(),
           numero_producto: Number(numeroProducto),
           presentacion,
@@ -701,15 +752,28 @@ function FilaEdicionEan({
     <>
       <tr className="bg-surface-panel">
         <td className="px-3 py-2" />
+        <td className="px-3 py-2" />
         <td className="px-3 py-2">
           <div className="flex items-center overflow-hidden rounded border border-border bg-surface focus-within:border-accent">
-            <span className="shrink-0 select-none border-r border-border bg-surface-panel px-1 py-1 font-mono text-xs font-semibold text-muted">
+            <button
+              type="button"
+              onClick={() => {
+                const siguiente = !usarPrefijo;
+                setUsarPrefijo(siguiente);
+                if (siguiente) setSku((s) => sinPrefijoSku(s));
+              }}
+              aria-pressed={usarPrefijo}
+              title={usarPrefijo ? "Quitar el prefijo C-" : "Volver a poner el prefijo C-"}
+              className={`shrink-0 select-none border-r border-border px-1 py-1 font-mono text-xs font-semibold transition ${
+                usarPrefijo ? "bg-surface-panel text-muted hover:text-ink" : "bg-surface text-muted/50 line-through hover:text-muted"
+              }`}
+            >
               {SKU_PREFIJO}
-            </span>
+            </button>
             <input
               type="text"
               value={sku}
-              onChange={(e) => setSku(sinPrefijoSku(e.target.value))}
+              onChange={(e) => setSku(usarPrefijo ? sinPrefijoSku(e.target.value) : e.target.value)}
               onKeyDown={onTeclas}
               autoFocus
               className="w-full min-w-[90px] bg-transparent px-1.5 py-1 font-mono text-xs text-ink outline-none"
@@ -791,7 +855,7 @@ function FilaEdicionEan({
       </tr>
       {(numeroDuplicado || (numeroProducto && !numeroValido) || actualizar.isError) && (
         <tr className="bg-surface-panel">
-          <td colSpan={9} className="px-3 pb-2 pt-0">
+          <td colSpan={10} className="px-3 pb-2 pt-0">
             <p className="text-[10px] text-danger">
               {actualizar.isError
                 ? actualizar.error instanceof Error

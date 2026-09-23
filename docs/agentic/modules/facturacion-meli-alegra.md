@@ -283,3 +283,47 @@ botón de ESA venta queda deshabilitado hasta que la ventana traiga datos nuevos
 petición; si la conexión se cortó, además hay que esperar 2 min antes de que «Actualizar» lo libere
 (el servidor puede seguir emitiendo). Aplica al botón de la lista, al de la bandeja y a «Facturar
 seleccionadas».
+
+## 12. Cierre del empalme y de la doble emisión (22-sep-2026)
+
+Autorizado por Armando en la conversación, tras verificar por tercero en Siigo y Alegra:
+- **21 NC por doble emisión Alegra↔Alegra** (NC98–NC118): se conservó la primera emitida, que es
+  además la que MeLi tiene como documento fiscal (verificado leyendo el PDF de cada pack).
+- **26 NC por el empalme Siigo↔Alegra** (NC119–NC144): se conservó la FV de Siigo (astroselling).
+  Antes de cada una se comprobó que la FV exista, referencie el pack y no tenga NC en Siigo.
+  **FE16 NO se anuló**: su FV-2-71386 ya estaba anulada en Siigo con NC-2-840, así que la válida es FE16.
+  FE10 (marcada «falso positivo» el 5-sep) sí era doble real: FV-2-71399 referencia el pack.
+- En 12 de esas 26 ventas MeLi mostraba el PDF de la FE ya anulada: se reemplazó por el PDF de la FV
+  de Siigo (`eliminar_documentos_fiscales_meli` + `subir_factura_meli`, mismo método del 9-sep).
+- Log de todo en `app/data/regularizacion_packs_log.jsonl` (tipos `doble_*_22sep`, `meli_pdf_reemplazado_22sep`).
+- Resultado verificado en Alegra: 0 ventas con más de una factura vigente.
+
+**Hallazgo colateral — contacto «Consumidor Final» sobrescrito.** Las 26 NC del empalme fallaron al
+principio con Alegra 9228 («el tipo de identificación del cliente es distinto al que tenía al hacer el
+documento»): `_resolver_o_crear_contacto_alegra` actualizaba el contacto encontrado por identificación
+con el nombre y tipo del comprador, y dos ventas con el NIT genérico 222222222222 lo renombraron
+(FE308 «Diana Orozco» NIT, FE486 «Jaiver Quintero pinzon» NIT). Corregido: el contacto genérico nunca
+se modifica (siempre «Consumidor Final», CC). Se restauró el contacto id 1 en Alegra. FE308 y FE486
+quedaron con ese nombre en su foto (no se tocan). Test: `test_contacto_consumidor_final_no_se_sobrescribe`.
+
+Con esto queda cerrado el empalme de la migración (§3-§6): no quedan facturas duplicadas vigentes.
+Sigue abierto solo A71352 (Fork Catering, §6), que es decisión del contador.
+
+**«Facturar ahora» en segundo plano (22-sep-2026).** Aun sin duplicar, la emisión tardaba 32-211 s y
+Cloudflare corta a los 100 s: la persona veía «HTTP 504» aunque la factura sí salía (25 facturas
+FE584–FE608 emitidas después del candado, 0 duplicadas). Ahora `POST …/facturar-ahora` responde 202 al
+instante y lanza un hilo (`_correr_facturacion` en routes.py); el panel (`facturarYEsperar`) consulta
+`GET …/facturar-ahora/estado/<order_id>` cada 4 s. Un segundo POST mientras corre devuelve el mismo
+trabajo. Si el agente se reinicia a mitad, el estado responde `desconocido` y el panel pide revisar la
+venta antes de reintentar (el candado del servidor y la verificación en Alegra siguen activos).
+
+**Falso «Falta subir a MeLi» y 504 en 🔄 (22-sep-2026).** `meli_pack_tiene_documento_fiscal` devuelve
+False ante cualquier error/timeout de MeLi: justo después de subir el PDF de FE608 (pack
+2000014940327035) el panel mostró «Falta subir» con el PDF ya en MeLi. Ahora el estado usa
+`meli.meli_documento_fiscal_estado` (True/False/None, con reintento) y solo marca
+`facturada_pendiente_subir_meli` si MeLi CONFIRMA que no hay documento; la revalidación sube el PDF sola
+en ese caso (factura única vigente, sin Siigo; MeLi rechaza con 409 si ya hay uno). La consulta
+puntual ya no baja toda la base de Alegra dentro de la petición: usa una base de hasta 6 h + las 60
+facturas y 30 NC más recientes, y la renueva en segundo plano; `calentar_base_alegra()` la prepara al
+arrancar y cada 30 min (agente_pro.py), y `_facturas_alegra_cacheadas` es de una sola descarga a la vez.
+🔄 sobre 2000018361505814: 90 s → 42 s. «Subir PDF» y «Anular» actualizan la fila en segundo plano.

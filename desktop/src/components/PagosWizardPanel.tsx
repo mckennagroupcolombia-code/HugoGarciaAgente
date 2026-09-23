@@ -1107,23 +1107,53 @@ function totalesItems(items: ItemLinea[]) {
   return { subtotal: Math.round(subtotal * 100) / 100, iva: Math.round(iva * 100) / 100, total: Math.round((subtotal + iva) * 100) / 100 };
 }
 
-function Wizard({
-  onCerrar, onCreada, onError, categoriaInicial,
+/** Con qué llega el wizard cuando lo abre otro apartado (el Taller de conciliación
+ *  lo abre desde una línea del banco: proveedor, fecha, monto y medio ya se saben). */
+export type WizardInicial = {
+  tercero_id?: number | null; monto?: number; fecha?: string; medio_pago_id?: number | null;
+  concepto?: string; origen_ref?: string;
+  /** Lo que de verdad salió del banco: el asiento tiene que girar exactamente eso. */
+  girado_esperado?: number;
+};
+
+export function Wizard({
+  onCerrar, onCreada, onError, categoriaInicial, inicial, onRegistrado, modo = "solicitar",
 }: {
   onCerrar: () => void;
   onCreada: (texto: string) => void;
   onError: (texto: string) => void;
   categoriaInicial?: string | null;
+  inicial?: WizardInicial | null;
+  /** El pago quedó registrado y contabilizado (registro directo): acá va el asiento. */
+  onRegistrado?: (s: Solicitud) => void;
+  /** `directo`: el pago ya salió del banco (Taller de conciliación). No hay
+   *  aprobación que pedir —el extracto es la aprobación— y el servidor decide
+   *  quién puede, así que el único botón es registrar. */
+  modo?: "solicitar" | "directo";
 }) {
   const [paso, setPaso] = useState(1);
   const [cat, setCat] = useState<Categoria | null>(null);
   const [f, setF] = useState({
-    monto: "", concepto: "", fecha: hoy(), tercero_id: "",
-    medio_pago_id: "", cuenta_debito: "", tipo_servicio: "",
-    referencia: "", origen_ref: "", notas: "",
+    monto: inicial?.monto ? String(Math.round(inicial.monto)) : "", concepto: inicial?.concepto ?? "", fecha: inicial?.fecha || hoy(),
+    tercero_id: inicial?.tercero_id ? String(inicial.tercero_id) : "",
+    medio_pago_id: inicial?.medio_pago_id ? String(inicial.medio_pago_id) : "", cuenta_debito: "", tipo_servicio: "",
+    referencia: "", origen_ref: inicial?.origen_ref ?? "", notas: "",
   });
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }));
   const [proveedor, setProveedor] = useState<Proveedor | null>(null);
+  // Precarga del proveedor: el listado trae la ficha completa (retenciones,
+  // cuenta y medio por defecto), que es lo que el wizard necesita para no
+  // preguntar de nuevo lo que ya se le pagó a ese tercero otras veces.
+  const provInicialQ = useQuery<{ proveedores: Proveedor[] }>({
+    queryKey: ["pagos-proveedores", ""],
+    queryFn: () => api.get("/api/pagos/proveedores?q="),
+    enabled: Boolean(inicial?.tercero_id) && !proveedor,
+  });
+  useEffect(() => {
+    if (!inicial?.tercero_id || proveedor) return;
+    const p = provInicialQ.data?.proveedores.find((x) => x.id === inicial.tercero_id);
+    if (p) { setProveedor(p); if (!f.concepto) set("concepto", `Compra a ${p.nombre}`); }
+  }, [provInicialQ.data, inicial?.tercero_id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [items, setItems] = useState<ItemLinea[]>([]);
   // El total que dice el documento del proveedor. Es el patrón contra el que se
   // cuadra la réplica: como total = base + IVA, si una tarifa de IVA está mal el
@@ -1238,6 +1268,7 @@ function Wizard({
     onSuccess: (s2) => {
       if (s2.error) return onError(s2.error);
       const al = s2.alegra?.status;
+      onRegistrado?.(s2);
       onCreada(
         `Pago #${s2.id} registrado y contabilizado — ${cop(s2.monto)}.` + (
           al === "success" ? " Espejado en Alegra."
@@ -1416,32 +1447,49 @@ function Wizard({
             </p>
           )}
           {prevQ.data && <AsientoPreview p={prevQ.data} />}
-          <Campo label="Notas para el aprobador (opcional)">
+          {prevQ.data && inicial?.girado_esperado != null && (
+            Math.round(prevQ.data.girado) === Math.round(inicial.girado_esperado) ? (
+              <p className="rounded-lg border border-emerald-600/40 bg-emerald-600/10 px-3 py-2 text-sm font-bold text-ink">
+                ✓ Gira {cop(prevQ.data.girado)}: exactamente lo que salió del banco.
+                {prevQ.data.retencion > 0 ? ` La factura es por ${cop(prevQ.data.monto)}; ${cop(prevQ.data.retencion)} quedan retenidos.` : ""}
+              </p>
+            ) : (
+              <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-bold text-red-600">
+                ✗ El banco giró {cop(inicial.girado_esperado)} y este asiento gira {cop(prevQ.data.girado)}
+                {prevQ.data.retencion > 0 ? ` (factura ${cop(prevQ.data.monto)} − retención ${cop(prevQ.data.retencion)})` : ""}.
+                Revisa el total de la factura, el IVA de cada línea o la retención: lo que se registra tiene que ser lo que salió del banco.
+              </p>
+            )
+          )}
+          <Campo label={modo === "directo" ? "Notas (opcional)" : "Notas para el aprobador (opcional)"}>
             <input value={f.notas} onChange={(e) => set("notas", e.target.value)} className={inputCls}
                    placeholder="Urgencia, condiciones de pago, a quién se le confirmó…" />
           </Campo>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setPaso(pasoFinal - 1)}
                     className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink">← Corregir</button>
-            <button type="button" onClick={() => crearMut.mutate()}
-                    disabled={!prevQ.data?.cuadra || crearMut.isPending || directoMut.isPending || !facturaOk}
-                    className="rounded-lg border-2 border-accent px-4 py-2 text-sm font-bold text-accent disabled:opacity-40">
-              {crearMut.isPending ? "Enviando…" : "Enviar a aprobación"}
-            </button>
-            {puedeDirecto && (
+            {modo !== "directo" && (
+              <button type="button" onClick={() => crearMut.mutate()}
+                      disabled={!prevQ.data?.cuadra || crearMut.isPending || directoMut.isPending || !facturaOk}
+                      className="rounded-lg border-2 border-accent px-4 py-2 text-sm font-bold text-accent disabled:opacity-40">
+                {crearMut.isPending ? "Enviando…" : "Enviar a aprobación"}
+              </button>
+            )}
+            {(puedeDirecto || modo === "directo") && (
               <button
                 type="button"
                 onClick={() => {
-                  if (!window.confirm(
+                  if (modo !== "directo" && !window.confirm(
                     `Registrar y contabilizar ${cop(prevQ.data?.monto ?? 0)} de una vez, sin pasar por aprobación.\n\n` +
                     "Queda anotado que lo registraste tú. ¿Continuar?",
                   )) return;
                   directoMut.mutate();
                 }}
-                disabled={!prevQ.data?.cuadra || directoMut.isPending || crearMut.isPending}
+                disabled={!prevQ.data?.cuadra || directoMut.isPending || crearMut.isPending
+                  || (modo === "directo" && inicial?.girado_esperado != null && Math.round(prevQ.data?.girado ?? -1) !== Math.round(inicial.girado_esperado))}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
               >
-                {directoMut.isPending ? "Registrando…" : "Registrar y contabilizar ya"}
+                {directoMut.isPending ? "Registrando…" : modo === "directo" ? "Registrar · ya pagado por el banco" : "Registrar y contabilizar ya"}
               </button>
             )}
           </div>

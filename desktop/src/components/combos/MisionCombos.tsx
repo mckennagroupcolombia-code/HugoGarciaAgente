@@ -238,13 +238,23 @@ function InspectorEan({ c, alResolver }: { c: Combo; alResolver: () => Promise<v
  * El emergente vive en este envoltorio y no en el cuerpo: al crear la etiqueta el combo cambia de
  * rama (sin etiqueta → con etiqueta) y el emergente se cerraría a mitad de edición. El taller se
  * vuelve a leer al cerrarlo.
+ * Si el combo ya tiene etiqueta, tocar la pieza abre de una vez el editor (formato y exportación);
+ * al cerrarlo se cierra también la pieza. Sin etiqueta queda el cuerpo, que ofrece crearla.
  */
-function InspectorEtiqueta({ c, hermanas, alResolver }: { c: Combo; hermanas: Combo[]; alResolver: () => Promise<void> }) {
+function InspectorEtiqueta({ c, hermanas, alResolver, cerrarPieza }: {
+  c: Combo; hermanas: Combo[]; alResolver: () => Promise<void>; cerrarPieza?: () => void;
+}) {
   const salto = useSalto(c);
   const qc = useQueryClient();
-  const [editor, setEditor] = useState<EntradaFormularioEtiqueta | null>(null);
+  const idInicial = c.eslabones.etiqueta?.etiqueta_id;
+  const [editor, setEditor] = useState<EntradaFormularioEtiqueta | null>(idInicial ? { fichaId: idInicial } : null);
+  const directo = useRef(Boolean(idInicial));
   const cerrar = () => {
     setEditor(null);
+    if (directo.current) {
+      directo.current = false;
+      cerrarPieza?.();
+    }
     void qc.invalidateQueries({ queryKey: ["mision-etiqueta"] });
     void alResolver();
   };
@@ -396,10 +406,39 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
   const [elegir, setElegir] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
   useEffect(() => {
     setElegir(false);
     setError(null);
+    setMotivo("");
   }, [c.ref]);
+
+  const marcarNoRequiere = async (valor: boolean) => {
+    setOcupado(true);
+    setError(null);
+    try {
+      await api.post(`/api/mapa-sistema/combos/${encodeURIComponent(c.ref)}/documento-no-requerido`, { no_requiere: valor, motivo });
+      await alResolver();
+    } catch (err) {
+      setError((err as Error)?.message || "No se pudo guardar");
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  if (e.no_requiere) {
+    return (
+      <div className="space-y-2.5">
+        <p className="text-[11.5px] text-muted">{e.detalle}</p>
+        <label className="flex items-center gap-2 text-[12px] text-ink">
+          <input type="checkbox" checked disabled={ocupado} onChange={() => marcarNoRequiere(false)} />
+          No requiere documento técnico
+        </label>
+        <p className="text-[11px] text-muted">Desmárcala si esta publicación sí debe llevar ficha técnica, COA y SDS.</p>
+        {error && <p className="text-[11px] text-accent-rose">{error}</p>}
+      </div>
+    );
+  }
 
   const unir = async (archivo: string, codigo: string, compartir: boolean) => {
     setOcupado(true);
@@ -471,16 +510,33 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
       )}
       {error && <p className="text-[11px] text-accent-rose">{error}</p>}
 
+      {/* Hay publicaciones que no llevan documento técnico (empaques, accesorios…). */}
+      {e.estado !== "ok" && (
+        <div className="rounded-md border border-border bg-surface p-2 text-[11px] text-ink">
+          <label className="flex items-center gap-2 text-[12px]">
+            <input type="checkbox" checked={false} disabled={ocupado} onChange={() => marcarNoRequiere(true)} />
+            No requiere documento técnico
+          </label>
+          <input
+            className="mt-1.5 w-full rounded border border-border bg-surface-input px-2 py-1 text-[11px]"
+            placeholder="Motivo (opcional): p. ej. es un envase vacío"
+            value={motivo}
+            onChange={(ev) => setMotivo(ev.target.value)}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA }: {
+function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA, cerrarPieza }: {
   c: Combo; clave: string; hermanas: Combo[]; alResolver: () => Promise<void>;
   /** La publicación se revisa en un emergente sobre el taller, no saltando a Publicaciones. */
   abrirPublicacion: () => void;
   /** Pasar a otra pieza del mismo combo (p. ej. de «Etiqueta en la receta» a «Receta»). */
   irA?: (clave: string) => void;
+  /** Cerrar el emergente de la pieza (el editor de etiqueta lo usa al cerrarse). */
+  cerrarPieza?: () => void;
 }) {
   const salto = useSalto(c);
   const [kitAbierto, setKitAbierto] = useState(false);
@@ -524,7 +580,7 @@ function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA }: {
   if (!e) return null;
   const cuerpo = () => {
     if (clave === "ean") return <InspectorEan c={c} alResolver={alResolver} />;
-    if (clave === "etiqueta") return <InspectorEtiqueta c={c} hermanas={hermanas} alResolver={alResolver} />;
+    if (clave === "etiqueta") return <InspectorEtiqueta c={c} hermanas={hermanas} alResolver={alResolver} cerrarPieza={cerrarPieza} />;
     if (clave === "etiqueta_fisica")
       return (
         <>
@@ -755,7 +811,7 @@ function preguntaGuia(clave: string, e: Eslabon | undefined): string {
   if (clave === "etiqueta_fisica") return "La receta no descuenta una etiqueta por unidad. ¿Se la agregamos al kit?";
   if (clave === "documento") {
     if (a === "fijar_sku") return "Encontré este documento por parecido de nombre. ¿Es el de su materia prima? Revísalo y, si es, lo unimos.";
-    if (e.estado === "falta") return "No encontré su documento técnico. ¿Existe con otro nombre? Búscalo y lo enlazamos; si no existe, hay que redactarlo.";
+    if (e.estado === "falta") return "No encontré su documento técnico. ¿Existe con otro nombre? Búscalo y lo enlazamos; si no existe, hay que redactarlo (o márcalo como «no requiere documento»).";
     return "El documento ya está unido, pero todavía no está listo para publicarse. ¿Lo revisamos y completamos?";
   }
   if (clave === "ean") return a ? "No tiene código de barras. Este es el siguiente número libre: ¿lo creamos?" : "Aún no se le puede crear código: primero hay que arreglar su receta.";
@@ -1139,7 +1195,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
               return (
                 <PiezaEmergente clave={sel} e={c.eslabones[sel]} recien={recien} siguiente={sig}
                   onSiguiente={() => { if (sig) { setRecien(null); setSel(sig.clave); } }} onCerrar={() => { setPiezaAbierta(false); setRecien(null); }}>
-                  <Inspector c={c} clave={sel} hermanas={hermanas} alResolver={alResolver} abrirPublicacion={() => { setPiezaAbierta(false); setPubAbierta(true); }} irA={(k) => { setRecien(null); setSel(k); }} />
+                  <Inspector c={c} clave={sel} hermanas={hermanas} alResolver={alResolver} abrirPublicacion={() => { setPiezaAbierta(false); setPubAbierta(true); }} irA={(k) => { setRecien(null); setSel(k); }} cerrarPieza={() => { setPiezaAbierta(false); setRecien(null); }} />
                 </PiezaEmergente>
               );
             })()}

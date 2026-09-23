@@ -744,6 +744,39 @@ function IntervencionBoton({
 }
 
 
+interface ResultadoFacturar {
+  ok: boolean;
+  mensaje?: string;
+  error?: string;
+}
+
+/** «Facturar ahora» en segundo plano: el POST solo encola (responde al instante)
+ * y aquí se consulta el avance cada 4 s. Emitir tarda 30-210 s y Cloudflare
+ * corta a los 100 s: esperando la respuesta, la persona veía «HTTP 504» aunque
+ * la factura sí hubiera salido. */
+async function facturarYEsperar(orderId: string): Promise<ResultadoFacturar> {
+  await api.post("/api/facturacion/ventas-unificadas/facturar-ahora", { order_id: orderId });
+  const limite = Date.now() + 8 * 60_000;
+  let fallosSeguidos = 0;
+  while (Date.now() < limite) {
+    await new Promise((r) => window.setTimeout(r, 4000));
+    try {
+      const t = await api.get<{ estado: string; resultado?: ResultadoFacturar }>(
+        `/api/facturacion/ventas-unificadas/facturar-ahora/estado/${orderId}`,
+      );
+      fallosSeguidos = 0;
+      if (t.estado === "terminado" && t.resultado) return t.resultado;
+      if (t.estado === "desconocido") {
+        return { ok: false, error: "El servidor se reinició mientras facturaba: actualiza y revisa la venta antes de reintentar (la factura pudo haber salido)." };
+      }
+    } catch {
+      // Un corte momentáneo al consultar no significa que la factura haya fallado.
+      if (++fallosSeguidos >= 5) break;
+    }
+  }
+  return { ok: false, error: "Sigue en proceso o no se pudo confirmar. Espera 2 minutos y actualiza la ventana antes de reintentar." };
+}
+
 /** Candado del botón «Facturar» por venta, del lado del navegador.
  *
  * Tras un clic, el botón de ESA venta no se vuelve a habilitar hasta que la
@@ -969,11 +1002,9 @@ function BandejaResolucion() {
     if (candado.estado(orderId) !== "libre") return false;
     candado.bloquear(orderId);
     try {
-      const r = await api.post<{ ok: boolean; mensaje?: string; error?: string }>(
-        "/api/facturacion/ventas-unificadas/facturar-ahora", { order_id: orderId },
-      );
+      const r = await facturarYEsperar(orderId);
       setResultados((p) => ({ ...p, [orderId]: { ok: !!r.ok, texto: r.mensaje || r.error || (r.ok ? "Facturada." : "No se pudo facturar.") } }));
-      candado.terminar(orderId, false);
+      candado.terminar(orderId, !r.ok && /pudo haber salido|no se pudo confirmar/.test(r.error ?? ""));
       return !!r.ok;
     } catch (e) {
       const cortada = esCorte(e);
@@ -1336,15 +1367,12 @@ export default function VentasAstroKillerPanel() {
       return next;
     });
     try {
-      const res = await api.post<{ ok: boolean; mensaje?: string; error?: string; numero?: string }>(
-        "/api/facturacion/ventas-unificadas/facturar-ahora",
-        { order_id: orderId },
-      );
+      const res = await facturarYEsperar(orderId);
       setFacturarMsg((prev) => ({
         ...prev,
         [orderId]: { ok: !!res.ok, texto: res.mensaje || res.error || (res.ok ? "Factura creada." : "No se pudo facturar.") },
       }));
-      candado.terminar(orderId, false);
+      candado.terminar(orderId, !res.ok && /pudo haber salido|no se pudo confirmar/.test(res.error ?? ""));
       refrescar();
     } catch (e) {
       const cortada = esCorte(e);

@@ -541,11 +541,17 @@ export default function IngresosEgresosPanel({
         if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
         base.cuenta_ingreso_id = Number(clasificarForm.cuenta_id);
         if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        // `registrar_ingreso` lee «valor», no «monto» — que es el que usan las
+        // plantillas de préstamos de arriba. Mandando solo «monto», la plantilla
+        // recibía valor 0 y respondía «fecha, concepto, valor… son requeridos»:
+        // clasificar una línea como ingreso o egreso nunca funcionó.
+        base.valor = linea.monto;
         ruta = "ingreso";
       } else {
         if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
         base.cuenta_gasto_id = Number(clasificarForm.cuenta_id);
         if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        base.valor = linea.monto;  // ver nota en la rama de ingreso
         ruta = "egreso";
       }
       const r = await api.post<{ ok?: boolean; error?: string; movimiento?: { id: number } }>(

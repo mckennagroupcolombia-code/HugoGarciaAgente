@@ -2,7 +2,7 @@ import { ico } from "../icons/icoTexto";
 import { Ico } from "../icons/Ico";
 import EnlazarDocumento from "./combos/EnlazarDocumento";
 import { useAppStore } from "../stores/app";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import ImageLightbox from "./ImageLightbox";
@@ -26,6 +26,7 @@ import {
   PARAMETROS_COA_FALLBACK,
   parseParamRows,
   rowsToParamString,
+  separarParametrosPegados,
   type ParamRow,
 } from "../lib/coaParametros";
 import { formatearFormulaMolecular } from "../lib/formulaMolecular";
@@ -1513,6 +1514,25 @@ function CoaSection({
     setCoaParametros(rowsToParamString(next.length ? next : [{ parametro: "", especificacion: "", resultado: "" }]));
   };
 
+  /** Pegar la tabla de un COA («Peso molecular|121.16 g/mol» por línea) la reparte en filas. */
+  const [avisoPegado, setAvisoPegado] = useState<string | null>(null);
+  const onPasteRow = (i: number, ev: ReactClipboardEvent<HTMLInputElement>) => {
+    const nuevas = separarParametrosPegados(ev.clipboardData.getData("text"));
+    if (!nuevas.length) return; // texto normal: se pega como siempre
+    ev.preventDefault();
+    const actual = rowsParaTabla[i];
+    const vacia = !actual.parametro.trim() && !actual.especificacion.trim() && !actual.resultado.trim();
+    const antes = rowsParaTabla.slice(0, vacia ? i : i + 1);
+    const despues = rowsParaTabla.slice(i + 1);
+    setCoaParametros(rowsToParamString([...antes, ...nuevas, ...despues]));
+    const sinResultado = nuevas.filter((r) => !r.resultado).length;
+    setAvisoPegado(
+      `Se separaron ${nuevas.length} parámetro${nuevas.length === 1 ? "" : "s"}.` +
+        (sinResultado ? ` ${sinResultado} sin resultado: complete la columna «Resultado».` : "") +
+        " Revise que cada valor haya quedado en su fila.",
+    );
+  };
+
   const cellCls = "w-full bg-transparent px-2 py-1.5 text-xs outline-none focus:bg-accent/5";
 
   return (
@@ -1609,6 +1629,7 @@ function CoaSection({
                     <input
                       value={row.parametro}
                       onChange={(e) => updateRow(i, "parametro", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Aspecto"
                       className={cellCls}
                     />
@@ -1617,6 +1638,7 @@ function CoaSection({
                     <input
                       value={row.especificacion}
                       onChange={(e) => updateRow(i, "especificacion", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Polvo blanco"
                       className={cellCls}
                     />
@@ -1625,6 +1647,7 @@ function CoaSection({
                     <input
                       value={row.resultado}
                       onChange={(e) => updateRow(i, "resultado", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Cumple"
                       className={cellCls}
                     />
@@ -1644,15 +1667,25 @@ function CoaSection({
             </tbody>
           </table>
         </div>
-        <button
-          type="button"
-          onClick={addRow}
-          title="Agregar fila"
-          aria-label="Agregar fila"
-          className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded border border-border text-muted hover:border-accent hover:text-accent"
-        >
-          <Icon name="plus" size={14} weight="bold" />
-        </button>
+        {avisoPegado && (
+          <p className="mt-1 text-[10px] text-accent" role="status">
+            {avisoPegado}
+          </p>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={addRow}
+            title="Agregar fila"
+            aria-label="Agregar fila"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-muted hover:border-accent hover:text-accent"
+          >
+            <Icon name="plus" size={14} weight="bold" />
+          </button>
+          <span className="text-[10px] text-muted">
+            Puede pegar la tabla del COA en cualquier celda (un parámetro por línea: «Pureza|98.5 ~ 101.05»); se reparte en filas.
+          </span>
+        </div>
       </div>
     </div>
   );

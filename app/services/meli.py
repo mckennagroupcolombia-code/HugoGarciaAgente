@@ -311,6 +311,36 @@ def actualizar_seller_custom_field_meli(item_id: str, sku: str) -> str:
     return f"❌ Error actualizando seller_custom_field de {item_id}: {detalle}"
 
 
+def meli_documento_fiscal_estado(pack_id: str, *, token: str | None = None, intentos: int = 2) -> bool | None:
+    """True/False si MeLi CONFIRMA que el pack tiene (o no) documento fiscal;
+    None si no se pudo saber (timeout, 429, 5xx). `meli_pack_tiene_documento_fiscal`
+    devuelve False en ese caso, y el panel mostraba «Falta subir a MeLi» para
+    facturas cuyo PDF sí estaba (pack 2000014940327035, FE608, 22-sep-2026)."""
+    import time as _t
+
+    pack_id = str(pack_id or "").strip()
+    if not pack_id:
+        return None
+    token = token or refrescar_token_meli()
+    if not token:
+        return None
+    for i in range(max(1, intentos)):
+        try:
+            res = requests.get(
+                f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents",
+                headers={"Authorization": f"Bearer {token}"}, timeout=15,
+            )
+            if res.status_code == 200:
+                return bool(res.json().get("fiscal_documents") or [])
+            if res.status_code == 404:
+                return False
+        except (requests.RequestException, ValueError):
+            pass
+        if i + 1 < intentos:
+            _t.sleep(2)
+    return None
+
+
 def meli_pack_tiene_documento_fiscal(pack_id: str, *, token: str | None = None) -> bool:
     """
     Indica si el pack ya tiene documento fiscal en MeLi.

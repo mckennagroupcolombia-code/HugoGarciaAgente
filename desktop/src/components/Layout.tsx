@@ -13,6 +13,7 @@ import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
 import AccesosRapidos from "./nav/AccesosRapidos";
 import ThemeModeToggle from "./ThemeModeToggle";
+import PantallaControles from "./nav/PantallaControles";
 import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -21,7 +22,7 @@ import { useNavegarPanel } from "../hooks/useNavegarPanel";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { modoAvanzadoEfectivo } from "../lib/adminAccess";
-import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
+import { esPanelContabilidad, puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import {
   esSeccionHub,
   navSectionForPanel,
@@ -48,6 +49,7 @@ export default function Layout({
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
+  const libroMayorEnfoque = useAppStore((s) => s.libroMayorEnfoque);
   const user = useTicketsAuth((s) => s.user);
   const { advanced: advancedToggle, navClasica } = useUiMode();
   // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
@@ -77,7 +79,10 @@ export default function Layout({
     : panelInfo?.label ?? "Panel de operaciones";
 
   /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
-  const studioEtiquetasFill = panel === "etiquetas" && etiquetasStudioInmersivo;
+  // Sin cromo: el Studio de etiquetas en su lienzo, y el Libro Mayor en modo
+  // enfoque. Mismo trato: nada de cabezote ni pestañas, el contenido llena.
+  const studioEtiquetasFill =
+    (panel === "etiquetas" && etiquetasStudioInmersivo) || (esPanelContabilidad(panel) && libroMayorEnfoque);
   const contentScrollClass = isCentroMando
     ? hubIntegrado
       ? "flex min-h-0 flex-col overflow-hidden px-2 pt-2 sm:px-3 sm:pt-2.5 lg:px-4 lg:pt-3"
@@ -221,6 +226,7 @@ export default function Layout({
                 />
               )}
               <AccesosRapidos />
+              <PantallaControles />
               <TemasHeaderButton />
               <ThemeModeToggle />
               <UserMenuButton />

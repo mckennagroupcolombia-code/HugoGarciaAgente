@@ -1,6 +1,6 @@
 import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fragment, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import ComprobanteWidget from "./ComprobanteWidget";
 import TerceroSelect from "./TerceroSelect";
@@ -14,6 +14,7 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { esContador } from "../lib/contadorAccess";
 import "./libroMayor.css";
 
+const TallerLanzador = lazy(() => import("./TallerConciliacion").then((m) => ({ default: m.TallerLanzador })));
 const IngresosEgresosPanel = lazy(() => import("./IngresosEgresosPanel"));
 const CreditosAdquiridosPanel = lazy(() => import("./CreditosAdquiridosPanel"));
 const SociosPanel = lazy(() => import("./SociosPanel"));
@@ -260,16 +261,35 @@ export default function LibroMayorPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [libroMayorBootTab]);
 
+  const enfoque = useAppStore((s) => s.libroMayorEnfoque);
+  const setEnfoque = useAppStore((s) => s.setLibroMayorEnfoque);
+  // El enfoque es de esta pantalla: al salir del libro no se queda puesto.
+  useEffect(() => () => setEnfoque(false), [setEnfoque]);
+  useEffect(() => {
+    if (!enfoque) return;
+    const tecla = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape" && !document.querySelector('[role="dialog"][aria-modal="true"]')) setEnfoque(false);
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [enfoque, setEnfoque]);
+  const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>();
+
   return (
-    <div className="lm-root mx-auto space-y-3 px-0.5 pb-3 sm:px-0" data-skin={skin}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 max-w-xl">
+    <div ref={raiz} style={alto ? { height: alto } : undefined} className="lm-root mx-auto flex min-h-0 flex-col gap-2 px-0.5 pb-1 sm:px-0" data-skin={skin}>
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <h2 className="text-base font-bold tracking-tight text-ink">Libro Mayor</h2>
-          <p className="mt-0.5 text-xs text-muted">
+          <p className="hidden truncate text-xs text-muted xl:block">
             {ambito === "empresa"
-              ? "Plan de cuentas con saldos, terceros y cada causación. Registrar, conciliar el banco y configurar quedan en las pestañas de al lado."
-              : "Contabilidad personal de cada socio, dentro de la de la empresa: extractos propios, cuenta con McKenna, cruces y declaración de renta."}
+              ? "Plan de cuentas con saldos, terceros y cada causación."
+              : "Contabilidad personal de cada socio, dentro de la de la empresa."}
           </p>
+          <button type="button" onClick={() => setEnfoque(!enfoque)} aria-pressed={enfoque}
+            className={`mck-press ml-1 hidden shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold lg:inline-flex ${enfoque ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/50 hover:text-ink"}`}
+            title={enfoque ? "Salir del modo enfoque (Esc)" : "Modo enfoque: sin cabezote ni pestañas, el libro a toda la ventana"}>
+            <Icon name={enfoque ? "collapse" : "expand"} size={13} weight="bold" /> {enfoque ? "Salir del enfoque" : "Enfoque"}
+          </button>
         </div>
         {!contador && (
         <div
@@ -1286,6 +1306,7 @@ function FormCompraProveedor({
 /* ─── Vista Empresa: jerarquía en cuatro etapas ──────────────────────────── */
 
 type SubvistaAvanzada =
+  | "taller-conciliacion"
   | "diario"
   | "libro-diario"
   | "documentos-soporte"
@@ -1358,7 +1379,12 @@ const GRUPOS: Grupo[] = [
     label: "Conciliar banco",
     desc: "Extracto ↔ libro, paso a paso",
     icon: "receipt",
-    subs: [{ id: "diario", label: "Diario y conciliación", icon: "receipt", desc: "Extracto, emparejar, clasificar" }],
+    subs: [
+      // El taller va primero: es donde se resuelve. La tabla completa queda
+      // como consulta, que es para lo que se usa.
+      { id: "taller-conciliacion", label: "Taller de conciliación", icon: "receipt", desc: "Línea del banco contra asiento del libro, una por una" },
+      { id: "diario", label: "Tabla de contabilidad", icon: "listChecks", desc: "Todos los ingresos y egresos del rango" },
+    ],
   },
   {
     id: "configurar",
@@ -1459,70 +1485,35 @@ function VistaEmpresa({
   const grupoActual = grupos.find((g) => g.id === grupo)!;
 
   return (
-    <div className="space-y-4">
+    <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-[218px_minmax(0,1fr)]">
+      <Riel grupos={grupos} grupo={grupo} sub={sub} contador={contador} onIr={irA}
+        onGuiar={(paso) => {
+          // El taller ya carga, empareja y clasifica en el mismo sitio; el
+          // balance es la única verificación que vive fuera de él.
+          irA(paso === "verificar" ? "balance" : "taller-conciliacion");
+        }} />
+
+      <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto pr-0.5">
       {contador && (
         <p className="rounded-lg border border-sky-500/30 bg-sky-500/5 px-3 py-2 text-xs text-sky-700 dark:text-sky-300">
           Acceso de contador: consulta de toda la contabilidad y exportaciones. Tus indicaciones quedan en el
           historial de cada tercero (Terceros → Historial). No se puede modificar nada desde este perfil.
         </p>
       )}
-      {/* Nivel 1: etapas */}
-      {grupos.length > 1 && (
-      <div className="mck-stagger grid grid-cols-2 gap-2 lg:grid-cols-4" role="tablist" aria-label="Etapas del libro">
-        {grupos.map((g) => {
-          const activo = g.id === grupo;
-          return (
-            <button
-              key={g.id}
-              type="button"
-              role="tab"
-              aria-selected={activo}
-              onClick={() => elegirGrupo(g.id)}
-              className={`lm-card flex items-center gap-3 px-3 py-2.5 text-left transition ${
-                activo ? "border-accent bg-accent/10 shadow-paper-sm" : "hover:bg-surface-hover"
-              }`}
-            >
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${
-                  activo ? "bg-accent text-white" : "bg-surface-hover text-ink-secondary"
-                }`}
-              >
-                {g.num}
-              </span>
-              <span className="min-w-0">
-                <span className="flex items-center gap-1.5 text-sm font-bold text-ink">
-                  <Icon name={g.icon} size={15} weight="bold" />
-                  {g.label}
-                </span>
-                <span className="block truncate text-[11px] text-muted">{g.desc}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      )}
-
-      {/* Nivel 2: vistas de la etapa (solo si hay más de una) */}
-      {grupoActual.subs.length > 1 && (
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border pb-2" role="tablist" aria-label={grupoActual.label}>
-          {grupoActual.subs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={sub === t.id}
-              title={t.desc}
-              onClick={() => irA(t.id)}
-              className={hubTabClass(sub === t.id, "mck-hub-tab-etiquetado flex-col")}
-            >
-              <Icon name={t.icon} size={22} weight="bold" />
-              <span className={HUB_TAB_LABEL}>{t.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+        {grupoActual.num} · {grupoActual.label} <span className="text-ink">⇢ {grupoActual.subs.find((x) => x.id === sub)?.label ?? ""}</span>
+      </p>
 
       {/* Nivel 3: contenido */}
+      {sub === "taller-conciliacion" && (
+        // El taller no cabe acá: bajo el cabezote, las pestañas del hub y los dos
+        // niveles del libro, quedaba en el tercio inferior de la pantalla. Se abre
+        // ENCIMA, a ventana completa, como los apartados del Taller de Combos; este
+        // sub deja un lanzador con el avance.
+        <Suspense fallback={<p className="text-sm text-muted">Cargando el taller…</p>}>
+          <TallerLanzador />
+        </Suspense>
+      )}
       {sub === "diario" && (
         <>
           <ConciliarWizard
@@ -1564,8 +1555,130 @@ function VistaEmpresa({
           <CreditosAdquiridosPanel />
         </Suspense>
       )}
+      </div>
     </div>
   );
+}
+
+/* ─── El riel ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Antes de ver contenido había cuatro capas apiladas: cabezote de la app,
+ * pestañas del hub, cuatro tarjetas de etapa y una fila de pestañas de vista.
+ * El contenido quedaba en la mitad inferior y había que desplazar. El riel
+ * reemplaza los dos niveles del libro por una sola columna siempre visible: las
+ * etapas con sus vistas anidadas, el punto de estado real de cada etapa
+ * (sacado del checklist) y, abajo, la guía paso a paso. Un clic lleva a
+ * cualquier vista; nada de «primero la etapa, luego la vista».
+ *
+ * En pantallas angostas se vuelve una franja horizontal sobre el contenido.
+ */
+function Riel({ grupos, grupo, sub, contador, onIr, onGuiar }: {
+  grupos: Grupo[]; grupo: GrupoId; sub: SubvistaAvanzada; contador: boolean;
+  onIr: (s: SubvistaAvanzada) => void; onGuiar: (paso: "cargar" | "emparejar" | "clasificar" | "verificar") => void;
+}) {
+  const checkQ = useQuery<{ items: ChecklistItemApi[] }>({
+    queryKey: ["contabilidad-checklist"],
+    queryFn: () => api.get("/api/contabilidad/checklist"),
+    staleTime: 30_000,
+  });
+  const balQ = useQuery<Balance>({
+    queryKey: ["cc-balance", "wizard"],
+    queryFn: () => api.get("/api/contabilidad/cc/balance-comprobacion"),
+    staleTime: 60_000,
+  });
+  const items = checkQ.data?.items ?? [];
+  const sev = (id: string) => items.find((i) => i.id === id)?.severidad;
+  // El estado de cada etapa: lo que de verdad falta ahí, no un adorno.
+  const estadoGrupo: Record<GrupoId, EstadoPaso> = {
+    consultar: balQ.isLoading ? "cargando" : balQ.data?.cuadra ? "hecho" : "pendiente",
+    registrar: checkQ.isLoading ? "cargando" : items.some((i) => i.severidad !== "ok" && /factur|revision|prestamo/.test(i.id)) ? "parcial" : "hecho",
+    conciliar: checkQ.isLoading ? "cargando" : sev("extractos_pendientes") === "ok" && sev("extracto_sin_cargar") === "ok" ? "hecho" : sev("extractos_pendientes") === "alta" || sev("extracto_sin_cargar") === "alta" ? "pendiente" : "parcial",
+    configurar: "hecho",
+  };
+  const [guiaAbierta, setGuiaAbierta] = useState(true);
+
+  return (
+    <nav aria-label="Etapas del libro" className="lm-card flex min-h-0 flex-col p-2 lg:overflow-y-auto">
+      <div className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
+        {grupos.map((g) => {
+          const activo = g.id === grupo;
+          const st = PASO_ESTILO[estadoGrupo[g.id]];
+          return (
+            <div key={g.id} className={`shrink-0 rounded-lg lg:shrink ${activo ? "bg-accent/5" : ""}`}>
+              <button type="button" onClick={() => onIr(grupoDeSub(sub) === g.id ? sub : g.subs[0].id)} aria-current={activo ? "true" : undefined}
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition ${activo ? "text-ink" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${activo ? "bg-accent text-white" : "bg-surface-hover text-ink-secondary"}`}>{g.num}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 text-[12.5px] font-bold"><Icon name={g.icon} size={13} weight="bold" />{g.label}</span>
+                  <span className="hidden truncate text-[10px] text-muted lg:block">{g.desc}</span>
+                </span>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${st.dot.split(" ")[0]}`} title={g.desc} />
+              </button>
+              {/* Las vistas de la etapa, anidadas y siempre a la vista en el riel vertical. */}
+              <ul className={`${activo ? "flex" : "hidden lg:flex"} gap-1 pb-1 pl-1 lg:flex-col lg:gap-0 lg:pl-8 lg:pr-1`}>
+                {g.subs.map((t) => {
+                  const aqui = sub === t.id;
+                  return (
+                    <li key={t.id} className="shrink-0">
+                      <button type="button" onClick={() => onIr(t.id)} aria-current={aqui ? "page" : undefined} title={t.desc}
+                        className={`flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-[11.5px] transition ${aqui ? "bg-accent text-white font-bold" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"}`}>
+                        <Icon name={t.icon} size={12} weight={aqui ? "bold" : "regular"} />
+                        <span className="truncate">{t.label}</span>
+                        {t.id === "taller-conciliacion" && <span className="ml-auto font-mono text-[9px] opacity-70">⤢</span>}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+
+      {!contador && (
+        <div className="mt-2 hidden border-t border-border pt-2 lg:block">
+          <button type="button" onClick={() => setGuiaAbierta((v) => !v)} aria-expanded={guiaAbierta}
+            className="flex w-full items-center gap-1.5 px-1 font-mono text-[10px] font-bold uppercase tracking-wider text-muted hover:text-ink">
+            <span aria-hidden><Ico e="🧭" /></span> Guiarme <span className="ml-auto">{guiaAbierta ? "▾" : "▸"}</span>
+          </button>
+          {guiaAbierta && (
+            <ConciliarWizard compacto
+              onCargar={() => onGuiar("cargar")} onEmparejar={() => onGuiar("emparejar")}
+              onClasificar={() => onGuiar("clasificar")} onVerificar={() => onGuiar("verificar")} />
+          )}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+/* ─── Alto disponible ─────────────────────────────────────────────────────── */
+
+/**
+ * El libro ocupa exactamente lo que queda de ventana bajo lo que tenga encima
+ * (el cabezote y las pestañas del hub, o nada en modo enfoque): la página no
+ * se desplaza; el riel y el contenido tienen su propio scroll. Por debajo de
+ * 1024 px se apila y fluye normal (`null`).
+ */
+function useAltoDisponible<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [alto, setAlto] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      setAlto(window.innerWidth < 1024 ? null : Math.max(440, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 8)));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    const cabezote = document.querySelector("header");
+    if (cabezote) ro.observe(cabezote);
+    ro.observe(document.body);
+    return () => { window.removeEventListener("resize", medir); ro.disconnect(); };
+  }, []);
+  return { ref, alto };
 }
 
 /* ─── Wizard de conciliación (estado por paso, calculado en vivo) ───────── */
@@ -1599,11 +1712,14 @@ function ConciliarWizard({
   onEmparejar,
   onClasificar,
   onVerificar,
+  compacto = false,
 }: {
   onCargar: () => void;
   onEmparejar: () => void;
   onClasificar: () => void;
   onVerificar: () => void;
+  /** Versión vertical y corta para el riel: el paso y su estado; el detalle va en el título. */
+  compacto?: boolean;
 }) {
   const checkQ = useQuery<{ items: ChecklistItemApi[] }>({
     queryKey: ["contabilidad-checklist"],
@@ -1665,6 +1781,29 @@ function ConciliarWizard({
     },
   ];
   const hechos = pasos.filter((p) => p.estado === "hecho").length;
+
+  if (compacto) {
+    const siguiente = pasos.find((p) => p.estado !== "hecho" && p.estado !== "cargando");
+    return (
+      <ol className="mt-1 space-y-0.5">
+        {pasos.map((p) => {
+          const st = PASO_ESTILO[p.estado];
+          const es = siguiente?.n === p.n;
+          return (
+            <li key={p.n}>
+              <button type="button" onClick={p.onClick} title={`${p.detalle} — ${p.accion}`}
+                className={`flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-[11.5px] transition hover:bg-surface-hover ${es ? "text-ink" : "text-ink-secondary"}`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${st.dot}`}>{p.estado === "hecho" ? "✓" : p.n}</span>
+                <span className={`min-w-0 flex-1 truncate ${es ? "font-bold" : ""}`}>{p.label}</span>
+                {es && <span className="shrink-0 font-mono text-[9px] font-bold text-accent">→</span>}
+              </button>
+            </li>
+          );
+        })}
+        <li className="px-1.5 pt-1 font-mono text-[9.5px] text-muted">{hechos}/{pasos.length} listos</li>
+      </ol>
+    );
+  }
 
   return (
     <div className="lm-card space-y-2 px-3 py-3">

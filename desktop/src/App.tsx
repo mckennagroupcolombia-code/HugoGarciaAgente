@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react"
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
 import MobileHub, { useMobileLayout } from "./components/MobileHub";
+import VentanaAuxiliarShell from "./components/VentanaAuxiliarShell";
+import { esVentanaAuxiliar } from "./lib/ventanaAuxiliar";
+import { readNavHash } from "./lib/navHash";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import TicketsPanel from "./components/TicketsPanel";
@@ -77,16 +80,18 @@ function PanelCargando() {
   );
 }
 
-function PanelRouter() {
+function PanelRouter({ panel }: { panel?: Panel } = {}) {
   return (
     <Suspense fallback={<PanelCargando />}>
-      <PanelRouterInner />
+      <PanelRouterInner impuesto={panel} />
     </Suspense>
   );
 }
 
-function PanelRouterInner() {
-  const panel = useAppStore((s) => s.panel);
+/** `impuesto` gana sobre el store: ver VentanaAuxiliarShell. */
+function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
+  const delStore = useAppStore((s) => s.panel);
+  const panel = impuesto ?? delStore;
   switch (panel) {
     case "hugo":
     case "tickets":
@@ -408,6 +413,10 @@ export default function App() {
   const [forceDesktop, setForceDesktop] = useState(
     () => typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1"
   );
+  // Ventana auxiliar: el apartado se lee del hash con el que se abrió y se
+  // queda acá, fuera del store, para no pisarle el panel a la ventana principal.
+  const [auxiliar] = useState(esVentanaAuxiliar);
+  const [panelAux, setPanelAux] = useState<Panel>(() => readNavHash()?.panel ?? "hugo");
   // Hub simplificado por defecto en móvil (incluida la app Android) — el usuario elige
   // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
   // Layout responsive (mobileShell=app).
@@ -570,6 +579,17 @@ export default function App() {
       <div className="flex min-h-screen items-center justify-center bg-surface">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
+    );
+  }
+
+  if (auxiliar) {
+    return (
+      <>
+        <ThemesDialog />
+        <VentanaAuxiliarShell panel={panelAux} onPanel={setPanelAux}>
+          <PanelRouter panel={panelAux} />
+        </VentanaAuxiliarShell>
+      </>
     );
   }
 

@@ -488,3 +488,18 @@ def test_estado_de_la_foto_del_combo():
     for c in d["combos"]:
         assert c["foto_estado"] in ("sin_foto", "prestada", "anterior_a_etiqueta", "ok")
         assert (c["foto_estado"] == "ok") == (c["foto_motivo"] == "")
+
+
+def test_marcar_no_requiere_documento_completa_la_pieza(tmp_path, monkeypatch):
+    monkeypatch.setattr(M, "_DOC_NO_REQUERIDO_JSON", tmp_path / "exentos.json")
+    M.invalidar()
+    c = next(x for x in M._datos()["combos"] if x["eslabones"]["documento"]["estado"] != "ok")
+    M.marcar_documento_no_requerido(c["ref"], True, motivo="envase vacío", usuario="prueba")
+    d = next(x for x in M._datos()["combos"] if x["ref"] == c["ref"])["eslabones"]["documento"]
+    assert d["estado"] == "ok" and d["no_requiere"]["motivo"] == "envase vacío" and "accion" not in d
+    M.marcar_documento_no_requerido(c["ref"], False)
+    d = next(x for x in M._datos()["combos"] if x["ref"] == c["ref"])["eslabones"]["documento"]
+    assert d["estado"] != "ok" and not d.get("no_requiere")
+    with pytest.raises(ValueError):
+        M.marcar_documento_no_requerido("NO-EXISTE-XYZ", True)
+    M.invalidar()

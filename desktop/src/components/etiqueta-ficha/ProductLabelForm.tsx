@@ -296,8 +296,10 @@ function ProductLabelFormInner({
   /** Casilla "Desenfoque" de la cabecera: al confirmar el PNG para imprimir
    *  se abre la ventana para marcar por recuadro los datos a ocultar, y esa
    *  versión se guarda en PUBLICACIONES DIGITALES/<Categoría> (fuera de
-   *  impresión) como base para publicaciones digitales con restricciones. */
-  const [desenfoqueActivo, setDesenfoqueActivo] = useState(false);
+   *  impresión) como base para publicaciones digitales con restricciones.
+   *  Marcada por defecto: cada etiqueta necesita sus dos PNG (impresión y
+   *  digital desenfocado); se desmarca solo para un caso puntual. */
+  const [desenfoqueActivo, setDesenfoqueActivo] = useState(true);
   const [desenfoqueFuente, setDesenfoqueFuente] = useState<{
     blob: Blob;
     url: string;
@@ -1273,7 +1275,7 @@ function ProductLabelFormInner({
     <div
       ref={fichaRef}
       lang="es"
-      className={`relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white text-[#111111] shadow-none${
+      className={`relative overflow-hidden rounded-[6px] border border-[#111111]/10 bg-white mck-paper-white text-[#111111] shadow-none${
         altoMarcoFicha ? " flex flex-col" : ""
       }`}
       style={{ width: anchoDiseno, minHeight: altoMarcoFicha, ...variablesAcento(data.accentColor) }}

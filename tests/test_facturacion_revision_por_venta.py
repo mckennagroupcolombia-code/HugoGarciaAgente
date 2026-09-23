@@ -242,3 +242,42 @@ def test_contacto_consumidor_final_no_se_sobrescribe(monkeypatch):
     a._resolver_o_crear_contacto_alegra(nombre="Ana Real", identificacion="52378053", tipo_documento="CC")
     assert len(puts) == 1 and puts[0]["json"]["name"] == "Ana Real"
     a._contacto_cache.clear()
+
+
+def test_facturar_ahora_en_segundo_plano(monkeypatch):
+    """22-sep-2026: el POST esperaba 30-210 s y Cloudflare devolvía 504 a los 100 s."""
+    import time
+
+    from flask import Flask
+
+    from app.tools import meli_autofactura_entrega as m
+
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok-fact")
+    llamadas: list[str] = []
+
+    def lento(oid):
+        llamadas.append(oid)
+        time.sleep(0.4)
+        return {"ok": True, "mensaje": "Factura FE999 creada"}
+
+    monkeypatch.setattr(m, "facturar_pack_meli_manual", lento)
+    monkeypatch.setattr("app.services.facturacion_ventas_unificado.consultar_venta_individual", lambda oid: None)
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    hdr = {"Authorization": "Bearer tok-fact"}
+    with app.test_client() as c:
+        t0 = time.time()
+        r = c.post("/api/facturacion/ventas-unificadas/facturar-ahora", json={"order_id": "777"}, headers=hdr)
+        assert r.status_code == 202 and r.get_json()["en_curso"] and time.time() - t0 < 0.3
+        r2 = c.post("/api/facturacion/ventas-unificadas/facturar-ahora", json={"order_id": "777"}, headers=hdr)
+        assert r2.get_json().get("ya_estaba") is True
+        for _ in range(20):
+            e = c.get("/api/facturacion/ventas-unificadas/facturar-ahora/estado/777", headers=hdr).get_json()
+            if e["estado"] == "terminado":
+                break
+            time.sleep(0.1)
+        assert e["estado"] == "terminado" and e["resultado"]["ok"]
+        assert llamadas == ["777"]
+        assert c.get("/api/facturacion/ventas-unificadas/facturar-ahora/estado/nada", headers=hdr).get_json()["estado"] == "desconocido"

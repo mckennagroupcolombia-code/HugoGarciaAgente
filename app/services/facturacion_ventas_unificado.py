@@ -62,6 +62,7 @@ from app.services.meli import (
     consultar_envio_meli,
     consultar_orden_meli_completa,
     consultar_pack_meli,
+    meli_documento_fiscal_estado,
     meli_pack_tiene_documento_fiscal,
 )
 
@@ -175,18 +176,56 @@ def _ordenes_meli_cacheadas(status: str, dias: int, *, forzar: bool = False) -> 
     return ordenes
 
 
+_descarga_locks: dict[str, threading.Lock] = {}
+_descarga_locks_guard = threading.Lock()
+
+
 def _facturas_alegra_cacheadas(headers: dict, desde: str, *, forzar: bool = False) -> tuple[list, dict]:
     if not forzar:
         cacheado = _cache_alegra.get(desde)
         if cacheado and _time.time() - cacheado[0] < _CACHE_TTL_FUENTES:
             return cacheado[1], cacheado[2]
-    facturas = obtener_facturas_alegra_paginadas(desde)
-    notas_por_factura = _notas_credito_alegra_por_factura(headers, desde)
-    _cache_alegra[desde] = (_time.time(), facturas, notas_por_factura)
-    return facturas, notas_por_factura
+    # Una sola descarga por rango a la vez: tras un reinicio, tres peticiones
+    # simultáneas bajaban cada una todas las facturas (~90 s cada una).
+    with _descarga_locks_guard:
+        lock = _descarga_locks.setdefault(desde, threading.Lock())
+    inicio = _time.time()
+    with lock:
+        cacheado = _cache_alegra.get(desde)
+        if cacheado and cacheado[0] >= inicio:
+            return cacheado[1], cacheado[2]  # otra petición la bajó mientras esperábamos
+        facturas = obtener_facturas_alegra_paginadas(desde)
+        notas_por_factura = _notas_credito_alegra_por_factura(headers, desde)
+        _cache_alegra[desde] = (_time.time(), facturas, notas_por_factura)
+        return facturas, notas_por_factura
+
+
+def calentar_base_alegra() -> None:
+    """Deja lista la base completa de facturas desde la migración, la que usan
+    la búsqueda puntual, el botón 🔄 y la revalidación. La llama el
+    precalentamiento de agente_pro.py al arrancar y cada 30 min."""
+    _facturas_alegra_cacheadas(_alegra_headers(), FECHA_CORTE_MIGRACION_ALEGRA, forzar=True)
 
 
 _CACHE_TTL_PUNTUAL = 900  # 15 min
+_CACHE_TTL_PUNTUAL_VIEJO = 6 * 3600  # hasta 6 h se usa la base vieja + lo reciente
+_renovando_base = {"activo": False}
+
+
+def _renovar_base_alegra_en_segundo_plano(headers: dict) -> None:
+    if _renovando_base["activo"]:
+        return
+    _renovando_base["activo"] = True
+
+    def _run() -> None:
+        try:
+            _facturas_alegra_cacheadas(headers, FECHA_CORTE_MIGRACION_ALEGRA, forzar=True)
+        except Exception:  # noqa: BLE001
+            pass
+        finally:
+            _renovando_base["activo"] = False
+
+    threading.Thread(target=_run, daemon=True, name="renovar-base-alegra").start()
 
 
 def _facturas_alegra_para_consulta_puntual(headers: dict) -> tuple[list, dict]:
@@ -205,19 +244,51 @@ def _facturas_alegra_para_consulta_puntual(headers: dict) -> tuple[list, dict]:
     notas: dict = {}
     if cacheado and _time.time() - cacheado[0] < _CACHE_TTL_PUNTUAL:
         base_facturas, notas = list(cacheado[1]), dict(cacheado[2])
+    elif cacheado and _time.time() - cacheado[0] < _CACHE_TTL_PUNTUAL_VIEJO:
+        # Base vieja pero usable: se usa YA (más las facturas y notas crédito
+        # recientes de abajo) y se renueva en segundo plano. Bajarla dentro de
+        # la petición tomaba ~100 s y el botón 🔄 terminaba en 504.
+        base_facturas, notas = list(cacheado[1]), dict(cacheado[2])
+        _renovar_base_alegra_en_segundo_plano(headers)
     else:
         base_facturas, notas = _facturas_alegra_cacheadas(headers, FECHA_CORTE_MIGRACION_ALEGRA)
         return base_facturas, notas
 
+    # Notas crédito recientes: la base vieja no conoce una NC emitida hace minutos.
     try:
-        r = requests.get(
-            f"{_ALEGRA_BASE}/invoices", headers=headers,
-            params={"date_afterEqual": FECHA_CORTE_MIGRACION_ALEGRA, "limit": 30, "order_direction": "DESC"},
-            timeout=20,
+        r_nc = requests.get(
+            f"{_ALEGRA_BASE}/credit-notes", headers=headers,
+            params={"limit": 30, "order_direction": "DESC", "order_field": "id"}, timeout=20,
         )
-        recientes = r.json() or [] if r.status_code == 200 else []
-    except requests.RequestException:
-        recientes = []
+        for nc in (r_nc.json() or []) if r_nc.status_code == 200 else []:
+            for inv in nc.get("invoices") or []:
+                lista = notas.setdefault(str(inv.get("id")), [])
+                if not any(str(x.get("id")) == str(nc.get("id")) for x in lista):
+                    lista.append({
+                        "id": nc.get("id"), "numero": (nc.get("numberTemplate") or {}).get("fullNumber"),
+                        "fecha": nc.get("date"), "total": nc.get("total"), "tipo": nc.get("type"),
+                        "cufe": (nc.get("stamp") or {}).get("cufe") or "",
+                        "legal_status": (nc.get("stamp") or {}).get("legalStatus") or nc.get("status"),
+                        "url": f"https://app.alegra.com/credit-note/view/id/{nc.get('id')}",
+                    })
+    except (requests.RequestException, ValueError):
+        pass
+
+    recientes: list = []
+    for pagina in range(2):
+        try:
+            r = requests.get(
+                f"{_ALEGRA_BASE}/invoices", headers=headers,
+                params={"date_afterEqual": FECHA_CORTE_MIGRACION_ALEGRA, "limit": 30, "start": pagina * 30,
+                        "order_direction": "DESC", "order_field": "id"},
+                timeout=20,
+            )
+            lote = (r.json() or []) if r.status_code == 200 else []
+        except (requests.RequestException, ValueError):
+            lote = []
+        recientes.extend(lote)
+        if len(lote) < 30:
+            break
 
     conocidas = {str(f.get("id")) for f in base_facturas}
     for f in recientes:
@@ -394,6 +465,16 @@ def revalidar_historial_en_segundo_plano(*, max_filas: int = 60, forzar: bool = 
 def _revalidar_una(order_id: str) -> None:
     try:
         fila = consultar_venta_individual(order_id)
+        # Factura única vigente, sin Siigo, y MeLi CONFIRMA que no tiene el PDF:
+        # se sube sola (si falló al facturar, p. ej. por un corte). MeLi rechaza
+        # con 409 si ya hay un documento, así que no puede duplicar.
+        if (fila and fila.get("estado_facturacion") == "facturada_pendiente_subir_meli"
+                and not fila.get("factura_legado")
+                and len([f for f in fila.get("facturas") or [] if not f.get("notas_credito")]) == 1):
+            from app.services.facturacion_resolucion import subir_pdf_meli
+
+            if subir_pdf_meli(fila).get("ok"):
+                fila = consultar_venta_individual(order_id) or fila
         # Las ventas raras (dobles, incompletas, monto distinto) llevan su reporte
         # de «por qué pasó», armado una vez con evidencia de MeLi y Alegra.
         if fila and (fila.get("posible_duplicado") or fila.get("facturacion_parcial")
@@ -930,16 +1011,18 @@ def listar_ventas_meli_unificado(
         if facturas_vigentes or fila["factura_legado"] or cubierta_por_pack:
             # Doble verificación MeLi: la factura existe (Alegra o legado),
             # ¿MeLi ya tiene el documento fiscal subido?
-            tiene_doc = meli_pack_tiene_documento_fiscal(fila["pack_id"], token=token_meli)
+            tiene_doc = meli_documento_fiscal_estado(fila["pack_id"], token=token_meli)
             fila["meli_doc_fiscal"] = tiene_doc
             if fila.get("facturacion_parcial"):
                 # Hay factura, pero NO cubre todo lo comprado: es el caso que
                 # venía pasando inadvertido como "✅ Facturada".
                 fila["estado_facturacion"] = "facturada_parcial"
-            elif tiene_doc:
-                fila["estado_facturacion"] = "facturada_completa"
-            else:
+            elif tiene_doc is False:
+                # Solo si MeLi CONFIRMA que no hay documento; sin respuesta no se
+                # alarma (None = no se pudo saber, se reintenta en la próxima revalidación).
                 fila["estado_facturacion"] = "facturada_pendiente_subir_meli"
+            else:
+                fila["estado_facturacion"] = "facturada_completa"
             return
 
         # Sin factura en ningún lado → ¿ya se entregó y desde cuándo? No se
@@ -1327,12 +1410,12 @@ def consultar_venta_individual(identificador: str) -> dict | None:
     cubierta_por_pack = bool(cruce_fila.get("ok")) and cruce_fila.get("total_facturado", 0) > 0
     facturas_vigentes_orden = [f for f in facturas_out if not f.get("notas_credito")]
     if facturas_vigentes_orden or legado or cubierta_por_pack:
-        tiene_doc = meli_pack_tiene_documento_fiscal(pack_id, token=token_meli)
+        tiene_doc = meli_documento_fiscal_estado(pack_id, token=token_meli)
         fila["meli_doc_fiscal"] = tiene_doc
         if fila.get("facturacion_parcial"):
             fila["estado_facturacion"] = "facturada_parcial"
         else:
-            fila["estado_facturacion"] = "facturada_completa" if tiene_doc else "facturada_pendiente_subir_meli"
+            fila["estado_facturacion"] = "facturada_pendiente_subir_meli" if tiene_doc is False else "facturada_completa"
         _guardar_en_cache([fila])
         return fila
 
