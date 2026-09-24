@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
-import { MisDias } from "../MiQuincena";
+import { DiaDetalle, MisDias } from "../MiQuincena";
+import { useAuthStore } from "../../stores/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 
@@ -21,7 +22,6 @@ type Persona = {
   al_dia?: number;
   valor_hora?: number;
   valor_hora_adicional?: number;
-  recargo_pct?: number;
   valor_de_mas?: number;
   valor_faltante?: number;
   ganadas?: { horas: number; tareas_resueltas: number };
@@ -51,6 +51,8 @@ export default function ControlHoras() {
   });
   const [cuenta, setCuenta] = useState<(Cuenta & { nombre: string }) | null>(null);
   const [abierta, setAbierta] = useState<number | null>(null);
+  const [dia, setDia] = useState<{ uid: number; fecha: string; meta?: number } | null>(null);
+  const token = useAuthStore((s) => s.token);
 
   async function revisar(id: string, aprobar: boolean) {
     await api.post(`/api/rrhh/control-horas/explicaciones/${id}`, { aprobar }).catch(() => undefined);
@@ -145,7 +147,7 @@ export default function ControlHoras() {
                     </td>
                   </tr>
                   {abierta === p.usuario.id && p.dias && (
-                    <tr><td colSpan={9} className="bg-surface-hover/40 px-4 pb-3"><MisDias dias={p.dias} abierto /></td></tr>
+                    <tr><td colSpan={9} className="bg-surface-hover/40 px-4 pb-3"><MisDias dias={p.dias} abierto onDia={(f) => setDia({ uid: p.usuario.id, fecha: f, meta: p.dias?.find((x) => x.fecha === f)?.meta })} /></td></tr>
                   )}
                   </Fragment>
                 );
@@ -157,10 +159,11 @@ export default function ControlHoras() {
       <ValorAdicionales />
       <Estandares />
       <p className="text-xs text-muted">
-        Lo que falta no se descuenta solo: el trabajo físico sin tarea abierta no queda registrado; para eso está «Explicar tiempo no registrado» en la
+        Lo que falta no se descuenta solo: el trabajo físico sin tarea abierta no queda registrado; para eso está «Contar un trabajo que no quedó registrado» en la
         Agenda. Sin horario de entrada ni salida: es dedicación pactada, no control de horario.
       </p>
 
+      {dia && token && <DiaDetalle token={token} usuarioId={dia.uid} fecha={dia.fecha} meta={dia.meta} onCerrar={() => setDia(null)} />}
       {cuenta && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={() => setCuenta(null)} role="presentation">
           <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-full max-w-lg space-y-3 rounded-2xl bg-surface-panel p-5 text-ink shadow-2xl">
@@ -227,30 +230,13 @@ function Estandares() {
   );
 }
 
-/** Valor de las horas adicionales: recargo sobre el valor hora de mercado (0 % = el mismo valor). */
+/** Regla de las horas adicionales: mismo valor hora, sin recargo (honorarios, no horas extra laborales). */
 function ValorAdicionales() {
-  const qc = useQueryClient();
-  const [recargo, setRecargo] = useState("");
-  const [msg, setMsg] = useState("");
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await api.put("/api/rrhh/mapa-funciones/general", { horas_adicionales: { recargo_pct: Number(recargo || 0), requieren_aprobacion: true } });
-      setMsg("Guardado.");
-      void qc.invalidateQueries({ queryKey: ["rrhh-control-horas"] });
-    } catch (err) {
-      setMsg(String((err as Error).message || err));
-    }
-  }
   return (
-    <form onSubmit={guardar} className="flex flex-wrap items-end gap-2 rounded-xl border border-border p-3 text-sm">
-      <label className="flex flex-col gap-1">
-        <span className="font-bold">Valor de las horas adicionales</span>
-        <span className="text-xs text-muted">Recargo sobre el valor hora de mercado de cada persona (0 % = mismo valor; 25 % = un cuarto más).</span>
-        <input type="number" min={-50} max={200} step={5} value={recargo} onChange={(e) => setRecargo(e.target.value)} placeholder="0" className="w-28 rounded-lg border border-border bg-surface-panel px-2 py-1" aria-label="Recargo en porcentaje" />
-      </label>
-      <button type="submit" className="rounded-lg bg-accent px-3 py-1.5 font-bold text-white">Guardar</button>
-      {msg && <span className="text-xs text-muted">{msg}</span>}
-    </form>
+    <p className="rounded-xl border border-border p-3 text-sm">
+      <b>Horas adicionales:</b> las que se trabajan después de completar las acordadas se pagan{" "}
+      <b>al mismo valor hora</b> de cada persona, sin recargo — son honorarios, no horas extra laborales. Quien atiende
+      las colectas de Mercado Libre debe estar disponible de lunes a viernes.
+    </p>
   );
 }

@@ -334,6 +334,26 @@ Operador rechaza con: "no 463"
   → Sistema avisa al cliente que el pago no fue válido
 ```
 
+**Registro durable (24-sep-2026, «Del chat al registro»):** cada comprobante y cada ok/no queda en
+`app/services/pagos_clientes.py` → `app/data/pagos_clientes.db` (gitignored): cliente, hora, imagen,
+monto detectado y QUIÉN decidió (el puente ahora manda `author` en los comandos de grupo). Al arrancar,
+`routes.py` reconstruye `pagos_pendientes_confirmacion` desde ahí (un reinicio ya no borra pendientes;
+72 h sin decisión → `vencido`). Bandeja: `GET /api/tickets/pagos-clientes` → tarjeta «Pagos de clientes»
+en la Agenda (`PagosClientes.tsx`, solo aparece si hay filas).
+
+**Comandos y grupos cuentan y quedan (mismo cambio):**
+- Un comando o mensaje del equipo en un grupo oficial se anota como actividad suya
+  (`pagos_clientes.registrar_actividad_wa` → `panel_eventos_operativos`, panel `whatsapp`, tipos
+  `comando_wa`/`wa_grupo`) y **suma al control de horas**. Solo en tiempo real (±10 min): un sync
+  viejo no falsea horas. El mapeo es por `usuarios.telefono`.
+- **Espejo de grupos**: `server.js` (`GRUPOS_ESPEJO`, ampliable con `GRUPOS_ESPEJO_WA`) manda cada
+  mensaje de los grupos oficiales al ingest del panel → `wa_chats.db` con `enviado_por` = teléfono del
+  autor; en Agenda → Mensajes los grupos salen con su nombre (`wa_chats.nombre_grupo`). El «ya» del
+  grupo ya no se evapora. ⚠️ `mensajeAPayloadHistorial` sigue rechazando grupos a propósito (clientes);
+  el espejo usa su propio payload SIN `sender_phone` (con él, el mensaje caería al 1:1 del autor).
+- Al cerrar cualquier tarea el panel pregunta «¿Cuántas quedaron?» (opcional; empaque sigue obligatorio).
+- El aviso «ya quedó» al que pidió algo ya existía: `tickets_notificaciones.notificar_ticket_resuelto`.
+
 ### F. Sincronización de Facturas MeLi ↔ Siigo
 
 ```
@@ -592,13 +612,21 @@ honorarios** (`mapa_funciones.honorario_equivalente`). Pagos, propuestas, tarifa
 `app/data/rrhh_valoracion.json` (**fuera de git: salarios**). Rutas `/api/rrhh/mapa-funciones*` (permiso rrhh).
 
 ### Control de horas por quincena (23-sep-2026)
-Honorarios con **dedicación pactada** (camino A): horas por quincena = pago quincenal ÷ valor hora de mercado de su
+Honorarios con **dedicación pactada** (camino A): horas por quincena = pago quincenal ÷ valor hora de mercado (÷ **159 h/mes**,
+las efectivas de un tiempo completo con 42 h/semana; no 210, que incluye domingos pagados; festivos en `festivos_co.py`, sin meta) de su
 labor. «Mi quincena» en la Agenda y «Control de horas» en RRHH (`app/services/control_horas.py`). Horas activas por
 bloques de 15 min sin doble conteo (panel + cronómetro + sesiones de IA de `RENDIMIENTO_SESIONES_IA`) + tiempo
 explicado y aprobado (máx. 6 h/semana). Horas de más × valor hora = cuenta de cobro. **Nunca** poner horario de
 entrada/salida: es subordinación y convierte la prestación de servicios en contrato laboral.
 **Regla visible para todos:** se pide completar las horas convenidas, no rapidez; lo que se haga después son horas
-adicionales con otro valor (`horas_adicionales.recargo_pct`). Los **tiempos estándar** (`tiempos_estandar.py`, mediana de lo
+adicionales **al mismo valor hora** (son honorarios, no horas extra laborales: sin recargo). Quien atiende colectas de MeLi
+(`colectas: true` en la persona; hoy Jenniffer, Stella y Victor) debe estar **disponible de lunes a viernes**: es la
+disponibilidad que el servicio exige, no un horario; a esas personas no se les dice que repongan horas «cualquier día».
+Cocinar el almuerzo del equipo (Víctor) sí cuenta como actividad del servicio. **Detalle por día** (`control_horas.detalle_dia`, `GET /api/tickets/control-horas/dia?fecha=`): tocar un día en «Mi
+quincena», en la ficha o en RRHH abre `DiaDetalle` — tramos con hora, qué se hizo (tarea con cronómetro y su resultado,
+panel y nº de acciones, desarrollo con IA), ratos sin registro que no cuentan y lo que quedó terminado. Sale de
+`_fuentes()`, la misma función del total: el detalle y la suma no pueden divergir (hay test). Abrir **Juegos** no cuenta
+(`PANELES_DESCANSO`). Resumen semanal por WhatsApp: `scripts/resumen_semanal_horas_cron.py` (viernes 17:30, solo envía con `RESUMEN_HORAS_WA_ACTIVO=1`). Los **tiempos estándar** (`tiempos_estandar.py`, mediana de lo
 cronometrado, ≥5 muestras; **nunca tiempos estimados a mano**: un ticket sin cronómetro cuenta su huella real, minutos desde la
 acción anterior, máx. 30) y las «horas a tiempo estándar» son solo referencia de administración, no se muestran a la persona.
 

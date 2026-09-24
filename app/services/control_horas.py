@@ -5,7 +5,13 @@ Acordado el 23-sep-2026: cada quien cobra por prestación de servicios y su pago
 cubre un número de horas al valor de mercado de su labor:
 
     horas pactadas por quincena = (pago mensual ÷ 2) ÷ valor hora de mercado
-    valor hora de mercado       = punto medio del rango de mercado llevado a honorarios ÷ 176 h
+    valor hora de mercado       = punto medio del rango de mercado llevado a honorarios ÷ 159 h
+
+159 h = lo que trabaja de verdad al mes un empleado de tiempo completo con la jornada de 42 h
+(Ley 2101: 42 × 52 = 2.184 h al año, menos 18-19 festivos entre semana y 15 días hábiles de
+vacaciones ≈ 1.907 h → 159 al mes). NO es el divisor legal de 210: ese incluye los domingos
+pagados y sirve para el valor de la hora ordinaria de un empleado, no para horas trabajadas.
+Los festivos (festivos_co.py) no son días hábiles: no tienen meta.
 
 La persona ve en la Agenda cuánto lleva en la quincena y hoy, y cuánto le falta.
 Es autogestión, no control de horario: no hay hora de entrada ni de salida (un
@@ -19,9 +25,14 @@ explicaciones de tiempo no registrado que administración aprueba (máximo
 MAX_EXPLICADAS_SEMANA horas por semana y por persona).
 
 Lo que se pide es completar las horas convenidas, no la rapidez. Lo que se trabaje
-después de completarlas son horas adicionales: se reconocen aparte, con su propio valor
-(valor hora × (1 + recargo de rrhh_valoracion.json → horas_adicionales)), y es lo que se
-cobra en la cuenta de cobro. Lo que falta no se descuenta solo: se ve y se conversa.
+después de completarlas son horas adicionales, al MISMO valor hora (son honorarios, no horas
+extra laborales: no llevan recargo), y es lo que se cobra en la cuenta de cobro. Lo que falta
+no se descuenta solo: se ve y se conversa.
+
+Quien atiende las colectas de Mercado Libre (persona con `colectas: true` en
+rrhh_valoracion.json) debe estar disponible de lunes a viernes: no es un horario de entrada y
+salida, es la disponibilidad que el servicio exige. Por eso a esas personas no se les dice que
+repongan horas «cualquier día»: se completan dentro de la semana.
 
 Datos: tickets.db (solo lectura), rrhh_valoracion.json (pago y mercado) y
 control_horas.json (explicaciones) — los dos últimos fuera de git. Sin LLM.
@@ -30,6 +41,7 @@ control_horas.json (explicaciones) — los dos últimos fuera de git. Sin LLM.
 from __future__ import annotations
 
 import glob
+from collections import Counter
 import json
 import os
 import sqlite3
@@ -38,13 +50,14 @@ import uuid
 from datetime import date, datetime, timedelta
 
 from app.services import tickets_db
+from app.services.festivos_co import es_habil
 
 _DATA = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 _RUTA = os.path.join(_DATA, "control_horas.json")
 _CACHE_IA = os.path.join(_DATA, "sesiones_ia_cache.json")
 _lock = threading.Lock()
 
-JORNADA_MES = 176
+JORNADA_MES = 159  # horas efectivas al mes con 42 h/semana (ver docstring)
 BLOQUE_MIN = 15
 MAX_TAREA_H = 10
 HUECO_IA_S = 45 * 60
@@ -75,7 +88,7 @@ def quincena_por_clave(clave: str) -> tuple[date, date, str]:
 def dias_habiles(desde: date, hasta: date) -> int:
     n, d = 0, desde
     while d < hasta:
-        n += d.weekday() < 5
+        n += es_habil(d)
         d += timedelta(days=1)
     return n
 
@@ -156,34 +169,127 @@ def _instantes_ia(carpeta: str) -> list[datetime]:
     return sorted(out)
 
 
-def bloques_activos(usuario_id: int, username: str, desde: datetime, hasta: datetime) -> set[int]:
-    """Bloques de 15 min con actividad entre dos instantes en hora de Bogotá."""
+# Paneles que no son trabajo: abrirlos no cuenta como actividad (Juegos es «un rato de descanso»).
+PANELES_DESCANSO = frozenset({"juegos"})
+
+
+def _fuentes(usuario_id: int, username: str, desde: datetime, hasta: datetime) -> dict[int, dict]:
+    """Qué hizo que cada bloque de 15 min cuente: {bloque: {"tareas": [corrida…], "paneles": Counter, "ia": bool}}.
+
+    Es la única fuente de verdad de las horas activas: el total y el detalle por día salen de aquí."""
     u_desde, u_hasta = desde - _BOGOTA, hasta - _BOGOTA
     f = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")  # noqa: E731
     lo, hi = _slot(desde), _slot(hasta)
-    sl: set[int] = set()
+    out: dict[int, dict] = {}
+
+    def celda(s: int) -> dict:
+        return out.setdefault(s, {"tareas": [], "paneles": Counter(), "ia": False})
+
     c = sqlite3.connect(f"file:{tickets_db.DB_PATH}?mode=ro", uri=True, timeout=10)
     try:
-        for (t,) in c.execute("SELECT creado_en FROM panel_eventos_operativos WHERE usuario_id=? AND creado_en>=? AND creado_en<?",
-                              (usuario_id, f(u_desde), f(u_hasta))):
-            sl.add(_slot(_dt(t) + _BOGOTA))
-        for a, b in c.execute(
-            """SELECT iniciada_en, finalizada_en FROM ticket_corridas WHERE usuario_id=? AND finalizada_en IS NOT NULL
-               AND finalizada_en>=? AND iniciada_en<?""", (usuario_id, f(u_desde), f(u_hasta))):
+        for t, panel in c.execute(
+                "SELECT creado_en, panel FROM panel_eventos_operativos WHERE usuario_id=? AND creado_en>=? AND creado_en<?",
+                (usuario_id, f(u_desde), f(u_hasta))):
+            if (panel or "") in PANELES_DESCANSO:
+                continue
+            celda(_slot(_dt(t) + _BOGOTA))["paneles"][panel or ""] += 1
+        for cid, a, b, titulo, cant, unidad in c.execute(
+            """SELECT c.id, c.iniciada_en, c.finalizada_en, t.titulo, t.resultado_cantidad, t.resultado_unidad
+               FROM ticket_corridas c LEFT JOIN tickets t ON t.id = c.ticket_id
+               WHERE c.usuario_id=? AND c.finalizada_en IS NOT NULL AND c.finalizada_en>=? AND c.iniciada_en<?""",
+                (usuario_id, f(u_desde), f(u_hasta))):
             ia, ib = _dt(a), _dt(b)
             if 0 <= (ib - ia).total_seconds() < MAX_TAREA_H * 3600:
+                info = {"id": cid, "titulo": titulo or "Tarea", "desde": ia + _BOGOTA, "hasta": ib + _BOGOTA,
+                        "resultado": {"cantidad": cant, "unidad": unidad} if cant else None}
                 # el bloque donde termina solo cuenta si terminó dentro de él (10:00 exacto no abre el bloque de 10:00)
-                sl.update(range(_slot(ia + _BOGOTA), _slot(ib + _BOGOTA - timedelta(seconds=1)) + 1))
+                for s in range(_slot(ia + _BOGOTA), _slot(ib + _BOGOTA - timedelta(seconds=1)) + 1):
+                    celda(s)["tareas"].append(info)
     finally:
         c.close()
     carpeta = _sesiones_ia_dirs().get((username or "").lower())
     if carpeta:
         pr = [t for t in _instantes_ia(carpeta) if desde - timedelta(hours=1) <= t < hasta]
         for i, t in enumerate(pr):
-            sl.add(_slot(t))
+            celda(_slot(t))["ia"] = True
             if i + 1 < len(pr) and (pr[i + 1] - t).total_seconds() <= HUECO_IA_S:
-                sl.update(range(_slot(t), _slot(pr[i + 1]) + 1))
-    return {s for s in sl if lo <= s < hi}
+                for s in range(_slot(t), _slot(pr[i + 1]) + 1):
+                    celda(s)["ia"] = True
+    return {s: v for s, v in out.items() if lo <= s < hi}
+
+
+def bloques_activos(usuario_id: int, username: str, desde: datetime, hasta: datetime) -> set[int]:
+    """Bloques de 15 min con actividad entre dos instantes en hora de Bogotá."""
+    return set(_fuentes(usuario_id, username, desde, hasta))
+
+
+def _hora(s: int) -> str:
+    t = _BASE + timedelta(minutes=s * BLOQUE_MIN)
+    return t.strftime("%H:%M")
+
+
+def detalle_dia(usuario_id: int, fecha: str) -> dict:
+    """Cómo se contaron las horas de un día: tramos con qué se hizo y cómo se midió, pausas y lo que quedó hecho."""
+    d = date.fromisoformat(fecha)
+    with sqlite3.connect(f"file:{tickets_db.DB_PATH}?mode=ro", uri=True, timeout=10) as c:
+        fila = c.execute("SELECT id, username FROM usuarios WHERE id=?", (int(usuario_id),)).fetchone()
+        if not fila:
+            raise ValueError("Usuario no encontrado")
+        ini_u = datetime.combine(d, datetime.min.time()) - _BOGOTA
+        hechas = [
+            {"titulo": t, "hora": (_dt(r) + _BOGOTA).strftime("%H:%M"),
+             "resultado": {"cantidad": q, "unidad": u} if q else None}
+            for t, r, q, u in c.execute(
+                """SELECT titulo, resuelto_en, resultado_cantidad, resultado_unidad FROM tickets
+                   WHERE asignado_a=? AND estado='resuelto' AND resuelto_en>=? AND resuelto_en<? ORDER BY resuelto_en""",
+                (fila[0], ini_u.strftime("%Y-%m-%d %H:%M:%S"), (ini_u + timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")))
+        ]
+    desde = datetime.combine(d, datetime.min.time())
+    fu = _fuentes(fila[0], fila[1], desde, desde + timedelta(days=1))
+
+    def clave(v: dict) -> tuple:
+        if v["tareas"]:
+            t = max(v["tareas"], key=lambda x: x["desde"])  # si se cruzan dos tareas, la más reciente
+            return ("tarea", t["id"])
+        if v["ia"]:
+            return ("desarrollo", "")
+        return ("panel", v["paneles"].most_common(1)[0][0] if v["paneles"] else "")
+
+    tramos: list[dict] = []
+    for s in sorted(fu):
+        k = clave(fu[s])
+        ult = tramos[-1] if tramos else None
+        if ult and ult["_k"] == k and ult["_fin"] == s:
+            ult["_fin"] = s + 1
+            ult["acciones"] += sum(fu[s]["paneles"].values())
+            continue
+        if ult and s > ult["_fin"]:
+            tramos.append({"tipo": "pausa", "desde": _hora(ult["_fin"]), "hasta": _hora(s),
+                           "horas": round((s - ult["_fin"]) * BLOQUE_MIN / 60, 2), "_k": None, "_fin": s})
+        t = {"tipo": k[0], "_k": k, "_ini": s, "_fin": s + 1, "acciones": sum(fu[s]["paneles"].values())}
+        if k[0] == "tarea":
+            info = next(x for x in fu[s]["tareas"] if x["id"] == k[1])
+            t.update(titulo=info["titulo"], resultado=info["resultado"],
+                     cronometro=f"{info['desde']:%H:%M}–{info['hasta']:%H:%M}")
+        elif k[0] == "panel":
+            t["panel"] = k[1]
+        tramos.append(t)
+    for t in tramos:
+        if t["tipo"] != "pausa":
+            t.update(desde=_hora(t["_ini"]), hasta=_hora(t["_fin"]), horas=round((t["_fin"] - t["_ini"]) * BLOQUE_MIN / 60, 2))
+            t.pop("_ini", None)
+        t.pop("_k", None)
+        t.pop("_fin", None)
+    expl = [x for x in explicaciones(fila[0]) if x["fecha"] == fecha]
+    activas = len(fu) * BLOQUE_MIN / 60
+    return {
+        "fecha": fecha, "dia_semana": d.weekday(), "habil": es_habil(d),
+        "horas_activas": round(activas, 2),
+        "horas_explicadas": round(sum(x["horas"] for x in expl if x["estado"] == "aprobada"), 2),
+        "horas": round(activas + sum(x["horas"] for x in expl if x["estado"] == "aprobada"), 2),
+        "tramos": tramos, "hechas": hechas, "explicaciones": expl,
+        "bloque_min": BLOQUE_MIN,
+    }
 
 
 # ─── Explicaciones de tiempo no registrado ──────────────────────────────────
@@ -264,9 +370,9 @@ def _pactado(usuario_id: int) -> dict | None:
         return None
     valor_hora = (MF.honorario_equivalente(mk["min"]) + MF.honorario_equivalente(mk["max"])) / 2 / JORNADA_MES
     extra = MF.cargar().get("horas_adicionales") or {}
-    recargo = float(extra.get("recargo_pct") or 0)
+    # Honorarios, no horas extra laborales: la hora adicional vale lo mismo que la acordada.
     return {"pago_mes": pago, "valor_hora": round(valor_hora), "horas_quincena": round(pago / 2 / valor_hora, 1),
-            "valor_hora_adicional": round(valor_hora * (1 + recargo / 100)), "recargo_pct": recargo,
+            "valor_hora_adicional": round(valor_hora), "colectas": bool(pc.get("colectas")),
             "requieren_aprobacion": bool(extra.get("requieren_aprobacion", True))}
 
 
@@ -310,7 +416,7 @@ def estado(usuario_id: int, *, quincena: str | None = None, ahora: datetime | No
             a, b = _slot(datetime.combine(d, datetime.min.time())), _slot(datetime.combine(d + timedelta(days=1), datetime.min.time()))
             h_dia = sum(1 for s_ in bloques if a <= s_ < b) * BLOQUE_MIN / 60
             h_dia += sum(x["horas"] for x in expl if x["estado"] == "aprobada" and x["fecha"] == d.isoformat())
-            meta = round(meta_dia, 2) if d.weekday() < 5 else 0
+            meta = round(meta_dia, 2) if es_habil(d) else 0
             dias.append({"fecha": d.isoformat(), "dia_semana": d.weekday(), "horas": round(h_dia, 2), "meta": meta,
                          "diferencia": round(h_dia - meta, 2), "hoy": d == ahora.date()})
             d += timedelta(days=1)
@@ -327,14 +433,13 @@ def estado(usuario_id: int, *, quincena: str | None = None, ahora: datetime | No
             "pactadas": p["horas_quincena"], "faltan": round(max(0.0, p["horas_quincena"] - total), 1),
             "de_mas": round(max(0.0, total - p["horas_quincena"]), 1),
             "al_dia": round(total - esperado, 1),
-            "hoy": {"horas": round(h_hoy, 2), "meta": round(meta_dia, 2) if ahora.weekday() < 5 else 0,
-                    "faltan": round(max(0.0, meta_dia - h_hoy), 2) if ahora.weekday() < 5 else 0},
+            "hoy": {"horas": round(h_hoy, 2), "meta": round(meta_dia, 2) if es_habil(ahora.date()) else 0,
+                    "faltan": round(max(0.0, meta_dia - h_hoy), 2) if es_habil(ahora.date()) else 0},
         })
-        res["regla"] = {"requieren_aprobacion": p["requieren_aprobacion"]}
+        res["regla"] = {"requieren_aprobacion": p["requieren_aprobacion"], "colectas": p["colectas"]}
         if con_dinero:
             res["valor_hora"] = p["valor_hora"]
             res["valor_hora_adicional"] = p["valor_hora_adicional"]
-            res["recargo_pct"] = p["recargo_pct"]
             res["valor_de_mas"] = round(res["de_mas"] * p["valor_hora_adicional"])
             res["valor_faltante"] = round(res["faltan"] * p["valor_hora"])
     return res
@@ -348,7 +453,81 @@ def cuenta_de_cobro(usuario_id: int, quincena: str) -> dict:
     hoy = (datetime.utcnow() + _BOGOTA).date()
     cerrada = date.fromisoformat(e["quincena"]["hasta"]) < hoy
     return {"usuario": e["usuario"], "quincena": e["quincena"], "horas": e["horas"], "pactadas": e["pactadas"],
-            "horas_de_mas": e["de_mas"], "valor_hora": e["valor_hora_adicional"], "recargo_pct": e["recargo_pct"],
+            "horas_de_mas": e["de_mas"], "valor_hora": e["valor_hora_adicional"],
             "valor": e["valor_de_mas"], "cerrada": cerrada,
             "concepto": (f"Honorarios por {e['de_mas']:g} horas adicionales de asesoría técnica en la quincena "
                          f"{e['quincena']['desde']} a {e['quincena']['hasta']}, a ${e['valor_hora_adicional']:,.0f} la hora").replace(",", ".")}
+
+
+# ─── Resumen semanal por WhatsApp ───────────────────────────────────────────
+# Cada viernes, un mensaje corto a cada persona: cómo le fue en la semana y cómo va la
+# quincena. Mismo tono que «Mi quincena»: usted, en positivo, sin hablar de pago, y
+# recordando que lo importante es completar las horas acordadas, no la rapidez.
+
+_DIA_TXT = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+
+
+def _hm(h: float) -> str:
+    t = round(h * 60)
+    hh, mm = divmod(t, 60)
+    if not hh:
+        return f"{mm} min"
+    return f"{hh} h {mm} min" if mm else f"{hh} h"
+
+
+def _fecha_txt(d: date) -> str:
+    meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+    return f"{d.day} de {meses[d.month - 1]}"
+
+
+def dias_de_la_semana(usuario_id: int, ahora: datetime) -> list[dict]:
+    """Días de lunes a hoy, aunque la semana cruce dos quincenas."""
+    lunes = ahora.date() - timedelta(days=ahora.weekday())
+    claves = {quincena_de(lunes)[2], quincena_de(ahora.date())[2]}
+    dias: list[dict] = []
+    for k in sorted(claves):
+        e = estado(usuario_id, quincena=k, ahora=ahora)
+        dias += [x for x in e.get("dias", []) if lunes <= date.fromisoformat(x["fecha"]) <= ahora.date()]
+    return sorted(dias, key=lambda x: x["fecha"])
+
+
+def resumen_semanal(usuario_id: int, *, ahora: datetime | None = None) -> str | None:
+    """Texto del mensaje de la semana, o None si la persona no tiene horas acordadas."""
+    ahora = ahora or (datetime.utcnow() + _BOGOTA)
+    e = estado(usuario_id, ahora=ahora)
+    if "pactadas" not in e:
+        return None
+    # Como la llaman: si el usuario del panel es uno de sus nombres (stella → «Gloria Stella»), ese.
+    partes = (e["usuario"]["nombre"] or "").split()
+    user = (e["usuario"]["username"] or "").lstrip("@").lower()
+    nombre = next((x for x in partes if x.lower() == user), partes[0] if partes else "")
+    semana = dias_de_la_semana(usuario_id, ahora)
+    habiles = [x for x in semana if x["meta"] > 0]
+    completos = [x for x in habiles if x["diferencia"] >= -0.05]
+    sin_registro = [x for x in habiles if x["horas"] == 0 and not x["hoy"]]
+    h_semana = sum(x["horas"] for x in semana)
+    fin_q = date.fromisoformat(e["quincena"]["hasta"])
+
+    lineas = [f"Hola, {nombre}. Así va su semana en McKenna:" if nombre else "Hola. Así va su semana en McKenna:", ""]
+    if habiles:
+        if completos:
+            lineas.append(f"• Esta semana trabajó {_hm(h_semana)} y completó su jornada en {len(completos)} de {len(habiles)} días.")
+        else:
+            lineas.append(f"• Esta semana trabajó {_hm(h_semana)}. Su jornada acordada es de unas {_hm(e['pactadas'] / e['quincena']['dias_habiles'])} por día.")
+    if e["de_mas"] > 0:
+        lineas.append(f"• ¡Ya completó las horas acordadas de la quincena! Lleva {_hm(e['de_mas'])} adicionales, "
+                      "que se pagan al mismo valor de la hora.")
+    elif e["al_dia"] >= 0:
+        lineas.append(f"• En la quincena lleva {_hm(e['horas'])} de {_hm(e['pactadas'])} acordadas: va al día. ¡Muy bien!")
+    else:
+        lineas.append(f"• En la quincena lleva {_hm(e['horas'])} de {_hm(e['pactadas'])} acordadas. Le faltan {_hm(e['faltan'])} "
+                      f"para completarlas de aquí al {_fecha_txt(fin_q)}.")
+    if sin_registro:
+        dias_txt = ", ".join(f"{_DIA_TXT[x['dia_semana']]} {date.fromisoformat(x['fecha']).day}" for x in sin_registro)
+        lineas.append(f"• {'Hay un día' if len(sin_registro) == 1 else 'Hay días'} sin registrar ({dias_txt}). Si trabajó, cuéntelo en la "
+                      "aplicación: Agenda → «Contar un trabajo que no quedó registrado».")
+    if e["regla"]["colectas"]:
+        lineas.append("• Recuerde que de lunes a viernes necesitamos su disponibilidad para las colectas de Mercado Libre.")
+    lineas += ["", "Lo importante es completar las horas acordadas, no hacerlo más rápido. Lo que haga después son horas "
+               "adicionales y se pagan al mismo valor. ¡Gracias por su trabajo!"]
+    return "\n".join(lineas)

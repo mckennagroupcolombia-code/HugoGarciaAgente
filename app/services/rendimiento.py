@@ -43,7 +43,7 @@ NIVELES = {
     4: "Administrativo con responsabilidad",
     5: "Especializado",
 }
-JORNADA_H = 176
+JORNADA_H = 159  # horas efectivas al mes de un tiempo completo con 42 h/semana (ver control_horas)
 MAX_TAREA_H = 10
 MAX_GAP_H = 0.5
 
@@ -239,7 +239,7 @@ def rendimiento_usuario(usuario_id: int, *, dias: int = 30, hoy: datetime | None
         anterior = _periodo(conn, u["id"], fmt(ini_ant), fmt(ini))
     user = (u["username"] or "").lower()
     desarrolla = user in _lista_env("RENDIMIENTO_DESARROLLADORES", "armando,@cynthia")
-    imprime = user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor")
+    imprime = user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor,stella")
     factor = 30 / dias
     funciones = _filas(actual["fx"], desarrolla=desarrolla, imprime=imprime, factor=factor)
     previas = _filas(anterior["fx"], desarrolla=desarrolla, imprime=imprime, factor=factor)
@@ -287,5 +287,5 @@ def horas_entre(usuario_id: int, desde_local: datetime, hasta_local: datetime) -
         per = _periodo(conn, u["id"], fmt(desde_local), fmt(hasta_local))
     user = (u["username"] or "").lower()
     funciones = _filas(per["fx"], desarrolla=user in _lista_env("RENDIMIENTO_DESARROLLADORES", "armando,@cynthia"),
-                       imprime=user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor"), factor=1.0)
+                       imprime=user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor,stella"), factor=1.0)
     return {"horas": round(sum(f["horas"] for f in funciones), 2), "funciones": funciones}

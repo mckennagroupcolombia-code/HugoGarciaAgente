@@ -1090,6 +1090,24 @@ borradores_aprobacion = {}
 
 pagos_pendientes_confirmacion = {}
 contexto_pago_clientes = {}
+
+# Los pendientes ahora también viven en app/data/pagos_clientes.db (registro durable, ver
+# app/services/pagos_clientes.py). Al arrancar se reconstruye el caché: un reinicio ya no
+# borra los comprobantes en espera de «ok/no <3 dígitos>».
+try:
+    from app.services import pagos_clientes as _pagos_cli
+
+    for _pp in _pagos_cli.pendientes():
+        pagos_pendientes_confirmacion.setdefault(_pp["numero_cliente"], {
+            "timestamp": time.time(),
+            "mensaje": "",
+            "confirmado": False,
+            "codigo": _pp.get("codigo") or "",
+        })
+    if pagos_pendientes_confirmacion:
+        print(f"💾 Pagos de clientes pendientes recuperados: {len(pagos_pendientes_confirmacion)}")
+except Exception as _e:
+    print(f"⚠️ No se pudieron recuperar pagos pendientes: {_e}")
 VENTANA_CONTEXTO_PAGO_SEGUNDOS = int(os.getenv("VENTANA_CONTEXTO_PAGO_SEGUNDOS", "3600"))
 mensajes_recientes_clientes = {}
 VENTANA_ANTI_BOT_SEGUNDOS = int(os.getenv("VENTANA_ANTI_BOT_SEGUNDOS", "120"))
@@ -1394,7 +1412,7 @@ def transcribir_audio_whatsapp(media_path: str, message_id: str = "") -> str | N
         return None
 
 
-def procesar_confirmacion_pago_async(numero_cliente):
+def procesar_confirmacion_pago_async(numero_cliente, autor_wa: str = ""):
     # Aquí podríamos añadir lógica extra asíncrona si se requiere
     # por ahora solo enviamos el mensaje sin bloquear la respuesta de flask
     try:
@@ -1404,6 +1422,12 @@ def procesar_confirmacion_pago_async(numero_cliente):
             enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
             del pagos_pendientes_confirmacion[numero_cliente]
             contexto_pago_clientes.pop(numero_cliente, None)
+            try:
+                from app.services.pagos_clientes import decidir as _pc_decidir
+
+                _pc_decidir(numero_cliente, "confirmado", autor_telefono=autor_wa)
+            except Exception as _e:
+                print(f"⚠️ Registro de pago confirmado: {_e}")
     except Exception as e:
         print(f"Error procesando confirmación de pago: {e}")
 
@@ -2108,6 +2132,7 @@ def register_routes(app):
         except Exception:
             sender_id = sender_raw
         reply_to_wa = str(data.get("reply_to") or sender_raw or sender_id).strip()
+        autor_wa = str(data.get("author") or "").strip()  # quién escribió, cuando sender es un grupo
         message_text = _normalizar_comando_grupo(data.get("mensaje", "").strip())
         is_after_sale = data.get("es_postventa", False)
         order_id = data.get("order_id", sender_id)
@@ -2149,6 +2174,21 @@ def register_routes(app):
 
         # Alias para compatibilidad con código existente
         grupo_contabilidad = grupo_compras
+
+        # Un comando o mensaje del equipo en un grupo oficial es trabajo: se anota como
+        # actividad de esa persona (suma a su control de horas). Solo en tiempo real.
+        if autor_wa and "@g.us" in str(remote_jid or ""):
+            try:
+                from app.services.pagos_clientes import registrar_actividad_wa as _act_wa
+
+                _ts_wa = data.get("ts")
+                spawn_thread(_act_wa, args=(autor_wa,), kwargs={
+                    "tipo": "wa_grupo" if es_grupo_sede_sur else "comando_wa",
+                    "detalle": (message_text or "")[:150],
+                    "ts": float(_ts_wa) if _ts_wa else None,
+                })
+            except Exception:
+                pass
 
         # Comandos MeLi operativos: aceptar aunque lleguen por chat 1:1 al número del negocio
         # (a veces el operador escribe ahí en vez del grupo Postventa_Meli).
@@ -2452,6 +2492,13 @@ def register_routes(app):
                     pagos_pendientes_confirmacion.pop(target_num, None)
                     borradores_aprobacion.pop(target_num, None)
                     contexto_pago_clientes.pop(target_num, None)
+                    try:
+                        from app.services.pagos_clientes import decidir as _pc_decidir
+
+                        spawn_thread(_pc_decidir, args=(target_num, "rechazado"),
+                                     kwargs={"autor_telefono": autor_wa})
+                    except Exception:
+                        pass
                     spawn_thread(
                         enviar_whatsapp_reporte,
                         args=(
@@ -2482,7 +2529,7 @@ def register_routes(app):
                 target_num = _buscar_pago_por_sufijo(sufijo)
                 if target_num:
                     spawn_thread(
-                        procesar_confirmacion_pago_async, args=(target_num,)
+                        procesar_confirmacion_pago_async, args=(target_num, autor_wa)
                     )
                     spawn_thread(
                         enviar_whatsapp_reporte,
@@ -2528,7 +2575,7 @@ def register_routes(app):
                         )
                         return jsonify({"status": "ok", "respuesta": None})
                 spawn_thread(
-                    procesar_confirmacion_pago_async, args=(target_num,)
+                    procesar_confirmacion_pago_async, args=(target_num, autor_wa)
                 )
                 spawn_thread(
                     enviar_whatsapp_reporte,
@@ -3049,6 +3096,12 @@ def register_routes(app):
                     "codigo": codigo,
                     "analisis_imagen": analisis_imagen.__dict__,
                 }
+                try:
+                    from app.services.pagos_clientes import registrar_comprobante as _pc_reg
+
+                    _pc_reg(sender_id, codigo, media_path, analisis_imagen.__dict__)
+                except Exception as _e:
+                    print(f"⚠️ Registro de comprobante: {_e}")
 
                 spawn_thread(
                     enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)
@@ -15795,7 +15848,13 @@ def register_routes(app):
             jid = c.get("jid", "")
             c["modo"] = modo_para_jid(jid, humanos, silenciados)
             info = info_contacto_jid(jid)
-            c["display"] = info.get("display") or jid
+            if jid.endswith("@g.us"):
+                from app.services.wa_chats import nombre_grupo as _ng
+
+                c["display"] = f"👥 {_ng(jid) or 'Grupo'}"
+                c["es_grupo"] = True
+            else:
+                c["display"] = info.get("display") or jid
             c["telefono"] = info.get("telefono")
             c["es_lid"] = bool(info.get("es_lid"))
             c["jid_raw"] = jid

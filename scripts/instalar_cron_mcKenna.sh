@@ -83,6 +83,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "10 */6 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/contabilidad_autopost_cron.py >>${LOG} 2>&1"
   echo "# Revisión autónoma de facturación MeLi: ticket-checklist diario + sugerencia de IA por caso nuevo (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "30 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/revision_facturacion_cron.py >>${LOG} 2>&1"
+  echo "# Resumen semanal de horas a cada persona por WhatsApp (viernes; solo envía con RESUMEN_HORAS_WA_ACTIVO=1)"
+  echo "30 17 * * 5 cd ${REPO} && ${PYTHON} ${REPO}/scripts/resumen_semanal_horas_cron.py >>${LOG} 2>&1"
   echo "$MARK_E"
 } >>"$TMP"
 

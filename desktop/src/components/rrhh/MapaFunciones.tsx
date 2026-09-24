@@ -40,6 +40,7 @@ type Persona = {
   razon: string;
   tarifa_media: number;
   horas_pagadas: number;
+  colectas?: boolean;
   comision: null | { pct: number; base_promedio: number; promedio: number; mes_actual: number; base_mes_actual: number; fijo: number; bono: number };
   tipos: { nivel: number; nombre: string; horas: number; porcentaje: number }[];
   nota: string;
@@ -478,12 +479,14 @@ function Ficha({ p, data, onCerrar, onCambio }: { p: Persona; data: Mapa; onCerr
   const resto = todas.slice(10).reduce((a, f) => a + f.horas, 0);
   const propuesta = p.comision ? p.comision.fijo + p.comision.promedio + p.comision.bono : p.propuesta;
   const barra = (lab: string, h: number, col: string) => (
-    <div className="grid items-center gap-3" style={{ gridTemplateColumns: "8.5em minmax(0,1fr) 4.5em" }}>
-      <span>{lab}</span>
-      <span className="block h-7 overflow-hidden rounded-full" style={{ background: C.surface2 }}>
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span>{lab}</span>
+        <span className="font-semibold tabular-nums">{Math.round(h)} h</span>
+      </div>
+      <span className="mt-1 block h-6 overflow-hidden rounded-full" style={{ background: C.surface2 }}>
         <span className="block h-full rounded-full" style={{ width: `${(h / max) * 100}%`, background: col }} />
       </span>
-      <span className="text-right font-semibold tabular-nums">{Math.round(h)} h</span>
     </div>
   );
   return (
@@ -547,12 +550,14 @@ function Ficha({ p, data, onCerrar, onCambio }: { p: Persona; data: Mapa; onCerr
         <h3 className="mt-8 font-bold" style={{ fontSize: fs * 1.15 }}>Tipo de trabajo</h3>
         <div className="mt-3 space-y-3">
           {p.tipos.map((t) => (
-            <div key={t.nivel} className="grid items-center gap-3" style={{ gridTemplateColumns: "10em minmax(0,1fr) 4em" }}>
-              <span>{t.nombre}</span>
-              <span className="block h-7 overflow-hidden rounded-full" style={{ background: C.surface2 }}>
+            <div key={t.nivel}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span>{t.nombre}</span>
+                <span className="font-semibold tabular-nums">{t.porcentaje}%</span>
+              </div>
+              <span className="mt-1 block h-6 overflow-hidden rounded-full" style={{ background: C.surface2 }}>
                 <span className="block h-full rounded-full" style={{ width: `${t.porcentaje}%`, background: NIV_COLOR[t.nivel] }} />
               </span>
-              <span className="text-right font-semibold tabular-nums">{t.porcentaje}%</span>
             </div>
           ))}
         </div>
@@ -621,6 +626,7 @@ function EditarPago({ p, fs, onGuardado }: { p: Persona; fs: number; onGuardado:
     rol: p.rol,
     razon: p.razon,
     comision: !!p.comision,
+    colectas: !!p.colectas,
     fijo: String(p.comision?.fijo || ""),
     bono: String(p.comision?.bono || ""),
   });
@@ -631,7 +637,7 @@ function EditarPago({ p, fs, onGuardado }: { p: Persona; fs: number; onGuardado:
     try {
       await api.put(`/api/rrhh/mapa-funciones/persona/${p.usuario_id}`, {
         pago_hoy: Number(v.pago_hoy || 0), propuesta: Number(v.propuesta || 0), rol: v.rol, razon: v.razon,
-        comision: v.comision, fijo: Number(v.fijo || 0), bono: Number(v.bono || 0),
+        comision: v.comision, colectas: v.colectas, fijo: Number(v.fijo || 0), bono: Number(v.bono || 0),
       });
       onGuardado();
     } catch (err) {
@@ -644,6 +650,7 @@ function EditarPago({ p, fs, onGuardado }: { p: Persona; fs: number; onGuardado:
       <label className="flex flex-col gap-1">Propuesta<input className={campo} style={{ borderColor: C.line }} type="number" min={0} step={1000} value={v.propuesta} onChange={(e) => setV({ ...v, propuesta: e.target.value })} /></label>
       <label className="flex flex-col gap-1 sm:col-span-2">Rol<input className={campo} style={{ borderColor: C.line }} value={v.rol} maxLength={120} onChange={(e) => setV({ ...v, rol: e.target.value })} /></label>
       <label className="flex flex-col gap-1 sm:col-span-2">Por qué<textarea className={campo} style={{ borderColor: C.line }} rows={3} value={v.razon} maxLength={600} onChange={(e) => setV({ ...v, razon: e.target.value })} /></label>
+      <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" checked={v.colectas} onChange={(e) => setV({ ...v, colectas: e.target.checked })} className="h-5 w-5" /> Atiende colectas de Mercado Libre (disponible de lunes a viernes)</label>
       <label className="flex items-center gap-2 sm:col-span-2"><input type="checkbox" checked={v.comision} onChange={(e) => setV({ ...v, comision: e.target.checked })} className="h-5 w-5" /> Tiene comisión por ventas de WhatsApp</label>
       {v.comision && (
         <>

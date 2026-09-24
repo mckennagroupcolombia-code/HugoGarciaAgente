@@ -277,3 +277,4 @@ app/data/rrhh_valoracion.json
 # Control de horas por quincena: explicaciones de tiempo y caché de sesiones de desarrollo
 app/data/control_horas.json
 app/data/sesiones_ia_cache.json
+app/data/pagos_clientes.db

@@ -1,3 +1,21 @@
+### 2026-09-23 23:55 - Horas justas (÷159, festivos, colectas) y «Del chat al registro» (etapa 2)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Control de horas + registro operativo (backend, panel y puente WA). Sin LLM.
+- **Qué se implementó:**
+  - **Control de horas:** valor hora de mercado ÷ **159 h/mes** (efectivas de un tiempo completo con 42 h/sem, antes 176); calendario de festivos propio (`festivos_co.py`, 19 en 2026 incl. Ley 2578) — un festivo no tiene meta; horas adicionales **al mismo valor** (se quitó el recargo: honorarios, no horas extra); marca `colectas` (Jenniffer/Stella/Víctor: disponibilidad L–V para colectas MeLi, sin horario); detalle por día (`detalle_dia` + `DiaDetalle`: tramos con hora, cómo se midió, ratos sin registro que no cuentan) saliendo de la MISMA función que el total (hay test); «Mi quincena» rediseñada como dos anillos (hoy/quincena) tocables; Juegos no cuenta como actividad; resumen semanal por WhatsApp (`resumen_semanal_horas_cron.py`, viernes 17:30, apagado con `RESUMEN_HORAS_WA_ACTIVO=0`).
+  - **Del chat al registro (etapa 2, informe del 24-sep):** registro durable de pagos de clientes (`pagos_clientes.py` + bandeja «Pagos de clientes» en la Agenda: quién decidió el ok/no, cuándo, comprobante; pendientes sobreviven al reinicio y vencen a 72 h); los comandos de grupo llevan `author` desde el puente y **cuentan como actividad** de quien los envía (`comando_wa`/`wa_grupo`, solo en tiempo real); **espejo de los grupos oficiales** a `wa_chats.db` (`GRUPOS_ESPEJO` en server.js; en Mensajes salen con su nombre); al cerrar cualquier tarea el panel pregunta «¿Cuántas quedaron?» (opcional; empaque sigue obligatorio).
+- **Verificación:** tests nuevos (`test_pagos_clientes`, festivos, detalle-día) + suites de horas 16/16 y humo 77/77; endpoint con Bearer verificado; capturas reales del panel (PC y celular). ⚠️ Al reiniciar el puente reapareció el error «r» (previo); se recuperó al segundo reinicio.
+
+### 2026-09-23 23:30 - «Mi quincena» y la ficha, más fáciles de leer para personas mayores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Agenda). Sin LLM.
+- **Qué se implementó:**
+  - Revisado en un banco de pruebas con datos reales, a 390 px (celular). Problemas: todo a la vez, tabla que se partía, tono de regaño («atrasado», «faltaron» en naranja en días sin registro), dos cifras distintas (quincena vs mes), mezcla de tú/usted y mención al pago.
+  - «Mi quincena»: una frase grande de cómo va hoy (verde si completó el día); barra de la quincena; los días como círculos grandes (verde completo, amarillo le faltó un poco, gris punteado sin registrar, morado fin de semana) con una sola leyenda; tocar un día sin registro abre «Contar un trabajo que no quedó registrado» con esa fecha; «¿Cómo funciona?» plegado (abierto solo la primera vez); botones de 52 px a lo ancho; «usted» y «jornada acordada» en lugar de «pago».
+  - «Mi ficha»: tarjeta sin segunda cifra grande; en la ficha, primero «Su quincena» y después «Su mes en el panel» con su periodo; barras con la etiqueta encima (en el celular se veían como puntos); sin funciones de 0 h; variación menor al 10 % en tono neutro.
+  - `RENDIMIENTO_IMPRIMEN` incluye a stella por defecto (usa el Studio para imprimir, no para diseñar).
+- **Archivos Modificados:** `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/MiRendimiento.tsx`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `app/services/rendimiento.py`, `.env.example`, `docs/team-recaps.md`
+
 ### 2026-09-23 22:30 - Tiempos estándar y regla explícita: completar las horas convenidas, no la rapidez
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (RRHH / Agenda). Sin LLM.

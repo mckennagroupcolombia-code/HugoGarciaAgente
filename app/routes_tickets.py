@@ -785,6 +785,53 @@ def register_tickets_routes(app):
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
+    @app.route("/api/tickets/pagos-clientes", methods=["GET"])
+    @_auth
+    def tickets_pagos_clientes():
+        """Bandeja de pagos de clientes por WhatsApp: pendientes de ok/no y decisiones recientes,
+        con quién decidió y el comprobante enlazado (registro durable, app/services/pagos_clientes.py)."""
+        from app.services.colaboradores import es_colaborador_externo
+        from app.services.pagos_clientes import listar, pendientes
+
+        if es_colaborador_externo(request.tickets_usuario):
+            return jsonify({"error": "No disponible"}), 403
+
+        def _fila(r: dict) -> dict:
+            num = re.sub(r"\D", "", str(r.get("numero_cliente") or ""))
+            return {
+                "id": r["id"], "creado_en": r["creado_en"], "estado": r["estado"],
+                "cliente": f"…{num[-4:]}" if num else "?", "codigo": r.get("codigo") or "",
+                "monto": r.get("monto_detectado"),
+                "comprobante": bool(r.get("comprobante_path")),
+                "comprobante_path": os.path.basename(str(r.get("comprobante_path") or "")),
+                "decidido_en": r.get("decidido_en"), "decidido_por": r.get("decidido_por_nombre") or "",
+            }
+
+        pend = [_fila(r) for r in pendientes()]
+        recientes = [_fila(r) for r in listar(dias=7) if r["estado"] != "pendiente"][:20]
+        return jsonify({"pendientes": pend, "recientes": recientes}), 200
+
+    @app.route("/api/tickets/control-horas/dia", methods=["GET"])
+    @_auth
+    def tickets_control_horas_dia():
+        """Cómo se contaron las horas de un día: tramos, cómo se midió cada uno y lo que quedó hecho."""
+        from app.services.colaboradores import es_colaborador_externo
+        from app.services.control_horas import detalle_dia
+
+        yo = request.tickets_usuario
+        if es_colaborador_externo(yo):
+            return jsonify({"error": "No disponible"}), 403
+        uid = yo["id"]
+        pedido = (request.args.get("usuario_id") or "").strip()
+        if pedido.isdigit() and int(pedido) != uid:
+            if (yo.get("rol") or {}).get("nivel", 0) < 3:
+                return jsonify({"error": "Solo administradores"}), 403
+            uid = int(pedido)
+        try:
+            return jsonify(detalle_dia(uid, str(request.args.get("fecha") or ""))), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.route("/api/tickets/control-horas/explicaciones", methods=["POST"])
     @_auth
     def tickets_control_horas_explicar():

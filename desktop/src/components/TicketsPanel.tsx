@@ -33,6 +33,7 @@ import { useUiMode } from "../stores/uiMode";
 import AgendaFlujo from "./AgendaFlujo";
 import MiRendimiento from "./MiRendimiento";
 import MiQuincena from "./MiQuincena";
+import PagosClientes from "./PagosClientes";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
@@ -4338,6 +4339,7 @@ function CentroMandoHome({
       <InicioLauncher />
 
       <MiQuincena token={token} />
+      <PagosClientes token={token} />
 
       <MiRendimiento token={token} />
 
@@ -12497,7 +12499,7 @@ function AccionCardOperativa({
       setTimeout(() => setMsg(""), 5000);
       return;
     }
-    const cantLabel = pideCantidad && cantidadCierre.trim()
+    const cantLabel = cantidadCierre.trim()
       ? `\n\nUnidades: ${cantidadCierre.trim()} ${unidadCierre}`
       : "";
     if (!confirm(`¿Marcar "${ticket.titulo}" como terminada?${cantLabel}\n\nEsta acción no se puede deshacer.`)) return;
@@ -12508,7 +12510,7 @@ function AccionCardOperativa({
         try { await tapi(`/corridas/${corridaId}/finalizar`, token, { method: "POST" }); } catch {}
       }
       const body: Record<string, unknown> = { estado: "resuelto" };
-      if (pideCantidad && cantidadCierre.trim()) {
+      if (cantidadCierre.trim()) {
         body.resultado_cantidad = Number(cantidadCierre.replace(",", "."));
         body.resultado_unidad = unidadCierre;
       }
@@ -12518,8 +12520,8 @@ function AccionCardOperativa({
       setResolucionInfo({
         duracion,
         horario,
-        cantidad: pideCantidad && cantidadCierre.trim() ? Number(cantidadCierre.replace(",", ".")) : undefined,
-        unidad: pideCantidad ? unidadCierre : undefined,
+        cantidad: cantidadCierre.trim() ? Number(cantidadCierre.replace(",", ".")) : undefined,
+        unidad: cantidadCierre.trim() ? unidadCierre : undefined,
       });
       setCorridaActiva(false);
       inicioRef.current = null;
@@ -12646,7 +12648,7 @@ function AccionCardOperativa({
 
       {msg && <p className="text-[11px] font-semibold text-red-500 text-center">{msg}</p>}
 
-      {!resuelta && !resolucionInfo && !readOnly && pideCantidad && (
+      {!resuelta && !resolucionInfo && !readOnly && (
         <CampoCantidadCierre
           titulo={ticket.titulo}
           cantidad={cantidadCierre}
@@ -13038,14 +13040,18 @@ function CampoCantidadCierre({
   onCantidadChange: (v: string) => void;
   onUnidadChange: (v: string) => void;
 }) {
-  if (!accionPideCantidad(titulo)) return null;
+  // Empaque la exige; en las demás tareas es opcional pero visible: es lo que hace
+  // que «resuelto» diga cuánto se produjo (y alimenta los tiempos estándar).
+  const obligatoria = accionPideCantidad(titulo);
   return (
-    <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-2">
-      <label className="text-xs font-bold uppercase tracking-wide text-accent">
-        Reporte de unidades empacadas
+    <div className={obligatoria ? "rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-2" : "rounded-2xl border border-border bg-surface-hover/60 p-3 space-y-1.5"}>
+      <label className={`text-xs font-bold uppercase tracking-wide ${obligatoria ? "text-accent" : "text-muted"}`}>
+        {obligatoria ? "Reporte de unidades empacadas" : "¿Cuántas quedaron? (opcional)"}
       </label>
       <p className="text-xs text-muted">
-        Antes de cerrar, registra cuántas unidades, paquetes o bolsas terminaste (obligatorio para empaque).
+        {obligatoria
+          ? "Antes de cerrar, registra cuántas unidades, paquetes o bolsas terminaste (obligatorio para empaque)."
+          : "Si esta tarea produjo algo contable (bultos, etiquetas, pedidos, guías), anótelo: queda en el registro del día."}
       </p>
       <div className="flex flex-wrap gap-2">
         <input

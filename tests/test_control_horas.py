@@ -55,7 +55,7 @@ def test_quincenas():
 def test_horas_pactadas_y_bloques(entorno):
     e = CH.estado(1, quincena="2026-09-Q1", ahora=datetime(2026, 9, 20), con_dinero=True)
     assert e["horas_activas"] == pytest.approx(2.0)  # 8:00 a 10:00 en bloques de 15 min; el evento de 8:30 no suma
-    vh = (MF.honorario_equivalente(1_750_905) + MF.honorario_equivalente(2_100_000)) / 2 / 176
+    vh = (MF.honorario_equivalente(1_750_905) + MF.honorario_equivalente(2_100_000)) / 2 / CH.JORNADA_MES
     assert e["pactadas"] == pytest.approx(round(1_250_000 / vh, 1))
     assert e["faltan"] > 0 and e["de_mas"] == 0 and e["valor_de_mas"] == 0
     # las dos ejecuciones cuentan como hechas (a tiempo estándar), también la que quedó abierta 12 h
@@ -79,3 +79,53 @@ def test_explicaciones_con_tope_y_aprobacion(entorno, monkeypatch):
         CH.revisar(x["id"], True, "admin")
     e = CH.estado(1)
     assert e["horas_explicadas"] == 4
+
+
+def test_resumen_semanal(entorno):
+    # jueves 3-sep: lunes 31-ago (otra quincena) sin registro, miércoles 2 con 2 h
+    t = CH.resumen_semanal(1, ahora=datetime(2026, 9, 3, 18, 0))
+    assert t.startswith("Hola, Operaria.")
+    assert "Esta semana trabajó 2 h" in t
+    assert "Le faltan" in t and "de aquí al 15 de septiembre" in t
+    assert "colectas" not in t and "mismo valor" in t
+    assert "Hay días sin registrar" in t and "lunes 31" in t
+    assert "no hacerlo más rápido" in t
+
+
+def test_colectas_y_mismo_valor(entorno):
+    MF.actualizar_persona(1, {"colectas": True})
+    e = CH.estado(1, quincena="2026-09-Q1", ahora=datetime(2026, 9, 20), con_dinero=True)
+    assert e["regla"]["colectas"] is True
+    assert e["valor_hora_adicional"] == e["valor_hora"]  # honorarios: la hora adicional no lleva recargo
+    t = CH.resumen_semanal(1, ahora=datetime(2026, 9, 3, 18, 0))
+    assert "de lunes a viernes necesitamos su disponibilidad para las colectas" in t
+
+
+
+def test_festivos_no_son_habiles():
+    from app.services.festivos_co import festivos
+    f = festivos(2026)
+    assert len(f) == 19 and date(2026, 7, 13) in f and date(2026, 10, 12) in f and date(2026, 4, 3) in f
+    # octubre Q1: 11 días de lunes a viernes, menos el lunes festivo 12
+    assert CH.dias_habiles(date(2026, 10, 1), date(2026, 10, 16)) == 10
+
+
+def test_detalle_dia_cuadra_con_el_total(entorno):
+    """El detalle de un día suma lo mismo que el conteo de la quincena, y Juegos no cuenta."""
+    c = sqlite3.connect(CH.tickets_db.DB_PATH)
+    c.executescript(
+        """
+        INSERT INTO panel_eventos_operativos VALUES (3,'s',1,'panel_view','facturacion','2026-09-02 17:05:00');
+        INSERT INTO panel_eventos_operativos VALUES (4,'s',1,'panel_view','juegos','2026-09-02 18:05:00');
+        """
+    )
+    c.commit()
+    c.close()
+    d = CH.detalle_dia(1, "2026-09-02")
+    assert d["horas_activas"] == pytest.approx(2.25)  # tarea 8:00–10:00 + 15 min de facturación; el juego no suma
+    tipos = [t["tipo"] for t in d["tramos"]]
+    assert tipos == ["tarea", "pausa", "panel"]
+    assert d["tramos"][0]["titulo"] == "Empacar productos en polvo" and d["tramos"][0]["desde"] == "08:00"
+    assert d["tramos"][2]["panel"] == "facturacion"
+    e = CH.estado(1, quincena="2026-09-Q1", ahora=datetime(2026, 9, 20))
+    assert {x["fecha"]: x for x in e["dias"]}["2026-09-02"]["horas"] == pytest.approx(d["horas"])

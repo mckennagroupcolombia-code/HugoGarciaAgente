@@ -70,40 +70,22 @@ export default function MiRendimiento({ token }: { token: string }) {
   if (!d) return <div className="h-24 animate-pulse rounded-xl bg-surface-hover" />;
 
   const top = d.funciones.slice(0, 3);
-  const v = d.variacion_pct;
   return (
     <>
       <div className="mck-card border-accent/25 bg-[rgb(var(--mck-card-bg))] p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">Mi mes en el panel</p>
-            <p className="mt-1 text-3xl font-black tabular-nums text-ink">
-              {Math.round(d.horas_mes)} <span className="text-base font-semibold text-muted">horas</span>
-            </p>
-            <p className="text-sm text-muted">
-              {d.dias_activos} días activos
-              {v != null && (
-                <>
-                  {" · "}
-                  <span className={v >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}>
-                    {v >= 0 ? `${v}% más` : `${-v}% menos`} que el mes anterior
-                  </span>
-                </>
-              )}
-            </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-lg font-black text-ink">Mi ficha</h3>
+            <p className="text-base text-muted">Lo que hizo este mes y en qué se le va el tiempo.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setAbierta(true)}
-            className="mck-press rounded-xl bg-accent px-4 py-3 text-base font-bold text-white hover:opacity-90"
-          >
+          <button type="button" onClick={() => setAbierta(true)} className="mck-press min-h-[48px] rounded-xl bg-accent px-5 py-2 text-base font-bold text-white hover:opacity-90">
             Ver mi ficha
           </button>
         </div>
         {top.length > 0 && (
           <ul className="mt-3 space-y-1">
             {top.map((f) => (
-              <li key={f.id} className="flex items-baseline justify-between gap-3 text-sm">
+              <li key={f.id} className="flex items-baseline justify-between gap-3 text-base">
                 <span className="min-w-0 truncate text-ink">{f.funcion}</span>
                 <span className="shrink-0 font-semibold tabular-nums text-ink">{Math.round(f.horas)} h</span>
               </li>
@@ -152,16 +134,19 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
   const fs = grande ? 24 : 20;
   const max = Math.max(d.horas_mes, d.horas_mes_anterior, d.jornada_referencia, 1);
   const barra = (lab: string, h: number, color: string) => (
-    <div className="grid items-center gap-3" style={{ gridTemplateColumns: "8.5em minmax(0,1fr) 4.5em" }}>
-      <span>{lab}</span>
-      <span className="block h-7 overflow-hidden rounded-full" style={{ background: "#f1e7d8" }}>
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span>{lab}</span>
+        <span className="font-semibold tabular-nums">{Math.round(h)} h</span>
+      </div>
+      <span className="mt-1 block h-6 overflow-hidden rounded-full" style={{ background: "#f1e7d8" }}>
         <span className="block h-full rounded-full" style={{ width: `${(h / max) * 100}%`, background: color }} />
       </span>
-      <span className="text-right font-semibold tabular-nums">{Math.round(h)} h</span>
     </div>
   );
-  const top = d.funciones.slice(0, 10);
-  const resto = d.funciones.slice(10).reduce((a, f) => a + f.horas, 0);
+  const visibles = d.funciones.filter((f) => f.horas >= 0.5);
+  const top = visibles.slice(0, 10);
+  const resto = visibles.slice(10).reduce((a, f) => a + f.horas, 0);
   const v = d.variacion_pct;
 
   return (
@@ -185,7 +170,7 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
               {d.usuario.nombre}
             </h2>
             <p style={{ color: "#4a3b2e", fontSize: fs * 0.85 }}>
-              Usuario <b>{d.usuario.username}</b> · del {fechaCorta(d.periodo.desde)} al {fechaCorta(d.periodo.hasta)}
+              Usuario <b>{d.usuario.username}</b>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -237,7 +222,15 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
           </label>
         )}
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <HorasEnFicha token={token} usuarioId={d.usuario.id} fs={fs} />
+
+        <h3 className="mt-10 font-bold" style={{ fontSize: fs * 1.15 }}>
+          Su mes en el panel
+        </h3>
+        <p style={{ color: "#4a3b2e", fontSize: fs * 0.8 }}>
+          Del {fechaCorta(d.periodo.desde)} al {fechaCorta(d.periodo.hasta)}: tareas con cronómetro y tiempo en cada parte del panel.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {[
             [Math.round(d.horas_mes), "horas registradas en el mes"],
             [Math.round(d.horas_mes_anterior), "horas el mes anterior"],
@@ -256,12 +249,14 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
           <p
             className="mt-4 rounded-2xl border-2 p-4"
             style={
-              v >= 0
+              Math.abs(v) < 10
+                ? { background: "#f1e7d8", borderColor: "#cdbba4", color: "#1f1711" }
+                : v >= 0
                 ? { background: "#e6f1dc", borderColor: "#3f7a2e", color: "#1e4a14" }
                 : { background: "#fbe6da", borderColor: "#a4471d", color: "#6e2a0c" }
             }
           >
-            Este mes registró <b>{v >= 0 ? `${v}% más` : `${-v}% menos`}</b> horas que el mes anterior.
+            {Math.abs(v) < 10 ? <>Este mes registró <b>casi las mismas horas</b> que el mes anterior.</> : <>Este mes registró <b>{v >= 0 ? `${v}% más` : `${-v}% menos`}</b> horas que el mes anterior.</>}
           </p>
         )}
 
@@ -270,8 +265,6 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
           {barra("Mes anterior", d.horas_mes_anterior, "#df9f55")}
           {barra("Jornada", d.jornada_referencia, "#cdbba4")}
         </div>
-
-        <HorasEnFicha token={token} usuarioId={d.usuario.id} fs={fs} />
 
         <h3 className="mt-8 font-bold" style={{ fontSize: fs * 1.15 }}>
           ¿En qué se le va el tiempo?
@@ -308,12 +301,14 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
             </h3>
             <div className="mt-3 space-y-3">
               {d.tipos.map((t) => (
-                <div key={t.nivel} className="grid items-center gap-3" style={{ gridTemplateColumns: "10em minmax(0,1fr) 4em" }}>
-                  <span>{t.nombre}</span>
-                  <span className="block h-7 overflow-hidden rounded-full" style={{ background: "#f1e7d8" }}>
+                <div key={t.nivel}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span>{t.nombre}</span>
+                    <span className="font-semibold tabular-nums">{t.porcentaje}%</span>
+                  </div>
+                  <span className="mt-1 block h-6 overflow-hidden rounded-full" style={{ background: "#f1e7d8" }}>
                     <span className="block h-full rounded-full" style={{ width: `${t.porcentaje}%`, background: COLOR_NIVEL[t.nivel] }} />
                   </span>
-                  <span className="text-right font-semibold tabular-nums">{t.porcentaje}%</span>
                 </div>
               ))}
             </div>

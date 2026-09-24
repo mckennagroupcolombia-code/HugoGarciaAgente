@@ -87,8 +87,8 @@ def _defecto() -> dict:
     return {"tarifas": dict(TARIFAS_DEFECTO), "personas": {}, "extras": [],
             "comision_pct": float(os.getenv("VENTAS_DIRECTAS_COMISION_PCT", "3") or 0),
             "ventas_wa_promedio": {"base": 0, "fuente": ""},
-            # Horas adicionales (después de completar las pactadas): se reconocen aparte, con su propio valor.
-            "horas_adicionales": {"recargo_pct": 0.0, "requieren_aprobacion": True}}
+            # Horas adicionales (después de completar las pactadas): mismo valor hora, sin recargo (son honorarios).
+            "horas_adicionales": {"requieren_aprobacion": True}}
 
 
 def cargar() -> dict:
@@ -129,6 +129,8 @@ def actualizar_persona(usuario_id: int, datos: dict) -> dict:
         p["rol"] = str(datos["rol"] or "")[:120]
     if "comision" in datos:
         p["comision"] = bool(datos["comision"])
+    if "colectas" in datos:  # debe estar disponible de lunes a viernes para las colectas de MeLi
+        p["colectas"] = bool(datos["colectas"])
     if "mercado" in datos:
         m = datos["mercado"] or {}
         lo, hi = float(m.get("min") or 0), float(m.get("max") or 0)
@@ -153,10 +155,7 @@ def actualizar_general(datos: dict) -> dict:
         d["comision_pct"] = v
     if "horas_adicionales" in datos:
         x = datos["horas_adicionales"] or {}
-        r = float(x.get("recargo_pct") or 0)
-        if not -50 <= r <= 200:
-            raise ValueError("Recargo de horas adicionales fuera de rango (−50 % a 200 %)")
-        d["horas_adicionales"] = {"recargo_pct": r, "requieren_aprobacion": bool(x.get("requieren_aprobacion", True))}
+        d["horas_adicionales"] = {"requieren_aprobacion": bool(x.get("requieren_aprobacion", True))}
     if "ventas_wa_promedio" in datos:
         x = datos["ventas_wa_promedio"] or {}
         d["ventas_wa_promedio"] = {"base": max(0.0, float(x.get("base") or 0)), "fuente": str(x.get("fuente") or "")[:400]}
@@ -281,7 +280,7 @@ def mapa(dias: int = 30) -> dict:
             "dias_activos": rd["dias_activos"], "valor_mes": valor, "pago_hoy": pago,
             "propuesta": float(pc.get("propuesta") or 0), "razon": pc.get("razon") or "",
             "tarifa_media": round(tarifa_media), "horas_pagadas": horas_pagadas,
-            "comision": comision, "tipos": rd["tipos"], "nota": rd["nota"],
+            "comision": comision, "colectas": bool(pc.get("colectas")), "tipos": rd["tipos"], "nota": rd["nota"],
             "carga": {k: round(v, 1) for k, v in carga.items()}, "celdas": celdas, "mercado": mercado,
         })
     personas.sort(key=lambda p: -p["valor_mes"])
