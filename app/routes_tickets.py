@@ -764,6 +764,40 @@ def register_tickets_routes(app):
             data["equipo"] = equipo_para_selector()
         return jsonify(data), 200
 
+    @app.route("/api/tickets/control-horas", methods=["GET"])
+    @_auth
+    def tickets_control_horas():
+        """Horas de la quincena frente a las pactadas, y las de hoy. Sin dinero: eso es de RRHH."""
+        from app.services.colaboradores import es_colaborador_externo
+        from app.services.control_horas import estado
+
+        yo = request.tickets_usuario
+        if es_colaborador_externo(yo):
+            return jsonify({"error": "No disponible"}), 403
+        uid = yo["id"]
+        pedido = (request.args.get("usuario_id") or "").strip()
+        if pedido.isdigit() and int(pedido) != uid:
+            if (yo.get("rol") or {}).get("nivel", 0) < 3:
+                return jsonify({"error": "Solo administradores"}), 403
+            uid = int(pedido)
+        try:
+            return jsonify(estado(uid, quincena=(request.args.get("quincena") or None))), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/tickets/control-horas/explicaciones", methods=["POST"])
+    @_auth
+    def tickets_control_horas_explicar():
+        """La persona explica qué hizo en un tiempo que el panel no registró (queda por aprobar)."""
+        from app.services.control_horas import explicar
+
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(explicar(request.tickets_usuario["id"], str(d.get("fecha") or ""), float(d.get("horas") or 0),
+                                    str(d.get("descripcion") or ""))), 201
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.route("/api/tickets/actividad-equipo", methods=["GET"])
     @_auth
     def tickets_actividad_equipo():

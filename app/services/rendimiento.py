@@ -84,8 +84,10 @@ CATALOGO: list[tuple[str, str, str, int, str, tuple[str, ...]]] = [
      r"preventa|posventa|postventa|reclamo", ("preventa", "postventa")),
     ("facturar", "Factura y resuelve facturas pendientes", "Emite facturas y corrige las que no se dejan facturar.", 4,
      r"factur|sync facturas|siigo|astros|dejan facturar|dejarse facturar", ("facturacion", "astro-killer", "facturas", "cotizar-facturar")),
+    ("aprobar", "Aprueba pagos", "Revisa el soporte y la cuenta y aprueba la solicitud de pago.", 4,
+     r"aprobar pago|aprobar pagos", ()),
     ("sol_pago", "Cotiza y monta solicitudes de pago", "Pide la cotización, revisa la factura, escoge la cuenta y digita la solicitud.", 4,
-     r"crear pagos|montar pago|pago de servicios|pago dian|proformas|aprobar pago", ("pagos",)),
+     r"crear pagos|montar pago|pago de servicios|pago dian|proformas", ("pagos",)),
     ("compras", "Compra insumos y actualiza stock", "Revisa qué falta, pide a proveedores y ajusta el stock.", 3,
      r"comprar|insumos|pedido de interkrol|stock|stcock|inventario|bodega", ("stock", "control-inventario")),
     ("diseno", "Diseña etiquetas", "Arma y corrige etiquetas en el Studio: textos, formato y aprobación.", 5,
@@ -209,6 +211,7 @@ def _filas(fx: dict, *, desarrolla: bool, imprime: bool, factor: float) -> list[
             m["horas"] += h * factor
             continue
         if imprime and cid == "diseno":
+            cid = "imprimir_studio"
             nombre, implica, nivel = "Imprime y consulta etiquetas en el Studio", "Busca la etiqueta aprobada y la manda a la impresora.", 2
         if imprime and cid == "docs":
             nombre, implica, nivel = "Consulta y adjunta fichas técnicas", "Busca la ficha o el COA de un producto.", 3
@@ -271,3 +274,18 @@ def equipo_para_selector() -> list[dict]:
         return [dict(r) for r in conn.execute(
             "SELECT id, nombre, username FROM usuarios WHERE activo=1 AND username NOT IN ('tester','prueba','hugo_ia_bot','admin') ORDER BY nombre"
         )]
+
+
+def horas_entre(usuario_id: int, desde_local: datetime, hasta_local: datetime) -> dict:
+    """Horas registradas entre dos instantes en hora de Bogotá (sin llevar a mes).
+    Devuelve el total y las funciones, con las mismas reglas de la ficha."""
+    fmt = lambda d: (d + timedelta(hours=5)).strftime("%Y-%m-%d %H:%M:%S")  # noqa: E731  Bogotá → UTC
+    with _conn() as conn:
+        u = conn.execute("SELECT id, username FROM usuarios WHERE id=?", (int(usuario_id),)).fetchone()
+        if not u:
+            raise ValueError("Usuario no encontrado")
+        per = _periodo(conn, u["id"], fmt(desde_local), fmt(hasta_local))
+    user = (u["username"] or "").lower()
+    funciones = _filas(per["fx"], desarrolla=user in _lista_env("RENDIMIENTO_DESARROLLADORES", "armando,@cynthia"),
+                       imprime=user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor"), factor=1.0)
+    return {"horas": round(sum(f["horas"] for f in funciones), 2), "funciones": funciones}

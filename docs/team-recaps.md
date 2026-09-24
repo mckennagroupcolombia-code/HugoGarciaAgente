@@ -1,3 +1,41 @@
+### 2026-09-23 22:30 - Tiempos estándar y regla explícita: completar las horas convenidas, no la rapidez
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (RRHH / Agenda). Sin LLM.
+- **Qué se implementó:**
+  - `app/services/tiempos_estandar.py`: tiempo estándar por función = mediana de lo cronometrado por el equipo en 90 días (mínimo 5 veces, entre 1 min y 10 h; por unidad si la tarea registró cantidad). «Horas a tiempo estándar» = cada ejecución cerrada × su estándar medido; ticket sin cronómetro = su huella real. `GET /api/rrhh/tiempos-estandar`; columna en Control de horas y bloque en la ficha de RRHH. **Solo para administración**: la persona no ve horas por rapidez.
+  - **Corrección el mismo día:** se quitaron los tiempos «estimados» a mano (15 min por nota crédito, 10 por aprobación…). Convertían 85 expedientes de notas crédito que Jenniffer cerró en tandas (72 de 83 a menos de 2 min del anterior, ≈2 h reales) en 21,5 h. Ahora un ticket cerrado sin cronómetro cuenta su **huella real**: minutos desde la acción anterior de la persona en el panel (máx. 30). Su 2ª quincena pasó de 37,7 h a 16,2 h a tiempo estándar.
+  - `rendimiento.py`: «Aprobar pago» es su propia función (antes contaba como montar una solicitud, 47 min cada una).
+  - **Regla visible para todos** (Agenda «Mi quincena» y ficha): lo que se necesita es completar las horas convenidas, no la rapidez; se reparten libremente (sin hora de entrada ni salida); lo que se haga después son horas adicionales que se reconocen aparte, con otro valor, cuando administración las aprueba.
+  - Valor de las horas adicionales: recargo configurable sobre el valor hora de mercado (`rrhh_valoracion.json → horas_adicionales.recargo_pct`, default 0 %), editable en RRHH → Control de horas; lo usa la cuenta de cobro.
+  - Tests: `tests/test_tiempos_estandar.py` (2) y ajustes en `test_control_horas.py`; 105 en verde. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/tiempos_estandar.py`, `app/services/control_horas.py`, `app/services/mapa_funciones.py`, `app/services/rendimiento.py`, `app/routes_rrhh.py`, `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/rrhh/ControlHoras.tsx`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `tests/test_tiempos_estandar.py`, `tests/test_control_horas.py`, `docs/team-recaps.md`, `CLAUDE.md`
+
+### 2026-09-23 21:30 - Control de horas por quincena: «Mi quincena» en la Agenda, explicaciones de tiempo y cuenta de cobro por horas de más
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda / RRHH). Sin LLM.
+- **Qué se implementó:**
+  - **Decisión (camino A, honorarios):** cada quien tiene una dedicación pactada = pago de la quincena ÷ valor hora de mercado de su labor (punto medio del rango de mercado en honorarios ÷ 176 h). Autogestión, sin horario de entrada ni salida (un horario fijado por la empresa es subordinación y vuelve la prestación de servicios contrato laboral).
+  - `app/services/control_horas.py`: horas activas por bloques de 15 min (acciones del panel, tareas con cronómetro < 10 h y sesiones de desarrollo con IA de `RENDIMIENTO_SESIONES_IA`) sin doble conteo; meta diaria de lunes a viernes; «al día» frente a lo esperado; explicaciones de tiempo no registrado (máx. 6 h/semana, últimos 20 días, pendientes de aprobación); cuenta de cobro = horas de más × valor hora. Datos en `app/data/control_horas.json` (gitignored); caché de sesiones en `sesiones_ia_cache.json` (gitignored).
+  - Rutas: `GET /api/tickets/control-horas` y `POST …/explicaciones` (la persona, sin dinero); `GET /api/rrhh/control-horas`, `POST …/explicaciones/<id>` (aprobar), `GET …/cuenta-cobro` (RRHH).
+  - Panel: «Mi quincena» en la Agenda (barra de avance, hoy llevas X de Y, al día/atrasado, «Explicar tiempo no registrado» en letra grande) y pestaña «Control de horas» en RRHH (tabla por persona, aprobaciones, cuenta de cobro sugerida).
+  - Septiembre: Armando 1ª quincena 121 h vs 41,7 pactadas → 79,3 h de más = $2.377.335 (2ª, al 23: $878.385 y subiendo); Cynthia 1ª quincena 5,2 h de más = $106.075. Sus sesiones de desarrollo no son legibles desde la cuenta mckg: si desarrolló fuera del panel, no suma.
+  - **Registro día por día:** `estado()` devuelve `dias` (horas del día, meta de lunes a viernes, diferencia); tabla «Mis días» abierta en la Agenda y desplegable por persona en RRHH.
+  - 3 tests en `tests/test_control_horas.py` (103 en verde con los relacionados). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/control_horas.py`, `app/services/rendimiento.py`, `app/routes_tickets.py`, `app/routes_rrhh.py`, `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/rrhh/ControlHoras.tsx`, `desktop/src/components/TicketsPanel.tsx`, `desktop/src/components/RRHHPanel.tsx`, `tests/test_control_horas.py`, `.gitignore`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 20:30 - RRHH: «Mapa de funciones» integrado al panel, con valor de mercado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (RRHH · Compensaciones). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** el artefacto «Mapa de funciones» de la revisión de honorarios se hacía con cifras fijas del 23-sep; ahora vive en /app y se calcula en vivo.
+  - `app/services/mapa_funciones.py`: matriz persona × etapa (abastecer → casa) con las funciones de `rendimiento.py`, valor = horas × tarifa del nivel, horas que cubre el pago, comisión de WhatsApp (promedio de chats + mes real de Cotizar/Facturar), estadísticas de WhatsApp de los últimos días y funciones anotadas a mano. **Mercado:** salario de un cargo comparable llevado a honorarios (`honorario_equivalente`: prestaciones 21,83 %, aporte 8 %, auxilio hasta 2 SMMLV, PILA de independiente ≈11,6 %; piso = SMMLV 2026 $1.750.905).
+  - Configuración con dinero (pagos, propuestas, tarifas, mercado, extras) en `app/data/rrhh_valoracion.json`, **en .gitignore**; sembrada con lo acordado en la revisión.
+  - Rutas `/api/rrhh/mapa-funciones` (GET, `persona/<id>` PUT, `general` PUT, `extras` POST/DELETE), permiso rrhh o administrador.
+  - Panel: pestaña «Mapa de funciones» (primera de RRHH): totales, recorrido del pedido, franja de WhatsApp, matriz con tono por valor, panel de detalle, anotar funciones no registradas, ficha en letra grande con pago, comisión, «¿Cuánto vale en el mercado?» y edición de pago/propuesta.
+  - `rendimiento.py`: lo que imprime quien no diseña queda con id `imprimir_studio`.
+  - 2 tests en `tests/test_mapa_funciones.py`. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/mapa_funciones.py`, `app/services/rendimiento.py`, `app/routes_rrhh.py`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `desktop/src/components/RRHHPanel.tsx`, `tests/test_mapa_funciones.py`, `.gitignore`, `CLAUDE.md`, `docs/team-recaps.md`
+
 ### 2026-09-23 19:10 - Agenda: «Mi mes en el panel» y ficha de rendimiento en letra grande
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Agenda / RRHH). Sin LLM.

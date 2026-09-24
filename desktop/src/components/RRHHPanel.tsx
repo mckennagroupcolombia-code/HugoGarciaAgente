@@ -3,6 +3,8 @@ import { Ico } from "../icons/Ico";
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import MapaFunciones from "./rrhh/MapaFunciones";
+import ControlHoras from "./rrhh/ControlHoras";
 import { AddIconButton } from "./AddIconButton";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
@@ -90,7 +92,7 @@ interface Hallazgo {
   actualizado: string;
 }
 
-type Tab = "resumen" | "hallazgos" | "nomina" | "agente";
+type Tab = "mapa" | "horas" | "resumen" | "hallazgos" | "nomina" | "agente";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -780,7 +782,7 @@ function TabAgente() {
 // ── Panel principal ────────────────────────────────────────────────────────────
 
 export default function RRHHPanel() {
-  const [tab, setTab] = useState<Tab>("resumen");
+  const [tab, setTab] = useState<Tab>("mapa");
   const { data: resumen, isLoading, error, refetch } = useQuery({
     queryKey: ["rrhh-resumen"],
     queryFn: () => api.get<Resumen>("/api/rrhh/resumen", { timeoutMs: 30000 }),
@@ -790,6 +792,8 @@ export default function RRHHPanel() {
   const tabs = useMemo(
     () =>
       [
+        { id: "mapa" as Tab, label: "🗺️ Mapa de funciones" },
+        { id: "horas" as Tab, label: "⏱️ Control de horas" },
         { id: "resumen" as Tab, label: "📊 Resumen en vivo" },
         { id: "hallazgos" as Tab, label: `🚩 Hallazgos${resumen?.hallazgos_abiertos ? ` (${resumen.hallazgos_abiertos})` : ""}` },
         { id: "nomina" as Tab, label: "💵 Nómina y matriz" },
@@ -824,6 +828,8 @@ export default function RRHHPanel() {
         </p>
       )}
 
+      {tab === "mapa" && <MapaFunciones />}
+      {tab === "horas" && <ControlHoras />}
       {resumen && tab === "resumen" && <TabResumen resumen={resumen} />}
       {tab === "hallazgos" && <TabHallazgos />}
       {resumen && tab === "nomina" && <TabNomina resumen={resumen} onRefetch={() => void refetch()} />}

@@ -585,6 +585,23 @@ de trabajo, y abre «Ver mi ficha» en letra grande (`MiRendimiento.tsx` → `GE
 `app/services/rendimiento.py`, sin LLM). Administración ve la de cualquiera. **No muestra pagos ni valoraciones.**
 Solo cuenta lo registrado en el panel; el desarrollo con IA y el trabajo físico sin tarea abierta no suman.
 
+### Mapa de funciones (RRHH, 23-sep-2026)
+/app → RRHH · Compensaciones → «Mapa de funciones»: persona × etapa en vivo (horas, veces, promedio por vez,
+valor = horas × tarifa del nivel N1–N5), horas que cubre el pago, comisión de WhatsApp y **valor de mercado en
+honorarios** (`mapa_funciones.honorario_equivalente`). Pagos, propuestas, tarifas y mercado en
+`app/data/rrhh_valoracion.json` (**fuera de git: salarios**). Rutas `/api/rrhh/mapa-funciones*` (permiso rrhh).
+
+### Control de horas por quincena (23-sep-2026)
+Honorarios con **dedicación pactada** (camino A): horas por quincena = pago quincenal ÷ valor hora de mercado de su
+labor. «Mi quincena» en la Agenda y «Control de horas» en RRHH (`app/services/control_horas.py`). Horas activas por
+bloques de 15 min sin doble conteo (panel + cronómetro + sesiones de IA de `RENDIMIENTO_SESIONES_IA`) + tiempo
+explicado y aprobado (máx. 6 h/semana). Horas de más × valor hora = cuenta de cobro. **Nunca** poner horario de
+entrada/salida: es subordinación y convierte la prestación de servicios en contrato laboral.
+**Regla visible para todos:** se pide completar las horas convenidas, no rapidez; lo que se haga después son horas
+adicionales con otro valor (`horas_adicionales.recargo_pct`). Los **tiempos estándar** (`tiempos_estandar.py`, mediana de lo
+cronometrado, ≥5 muestras; **nunca tiempos estimados a mano**: un ticket sin cronómetro cuenta su huella real, minutos desde la
+acción anterior, máx. 30) y las «horas a tiempo estándar» son solo referencia de administración, no se muestran a la persona.
+
 ### Colaboradores (diagramas compartidos, 21-sep-2026)
 Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
 versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y

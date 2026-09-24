@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { HorasEnFicha } from "./MiQuincena";
 
 /**
  * «Mi mes en el panel»: la ficha de rendimiento de cada persona en la Agenda.
@@ -269,6 +270,8 @@ function FichaGrande({ token, inicial, onCerrar }: { token: string; inicial: Ren
           {barra("Mes anterior", d.horas_mes_anterior, "#df9f55")}
           {barra("Jornada", d.jornada_referencia, "#cdbba4")}
         </div>
+
+        <HorasEnFicha token={token} usuarioId={d.usuario.id} fs={fs} />
 
         <h3 className="mt-8 font-bold" style={{ fontSize: fs * 1.15 }}>
           ¿En qué se le va el tiempo?

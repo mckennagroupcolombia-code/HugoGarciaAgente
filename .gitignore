@@ -271,3 +271,9 @@ android-colab/app/build/
 android-colab/build/
 android-colab/.gradle/
 android-colab/local.properties
+
+# Pagos, propuestas y tarifas del mapa de funciones (RRHH): salarios, no van a git
+app/data/rrhh_valoracion.json
+# Control de horas por quincena: explicaciones de tiempo y caché de sesiones de desarrollo
+app/data/control_horas.json
+app/data/sesiones_ia_cache.json
