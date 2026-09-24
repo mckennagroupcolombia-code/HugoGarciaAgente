@@ -69,3 +69,16 @@ comercial para un proyecto conjunto, a mano y desde el celular.
     WebView de 44 KB, solo permiso de red, llave de firma propia (no versionada). El login de Google va por
     `/app/auth/google/start?app=colab` (la pantalla de ingreso lo elige por el UA `McKennaColabAndroid`) y
     vuelve por `mckennacolab://auth`. Pruebas: `tests/test_acceso_panel.py`.
+  - **Descargar la APK desde el panel:** /app → Ajustes muestra dos tarjetas, «App Android del panel»
+    (`/api/build-apk*`, android-twa) y «App de colaboradores externos» (`/api/build-apk-colab*`, corre
+    `android-colab/compilar.sh`). Otra versión en el campo = versión nueva (sube `versionCode` en
+    `android-colab/version.properties`); la misma = solo recompilar.
+- **Juegos en la app de colaboradores** (23-sep-2026): pestaña «Juegos» en `ColabApp.tsx`, el mismo
+  `JuegosPanel.tsx` (no importa nada del panel; el verificador del build solo admite
+  `/api/juegos/partidas/` además de sus rutas). El guardia deja pasar `/api/juegos/partidas/*`.
+  **Partidas por persona:** `juegos_partidas/usuario_<id>/`; la persona sale de
+  `_panel_tickets_usuario()` (X-Tickets-Token), no del Bearer — con CHAT_API_TOKEN todos los admins
+  caían en `comun/` y se pisaban la partida (lo que había ahí se copió a Armando, `comun/` quedó de
+  archivo). Sin persona identificada → 403. Cada guardado deja la anterior en
+  `respaldos/<juego>/` (últimas 20), una SRAM en blanco no pisa una con datos y «Versiones
+  anteriores → Volver a esta» restaura sin borrar la actual. Tests: `tests/test_juegos.py`.

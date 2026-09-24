@@ -55,18 +55,14 @@ function fusionarTimeline(eventos: TimelineEvento[], adjuntos: Adjunto[]): Timel
   return items;
 }
 
-export function Avatar({ nombre, enLinea, size = 8 }: { nombre: string | null | undefined; enLinea?: boolean; size?: number }) {
+/** `enLinea` se ignora: el punto de conexión se quitó el 23-sep-2026. */
+export function Avatar({ nombre, size = 8 }: { nombre: string | null | undefined; enLinea?: boolean; size?: number }) {
   return (
     <span
       className="relative shrink-0 flex items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent"
       style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }}
     >
       {iniciales(nombre)}
-      {enLinea != null && (
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface ${enLinea ? "bg-emerald-500" : "bg-muted/30"}`}
-        />
-      )}
     </span>
   );
 }

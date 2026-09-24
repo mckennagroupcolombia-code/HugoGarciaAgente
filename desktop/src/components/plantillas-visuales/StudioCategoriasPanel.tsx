@@ -6,7 +6,7 @@
  * la categoría: tiene su plantilla, sus diseños de partida y las etiquetas ya
  * hechas con ella.
  */
-import { useMemo, useState, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -51,15 +51,59 @@ export interface PlantillaDeCategoria {
   doc?: PlantillaVisualDoc;
 }
 
+/** Dónde está una etiqueta en su camino a la impresora:
+ *  - `por_aprobar`: existe en el formulario pero nadie ha aprobado su PNG.
+ *  - `aprobada`: el formulario y su PNG aprobado en ETIQUETAS STUDIO (una sola fila).
+ *  - `solo_png`: PNG aprobado sin etiqueta editable detrás (no se puede abrir en el editor). */
+export type EstadoEtiqueta = "por_aprobar" | "aprobada" | "solo_png";
+
+export const TEXTO_ESTADO_ETIQUETA: Record<EstadoEtiqueta, string> = {
+  por_aprobar: "por aprobar",
+  aprobada: "aprobada",
+  solo_png: "solo PNG",
+};
+
 /** Una etiqueta hecha con la plantilla de la categoría. */
 export interface EtiquetaDeCategoria {
   clave: string;
   nombre: string;
   detalle: string;
-  /** PNG terminado en la biblioteca; sin esto, es una etiqueta aún editable. */
+  estado: EstadoEtiqueta;
+  /** PNG aprobado en la biblioteca (el más reciente si hay varias versiones). */
   png?: EtiquetaStudioPng;
-  /** Etiqueta guardada del formulario, todavía editable. */
+  /** Cuántos PNG aprobados hay de esta etiqueta (`_2`, `_3`… cuentan). */
+  versionesPng?: number;
+  /** Etiqueta guardada del formulario, editable. */
   fichaId?: string;
+}
+
+/** Letras y números en mayúscula, sin tildes: «SEMILLA DE CHÍA 500g» y
+ *  «SEMILLA_DE_CHIA_500g_3.png» quedan comparables. */
+function claveNombre(s: string): string {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+/** Nombre del PNG sin carpeta, extensión, escala (`_6.25x`) ni versión (`_2`). */
+function claveDePng(nombre: string): string {
+  const archivo = (nombre || "").split("/").pop() || "";
+  return claveNombre(
+    archivo
+      .replace(/\.(png|jpe?g|webp)$/i, "")
+      .replace(/_\d+(\.\d+)?x(_\d+)?$/i, "")
+      .replace(/(_digital)?(_\d+)?$/i, ""),
+  );
+}
+
+/** Por aprobar primero (es lo que queda por hacer), luego las aprobadas. */
+const ORDEN_ESTADO: Record<EstadoEtiqueta, number> = { por_aprobar: 0, aprobada: 1, solo_png: 2 };
+function ordenarEtiquetas(lista: EtiquetaDeCategoria[]): EtiquetaDeCategoria[] {
+  return [...lista].sort(
+    (a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || a.nombre.localeCompare(b.nombre, "es"),
+  );
 }
 
 export interface ResumenCategoria {
@@ -109,7 +153,46 @@ export function useResumenCategorias() {
       lista.push(item);
       etiquetasPorCategoria.set(cat, lista);
     };
+    // Un PNG aprobado y la etiqueta del formulario de la que salió son LA MISMA
+    // etiqueta: antes salían como dos filas casi iguales y no se sabía cuál era la
+    // aprobada. El PNG se nombra con el título del código de barras (o el nombre),
+    // así que se unen por ese nombre; el PNG deja de ser una fila aparte.
+    const pngsPorClave = new Map<string, EtiquetaStudioPng[]>();
     for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
+      if (!categoriaDeRutaEtiqueta(e.nombre, categorias)) continue;
+      const k = claveDePng(e.nombre);
+      if (!k) continue;
+      const lista = pngsPorClave.get(k) ?? [];
+      lista.push(e);
+      pngsPorClave.set(k, lista);
+    }
+    const pngsUnidos = new Set<EtiquetaStudioPng>();
+    const fichasEtiqueta = (Array.isArray(fichas) ? fichas : []).filter(
+      // Cualquier etiqueta del formulario con categoría, salvo las plantillas y
+      // los restos del mecanismo viejo (`__plantilla__*`). No se exige
+      // `plantilla_id` a propósito: exigirlo escondía lo recién creado antes de
+      // que ese campo existiera.
+      (f) => !f.es_plantilla_categoria && f.categoria && !esIdPlantillaFicha(f.id),
+    );
+    for (const f of fichasEtiqueta) {
+      const tam = etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt);
+      const claves = [f.data?.barcodeTitle, f.nombre, f.data?.productName].map((x) => claveNombre(x || "")).filter(Boolean);
+      const pngs = claves.map((k) => pngsPorClave.get(k)).find((l) => l && l.length > 0) ?? [];
+      pngs.forEach((p) => pngsUnidos.add(p));
+      const masReciente = [...pngs].sort((a, b) => (b.subido_at || "").localeCompare(a.subido_at || ""))[0];
+      push(f.categoria as string, {
+        clave: `ficha:${f.id}`,
+        nombre: f.nombre,
+        detalle: tam,
+        estado: masReciente ? "aprobada" : "por_aprobar",
+        png: masReciente,
+        versionesPng: pngs.length || undefined,
+        fichaId: f.id,
+      });
+    }
+    // PNG aprobados que no salen de ninguna etiqueta del formulario.
+    for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
+      if (pngsUnidos.has(e)) continue;
       const cat = categoriaDeRutaEtiqueta(e.nombre, categorias);
       if (!cat) continue;
       push(cat, {
@@ -119,21 +202,9 @@ export function useResumenCategorias() {
           e.ancho_mm && e.alto_mm
             ? etiquetaTamanoFormato(e.tipo_etiqueta, e.ancho_mm, e.alto_mm)
             : etiquetaTamanoTipoNombre(e.tipo_etiqueta, tiposEt),
+        estado: "solo_png",
         png: e,
-      });
-    }
-    for (const f of Array.isArray(fichas) ? fichas : []) {
-      // Cualquier etiqueta del formulario con categoría, salvo las plantillas y
-      // los restos del mecanismo viejo (`__plantilla__*`). No se exige
-      // `plantilla_id` a propósito: exigirlo escondía lo recién creado antes de
-      // que ese campo existiera.
-      if (f.es_plantilla_categoria || !f.categoria || esIdPlantillaFicha(f.id)) continue;
-      const tam = etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt);
-      push(f.categoria, {
-        clave: `ficha:${f.id}`,
-        nombre: f.nombre,
-        detalle: `${tam}${tam ? " · " : ""}en edición`,
-        fichaId: f.id,
+        versionesPng: 1,
       });
     }
     // Etiquetas del formulario marcadas como plantilla de su categoría.
@@ -165,7 +236,7 @@ export function useResumenCategorias() {
         categoria,
         plantillas: [...deLienzo, ...(fichasPlantilla.get(categoria.id) ?? [])],
         disenos,
-        etiquetas: etiquetasPorCategoria.get(categoria.id) ?? [],
+        etiquetas: ordenarEtiquetas(etiquetasPorCategoria.get(categoria.id) ?? []),
       };
     });
   }, [plantillasData, etiquetas, fichas, categorias, tiposData]);
@@ -190,6 +261,84 @@ function tamanoCorto(texto: string): string {
   return (texto || "")
     .replace(/^[\d.,]+\s*[×x]\s*[\d.,]+\s*in\s*·\s*/i, "")
     .replace(/\s*·\s*en edición$/i, " ✎");
+}
+
+/** Alto que queda desde donde arranca el elemento hasta el borde de la ventana.
+ *  El editor se dimensionaba con `100dvh - 11rem`, un número fijo que no sabía
+ *  cuánto mide el cabezote (cambia al desplegar una etapa del flujo): la página
+ *  se desplazaba y el lienzo no se veía entero. Igual que en el taller de combos. */
+function useAltoDisponible<T extends HTMLElement>(activo: boolean) {
+  const ref = useRef<T>(null);
+  const [alto, setAlto] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!activo) {
+      setAlto(null);
+      return;
+    }
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      setAlto(window.innerWidth < 1024 ? null : Math.max(420, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 12)));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    const cabezote = document.querySelector("header");
+    if (cabezote) ro.observe(cabezote);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", medir);
+      ro.disconnect();
+    };
+  }, [activo]);
+  return { ref, alto };
+}
+
+/** Marca del estado de una etiqueta: forma + color + texto, para que no dependa
+ *  solo del color. Aprobada = check verde lleno; por aprobar = círculo ámbar hueco. */
+function MarcaEstado({ estado, compacta = false }: { estado: EstadoEtiqueta; compacta?: boolean }) {
+  if (estado === "aprobada" || estado === "solo_png") {
+    return (
+      <span
+        className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
+        title={estado === "aprobada" ? "Aprobada: su PNG ya está en ETIQUETAS STUDIO" : "Solo el PNG aprobado: no hay etiqueta editable detrás"}
+        aria-label={TEXTO_ESTADO_ETIQUETA[estado]}
+      >
+        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2.5 6.2l2.3 2.3 4.7-5" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-block shrink-0 rounded-full border-2 border-amber-500 ${compacta ? "h-3 w-3" : "h-3.5 w-3.5"}`}
+      title="Por aprobar: todavía no tiene PNG aprobado"
+      aria-label={TEXTO_ESTADO_ETIQUETA[estado]}
+    />
+  );
+}
+
+/** Parte la lista (ya ordenada) en «por aprobar» y «aprobadas». */
+function gruposPorEstado(lista: EtiquetaDeCategoria[]) {
+  return [
+    { id: "por_aprobar", titulo: "Por aprobar", items: lista.filter((e) => e.estado === "por_aprobar") },
+    { id: "aprobadas", titulo: "Aprobadas", items: lista.filter((e) => e.estado !== "por_aprobar") },
+  ].filter((g) => g.items.length > 0);
+}
+
+/** Siguiente trabajo tras aprobar `fichaId`: la próxima etiqueta «por aprobar»
+ *  de su misma categoría, en el orden de la lista (después de la actual y, si
+ *  no hay, desde el principio). Solo las que se abren en el editor. */
+export function siguienteEtiquetaPorAprobar(
+  resumen: ResumenCategoria[],
+  fichaId: string,
+): EtiquetaDeCategoria | null {
+  const r = resumen.find((x) => x.etiquetas.some((e) => e.fichaId === fichaId));
+  if (!r) return null;
+  const actual = r.etiquetas.find((e) => e.fichaId === fichaId)!;
+  const pendientes = r.etiquetas.filter((e) => e.estado === "por_aprobar" && e.fichaId && e.fichaId !== fichaId);
+  return pendientes.find((e) => e.nombre.localeCompare(actual.nombre, "es") > 0) ?? pendientes[0] ?? null;
 }
 
 const CLAVE_CATEGORIA_ABIERTA = "mck-studio-categoria-abierta";
@@ -286,6 +435,7 @@ export default function StudioCategoriasPanel({
     }
     onAbrirEtiqueta(e);
   };
+  const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>(Boolean(editor));
   const [creandoCat, setCreandoCat] = useState(false);
   const [nombreCat, setNombreCat] = useState("");
   const [clavesCat, setClavesCat] = useState("");
@@ -427,7 +577,7 @@ export default function StudioCategoriasPanel({
     const conEtiquetas: ResumenCategoria[] = [];
     const soloCategoria: ResumenCategoria[] = [];
     for (const r of ordenadas) {
-      const etiquetas = r.etiquetas.filter((e) => coincideBusqueda(`${e.nombre} ${e.detalle}`, q));
+      const etiquetas = r.etiquetas.filter((e) => coincideBusqueda(`${e.nombre} ${e.detalle} ${TEXTO_ESTADO_ETIQUETA[e.estado]}`, q));
       if (etiquetas.length > 0) {
         conEtiquetas.push({ ...r, etiquetas });
         continue;
@@ -441,13 +591,13 @@ export default function StudioCategoriasPanel({
     return [...conEtiquetas, ...soloCategoria];
   }, [ordenadas, q]);
   const conCoincidencias = useMemo(
-    () => new Set(q ? ordenadas.filter((r) => r.etiquetas.some((e) => coincideBusqueda(`${e.nombre} ${e.detalle}`, q))).map((r) => r.categoria.id) : []),
+    () => new Set(q ? ordenadas.filter((r) => r.etiquetas.some((e) => coincideBusqueda(`${e.nombre} ${e.detalle} ${TEXTO_ESTADO_ETIQUETA[e.estado]}`, q))).map((r) => r.categoria.id) : []),
     [ordenadas, q],
   );
 
   if (cargando) {
     return (
-      <div className="flex justify-center py-20">
+      <div ref={raiz} className="flex justify-center py-20">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     );
@@ -467,7 +617,7 @@ export default function StudioCategoriasPanel({
 
   const lista = (
       <nav
-        className="mb-3 lg:sticky lg:top-0 lg:mb-0"
+        className={`mb-3 lg:sticky lg:top-0 lg:mb-0 ${editor ? "lg:flex lg:h-full lg:min-h-0 lg:flex-col" : ""}`}
         aria-label="Categorías de producto"
       >
         <div className="mb-1.5 flex items-center gap-2">
@@ -496,7 +646,9 @@ export default function StudioCategoriasPanel({
         </div>
         {/* En pantallas angostas la lista es una tira horizontal: no empuja el detalle hacia abajo. */}
         <ul
-          className="flex gap-1 overflow-x-auto pb-1 lg:max-h-[calc(100dvh-13.5rem)] lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1"
+          className={`flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1 ${
+            editor ? "lg:min-h-0 lg:flex-1" : "lg:max-h-[calc(100dvh-13.5rem)]"
+          }`}
         >
           {visibles.map((r) => {
             const activa = sel?.categoria.id === r.categoria.id;
@@ -537,34 +689,58 @@ export default function StudioCategoriasPanel({
                       className={`shrink-0 rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${
                         activa ? "bg-white/20 text-white" : "bg-surface-hover text-ink-secondary"
                       }`}
-                      title={`${r.etiquetas.length} etiqueta(s) · ${r.plantillas.length} plantilla(s)`}
+                      title={`${r.etiquetas.filter((e) => e.estado !== "por_aprobar").length} aprobada(s) de ${r.etiquetas.length} etiqueta(s) · ${r.plantillas.length} plantilla(s)`}
                     >
-                      {r.etiquetas.length}
+                      {r.etiquetas.filter((e) => e.estado !== "por_aprobar").length}/{r.etiquetas.length}
                     </span>
                   )}
                 </button>
                 </div>
                 {abierto && r.etiquetas.length > 0 && (
-                  <ul className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
-                    {r.etiquetas.map((e) => {
-                      const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
-                      return (
-                        <li key={e.clave}>
-                          <button
-                            type="button"
-                            onClick={() => abrirDesdeArbol(r.categoria.id, e)}
-                            aria-current={esta ? "true" : undefined}
-                            title={`${e.nombre}${e.detalle ? ` · ${e.detalle}` : ""}${e.fichaId ? "" : " · PNG terminado (se ve en Recursos)"}`}
-                            className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] ${
-                              esta ? "bg-accent/15 font-semibold text-ink" : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
-                            }`}
-                          >
-                            {e.nombre}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <div className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
+                    {gruposPorEstado(r.etiquetas).map((g) => (
+                      <div key={g.id}>
+                        <p
+                          className={`mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider ${
+                            g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
+                          }`}
+                        >
+                          {g.titulo} · {g.items.length}
+                        </p>
+                        <ul>
+                          {g.items.map((e) => {
+                            const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
+                            return (
+                              <li key={e.clave}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // Ya está abierta: volver a tocarla no la recarga.
+                                    if (!esta) abrirDesdeArbol(r.categoria.id, e);
+                                  }}
+                                  aria-current={esta ? "true" : undefined}
+                                  title={`${e.nombre}${e.detalle ? ` · ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
+                                    (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
+                                  }${esta ? " · abierta ahora" : ""}${e.fichaId ? "" : " · se ve en Recursos"}`}
+                                  className={`flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] ${
+                                    esta
+                                      ? "cursor-default bg-accent font-semibold text-white"
+                                      : e.estado === "por_aprobar"
+                                        ? "text-ink hover:bg-surface-hover"
+                                        : "text-muted hover:bg-surface-hover hover:text-ink"
+                                  }`}
+                                >
+                                  <MarcaEstado estado={e.estado} compacta />
+                                  <span className="min-w-0 flex-1 truncate">{e.nombre}</span>
+                                  {esta && <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-white/80">abierta</span>}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </li>
             );
@@ -578,7 +754,9 @@ export default function StudioCategoriasPanel({
     // se ve solo la elegida. La portada anterior (una tarjeta alta por categoría)
     // pedía 3,4 pantallas de scroll y una lista con scroll propio en cada tarjeta.
     <div
-      className={`lg:grid lg:items-start ${
+      ref={raiz}
+      style={editor && alto ? { height: alto } : undefined}
+      className={`lg:grid ${editor ? "lg:items-stretch" : "lg:items-start"} ${
         editor && plegada ? "lg:grid-cols-[2.25rem_minmax(0,1fr)] lg:gap-2" : "lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-4"
       }`}
     >
@@ -589,7 +767,7 @@ export default function StudioCategoriasPanel({
             type="button"
             onClick={() => cambiarPlegada(false)}
             title="Mostrar las categorías y sus etiquetas"
-            className="hidden h-[calc(100dvh-11rem)] w-9 flex-col items-center gap-2 rounded-xl border border-border bg-surface-panel py-3 text-muted hover:bg-surface-hover hover:text-ink lg:flex"
+            className="hidden h-full w-9 flex-col items-center gap-2 rounded-xl border border-border bg-surface-panel py-3 text-muted hover:bg-surface-hover hover:text-ink lg:flex"
           >
             <span className="text-sm">»</span>
             <span className="text-[11px] font-semibold tracking-wide [writing-mode:vertical-rl]">
@@ -603,7 +781,7 @@ export default function StudioCategoriasPanel({
       )}
 
       {editor ? (
-        <div className="flex min-h-[70dvh] min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:h-[calc(100dvh-11rem)] lg:min-h-0">
+        <div className="flex min-h-[70dvh] min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:h-full lg:min-h-0">
           {editor}
         </div>
       ) : (
@@ -812,16 +990,40 @@ export default function StudioCategoriasPanel({
                     Todavía ninguna. Usa «+ Etiqueta» en el tamaño que necesites para hacer la primera.
                   </p>
                 ) : (
-                  <ul className="grid grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-2 2xl:grid-cols-3">
-                    {sel.etiquetas.map((e) => (
+                  gruposPorEstado(sel.etiquetas).map((g) => (
+                  <div key={g.id} className="mb-2">
+                  <p
+                    className={`mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${
+                      g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
+                    }`}
+                  >
+                    <MarcaEstado estado={g.id === "por_aprobar" ? "por_aprobar" : "aprobada"} compacta />
+                    {g.titulo} · {g.items.length}
+                  </p>
+                  <ul
+                    className={`grid grid-cols-1 gap-x-4 gap-y-0.5 rounded-lg border-l-4 pl-2 sm:grid-cols-2 2xl:grid-cols-3 ${
+                      g.id === "por_aprobar" ? "border-amber-400" : "border-emerald-500"
+                    }`}
+                  >
+                    {g.items.map((e) => (
                       <li key={e.clave} className="flex min-w-0 items-center gap-1">
                         <button
                           type="button"
                           onClick={() => onAbrirEtiqueta(e)}
-                          title={e.detalle ? `${e.nombre} — ${e.detalle}` : e.nombre}
-                          className="flex min-w-0 flex-1 items-baseline gap-1.5 rounded px-1.5 py-1 text-left hover:bg-surface-hover"
+                          title={`${e.nombre}${e.detalle ? ` — ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
+                            (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
+                          }`}
+                          className="flex min-w-0 flex-1 items-center gap-1.5 rounded px-1.5 py-1 text-left hover:bg-surface-hover"
                         >
-                          <span className="min-w-0 flex-1 truncate text-xs text-ink">{e.nombre}</span>
+                          <MarcaEstado estado={e.estado} />
+                          <span className={`min-w-0 flex-1 truncate text-xs ${e.estado === "por_aprobar" ? "text-ink" : "text-ink-secondary"}`}>
+                            {e.nombre}
+                          </span>
+                          {(e.versionesPng ?? 0) > 1 && (
+                            <span className="shrink-0 rounded bg-emerald-100 px-1 text-[9px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              ×{e.versionesPng}
+                            </span>
+                          )}
                           {e.detalle && (
                             <span className="max-w-[40%] shrink-0 truncate text-[10px] text-muted">
                               {tamanoCorto(e.detalle)}
@@ -859,6 +1061,8 @@ export default function StudioCategoriasPanel({
                       </li>
                     ))}
                   </ul>
+                  </div>
+                  ))
                 )}
               </>
             )}

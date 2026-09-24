@@ -212,3 +212,42 @@ export function useSincronizarBarcodesEanSiigo() {
       }),
   });
 }
+
+/** Cómo va cada código EAN con su combo de Alegra (app/services/ean_alegra.py). */
+export interface EnlaceEanAlegra {
+  id: string;
+  sku: string;
+  codigo: string;
+  nombre: string;
+  estado: "enlazado" | "aproximado" | "producto" | "sin_combo";
+  combo: string;
+  combo_nombre: string;
+}
+export interface EstadoCargaEanAlegra {
+  estado?: "corriendo" | "listo" | "error";
+  inicio?: string;
+  fin?: string;
+  cargados?: number;
+  sin_cambio?: number;
+  errores?: { ref: string; msg: string }[];
+  msg?: string;
+}
+
+export function useEnlacesEanAlegra() {
+  return useQuery({
+    queryKey: ["etiquetas-codigos-ean-alegra"],
+    queryFn: () => api.get<{ enlaces: EnlaceEanAlegra[]; ultima: EstadoCargaEanAlegra }>("/api/etiquetas/codigos-ean/alegra"),
+    staleTime: 30_000,
+    // Mientras corre la carga a Alegra, preguntar cada 5 s cómo va.
+    refetchInterval: (q) => (q.state.data?.ultima?.estado === "corriendo" ? 5_000 : false),
+  });
+}
+
+/** Escribe cada EAN en el campo «Código de barras» de su combo en Alegra (en segundo plano). */
+export function useCargarEanEnAlegra() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<{ ok: boolean; estado: string }>("/api/etiquetas/codigos-ean/sincronizar-alegra", {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etiquetas-codigos-ean-alegra"] }),
+  });
+}

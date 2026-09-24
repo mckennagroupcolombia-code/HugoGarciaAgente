@@ -60,6 +60,10 @@ export interface ReticulaSimple {
   timbre: number;
 }
 
+/** Alto de las dos barras del acento que cierran la banda superior: el
+ *  recuadro «INSUMO GRADO …» y la barra de la web miden lo mismo. */
+export const ALTO_BARRA_SIMPLE = 36;
+
 /** Alto del recuadro del timbre, en mm. */
 export const ALTO_TIMBRE_MM = 10;
 
@@ -133,6 +137,7 @@ export function variablesSimple(r: ReticulaSimple, accentColor?: string): CSSPro
     "--es-pie": `${r.pie}px`,
     "--es-respiro": `${r.respiro}px`,
     "--es-timbre": `${r.timbre}px`,
+    "--es-barra": `${ALTO_BARRA_SIMPLE}px`,
     // La franja de contacto reutiliza las reglas de la etiqueta 30 mL.
     "--e30-linea": `${r.linea}px`,
   } as CSSProperties;

@@ -14,8 +14,10 @@ interface Props {
   onVolver: () => void;
   /** Qué abrir: una guardada, una etiqueta nueva desde plantilla, o una plantilla nueva. */
   entrada?: EntradaFormularioEtiqueta | null;
+  /** «Siguiente →» o «Terminar y aprobar»: Studio abre el siguiente trabajo. */
+  onSiguiente?: (fichaId: string) => void;
 }
 
-export default function FormulariosEtiquetadosPanel({ onVolver, entrada }: Props) {
-  return <ProductLabelForm onVolver={onVolver} entrada={entrada} />;
+export default function FormulariosEtiquetadosPanel({ onVolver, entrada, onSiguiente }: Props) {
+  return <ProductLabelForm onVolver={onVolver} entrada={entrada} onSiguiente={onSiguiente} />;
 }

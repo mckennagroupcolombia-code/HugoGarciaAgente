@@ -39,9 +39,10 @@ import {
   CATEGORIAS_ETIQUETA,
 } from "../../lib/categoriasEtiqueta";
 import { categoriaProductoDe } from "../../lib/plantillasVisuales";
-import StudioCategoriasPanel from "./StudioCategoriasPanel";
+import StudioCategoriasPanel, { siguienteEtiquetaPorAprobar, useResumenCategorias } from "./StudioCategoriasPanel";
 import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
 import NuevaPlantillaCategoriaPanel from "./NuevaPlantillaCategoriaPanel";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -1041,6 +1042,7 @@ export default function PlantillasVisualesPanel({
     });
   }, [abrirCopiaGuardada, doc, guardarMut]);
 
+  const { resumen: resumenCategorias } = useResumenCategorias();
   const abrirFormulario = useCallback((entrada: EntradaFormularioEtiqueta) => {
     setEntradaFormulario(entrada);
     setVista("formularios-etiquetas");
@@ -1198,6 +1200,7 @@ export default function PlantillasVisualesPanel({
       void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
       void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
       void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+      if (esEtiqueta) celebrarAprobacion({ titulo: "¡Etiqueta aprobada!", detalle: nombreArchivo.replace(/\.\w+$/, ""), mision: "etiqueta_aprobada" });
 
       const dimMm =
         doc.formato.ancho_mm && doc.formato.alto_mm
@@ -1267,6 +1270,17 @@ export default function PlantillasVisualesPanel({
   // El formulario de etiqueta ya no es pantalla aparte: se abre dentro de la
   // pestaña Categorías, al lado de la lista (ver `editorEtiqueta` más abajo).
   const editandoEtiqueta = vista === "formularios-etiquetas";
+  /** «Siguiente →» o «Terminar y aprobar»: abrir la siguiente etiqueta por aprobar
+   *  de la misma categoría (orden de la lista); si no queda ninguna, se queda ahí. */
+  const irASiguienteEtiqueta = (fichaId: string) => {
+    const sig = siguienteEtiquetaPorAprobar(resumenCategorias, fichaId);
+    if (!sig?.fichaId) {
+      setMsg("No quedan etiquetas por aprobar en esta categoría.");
+      setTimeout(() => setMsg(null), 5000);
+      return;
+    }
+    abrirFormulario({ fichaId: sig.fichaId });
+  };
   const cerrarFormulario = () => {
     setEntradaFormulario(null);
     setVista("lista");
@@ -1540,7 +1554,7 @@ export default function PlantillasVisualesPanel({
           editor={
             editandoEtiqueta ? (
               // key: abrir otra etiqueta desde el árbol monta el editor de nuevo con ella.
-              <FormulariosEtiquetadosPanel key={JSON.stringify(entradaFormulario)} entrada={entradaFormulario} onVolver={cerrarFormulario} />
+              <FormulariosEtiquetadosPanel key={JSON.stringify(entradaFormulario)} entrada={entradaFormulario} onVolver={cerrarFormulario} onSiguiente={irASiguienteEtiqueta} />
             ) : undefined
           }
           onElegirCategoria={() => {

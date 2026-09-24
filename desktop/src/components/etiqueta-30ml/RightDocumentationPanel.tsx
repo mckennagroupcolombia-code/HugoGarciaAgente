@@ -18,6 +18,8 @@ import {
   textoCirculoGhs,
   textoClasificacion,
   tituloClasificacion30ml,
+  campoClasificacion30ml,
+  textoPropioClasificacion,
 } from "./etiqueta30mlTypes";
 
 /** Panel derecho: información técnica + web · clasificación · código de
@@ -47,7 +49,8 @@ export default function RightDocumentationPanel({
 
   // En edición se ve lo escrito (vacío = la frase por defecto, en gris); en
   // vista, el texto que se imprime (ver `textoClasificacion`).
-  const clasificacion = editable ? data.clasificacionTexto || "" : textoClasificacion(data);
+  const clasificacion = editable ? textoPropioClasificacion(data) : textoClasificacion(data);
+  const campoClasif = campoClasificacion30ml(data);
   const tituloClasif = tituloClasificacion30ml(data, editMode);
   const esTituloDeUso = tituloClasif !== TITULOS_CLASIFICACION_30ML[0];
 
@@ -143,7 +146,7 @@ export default function RightDocumentationPanel({
           />
           <CampoEtiqueta
             valor={clasificacion}
-            onChange={cambio("clasificacionTexto")}
+            onChange={cambio(campoClasif)}
             editMode={editMode}
             styleKey="e30_clasificacionTexto"
             ejemplo={

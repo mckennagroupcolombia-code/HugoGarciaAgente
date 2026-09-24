@@ -1622,13 +1622,21 @@
 
 #root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):not(.paso-checklist-input),
 #root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx) {
-  position: relative;
   overflow: hidden;
   isolation: isolate;
   transition:
     transform 0.16s cubic-bezier(0.34, 1.22, 0.64, 1),
     box-shadow 0.22s ease,
     filter 0.14s ease;
+}
+
+/* El destello del clic necesita un contenedor posicionado, pero sin pisar un
+   botón que ya se posiciona solo (fixed/absolute/sticky de Tailwind): esta regla
+   no está en ninguna capa y le gana a las utilidades. Así el «+» flotante del
+   celular quedaba dentro del flujo, cortado contra el borde izquierdo. */
+#root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):not(.paso-checklist-input):not(.fixed):not(.absolute):not(.sticky),
+#root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx):not(.fixed):not(.absolute):not(.sticky) {
+  position: relative;
 }
 
 #root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):active,
@@ -2900,4 +2908,92 @@ html[data-mck-skin="barbie"].dark select:focus,
 html[data-mck-skin="barbie"].dark textarea:focus {
   border-color: rgb(var(--mck-oro) / 0.9);
   box-shadow: 0 0 0 3px rgb(var(--mck-oro) / 0.2);
+}
+
+/* ── Cabezote de flujo: menos ruido, niveles más claros (23-sep-2026) ─────────
+   Conteos teñidos en vez de rellenos (siete etapas en rojo = nada destaca), el
+   subnivel de tramos como banda aparte de las etapas, y las filas que se
+   desplazan se desvanecen en el borde para que se note que hay más. */
+.mck-flujo-conteo {
+  border-radius: 9999px;
+  padding: 0 0.4rem;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.mck-flujo-conteo.is-alta {
+  color: rgb(var(--mck-accent-rose));
+  background: rgb(var(--mck-accent-rose) / 0.12);
+}
+.mck-flujo-conteo.is-media {
+  color: rgb(var(--mck-accent-sun-deep, var(--mck-accent-sun)));
+  background: rgb(var(--mck-accent-sun) / 0.14);
+}
+.mck-flujo-desliza {
+  padding-right: 1.5rem;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+}
+.mck-flujo-desliza::-webkit-scrollbar { display: none; }
+.mck-flujo-subnivel {
+  margin-top: 0.125rem;
+  padding-top: 0.375rem;
+  border-top: 1px dashed rgb(var(--mck-border) / 0.9);
+}
+/* Controles de vista (pantalla, pantalla completa, temas, claro/oscuro): una sola
+   cápsula en vez de cuatro círculos sueltos compitiendo con el título. */
+.mck-cabezote-vista {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border: 1px solid rgb(var(--mck-border));
+  border-radius: 9999px;
+  background: rgb(var(--mck-surface-input) / 0.6);
+}
+.mck-cabezote-vista button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: rgb(var(--mck-ink-secondary)) !important;
+}
+.mck-cabezote-vista button:hover {
+  background: rgb(var(--mck-surface-hover)) !important;
+  color: rgb(var(--mck-ink)) !important;
+}
+
+/* ── Barra inferior del celular (Agenda · Hugo · Mensajes · Rápido · Yo) ───── */
+.mck-barra-movil {
+  display: flex;
+  border-top: 1px solid rgb(var(--mck-border));
+  background: rgb(var(--mck-surface-panel) / 0.96);
+  backdrop-filter: blur(6px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mck-barra-movil-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0 0.45rem;
+  color: rgb(var(--mck-muted));
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+}
+.mck-barra-movil-item.is-active {
+  color: rgb(var(--mck-accent));
+  border-top-color: rgb(var(--mck-accent));
+}
+.mck-barra-movil-item .mck-barra-movil-label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }

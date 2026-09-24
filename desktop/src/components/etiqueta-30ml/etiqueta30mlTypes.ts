@@ -195,15 +195,28 @@ export function tituloClasificacion30ml(data: ProductLabelData, editMode: boolea
   if (esPeligrosoGhs(data.ghs)) return porDefecto;
   const t = data.clasificacionTitulo || "";
   if (!(TITULOS_CLASIFICACION_30ML as readonly string[]).includes(t)) return porDefecto;
-  if (!editMode && !(data.clasificacionTexto || "").trim()) return porDefecto;
+  if (!editMode && !textoPropioClasificacion(data).trim()) return porDefecto;
   return t;
+}
+
+/** Dato que muestra y edita el bloque: bajo «Modo de uso» es `modoUso`, que
+ *  llega de la ficha técnica; si no, el texto de clasificación. */
+export function campoClasificacion30ml(data: ProductLabelData): "modoUso" | "clasificacionTexto" {
+  return !esPeligrosoGhs(data.ghs) && data.clasificacionTitulo === "Modo de uso" ? "modoUso" : "clasificacionTexto";
+}
+
+/** Lo escrito para el bloque. Bajo «Modo de uso», lo que se hubiera escrito
+ *  antes en la clasificación sigue valiendo mientras la ficha no traiga uno. */
+export function textoPropioClasificacion(data: ProductLabelData): string {
+  if (campoClasificacion30ml(data) === "modoUso") return data.modoUso || data.clasificacionTexto || "";
+  return data.clasificacionTexto || "";
 }
 
 /** Texto de clasificación de la etiqueta. Sin texto propio, un producto no
  *  peligroso lleva la frase del SGA; uno peligroso NO recibe esa frase por
  *  defecto (sería falsa): queda en blanco hasta que se escriba. */
 export function textoClasificacion(data: ProductLabelData): string {
-  const propio = (data.clasificacionTexto || "").trim();
+  const propio = textoPropioClasificacion(data).trim();
   if (propio) return propio;
   return esPeligrosoGhs(data.ghs) ? "" : CLASIFICACION_NO_PELIGROSO;
 }

@@ -63,7 +63,7 @@ export default function SolicitudesEnProcesoFab() {
   return createPortal(
     <div
       ref={contenedorRef}
-      className="pointer-events-none fixed bottom-5 right-5 z-[900] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6"
+      className="pointer-events-none fixed bottom-5 right-5 z-[900] flex flex-col items-end gap-3 max-md:bottom-[5.5rem] sm:bottom-6 sm:right-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       {abierta && (

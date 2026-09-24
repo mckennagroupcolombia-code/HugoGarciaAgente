@@ -89,10 +89,11 @@ export default function FlujoNav() {
       >
         {aqui && <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-label="estás aquí" />}
         {e.titulo}
+        {/* Tinte, no relleno: con siete etapas en rojo todo parecía alarma y nada destacaba. */}
         {b && b.alta > 0 ? (
-          <span className="rounded-full bg-accent-rose px-1.5 text-[10px] tabular-nums text-white">{b.alta}</span>
+          <span className="mck-flujo-conteo is-alta" title={`${b.alta} detenidos`}>{b.alta}</span>
         ) : b && b.media > 0 ? (
-          <span className="rounded-full bg-accent-sun px-1.5 text-[10px] tabular-nums text-white">{b.media}</span>
+          <span className="mck-flujo-conteo is-media" title={`${b.media} por revisar`}>{b.media}</span>
         ) : null}
       </button>
     );
@@ -109,7 +110,7 @@ export default function FlujoNav() {
   return (
     <nav aria-label="Navegación por flujo" className="mck-flujo-nav flex min-w-0 flex-col gap-1.5">
       {/* Origen → etapas en secuencia → las que acompañan → todo el flujo */}
-      <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5">
+      <div className="mck-flujo-desliza flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5">
         <button
           type="button"
           onClick={() => setPanel(ORIGEN_APP.panel)}
@@ -174,7 +175,7 @@ export default function FlujoNav() {
 
       {/* La etapa desplegada: tramos en orden → paneles de uso diario → «+N avanzado» */}
       {etapa && (
-        <div className="flex min-w-0 items-stretch gap-1.5 overflow-x-auto pb-0.5">
+        <div className="mck-flujo-desliza mck-flujo-subnivel flex min-w-0 items-stretch gap-1.5 overflow-x-auto pb-0.5">
           {etapa.guia && permitido(etapa.guia.abre) && (() => {
             const g = etapa.guia!;
             const n = (bloq.data?.por_etapa?.[etapa.id]?.items ?? []).filter((b) => b.panel === g.abre).reduce((a, b) => a + b.n, 0);
@@ -226,7 +227,7 @@ export default function FlujoNav() {
                       >
                         <PanelIcon panel={p.panel} size={14} bubble={false} active={activo} className="shrink-0" />
                         {inf?.label ?? p.panel}
-                        {n > 0 && <span className={`rounded-full px-1.5 text-[10px] tabular-nums ${activo ? "bg-white/25 text-white" : "bg-accent-rose text-white"}`}>{n}</span>}
+                        {n > 0 && <span className={activo ? "rounded-full bg-white/25 px-1.5 text-[10px] tabular-nums text-white" : "mck-flujo-conteo is-alta"}>{n}</span>}
                       </button>
                     );
                   })}

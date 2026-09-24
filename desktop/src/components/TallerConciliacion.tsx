@@ -121,11 +121,25 @@ interface LoteMP {
   retiro_anterior: { fecha: string; monto: number } | null;
   ventana: { desde: string; hasta: string };
   pagos: { payment_id: string; order_id: string; referencia: string; pack: string; fecha_pago: string; fecha_liberacion: string; bruto: number; comision: number; neto: number; descripcion: string;
+    clase: ClasePagoMP; shipping_id: string; orden_del_envio: string;
     asiento: { movimiento_id: number; fecha: string; monto: number } | null; factura: { numero: string; fecha: string; total: number } | null }[];
-  n_pagos: number; n_con_asiento: number; n_con_factura: number;
-  liberado_bruto: number; comisiones: number; liberado_neto: number; retirado: number; queda_en_plataforma: number;
+  n_pagos: number; n_ventas: number; n_con_asiento: number; n_con_factura: number;
+  liberado_bruto: number; comisiones: number; liberado_neto: number; retirado: number; queda_en_plataforma: number; pagado_a_meli: number;
   cuenta_mp: string;
   saldo_111010_libro: number | null;
+}
+
+/** Qué es cada pago del lote (mp_liberaciones._clase_pago). Solo `venta` lleva asiento y factura. */
+type ClasePagoMP = "venta" | "envio" | "bonificacion" | "venta_web" | "pago_a_meli" | "otro";
+
+/** Qué se muestra en la columna «Qué es» de cada pago del lote. */
+function queEsPagoMP(p: LoteMP["pagos"][number]): string {
+  if (p.clase === "venta") return p.order_id;
+  if (p.clase === "envio") return p.orden_del_envio ? `Envío de ${p.orden_del_envio}` : `Envío ${p.shipping_id}`;
+  if (p.clase === "bonificacion") return "Bonificación Flex";
+  if (p.clase === "venta_web") return `Web ${p.referencia}`;
+  if (p.clase === "pago_a_meli") return `Pagado por McKenna${p.descripcion ? ` · ${p.descripcion}` : ""}`;
+  return p.referencia || p.payment_id;
 }
 
 const esRetiroMP = (l: LineaBanco) => /MERCADO ?PAGO/i.test(l.descripcion) && l.tipo === "credito";
@@ -923,8 +937,8 @@ function LoteMercadoPago({ l }: { l: LineaBanco }) {
   if (q.isLoading) return <p className="text-[12px] text-muted">Pidiéndole a MercadoPago qué liberó en este lote…</p>;
   if (q.isError || q.data?.error) return <p className="rounded-md border border-accent-sun/40 bg-accent-sun/10 px-2.5 py-1.5 text-[11.5px] text-ink"><Ico e="⚠️" /> MercadoPago no respondió: {(q.error as Error)?.message || q.data?.error}. El traslado se puede causar igual; el lote se consulta después.</p>;
   const d = q.data!;
-  const sinAsiento = d.pagos.filter((p) => p.order_id && !p.asiento);
-  const sinFactura = d.pagos.filter((p) => p.order_id && !p.factura);
+  const sinAsiento = d.pagos.filter((p) => p.clase === "venta" && !p.asiento);
+  const sinFactura = d.pagos.filter((p) => p.clase === "venta" && !p.factura);
   return (
     <div className="space-y-2 rounded-lg border border-border bg-surface-input p-2.5">
       <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">Lote de MercadoPago · liberado del {diaCorto(d.ventana.desde)} al {diaCorto(d.ventana.hasta)}{d.retiro_anterior ? ` (desde el retiro anterior, ${diaCorto(d.retiro_anterior.fecha)})` : ""}</p>
@@ -934,25 +948,28 @@ function LoteMercadoPago({ l }: { l: LineaBanco }) {
         ))}
       </div>
       <p className={`font-mono text-[11.5px] ${Math.abs(d.queda_en_plataforma) < 1 ? "text-accent-leaf" : "text-ink"}`}>
-        {d.n_pagos} pagos · {d.n_con_asiento} con asiento de venta · {d.n_con_factura} con factura ·{" "}
+        {d.n_pagos} pagos · {d.n_ventas} ventas MeLi, {d.n_con_asiento} con asiento y {d.n_con_factura} con factura ·{" "}
         {d.queda_en_plataforma >= 0 ? <>quedan <b>{formatCop(d.queda_en_plataforma)}</b> en la plataforma</> : <>se retiró <b>{formatCop(-d.queda_en_plataforma)}</b> más de lo liberado en la ventana (saldo de lotes anteriores)</>}
         {d.saldo_111010_libro != null && <span className="text-muted"> · {d.cuenta_mp} MercadoPago en el libro: {formatCop(d.saldo_111010_libro)}</span>}
       </p>
+      {d.pagado_a_meli > 0 && (
+        <p className="text-[11px] text-muted">No suma en el lote: {formatCop(d.pagado_a_meli)} que McKenna le pagó a MeLi (cargos por operar). MercadoPago los lista porque se liberaron a MeLi en estas fechas, pero de la cuenta salieron el día del pago.</p>
+      )}
       {(sinAsiento.length > 0 || sinFactura.length > 0) && (
-        <p className="text-[11px] text-accent-sun">{sinAsiento.length ? `${sinAsiento.length} pago(s) sin asiento de venta en el libro. ` : ""}{sinFactura.length ? `${sinFactura.length} sin factura en el índice MeLi.` : ""}</p>
+        <p className="text-[11px] text-accent-sun">{sinAsiento.length ? `${sinAsiento.length} pago(s) sin asiento de venta en el libro. ` : ""}{sinFactura.length ? `${sinFactura.length} sin factura conocida: el índice solo guarda las facturas de la ventana reciente, así que lo que astroselling facturó en Siigo antes del 2-sep sale aquí sin factura aunque la tenga.` : ""}</p>
       )}
       <div className="max-h-48 overflow-auto rounded-md border border-border bg-surface">
         <table className="w-full text-left text-[10.5px]">
-          <thead className="sticky top-0 bg-surface-panel text-[9.5px] uppercase text-muted"><tr><th className="px-1.5 py-1">Liberado</th><th className="px-1.5 py-1">Orden MeLi</th><th className="px-1.5 py-1 text-right">Bruto</th><th className="px-1.5 py-1 text-right">Neto</th><th className="px-1.5 py-1">Asiento</th><th className="px-1.5 py-1">Factura</th></tr></thead>
+          <thead className="sticky top-0 bg-surface-panel text-[9.5px] uppercase text-muted"><tr><th className="px-1.5 py-1">Liberado</th><th className="px-1.5 py-1">Qué es</th><th className="px-1.5 py-1 text-right">Bruto</th><th className="px-1.5 py-1 text-right">Neto</th><th className="px-1.5 py-1">Asiento</th><th className="px-1.5 py-1">Factura</th></tr></thead>
           <tbody>
             {d.pagos.map((p) => (
-              <tr key={p.payment_id} className="border-t border-border/60">
+              <tr key={p.payment_id} className={`border-t border-border/60 ${p.clase === "pago_a_meli" ? "text-muted line-through decoration-muted/40" : ""}`}>
                 <td className="whitespace-nowrap px-1.5 py-0.5 font-mono">{diaCorto(p.fecha_liberacion)}</td>
-                <td className="px-1.5 py-0.5 font-mono text-ink" title={p.descripcion}>{p.order_id || p.referencia || p.payment_id}</td>
+                <td className={`px-1.5 py-0.5 font-mono ${p.clase === "venta" ? "text-ink" : "text-muted"}`} title={p.descripcion}>{queEsPagoMP(p)}</td>
                 <td className="px-1.5 py-0.5 text-right font-mono tabular-nums">{formatCop(p.bruto)}</td>
                 <td className="px-1.5 py-0.5 text-right font-mono tabular-nums">{formatCop(p.neto)}</td>
-                <td className={`px-1.5 py-0.5 font-mono ${p.asiento ? "text-accent-leaf" : "text-accent-rose"}`}>{p.asiento ? `✓ #${p.asiento.movimiento_id}` : p.order_id ? "✗" : "—"}</td>
-                <td className={`px-1.5 py-0.5 font-mono ${p.factura ? "text-accent-leaf" : "text-muted"}`}>{p.factura ? `✓ ${p.factura.numero}` : p.order_id ? "sin factura" : "—"}</td>
+                <td className={`px-1.5 py-0.5 font-mono ${p.asiento ? "text-accent-leaf" : "text-accent-rose"}`}>{p.asiento ? `✓ #${p.asiento.movimiento_id}` : p.clase === "venta" ? "✗" : "—"}</td>
+                <td className={`px-1.5 py-0.5 font-mono ${p.factura ? "text-accent-leaf" : "text-muted"}`}>{p.factura ? `✓ ${p.factura.numero}` : p.clase === "venta" ? "sin factura" : "—"}</td>
               </tr>
             ))}
           </tbody>

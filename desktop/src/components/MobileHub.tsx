@@ -10,7 +10,7 @@ import { useAppStore, type Panel, type MobileHubTab } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { useConversaciones } from "../hooks/useConversaciones";
 import InboxConversaciones from "./tickets/InboxConversaciones";
-import { cerrarSesionPanel } from "../hooks/usePanelSession";
+import { salirDelPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
 import { Icon, type UiIconName } from "../icons";
@@ -42,34 +42,9 @@ function tapi(path: string, token: string, opts: RequestInit = {}) {
   });
 }
 
-function formatRelative(ts: string): string {
-  const diff = (Date.now() - new Date(ts).getTime()) / 1000;
-  if (diff < 60) return "ahora";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
-
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Buenos días";
-  if (h < 18) return "Buenas tardes";
-  return "Buenas noches";
-}
-
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type Tab = MobileHubTab;
-
-interface Ticket {
-  id: number;
-  numero: string;
-  titulo: string;
-  categoria: string;
-  estado: string;
-  prioridad: string;
-  creado_en: string;
-}
 
 interface ChatMessage {
   role: "user" | "agent";
@@ -95,19 +70,6 @@ const QUICK_CATS: QuickCategory[] = [
   { slug: "mantenimiento", label: "Mantenim.",    icon: "wrench",  tone: "rose",    color: "bg-accent/10 text-accent" },
   { slug: "general",       label: "General",      icon: "chat",    tone: "neutral", color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
 ];
-
-const ESTADO_COLOR: Record<string, string> = {
-  pendiente:            "bg-accent/10 text-accent",
-  en_proceso:           "bg-accent/10 text-accent",
-  esperando_aprobacion: "bg-accent/10 text-accent",
-  resuelto:             "bg-accent/10 text-accent",
-  rechazado:            "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-200",
-};
-
-const ESTADO_LABEL: Record<string, string> = {
-  pendiente: "Pendiente", en_proceso: "En proceso",
-  esperando_aprobacion: "En revisión", resuelto: "Resuelto", rechazado: "Rechazado",
-};
 
 // ── NuevaSolicitudSheet ────────────────────────────────────────────────────────
 
@@ -169,7 +131,7 @@ function NuevaSolicitudSheet({
       />
       {/* Sheet */}
       <div
-        className={`fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-3xl bg-surface-panel shadow-paper-lg transition-transform duration-300 ease-out ${open ? "translate-y-0" : "translate-y-full"}`}
+        className={`fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-2xl border-t border-border bg-surface-panel shadow-paper-lg transition-transform duration-300 ease-out ${open ? "translate-y-0" : "translate-y-full"}`}
         style={{ maxHeight: "88vh" }}
       >
         {/* Handle */}
@@ -188,21 +150,21 @@ function NuevaSolicitudSheet({
             </div>
           ) : (
             <>
-              <h2 className="mb-4 text-lg font-extrabold text-ink">Nueva solicitud</h2>
+              <h2 className="mck-title mb-4 text-[19px] font-bold text-ink">Nueva solicitud</h2>
 
               {/* Category chips */}
               <div className="mb-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">¿De qué se trata?</p>
+                <p className="mb-2 mck-flujo-miga font-mono text-[10px] font-bold uppercase tracking-wider text-muted">¿De qué se trata?</p>
                 <div className="flex flex-wrap gap-2">
                   {QUICK_CATS.map((c) => (
                     <button
                       key={c.slug}
                       type="button"
                       onClick={() => setCat(c.slug)}
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all active:scale-95 ${
+                      className={`mck-flujo-nodo flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-semibold transition ${
                         cat === c.slug
-                          ? `${c.color} ring-2 ring-accent/50`
-                          : "bg-surface text-muted border border-border hover:border-accent/40"
+                          ? "border-accent bg-accent/10 text-ink"
+                          : "border-border bg-surface-input text-ink-secondary hover:border-accent/40"
                       }`}
                     >
                       <IllustrationIcon name={c.icon} size={22} tone={c.tone} bubble={false} />
@@ -214,7 +176,7 @@ function NuevaSolicitudSheet({
 
               {/* Description */}
               <div className="mb-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">¿Qué necesitas?</p>
+                <p className="mb-2 mck-flujo-miga font-mono text-[10px] font-bold uppercase tracking-wider text-muted">¿Qué necesitas?</p>
                 <textarea
                   ref={textRef}
                   value={desc}
@@ -235,7 +197,7 @@ function NuevaSolicitudSheet({
                 type="button"
                 onClick={submit}
                 disabled={sending}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-accent py-4 text-sm font-extrabold text-white shadow-[0_4px_0_rgba(2,45,51,0.25)] transition-all active:translate-y-1 active:shadow-none disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-60"
               >
                 {sending ? (
                   <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -254,146 +216,6 @@ function NuevaSolicitudSheet({
 interface ActionResult {
   ok: boolean;
   msg: string;
-}
-
-// ── HomeTab ────────────────────────────────────────────────────────────────────
-
-function HomeTab({
-  token, userName, onNewSolicitud, onSolicitudCreated, onNavigateTo, onVerMensajes,
-}: {
-  token: string;
-  userName: string;
-  onNewSolicitud: (cat?: string) => void;
-  onSolicitudCreated: number;
-  onNavigateTo: (p: Panel) => void;
-  onVerMensajes: (ticketId?: number) => void;
-}) {
-  const user = useTicketsAuth((s) => s.user);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [status, setStatus] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    Promise.all([
-      tapi("/?mis=1&activas=1&limit=3", token),
-      fetch("/api/status", { cache: "no-store" }).then((r) => r.json()).catch(() => ({})),
-    ]).then(([t, s]) => {
-      setTickets(Array.isArray(t?.items) ? t.items : []);
-      const st: Record<string, boolean> = {};
-      if (s?.meli_token_activo != null) st["MeLi"] = !!s.meli_token_activo;
-      if (s?.google_sheets != null) st["Sheets"] = !!s.google_sheets;
-      if (s?.siigo_ok != null) st["Alegra"] = !!s.siigo_ok;
-      setStatus(st);
-    }).catch(() => {}).finally(() => setLoading(false));
-  }, [token]);
-
-  useEffect(() => { load(); }, [load, onSolicitudCreated]);
-
-  const quickActions = [
-    { icon: "listChecks" as UiIconName, tone: "accent" as const, label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]", show: true },
-    { icon: "chat" as UiIconName, tone: "plum" as const, label: "Chat con\nHugo", cat: "", action: () => onNavigateTo("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: true },
-    { icon: "package" as UiIconName, tone: "sky" as const, label: "Stock &\ninventario", cat: "", action: () => onNavigateTo("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: puedeVerSeccionPanel(user, "stock") },
-    { icon: "handshake" as UiIconName, tone: "leaf" as const, label: "Colabora-\ndores", cat: "", action: () => onNavigateTo("colaboradores"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: puedeVerSeccionPanel(user, "colaboradores") },
-    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Diseño\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper", show: true },
-  ].filter((a) => a.show);
-
-  return (
-    <div className="h-full overflow-y-auto pb-24 pt-2">
-      {/* Greeting */}
-      <div className="px-4 pb-5">
-        <p className="text-xs font-semibold text-muted">{greeting()},</p>
-        <h1 className="text-2xl font-extrabold leading-tight text-ink flex items-center gap-2">
-          {userName.split(" ")[0]}
-          <Icon name="wave" size={22} weight="duotone" className="text-accent" />
-        </h1>
-      </div>
-
-      {/* Quick action grid */}
-      <div className="px-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">¿Qué necesitas hacer?</p>
-        <div className="grid grid-cols-2 gap-3">
-          {quickActions.map((a, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={a.action}
-              className={`mck-press flex min-h-[100px] flex-col items-start justify-between rounded-2xl p-4 text-left transition-all ${a.color} ${a.shadow}`}
-            >
-              <IllustrationIcon name={a.icon} size={32} tone={a.tone} />
-              <span className="mt-2 whitespace-pre-line text-sm font-bold leading-tight">{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent solicitudes */}
-      <div className="mt-6 px-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Mis solicitudes</p>
-          <button
-            type="button"
-            onClick={() => onVerMensajes()}
-            className="text-xs font-semibold text-accent"
-          >
-            Ver todas →
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="space-y-2">
-            {[1, 2].map((n) => (
-              <div key={n} className="h-16 animate-pulse rounded-xl bg-surface-hover" />
-            ))}
-          </div>
-        ) : tickets.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-8 text-center">
-            <IllustrationIcon name="star" size={40} tone="sun" />
-            <p className="text-sm font-semibold text-muted">Sin solicitudes pendientes</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {tickets.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onVerMensajes(t.id)}
-                className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-3 text-left shadow-paper-sm transition-all active:scale-[0.98]"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-semibold text-ink">{t.titulo}</p>
-                  <p className="mt-0.5 text-xs text-muted">#{t.numero} · {formatRelative(t.creado_en)}</p>
-                </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ESTADO_COLOR[t.estado] ?? "bg-gray-100 text-gray-600"}`}>
-                  {ESTADO_LABEL[t.estado] ?? t.estado}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* System status */}
-      {Object.keys(status).length > 0 && (
-        <div className="mt-6 px-4">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Sistema</p>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(status).map(([key, ok]) => (
-              <span
-                key={key}
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                  ok ? "bg-accent/5 text-accent" : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-accent/50" : "bg-red-500"}`} />
-                {key}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ── ChatTab ────────────────────────────────────────────────────────────────────
@@ -443,12 +265,12 @@ function ChatTab() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100dvh - 128px)" }}>
+    <div className="flex h-full flex-col">
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center gap-3 pt-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-2xl font-black text-white shadow-[0_4px_0_rgba(2,45,51,0.25)]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-2xl font-black text-white">
               H
             </div>
             <p className="font-bold text-ink">Hola, soy Hugo</p>
@@ -524,7 +346,7 @@ function ChatTab() {
             type="button"
             onClick={() => void send()}
             disabled={!input.trim() || mutation.isPending}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-[0_3px_0_rgba(2,45,51,0.25)] transition-all active:translate-y-0.5 active:shadow-none disabled:opacity-40"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-white transition hover:opacity-90 disabled:opacity-40"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 2L11 13" /><path d="M22 2L15 22l-4-9-9-4 20-7z" />
@@ -602,15 +424,15 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
   }
 
   return (
-    <div className="h-full overflow-y-auto pb-24 pt-4 px-4">
-      <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Operaciones rápidas</p>
+    <div className="h-full overflow-y-auto px-4 pb-6 pt-4">
+      <p className="mb-4 mck-flujo-miga font-mono text-[10px] font-bold uppercase tracking-wider text-muted">Operaciones rápidas</p>
 
       {/* Preventa banner */}
       {preventa != null && preventa > 0 && (
         <button
           type="button"
           onClick={() => onNavigateTo("preventa")}
-          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-accent/5 border border-accent/20   px-4 py-3.5 text-left transition-all active:scale-[0.98]"
+          className="mb-4 flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/5 px-3.5 py-3 text-left"
         >
           <IllustrationIcon name="question" size={28} tone="sun" />
           <div className="flex-1">
@@ -630,7 +452,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
               type="button"
               onClick={() => { if (res !== "loading") void fire(i, a); }}
               disabled={res === "loading"}
-              className="mck-card mck-card-interactive mck-press flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left"
+              className="mck-press flex w-full items-center gap-3 rounded-lg border border-border bg-surface-panel px-3.5 py-3 text-left hover:border-accent/40"
             >
               <IllustrationIcon name={a.icon} size={28} tone={a.tone} />
               <div className="flex-1 min-w-0">
@@ -661,7 +483,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
           Guías de envío (TKT-2026-1307), visible en escritorio e invisible aquí. */}
       {seccionesIrA.map((sec) => (
         <div key={sec.id}>
-          <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-muted">
+          <p className="mb-3 mt-6 mck-flujo-miga font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
             {NAV_CATEGORY_LABEL[sec.id]}
           </p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -670,7 +492,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
                 key={item.panel}
                 type="button"
                 onClick={() => onNavigateTo(item.panel)}
-                className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-panel px-3 py-3 text-left text-sm font-semibold text-ink transition-all active:scale-95 hover:border-accent/40"
+                className="mck-flujo-nodo flex items-center gap-2 rounded-lg border border-border bg-surface-panel px-2.5 py-2.5 text-left text-[13px] font-semibold text-ink hover:border-accent/40"
               >
                 <PanelIcon panel={item.panel} size={24} />
                 <span className="min-w-0 flex-1 leading-tight">
@@ -698,7 +520,7 @@ function PerfilTab({
   const openTemas = useThemesDialog((s) => s.setOpen);
 
   return (
-    <div className="h-full overflow-y-auto pb-24 pt-6 px-4">
+    <div className="h-full overflow-y-auto px-4 pb-6 pt-6">
       {/* Avatar block */}
       <div className="mb-6 flex flex-col items-center gap-3">
         {user && token ? (
@@ -712,18 +534,18 @@ function PerfilTab({
           </div>
         )}
         <div className="text-center">
-          <p className="font-extrabold text-ink text-lg">{user?.nombre ?? "Usuario"}</p>
+          <p className="mck-title text-[19px] font-bold text-ink">{user?.nombre ?? "Usuario"}</p>
           <p className="text-sm text-muted">{user?.departamento?.nombre ?? user?.rol?.nombre ?? ""}</p>
         </div>
       </div>
 
       {/* Menu */}
       <div className="space-y-2">
-        <ThemeModeToggle variant="sidebar" className="rounded-2xl bg-surface-panel px-4 py-4 shadow-paper-sm" />
+        <ThemeModeToggle variant="sidebar" className="rounded-lg border border-border bg-surface-panel px-3.5 py-3 !text-sm !text-ink" />
         <button
           type="button"
           onClick={() => openTemas(true)}
-          className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98]"
+          className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface-panel px-3.5 py-3 text-left hover:border-accent/40"
         >
           <IllustrationIcon name="palette" size={24} tone="neutral" />
           <span className="flex-1 text-sm font-semibold text-ink">Temas y estilo visual</span>
@@ -742,7 +564,7 @@ function PerfilTab({
             key={i}
             type="button"
             onClick={item.action}
-            className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98]"
+            className="flex w-full items-center gap-3 rounded-lg border border-border bg-surface-panel px-3.5 py-3 text-left hover:border-accent/40"
           >
             <IllustrationIcon name={item.icon} size={24} tone="neutral" />
             <span className="flex-1 text-sm font-semibold text-ink">{item.label}</span>
@@ -752,8 +574,8 @@ function PerfilTab({
 
         <button
           type="button"
-          onClick={() => { if (token) cerrarSesionPanel(token); }}
-          className="flex w-full items-center gap-3 rounded-2xl bg-red-50 dark:bg-red-950/30 px-4 py-4 text-left transition-all active:scale-[0.98]"
+          onClick={() => { if (token) void salirDelPanel(token); }}
+          className="flex w-full items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-left dark:border-red-900/60 dark:bg-red-950/30"
         >
           <IllustrationIcon name="signOut" size={24} tone="rose" />
           <span className="flex-1 text-sm font-semibold text-red-600 dark:text-red-400">Cerrar sesión</span>
@@ -763,7 +585,10 @@ function PerfilTab({
   );
 }
 
-// ── BottomNav ──────────────────────────────────────────────────────────────────
+// ── Barra inferior ─────────────────────────────────────────────────────────────
+// La misma en el hub (Hugo · Mensajes · Rápido · Yo) y dentro del Layout (Agenda y
+// cualquier panel): así el celular se navega igual en todas partes. Va EN el flujo
+// de la columna, no fija: nada queda tapado debajo y no hace falta reservarle hueco.
 
 const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
   { id: "home", label: "Agenda", icon: "home" },
@@ -773,50 +598,77 @@ const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
   { id: "yo", label: "Yo", icon: "user" },
 ];
 
-function BottomNav({ active, onChange, badges }: { active: Tab; onChange: (t: Tab) => void; badges?: Partial<Record<Tab, number>> }) {
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-surface-panel/95 backdrop-blur-sm" style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
-      {NAV_ITEMS.map((item) => {
-        const isActive = active === item.id;
-        const badge = badges?.[item.id] ?? 0;
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onChange(item.id)}
-            className={`mck-press relative flex flex-1 flex-col items-center gap-0.5 py-2.5 transition-colors ${
-              isActive ? "text-accent" : "text-muted"
-            }`}
-          >
-            <span className={`relative transition-transform ${isActive ? "scale-110" : ""}`}>
-              <Icon name={item.icon} size={22} weight={isActive ? "bold" : "duotone"} />
-              {badge > 0 && (
-                <span className="absolute -right-2 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              )}
-            </span>
-            <span className={`text-[10px] font-bold ${isActive ? "text-accent" : "text-muted"}`}>{item.label}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+const TITULO_TAB: Record<Tab, string> = {
+  home: "Mi agenda",
+  chat: "Hugo",
+  mensajes: "Mensajes",
+  acciones: "Rápido",
+  yo: "Yo",
+};
 
-// ── FAB ────────────────────────────────────────────────────────────────────────
+/** Barra inferior del celular, con el «+» de nueva solicitud cuando `conNueva`. */
+export function BarraMovil({
+  active,
+  onChange,
+  conNueva = false,
+}: {
+  active: Tab;
+  onChange: (t: Tab) => void;
+  conNueva?: boolean;
+}) {
+  const token = useTicketsAuth((s) => s.token);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Total de no-leídos (mías, todas las conversaciones) para el aviso de Mensajes.
+  const { data: conversaciones = [] } = useConversaciones("todas", "mias");
+  const noLeidos = conversaciones.reduce((acc, c) => acc + c.no_leidos, 0);
+  const badges: Partial<Record<Tab, number>> = { mensajes: noLeidos };
 
-function FAB({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="mck-press fixed bottom-[72px] right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_6px_0_rgba(2,45,51,0.3)] transition-all active:translate-y-1.5 active:shadow-[0_2px_0_rgba(2,45,51,0.3)]"
-      style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
-      aria-label="Nueva solicitud"
-    >
-      <Icon name="plus" size={24} weight="bold" />
-    </button>
+    <>
+      {conNueva && (
+        <div className="pointer-events-none relative z-20 h-0">
+          <div className="absolute bottom-3 right-4">
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-paper-lg hover:opacity-90"
+              aria-label="Nueva solicitud"
+              title="Nueva solicitud"
+            >
+              <Icon name="plus" size={22} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
+      <nav className="mck-barra-movil relative z-30 shrink-0" aria-label="Navegación del celular">
+        {NAV_ITEMS.map((item) => {
+          const isActive = active === item.id;
+          const badge = badges[item.id] ?? 0;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange(item.id)}
+              aria-current={isActive ? "page" : undefined}
+              className={`mck-barra-movil-item${isActive ? " is-active" : ""}`}
+            >
+              <span className="relative">
+                <Icon name={item.icon} size={21} weight={isActive ? "bold" : "regular"} />
+                {badge > 0 && (
+                  <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-accent-leaf px-1 text-[9px] font-bold text-white">
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                )}
+              </span>
+              <span className="mck-barra-movil-label">{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      {conNueva && token && (
+        <NuevaSolicitudSheet open={sheetOpen} onClose={() => setSheetOpen(false)} token={token} onCreated={() => {}} />
+      )}
+    </>
   );
 }
 
@@ -825,42 +677,27 @@ function FAB({ onClick }: { onClick: () => void }) {
 export default function MobileHub({
   onSwitchDesktop,
   onOpenPanel,
+  onAgenda,
 }: {
   onSwitchDesktop: () => void;
   /** Abre Layout responsive (paneles completos) sin forzar modo escritorio. */
   onOpenPanel?: () => void;
+  /** «Agenda» en la barra: la misma agenda de escritorio (Layout). */
+  onAgenda: () => void;
 }) {
   const { user, token, apiToken } = useTicketsAuth();
   const setPanel = useAppStore((s) => s.setPanel);
   const tab = useAppStore((s) => s.mobileTab);
   const setTab = useAppStore((s) => s.setMobileTab);
-  const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetCat, setSheetCat] = useState("");
-  const [solicitudCreated, setSolicitudCreated] = useState(0);
 
   const navigateTo = useCallback((p: Panel) => {
     setPanel(p);
     if (p === "hugo" || p === "tickets") {
-      setTab("chat");
+      onAgenda();
     } else {
       onOpenPanel?.();
     }
-  }, [setPanel, onOpenPanel, setTab]);
-
-  const verMensajes = useCallback((ticketId?: number) => {
-    if (ticketId != null) setSolicitudBoot({ abrirTicketId: ticketId });
-    setTab("mensajes");
-  }, [setSolicitudBoot, setTab]);
-
-  // Total de no-leídos (mías, todas las conversaciones) para el badge del tab.
-  const { data: conversacionesBadge = [] } = useConversaciones("todas", "mias");
-  const noLeidosTotal = conversacionesBadge.reduce((acc, c) => acc + c.no_leidos, 0);
-
-  function openSheet(cat = "") {
-    setSheetCat(cat);
-    setSheetOpen(true);
-  }
+  }, [setPanel, onOpenPanel, onAgenda]);
 
   if (!token) return null;
 
@@ -868,73 +705,35 @@ export default function MobileHub({
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-surface">
-      {/* Top header */}
-      <div className="flex items-center gap-3 border-b border-border bg-surface-panel px-4 py-3 shadow-paper-sm" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}>
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-black text-white shadow"
-          style={{ background: user?.departamento?.color ?? "#0c6069" }}
-        >
-          {nombre.charAt(0).toUpperCase()}
+      {/* Cabezote: la misma gramática del de escritorio (miga + título con punto). */}
+      <header
+        className="mck-header-glass flex shrink-0 items-center gap-3 border-b border-border/80 px-3 py-2"
+        style={{ paddingTop: "max(0.5rem, env(safe-area-inset-top, 0px))" }}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+            McKenna · {nombre}
+          </p>
+          <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight">{TITULO_TAB[tab]}</h1>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-extrabold leading-none text-ink">McKenna Group</p>
-          <p className="text-[10px] text-muted leading-none mt-0.5">{nombre}</p>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-accent/50" />
-          <span className="text-[10px] font-semibold text-muted">En línea</span>
-        </div>
-      </div>
+      </header>
 
-      {/* Tab content */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        {tab === "home" && (
-          <HomeTab
-            token={token}
-            userName={nombre}
-            onNewSolicitud={openSheet}
-            onSolicitudCreated={solicitudCreated}
-            onNavigateTo={navigateTo}
-            onVerMensajes={verMensajes}
-          />
-        )}
         {tab === "chat" && <ChatTab />}
         {tab === "mensajes" && user && (
-          // pb-20 reserva el espacio del BottomNav fijo (~64px + safe-area), que si no
-          // queda tapando el composer del hilo — mismo problema que ChatTab resuelve con
-          // su calc(100dvh - 128px).
-          <div className="flex h-full overflow-hidden pb-20">
-            <InboxConversaciones
-              token={token}
-              user={user}
-            />
+          <div className="flex h-full overflow-hidden">
+            <InboxConversaciones token={token} user={user} />
           </div>
         )}
         {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} user={user} onNavigateTo={navigateTo} />}
-        {tab === "yo" && (
-          <PerfilTab
-            onSwitchDesktop={onSwitchDesktop}
-            onNavigateTo={navigateTo}
-          />
-        )}
+        {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
       </div>
 
-      {/* FAB — only on home & acciones. No en "mensajes": el composer del hilo abierto
-          queda en la misma esquina inferior derecha y se solaparía con el botón Enviar. */}
-      {(tab === "home" || tab === "acciones") && (
-        <FAB onClick={() => openSheet()} />
-      )}
-
-      {/* Bottom nav */}
-      <BottomNav active={tab} onChange={setTab} badges={{ mensajes: noLeidosTotal }} />
-
-      {/* Nueva Solicitud sheet */}
-      <NuevaSolicitudSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        token={token}
-        defaultCat={sheetCat}
-        onCreated={() => setSolicitudCreated((n) => n + 1)}
+      {/* «+» solo en Rápido: en Mensajes el botón Enviar del hilo queda en esa misma esquina. */}
+      <BarraMovil
+        active={tab}
+        onChange={(t) => (t === "home" ? onAgenda() : setTab(t))}
+        conNueva={tab === "acciones"}
       />
     </div>
   );

@@ -269,6 +269,11 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
         ? (datos.aplicaciones as unknown[]).map(texto).filter(Boolean).join("\n")
         : texto(datos.aplicaciones))
       || FICHA_SIN_DATO,
+    // «Modo de uso» del formulario FT+COA+SDS, resumido: en la ficha es un
+    // párrafo y en la etiqueta 30 mL la casilla tiene tres renglones.
+    modoUso: sintetizarModoUso(texto(datos.modo_uso)) || FICHA_SIN_DATO,
+    // Beneficios del formato vertical 38 × 102: dos, de máximo 10 palabras.
+    ...beneficiosDesdeFicha(datos),
     peso: pesoRaw || FICHA_SIN_DATO,
   };
 }
@@ -446,4 +451,100 @@ export function sintetizarConservacion(
   if (!out) return "";
   if (!/[.!?]$/.test(out)) out += ".";
   return out;
+}
+
+/** Tope de la casilla «Modo de uso» (30 mL): tres renglones, como Conservación. */
+export const MAX_PALABRAS_MODO_USO = 25;
+
+/** Resume el modo de uso de la ficha técnica a sus primeras frases
+ *  completas, sin muletillas («Se recomienda…», «Es importante…»), hasta
+ *  `maxPalabras`. «Uso externo y siempre diluido. Incorporar en la fase
+ *  oleosa…» → «Uso externo y siempre diluido.» Si la primera frase ya se
+ *  pasa, se recorta por cláusulas. */
+export function sintetizarModoUso(texto: string, maxPalabras = MAX_PALABRAS_MODO_USO): string {
+  const limpio = (texto || "").replace(/\s+/g, " ").trim();
+  if (!limpio) return "";
+  const frases = limpio
+    .split(/(?<=[.;])\s+/)
+    .map((f) => limpiarFrase(f.trim()))
+    .filter(Boolean);
+  let out = "";
+  for (const frase of frases) {
+    if (!out) {
+      out = recortarAPalabras(frase, maxPalabras);
+      if (contarPalabras(out) >= maxPalabras) break;
+      continue;
+    }
+    const cand = `${out.replace(/;$/, ".")} ${frase}`;
+    if (contarPalabras(cand) > maxPalabras) break;
+    out = cand;
+  }
+  out = out.replace(/[,;:\s]+$/, "");
+  if (!out) return "";
+  return /[.!?]$/.test(out) ? out : `${out}.`;
+}
+
+/** Tope de cada beneficio del formato vertical (regla del usuario). */
+export const MAX_PALABRAS_BENEFICIO = 10;
+
+/** Propiedades que describen cómo se obtiene o qué contiene el producto:
+ *  son ciertas, pero no son un beneficio para quien lo usa. */
+const PROPIEDAD_NO_BENEFICIO =
+  /^(extra[ií]d|obtenid|prensad|refinad|destilad|rico en|contiene|fuente de|origen|pureza|grado|punto de|densidad|[ií]ndice|ph\b|solubilid|viscosidad|peso molecular|rotaci[oó]n|humedad|acidez)/i;
+
+/** Palabras que no pueden cerrar un resumen («… al cabello y»). */
+const CONECTOR_FINAL = /^(y|e|o|u|a|al|lo|de|del|en|con|sin|por|para|que|el|la|los|las|un|una|su|sus|como|entre)$/i;
+
+/** Palabra con la que una idea no puede terminar: un infinitivo o un «así»
+ *  esperan lo que sigue («contribuye a reducir», «no aporta sabor, así»). */
+const FINAL_COLGANTE = /^(as[ií]|tambi[eé]n|adem[aá]s|obtiene|logra|consigue|\p{L}+(ar|er|ir))$/iu;
+
+/** Primeras palabras de `frase`, hasta `max`, cortando donde empieza otra
+ *  idea (coma, «y», «que», «para»…) sin dejar la frase colgando. Vacío si
+ *  ninguna idea completa de 3 palabras o más cabe. */
+function primeraIdea(frase: string, max: number): string {
+  const palabras = frase.replace(/[.;:]+$/, "").split(/\s+/).filter(Boolean);
+  if (palabras.length <= max) return palabras.join(" ");
+  const cortes: number[] = [];
+  for (let i = 1; i <= max; i++) {
+    const anterior = palabras[i - 1];
+    const siguiente = palabras[i] || "";
+    if (/[,;]$/.test(anterior) || /^(y|e|o|que|para|pero|aunque|mientras|donde)$/i.test(siguiente)) cortes.push(i);
+  }
+  for (const corte of cortes.reverse()) {
+    let out = palabras.slice(0, corte);
+    while (out.length && CONECTOR_FINAL.test(out[out.length - 1].replace(/[,;]$/, ""))) out = out.slice(0, -1);
+    const ultima = (out[out.length - 1] || "").replace(/[,;]$/, "");
+    if (out.length >= 3 && !FINAL_COLGANTE.test(ultima)) return out.join(" ").replace(/[,;]$/, "");
+  }
+  return "";
+}
+
+/** Un beneficio en máximo `max` palabras: «Acondicionador capilar|Aporta
+ *  cuerpo y brillo al cabello y ayuda…» → «Acondicionador capilar: aporta
+ *  cuerpo y brillo al cabello.» */
+export function resumirBeneficio(item: string, max = MAX_PALABRAS_BENEFICIO): string {
+  const [tituloRaw, ...resto] = (item || "").split("|");
+  const titulo = limpiarFrase(tituloRaw.replace(/\s+/g, " ").trim()).replace(/[.:]+$/, "");
+  const detalle = limpiarFrase(resto.join(" ").replace(/\s+/g, " ").trim());
+  if (!titulo) return "";
+  const nTitulo = contarPalabras(titulo);
+  if (nTitulo >= max || !detalle) {
+    const t = primeraIdea(titulo, max) || recortarAPalabras(titulo, max);
+    return /[.!?]$/.test(t) ? t : `${t}.`;
+  }
+  const idea = primeraIdea(detalle, max - nTitulo);
+  if (!idea) return `${titulo}.`;
+  return `${titulo}: ${idea.charAt(0).toLowerCase()}${idea.slice(1)}.`;
+}
+
+/** Dos beneficios desde la ficha: sus propiedades («Título|detalle»),
+ *  primero las que hablan del uso; sin propiedades, sus aplicaciones. */
+function beneficiosDesdeFicha(datos: Record<string, unknown>): { beneficio1: string; beneficio2: string } {
+  const lista = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map(texto).filter(Boolean) : []);
+  const propiedades = lista(datos.propiedades_lista);
+  const deUso = propiedades.filter((p) => !PROPIEDAD_NO_BENEFICIO.test(p.split("|")[0].trim()));
+  const fuente = [...deUso, ...propiedades.filter((p) => !deUso.includes(p)), ...lista(datos.aplicaciones)];
+  const [b1 = "", b2 = ""] = fuente.map((p) => resumirBeneficio(p)).filter(Boolean);
+  return { beneficio1: b1 || FICHA_SIN_DATO, beneficio2: b2 || FICHA_SIN_DATO };
 }

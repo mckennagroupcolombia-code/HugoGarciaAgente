@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
-import { useAuthStore } from "../../stores/auth";
 import UserAvatar from "../UserAvatar";
 import { useProfilePhotoPending } from "../../stores/profilePhotoPending";
 import { usePreventa } from "../../hooks/usePreventa";
 import { usePostventa } from "../../hooks/usePostventa";
-import { api } from "../../api/client";
-import { cerrarSesionPanel } from "../../hooks/usePanelSession";
+import { salirDelPanel } from "../../hooks/usePanelSession";
 import { modoAvanzadoEfectivo } from "../../lib/adminAccess";
 import { useUiMode } from "../../stores/uiMode";
-import { flushSaveUserUiPreferences } from "../../lib/userThemeSync";
 import { Icon } from "../../icons";
 
 /** Reemplaza la tarjeta de perfil + ajustes + logout que antes vivían en el
@@ -19,8 +16,7 @@ import { Icon } from "../../icons";
 export default function UserMenuButton() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
-  const { user, token, clear: clearTickets } = useTicketsAuth();
-  const clearMain = useAuthStore((s) => s.clear);
+  const { user, token } = useTicketsAuth();
   const setFotoPendiente = useProfilePhotoPending((s) => s.setFile);
   const { advanced, toggleAdvanced, navClasica, setNavClasica } = useUiMode();
   const advancedEfectivo = modoAvanzadoEfectivo(user, advanced);
@@ -59,13 +55,7 @@ export default function UserMenuButton() {
 
   async function logout() {
     setOpen(false);
-    await flushSaveUserUiPreferences(token!);
-    let sid = "";
-    try { sid = sessionStorage.getItem("mckenna-panel-session-uuid") ?? ""; } catch { /* */ }
-    await cerrarSesionPanel(token!);
-    try { await api.post("/api/tickets/auth/logout", { session_uuid: sid }); } catch { /* */ }
-    clearTickets();
-    clearMain();
+    await salirDelPanel(token!);
   }
 
   return (

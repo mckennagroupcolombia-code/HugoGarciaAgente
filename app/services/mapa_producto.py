@@ -726,7 +726,7 @@ def propuestas_sku() -> dict:
             "exactas": sum(1 for f in filas if f["exacto"]), "conflictos": sum(1 for f in filas if f["conflicto"])}
 
 
-def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict:
+def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregir: bool = False) -> dict:
     """Une un documento a su materia prima escribiendo su SKU en el YAML — y nada más.
 
     Edita UNA línea (no re-serializa el archivo: `yaml.dump` reordenaría comentarios y
@@ -738,7 +738,8 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict
       combo) → lo reemplaza: era un enlace roto, no una decisión (`ALUg` cuando el producto
       es `ALUALLg`). Antes se rechazaba y el taller no dejaba unir esos documentos;
     - OTRA materia prima activa → no la pisa. Solo con `compartir=True` agrega el SKU a
-      `referencias_equivalentes`: el mismo documento sirve a las dos.
+      `referencias_equivalentes`: el mismo documento sirve a las dos. Con `corregir=True`
+      (lo pide una persona desde el editor del documento: el enlace estaba mal) la reemplaza.
     """
     import shutil
 
@@ -772,7 +773,9 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict
     clave, modo = "referencia", "fijar"
     if actual:
         otro = ac.obtener_item(actual)
-        if otro and otro.get("type") != "kit":
+        if corregir:
+            modo = "corregir"
+        elif otro and otro.get("type") != "kit":
             if not compartir:
                 raise ValueError(f"El documento ya pertenece a `{actual}`, que es otro producto activo. "
                                  "Si los dos son la misma sustancia, compártelo; si no, este producto necesita su propio documento")
@@ -807,6 +810,73 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False) -> dict
     ruta.write_text(nuevo, encoding="utf-8")
     invalidar()
     return {"ok": True, "archivo": archivo, "sku": sku, "modo": modo, "antes": actual}
+
+
+def quitar_sku_documento(archivo: str, sku: str) -> dict:
+    """Saca un SKU de `referencias_equivalentes` (un «compartir» que estaba mal). Misma
+    edición de UNA línea y mismas salvaguardas que `fijar_sku_documento`."""
+    import shutil
+
+    import yaml
+
+    from app.services import ficha_tecnica as ft
+
+    archivo = (archivo or "").strip()
+    sku = (sku or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{1,120}\.yaml", archivo):
+        raise ValueError("Nombre de documento inválido")
+    ruta = ft.DATOS_DIR / archivo
+    if not ruta.is_file():
+        raise ValueError("Ese documento no existe")
+    texto = ruta.read_text(encoding="utf-8")
+    antes = yaml.safe_load(texto) or {}
+    equiv = antes.get("referencias_equivalentes") or []
+    equiv = [str(x).strip() for x in equiv] if isinstance(equiv, list) else []
+    quedan = [x for x in equiv if x.lower() != sku.lower()]
+    if len(quedan) == len(equiv):
+        return {"ok": True, "archivo": archivo, "sku": sku, "sin_cambios": True}
+    if not re.search(r"^referencias_equivalentes: *\[.*\] *$", texto, flags=re.M):
+        raise ValueError("`referencias_equivalentes` está escrita en varias líneas: edítala a mano en el YAML")
+    nuevo = re.sub(r"^referencias_equivalentes:.*$", "referencias_equivalentes: [" + ", ".join(quedan) + "]",
+                   texto, count=1, flags=re.M)
+    despues = yaml.safe_load(nuevo) or {}
+    if {k: v for k, v in despues.items() if k != "referencias_equivalentes"} != \
+            {k: v for k, v in antes.items() if k != "referencias_equivalentes"} \
+            or (despues.get("referencias_equivalentes") or []) != quedan:
+        raise ValueError("La edición habría cambiado algo más que lo pedido: no se escribió")
+    respaldo = ft.DATOS_DIR / "_respaldo_referencia"
+    respaldo.mkdir(exist_ok=True)
+    shutil.copy2(ruta, respaldo / f"{ruta.stem}.{time.strftime('%Y%m%d_%H%M%S')}.yaml")
+    ruta.write_text(nuevo, encoding="utf-8")
+    invalidar()
+    return {"ok": True, "archivo": archivo, "sku": sku, "quitado": True}
+
+
+def referencia_documento(titulo: str) -> dict:
+    """A qué SKU está unido el documento de ese título (el archivo sale del título, igual
+    que al generarlo: «FT COA SDS {titulo}» → `ft_coa_sds_{slug}.yaml`)."""
+    import yaml
+
+    from app.services import alegra_catalogo_db as ac
+    from app.services import ficha_tecnica as ft
+
+    slug = re.sub(r"[^a-z0-9_]+", "_", ft._normalizar(titulo or "").lower()).strip("_")
+    if not slug:
+        return {"archivo": "", "existe": False, "referencia": "", "equivalentes": [], "nombres": {}}
+    archivo = f"ft_coa_sds_{slug}.yaml"
+    ruta = ft.DATOS_DIR / archivo
+    if not ruta.is_file():
+        return {"archivo": archivo, "existe": False, "referencia": "", "equivalentes": [], "nombres": {}}
+    datos = yaml.safe_load(ruta.read_text(encoding="utf-8")) or {}
+    ref = str(datos.get("referencia") or "").strip()
+    equiv = datos.get("referencias_equivalentes") or []
+    equiv = [str(x).strip() for x in equiv if str(x).strip()] if isinstance(equiv, list) else []
+    nombres = {}
+    for s in [ref, *equiv]:
+        if s:
+            it = ac.obtener_item(s)
+            nombres[s] = (it or {}).get("name") or ""
+    return {"archivo": archivo, "existe": True, "referencia": ref, "equivalentes": equiv, "nombres": nombres}
 
 
 _DOC_OCULTOS = {"imagen_b64", "color_acento", "identidad", "titulo", "nombre_producto"}

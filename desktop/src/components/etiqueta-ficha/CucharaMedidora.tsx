@@ -1,4 +1,5 @@
 import EditableField, { EditableLabel } from "./EditableField";
+import { useTextStyleCtx } from "./TextStyleContext";
 import { TITULOS_CUCHARA, UNIDADES_CUCHARA } from "./productLabelTypes";
 
 /** Casilla "Incluye cuchara medidora de: N g/mL aprox." — el rótulo se
@@ -27,6 +28,12 @@ export default function CucharaMedidora({
     titulo && (TITULOS_CUCHARA as readonly string[]).includes(titulo)
       ? titulo
       : TITULOS_CUCHARA[0];
+
+  // En la etiqueta la unidad (g / mL) va al mismo tamaño que la cantidad; el
+  // menú desplegable no: el <select> va invisible encima del texto con su letra
+  // chica (`mck-field-lg` lo saca del font-size !important de los select del panel).
+  const { estilos } = useTextStyleCtx();
+  const tamanoUnidad = estilos.cucharaCantidad?.fontSize ?? 17;
 
   if (!editMode && !cantidad.trim()) return null;
 
@@ -58,18 +65,28 @@ export default function CucharaMedidora({
                 className="text-center font-bold tabular-nums text-[color:var(--acento)]"
               />
             </div>
-            <select
-              value={unidad}
-              onChange={(e) => onUnidadChange(e.target.value)}
-              title="Unidad de la medida"
-              className="rounded-sm border border-dashed border-[color:var(--acento-50)] bg-transparent px-1 text-[17px] font-bold text-[color:var(--acento)] outline-none focus:border-[color:var(--acento)]"
-            >
-              {UNIDADES_CUCHARA.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
+            <span className="relative inline-flex items-center rounded-sm border border-dashed border-[color:var(--acento-50)] px-1 focus-within:border-[color:var(--acento)]">
+              <span
+                aria-hidden
+                style={{ fontSize: tamanoUnidad }}
+                className="font-bold leading-none text-[color:var(--acento)]"
+              >
+                {unidad} ▾
+              </span>
+              <select
+                value={unidad}
+                onChange={(e) => onUnidadChange(e.target.value)}
+                title="Unidad de la medida"
+                style={{ fontSize: 14 }}
+                className="mck-field-lg absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              >
+                {UNIDADES_CUCHARA.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </span>
           </>
         ) : (
           <EditableField

@@ -37,8 +37,12 @@ export default function Layout({
   children,
   onBackToMobileHub,
   onExitForceDesktop,
+  barraMovil,
 }: {
   children: ReactNode;
+  /** Celular: barra inferior Agenda · Hugo · Mensajes · Rápido · Yo. Con ella, los
+   *  controles de vista y el menú de usuario viven en «Yo» y el cabezote queda libre. */
+  barraMovil?: ReactNode;
   /** Vuelve al hub móvil simplificado (sin forzar escritorio). */
   onBackToMobileHub?: () => void;
   /** Sale del modo “vista escritorio” forzada en el teléfono. */
@@ -50,11 +54,11 @@ export default function Layout({
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
   const libroMayorEnfoque = useAppStore((s) => s.libroMayorEnfoque);
+  const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);
   const user = useTicketsAuth((s) => s.user);
   const { advanced: advancedToggle, navClasica } = useUiMode();
   // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
   const navFlujo = !navClasica;
-  const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);
   const tallerRetorno = useAppStore((st) => st.tallerRetorno);
   const volverAlTaller = useAppStore((st) => st.volverAlTaller);
   const enOrigen = panel === "hugo" || panel === "tickets";
@@ -228,11 +232,17 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
-              <AccesosRapidos />
-              <PantallaControles />
-              <TemasHeaderButton />
-              <ThemeModeToggle />
-              <UserMenuButton />
+              {!barraMovil && (
+                <>
+                  <AccesosRapidos />
+                  <div className="mck-cabezote-vista">
+                    <PantallaControles />
+                    <TemasHeaderButton />
+                    <ThemeModeToggle />
+                  </div>
+                  <UserMenuButton />
+                </>
+              )}
             </div>
           </div>
 
@@ -285,6 +295,7 @@ export default function Layout({
             )}
           </div>
         </div>
+        {barraMovil}
       </main>
     </div>
   );

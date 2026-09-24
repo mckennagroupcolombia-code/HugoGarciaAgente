@@ -23,7 +23,7 @@ panel. Si Sebastián instalara la APK del panel, igual vería solo lo suyo.
 ./compilar.sh        # → McKenna_Colaboradores.apk
 ```
 
-Antes de entregar una versión nueva, subir `versionCode` / `versionName` en `app/build.gradle`.
+Para una versión nueva: `./compilar.sh 1.1.0` (sube `versionCode` en `version.properties`) o el botón de /app → Ajustes → App de colaboradores.
 
 ## Llave de firma
 

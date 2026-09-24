@@ -4,5 +4,5 @@ import base from "./tailwind.config";
  * así el CSS no lleva clases de los demás módulos. */
 export default {
   ...base,
-  content: ["./colaboradores.html", "./src/colab/**/*.{ts,tsx}", "./src/components/ColaboradoresPanel.tsx"],
+  content: ["./colaboradores.html", "./src/colab/**/*.{ts,tsx}", "./src/components/ColaboradoresPanel.tsx", "./src/components/JuegosPanel.tsx"],
 };

@@ -14,7 +14,7 @@
     },
     {
       "id": "dd339426d1f7",
-      "sku": "C-ALMNAL500g",
+      "sku": "C-ALMNAT500g",
       "nombre_producto": "ALMENDRA NATURAL 500g",
       "numero_producto": 2,
       "presentacion": "500",
@@ -68,7 +68,8 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700062502636",
-      "creado_at": "2026-07-09T02:38:10"
+      "creado_at": "2026-07-09T02:38:10",
+      "actualizado_at": "2026-09-23T15:22:55"
     },
     {
       "id": "05f53adaa120",
@@ -108,7 +109,7 @@
     },
     {
       "id": "952449248827",
-      "sku": "C- PISTOS250g",
+      "sku": "C-PISTOS250g",
       "nombre_producto": "PISTACHOS TOSTADOS  250g",
       "numero_producto": 10,
       "presentacion": "250",
@@ -242,7 +243,7 @@
     },
     {
       "id": "fdd9649d3c67",
-      "sku": "C-BTMS125g",
+      "sku": "C-BTMS50125g",
       "nombre_producto": "BTMS 50 125g",
       "numero_producto": 22,
       "presentacion": "125",
@@ -604,7 +605,7 @@
     },
     {
       "id": "40dfd371aed1",
-      "sku": "C-ACEESEMANZ5mL",
+      "sku": "C-ACEESEMAN5mL",
       "nombre_producto": "ACEITE ESENCIAL MANZANILLA 5mL",
       "numero_producto": 54,
       "presentacion": "005",
@@ -717,7 +718,7 @@
     },
     {
       "id": "3c1286d784e9",
-      "sku": "C-ACEITEATRE5mL",
+      "sku": "C-ACETEATRE5mL",
       "nombre_producto": "ACEITE ARBOL DE TE 5 mL",
       "numero_producto": 64,
       "presentacion": "005",
@@ -1149,7 +1150,7 @@
     },
     {
       "id": "7369519d1dea",
-      "sku": "C-CAF100",
+      "sku": "C-CAF100g",
       "nombre_producto": "CAFEINA 100g",
       "numero_producto": 103,
       "presentacion": "100",
@@ -2041,7 +2042,7 @@
     },
     {
       "id": "99ac7b1c7050",
-      "sku": "C-LANOLINA40g",
+      "sku": "C-LAN40g",
       "nombre_producto": "LANOLINA 40g",
       "numero_producto": 183,
       "presentacion": "040",

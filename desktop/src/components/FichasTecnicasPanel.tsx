@@ -18,7 +18,7 @@ import DocumentoGeneradorTab, {
 import { TablaComposicion } from "./documentos/TablaComposicion";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
-import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
+import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
 import SdsSeccion, { SDS_VACIA, sdsAPayload, sdsDesdeDatos, type ContextoFt, type SdsForm } from "./documentos/SdsSeccion";
 import DocumentosCatalogoTab, { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
@@ -40,8 +40,10 @@ import {
   type TipoInsumo,
 } from "../lib/clasificacionInsumo";
 import { esperarJobScan } from "../lib/scanJobPoll";
+import { sugerirCampoFicha } from "../lib/sugerirCampoFicha";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { celebrarAprobacion } from "../lib/celebracionAprobado";
 
 
 interface ArchivoGenerado {
@@ -821,10 +823,7 @@ function CoaTabContent({
       const n = (titulo || nombreComercial || producto?.nombre_base || "").trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
       try {
-        const r = await api.post<{ valor?: string }>("/api/fichas/sugerir-campo", {
-          campo: "coa_parametros",
-          nombre: n,
-        }, { timeoutMs: 180000 });
+        const r = await sugerirCampoFicha("coa_parametros", n);
         const filas = (r.valor || "").trim();
         if (parseParamRows(filas).some((row) => row.parametro)) return filas;
       } catch {
@@ -1704,6 +1703,167 @@ function IaBtn({ label, loading, onClick }: { label: string; loading: boolean; o
   );
 }
 
+/** El valor tras `ms` sin cambios (para no consultar al servidor por cada tecla). */
+function useDebounced<T>(valor: T, ms: number): T {
+  const [v, setV] = useState(valor);
+  useEffect(() => {
+    const t = setTimeout(() => setV(valor), ms);
+    return () => clearTimeout(t);
+  }, [valor, ms]);
+  return v;
+}
+
+/** «Referencia enlazada»: a qué SKU (materia prima de Alegra) está unido el documento, y
+ *  corregirlo. De ese enlace dependen los lotes, Imprimir y el taller de combos. */
+function ReferenciaEnlazada({
+  titulo,
+  referencia,
+  onReferencia,
+}: {
+  titulo: string;
+  referencia: string;
+  onReferencia: (sku: string) => void;
+}) {
+  const qc = useQueryClient();
+  const tituloDeb = useDebounced(titulo.trim(), 600);
+  const info = useQuery({
+    queryKey: ["doc-referencia", tituloDeb],
+    queryFn: () =>
+      api.get<{ archivo: string; existe: boolean; referencia: string; equivalentes: string[]; nombres: Record<string, string> }>(
+        `/api/mapa-sistema/documentos/referencia?titulo=${encodeURIComponent(tituloDeb)}`,
+      ),
+    enabled: tituloDeb.length > 1,
+    staleTime: 30_000,
+  });
+  const [editando, setEditando] = useState(false);
+  const [q, setQ] = useState("");
+  const qDeb = useDebounced(q.trim(), 300);
+  const busq = useQuery({
+    queryKey: ["doc-referencia-buscar", qDeb],
+    queryFn: () =>
+      api.get<{ items: { codigo: string; nombre: string }[] }>(
+        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=1&limit=15`,
+      ),
+    enabled: editando && qDeb.length > 1,
+    staleTime: 60_000,
+  });
+  const [ocupado, setOcupado] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const d = info.data;
+  const actual = (d?.existe ? d.referencia : "") || referencia;
+  const nombreDe = (sku: string) => d?.nombres?.[sku] || "";
+
+  const refrescar = async () => {
+    await api.post("/api/mapa-sistema/invalidar").catch(() => null);
+    await qc.invalidateQueries({ queryKey: ["doc-referencia"] });
+    await qc.invalidateQueries({ queryKey: ["mapa-sistema-combos"] });
+    await qc.invalidateQueries({ queryKey: ["mision-documentos"] });
+  };
+
+  const elegir = async (sku: string, nombre: string) => {
+    setMsg(null);
+    onReferencia(sku); // queda también en el documento al volver a generarlo
+    if (!d?.existe) {
+      setEditando(false);
+      setMsg({ ok: true, texto: `Quedará unido a ${sku} al guardar o generar el documento.` });
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", {
+        items: [{ archivo: d.archivo, sku, corregir: true }],
+      });
+      if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo corregir");
+      await refrescar();
+      setEditando(false);
+      setQ("");
+      setMsg({ ok: true, texto: `Corregido: el documento queda unido a ${sku}${nombre ? ` · ${nombre}` : ""}.` });
+    } catch (e: unknown) {
+      setMsg({ ok: false, texto: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const quitarEquivalente = async (sku: string) => {
+    if (!d?.existe) return;
+    setOcupado(true);
+    setMsg(null);
+    try {
+      const r = await api.post<{ ok?: boolean; error?: string }>("/api/mapa-sistema/documentos/quitar-sku", { archivo: d.archivo, sku });
+      if (r.ok === false) throw new Error(r.error || "No se pudo quitar");
+      await refrescar();
+      setMsg({ ok: true, texto: `${sku} ya no comparte este documento.` });
+    } catch (e: unknown) {
+      setMsg({ ok: false, texto: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima)</p>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-input px-2.5 py-1.5">
+        {actual ? (
+          <span className="text-sm text-ink">
+            <code className="font-bold">{actual}</code>
+            {nombreDe(actual) && <span className="text-muted"> · {nombreDe(actual)}</span>}
+          </span>
+        ) : (
+          <span className="text-sm text-amber-700">Sin referencia: el documento no está unido a ningún producto.</span>
+        )}
+        {(d?.equivalentes ?? []).map((sku) => (
+          <span key={sku} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-ink" title="Comparte este documento">
+            también <code>{sku}</code>
+            {nombreDe(sku) && <span className="text-muted">· {nombreDe(sku)}</span>}
+            <button type="button" disabled={ocupado} onClick={() => void quitarEquivalente(sku)} className="text-muted hover:text-danger" title={`Quitar ${sku}`}>
+              ✕
+            </button>
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={() => { setEditando((v) => !v); setMsg(null); }}
+          className="ml-auto rounded border border-accent/40 px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/10"
+        >
+          {editando ? "Cancelar" : actual ? "Corregir" : "Enlazar"}
+        </button>
+      </div>
+      {editando && (
+        <div className="space-y-1 rounded-lg border border-accent/40 bg-accent/5 p-2">
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar la materia prima por nombre o SKU…"
+            className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+          {busq.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
+          <div className="max-h-56 space-y-1 overflow-y-auto">
+            {(busq.data?.items ?? []).map((it) => (
+              <button
+                key={it.codigo}
+                type="button"
+                disabled={ocupado || it.codigo === actual}
+                onClick={() => void elegir(it.codigo, it.nombre)}
+                className="flex w-full items-center gap-2 rounded border border-border bg-surface-input px-2 py-1 text-left text-xs text-ink hover:border-accent disabled:opacity-50"
+              >
+                <code className="shrink-0 font-bold">{it.codigo}</code>
+                <span className="min-w-0 flex-1 truncate">{it.nombre}</span>
+                {it.codigo === actual && <span className="text-[10px] font-bold text-emerald-700">actual</span>}
+              </button>
+            ))}
+            {busq.data && busq.data.items.length === 0 && <p className="text-[11px] text-muted">Ningún producto coincide.</p>}
+          </div>
+        </div>
+      )}
+      {msg && <p className={`text-[11px] ${msg.ok ? "text-emerald-700" : "text-danger"}`}>{msg.texto}</p>}
+    </div>
+  );
+}
+
 function DocumentoCompletoTabContent({
   producto,
   preload,
@@ -1776,6 +1936,8 @@ function DocumentoCompletoTabContent({
   /* Generación */
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<{ pdf_nombre: string } | null>(null);
+  /** Etiquetas que cambiaron al generar el documento (o el error al intentarlo). */
+  const [etiquetasSync, setEtiquetasSync] = useState<{ ok: boolean; texto: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /* ── IA sugerencias campos compartidos + SDS ── */
@@ -1783,7 +1945,7 @@ function DocumentoCompletoTabContent({
     mutationFn: (campo: string) => {
       const n = nombre.trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
-      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", { campo, nombre: n }, { timeoutMs: 180000 });
+      return sugerirCampoFicha(campo, n);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
@@ -1812,12 +1974,7 @@ function DocumentoCompletoTabContent({
       if (!n) throw new Error("Indique el nombre del producto primero");
       let parametros = "";
       try {
-        const r = await api.post<{ valor?: string; error?: string }>(
-          "/api/fichas/sugerir-campo",
-          { campo: "coa_parametros", nombre: n },
-          { timeoutMs: 180000 },
-        );
-        if (r.error) throw new Error(r.error);
+        const r = await sugerirCampoFicha("coa_parametros", n);
         parametros = (r.valor || "").trim();
       } catch {
         parametros = "";
@@ -2105,9 +2262,12 @@ function DocumentoCompletoTabContent({
     }
   };
 
-  const handleGenerar = async () => {
+  const [cargaWeb, setCargaWeb] = useState<{ ok: true; data: CargarDocumentosWebResult } | { ok: false; error: string } | null>(null);
+
+  const handleGenerar = async ({ cargarWeb = false }: { cargarWeb?: boolean } = {}) => {
     setError(null);
     setResultado(null);
+    setCargaWeb(null);
     if (sdsForm.sugeridaIa && !sdsForm.vistoBueno) {
       setError("La hoja de seguridad es una sugerencia de IA: revísela y dé el visto bueno en la Sección 3 antes de generar el documento final.");
       document.getElementById("sds-seccion")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2126,7 +2286,37 @@ function DocumentoCompletoTabContent({
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
       setResultado(json);
+      // El documento es la fuente de las etiquetas: sus cambios llegan ya a todas
+      // las enlazadas, no solo a la que se abra después en el editor.
+      setEtiquetasSync(null);
+      if (json.slug) {
+        try {
+          const { propagarFichaTecnicaAEtiquetas } = await import("../lib/fichaTecnicaAplicar");
+          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`]);
+          void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
+          setEtiquetasSync({
+            ok: true,
+            texto: cambiadas.length
+              ? `Etiquetas actualizadas (${cambiadas.length}): ${cambiadas.map((e) => e.nombre).join(", ")}.`
+              : "Las etiquetas enlazadas ya tenían estos datos.",
+          });
+        } catch (e: unknown) {
+          setEtiquetasSync({
+            ok: false,
+            texto: `No se pudieron actualizar las etiquetas: ${e instanceof Error ? e.message : String(e)}`,
+          });
+        }
+      }
+      celebrarAprobacion({ titulo: "¡Ficha técnica aprobada!", detalle: json.pdf_nombre || nombre, ref: nombre, mision: "ficha_aprobada" });
       void refetchBorradores();
+      if (cargarWeb) {
+        try {
+          const data = await api.post<CargarDocumentosWebResult>("/api/fichas/biblioteca/cargar-web", {}, { timeoutMs: 120000 });
+          setCargaWeb({ ok: true, data });
+        } catch (e: unknown) {
+          setCargaWeb({ ok: false, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
       // Desde el taller, generar el documento final ES el visto bueno de revisado: se marca en
       // todas las presentaciones que heredan el documento (es de la materia prima) y se vuelve al combo.
       const retornoTaller = useAppStore.getState().tallerRetorno;
@@ -2148,6 +2338,12 @@ function DocumentoCompletoTabContent({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Se genera desde la ventana de vista previa; al terminar se cierra para ver el resultado o el error.
+  const generarDesdeVistaPrevia = async () => {
+    await handleGenerar({ cargarWeb: true });
+    setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
   };
 
   const previewMut = useMutation({
@@ -2243,6 +2439,7 @@ function DocumentoCompletoTabContent({
           onChange={setNombre}
           placeholder="Ej. Ácido cítrico"
         />
+        <ReferenciaEnlazada titulo={nombre} referencia={referencia} onReferencia={setReferencia} />
         <div className="space-y-1.5">
           <p className="text-xs text-muted">Tipo de insumo</p>
           <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
@@ -2501,7 +2698,7 @@ function DocumentoCompletoTabContent({
       />
 
       {/* ─── Resultado / errores (sin botones de acción: van flotantes) ─── */}
-      {(error || previewMut.isError || resultado || borradorMsg || borradorError) && (
+      {(error || previewMut.isError || resultado || cargaWeb || borradorMsg || borradorError) && (
         <div className="mt-6 space-y-2 rounded-lg border border-border p-4">
           {error && (
             <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
@@ -2527,8 +2724,31 @@ function DocumentoCompletoTabContent({
               >
                 Descargar PDF
               </button>
-              <CargarDocumentosWebButton compact />
+              {cargaWeb?.ok === false && <CargarDocumentosWebButton compact />}
             </div>
+          )}
+          {etiquetasSync && (
+            <p
+              className={`rounded px-3 py-2 text-sm ${
+                etiquetasSync.ok ? "bg-emerald-500/10 text-emerald-700" : "bg-red-500/10 text-red-700"
+              }`}
+            >
+              {etiquetasSync.texto}
+            </p>
+          )}
+          {cargaWeb?.ok === true && (
+            <p className="rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">
+              {cargaWeb.data.sitio?.ok === false
+                ? `Cargado en el índice de la web; la tienda no respondió (${cargaWeb.data.sitio?.error || "sin respuesta"}).`
+                : `Cargado en la página web: ${cargaWeb.data.total} documento(s) completo(s) visibles en la tienda.`}
+              {!!cargaWeb.data.omitidos_titulos?.some((t) => normTitulo(t) === normTitulo(nombre)) &&
+                " Este producto no se publicó: le falta COA, SDS o PDF."}
+            </p>
+          )}
+          {cargaWeb?.ok === false && (
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">
+              El PDF se generó, pero no se pudo cargar en la web: {cargaWeb.error}. Use «Cargar en página web» para reintentar.
+            </p>
           )}
         </div>
       )}
@@ -2550,17 +2770,10 @@ function DocumentoCompletoTabContent({
               type="button"
               onClick={() => previewMut.mutate()}
               disabled={previewMut.isPending || loading}
-              className="min-w-[8rem] flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-ink hover:border-accent disabled:opacity-40"
+              className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              title="El PDF final se genera desde la vista previa"
             >
               {previewMut.isPending ? "Generando vista previa…" : "Vista previa"}
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerar}
-              disabled={loading || previewMut.isPending}
-              className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? "Generando documento…" : desdeTaller ? "Dar el visto bueno y generar el PDF" : "Generar PDF (FT · COA · SDS)"}
             </button>
           </div>
         </div>
@@ -2570,7 +2783,7 @@ function DocumentoCompletoTabContent({
       {previewUrl && (
         <div
           className="fixed inset-0 z-50 flex flex-col bg-black/80"
-          onClick={(e) => { if (e.target === e.currentTarget) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}
+          onClick={(e) => { if (e.target === e.currentTarget && !loading) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}
         >
           <div className="flex h-full flex-col">
             <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-panel px-4 py-2.5 shadow">
@@ -2583,8 +2796,18 @@ function DocumentoCompletoTabContent({
                 >
                   Descargar PDF
                 </a>
+                {/* El PDF final solo se genera después de ver la vista previa. */}
                 <button
                   type="button"
+                  onClick={() => void generarDesdeVistaPrevia()}
+                  disabled={loading}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {loading ? "Generando y cargando a la web…" : desdeTaller ? "Dar el visto bueno, generar y cargar a la web" : "Generar y cargar a la web"}
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
                   onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-ink hover:border-danger hover:text-danger"
                 >

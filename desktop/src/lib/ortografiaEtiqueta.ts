@@ -220,6 +220,7 @@ const CAMPOS_REVISADOS: readonly { campo: keyof ProductLabelData; titulo: string
   { campo: "productName", titulo: "Nombre del producto" },
   { campo: "classification", titulo: "Clasificación" },
   { campo: "clasificacionTexto", titulo: "Clasificación SGA" },
+  { campo: "modoUso", titulo: "Modo de uso" },
   { campo: "grade", titulo: "Grado" },
   { campo: "gradoInsumo", titulo: "Grado del insumo" },
   { campo: "origin", titulo: "Origen" },

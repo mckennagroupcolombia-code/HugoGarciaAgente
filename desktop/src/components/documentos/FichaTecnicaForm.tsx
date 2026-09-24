@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { sugerirCampoFicha } from "../../lib/sugerirCampoFicha";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { Field, listaDesdeTexto } from "./DocumentoGeneradorTab";
@@ -594,7 +595,7 @@ export default function FichaTecnicaForm({
     mutationFn: (campo: string) => {
       const nombre = state.nombreProducto.trim();
       if (!nombre) throw new Error("Indique el nombre del producto primero");
-      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", { campo, nombre }, { timeoutMs: 180000 });
+      return sugerirCampoFicha(campo, nombre);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";

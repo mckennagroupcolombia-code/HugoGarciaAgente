@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = new URL("../dist-colab/assets/", import.meta.url).pathname;
-const RUTAS_PERMITIDAS = ["/api/colaboradores/", "/api/tickets/"];
+const RUTAS_PERMITIDAS = ["/api/colaboradores/", "/api/tickets/", "/api/juegos/partidas/"];
 const PROHIBIDO = [
   "Contabilidad", "Libro Mayor", "Declarador", "Alegra", "Siigo", "Mercado Libre", "MeLi",
   "Cynthia", "Préstamos", "panelInfo", "flujoApp", "permisos_secciones.contador",

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import ColaboradoresPanel from "../components/ColaboradoresPanel";
 import { useTicketsAuth, type TicketsUser } from "./stubs/ticketsAuth";
 import AgendaColab from "./AgendaColab";
+import JuegosPanel from "../components/JuegosPanel";
 
-type Vista = "diagramas" | "agenda";
+type Vista = "diagramas" | "agenda" | "juegos";
 
 /** Toma la sesión: `?_token=` (recién entró) o la que ya estaba en este navegador. */
 function useSesion() {
@@ -74,7 +75,7 @@ export default function ColabApp() {
     <button
       type="button"
       onClick={() => setVista(v)}
-      className={`rounded-lg px-3 py-1.5 text-sm font-bold ${vista === v ? "bg-accent text-white" : "text-ink-secondary hover:bg-surface-hover"}`}
+      className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-bold ${vista === v ? "bg-accent text-white" : "text-ink-secondary hover:bg-surface-hover"}`}
     >
       {texto}
     </button>
@@ -84,9 +85,10 @@ export default function ColabApp() {
     <div className="flex h-[100dvh] flex-col" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       <header className="flex shrink-0 items-center gap-2 border-b border-border bg-surface-panel px-3 py-2">
         <span className="mr-1 text-lg font-black text-accent">M</span>
-        <nav className="flex gap-1">
+        <nav className="flex min-w-0 gap-1 overflow-x-auto">
           {tab("diagramas", "Diagramas")}
           {tab("agenda", "Agenda con Armando")}
+          {tab("juegos", "Juegos")}
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden text-xs text-muted sm:inline">{user.nombre}</span>
@@ -96,7 +98,7 @@ export default function ColabApp() {
         </div>
       </header>
       <main className="flex min-h-0 flex-1 flex-col p-2 sm:p-3">
-        {vista === "diagramas" ? <ColaboradoresPanel /> : <AgendaColab yo={user} />}
+        {vista === "diagramas" ? <ColaboradoresPanel /> : vista === "agenda" ? <AgendaColab yo={user} /> : <JuegosPanel />}
       </main>
     </div>
   );

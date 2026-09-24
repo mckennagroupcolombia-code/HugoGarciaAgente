@@ -186,8 +186,12 @@ export function handleAppBack(): boolean {
   }
 
   // En celular, desde paneles completos → volver al hub (no salir de la app).
+  // Desde la Agenda (que en el celular ya es la pantalla de inicio) no hay a dónde
+  // volver: se deja minimizar la app en vez de «volver» a la misma pantalla.
+  const enAgendaMovil = app.mobileTab === "home" && (app.panel === "hugo" || app.panel === "tickets");
   if (
     app.mobileShell === "app"
+    && !enAgendaMovil
     && typeof window !== "undefined"
     && window.matchMedia("(max-width: 767px)").matches
   ) {

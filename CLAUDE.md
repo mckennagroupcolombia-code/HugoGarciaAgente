@@ -1132,6 +1132,23 @@ o `combos` / `mapa-sistema` (el backend lo acepta en `_PERMISOS` de `routes_mapa
 Diseño y Docs siguen para el trabajo en lote. Los PNG se reconocen por el nombre del archivo
 (nace del título del código de barras): si la etiqueta tiene otro título, no aparecen.
 
+### X. Códigos EAN ↔ combos de Alegra (23-sep-2026)
+
+Cada código EAN (Diseño → Códigos EAN) se registra con el SKU de venta del combo (`C-…`).
+`app/services/ean_alegra.py` lo enlaza con el combo de Alegra y escribe el número en el **campo
+adicional «Código de barras»** del ítem (custom field de la empresa, clave `barcode`; estaba
+**inactivo** y vacío en los 243 combos — se activó ese día). Solo toca ese campo (PUT parcial).
+- `GET /api/etiquetas/codigos-ean/alegra`: cada código con su estado — `enlazado`, `aproximado`
+  (difiere en espacios/mayúsculas), `producto` (existe como producto simple, no kit), `sin_combo` —
+  y la última carga. Columna «Alegra» en la lista del panel.
+- `POST …/codigos-ean/sincronizar-alegra`: carga todos en segundo plano (pausa por el límite de Alegra).
+- Registrar o corregir un código lo sube solo (`_ean_a_alegra_en_segundo_plano` en routes.py).
+- ⚠️ El botón viejo «Subir EAN a Alegra» llamaba a `siigo.sincronizar_barcodes_ean_a_siigo`: leía
+  combos de Alegra pero **escribía en Siigo**. La ruta `sincronizar-siigo` sigue, el panel ya no la usa.
+- Corregidos el 23-sep 6 SKU de EAN que eran typo del combo (`C-ALMNAL500g`→`C-ALMNAT500g`,
+  `C- PISTOS250g`, `C-BTMS125g`, `C-ACEESEMANZ5mL`, `C-CAF100`, `C-LANOLINA40g`, y `C-ACEITEATRE5mL`→`C-ACETEATRE5mL` porque Alegra renombró el combo y la copia local seguía con el viejo); la cera blanca 500 g
+  tiene DOS EAN (115 y 116), cada uno en una etiqueta distinta — pendiente de decidir.
+
 ### Y. Cese de actividades global (23-sep-2026)
 
 Un comando pausa todos los canales de venta (reestructuración, control de inventario):
@@ -1299,6 +1316,13 @@ La cookie la dejan el login, la vuelta de Google, `/app?_token=` y `POST /api/ti
 (la pantalla de ingreso la usa para revalidar una sesión que ya estaba en el navegador, sin volver a
 pedir la contraseña). `PANEL_SIN_SESION=1` en el `.env` es el interruptor de emergencia. La API no
 cambió: sigue con el token Bearer.
+⚠️ **La app Android (WebView, UA `McKennaPanelAndroid`) también pasa por esa pantalla:** su «Entrar con
+Google» debe ir a `/app/auth/google/start?app=android`, o la vuelta de Google se queda en Chrome y la app
+nunca recibe la sesión (22-sep-2026: Victor y Stella, mismo Vivo V2066 con la APK 1.3.1, no pudieron
+entrar desde el 21-sep). Cualquier pantalla de ingreso nueva debe detectar el UA igual que
+`googleAuthStartUrl()`. **Celular (23-sep-2026):** «Agenda» es la misma agenda de escritorio (Layout +
+FlujoNav) con la barra inferior `BarraMovil` (Agenda · Hugo · Mensajes · Rápido · Yo); el hub solo pinta
+esas cuatro pestañas, con el mismo lenguaje de la piel «flujo».
 
 ### Paneles disponibles
 

@@ -30,6 +30,7 @@ type Ventana =
   | { tipo: "crear"; ref: string; nombre: string };
 const VentanaCtx = createContext<(v: Ventana) => void>(() => {});
 import { AccionRanura, BTN, BTN_SEC, CASILLA, EQUIPO, EtiquetaPng, cantidad, type Combo, type Eslabon, type MateriaPrima, type Respuesta } from "./comun";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 /**
  * El taller de combos: una guía caso a caso para completar lo que le falta a cada producto
@@ -1025,7 +1026,10 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
     const cerro = completo(c);
     setDestello(new Set(ganadas));
     setPremio(cerro);
-    if (cerro) sonarMoneda();
+    if (cerro) {
+      sonarMoneda();
+      celebrarAprobacion({ tipo: "moneda", titulo: "¡Combo completo!", detalle: c.ref, mision: "combo_completo", sonido: false });
+    }
     setMarcador((m) => {
       const n = { dia: hoyClave(), conexiones: (m.dia === hoyClave() ? m.conexiones : 0) + ganadas.length, combos: (m.dia === hoyClave() ? m.combos : 0) + (cerro ? 1 : 0) };
       try {

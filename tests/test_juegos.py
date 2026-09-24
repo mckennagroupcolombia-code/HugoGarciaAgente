@@ -86,11 +86,81 @@ def test_partidas_guardadas_por_usuario(client, monkeypatch, tmp_path):
     datos = base64.b64encode(bytes(range(256)) * 32).decode()
     r = client.put("/api/juegos/partidas/bass", json={"datos": datos}, headers=cab)
     assert r.status_code == 200 and r.get_json()["bytes"] == 8192
+    assert (tmp_path / "usuario_7" / "bass.sav").is_file()
     assert client.get("/api/juegos/partidas/bass", headers=cab).get_json()["datos"] == datos
     assert client.get("/api/juegos/partidas/otro", headers=cab).get_json()["datos"] is None
     assert client.put("/api/juegos/partidas/../x", json={"datos": datos}, headers=cab).status_code in (400, 404)
     assert client.put("/api/juegos/partidas/bass", json={"datos": "no-es-base64!"}, headers=cab).status_code == 400
     assert client.put("/api/juegos/partidas/bass", json={"datos": base64.b64encode(b"x" * 300000).decode()}, headers=cab).status_code == 400
+
+
+def _b64(b: bytes) -> str:
+    import base64
+    return base64.b64encode(b).decode()
+
+
+def test_los_admins_no_comparten_partida(client, monkeypatch, tmp_path):
+    """Con CHAT_API_TOKEN la persona sale de X-Tickets-Token: antes todos caían en «comun»."""
+    from app.services import tickets_db
+
+    monkeypatch.setattr(routes, "chat_api_token_matches_request", lambda: True)
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token",
+                        lambda tok: {"armando": {"id": 8}, "cynthia": {"id": 3}}.get(tok))
+    monkeypatch.setenv("JUEGOS_PARTIDAS_DIR", str(tmp_path))
+    a = {"Authorization": "Bearer sistema", "X-Tickets-Token": "armando"}
+    c = {"Authorization": "Bearer sistema", "X-Tickets-Token": "cynthia"}
+    assert client.put("/api/juegos/partidas/bass", json={"datos": _b64(b"A" * 10 + b"a")}, headers=a).status_code == 200
+    assert client.put("/api/juegos/partidas/bass", json={"datos": _b64(b"C" * 10 + b"c")}, headers=c).status_code == 200
+    assert client.get("/api/juegos/partidas/bass", headers=a).get_json()["datos"] == _b64(b"A" * 10 + b"a")
+    assert client.get("/api/juegos/partidas/bass", headers=c).get_json()["datos"] == _b64(b"C" * 10 + b"c")
+    # Token de sistema sin persona: ni lee ni guarda (no hay carpeta común).
+    r = client.put("/api/juegos/partidas/bass", json={"datos": _b64(b"x1")}, headers={"Authorization": "Bearer sistema"})
+    assert r.status_code == 403
+    assert not (tmp_path / "comun").exists()
+
+
+def test_respaldos_blanco_protegido_y_restaurar(client, monkeypatch, tmp_path):
+    from app.services import tickets_db
+    from app import api_auth
+
+    monkeypatch.setattr(routes, "chat_api_token_matches_request", lambda: False)
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda tok: {"id": 7} if tok == "tok7" else None)
+    monkeypatch.setattr(api_auth, "bearer_token_from_request", lambda: "tok7")
+    monkeypatch.setenv("JUEGOS_PARTIDAS_DIR", str(tmp_path))
+    cab = {"Authorization": "Bearer tok7"}
+    v1, v2 = b"\x01\x02" * 8, b"\x03\x04" * 8
+    client.put("/api/juegos/partidas/chess", json={"datos": _b64(v1)}, headers=cab)
+    client.put("/api/juegos/partidas/chess", json={"datos": _b64(v2)}, headers=cab)
+    # Una SRAM en blanco (el emulador arrancó sin leer la partida) no pisa la que tiene datos.
+    r = client.put("/api/juegos/partidas/chess", json={"datos": _b64(b"\x00" * 16)}, headers=cab)
+    assert r.get_json().get("protegida") is True
+    assert client.get("/api/juegos/partidas/chess", headers=cab).get_json()["datos"] == _b64(v2)
+    lista = client.get("/api/juegos/partidas/chess/respaldos", headers=cab).get_json()
+    normales = [x for x in lista["respaldos"] if not x["en_blanco"]]
+    assert len(normales) == 1 and any(x["en_blanco"] for x in lista["respaldos"])
+    # Volver a v1: v2 queda como respaldo, no se pierde nada.
+    r = client.post("/api/juegos/partidas/chess/restaurar", json={"respaldo": normales[0]["id"]}, headers=cab)
+    assert r.status_code == 200
+    assert client.get("/api/juegos/partidas/chess", headers=cab).get_json()["datos"] == _b64(v1)
+    lista = client.get("/api/juegos/partidas/chess/respaldos", headers=cab).get_json()
+    assert sum(1 for x in lista["respaldos"] if not x["en_blanco"]) == 2
+    assert client.post("/api/juegos/partidas/chess/restaurar", json={"respaldo": "../../x"}, headers=cab).status_code == 400
+
+
+def test_el_colaborador_externo_puede_guardar_su_partida(client, monkeypatch, tmp_path):
+    from app.services import tickets_db, colaboradores
+    from app import api_auth
+
+    monkeypatch.setattr(routes, "chat_api_token_matches_request", lambda: False)
+    monkeypatch.setattr(tickets_db, "get_usuario_by_token", lambda tok: {"id": 13} if tok == "seb" else None)
+    monkeypatch.setattr(api_auth, "bearer_token_from_request", lambda: "seb")
+    monkeypatch.setattr(colaboradores, "es_colaborador_externo", lambda u: bool(u) and u.get("id") == 13)
+    monkeypatch.setenv("JUEGOS_PARTIDAS_DIR", str(tmp_path))
+    cab = {"Authorization": "Bearer seb"}
+    assert client.put("/api/juegos/partidas/bass", json={"datos": _b64(b"sebas")}, headers=cab).status_code == 200
+    assert (tmp_path / "usuario_13" / "bass.sav").read_bytes() == b"sebas"
+    # El resto de la API sigue cerrada para él.
+    assert client.get("/api/metricas", headers=cab).status_code == 403
 
 
 def test_el_juego_no_trae_ejecutables_ni_llamadas_externas():

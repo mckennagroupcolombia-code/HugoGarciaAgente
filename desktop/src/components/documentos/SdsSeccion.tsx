@@ -25,6 +25,7 @@ import ghs06 from "../../assets/ghs/GHS06.svg";
 import ghs07 from "../../assets/ghs/GHS07.svg";
 import ghs08 from "../../assets/ghs/GHS08.svg";
 import ghs09 from "../../assets/ghs/GHS09.svg";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 /** Nombres oficiales en español (igual que PICTOGRAMAS_GHS en sds_estructura.py). */
 export const PICTOGRAMAS: { codigo: string; nombre: string; src: string }[] = [
@@ -292,6 +293,7 @@ export default function SdsSeccion({
       ...valueRef.current,
       vistoBueno: { por: (u?.nombre || u?.username || "").trim() || "Usuario del panel", en: new Date().toISOString() },
     });
+    celebrarAprobacion({ tipo: "moneda", titulo: "Visto bueno a la hoja de seguridad", ref: titulo, mision: "sds_visto_bueno" });
   };
 
   const ft = obtenerFt();

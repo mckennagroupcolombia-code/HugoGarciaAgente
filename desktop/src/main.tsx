@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 import { initFantasyPress } from "./lib/fantasyPress";
+import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -53,3 +54,5 @@ createRoot(document.getElementById("root")!).render(
 );
 
 initFantasyPress();
+// Monedas que paga el servidor por las acciones de cada usuario: se ven en cualquier panel.
+escucharMonedasDelServidor();

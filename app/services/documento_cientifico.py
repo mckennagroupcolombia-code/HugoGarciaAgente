@@ -4,6 +4,7 @@ Enriquecimiento de datos COA/SDS/TDS con PubChem, PubMed, ficha Sheets y síntes
 
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import re
@@ -337,6 +338,18 @@ def completar_datos_documento(
     }
 
 
+_LIMITE_GEMINI_S: contextvars.ContextVar[int] = contextvars.ContextVar("limite_gemini_s", default=30)
+
+
+def sugerir_campo_ficha_en_segundo_plano(campo: str, nombre: str) -> dict[str, Any]:
+    """`sugerir_campo_ficha` para un job en hilo: sin corte del proxy, espera hasta 120 s."""
+    token = _LIMITE_GEMINI_S.set(120)
+    try:
+        return sugerir_campo_ficha(campo, nombre)
+    finally:
+        _LIMITE_GEMINI_S.reset(token)
+
+
 def _sintetizar_texto(prompt: str) -> str:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
@@ -352,12 +365,18 @@ def _sintetizar_texto(prompt: str) -> str:
         if not ok:
             raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
-        with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
-            try:
-                resp = fut.result(timeout=30)
-            except FutureTimeout:
-                raise RuntimeError("Gemini tardó demasiado — intente de nuevo en unos segundos")
+        # 30 s en las rutas que responden en la misma petición (Cloudflare corta a ~100 s);
+        # 120 s en segundo plano (`sugerir_campo_ficha_en_segundo_plano`): con 30 s se
+        # perdían respuestas que llegaban a los 35-45 s.
+        limite = _LIMITE_GEMINI_S.get()
+        ex = ThreadPoolExecutor(max_workers=1)
+        fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
+        try:
+            resp = fut.result(timeout=limite)
+        except FutureTimeout:
+            raise RuntimeError(f"Gemini tardó más de {limite} s — intente de nuevo en unos segundos")
+        finally:
+            ex.shutdown(wait=False)  # sin esperar al hilo colgado (el `with` sí esperaba)
         t_in, t_out = usage_gemini(resp)
         registrar_llamada(
             modelo, t_in, t_out, contexto="documentos_sugerir_campo",

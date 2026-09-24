@@ -293,6 +293,60 @@ def actualizar_campos_ficha(ficha_id: str, campos: dict | None = None,
         return _guardar_ficha_bajo_candado(body, actual["id"], actual.get("nombre") or "", body["data"])
 
 
+FICHA_SIN_DATO = "— completar —"
+
+
+def _cambios_desde_ficha(data: dict, foto: dict, base: dict | None) -> dict:
+    """Misma regla que `cambiosDesdeFicha` (desktop/src/lib/fichaTecnicaSync.ts):
+    se trae solo lo que cambió en la ficha desde la última foto (`base`), así no
+    se pisa un texto ajustado a mano; una casilla vacía siempre se llena."""
+    out: dict[str, str] = {}
+    for k, v in foto.items():
+        en_etiqueta = str(data.get(k) or "")
+        if en_etiqueta == v:
+            continue
+        vacia = not en_etiqueta.strip() or FICHA_SIN_DATO in en_etiqueta
+        if not vacia and (base is None or str(base.get(k) or "") == v):
+            continue
+        out[k] = v
+    return out
+
+
+def sincronizar_etiquetas_con_ficha_tecnica(ids_ficha: list[str], foto: dict) -> list[dict]:
+    """Al guardar un documento técnico, lleva sus cambios a TODAS las etiquetas
+    enlazadas (no solo a la que se abra en el editor). `foto` son los campos de
+    etiqueta que salen del documento (`fotoFicha` del panel). Las plantillas de
+    categoría no llevan datos de producto: se saltan. El primer id es el documento
+    vigente; las etiquetas enlazadas a los otros (p. ej. su borrador, que se borra
+    al generar el documento final) pasan a enlazar el vigente."""
+    lista = [i.strip() for i in ids_ficha if isinstance(i, str) and i.strip()]
+    ids = set(lista)
+    if not ids or not isinstance(foto, dict):
+        raise ValueError("Falta el documento técnico o sus campos")
+    foto = {k: v for k, v in foto.items() if isinstance(k, str) and isinstance(v, str)}
+    cambiadas: list[dict] = []
+    with _candado():
+        todos = _load_all()
+        now = _now()
+        for f in todos:
+            data = f.get("data") or {}
+            if f.get("es_plantilla_categoria") or (data.get("fichaTecnicaId") or "") not in ids:
+                continue
+            base = data.get("fichaTecnicaBase")
+            cambios = _cambios_desde_ficha(data, foto, base if isinstance(base, dict) else None)
+            if not cambios and base == foto and data.get("fichaTecnicaId") == lista[0]:
+                continue
+            # «envase»/«empaque» de la conservación según el recipiente, como al guardar.
+            f["data"] = _con_recipiente(
+                f["id"], {**data, **cambios, "fichaTecnicaBase": foto, "fichaTecnicaId": lista[0]}
+            )
+            f["actualizado"] = now
+            if cambios:
+                cambiadas.append({"id": f["id"], "nombre": f.get("nombre") or "", "campos": sorted(cambios)})
+        _save_all(todos)
+    return cambiadas
+
+
 def eliminar_ficha(ficha_id: str) -> bool:
     ficha_id = (ficha_id or "").strip()
     if not ficha_id:

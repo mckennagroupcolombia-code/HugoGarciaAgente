@@ -129,3 +129,20 @@ def test_servicios_publicos_no_llevan_retencion_de_renta_ni_de_ica():
         assert ipc.perfil(cta)["ica_por_mil"] == 0
     assert not ipc.es_autorretenedora("5135")
     assert not ipc.es_autorretenedora("513550")
+
+
+@pytest.mark.parametrize("cuenta", ["1405", "1435", "143505", "6135", "6205", "519525"])
+def test_las_compras_de_bienes_llevan_retencion_de_compras_sin_ica(cuenta):
+    # 23-sep-2026: una compra de materia prima a Química Interkrol salía con
+    # ICA comercial 11,04 por mil propuesto por la cuenta 1435. Las compras
+    # solo llevan retención en la fuente por compras (2,5%).
+    p = ipc.perfil(cuenta)
+    assert p["concepto_retencion"] == "compras"
+    assert p["ica_por_mil"] == 0.0
+
+
+def test_la_compra_de_interkrol_retiene_2_5_por_ciento():
+    d = ipc.describir("1435", anio=2026, base=2_393_257)
+    assert d["tarifa_pct"] == 2.5
+    assert d["retencion_estimada"] == pytest.approx(59_831.43, abs=1)
+    assert d["ica_por_mil"] == 0.0

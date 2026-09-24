@@ -19,6 +19,10 @@ import { api } from "../api/client";
  * `/api/juegos/partidas/<juego>` con el Bearer del usuario; al abrir, el juego la pide y el panel
  * se la devuelve. Protocolo: {tipo:"juego:partida:leer"} → {tipo:"juego:partida", datos};
  * {tipo:"juego:partida:guardar", datos} → PUT. Solo se atiende al iframe montado.
+ *
+ * La partida es de cada persona (el servidor la guarda por usuario, nunca en una carpeta común),
+ * cada guardado deja la versión anterior como respaldo y se puede volver a una desde aquí.
+ * También lo usa la app de colaboradores (src/colab/ColabApp.tsx): no importar nada del panel.
  */
 
 type Juego = {
@@ -29,6 +33,8 @@ type Juego = {
   /** Tamaño natural de la página del juego, para escalarla sin deformar. */
   ancho: number;
   alto: number;
+  /** El juego guarda partida (SRAM del cartucho) → se muestran sus versiones. */
+  guarda?: boolean;
 };
 
 const JUEGOS: Juego[] = [
@@ -56,6 +62,7 @@ const JUEGOS: Juego[] = [
     src: `${import.meta.env.BASE_URL}juegos/bass/index.html?v=2`,
     ancho: 512,
     alto: 448,
+    guarda: true,
   },
   {
     id: "chess",
@@ -64,6 +71,7 @@ const JUEGOS: Juego[] = [
     src: `${import.meta.env.BASE_URL}juegos/chess/index.html?v=1`,
     ancho: 480,
     alto: 320,
+    guarda: true,
   },
 ];
 
@@ -109,6 +117,80 @@ function useEscala(ref: React.RefObject<HTMLDivElement | null>, ancho: number, a
   return escala;
 }
 
+type Respaldo = { id: string; guardada: number; bytes: number; en_blanco: boolean };
+type Respaldos = { actual: { guardada: number; bytes: number } | null; respaldos: Respaldo[] };
+
+const fecha = (s: number) =>
+  new Date(s * 1000).toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+/** «Tu partida guardada» + versiones anteriores, con «Volver a esta». */
+function PartidasGuardadas({ juego, refresco }: { juego: Juego; refresco: number }) {
+  const [info, setInfo] = useState<Respaldos | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [abierto, setAbierto] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+
+  const cargar = useCallback(() => {
+    setError(null);
+    api
+      .get<Respaldos>(`/api/juegos/partidas/${juego.id}/respaldos`)
+      .then(setInfo)
+      .catch((e: Error) => { setInfo(null); setError(e.message || "No se pudo consultar la partida."); });
+  }, [juego.id]);
+
+  useEffect(() => { cargar(); }, [cargar, refresco]);
+
+  async function restaurar(r: Respaldo) {
+    if (!window.confirm(`¿Volver a la partida del ${fecha(r.guardada)}? La actual queda guardada como respaldo.`)) return;
+    setOcupado(true);
+    try {
+      await api.post(`/api/juegos/partidas/${juego.id}/restaurar`, { respaldo: r.id });
+      cargar();
+    } catch (e) {
+      setError((e as Error).message || "No se pudo restaurar.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  if (error) return <p className="text-xs text-muted">{error}</p>;
+  if (!info) return null;
+  const versiones = info.respaldos.filter((r) => !r.en_blanco);
+  return (
+    <div className="w-full max-w-md rounded-xl border border-border px-3 py-2 text-left text-xs">
+      <div className="flex items-center gap-2">
+        <span className="font-semibold">Tu partida:</span>
+        <span className="text-muted">
+          {info.actual ? `guardada el ${fecha(info.actual.guardada)}` : "todavía no hay partida guardada"}
+        </span>
+        {versiones.length > 0 && (
+          <button type="button" onClick={() => setAbierto((v) => !v)} className="ml-auto font-semibold text-accent">
+            {abierto ? "Ocultar" : `Versiones anteriores (${versiones.length})`}
+          </button>
+        )}
+      </div>
+      <p className="mt-1 text-muted">Solo tú la ves. Cada guardado conserva la versión anterior.</p>
+      {abierto && (
+        <ul className="mt-2 max-h-48 space-y-1 overflow-auto">
+          {versiones.map((r) => (
+            <li key={r.id} className="flex items-center gap-2">
+              <span>{fecha(r.guardada)}</span>
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={() => void restaurar(r)}
+                className="ml-auto rounded border border-border px-2 py-0.5 font-semibold hover:border-accent disabled:opacity-50"
+              >
+                Volver a esta
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function JuegosPanel() {
   const [activoId, setActivoId] = useState(JUEGOS[0].id);
   const [jugando, setJugando] = useState(false);
@@ -120,6 +202,7 @@ export default function JuegosPanel() {
   const marco = useRef<HTMLIFrameElement>(null);
   const escala = useEscala(escenario, juego.ancho, juego.alto, jugando);
   const [guardado, setGuardado] = useState<string | null>(null);
+  const [refrescoPartidas, setRefrescoPartidas] = useState(0);
 
 
   const guardadoPendiente = useRef<(() => void) | null>(null);
@@ -152,6 +235,7 @@ export default function JuegosPanel() {
           ventana.postMessage({ tipo: "juego:partida", datos: r?.datos ?? null }, "*");
         } else if (m.tipo === "juego:partida:guardar" && typeof m.datos === "string") {
           await api.put(`/api/juegos/partidas/${id}`, { datos: m.datos });
+          setRefrescoPartidas((n) => n + 1);
           setGuardado(new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }));
           ventana.postMessage({ tipo: "juego:partida:ok" }, "*");
           guardadoPendiente.current?.();
@@ -232,6 +316,7 @@ export default function JuegosPanel() {
           {servidor === "revisando" ? "Preparando…" : "▶ Jugar en pantalla completa"}
         </button>
         <p className="text-xs text-muted">Esc o «✕ Salir» (arriba a la derecha) para volver.</p>
+        {juego.guarda && !jugando && <PartidasGuardadas juego={juego} refresco={refrescoPartidas} />}
         {servidor === "sin-ruta" && (
           <p className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
             El servidor todavía no sirve los juegos: falta reiniciar el agente

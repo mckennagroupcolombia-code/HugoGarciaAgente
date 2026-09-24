@@ -344,6 +344,11 @@ def _publico_para(usuario, filas):
 def register_tickets_routes(app):
     init_db()
 
+    # Monedas y logros: el árbitro paga las acciones de su catálogo a quien las hizo.
+    from app.services.logros_hook import registrar_arbitro
+
+    registrar_arbitro(app)
+
     # ── AUTH ────────────────────────────────────────────────────────────────
 
     @app.route("/api/tickets/auth/login", methods=["POST"])
@@ -968,6 +973,33 @@ def register_tickets_routes(app):
         if not set_bolsillo_usuario(uid, blob):
             return jsonify({"error": "Contenido demasiado grande"}), 413
         return jsonify({"ok": True}), 200
+
+    # ── LOGROS Y MONEDAS ─────────────────────────────────────────────────────
+    # Las tareas de revisión se juegan como misiones; la tarifa la pone el servidor.
+
+    @app.route("/api/tickets/auth/logros", methods=["GET"])
+    @_auth
+    def tickets_logros_resumen():
+        from app.services.logros_usuario import resumen_usuario
+
+        return jsonify(resumen_usuario(request.tickets_usuario["id"])), 200
+
+    @app.route("/api/tickets/auth/logros", methods=["POST"])
+    @_auth
+    def tickets_logros_registrar():
+        from app.services.logros_usuario import registrar_mision
+
+        data = request.get_json(force=True) or {}
+        try:
+            r = registrar_mision(
+                request.tickets_usuario["id"],
+                str(data.get("mision") or ""),
+                str(data.get("ref") or ""),
+                str(data.get("detalle") or ""),
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(r), 200
 
     # ── ROLES ────────────────────────────────────────────────────────────────
 

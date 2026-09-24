@@ -86,3 +86,67 @@ export function sonarMoneda(forzar = false) {
     /* sin audio: el premio sigue viéndose */
   }
 }
+
+/**
+ * Sonidos de aprobación (fichas técnicas, etiquetas, revisiones): también sintetizados, con el
+ * mismo interruptor de silencio que el taller. `[frecuencia, duración]`; frecuencia 0 = silencio.
+ */
+type Nota = readonly [number, number];
+
+function tocarNotas(c: AudioContext, notas: readonly Nota[], t0: number, tipo: OscillatorType, vol: number) {
+  let t = t0;
+  for (const [f, d] of notas) {
+    if (f > 0) {
+      const osc = c.createOscillator();
+      const gan = c.createGain();
+      osc.type = tipo;
+      osc.frequency.setValueAtTime(f, t);
+      gan.gain.setValueAtTime(0.0001, t);
+      gan.gain.exponentialRampToValueAtTime(vol, t + 0.006);
+      gan.gain.setValueAtTime(vol, t + Math.max(0.01, d * 0.6));
+      gan.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      osc.connect(gan).connect(c.destination);
+      osc.start(t);
+      osc.stop(t + d + 0.02);
+    }
+    t += d;
+  }
+  return t;
+}
+
+// La moneda: si5 → mi6, la segunda se deja sonar.
+const MONEDA: readonly Nota[] = [[987.77, 0.08], [1318.51, 0.42]];
+// «Nivel superado»: arpegio que sube a un do7 largo, con bajo en onda triangular.
+const FANFARRIA: readonly Nota[] = [
+  [783.99, 0.09], [1046.5, 0.09], [1318.51, 0.09], [1567.98, 0.18],
+  [0, 0.04], [1318.51, 0.09], [1567.98, 0.34],
+  [0, 0.05], [1760.0, 0.1], [1975.53, 0.1], [2093.0, 0.62],
+];
+const BAJO: readonly Nota[] = [[130.81, 0.36], [196.0, 0.34], [0, 0.13], [174.61, 0.2], [261.63, 0.62]];
+
+function sonar(tocarCon: (c: AudioContext, t0: number) => void) {
+  if (!sonidoActivo()) return;
+  try {
+    const c = contexto();
+    if (!c) return;
+    const ir = () => tocarCon(c, c.currentTime + 0.005);
+    if (c.state === "running") ir();
+    else void c.resume().then(ir);
+  } catch {
+    /* sin audio: la celebración sigue viéndose */
+  }
+}
+
+/** Una revisión marcada (un paso): la moneda. */
+export function sonarRevisado() {
+  sonar((c, t0) => tocarNotas(c, MONEDA, t0, "square", 0.1));
+}
+
+/** Una aprobación final (ficha técnica, etiqueta): moneda y fanfarria de nivel superado. */
+export function sonarAprobado() {
+  sonar((c, t0) => {
+    const t1 = tocarNotas(c, MONEDA, t0, "square", 0.1);
+    tocarNotas(c, FANFARRIA, t1 - 0.12, "square", 0.08);
+    tocarNotas(c, BAJO, t1 - 0.12, "triangle", 0.16);
+  });
+}

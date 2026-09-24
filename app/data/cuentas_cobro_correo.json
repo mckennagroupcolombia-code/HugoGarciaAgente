@@ -1,5 +1,5 @@
 {
-  "actualizado_en": "2026-09-22T09:02:44",
+  "actualizado_en": "2026-09-23T13:59:27",
   "cobros": [
     {
       "mid": "1141",
@@ -12,7 +12,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUNIO DE 2021",
       "fecha": "2021-06-28",
       "periodo": "2021-06",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<BN7PR07MB42572F71914EE6B12F790620C8EB9@BN7PR07MB4257.namprd07.prod.outlook.com>"
     },
     {
       "mid": "2798",
@@ -25,7 +26,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2022-04-28",
       "periodo": "2022-04",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<MWHPR07MB360058B54149566653065299C8C09@MWHPR07MB3600.namprd07.prod.outlook.com>"
     },
     {
       "mid": "3517",
@@ -38,7 +40,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUN IO DE 2022",
       "fecha": "2022-06-28",
       "periodo": "2022-06",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<MWHPR07MB360095016171900EC0B86391C8BA9@MWHPR07MB3600.namprd07.prod.outlook.com>"
     },
     {
       "mid": "3933",
@@ -51,7 +54,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2022-07-28",
       "periodo": "2022-07",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<MWHPR07MB3600DF83D59B55F5BE1A6584C89F9@MWHPR07MB3600.namprd07.prod.outlook.com>"
     },
     {
       "mid": "4232",
@@ -64,7 +68,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE AGO STO DE 2022",
       "fecha": "2022-08-28",
       "periodo": "2022-08",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<MWHPR07MB360062E91B8A59C12CDEFEA9C87E9@MWHPR07MB3600.namprd07.prod.outlook.com>"
     },
     {
       "mid": "4768",
@@ -77,7 +82,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE SEP TIEMBRE DE",
       "fecha": "2022-09-28",
       "periodo": "2022-09",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB532978EB5E4FD10B93871F4FC85F9@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "6508",
@@ -104,7 +110,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2023-01-28",
       "periodo": "2023-01",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB53297174E15B60AE3E43ED1FC8D19@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "6919",
@@ -145,7 +152,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE MAR ZO DE 2023",
       "fecha": "2023-04-28",
       "periodo": "2023-04",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329AE9C86DD534327946D38C8769@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "7574",
@@ -228,7 +236,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUL IO DE 2023",
       "fecha": "2023-07-28",
       "periodo": "2023-07",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329A808F1D8C0FCE76E4FE4C814A@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "8359",
@@ -255,7 +264,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS EXOGENA 2023",
       "fecha": "2023-08-15",
       "periodo": "2023-08",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329A808F1D8C0FCE76E4FE4C814A@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "8522",
@@ -408,7 +418,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE DIC IEMBRE DE",
       "fecha": "2023-12-28",
       "periodo": "2023-12",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB53299E6EEBB8704E08C97E61C8742@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "9544",
@@ -449,7 +460,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE ENE RO DE 2024",
       "fecha": "2024-01-28",
       "periodo": "2024-01",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329ECFFA9A4C4748E3F20FCC8472@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "9807",
@@ -490,7 +502,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE FEB RERO DE 2024",
       "fecha": "2024-02-28",
       "periodo": "2024-02",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329E5D648A73527AA4179F1C85F2@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "10029",
@@ -559,7 +572,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2024-04-28",
       "periodo": "2024-04",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB5329BDDEF178620522186E5BC8182@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "10527",
@@ -586,7 +600,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUN IO DE 2024",
       "fecha": "2024-06-28",
       "periodo": "2024-06",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<PH7PR20MB53294583DF09004F2239BC35C8D12@PH7PR20MB5329.namprd20.prod.outlook.com>"
     },
     {
       "mid": "11790",
@@ -599,7 +614,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE OCT UBRE DE 2024",
       "fecha": "2024-10-28",
       "periodo": "2024-10",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB42330DC21B54AEF4DE95AA32C8562@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "12279",
@@ -612,7 +628,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE DIC IEMBRE DE",
       "fecha": "2024-12-28",
       "periodo": "2024-12",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB423377C6574E0638E0719252C80A2@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "13114",
@@ -625,7 +642,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE MAR ZO DE 2025",
       "fecha": "2025-03-28",
       "periodo": "2025-03",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233E2420508584BE219132FC8A82@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "13699",
@@ -638,7 +656,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE MAY O DE 2025",
       "fecha": "2025-05-28",
       "periodo": "2025-05",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233AABD84D6C6A3E252576BC86DA@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "14499",
@@ -651,7 +670,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUL IO DE 2025",
       "fecha": "2025-07-28",
       "periodo": "2025-07",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<SN6PR02MB4238EB8D64ED061828651D7FC82FA@SN6PR02MB4238.namprd02.prod.outlook.com>"
     },
     {
       "mid": "15869",
@@ -664,7 +684,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2025-11-28",
       "periodo": "2025-11",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233EB8D9DDA53B860F72941C8D9A@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "16204",
@@ -677,7 +698,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2025-12-28",
       "periodo": "2025-12",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB423308D2721FC41697734DD0C8BCA@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "16868",
@@ -690,7 +712,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2026-01-28",
       "periodo": "2026-01",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB42339A6924BA0C7A9F4E8F6DC865A@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "17383",
@@ -703,7 +726,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2026-02-28",
       "periodo": "2026-02",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB423386353DC13984E4CCDDA4C87AA@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "17935",
@@ -716,7 +740,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2026-03-28",
       "periodo": "2026-03",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233C2A69802B57632DEF560C85DA@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "18315",
@@ -729,7 +754,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2026-04-28",
       "periodo": "2026-04",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB423347DB9C83A817E3BB7CEBC8322@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "18917",
@@ -742,7 +768,8 @@
       "beneficiario": "CR 5 9 30 INT 5 AP 301 310 5653766",
       "fecha": "2026-05-28",
       "periodo": "2026-05",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233B5966FE345FB2340E5C6C8152@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "19512",
@@ -755,7 +782,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUN IO DE 2026",
       "fecha": "2026-06-28",
       "periodo": "2026-06",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233382D81BF238E1AD3DB60C8F12@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "19850",
@@ -768,7 +796,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE JUL IO DE 2026",
       "fecha": "2026-07-28",
       "periodo": "2026-07",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233D5148F4C4C9F0D8AF71DC8C82@DM6PR02MB4233.namprd02.prod.outlook.com>"
     },
     {
       "mid": "20635",
@@ -781,7 +810,8 @@
       "beneficiario": "CONCEPTO: HONORARIOS ASESORIA CONTABLE MES DE AGO STO DE 2026",
       "fecha": "2026-08-28",
       "periodo": "2026-08",
-      "proveedor": "william"
+      "proveedor": "william",
+      "message_id": "<DM6PR02MB4233E12B26F64560CAF1B314C8B52@DM6PR02MB4233.namprd02.prod.outlook.com>"
     }
   ]
 }

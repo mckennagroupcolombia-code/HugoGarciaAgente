@@ -20,6 +20,7 @@ import type { IconoKey } from "../etiqueta-ficha/ProductAttributeGrid";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { IconoCelda } from "../etiqueta-30ml/TechnicalCell";
 import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
+import { IconoContacto } from "../etiqueta-ficha/iconosLineales";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
   AZUL_VERTICAL,
@@ -378,6 +379,20 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
             tam={TAM.pie}
             maxLineas={1}
             ejemplo={EJEMPLO_VERTICAL.website}
+            oscuro
+          />
+        </div>
+        {/* NIT: en todas las etiquetas guardadas vive en `phone`. */}
+        <div className="ev-pie-linea">
+          <IconoContacto texto={data.phone || ""} size={17} />
+          <CampoEtiqueta
+            valor={data.phone || ""}
+            onChange={cambio("phone")}
+            editMode={editMode}
+            styleKey="ev-pie-nit"
+            tam={TAM.pie}
+            maxLineas={1}
+            ejemplo="NIT: 901316016-3"
             oscuro
           />
         </div>

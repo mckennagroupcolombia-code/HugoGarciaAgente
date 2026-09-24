@@ -137,15 +137,15 @@
       "alto_pulg": 1.614,
       "unidades_por_rollo": 690,
       "rollos": 9.0,
-      "etiquetas_sueltas": 33,
+      "etiquetas_sueltas": 32,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "5 g",
       "notas": "",
       "cantidad": 9.0,
       "unidad": "rollos",
-      "total_etiquetas": 6243,
-      "updated_at": "2026-09-16T10:15:16"
+      "total_etiquetas": 6242,
+      "updated_at": "2026-09-23T14:34:12"
     },
     {
       "id": "2299337d5a1e",
@@ -179,15 +179,15 @@
       "alto_pulg": 2.598,
       "unidades_por_rollo": 410,
       "rollos": 8.0,
-      "etiquetas_sueltas": 221,
+      "etiquetas_sueltas": 209,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "250 / 500 g",
       "notas": "",
       "cantidad": 8.0,
       "unidad": "rollos",
-      "total_etiquetas": 3501,
-      "updated_at": "2026-09-18T09:47:42"
+      "total_etiquetas": 3489,
+      "updated_at": "2026-09-23T14:32:09"
     },
     {
       "id": "1c1159488549",

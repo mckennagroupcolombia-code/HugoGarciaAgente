@@ -3959,6 +3959,8 @@ def register_routes(app):
         metodo = request.method
         if path.startswith(("/api/colaboradores/", "/api/tickets/auth/", "/api/tickets/panel/")):
             return None
+        if path.startswith("/api/juegos/partidas/"):
+            return None                     # Juegos: la partida es de cada quien (carpeta por usuario)
         if metodo in ("GET", "HEAD") and path == "/api/status":
             # El health check dice qué integraciones tiene la casa (MeLi, Google,
             # Alegra…): para el colaborador solo «está viva».
@@ -5775,6 +5777,8 @@ def register_routes(app):
                 eliminar_borrador_completo_por_titulo(titulo)
             except Exception:
                 pass
+            # El panel lo usa para llevar los cambios a las etiquetas enlazadas.
+            resultado["slug"] = slug_completo
             log_line(f"✔ documento completo: {resultado.get('pdf_nombre')}")
             try:
                 from app.services.documentos_web import invalidar_indice_documentos_web
@@ -7225,14 +7229,40 @@ def register_routes(app):
         nombre = (body.get("nombre") or body.get("nombre_producto") or body.get("titulo") or "").strip()
         if not campo or not nombre:
             return jsonify({"error": "Se requiere 'campo' y 'nombre' del producto"}), 400
-        try:
-            from app.services.documento_cientifico import sugerir_campo_ficha
+        from app.services.documento_cientifico import sugerir_campo_ficha
 
+        if body.get("en_segundo_plano"):
+            # La IA tarda 30-60 s (a veces más) y el túnel corta a ~100 s con 504.
+            from app.services.coa_scan_jobs import iniciar_job
+            from app.services.documento_cientifico import sugerir_campo_ficha_en_segundo_plano
+
+            job_id = iniciar_job(sugerir_campo_ficha_en_segundo_plano, campo, nombre)
+            return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
+        try:
             return jsonify(sugerir_campo_ficha(campo, nombre))
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
         except Exception as exc:
+            import traceback
+
+            print(f"⚠️ [sugerir-campo] {campo} / {nombre}: {exc}\n{traceback.format_exc()}", flush=True)
             return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/sugerir-campo/<job_id>", methods=["GET"])
+    @app.route("/api/fichas/sugerir-campo/<job_id>", methods=["GET"])
+    def api_fichas_sugerir_campo_estado(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa_scan_jobs import estado_coa_scan_job
+
+        job = estado_coa_scan_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "status": "error", "error": "La consulta expiró; vuelve a pedirla"}), 404
+        if job.get("status") == "error":
+            return jsonify({"ok": False, "status": "error", "error": job.get("error") or "La IA no respondió"})
+        if job.get("status") == "done":
+            return jsonify({"ok": True, "status": "done", **(job.get("resultado") or {})})
+        return jsonify({"ok": True, "status": job.get("status") or "pending", "progreso": job.get("progreso") or ""})
 
     @app.route("/app/api/fichas/sugerir-multiples", methods=["POST"])
     @app.route("/api/fichas/sugerir-multiples", methods=["POST"])
@@ -15032,6 +15062,111 @@ def register_routes(app):
         dl_name = f"McKenna_Group_v{version}.apk"
         return _send_file(_APK_DEST, as_attachment=True, download_name=dl_name, mimetype="application/vnd.android.package-archive")
 
+    # ── Build APK de colaboradores (android-colab/) ───────────────────────────
+    # Otra app, no la del panel: un WebView con su propio paquete y su propia
+    # llave (ver android-colab/LEEME.md). Mismo flujo que la de arriba en Ajustes.
+
+    _COLAB_APK_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "android-colab")
+    _COLAB_APK = os.path.join(_COLAB_APK_DIR, "McKenna_Colaboradores.apk")
+
+    def _colab_apk_version() -> str:
+        try:
+            with open(os.path.join(_COLAB_APK_DIR, "version.properties"), encoding="utf-8") as f:
+                for linea in f:
+                    if linea.startswith("versionName="):
+                        return linea.split("=", 1)[1].strip()
+        except OSError:
+            pass
+        return ""
+
+    def _colab_apk_fecha():
+        import time as _time
+
+        if not os.path.exists(_COLAB_APK):
+            return None
+        return _time.strftime("%Y-%m-%d %H:%M:%S", _time.localtime(os.path.getmtime(_COLAB_APK)))
+
+    _apk_colab_state: dict = {
+        "status": "success" if os.path.exists(_COLAB_APK) else "idle",
+        "log": [],
+        "error": None,
+    }
+
+    def _apk_colab_worker(version: str, nueva: bool):
+        import subprocess as _sp
+
+        st = _apk_colab_state
+        st.update(status="building", error=None, log=[f"▶ Compilando app de colaboradores v{version}…"])
+        env = os.environ.copy()
+        env["ANDROID_HOME"] = os.path.expanduser("~/Android/Sdk")
+        env["JAVA_HOME"] = "/usr/lib/jvm/java-21-openjdk-amd64"
+        try:
+            proc = _sp.Popen(
+                # Con argumento, compilar.sh sube el versionCode (instala encima de la anterior).
+                [os.path.join(_COLAB_APK_DIR, "compilar.sh")] + ([version] if nueva else []),
+                cwd=_COLAB_APK_DIR, env=env,
+                stdout=_sp.PIPE, stderr=_sp.STDOUT, text=True, bufsize=1,
+            )
+            for linea in proc.stdout:
+                linea = linea.rstrip()
+                if linea and "warning: [options]" not in linea:
+                    st["log"].append(linea)
+            proc.wait()
+            if proc.returncode != 0:
+                raise RuntimeError(f"compilar.sh terminó con código {proc.returncode}")
+            st["log"].append(f"✔ APK listo: {os.path.getsize(_COLAB_APK) // 1024} KB")
+            st["status"] = "success"
+        except Exception as ex:
+            st.update(status="error", error=str(ex))
+            st["log"].append(f"✖ Error: {ex}")
+
+    @app.route("/api/build-apk-colab", methods=["POST"])
+    def api_build_apk_colab_start():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if _apk_colab_state["status"] == "building":
+            return jsonify({"error": "Ya hay un build en curso"}), 409
+        if not os.path.isfile(os.path.join(_COLAB_APK_DIR, "keystore.properties")):
+            return jsonify({"error": "Falta la llave de firma (android-colab/keystore.properties). Ver android-colab/LEEME.md"}), 500
+        import re as _re
+
+        version = str((request.get_json(silent=True) or {}).get("version") or "").strip() or _colab_apk_version() or "1.0.0"
+        if not _re.fullmatch(r"\d+(\.\d+){0,3}", version):
+            return jsonify({"error": "Versión inválida (ej. 1.1.0)"}), 400
+        # Misma versión = recompilar sin subir el versionCode; otra = versión nueva.
+        _apk_colab_state["status"] = "building"
+        spawn_thread(_apk_colab_worker, args=(version, version != _colab_apk_version()), daemon=True)
+        return jsonify({"ok": True, "version": version})
+
+    @app.route("/api/build-apk-colab/status", methods=["GET"])
+    def api_build_apk_colab_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify({
+            "status": _apk_colab_state["status"],
+            "log": _apk_colab_state["log"][-80:],
+            "version": _colab_apk_version() or None,
+            "error": _apk_colab_state["error"],
+            "built_at": _colab_apk_fecha(),
+            "apk_size_kb": (os.path.getsize(_COLAB_APK) // 1024) if os.path.exists(_COLAB_APK) else None,
+        })
+
+    @app.route("/api/build-apk-colab/download", methods=["GET"])
+    def api_build_apk_colab_download():
+        from app.api_auth import bearer_token_from_request, chat_api_token_expected, normalize_api_token
+
+        expected = chat_api_token_expected()
+        tok_query = normalize_api_token(request.args.get("token", ""))
+        if bearer_token_from_request() != expected and tok_query != expected:
+            return jsonify({"error": "No autorizado"}), 401
+        if not os.path.exists(_COLAB_APK):
+            return jsonify({"error": "APK de colaboradores no disponible — genérala primero"}), 404
+        from flask import send_file as _send_file
+
+        return _send_file(_COLAB_APK, as_attachment=True,
+                          download_name=f"McKenna_Colaboradores_v{_colab_apk_version() or 'latest'}.apk",
+                          mimetype="application/vnd.android.package-archive")
+
     # ── Acceso red ────────────────────────────────────────────────────────────
 
     @app.route("/api/sistema/acceso-red", methods=["GET"])
@@ -16544,37 +16679,71 @@ def register_routes(app):
     # Partidas guardadas de los juegos emulados: la SRAM del cartucho, por usuario del panel. El
     # iframe con sandbox no tiene localStorage ni OPFS, así que el juego se la manda al panel por
     # postMessage y el panel la sube aquí con su Bearer (ver desktop/src/components/JuegosPanel.tsx).
+    #
+    # Una carpeta por PERSONA (usuario_<id>/). La persona sale de _panel_tickets_usuario(), no del
+    # Bearer: los administradores mandan CHAT_API_TOKEN, que no dice quién es, y hasta el 23-sep-2026
+    # todos ellos caían en una carpeta «comun» y se pisaban la partida. Sin persona identificada no
+    # se lee ni se guarda nada. Cada guardado deja la versión anterior en respaldos/<juego>/ (las
+    # últimas _JUEGOS_RESPALDOS) y una SRAM en blanco no reemplaza a una con datos: es lo que manda
+    # el emulador si arrancó sin alcanzar a leer la partida (red lenta), y borraría el avance.
     _JUEGOS_PARTIDAS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "juegos_partidas")
     _JUEGOS_PARTIDA_MAX = 256 * 1024
+    _JUEGOS_RESPALDOS = 20
 
     def _juegos_partida_ruta(juego: str):
+        """(ruta del .sav, None) o (None, (respuesta de error, código))."""
         import re as _re
         if not _re.fullmatch(r"[a-z0-9-]{1,32}", juego or ""):
-            return None
-        usuario = None
-        try:
-            from app.api_auth import bearer_token_from_request as _btr
-            from app.services.tickets_db import get_usuario_by_token as _gut
-            u = _gut(_btr() or "")
-            usuario = u.get("id") if u else None
-        except Exception:
-            usuario = None
+            return None, (jsonify({"error": "Juego inválido"}), 400)
+        usuario = _panel_tickets_usuario()
+        uid = (usuario or {}).get("id")
+        if not uid:
+            return None, (jsonify({"error": "Las partidas se guardan por persona: entra con tu usuario."}), 403)
         base = os.environ.get("JUEGOS_PARTIDAS_DIR") or _JUEGOS_PARTIDAS_DIR   # la variable la usan los tests
-        carpeta = os.path.join(base, f"usuario_{usuario}" if usuario else "comun")
-        return os.path.join(carpeta, f"{juego}.sav")
+        return os.path.join(base, f"usuario_{int(uid)}", f"{juego}.sav"), None
+
+    def _juegos_dir_respaldos(ruta: str) -> str:
+        juego = os.path.splitext(os.path.basename(ruta))[0]
+        return os.path.join(os.path.dirname(ruta), "respaldos", juego)
+
+    def _juegos_sram_en_blanco(datos: bytes) -> bool:
+        return len(set(datos)) <= 1
+
+    def _juegos_respaldar(ruta: str, datos: bytes, motivo: str = "") -> None:
+        import time as _time
+        carpeta = _juegos_dir_respaldos(ruta)
+        os.makedirs(carpeta, exist_ok=True)
+        nombre = _time.strftime("%Y%m%d-%H%M%S") + f"-{_time.time_ns() % 1_000_000:06d}" + (f"-{motivo}" if motivo else "") + ".sav"
+        with open(os.path.join(carpeta, nombre), "wb") as f:
+            f.write(datos)
+        viejos = sorted(n for n in os.listdir(carpeta) if n.endswith(".sav"))
+        for n in viejos[:-_JUEGOS_RESPALDOS]:
+            try:
+                os.remove(os.path.join(carpeta, n))
+            except OSError:
+                pass
+
+    def _juegos_escribir(ruta: str, datos: bytes) -> None:
+        os.makedirs(os.path.dirname(ruta), exist_ok=True)
+        tmp = ruta + ".tmp"
+        with open(tmp, "wb") as f:
+            f.write(datos)
+        os.replace(tmp, ruta)
 
     @app.route("/api/juegos/partidas/<juego>", methods=["GET", "PUT"])
     def api_juegos_partida(juego):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        ruta = _juegos_partida_ruta(juego)
-        if not ruta:
-            return jsonify({"error": "Juego inválido"}), 400
+        ruta, err = _juegos_partida_ruta(juego)
+        if err:
+            return err
         if request.method == "GET":
             if not os.path.isfile(ruta):
                 return jsonify({"datos": None})
             with open(ruta, "rb") as f:
-                return jsonify({"datos": base64.b64encode(f.read()).decode("ascii")})
+                datos = f.read()
+            return jsonify({"datos": base64.b64encode(datos).decode("ascii"),
+                            "guardada": int(os.path.getmtime(ruta))})
         body = request.get_json(silent=True) or {}
         try:
             datos = base64.b64decode(str(body.get("datos") or ""), validate=True)
@@ -16582,11 +16751,63 @@ def register_routes(app):
             return jsonify({"error": "Datos inválidos"}), 400
         if not datos or len(datos) > _JUEGOS_PARTIDA_MAX:
             return jsonify({"error": "Tamaño inválido"}), 400
-        os.makedirs(os.path.dirname(ruta), exist_ok=True)
-        tmp = ruta + ".tmp"
-        with open(tmp, "wb") as f:
-            f.write(datos)
-        os.replace(tmp, ruta)
+        actual = None
+        if os.path.isfile(ruta):
+            with open(ruta, "rb") as f:
+                actual = f.read()
+        if actual == datos:
+            return jsonify({"ok": True, "bytes": len(datos), "sin_cambios": True})
+        if actual and _juegos_sram_en_blanco(datos) and not _juegos_sram_en_blanco(actual):
+            # No se pisa: queda guardada aparte por si de verdad se quiso borrar.
+            _juegos_respaldar(ruta, datos, "en-blanco")
+            return jsonify({"ok": True, "bytes": len(datos), "protegida": True})
+        if actual:
+            _juegos_respaldar(ruta, actual)
+        _juegos_escribir(ruta, datos)
+        return jsonify({"ok": True, "bytes": len(datos)})
+
+    @app.route("/api/juegos/partidas/<juego>/respaldos", methods=["GET"])
+    def api_juegos_partida_respaldos(juego):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta, err = _juegos_partida_ruta(juego)
+        if err:
+            return err
+        carpeta = _juegos_dir_respaldos(ruta)
+        items = []
+        if os.path.isdir(carpeta):
+            for n in sorted((n for n in os.listdir(carpeta) if n.endswith(".sav")), reverse=True):
+                p = os.path.join(carpeta, n)
+                items.append({"id": n[:-4], "guardada": int(os.path.getmtime(p)),
+                              "bytes": os.path.getsize(p), "en_blanco": n.endswith("-en-blanco.sav")})
+        actual = None
+        if os.path.isfile(ruta):
+            actual = {"guardada": int(os.path.getmtime(ruta)), "bytes": os.path.getsize(ruta)}
+        return jsonify({"actual": actual, "respaldos": items})
+
+    @app.route("/api/juegos/partidas/<juego>/restaurar", methods=["POST"])
+    def api_juegos_partida_restaurar(juego):
+        """Vuelve a una versión anterior. La que estaba pasa a respaldos: restaurar no borra nada."""
+        import re as _re
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta, err = _juegos_partida_ruta(juego)
+        if err:
+            return err
+        rid = str((request.get_json(silent=True) or {}).get("respaldo") or "")
+        if not _re.fullmatch(r"[0-9a-z-]{1,64}", rid):
+            return jsonify({"error": "Respaldo inválido"}), 400
+        origen = os.path.join(_juegos_dir_respaldos(ruta), rid + ".sav")
+        if not os.path.isfile(origen):
+            return jsonify({"error": "Ese respaldo no existe"}), 404
+        with open(origen, "rb") as f:
+            datos = f.read()
+        if os.path.isfile(ruta):
+            with open(ruta, "rb") as f:
+                actual = f.read()
+            if actual != datos:
+                _juegos_respaldar(ruta, actual, "antes-de-restaurar")
+        _juegos_escribir(ruta, datos)
         return jsonify({"ok": True, "bytes": len(datos)})
 
     @app.route("/.well-known/assetlinks.json")
@@ -22704,6 +22925,22 @@ def register_routes(app):
             return jsonify({"error": str(exc)}), 400
         return jsonify({"ok": True, "ficha": entry})
 
+    @app.route("/api/etiquetas/fichas/sincronizar-ficha-tecnica", methods=["POST"])
+    @app.route("/app/api/etiquetas/fichas/sincronizar-ficha-tecnica", methods=["POST"])
+    def api_etiquetas_fichas_sincronizar_ficha_tecnica():
+        """Documento técnico guardado → sus cambios a todas las etiquetas enlazadas."""
+        denied = _require_studio_visual()
+        if denied:
+            return denied
+        from app.tools.etiquetas_fichas import sincronizar_etiquetas_con_ficha_tecnica
+
+        body = request.get_json(silent=True) or {}
+        try:
+            cambiadas = sincronizar_etiquetas_con_ficha_tecnica(body.get("ids") or [], body.get("foto") or {})
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "etiquetas": cambiadas})
+
     @app.route("/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
     @app.route("/app/api/etiquetas/fichas/<ficha_id>", methods=["GET", "PUT", "DELETE"])
     def api_etiquetas_fichas_id(ficha_id: str):
@@ -24223,6 +24460,21 @@ REGLAS:
         with open(_ETIQUETAS_CODIGOS_EAN_PATH, "w", encoding="utf-8") as f:
             json.dump({"codigos": items}, f, ensure_ascii=False, indent=2)
 
+    def _ean_a_alegra_en_segundo_plano(sku: str, codigo: str) -> None:
+        """Un código registrado o corregido se escribe solo en el combo de Alegra
+        (campo «Código de barras»). En segundo plano: Alegra tarda y el registro no
+        debe esperar ni fallar por eso. Ver app/services/ean_alegra.py."""
+        def _tarea():
+            from app.panel_activity import log_line
+            try:
+                from app.services.ean_alegra import escribir_ean_en_combo
+                res = escribir_ean_en_combo(sku, codigo)
+                if not res.get("ok"):
+                    log_line(f"⚠️ EAN {codigo} → Alegra {sku}: {res.get('msg')}")
+            except Exception as e:
+                log_line(f"⚠️ EAN {codigo} → Alegra {sku}: {e}")
+        spawn_thread(_tarea)
+
     @app.route("/api/etiquetas/codigos-ean", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/codigos-ean", methods=["GET", "POST"])
     def api_etiquetas_codigos_ean():
@@ -24311,6 +24563,7 @@ REGLAS:
         items.append(entry)
         items.sort(key=lambda x: x.get("numero_producto") or 0)
         _save_codigos_ean(items)
+        _ean_a_alegra_en_segundo_plano(entry.get("sku") or "", entry.get("codigo") or "")
         return jsonify({"ok": True, **entry})
 
     @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["PUT", "PATCH"])
@@ -24391,6 +24644,7 @@ REGLAS:
         items[idx] = entry
         items.sort(key=lambda x: x.get("numero_producto") or 0)
         _save_codigos_ean(items)
+        _ean_a_alegra_en_segundo_plano(entry.get("sku") or "", entry.get("codigo") or "")
         return jsonify({"ok": True, **entry})
 
     @app.route("/api/etiquetas/codigos-ean/<codigo_id>", methods=["DELETE"])
@@ -24488,6 +24742,46 @@ REGLAS:
             "siguiente_numero": siguiente_numero_producto(numeros),
             "detalle": creados[:50],
         })
+
+    _ean_alegra_ultima: dict = {}
+
+    @app.route("/api/etiquetas/codigos-ean/alegra", methods=["GET"])
+    @app.route("/app/api/etiquetas/codigos-ean/alegra", methods=["GET"])
+    def api_etiquetas_codigos_ean_alegra():
+        """Cada código EAN con su combo de Alegra (enlazado / aproximado / producto /
+        sin_combo) y el resultado de la última carga al campo «Código de barras»."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ean_alegra import enlaces
+        return jsonify({"enlaces": enlaces(), "ultima": _ean_alegra_ultima})
+
+    @app.route("/api/etiquetas/codigos-ean/sincronizar-alegra", methods=["POST"])
+    @app.route("/app/api/etiquetas/codigos-ean/sincronizar-alegra", methods=["POST"])
+    def api_etiquetas_codigos_ean_sincronizar_alegra():
+        """Carga el EAN en el campo «Código de barras» de cada combo de Alegra enlazado.
+        En segundo plano (~220 combos con pausa por el límite de Alegra: pasa de los
+        100 s de Cloudflare); el estado se consulta en GET …/codigos-ean/alegra."""
+        denied = _require_cynthia_etiquetas()
+        if denied:
+            return denied
+        if _ean_alegra_ultima.get("estado") == "corriendo":
+            return jsonify({"ok": True, "estado": "corriendo"})
+        _ean_alegra_ultima.clear()
+        _ean_alegra_ultima.update(estado="corriendo", inicio=_dt.now().isoformat(timespec="seconds"))
+
+        def _tarea():
+            try:
+                from app.services.ean_alegra import sincronizar_todos
+                res = sincronizar_todos()
+                _ean_alegra_ultima.update(
+                    estado="listo", fin=_dt.now().isoformat(timespec="seconds"),
+                    cargados=res.get("cargados", 0), sin_cambio=res.get("sin_cambio", 0),
+                    errores=res.get("errores", [])[:30], msg=res.get("msg", ""),
+                )
+            except Exception as e:
+                _ean_alegra_ultima.update(estado="error", msg=str(e))
+        spawn_thread(_tarea)
+        return jsonify({"ok": True, "estado": "corriendo"})
 
     @app.route("/api/etiquetas/codigos-ean/sincronizar-siigo", methods=["POST"])
     @app.route("/app/api/etiquetas/codigos-ean/sincronizar-siigo", methods=["POST"])

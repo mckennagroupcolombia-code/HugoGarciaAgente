@@ -7,11 +7,14 @@
  * (app/routes.py::serve_spa → desktop/dist-colab/).
  *
  * Firmar: keystore.properties (no versionado) apunta a colaboradores.keystore.
- * Compilar: ./compilar.sh
+ * Compilar: ./compilar.sh [versión]  (o desde /app → Ajustes → App de colaboradores)
  */
 plugins {
     id 'com.android.application'
 }
+
+def version = new Properties()
+rootProject.file('version.properties').withInputStream { version.load(it) }
 
 def firma = new Properties()
 def firmaArchivo = rootProject.file('keystore.properties')
@@ -24,8 +27,8 @@ android {
         applicationId "co.mckennagroup.colaboradores"
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName "1.0.0"
+        versionCode version['versionCode'].toInteger()
+        versionName version['versionName']
     }
     signingConfigs {
         release {

@@ -63,7 +63,10 @@ import {
 import {
   etiquetaTamanoFormato,
   etiquetaTamanoTipoNombre,
+  esTipoEtiquetaCircular,
   nombreTipoEtiquetaCanonico,
+  nombreTipoPorMedidas,
+  useGuardarTiposEtiqueta,
   useTiposEtiqueta,
   type TipoEtiqueta,
 } from "../../lib/etiquetasTipos";
@@ -106,6 +109,7 @@ import {
   reticulaCircular,
 } from "../etiqueta-circular/etiquetaCircularTypes";
 import { nombreArchivoSvg, svgEtiquetaCircular } from "../etiqueta-circular/exportarSvgCircular";
+import { celebrarAprobacion, registrarMision } from "../../lib/celebracionAprobado";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -205,6 +209,9 @@ interface PropsFormulario {
   /** Cómo estaba la ficha técnica antes de que se editara en otra pestaña (Espacio
    *  de producto): sirve de punto de comparación si la etiqueta aún no tiene el suyo. */
   fichaAntes?: { id: string; foto: Record<string, string> } | null;
+  /** Pasar al siguiente trabajo de la categoría: con el botón «Siguiente →» o
+   *  al aprobar. Se llama cuando el autoguardado ya terminó. */
+  onSiguiente?: (fichaId: string) => void;
 }
 
 export default function ProductLabelForm(props: PropsFormulario) {
@@ -220,6 +227,7 @@ function ProductLabelFormInner({
   entrada,
   onAbrirFichaTecnica,
   fichaAntes = null,
+  onSiguiente,
 }: PropsFormulario) {
   const { data: tiposData, isLoading: tiposLoading } = useTiposEtiqueta();
   const tipos = tiposData?.tipos ?? [];
@@ -237,6 +245,31 @@ function ProductLabelFormInner({
   /** 53 × 53 mm: etiqueta redonda de ceras y mantecas (composición radial). */
   const esCircular = esFormatoCircular(tipoNombre, tipo);
   const esVertical = esFormatoVertical(tipoNombre, tipo);
+  const guardarTipos = useGuardarTiposEtiqueta();
+  /** Girar el formato: pasa al de medidas invertidas (38×102 → 102×38) y, si no
+   *  existe, lo crea. El diseño sigue a las medidas, como al elegirlo en el menú
+   *  (102×38 es el de tres paneles del 30 mL). Redondas y cuadradas no giran. */
+  const girable = Boolean(
+    tipo && tipo.ancho_mm && tipo.alto_mm && Math.abs(tipo.ancho_mm - tipo.alto_mm) >= 0.5
+      && !esCircular && !esTipoEtiquetaCircular(tipo.nombre),
+  );
+  const esHorizontal = Boolean(tipo && tipo.ancho_mm > tipo.alto_mm);
+  function girarFormato() {
+    if (!tipo || !girable) return;
+    const ancho = tipo.alto_mm;
+    const alto = tipo.ancho_mm;
+    const girado = tipos.find(
+      (t) => Math.abs(t.ancho_mm - ancho) < 0.5 && Math.abs(t.alto_mm - alto) < 0.5 && !esTipoEtiquetaCircular(t.nombre),
+    );
+    if (girado) {
+      setTipoNombre(girado.nombre);
+      return;
+    }
+    const nombre = nombreTipoPorMedidas(ancho, alto);
+    guardarTipos.mutate([...tipos, { nombre, ancho_mm: ancho, alto_mm: alto }], {
+      onSuccess: () => setTipoNombre(nombre),
+    });
+  }
   /** Diámetro final de impresión de la etiqueta redonda, en mm (§14). Es lo
    *  único físico que el operador puede mover: el diseño se maqueta siempre
    *  1:1 a `DIAMETRO_CIRCULAR` y solo cambia a cuántos milímetros se rasteriza
@@ -363,10 +396,10 @@ function ProductLabelFormInner({
     if ("ghs" in patch || "ghsIconSvg" in patch) cambiosGhsRef.current += 1;
     setData((d) => {
       const next = { ...d, ...patch };
-      // Al aplicar una ficha técnica manda la conservación de la FAMILIA (la que
-      // fija la plantilla), no la de la ficha: cada ficha la redacta distinto y
-      // la categoría quiere una sola. Escribir en la casilla no pasa por aquí.
-      if (patch.fichaTecnicaId && d.storageSugerido) next.storage = d.storageSugerido;
+      // Al aplicar una ficha técnica manda SU conservación; la de la familia (la
+      // que fija la plantilla) solo si el documento no trae. Escribir en la
+      // casilla no pasa por aquí.
+      if (patch.fichaTecnicaId && !patch.storage?.trim() && d.storageSugerido) next.storage = d.storageSugerido;
       return next;
     });
   };
@@ -430,6 +463,9 @@ function ProductLabelFormInner({
   /** Hay un alta en vuelo: no se puede lanzar otra o se duplica. */
   const creandoRef = useRef(false);
   const [reintentoGuardado, setReintentoGuardado] = useState(0);
+  /** Aprobada o «Siguiente →»: se salta en cuanto el autoguardado no tenga nada
+   *  pendiente (cambiar de etiqueta antes perdería el último cambio). */
+  const [saltoPendiente, setSaltoPendiente] = useState(false);
 
   useEffect(() => {
     const nombre = nombreFicha.trim();
@@ -1237,10 +1273,15 @@ function ProductLabelFormInner({
           fichaTecnicaTitulo: mejor.ficha.titulo,
           fichaTecnicaBase: fotoFicha(patch),
           ...(neto ? { netContent: neto } : {}),
-          // Conservación de la familia, igual que en `onChange`, con «envase» o «empaque»
-          // según la receta del combo de este código.
-          ...(datosBase.storageSugerido
-            ? { storage: palabraRecipiente(datosBase.storageSugerido, recipientePara(recipientes, codigo.codigo)) }
+          // Conservación del documento (la de la familia si no trae), igual que en
+          // `onChange`, con «envase» o «empaque» según la receta del combo de este código.
+          ...(patch.storage?.trim() || datosBase.storageSugerido
+            ? {
+                storage: palabraRecipiente(
+                  patch.storage?.trim() || datosBase.storageSugerido || "",
+                  recipientePara(recipientes, codigo.codigo),
+                ),
+              }
             : {}),
         };
         setData(datosSku);
@@ -1285,6 +1326,11 @@ function ProductLabelFormInner({
         setLoteProgreso({ hechos: i + 1, total: loteSeleccion.length });
       }
       setLoteResultado(hechos);
+      if (hechos.length) {
+        celebrarAprobacion({ titulo: hechos.length === 1 ? "¡Etiqueta aprobada!" : `¡${hechos.length} etiquetas aprobadas!`, detalle: nombreCategoria(categoria) });
+        // El lote paga por etiqueta, a la tarifa del lote (la hace la máquina).
+        for (const h of hechos) void registrarMision("etiqueta_lote", h.replace(/\.png$/i, ""));
+      }
       setGuardarMsg({
         ok: sinFicha.length === 0,
         texto:
@@ -1362,11 +1408,23 @@ function ProductLabelFormInner({
         partes.push(`No se guardó el PNG desenfocado: ${dig.reason instanceof Error ? dig.reason.message : "error"}.`);
       }
       setGuardarMsg({ ok, texto: partes.join(" ") });
-      if (ok) cerrarPrevia();
+      if (ok) {
+        cerrarPrevia();
+        celebrarAprobacion({ titulo: "¡Etiqueta aprobada!", detalle: nombreArchivoPng().replace(/\.png$/i, ""), mision: "etiqueta_aprobada" });
+        if (onSiguiente) setSaltoPendiente(true);
+      }
     } finally {
       setGuardando(false);
     }
   };
+
+  useEffect(() => {
+    if (!saltoPendiente || !onSiguiente) return;
+    if (autoguardado.estado === "pendiente" || autoguardado.estado === "guardando") return;
+    setSaltoPendiente(false);
+    // Con error de guardado no se salta: el aviso del autoguardado queda a la vista.
+    if (autoguardado.estado !== "error" && fichaIdRef.current) onSiguiente(fichaIdRef.current);
+  }, [saltoPendiente, autoguardado.estado, onSiguiente]);
 
   const descargarPrevia = async () => {
     if (!previa) return;
@@ -1762,6 +1820,22 @@ function ProductLabelFormInner({
             </option>
           ))}
         </select>
+        {girable && (
+          <button
+            type="button"
+            onClick={girarFormato}
+            disabled={guardarTipos.isPending}
+            title={
+              esHorizontal
+                ? `Pasar a vertical (${tipo?.alto_mm}×${tipo?.ancho_mm} mm)`
+                : `Pasar a horizontal (${tipo?.alto_mm}×${tipo?.ancho_mm} mm)`
+            }
+            className="rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink hover:border-accent disabled:opacity-50"
+          >
+            {guardarTipos.isPending ? "Girando…" : esHorizontal ? "↻ Vertical" : "↻ Horizontal"}
+          </button>
+        )}
+        {guardarTipos.isError && <span className="text-[11px] text-red-600">No se pudo crear el formato girado</span>}
         {/* Diámetro de impresión (§14): solo la redonda. Cambia el tamaño
             FÍSICO del PNG, del SVG y de la impresión; el diseño no se mueve. */}
         {esCircular && (
@@ -1993,6 +2067,18 @@ function ProductLabelFormInner({
               </>
             )}
           </div>
+
+          {onSiguiente && fichaId && (
+            <button
+              type="button"
+              onClick={() => setSaltoPendiente(true)}
+              disabled={guardando || saltoPendiente}
+              title="Pasar a la siguiente etiqueta por aprobar de esta categoría, sin aprobar esta"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
+            >
+              {saltoPendiente ? "Guardando…" : "Siguiente →"}
+            </button>
+          )}
 
           <button
             type="button"

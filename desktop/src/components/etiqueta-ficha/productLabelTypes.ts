@@ -39,7 +39,8 @@ export interface ProductLabelData {
   /** Rótulo del número de registro del cuadro técnico (sin dato = "CAS"). */
   casTitulo?: string;
   /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
-  /** Beneficios del formato vertical 38 × 102: tres textos cortos. */
+  /** Beneficios del formato vertical 38 × 102: textos de máximo 10 palabras.
+   *  Los trae la ficha técnica (`propiedades_lista`, ver `resumirBeneficio`). */
   beneficio1?: string;
   beneficio2?: string;
   beneficio3?: string;
@@ -80,6 +81,10 @@ export interface ProductLabelData {
   aplicacionesTitulo?: string;
   /** Una aplicación por renglón; cada una sale con su viñeta. */
   aplicaciones?: string;
+  /** Formato 30 mL: texto del bloque cuando su título es «Modo de uso». Lo
+   *  trae el `modo_uso` de la ficha técnica, resumido (ver
+   *  `sintetizarModoUso`); se corrige a mano en la etiqueta. */
+  modoUso?: string;
   /** Razón social sobre el arco izquierdo. Dato de plantilla. */
   empresa?: string;
   /** Registro sanitario, sobre el arco inferior izquierdo. */
@@ -295,6 +300,7 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   email: "info@mckennagroup.co",
   descripcionProducto: "",
   aplicaciones: "",
+  modoUso: "",
   registro: "",
 };
 
@@ -325,6 +331,10 @@ export const CAMPOS_PRODUCTO = [
   "fichaTecnicaBase",
   "descripcionProducto",
   "aplicaciones",
+  "modoUso",
+  "beneficio1",
+  "beneficio2",
+  "beneficio3",
   "registro",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 

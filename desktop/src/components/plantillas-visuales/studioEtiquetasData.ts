@@ -40,8 +40,10 @@ export const QK_ETIQUETAS_STUDIO = [
 ] as const;
 
 export async function fetchEtiquetasStudio(): Promise<EtiquetaStudioPng[]> {
+  // `recursivo=1`: los PNG aprobados se guardan en ETIQUETAS STUDIO/<Categoría>/.
+  // Sin él la lista solo traía la raíz y ninguna etiqueta aparecía como aprobada.
   const res = await api.get<{ recursos: EtiquetaStudioPng[] }>(
-    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}`,
+    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}&recursivo=1`,
   );
   return res.recursos ?? [];
 }

@@ -11,10 +11,14 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ColabApp from "./ColabApp";
 import "./colab.css";
+import { escucharMonedasDelServidor } from "../lib/celebracionAprobado";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } },
 });
+
+// Los colaboradores también ganan monedas por sus tareas; aquí se ve la moneda al cobrar.
+escucharMonedasDelServidor();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

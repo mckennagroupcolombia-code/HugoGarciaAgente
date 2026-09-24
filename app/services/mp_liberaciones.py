@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from datetime import datetime, timedelta
 from typing import Any, Callable
 
@@ -28,12 +29,75 @@ _INDICE_FACTURAS = os.getenv(
 )
 
 
+# orden MeLi → cómo la facturó el flujo propio (Flujo G / «Facturar ahora»). Es
+# el único sitio local con el NÚMERO de la factura Alegra (FE196…) y con el
+# shipping_id de la orden: el índice de arriba guarda la factura pero sin número.
+_ENTREGAS = os.getenv(
+    "MELI_FACTURAS_ENTREGA_PATH",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "meli_facturas_entrega.json"),
+)
+_ESTADOS_FACTURADA = {"facturada", "ya_facturada_legado"}
+
+
 def _facturas_por_orden() -> dict[str, dict[str, Any]]:
     try:
         with open(_INDICE_FACTURAS, encoding="utf-8") as fh:
             return (json.load(fh) or {}).get("indice") or {}
     except (OSError, ValueError):
         return {}
+
+
+def _entregas_por_orden() -> dict[str, dict[str, Any]]:
+    try:
+        with open(_ENTREGAS, encoding="utf-8") as fh:
+            return (json.load(fh) or {}).get("procesadas") or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _factura_de_orden(order_id: str, pack: str, indice: dict, entregas: dict) -> dict[str, Any] | None:
+    """La factura de una orden: primero el registro del flujo propio (trae el
+    número), luego el índice por orden y por pack (lo usa la vía Siigo /
+    astroselling, que cita el pack en las observaciones)."""
+    e = entregas.get(order_id) or {}
+    numero = str(e.get("siigo_invoice_number") or "") if e.get("estado") in _ESTADOS_FACTURADA else ""
+    f = indice.get(order_id) or (indice.get(pack) if pack else None)
+    if not f and not numero:
+        return None
+    f = f or {}
+    return {
+        "numero": numero or str(f.get("factura_numero") or "") or (f"#{f['factura_id']}" if f.get("factura_id") else ""),
+        "fecha": f.get("factura_fecha"),
+        "total": f.get("total"),
+    }
+
+
+def _clase_pago(p: dict[str, Any], collector_propio: Any) -> str:
+    """Qué es cada pago que MercadoPago liberó. Solo `venta` tiene orden, asiento
+    y factura; lo demás se muestra pero no se le exige nada de eso.
+
+    - `envio`: lo que el comprador pagó por el envío (`marketplace_shipment`). En
+      esos pagos `order.id` NO es la orden: es el shipping_id del envío.
+    - `bonificacion`: lo que MeLi reconoce por entregas Flex.
+    - `venta_web`: cobro de un pedido de la tienda (referencia `MCKG-…`).
+    - `pago_a_meli`: McKenna es quien paga (p. ej. «Facturas con cargos por
+      operar», $11,7M liberados el 1-sep). Lo que se libera ahí es la plata de
+      MeLi; de la cuenta de McKenna salió el día del pago, así que no entra en
+      las sumas del lote. Contarlo como liberación inflaba el lote de un retiro
+      en esa cifra.
+    """
+    if collector_propio is not None and p.get("collector_id") != collector_propio:
+        return "pago_a_meli"
+    desc = (p.get("descripcion") or "").strip().lower()
+    if desc == "marketplace_shipment":
+        return "envio"
+    if desc.startswith("bonificaciones_flex"):
+        return "bonificacion"
+    if p.get("order_id"):
+        return "venta"
+    if str(p.get("referencia") or "").upper().startswith("MCKG-"):
+        return "venta_web"
+    return "otro"
 
 
 def _token() -> str:
@@ -81,6 +145,7 @@ def pagos_liberados(desde: str, hasta: str, *, _get: Callable = _get) -> list[di
             comision = round(sum(float(f.get("amount") or 0) for f in (p.get("fee_details") or [])), 2)
             salida.append({
                 "payment_id": str(p.get("id") or ""),
+                "collector_id": p.get("collector_id"),
                 "order_id": str(orden.get("id") or "") if (orden.get("type") or "") == "mercadolibre" else "",
                 "referencia": str(p.get("external_reference") or ""),
                 "fecha_pago": str(p.get("date_approved") or "")[:10],
@@ -161,18 +226,33 @@ def lote_de_retiro(linea_id: int, *, tercero_id: int | None = None,
     hasta = actual["fecha"]
 
     pagos = _pagos(desde, hasta)
-    asientos = _asientos_meli_por_orden([p["order_id"] for p in pagos if p["order_id"]])
-    facturas = _facturas_por_orden()
+    # La cuenta propia es la que COBRA casi todos los pagos del lote; un pago
+    # cobrado por otro (o sin cobrador) lo hizo McKenna.
+    cobradores = Counter(p.get("collector_id") for p in pagos if p.get("collector_id"))
+    collector_propio = cobradores.most_common(1)[0][0] if cobradores else None
+    indice = _facturas_por_orden()
+    entregas = _entregas_por_orden()
+    orden_por_envio = {str(e.get("shipping_id")): oid for oid, e in entregas.items() if e.get("shipping_id")}
     for p in pagos:
-        a = asientos.get(p["order_id"]) if p["order_id"] else None
-        f = facturas.get(p["order_id"]) if p["order_id"] else None
+        p["clase"] = _clase_pago(p, collector_propio)
+        p.pop("collector_id", None)
+        p["shipping_id"] = p["order_id"] if p["clase"] == "envio" else ""
+        p["orden_del_envio"] = orden_por_envio.get(p["shipping_id"], "") if p["shipping_id"] else ""
+        if p["clase"] != "venta":
+            p["order_id"] = ""
+    ventas = [p for p in pagos if p["clase"] == "venta"]
+    asientos = _asientos_meli_por_orden([p["order_id"] for p in ventas])
+    for p in pagos:
+        a = asientos.get(p["order_id"]) if p["clase"] == "venta" else None
         p["asiento"] = a
         p["pack"] = (a or {}).get("pack") or ""
-        p["factura"] = {"numero": f.get("factura_numero"), "fecha": f.get("factura_fecha"), "total": f.get("total")} if f else None
+        p["factura"] = _factura_de_orden(p["order_id"], p["pack"], indice, entregas) if p["clase"] == "venta" else None
 
-    bruto = round(sum(p["bruto"] for p in pagos), 2)
-    neto = round(sum(p["neto"] for p in pagos), 2)
-    comision = round(sum(p["comision"] for p in pagos), 2)
+    del_lote = [p for p in pagos if p["clase"] != "pago_a_meli"]
+    bruto = round(sum(p["bruto"] for p in del_lote), 2)
+    neto = round(sum(p["neto"] for p in del_lote), 2)
+    comision = round(sum(p["comision"] for p in del_lote), 2)
+    pagado_a_meli = round(sum(p["bruto"] for p in pagos if p["clase"] == "pago_a_meli"), 2)
     retirado = round(float(actual["monto"] or 0), 2)
     # Saldo que sigue en MercadoPago según el libro propio (111010), si ya se
     # contabiliza contra esa cuenta; si no, se informa lo que el lote deja.
@@ -186,10 +266,12 @@ def lote_de_retiro(linea_id: int, *, tercero_id: int | None = None,
         "ventana": {"desde": desde, "hasta": hasta},
         "pagos": pagos,
         "n_pagos": len(pagos),
-        "n_con_asiento": sum(1 for p in pagos if p.get("asiento")),
-        "n_con_factura": sum(1 for p in pagos if p.get("factura")),
+        "n_ventas": len(ventas),
+        "n_con_asiento": sum(1 for p in ventas if p.get("asiento")),
+        "n_con_factura": sum(1 for p in ventas if p.get("factura")),
         "liberado_bruto": bruto,
         "comisiones": comision,
+        "pagado_a_meli": pagado_a_meli,
         "liberado_neto": neto,
         "retirado": retirado,
         "queda_en_plataforma": round(neto - retirado, 2),

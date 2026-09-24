@@ -13758,15 +13758,6 @@ function fechaServidorToDate(s: string): Date {
   return new Date(s.includes("T") || s.includes("Z") ? s : `${s}Z`);
 }
 
-/** Punto de presencia — verde si la persona tiene una sesión de panel activa ahora mismo. */
-function PresenceDot({ enLinea, title }: { enLinea: boolean; title?: string }) {
-  return (
-    <span
-      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${enLinea ? "bg-emerald-500" : "bg-muted/30"}`}
-      title={title ?? (enLinea ? "En línea ahora" : undefined)}
-    />
-  );
-}
 
 // ── SolicitudCard ─────────────────────────────────────────────────────────────
 
@@ -13867,7 +13858,6 @@ function SolicitudCard({
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showExtrasMenu, setShowExtrasMenu] = useState(false);
   // Presencia — quién está en línea ahora mismo (solo se pollea en modo ampliado)
-  const [enLineaIds, setEnLineaIds] = useState<Set<number>>(new Set());
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const adjuntosPorPaso = useMemo(() => {
@@ -14741,21 +14731,6 @@ function SolicitudCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showChat, detalleAmpliado, ticket.id]);
 
-  // Presencia — quiénes están en línea ahora (solo modo ampliado, mismo cadencia que el chat)
-  useEffect(() => {
-    if (!detalleAmpliado) return;
-    let cancelled = false;
-    async function cargarPresencia() {
-      try {
-        const data = await tapi("/presencia/en-linea", token) as { usuario_ids?: number[] };
-        if (!cancelled) setEnLineaIds(new Set(data.usuario_ids ?? []));
-      } catch { /* ignore */ }
-    }
-    void cargarPresencia();
-    const iv = setInterval(cargarPresencia, 10000);
-    return () => { cancelled = true; clearInterval(iv); };
-  }, [detalleAmpliado, token]);
-
   async function cargarAdjuntos() {
     setLoadingAdjuntos(true);
     try {
@@ -15095,12 +15070,10 @@ function SolicitudCard({
           {/* De quién → para quién */}
           <div className="flex items-center gap-2 text-xs lg:text-sm text-muted flex-wrap">
             <span className="inline-flex items-center gap-1.5 font-medium text-ink/70">
-              <PresenceDot enLinea={!!ticket.creado_por && enLineaIds.has(ticket.creado_por)} />
               {esCreadoPorMi ? "Tú" : (ticket.creado_por_nombre ?? "?")}
             </span>
             <svg className="h-3 w-3 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
-              <PresenceDot enLinea={!!ticket.asignado_a && enLineaIds.has(ticket.asignado_a)} />
               {ticket.asignado_a_nombre ?? "Sin asignar"}
             </span>
           </div>
@@ -15568,9 +15541,6 @@ function SolicitudCard({
                       {!esMio && (
                         <span className="relative mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-black text-accent">
                           {autorNombre.charAt(0).toUpperCase()}
-                          {!!autorId && enLineaIds.has(autorId) && (
-                            <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-emerald-500" title="En línea ahora" />
-                          )}
                         </span>
                       )}
                       <div className="max-w-[75%] lg:max-w-[60%] space-y-0.5">

@@ -31,6 +31,9 @@ const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
   alergenos: "alergenos",
   descripcion: "descripcionProducto",
   aplicaciones: "aplicaciones",
+  modoUso: "modoUso",
+  beneficio1: "beneficio1",
+  beneficio2: "beneficio2",
   peso: "netContent",
   ghs: "ghs",
   clasificacionSga: "clasificacionTexto",
@@ -66,11 +69,34 @@ const ES_CAMPO_PLANTILLA = new Set<string>(CAMPOS_PLANTILLA);
 /** Parche con los campos mapeados. Lo que la ficha no trae queda en blanco
  *  (no se conserva texto de otra ficha ni el ejemplo de fábrica), salvo los
  *  campos de plantilla. */
+/** Documento técnico guardado → sus cambios a TODAS las etiquetas enlazadas
+ *  (antes solo cambiaba la que se abriera en el editor). Misma regla que al
+ *  abrir una etiqueta: no pisa lo ajustado a mano (ver lib/fichaTecnicaSync).
+ *  `ids[0]` es el documento vigente; las enlazadas a los demás pasan a él. */
+export async function propagarFichaTecnicaAEtiquetas(
+  ids: string[],
+): Promise<{ id: string; nombre: string; campos: string[] }[]> {
+  const vigente = ids.find(Boolean);
+  if (!vigente) return [];
+  const { fotoFicha } = await import("./fichaTecnicaSync");
+  const foto = fotoFicha(await cargarPatchDesdeFichaTecnica(vigente));
+  const r = await api.post<{ etiquetas: { id: string; nombre: string; campos: string[] }[] }>(
+    "/api/etiquetas/fichas/sincronizar-ficha-tecnica",
+    { ids: [...new Set(ids.filter(Boolean))], foto },
+  );
+  return r.etiquetas ?? [];
+}
+
 export async function cargarPatchDesdeFichaTecnica(fichaId: string): Promise<Partial<ProductLabelData>> {
   const res = await api.get<{ datos: Record<string, unknown> }>(
     `/api/fichas/datos/${encodeURIComponent(fichaId)}`,
   );
-  const mapeado = camposDesdeFichaTecnica(res.datos || {});
+  return patchDesdeDatos(res.datos || {});
+}
+
+/** Campos de la etiqueta que salen de los datos de un documento técnico. */
+export function patchDesdeDatos(datos: Record<string, unknown>): Partial<ProductLabelData> {
+  const mapeado = camposDesdeFichaTecnica(datos);
   const patch: Partial<ProductLabelData> = {};
   const destinoTexto = patch as unknown as Record<keyof ProductLabelData, string>;
   for (const [origenId, destino] of Object.entries(MAPA_A_PRODUCT_LABEL)) {

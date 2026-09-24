@@ -2779,6 +2779,15 @@
       "timestamp": "2026-09-22T22:39:35.198741",
       "respondida": true,
       "nota": "Auto-marcada respondida por supervisor 2026-09-23"
+    },
+    {
+      "question_id": "13663520968",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "Quiero comprar de 1 litro o medio litro",
+      "timestamp": "2026-09-23T04:02:05.419973",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro con su duda.\n\nActualmente esta publicación es de Aceite de Ricino Castor Puro en presentación de 250 ml. No contamos con presentaciones de medio litro o 1 litro dentro de nuestro catálogo activo en Mercado Libre.\n\nLo que sí tenemos disponible, además de esta de 250 ml, es la presentación de 10 ml, por si le sirve para completar su pedido o probar el producto: https://articulo.mercadolibre.com.co/MCO-602225162-aceite-de-ricino-10-ml-_JM",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-09-23"
     }
   ]
 }

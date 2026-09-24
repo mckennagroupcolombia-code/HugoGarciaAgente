@@ -54,10 +54,15 @@ ICA_TRANSPORTE = 4.14
 # «este gasto no lleva retención de renta», y la nota dice por qué.
 _PERFILES: dict[str, tuple[str | None, float, str, str]] = {
     # ── Inventario y costo ───────────────────────────────────────────────
-    "1405": ("compras", ICA_COMERCIAL, "Compra de materia prima: retención de compras.", ""),
-    "1435": ("compras", ICA_COMERCIAL, "Compra de mercancía: retención de compras.", ""),
-    "6135": ("compras", ICA_COMERCIAL, "Costo de mercancía: retención de compras.", ""),
-    "6205": ("compras", ICA_COMERCIAL, "Costo de materia prima: retención de compras.", ""),
+    # Compras de bienes: SOLO retención en la fuente por compras (2,5% desde
+    # 27 UVT), sin ReteICA. Hasta el 23-sep-2026 estas cuentas proponían ICA
+    # comercial 11,04 por mil y el panel lo dejaba marcado al pedir una compra
+    # de materia prima (Química Interkrol); así no se liquidan las compras en
+    # McKenna. Si un proveedor puntual sí lleva ICA, va en su ficha de tercero.
+    "1405": ("compras", 0.0, "Compra de materia prima: retención de compras 2,5%, sin ICA.", ""),
+    "1435": ("compras", 0.0, "Compra de mercancía: retención de compras 2,5%, sin ICA.", ""),
+    "6135": ("compras", 0.0, "Costo de mercancía: retención de compras 2,5%, sin ICA.", ""),
+    "6205": ("compras", 0.0, "Costo de materia prima: retención de compras 2,5%, sin ICA.", ""),
 
     # ── Personal ─────────────────────────────────────────────────────────
     # Un pago laboral tiene retención por el procedimiento del Art. 383 (tabla,
@@ -153,7 +158,7 @@ _PERFILES: dict[str, tuple[str | None, float, str, str]] = {
              "«Diversos» casi nunca es la cuenta correcta. Si sabes qué se compró, elige esa cuenta: "
              "de ahí salen los renglones del estado de resultados."),
     "519510": (None, 0.0, "Libros y suscripciones.", ""),
-    "519525": ("compras", ICA_COMERCIAL, "Elementos de aseo y cafetería: es compra de bienes.", ""),
+    "519525": ("compras", 0.0, "Elementos de aseo y cafetería: es compra de bienes (sin ICA).", ""),
     "519595": ("otros_ingresos", ICA_COMERCIAL, "Diverso sin clasificar.",
                "Si sabes qué se compró, elige esa cuenta en vez de «diversos»."),
 

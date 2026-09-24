@@ -142,9 +142,16 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
 
         nombre_norm = normalizar(nombre_producto)
         excluir = {'para', 'con', 'del', 'los', 'las', 'una', 'unos', 'unas', 'por'}
-        palabras = [p for p in nombre_norm.split() if len(p) > 4 and p not in excluir]
-        if not palabras:
-            palabras = nombre_norm.split()
+
+        # Palabras que distinguen el producto: 3+ letras, sin cantidades («500», «250ml»).
+        # Antes eran 5+ letras: «neem» o «coco» no contaban, «ACEITE DE NEEM» quedaba en
+        # solo «aceite» y el ACEITE DE LIMÓN y el de COCO recibían la ficha del neem.
+        def distintivas(texto_norm: str) -> list[str]:
+            w = [p for p in texto_norm.split()
+                 if len(p) >= 3 and p not in excluir and not any(ch.isdigit() for ch in p)]
+            return w if w else texto_norm.split()
+
+        palabras = distintivas(nombre_norm)
 
         # Exigir que TODAS las palabras distintivas del título MeLi estén en el nombre del Sheet
         # (evita falsos positivos cuando el catálogo es más corto que la publicación).
@@ -166,9 +173,7 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
 
         # Fallback: títulos MeLi suelen traer sufijos (marca, envío, pack). Si todas las
         # palabras distintivas del nombre en Sheets aparecen en el título MeLi, es el mismo SKU.
-        def palabras_distintivas_de_fila(fila_norm: str) -> list[str]:
-            w = [p for p in fila_norm.split() if len(p) > 4 and p not in excluir]
-            return w if w else fila_norm.split()
+        palabras_distintivas_de_fila = distintivas
 
         candidatos: list[tuple[int, str]] = []
         for row in rows:

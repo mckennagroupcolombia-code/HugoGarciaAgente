@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
-import MobileHub, { useMobileLayout } from "./components/MobileHub";
+import MobileHub, { BarraMovil, useMobileLayout } from "./components/MobileHub";
 import VentanaAuxiliarShell from "./components/VentanaAuxiliarShell";
 import { esVentanaAuxiliar } from "./lib/ventanaAuxiliar";
 import { readNavHash } from "./lib/navHash";
@@ -423,7 +423,17 @@ export default function App() {
   // Hub simplificado por defecto en móvil (incluida la app Android) — el usuario elige
   // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
   // Layout responsive (mobileShell=app).
-  const showMobile = isMobile && !forceDesktop && mobileShell === "hub";
+  const mobileTab = useAppStore((s) => s.mobileTab);
+  const setMobileTab = useAppStore((s) => s.setMobileTab);
+  // «Agenda» en el celular ES la agenda de escritorio (Layout + navegación por flujo):
+  // el hub solo pinta Hugo · Mensajes · Rápido · Yo. Antes el celular tenía su propia
+  // portada con otro lenguaje visual y se sentía como otra aplicación.
+  const showMobile = isMobile && !forceDesktop && mobileShell === "hub" && mobileTab !== "home";
+  const irAgendaMovil = () => {
+    setPanel("hugo");
+    setMobileTab("home");
+    setMobileShell("app");
+  };
 
   useEffect(() => {
     document.documentElement.classList.remove("mck-apk");
@@ -609,6 +619,7 @@ export default function App() {
             setMobileShell("app");
           }}
           onOpenPanel={() => setMobileShell("app")}
+          onAgenda={irAgendaMovil}
         />
       </>
     );
@@ -620,13 +631,18 @@ export default function App() {
       <BarbieSparkles />
       <ThemesDialog />
       <Layout
-        onBackToMobileHub={
-          isMobile && !forceDesktop
-            ? () => {
+        barraMovil={
+          isMobile && !forceDesktop ? (
+            <BarraMovil
+              active="home"
+              onChange={(t) => {
+                if (t === "home") return irAgendaMovil();
+                setMobileTab(t);
                 setMobileShell("hub");
-                setPanel("hugo");
-              }
-            : undefined
+              }}
+              conNueva={panel === "hugo" || panel === "tickets"}
+            />
+          ) : undefined
         }
         onExitForceDesktop={
           forceDesktop && isMobile

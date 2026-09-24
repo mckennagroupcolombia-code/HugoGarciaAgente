@@ -46,6 +46,7 @@ import {
   useTiposEtiqueta,
   type TipoEtiqueta,
 } from "../../lib/etiquetasTipos";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 const COLORES_FORMATO: { hex: string; nombre: string }[] = [
   { hex: "#3d246b", nombre: "Violeta SCI" },
@@ -1710,6 +1711,7 @@ export default function FichaMpDiligenciarPanel({
         dpi: 300,
       });
       setMsg("PNG guardado en la biblioteca de etiquetas ✓");
+      celebrarAprobacion({ titulo: "¡Etiqueta aprobada!", detalle: safe, mision: "etiqueta_aprobada" });
       setTimeout(() => setMsg(null), 3000);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al guardar");
