@@ -1,3 +1,12 @@
+### 2026-09-25 06:45 - Préstamos: trazabilidad contaba desembolsos anulados
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.
+- **Qué se implementó:**
+  - La consulta de «tramos» en `prestamos.trazabilidad()` (asientos `tipo_origen='prestamo_recibido'` del mismo prestamista) **no excluía los anulados**. Al corregir un desembolso (partirlo en dos consignaciones y anular el combinado), el asiento viejo anulado seguía apareciendo → duplicaba el capital recibido. Se agrega `AND estado<>'anulado'`.
+  - Contexto: el préstamo de Carmenza Prieto ($16.950.000) estaba como un solo asiento (1485), pero entró en **dos consignaciones por cajero** ($9.300.000 + $7.650.000). Como `extracto_vinculos.movimiento_id` es UNIQUE (1:1), se partió el desembolso en dos tramos `prestamo_recibido` (cc:5917/5918) para vincular cada consignación; el 1485 quedó anulado. El total (2195 Carmenza) y el capital del préstamo no cambian.
+- **Verificación:** `trazabilidad(3)` ahora lista solo los dos tramos vivos; 2195 de Carmenza sigue en $16.950.000; ambas líneas de banco vinculadas.
+- **Archivos Modificados:** `app/services/prestamos.py` (las causaciones/vínculos son datos en `contabilidad.db`).
+
 ### 2026-09-25 06:10 - Préstamos: trazabilidad no veía las reposiciones del socio (1355 → 1325)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.

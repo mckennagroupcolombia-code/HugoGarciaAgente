@@ -1184,9 +1184,12 @@ def trazabilidad(prestamo_id: int) -> dict:
         ids.append(int(p["movimiento_desembolso_id"]))
     with _conn() as con:
         # Tramos adicionales: mismo prestamista, mismo tipo de asiento.
+        # Excluye anulados: un desembolso corregido (p.ej. partido en dos
+        # consignaciones) deja el asiento viejo anulado, y contarlo duplicaría
+        # el capital recibido.
         for r in con.execute(
             "SELECT id FROM cc_movimientos WHERE tipo_origen='prestamo_recibido'"
-            " AND tercero_id=? ORDER BY fecha, id",
+            " AND tercero_id=? AND estado<>'anulado' ORDER BY fecha, id",
             (p["tercero_id"],),
         ):
             if int(r["id"]) not in ids:
