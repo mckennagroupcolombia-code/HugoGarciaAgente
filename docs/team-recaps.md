@@ -4082,3 +4082,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - La galería abre en la categoría de la celda que se edita (`campo` → `CATEGORIA_ICONO_POR_CAMPO`: origin→Origen, odor→Aroma, storage→Conservación, alergenos→Seguridad…) en 250/500 g, 30 mL, 5 mL, 69×51 y vertical; cada pestaña muestra cuántos íconos tiene.
   - **Verificado:** `npm run build` (tsc) sin errores; captura con arnés de la galería abierta desde Aroma (16 íconos). Arnés borrado.
 - **Archivos Modificados:** `desktop/src/lib/iconosGaleriaAmpliada.ts` (nuevo), `desktop/src/lib/iconosQuimicaCirculares.ts`, `desktop/src/components/plantillas-visuales/GaleriaIconosQuimicosModal.tsx`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-30ml/LeftTechnicalPanel.tsx`, `desktop/src/components/etiqueta-5ml/Etiqueta5ml.tsx`, `desktop/src/components/etiqueta-simple/EtiquetaSimple.tsx`, `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `docs/team-recaps.md`
+
+### 2026-09-25 - Tareas: una sola celebración por tarea cumplida, con estrellas doradas en Barbie Agenda
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (celebración de tareas)
+- **Qué se implementó:**
+  - Al cumplir una tarea (marcarla lista con `PUT /api/tickets/<id>/estado` → `resuelto`, o `POST /api/tickets/<id>/completar-accion`) el escucha global de `fetch` (`escucharMonedasDelServidor`) dispara `celebrarTareaCumplida(id)`: lluvia de estrellas doradas + estallido al centro. En el tema Barbie Agenda son 90 estrellas casi todas de oro (algún destello rosa); en los demás temas, estrellas de oro y confeti. Vale para el panel de tareas, misiones, la Agenda y la app de colaboradores.
+  - Una sola vez por tarea y por día (memoria + `localStorage` `mck-tareas-celebradas`): reabrir y volver a cerrar no repite el efecto. Un solo sonido: la fanfarria del efecto; la moneda del árbitro que llega en la misma respuesta se muestra callada y se quitó `playChimeExito` del botón «Marcar lista».
+  - Las estrellas de la tarjeta de aprobación en Barbie ahora también son sobre todo doradas.
+  - **Verificado:** `npm run build` sin errores; prueba en Chrome headless: primera llamada celebra, la segunda sobre la misma tarea no; capturas del efecto en Barbie.
+- **Archivos Modificados:** `desktop/src/lib/celebracionAprobado.ts`, `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`

@@ -12253,24 +12253,6 @@ async function playAlarmAudio(apiToken?: string) {
   } catch { /* AudioContext no disponible */ }
 }
 
-/** Chime corto de "listo" (arpegio ascendente) — mismo enfoque Web Audio que playAlarmAudio, sin red/TTS. */
-function playChimeExito() {
-  try {
-    const ctx = _unlockedCtx ?? new AudioContext();
-    const now = ctx.currentTime;
-    [[0, 523.25], [0.1, 659.25], [0.2, 783.99], [0.32, 1046.5]].forEach(([delay, freq]) => {
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.type = "sine"; osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now + delay);
-      gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.5);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(now + delay); osc.stop(now + delay + 0.52);
-    });
-    setTimeout(() => ctx.close().catch(() => {}), 1400);
-  } catch { /* AudioContext no disponible */ }
-}
-
 async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<void> {
   const texto = `Veci, tiene una solicitud de parte de ${nombre}.`;
   if (apiToken) {
@@ -14389,8 +14371,8 @@ function SolicitudCard({
         await guardarProcedimientoDesdeSolicitud();
       }
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      // El sonido y las estrellas los pone celebrarTareaCumplida (lib/celebracionAprobado.ts).
       setCelebrando(segundosCronometro || ticket.segundos_trabajo || 0);
-      playChimeExito();
       onChanged();
       setTimeout(() => onCerrarDetalle?.(), 3200);
     } catch (e: any) {

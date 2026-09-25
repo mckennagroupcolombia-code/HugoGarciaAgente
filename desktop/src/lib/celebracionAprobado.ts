@@ -46,7 +46,7 @@ export interface PagoMision {
 }
 
 const COLORES = ["#0891b2", "#059669", "#d97706", "#7c3aed", "#e11d48", "#facc15"];
-const COLORES_BARBIE = ["#ff4fa3", "#ffd76a", "#c89bff", "#ffffff", "#ff9ecf"];
+const COLORES_BARBIE = ["#f6c945", "#ffd76a", "#ff4fa3", "#ffe9a8", "#e0a820"];
 
 const CSS = `
 .mck-apr-capa { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden; }
@@ -233,14 +233,145 @@ export function escucharMonedasDelServidor() {
   window.fetch = async (...args: Parameters<typeof fetch>) => {
     const res = await original(...args);
     try {
+      // La tarea cumplida lleva su propio efecto con sonido: la moneda que la acompaña va callada.
+      const tarea = res.ok ? tareaCumplidaEn(args[0], args[1]) : null;
+      const celebrada = tarea != null && celebrarTareaCumplida(tarea);
       const h = res.headers.get("X-Mck-Monedas");
       if (h) {
         const pago = JSON.parse(decodeURIComponent(h)) as PagoMision;
-        if (pago.pagada) celebrarAprobacion({ tipo: "moneda", titulo: pago.titulo || "¡Misión cumplida!", pago });
+        if (pago.pagada) celebrarAprobacion({ tipo: "moneda", titulo: pago.titulo || "¡Misión cumplida!", pago, sonido: !celebrada });
       }
     } catch {
       /* cabecera ilegible: la moneda ya quedó en el perfil */
     }
     return res;
   };
+}
+
+/**
+ * ¿Esta petición cumplió una tarea? Marcarla lista (`PUT /api/tickets/<id>/estado` con
+ * `resuelto`) o completar una acción (`POST /api/tickets/<id>/completar-accion`), venga del
+ * panel de tareas, de una misión, de la Agenda o de la app de colaboradores. Devuelve el id.
+ */
+function tareaCumplidaEn(entrada: RequestInfo | URL, init?: RequestInit): number | null {
+  if (typeof entrada !== "string" && !(entrada instanceof URL)) return null;
+  const ruta = new URL(String(entrada), window.location.href).pathname;
+  const metodo = (init?.method ?? "GET").toUpperCase();
+  let m = /^\/api\/tickets\/(\d+)\/completar-accion\/?$/.exec(ruta);
+  if (m && metodo === "POST") return Number(m[1]);
+  m = /^\/api\/tickets\/(\d+)\/estado\/?$/.exec(ruta);
+  if (!m || metodo !== "PUT" || typeof init?.body !== "string") return null;
+  try {
+    return (JSON.parse(init.body) as { estado?: string }).estado === "resuelto" ? Number(m[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Tareas ya celebradas hoy: reabrir y volver a cerrar la misma tarea no repite el efecto.
+const CLAVE_CELEBRADAS = "mck-tareas-celebradas";
+const celebradasEnMemoria = new Set<string>();
+
+function yaCelebradaHoy(id: number): boolean {
+  const dia = new Date().toLocaleDateString("sv");
+  const clave = `${dia}:${id}`;
+  if (celebradasEnMemoria.has(clave)) return true;
+  celebradasEnMemoria.add(clave);
+  try {
+    const previo = JSON.parse(localStorage.getItem(CLAVE_CELEBRADAS) || "{}") as { dia?: string; ids?: number[] };
+    const ids = previo.dia === dia ? previo.ids ?? [] : [];
+    if (ids.includes(id)) return true;
+    localStorage.setItem(CLAVE_CELEBRADAS, JSON.stringify({ dia, ids: [...ids, id].slice(-300) }));
+  } catch {
+    /* sin almacenamiento: basta la memoria de esta pestaña */
+  }
+  return false;
+}
+
+const CSS_TAREA = `
+.mck-tarea-capa { position: fixed; inset: 0; z-index: 2147482999; pointer-events: none; overflow: hidden; }
+.mck-tarea-estrella { display: block; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  background: radial-gradient(circle, #fffaf0 0%, #ffe28a 35%, #f2b938 70%, #c98a12 100%); }
+.mck-tarea-estrella.rosa { background: radial-gradient(circle, #fff 0%, #ffc2df 45%, #ff4fa3 100%); }
+.mck-tarea-brillo { position: absolute; top: -40px; animation: mck-tarea-cae var(--dur, 2.8s) cubic-bezier(.3,.1,.6,1) var(--ret, 0ms) forwards;
+  filter: drop-shadow(0 0 6px rgb(255 205 80 / .95)) drop-shadow(0 0 14px rgb(255 190 60 / .6)); }
+.mck-tarea-estallido { position: absolute; left: 50%; top: 42%; }
+.mck-tarea-estallido .mck-tarea-brillo { top: 0; left: 0; animation: mck-tarea-sale 1.3s cubic-bezier(.15,.8,.3,1) var(--ret, 0ms) forwards; }
+.mck-tarea-destello { position: absolute; left: 50%; top: 42%; width: 360px; height: 360px; margin: -180px 0 0 -180px; border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 236 170 / .75) 0%, rgb(246 201 69 / .3) 35%, transparent 70%);
+  animation: mck-tarea-destello 1.1s ease-out forwards; }
+@keyframes mck-tarea-cae { 0% { transform: translate(0, 0) rotate(0) scale(.6); opacity: 0; } 8% { opacity: 1; }
+  100% { transform: translate(var(--dx, 0px), 110vh) rotate(var(--giro, 360deg)) scale(1); opacity: .15; } }
+@keyframes mck-tarea-sale { 0% { transform: translate(0, 0) scale(.2) rotate(0); opacity: 1; }
+  70% { opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(1) rotate(var(--giro, 180deg)); opacity: 0; } }
+@keyframes mck-tarea-destello { 0% { transform: scale(.2); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .mck-tarea-capa { display: none; } }`;
+
+function estrella(tam: number, rosa: boolean): HTMLElement {
+  const brillo = el("span", "mck-tarea-brillo");
+  const e = el("span", rosa ? "mck-tarea-estrella rosa" : "mck-tarea-estrella");
+  Object.assign(e.style, { width: `${tam}px`, height: `${tam}px` });
+  brillo.appendChild(e);
+  return brillo;
+}
+
+/**
+ * El efecto de cumplir una tarea: una lluvia de estrellas doradas con un estallido al centro
+ * (en el tema Barbie Agenda, casi todas de oro con algún destello rosa; en los demás temas, oro
+ * y confeti). Una sola vez por tarea y por día, y con una sola fanfarria. Devuelve si celebró.
+ */
+export function celebrarTareaCumplida(id: number): boolean {
+  if (typeof document === "undefined" || yaCelebradaHoy(id)) return false;
+  sonarAprobado();
+  if (!document.getElementById("mck-tarea-estilo")) {
+    const s = document.createElement("style");
+    s.id = "mck-tarea-estilo";
+    s.textContent = CSS_TAREA;
+    document.head.appendChild(s);
+  }
+  const barbie = document.documentElement.dataset.mckSkin === "barbie";
+  const capa = el("div", "mck-tarea-capa");
+  capa.setAttribute("aria-hidden", "true");
+  capa.appendChild(el("div", "mck-tarea-destello"));
+
+  const lluvia = barbie ? 90 : 50;
+  for (let i = 0; i < lluvia; i++) {
+    const rosa = barbie && i % 7 === 3;
+    const p = estrella(16 + ((i * 7) % 5) * 7, rosa);
+    Object.assign(p.style, { left: `${(i * 37 + 3) % 100}%` });
+    p.style.setProperty("--ret", `${(i % 15) * 70}ms`);
+    p.style.setProperty("--dur", `${2.3 + ((i * 13) % 10) / 8}s`);
+    p.style.setProperty("--dx", `${((i * 29) % 80) - 40}px`);
+    p.style.setProperty("--giro", `${i % 2 ? 420 : -360}deg`);
+    capa.appendChild(p);
+    if (!barbie && i % 2) {
+      const c = el("span", "mck-apr-confeti");
+      Object.assign(c.style, { left: `${(i * 53 + 11) % 100}%`, animationDelay: `${(i % 10) * 90}ms`, background: COLORES[i % COLORES.length] });
+      capa.appendChild(c);
+    }
+  }
+
+  const estallido = el("div", "mck-tarea-estallido");
+  const rayos = barbie ? 24 : 16;
+  for (let i = 0; i < rayos; i++) {
+    const ang = (i / rayos) * Math.PI * 2;
+    const dist = 140 + (i % 3) * 60;
+    const p = estrella(22 + (i % 3) * 10, barbie && i % 6 === 5);
+    p.style.setProperty("--x", `${Math.cos(ang) * dist}px`);
+    p.style.setProperty("--y", `${Math.sin(ang) * dist}px`);
+    p.style.setProperty("--ret", `${(i % 4) * 40}ms`);
+    estallido.appendChild(p);
+  }
+  capa.appendChild(estallido);
+
+  if (!document.getElementById("mck-apr-estilo")) {
+    // El confeti de los demás temas usa las clases de la celebración de aprobar.
+    const s = document.createElement("style");
+    s.id = "mck-apr-estilo";
+    s.textContent = CSS;
+    document.head.appendChild(s);
+  }
+  document.body.appendChild(capa);
+  window.setTimeout(() => capa.remove(), 4800);
+  return true;
 }
