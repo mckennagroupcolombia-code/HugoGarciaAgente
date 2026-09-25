@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
 import TerceroSelect from "./TerceroSelect";
+import FotoInsumo from "./insumos/FotoInsumo";
 import { DocumentoSoporteDetalle, type DocSoporte } from "./DocumentosSoporte";
 
 /**
@@ -455,6 +456,15 @@ function WizardSimple({
        pagaTodo, pagoAhora, hayItems, items, totProd.total, totalDocumento]);
 
   const faltaProveedor = Boolean(cat?.requiere_tercero) && !proveedor?.id;
+  // La solicitud de una compra es copia fiel de la cotización o proforma (24-sep-2026):
+  // todos sus productos, cada uno con SKU de Alegra, y el total del documento cuadrado.
+  // El backend lo exige igual (`pagos_proveedor.validar_compra`); esto solo lo dice antes.
+  const faltaCompra = !conProductosSimple ? ""
+    : !hayItems ? "Agrega los productos de la cotización, cada uno desde el catálogo de Alegra."
+    : items.some((it) => !it.sku) ? "Hay renglones sin SKU: cada producto debe existir en Alegra."
+    : num(totalDocumento) <= 0 ? "Escribe el total con IVA que dice la cotización o proforma."
+    : Math.abs(totProd.total - num(totalDocumento)) > 1 ? "Los productos no suman el total del documento."
+    : "";
   const listo = (hayItems ? totProd.total > 0 : valor > 0) && !!medioPagoId && !!fecha && !faltaProveedor;
 
   const prevQ = useQuery<Previsualizacion>({
@@ -583,10 +593,11 @@ function WizardSimple({
           <p className="text-sm font-bold uppercase text-muted">Materias primas de la cotización</p>
           <p className="text-xs text-muted">
             Agrégalas por su <b>referencia</b> del catálogo de Alegra (CITCALg, GLIVEGg…) con la
-            cantidad y el precio que trae la cotización del proveedor. El asiento reproduce cada
-            renglón contra inventario y separa el IVA descontable, así que la compra queda
-            contabilizada desde ya y no hay que volver a registrarla cuando llegue la factura.
-            Si el insumo no está en el catálogo, déjalo vacío y escribe el valor total abajo.
+            cantidad y el precio que trae la cotización del proveedor: <b>todos</b> los renglones del
+            documento, uno por producto. El asiento reproduce cada renglón contra inventario y
+            separa el IVA descontable, así que la compra queda contabilizada desde ya y no hay que
+            volver a registrarla cuando llegue la factura. Si un producto no está en el catálogo,
+            primero se crea en «Crear en Alegra».
           </p>
           <TablaProductos items={items} setItems={setItems} tot={totProd} />
           {items.length > 0 && (
@@ -597,7 +608,7 @@ function WizardSimple({
                        onChange={(e) => setTotalDocumento(e.target.value)}
                        placeholder="5150615" inputMode="decimal"
                        className="w-40 rounded border-2 border-border bg-surface-input px-2 py-1 text-right text-base tabular-nums text-ink" />
-                <span className="text-xs text-muted">el total con IVA de la cotización o factura</span>
+                <span className="text-xs text-muted">obligatorio · el total con IVA de la cotización o proforma</span>
               </label>
               {prevQ.data?.aviso_documento ? (
                 <p className="mt-1.5 rounded bg-amber-500/10 px-2 py-1 text-sm font-semibold text-amber-800 dark:text-amber-300">
@@ -609,8 +620,8 @@ function WizardSimple({
                 </p>
               ) : (
                 <p className="mt-1.5 text-xs text-muted">
-                  Escríbelo y el sistema comprueba que las líneas lo sumen. Sin eso, una tarifa de
-                  IVA equivocada pasa desapercibida: las del catálogo son una sugerencia.
+                  Escríbelo y el sistema comprueba que los renglones lo sumen: si falta un producto
+                  o una tarifa de IVA está mal, no cuadra. Sin él no se puede solicitar.
                 </p>
               )}
             </div>
@@ -622,11 +633,11 @@ function WizardSimple({
         <input type="number" min="0" step="1000"
                value={hayItems ? String(Math.round(totProd.total)) : monto}
                onChange={(e) => setMonto(e.target.value)}
-               disabled={hayItems}
-               placeholder="0" className={`${inputCls} ${hayItems ? "opacity-60" : ""}`} />
-        {hayItems && (
+               disabled={conProductosSimple}
+               placeholder="0" className={`${inputCls} ${conProductosSimple ? "opacity-60" : ""}`} />
+        {conProductosSimple && (
           <span className="mt-1 block text-xs text-muted">
-            Lo suman los productos de arriba. Para escribirlo a mano, quita las líneas.
+            Lo suman los productos de arriba: una compra no se paga por un valor escrito a mano.
           </span>
         )}
       </Campo>
@@ -836,9 +847,13 @@ function WizardSimple({
       )}
       {prevQ.data && <AsientoPreview p={prevQ.data} />}
 
+      {faltaCompra && hayItems && (
+        <p className="text-sm font-bold text-amber-600"><Ico e="⚠️" /> {faltaCompra}</p>
+      )}
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => crearMut.mutate()}
-                disabled={!prevQ.data?.cuadra || ocupado}
+                disabled={!prevQ.data?.cuadra || ocupado || Boolean(faltaCompra)}
+                title={faltaCompra || undefined}
                 className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40">
           {crearMut.isPending ? "Enviando…" : "Solicitar"}
         </button>
@@ -1082,7 +1097,12 @@ type Proveedor = {
    *  vive en su ficha, no en una casilla de cada pago. */
   retencion_asume_mckenna?: number;
 };
-type ProductoCat = { sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string; precio?: number; iva_pct?: number };
+type ProductoCat = {
+  sku: string; nombre: string; costo_unitario: number; unidad: string; tipo: string; precio?: number; iva_pct?: number;
+  // Foto de referencia y contador (app/services/insumos.py): para reconocer el producto real.
+  foto?: boolean; foto_v?: string; n_combos?: number; existencia?: number | null;
+  neto_desde_corte?: number | null; estado_uso?: string; ultimo_control?: string;
+};
 type CotejoItem = { sku: string; nombre: string; encontrado: boolean; por?: string; cantidad_ok: boolean; precio_ok: boolean };
 type Verificacion = {
   fiel: boolean; legible: boolean; origen: string; advertencias: string[]; numero_documento: string;
@@ -1233,12 +1253,13 @@ export function Wizard({
     medio_pago_id: f.medio_pago_id ? Number(f.medio_pago_id) : null,
     cuenta_debito: f.cuenta_debito, tipo_servicio: f.tipo_servicio,
     items: conProductos ? itemsCuerpo : undefined,
+    ...(conProductos && num(totalDocumento) > 0 ? { total_documento: num(totalDocumento) } : {}),
     // Quién asume la retención vive en la ficha del tercero, no en un botón.
     retencion_modo: proveedor?.regimen_simple || proveedor?.retefuente_exento ? "ninguna" : proveedor?.retencion_asume_mckenna ? "mckenna" : "beneficiario",
     ica_por_mil: parseFloat(icaPorMil.replace(",", ".")) || 0,
     gmf,
     ...(modo === "directo" && seTransfirio !== "" && cat?.permite_parcial ? { pagado_ahora: parseFloat(seTransfirio.replace(",", ".")) || 0 } : {}),
-  }), [cat, f, conProductos, tot.total, itemsCuerpo, proveedor, icaPorMil, gmf, modo, seTransfirio]);
+  }), [cat, f, conProductos, tot.total, itemsCuerpo, totalDocumento, proveedor, icaPorMil, gmf, modo, seTransfirio]);
 
   const pasoFinal = pasos.length;
   const prevQ = useQuery<Previsualizacion>({
@@ -1356,6 +1377,7 @@ export function Wizard({
       {conProductos && cat && paso === 3 && (
         <PasoProductos
           items={items} setItems={(v) => { setItems(v); setVerif(null); }} tot={tot}
+          totalDocumento={totalDocumento} setTotalDocumento={setTotalDocumento}
           onAtras={() => setPaso(2)} onSiguiente={() => setPaso(4)}
         />
       )}
@@ -1730,11 +1752,7 @@ function TablaProductos({
   });
   const resultados = prodQ.data?.productos ?? [];
 
-  /** Una línea que no está en el catálogo: se escribe a mano y queda sin SKU. */
-  function agregarLibre(nombre: string) {
-    setItems([...items, { sku: "", nombre: nombre.trim(), cantidad: "1", precio: "", iva_pct: "19", unidad: "" }]);
-    setQ("");
-  }
+  const setPanel = useAppStore((st) => st.setPanel);
 
   function agregar(p: ProductoCat) {
     if (items.some((it) => it.sku === p.sku)) return;
@@ -1762,31 +1780,37 @@ function TablaProductos({
           <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
             {prodQ.isLoading && <p className="px-3 py-2 text-sm text-muted">Buscando…</p>}
             {resultados.map((p) => (
-              <button key={p.sku} type="button" onClick={() => agregar(p)}
-                className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent/10">
-                <span><span className="font-mono font-bold text-accent">{p.sku}</span> <span className="text-ink">{p.nombre}</span></span>
-                <span className="text-xs text-muted">
+              <div key={p.sku} role="button" tabIndex={0} onClick={() => agregar(p)}
+                onKeyDown={(e) => { if (e.key === "Enter") agregar(p); }}
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-accent/10">
+                <FotoInsumo sku={p.sku} tiene={p.foto} version={p.foto_v} tam={36} subir={false} />
+                <span className="min-w-0 flex-1">
+                  <span className="font-mono font-bold text-accent">{p.sku}</span> <span className="text-ink">{p.nombre}</span>
+                  <span className="block text-[11px] text-muted">
+                    {p.n_combos ? `en ${p.n_combos} combo${p.n_combos === 1 ? "" : "s"}` : "no está en ningún combo"}
+                    {p.existencia != null ? ` · existencia ${p.existencia.toLocaleString("es-CO")}` : " · sin lote registrado"}
+                    {p.existencia != null ? (p.ultimo_control ? ` · último control ${p.ultimo_control}` : " · sin control de inventario: contar antes de comprar otro lote") : ""}
+                    {p.estado_uso === "sin_uso" ? " · sin uso: ¿es el código correcto?" : ""}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-muted">
                   {p.unidad ? `${p.unidad} · ` : ""}{Number(p.iva_pct ?? 19) === 0 ? "excluido de IVA" : "IVA 19%"}
                 </span>
-              </button>
+              </div>
             ))}
             {!prodQ.isLoading && !resultados.length && (
-              // Antes esto era el final del camino: «créalo primero en Catálogo
-              // Alegra» y el recorrido se quedaba ahí, sin poder registrar la
-              // compra. El propionato y la glicina de CADIEP, o las bolsas
-              // PET/PBD de Comercializadora, no están en el catálogo y aun así
-              // hay que contabilizar su factura. Se agrega la línea con su
-              // nombre; crear el producto en Alegra es otra tarea, no un
-              // requisito para causar lo que ya se pagó.
+              // Hasta el 24-sep-2026 aquí se podía «Agregar … sin referencia». Ya no:
+              // una compra sin SKU no se cruza con el inventario ni con la factura, y
+              // la solicitud de pago es justo el registro de la compra. Se crea antes.
               <div className="px-3 py-2">
                 <p className="text-sm text-muted">No está en el catálogo de Alegra.</p>
-                <button type="button" onClick={() => agregarLibre(q)}
+                <button type="button" onClick={() => setPanel("productos-siigo")}
                         className="mt-1.5 rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">
-                  Agregar «{q.trim()}» sin referencia
+                  Crearlo en «Crear en Alegra» →
                 </button>
                 <p className="mt-1 text-xs text-muted">
-                  Queda en el asiento por su nombre y en la cuenta que elijas. Si es un insumo que se
-                  va a volver a comprar, conviene crearlo después en Catálogo Alegra.
+                  Después vuelve aquí y búscalo por su referencia. Revisa antes con otra palabra: puede
+                  estar con otro nombre, y crearlo dos veces descuadra el inventario.
                 </p>
               </div>
             )}
@@ -1807,7 +1831,9 @@ function TablaProductos({
             <tbody>
               {items.map((it, i) => (
                 <tr key={it.sku + i} className="border-t border-border/40">
-                  <td className="px-2 py-1 font-mono font-bold text-accent">{it.sku}</td>
+                  <td className="px-2 py-1 font-mono font-bold text-accent">
+                    <span className="flex items-center gap-1.5">{it.sku && <FotoInsumo sku={it.sku} tam={32} />}{it.sku}</span>
+                  </td>
                   <td className="px-2 py-1 text-ink">{it.nombre}{it.unidad ? <span className="text-muted"> · {it.unidad}</span> : null}</td>
                   <td className="px-2 py-1 text-right"><input type="number" min="0" step="1" value={it.cantidad} onChange={(e) => editar(i, "cantidad", e.target.value)} className="w-24 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
                   <td className="px-2 py-1 text-right"><input type="number" min="0" step="0.01" value={it.precio} onChange={(e) => editar(i, "precio", e.target.value)} className="w-28 rounded border border-border bg-surface-input px-1 py-0.5 text-right" /></td>
@@ -1835,22 +1861,38 @@ function TablaProductos({
 }
 
 function PasoProductos({
-  items, setItems, tot, onAtras, onSiguiente,
+  items, setItems, tot, totalDocumento, setTotalDocumento, onAtras, onSiguiente,
 }: {
   items: ItemLinea[]; setItems: (v: ItemLinea[]) => void;
   tot: { subtotal: number; iva: number; total: number };
+  totalDocumento: string; setTotalDocumento: (v: string) => void;
   onAtras: () => void; onSiguiente: () => void;
 }) {
-  // Basta el NOMBRE. Exigir la referencia del catálogo dejaba sin salida a
-  // cualquier compra de algo que Alegra no tenga creado —el propionato y la
-  // glicina de CADIEP, las bolsas PET/PBD de Comercializadora— y el operador
-  // se quedaba en este paso sin poder seguir ni saber por qué. El backend
-  // (`normalizar_items`) nunca necesitó el SKU: pide sku O nombre.
-  const listo = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && (it.sku || it.nombre.trim()));
+  // Cada renglón con su SKU de Alegra (24-sep-2026): la solicitud es el registro de la
+  // compra y lo que no está en el catálogo se crea primero en «Crear en Alegra».
+  // El backend lo exige igual (`pagos_proveedor.validar_compra`).
+  const renglonesOk = items.length > 0 && items.every((it) => num(it.cantidad) > 0 && num(it.precio) > 0 && it.sku);
+  const doc = num(totalDocumento);
+  const cuadra = doc > 0 && Math.abs(tot.total - doc) <= 1;
+  const listo = renglonesOk && cuadra;
   return (
     <div className="space-y-3">
       <p className="text-sm font-bold text-accent">¿Qué materias primas se compran? (referencia del catálogo Alegra)</p>
+      <p className="text-xs text-muted">Todos los renglones de la cotización o proforma, uno por producto.</p>
       <TablaProductos items={items} setItems={setItems} tot={tot} />
+      {items.length > 0 && (
+        <label className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm">
+          <span className="font-bold text-ink">Total que dice el documento</span>
+          <input type="number" min="0" step="0.01" value={totalDocumento} inputMode="decimal"
+                 onChange={(e) => setTotalDocumento(e.target.value)}
+                 className="w-40 rounded border-2 border-border bg-surface-input px-2 py-1 text-right text-base tabular-nums text-ink" />
+          <span className={`text-xs font-bold ${cuadra ? "text-emerald-600" : "text-amber-600"}`}>
+            {doc <= 0 ? "obligatorio · el total con IVA de la cotización o proforma"
+              : cuadra ? "✓ Los productos cuadran con el documento"
+              : `Los productos suman ${cop(tot.total)}: no cuadra`}
+          </span>
+        </label>
+      )}
       <div className="flex gap-2">
         <button type="button" onClick={onAtras} className="rounded-lg border border-border px-3 py-2 text-sm font-bold text-ink">← Atrás</button>
         <button type="button" onClick={onSiguiente} disabled={!listo}

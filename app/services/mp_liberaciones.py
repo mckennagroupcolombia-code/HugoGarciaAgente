@@ -258,7 +258,9 @@ def lote_de_retiro(linea_id: int, *, tercero_id: int | None = None,
     # contabiliza contra esa cuenta; si no, se informa lo que el lote deja.
     import app.services.contabilidad_core as cc
 
-    cuenta_mp = cc.codigo_vivo("111010")
+    from app.services.puc_colombia import CUENTA_MERCADOPAGO
+
+    cuenta_mp = cc.codigo_vivo(CUENTA_MERCADOPAGO)
     saldo_111010 = _saldo_cuenta(cuenta_mp)
     return {
         "retiro": {"linea_id": actual["id"], "fecha": actual["fecha"], "monto": retirado},

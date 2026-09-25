@@ -376,3 +376,23 @@ Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Pré
 correcto (incl. préstamo) y la vincula en un solo paso. Adjuntar comprobante (`ComprobanteWidget.tsx`,
 compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras courier de un socio.
 
+
+## Retiros de MercadoPago y ventas MeLi en septiembre (25-sep-2026)
+
+- Hasta el 22-sep `auto_meli_venta` posteaba cada venta MeLi contra **1110 Bancos**; el código ya las manda a
+  MercadoPago (`FUENTE_CAJA` → 111010, vivo **112515**). Las **1.328 ventas de septiembre** ($41.797.060) se
+  reclasificaron venta por venta de 1110 a 112515 (registro: `app/data/_reclasificacion_meli_mp_2026-09-25.json`;
+  respaldo previo: `backups_drive/contabilidad_antes_reclasif_meli_mp_2026-09-25.db`). Julio y agosto (antes del
+  corte) siguen en 1110: son del contador.
+- Los retiros «PAGO INTERBANC MERCADOPAGO SA» se causan como **traslado** Debe 1110 / Haber 112515
+  (`extracto:<línea>`, `tipo_origen=extracto_clasificado`), con el lote de `mp_liberaciones.lote_de_retiro` en
+  `plantilla_datos`. Hechos: 7-sep $9,5M (#5865), 14-sep $9M (#5866), 21-sep $9M (#5867).
+- El saldo de 112515 **antes del corte** es −$198,3M (ventas en Bancos + factura MeLi contra 112515): no sirve
+  como saldo inicial; el real lo fija el contador con el extracto de MercadoPago al 31-ago.
+- **Cuenta del saldo en Mercado Pago = 130505** (Clientes nacionales, tercero «MERCADO PAGO», id 74) desde el 25-sep-2026,
+  decisión de Armando: es una cuenta por cobrar a la plataforma, no un fondo (1125). Constante única
+  `puc_colombia.CUENTA_MERCADOPAGO` (la usan `contabilidad_autopost.FUENTE_CAJA`, `extracto_clasificador`,
+  `mp_liberaciones` y `meli_facturacion`). **No** se hizo por `ALIAS`: un alias 112515→130505 haría que `migrar()`
+  arrastrara también lo anterior al corte. Las 1.363 ventas y los 3 retiros de septiembre ya están en 130505 (respaldo
+  `backups_drive/contabilidad_antes_130505_2026-09-25.db`). La naturaleza de la cuenta está en `DESCRIPCIONES["130505"]`
+  (se ve en árbol/extracto/PDF/CSV del Libro Mayor), en la descripción de cada renglón y en el historial del tercero.

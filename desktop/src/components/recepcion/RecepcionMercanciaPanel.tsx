@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { api } from "../../api/client";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
+import FotoInsumo from "../insumos/FotoInsumo";
+import InsumosVista from "../insumos/InsumosVista";
 
 /**
  * Recepción de mercancía — lo que llega a bodega, con fotos y conteo contra lo esperado.
@@ -151,6 +153,7 @@ function FilaItem({ r, it, onCambio }: { r: Recepcion; it: Item; onCambio: () =>
   return (
     <div className="rounded-lg border border-border bg-surface-input p-2">
       <div className="flex items-start gap-2">
+        {it.sku && <FotoInsumo sku={it.sku} tam={44} />}
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-bold text-ink">{it.descripcion}</p>
           <p className="text-[11px] text-muted">
@@ -286,6 +289,23 @@ function Detalle({ id, onCerrar }: { id: number; onCerrar: () => void }) {
 }
 
 export default function RecepcionMercanciaPanel() {
+  const [vista, setVista] = useState<"llegadas" | "insumos">("llegadas");
+  return (
+    <div className="mx-auto w-full max-w-[1300px] space-y-3">
+      <div className="flex gap-1.5">
+        {([["llegadas", "Llegadas"], ["insumos", "Insumos: fotos y contador"]] as const).map(([id, txt]) => (
+          <button key={id} type="button" onClick={() => setVista(id)}
+            className={`rounded-full border px-3 py-1.5 text-[12.5px] font-bold ${vista === id ? "border-accent bg-accent/10 text-accent" : "border-border text-ink"}`}>
+            {txt}
+          </button>
+        ))}
+      </div>
+      {vista === "insumos" ? <InsumosVista /> : <Llegadas />}
+    </div>
+  );
+}
+
+function Llegadas() {
   const [sel, setSel] = useState<number | null>(null);
   const [creando, setCreando] = useState(false);
   const lista = useQuery<{ recepciones: Recepcion[] }>({

@@ -126,9 +126,10 @@ def test_resumen_para_el_panel():
     assert {f["concepto"] for f in filas} == set(CONCEPTOS)
     compras = next(f for f in filas if f["concepto"] == "compras")
     assert compras["minimo_cop"] == pytest.approx(1_344_573, abs=1)
-    # Con UVT 2026 cargada el mínimo se expresa en pesos del año
+    # Con UVT 2026 cargada el mínimo se expresa en pesos del año (10 UVT desde 2026)
     c26 = next(f for f in resumen_conceptos(2026) if f["concepto"] == "compras")
-    assert c26["minimo_cop"] == pytest.approx(27 * 52_374, abs=1)
+    assert c26["minimo_uvt"] == 10
+    assert c26["minimo_cop"] == pytest.approx(10 * 52_374, abs=1)
     # Sin UVT del año, el mínimo en pesos queda en None y no en 0
     assert all(f["minimo_cop"] is None for f in resumen_conceptos(2027))
 
@@ -280,3 +281,27 @@ def test_cada_concepto_tiene_su_subcuenta_de_2365():
     for concepto in CONCEPTOS:
         codigo = cuenta_retencion(concepto)
         assert codigo.startswith("2365") and len(codigo) == 6, concepto
+
+
+# ─── Compras a 10 UVT desde 2026 (24-sep-2026) ──────────────────────────────
+# Caso real: CIV2336 de COMERCIALIZADORA INTERNACIONAL C.I., base $1.120.000 —
+# bajo 27 UVT pero sobre 10 — y su factura ya descontaba $28.000 de ReteRenta.
+
+def test_compras_2026_retienen_desde_10_uvt():
+    r = calcular("compras", 1_120_000, anio=2026, declarante=True)
+    assert r["aplica"] is True
+    assert r["retencion"] == pytest.approx(28_000, abs=1)
+    assert r["minimo_uvt"] == 10
+    assert r["minimo_cop"] == pytest.approx(523_740, abs=1)
+
+
+def test_compras_2026_bajo_10_uvt_no_retienen():
+    r = calcular("compras", 250_000, anio=2026, declarante=True)
+    assert r["aplica"] is False and r["retencion"] == 0
+
+
+def test_los_anios_anteriores_siguen_con_27_uvt():
+    """Los certificados 2023/2024 ya expedidos se calcularon con 27 UVT."""
+    r = calcular("compras", 1_120_000, anio=2025, declarante=True)
+    assert r["aplica"] is False
+    assert r["minimo_uvt"] == 27

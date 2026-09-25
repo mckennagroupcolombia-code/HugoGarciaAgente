@@ -27,6 +27,18 @@ def mods(monkeypatch, tmp_path):
     # en la bandeja REAL de Armando (69 el 11-sep-2026), apuntando a solicitudes
     # que solo existían en la base temporal del test.
     monkeypatch.setattr(tickets_db, "DB_PATH", str(tmp_path / "tickets_test.db"))
+    # El catálogo de Alegra de mentira: toda referencia existe como producto
+    # activo salvo las que el test usa a propósito para lo contrario. La copia
+    # local real cambia todos los días y no es asunto de esta suite.
+    from app.services import pagos_proveedor
+
+    _falsos = {"NOEXISTE": None,
+               "KITVENTA": {"type": "kit", "status": "active"},
+               "VIEJOg": {"type": "product", "status": "inactive"}}
+    monkeypatch.setattr(
+        pagos_proveedor, "_item_catalogo",
+        lambda sku: _falsos[sku] if sku in _falsos else {"type": "product", "status": "active"},
+    )
     w.init_db()
     with cc._conn() as con:
         banco = cc._cuenta_id_por_codigo(con, "1110")
@@ -951,6 +963,7 @@ def test_al_aprobar_no_se_pierde_ningun_producto(mods):
     s = w.crear_solicitud({
         "categoria": "productos", "concepto": "Cotización 4471", "fecha": "2026-09-18",
         "tercero_id": t["id"], "medio_pago_id": m["id"], "items": _items(), "monto": 0,
+        "total_documento": 711_800,
     })
     r = w.aprobar(s["id"], espejar=False)
     mov = cc.obtener_movimiento(r["movimiento_id"])
@@ -960,18 +973,97 @@ def test_al_aprobar_no_se_pierde_ningun_producto(mods):
     assert cc.balance_comprobacion()["cuadra"]
 
 
-def test_productos_no_bloquea_el_pago_si_no_hay_catalogo(mods):
-    """Hay insumos que no están en el catálogo. Bloquear el pago por eso empuja
-    al operador a la categoría «Otro», que es donde se pierden la retención y
-    la cuenta correcta."""
+# ─── La solicitud es copia fiel de la cotización (24-sep-2026) ──────────────
+#
+# Reemplaza la regla del 18-sep («Productos» sin lista obligatoria y renglones
+# sin referencia): la solicitud de pago ES el registro de la compra, así que no
+# se pide pagar nada que no esté como producto en Alegra, y la lista tiene que
+# ser la del documento, completa y cuadrada al peso. La #47 (bolsas ziploc de
+# COMERCIALIZADORA INTERNACIONAL) pasó con las reglas viejas y hubo que
+# descontabilizarla.
+
+def _compra(t, m, items, **extra):
+    return {"categoria": "productos", "concepto": "Cotización", "fecha": "2026-09-24",
+            "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+            "items": items, **extra}
+
+
+def test_productos_sin_lista_no_se_solicitan(mods):
+    _cc, w, t, m, _ = mods
+    with pytest.raises(ValueError, match="Agrega los productos"):
+        w.crear_solicitud({
+            "categoria": "productos", "monto": 300_000, "concepto": "Insumo suelto",
+            "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        })
+
+
+def test_un_borrador_sin_lista_se_guarda_pero_no_se_envia(mods):
     _cc, w, t, m, _ = mods
     s = w.crear_solicitud({
         "categoria": "productos", "monto": 300_000, "concepto": "Insumo suelto",
         "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
         "estado": "borrador",
     })
-    w.enviar_a_aprobacion(s["id"])            # no exige productos
-    assert w.obtener(s["id"])["estado"] == "pendiente"
+    with pytest.raises(ValueError, match="Agrega los productos"):
+        w.enviar_a_aprobacion(s["id"])
+    assert w.obtener(s["id"])["estado"] == "borrador"
+
+
+@pytest.mark.parametrize("sku,motivo", [
+    ("", "no tiene SKU"),
+    ("NOEXISTE", "no existe en el catálogo"),
+    ("KITVENTA", "combo de venta"),
+    ("C-BOLSA500g", "combo de venta"),
+    ("VIEJOg", "inactivo"),
+])
+def test_solo_productos_registrados_en_alegra(mods, sku, motivo):
+    _cc, w, t, m, _ = mods
+    items = [{"sku": sku, "nombre": "BOLSA 15 X 21", "cantidad": 10, "precio": 100, "iva_pct": 19}]
+    with pytest.raises(ValueError, match=motivo):
+        w.crear_solicitud(_compra(t, m, items, total_documento=1_190))
+
+
+def test_un_renglon_malo_frena_toda_la_compra(mods):
+    _cc, w, t, m, _ = mods
+    items = _items() + [{"sku": "NOEXISTE", "nombre": "X", "cantidad": 1, "precio": 1, "iva_pct": 0}]
+    with pytest.raises(ValueError, match="Renglón 3"):
+        w.crear_solicitud(_compra(t, m, items, total_documento=711_801))
+
+
+def test_sin_total_del_documento_no_se_solicita(mods):
+    _cc, w, t, m, _ = mods
+    with pytest.raises(ValueError, match="total con IVA"):
+        w.crear_solicitud(_compra(t, m, _items()))
+
+
+def test_si_falta_un_renglon_no_cuadra(mods):
+    """La cotización trae dos productos y se capturó uno: el total lo delata."""
+    _cc, w, t, m, _ = mods
+    with pytest.raises(ValueError, match="faltan"):
+        w.crear_solicitud(_compra(t, m, _items()[:1], total_documento=711_800))
+
+
+def test_un_solo_producto_es_un_solo_renglon(mods):
+    _cc, w, t, m, _ = mods
+    items = [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 2900, "precio": 254, "iva_pct": 19}]
+    s = w.crear_solicitud(_compra(t, m, items, total_documento=876_554))
+    assert s["estado"] == "pendiente" and len(s["items"]) == 1
+
+
+def test_aprobar_frena_una_compra_vieja_sin_lista(mods):
+    """Una solicitud que quedó pendiente con las reglas anteriores no se
+    contabiliza: se rechaza y se vuelve a montar."""
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "monto": 300_000, "concepto": "Vieja",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "fecha": "2026-09-18",
+        "estado": "borrador",
+    })
+    with w._conn() as con:
+        con.execute("UPDATE cc_solicitudes_pago SET estado='pendiente' WHERE id=?", (s["id"],))
+    with pytest.raises(ValueError, match="Agrega los productos"):
+        w.aprobar(s["id"], espejar=False)
+    assert not w.obtener(s["id"])["movimiento_id"]
 
 
 def test_pactado_libre_se_respeta_aunque_el_pago_diga_ninguna(mods):
@@ -1087,19 +1179,6 @@ def test_un_descuadre_no_llega_a_aprobacion(mods):
     assert w.obtener(s["id"])["estado"] == "borrador"       # guardar sí
     with pytest.raises(ValueError, match="documento dice"):
         w.enviar_a_aprobacion(s["id"])
-
-
-def test_sin_total_del_documento_no_estorba(mods):
-    """No es obligatorio: hay compras sin documento a la mano y bloquearlas
-    empujaría al operador fuera del wizard."""
-    _cc, w, t, m, _ = mods
-    s = w.crear_solicitud({
-        "categoria": "productos", "concepto": "Compra", "fecha": "2026-09-10",
-        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0, "estado": "borrador",
-        "items": _cotizacion(),
-    })
-    w.enviar_a_aprobacion(s["id"])
-    assert w.obtener(s["id"])["estado"] == "pendiente"
 
 
 # ─── Buscar el insumo como lo nombra el proveedor (18-sep-2026) ─────────────
@@ -1232,3 +1311,44 @@ def test_rearmar_una_solicitud_guardada_no_repite_el_gross_up(mods):
     assert por_cuenta["511035"]["debito"] == 1_210_483
     assert por_cuenta["2368"]["credito"] == 10_483
     assert por_cuenta["1110"]["credito"] == 1_200_000
+
+
+def test_un_pago_de_mas_se_aprueba_con_lo_que_salio_del_banco(mods):
+    """Se giró la cotización completa ($876.554) sin descontar la retención
+    ($18.415): el asiento saca del banco lo que salió y la diferencia queda
+    como anticipo a favor con el proveedor (133005), no se pierde."""
+    cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Bolsas", "fecha": "2026-09-24",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": 876_554,
+        "items": [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 2900,
+                   "precio": 254, "iva_pct": 19}],
+        "pagado_ahora": 876_554,
+    })
+    mov = cc.obtener_movimiento(w.aprobar(s["id"], espejar=False)["movimiento_id"])
+    por = {l["cuenta_codigo"]: (l["debito"], l["credito"]) for l in mov["lineas"]}
+    assert por["1110"] == (0, 876_554)
+    assert por["133005"] == (18_415, 0)
+    assert por["236540"] == (0, 18_415)
+    assert cc.balance_comprobacion()["cuadra"]
+
+
+def test_la_vista_de_una_compra_guardada_respeta_sus_productos(mods):
+    """El panel recalcula la solicitud al abrirla. Sin los productos, la #48
+    salía con el IVA en inventario y la retención sobre el total con IVA."""
+    _cc, w, t, m, _ = mods
+    s = w.crear_solicitud({
+        "categoria": "productos", "concepto": "Bolsas", "fecha": "2026-09-24",
+        "tercero_id": t["id"], "medio_pago_id": m["id"], "monto": 0,
+        "retencion_modo": "beneficiario", "total_documento": 876_554,
+        "items": [{"sku": "BOLTRA15X21ZIP", "nombre": "BOLSA", "cantidad": 2900,
+                   "precio": 254, "iva_pct": 19}],
+        "pagado_ahora": 876_554,
+    })
+    p = w.previsualizacion_de(s["id"])
+    por = {l["cuenta_codigo"]: (l["debito"], l["credito"]) for l in p["lineas"]}
+    assert por["1435"] == (736_600, 0)
+    assert por["240810"] == (139_954, 0)
+    assert p["retencion"] == 18_415
+    assert p["difiere_de_lo_guardado"] is False

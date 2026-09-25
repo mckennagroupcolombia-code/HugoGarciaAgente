@@ -556,3 +556,20 @@ códigos PUC reales — 513550 Transporte/fletes, 513530 Energía, 5110 Honorari
 5120 Arrendamientos… — y **las 35 cuentas están mapeadas a Alegra** una a una.
 Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
 
+
+### Compra = copia fiel de la cotización (24-sep-2026)
+
+Reemplaza la decisión del 18-sep (`productos_opcionales`, renglones «sin referencia», total del
+documento opcional). La solicitud de pago **es** el registro de la compra —por eso no hay que
+registrar la factura después—, así que `pagos_proveedor.validar_compra(items, total_documento)`
+exige, al crear (pendiente o registro directo), al enviar un borrador y al aprobar:
+
+- al menos un renglón; un producto = un renglón, varios = la lista completa;
+- cada renglón con SKU que exista en la copia local del catálogo de Alegra, `type != kit`, sin
+  prefijo `C-`, `status = active` (se lee `alegra_catalogo_db.obtener_item`, sin llamar a Alegra);
+- `total_documento` > 0 y la suma de renglones (con IVA) igual al peso (±1).
+
+Caso que lo motivó: #47 (COMERCIALIZADORA INTERNACIONAL, bolsas 15x21 ziploc) se aprobó sin
+cotización cotejada y hubo que rechazarla y anular el asiento 5856 (espejo Alegra 152).
+Los borradores de Inter Rapidísimo recuperados del correo el 18-sep (#20, 24, 26, 29, 30, 33) están
+en «productos» con cuenta 523550: son fletes y van por «Servicios».

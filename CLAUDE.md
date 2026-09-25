@@ -551,8 +551,8 @@ Es **la única línea de esta operación que aparece en el extracto** y la que s
 `cc:<id>` para `extracto_bancario.vincular()`. Panel: Préstamos → «Cómo funciona».
 
 **Retención:** `app/services/retenciones.py` (tarifas, cuantías mínimas, UVT por año —
-UVT 2026 = $52.374, Res. DIAN 000238/2025). La mayoría de estas compras queda **bajo
-las 27 UVT** y no lleva retención. Explicación viva en /app → Préstamos → «Cómo funciona».
+UVT 2026 = $52.374, Res. DIAN 000238/2025). Compras: mínimo **10 UVT desde 2026**
+(27 UVT hasta 2025; `retenciones.MINIMO_UVT_DESDE`). Explicación viva en /app → Préstamos → «Cómo funciona».
 Ficha completa: `docs/agentic/modules/relaciones-socios-terceros.md`.
 
 ### O. Solicitudes de pago con asiento automático
@@ -581,6 +581,11 @@ Reglas que no se rompen:
 - **Compras**: se contabilizan con la cotización, renglón por renglón a 1435, **IVA a 240810**
   (nunca a inventario), IVA del documento (el del catálogo Alegra no sirve) y `total_documento`
   debe cuadrar para aprobar. Combos (`C-…`) fuera del picker.
+- **Una compra se solicita como copia fiel de la cotización/proforma** (24-sep-2026,
+  `pagos_proveedor.validar_compra`, en crear · enviar · aprobar): todos los renglones, cada uno un
+  producto **activo en Alegra** (no combo, no renglón sin SKU) y `total_documento` obligatorio y
+  cuadrado al peso. Se acabaron `productos_opcionales` y «Agregar … sin referencia»: lo que no está
+  en el catálogo se crea antes en «Crear en Alegra». Un borrador puede guardarse a medias.
 - **Documento soporte** (plantilla 10 DSMG, `PAGOS_DOC_SOPORTE_ACTIVO`): solo a personas naturales
   no obligadas a facturar; cuenta vía `alegra_espejo.cuenta_alegra()`; ReteICA dentro del documento.
   Con documento soporte el asiento **no se espeja** (duplicaba el gasto en Alegra). Nace BORRADOR al
@@ -1205,6 +1210,27 @@ Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloq
   y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
 - Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
 
+### AB. Insumos: foto de referencia, equivalencias y contador (25-sep-2026)
+
+Abastecer → Recibirla → Recepción de mercancía → pestaña **«Insumos: fotos y contador»** (`components/insumos/`,
+`app/services/insumos.py`, `app/routes_insumos.py`, `/api/insumos/*`). Sin LLM; no llama a Alegra ni a MeLi.
+- **Foto de referencia por SKU de inventario** (`FotoInsumo.tsx`): se toma con la cámara donde falte y se ve en el buscador
+  y los renglones del wizard de pagos, en cada renglón de una recepción y en la vista de insumos. Se guarda reducida a
+  JPEG ≤1000 px en `fotos_insumos/` (gitignored); índice en `app/data/insumos.db` (gitignored).
+- **Equivalencias** (`app/data/insumos_equivalentes.json`): un SKU que ya no se compra pero no se puede borrar porque
+  combos con ventas lo tienen en la receta (Alegra no deja cambiarla). El buscador lo oculta, `validar_compra` lo rechaza
+  («usa X») y el contador lo suma al canónico. Primer caso: `PASBLA180mL` → `PAS180BLAUn` (13 combos siguen con el viejo;
+  C-LHIS100g ya se cambió; respaldo de recetas en `app/data/_respaldo_recetas_PASBLA180mL_2026-09-25.json`).
+- **Contador por lotes** (decisión de Armando 25-sep): las existencias arrancan con los lotes que se registran. Sin control,
+  existencia = compras − consumo **desde la primera compra registrada** (lo vendido antes salió del inventario viejo); con
+  control (conteo físico, antes de comprar otro lote) se sigue desde lo contado. Comprado (asientos vivos de solicitudes de
+  pago y compras con `plantilla_datos.items`) − consumido (ventas
+  de `facturacion_ventas_cache.db` + `ventas_directas.db` facturadas no-MeLi, × receta del combo; un producto vendido
+  suelto se consume a sí mismo) desde `CONTABILIDAD_FECHA_CORTE`. **Alegra no lleva existencias de insumos**: sin
+  compra registrada ni control no hay existencia (no se inventa).
+  Estados: `ok` · `revisar` (existencia negativa: vendido más de lo registrado → hacer el control) · `sin_lote` (se usa
+  pero nunca se registró compra ni control) · `sin_uso` (sin combos, compras ni ventas: candidato a inactivar). Ventas cuyo SKU no tiene receta local se listan aparte, no se inventa su consumo.
+
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 
 La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,
@@ -1249,7 +1275,8 @@ extracto_bancario.py / extracto_clasificador.py   conciliación y propuestas par
 conciliacion_contador.py  350/490 del contador vs 2365 → hallazgos + TKT (sin LLM)
 ```
 
-Trampas conocidas: `2367`=IVA retenido, `2380`=acreedores varios, rendimientos = `236535` (no
+Trampas conocidas: saldo en Mercado Pago = **`130505`** (cuenta por cobrar, `CUENTA_MERCADOPAGO`; la venta MeLi
+se causa en 4135 y el retiro al banco es traslado Debe 1110 / Haber 130505, nunca ingreso); `2367`=IVA retenido, `2380`=acreedores varios, rendimientos = `236535` (no
 236515); `529505` cambió de significado (orden de migración importa). Un backfill necesita subir
 `CONTABILIDAD_LEDGER_BUDGET_S` (período a medias queda cuadrado y parece completo). Ante un **503
 de Alegra, releer antes de reintentar** (POST que sí se ejecutó). IVA de ventas nunca como

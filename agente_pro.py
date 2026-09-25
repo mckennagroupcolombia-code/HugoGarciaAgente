@@ -147,6 +147,12 @@ def create_app():
         print(f"⚠️ Recepción de mercancía: {e}")
 
     try:
+        from app.routes_insumos import register_insumos_routes
+        register_insumos_routes(app)
+    except Exception as e:
+        print(f"⚠️ Insumos: {e}")
+
+    try:
         from app.routes_canales_producto import register_canales_producto_routes
         register_canales_producto_routes(app)
     except Exception as e:

@@ -48,14 +48,14 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
     # Cuentas propias. Va primero que nada: si esto se clasifica como ingreso o
     # gasto, se inflan ventas y costos por decenas de millones (jul-ago 2026:
     # $40,7M moviéndose entre Bancolombia y MercadoPago en cuatro líneas).
-    # Ya existe 111010 «MercadoPago – saldo en plataforma»: el retiro es un
-    # traslado entre cuentas propias (Debe Bancos / Haber 111010) y se puede
+    # El saldo en Mercado Pago es una cuenta por cobrar (130505, desde el 25-sep-2026;
+    # antes 112515/111010): el retiro es un traslado (Debe Bancos / Haber 130505) y se puede
     # causar de un clic. Qué ventas trae ese lote lo dice MercadoPago por su
     # fecha de liberación (mp_liberaciones.lote_de_retiro), no el banco.
-    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "credito", "111010", "Retiro de MercadoPago al banco", ALTA,
-     "Plata propia que ya estaba en MercadoPago (ventas MeLi liberadas). No es ingreso: "
-     "el ingreso se causó venta por venta contra 111010."),
-    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "debito", "111010", "Envío del banco a MercadoPago", ALTA,
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "credito", "130505", "Retiro de MercadoPago al banco", ALTA,
+     "Plata propia que ya estaba en Mercado Pago (ventas MeLi liberadas): sale de la cuenta por cobrar "
+     "130505. No es ingreso: el ingreso se causó venta por venta en 4135."),
+    (r"MERCA ?O? ?PAGO|MERCADOPAGO", "debito", "130505", "Envío del banco a MercadoPago", ALTA,
      "Plata propia que sale del banco hacia la plataforma. No es gasto."),
 
     # Costos de tener la cuenta. Muchas líneas, montos chicos, cero ambigüedad.
@@ -358,6 +358,14 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
         monto = round(p["monto"], 2)
         tercero_id = (p.get("tercero") or {}).get("id")
+        from app.services.puc_colombia import CUENTA_MERCADOPAGO
+
+        if p["cuenta"] == cc.codigo_vivo(CUENTA_MERCADOPAGO):
+            # El saldo de ventas MeLi se le lleva a Mercado Pago, no a quien el
+            # banco nombre en la descripción («MERCADOPAGO SA» casaba con MeLi).
+            from app.services.contabilidad_autopost import _tercero_mercadopago
+
+            tercero_id = _tercero_mercadopago() or tercero_id
         # Un débito del banco es plata que sale: se carga la cuenta y se acredita
         # Bancos. Un crédito es al revés.
         if p["tipo"] == "debito":

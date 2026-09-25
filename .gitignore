@@ -282,3 +282,8 @@ app/data/rrhh_valoracion.json
 app/data/control_horas.json
 app/data/sesiones_ia_cache.json
 app/data/pagos_clientes.db
+
+# Insumos: base propia y fotos de referencia (binarios que sube el operador)
+app/data/insumos.db
+app/data/insumos.db-*
+fotos_insumos/

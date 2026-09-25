@@ -47,15 +47,15 @@ def test_nombre_demasiado_corto_no_casa_con_medio_directorio():
 def test_mercadopago_es_traslado_entre_cuentas_propias():
     """$40,7M entre cuentas propias: como ingreso inflaría ventas, como gasto
     inflaría costos. Se causa como traslado contra la cuenta de MercadoPago
-    (la viva: 111010 es alias), nunca contra una 4xxx ni una 5xxx."""
+    (130505, cuenta por cobrar a Mercado Pago), nunca contra una 4xxx ni una 5xxx."""
     import app.services.contabilidad_core as cc
 
     for desc in ("PAGO INTERBANC MERCAOPAGO SA", "PAGO PSE Mercadopago Colombi"):
         for tipo in ("credito", "debito"):
             p = ec.clasificar(_linea(desc, 11_000_000, tipo), terceros=[])
             assert p["confianza"] == ec.ALTA
-            assert p["cuenta"] == cc.codigo_vivo("111010")
-            assert p["cuenta"].startswith("11")           # activo: caja/plataforma, no ingreso ni gasto
+            assert p["cuenta"] == "130505"   # cuenta por cobrar a Mercado Pago (25-sep-2026)
+            assert p["cuenta"].startswith("1")            # activo (cuenta por cobrar), no ingreso ni gasto
             assert "MercadoPago" in p["concepto"]
 
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.services import contabilidad_core as cc
+from app.services.puc_colombia import CUENTA_MERCADOPAGO
 from app.services.contabilidad_ledger import armar_libro
 from app.services.extracto_bancario import id_movimiento_ledger
 
@@ -26,12 +27,22 @@ CUENTA_BANCOS = "1110"
 # cobra MercadoPago, la libera días después y sale al banco en retiros
 # redondos («PAGO INTERBANC MERCADOPAGO»). Postearla contra Bancos —como se
 # hizo hasta sep-2026— inflaba 1110 con dinero que aún no estaba ahí y dejaba
-# los retiros sin contrapartida. La venta y su comisión van a 111010; el
-# retiro es Debe 1110 / Haber 111010 (lo causa el taller de conciliación).
+# los retiros sin contrapartida. La venta y su comisión van a la cuenta por
+# cobrar a Mercado Pago (130505, ver `puc_colombia.CUENTA_MERCADOPAGO`); el
+# retiro es Debe 1110 / Haber 130505 (lo causa el taller de conciliación).
 FUENTE_CAJA: dict[str, str] = {
-    "meli_venta": "111010",
-    "meli_cobro": "111010",
+    "meli_venta": CUENTA_MERCADOPAGO,
+    "meli_cobro": CUENTA_MERCADOPAGO,
 }
+
+
+def _tercero_mercadopago() -> int | None:
+    """El tercero al que se le lleva el saldo por cobrar de las ventas MeLi."""
+    with cc._conn() as con:
+        r = con.execute(
+            "SELECT id FROM cc_terceros WHERE nombre LIKE 'MERCADO PAGO%' AND activo=1 ORDER BY id LIMIT 1"
+        ).fetchone()
+    return int(r[0]) if r else None
 
 # fuente (armar_libro) -> código de cuenta PUC contraparte de Bancos.
 # Ingreso: Debe Bancos / Haber esta cuenta. Egreso: Debe esta cuenta / Haber Bancos.
@@ -336,12 +347,21 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
 
     monto = round(float(row["monto"] or 0), 2)
     caja = FUENTE_CAJA.get(fuente, CUENTA_BANCOS)
-    caja_nombre = "MercadoPago" if caja == "111010" else "Bancos"
+    es_mp = caja == CUENTA_MERCADOPAGO
+    caja_nombre = "MercadoPago" if es_mp else "Bancos"
     bancos_id = _cuenta_id(cuentas_por_codigo, caja)
     cuenta_id = _cuenta_id(cuentas_por_codigo, FUENTE_MAPEO[fuente])
     concepto = row["concepto"]
 
     if row["tipo"] == "ingreso":
+        if es_mp:
+            # La descripción se lee en el Libro Mayor: que diga qué es este saldo.
+            return [
+                {"cuenta_id": bancos_id, "debito": monto, "credito": 0, "tercero_id": _tercero_mercadopago(),
+                 "descripcion": "Por cobrar a Mercado Pago (130505): la plata de esta venta MeLi queda en "
+                                "Mercado Pago hasta el retiro; el ingreso va en 4135"},
+                {"cuenta_id": cuenta_id, "debito": 0, "credito": monto, "descripcion": concepto},
+            ]
         return [
             {"cuenta_id": bancos_id, "debito": monto, "credito": 0,
              "descripcion": f"Entrada vía {caja_nombre} — {concepto}"},

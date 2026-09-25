@@ -208,7 +208,8 @@ def desglose_periodo(key: str, grupo: str = _GRUPO_DEFAULT, *, usar_cache: bool 
 def lineas_asiento(key: str, grupo: str = _GRUPO_DEFAULT) -> list[dict[str, Any]]:
     """El desglose ya como líneas de asiento, contra el saldo de MercadoPago.
 
-    La factura no se paga por banco: se cobra contra 111010. Por eso la
+    La factura no se paga por banco: se cobra contra el saldo en Mercado Pago
+    (130505, `puc_colombia.CUENTA_MERCADOPAGO`; antes 111010/112515). Por eso la
     contrapartida de todo el gasto es esa cuenta y no 1110 — registrarlo contra
     Bancos descuadraría la conciliación, porque ese débito nunca existió.
     """
@@ -228,6 +229,8 @@ def lineas_asiento(key: str, grupo: str = _GRUPO_DEFAULT) -> list[dict[str, Any]
         else:
             lineas.append({"cuenta": c["cuenta_puc"], "debito": 0, "credito": -c["monto"],
                            "descripcion": f"{c['descripcion']} ({c['codigo']})"})
-    lineas.append({"cuenta": "111010", "debito": 0, "credito": d["total_calculado"],
+    from app.services.puc_colombia import CUENTA_MERCADOPAGO
+
+    lineas.append({"cuenta": CUENTA_MERCADOPAGO, "debito": 0, "credito": d["total_calculado"],
                    "descripcion": f"Factura MercadoLibre período {key}"})
     return lineas

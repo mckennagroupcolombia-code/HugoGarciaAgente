@@ -120,7 +120,9 @@ CATEGORIAS: dict[str, dict] = {
         # factura: de más (la transferencia salió por la cotización) o de menos.
         # Sin esto, el taller no podía registrar lo que de verdad salió del banco.
         "permite_parcial": True,
-        "productos_opcionales": True,
+        # Hasta el 24-sep-2026 había aquí `productos_opcionales`: se podía pagar
+        # una compra sin lista o con renglones sin SKU. Ya no: ver
+        # `pagos_proveedor.validar_compra`.
     },
     "servicios": {
         "cuenta_libre": True,
@@ -1176,7 +1178,7 @@ def previsualizar(payload: dict) -> dict:
                     f"{i['sku']} {i['nombre']}".strip()
                     + f" · {i['cantidad']:g}"
                     + (f" {i['unidad']}" if i["unidad"] else "")
-                    + f" × {_fmt(i['precio'])}"
+                    + f" × {_fmt_precio(i['precio'])}"
                 ),
             } for i in items]
             if iva_items > 0:
@@ -1508,9 +1510,13 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
         estado = "borrador"   # una plantilla no es un pago: no se aprueba ni se gira
     # Un borrador todavía no tiene la factura: el operador la adjunta al
     # cotejarla. Las exigencias completas corren en enviar_a_aprobacion().
+    if cat.get("con_productos") and not es_plantilla and (
+        estado == "pendiente" or payload.get("_sin_ticket")
+    ):
+        from app.services.pagos_proveedor import validar_compra
+
+        validar_compra(prev["items"], prev.get("total_documento") or 0)
     if cat.get("con_productos") and not payload.get("_sin_ticket") and estado == "pendiente":
-        if not prev["items"]:
-            raise ValueError("Agrega al menos un producto con su SKU")
         if cat.get("requiere_factura"):
             if not archivo_tmp:
                 raise ValueError("Adjunta la factura o cotización del proveedor y cotéjala antes de enviar")
@@ -1560,7 +1566,14 @@ def crear_solicitud(payload: dict, created_by: int | None = None) -> dict:
                 float(prev.get("retencion_ica") or 0),
                 float(prev.get("ica_por_mil") or 0),
                 float(prev.get("gmf") or 0),
-                (float(prev["pagado_ahora"]) if prev.get("saldo_pendiente") else None),
+                # Se guarda si el giro difiere del teórico, de menos (saldo por pagar)
+                # o de más (anticipo). Hasta el 24-sep-2026 solo se guardaba con
+                # saldo pendiente: un pago de más se aprobaba rearmado con el
+                # «girado» teórico y el asiento sacaba del banco menos de lo que
+                # salió (caso: $876.554 girados a Comercializadora Internacional
+                # contra una cotización con retención de $18.415).
+                (float(prev["pagado_ahora"])
+                 if (prev.get("saldo_pendiente") or prev.get("anticipo")) else None),
                 float(prev.get("total_documento") or 0),
             ),
         )
@@ -1636,6 +1649,12 @@ def previsualizacion_de(sid: int) -> dict:
             "ica_por_mil": sol.get("ica_por_mil") or 0,
             "gmf": bool(sol.get("gmf")),
             **({"pagado_ahora": sol["pagado_ahora"]} if sol.get("pagado_ahora") is not None else {}),
+            # Los productos y el total del documento. Sin ellos una compra se
+            # recalculaba como UNA línea por el total con IVA: el IVA iba a
+            # inventario y la retención salía sobre la base con IVA (#48:
+            # $21.914 en vez de $18.415), aunque el asiento real estaba bien.
+            **({"items": sol["items"]} if sol.get("items") else {}),
+            **({"total_documento": sol["total_documento"]} if sol.get("total_documento") else {}),
         }
     )
     # Lo que cambió desde que se guardó: es la señal de que el borrador quedó
@@ -1672,26 +1691,13 @@ def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None =
     cat = CATEGORIAS.get(sol["categoria"]) or {}
     items = sol.get("items") or []
     if cat.get("con_productos"):
-        # `productos_opcionales`: en «Productos» del wizard simple el detalle es
-        # lo deseable pero no obligatorio — hay compras de insumos que no están
-        # en el catálogo, y bloquear el pago por eso empuja al operador a la
-        # categoría «Otro», que es donde se pierde la retención y la cuenta.
-        if not items and not cat.get("productos_opcionales"):
-            raise ValueError("Agrega al menos un producto con su SKU")
-        # La réplica tiene que cuadrar con el documento. Se valida al ENVIAR y
-        # no al capturar, para poder guardar un borrador a medias; pero no se
-        # aprueba un asiento que dice algo distinto de la factura que lo
-        # sustenta. Ver `previsualizar`: el IVA del catálogo no es confiable y
-        # este cuadre es lo que lo cubre.
-        total_doc = round(float(sol.get("total_documento") or datos.get("total_documento") or 0), 2)
-        if items and total_doc > 0:
-            suma = round(sum(float(i.get("total") or 0) for i in items), 2)
-            if abs(suma - total_doc) > 1:
-                raise ValueError(
-                    f"Lo capturado suma {_fmt(suma)} y el documento dice {_fmt(total_doc)}. "
-                    "Cuadra las líneas antes de enviar: revisa las tarifas de IVA, que las del "
-                    "catálogo son una sugerencia y el documento manda."
-                )
+        # Lo que se envía a aprobar es la compra entera, copia fiel del
+        # documento: todos los productos con SKU de Alegra y el total cuadrado.
+        # Se valida al ENVIAR y no al capturar, para poder guardar un borrador
+        # a medias.
+        from app.services.pagos_proveedor import validar_compra
+
+        validar_compra(items, datos.get("total_documento") or sol.get("total_documento") or 0)
         if cat.get("requiere_factura") and not (
             sol.get("factura_archivo") or datos.get("archivo_tmp")
         ):
@@ -1716,16 +1722,9 @@ def enviar_a_aprobacion(sid: int, payload: dict | None = None, por: int | None =
         )
 
     sol = obtener(sid)
-    prev = previsualizar(
-        {
-            "categoria": sol["categoria"],
-            "monto": sol["monto"],
-            "fecha": sol["fecha"],
-            "tercero_id": sol.get("tercero_id"),
-            "concepto": sol["concepto"],
-            "medio_pago_id": sol.get("medio_pago_id"),
-        }
-    )
+    # El ticket del aprobador muestra este cálculo: con los productos, la cuenta
+    # y los impuestos que se firmaron, no con los de la categoría por defecto.
+    prev = previsualizacion_de(sid)
     ticket_id = _abrir_ticket(sid, prev, por)
     if ticket_id:
         with _conn() as con:
@@ -1862,6 +1861,15 @@ def _pesos(n) -> float:
 
 def _fmt(n) -> str:
     return "$" + f"{round(float(n or 0)):,}".replace(",", ".")
+
+
+def _fmt_precio(n) -> str:
+    """Precio unitario con sus decimales: en compras por gramo $19,6 no es $20."""
+    v = round(float(n or 0), 4)
+    if v == int(v):
+        return _fmt(v)
+    entero, dec = f"{v:.4f}".rstrip("0").split(".")
+    return "$" + f"{int(entero):,}".replace(",", ".") + "," + dec
 
 
 def _abrir_ticket(sid: int, prev: dict, created_by: int | None) -> int | None:
@@ -2077,6 +2085,13 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         return {**s, "ya_aprobada": True}
     if s["estado"] in ("rechazada", "anulada"):
         raise ValueError(f"La solicitud está {s['estado']}, no se puede aprobar")
+    # Última barrera: una compra que entró antes de la regla del 24-sep (sin
+    # lista, con renglones sin SKU o sin cuadrar con el documento) no se
+    # contabiliza aunque ya esté pendiente. Se rechaza y se vuelve a montar.
+    if (CATEGORIAS.get(s["categoria"]) or {}).get("con_productos"):
+        from app.services.pagos_proveedor import validar_compra
+
+        validar_compra(s.get("items") or [], s.get("total_documento") or 0)
 
     # Se rearma el asiento con los datos guardados: así lo que se contabiliza es
     # lo que se aprobó, no lo que el frontend mande en el momento de aprobar.
@@ -2126,7 +2141,7 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # Se excluyen las que esta reconstrucción vuelve a armar abajo con los
         # impuestos tal como se aprobaron —retención, ICA, GMF— y la salida de
         # banco. Incluir el GMF acá lo contaba dos veces.
-        _rearmadas = ("2365", "2368", "530595", "1110", "2355", "2335")
+        _rearmadas = ("2365", "2368", "530595", "1110", "2355", "2335", "133005")
         medias = [
             l for l in lineas
             if l.get("debito") and not str(l.get("cuenta_codigo") or "").startswith(_rearmadas)
@@ -2149,8 +2164,12 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
         # hubiera pagado todo y la deuda con la persona desaparecía.
         pagado = round(float(s["pagado_ahora"]), 2) if s.get("pagado_ahora") is not None else girado
         saldo = round(girado - pagado, 2)
+        tipo_t = (cc.obtener_tercero(s["tercero_id"]) or {}).get("tipo") if s.get("tercero_id") else None
         if saldo > 0.01:
-            cod_saldo = "2355" if (cc.obtener_tercero(s["tercero_id"]) or {}).get("tipo") == "socio" else "2335"
+            # La misma cuenta que eligió `previsualizar`: el saldo de una compra de
+            # mercancía a un proveedor vive en su cuenta corriente 2205.
+            cod_saldo = ("2355" if tipo_t == "socio"
+                         else "2205" if (s.get("items") and tipo_t == "proveedor") else "2335")
             with cc._conn() as con:
                 id_saldo = cc._cuenta_id_por_codigo(con, cod_saldo)
             if not id_saldo:
@@ -2158,6 +2177,14 @@ def aprobar(sid: int, aprobada_por: int | None = None, *, espejar: bool = True) 
             medias.append({"cuenta_id": id_saldo, "debito": 0, "credito": saldo,
                            "tercero_id": s["tercero_id"],
                            "descripcion": f"Queda por pagar a {nombre_t} — se gira después"})
+        elif saldo < -0.01:
+            # Salió del banco MÁS de lo que se le debía (p. ej. la cotización
+            # completa, sin descontar la retención): la diferencia es plata a
+            # favor con el proveedor, igual que en `previsualizar`. Sin esta
+            # línea el asiento no cuadraba y la aprobación fallaba.
+            medias.append({"cuenta_id": _asegurar_cuenta_anticipos(), "debito": round(-saldo, 2),
+                           "credito": 0, "tercero_id": s["tercero_id"],
+                           "descripcion": f"Anticipo a favor con {nombre_t} — se descuenta en la próxima factura"})
         lineas = medias + ([{**lineas[-1], "credito": round(pagado + gmf, 2)}] if (pagado > 0 or gmf) else [])
 
     mov = cc.crear_movimiento(

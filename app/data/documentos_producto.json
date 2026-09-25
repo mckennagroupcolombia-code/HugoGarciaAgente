@@ -723,7 +723,7 @@
     },
     "C-ACEESETOM5ML": {
       "ref": "C-ACEESETOM5ML",
-      "nombre": "ACEITE DE TOMILLO",
+      "nombre": "ACEITE ESENCIAL TOMILLO",
       "lotes": [
         {
           "lote_numero": "EYK633",
@@ -751,10 +751,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-24T02:46:05+00:00"
+          "registrado_en": "2026-09-25T06:47:20+00:00"
         }
       ],
-      "updated_at": "2026-09-24T02:46:05+00:00"
+      "updated_at": "2026-09-25T06:47:20+00:00"
     },
     "C-ACEESETOM": {
       "ref": "C-ACEESETOM",

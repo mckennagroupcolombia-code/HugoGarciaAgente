@@ -225,6 +225,7 @@ def productos(q: str = "", limit: int = 25, *, incluir_combos: bool = False) -> 
     existe.
     """
     from app.services import alegra_catalogo_db as cat
+    from app.services.insumos import equivalente_de
 
     if not (q or "").strip():
         return []
@@ -259,6 +260,10 @@ def productos(q: str = "", limit: int = 25, *, incluir_combos: bool = False) -> 
         # prima algo que McKenna arma y vende: el inventario queda valorado a
         # precio de venta y el IVA sale del combo, no de la factura.
         if not incluir_combos and (referencia.upper().startswith("C-") or tipo == "kit"):
+            continue
+        # Un SKU reemplazado (insumos_equivalentes.json) no se ofrece: se compra el
+        # canónico, que aparece por sí solo en la búsqueda.
+        if equivalente_de(referencia):
             continue
         texto = _norm(f"{referencia} {it.get('name') or ''}")
         if not all(t in texto or (len(t) >= 5 and t[:4] in texto) for t in tokens):
@@ -296,6 +301,24 @@ def productos(q: str = "", limit: int = 25, *, incluir_combos: bool = False) -> 
     # La tarifa que el proveedor cobró de verdad le gana a la del catálogo, que
     # es de ventas y para insumos no está curada.
     aprendido = iva_compras_conocido()
+    # Foto de referencia y contador (25-sep-2026): el operador ve el producto real y
+    # si se usa, antes de elegirlo. Si el contador falla, la búsqueda sigue igual.
+    try:
+        from app.services.insumos import resumen_por_sku
+
+        uso = resumen_por_sku([x["sku"] for x in out])
+    except Exception as e:
+        print(f"⚠️ Contador de insumos no disponible en la búsqueda: {e}", flush=True)
+        uso = {}
+    for x in out:
+        u = uso.get(x["sku"].upper()) or {}
+        x["foto"] = bool(u.get("foto"))
+        x["foto_v"] = u.get("foto_v", "")
+        x["n_combos"] = u.get("n_combos", 0)
+        x["existencia"] = u.get("existencia")
+        x["neto_desde_corte"] = u.get("neto_desde_corte")
+        x["estado_uso"] = u.get("estado", "")
+        x["ultimo_control"] = ((u.get("conteo") or {}).get("fecha") or "")[:10]
     for x in out:
         a = aprendido.get(x["sku"])
         x["iva_origen"] = "catalogo"
@@ -344,6 +367,83 @@ def normalizar_items(items: Any) -> list[dict]:
             "iva_pct": iva_pct, "subtotal": subtotal, "iva": iva, "total": round(subtotal + iva, 2),
         })
     return out
+
+
+def _item_catalogo(sku: str) -> dict | None:
+    """El ítem de la copia local del catálogo de Alegra (sin llamar a Alegra)."""
+    from app.services import alegra_catalogo_db as cat
+
+    return cat.obtener_item(sku)
+
+
+def validar_compra(items: list[dict], total_documento: float) -> None:
+    """Una compra solo se solicita como copia fiel de la cotización o proforma.
+
+    Regla del negocio (24-sep-2026): la solicitud de pago ES el registro de la
+    compra —de ahí que no haga falta registrar la factura después—, así que:
+
+      * trae la lista completa de lo que se compró: un producto, un renglón;
+        varios, todos, cada uno con su cantidad y precio;
+      * cada renglón es un **producto de inventario activo en Alegra** con su
+        SKU. Lo que no está registrado se crea primero en «Crear en Alegra»:
+        un renglón sin SKU (o con uno inventado) deja una compra que nadie
+        puede cruzar después con el inventario ni con la factura;
+      * el total con IVA del documento se escribe y los renglones lo suman al
+        peso. Es lo que prueba que la réplica es fiel (una tarifa de IVA o una
+        cantidad mal puesta no da el total).
+
+    Hasta el 24-sep «Productos» dejaba pagar sin lista y con renglones sin
+    referencia (`productos_opcionales`, «Agregar … sin referencia»): así pasó
+    la #47 de COMERCIALIZADORA INTERNACIONAL, que hubo que descontabilizar.
+    Se valida contra la copia local del catálogo; un producto recién creado
+    desde el panel ya queda en ella.
+    """
+    if not items:
+        raise ValueError(
+            "Agrega los productos de la cotización o proforma, cada uno con su SKU de Alegra: "
+            "la solicitud de pago es el registro de la compra"
+        )
+    problemas: list[str] = []
+    for n, it in enumerate(items, 1):
+        sku = str(it.get("sku") or "").strip()
+        nombre = str(it.get("nombre") or "").strip()
+        etiqueta = f"Renglón {n} ({sku or nombre or 'sin nombre'})"
+        if not sku:
+            problemas.append(f"{etiqueta}: no tiene SKU. Créalo en «Crear en Alegra» y elígelo del catálogo")
+            continue
+        if sku.upper().startswith("C-"):
+            problemas.append(f"{etiqueta}: es un combo de venta; en una compra va la materia prima o el insumo")
+            continue
+        from app.services.insumos import equivalente_de
+
+        eq = equivalente_de(sku)
+        if eq:
+            problemas.append(f"{etiqueta}: ya no se compra con ese código, usa {eq['usar']}")
+            continue
+        item = _item_catalogo(sku)
+        if not item:
+            problemas.append(f"{etiqueta}: no existe en el catálogo de Alegra. Créalo en «Crear en Alegra» primero")
+        elif (item.get("type") or "") == "kit":
+            problemas.append(f"{etiqueta}: es un combo de venta; en una compra va la materia prima o el insumo")
+        elif (item.get("status") or "active") != "active":
+            problemas.append(f"{etiqueta}: está inactivo en Alegra")
+    if problemas:
+        raise ValueError("No se puede solicitar el pago: " + " · ".join(problemas))
+
+    total_documento = round(float(total_documento or 0), 2)
+    if total_documento <= 0:
+        raise ValueError(
+            "Escribe el total con IVA que dice la cotización o proforma: sin él no se puede "
+            "comprobar que la lista de productos sea copia fiel del documento"
+        )
+    suma = round(sum(float(i.get("total") or 0) for i in items), 2)
+    if abs(suma - total_documento) > 1:
+        dif = suma - total_documento
+        raise ValueError(
+            f"Los productos suman {suma:,.0f} y el documento dice {total_documento:,.0f} "
+            f"({'sobran' if dif > 0 else 'faltan'} {abs(dif):,.0f}). ".replace(",", ".")
+            + "Revisa que estén todos los renglones, sus cantidades, precios y tarifas de IVA"
+        )
 
 
 # ───────────────────────────────────────────── verificación ──────────────

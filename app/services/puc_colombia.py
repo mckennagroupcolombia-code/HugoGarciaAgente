@@ -55,7 +55,17 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     # todo este trabajo existe para que un código signifique lo que dice el
     # decreto; dejarlo en 112505 repetiría el error de 2367 y 2380.
     ("112515", "Fondos especiales moneda nacional", "activo"),
+    # Saldo de las ventas de MercadoLibre en poder de Mercado Pago (desde el
+    # 1-sep-2026, decisión de Armando el 25-sep): una cuenta por cobrar a la
+    # plataforma, no un fondo. Ver CUENTA_MERCADOPAGO y su guía en DESCRIPCIONES.
+    ("130505", "Clientes nacionales", "activo"),
     ("1325", "Cuentas por cobrar a socios y accionistas", "activo"),
+    # Plata girada de más a un proveedor (p. ej. la cotización completa sin
+    # descontar la retención), que se descuenta en su próxima factura. La creaba
+    # sobre la marcha `pagos_wizard._asegurar_cuenta_anticipos()`, fuera de este
+    # plan, y por eso el espejo a Alegra no la emparejaba (24-sep-2026).
+    ("1330", "Anticipos y avances", "activo"),
+    ("133005", "Anticipos y avances a proveedores", "activo"),
     ("1370", "Préstamos a particulares", "activo"),
     ("1405", "Materias primas", "activo"),
     ("1435", "Mercancías no fabricadas por la empresa", "activo"),
@@ -197,6 +207,16 @@ ALIAS: dict[str, str] = {
 # `impuestos_por_cuenta.py` y el panel muestra los dos juntos. Donde una cuenta
 # de McKenna se usa distinto de lo que su nombre del PUC sugiere, se dice aquí:
 # es justo el punto donde alguien se equivoca.
+# La cuenta donde queda la plata de una venta de MercadoLibre mientras Mercado Pago
+# la retiene y hasta que se retira al banco. Es una cuenta por cobrar a Mercado Pago
+# (tercero), no ingreso ni efectivo: el ingreso se causa en 4135 venta por venta y el
+# retiro al banco es un traslado Debe 1110 / Haber esta cuenta. Hasta el 25-sep-2026
+# se usó 112515 «Fondos especiales» (y antes 111010 colgada de Bancos); se cambió
+# porque un fondo con destinación específica no describe un saldo que un tercero debe.
+# Todo lo que postea ventas MeLi, retiros o la factura de MeLi usa esta constante —no
+# un alias— para no arrastrar con `migrar()` lo anterior al corte, que es del contador.
+CUENTA_MERCADOPAGO = "130505"
+
 DESCRIPCIONES: dict[str, str] = {
     # ── 1 Activo ──
     "1105": "Efectivo en poder de la empresa.",
@@ -206,9 +226,23 @@ DESCRIPCIONES: dict[str, str] = {
     "111005": "Bancolombia y demás cuentas en pesos.",
     "1120": "Cuentas de ahorro.",
     "1125": "Fondos de inversión.",
-    "112515": "Fondos especiales en moneda nacional.",
+    "130505": "Saldo por cobrar a MERCADO PAGO por las ventas de MercadoLibre (desde el 1-sep-2026). Cada venta "
+              "MeLi se causa Debe 130505 / Haber 4135 Ventas: el INGRESO va en 4135; aquí solo queda dónde está la "
+              "plata, que Mercado Pago retiene hasta liberarla. Se descarga con los retiros al banco («PAGO INTERBANC "
+              "MERCADOPAGO SA»: Debe 1110 / Haber 130505, un traslado, no un ingreso) y con la factura mensual de MeLi "
+              "que Mercado Pago cobra contra este saldo. Es cuenta por cobrar a un tercero (Mercado Pago), no efectivo "
+              "ni un fondo. Decisión de Armando el 25-sep-2026: antes se usaba 112515 «Fondos especiales», que "
+              "describe un fondo con destinación específica y no un saldo que un tercero le debe a McKenna.",
+    "112515": "Fondos especiales en moneda nacional. Hasta el 25-sep-2026 aquí se llevaba el saldo de "
+              "MercadoPago; desde el 1-sep eso vive en 130505 (cuenta por cobrar a Mercado Pago). Lo que queda "
+              "aquí es anterior al corte contable (−$198M por ventas posteadas a Bancos y la factura de MeLi "
+              "cobrada contra este saldo) y lo concilia el contador con el extracto de MercadoPago al 31-ago.",
     "1325": "Lo que los socios le DEBEN a McKenna. Ojo con el sentido: lo que McKenna les debe a "
             "ellos va en 2355, y confundirlas invierte el signo del patrimonio.",
+    "1330": "Anticipos y avances entregados a terceros a cuenta de compras o servicios futuros.",
+    "133005": "Plata a favor de McKenna con un proveedor: se le giró más de lo que se le debía (por "
+              "ejemplo la cotización completa, sin descontar la retención) y se descuenta en su próxima "
+              "factura. Siempre con el tercero.",
     "1370": "Préstamos que McKenna otorgó a particulares. El capital prestado, no los intereses.",
     "1405": "Materias primas en bodega.",
     "1435": "Mercancía para la venta. Entra al comprar y sale al costo cuando se vende (6135).",

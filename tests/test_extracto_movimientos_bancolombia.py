@@ -668,7 +668,7 @@ def test_la_venta_meli_se_postea_contra_mercadopago_no_contra_bancos(libro_propi
 
     r = ap.postear_fila(_row(fecha="2026-09-15", tipo="ingreso", fuente="meli_venta", concepto="Venta MeLi",
                              monto=67_915, referencia="2000015039438233", contraparte="X", extra={"order_id": "2000018591066186"}))
-    PLATAFORMA = {"111010", "112515"}   # 111010 o su cuenta viva; nunca Bancos
+    PLATAFORMA = {"111010", "112515", "130505"}   # la cuenta por cobrar a Mercado Pago; nunca Bancos
     mov = libro_propio.obtener_movimiento(r["movimiento_id"])
     mp = next(l["cuenta_codigo"] for l in mov["lineas"] if l["debito"] > 0)
     assert mp in PLATAFORMA
@@ -687,7 +687,7 @@ def test_el_retiro_de_mercadopago_se_propone_como_traslado(tablero_db, monkeypat
     csv = "428-000009-74, 428, , 20260921, , 9000000.00, 2142, PAGO INTERBANC MERCADOPAGO SA, 0,\n".encode("latin-1")
     eb.importar_extracto(csv, "mp.csv", banco="Bancolombia")
     l = next(x for x in ct.tablero("2026-09-01", "2026-09-30")["lineas"] if x["monto"] == 9_000_000.0)
-    assert l["propuesta"]["cuenta"] in ("111010", "112515") and l["propuesta"]["confianza"] == "alta"
+    assert l["propuesta"]["cuenta"] == "130505" and l["propuesta"]["confianza"] == "alta"
 
 
 def test_el_lote_de_un_retiro_es_lo_liberado_desde_el_anterior(tablero_db, monkeypatch, tmp_path):
