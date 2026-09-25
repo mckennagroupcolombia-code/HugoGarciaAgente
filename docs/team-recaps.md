@@ -4001,3 +4001,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Solución:** se creó en Alegra el combo `C-PROAISSOY1000g` «PROTEINA AISLADA SOYA 1000g» (id 725, 1.000 × `PROAISSOYg`, precio de lista $47.610) y se agregó el alias `PRTASLSYKG → C-PROAISSOY1000g` en `app/data/alegra_sku_alias_venta.json`.
   - **Verificado:** reintento de la factura del pedido → FE706, STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS.
 - **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `docs/team-recaps.md`
+
+### 2026-09-25 - Facturación de ventas: 5 equivalencias más de SKU de venta → Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (alias de SKU de venta → Alegra)
+- **Qué se implementó:**
+  - Revisión de ventas sin factura por «no existe en Alegra»: 5 SKU de venta tienen el mismo producto en Alegra con otro código. Se agregaron a `app/data/alegra_sku_alias_venta.json`: `C-ACEESENJEN5mL → C-ACEESEJEN5mL`, `C-ACEESENLIM5mL → C-ACEESELIM5mL`, `C-ACEESECORCED5mL → C-ACEESECORTCED5mL`, `OILESNCLV5mL → C-ACEESECLA5mL`, `SBCRD150g → C-SEBCOR150g`.
+  - Destraba 5 ventas de MeLi (2000018241240264, 2000018491965110, 2000018494803032, 2000018453816394, 2000018563925934) y 2 pedidos web (MCKG-DF8F24F61F; MCKG-AC9E5A56A9 además necesita el combo de neem + oleato). Las facturas no se emitieron desde aquí.
+  - **Verificado:** `resolver_producto_venta_alegra` resuelve los 5 códigos a ítems activos.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `docs/team-recaps.md`
