@@ -1165,6 +1165,46 @@ Un comando pausa todos los canales de venta (reestructuración, control de inven
   `numeros_internos` → ningún envío del panel (asesor desde /app, confirmaciones de pago) llega al cliente.
   ⚠️ Lo que alguien escriba **desde el teléfono** no se puede frenar por software.
 
+### Z. Canales del producto (24-sep-2026)
+
+/app → Publicar → «Canales del producto» (`components/canales_producto/`, `app/services/canales_producto.py`): cada
+SKU de venta en todos sus canales — Alegra → receta → documento/EAN/etiqueta → MeLi → web → **¿se puede facturar?** —
+con la misma regla de la facturación (`resolver_producto_venta_alegra` + `alegra_sku_alias_venta.json`) pero contra la
+**copia local** (cero llamadas vivas; «Verificar facturación en vivo» por SKU es la única). **Solo diagnóstico:** cada
+problema salta al apartado que ya existe (`saltarDesdeTaller` con `origen: "canales-producto"`, así «← Seguir con…»
+vuelve aquí). Clasificaciones por gravedad: `vendible_no_facturable` · `inactivo_publicado` · `inactivo_con_alias` ·
+`pausado_no_facturable` · `discrepancia_canales` · `incompleto` · `suelto` · `completo`. Pestaña Categorías: etiquetas vs
+web vs MeLi (MeLi sin dato local todavía). Alimenta el bloqueo de «Publicar» en el flujo (`mapa_app._canales`).
+- ⚠️ **Cese de actividades:** MeLi reporta «paused» TODO lo que el cese pausó; `meli_pausa_global.json` dice qué estaba
+  activo antes, y eso se cuenta como publicado (`pausada_por_cese`). Sin esto, 150 SKUs parecían «se venden y no
+  facturan»; de verdad eran 10 (24-sep).
+- **La copia local de Alegra ahora marca inactivos**: `sincronizar_catalogo_alegra()` upserta también los no activos y
+  pasa a `inactive` lo que Alegra ya no devuelve — solo con paginación completa y si desaparece < 40 % (anomalía de la
+  API = no toca nada). Corre sola a las 7:00 (`monitor.py`, `catalogo_alegra_dia`).
+- Un producto SIMPLE vendido en MeLi (sin combo) es `incompleto`, no `completo`: no descuenta empaque y la web no lo muestra.
+
+### AA. Chat del equipo, campana y recepción de mercancía (24-sep-2026)
+
+Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloquear** (lo del teléfono no se frena):
+- **Chat del equipo** (Agenda → «Equipo», panel `chat-equipo`, `app/services/canales_internos.py`, tablas en
+  `tickets.db`): canales sin cronómetro, fotos con la cámara, «→ tarea» / «Reportar incidente» abre una solicitud de la
+  Agenda ya llenada (categoría `incidente` sembrada). Cada mensaje cuenta como actividad (`registrar_evento_panel`).
+  Un canal puede enlazarse a un grupo oficial: entra lo del grupo (hook al final de `wa_chats.ingestar_desde_whatsapp`)
+  y, con «ida y vuelta», sale lo del panel con el nombre del autor; anti-eco por texto (el puente no devuelve el id).
+  Las rutas usan su propio `_auth`: el panel manda el token de API como Bearer y la sesión en `X-Tickets-Token`.
+- **Fotos de grupos**: `espejarGrupoPanel()` en `server.js` ahora descarga imágenes (≤ 8 MB) a `comprobantes/grupo_*`.
+  Activo desde el reinicio del puente del 24-sep 15:25.
+- **Campana** (cabezote, también en celular): `notificaciones_panel.py`. `tickets_notificaciones.enviar_texto_operador`
+  guarda SIEMPRE el aviso y solo manda WhatsApp si `usuarios.notif_pref` ≠ `inapp` (default `ambos`: nada cambia hasta
+  que cada quien elija «Solo en el panel» en la campana).
+- **Recepción de mercancía** (Abastecer → «3·Recibirla», `app/services/recepcion_mercancia.py`, `recepciones.db`):
+  llegada con fotos y conteo contra lo esperado; lo esperado sale de la **solicitud de pago de la compra** (renglones con
+  SKU/cantidad). Cerrar exige todo contado → `verificada` o `con_diferencias`, y avisa en el canal `inventario`. No
+  escribe inventario ni contabilidad.
+- **Redirección**: `app/data/redireccion_panel.json` (reglas regex → aviso con enlace `/app?panel=…`, un aviso por regla
+  y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
+- Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
+
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 
 La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,

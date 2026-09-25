@@ -31,6 +31,9 @@ export type Panel =
   | "combos"
   | "producto"
   | "publicaciones"
+  | "canales-producto"
+  | "chat-equipo"
+  | "recepcion-mercancia"
   | "vitrina-web"
   | "facturacion"
   | "astro-killer"
@@ -177,6 +180,8 @@ export interface TallerRetorno {
   pieza?: { clave: string; titulo: string; estado: "ok" | "aviso" | "falta"; detalle: string; meli_id?: string; precio?: number };
   /** Precio de lista del combo (Alegra, con IVA) para lo que se cree desde el destino. */
   precioLista?: number;
+  /** Panel al que devuelve «← Seguir con…»; sin él, el taller de combos. */
+  origen?: Panel;
 }
 
 interface AppState {
@@ -416,8 +421,9 @@ export const useAppStore = create<AppState>()(
       },
       consumirTallerSalto: () => set({ tallerSalto: null }),
       volverAlTaller: () => {
+        const destino = get().tallerRetorno?.origen ?? "combos";
         set({ tallerRetorno: null, tallerSalto: null });
-        get().setPanel("combos");
+        get().setPanel(destino);
       },
       etiquetasSolicitudActiva: null,
       setEtiquetasSolicitudActiva: (etiquetasSolicitudActiva) => set({ etiquetasSolicitudActiva }),

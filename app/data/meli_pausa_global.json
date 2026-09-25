@@ -1,5 +1,5 @@
 {
-  "activa": true,
+  "activa": false,
   "desde": "2026-09-23T15:06:42",
   "items_pausados": [
     "MCO562642847",
@@ -562,5 +562,6 @@
     "MCO2153719165": "ok",
     "MCO2153718557": "ok",
     "MCO2153718551": "ok"
-  }
+  },
+  "reactivada": "2026-09-24T22:21:31"
 }

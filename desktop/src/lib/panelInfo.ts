@@ -155,6 +155,32 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "sistemas",
   },
+  "chat-equipo": {
+    emoji: "💬",
+    label: "Chat del equipo",
+    description:
+      "La conversación operativa del equipo dentro del panel: lo que llega, fotos, cantidades y avisos. Queda registrada, se puede buscar y cuenta como actividad. Un canal puede enlazarse a un grupo de WhatsApp mientras dura la transición.",
+    tips: [
+      "Escribir aquí no pide cronómetro: es para coordinar. Lo que alguien debe resolver va como tarea en la Agenda.",
+      "📷 toma la foto directo con la cámara del celular.",
+      "Los canales enlazados muestran lo que se escribe en el grupo de WhatsApp; con «ida y vuelta», lo del panel también llega al grupo.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  "recepcion-mercancia": {
+    emoji: "📦",
+    label: "Recepción de mercancía",
+    description:
+      "Lo que llega a bodega: quién lo recibió, fotos, cantidades contadas contra lo esperado y diferencias. Reemplaza el aviso suelto en el grupo de WhatsApp.",
+    tips: [
+      "Si la mercancía viene con factura de compra, elígela: los productos esperados se cargan solos.",
+      "Toma fotos de las cajas y de la factura física al recibir.",
+      "Al cerrar, las diferencias quedan anotadas y se avisa en el canal de inventario.",
+    ],
+    tier: "core",
+    category: "inventario",
+  },
   juegos: {
     emoji: "🎮",
     label: "Juegos",
@@ -296,6 +322,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "En Catálogo → Sitios verás dos ventanas: Página web | Mercado Libre.",
       "Web: botón «No mostrar en la web», ordenar/eliminar fotos. MeLi: editar precio, pausar/activar y fotos.",
       "Marca las fotos que no sirven (☑) y elimínalas; la ★ es la que se ve primero en cada sitio.",
+    ],
+    tier: "standard",
+    category: "publicaciones",
+  },
+
+  "canales-producto": {
+    emoji: "📡",
+    label: "Canales del producto",
+    description:
+      "Cada SKU de venta en todos sus canales a la vez: si existe en Alegra, si tiene combo, EAN, documento y etiqueta, si está en MercadoLibre y en la web, y si una venta suya se puede facturar. Solo muestra: cada problema lleva al apartado donde se corrige.",
+    tips: [
+      "Empieza por «No se puede facturar»: son publicaciones que venden con un código que Alegra no conoce.",
+      "«Verificar en vivo» pregunta a Alegra lo mismo que preguntaría la facturación, para ese SKU.",
+      "La pestaña Categorías pone lado a lado la categoría de etiquetas, la de la web y la de MeLi.",
     ],
     tier: "standard",
     category: "publicaciones",

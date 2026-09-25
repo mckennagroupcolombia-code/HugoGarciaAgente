@@ -167,7 +167,7 @@ export default function FlujoNav() {
 
       {/* Con la Agenda abierta (o en Colaboradores, que vive dentro de ella) y ninguna
           etapa desplegada: solo las vistas de la Agenda — así se ve dónde estás y se vuelve. */}
-      {(enAgenda || panelNorm === "colaboradores" || panelNorm === "juegos") && !etapa && (
+      {(enAgenda || panelNorm === "colaboradores" || panelNorm === "juegos" || panelNorm === "chat-equipo") && !etapa && (
         <div className="mck-flujo-vistas flex min-w-0 items-center gap-1.5">
           <InicioNavTabs soloVistas />
         </div>

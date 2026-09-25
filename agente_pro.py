@@ -135,6 +135,24 @@ def create_app():
         print(f"⚠️ Mapa del sistema: {e}")
 
     try:
+        from app.routes_canales import register_canales_routes
+        register_canales_routes(app)
+    except Exception as e:
+        print(f"⚠️ Canales internos: {e}")
+
+    try:
+        from app.routes_recepciones import register_recepciones_routes
+        register_recepciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Recepción de mercancía: {e}")
+
+    try:
+        from app.routes_canales_producto import register_canales_producto_routes
+        register_canales_producto_routes(app)
+    except Exception as e:
+        print(f"⚠️ Canales del producto: {e}")
+
+    try:
         from app.routes_grabaciones import register_grabaciones_routes
         register_grabaciones_routes(app)
     except Exception as e:

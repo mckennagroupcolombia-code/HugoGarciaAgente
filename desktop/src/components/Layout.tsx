@@ -12,6 +12,7 @@ import FlujoNav from "./nav/FlujoNav";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
 import AccesosRapidos from "./nav/AccesosRapidos";
+import CampanaNotificaciones from "./chat_equipo/CampanaNotificaciones";
 import ThemeModeToggle from "./ThemeModeToggle";
 import PantallaControles from "./nav/PantallaControles";
 import { TemasHeaderButton } from "./TemasSidebarButton";
@@ -107,12 +108,12 @@ export default function Layout({
       <SolicitudesEnProcesoFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
         {/* En Docs técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
-        {tallerRetorno && panel !== "combos" && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
+        {tallerRetorno && panel !== (tallerRetorno.origen ?? "combos") && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
           <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
             <button
               type="button"
               onClick={volverAlTaller}
-              title="Volver al taller de combos para seguir completando este producto"
+              title={tallerRetorno.origen === "canales-producto" ? "Volver a Canales del producto" : "Volver al taller de combos para seguir completando este producto"}
               className="mck-flujo-nodo mck-mision-pulso flex max-w-full items-center gap-2 rounded-full border-2 border-white/70 bg-accent px-4 py-2 text-[13px] font-bold text-white shadow-paper-lg hover:opacity-90"
             >
               <span aria-hidden="true">←</span>
@@ -232,9 +233,11 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
+              {barraMovil && <CampanaNotificaciones />}
               {!barraMovil && (
                 <>
                   <AccesosRapidos />
+                  <CampanaNotificaciones />
                   <div className="mck-cabezote-vista">
                     <PantallaControles />
                     <TemasHeaderButton />
@@ -281,6 +284,7 @@ export default function Layout({
               sectionId === "publicaciones" ||
               panel === "colaboradores" ||
               panel === "juegos" ||
+              panel === "chat-equipo" ||
               studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>

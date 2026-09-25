@@ -62,6 +62,13 @@ def _producto() -> list[dict]:
     return out
 
 
+def _canales() -> list[dict]:
+    from app.services import canales_producto
+
+    # resumen_bloqueos ya devuelve la misma forma que _b().
+    return canales_producto.resumen_bloqueos()
+
+
 def _inventario() -> list[dict]:
     d = json.loads((REPO / "app" / "data" / "inventario_control_resumen_cache.json").read_text(encoding="utf-8"))
     items = (d.get("data") or {}).get("items") or []
@@ -128,6 +135,7 @@ def _contabilidad() -> list[dict]:
 _FUENTES: tuple[tuple[str, Callable[[], list[dict]]], ...] = (
     ("solicitudes de pago", _pagos), ("cadena del producto", _producto), ("inventario", _inventario),
     ("preventa MeLi", _preventa), ("pedidos web", _pedidos_web), ("contabilidad", _contabilidad),
+    ("canales del producto", _canales),
 )
 
 

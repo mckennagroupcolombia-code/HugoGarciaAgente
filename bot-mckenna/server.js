@@ -370,6 +370,27 @@ async function espejarGrupoPanel(msg, chatId) {
             espejoRecientes.add(waId);
             if (espejoRecientes.size > 800) espejoRecientes.clear();
         }
+        // Fotos del grupo: se guardan para que el canal interno del panel (y la recepción de
+        // mercancía) no las pierda. Solo imágenes y con tope; si la descarga falla (el error
+        // opaco "r" de whatsapp-web.js), el mensaje sigue llegando como "[adjunto]".
+        let mediaPath = '';
+        let mediaMime = '';
+        if (msg.hasMedia && msg.type === 'image') {
+            try {
+                const media = await msg.downloadMedia();
+                const bytes = media && media.data ? Math.floor(media.data.length * 3 / 4) : 0;
+                if (media && media.mimetype && media.mimetype.startsWith('image/') && bytes <= 8 * 1024 * 1024) {
+                    const ext = media.mimetype.split('/')[1].split(';')[0] || 'jpg';
+                    if (!fs.existsSync(DIR_COMPROBANTES)) fs.mkdirSync(DIR_COMPROBANTES, { recursive: true });
+                    const nombre = `grupo_${chatId.split('@')[0]}_${Date.now()}.${ext}`;
+                    fs.writeFileSync(path.join(DIR_COMPROBANTES, nombre), media.data, 'base64');
+                    mediaPath = 'comprobantes/' + nombre;
+                    mediaMime = media.mimetype.split(';')[0];
+                }
+            } catch (e) {
+                console.warn('espejo grupo: foto no descargada:', (e && e.message) || e);
+            }
+        }
         await enviarHistorialPanel([{
             wa_id: waId,
             jid: chatId,
@@ -379,6 +400,7 @@ async function espejarGrupoPanel(msg, chatId) {
             tiene_media: !!msg.hasMedia,
             type: msg.type || '',
             enviado_por: msg.fromMe ? 'humano' : autorMensaje(msg),
+            ...(mediaPath ? { media_path: mediaPath, media_mime: mediaMime, nombre_arch: path.basename(mediaPath) } : {}),
         }]);
     } catch (e) {
         console.warn('espejo grupo:', e.message);

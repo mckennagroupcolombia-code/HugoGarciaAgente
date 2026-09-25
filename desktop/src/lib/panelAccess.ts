@@ -51,6 +51,8 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "settings") return true;
   // Juegos: un rato de descanso para todo el equipo interno (no para contador ni colaborador externo).
   if (seccion === "juegos") return true;
+  // El chat del equipo es de todo el equipo interno (cada canal filtra sus miembros en la API).
+  if (seccion === "chat-equipo") return true;
   if (seccion === "etiquetas") return true;
   if (seccion === "empaque") return true;
   // Espacio de producto: lee el Mapa del sistema, así que se abre con su permiso
@@ -64,11 +66,19 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   // pero el botón no aparece en ningún menú (pasó con TKT-2026-1307).
   if (seccion === "guias-envio") return puedeVerGuiasEnvio(user);
   if (seccion === "entregas-flex") return puedeVerEntregasFlex(user);
+  // Recepción de mercancía: la hace quien está en bodega (mismas personas que despachan o
+  // llevan inventario). Debe decir lo mismo que routes_recepciones._PERMISOS.
+  if (seccion === "recepcion-mercancia") {
+    const pr = user.permisos_secciones;
+    return Boolean(!pr || pr["recepcion-mercancia"] || pr.pedidos || pr.empaque || pr["control-inventario"] || pr.stock);
+  }
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas", "empaque"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
   if (seccion === "ventas-email" && p.preventa) return true;
   if (seccion === "vitrina-web" && p.publicaciones) return true;
+  // Mismos permisos que acepta /api/canales-producto (routes_canales_producto._PERMISOS).
+  if (seccion === "canales-producto" && (p.publicaciones || p["mapa-sistema"])) return true;
   return Boolean(p[seccion]);
 }
 

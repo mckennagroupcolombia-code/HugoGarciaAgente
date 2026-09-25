@@ -18,9 +18,11 @@ import type { Respuesta } from "./combos/comun";
  */
 
 export default function CombosPanel() {
-  // Al llegar a Combos por cualquier camino, el «volver al combo» del cabezote ya cumplió.
+  // Al llegar a Combos por cualquier camino, el «volver al combo» del cabezote ya cumplió —
+  // salvo que el salto viniera de otro panel (origen), que conserva su «← Seguir con…».
   useEffect(() => {
-    if (useAppStore.getState().tallerRetorno) useAppStore.setState({ tallerRetorno: null, tallerSalto: null });
+    const { tallerRetorno } = useAppStore.getState();
+    if (tallerRetorno && !tallerRetorno.origen) useAppStore.setState({ tallerRetorno: null, tallerSalto: null });
   }, []);
 
   const datos = useQuery({

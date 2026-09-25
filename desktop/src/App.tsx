@@ -52,12 +52,16 @@ const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"
 const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
 const InventarioPanel = lazy(() => import("./components/InventarioPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
+const CanalesProductoPanel = lazy(() => import("./components/canales_producto/CanalesProductoPanel"));
+const ChatEquipoPanel = lazy(() => import("./components/chat_equipo/ChatEquipoPanel"));
+const RecepcionMercanciaPanel = lazy(() => import("./components/recepcion/RecepcionMercanciaPanel"));
 const VitrinaWebPanel = lazy(() => import("./components/VitrinaWebPanel"));
 const LogisticaInternacionalPanel = lazy(
   () => import("./components/LogisticaInternacionalPanel"),
 );
 const Settings = lazy(() => import("./components/Settings"));
 const PerfilPanel = lazy(() => import("./components/PerfilPanel"));
+import { PANEL_INFO } from "./lib/panelInfo";
 import { usePanelTheme } from "./stores/panelTheme";
 import { useQuestTheme } from "./stores/questTheme";
 import {
@@ -183,6 +187,12 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <InventarioPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
+    case "canales-producto":
+      return <CanalesProductoPanel />;
+    case "chat-equipo":
+      return <ChatEquipoPanel />;
+    case "recepcion-mercancia":
+      return <RecepcionMercanciaPanel />;
     case "vitrina-web":
       return <VitrinaWebPanel />;
     case "logistica-importaciones":
@@ -350,6 +360,10 @@ function AppLoginView({
 }
 
 const NAV_ORDER: Panel[] = NAV_PANEL_ORDER;
+
+// Se lee al cargar el módulo: el login limpia la query (`?_token=`) antes de que haya sesión.
+let PANEL_DEL_ENLACE: string | null =
+  typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("panel") : null;
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   // "perfil" no es una sección con permiso: es la ficha del propio usuario.
@@ -542,6 +556,15 @@ export default function App() {
   useEffect(() => {
     if (panel === "tickets") setPanel("hugo");
   }, [panel, setPanel]);
+
+  // Enlace directo a una sección (`/app?panel=recepcion-mercancia`), p. ej. desde el aviso
+  // que el bot deja en un grupo de WhatsApp. Se aplica una sola vez, ya con sesión.
+  useEffect(() => {
+    if (!user || !hasHydrated || !PANEL_DEL_ENLACE) return;
+    const destino = PANEL_DEL_ENLACE as Panel;
+    PANEL_DEL_ENLACE = null;
+    if (destino in PANEL_INFO && puedeVerPanel(user, destino)) setPanel(destino);
+  }, [user, hasHydrated, setPanel]);
 
   // Si el panel guardado no es visible para este usuario, ir al primero
   // disponible — y DECIRLO. Sin el aviso, el rebote se ve como "el panel me

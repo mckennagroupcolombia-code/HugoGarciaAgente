@@ -49,6 +49,8 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   // vistas de la Agenda, también en `soloVistas`.
   const showColaboradores = Boolean(user && puedeVerSeccionPanel(user, "colaboradores"));
   const colaboradoresActivo = panel === "colaboradores";
+  const showEquipo = Boolean(user && puedeVerSeccionPanel(user, "chat-equipo"));
+  const equipoActivo = panel === "chat-equipo";
   const showJuegos = Boolean(user && puedeVerSeccionPanel(user, "juegos"));
   const juegosActivo = panel === "juegos";
 
@@ -116,6 +118,20 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
         >
           <Icon name="chat" size={22} weight="bold" />
           <span className={HUB_TAB_LABEL}>Mensajes</span>
+        </button>
+      )}
+      {showEquipo && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={equipoActivo}
+          aria-label="Chat del equipo"
+          title="Chat del equipo — lo que antes iba a los grupos de WhatsApp"
+          onClick={() => setPanel("chat-equipo")}
+          className={tabClass(equipoActivo)}
+        >
+          <PanelIcon panel="chat-equipo" size={22} active={equipoActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Equipo</span>
         </button>
       )}
       {showColaboradores && (

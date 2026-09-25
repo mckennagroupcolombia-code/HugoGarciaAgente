@@ -372,6 +372,28 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
                 registrar_actividad_wa(enviado, tipo="wa_grupo", detalle=texto[:150], ts=ts_val)
             except Exception:
                 pass
+        # Espejo transitorio: si el grupo está enlazado a un canal interno del panel,
+        # el mensaje también aparece allí (el equipo migra del WhatsApp al panel).
+        if not antes and "@g.us" in jid:
+            try:
+                from app.services.canales_internos import espejar_desde_wa
+
+                espejar_desde_wa(
+                    jid=jid, wa_id=wa_id, texto=texto, from_me=from_me, autor=enviado,
+                    ts=ts_val, media_path=str(raw.get("media_path") or ""),
+                    media_mime=str(raw.get("media_mime") or ""),
+                )
+            except Exception as e:
+                print(f"[wa_chats] espejo a canal interno: {e}")
+            # Redirigir sin bloquear: si lo que se escribió ya vive en el panel, el bot
+            # deja el enlace (apagado por defecto; app/data/redireccion_panel.json).
+            if not from_me and time.time() - ts_val < 600:
+                try:
+                    from app.services.redireccion_panel import procesar_mensaje_grupo
+
+                    procesar_mensaje_grupo(jid, texto)
+                except Exception as e:
+                    print(f"[wa_chats] redirección al panel: {e}")
     return {
         "insertados": insertados,
         "actualizados": actualizados,

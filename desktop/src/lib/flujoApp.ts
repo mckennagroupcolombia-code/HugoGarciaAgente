@@ -82,6 +82,10 @@ export const ETAPAS_APP: EtapaApp[] = [
         ],
       },
       {
+        titulo: "Recibirla", datos: ["quién recibió", "fotos de la llegada", "cantidad esperada vs. contada", "diferencias"],
+        pasos: [{ panel: "recepcion-mercancia", hace: "Registrar lo que llega, con fotos y conteo" }],
+      },
+      {
         titulo: "Registrar y pagar", datos: ["cotización o factura", "SKU base", "asiento 1435 + IVA 240810", "borrador → pendiente → aprobada → en banco → pagada", "dos tokens"],
         pasos: [
           { panel: "facturas", hace: "Facturas de proveedores que llegan por Gmail" },
@@ -143,6 +147,7 @@ export const ETAPAS_APP: EtapaApp[] = [
         titulo: "Ponerlo en vitrina", datos: ["publicación MCO…", "precio web y MeLi", "fotos", "origen de la materia"],
         pasos: [
           { panel: "publicaciones", hace: "La ficha en MercadoLibre y en la tienda web" },
+          { panel: "canales-producto", hace: "Cada SKU en todos los canales: qué falta y qué no factura" },
           { panel: "vitrina-web", hace: "Banners y origen de las materias primas" },
         ],
       },
@@ -330,6 +335,8 @@ export const ETAPAS_APP: EtapaApp[] = [
 export const FUERA_DEL_FLUJO: PasoApp[] = [
   { panel: "placas-concreto", hace: "Calculadora de placas de concreto (otro taller)" },
   { panel: "juegos", hace: "Juegos para un descanso (dentro de la Agenda)" },
+  { panel: "chat-equipo", hace: "Conversación operativa del equipo (dentro de la Agenda)" },
+  { panel: "colaboradores", hace: "Diagramas compartidos con colaboradores (dentro de la Agenda)" },
 ];
 
 /** Dónde vive un panel dentro de la secuencia (para la miga del cabezote). */

@@ -949,6 +949,12 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
   const [filtro, setFiltro] = useState("pendientes");
   const orden = (a: Combo, b: Combo) => (completo(a) ? 1 : 0) - (completo(b) ? 1 : 0) || pendientes(a) - pendientes(b) || a.faltas - b.faltas || a.nombre.localeCompare(b.nombre, "es", { numeric: true });
   const [ref, setRef] = useState<string | null>(() => {
+    // Llegada desde otro panel (p. ej. Canales del producto) con un combo concreto.
+    const salto = useAppStore.getState().tallerSalto;
+    if (salto?.panel === "combos" && salto.sku && porRef.has(salto.sku)) {
+      useAppStore.setState({ tallerSalto: null });
+      return salto.sku;
+    }
     try {
       const g = sessionStorage.getItem(CLAVE_REF);
       if (g && porRef.has(g)) return g;

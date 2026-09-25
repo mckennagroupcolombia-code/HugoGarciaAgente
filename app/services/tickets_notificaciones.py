@@ -89,6 +89,18 @@ def _primer_nombre(nombre: str) -> str:
 def enviar_texto_operador(usuario_id: int | None, texto: str) -> bool:
     if not _notif_habilitada():
         return False
+    # Todo aviso queda en la campana del panel; el WhatsApp solo si la persona lo quiere.
+    pref = "ambos"
+    if usuario_id:
+        try:
+            from app.services import notificaciones_panel
+
+            notificaciones_panel.desde_texto(int(usuario_id), texto, tipo="ticket")
+            pref = notificaciones_panel.preferencia(int(usuario_id))
+        except Exception as exc:
+            print(f"[tickets-notif] campana del panel: {exc}")
+    if pref == "inapp":
+        return True
     numero = telefono_operador(usuario_id)
     if not numero:
         print(f"[tickets-notif] Sin teléfono para usuario {usuario_id}")

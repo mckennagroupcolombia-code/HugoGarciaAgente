@@ -47,6 +47,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
       { panel: "mapa-sistema", tier: "core" },
+      { panel: "chat-equipo", tier: "core" },
       { panel: "colaboradores", tier: "core" },
       { panel: "juegos", tier: "core" },
     ],
@@ -128,6 +129,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     items: [
       { panel: "control-inventario", tier: "core" },
+      { panel: "recepcion-mercancia", tier: "core" },
       { panel: "stock", tier: "standard" },
       { panel: "combos", tier: "standard" },
       { panel: "mapa-sistema", tier: "standard" },
@@ -140,6 +142,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     items: [
       { panel: "publicaciones", tier: "standard" },
+      { panel: "canales-producto", tier: "standard" },
       { panel: "vitrina-web", tier: "standard" },
     ],
   },

@@ -1,3 +1,16 @@
+### 2026-09-24 16:00 - Canales del producto, chat del equipo, campana y recepción de mercancía
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nuevas funcionalidades (Publicar, Agenda, Abastecer) + puente WA. Sin LLM.
+- **Qué se implementó:**
+  - **Canales del producto** (Publicar): cada SKU de venta en Alegra → receta → documento/EAN/etiqueta → MeLi → web → ¿factura? Solo diagnóstico, con salto al apartado que corrige. Hoy: 10 SKUs activos que venden y no se pueden facturar, 140 pausados con código que Alegra no conoce, 22 discrepancias, 135 incompletos, 27 sin publicar, 143 completos. Pestaña Categorías (etiquetas vs web).
+  - **Copia local de Alegra marca inactivos** (antes todo quedaba «active» para siempre) y se sincroniza sola a las 7:00.
+  - **Chat del equipo** (Agenda → Equipo): canales sin cronómetro, fotos con la cámara, mensaje → solicitud/incidente; cuenta como actividad; enlazable a un grupo oficial de WhatsApp (entrada, y salida opcional con anti-eco).
+  - **Campana de avisos**: todo aviso de tickets queda en el panel; cada persona elige «Solo en el panel» para dejar de recibirlo por WhatsApp.
+  - **Recepción de mercancía** (Abastecer → Recibirla): llegada con fotos, conteo contra la compra (renglones de la solicitud de pago), cierre verificado o con diferencias, aviso al canal Inventario.
+  - **Redirección desde grupos WA** (apagada por defecto) y enlaces directos `/app?panel=…`. El puente descarga las fotos de los grupos espejo (al reiniciarlo).
+- **Verificación:** 44 tests nuevos + humo (127 en verde); suite completa 74 fallos, los 74 idénticos en HEAD limpio (ninguno nuevo); capturas reales en PC y celular; endpoints probados en producción.
+- **Archivos Modificados:** `app/services/{canales_producto,canales_internos,notificaciones_panel,recepcion_mercancia,redireccion_panel}.py` (nuevos), `app/routes_{canales_producto,canales,recepciones}.py` (nuevos), `app/services/{alegra_catalogo_db,mapa_app,tickets_notificaciones,wa_chats}.py`, `app/monitor.py`, `agente_pro.py`, `bot-mckenna/server.js`, `app/data/redireccion_panel.json`, `desktop/src/components/{canales_producto,chat_equipo,recepcion}/*`, `desktop/src/hooks/useCanalesEquipo.ts`, registros de panel (`App.tsx`, `stores/app.ts`, `lib/{panelInfo,flujoApp,navStructure,panelAccess,permisosCatalogo}.ts`, `icons/mck/paths/panels.tsx`, `Layout.tsx`, `nav/{FlujoNav,InicioNavTabs}.tsx`, `CombosPanel.tsx`, `combos/MisionCombos.tsx`), tests, `.gitignore`, `CLAUDE.md`, `docs/agentic/CONTRACTS.md`
+
 ### 2026-09-23 23:55 - Horas justas (÷159, festivos, colectas) y «Del chat al registro» (etapa 2)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Control de horas + registro operativo (backend, panel y puente WA). Sin LLM.
@@ -244,7 +257,7 @@
 - **Archivos Modificados:** `app/services/pagos_proveedor.py`
 
 ### 2026-09-21 - Taller de combos: fotos, presentaciones, componentes en el inventario y asociar el documento desde Docs técnicos
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Mejora + corrección (Preparar → Taller de combos · Docs técnicos → Biblioteca). Sin LLM, sin llamar a Alegra, MeLi ni Siigo.
 - **Qué se implementó:**
   - **Asociar el documento desde Docs técnicos (corrección):** al saltar a Docs técnicos desde un combo sin ficha, la biblioteca solo lista PDF y **no había botón para asociar** el documento al producto. Ahora, si se llega desde un combo al que le falta ese enlace, la biblioteca abre con el bloque **«Asociar un documento a «<combo>»»**: dice a qué materia prima se asocia, trae el buscador con el nombre puesto y cada documento tiene su botón «Asociar a este combo»; al terminar confirma y ofrece «← Seguir con el combo». Es la misma pieza del inspector del taller, así que corrige un SKU caduco y solo comparte un documento si se confirma. El botón de «Docs técnicos» de la **galería de Combos** entra por el mismo camino. El buscador de la biblioteca se sembraba con el nombre completo de la materia prima y daba cero resultados: ahora usa sus dos primeras palabras.
@@ -255,7 +268,7 @@
 - **Archivos Modificados:** `desktop/src/components/combos/EnlazarDocumento.tsx` (nuevo), `components/combos/MisionCombos.tsx`, `components/combos/comun.tsx`, `components/FichasTecnicasPanel.tsx`, `stores/app.ts`, `app/services/mapa_producto.py`, `tests/test_mapa_producto.py` (27 pruebas), `CLAUDE.md` (Flujo U).
 
 ### 2026-09-21 - Taller de combos: ya se puede enlazar el documento técnico, y cada pieza se edita en su apartado con botón para volver
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Corrección + mejora (Preparar → Taller de combos). Sin LLM, sin llamar a Alegra ni a MeLi.
 - **Qué se implementó:**
   - **Por qué no dejaba enlazar la documentación técnica — tres causas:**
@@ -309,7 +322,7 @@
 - **Archivos Modificados:** `requirements.txt`, `requirements.lock.txt`, `app/services/whisper_stt.py`, `app/services/tts_qwen3.py`, `.gitignore`, `CLAUDE.md`, `docs/agentic/ECOSYSTEM.md`; 20 scripts y 9 componentes eliminados.
 
 ### 2026-09-20 - Documentos técnicos: 20 fichas antiguas (solo TDS) pasadas a borrador TDS + COA + SDS
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Contenido (Fichas técnicas → Borradores). Sin cambios de código, sin LLM por API.
 - **Qué se implementó:** dos lotes con `scripts/fichas_lote_autor.py`, mismo molde de los documentos ya completos (TDS con propiedades funcionales `Título|texto`, COA con especificación de monografía y **resultado vacío**, SDS de 16 secciones sin primeros auxilios ni manipulación, sin fabricante). Todo queda como **borrador sin firma** en Documentos técnicos → Borradores; nada se publicó.
   - `fichas_word/autor/2026-09-20c/`: SCI, BTMS 50, cafeína, cera carnauba, elastina, urea, betaína de coco, albúmina de huevo (alimento: TDS + COA con alérgenos, sin SDS), aloe vera, ácido glicólico 50 %.
@@ -342,7 +355,7 @@
 - **Archivos Modificados:** `docs/team-recaps.md`
 
 ### 2026-09-20 - Triptófano y teanina 100 g: de producto suelto a combo con materia prima
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra)
 - **Qué se implementó:**
   - `C-LTRI100g` (MCO952731685, 331 vendidas) y `C-LTEA100g` (MCO1050487497, 382 vendidas) eran productos sueltos sin receta: cada venta se facturaba sin descontar materia prima ni empaque. Mismo criterio que la histidina (decisión de Armando: el código de venta `C-…` se conserva y debe ser combo). Recreados con `crear_combo_en_alegra`, que renombra el ítem anterior a `…-LEGACY` inactivo (ids 74 y 63; copias en `~/backups_manual/alegra_C-L{TRI,TEA}100g_suelto_antes_20260920.json`): `C-LTRI100g` id 640, $32.000, 100 `AMILTRIg`; `C-LTEA100g` id 641, $39.000, 100 `AMITEAg`. Empaque, el del combo de triptófano que ya existía: `PASBLA180mL`, `TAP38MSENUn`, `LNRIND36.2mm`, `BANPAS180mm`, `SCO1g`, `ETQ100g`, `ETQTRM`, `BURB`, `BOLSEGBLAUn`. MeLi no se tocó (los SKU ya eran esos).
@@ -350,7 +363,7 @@
 - **Archivos Modificados:** `docs/team-recaps.md`
 
 ### 2026-09-20 - Beakers 50 / 25 / 10 mL: la venta facturaba el beaker suelto y no descontaba empaque
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / Sheets)
 - **Qué se implementó:**
   - No eran duplicados: `BKR50ML` / `BKR25ML` / `BKR10ML` son el beaker como artículo de inventario y `C-VASPRE50mL` / `25mL` / `10mL` el combo de venta (beaker + `BOLSEGBLAUn` + `ETQTRM` + 2 `PPLBRB10cms`), mismo precio. Las publicaciones tenían SELLER_SKU = combo pero `seller_custom_field` = `BKR…`, y la facturación lee el segundo: se descontaba el beaker pero nunca el empaque (668 vendidos entre los tres).
@@ -361,7 +374,7 @@
 - **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
 
 ### 2026-09-20 - Coco deshidratado: el combo de 500 g descontaba 250 g; combo de 250 g creado
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web / datos locales)
 - **Qué se implementó:**
   - `C-COCDESHIL500g` (Alegra id 559) se llamaba «COCO DESHIDRATADO HILOS 250g» y descontaba 250 g de `COCDESHILg`, pero valía $20.000, el precio de la publicación de 500 g (MCO4354293808): cada venta de 500 g descontaba la mitad. Corregido con `actualizar_combo_alegra` a 500 g y nombre «… 500g» (Alegra lo permitió; copia previa en `~/backups_manual/alegra_C-COCDESHIL500g_antes_20260920.json`).
@@ -371,7 +384,7 @@
 - **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/cache.json` (y derivados del refresh), `docs/team-recaps.md`
 
 ### 2026-09-20 - SKU mal digitados en MeLi (paso 1 de las 35 publicaciones sin SKU en Alegra) + publicaciones con los dos campos de SKU distintos
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (MeLi / Sheets / Alegra / datos locales)
 - **Qué se implementó:**
   - De las 35 publicaciones activas cuyo SKU no existe en Alegra, 7 ya se facturan por equivalencia (ylang, 2 de mandarina, 4 de cápsulas). Paso 1, los errores de digitación — se corrigió el SKU en MeLi (SELLER_SKU y custom field) y se verificó que `resolver_producto_venta_alegra` lo encuentra: MCO3124400002 `C-ACEESENJEN5mL` → `C-ACEESEJEN5mL`; MCO1582274449 `C-INL500g` → `C-INU500g` (comparte SKU con MCO991717213, la principal); MCO1765424925 sin SKU → `INJGER5UN`; MCO1050313694 L-histidina: **se deja `C-LHIS100g`** (decisión de Armando: el SKU de venta `C-…` es el definitivo; se había cambiado a `LHST100G` y se devolvió) y, por indicación suya, quedó como **combo igual al de prolina** (`C-LPRO100g`): materia prima nueva `L-AMIHISg` «L AMINOACIDO HISTIDINA G» (Alegra id 637, gramo, IVA 19 %, costo $0 — no hay compra en el historial) y combo `C-LHIS100g` «L HISTIDINA 100g» (id 638, $43.900 = MeLi): 100 `L-AMIHISg`, `PASBLA180mL`, `TAP38MBLAUn`, `LINPASUn`, `BANPAS180mm`, `BOLSEGBLAUn`, `ETQTRM`. La equivalencia temporal a `LHST100G` se retiró; `LHST100G` (id 182, producto suelto sin receta) se **inactivó** con el visto bueno de Armando, tras verificar que ninguna publicación, producto web ni equivalencia lo usa; copia en `~/backups_manual/alegra_LHST100G_antes_de_inactivar_20260920.json`. Precio de `C-ACEESEJEN5mL` en Alegra $17.000 → $17.500 (manda MeLi).
@@ -381,7 +394,7 @@
 - **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
 
 ### 2026-09-20 - `C-COL50g` (colorante alimentario 50 g) inactivado en Alegra
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web)
 - **Qué se implementó:**
   - `C-COL50g` (Alegra id 577, $33.900) no tenía componentes: cada venta se facturaba sin descontar inventario y sin costo. Su publicación de MeLi ya se había eliminado; Armando confirmó que no existe. Verificado antes de tocarlo: ninguna publicación de MeLi con ese SKU y ningún producto en la tienda web. Inactivado con `PUT /items/577 {"status": "inactive"}` y releído. Copia del ítem en `~/backups_manual/alegra_C-COL50g_antes_de_inactivar_20260920.json`.
@@ -390,7 +403,7 @@
 - **Archivos Modificados:** `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
 
 ### 2026-09-20 - Bolsas para cultivo de hongos: SKU propio en vez de los `AS-43` / `AS-44` heredados
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)
 - **Qué se implementó:**
   - `AS-44` en Alegra es «COLLAR DE PERRO EN CUERO RAZA MEDIANA» (id 222) y en MeLi lo llevaba «Bolsas Para Setas Bolsas Para Cultivo De Hongos» (MCO1340299743, 7 vendidas): una venta se habría facturado como collar a $58.000. Código heredado de astroselling. `AS-43` (MCO1915649374, «Bolsas Cultivo Hongos», 1 vendida) no existía en Alegra. Las dos publicaciones son el mismo producto: paquete de 60 bolsas con filtro de 0,2 micras, $209.000, ambas pausadas sin existencias.
@@ -399,7 +412,7 @@
 - **Archivos Modificados:** `docs/team-recaps.md`
 
 ### 2026-09-20 - Celulosa microcristalina: dos referencias (101 y 102), cada una con su ficha, código y etiqueta
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Documentos técnicos + códigos de barras + etiquetas
 - **Qué se implementó:**
   - El código `C-CELMIC101500g` tenía una etiqueta que decía «A 102» (solo existía ficha del 102). Compras: FEE97643 (11-jun-2026) grado 101 y FEE99814 (11-jul-2026) 25 kg de «A 102», ambas de Factores y Mercadeo y ambas cargadas al mismo código `CELMICg`. Armando confirmó que se manejan las DOS referencias.
@@ -413,7 +426,7 @@
 - **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `fichas_word/` y `app/data/etiquetas_fichas.json` (no versionados), `docs/team-recaps.md`
 
 ### 2026-09-20 - Polisorbato Tween 20 de 250 mL: combo propio + emparejador de fichas que distingue números
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / web / etiquetas) + corrección de bug
 - **Qué se implementó:**
   - Las publicaciones de 250 mL (MCO1910972470, 85 vendidas) y 500 mL compartían el SKU `C-POLTWE20P500mL`: cada venta de 250 mL se facturaba como 500 mL y descontaba 500 g y el envase de 500 cc (~21 kg de polisorbato descontados de más en Alegra, pendiente de ajuste de inventario).
@@ -424,7 +437,7 @@
 - **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `app/data/etiquetas_codigos_ean.json`, `app/data/etiquetas_fichas.json` (no versionado), `PAGINA_WEB/site/data/{cache,stock_web,catalogo_extra_siigo,origen_materias}.json`, `docs/team-recaps.md`
 
 ### 2026-09-20 - Goma arábiga: publicaciones eliminadas en MeLi
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de publicaciones (Mercado Libre)
 - **Qué se implementó:**
   - Se eliminaron, a pedido del usuario, MCO2055189788 «Goma Arábiga 500gr» (66 vendidas) y MCO2055177320 «Goma Arábiga 1 Kg» (39 vendidas), ambas pausadas sin existencias, sin pedidos por entregar ni preguntas pendientes. Copia completa de cada una en `~/backups_manual/meli_<id>_antes_de_eliminar_20260920.json`.
@@ -434,7 +447,7 @@
 - **Archivos Modificados:** `docs/team-recaps.md`
 
 ### 2026-09-20 - Precios de Alegra igualados a Mercado Libre (28 productos)
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Datos (Alegra — precio de lista)
 - **Qué se implementó:**
   - Regla del negocio: ante una diferencia **manda el precio de MeLi**. Se aplicó con `actualizar_precio_alegra_producto` a **28 SKU**, cada uno verificado releyendo desde Alegra. Precios anteriores en `~/backups_manual/alegra_precios_antes_20260920.json`. Casos notables: agitador magnético $177 → $422.000; cera de abejas natural $1 → $31.000; bergamota 5 mL $0 → $19.900; vaselina 900 g $21.800 → $49.000; almendra 250 g $62.400 → $16.900; semilla de calabaza 250 g $49.900 → $14.000; placa de aluminio $50.000 → $109.900.
@@ -443,7 +456,7 @@
 - **Archivos Modificados:** `docs/team-recaps.md`
 
 ### 2026-09-20 - Cierre de los 6 combos sin código y comparación de precios MeLi vs. Alegra
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · códigos de barras · etiquetas)
 - **Qué se implementó:**
   - **Regla fijada por el negocio: el precio real es el de Mercado Libre.** Albúmina `C-ALBHUE500g` quedó en $44.900.
@@ -455,7 +468,7 @@
 - **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/precios_meli_vs_alegra.md`, `docs/team-recaps.md`
 
 ### 2026-09-20 - Albúmina de huevo: un solo combo (`C-ALBHUE500g`) y dátiles con un solo nombre
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · tienda web · códigos de barras)
 - **Qué se implementó:**
   - **Albúmina 500 g:** había dos combos con el mismo nombre. `C-ALBHUE500g` (el SKU que debe quedar) estaba a medio armar: $1 y 1 g de albúmina. Se le copió la composición y el precio del que sí funcionaba (`C-ALBHV500g`: 500 g + 7 empaques, $21.500, IVA 19 %) con `actualizar_combo_alegra`, verificado releyendo desde Alegra. Estado previo en `~/backups_manual/alegra_albumina_antes_20260920.json`.
@@ -467,7 +480,7 @@
 - **Archivos Modificados:** `app/services/alegra.py`, `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `app/data/etiquetas_codigos_ean.json`, `PAGINA_WEB/site/data/origen_materias.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
 
 ### 2026-09-20 - Códigos de barras para combos de Alegra que no tenían (grupo 1) y alérgenos en la cuadrícula
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Datos + producción (Diseño → Códigos EAN y Etiquetas)
 - **Qué se implementó:**
   - Las etiquetas en lote parten del catálogo de códigos de barras, así que **lo que no tiene código no recibe etiqueta**: por eso no aparecían productos como el propionato de calcio. 61 fichas técnicas estaban en ese caso.
@@ -480,7 +493,7 @@
 - **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/team-recaps.md`
 
 ### 2026-09-19 (cierre) - Etiquetas de mL y demás presentaciones: 110 más, todas las diagramaciones revisadas
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Producción + correcciones de diagramación y de datos (Diseño → Studio → Etiquetas del formulario)
 - **Qué se implementó:**
   - **110 etiquetas** en 5 mL, 30 mL, 100 g, pastillero y 76×66 (`docs/etiquetas_ml_estado.md`); con las 114 de gramos son **224**. El formato de cada SKU sale de la etiqueta que lleva su combo en Alegra, no del nombre: los aceites de 250 mL van en 76×66 y el neem de 120 mL en 69×51 (la plantilla vertical 38×102 no está terminada: recorta textos y deja marcos de edición). 20 plantillas nuevas por categoría y formato, cada una con su «INSUMO GRADO …» correcto, que en estos formatos es un campo de la PLANTILLA.
@@ -490,7 +503,7 @@
 - **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/CenterProductPanel.tsx`, `etiqueta30ml.css`, `etiqueta-5ml/Etiqueta5ml.tsx`, `etiqueta5ml.css`, `etiqueta-simple/EtiquetaSimple.tsx`, `etiqueta-circular/EtiquetaCircular.tsx`, `app/data/etiquetas_categorias.json`, `app/data/etiquetas_codigos_ean.json`, `docs/etiquetas_ml_estado.md`, `docs/team-recaps.md`
 
 ### 2026-09-19 (noche) - Fichas sin casillas vacías, 114 etiquetas y almacén de etiquetas blindado
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Datos + producción + corrección de un bug de pérdida de datos
 - **Qué se implementó:**
   - **Cambio de criterio: ninguna casilla vacía.** `scripts/fichas_completar_deducciones.py` rellena SOLO lo vacío, en este orden: documento del proveedor → mapa de orígenes del sitio (etiqueta y web dicen lo mismo) → lo que ya se responde en preventa/WhatsApp (grado) → literatura técnica (aroma, fórmula, composición, CAS, conservación y, en último caso, principal país productor). Cada dato deja su procedencia en `_fuentes` marcada «(deducido)»; informe en `docs/fichas_datos_deducidos.md`. **214 datos en 95 fichas**, más conservación explícita en 164 (antes la app la sintetizaba de la SDS y salía vacía o con «Guardar bajo llave»). Los resultados del COA NO se deducen.
@@ -518,7 +531,7 @@
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`, `ProductAttributeGrid.tsx`, `ProductLabelForm.tsx`, `TechnicalIdentity.tsx`, `desktop/dev/etiqueta.html`, `desktop/dev/etiqueta.tsx`, `app/data/etiquetas_categorias.json`, `docs/etiquetas_gramos_estado.md`, `docs/team-recaps.md`
 
 ### 2026-09-19 - Documentos técnicos: sin fabricante, borradores sin firma y primer lote TDS-COA-SDS
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Política de documentos + herramienta nueva (Documentos técnicos)
 - **Qué se implementó:**
   - **El fabricante ya no se publica en ningún documento**: hacia afuera solo va el **país de origen**. `_contexto_html` y `_contexto_coa` dejan de entregar el dato a las plantillas (PDF completo, FT simple, COA en Word, página `/verificar`); el YAML lo conserva porque la trazabilidad interna de lotes lo usa. Se regeneraron los **33 PDF** que lo imprimían (originales en `fichas_word/_respaldo_pre_fabricante_2026-09-19/`).
@@ -581,7 +594,7 @@
 - **Archivos Modificados:** `app/services/puc_colombia.py`, `app/services/contabilidad_ledger.py`, `app/services/contabilidad_autopost.py`, `app/services/contabilidad_core.py`, `app/services/compras_socios.py`, `app/services/anulaciones_motor.py`, `app/services/iva_ventas.py`, `app/services/pagos_wizard.py`, `app/routes.py`, `scripts/backfill_contabilidad_autopost.py`, `scripts/anular_ventas_duplicadas.py`, `scripts/reconocer_iva_ventas.py`, `tests/test_puc_colombia.py`, `tests/test_ingresos_sin_doble_conteo.py`, `tests/test_ledger_lectura_completa.py`, `tests/test_iva_ventas.py`, `docs/team-recaps.md`
 
 ### 2026-09-18 - Imprimir: botón «Cargar del ordenador» (PDF, PNG o JPG)
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Nueva funcionalidad (Diseño → Imprimir)
 - **Qué se implementó:**
   - **Botón «Cargar del ordenador» en el encabezado de Imprimir** (biblioteca y ventana de impresión). Acepta PDF, PNG o JPG; el archivo se guarda en la biblioteca de siempre (`subir-pdf` o `recursos-png`) y se abre directo en la ventana de impresión, sin pasar por Studio.
@@ -633,7 +646,7 @@
 - **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`
 
 ### 2026-09-16 - El escáner del Documento Completo ya llena la tabla del COA
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Corrección (Fichas técnicas → Documento completo)
 - **Qué se implementó:**
   - Al adjuntar un pantallazo o PDF, la sección COA quedaba vacía aunque el documento trajera una tabla de resultados (caso MANÍ BRASILEÑO RUNNER - TOSTADO PARTIDO: FT llena, `_coa.parametros: []`). Causa doble: el prompt de estructuración del escáner FT (`_prompt_estructurar_ft`) no tenía ningún campo `parametros`, así que el OCR leía la tabla y el segundo paso la descartaba; y el handler `onCamposExtraidos` solo escribía en la FT, nunca llamaba a `setCoaParametros`.
@@ -644,7 +657,7 @@
 - **Archivos Modificados:** `app/services/documento_scan_tablas.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
 
 ### 2026-09-16 - Sin casillas «Manipulación» y «Primeros auxilios» en la SDS del Documento Completo
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Ajuste (Fichas técnicas → Documento completo, Sección 3 — SDS)
 - **Qué se implementó:**
   - A pedido del usuario se quitan las dos casillas del formulario y también del documento generado. `FichasTecnicasPanel.tsx` (`DocumentoCompletoTabContent`): fuera los campos, sus botones de IA, los estados `sdsPrimeros`/`sdsManipulacion`, la precarga desde borradores y las claves en `buildDatos`.
@@ -759,7 +772,7 @@
 - **Archivos Modificados:** `app/services/alegra_espejo.py`, `app/services/conciliacion_contador.py`, `app/services/declarador.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `docs/team-recaps.md`; fuera del repo: `.env` (bandera del espejo), `/home/mckg/Declarador/Armando/15_Inversiones_Acciones_y_Valores/`
 
 ### 2026-09-14 12:20 - Etiquetas: el cuadro de los atributos deja de encoger al bajar la letra
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Corrección (ficha 76 × 66 · módulos de atributo)
 - **Qué se implementó:**
   - En la plantilla de Sales minerales, bajar el tamaño de letra de un atributo desde el menú de tipografía **encogía también su cuadro** y descuadraba la fila. Se veía sobre todo en Olor y Conservación.
@@ -781,7 +794,7 @@
 - **Archivos Modificados:** `app/services/alegra_espejo.py`, `app/services/conciliacion_contador.py`, `desktop/src/components/ConciliacionContadorPanel.tsx`, `docs/team-recaps.md`
 
 ### 2026-09-14 11:50 - Etiquetas: la plantilla se ve entera al abrirla, sin barras de desplazamiento
-- **Autor:** Armando García
+- **Autor:** Cynthia
 - **Tipo de Cambio:** Mejora de interfaz (vista previa de los cuatro formatos)
 - **Qué se implementó:**
   - **Cada plantilla se dibuja a la escala que haga falta para caber entera** en el hueco disponible, por ancho y por alto, en vez de abrirse a tamaño de diseño con barras. Cada formato tiene la suya: medido en un hueco de 660 px, el 30 mL sale al 55 %, el 69 × 51 al 73 % y el circular al 96 %. Nunca se agranda por encima del 100 %, y por debajo del 30 % deja de encoger y el marco vuelve a recorrerse (una ventana muy angosta no debe volver la etiqueta ilegible).

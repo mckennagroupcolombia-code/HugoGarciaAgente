@@ -49,6 +49,10 @@ app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)
 app/data/empaque_uploads/
 app/data/empaque_evidencia.db
+# Recepción de mercancía (fotos de llegada + su base; ver app/services/recepcion_mercancia.py)
+app/data/recepcion_uploads/
+app/data/recepciones.db
+app/data/recepciones.db-*
 # Agente de ventas WA v2: pedidos en curso, pausas y bitácora de turnos (runtime)
 app/data/ventas_wa.db
 app/data/precios_trm.db
