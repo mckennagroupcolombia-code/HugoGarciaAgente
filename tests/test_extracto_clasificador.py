@@ -94,7 +94,6 @@ def test_empresa_con_factura_si_va_a_proveedores():
         ("SERVICIO PAGO A TERCEROS", "debito", "530505"),
         ("IMPTO GOBIERNO 4X1000", "debito", "530595"),
         ("ABONO INTERESES AHORROS", "credito", "421005"),
-        ("PAGO PSE DIAN", "debito", "2365"),
     ],
 )
 def test_costos_bancarios_e_intereses_se_clasifican_solos(desc, tipo, cuenta):
@@ -135,3 +134,55 @@ def test_solo_se_causan_solos_el_4x1000_y_los_intereses():
     }
     mp = ec.clasificar(_linea("PAGO INTERBANC MERCADOPAGO SA", 9_500_000, "credito"), terceros=[])
     assert mp["confianza"] == ec.ALTA and mp["concepto"] not in ec.AUTO_CONCEPTOS
+
+
+
+# ─── Impuestos: cada uno a su cuenta, según el recibo del contador (25-sep-2026) ──
+
+def _recibo(cuenta, recibo="490", numero="4911173604811", etiqueta="Retención a título de IVA (reteIVA)", estado="pendiente"):
+    return {"recibo": recibo, "numero": numero, "cuenta": cuenta, "etiqueta": etiqueta, "periodo": "agosto de 2026",
+            "estado": estado, "referencia": f"dian:490:{numero}" if recibo == "490" else f"sdh:{numero}",
+            "archivo": "", "avisos": [], "movimiento_id": 99}
+
+
+@pytest.mark.parametrize("cuenta, etiqueta", [
+    ("2365", "Retención en la fuente a título de renta"),
+    ("2367", "Retención a título de IVA (reteIVA)"),
+    ("2408", "IVA por pagar"),
+])
+def test_un_pago_a_la_dian_toma_la_cuenta_de_su_recibo(monkeypatch, cuenta, etiqueta):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda monto, fecha, entidad: _recibo(cuenta, etiqueta=etiqueta) if entidad == "490" else None)
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 242_000, "debito"), terceros=[])
+    assert p["cuenta"] == cuenta and p["confianza"] == ec.ALTA
+    assert p["referencia"] == "dian:490:4911173604811"
+    assert etiqueta in p["concepto"]
+
+
+def test_un_pago_a_hacienda_va_a_la_reteica(monkeypatch):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea",
+                        lambda monto, fecha, entidad: _recibo("2368", recibo="SDH", numero="2026331014012927161",
+                                                              etiqueta="Retención de ICA (RTICA)") if entidad == "SDH" else None)
+    p = ec.clasificar(_linea("PAGO PSE SECRETARIA DE HACIE", 412_000, "debito"), terceros=[])
+    assert p["cuenta"] == "2368" and p["referencia"] == "sdh:2026331014012927161"
+
+
+def test_sin_recibo_un_pago_de_impuestos_no_se_adivina(monkeypatch):
+    """Antes todo «PAGO PSE DIAN» iba a 2365 con confianza alta."""
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda *a: None)
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 123_456, "debito"), terceros=[])
+    assert p["cuenta"] is None and p["confianza"] == ec.REVISAR
+    assert "recibo" in p["nota"]
+
+
+def test_un_recibo_ya_registrado_pide_vincular_no_crear(monkeypatch):
+    from app.services import pagos_impuestos as pi
+
+    monkeypatch.setattr(pi, "recibo_para_linea", lambda *a: _recibo("2365", estado="registrado"))
+    p = ec.clasificar(_linea("PAGO PSE DIAN   PSE", 299_000, "debito"), terceros=[])
+    assert p["confianza"] == ec.REVISAR and "VINCULAR" in p["nota"]

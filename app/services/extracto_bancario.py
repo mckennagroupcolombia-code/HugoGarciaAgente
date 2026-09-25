@@ -1800,6 +1800,15 @@ def vincular(extracto_mov_id: int, movimiento_id: str, notas: str = "") -> dict[
         row = con.execute(
             "SELECT * FROM extracto_vinculos WHERE id = ?", (vid,)
         ).fetchone()
+    # Un pago de impuestos vinculado por cualquier camino (botón del Taller, lote,
+    # vínculo a mano) lleva adjunto el recibo del contador, si su asiento lo cita.
+    if mid.startswith("cc:"):
+        try:
+            from app.services.pagos_impuestos import adjuntar_soporte_recibo
+
+            adjuntar_soporte_recibo(int(mid[3:]))
+        except Exception:
+            pass   # el soporte es un plus: su falta no deshace el vínculo
     return dict(row) if row else {"id": vid, "extracto_mov_id": extracto_mov_id, "movimiento_id": mid}
 
 

@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 _ROOT = Path(__file__).resolve().parents[2]
 _DOCS = _ROOT / "docs" / "contabilidad"
@@ -277,6 +278,74 @@ def recibos(desde: str | None = None) -> dict:
         "pendientes": sum(1 for r in lista if r["estado"] == "pendiente"),
         "sin_pago": declaraciones_sin_pago(),
     }
+
+
+_CACHE_RECIBOS: dict[str, Any] = {"ts": 0.0, "lista": []}
+
+# Tercero a quien se le paga cada tipo de recibo (lo busca el Taller por nombre).
+TERCERO_POR_RECIBO = {"490": "DIRECCION DE IMPUESTOS Y ADUANAS NACIONALES", "SDH": "SECRETARIA DISTRITAL DE HACIENDA"}
+
+
+def recibo_para_linea(monto: float, fecha: str, entidad: str) -> dict | None:
+    """El recibo del contador que paga esta línea del banco, si hay uno.
+
+    `entidad` es «490» (DIAN) o «SDH» (Secretaría de Hacienda de Bogotá). Casa por
+    valor exacto (±$1) y fecha de pago a ±`_TOLERANCIA_DIAS`; entre varios, el de
+    fecha más cercana y, a igual distancia, el que aún no está en el libro. Es lo
+    que deja al Taller llevar cada impuesto a SU cuenta —2365 retefuente, 2367
+    reteIVA, 2368 reteICA, 2408 IVA, 2404 renta— en vez de mandar todo «PAGO PSE
+    DIAN» a 2365 (25-sep-2026: el reteIVA de agosto habría caído ahí).
+    """
+    import time
+
+    ahora = time.time()
+    if ahora - _CACHE_RECIBOS["ts"] > 60:
+        _CACHE_RECIBOS["lista"] = recibos(desde="1900-01-01")["recibos"]
+        _CACHE_RECIBOS["ts"] = ahora
+    try:
+        f = date.fromisoformat(str(fecha)[:10])
+    except ValueError:
+        return None
+    candidatos = []
+    for r in _CACHE_RECIBOS["lista"]:
+        if r.get("recibo") != entidad or not r.get("cuenta") or not r.get("fecha_pago"):
+            continue
+        if abs(float(r.get("valor") or 0) - float(monto or 0)) >= 1:
+            continue
+        try:
+            dias = abs((date.fromisoformat(r["fecha_pago"][:10]) - f).days)
+        except ValueError:
+            continue
+        if dias <= _TOLERANCIA_DIAS:
+            candidatos.append((dias, r.get("estado") != "pendiente", r))
+    if not candidatos:
+        return None
+    candidatos.sort(key=lambda x: (x[0], x[1]))
+    return candidatos[0][2]
+
+
+def adjuntar_soporte_recibo(movimiento_id: int) -> bool:
+    """Adjunta el PDF del recibo 490/SDH al asiento que lo cita en su referencia.
+
+    No pisa un soporte que ya tenga. Devuelve True si adjuntó algo.
+    """
+    import app.services.contabilidad_core as cc
+
+    mov = cc.obtener_movimiento(int(movimiento_id))
+    ref = str((mov or {}).get("referencia") or "")
+    if not mov or mov.get("soporte_path") or not (ref.startswith("dian:490:") or ref.startswith("sdh:")):
+        return False
+    numero = ref.rsplit(":", 1)[-1]
+    rec = next((r for r in _recibos_crudos() if str(r.get("numero")) == numero), None)
+    if not rec or not rec.get("archivo") or not (_ROOT / rec["archivo"]).is_file():
+        return False
+    ruta = _ROOT / rec["archivo"]
+    cc.guardar_comprobante(int(movimiento_id), ruta.read_bytes(), ruta.name, "application/pdf")
+    return True
+
+
+def invalidar_cache_recibos() -> None:
+    _CACHE_RECIBOS["ts"] = 0.0
 
 
 def _cop(v: float) -> str:

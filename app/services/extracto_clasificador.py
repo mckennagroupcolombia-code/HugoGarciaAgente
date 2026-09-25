@@ -77,10 +77,19 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
     (r"^PAGO A PROVE|^ABONO A PRYDE|^PAGO DE PROV", "debito", "2205",
      "Pago a proveedor", ALTA, ""),
 
-    # Impuestos a la DIAN.
-    (r"PAGO PSE DIAN|^PAGO DIAN|IMPUESTOS DIAN", "debito", "2365",
-     "Pago de impuestos / retenciones a la DIAN", ALTA,
-     "Confirmar contra qué período se abonó antes de descargar 2365."),
+    # Impuestos. La cuenta NO sale de la descripción del banco —«PAGO PSE DIAN» es
+    # igual para retefuente, reteIVA, IVA o renta— sino del recibo 490/SDH del
+    # contador que casa por valor y fecha (`_afinar_pago_impuesto`). Sin recibo se
+    # queda en «revisar»: hasta el 25-sep-2026 todo iba a 2365 con confianza alta,
+    # y el reteIVA de agosto ($242.000) habría caído en la retención de renta.
+    (r"PAGO PSE DIAN|^PAGO DIAN|IMPUESTOS DIAN", "debito", None,
+     "Pago de impuestos a la DIAN", REVISAR,
+     "No hay recibo 490 del contador con este valor y fecha: cárgalo (Conciliación contador) para saber "
+     "si es retefuente (2365), reteIVA (2367), IVA (2408) o renta (2404)."),
+    (r"SECRETARIA DE HACIE|SECRETARIA HACIENDA|SECRETARIA DISTRITAL DE HAC|HACIENDA BOGOTA", "debito", None,
+     "Pago de impuestos a la Secretaría de Hacienda", REVISAR,
+     "No hay recibo de la Secretaría de Hacienda con este valor y fecha: cárgalo para saber si es "
+     "reteICA (2368) o ICA (2412)."),
 
     # Llave y QR van en los DOS sentidos y significan cosas opuestas: un crédito
     # es un cliente pagando (la venta casi siempre ya está en el libro por
@@ -204,6 +213,8 @@ def clasificar(linea: dict[str, Any], terceros: list[tuple[str, dict]] | None = 
         }
         if cuenta == "2205":
             prop.update(_afinar_pago_a_tercero(linea, terceros))
+        if concepto.startswith("Pago de impuestos a la "):
+            prop.update(_afinar_pago_impuesto(linea, "SDH" if "Hacienda" in concepto else "490"))
         return prop
 
     return {
@@ -256,6 +267,45 @@ def resumen(desde: str, hasta: str) -> dict[str, Any]:
         "para_revisar": len(props) - len(autom),
         "monto_para_revisar": round(sum(p["monto"] for p in props if p["confianza"] != ALTA), 2),
         "grupos": sorted(grupos.values(), key=lambda g: -g["monto"]),
+    }
+
+
+def _afinar_pago_impuesto(linea: dict, entidad: str) -> dict:
+    """Cuenta, referencia, tercero y soporte desde el recibo del contador.
+
+    Cada impuesto a su cuenta (2365 retefuente, 2367 reteIVA, 2368 reteICA, 2408
+    IVA, 2404 renta). La referencia del asiento es la del recibo (`dian:490:<n>` /
+    `sdh:<n>`): así el recibo queda «registrado» y ningún otro camino lo repite.
+    """
+    try:
+        from app.services import pagos_impuestos as pi
+
+        rec = pi.recibo_para_linea(float(linea.get("monto") or 0), str(linea.get("fecha") or ""), entidad)
+    except Exception as e:  # sin recibos disponibles la propuesta sigue en «revisar»
+        return {"nota": f"No se pudieron leer los recibos del contador: {e}"}
+    if not rec:
+        return {}
+    if rec.get("estado") == "registrado":
+        return {"nota": f"El recibo {rec['numero']} ya está en el libro (asiento #{rec.get('movimiento_id')}): "
+                        "solo hay que VINCULAR esta línea a ese asiento, no crear otro."}
+    import app.services.contabilidad_core as cc
+    from app.services.pagos_impuestos import TERCERO_POR_RECIBO
+
+    tercero = None
+    with cc._conn() as con:
+        r = con.execute("SELECT id, nombre FROM cc_terceros WHERE nombre LIKE ? AND activo=1 ORDER BY id LIMIT 1",
+                        (TERCERO_POR_RECIBO.get(entidad, "") + "%",)).fetchone()
+        if r:
+            tercero = {"id": int(r[0]), "nombre": r[1]}
+    return {
+        "cuenta": cc.codigo_vivo(rec["cuenta"]),
+        "concepto": f"{rec['etiqueta']} — {rec['periodo']} · recibo {rec['recibo']} No. {rec['numero']}",
+        "confianza": ALTA,
+        "nota": " ".join(rec.get("avisos") or []),
+        "tercero": tercero,
+        "referencia": rec["referencia"],
+        "soporte": rec.get("archivo") or "",
+        "recibo": rec["numero"],
     }
 
 
@@ -363,7 +413,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
     hechos, saltados, errores = [], [], []
     for p in props:
-        ref = f"extracto:{p['extracto_mov_id']}"
+        # Un pago de impuestos lleva la referencia de su recibo (dian:490:…/sdh:…).
+        ref = p.get("referencia") or f"extracto:{p['extracto_mov_id']}"
         with sqlite3.connect(cc._DB_PATH) as con:
             if con.execute("SELECT 1 FROM cc_movimientos WHERE referencia=?", (ref,)).fetchone():
                 saltados.append({"linea": p["extracto_mov_id"], "motivo": "ya tenía asiento"})
@@ -409,7 +460,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
             mov = cc.crear_movimiento(
                 fecha=p["fecha"], concepto=f"{p['concepto']} — {p['descripcion']}",
                 lineas=lineas, tercero_id=tercero_id, referencia=ref,
-                tipo_origen="extracto_clasificado", created_by=created_by,
+                tipo_origen="pago_impuestos" if p.get("recibo") else "extracto_clasificado",
+                created_by=created_by,
             )
             eb.vincular(p["extracto_mov_id"], f"cc:{mov['id']}",
                         notas=f"Clasificado automáticamente: {p['concepto']}")
