@@ -64,6 +64,7 @@ export default function LeftTechnicalPanel({
       {onIconChange && (
         <GaleriaIconosQuimicosModal
           abierta={campoAbierto !== null}
+          campo={campoAbierto}
           colorTinta={normalizarHex(data.accentColor)}
           onCerrar={() => setCampoAbierto(null)}
           onElegir={(svgDataUrl) => {

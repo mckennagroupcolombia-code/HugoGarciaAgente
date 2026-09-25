@@ -1,7 +1,8 @@
 import { Ico } from "../../icons/Ico";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  CATEGORIA_ICONO_POR_CAMPO,
   CATEGORIAS_ICONOS_QUIMICA,
   ICONOS_QUIMICA_CIRCULARES,
   iconoQuimicoASvgDataUrl,
@@ -12,6 +13,9 @@ import {
 interface Props {
   abierta: boolean;
   colorTinta?: string;
+  /** Celda de la etiqueta que se edita (origin, odor, storage…): la galería
+   *  abre en su categoría. */
+  campo?: string | null;
   onCerrar: () => void;
   onElegir: (svgDataUrl: string, icono: IconoQuimicoCircular) => void;
 }
@@ -19,6 +23,7 @@ interface Props {
 export default function GaleriaIconosQuimicosModal({
   abierta,
   colorTinta = "#1a1a1a",
+  campo,
   onCerrar,
   onElegir,
 }: Props) {
@@ -29,6 +34,12 @@ export default function GaleriaIconosQuimicosModal({
   // ficha de etiqueta) ese borde solo suma una línea más sin aportar nada,
   // y competía con el resto del trazo ya delgado.
   const [conCirculo, setConCirculo] = useState(false);
+
+  useEffect(() => {
+    if (!abierta) return;
+    setBuscar("");
+    setCategoria((campo && CATEGORIA_ICONO_POR_CAMPO[campo]) || "todos");
+  }, [abierta, campo]);
 
   const iconosFiltrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -142,6 +153,11 @@ export default function GaleriaIconosQuimicosModal({
                 }`}
               >
                 {cat.label}
+                <span className="ml-1 opacity-60">
+                  {cat.id === "todos"
+                    ? ICONOS_QUIMICA_CIRCULARES.length
+                    : ICONOS_QUIMICA_CIRCULARES.filter((i) => i.categoria === cat.id).length}
+                </span>
               </button>
             ))}
           </div>

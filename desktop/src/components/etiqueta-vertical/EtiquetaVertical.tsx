@@ -401,6 +401,7 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
       {onIconChange && (
         <GaleriaIconosQuimicosModal
           abierta={iconoAbierto !== null}
+          campo={iconoAbierto}
           onCerrar={() => setIconoAbierto(null)}
           onElegir={(svgDataUrl) => {
             if (iconoAbierto) onIconChange(iconoAbierto, svgDataUrl);

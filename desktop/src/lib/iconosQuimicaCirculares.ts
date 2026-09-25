@@ -19,6 +19,8 @@
  * acercar ×1.3, nada quede recortado.
  */
 
+import { ICONOS_GALERIA_AMPLIADA } from "./iconosGaleriaAmpliada";
+
 export interface IconoQuimicoCircular {
   id: string;
   nombre: string;
@@ -77,6 +79,19 @@ export const CATEGORIAS_ICONOS_QUIMICA = [
   { id: "conservacion", label: "📦 Conservación" },
   { id: "seguridad", label: "⚠️ Seguridad" },
 ] as const;
+
+/** Categoría con la que abre la galería según la celda de la etiqueta que se
+ *  está editando (claves de `attribute_icons`), para no tener que buscar el
+ *  ícono entre todos. Sin celda conocida abre en «Todos». */
+export const CATEGORIA_ICONO_POR_CAMPO: Record<string, IconoQuimicoCircular["categoria"]> = {
+  origin: "origen",
+  odor: "aroma",
+  appearance: "apariencia",
+  composition: "composicion",
+  grade: "calidad",
+  storage: "conservacion",
+  alergenos: "seguridad",
+};
 
 /** Apertura común: trazo 4, puntas redondas, sin relleno por defecto. */
 const SVG_ABRE =
@@ -503,4 +518,5 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
       <rect x="39" y="52" width="22" height="17" rx="3" fill="currentColor" stroke="none"/>
     </svg>`,
   },
+  ...ICONOS_GALERIA_AMPLIADA,
 ];

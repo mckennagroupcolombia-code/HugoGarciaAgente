@@ -133,6 +133,7 @@ export default function ProductAttributeGrid({
 
       <GaleriaIconosQuimicosModal
         abierta={campoAbierto !== null}
+        campo={campoAbierto}
         onCerrar={() => setCampoAbierto(null)}
         onElegir={(svgDataUrl) => {
           if (campoAbierto) onIconChange(campoAbierto, svgDataUrl);

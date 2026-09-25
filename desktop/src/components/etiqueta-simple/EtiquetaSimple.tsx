@@ -346,6 +346,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
         {onIconChange && (
           <GaleriaIconosQuimicosModal
             abierta={iconoAbierto !== null}
+            campo={iconoAbierto}
             colorTinta={normalizarHex(data.accentColor)}
             onCerrar={() => setIconoAbierto(null)}
             onElegir={(svgDataUrl) => {
