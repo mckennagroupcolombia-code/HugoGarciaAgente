@@ -723,6 +723,13 @@ def crear_factura_venta_alegra(
             "price": precio_base,
             "quantity": cantidad,
         }
+        # Nombre real en la línea cuando se factura contra un producto genérico
+        # (VENTA-VARIO-*): el ítem de Alegra se llama "Producto vario", pero la
+        # factura debe mostrar lo que pidió el cliente. Solo cuando la línea lo
+        # trae — las ventas normales siguen mostrando el nombre del producto.
+        descripcion_linea = str(p.get("descripcion") or "").strip()
+        if descripcion_linea:
+            item["description"] = descripcion_linea[:500]
         # OJO: la unidad de medida NO se resuelve por un campo en la línea de factura —
         # confirmado en vivo (2026-09-02) que Alegra la lee de la ficha del producto
         # (`inventory.unit`). Si el producto no la tiene, el timbrado falla con
@@ -3617,15 +3624,20 @@ def crear_documento_soporte_alegra(
 
 
 def crear_item_servicio_alegra(
-    *, referencia: str, nombre: str, descripcion: str = "", tipo: str = "product"
+    *, referencia: str, nombre: str, descripcion: str = "", tipo: str = "product",
+    tax_ids: list[int] | None = None,
 ) -> dict:
-    """Crea en Alegra un ítem de catálogo, sin IVA y sin inventario.
+    """Crea en Alegra un ítem de catálogo, sin inventario.
 
     Lo usan los documentos soporte, que necesitan una línea con un producto real:
     emitir un documento fiscal contra el ítem genérico de compras sería un
     soporte equivocado. Idempotente: si la referencia ya existe la devuelve en
     vez de duplicarla (un catálogo con dos ítems iguales termina con facturas
     apuntando a cualquiera de los dos).
+
+    `tax_ids`: por defecto sin IVA (`tax: []`, como lo necesitan los documentos
+    soporte). Si se pasan, el ítem lleva ese/esos impuestos — lo usa el genérico
+    de venta gravado al 19% (VENTA-VARIO-GRAVADO).
     """
     existente = buscar_producto_alegra_por_referencia(referencia)
     if existente:
@@ -3641,9 +3653,10 @@ def crear_item_servicio_alegra(
         "reference": referencia,
         "type": tipo,
         "status": "active",
-        # Sin IVA: la mercancía de los socios no entró por importación ordinaria,
-        # así que no hay IVA descontable que trasladar (Art. 485 E.T.).
-        "tax": [],
+        # Sin IVA por defecto (documentos soporte: la mercancía de los socios no
+        # entró por importación ordinaria, no hay IVA descontable — Art. 485 E.T.).
+        # Con `tax_ids` lleva impuesto (genérico de venta gravado 19%).
+        "tax": [{"id": int(t)} for t in (tax_ids or [])],
         "price": 0,
         # Sin `inventory.unit` Alegra crea el ítem pero lo rechaza al usarlo en
         # un documento ("Uno de los items especificados es inválido", 11034).

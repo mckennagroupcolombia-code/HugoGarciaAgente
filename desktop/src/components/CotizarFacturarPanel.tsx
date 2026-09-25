@@ -184,6 +184,25 @@ const ESTADO_UI: Record<Estado, { label: string; cls: string }> = {
 const CLIENTE_VACIO: Cliente = { nombre: "", identificacion: "", tipo_documento: "", correo: "", direccion: "", ciudad: "" };
 const VIGENCIA_DIAS = 15;
 
+// Consumidor Final: cliente sin cédula (ventas WhatsApp de clientes que no la dan).
+const NIT_CONSUMIDOR_FINAL = "222222222222";
+const NOMBRE_CONSUMIDOR_FINAL = "Consumidor Final";
+// Productos sin SKU (migración SIIGO→Alegra): se facturan contra un genérico de
+// venta con el IVA correcto. El sufijo ::<n> mantiene únicas varias líneas sin SKU.
+const GENERICO_VENTA_GRAVADO = "VENTA-VARIO-GRAVADO";
+const GENERICO_VENTA_EXCLUIDO = "VENTA-VARIO-EXCLUIDO";
+let _generico_seq = 0;
+function codigoGenerico(gravado: boolean): string {
+  _generico_seq += 1;
+  return `${gravado ? GENERICO_VENTA_GRAVADO : GENERICO_VENTA_EXCLUIDO}::${Date.now()}${_generico_seq}`;
+}
+function etiquetaCodigo(codigo: string): string {
+  const base = (codigo || "").split("::")[0];
+  if (base === GENERICO_VENTA_GRAVADO) return "sin SKU · gravado 19%";
+  if (base === GENERICO_VENTA_EXCLUIDO) return "sin SKU · excluido de IVA";
+  return codigo;
+}
+
 const input =
   "w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-70";
 const card = "rounded-xl border border-border bg-surface-panel p-4";
@@ -400,8 +419,10 @@ export default function CotizarFacturarPanel() {
   // El WhatsApp es opcional: una venta de MeLi no lo trae y sin él solo no se envía el PDF.
   const clienteOk = cliente.nombre.trim().length > 0;
   const productosOk = lineas.length > 0 && lineas.every((l) => l.cantidad > 0 && l.precio_unitario >= 0);
+  // Se puede facturar sin cédula: el backend usa Consumidor Final (NIT 222222222222).
+  // Solo se exige el nombre; un NIT mal escrito lo rechaza el backend (DV).
   const puedeFacturar =
-    clienteOk && cliente.identificacion.trim().length > 0 && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length);
+    clienteOk && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length);
   const pasoHabilitado = (id: number) => id === 1 || (id === 2 && clienteOk) || (id === 3 && clienteOk && productosOk);
   const enlaceVigente = enlace && enlace.ident === soloDigitos(leerNit(cliente.identificacion).base || cliente.identificacion) ? enlace : null;
 
@@ -947,6 +968,26 @@ function PasoCliente({
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {!soloLectura && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-surface px-3 py-2 text-xs">
+          <span className="text-muted">¿El cliente no da la cédula?</span>
+          <button
+            type="button"
+            onClick={() =>
+              onCliente({
+                ...CLIENTE_VACIO,
+                nombre: NOMBRE_CONSUMIDOR_FINAL,
+                identificacion: NIT_CONSUMIDOR_FINAL,
+                tipo_documento: "NIT",
+              })
+            }
+            className="inline-flex items-center gap-1 rounded-paper border-2 border-accent/60 px-2.5 py-1 font-semibold text-accent hover:bg-accent/10"
+          >
+            <Ico e="🧾" /> Facturar a Consumidor Final
+          </button>
         </div>
       )}
 
@@ -1898,6 +1939,18 @@ function PasoProductos({
     onLineas((prev) => (prev.some((x) => x.codigo === l.codigo) ? prev : [...prev, l]));
   }
 
+  // Producto sin SKU (migración SIIGO→Alegra): se factura contra un genérico de
+  // venta con el IVA correcto. La línea guarda el nombre real; el precio lo pone
+  // el operador. Cada una lleva un código único para no colisionar con otras.
+  function agregarGenerico(nombre: string, gravado: boolean, cantidad = 1, precio = 0) {
+    onLineas((prev) => [
+      ...prev,
+      { codigo: codigoGenerico(gravado), nombre: nombre.trim() || "Producto sin SKU", cantidad, precio_unitario: precio },
+    ]);
+    setBusqueda("");
+    setResultados([]);
+  }
+
   const actualizar = (codigo: string, campo: "cantidad" | "precio_unitario", valor: number) =>
     onLineas((prev) => prev.map((l) => (l.codigo === codigo ? { ...l, [campo]: valor } : l)));
 
@@ -1907,7 +1960,7 @@ function PasoProductos({
       {!soloLectura && (
         <div className="relative">
           <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar producto por nombre o SKU…" className={input} />
-          {q && resultados.length > 0 && (
+          {q && (
             <div className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
               {resultados.map((p) => (
                 <button
@@ -1919,6 +1972,23 @@ function PasoProductos({
                   <span className="font-mono text-ink">{p.codigo}</span> <span className="text-ink-secondary">— {p.nombre}</span>
                 </button>
               ))}
+              {/* No está en Alegra o le falta el SKU (clientes viejos, migración SIIGO→Alegra):
+                  facturar contra un genérico con el IVA correcto, conservando el nombre. */}
+              <div className="border-t border-border/60 bg-surface/60 px-3 py-2 text-xs">
+                <p className="mb-1 text-muted">
+                  {resultados.length === 0 ? "No está en Alegra." : "¿No es ninguno?"} Facturar «{busqueda}» sin SKU:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => agregarGenerico(busqueda, true)}
+                    className="rounded border-2 border-accent/60 px-2 py-1 font-semibold text-accent hover:bg-accent/10">
+                    + gravado 19%
+                  </button>
+                  <button type="button" onClick={() => agregarGenerico(busqueda, false)}
+                    className="rounded border-2 border-border px-2 py-1 font-semibold text-ink hover:border-accent">
+                    + excluido de IVA
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1936,7 +2006,19 @@ function PasoProductos({
                 </button>
               </p>
               {p.candidatos.length === 0 ? (
-                <p className="text-muted">Sin coincidencia en Alegra — búscalo arriba.</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-muted">Sin SKU en Alegra — facturar sin SKU:</span>
+                  <button type="button"
+                    onClick={() => { agregarGenerico(p.nombre, true, p.cantidad || 1); onPendientes(pendientes.filter((_, i) => i !== idx)); }}
+                    className="rounded border-2 border-accent/60 px-2 py-0.5 font-semibold text-accent hover:bg-accent/10">
+                    gravado 19%
+                  </button>
+                  <button type="button"
+                    onClick={() => { agregarGenerico(p.nombre, false, p.cantidad || 1); onPendientes(pendientes.filter((_, i) => i !== idx)); }}
+                    className="rounded border-2 border-border px-2 py-0.5 font-semibold text-ink hover:border-accent">
+                    excluido
+                  </button>
+                </div>
               ) : (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {p.candidatos.map((c) => (
@@ -1982,7 +2064,7 @@ function PasoProductos({
                     <td className="py-1.5">
                       <p className="text-ink">{l.nombre}</p>
                       <p className="font-mono text-[10px] text-muted">
-                        {l.codigo}
+                        {etiquetaCodigo(l.codigo)}
                         {c && !c.existe_en_alegra && <span className="ml-1 text-amber-600">· no está en Alegra</span>}
                       </p>
                       {(l.precio_web || l.precio_lista) && !soloLectura && (

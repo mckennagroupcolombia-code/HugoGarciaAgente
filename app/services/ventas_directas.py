@@ -55,6 +55,32 @@ ORIGENES = ("manual", "pedido_ia", "conversacion", "meli")
 VIGENCIA_DIAS = int(os.getenv("VENTAS_DIRECTAS_VIGENCIA_DIAS", "15"))
 ENVIO_SKU_GENERICO = os.getenv("WEB_SIIGO_SHIPPING_CODE_GENERIC", "WEB-ENVIO-VAR").strip() or "WEB-ENVIO-VAR"
 
+# Productos genéricos de venta (Alegra) para facturar un ítem que aún no tiene SKU
+# —clientes viejos que piden productos no migrados de SIIGO→Alegra—. La línea
+# lleva el nombre real del producto (va como `descripcion` a la factura) y el IVA
+# lo pone el genérico. Ver Flujo R / #5.
+GENERICO_VENTA_GRAVADO = "VENTA-VARIO-GRAVADO"    # IVA 19%
+GENERICO_VENTA_EXCLUIDO = "VENTA-VARIO-EXCLUIDO"  # sin IVA (excluido/no gravado)
+GENERICOS_VENTA = {GENERICO_VENTA_GRAVADO, GENERICO_VENTA_EXCLUIDO}
+# Una venta puede tener VARIOS productos sin SKU: el frontend les pone un sufijo
+# único (VENTA-VARIO-GRAVADO::<n>) para que no colisionen por código; el sufijo
+# se ignora al resolver en Alegra (todos apuntan al mismo genérico).
+GENERICO_SEP = "::"
+
+
+def _codigo_base(codigo: str) -> str:
+    """El código sin el sufijo de unicidad de las líneas genéricas."""
+    return str(codigo or "").split(GENERICO_SEP, 1)[0].strip()
+
+
+def es_generico_venta(codigo: str) -> bool:
+    return _codigo_base(codigo).upper() in GENERICOS_VENTA
+
+# Consumidor Final: cliente sin cédula (típico en ventas WhatsApp). El contacto en
+# Alegra es compartido; ver alegra.crear_factura_venta_alegra (es_consumidor_final).
+NIT_CONSUMIDOR_FINAL = (os.getenv("SIIGO_MELI_NIT_CONSUMIDOR_FINAL", "222222222222") or "222222222222").strip()
+NOMBRE_CONSUMIDOR_FINAL = "Consumidor Final"
+
 
 def _conn() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(_DB), exist_ok=True)
@@ -142,7 +168,7 @@ def calcular(lineas: list[dict], envio: float = 0, *, resolver=None) -> dict:
         if cantidad <= 0 or precio < 0:
             errores.append(f"Línea {i + 1} ({nombre}): cantidad debe ser > 0 y precio ≥ 0.")
             continue
-        prod = resolver(codigo) if codigo else None
+        prod = resolver(_codigo_base(codigo)) if codigo else None
         tasa = float((prod or {}).get("tax_rate_total") or 0) if (prod or {}).get("tax_ids") else 0.0
         base_unit = precio / (1 + tasa / 100) if tasa else precio
         linea_total = cantidad * precio
@@ -187,8 +213,12 @@ def _lineas_para_documento(calc: dict) -> list[dict]:
     """Líneas en el shape de `crear_factura_venta_alegra` — el envío va como un
     producto más (sin IVA), igual que en los pedidos web."""
     out = [
-        {"codigo": ln["codigo"], "nombre": ln["nombre"], "cantidad": ln["cantidad"],
-         "precio_unitario": ln["precio_unitario"]}
+        {"codigo": _codigo_base(ln["codigo"]), "nombre": ln["nombre"], "cantidad": ln["cantidad"],
+         "precio_unitario": ln["precio_unitario"],
+         # El genérico se llama "Producto vario" en Alegra; la factura debe mostrar
+         # el nombre real, que viaja como `descripcion` de la línea. Y se manda el
+         # código BASE (sin el sufijo de unicidad) para que Alegra lo resuelva.
+         **({"descripcion": ln["nombre"]} if es_generico_venta(ln["codigo"]) else {})}
         for ln in calc["lineas"]
     ]
     if calc["envio"]:
@@ -813,9 +843,19 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         return {"ok": False, "error": f"Esta venta ya tiene la factura {venta.get('factura_numero')}."}
     if venta["estado"] == "anulada":
         return {"ok": False, "error": "La venta está anulada."}
-    cli = venta["cliente"]
-    if not (cli.get("nombre") or "").strip() or not (cli.get("identificacion") or "").strip():
-        return {"ok": False, "error": "Faltan nombre o identificación del cliente — obligatorios para facturar."}
+    # Cliente sin cédula (típico en ventas WhatsApp de clientes viejos que no la
+    # dan): se factura a Consumidor Final en vez de bloquear. El contacto en Alegra
+    # es compartido (NIT 222222222222). Ventas MeLi con RUT no caen aquí: llegan con
+    # identificación real.
+    cli = dict(venta.get("cliente") or {})
+    ident_digits = "".join(ch for ch in str(cli.get("identificacion") or "") if ch.isdigit())
+    consumidor_final = not ident_digits
+    if consumidor_final:
+        cli["identificacion"] = NIT_CONSUMIDOR_FINAL
+        cli["tipo_documento"] = "NIT" if len(NIT_CONSUMIDOR_FINAL) >= 9 else "CC"
+        if not (cli.get("nombre") or "").strip():
+            cli["nombre"] = NOMBRE_CONSUMIDOR_FINAL
+        venta = {**venta, "cliente": cli}
     tipo_doc, ident, err_ident = identificacion_fiscal(cli)
     if err_ident:
         return {"ok": False, "error": err_ident}
@@ -880,9 +920,14 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         res = {"ok": False, "error": f"Error inesperado: {e}"}
 
     if not res.get("ok"):
-        # Sin factura creada: vuelve a su estado anterior para poder corregir y reintentar.
-        _actualizar(venta_id, estado=venta["estado"])
-        return {"ok": False, "error": res.get("error") or "Alegra no emitió la factura."}
+        # Sin factura creada: queda en su estado anterior (borrador/cotizada) CON el
+        # motivo guardado, para corregir y reintentar sin perder los datos del cliente.
+        motivo = res.get("error") or "Alegra no emitió la factura."
+        previos = [a for a in (venta.get("avisos") or []) if isinstance(a, str)]
+        aviso = f"[{_ahora()[:16]}] No se pudo facturar: {motivo}"
+        _actualizar(venta_id, estado=venta["estado"],
+                    avisos=json.dumps(([aviso] + previos)[:10], ensure_ascii=False))
+        return {"ok": False, "error": motivo}
 
     numero = str(res.get("number") or res.get("invoice_id") or "")
     avisos = [f"DIAN: {a}" for a in (res.get("avisos_dian") or [])]

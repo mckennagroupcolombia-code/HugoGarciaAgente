@@ -1,3 +1,15 @@
+### 2026-09-25 07:30 - Cotizar/Facturar: facturar ventas WhatsApp sin cédula y sin SKU (Fase 1)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó (Fase 1 de un plan de 5 frentes):**
+  - **Consumidor Final por defecto:** clientes WhatsApp que no dan cédula ya no bloquean la factura. Botón «Facturar a Consumidor Final» en el paso Cliente (precarga NIT 222222222222) y, en backend, `facturar()` usa Consumidor Final si no hay identificación. Se relajó `puedeFacturar` (ya no exige cédula; un NIT mal escrito lo sigue rechazando el DV).
+  - **Productos sin SKU (migración SIIGO→Alegra):** se crearon 2 genéricos de venta en Alegra — `VENTA-VARIO-GRAVADO` (id 734, IVA 19%) y `VENTA-VARIO-EXCLUIDO` (id 735, sin IVA). En el buscador (cuando el producto no está en Alegra) y en los pendientes del chat, botones «agregar sin SKU: gravado 19% / excluido». La línea guarda el nombre real (va como `description` a la factura) y el IVA lo pone el genérico. Sufijo único `::<n>` para permitir varios sin SKU en una misma factura sin colisión (backend ignora el sufijo).
+  - **Borrador a prueba de errores:** si Alegra rechaza la factura, la venta queda en su estado anterior CON el motivo guardado en `avisos` (no se pierde el cliente ni las líneas); el frontend ya guardaba antes de facturar y no vacía el wizard.
+  - Se extendió `crear_item_servicio_alegra` (impuesto opcional) y `crear_factura_venta_alegra` (override de `description` por línea, aditivo — no cambia web/MeLi).
+- **Pendiente (fases 2-3):** pegar/adjuntar soporte de pago (Ctrl+V) y el apartado interactivo estilo taller para el TKT de Jenniffer (resolver caso por caso). Enlazar (alias) y crear-en-Alegra del #5.
+- **Verificación:** backend probado (genéricos múltiples resuelven con IVA correcto, sin colisión, descripción con nombre real); `npm run build` limpio (main + colab). ⚠️ Requiere reiniciar `agente-pro` para los cambios de Python.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`. Alegra: 2 productos genéricos nuevos.
+
 ### 2026-09-25 06:45 - Préstamos: trazabilidad contaba desembolsos anulados
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.
