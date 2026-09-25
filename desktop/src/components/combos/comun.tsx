@@ -1,6 +1,7 @@
 import { Ico } from "../../icons/Ico";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { api, fetchAuthBlobUrl } from "../../api/client";
 import { useAppStore } from "../../stores/app";
 
@@ -124,7 +125,7 @@ export function Vida({ c }: { c: Combo }) {
   );
 }
 
-export function EtiquetaPng({ nombre }: { nombre: string }) {
+export function EtiquetaPng({ nombre, className, onAmpliar }: { nombre: string; className?: string; onAmpliar?: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let vivo = true;
@@ -139,8 +140,62 @@ export function EtiquetaPng({ nombre }: { nombre: string }) {
       if (creada) URL.revokeObjectURL(creada);
     };
   }, [nombre]);
-  if (!url) return <div className="flex h-28 items-center justify-center text-[11px] text-muted">Cargando etiqueta…</div>;
+  if (!url)
+    return <div className={className ? `${className} flex items-center justify-center text-[10px] text-muted` : "flex h-28 items-center justify-center text-[11px] text-muted"}>Cargando…</div>;
+  if (className)
+    return onAmpliar ? (
+      <button type="button" onClick={onAmpliar} title="Ver en grande" className="mck-btn-no-fx block shrink-0 cursor-zoom-in">
+        <img src={url} alt="Etiqueta del producto" className={className} />
+      </button>
+    ) : (
+      <img src={url} alt="Etiqueta del producto" className={className} />
+    );
   return <img src={url} alt="Etiqueta del producto" className="max-h-44 w-full rounded-md bg-white object-contain p-1" />;
+}
+
+/** Franja con los dos archivos de «Terminar y aprobar» (impresión y digital) para la
+ *  cabecera de los emergentes del taller: el de la etiqueta (pieza Diseño) y el de la
+ *  publicación, que son los que se abren al tocar esas piezas. */
+export function PngAprobadosFranja({ e }: { e?: Eslabon }) {
+  const [abierto, setAbierto] = useState<string | null>(null);
+  if (!e?.png && !e?.png_digital)
+    return e?.etiqueta_id ? (
+      <div className="shrink-0 border-b border-border bg-surface px-4 py-1.5 text-[11.5px] text-muted">
+        Esta etiqueta aún no tiene PNG aprobados: los aprueba Cynthia con «Terminar y aprobar».
+      </div>
+    ) : null;
+  const archivos = [
+    { titulo: "Impresión", nombre: e.png },
+    { titulo: "Digital", nombre: e.png_digital },
+  ];
+  return (
+    <div className="flex shrink-0 items-center gap-4 overflow-x-auto border-b border-border bg-surface px-4 py-1.5">
+      {abierto != null && (
+        <VisorPngAprobados
+          archivos={archivos.filter((a): a is { titulo: string; nombre: string } => Boolean(a.nombre))}
+          inicial={abierto}
+          onCerrar={() => setAbierto(null)}
+        />
+      )}
+      <p className="shrink-0 font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">
+        Etiqueta aprobada{e.aprobado_at ? ` · ${e.aprobado_at.slice(0, 10)}` : ""}
+      </p>
+      {archivos.map(({ titulo, nombre }) => (
+        <div key={titulo} className="flex shrink-0 items-center gap-1.5" title={nombre || undefined}>
+          {nombre ? (
+            <EtiquetaPng
+              nombre={nombre}
+              onAmpliar={() => setAbierto(nombre)}
+              className="h-14 w-auto max-w-[200px] rounded border border-border bg-white object-contain p-0.5"
+            />
+          ) : (
+            <span className="flex h-14 w-20 items-center justify-center rounded border border-dashed border-border text-[10px] text-muted">sin PNG</span>
+          )}
+          <span className="text-[10.5px] font-semibold text-muted">{titulo}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export const BTN = "rounded-md border border-accent bg-accent/15 px-2 py-1 text-[11px] font-bold text-ink hover:bg-accent/25 disabled:opacity-50";
@@ -294,3 +349,52 @@ export function AccionRanura({ c, accion }: { c: Combo; accion: Accion }) {
   );
 }
 
+/** El PNG aprobado en grande, en un emergente encima del editor o de la publicación (no en
+ *  otra pestaña). Se pasa entre impresión y digital; Esc o clic fuera lo cierra, y solo a él:
+ *  el emergente de debajo sigue abierto. */
+function VisorPngAprobados({ archivos, inicial, onCerrar }: {
+  archivos: { titulo: string; nombre: string }[];
+  inicial: string;
+  onCerrar: () => void;
+}) {
+  const [nombre, setNombre] = useState(inicial);
+  useEffect(() => {
+    const tecla = (ev: KeyboardEvent) => {
+      if (ev.key !== "Escape") return;
+      ev.stopImmediatePropagation();
+      ev.preventDefault();
+      onCerrar();
+    };
+    window.addEventListener("keydown", tecla, true);
+    return () => window.removeEventListener("keydown", tecla, true);
+  }, [onCerrar]);
+  const actual = archivos.find((a) => a.nombre === nombre) ?? archivos[0];
+  if (!actual) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-3" role="dialog" aria-modal="true" aria-label="PNG aprobado" onClick={onCerrar}>
+      <div className="flex max-h-[94vh] w-full max-w-[1100px] flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-2">
+          {archivos.map((a) => (
+            <button
+              key={a.nombre}
+              type="button"
+              onClick={() => setNombre(a.nombre)}
+              aria-pressed={a.nombre === actual.nombre}
+              className={`rounded-md border px-2.5 py-1 text-[12px] font-semibold ${a.nombre === actual.nombre ? "border-accent bg-accent text-white" : "border-border bg-surface text-ink hover:border-accent"}`}
+            >
+              {a.titulo}
+            </button>
+          ))}
+          <span className="min-w-0 flex-1 truncate font-mono text-[10.5px] text-muted" title={actual.nombre}>{actual.nombre}</span>
+          <button type="button" onClick={onCerrar} aria-label="Cerrar" className="shrink-0 rounded-md border border-border px-3 py-1 text-[12px] font-semibold text-ink hover:bg-surface-hover">
+            Cerrar
+          </button>
+        </div>
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#e7e7e3] p-4 dark:bg-[#1c1f22]">
+          <EtiquetaPng key={actual.nombre} nombre={actual.nombre} className="max-h-[80vh] w-auto max-w-full rounded bg-white object-contain shadow" />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}

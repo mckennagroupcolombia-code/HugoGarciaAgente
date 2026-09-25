@@ -12,6 +12,45 @@
         "aprobado_at": "2026-09-25T02:19:13",
         "por": "@cynthia"
       }
+    },
+    "f0fe28975f3f": {
+      "barcode": "7700810052635",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_MANDELICO_5g.png",
+        "aprobado_at": "2026-09-25T02:46:52",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_MANDELICO_5g_digital.png",
+        "aprobado_at": "2026-09-25T02:46:53",
+        "por": "@cynthia"
+      }
+    },
+    "116fc5be82e7": {
+      "barcode": "7700835002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_SALICILICO_500g.png",
+        "aprobado_at": "2026-09-25T02:49:04",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_SALICILICO_500g_digital.png",
+        "aprobado_at": "2026-09-25T02:49:05",
+        "por": "@cynthia"
+      }
+    },
+    "4f9c263e212a": {
+      "barcode": "7700840102638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ACIDO_TRANEXAMICO_10g.png",
+        "aprobado_at": "2026-09-25T02:51:19",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ACIDO_TRANEXAMICO_10g_digital.png",
+        "aprobado_at": "2026-09-25T02:51:20",
+        "por": "@cynthia"
+      }
     }
   }
 }

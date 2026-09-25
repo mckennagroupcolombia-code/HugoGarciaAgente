@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelForm";
+import { PngAprobadosFranja, type Eslabon } from "./comun";
 
 /**
  * El editor de etiquetas del Studio (el mismo `ProductLabelForm`, con su lienzo,
@@ -16,8 +17,10 @@ import type { EntradaFormularioEtiqueta } from "../etiqueta-ficha/ProductLabelFo
 // Cargado aparte: el editor arrastra el lienzo y la exportación, y el taller no los necesita hasta abrirlo.
 const ProductLabelForm = lazy(() => import("../etiqueta-ficha/ProductLabelForm"));
 
-export default function EtiquetaEmergente({ entrada, combo, onCerrar, onAbrirEnStudio }: {
+export default function EtiquetaEmergente({ entrada, combo, aprobados, onCerrar, onAbrirEnStudio }: {
   entrada: EntradaFormularioEtiqueta;
+  /** La pieza «Diseño» del combo: sus PNG aprobados se ven arriba del editor. */
+  aprobados?: Eslabon;
   /** Para qué combo es (solo para la cabecera). */
   combo: string;
   onCerrar: () => void;
@@ -39,6 +42,7 @@ export default function EtiquetaEmergente({ entrada, combo, onCerrar, onAbrirEnS
           )}
           <button onClick={onCerrar} aria-label="Cerrar" className="shrink-0 rounded-md border border-border px-2 py-1 text-[12px] text-ink hover:bg-surface-hover">Cerrar</button>
         </div>
+        {aprobados?.etiqueta_id && aprobados.etiqueta_id === entrada.fichaId && <PngAprobadosFranja e={aprobados} />}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-surface">
           <Suspense fallback={<p className="p-6 text-sm text-muted">Abriendo el editor de etiquetas…</p>}>
             <ProductLabelForm entrada={entrada} onVolver={onCerrar} />

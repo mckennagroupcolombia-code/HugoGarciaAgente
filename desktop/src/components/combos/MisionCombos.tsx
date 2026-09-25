@@ -266,6 +266,7 @@ function InspectorEtiqueta({ c, hermanas, alResolver, cerrarPieza }: {
         <EtiquetaEmergente
           entrada={editor}
           combo={c.presentacion ? `${c.nombre} · ${c.presentacion}` : c.nombre}
+          aprobados={c.eslabones.etiqueta}
           onCerrar={cerrar}
           onAbrirEnStudio={() => {
             const fichaId = editor.fichaId ?? undefined;
@@ -1249,6 +1250,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
                 sku={c.ref}
                 nombre={c.nombre}
                 precioLista={c.precio_lista}
+                etiqueta={c.eslabones.etiqueta}
                 onCerrar={() => { setPubAbierta(false); void alResolver(); }}
               />
             )}

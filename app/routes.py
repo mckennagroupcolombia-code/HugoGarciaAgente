@@ -16003,6 +16003,29 @@ def register_routes(app):
                 c["ultimo_remitente"] = "salida"
         return jsonify({"conversaciones": conversaciones, "no_leidos_total": _tnl()})
 
+    @app.route("/api/bot/chats/buscar", methods=["GET"])
+    def api_bot_chats_buscar():
+        """Buscador de chats (Agente WhatsApp → Buscar): texto, teléfono o valor."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_busqueda import buscar as _buscar
+
+        return jsonify(_buscar(
+            request.args.get("q") or "",
+            desde=request.args.get("desde") or "",
+            hasta=request.args.get("hasta") or "",
+            incluir_grupos=request.args.get("grupos") == "1",
+        ))
+
+    @app.route("/api/bot/chats/cobros-sin-factura", methods=["GET"])
+    def api_bot_chats_cobros_sin_factura():
+        """Cobros Llave/QR/Nequi sin vincular, con los datos del cliente que da su chat."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_busqueda import cobros_sin_factura as _csf
+
+        return jsonify(_csf(request.args.get("desde") or "", request.args.get("hasta") or ""))
+
     @app.route("/api/bot/chats/<path:jid>", methods=["GET"])
     def api_bot_chats_mensajes(jid: str):
         if not _api_token_valido():

@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { api } from "../../api/client";
 import type { ListaPublicaciones, PublicacionItem } from "../../hooks/usePublicaciones";
 import { partirPresentacion } from "./GuiaPublicacionTaller";
+import { PngAprobadosFranja, type Eslabon } from "./comun";
 
 /**
  * La publicación de un combo en un EMERGENTE sobre el taller: se revisa o se crea sin salir del caso.
@@ -32,8 +33,10 @@ function contiene(i: PublicacionItem, sku: string) {
   return i.sku.toUpperCase() === sku || (i.presentaciones ?? []).some((p) => (p.sku || "").toUpperCase() === sku);
 }
 
-export default function PublicacionEmergente({ sku: skuCombo, nombre, precioLista, onCerrar }: {
+export default function PublicacionEmergente({ sku: skuCombo, nombre, precioLista, etiqueta, onCerrar }: {
   sku: string;
+  /** La pieza «Diseño» del combo: el PNG digital aprobado es el que va a la publicación. */
+  etiqueta?: Eslabon;
   nombre: string;
   precioLista?: number | null;
   onCerrar: () => void;
@@ -92,6 +95,8 @@ export default function PublicacionEmergente({ sku: skuCombo, nombre, precioList
             Cerrar · volver al combo
           </button>
         </div>
+
+        <PngAprobadosFranja e={etiqueta} />
 
         {/* Pasos cuando no está publicado */}
         {!estado.isLoading && !item && (
