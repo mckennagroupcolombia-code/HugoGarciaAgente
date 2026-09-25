@@ -1,3 +1,14 @@
+### 2026-09-25 08:45 - Cotizar/Facturar: un tercero recién creado no aparecía en el buscador de clientes
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Alegra / Cotizar-Facturar). Sin LLM.
+- **Qué pasaba:** `buscar_clientes_alegra` paginaba /contacts en vivo y cortaba en **15 páginas = 450**, pero Alegra tiene **636 contactos** ordenados por nombre; los del final (S–Z) y los nuevos no aparecían. Además /contacts topa en 30 por página (~80 s recorrerlos todos) y no usaba la búsqueda por identificación.
+- **Arreglo:**
+  - **Atajo por identificación exacta:** una cédula/NIT se resuelve en UNA petición (`params identification=`), aunque esté en la cola. Encuentra al instante un tercero recién creado por su cédula.
+  - **Búsqueda por nombre sobre caché de todos los contactos** (Alegra no soporta texto): caché en disco (`app/data/alegra_contactos_cache.json`, gitignored) + **refresco en segundo plano** (no bloquea; la primera búsqueda responde con lo cacheado). TTL 10 min.
+  - **Al crear un contacto** (`_resolver_o_crear_contacto_alegra`) se invalida la caché para que el nuevo aparezca pronto por nombre; por cédula es inmediato (vía atajo en vivo).
+- **Verificación:** contactos «Z» (Zulima id 630, Zharick id 505) ahora aparecen por nombre y por cédula; caché en disco al día (636); búsqueda por nombre 0.00 s tras cargar; agente-pro reiniciado.
+- **Archivos Modificados:** `app/services/alegra.py`.
+
 ### 2026-09-25 08:30 - Cotizar/Facturar: cola «Por facturar» estilo taller — Fase 3
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.

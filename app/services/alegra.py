@@ -35,6 +35,7 @@ no es un simple Excel por generar.
 import base64
 import json
 import os
+import threading
 from datetime import datetime, timedelta
 
 import requests
@@ -545,6 +546,7 @@ def _resolver_o_crear_contacto_alegra(
         return None, f"Alegra rechazó el contacto (HTTP {res.status_code}): {detalle}"
     cid = str(res.json().get("id"))
     _contacto_cache[identificacion] = cid
+    invalidar_cache_contactos()  # el nuevo contacto debe aparecer ya en el buscador
     if resultado is not None:
         resultado["creado"] = True
     return cid, ""
@@ -2283,6 +2285,105 @@ def items_hibridos_normalizados(factura: dict) -> list[dict]:
     return normalizados
 
 
+# Caché de TODOS los contactos: Alegra no soporta búsqueda por nombre y su
+# /contacts topa en 30 por página (recorrer los ~640 en vivo son ~80 s). Se
+# guarda en disco y se refresca EN SEGUNDO PLANO: la búsqueda por nombre responde
+# al instante con lo cacheado y la recarga (lenta) no bloquea al operador.
+_contactos_cache: list[dict] = []
+_contactos_cache_ts: float = 0.0
+_CONTACTOS_TTL = 600.0  # 10 min; la recarga es en segundo plano
+_contactos_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "alegra_contactos_cache.json")
+_contactos_refrescando = False
+_contactos_lock = threading.Lock()
+
+
+def invalidar_cache_contactos() -> None:
+    """Marca la caché como vencida: la próxima búsqueda dispara el refresco en
+    segundo plano. Se llama al crear un contacto para que el nuevo aparezca pronto."""
+    global _contactos_cache_ts
+    _contactos_cache_ts = 0.0
+
+
+def _contactos_desde_disco() -> None:
+    """Carga la caché de contactos del archivo si la memoria está vacía."""
+    global _contactos_cache, _contactos_cache_ts
+    if _contactos_cache:
+        return
+    try:
+        with open(_contactos_file, encoding="utf-8") as fh:
+            d = json.load(fh)
+        crudos = d.get("contactos") or []
+        # El archivo guarda un shape reducido; se normaliza al de /contacts.
+        _contactos_cache = [
+            {"id": c.get("alegra_id") or c.get("id"), "name": c.get("nombre") or c.get("name") or "",
+             "identification": c.get("identificacion") or c.get("identification") or "",
+             "email": c.get("email") or "", "mobile": c.get("mobile") or c.get("telefono") or "",
+             "address": c.get("address") or {}}
+            for c in crudos
+        ]
+        _contactos_cache_ts = float(d.get("ts") or 0)
+    except (OSError, ValueError):
+        pass
+
+
+def _refrescar_contactos(headers: dict) -> None:
+    """Pagina TODOS los contactos de Alegra y actualiza memoria + disco. Lento;
+    se corre en un hilo aparte."""
+    import time as _time
+
+    global _contactos_cache, _contactos_cache_ts, _contactos_refrescando
+    out: list[dict] = []
+    pagina = 0
+    while pagina < 80:  # 2400 contactos de margen
+        try:
+            res = requests.get(f"{_ALEGRA_BASE}/contacts", headers=headers,
+                               params={"limit": 30, "start": pagina * 30}, timeout=20)
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        lote = res.json() or []
+        if not lote:
+            break
+        out.extend(lote)
+        if len(lote) < 30:
+            break
+        pagina += 1
+    try:
+        if out:
+            _contactos_cache = out
+            _contactos_cache_ts = _time.time()
+            reducidos = [{"alegra_id": str(c.get("id")), "nombre": (c.get("name") or "").strip(),
+                          "identificacion": (c.get("identification") or "").strip(),
+                          "email": c.get("email") or "", "telefono": c.get("mobile") or c.get("phonePrimary") or ""}
+                         for c in out]
+            with open(_contactos_file, "w", encoding="utf-8") as fh:
+                json.dump({"ts": _contactos_cache_ts, "contactos": reducidos}, fh, ensure_ascii=False)
+    finally:
+        _contactos_refrescando = False
+
+
+def _todos_los_contactos(headers: dict) -> list[dict]:
+    """La lista de contactos cacheada. Si está vencida, dispara el refresco en
+    segundo plano y devuelve lo que haya (disco/memoria) sin bloquear."""
+    import time as _time
+
+    global _contactos_refrescando
+    _contactos_desde_disco()
+    vencida = (_time.time() - _contactos_cache_ts) >= _CONTACTOS_TTL
+    if vencida and not _contactos_refrescando:
+        with _contactos_lock:
+            if not _contactos_refrescando:
+                _contactos_refrescando = True
+                if _contactos_cache:
+                    threading.Thread(target=_refrescar_contactos, args=(headers,),
+                                     name="alegra-contactos", daemon=True).start()
+                else:
+                    # Sin nada cacheado (ni disco): primera vez, cargar en línea.
+                    _refrescar_contactos(headers)
+    return _contactos_cache
+
+
 def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
     """
     Busca contactos de Alegra por nombre o identificación, para el picker de
@@ -2302,38 +2403,42 @@ def buscar_clientes_alegra(consulta: str, *, max_items: int = 20) -> list[dict]:
     except RuntimeError:
         return []
 
-    resultados: list[dict] = []
-    pagina = 0
-    while len(resultados) < max_items and pagina < 15:
+    def _fmt(c: dict) -> dict:
+        return {
+            "id": c.get("id"),
+            "nombre": (c.get("name") or "").strip(),
+            "identificacion": (c.get("identification") or "").strip(),
+            "email": c.get("email") or "",
+            "telefono": c.get("mobile") or c.get("phonePrimary") or "",
+            "direccion": ((c.get("address") or {}).get("address")) or "",
+        }
+
+    # Atajo por identificación EXACTA: Alegra sí filtra por `identification`, así
+    # que una cédula/NIT se encuentra en UNA petición aunque esté en la cola de la
+    # paginación. Antes se cortaba en 15 páginas (450) y con 636 contactos los
+    # nuevos con nombre "tardío" (S–Z) o cédulas del final no aparecían.
+    digitos = "".join(ch for ch in q if ch.isdigit())
+    if len(digitos) >= 4 and not any(ch.isalpha() for ch in q):
         try:
-            res = requests.get(
-                f"{_ALEGRA_BASE}/contacts", headers=headers,
-                params={"limit": 30, "start": pagina * 30}, timeout=15,
-            )
+            res = requests.get(f"{_ALEGRA_BASE}/contacts", headers=headers,
+                               params={"identification": digitos, "limit": 30}, timeout=15)
+            if res.status_code == 200:
+                exactos = [_fmt(c) for c in (res.json() or [])]
+                if exactos:
+                    return exactos[:max_items]
         except requests.RequestException:
-            break
-        if res.status_code != 200:
-            break
-        lote = res.json() or []
-        if not lote:
-            break
-        for c in lote:
-            nombre = (c.get("name") or "").strip()
-            ident = (c.get("identification") or "").strip()
-            if q in nombre.lower() or q in ident:
-                resultados.append({
-                    "id": c.get("id"),
-                    "nombre": nombre,
-                    "identificacion": ident,
-                    "email": c.get("email") or "",
-                    "telefono": c.get("mobile") or c.get("phonePrimary") or "",
-                    "direccion": ((c.get("address") or {}).get("address")) or "",
-                })
-                if len(resultados) >= max_items:
-                    break
-        if len(lote) < 30:
-            break
-        pagina += 1
+            pass
+
+    # Por nombre: Alegra no soporta búsqueda de texto → se filtra sobre la lista
+    # completa cacheada (rápido, sin paginar en vivo cada tecla, sin timeout).
+    resultados: list[dict] = []
+    for c in _todos_los_contactos(headers):
+        nombre = (c.get("name") or "").strip()
+        ident = (c.get("identification") or "").strip()
+        if q in nombre.lower() or q in ident:
+            resultados.append(_fmt(c))
+            if len(resultados) >= max_items:
+                break
     return resultados
 
 
