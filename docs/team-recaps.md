@@ -3992,3 +3992,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Las filas del cuerpo ahora sí se reparten el alto sobrante (`flex-1` en vez de `h-full`, que contra un alto mínimo no se resuelve). Holgura de ajuste 0,1 % (antes 0,5 %, asomaba un filo a la derecha). Si ni en el tope cabe, la ficha se centra en el marco.
   - **Verificado** con arnés (formulario real + datos de GLICINA 250 g): letra 18→48→15 y texto largo→corto, siempre sin hueco a la derecha ni abajo; formato 70×70 reparte filas. Arnés borrado.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/EditableField.tsx`, `docs/team-recaps.md`
+
+### 2026-09-25 - Facturación web: PRTASLSYKG (proteína de soya 1 kg) factura como C-PROAISSOY1000g
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (alias de SKU de venta → Alegra)
+- **Qué se implementó:**
+  - **Problema:** el pedido web MCKG-D7A40CED6A no se facturaba: «PRTASLSYKG: no existe en Alegra». El código nuevo es `PROAISSOYg`, pero ese es el producto base **por gramo**; apuntar el SKU directo ahí habría facturado «2 g» y descontado 2 g del inventario.
+  - **Solución:** se creó en Alegra el combo `C-PROAISSOY1000g` «PROTEINA AISLADA SOYA 1000g» (id 725, 1.000 × `PROAISSOYg`, precio de lista $47.610) y se agregó el alias `PRTASLSYKG → C-PROAISSOY1000g` en `app/data/alegra_sku_alias_venta.json`.
+  - **Verificado:** reintento de la factura del pedido → FE706, STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `docs/team-recaps.md`
