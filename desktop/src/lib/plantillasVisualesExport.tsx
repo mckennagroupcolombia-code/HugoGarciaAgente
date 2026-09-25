@@ -924,6 +924,12 @@ export type MetaFormatoPngEtiqueta = {
   alto_mm?: number;
   dpi?: number;
   escala?: number;
+  /** «Terminar y aprobar»: la etiqueta del Studio y cuál de sus dos PNG es. Con esto el
+   *  servidor reescribe el aprobado anterior en vez de dejar otra copia `…_2.png`, lo
+   *  enlaza a la pieza «Diseño» del combo y solo lo acepta de Cynthia. */
+  etiqueta_id?: string;
+  variante?: "impresion" | "digital";
+  barcode?: string;
 };
 
 export async function subirImagenBlobAEtiquetas(
@@ -945,6 +951,11 @@ export async function subirImagenBlobAEtiquetas(
   if (meta?.alto_mm != null && meta.alto_mm > 0) fd.append("alto_mm", String(meta.alto_mm));
   if (meta?.dpi != null && meta.dpi > 0) fd.append("dpi", String(meta.dpi));
   if (meta?.escala != null && meta.escala > 0) fd.append("escala", String(meta.escala));
+  if (meta?.etiqueta_id) {
+    fd.append("etiqueta_id", meta.etiqueta_id);
+    fd.append("variante", meta.variante ?? "impresion");
+    if (meta.barcode) fd.append("barcode", meta.barcode);
+  }
   const res = await api.upload<{
     ok: boolean;
     nombre: string;

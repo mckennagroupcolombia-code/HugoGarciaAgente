@@ -106,6 +106,9 @@ PUC_MCKENNA: tuple[tuple[str, str, str], ...] = (
     # ── 4 Ingresos ──
     ("4135", "Comercio al por mayor y al por menor", "ingreso"),
     ("4175", "Devoluciones en ventas", "ingreso"),
+    # Ingresos financieros: los intereses que paga el banco por la cuenta de
+    # ahorros (hasta el 25-sep-2026 se llevaban a 4295 «Diversos»).
+    ("421005", "Intereses", "ingreso"),
     ("4295", "Ingresos diversos", "ingreso"),
     # ── 5 Gastos · 51 Operacionales de administración ──
     ("5105", "Gastos de personal", "gasto"),
@@ -286,6 +289,9 @@ DESCRIPCIONES: dict[str, str] = {
     "4135": "Venta de mercancía por todos los canales: MercadoLibre, tienda web y venta directa. "
             "Va SIN el IVA, que se reconoce aparte en 240805.",
     "4175": "Devoluciones y anulaciones de ventas. Resta del ingreso.",
+    "421005": "Intereses que paga el banco por el saldo de la cuenta de ahorros («ABONO INTERESES AHORROS»). Es "
+              "ingreso financiero, no venta: no lleva IVA ni entra al 4135. Se causa solo al cargar el extracto "
+              "(Debe 1110 / Haber 421005). Hasta el 25-sep-2026 iba a 4295 «Diversos».",
     "4295": "Ingresos que no vienen de vender mercancía.",
     # ── 5 Gastos de administración ──
     "5105": "Sueldos de personal con CONTRATO LABORAL. ⚠️ McKenna no tiene trabajadores formales: "

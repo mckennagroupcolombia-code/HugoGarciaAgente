@@ -228,10 +228,12 @@ def test_un_zip_con_varios_archivos_no_adivina(extracto_db):
 
 
 @pytest.fixture()
-def tablero_db(extracto_db):
-    """Un extracto de dos líneas y la caché del taller limpia."""
+def tablero_db(extracto_db, monkeypatch):
+    """Un extracto de dos líneas y la caché del taller limpia. Sin la causación
+    automática del 4x1000 y los intereses: estos tests miran esas líneas SIN causar."""
     from app.services import conciliacion_taller as ct
 
+    monkeypatch.setenv("EXTRACTO_CAUSAR_AUTOMATICO", "0")
     extracto_db.importar_extracto(CSV_SEP, "mov.csv", banco="Bancolombia")
     ct.invalidar_cache_taller()
     return ct
@@ -499,10 +501,10 @@ def test_cada_linea_trae_su_asiento_como_cuentas_t(tablero_db, monkeypatch):
     ct = tablero_db
     monkeypatch.setattr(ct, "_armar_en_segundo_plano", lambda *a, **k: None)
     t = ct.tablero("2026-09-01", "2026-09-30", esperar=True, _traer=lambda *a, **k: ([], []))
-    intereses = next(l for l in t["lineas"] if l["monto"] == 27.0)   # ABONO INTERESES AHORROS → 4295, alta
+    intereses = next(l for l in t["lineas"] if l["monto"] == 27.0)   # ABONO INTERESES AHORROS → 421005, alta
     v = intereses["asiento_vista"]
     assert v and v["origen"] == "propuesto"
-    assert [x["cuenta_codigo"] for x in v["lineas"]] == ["4295", "1110"]
+    assert [x["cuenta_codigo"] for x in v["lineas"]] == ["421005", "1110"]
     assert v["lineas"][0]["credito"] == 27.0 and v["lineas"][1]["debito"] == 27.0
     banco_t = next(x for x in v["cuentas_t"] if x["cuenta_codigo"] == "1110")
     assert banco_t["saldo_despues"] == banco_t["saldo_antes"] + 27.0
@@ -759,3 +761,11 @@ def test_pagar_mas_que_la_factura_deja_anticipo_al_proveedor(libro_propio, monke
     assert por_cuenta["133005"]["debito"] == 110_000
     assert por_cuenta["1110"]["credito"] == 1_300_000
     assert prev["cuadra"] is True
+
+
+def test_al_cargar_el_extracto_se_causan_solos_el_4x1000_y_los_intereses(extracto_db):
+    """25-sep-2026: el cargue causa y vincula el 4x1000 y los intereses (destino sin
+    duda); lo demás sigue esperando al Taller."""
+    r = extracto_db.importar_extracto(CSV_SEP, "mov.csv", banco="Bancolombia")
+    auto = r.get("causados_automaticos") or {}
+    assert auto.get("n", 0) >= 1 and not auto.get("errores")

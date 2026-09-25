@@ -110,6 +110,8 @@ import {
 } from "../etiqueta-circular/etiquetaCircularTypes";
 import { nombreArchivoSvg, svgEtiquetaCircular } from "../etiqueta-circular/exportarSvgCircular";
 import { celebrarAprobacion, registrarMision } from "../../lib/celebracionAprobado";
+import { useTicketsAuth } from "../../stores/ticketsAuth";
+import { esCynthiaEtiquetas } from "../../lib/studioVisualAccess";
 
 /** Espera de inactividad antes de autoguardar — evita un PUT por cada tecla. */
 const AUTOGUARDADO_DEBOUNCE_MS = 1500;
@@ -430,6 +432,9 @@ function ProductLabelFormInner({
   const [categoria, setCategoria] = useState<string>(CATEGORIA_ETIQUETA_OTROS);
   const plantilla = plantillasPorCategoria.get(categoria) ?? plantillaBase;
   const guardarFichaMutation = useGuardarFichaEtiqueta();
+  // «Terminar y aprobar» (y el lote de la categoría) es de la diseñadora: el servidor
+  // rechaza la aprobación de cualquier otro usuario, así que aquí ni se ofrece.
+  const puedeAprobar = esCynthiaEtiquetas(useTicketsAuth((s) => s.user));
   const recipientes = useRecipientes().data;
   const eliminarFichaMutation = useEliminarFichaEtiqueta();
   const [plantillaMsg, setPlantillaMsg] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -1285,6 +1290,7 @@ function ProductLabelFormInner({
             : {}),
         };
         setData(datosSku);
+        let idEtiqueta: string | undefined;
         // La etiqueta del SKU también se GUARDA (no solo su PNG): queda enlazada
         // a su plantilla, su código de barras y su ficha técnica, y se puede
         // abrir después para corregirla. Si ya existía una con el mismo nombre
@@ -1309,6 +1315,7 @@ function ProductLabelFormInner({
               text_styles: estilos,
             })
             .catch(() => undefined); // el PNG sale igual; la ficha se puede guardar a mano
+          idEtiqueta = previa?.id;
         }
         await esperarRepintado();
         await esperarRepintado();
@@ -1321,6 +1328,7 @@ function ProductLabelFormInner({
           alto_mm: altoMm,
           dpi: anchoMm ? dpiDeEscala(anchoMm, anchoDiseno, ratio) : undefined,
           escala: ratio,
+          ...(idEtiqueta ? { etiqueta_id: idEtiqueta, variante: "impresion" as const, barcode: datosSku.barcode } : {}),
         });
         hechos.push(nombreArchivo);
         setLoteProgreso({ hechos: i + 1, total: loteSeleccion.length });
@@ -1368,12 +1376,14 @@ function ProductLabelFormInner({
     setGuardando(true);
     try {
       const { subirImagenBlobAEtiquetas } = await import("../../lib/plantillasVisualesExport");
+      const idEtiqueta = fichaIdRef.current || fichaId || undefined;
       const formato = {
         tipo_etiqueta: tipo?.nombre,
         ancho_mm: previa.anchoMm,
         alto_mm: previa.altoMm,
         dpi: previa.dpi,
         escala: previa.pixelRatio,
+        ...(idEtiqueta ? { etiqueta_id: idEtiqueta, barcode: data.barcode } : {}),
       };
       const [imp, dig] = await Promise.allSettled([
         subirImagenBlobAEtiquetas(previa.blob, nombreArchivoPng(), {
@@ -1381,11 +1391,13 @@ function ProductLabelFormInner({
           // categoría en Studio y no se mezcla con el catálogo viejo de la raíz.
           carpeta: `ETIQUETAS STUDIO/${nombreCategoria(categoria)}`,
           ...formato,
+          variante: "impresion",
         }),
         desenfoqueActivo && digital?.blob
           ? subirImagenBlobAEtiquetas(digital.blob, nombreArchivoPngDigital(), {
               carpeta: carpetaPublicacionesDigitales(),
               ...formato,
+              variante: "digital",
             })
           : Promise.resolve(null),
       ]);
@@ -1954,7 +1966,8 @@ function ProductLabelFormInner({
                     <button
                       type="button"
                       className={itemMenu}
-                      disabled={guardando}
+                      disabled={guardando || !puedeAprobar}
+                      title={puedeAprobar ? undefined : "Solo Cynthia genera y aprueba las etiquetas"}
                       onClick={() => {
                         setMenuMas(false);
                         setLoteAbierto(true);
@@ -2083,15 +2096,23 @@ function ProductLabelFormInner({
           <button
             type="button"
             onClick={() => void generarPng()}
-            disabled={guardando}
+            disabled={guardando || !puedeAprobar}
             title={
-              desenfoqueActivo
+              !puedeAprobar
+                ? "Solo Cynthia termina y aprueba las etiquetas"
+                : desenfoqueActivo
                 ? "Genera el PNG para imprimir (≥ 600 dpi si hay Formato) y a la vez el PNG con la marca desenfocada. Revisas las dos vistas previas y, al aprobar, cada uno se guarda en su carpeta"
                 : "Genera el PNG para imprimir (≥ 600 dpi si hay Formato), lo revisas en vista previa y, al aprobar, se guarda en Diseño → Imprimir"
             }
             className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
           >
-            {guardando && !previa ? "Generando…" : desenfoqueActivo ? "Terminar y aprobar los PNG" : "Terminar y aprobar el PNG"}
+            {!puedeAprobar
+              ? "Aprueba Cynthia"
+              : guardando && !previa
+                ? "Generando…"
+                : desenfoqueActivo
+                  ? "Terminar y aprobar los PNG"
+                  : "Terminar y aprobar el PNG"}
           </button>
         </div>
       </header>

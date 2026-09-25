@@ -36,6 +36,11 @@ _EAN_JSON = REPO / "app" / "data" / "etiquetas_codigos_ean.json"
 _STOCK_JSON = Path(__file__).resolve().parents[1] / "data" / "siigo_stock_cache.json"
 _ETIQUETAS_JSON = REPO / "app" / "data" / "etiquetas_fichas.json"
 _PNG_JSON = REPO / "app" / "data" / "etiquetas_recursos_png.json"
+# «Terminar y aprobar» del editor: el PNG de impresión y el digital de cada etiqueta
+# (lo escribe POST /api/etiquetas/recursos-png con `etiqueta_id`, en routes.py).
+_APROBADOS_JSON = REPO / "app" / "data" / "etiquetas_png_aprobados.json"
+# La biblioteca de PNG (misma carpeta que `_carpeta_png_recursos_etiquetas` en routes.py).
+_PNG_DIR = Path("~/Documentos/Etiquetas McKenna/Recursos PNG").expanduser()
 _CACHE_WEB = REPO / "PAGINA_WEB" / "site" / "data" / "cache.json"
 # Combos que no necesitan documento técnico (empaques sueltos, accesorios, kits de regalo…):
 # lo marca una persona en el taller y la pieza cuenta como completa. Por combo, no por
@@ -121,6 +126,41 @@ def _etiquetas_ligeras() -> list[dict]:
     return out
 
 
+def _clave_archivo(titulo: str) -> str:
+    """El nombre de archivo que el editor da al PNG (`nombreArchivoDesdeTitulo`, en
+    desktop/src/lib/fichaTecnicaMatch.ts), en minúsculas para comparar."""
+    s = unicodedata.normalize("NFD", titulo or "")
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn").strip()
+    s = re.sub(r"\s+", "_", s)
+    return re.sub(r"[^A-Za-z0-9_\-]+", "", s)[:60].lower()
+
+
+def _png_aprobados_en_disco() -> dict[str, dict[str, str]]:
+    """Los PNG aprobados antes de que el editor registrara la etiqueta al aprobar:
+    {clave de título: {"impresion": ruta, "digital": ruta}}, el más reciente de cada uno
+    (las copias `…_2.png` que dejaba volver a aprobar cuentan como el mismo archivo)."""
+    mejor: dict[str, dict[str, tuple[float, str]]] = {}
+    for sub, variante in (("ETIQUETAS STUDIO", "impresion"), ("PUBLICACIONES DIGITALES", "digital")):
+        raiz = _PNG_DIR / sub
+        if not raiz.is_dir():
+            continue
+        for f in raiz.rglob("*.png"):
+            stem = re.sub(r"_\d+$", "", f.stem)
+            es_digital = stem.lower().endswith("_digital")
+            if es_digital != (variante == "digital"):
+                continue
+            if es_digital:
+                stem = stem[: -len("_digital")]
+            try:
+                mt = f.stat().st_mtime
+            except OSError:
+                continue
+            fila = mejor.setdefault(stem.lower(), {})
+            if variante not in fila or mt > fila[variante][0]:
+                fila[variante] = (mt, f.relative_to(_PNG_DIR).as_posix())
+    return {k: {v: r for v, (_mt, r) in fila.items()} for k, fila in mejor.items()}
+
+
 def _es_inventario_activo(cat: dict, ref: str) -> bool:
     """¿`ref` es hoy un producto de inventario (no un combo) en la copia local de Alegra?"""
     ref = (ref or "").strip().lower()
@@ -202,6 +242,9 @@ def _construir() -> dict:
     for r in (_leer_json(_PNG_JSON, {}) or {}).get("recursos") or []:
         nombre = r.get("nombre") or ""
         png_por_nombre[_norm(Path(nombre).stem)] = nombre
+
+    aprobados = (_leer_json(_APROBADOS_JSON, {}) or {}).get("etiquetas") or {}
+    en_disco = _png_aprobados_en_disco()
 
     web = {}
     cache = _leer_json(_CACHE_WEB, {}) or {}
@@ -318,9 +361,29 @@ def _construir() -> dict:
             etq = etq_por_nombre.get(_norm(nombre))
             via = "nombre"
         png = png_por_nombre.get(_norm(nombre)) or png_por_nombre.get(_norm(nombre).replace(" ", ""))
+        # Los dos PNG de «Terminar y aprobar»: primero el registro por etiqueta; si la
+        # etiqueta se aprobó antes de existir ese registro, por el nombre de archivo
+        # (sale del título del código EAN, o del nombre de la etiqueta).
+        png_digital = None
+        aprobado_at = ""
+        if etq:
+            reg = aprobados.get(etq["id"]) or {}
+            vivos = {v: (reg.get(v) or {}) for v in ("impresion", "digital")}
+            vivos = {v: f for v, f in vivos.items() if f.get("nombre") and (_PNG_DIR / f["nombre"]).is_file()}
+            if "impresion" not in vivos or "digital" not in vivos:
+                for titulo in ((ean or {}).get("nombre_producto"), etq["nombre"], nombre):
+                    viejo = en_disco.get(_clave_archivo(titulo or "")) if titulo else None
+                    if viejo:
+                        for v, ruta in viejo.items():
+                            vivos.setdefault(v, {"nombre": ruta})
+                        break
+            png = (vivos.get("impresion") or {}).get("nombre") or png
+            png_digital = (vivos.get("digital") or {}).get("nombre")
+            aprobado_at = max((f.get("aprobado_at") or "" for f in vivos.values()), default="")
         if etq:
             esl["etiqueta"] = _eslabon("ok" if via == "código de barras" else "aviso", "Diseño de etiqueta",
                                        f"«{etq['nombre']}» · unida por {via}", etiqueta_id=etq["id"], png=png,
+                                       png_digital=png_digital, aprobado_at=aprobado_at,
                                        tamano=etq.get("tipo_nombre") or "", plantilla_id=etq.get("plantilla_id") or "")
         else:
             motivo = "no tiene código EAN" if not ean else "nadie la ha diseñado"

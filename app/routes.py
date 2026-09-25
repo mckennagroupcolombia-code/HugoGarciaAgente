@@ -23731,6 +23731,93 @@ REGLAS:
                     return ruta, None
         return None, "Imagen no encontrada"
 
+    # ── PNG aprobados de cada etiqueta («Terminar y aprobar») ────────────
+    # Cada etiqueta del Studio tiene UN PNG de impresión (ETIQUETAS STUDIO/…) y, con
+    # Desenfoque, UN digital (PUBLICACIONES DIGITALES/…). Volver a aprobar reescribe
+    # esos dos archivos: antes el nombre ocupado producía `…_2.png`, `…_3.png` y las
+    # versiones viejas se quedaban en la biblioteca. El registro vive aparte del índice
+    # de recursos (que se recorta a 300 entradas) porque el taller de combos lo lee
+    # para mostrar los dos archivos en la pieza «Diseño» (app/services/mapa_producto.py).
+    _ETIQUETAS_APROBADAS_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_png_aprobados.json",
+    )
+    _etiquetas_aprobadas_lock = threading.Lock()
+
+    def _papelera_png_etiquetas() -> str:
+        """Fuera de Recursos PNG: la biblioteca recorre esa carpeta y mostraría lo retirado."""
+        d = os.path.join(_carpeta_pdfs_etiquetas(), ".papelera_png")
+        os.makedirs(d, exist_ok=True)
+        return d
+
+    def _retirar_png_anteriores(etiqueta_id: str, variante: str, destino: str) -> list[str]:
+        """Manda a la papelera las versiones anteriores del PNG aprobado de esta etiqueta:
+        el aprobado antes (aunque cambiara de nombre o de categoría), el mismo nombre en
+        otra carpeta y las copias `nombre_2.png`, `nombre_3.png` que dejó la regla vieja.
+        El archivo `destino` no se toca: se sobrescribe al guardar."""
+        base_png = os.path.realpath(_carpeta_png_recursos_etiquetas())
+        destino_real = os.path.realpath(destino)
+        nombre = os.path.basename(destino)
+        raiz, ext = os.path.splitext(nombre)
+        copia = re.compile(rf"^{re.escape(raiz)}_\d+{re.escape(ext)}$", re.IGNORECASE)
+        candidatos: set[str] = set()
+        with _etiquetas_aprobadas_lock:
+            reg = _leer_etiquetas_aprobadas()
+        prev = ((reg.get(etiqueta_id) or {}).get(variante) or {}).get("nombre")
+        if prev:
+            candidatos.add(os.path.realpath(os.path.join(base_png, prev)))
+        for dirpath, _dirs, files in os.walk(base_png):
+            for f in files:
+                if f == nombre or (os.path.realpath(dirpath) == os.path.dirname(destino_real) and copia.match(f)):
+                    candidatos.add(os.path.realpath(os.path.join(dirpath, f)))
+        candidatos.discard(destino_real)
+        retirados: list[str] = []
+        if not candidatos:
+            return retirados
+        import shutil
+        papelera = _papelera_png_etiquetas()
+        sello = _dt.now().strftime("%Y%m%d-%H%M%S")
+        for ruta in sorted(candidatos):
+            if not ruta.startswith(base_png + os.sep) or not os.path.isfile(ruta):
+                continue
+            try:
+                shutil.move(ruta, os.path.join(papelera, f"{sello}_{os.path.basename(ruta)}"))
+                retirados.append(os.path.relpath(ruta, base_png).replace("\\", "/"))
+            except OSError:
+                continue
+        if retirados:
+            quitar = {os.path.join(base_png, r) for r in retirados}
+            items = [
+                it for it in _load_png_recursos_etiquetas()
+                if os.path.realpath(it.get("ruta_completa") or "") not in quitar
+            ]
+            _save_png_recursos_etiquetas(items)
+        return retirados
+
+    def _leer_etiquetas_aprobadas() -> dict:
+        try:
+            with open(_ETIQUETAS_APROBADAS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            return {}
+        return (data.get("etiquetas") or {}) if isinstance(data, dict) else {}
+
+    def _registrar_etiqueta_aprobada(etiqueta_id: str, variante: str, nombre: str, barcode: str, usuario: dict | None) -> None:
+        with _etiquetas_aprobadas_lock:
+            reg = _leer_etiquetas_aprobadas()
+            fila = reg.get(etiqueta_id) or {}
+            if barcode:
+                fila["barcode"] = barcode
+            fila[variante] = {
+                "nombre": nombre,
+                "aprobado_at": _dt.now().isoformat(timespec="seconds"),
+                "por": (usuario or {}).get("username") or (usuario or {}).get("email") or "",
+            }
+            reg[etiqueta_id] = fila
+            tmp = _ETIQUETAS_APROBADAS_PATH + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"etiquetas": reg}, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, _ETIQUETAS_APROBADAS_PATH)
+
     @app.route("/api/etiquetas/recursos-png", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/recursos-png", methods=["GET", "POST"])
     def api_etiquetas_recursos_png():
@@ -23828,7 +23915,22 @@ REGLAS:
             }), 400
         if not _es_bytes_imagen_png_jpg(raw):
             return jsonify({"error": "Solo se permiten archivos JPG o PNG"}), 400
-        if not _nombre_png_disponible(nombre):
+        # «Terminar y aprobar» del editor: trae la etiqueta y qué PNG es. Solo la
+        # diseñadora aprueba, y aprobar otra vez reescribe el archivo en vez de
+        # dejar una copia más en la cola.
+        etiqueta_id = (request.form.get("etiqueta_id") or "").strip()[:64]
+        variante = (request.form.get("variante") or "impresion").strip().lower()
+        barcode_aprob = re.sub(r"\D", "", request.form.get("barcode") or "")[:14]
+        usuario_aprob = None
+        if etiqueta_id:
+            from app.services.tickets_db import es_cynthia_etiquetas
+            usuario_aprob = _panel_tickets_usuario()
+            if not es_cynthia_etiquetas(usuario_aprob):
+                return jsonify({"error": "Solo Cynthia puede terminar y aprobar etiquetas"}), 403
+            if variante not in ("impresion", "digital"):
+                return jsonify({"error": "Variante inválida (impresion o digital)"}), 400
+            _retirar_png_anteriores(etiqueta_id, variante, os.path.join(carpeta_destino, nombre))
+        elif not _nombre_png_disponible(nombre):
             base, ext = os.path.splitext(nombre)
             n = 2
             candidato = f"{base}_{n}{ext}"
@@ -23844,6 +23946,8 @@ REGLAS:
         if not (meta.get("ancho_mm") and meta.get("alto_mm")):
             meta = {**_meta_formato_png_de_indice(destino, nombre), **meta}
         entry = _registrar_png_recurso(nombre, destino, len(raw), meta=meta or None)
+        if etiqueta_id:
+            _registrar_etiqueta_aprobada(etiqueta_id, variante, entry.get("nombre") or nombre, barcode_aprob, usuario_aprob)
         return jsonify({"ok": True, **entry})
 
     # ── Logos corporativos (carpeta DISENO CORPORATIVO del repo) ─────────

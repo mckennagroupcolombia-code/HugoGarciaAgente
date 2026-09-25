@@ -16,6 +16,9 @@ export type Eslabon = {
   archivo?: string;
   codigo?: string;
   png?: string | null;
+  /** «Terminar y aprobar» con Desenfoque: el PNG digital (PUBLICACIONES DIGITALES). */
+  png_digital?: string | null;
+  aprobado_at?: string;
   meli_id?: string;
   precio?: number;
   etiqueta_id?: string;

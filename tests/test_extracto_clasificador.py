@@ -90,10 +90,10 @@ def test_empresa_con_factura_si_va_a_proveedores():
 @pytest.mark.parametrize(
     "desc, tipo, cuenta",
     [
-        ("COBRO IVA PAGOS AUTOMATICOS", "debito", "5305"),
-        ("SERVICIO PAGO A TERCEROS", "debito", "5305"),
-        ("IMPTO GOBIERNO 4X1000", "debito", "5305"),
-        ("ABONO INTERESES AHORROS", "credito", "4295"),
+        ("COBRO IVA PAGOS AUTOMATICOS", "debito", "530505"),
+        ("SERVICIO PAGO A TERCEROS", "debito", "530505"),
+        ("IMPTO GOBIERNO 4X1000", "debito", "530595"),
+        ("ABONO INTERESES AHORROS", "credito", "421005"),
         ("PAGO PSE DIAN", "debito", "2365"),
     ],
 )
@@ -114,3 +114,24 @@ def test_descripcion_desconocida_no_se_fuerza_a_ninguna_cuenta():
     p = ec.clasificar(_linea("ALGO QUE EL BANCO NUNCA HABIA MANDADO"), terceros=[])
     assert p["cuenta"] is None
     assert p["confianza"] == ec.REVISAR
+
+
+# ─── 4x1000 e intereses: subcuenta correcta y causación automática (25-sep-2026) ──
+
+def test_el_4x1000_va_a_530595_y_los_intereses_a_421005():
+    gmf = ec.clasificar(_linea("IMPTO GOBIERNO 4X1000", 27_783.52, "debito"), terceros=[])
+    assert gmf["cuenta"] == "530595" and gmf["confianza"] == ec.ALTA
+    intereses = ec.clasificar(_linea("ABONO INTERESES AHORROS", 97.78, "credito"), terceros=[])
+    assert intereses["cuenta"] == "421005" and intereses["confianza"] == ec.ALTA
+    cuota = ec.clasificar(_linea("CUOTA MANEJO TARJETA", 15_000, "debito"), terceros=[])
+    assert cuota["cuenta"] == "530505"
+
+
+def test_solo_se_causan_solos_el_4x1000_y_los_intereses():
+    """Un retiro de MercadoPago también es de confianza alta, pero va por el Taller."""
+    assert ec.AUTO_CONCEPTOS == {
+        "Gravamen a los movimientos financieros (4x1000)",
+        "Intereses de la cuenta de ahorros",
+    }
+    mp = ec.clasificar(_linea("PAGO INTERBANC MERCADOPAGO SA", 9_500_000, "credito"), terceros=[])
+    assert mp["confianza"] == ec.ALTA and mp["concepto"] not in ec.AUTO_CONCEPTOS

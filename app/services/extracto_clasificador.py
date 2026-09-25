@@ -59,16 +59,19 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
      "Plata propia que sale del banco hacia la plataforma. No es gasto."),
 
     # Costos de tener la cuenta. Muchas líneas, montos chicos, cero ambigüedad.
+    # A la SUBCUENTA, no al grupo 5305 (hasta el 25-sep-2026 iban al grupo): 530505
+    # gastos bancarios y 530595 el GMF, la misma que usa el wizard de pagos.
     (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|^COMISION|^COBRO COMISION",
-     "debito", "5305", "Costo bancario", ALTA, ""),
-    (r"IMPTO GOBIERNO 4X1000|IVA CONVENIO 4X1000|GMF", "debito", "5305",
+     "debito", "530505", "Costo bancario", ALTA, ""),
+    (r"IMPTO GOBIERNO 4X1000|IVA CONVENIO 4X1000|GMF", "debito", "530595",
      "Gravamen a los movimientos financieros (4x1000)", ALTA,
      "Solo el 50% del GMF es deducible (Art. 115 E.T.) — el contador hace ese ajuste en la declaración."),
-    (r"^REV IVA|^REV CUOTA|^REVERSION", None, "5305", "Reversión de un cobro bancario", ALTA, ""),
+    (r"^REV IVA|^REV CUOTA|^REVERSION", None, "530505", "Reversión de un cobro bancario", ALTA, ""),
 
-    # Rendimiento de la cuenta de ahorros: ingreso, no venta.
+    # Rendimiento de la cuenta de ahorros: ingreso FINANCIERO (421005), no venta ni
+    # «diversos» (4295, donde iba hasta el 25-sep-2026).
     (r"ABONO INTERESES AHORROS|AJUSTE INTERES AHORROS|INTERESES AHORRO", "credito",
-     "4295", "Intereses de la cuenta de ahorros", ALTA, ""),
+     "421005", "Intereses de la cuenta de ahorros", ALTA, ""),
 
     # Pagos a proveedores: el tercero sale del nombre que trae el banco.
     (r"^PAGO A PROVE|^ABONO A PRYDE|^PAGO DE PROV", "debito", "2205",
@@ -317,8 +320,22 @@ def _afinar_pago_a_tercero(linea: dict, terceros: list[tuple[str, dict]]) -> dic
 
 # ── Aplicación ────────────────────────────────────────────────────────────
 
+# Lo que se causa solo al cargar un extracto (25-sep-2026, pedido de Armando): el
+# destino no admite duda y son decenas de líneas de centavos al mes. El resto de
+# propuestas de confianza alta sigue pasando por el Taller, donde alguien las mira.
+AUTO_CONCEPTOS = frozenset({
+    "Gravamen a los movimientos financieros (4x1000)",
+    "Intereses de la cuenta de ahorros",
+})
+
+
+def causar_automaticos(desde: str, hasta: str, *, created_by: int | None = None) -> dict[str, Any]:
+    """Causa y vincula SOLO el 4x1000 y los intereses de ahorros del rango."""
+    return aplicar(desde, hasta, simular=False, created_by=created_by, solo_conceptos=AUTO_CONCEPTOS)
+
+
 def aplicar(desde: str, hasta: str, *, simular: bool = True,
-            created_by: int | None = None) -> dict[str, Any]:
+            created_by: int | None = None, solo_conceptos: frozenset[str] | set[str] | None = None) -> dict[str, Any]:
     """Crea el asiento de cada propuesta de confianza ALTA y la vincula al banco.
 
     Solo toca las de confianza alta: las de `revisar` necesitan que alguien diga
@@ -336,7 +353,8 @@ def aplicar(desde: str, hasta: str, *, simular: bool = True,
 
     import app.services.contabilidad_core as cc
 
-    props = [p for p in proponer(desde, hasta) if p["confianza"] == ALTA]
+    props = [p for p in proponer(desde, hasta) if p["confianza"] == ALTA
+             and (solo_conceptos is None or p["concepto"] in solo_conceptos)]
     with sqlite3.connect(cc._DB_PATH) as con:
         ids_cuenta = {r[0]: r[1] for r in con.execute("SELECT codigo, id FROM cc_plan_cuentas")}
         medio_banco = con.execute(

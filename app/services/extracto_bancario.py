@@ -1409,6 +1409,19 @@ def importar_extracto(
     base["lineas_leidas"] = leidas
     base["lineas_repetidas"] = repetidas
     base["lineas_mejoradas"] = mejoradas
+    # El 4x1000 y los intereses de ahorros se causan solos (25-sep-2026): destino
+    # sin duda, decenas de líneas de centavos. Solo en el extracto de la EMPRESA:
+    # el banco personal de un socio nunca entra al libro de McKenna.
+    # `EXTRACTO_CAUSAR_AUTOMATICO=0` lo apaga sin tocar código.
+    if tercero_id is None and insertadas and os.getenv("EXTRACTO_CAUSAR_AUTOMATICO", "1").strip() != "0":
+        try:
+            from app.services.extracto_clasificador import causar_automaticos
+
+            if periodo_desde and periodo_hasta:
+                r = causar_automaticos(periodo_desde, periodo_hasta)
+                base["causados_automaticos"] = {"n": r["aplicadas"], "monto": r["monto"], "errores": r["errores"]}
+        except Exception as e:  # causar no puede tumbar el cargue del extracto
+            base["causados_automaticos"] = {"error": str(e)}
     return base
 
 

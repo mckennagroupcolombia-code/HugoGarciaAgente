@@ -357,7 +357,7 @@ function InspectorEtiquetaCuerpo({ c, hermanas, alResolver, abrirEditor }: {
   return (
     <div className="space-y-2.5">
       <p className="text-[11px] text-muted">«{f.nombre}»</p>
-      {e.png && <EtiquetaPng nombre={e.png} />}
+      <PngAprobados e={e} />
       {ean && (campos.barcode ?? "") !== ean && (
         <div className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11px] text-ink">
           La etiqueta {campos.barcode ? <>lleva el código <code>{campos.barcode}</code></> : "no lleva código"} y el combo tiene <code>{ean}</code>. Por eso no están conectados.
@@ -395,6 +395,32 @@ function InspectorEtiquetaCuerpo({ c, hermanas, alResolver, abrirEditor }: {
         <button className={BTN_SEC} onClick={irAlStudio}>Diseñar la etiqueta (formato y exportación)</button>
       </div>
       {msg && <p className={`text-[11px] ${msg.ok ? "text-accent-leaf" : "text-accent-rose"}`}>{msg.texto}</p>}
+    </div>
+  );
+}
+
+/** Los dos archivos de «Terminar y aprobar»: el PNG de impresión y el digital (marca
+ *  desenfocada, el que va a las publicaciones). Aprobar otra vez los reescribe. */
+function PngAprobados({ e }: { e?: Eslabon }) {
+  if (!e?.png && !e?.png_digital)
+    return e?.etiqueta_id ? <p className="text-[11px] text-muted">La etiqueta aún no tiene PNG aprobados (los aprueba Cynthia con «Terminar y aprobar»).</p> : null;
+  const archivos = [
+    { titulo: "Impresión", nombre: e.png },
+    { titulo: "Digital", nombre: e.png_digital },
+  ];
+  return (
+    <div>
+      <p className="mb-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">
+        Etiqueta aprobada{e.aprobado_at ? ` · ${e.aprobado_at.slice(0, 10)}` : ""}
+      </p>
+      <div className="grid grid-cols-2 gap-1.5">
+        {archivos.map(({ titulo, nombre }) => (
+          <div key={titulo} className="min-w-0 rounded-md border border-border bg-surface p-1">
+            {nombre ? <EtiquetaPng nombre={nombre} /> : <div className="flex h-28 items-center justify-center text-[11px] text-muted">Sin PNG {titulo.toLowerCase()}</div>}
+            <p className="truncate px-0.5 pt-0.5 text-[10px] text-muted" title={nombre || undefined}>{titulo}</p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -646,6 +672,7 @@ function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA, cerr
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
+        <PngAprobados e={c.eslabones.etiqueta} />
         {e.precio ? <p className="text-[12px] tabular-nums text-ink">${Math.round(e.precio).toLocaleString("es-CO")} en la web</p> : null}
         <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={abrirPublicacion}>{e.estado === "ok" ? "Revisar la publicación…" : "Resolver la publicación…"}</button>
       </div>
@@ -714,7 +741,14 @@ function Tablero({ c, sel, guia, destello, premio, onSel }: { c: Combo; sel: str
         const p = POS[clave];
         if (!e || !p) return null;
         const activo = sel === clave;
-        const dato = clave === "ean" ? e.codigo : clave === "etiqueta" ? e.tamano : clave === "publicacion" && e.meli_id ? e.meli_id : "";
+        const dato =
+          clave === "ean"
+            ? e.codigo
+            : clave === "etiqueta"
+              ? [e.tamano, e.png || e.png_digital ? `${[e.png, e.png_digital].filter(Boolean).length} PNG` : e.etiqueta_id ? "sin aprobar" : ""].filter(Boolean).join(" · ")
+              : clave === "publicacion" && e.meli_id
+                ? e.meli_id
+                : "";
         return (
           // El botón va DENTRO de un div posicionado: index.css fuerza `position: relative` y
           // `overflow: hidden` en todos los botones (efecto de pulsación), así que un botón con
