@@ -396,3 +396,11 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
   arrastrara también lo anterior al corte. Las 1.363 ventas y los 3 retiros de septiembre ya están en 130505 (respaldo
   `backups_drive/contabilidad_antes_130505_2026-09-25.db`). La naturaleza de la cuenta está en `DESCRIPCIONES["130505"]`
   (se ve en árbol/extracto/PDF/CSV del Libro Mayor), en la descripción de cada renglón y en el historial del tercero.
+- **Pagos de impuestos en el Taller (25-sep-2026):** «PAGO PSE DIAN» y «PAGO PSE SECRETARIA DE HACIE» ya no van
+  todos a 2365. `pagos_impuestos.recibo_para_linea()` casa la línea con el recibo 490/SDH del contador (valor ±$1,
+  fecha ±7 días) y la propuesta toma SU cuenta —2365 retefuente, 2367 reteIVA, 2368 reteICA, 2408 IVA, 2404 renta—,
+  la referencia del recibo (`dian:490:<n>` / `sdh:<n>`, así el recibo queda «registrado») y el tercero (DIAN id 75,
+  NIT 800.197.268-4; Secretaría Distrital de Hacienda id 76, NIT 899.999.061-9). Sin recibo: «revisar», sin cuenta.
+  `extracto_bancario.vincular()` adjunta el PDF del recibo al asiento que lo cita (`adjuntar_soporte_recibo`).
+- **4x1000 e intereses se causan solos** al cargar el extracto de la empresa (`causar_automaticos`, 530595 GMF y
+  421005 intereses); `EXTRACTO_CAUSAR_AUTOMATICO=0` lo apaga.

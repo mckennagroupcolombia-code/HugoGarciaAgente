@@ -756,6 +756,10 @@ def tablero(
                         "confianza": prop.get("confianza"),
                         "nota": prop.get("nota") or "",
                         "tercero": prop.get("tercero"),
+                        # Un pago de impuestos casado con su recibo: el asiento lleva la
+                        # referencia del recibo (dian:490:…/sdh:…), no extracto:<id>.
+                        "referencia": prop.get("referencia") or "",
+                        "recibo": prop.get("recibo") or "",
                     }
                     if prop
                     else None

@@ -82,6 +82,9 @@ interface Propuesta {
   confianza: "alta" | "revisar";
   nota: string;
   tercero: { id: number; nombre: string } | null;
+  /** Pago de impuestos casado con el recibo del contador: referencia del recibo. */
+  referencia?: string;
+  recibo?: string;
 }
 
 /** El asiento real detrás de un vínculo, verificado (no creído). */
@@ -497,7 +500,9 @@ interface Causacion {
  * algo que después entra en el lote no lo duplica.
  */
 async function causarLinea(linea: LineaBanco, d: Causacion): Promise<void> {
-  const ref = `extracto:${linea.id}`;
+  // Un pago de impuestos con recibo lleva la referencia del recibo (dian:490:…/sdh:…):
+  // así queda «registrado» en Impuestos y el backend le adjunta el PDF al vincular.
+  const ref = linea.propuesta?.referencia || `extracto:${linea.id}`;
   let movimiento: { id: number } | undefined;
 
   if (d.tipo === "proveedor") {
