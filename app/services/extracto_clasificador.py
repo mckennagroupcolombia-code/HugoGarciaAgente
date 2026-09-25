@@ -61,7 +61,7 @@ REGLAS: list[tuple[str, str | None, str | None, str, str, str]] = [
     # Costos de tener la cuenta. Muchas líneas, montos chicos, cero ambigüedad.
     # A la SUBCUENTA, no al grupo 5305 (hasta el 25-sep-2026 iban al grupo): 530505
     # gastos bancarios y 530595 el GMF, la misma que usa el wizard de pagos.
-    (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|^COMISION|^COBRO COMISION",
+    (r"^COBRO IVA PAGOS|^SERVICIO PAGO A|CUOTA MANEJO|CUOTA PLAN|MANEJO TARJ|^COMISION|^COBRO COMISION",
      "debito", "530505", "Costo bancario", ALTA, ""),
     (r"IMPTO GOBIERNO 4X1000|IVA CONVENIO 4X1000|GMF", "debito", "530595",
      "Gravamen a los movimientos financieros (4x1000)", ALTA,

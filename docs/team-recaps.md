@@ -1,3 +1,15 @@
+### 2026-09-25 05:00 - Taller de conciliación: costos bancarios reconocidos + cruce de compra Factores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (clasificador de extractos) + causaciones en el Libro Mayor. Sin LLM.
+- **Qué se implementó:**
+  - **Clasificador de extractos** (`extracto_clasificador.py`): la regla de costos bancarios ahora reconoce `CUOTA PLAN` (cuota plan canal negocios + su IVA) y `MANEJO TARJ` (banco abrevia «C MANEJO TARJ DEB», no «CUOTA MANEJO»). Antes caían en «Sin patrón / revisar» y el taller no ofrecía causarlas. Ambas → 530505 «Costo bancario», confianza alta; de octubre en adelante se causan de un clic.
+  - **Causaciones de septiembre en el taller** (datos en `contabilidad.db`, fuera de git):
+    - Cuota plan canal negocios 01-sep: D 530505 $78.000 (cuota) + $14.820 (IVA) / C 1110 (cc:5904/5905).
+    - Manejo tarjeta débito 10-sep: D 530505 $18.050 / C 1110 (cc:5906).
+    - **Cruce compra FACTORES Y MERCADEO factura FEE104568** (el pago del 10-sep por $5.037.327 cuadra al peso con esa factura): compra renglón por renglón a 1435 por SKU ($4.531.500, 14 materias primas) + IVA descontable 240810 $619.115 / 2205 $5.150.615 (cc:5907); retención compras 2,5% D 2205 / C 2365 $113.288 (cc:5908); pago D 2205 / C 1110 $5.037.327 vinculado a la línea de banco (cc:5909). El 2205 de la factura netea a cero. IVA solo sobre la base gravada; 4 ítems excluidos (vitaminas E/C, D-pantenol, urea, Art. 424).
+- **Verificación:** los tres asientos del cruce balanceados (deb=cred); 2205 de FEE104568 = 0; clasificador probado (las tres descripciones ahora dan 530505/alta). Las líneas de jul/ago quedan antes del corte 2026-09-01 (del contador), no se tocaron.
+- **Archivos Modificados:** `app/services/extracto_clasificador.py` (único cambio de código; las causaciones son datos en `contabilidad.db`).
+
 ### 2026-09-24 16:00 - Canales del producto, chat del equipo, campana y recepción de mercancía
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nuevas funcionalidades (Publicar, Agenda, Abastecer) + puente WA. Sin LLM.
