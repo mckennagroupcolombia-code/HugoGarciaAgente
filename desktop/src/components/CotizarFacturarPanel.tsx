@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type React
 import { api, fetchAuthBlobUrl, postAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
 import { usePantallaCompleta, soportaPantallaCompleta } from "../hooks/usePantallaCompleta";
+import { imagenDesdePortapapeles } from "../lib/clipboardImage";
 import logotipo from "../assets/marca/logotipo-turquesa.png";
 
 /**
@@ -99,6 +100,9 @@ interface Venta {
   avisos: string[];
   creado_por: string;
   actualizado: string;
+  soporte_path?: string;
+  soporte_nombre?: string;
+  soporte_mime?: string;
 }
 
 interface PedidoIA {
@@ -481,6 +485,63 @@ export default function CotizarFacturarPanel() {
     }
   }
 
+  // Soporte de pago (pantallazo/comprobante del cliente): guarda la venta primero
+  // para tener id, luego sube el archivo (pegado o elegido). Fase 2.
+  async function subirSoporte(file: File) {
+    setOcupado("soporte");
+    setError(null);
+    const v = await guardar();
+    if (!v) return setOcupado(null);
+    try {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const r = await api.upload<{ ok: boolean; venta?: Venta; error?: string }>(
+        `/api/ventas-directas/${v.id}/soporte`, fd, { timeoutMs: 60_000 },
+      );
+      if (r.ok && r.venta) cargarVenta(r.venta);
+      else setError(r.error || "No se pudo adjuntar el soporte.");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setOcupado(null);
+    }
+  }
+
+  async function quitarSoporte() {
+    if (!ventaId) return;
+    try {
+      await api.delete(`/api/ventas-directas/${ventaId}/soporte`);
+      const v = await api.get<Venta>(`/api/ventas-directas/${ventaId}`);
+      cargarVenta(v);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function verSoporte() {
+    if (!ventaId) return;
+    const url = await fetchAuthBlobUrl(`/api/ventas-directas/${ventaId}/soporte`);
+    if (url) window.open(url, "_blank", "noopener");
+    else setError("No se pudo abrir el soporte.");
+  }
+
+  // Pegar imagen (Ctrl+V) en el paso de facturar → soporte de pago, como en
+  // Solicitudes de pago. Solo cuando no se está escribiendo en un campo.
+  useEffect(() => {
+    if (paso !== 3 || soloLectura) return;
+    const onPaste = (ev: ClipboardEvent) => {
+      const activo = document.activeElement;
+      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+      const file = imagenDesdePortapapeles(ev.clipboardData);
+      if (!file) return;
+      ev.preventDefault();
+      void subirSoporte(file);
+    };
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paso, soloLectura, ventaId]);
+
   async function verPdfEnviado() {
     if (!ventaId) return;
     const url = await fetchAuthBlobUrl(`/api/ventas-directas/${ventaId}/pdf`);
@@ -754,6 +815,10 @@ export default function CotizarFacturarPanel() {
               onAnular={() => void anular()}
               onAtras={() => setPaso(2)}
               avisos={avisos}
+              soporteNombre={venta?.soporte_path ? venta?.soporte_nombre || "soporte" : ""}
+              onSubirSoporte={(f) => void subirSoporte(f)}
+              onQuitarSoporte={() => void quitarSoporte()}
+              onVerSoporte={() => void verSoporte()}
             />
           )}
         </div>
@@ -1396,6 +1461,10 @@ function PasoEnviar({
   onAnular,
   onAtras,
   avisos,
+  soporteNombre,
+  onSubirSoporte,
+  onQuitarSoporte,
+  onVerSoporte,
 }: {
   venta: Venta | null;
   cliente: Cliente;
@@ -1416,6 +1485,10 @@ function PasoEnviar({
   onAnular: () => void;
   onAtras: () => void;
   avisos: string[];
+  soporteNombre: string;
+  onSubirSoporte: (f: File) => void;
+  onQuitarSoporte: () => void;
+  onVerSoporte: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -1435,6 +1508,46 @@ function PasoEnviar({
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
             <Ico e="⚠️" /> No existen en Alegra: {calc.sin_alegra.join(", ")}. Se puede cotizar (solo PDF), pero no facturar.
           </p>
+        )}
+
+        {/* Soporte de pago del cliente (pantallazo/comprobante) — pegar o elegir. */}
+        {!soloLectura && (
+          <div className="mt-3 rounded-lg border border-border/60 bg-surface px-3 py-2.5 text-xs">
+            <p className="mb-1.5 flex items-center gap-1.5 font-semibold text-ink">
+              <Ico e="🧾" /> Soporte de pago <span className="font-normal text-muted">· pega el pantallazo (Ctrl+V) o elígelo</span>
+            </p>
+            {soporteNombre ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onVerSoporte}
+                  className="inline-flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-600"
+                >
+                  <Ico e="📎" /> {soporteNombre} · ver
+                </button>
+                <button type="button" onClick={onQuitarSoporte} className="text-muted underline hover:text-danger">
+                  quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded border-2 border-border px-2 py-1 font-semibold text-ink hover:border-accent">
+                  <Ico e="📎" /> Elegir archivo
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) onSubirSoporte(f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <span className="text-muted">o pega con Ctrl+V {ocupado === "soporte" ? "· subiendo…" : ""}</span>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

@@ -1,3 +1,13 @@
+### 2026-09-25 08:00 - Cotizar/Facturar: soporte de pago (pegar Ctrl+V / adjuntar) — Fase 2
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó:**
+  - En el paso «Cotizar/Facturar» se puede adjuntar el **pantallazo/comprobante de pago del cliente**: pegándolo con **Ctrl+V** (mismo `lib/clipboardImage.ts` que Competencia) o eligiendo archivo (imagen/PDF). Se ve («ver» abre con Bearer vía `fetchAuthBlobUrl`) y se quita.
+  - Backend: columnas `soporte_path/nombre/mime` en `ventas_directas` (migración en caliente) + `guardar_soporte` / `ruta_soporte` / `eliminar_soporte`; archivos en `comprobantes/ventas_directas/` (gitignored). Endpoints `POST/GET/DELETE /api/ventas-directas/<id>/soporte` (multipart o base64 del portapapeles; tope 12 MB).
+  - Guarda la venta antes de subir para tener id; el listener de pegado solo actúa en el paso 3 y no interfiere al escribir en campos.
+- **Verificación:** backend importa y funciones presentes; `npm run build` limpio (main + colab); `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`.
+
 ### 2026-09-25 07:30 - Cotizar/Facturar: facturar ventas WhatsApp sin cédula y sin SKU (Fase 1)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.

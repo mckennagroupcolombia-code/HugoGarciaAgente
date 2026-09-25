@@ -120,6 +120,12 @@ def _conn() -> sqlite3.Connection:
     )
     c.execute("CREATE INDEX IF NOT EXISTS ix_vd_estado ON ventas_directas(estado, actualizado)")
     c.execute("CREATE INDEX IF NOT EXISTS ix_vd_origen ON ventas_directas(origen, origen_ref)")
+    # Soporte de pago (pantallazo/comprobante del cliente) — Fase 2. Columnas
+    # agregadas en caliente para no romper bases existentes.
+    cols = {r["name"] for r in c.execute("PRAGMA table_info(ventas_directas)")}
+    for col in ("soporte_path", "soporte_nombre", "soporte_mime"):
+        if col not in cols:
+            c.execute(f"ALTER TABLE ventas_directas ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
     return c
 
 
@@ -344,6 +350,57 @@ def anular(venta_id: int) -> dict:
         return {"ok": False, "error": "Ya tiene factura electrónica: se anula con nota crédito, no desde aquí."}
     _actualizar(venta_id, estado="anulada")
     return {"ok": True}
+
+
+# --------------------------------------------------------------------------- soporte de pago
+# Pantallazo/comprobante del cliente adjunto a la venta (Fase 2). Igual criterio que
+# `comprobantes/`: carpeta a nivel de repo, gitignoreada (binarios runtime).
+_SOPORTES_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "comprobantes", "ventas_directas",
+)
+_EXT_POR_MIME = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "application/pdf": ".pdf"}
+
+
+def guardar_soporte(venta_id: int, contenido: bytes, nombre: str, mime: str) -> dict:
+    """Guarda el soporte de pago (imagen/PDF) y lo enlaza a la venta."""
+    venta = obtener(venta_id)
+    if not venta:
+        raise ValueError("La venta no existe.")
+    if not contenido:
+        raise ValueError("El archivo llegó vacío.")
+    os.makedirs(_SOPORTES_DIR, exist_ok=True)
+    ext = os.path.splitext(nombre or "")[1].lower() or _EXT_POR_MIME.get((mime or "").lower(), "")
+    fname = f"venta{int(venta_id)}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
+    with open(os.path.join(_SOPORTES_DIR, fname), "wb") as f:
+        f.write(contenido)
+    _actualizar(venta_id, soporte_path=fname, soporte_nombre=(nombre or fname)[:200], soporte_mime=(mime or "")[:100])
+    return obtener(venta_id)
+
+
+def ruta_soporte(venta_id: int) -> tuple[str, str, str] | None:
+    """(ruta absoluta, nombre, mime) del soporte, o None si no hay/no existe."""
+    venta = obtener(venta_id)
+    if not venta or not (venta.get("soporte_path") or "").strip():
+        return None
+    p = os.path.join(_SOPORTES_DIR, venta["soporte_path"])
+    if not os.path.isfile(p):
+        return None
+    return p, venta.get("soporte_nombre") or venta["soporte_path"], venta.get("soporte_mime") or "application/octet-stream"
+
+
+def eliminar_soporte(venta_id: int) -> bool:
+    venta = obtener(venta_id)
+    if not venta or not (venta.get("soporte_path") or "").strip():
+        return False
+    p = os.path.join(_SOPORTES_DIR, venta["soporte_path"])
+    try:
+        if os.path.isfile(p):
+            os.remove(p)
+    except OSError:
+        pass
+    _actualizar(venta_id, soporte_path="", soporte_nombre="", soporte_mime="")
+    return True
 
 
 # --------------------------------------------------------------------------- Alegra

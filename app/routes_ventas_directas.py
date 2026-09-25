@@ -186,6 +186,54 @@ def register_ventas_directas_routes(app):
         r = V.anular(venta_id)
         return jsonify(r), (200 if r.get("ok") else 400)
 
+    @_dual(app, "/api/ventas-directas/<int:venta_id>/soporte", methods=["POST"])
+    @_auth
+    def vd_soporte_subir(venta_id: int):
+        """Adjunta el pantallazo/comprobante de pago del cliente. Acepta multipart
+        (campo `archivo`) o JSON con `base64` (data URL del portapapeles, Ctrl+V)."""
+        import base64
+
+        contenido = nombre = mime = None
+        f = request.files.get("archivo")
+        if f:
+            contenido, nombre, mime = f.read(), (f.filename or "soporte"), (f.mimetype or "")
+        else:
+            data = request.get_json(silent=True) or {}
+            b64 = str(data.get("base64") or "").strip()
+            if b64.startswith("data:") and "," in b64:
+                cab, b64 = b64.split(",", 1)
+                mime = cab.split(";")[0].replace("data:", "") or None
+            try:
+                contenido = base64.b64decode(b64) if b64 else None
+            except Exception:  # noqa: BLE001
+                return jsonify({"ok": False, "error": "base64 inválido"}), 400
+            nombre = str(data.get("nombre") or "soporte-pegado")
+            mime = mime or str(data.get("mime") or "")
+        if not contenido:
+            return jsonify({"ok": False, "error": "Falta el archivo (multipart `archivo` o `base64`)."}), 400
+        if len(contenido) > 12 * 1024 * 1024:
+            return jsonify({"ok": False, "error": "El soporte supera 12 MB."}), 400
+        try:
+            return jsonify({"ok": True, "venta": V.guardar_soporte(venta_id, contenido, nombre, mime)})
+        except ValueError as e:
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @_dual(app, "/api/ventas-directas/<int:venta_id>/soporte", methods=["GET"])
+    @_auth
+    def vd_soporte_ver(venta_id: int):
+        from flask import send_file
+
+        r = V.ruta_soporte(venta_id)
+        if not r:
+            return jsonify({"error": "Sin soporte"}), 404
+        ruta, nombre, mime = r
+        return send_file(ruta, mimetype=mime or "application/octet-stream", download_name=nombre)
+
+    @_dual(app, "/api/ventas-directas/<int:venta_id>/soporte", methods=["DELETE"])
+    @_auth
+    def vd_soporte_borrar(venta_id: int):
+        return jsonify({"ok": V.eliminar_soporte(venta_id)})
+
     @_dual(app, "/api/ventas-directas/<int:venta_id>/pdf", methods=["GET"])
     @_auth
     def vd_pdf(venta_id: int):
