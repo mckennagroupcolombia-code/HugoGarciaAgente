@@ -234,6 +234,15 @@ def register_ventas_directas_routes(app):
     def vd_soporte_borrar(venta_id: int):
         return jsonify({"ok": V.eliminar_soporte(venta_id)})
 
+    @_dual(app, "/api/ventas-directas/por-facturar", methods=["GET"])
+    @_auth
+    def vd_por_facturar():
+        """Cola «Por facturar»: ventas WhatsApp (cobros del banco) sin factura."""
+        try:
+            return jsonify(V.casos_por_facturar(request.args.get("desde") or "", request.args.get("hasta") or ""))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": str(e)}), 500
+
     @_dual(app, "/api/ventas-directas/<int:venta_id>/pdf", methods=["GET"])
     @_auth
     def vd_pdf(venta_id: int):

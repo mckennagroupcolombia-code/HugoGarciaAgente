@@ -103,6 +103,18 @@ interface Venta {
   soporte_path?: string;
   soporte_nombre?: string;
   soporte_mime?: string;
+  cobro_extracto_id?: number;
+}
+
+// Cola «Por facturar» (Fase 3): un cobro del banco sin factura con lo que da el chat.
+interface CasoPorFacturar {
+  cobro: { id: number; fecha: string; monto: number; descripcion: string; banco_nombre: string };
+  estado: "identificado" | "ambiguo" | "sin_rastro";
+  cliente_sugerido: { nombre: string; identificacion: string; correo: string; telefono: string; en_libro: boolean };
+  cotizado: string[];
+  conversacion: { ts: number; direccion: string; por: string; texto: string }[];
+  n_chats: number;
+  preparada: { id: number; numero: string; estado: string } | null;
 }
 
 interface PedidoIA {
@@ -300,6 +312,7 @@ export default function CotizarFacturarPanel() {
 
   const [origen, setOrigen] = useState<Origen>("manual");
   const [origenRef, setOrigenRef] = useState("");
+  const [cobroExtractoId, setCobroExtractoId] = useState<number | null>(null);
   const [cliente, setCliente] = useState<Cliente>(CLIENTE_VACIO);
   const [telefono, setTelefono] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([]);
@@ -317,6 +330,8 @@ export default function CotizarFacturarPanel() {
   const [importado, setImportado] = useState<string | null>(null);
   const [verRecientes, setVerRecientes] = useState(false);
   const [verPreviaMovil, setVerPreviaMovil] = useState(false);
+  const [casos, setCasos] = useState<CasoPorFacturar[] | null>(null);
+  const [verCola, setVerCola] = useState(false);
 
   // Sin menú superior / pantalla completa: para trabajar la cotización con todo el espacio.
   const enfoque = useAppStore((s) => s.cotizarEnfoque);
@@ -340,6 +355,7 @@ export default function CotizarFacturarPanel() {
     setVenta(null);
     setOrigen("manual");
     setOrigenRef("");
+    setCobroExtractoId(null);
     setCliente(CLIENTE_VACIO);
     setTelefono("");
     setLineas([]);
@@ -360,6 +376,7 @@ export default function CotizarFacturarPanel() {
     setVenta(v);
     setOrigen(v.origen);
     setOrigenRef(v.origen_ref);
+    setCobroExtractoId(v.cobro_extracto_id ? Number(v.cobro_extracto_id) : null);
     setCliente({ ...CLIENTE_VACIO, ...v.cliente });
     setTelefono(v.telefono);
     setLineas(v.lineas);
@@ -371,6 +388,37 @@ export default function CotizarFacturarPanel() {
     setConfirmarFactura(false);
     if (irA) setPaso(irA);
   }, []);
+
+  const cargarCola = useCallback(() => {
+    api
+      .get<{ casos: CasoPorFacturar[] }>("/api/ventas-directas/por-facturar")
+      .then((r) => setCasos(r.casos ?? []))
+      .catch(() => setCasos([]));
+  }, []);
+  useEffect(() => {
+    if (verCola && casos === null) cargarCola();
+  }, [verCola, casos, cargarCola]);
+
+  // Prepara el wizard desde un caso de la cola: cliente del chat (o Consumidor
+  // Final sin cédula), teléfono, y el cobro que se saldará al facturar.
+  function prepararDesdeCaso(caso: CasoPorFacturar) {
+    reiniciar();
+    const cs = caso.cliente_sugerido;
+    if (cs.identificacion) {
+      setCliente({
+        ...CLIENTE_VACIO, nombre: cs.nombre || "", identificacion: cs.identificacion,
+        tipo_documento: cs.identificacion.length >= 10 ? "" : "CC", correo: cs.correo || "",
+      });
+    } else {
+      setCliente({ ...CLIENTE_VACIO, nombre: NOMBRE_CONSUMIDOR_FINAL, identificacion: NIT_CONSUMIDOR_FINAL, tipo_documento: "NIT" });
+    }
+    setTelefono((cs.telefono || "").replace(/\D/g, ""));
+    setCobroExtractoId(caso.cobro.id);
+    setOrigen("conversacion");
+    setNotas(`Venta WhatsApp — cobro ${caso.cobro.banco_nombre || caso.cobro.descripcion} $${caso.cobro.monto.toLocaleString("es-CO")} (${caso.cobro.fecha}).`);
+    setVerCola(false);
+    setPaso(2);
+  }
 
   // Totales siempre desde el backend: el IVA de cada línea sale de Alegra.
   const firmaCalculo = useDebounced(
@@ -395,7 +443,8 @@ export default function CotizarFacturarPanel() {
 
   async function guardar(): Promise<Venta | null> {
     if (soloLectura && venta) return venta;
-    const body = { origen, origen_ref: origenRef, cliente, telefono, lineas, envio, notas, medio_pago: medioPago };
+    const body = { origen, origen_ref: origenRef, cliente, telefono, lineas, envio, notas, medio_pago: medioPago,
+                   cobro_extracto_id: cobroExtractoId ?? 0 };
     try {
       const r = ventaId
         ? await api.put<{ venta: Venta }>(`/api/ventas-directas/${ventaId}`, body)
@@ -643,6 +692,10 @@ export default function CotizarFacturarPanel() {
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <ComisionChip recargar={venta?.estado === "facturada" ? venta.id : 0} onAbrir={() => setVerRecientes(true)} />
+          <button type="button" className={btnHerramienta} aria-pressed={verCola} onClick={() => setVerCola((v) => !v)}
+                  title="Ventas de WhatsApp cobradas sin factura, para facturar caso por caso">
+            <Icon name="receipt" size={14} weight="bold" /> Por facturar{casos ? ` (${casos.length})` : ""}
+          </button>
           <button type="button" className={btnHerramienta} onClick={() => setVerRecientes(true)}>
             <Icon name="clock" size={14} weight="bold" /> Ventas recientes
           </button>
@@ -673,6 +726,15 @@ export default function CotizarFacturarPanel() {
           )}
         </div>
       </div>
+
+      {verCola && (
+        <ColaPorFacturar
+          casos={casos}
+          onRecargar={cargarCola}
+          onPreparar={prepararDesdeCaso}
+          onCerrar={() => setVerCola(false)}
+        />
+      )}
 
       {/* ── Pasos ── */}
       <ol className="grid grid-cols-3 gap-2" aria-label="Pasos">
@@ -893,6 +955,84 @@ function Campo({ label, ayuda, requerido, children, className = "" }: { label: s
       </span>
       {children}
     </label>
+  );
+}
+
+// ─── Cola «Por facturar»: ventas WhatsApp cobradas sin factura (Fase 3) ───
+function ColaPorFacturar({ casos, onRecargar, onPreparar, onCerrar }: {
+  casos: CasoPorFacturar[] | null;
+  onRecargar: () => void;
+  onPreparar: (c: CasoPorFacturar) => void;
+  onCerrar: () => void;
+}) {
+  const [abierto, setAbierto] = useState<number | null>(null);
+  return (
+    <div className="rounded-xl border border-accent/40 bg-accent/5 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-sm font-bold text-ink">
+          <Ico e="🧾" /> Ventas de WhatsApp por facturar{casos ? ` · ${casos.length}` : ""}
+        </p>
+        <div className="flex items-center gap-3 text-xs">
+          <button type="button" className="text-muted underline" onClick={onRecargar}>recargar</button>
+          <button type="button" className="text-muted underline" onClick={onCerrar}>cerrar</button>
+        </div>
+      </div>
+      <p className="mb-2 text-[11px] text-muted">
+        Cobros por Llave/QR/Nequi del banco sin factura. «Preparar» llena el cliente y el teléfono del chat (o Consumidor
+        Final si no hay cédula); tú agregas los productos y facturas. Al facturar, el cobro se enlaza y el caso sale de la lista.
+      </p>
+      {casos === null ? (
+        <p className="text-xs text-muted">Buscando cobros sin factura…</p>
+      ) : casos.length === 0 ? (
+        <p className="text-xs text-muted">No hay cobros de WhatsApp sin factura. 🎉</p>
+      ) : (
+        <ul className="max-h-80 space-y-2 overflow-y-auto">
+          {casos.map((c) => {
+            const cs = c.cliente_sugerido;
+            const abre = abierto === c.cobro.id;
+            return (
+              <li key={c.cobro.id} className="rounded-lg border border-border bg-surface p-2.5 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-ink">
+                      {pesos(c.cobro.monto)}{" "}
+                      <span className="font-normal text-muted">· {c.cobro.fecha} · {c.cobro.banco_nombre || c.cobro.descripcion}</span>
+                    </p>
+                    <p className="text-muted">
+                      {cs.nombre || "sin nombre en el chat"}
+                      {cs.identificacion ? ` · ${cs.identificacion}` : " · sin cédula → Consumidor Final"}
+                      {cs.en_libro ? " · en el libro" : ""}
+                      {c.estado === "ambiguo" ? " · ⚠️ varios chats" : c.estado === "sin_rastro" ? " · ⚠️ sin chat" : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {c.cotizado.length > 0 && (
+                      <button type="button" className="text-muted underline" onClick={() => setAbierto(abre ? null : c.cobro.id)}>
+                        {abre ? "ocultar" : `ver chat (${c.cotizado.length})`}
+                      </button>
+                    )}
+                    {c.preparada ? (
+                      <span className="rounded bg-surface-hover px-2 py-1 text-muted">ya preparada · {c.preparada.estado}</span>
+                    ) : (
+                      <button type="button" onClick={() => onPreparar(c)}
+                        className="rounded border-2 border-accent px-2 py-1 font-semibold text-accent hover:bg-accent/10">
+                        Preparar factura →
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {abre && (
+                  <div className="mt-2 space-y-1 border-t border-border/60 pt-2 text-muted">
+                    {cs.correo && <p>correo: {cs.correo}</p>}
+                    {c.cotizado.map((t, i) => <p key={i} className="truncate">🗨️ {t}</p>)}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 

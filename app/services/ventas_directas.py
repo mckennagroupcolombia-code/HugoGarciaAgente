@@ -126,6 +126,10 @@ def _conn() -> sqlite3.Connection:
     for col in ("soporte_path", "soporte_nombre", "soporte_mime"):
         if col not in cols:
             c.execute(f"ALTER TABLE ventas_directas ADD COLUMN {col} TEXT NOT NULL DEFAULT ''")
+    # Cobro del banco que esta venta salda (Fase 3): al facturar se vincula ese
+    # movimiento del extracto al asiento, y el caso sale de la cola «Por facturar».
+    if "cobro_extracto_id" not in cols:
+        c.execute("ALTER TABLE ventas_directas ADD COLUMN cobro_extracto_id INTEGER NOT NULL DEFAULT 0")
     return c
 
 
@@ -307,6 +311,12 @@ def guardar(datos: dict, *, usuario: str = "", venta_id: int | None = None) -> d
         "medio_pago": str(datos.get("medio_pago") or "")[:40],
         "actualizado": ahora,
     }
+    cobro = datos.get("cobro_extracto_id")
+    if cobro not in (None, "", 0, "0"):
+        try:
+            campos["cobro_extracto_id"] = int(cobro)
+        except (TypeError, ValueError):
+            pass
     with _lock, _conn() as c:
         if venta_id:
             actual = c.execute("SELECT estado FROM ventas_directas WHERE id=?", (int(venta_id),)).fetchone()
@@ -401,6 +411,42 @@ def eliminar_soporte(venta_id: int) -> bool:
         pass
     _actualizar(venta_id, soporte_path="", soporte_nombre="", soporte_mime="")
     return True
+
+
+# --------------------------------------------------------------------------- cola «Por facturar»
+
+
+def casos_por_facturar(desde: str = "", hasta: str = "") -> dict:
+    """Cola «Por facturar» (Fase 3): cobros del banco (Llave/QR/Nequi) sin factura,
+    cada uno con el cliente y lo cotizado que da el chat, para facturar caso por
+    caso. Reusa `wa_busqueda.cobros_sin_factura` (solo lectura, sin LLM)."""
+    from app.services.wa_busqueda import cobros_sin_factura
+
+    data = cobros_sin_factura(desde, hasta)
+    with _conn() as c:
+        preparadas = {int(r["cobro_extracto_id"]): dict(r) for r in c.execute(
+            "SELECT id, numero, estado, cobro_extracto_id FROM ventas_directas"
+            " WHERE cobro_extracto_id > 0 AND estado <> 'anulada'")}
+    casos = []
+    for f in data.get("cobros", []):
+        chat = (f.get("chats") or [{}])[0] or {}
+        en_libro = (chat.get("en_libro") or [{}])[0] or {}
+        casos.append({
+            "cobro": f["linea"],
+            "estado": f["estado"],
+            "cliente_sugerido": {
+                "nombre": en_libro.get("nombre") or chat.get("display") or "",
+                "identificacion": en_libro.get("identificacion") or (chat.get("documentos") or [""])[0] or "",
+                "correo": (chat.get("correos") or [""])[0] or "",
+                "telefono": chat.get("telefono") or "",
+                "en_libro": bool(en_libro),
+            },
+            "cotizado": chat.get("cotizado") or [],
+            "conversacion": chat.get("conversacion") or [],
+            "n_chats": len(f.get("chats") or []),
+            "preparada": preparadas.get(int(f["linea"]["id"])),
+        })
+    return {"desde": data.get("desde"), "hasta": data.get("hasta"), "casos": casos, "n": len(casos)}
 
 
 # --------------------------------------------------------------------------- Alegra
@@ -1021,6 +1067,19 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         causado = causar_venta_directa(obtener(venta_id) or {})
         if causado.get("creado"):
             avisos.append(f"Causada en el Libro Mayor (asiento #{causado['movimiento_id']}).")
+        # Fase 3: si la venta salda un cobro del banco (cola «Por facturar»), se
+        # vincula ese movimiento del extracto al asiento — el cobro deja de estar
+        # suelto y el caso sale de la cola.
+        cobro_id = int((obtener(venta_id) or {}).get("cobro_extracto_id") or 0)
+        mov_id = causado.get("movimiento_id")
+        if cobro_id and mov_id:
+            try:
+                from app.services import extracto_bancario as eb
+
+                eb.vincular(cobro_id, f"cc:{mov_id}", notas=f"Venta WhatsApp facturada {numero} ({ref})")
+                avisos.append("Cobro del banco vinculado a la factura.")
+            except Exception as e:  # noqa: BLE001 — el vínculo no tumba la factura
+                avisos.append(f"No se pudo vincular el cobro ({e}); hazlo en el taller.")
     except Exception as e:  # noqa: BLE001 — el libro no puede tumbar una factura ya emitida
         avisos.append(f"No se pudo causar en el Libro Mayor ({e}); el cron la posteará.")
         _actualizar(venta_id, avisos=(obtener(venta_id) or {}).get("avisos", []) + [avisos[-1]])

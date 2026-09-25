@@ -1,3 +1,13 @@
+### 2026-09-25 08:30 - Cotizar/Facturar: cola «Por facturar» estilo taller — Fase 3
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó:**
+  - Botón **«Por facturar (N)»** en Cotizar/Facturar que abre la cola de **ventas WhatsApp cobradas sin factura** (reusa `wa_busqueda.cobros_sin_factura`): cada caso muestra el cobro (fecha, monto, banco), el cliente sugerido del chat (nombre, cédula, correo, teléfono; «en el libro» si ya existe) y lo cotizado. Estados identificado/ambiguo/sin_rastro.
+  - **«Preparar factura»** precarga el wizard: cliente del chat (o Consumidor Final si no hay cédula), teléfono, nota con el cobro, y guarda `cobro_extracto_id`. El operador agrega productos (Fase 1) y factura (Fase 2). **Al facturar, el cobro del banco se vincula automáticamente al asiento** (`causar_venta_directa` → `movimiento_id`) y el caso sale de la cola.
+  - Backend: columna `cobro_extracto_id` en `ventas_directas` (migración en caliente), `casos_por_facturar()`, endpoint `GET /api/ventas-directas/por-facturar`, y auto-vínculo en `facturar()`.
+- **Verificación:** `casos_por_facturar()` devuelve 22 casos con cliente/cédula/cotizado; `npm run build` limpio; agente-pro reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`.
+
 ### 2026-09-25 08:00 - Cotizar/Facturar: soporte de pago (pegar Ctrl+V / adjuntar) — Fase 2
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
