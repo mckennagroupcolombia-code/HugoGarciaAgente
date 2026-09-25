@@ -1169,6 +1169,10 @@ def trazabilidad(prestamo_id: int) -> dict:
     _ensure()
     import app.services.contabilidad_core as cc
 
+    # La cuenta por cobrar a socios era 1355 y migró a 1325; los asientos guardan
+    # el código vivo, así que hay que comparar contra él (un literal '1355' no casa).
+    cod_cxc_socios = cc.codigo_vivo("1355")
+
     p = obtener_prestamo(prestamo_id)
     if not p:
         raise ValueError("Préstamo no encontrado")
@@ -1196,7 +1200,7 @@ def trazabilidad(prestamo_id: int) -> dict:
     for mid in ids:
         mov = cc.obtener_movimiento(mid)
         for l in (mov or {}).get("lineas", []):
-            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["debito"]:
+            if l["cuenta_codigo"] == cod_cxc_socios and l.get("tercero_id") and l["debito"]:
                 recibido_por[int(l["tercero_id"])] = recibido_por.get(
                     int(l["tercero_id"]), 0.0
                 ) + float(l["debito"])
@@ -1208,9 +1212,9 @@ def trazabilidad(prestamo_id: int) -> dict:
                 "SELECT DISTINCT m.id FROM cc_movimientos m"
                 " JOIN cc_movimiento_lineas l ON l.movimiento_id = m.id"
                 " JOIN cc_plan_cuentas c ON c.id = l.cuenta_id"
-                f" WHERE m.tipo_origen='reposicion_socio' AND c.codigo='1355'"
+                f" WHERE m.tipo_origen='reposicion_socio' AND c.codigo=?"
                 f"   AND l.tercero_id IN ({marcas}) ORDER BY m.fecha, m.id",
-                tuple(recibido_por),
+                (cod_cxc_socios, *recibido_por),
             ):
                 repos.append(int(r["id"]))
 
@@ -1293,7 +1297,7 @@ def trazabilidad(prestamo_id: int) -> dict:
         if a["clase"] != "reposicion":
             continue
         for l in a["lineas"]:
-            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["credito"]:
+            if l["cuenta_codigo"] == cod_cxc_socios and l.get("tercero_id") and l["credito"]:
                 tid = int(l["tercero_id"])
                 repuesto_por[tid] = repuesto_por.get(tid, 0.0) + float(l["credito"])
     socios = [

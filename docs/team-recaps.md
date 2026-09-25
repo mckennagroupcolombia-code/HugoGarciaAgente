@@ -1,3 +1,12 @@
+### 2026-09-25 06:10 - Préstamos: trazabilidad no veía las reposiciones del socio (1355 → 1325)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.
+- **Qué se implementó:**
+  - `prestamos.trazabilidad()` buscaba la cuenta por cobrar a socios con el literal `1355`, pero esa cuenta **migró a 1325** (`codigo_vivo("1355") == "1325"`) y los asientos guardan el código vivo. Resultado: el grafo del préstamo **no detectaba quién recibió el capital ni las reposiciones del socio** (salían en cero).
+  - Se reemplazan las 3 referencias por `cod_cxc_socios = cc.codigo_vivo("1355")` (robusto ante futuras migraciones); la consulta SQL de reposiciones queda parametrizada.
+- **Verificación:** `trazabilidad(4)` (préstamo MUTUO-VHGB-2026) ahora detecta las 4 reposiciones de Armando y reporta recibió $20.000.000 / repuso $19.998.997. Contexto: se causó en conciliación el abono REPO-VHGB-4 ($1.000.000, 21-sep) que completa el capital (queda $1.003 de cola).
+- **Archivos Modificados:** `app/services/prestamos.py` (único cambio de código; las causaciones de conciliación son datos en `contabilidad.db`).
+
 ### 2026-09-25 05:00 - Taller de conciliación: costos bancarios reconocidos + cruce de compra Factores
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora técnica (clasificador de extractos) + causaciones en el Libro Mayor. Sin LLM.
