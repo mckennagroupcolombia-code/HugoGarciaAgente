@@ -1,3 +1,14 @@
+### 2026-09-26 02:10 - Sonidos de juego al tocar cada apartado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Cada departamento suena a lo que hace cuando se toca uno de sus apartados, en el Mapa y en el Edificio: timbre en Inicio, pitazos de camión en Abastecer, martillo en Preparar, obturador de cámara en Publicar, moneda en Vender, camión que arranca en Entregar, impresora en Facturar, calculadora en Contar, fanfarria en Dirigir y computadora en Sistema.
+  - Lo urgente suena como alarma; «◇ Mapa» tiene su sonido de volver, cambiar Mapa/Edificio suena a pausa y, con la piel pixel, las pestañas dentro de los módulos hacen un blip.
+  - Estilo de 8 bits como los juegos de la sección Juegos (Circus Charlie, la pesca), pero **sintetizado** en el navegador: no se copió el audio de esos juegos.
+  - Botón «♪ Sonido / Silencio» en la barra del Mapa (se recuerda en cada navegador).
+  - Verificado con clics reales: cada apartado elige su sonido y el silencio los apaga.
+- **Archivos Modificados:** `desktop/src/lib/sonidosJuego.ts` (nuevo), `desktop/src/App.tsx`, `desktop/src/components/MapaVivo.tsx`, `CLAUDE.md`.
+
 ### 2026-09-26 01:45 - Mapa sin niveles: siempre todo el edificio
 - **Autor:** Armando García
 - **Tipo de Cambio:** Simplificación de la interfaz. Sin LLM.

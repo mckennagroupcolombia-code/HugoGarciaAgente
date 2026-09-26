@@ -76,6 +76,7 @@ import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigati
 import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad } from "./lib/contabilidadAccess";
 import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
+import { instalarSonidos } from "./lib/sonidosJuego";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -458,6 +459,8 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.classList.remove("mck-apk");
+    // Sonidos de juego al tocar los apartados (Mapa, Edificio, pestañas con la piel pixel).
+    instalarSonidos();
   }, []);
 
   useEffect(() => {

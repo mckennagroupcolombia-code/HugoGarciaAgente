@@ -37,6 +37,7 @@ import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { puedeVerTabInicio } from "./nav/InicioNavTabs";
 import { Sprite } from "./colaboradores/pixel";
+import { ponerSonidos, sonidosActivos, tocarSonido } from "../lib/sonidosJuego";
 import {
   COLOR, COLOR_DEF, useInicio,
   type Bloqueos, type DatosEtapa, type DatosOrigen, type Urgencia,
@@ -102,7 +103,7 @@ function CartaOrigen({ id, data }: NodeProps) {
   const abrir = useContext(AbrirCtx);
   const { token, verMensajes, vistaAgenda, espacios } = useInicio((p) => abrir(p, id));
   return (
-    <div className="mv-carta mv-origen">
+    <div className="mv-carta mv-origen" data-etapa="inicio">
       <Manijas entra={d.entra} sale={d.sale} />
       <div className="mv-cab" style={{ background: "var(--ed-amarillo, #FFEC27)", color: "var(--ed-negro, #000)" }}>
         <Sprite s="jugador" px={2} colores={{ X: "#29ADFF" }} /> Inicio
@@ -149,7 +150,7 @@ function CartaEtapa({ id, data }: NodeProps) {
     : d.tramos.map((t) => ({ ...t, visibles: t.visibles.filter((p) => d.urgentes[p.panel]) })).filter((t) => t.visibles.length);
   return (
     <div className={`mv-carta ${d.participa ? "" : "mv-apagada"} ${d.mias > 0 ? "mv-camino" : ""} ${hayUrgente ? "mv-hay-urgente" : ""} ${d.ancha ? "mv-ancha" : ""}`}
-         data-urgente={hayUrgente ? "1" : undefined}>
+         data-urgente={hayUrgente ? "1" : undefined} data-etapa={d.etapa.id}>
       <Manijas entra={d.entra} sale={d.sale} />
       <div className="mv-cab" style={{ background: c.fondo, color: c.tinta }}>
         <Sprite s={c.s} px={2} />
@@ -275,6 +276,13 @@ function Mapa() {
 
   const [modo, setModo] = useState<"mapa" | "edificio">(() => (leer(CLAVE_MODO) === "edificio" ? "edificio" : "mapa"));
   const cambiarModo = (m: "mapa" | "edificio") => { setModo(m); guardar(CLAVE_MODO, m); };
+  const [sonido, setSonido] = useState(sonidosActivos);
+  const alternarSonido = () => {
+    const nuevo = !sonido;
+    ponerSonidos(nuevo);
+    setSonido(nuevo);
+    if (nuevo) tocarSonido("vender");
+  };
 
   // Lo detenido que ESTA persona puede atender: el servidor lo filtra por los paneles que
   // puede abrir (app/services/acceso_paneles.py), así que la ve todo el equipo interno.
@@ -488,6 +496,10 @@ function Mapa() {
           <button type="button" aria-pressed={modo === "edificio"} onClick={() => cambiarModo("edificio")}
                   className={`mv-nivel ${modo === "edificio" ? "mv-nivel-on" : ""}`} title="El diorama: cada departamento es un piso">Edificio</button>
         </div>
+        <button type="button" className={`mv-nivel ${sonido ? "" : "mv-silencio"}`} aria-pressed={sonido} onClick={alternarSonido} data-sin-sonido
+                title={sonido ? "Silenciar los sonidos al tocar los apartados" : "Activar los sonidos al tocar los apartados"}>
+          {sonido ? "♪ Sonido" : "Silencio"}
+        </button>
         {totalUrgente > 0 && (
           <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
                   title="Llevar la cámara a lo que necesita atención ya">
