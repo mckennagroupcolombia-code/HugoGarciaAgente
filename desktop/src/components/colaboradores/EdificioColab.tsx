@@ -136,13 +136,13 @@ export default function EdificioColab({
         const a = geo.cajas[e.from], b = geo.cajas[e.to];
         if (!a || !b) return [];
         const quienEnvia = avatar(e.portador) ?? avatar(porId.get(e.from)?.avatar);
-        let quienRecibe = avatar(porId.get(e.to)?.avatar);
-        // Si nadie tiene el bloque de destino (o es la misma persona en otro piso), recibe quien trabaja ahí.
-        if (!quienRecibe || (quienRecibe.id === quienEnvia?.id && a.piso !== b.piso)) quienRecibe = undefined;
+        // Recibe el responsable del bloque de destino; si es la misma persona, la lleva ella sola (y se sube
+        // al ascensor si es otro piso). Sin responsable, recibe un trabajador del piso (gris).
+        const quienRecibe = avatar(porId.get(e.to)?.avatar);
         return [{
           id: e.id, desde: a, hasta: b, carga: porId.get(e.from)?.tipo === "dinero" ? "doc" : "caja", etiqueta: e.label || undefined,
-          emisor: { color: quienEnvia?.color ?? "#374151", nombre: quienEnvia?.nombre },
-          receptor: { color: quienRecibe?.color ?? "#83769C", nombre: quienRecibe?.nombre },
+          emisor: { color: quienEnvia?.color ?? "#374151", nombre: quienEnvia?.nombre.split(" ")[0] },
+          receptor: { color: quienRecibe?.color ?? "#83769C", nombre: quienRecibe?.nombre.split(" ")[0] },
         }];
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -255,7 +255,7 @@ export default function EdificioColab({
           <div className="eb-suelo" aria-hidden="true" />
 
           {/* Las entregas como relevos: de mano en mano en el piso, por el ascensor entre pisos. */}
-          <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} onTocar={onEntrega} />
+          <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} onTocar={onEntrega} nombres />
           {lluvia && <Lluvia r={lluvia} avatares={op.avatares} />}
         </div>
 

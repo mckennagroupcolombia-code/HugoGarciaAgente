@@ -88,6 +88,18 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
     funciones: [{ id: "empaque", funcion: "Empacar pedidos", implica: "Armar y cerrar cajas", nivel: 1, veces: 142, horas: 14.2, promedio_min: 6, fuente: "panel" }],
     tipos: [{ nivel: 1, nombre: "Operativo", horas: 60, porcentaje: 62 }], nota: "Datos de ejemplo del banco de pruebas.",
   });
+  // Quién hace cada función (nombres de EJEMPLO, inventados).
+  if (ruta === "/api/mapa-sistema/quien-hace") {
+    const P = (id: number, nombre: string, peso: number) => ({ id, nombre, peso });
+    return json({ funciones: {
+      compras: [P(1, "Laura", 23)], envasar: [P(2, "Tomás", 10)], empacar: [P(3, "Rosa", 114), P(2, "Tomás", 29)],
+      lote: [P(1, "Laura", 5)], imprimir_et: [P(1, "Laura", 39), P(2, "Tomás", 19)], alistar: [P(1, "Laura", 56)],
+      embalar: [P(1, "Laura", 9), P(3, "Rosa", 6)], guias: [P(1, "Laura", 46)], envio: [P(2, "Tomás", 15)],
+      clientes: [P(1, "Laura", 52)], meli_qa: [P(1, "Laura", 4)], publica: [P(4, "Marta", 66)],
+      facturar: [P(1, "Laura", 134)], sol_pago: [P(5, "Andrés", 38)], aprobar: [P(5, "Andrés", 41)],
+      contab: [P(5, "Andrés", 38)], analisis: [P(4, "Marta", 41)],
+    } });
+  }
   if (ruta === "/api/status") return json({ status: "activo", servicios: {} });
   // Pedidos Web con datos de EJEMPLO (inventados): sin ellos el panel solo muestra su estado vacío.
   if (ruta === "/api/pedidos/web") {

@@ -1,3 +1,13 @@
+### 2026-09-26 07:40 - El Edificio del Mapa cuenta la operación real de McKenna
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora visual con datos reales. Sin LLM.
+- **Qué se implementó:**
+  - Cada piso muestra sus **estaciones reales**: Muelle, Recepción, Bodega · Dosificar, Empacar, Lote, Etiquetar, Almacén · Foto, Publicar · Pedidos, Preguntas · Alistar, Embalar, Guía, Transporte · Factura, Solicitud y Aprobación del pago · Libro Mayor · Análisis.
+  - En cada una trabaja **quien de verdad la hace**: sale de las tareas y del uso del panel, con el mismo catálogo de funciones de la ficha de rendimiento (nueva ruta `/api/mapa-sistema/quien-hace`; solo nombres y cuántas veces, sin horas ni pagos). Cada persona aparece con su nombre en su puesto principal.
+  - El **recorrido del día**, en orden: llega la materia prima → se cuenta y revisa → se guarda → se pesa y envasa → se empaca y sella → fecha y lote → se pega la etiqueta → al almacén → foto y publicación → llega el pedido → se alista → se embala → se imprime y pega la guía → se entrega al transportador (el camión arranca). Y los papeles: factura de compra → solicitud de pago → aprobación → Libro Mayor; al entregar → factura de venta → Libro Mayor → análisis. Lo que viaja cambia de forma (saco, bolsa, producto etiquetado, paquete, paquete con guía, factura) y cada paso dice lo que hace quien recibe.
+  - Una misma persona que hace dos pasos seguidos lleva la cosa ella sola (y se sube al ascensor si cambia de piso).
+- **Archivos Modificados:** `desktop/src/components/mapa/operacionMcKenna.ts` (nuevo), `desktop/src/components/relevos/{CapaRelevos.tsx,relevos.css}`, `desktop/src/components/{MapaEdificio.tsx,mapa-edificio.css}`, `desktop/src/components/colaboradores/EdificioColab.tsx`, `app/services/rendimiento.py`, `app/routes_mapa_sistema.py`, `tests/test_rendimiento.py`, `desktop/dev/app.tsx`, `CLAUDE.md`.
+
 ### 2026-09-26 06:30 - Relevos: el paquete viaja con lógica (Colaboradores y Mapa)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora visual. Sin LLM.

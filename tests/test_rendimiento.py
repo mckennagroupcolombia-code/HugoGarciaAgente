@@ -68,3 +68,14 @@ def test_clasificar():
     assert R.clasificar("IMPRIMIR GUIAS DE MERCADOLIBRE") == "guias"
     assert R.clasificar("Voy a hacer la preparación para hacer vasos para la inoculación") == "hongos"
     assert R.clasificar("algo sin categoría") is None
+
+
+def test_quien_hace_pone_a_cada_persona_en_su_funcion(db):
+    """El Edificio del Mapa: quien empaca es la operaria; el socio que desarrolla el módulo no
+    aparece empacando (lo suyo es construir el módulo), pero sí llevando el Libro Mayor."""
+    R._CACHE_QUIEN.clear()
+    q = R.quien_hace(dias=30, hoy=datetime(2026, 9, 20))
+    assert [p["nombre"] for p in q["empacar"]] == ["Operaria"]
+    assert q["empacar"][0]["peso"] == 2
+    assert [p["nombre"] for p in q["contab"]] == ["Socio"]
+    assert all(set(p) == {"id", "nombre", "peso"} for v in q.values() for p in v)   # nada de horas ni pagos

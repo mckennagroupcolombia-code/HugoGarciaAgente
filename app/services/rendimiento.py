@@ -289,3 +289,44 @@ def horas_entre(usuario_id: int, desde_local: datetime, hasta_local: datetime) -
     funciones = _filas(per["fx"], desarrolla=user in _lista_env("RENDIMIENTO_DESARROLLADORES", "armando,@cynthia"),
                        imprime=user in _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor,stella"), factor=1.0)
     return {"horas": round(sum(f["horas"] for f in funciones), 2), "funciones": funciones}
+
+
+# ─── Quién hace qué (el Edificio del Mapa, 26-sep-2026) ─────────────────────────────────
+# El Mapa dibuja la operación como estaciones reales (recibir, dosificar, empacar, etiquetar,
+# alistar, guía, transportadora, facturar, pagar, contabilizar…) y en cada una pone a QUIEN LA
+# HACE de verdad. Sale de lo mismo que la ficha (tareas cronometradas o asignadas y uso del
+# módulo del panel) con las mismas reglas: lo operativo de quien desarrolla no cuenta como
+# operación, y quien imprime en el Studio imprime, no diseña. Solo nombres y veces: ni horas ni pagos.
+_CACHE_QUIEN: dict = {}
+
+
+def quien_hace(dias: int = 60, *, hoy: datetime | None = None) -> dict:
+    """{funcion_id: [{id, nombre, peso}]} de mayor a menor, máximo 3 personas por función."""
+    import time
+    clave = (dias, (hoy or datetime.utcnow()).strftime("%Y%m%d%H"))
+    if clave in _CACHE_QUIEN and time.time() - _CACHE_QUIEN[clave][0] < 600:
+        return _CACHE_QUIEN[clave][1]
+    fin = (hoy or datetime.utcnow()).replace(microsecond=0)
+    ini = fin - timedelta(days=dias)
+    fmt = lambda d: d.strftime("%Y-%m-%d %H:%M:%S")  # noqa: E731
+    por: dict[str, dict[int, dict]] = defaultdict(dict)
+    desarrolladores = _lista_env("RENDIMIENTO_DESARROLLADORES", "armando,@cynthia")
+    imprimen = _lista_env("RENDIMIENTO_IMPRIMEN", "jerry,vitor,stella")
+    with _conn() as conn:
+        for u in equipo_para_selector():
+            user = (u["username"] or "").lower()
+            fx = _periodo(conn, u["id"], fmt(ini), fmt(fin))["fx"]
+            for cid, r in fx.items():
+                if user in desarrolladores and cid in _AREA_MODULO:
+                    continue                       # construye el módulo, no hace la tarea
+                if user in imprimen and cid == "diseno":
+                    cid = "imprimir_et"
+                peso = r["veces"] + round(r["h_panel"] * 2, 1)
+                if peso <= 0:
+                    continue
+                fila = por[cid].setdefault(u["id"], {"id": u["id"], "nombre": (u["nombre"] or "").split(" ")[0], "peso": 0.0})
+                fila["peso"] = round(fila["peso"] + peso, 1)   # «imprime» puede venir de dos funciones
+    out = {cid: sorted(v.values(), key=lambda x: -x["peso"])[:3] for cid, v in por.items()}
+    _CACHE_QUIEN.clear()
+    _CACHE_QUIEN[clave] = (time.time(), out)
+    return out

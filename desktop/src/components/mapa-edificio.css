@@ -411,3 +411,38 @@
 .mapa-vivo .ed-camion-parte { animation: ed-parte 3.6s steps(36) both; }
 @keyframes ed-parte { 0% { transform: none; } 45% { transform: translateX(60cqw); opacity: 1; } 46% { opacity: 0; } 55% { transform: translateX(-80cqw); opacity: 0; } 56% { opacity: 1; } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .mapa-vivo .ed-camion-parte { animation: none; } }
+
+/* ─── Las estaciones de la operación (MapaEdificio → mapa/operacionMcKenna.ts) ───
+   Cada una: un letrero corto y el objeto que la hace reconocible; quien la hace está parado al lado
+   (CapaRelevos). El centro de cada estación es de donde sale y adonde llega lo que viaja. */
+.mapa-vivo .ed-op {
+  position: absolute; bottom: 8px; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.mapa-vivo .ed-op-letrero {
+  padding: 0 4px; background: var(--ed-negro, #000); color: var(--ed-crema, #FFF1E8);
+  font-size: 9px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap;
+}
+.mapa-vivo .ed-op-mesa {
+  display: flex; align-items: flex-start; justify-content: center; width: 54px; height: 22px; padding-top: 2px;
+  background: var(--ed-cafe, #AB5236); border: 3px solid var(--ed-negro, #000); box-shadow: inset 0 5px 0 #FFCCAA;
+}
+.mapa-vivo .ed-op-estante {
+  display: grid; grid-template-columns: repeat(2, auto); gap: 2px; padding: 3px 4px;
+  background: repeating-linear-gradient(transparent 0 14px, var(--ed-gris-osc, #5F574F) 14px 17px);
+  border-left: 3px solid var(--ed-negro, #000); border-right: 3px solid var(--ed-negro, #000);
+}
+.mapa-vivo .ed-op-almacen { grid-template-columns: repeat(3, auto); }
+.mapa-vivo .ed-op-telefono { position: relative; display: inline-block; }
+.mapa-vivo .ed-op-timbre {
+  position: absolute; top: -4px; right: -6px; width: 6px; height: 6px; background: var(--ed-rojo, #FF004D);
+  border: 1px solid #000; animation: ed-timbre 0.7s steps(1, end) infinite;
+}
+@keyframes ed-timbre { 50% { opacity: 0; } }
+.mapa-vivo .ed-op-cajas { display: flex; gap: 2px; }
+.mapa-vivo .ed-op-escritorio { display: block; }
+.mapa-vivo .ed-op-grafica { position: static; height: 40px; }
+@media (max-width: 699px) {
+  .mapa-vivo .ed-op-letrero { font-size: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .mapa-vivo .ed-op-timbre { animation: none; } }

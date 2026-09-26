@@ -196,6 +196,31 @@ def register_mapa_sistema_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         return jsonify(mapa_app.urgencias_para(usuario))
 
+    @_dual(app, "/api/mapa-sistema/quien-hace", methods=["GET"])
+    def mapa_sistema_quien_hace():
+        """Quién hace cada función de la operación (el Edificio del Mapa pone a cada persona en
+        su estación). Solo el equipo interno: ni el colaborador externo ni el contador. Solo
+        nombres y cuántas veces; nada de horas ni pagos (eso es de RRHH)."""
+        from app.api_auth import bearer_token_from_request, chat_api_token_matches_request
+        from app.services import rendimiento
+        from app.services.colaboradores import es_colaborador_externo
+        from app.services.tickets_db import get_usuario_by_token
+
+        usuario = None
+        for tok in ((request.headers.get("X-Tickets-Token") or "").strip(), bearer_token_from_request()):
+            if tok:
+                try:
+                    usuario = get_usuario_by_token(tok)
+                except Exception:
+                    usuario = None
+                if usuario:
+                    break
+        if not usuario and not chat_api_token_matches_request():
+            return jsonify({"error": "No autorizado"}), 401
+        if usuario and (es_colaborador_externo(usuario) or (usuario.get("permisos_secciones") or {}).get("contador")):
+            return jsonify({"error": "No autorizado"}), 403
+        return jsonify({"funciones": rendimiento.quien_hace()})
+
     @_dual(app, "/api/mapa-sistema/productos", methods=["GET"])
     @_auth
     def mapa_sistema_productos():

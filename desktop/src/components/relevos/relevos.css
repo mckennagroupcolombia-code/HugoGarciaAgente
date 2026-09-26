@@ -33,3 +33,9 @@ span.rl-actor-btn { pointer-events: none; cursor: default; }
 @media (prefers-reduced-motion: reduce) {
   .rl-capa * { animation: none !important; }
 }
+/* Lo que hace quien recibe (la acción de su estación) y el nombre de cada persona. */
+.rl-accion { background: #FFEC27; margin-bottom: 30px; }
+.rl-nombre {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px;
+  padding: 0 3px; background: rgba(0, 0, 0, 0.72); color: #FFF1E8; font-size: 9px; font-weight: 700; white-space: nowrap;
+}

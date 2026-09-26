@@ -5,7 +5,14 @@
  * Abastecer y termina en Contar; Dirigir es el último piso y Sistema el sótano. Se entra
  * por la recepción (Inicio), donde están Mi agenda y Mi ficha.
  *
- * Lo que se ve moverse NO es decoración suelta: la sirena gira donde hay algo urgente, las
+ * Cada piso muestra sus ESTACIONES reales (mapa/operacionMcKenna.ts: recepción, bodega, dosificar,
+ * empacar, lote, etiquetar, almacén, foto, pedidos, alistar, embalar, guía, transportadora, factura,
+ * solicitud y aprobación del pago, Libro Mayor, análisis) con QUIEN LAS HACE de verdad
+ * (/api/mapa-sistema/quien-hace, las mismas funciones de la ficha de rendimiento), y el recorrido
+ * del día avanza de relevo en relevo (relevos/CapaRelevos): la materia prima se vuelve producto, el
+ * producto paquete, y los papeles llegan a contabilidad.
+ *
+ * Lo demás que se mueve tampoco es decoración suelta: la sirena gira donde hay algo urgente, las
  * notas en la pared son lo detenido de verdad (/api/mapa-sistema/urgencias), tu muñeco
  * está en los pisos donde tienes solicitudes, y un piso donde no participas tiene las
  * luces apagadas (sin nombrar sus paneles, igual que el tablero).
@@ -20,8 +27,11 @@ import { PanelIcon } from "../icons";
 import { ORIGEN_APP } from "../lib/flujoApp";
 import { PANEL_INFO } from "../lib/panelInfo";
 import type { Panel } from "../stores/app";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../api/client";
 import { Sprite } from "./colaboradores/pixel";
-import CapaRelevos, { type Geometria, type Relevo } from "./relevos/CapaRelevos";
+import CapaRelevos, { type Actor, type Geometria, type Relevo, type Residente } from "./relevos/CapaRelevos";
+import { ESTACIONES, RECORRIDO, type Estacion } from "./mapa/operacionMcKenna";
 import { BotonMiFicha } from "./MiRendimiento";
 import {
   COLOR, COLOR_DEF, SOTANO, pisosDelEdificio, placaDePiso, useInicio, type DatosEtapa, type DatosOrigen,
@@ -55,27 +65,6 @@ const FIGURAS = {
 } as const;
 type Figura = keyof typeof FIGURAS;
 
-// ─── La cadena del negocio (relevos) ──────────────────────────────────────────────────
-// El paquete sube piso por piso en el orden del negocio: llega en el camión a Abastecer, pasa por
-// Preparar, Publicar y Vender, y en Entregar se va en el camión; desde ahí sigue como FACTURA hacia
-// Facturar, Contar y Dirigir. Cada piso tiene a su trabajador en su puesto (su estación, % del ancho
-// del piso): recibe del ascensor, lleva a su estación y manda al siguiente.
-const CADENA = ["abastecer", "preparar", "publicar", "vender", "entregar", "facturar", "contar", "dirigir"];
-const ESTACION: Record<string, number> = {
-  abastecer: 0.2, preparar: 0.7, publicar: 0.34, vender: 0.4, entregar: 0.56, facturar: 0.47, contar: 0.4, dirigir: 0.62,
-};
-const QUIEN: Record<string, Figura> = {
-  abastecer: "hombre", preparar: "mujer", publicar: "hombre", vender: "mujer",
-  entregar: "hombre", facturar: "mujer", contar: "hombre", dirigir: "princesa",
-};
-const TRABAJADOR = (id: string) => {
-  const i = Math.max(0, CADENA.indexOf(id));
-  const figura = QUIEN[id] ?? "hombre";
-  return {
-    color: CAMISAS[i % CAMISAS.length], figura: FIGURAS[figura][0] as unknown as string[],
-    colores: figura === "princesa" ? { X: "#FF77A8", n: "#FFEC27" } : { X: CAMISAS[i % CAMISAS.length], n: PELOS[i % PELOS.length] },
-  };
-};
 const CAJA = ["kkkkkkkk", "knnnonnk", "knnnonnk", "kkkkkkkk", "knnnnnnk", "knnnnnnk", "kkkkkkkk"];
 const FRASCO = ["..kkkk..", "..kssk..", ".kkkkkk.", "kwwwwwwk", "kwbbbbwk", "kwbbbbwk", "kwwwwwwk", ".kkkkkk."];
 const PLANTA = ["..g..g..", ".gGg.gG.", "..gGgG..", "...GG...", "..kkkk..", ".knnnnk.", ".knnnnk.", "..kkkk.."];
@@ -92,84 +81,69 @@ const PELOS = ["#AB5236", "#000000", "#5F574F", "#FFA300"];
 
 type Var = CSSProperties & Record<`--${string}`, string | number>;
 
+// ─── Las estaciones de la operación (mapa/operacionMcKenna.ts) ──────────────────────────
+const BASCULA = ["..kkkk..", "..kwwk..", "kkkkkkkk", "kssssssk", "ksgssssk", "kkkkkkkk"];
+const SELLADORA = ["kkkkkkkkkk", "kSSSSSSSSk", "kkkkkkkkkk", "....kk....", "..kkkkkk..", "..kssssk..", "..kkkkkk.."];
+const SELLO = ["..kkkk..", "..krrk..", "..krrk..", ".kkkkkk.", "krrrrrrk", "kkkkkkkk"];
+const TELEFONO = ["kkkkkk", "kbbbbk", "kbwwbk", "kbbbbk", "kSSSSk", "kkkkkk"];
+const CANASTA = ["k......k", "kkkkkkkk", "knknknkk", "kkkkkkkk", "knknknkk", ".kkkkkk."];
+const TERMICA = ["..kkkkk...", "..kwwwk...", "kkkkkkkkkk", "kssssssssk", "ksssgssssk", "kkkkkkkkkk"];
+const LIBRO = ["kkkkkkkk", "kPPPPPwk", "kPyyPPwk", "kPPPPPwk", "kPPPPPwk", "kkkkkkkk"];
+const SACO = ["..kkkk..", ".knkknk.", "knnnnnnk", "knnwwnnk", "knnnnnnk", ".kkkkkk."];
+const BOLSA_LISTA = ["kkkkkkkk", "kssssssk", ".kwwwwk.", ".kyyyyk.", ".kbbbbk.", ".kkkkkk."];
+
+/** El objeto de cada estación: lo que la hace reconocible de un vistazo. */
+function PropEstacion({ prop, sale }: { prop: Estacion["prop"]; sale?: boolean }) {
+  switch (prop) {
+    case "camion": return <span className={sale ? "ed-camion-parte inline-block" : "inline-block"}><Sprite s="camion" px={5} /></span>;
+    case "mesa": return <span className="ed-op-mesa"><Sprite s="doc" px={2} /></span>;
+    case "estante": return <span className="ed-op-estante">{[0, 1, 2, 3].map((k) => <Sprite key={k} s={SACO} px={2} />)}</span>;
+    case "almacen": return <span className="ed-op-estante ed-op-almacen">{[0, 1, 2, 3, 4, 5].map((k) => <Sprite key={k} s={BOLSA_LISTA} px={2} />)}</span>;
+    case "bascula": return <Sprite s={BASCULA} px={3} />;
+    case "selladora": return <Sprite s={SELLADORA} px={3} />;
+    case "sello": return <Sprite s={SELLO} px={3} />;
+    case "impresora": return <span className="ed-impresora"><span className="ed-hoja"><Sprite s="doc" px={2} /></span><Sprite s={IMPRESORA} px={3} /></span>;
+    case "termica": return <Sprite s={TERMICA} px={3} />;
+    case "camara": return <span className="ed-tripode"><Sprite s={CAMARA} px={3} /></span>;
+    case "pantalla": return <span className="ed-pantalla"><Sprite s="ventana" px={4} /></span>;
+    case "telefono": return <span className="ed-op-telefono"><Sprite s={TELEFONO} px={3} /><span className="ed-op-timbre" /></span>;
+    case "canasta": return <Sprite s={CANASTA} px={3} />;
+    case "cajas": return <span className="ed-op-cajas">{[0, 1, 2].map((k) => <Sprite key={k} s={CAJA} px={2} />)}</span>;
+    case "escritorio": return <span className="ed-escritorio ed-op-escritorio" />;
+    case "libro": return <Sprite s={LIBRO} px={3} />;
+    case "grafica": return <span className="ed-grafica ed-op-grafica">{[0, 1, 2, 3, 4].map((k) => <span key={k} style={{ "--retraso": `${-k * 0.6}s` } as Var} />)}</span>;
+    default: return <Sprite s="bloques" px={3} />;
+  }
+}
+
+/** Colores de las personas del equipo (estables por id). */
+const COLOR_PERSONA = ["#29ADFF", "#FF004D", "#00E436", "#FFA300", "#FF77A8", "#83769C", "#FFEC27", "#AB5236"];
+type Persona = { id: number; nombre: string; peso: number };
+const actorDe = (p: Persona): Actor => ({ color: COLOR_PERSONA[p.id % COLOR_PERSONA.length], nombre: p.nombre });
+const EXTERNO: Actor = { color: "#5F574F", nombre: "Proveedor" };
+
 /** Un objeto quieto sobre el piso, a `x`% del borde izquierdo. */
 function Cosa({ x, children, className, abajo = 6 }: { x: number; children?: ReactNode; className?: string; abajo?: number }) {
   return <div className={`ed-cosa ${className ?? ""}`} style={{ left: `${x}%`, bottom: abajo }} aria-hidden="true">{children}</div>;
 }
 
 /** Lo que pasa en cada piso. Cada escena cuenta, a su manera, qué se hace ahí. */
-function Escena({ id, camionSale = false }: { id: string; camionSale?: boolean }) {
+/** Las estaciones de un piso, con su letrero y su objeto. */
+function EstacionesDelPiso({ piso, camionSale }: { piso: string; camionSale: boolean }) {
+  return (<>
+    {piso === "dirigir" && <div className="ed-ciudad" aria-hidden="true" />}
+    {ESTACIONES.filter((e) => e.piso === piso).map((e) => (
+      <div key={e.id} className="ed-op" data-estacion={e.id} style={{ left: `${e.x * 100}%` }} title={e.hace}>
+        <span className="ed-op-letrero">{e.nombre}</span>
+        <PropEstacion prop={e.prop} sale={e.id === "transportadora" && camionSale} />
+      </div>
+    ))}
+  </>);
+}
+
+/** Lo que pasa en el sótano (y en cualquier piso sin estaciones). */
+function Escena({ id }: { id: string }) {
   switch (id) {
-    case "abastecer": // el muelle de carga: llega el camión y se descargan cajas
-      return (<>
-        <Cosa x={2}><Sprite s="camion" px={5} /></Cosa>
-        <Cosa x={44}><Sprite s={CAJA} px={3} /></Cosa>
-        <Cosa x={48}><Sprite s={CAJA} px={3} /></Cosa>
-        <Cosa x={46} abajo={27}><Sprite s={CAJA} px={3} /></Cosa>
-        <Cosa x={88}><Sprite s="cofre" px={4} /></Cosa>
-      </>);
-    case "preparar": // el taller: la cinta lleva frascos a llenar y etiquetar
-      return (<>
-        <div className="ed-cinta" style={{ left: "22%", width: "46%" }}>
-          <div className="ed-sobre-cinta">
-            {[0, 1, 2, 3].map((k) => <div key={k} className="ed-viaja" style={{ "--retraso": `${-k * 1.5}s` } as Var}><Sprite s={FRASCO} px={2} /></div>)}
-          </div>
-        </div>
-        <Cosa x={70} className="ed-maquina"><span className="ed-luz ed-luz-verde" /></Cosa>
-        <Cosa x={88}><Sprite s="bloques" px={4} /></Cosa>
-      </>);
-    case "publicar": // el estudio: la cámara dispara al producto y las pantallas se encienden
-      return (<>
-        <div className="ed-flash" />
-        <Cosa x={16} className="ed-tripode"><Sprite s={CAMARA} px={3} /></Cosa>
-        <Cosa x={30} className="ed-pedestal"><Sprite s={FRASCO} px={3} /></Cosa>
-        <Cosa x={52} abajo={18} className="ed-pantalla"><Sprite s="ventana" px={4} /></Cosa>
-        <Cosa x={62} abajo={18} className="ed-pantalla ed-pantalla-2"><Sprite s="ventana" px={4} /></Cosa>
-      </>);
-    case "vender": // la tienda: clientes entran, el mostrador suelta monedas
-      return (<>
-        <Cosa x={34} className="ed-mostrador" />
-        {[0, 1, 2].map((k) => (
-          <div key={k} className="ed-moneda" style={{ left: `${37 + k * 4}%`, "--retraso": `${-k * 0.7}s` } as Var} aria-hidden="true">
-            <Sprite s="moneda" px={2} />
-          </div>
-        ))}
-        <Cosa x={6}><Sprite s={PLANTA} px={3} /></Cosa>
-      </>);
-    case "entregar": // despacho: las cajas bajan por la cinta y el camión sale a repartir
-      return (<>
-        <div className="ed-cinta" style={{ left: "4%", width: "34%" }}>
-          <div className="ed-sobre-cinta">
-            {[0, 1, 2].map((k) => <div key={k} className="ed-viaja" style={{ "--retraso": `${-k * 2}s` } as Var}><Sprite s={CAJA} px={2} /></div>)}
-          </div>
-        </div>
-        <Cosa x={60} className={camionSale ? "ed-camion-parte" : ""}><Sprite s="camion" px={5} /></Cosa>
-      </>);
-    case "facturar": // la oficina de facturas: la impresora no para
-      return (<>
-        <Cosa x={12} className="ed-escritorio" />
-        <Cosa x={14} abajo={30}><Sprite s="ventana" px={3} /></Cosa>
-        <Cosa x={44} className="ed-impresora">
-          <div className="ed-hoja"><Sprite s="doc" px={2} /></div>
-          <Sprite s={IMPRESORA} px={3} />
-        </Cosa>
-        <Cosa x={52}><Sprite s="doc" px={2} /></Cosa>
-      </>);
-    case "contar": // contabilidad: la gráfica sube y baja, la calculadora trabaja
-      return (<>
-        <div className="ed-grafica" style={{ left: "8%" }} aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((k) => <span key={k} style={{ "--retraso": `${-k * 0.6}s` } as Var} />)}
-        </div>
-        <Cosa x={34} className="ed-escritorio" />
-        <Cosa x={36} abajo={30}><Sprite s="datos" px={3} /></Cosa>
-      </>);
-    case "dirigir": // la última planta: vista a la ciudad, el trofeo, alguien pensando
-      return (<>
-        <div className="ed-ciudad" aria-hidden="true" />
-        <Cosa x={8}><Sprite s="trofeo" px={4} /></Cosa>
-        <Cosa x={60} className="ed-escritorio ed-escritorio-grande" />
-        <Cosa x={90}><Sprite s={PLANTA} px={3} /></Cosa>
-      </>);
     case "sistema": // el sótano: los servidores parpadean y el robot hace la ronda
       return (<>
         {[6, 16, 26, 74, 84].map((x, k) => (
@@ -201,8 +175,8 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
   const refs = useRef<Record<string, HTMLElement | null>>({});
   const reducir = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // La torre medida (suelo de cada piso, puerta del ascensor, estación de cada piso) para los relevos.
-  const [geo, setGeo] = useState<{ g: Geometria; estaciones: Record<string, number> } | null>(null);
+  // La torre medida (suelo de cada piso, puerta del ascensor, x de cada estación) para los relevos.
+  const [geo, setGeo] = useState<{ g: Geometria; estaciones: Record<string, { x: number; piso: string }> } | null>(null);
   const [llegando, setLlegando] = useState<string | null>(null);
   const [camionSale, setCamionSale] = useState(false);
   const medir = useCallback(() => {
@@ -210,14 +184,16 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
     if (!t) return;
     const tr = t.getBoundingClientRect();
     const pisosG: Geometria["pisos"] = {};
-    const estaciones: Record<string, number> = {};
+    const estaciones: Record<string, { x: number; piso: string }> = {};
     let puertaX = tr.width - 29;
     t.querySelectorAll<HTMLElement>("section[data-etapa]").forEach((el) => {
       const r = el.getBoundingClientRect();
       const id = el.dataset.etapa!;
       pisosG[id] = { suelo: r.bottom - tr.top - 16 };
-      const suelo = el.querySelector<HTMLElement>(".ed-suelo")?.getBoundingClientRect();
-      if (suelo) estaciones[id] = suelo.left - tr.left + suelo.width * (ESTACION[id] ?? 0.5);
+      el.querySelectorAll<HTMLElement>("[data-estacion]").forEach((est) => {
+        const e = est.getBoundingClientRect();
+        estaciones[est.dataset.estacion!] = { x: e.left - tr.left + e.width / 2, piso: id };
+      });
       const hueco = el.querySelector<HTMLElement>(".ed-hueco")?.getBoundingClientRect();
       if (hueco && hueco.width) puertaX = hueco.left - tr.left + hueco.width / 2;
     });
@@ -233,27 +209,50 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
     return () => { ro.disconnect(); cancelAnimationFrame(cuadro); };
   }, [medir]);
 
-  // Los relevos: de cada piso de la cadena al siguiente. Hasta Entregar va la caja; después, la factura.
-  const cadena = CADENA.filter((id) => porId.has(id));
+  // Quién hace cada función (las mismas de la ficha de rendimiento): así cada estación tiene a su gente.
+  const quien = useQuery<{ funciones: Record<string, Persona[]> }>({
+    queryKey: ["mapa-quien-hace"],
+    queryFn: () => api.get("/api/mapa-sistema/quien-hace"),
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+  const personaDe = useCallback((e?: Estacion): Persona | undefined =>
+    e?.funcion ? quien.data?.funciones[e.funcion]?.[0] : undefined, [quien.data]);
+
+  // El recorrido del día como relevos: de estación en estación, con quien de verdad lo hace.
   const relevos = useMemo<Relevo[]>(() => {
     if (!geo) return [];
-    return cadena.slice(0, -1).flatMap((de, i): Relevo[] => {
-      const a = cadena[i + 1];
-      const xa = geo.estaciones[de], xb = geo.estaciones[a];
-      if (xa == null || xb == null) return [];
-      const doc = CADENA.indexOf(de) >= CADENA.indexOf("entregar");
-      return [{ id: `${de}>${a}`, desde: { x: xa, piso: de }, hasta: { x: xb, piso: a }, carga: doc ? "doc" : "caja",
-                etiqueta: doc ? "factura" : undefined, emisor: TRABAJADOR(de), receptor: TRABAJADOR(a) }];
+    const est = new Map(ESTACIONES.map((e) => [e.id, e]));
+    return RECORRIDO.flatMap((p, i): Relevo[] => {
+      const a = geo.estaciones[p.de], b = geo.estaciones[p.a];
+      if (!a || !b) return [];
+      const de = est.get(p.de), hacia = est.get(p.a);
+      const quienEnvia = de?.externo ? { ...EXTERNO, nombre: de.externo } : personaDe(de) ? actorDe(personaDe(de)!) : { color: "#83769C" };
+      const quienRecibe = personaDe(hacia) ? actorDe(personaDe(hacia)!) : { color: "#83769C" };
+      return [{ id: `${p.de}>${p.a}#${i}`, desde: a, hasta: b, carga: p.carga, etiqueta: p.etiqueta, accion: p.accion,
+                emisor: quienEnvia, receptor: quienRecibe }];
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [geo, cadena.join(",")]);
-  const residentes = useMemo(() => Object.fromEntries(cadena.filter((id) => geo?.estaciones[id] != null)
-    .map((id) => [id, { x: geo!.estaciones[id], ...TRABAJADOR(id) }])),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [geo, cadena.join(",")]);
-  // Cuando la caja llega al camión de Entregar, el camión arranca a repartir (y vuelve).
+  }, [geo, personaDe]);
+
+  // Cada persona, quieta en su puesto principal: la estación de la función que más hace.
+  const residentes = useMemo<Residente[]>(() => {
+    if (!geo) return [];
+    const mejor = new Map<number, { e: Estacion; peso: number; p: Persona }>();
+    for (const e of ESTACIONES) {
+      for (const p of (e.funcion ? quien.data?.funciones[e.funcion] : undefined) ?? []) {
+        const actual = mejor.get(p.id);
+        if (!actual || p.peso > actual.peso) mejor.set(p.id, { e, peso: p.peso, p });
+      }
+    }
+    return [...mejor.values()].flatMap(({ e, p }) => {
+      const pos = geo.estaciones[e.id];
+      return pos ? [{ id: String(p.id), x: pos.x + 38, piso: pos.piso, actor: actorDe(p) }] : [];   // al lado de su estación, sin tapar el letrero
+    });
+  }, [geo, quien.data]);
+
+  // Cuando el paquete con guía llega a la transportadora, el camión arranca a repartir (y vuelve).
   const alPaso = useCallback((id: string) => {
-    if (id.endsWith(">entregar")) { setCamionSale(true); window.setTimeout(() => setCamionSale(false), 3600); }
+    if (id.startsWith("guia>transportadora")) { setCamionSale(true); window.setTimeout(() => setCamionSale(false), 3600); }
   }, []);
 
   // Se entra por la recepción: la primera vez el edificio se muestra con la planta baja a la vista.
@@ -324,13 +323,9 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
             )}
           </div>
           <div className="ed-suelo">
-            <Escena id={id} camionSale={id === "entregar" && camionSale} />
-            {d.mias > 0 && (
-              <div className="ed-tu" aria-hidden="true">
-                <span className="ed-burbuja">TÚ</span>
-                <Sprite s="jugador" px={3} colores={{ X: "#29ADFF" }} />
-              </div>
-            )}
+            {ESTACIONES.some((e) => e.piso === id)
+              ? <EstacionesDelPiso piso={id} camionSale={camionSale} />
+              : <Escena id={id} />}
           </div>
           {urgente && <div className="ed-sirena" aria-hidden="true"><Sprite s={SIRENA} px={3} /></div>}
         </div>
@@ -405,7 +400,7 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
         {porId.has(SOTANO) && piso(SOTANO, true)}
 
         {/* La cadena del negocio: de mano en mano en cada piso, por el ascensor entre pisos. */}
-        <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} residentes={residentes} onPaso={alPaso} />
+        <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} residentes={residentes} onPaso={alPaso} nombres />
       </div>
     </div>
   );
