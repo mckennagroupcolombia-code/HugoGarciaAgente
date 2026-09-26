@@ -208,6 +208,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "inicio",
   },
+  "mapa-vivo": {
+    emoji: "🧭",
+    label: "Mapa",
+    description:
+      "Toda la aplicación en una sola pantalla: la secuencia del negocio de la compra a la contabilidad, con lo que a ti te toca en cada etapa, lo que está detenido y tus pendientes. Es la pantalla de inicio.",
+    tips: [
+      "Arrastra para moverte y pellizca (o usa la rueda) para acercarte. «Encuadrar» vuelve a mostrar todo.",
+      "Toca un panel dentro de una etapa para abrirlo. Para volver, «◇ Mapa» en el cabezote.",
+      "La etapa que late en amarillo tiene solicitudes tuyas: es tu camino de hoy. Las apagadas son de otras personas.",
+      "«Etapas · Cotidiano · Todo» cambia cuánto detalle se ve; «Todo» dice qué se hace en cada panel.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
   "mapa-sistema": {
     emoji: "🗺️",
     label: "Mapa del sistema",

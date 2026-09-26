@@ -49,6 +49,9 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if (esAdminPanel(user)) return true;
   if (seccion === "settings") return true;
+  // El mapa es la pantalla de inicio de todo el equipo interno: cada carta se filtra
+  // con esta misma función, así que nadie ve en él un panel que no pueda abrir.
+  if (seccion === "mapa-vivo") return true;
   // Juegos: un rato de descanso para todo el equipo interno (no para contador ni colaborador externo).
   if (seccion === "juegos") return true;
   // El chat del equipo es de todo el equipo interno (cada canal filtra sus miembros en la API).

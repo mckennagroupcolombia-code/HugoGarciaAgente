@@ -89,6 +89,7 @@ export const FONT_CHOICES: { id: FontChoice; label: string }[] = [
   { id: "A Note", label: "A Note" },
   { id: "JetBrains Mono", label: "JetBrains Mono" },
   { id: "Share Tech Mono", label: "Share Tech Mono" },
+  { id: "DotGothic16", label: "DotGothic16 (pixel)" },
   { id: "system-ui", label: "Sistema" },
 ];
 
@@ -113,12 +114,14 @@ export const UI_ZOOMS: { id: UiZoom; label: string }[] = [
   { id: "150", label: "Máximo" },
 ];
 
+// Pixel desde el 25-sep-2026: toda la app con el lenguaje del Mapa y de Colaboradores. La
+// letra NO es pixel (se leía peor): el texto sigue en Montserrat; la piel es todo lo demás.
 export const MCKENNA_THEME_DEFAULT: PanelThemeConfig = {
   mode: "light",
   fontSans: "Montserrat",
-  accentRgb: "8 145 178",
-  radius: "md",
-  skin: "flujo",
+  accentRgb: "29 43 83",
+  radius: "sm",
+  skin: "pixel",
   fontScale: "md",
   menuScale: "md",
   uiZoom: "100",
@@ -155,6 +158,18 @@ export interface ThemePack {
 }
 
 export const THEME_PACKS: ThemePack[] = [
+  {
+    id: "pixel",
+    label: "Pixel",
+    tagline: "La app como un videojuego: bordes duros, sombras de bloque y paleta de consola; la letra de siempre.",
+    skin: "pixel",
+    fontSans: "Montserrat",
+    radius: "sm",
+    fontScale: "md",
+    menuScale: "md",
+    accentRgb: "29 43 83",
+    mode: "light",
+  },
   {
     id: "matrix",
     label: "Matrix",
@@ -255,7 +270,7 @@ export function sanitizeColors(raw: unknown): ThemeColorMap {
 }
 
 const FONTS = new Set<FontChoice>(FONT_CHOICES.map((f) => f.id));
-const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo"]);
+const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo", "pixel"]);
 
 /** Variantes visibles: Matrix, Sakura, Barbie Agenda, Bodega y Botica. McKenna/Atelier pasan a Sakura. */
 function featuredSkin(raw: unknown): UiSkin {
@@ -264,6 +279,7 @@ function featuredSkin(raw: unknown): UiSkin {
   if (raw === "bodega") return "bodega";
   if (raw === "botica") return "botica";
   if (raw === "flujo") return "flujo";
+  if (raw === "pixel") return "pixel";
   if (raw === "sakura" || raw === "clasica" || raw === "atelier") return "sakura";
   return "sakura";
 }

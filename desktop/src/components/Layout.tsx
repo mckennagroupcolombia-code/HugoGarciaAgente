@@ -8,7 +8,7 @@ import DisenoNavTabs from "./nav/DisenoNavTabs";
 import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
 import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
-import FlujoNav from "./nav/FlujoNav";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
 import AccesosRapidos from "./nav/AccesosRapidos";
@@ -63,6 +63,9 @@ export default function Layout({
   const tallerRetorno = useAppStore((st) => st.tallerRetorno);
   const volverAlTaller = useAppStore((st) => st.volverAlTaller);
   const enOrigen = panel === "hugo" || panel === "tickets";
+  // La Agenda y lo que vive dentro de ella: llevan sus vistas como pestañas propias.
+  const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "chat-equipo";
+  const puedeVerMapa = Boolean(user && puedeVerSeccionPanel(user, "mapa-vivo"));
   const ubicacion = ubicacionDe(panel);
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
@@ -157,6 +160,16 @@ export default function Layout({
                   Agenda
                 </button>
               )}
+              {navFlujo && panel !== "mapa-vivo" && puedeVerMapa && (
+                <button
+                  type="button"
+                  onClick={() => navegarPanel("mapa-vivo")}
+                  title="Volver al mapa: desde ahí se abre todo"
+                  className="mck-flujo-nodo mck-volver-mapa flex shrink-0 items-center gap-1 rounded-lg border border-accent bg-accent px-2.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
+                >
+                  ◇ Mapa
+                </button>
+              )}
               {navFlujo ? (
                 /* Flujo: la miga dice en qué punto de la secuencia estás; el título, el panel. */
                 <>
@@ -166,9 +179,11 @@ export default function Layout({
                         ? "Inicio · tu día"
                         : ubicacion
                           ? `${ubicacion.etapa.titulo} ⇢ ${ubicacion.n}·${ubicacion.tramo.titulo}`
-                          : panel === "mapa-sistema"
-                            ? "Todo el flujo"
-                            : "Fuera de la secuencia"}
+                          : panel === "mapa-vivo"
+                            ? "Inicio · toda la aplicación"
+                            : panel === "mapa-sistema"
+                              ? "Todo el flujo"
+                              : "Fuera de la secuencia"}
                     </p>
                     <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight">
                       {enOrigen ? ORIGEN_APP.titulo : headerTitle}
@@ -249,9 +264,15 @@ export default function Layout({
             </div>
           </div>
 
-          {/* Navegación por flujo: etapas en secuencia → tramos → paneles. Las pestañas de
-              Diseño y Docs siguen debajo porque son vistas DENTRO de un panel, no paneles. */}
-          {navFlujo && <FlujoNav />}
+          {/* Sin menú de arriba (25-sep-2026): toda la navegación sale del Mapa, donde cada etapa
+              despliega sus paneles; «◇ Mapa» (arriba a la izquierda) vuelve a él desde cualquier
+              lado. Lo que sigue aquí son vistas DENTRO de un panel, no navegación entre paneles:
+              las de la Agenda (Mi día · Mensajes · Equipo…) y las pestañas de Diseño y Docs. */}
+          {navFlujo && enFamiliaAgenda && (
+            <div className="mck-flujo-vistas flex min-w-0 items-center gap-1.5">
+              <InicioNavTabs soloVistas />
+            </div>
+          )}
           {navFlujo && (sectionId === "diseno" || sectionId === "docs") && (
             <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
               {sectionId === "diseno" ? <DisenoNavTabs /> : <DocsNavTabs />}
@@ -283,6 +304,7 @@ export default function Layout({
               sectionId === "contabilidad" ||
               sectionId === "publicaciones" ||
               panel === "colaboradores" ||
+              panel === "mapa-vivo" ||
               panel === "juegos" ||
               panel === "chat-equipo" ||
               studioEtiquetasFill ? (

@@ -10,7 +10,8 @@ export type FontChoice =
   | "Share Tech Mono"
   | "A Note"
   | "Jost"
-  | "system-ui";
+  | "system-ui"
+  | "DotGothic16";
 
 export type RadiusScale = "sm" | "md" | "lg";
 
@@ -23,9 +24,9 @@ export type MenuScale = "sm" | "md" | "lg";
  * tamaños fijos en px (badges, iconos, paddings) que abundan en el panel. */
 export type UiZoom = "100" | "115" | "130" | "150";
 
-export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo";
+export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
 
-export type ThemePackId = "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo";
+export type ThemePackId = "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
 
 export type ThemeColorKey =
   | "surface"

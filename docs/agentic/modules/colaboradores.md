@@ -18,7 +18,55 @@ comercial para un proyecto conjunto, a mano y desde el celular.
   handles por caja con `ConnectionMode.Loose`), `color` (paleta cerrada), `grosor` (1-8), `trazo`
   (sólida/guiones/puntos), `forma` (curva/recta/escalón) y el `label` que va en el medio. Se editan en la
   hoja de la flecha o arrastrando la punta (`onReconnect`). El servidor valida contra sus listas: un color
-  libre sería texto entrando a un atributo SVG.
+  libre sería texto entrando a un atributo SVG. **Desde 25-sep-2026 la flecha nace RECTA**
+  (`FORMA_DEFECTO`), al crearla se abre su hoja para nombrarla, y el botón «Rectas» de la barra vuelve
+  rectas todas de un toque.
+- **Cada caja carga contenido real** (Fundación del «tablero de proyecto», 25-sep-2026): campos
+  OPCIONALES en el nodo — `imagen` (foto que sale en la caja), `variables{como,donde,porque}` (el «quién»
+  es el carril, el «qué» el título), `tiempo_min`, `costo`/`precio` (`{monto,moneda}`, moneda de
+  `MONEDAS`), `datos[]` (campo:valor, máx 8), `consecuencias[]` (si→entonces→medida, máx 6), `adjuntos[]`
+  (fotos y facturas PDF, máx 12), `enlaceApp`. Se sanean en `_extras_nodo()`; una caja sin ellos sigue
+  siendo mínima (solo se guarda lo que trae valor). La caja pinta la foto arriba y chips (💲/💸/⏱/▦/📎/⚠).
+  Editor React en `ContenidoCaja`; el export a Archify resume precio/costo en el subtítulo.
+- **Adjuntos**: `POST …/media` (multipart `archivo`, 15 MB) → `guardar_media()` reduce imágenes a JPEG
+  ≤1400 px, guarda PDFs tal cual, en `colaboradores_media/` (repo, gitignored). El id lleva el diagrama
+  adentro (`<did>-<uuid>.<ext>`); `GET …/diagramas/<did>/media/<mid>` lo sirve con `@_suyo` y
+  `media_de_diagrama()` (rechaza `../` y el media de otro diagrama). En el panel, `AuthImg` los muestra
+  con blob autenticado y caché.
+- **Nodo de consenso** (25-sep-2026): el tipo `consenso` lleva `asunto`, `propuestas[]` (una por autor,
+  `p<uid>`), `votos{uid:pid}` y `resuelto{propuesta,modo,por}`. Voto, autoría y cierre son
+  **autoritativos del servidor** (`accion_consenso`, ruta `POST …/consenso`): el voto es del usuario
+  autenticado, no de lo que diga el cliente. Empate → decide el `turno_actual` **global** del diagrama y
+  el turno **se alterna** al otro de la pareja (`_participantes_ids`); acuerdo (mayoría de votos) no toca
+  el turno. Retirar una propuesta borra sus votos y reabre. Todo en una transacción RMW; el panel
+  (`ConsensoEditor`) refresca con lo que vuelve. `obtener()` añade `participantes` (uid→nombre) para
+  pintar autores/votantes/turno. Tests en `tests/test_colaboradores.py`.
+- **Producto y competencia** (25-sep-2026): tipo `producto` = carta con la foto en un círculo escalonado
+  al centro y seis apartados alrededor (SKU, vitrina = host del `url`, precio, empaque, margen, receta),
+  como el Taller de combos; ranura sin dato = punteada con «?». Campos: `sku`, `empaque{nombre,costo}`,
+  `componentes[]{nombre,cantidad,costo}` (costo de UNA unidad; máx 12 válidos), `url` (**solo http(s)**:
+  se pinta como `<a href>`, `_url()` descarta `javascript:`), `plataforma`. Costo por unidad = piezas +
+  empaque en la moneda del precio (no convierte monedas); margen = precio − costo. Tipo `competencia` =
+  carta de rival (captura, dónde vende, precio). Unidos por una flecha (cualquier sentido) se comparan:
+  el rival muestra «16 % más caro que…» y el producto «VS n» + rango de precios. Eso se calcula en
+  `nodosVista` como claves `_vs`/`_rivales` que `aDoc()` QUITA (si se colaran, `combinar()` vería cada
+  caja como cambiada y pisaría al otro). El marcador de arriba suma tiempo y dinero invertido por carril
+  (sin productos ni rivales: su precio es por unidad, no inversión).
+- **Pixel art** (25-sep-2026): `components/colaboradores/pixel.tsx` (sprites 8×8 en paleta PICO-8 como
+  SVG `crispEdges`, reemplazan los emojis; `circuloPixel()`; fuentes Press Start 2P + VT323 por Google
+  Fonts, inyectadas una vez) y `pixel.css`. Todo bajo `.colab-pixel`, que **redefine los tokens `--mck-*`**
+  (y `--mck-field-fs`/`--mck-field-h`: la regla global de campos compactos `#root input…` los ponía a
+  0,78 rem, ilegible en VT323). Botón «Clásico/Pixel», recordado en `localStorage`. Las cartas de
+  producto y rival son pixel siempre. ⚠️ Una carpeta nueva con clases debe ir en `tailwind.colab.config.ts`
+  (el build del colaborador solo escanea lo que lista) y el bundle NO puede contener «MeLi»/«Mercado
+  Libre» (lo rechaza `verificar-build-colab.mjs`: ojo con placeholders). Las flechas usan un tipo propio
+  (`Flecha`) con etiqueta HTML: la SVG de React Flow se mide una vez al montar y el texto se salía del
+  recuadro si la fuente llegaba después.
+- **Banco de pruebas**: `desktop/dev/colaboradores.html` monta el panel real con datos inventados y
+  `fetch` interceptado (nada llega a producción). `?abrir`, `?sel=<id>`, `?clasico`, `?medir=<selector>`
+  (estilo calculado al `<title>`, para `--dump-dom`) permiten capturas con `google-chrome --headless`.
+- **Pendiente**: auto-relleno del producto desde el catálogo real (solo el anfitrión; el colaborador
+  siempre manual, está amurallado fuera de esos módulos) y abrir apartados de la app desde una caja.
 - **Backend** `app/services/colaboradores.py` + `app/routes_colaboradores.py` (`/api/colaboradores/*`),
   base propia `app/data/colaboradores.db` (diagramas + todas sus versiones).
 - **Concurrencia**: cada guardado lleva la `version` editada; si otro guardó antes → 409 `conflicto` y

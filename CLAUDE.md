@@ -947,8 +947,38 @@ ellos Stock, Costos y Crear en Alegra); `flujoApp.ts` los ubica donde se USAN. U
 `sin_senal` — un mapa que se cae por un módulo escondería justo lo que debe mostrar. Para sumar una señal: una
 función en `_FUENTES` que devuelva `_b(etapa, id, n, texto, panel)`.
 
-**Toda la interfaz es el flujo (21-sep-2026), y va de lo general a lo avanzado.** El cabezote es `nav/FlujoNav.tsx`:
-- **Origen — «Mi agenda»**: siempre el primer nodo y el panel inicial (`ORIGEN_APP` en `flujoApp.ts`). Es donde cada
+**Mapa vivo — la pantalla de inicio de todos (25-sep-2026).** Panel `mapa-vivo` (`components/MapaVivo.tsx` +
+`mapa-vivo.css`, lenguaje pixel de Colaboradores): toda la app en un lienzo React Flow, **armado desde `flujoApp.ts`**
+(no hay otra estructura) y **filtrado con `puedeVerSeccionPanel`** (cada quien ve solo los paneles que puede abrir; una
+etapa ajena sale apagada sin nombrar sus paneles). Escritorio: camino en **serpentina** de 4 cartas por fila (Inicio →
+Abastecer → Preparar → Publicar, baja, Vender → Entregar → Facturar → Contar) y Dirigir/Sistema como bandas; en una sola
+fila de 8 no se leía nada. Celular (<700 px): columna que arranca arriba a tamaño de lectura (no se encuadra todo). Vivo:
+detenidos de `/api/mapa-sistema/bloqueos` (misma queryKey que FlujoNav) y solicitudes asignadas a la persona ubicadas por
+`etapaDeTicket` → la etapa con algo suyo late en amarillo («tu camino»). Tocar un panel acerca la cámara y lo abre; se
+vuelve con **«◇ Mapa»** del cabezote (antes «◇ Todo el flujo», que abría Mapa del sistema solo a administración).
+`App.tsx` pone el mapa **una vez por carga de página** (`INICIO_EN_MAPA`); un `?panel=…` manda sobre él. ⚠️ React Flow
+v12 toma las medidas de un nodo controlado de `node.measured`: el mapa las devuelve desde `onNodesChange` o las flechas no
+se dibujan. ⚠️ Un panel de lienzo (altura completa) va en **DOS** listas: `Layout.tsx` (rama de hubs) **y**
+`ui/PanelTransition.tsx` (`fillHeight`); con solo la primera, el lienzo colapsa a altura 0 dentro de la app (pasó con el
+mapa el 25-sep, y el banco del panel suelto no lo mostraba). Bancos: `desktop/dev/mapa.html?perfil=admin|despachos&nivel=0-3`
+(el mapa solo) y `desktop/dev/app.html?perfil=…&medir&tocar=Texto,Otro` (la **app completa** con sesión de ejemplo; errores
+de consola y recorrido de clics al `<title>`, para `--dump-dom`). Ambos con fetch interceptado. ⚠️ Chrome headless no baja
+de 500 px de ancho: una captura «de 390» es una página de 500 recortada.
+
+**Sin menú de arriba (25-sep-2026): se navega SOLO desde el Mapa.** `nav/FlujoNav.tsx` (la fila de etapas → tramos →
+paneles del cabezote) se **eliminó**: cada carta del Mapa despliega sus paneles, la carta de Inicio trae las vistas de la
+Agenda (Mensajes, Chat del equipo, Colaboradores, Juegos; la regla es `puedeVerTabInicio`, exportada de
+`InicioNavTabs`) y el cabezote solo lleva **«◇ Mapa»** (`.mck-volver-mapa`) + miga + título. Quedan como pestañas
+DENTRO de su panel las vistas de la Agenda (`InicioNavTabs soloVistas`) y las de Diseño y Docs. ⚠️ **Clics en el
+Mapa:** React Flow escribe `pointer-events: none` EN LÍNEA sobre un nodo que no se arrastra, no se selecciona y no tiene
+manejador de clic; el Mapa pasa `onNodeClick` para que sus cartas reciban eventos, y sus botones llevan `nopan` (un
+clic con temblor no arrastra el lienzo). Sin eso, 0 de 14 paneles abrían con clics reales mientras `element.click()`
+sí funcionaba: **probar clics con eventos reales** (CDP `Input.dispatchMouseEvent`/`dispatchTouchEvent`), no con
+`element.click()`. Lo que sigue describe la navegación por flujo tal como era antes de ese cambio.
+
+**Toda la interfaz es el flujo (21-sep-2026), y va de lo general a lo avanzado.** El cabezote era `nav/FlujoNav.tsx`:
+- **Origen — «Mi agenda»**: siempre el primer nodo del flujo (`ORIGEN_APP` en `flujoApp.ts`); la *pantalla* de inicio es el
+  Mapa vivo, donde la Agenda es la primera carta. Es donde cada
   quien ve lo que le pidieron e inicia acciones; **no** es un panel más de una etapa (un test lo exige). Con la Agenda
   abierta, debajo solo van sus vistas (Mi día · Mensajes) y ninguna etapa se despliega sola.
 - **Etapas** en secuencia con lo detenido → al tocar una se despliegan sus **tramos** con los paneles de uso normal
@@ -969,13 +999,24 @@ función en `_FUENTES` que devuelva `_b(etapa, id, n, texto, panel)`.
 - El menú por departamento sigue detrás de Menú de usuario → «Volver a la navegación clásica» (`uiMode.navClasica`);
   con el flujo activo se ocultan «← Agenda» y la franja «Ir a…». El móvil (`MobileHub`) no cambió: ya abría en la agenda.
   Los conteos de bloqueos son de administración: a quien la API le responde 403 simplemente no se le muestran.
-El estilo predeterminado es la piel **«flujo»** (`html[data-mck-skin="flujo"]` en `index.css`: papel frío,
-cuadrícula de 24 px, nodos, monoespaciada en la navegación — el lenguaje de Archify). Como un default nuevo no
-alcanza a quien ya tenía tema guardado, `lib/userThemeSync.ts` la aplica **una sola vez** por persona
-(`ESTILO_BASE_V`, guardado como `preferencias_ui.estilo_v`) conservando modo claro/oscuro, tamaños, zoom y «Mis
-temas»; después manda lo que cada quien elija en Temas. ⚠️ Una piel nueva va en **dos** listas: `SKINS` de
+El estilo predeterminado es la piel **«pixel»** desde el 25-sep-2026 (`ESTILO_BASE_V = 3`; antes «flujo»): toda la
+app como un videojuego, el lenguaje del Mapa y de Colaboradores. `theme/skin-pixel.css` (importado en `main.tsx`
+DESPUÉS de `index.css`, sin `@layer`) no toca los 61 paneles: redefine los tokens `--mck-*` (PICO-8, claro y oscuro) y
+viste lo común — esquinas rectas (salvo `.rounded-full`), tarjetas `rounded-xl/2xl.border` con borde de 2 px y sombra
+dura, sombras de Tailwind vía `--tw-shadow` (los anillos de foco siguen), botón `.bg-accent` que se hunde, foco
+amarillo, cabezote, pestañas y encabezados de tabla. **Las letras NO son pixel** (decisión del usuario, legibilidad):
+la piel no toca fuentes ni tamaños de texto y todo se lee en Montserrat, también en el Mapa y en Colaboradores (sus
+rótulos «de juego» son Montserrat en negrita y mayúsculas). Se probaron Pixelify Sans (la «C» se cerraba en «O» a
+11–13 px) y DotGothic16 (legible; queda como opción en Temas → Fuente); la v2 de `ESTILO_BASE_V` traía DotGothic16 y
+la v3 devolvió Montserrat a quien ya la había adoptado. ⚠️ El **acento** y la **fuente del cuerpo** viajan EN LÍNEA
+sobre `<html>` (`theme/applyTheme.ts`): una hoja de piel no los pisa; van por el paquete y por `baseAccent`.
+La piel «flujo» (`index.css`: papel frío, cuadrícula, monoespaciada — el lenguaje de Archify) sigue en Temas.
+Como un default nuevo no alcanza a quien ya tenía tema guardado, `lib/userThemeSync.ts` lo aplica **una sola vez**
+por persona (`ESTILO_BASE_V`, guardado como `preferencias_ui.estilo_v`) conservando modo claro/oscuro, tamaños, zoom
+y «Mis temas»; después manda lo que cada quien elija en Temas. ⚠️ Una piel nueva va en **dos** listas: `SKINS` de
 `theme/presets.ts` y la validación de `tickets_db.actualizar_preferencias_ui` — si falta en la segunda se ve bien
-y el PUT responde 400 en silencio (hay test).
+y el PUT responde 400 en silencio. ⚠️ Una **fuente** nueva, igual, en `FontChoice` y en las **dos** listas de fuentes
+de `tickets_db.py` (tema activo y temas guardados). Ambas cosas las vigila `test_toda_piel_del_panel_se_puede_guardar_en_el_servidor`.
 
 **Taller de combos (21-sep-2026) — la guía de la etapa «Preparar».** Una etapa puede declarar `guia` en `flujoApp.ts`
 (`abre`, no `panel`: ese panel ya vive en un tramo); sale como nodo lleno «▶ Taller de combos» al desplegar Preparar y en

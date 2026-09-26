@@ -23,14 +23,18 @@ del sistema, para la versión acordada.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sqlite3
 import subprocess
+import uuid
 from pathlib import Path
 
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "colaboradores.db")
 _EXPORT_DIR = Path(__file__).resolve().parents[1] / "data" / "colaboradores_archify"
+# Fotos y facturas que se cargan en las cajas. Fuera de git (binarios de runtime).
+_MEDIA_DIR = Path(__file__).resolve().parents[2] / "colaboradores_media"
 ARCHIFY = Path.home() / ".claude" / "skills" / "archify" / "bin" / "archify.mjs"
 
 # Quién hace cada paso: son los carriles del diagrama. Cada uno es una figura
@@ -50,6 +54,9 @@ TIPOS = {
     "entregable": ("database", "entregable o resultado"),
     "dinero": ("messagebus", "pago, precio o dinero"),
     "externo": ("cloud", "cliente, proveedor o tercero"),
+    "consenso": ("security", "consenso: propuestas y votos"),
+    "producto": ("database", "producto: foto, SKU, receta y precio"),
+    "competencia": ("cloud", "competencia: su publicación y su precio"),
 }
 MAX_NODOS = 300
 # Por dónde sale/entra una flecha en la caja. Son los cuatro lados.
@@ -59,7 +66,25 @@ LADOS = ("l", "r", "t", "b")
 COLORES_FLECHA = ("#111827", "#0f766e", "#1d4ed8", "#b45309", "#b91c1c", "#7c3aed", "#15803d", "#94a3b8")
 TRAZOS = ("solida", "guiones", "puntos")
 FORMAS = ("curva", "recta", "escalon")
+# La flecha nace RECTA (decisión 25-sep-2026): un tablero de proyecto se lee
+# mejor con líneas rectas. Las que ya existían conservan su forma guardada.
+FORMA_DEFECTO = "recta"
 GROSOR_MIN, GROSOR_MAX = 1, 8
+
+# ─── Contenido real de cada caja (tablero de proyecto, no solo diagrama) ──────
+# Todos los campos son OPCIONALES: una caja sin ellos es la de siempre.
+MONEDAS = ("COP", "USD", "EUR")
+# Las cinco preguntas del paso; «quién» ya es el carril, «qué» es el título.
+VARIABLES = ("como", "donde", "porque")
+MAX_DATOS = 8            # pares campo: valor ("medida: 40 cm", "margen: 38%")
+MAX_CONSECUENCIAS = 6    # "si pasa esto → consecuencia → posible medida"
+MAX_PROPUESTAS = 6       # ideas puestas a votación en un nodo de consenso
+MODOS_RESUELTO = ("acuerdo", "turno")
+MAX_COMPONENTES = 12     # piezas de la receta de un producto (aro, hebilla, bolsa…)
+MAX_ADJUNTOS = 12        # fotos y facturas por caja
+MEDIA_TIPOS = ("imagen", "pdf")
+MAX_MEDIA_BYTES = 15 * 1024 * 1024
+_LADO_MAX_FOTO = 1400    # px: una factura tiene que leerse; ~150 KB en JPEG
 
 
 class Conflicto(Exception):
@@ -174,6 +199,10 @@ def _ensure() -> None:
         cols = {r["name"] for r in con.execute("PRAGMA table_info(colab_diagramas)")}
         if "colaborador_id" not in cols:
             con.execute("ALTER TABLE colab_diagramas ADD COLUMN colaborador_id INTEGER")
+        # A quién le toca decidir el próximo empate de un nodo de consenso (se
+        # alterna en cada desempate). Se llena cuando llegue el nodo de consenso.
+        if "turno_actual" not in cols:
+            con.execute("ALTER TABLE colab_diagramas ADD COLUMN turno_actual INTEGER")
         # Los diagramas de antes de la columna son del único colaborador que había.
         sueltos = con.execute("SELECT COUNT(*) n FROM colab_diagramas WHERE colaborador_id IS NULL").fetchone()["n"]
         if sueltos:
@@ -195,15 +224,181 @@ def _nombre(uid) -> str:
         return ""
 
 
+def _participantes_ids(colaborador_id) -> list[int]:
+    """La pareja del diagrama: el anfitrión y su colaborador (para votos y turno)."""
+    a = anfitrion_id()
+    return [a, int(colaborador_id)] if colaborador_id else [a]
+
+
 def _a_dict(r, *, con_doc: bool = True) -> dict:
     d = dict(r)
     doc = json.loads(d.pop("doc_json") or "{}")
     if con_doc:
         d["doc"] = doc
+        # Quiénes pueden votar, con nombre: la caja de consenso los muestra.
+        d["participantes"] = {str(uid): _nombre(uid) for uid in _participantes_ids(d.get("colaborador_id"))}
     d["nodos"] = len(doc.get("nodes") or [])
     d["flechas"] = len(doc.get("edges") or [])
     d["actualizado_por_nombre"] = _nombre(d.get("actualizado_por"))
     return d
+
+
+def _texto(v, n: int) -> str:
+    return str(v or "").strip()[:n]
+
+
+def _num(v):
+    """Un número >= 0, o None si no viene. Topado para que no entre basura."""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    if f != f or f < 0:                      # NaN o negativo
+        return None
+    return round(min(f, 1e12), 2)
+
+
+def _dinero(v):
+    """{monto, moneda} o None. La moneda sale de una lista cerrada."""
+    if not isinstance(v, dict):
+        return None
+    monto = _num(v.get("monto"))
+    if monto is None:
+        return None
+    moneda = v.get("moneda") if v.get("moneda") in MONEDAS else MONEDAS[0]
+    return {"monto": monto, "moneda": moneda}
+
+
+def _url(v) -> str:
+    """Solo http(s). El enlace se pinta como <a href>: un `javascript:` sería XSS."""
+    u = str(v or "").strip()[:500]
+    if not u or any(c.isspace() for c in u):
+        return ""
+    return u if u.lower().startswith(("http://", "https://")) else ""
+
+
+def _extras_nodo(n: dict) -> dict:
+    """Los campos ricos de una caja: solo se guarda lo que trae valor."""
+    extra: dict = {}
+    # ── Producto y competencia: datos reales, no pasos genéricos ──
+    sku = _texto(n.get("sku"), 40)
+    if sku:
+        extra["sku"] = sku
+    emp = n.get("empaque")
+    if isinstance(emp, dict):
+        nombre, costo = _texto(emp.get("nombre"), 120), _dinero(emp.get("costo"))
+        if nombre or costo:
+            extra["empaque"] = {"nombre": nombre, **({"costo": costo} if costo else {})}
+    comps = []
+    for c in (n.get("componentes") or [])[:MAX_COMPONENTES * 4]:
+        if len(comps) >= MAX_COMPONENTES:        # el tope cuenta piezas válidas, no filas vacías
+            break
+        nombre = _texto((c or {}).get("nombre"), 120)
+        if not nombre:
+            continue
+        fila = {"nombre": nombre}
+        cantidad = _texto((c or {}).get("cantidad"), 40)      # "2 aros", "30 cm": texto con su unidad
+        if cantidad:
+            fila["cantidad"] = cantidad
+        costo = _dinero((c or {}).get("costo"))               # lo que cuesta esa pieza en UNA unidad
+        if costo:
+            fila["costo"] = costo
+        comps.append(fila)
+    if comps:
+        extra["componentes"] = comps
+    url = _url(n.get("url"))
+    if url:
+        extra["url"] = url
+    plataforma = _texto(n.get("plataforma"), 60)
+    if plataforma:
+        extra["plataforma"] = plataforma
+    img = _texto(n.get("imagen"), 80)
+    if img:
+        extra["imagen"] = img
+    variables = {k: _texto((n.get("variables") or {}).get(k), 200) for k in VARIABLES}
+    variables = {k: v for k, v in variables.items() if v}
+    if variables:
+        extra["variables"] = variables
+    tiempo = _num(n.get("tiempo_min"))
+    if tiempo is not None:
+        extra["tiempo_min"] = tiempo
+    for campo in ("costo", "precio"):
+        d = _dinero(n.get(campo))
+        if d:
+            extra[campo] = d
+    datos = []
+    for d in (n.get("datos") or [])[:MAX_DATOS]:
+        campo, valor = _texto((d or {}).get("campo"), 40), _texto((d or {}).get("valor"), 120)
+        if campo or valor:
+            datos.append({"campo": campo, "valor": valor})
+    if datos:
+        extra["datos"] = datos
+    cons = []
+    for c in (n.get("consecuencias") or [])[:MAX_CONSECUENCIAS]:
+        fila = {k: _texto((c or {}).get(k), 160) for k in ("si", "entonces", "medida")}
+        if any(fila.values()):
+            cons.append(fila)
+    if cons:
+        extra["consecuencias"] = cons
+    adj = []
+    for a in (n.get("adjuntos") or [])[:MAX_ADJUNTOS]:
+        mid = _texto((a or {}).get("id"), 80)
+        if not mid:
+            continue
+        adj.append({"id": mid, "nombre": _texto((a or {}).get("nombre"), 120),
+                    "tipo": (a or {}).get("tipo") if (a or {}).get("tipo") in MEDIA_TIPOS else "imagen"})
+    if adj:
+        extra["adjuntos"] = adj
+    enlace = _texto(n.get("enlaceApp"), 120)
+    if enlace:
+        extra["enlaceApp"] = enlace
+    # ── Consenso: propuestas puestas a votación, votos y decisión ──
+    asunto = _texto(n.get("asunto"), 300)
+    if asunto:
+        extra["asunto"] = asunto
+    propuestas, pids = [], set()
+    for p in (n.get("propuestas") or [])[:MAX_PROPUESTAS]:
+        texto = _texto((p or {}).get("texto"), 500)
+        if not texto:
+            continue
+        pid = _texto((p or {}).get("id"), 40) or f"p{len(propuestas)}"
+        if pid in pids:
+            continue
+        pids.add(pid)
+        fila = {"id": pid, "texto": texto}
+        try:
+            autor = int((p or {}).get("autor"))
+            if autor:
+                fila["autor"] = autor
+        except (TypeError, ValueError):
+            pass
+        propuestas.append(fila)
+    if propuestas:
+        extra["propuestas"] = propuestas
+    votos = {}
+    for k, v in (n.get("votos") or {}).items():
+        try:
+            uid = int(k)
+        except (TypeError, ValueError):
+            continue
+        pid = _texto(v, 40)
+        if uid and pid in pids:                  # solo un voto por una propuesta que exista
+            votos[str(uid)] = pid
+    if votos:
+        extra["votos"] = votos
+    res = n.get("resuelto")
+    if isinstance(res, dict):
+        pid = _texto(res.get("propuesta"), 40)
+        if pid in pids:
+            r2 = {"propuesta": pid, "modo": res.get("modo") if res.get("modo") in MODOS_RESUELTO else "acuerdo"}
+            try:
+                por = int(res.get("por"))
+                if por:
+                    r2["por"] = por
+            except (TypeError, ValueError):
+                pass
+            extra["resuelto"] = r2
+    return extra
 
 
 def validar_doc(doc) -> dict:
@@ -229,6 +424,7 @@ def validar_doc(doc) -> dict:
             "carril": (lambda c: c if c in CARRILES else "conjunto")(_CARRILES_VIEJOS.get(n.get("carril"), n.get("carril"))),
             "x": round(float(n.get("x") or 0), 1),
             "y": round(float(n.get("y") or 0), 1),
+            **_extras_nodo(n),
         })
     flechas, eids = [], set()
     for e in flechas_in:
@@ -251,7 +447,7 @@ def validar_doc(doc) -> dict:
             "color": e.get("color") if e.get("color") in COLORES_FLECHA else COLORES_FLECHA[0],
             "grosor": grosor,
             "trazo": e.get("trazo") if e.get("trazo") in TRAZOS else "solida",
-            "forma": e.get("forma") if e.get("forma") in FORMAS else "curva",
+            "forma": e.get("forma") if e.get("forma") in FORMAS else FORMA_DEFECTO,
         })
     return {"nodes": nodos, "edges": flechas}
 
@@ -366,11 +562,129 @@ def restaurar(did: int, version: int, version_base: int, usuario_id: int) -> dic
     return guardar(did, json.loads(f["doc_json"]), version_base, usuario_id, resumen=f"Restaurada la versión {version}")
 
 
+def accion_consenso(did: int, usuario_id: int, nodo_id: str, accion: str,
+                    texto: str = "", propuesta: str = "") -> dict:
+    """Vota, propone o cierra un nodo de consenso — con autoridad del servidor.
+
+    El voto y la autoría de la propuesta son del usuario AUTENTICADO (no de lo
+    que diga el cliente), y el desempate usa el `turno_actual` GLOBAL del
+    diagrama, que se alterna entre la pareja en cada empate resuelto por turno.
+    Todo dentro de una transacción: leer-modificar-guardar sin pisarse.
+    """
+    _ensure()
+    uid = int(usuario_id)
+    with _conn() as con:
+        r = con.execute("SELECT * FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
+        if not r:
+            raise ValueError("Diagrama no encontrado")
+        doc = json.loads(r["doc_json"] or "{}")
+        nodo = next((x for x in (doc.get("nodes") or []) if x.get("id") == nodo_id), None)
+        if not nodo:
+            raise ValueError("Esa caja no existe")
+        props = list(nodo.get("propuestas") or [])
+        votos = dict(nodo.get("votos") or {})
+        pares = _participantes_ids(r["colaborador_id"])
+
+        if accion == "proponer":
+            pid = f"p{uid}"                       # una propuesta por persona
+            props = [p for p in props if p.get("id") != pid]
+            t = (texto or "").strip()[:500]
+            if t:
+                props.append({"id": pid, "autor": uid, "texto": t})
+            else:                                 # se retiró: fuera sus votos
+                votos = {k: v for k, v in votos.items() if v != pid}
+            nodo["resuelto"] = None               # cambió una propuesta: se reabre
+        elif accion == "votar":
+            if not any(p.get("id") == propuesta for p in props):
+                raise ValueError("Esa propuesta ya no existe")
+            votos[str(uid)] = propuesta
+        elif accion == "quitar_voto":
+            votos.pop(str(uid), None)
+        elif accion == "reabrir":
+            nodo["resuelto"] = None
+        elif accion == "cerrar":
+            if not props:
+                raise ValueError("Todavía no hay propuestas para decidir")
+            from collections import Counter
+            cuenta = Counter(votos.values())
+            top = max(cuenta.values()) if cuenta else 0
+            lideres = [pid for pid, c in cuenta.items() if c == top and top > 0]
+            if len(lideres) == 1:
+                nodo["resuelto"] = {"propuesta": lideres[0], "modo": "acuerdo"}
+            else:
+                # Empate (o nadie ha votado): decide quien tiene el turno global.
+                turno = int(r["turno_actual"] or pares[0])
+                elegido = votos.get(str(turno))
+                if not elegido:
+                    raise ValueError("Hay empate: falta el voto de quien tiene el turno para desempatar")
+                nodo["resuelto"] = {"propuesta": elegido, "modo": "turno", "por": turno}
+                # El turno pasa al otro para el próximo empate.
+                siguiente = next((p for p in pares if p != turno), turno)
+                con.execute("UPDATE colab_diagramas SET turno_actual=? WHERE id=?", (siguiente, int(did)))
+        else:
+            raise ValueError("Acción no reconocida")
+
+        nodo["propuestas"] = props
+        nodo["votos"] = votos
+        limpio = validar_doc(doc)
+        nueva = int(r["version"]) + 1
+        con.execute("UPDATE colab_diagramas SET doc_json=?, version=?, actualizado_por=?,"
+                    " actualizado_en=datetime('now') WHERE id=?",
+                    (json.dumps(limpio, ensure_ascii=False), nueva, uid, int(did)))
+        con.execute("INSERT INTO colab_diagrama_versiones (diagrama_id, version, doc_json, usuario_id, resumen)"
+                    " VALUES (?,?,?,?,?)", (int(did), nueva, json.dumps(limpio, ensure_ascii=False), uid,
+                                           f"consenso: {accion}"))
+    return obtener(did)
+
+
 def archivar(did: int, archivado: bool = True) -> dict:
     _ensure()
     with _conn() as con:
         con.execute("UPDATE colab_diagramas SET archivado=? WHERE id=?", (1 if archivado else 0, int(did)))
     return obtener(did)
+
+
+# ─── Adjuntos (fotos y facturas de las cajas) ─────────────────────────────────
+
+def guardar_media(did: int, contenido: bytes, nombre: str = "") -> dict:
+    """Guarda un adjunto de un diagrama. Imagen → JPEG reducido; PDF → tal cual.
+
+    El id lleva el diagrama adentro (`<did>-<uuid>.<ext>`), así la ruta de
+    lectura sabe a qué pareja pertenece sin otra tabla: quien no ve el diagrama
+    tampoco ve sus fotos.
+    """
+    if not contenido:
+        raise ValueError("El archivo llegó vacío")
+    if len(contenido) > MAX_MEDIA_BYTES:
+        raise ValueError("El archivo supera los 15 MB")
+    _MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    es_pdf = contenido[:5] == b"%PDF-" or (nombre or "").lower().endswith(".pdf")
+    token = uuid.uuid4().hex[:12]
+    if es_pdf:
+        mid = f"{int(did)}-{token}.pdf"
+        (_MEDIA_DIR / mid).write_bytes(contenido)
+        return {"id": mid, "tipo": "pdf", "nombre": _texto(nombre, 120)}
+    from PIL import Image, ImageOps
+
+    try:
+        img = ImageOps.exif_transpose(Image.open(io.BytesIO(contenido))).convert("RGB")
+    except Exception as e:
+        raise ValueError(f"No se pudo leer la imagen: {e}") from None
+    img.thumbnail((_LADO_MAX_FOTO, _LADO_MAX_FOTO))
+    mid = f"{int(did)}-{token}.jpg"
+    tmp = _MEDIA_DIR / (mid + ".tmp")
+    img.save(tmp, "JPEG", quality=82, optimize=True)
+    os.replace(tmp, _MEDIA_DIR / mid)
+    return {"id": mid, "tipo": "imagen", "nombre": _texto(nombre, 120)}
+
+
+def media_de_diagrama(mid: str, did: int) -> Path | None:
+    """La ruta del adjunto SOLO si su id pertenece a ese diagrama."""
+    mid = os.path.basename(str(mid or ""))                 # nada de ../ ni rutas
+    if not mid or not mid.startswith(f"{int(did)}-"):
+        return None
+    p = _MEDIA_DIR / mid
+    return p if p.is_file() else None
 
 
 # ─── Archify ────────────────────────────────────────────────────────────────
@@ -394,8 +708,16 @@ def a_archify(diagrama: dict) -> dict:
         ocupado[(n["carril"], col)] = 1
         nodo = {"id": n["id"], "lane": n["carril"], "col": col, "type": TIPOS[n["tipo"]][0],
                 "label": n["label"], "width": max(135, min(260, 18 + 7 * len(n["label"])))}
-        if n.get("sublabel"):
-            nodo["sublabel"] = n["sublabel"]
+        # El export es de solo lectura y no dibuja fotos: el dato real (precio,
+        # costo) se resume en el subtítulo para que igual quede en el acuerdo.
+        extra = [x for x in (n.get("sku"), n.get("plataforma")) if x]
+        for campo, etq in (("precio", "precio"), ("costo", "costo")):
+            d = n.get(campo)
+            if d:
+                extra.append(f"{etq} {int(d['monto']):,}".replace(",", ".") + f" {d['moneda']}")
+        sub = " · ".join(x for x in [n.get("sublabel"), *extra] if x)
+        if sub:
+            nodo["sublabel"] = sub[:200]
         arch_nodos.append(nodo)
     return {
         "schema_version": 2,

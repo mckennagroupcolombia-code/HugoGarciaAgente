@@ -195,7 +195,111 @@ def test_el_estilo_de_la_flecha_no_acepta_lo_que_no_esta_en_la_lista(base):
                    "trazo": "<script>", "forma": "raro", "fromLado": "zz", "toLado": None}]})
     e = limpio["edges"][0]
     assert e["color"] == col.COLORES_FLECHA[0] and e["grosor"] == col.GROSOR_MAX
-    assert (e["trazo"], e["forma"], e["fromLado"], e["toLado"]) == ("solida", "curva", "r", "l")
+    # Una forma inválida cae al DEFECTO, que desde 25-sep-2026 es recta (los tableros se leen mejor).
+    assert (e["trazo"], e["forma"], e["fromLado"], e["toLado"]) == ("solida", col.FORMA_DEFECTO, "r", "l")
+    assert col.FORMA_DEFECTO == "recta"
+
+
+# ─── Contenido real de la caja (tablero de proyecto) ─────────────────────────
+
+def test_los_campos_ricos_se_normalizan_y_se_topan(base):
+    limpio = col.validar_doc({"nodes": [{
+        "id": "a", "label": "Fabricar", "x": 0, "y": 0,
+        "imagen": "1-foto.jpg", "tiempo_min": "90",
+        "costo": {"monto": "12500", "moneda": "XX"},      # moneda inválida → COP
+        "precio": {"monto": -5, "moneda": "USD"},          # negativo → se descarta
+        "variables": {"como": "a mano", "quien": "x"},     # quien no es una variable
+        "datos": [{"campo": "medida", "valor": "40 cm"}] * 20,   # más de 8 → se recorta
+        "consecuencias": [{"si": "falta material", "entonces": "se para", "medida": "reponer"}],
+        "adjuntos": [{"id": "1-f.pdf", "tipo": "raro"}, {"id": "", "tipo": "pdf"}],
+    }], "edges": []})
+    n = limpio["nodes"][0]
+    assert n["tiempo_min"] == 90.0
+    assert n["costo"] == {"monto": 12500.0, "moneda": "COP"}
+    assert "precio" not in n                                # el negativo no entra
+    assert n["variables"] == {"como": "a mano"}             # quien queda fuera
+    assert len(n["datos"]) == 8
+    assert n["consecuencias"][0]["medida"] == "reponer"
+    assert n["adjuntos"] == [{"id": "1-f.pdf", "nombre": "", "tipo": "imagen"}]  # tipo inválido→imagen; el vacío se descarta
+    assert "enlaceApp" not in n and "imagen" in n
+
+
+def test_una_caja_sin_campos_ricos_no_los_gana(base):
+    """La caja de siempre sigue siendo mínima: nada de claves vacías."""
+    n = col.validar_doc(_doc("a"))["nodes"][0]
+    assert set(n) == {"id", "label", "sublabel", "tipo", "carril", "x", "y"}
+
+
+def test_media_solo_se_sirve_a_su_propio_diagrama(base, tmp_path, monkeypatch):
+    monkeypatch.setattr(col, "_MEDIA_DIR", tmp_path / "media")
+    ficha = col.guardar_media(7, b"%PDF-1.4 factura", "factura.pdf")
+    assert ficha["tipo"] == "pdf" and ficha["id"].startswith("7-")
+    assert col.media_de_diagrama(ficha["id"], 7) is not None
+    assert col.media_de_diagrama(ficha["id"], 8) is None            # otro diagrama: no lo ve
+    assert col.media_de_diagrama("../../etc/passwd", 7) is None     # nada de rutas relativas
+
+
+# ─── Consenso: propuestas, votos y desempate por turno ───────────────────────
+
+def _consenso(base):
+    d = col.crear("Decidir", 8, colaborador_id=20)
+    doc = {"nodes": [{"id": "c", "label": "?", "tipo": "consenso", "carril": "conjunto", "x": 0, "y": 0}], "edges": []}
+    d = col.guardar(d["id"], doc, d["version"], 8)
+    col.accion_consenso(d["id"], 8, "c", "proponer", texto="Bolsa")
+    col.accion_consenso(d["id"], 20, "c", "proponer", texto="Caja")
+    return d["id"]
+
+
+def test_consenso_empate_lo_decide_el_turno_y_se_alterna(base):
+    did = _consenso(base)
+    col.accion_consenso(did, 8, "c", "votar", propuesta="p8")
+    col.accion_consenso(did, 20, "c", "votar", propuesta="p20")
+    d = col.accion_consenso(did, 8, "c", "cerrar")              # empate → turno (8 por defecto)
+    assert d["doc"]["nodes"][0]["resuelto"] == {"propuesta": "p8", "modo": "turno", "por": 8}
+    assert d["turno_actual"] == 20                              # el turno pasó al otro
+    col.accion_consenso(did, 8, "c", "reabrir")
+    d = col.accion_consenso(did, 8, "c", "cerrar")             # sigue 1-1 → ahora decide 20
+    assert d["doc"]["nodes"][0]["resuelto"]["por"] == 20
+    assert d["turno_actual"] == 8
+
+
+def test_consenso_por_acuerdo_no_toca_el_turno(base):
+    did = _consenso(base)
+    col.accion_consenso(did, 8, "c", "votar", propuesta="p8")
+    d = col.accion_consenso(did, 20, "c", "votar", propuesta="p8")   # convergen
+    assert d["turno_actual"] is None
+    d = col.accion_consenso(did, 8, "c", "cerrar")
+    assert d["doc"]["nodes"][0]["resuelto"] == {"propuesta": "p8", "modo": "acuerdo"}
+    assert d["turno_actual"] is None
+
+
+def test_producto_y_competencia_guardan_datos_reales(base):
+    limpio = col.validar_doc({"nodes": [
+        {"id": "p", "label": "Collar M", "tipo": "producto", "x": 0, "y": 0, "sku": "C-COLLAR-M",
+         "precio": {"monto": 45000, "moneda": "COP"}, "url": "https://tienda.co/collar",
+         "empaque": {"nombre": "Bolsa kraft", "costo": {"monto": 800, "moneda": "COP"}},
+         "componentes": [{"nombre": "Aros", "cantidad": "40 un", "costo": {"monto": 6000, "moneda": "COP"}},
+                         {"nombre": ""}] + [{"nombre": f"x{i}"} for i in range(20)]},
+        {"id": "r", "label": "Rival", "tipo": "competencia", "x": 1, "y": 0, "plataforma": "Instagram",
+         "url": "javascript:alert(1)", "precio": {"monto": 52000, "moneda": "COP"}},
+    ], "edges": []})
+    p, r = limpio["nodes"]
+    assert p["tipo"] == "producto" and p["sku"] == "C-COLLAR-M"
+    assert p["empaque"] == {"nombre": "Bolsa kraft", "costo": {"monto": 800.0, "moneda": "COP"}}
+    assert p["componentes"][0] == {"nombre": "Aros", "cantidad": "40 un", "costo": {"monto": 6000.0, "moneda": "COP"}}
+    assert len(p["componentes"]) == col.MAX_COMPONENTES      # el vacío se descarta y se topa
+    assert p["url"] == "https://tienda.co/collar"
+    assert r["tipo"] == "competencia" and r["plataforma"] == "Instagram"
+    assert "url" not in r                                     # un javascript: nunca llega al <a href>
+
+
+def test_retirar_propuesta_borra_sus_votos(base):
+    did = _consenso(base)
+    col.accion_consenso(did, 8, "c", "votar", propuesta="p20")
+    d = col.accion_consenso(did, 20, "c", "proponer", texto="")   # Sebastián retira la suya
+    n = d["doc"]["nodes"][0]
+    assert [p["id"] for p in n["propuestas"]] == ["p8"]
+    assert "8" not in n.get("votos", {})                          # su voto a p20 se fue con la propuesta
 
 
 # ─── Un diagrama es de UNA pareja ────────────────────────────────────────────

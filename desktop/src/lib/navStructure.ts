@@ -44,6 +44,9 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     label: "Agenda",
     hub: true,
     items: [
+      // El mapa va primero: es la pantalla de inicio y el primer panel al que se cae si
+      // el guardado no está permitido (NAV_PANEL_ORDER sale de este orden).
+      { panel: "mapa-vivo", tier: "core" },
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
       { panel: "mapa-sistema", tier: "core" },

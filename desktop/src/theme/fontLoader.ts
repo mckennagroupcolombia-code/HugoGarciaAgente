@@ -9,7 +9,11 @@ const GOOGLE_FONTS: Partial<Record<FontChoice, string>> = {
   Jost: "Jost:wght@400;500;600;700",
   "JetBrains Mono": "JetBrains+Mono:wght@400;500;600;700",
   "Share Tech Mono": "Share+Tech+Mono",
+  // Opcional en Temas → Fuente (la piel pixel NO la impone: el texto va en la letra de siempre).
+  // Legible a 11–13 px; con Pixelify Sans la «C» se cerraba en «O» (comparado el 25-sep-2026).
+  "DotGothic16": "DotGothic16",
 };
+
 
 /** Fuentes empaquetadas por Vite (URL real en /app/assets/…). */
 const LOCAL_FONT_URLS: Partial<Record<FontChoice, string>> = {

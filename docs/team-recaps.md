@@ -1,3 +1,32 @@
+### 2026-09-25 22:50 - Mapa vivo: pantalla de inicio, se navega solo desde él (sin menú de arriba)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Panel nuevo **`mapa-vivo`** (`MapaVivo.tsx`): toda la app en un lienzo React Flow con estética pixel, armado desde `lib/flujoApp.ts` (sin estructura paralela) y filtrado con `puedeVerSeccionPanel` (cada quien ve solo sus paneles; las etapas ajenas salen apagadas sin nombrarlos). Camino en **serpentina** de 4 cartas por fila en escritorio (Inicio → Abastecer → Preparar → Publicar, baja, Vender → Entregar → Facturar → Contar) y columna en celular. Vivo: detenidos (`/api/mapa-sistema/bloqueos`), solicitudes de la persona ubicadas por etapa (`etapaDeTicket`) → la etapa con algo suyo late («tu camino»). Niveles Etapas · Cotidiano · Operación · Todo.
+  - **Es la pantalla de inicio de todos** (`App.tsx`, una vez por carga; `?panel=` manda). **Se quitó el menú de arriba** (`nav/FlujoNav.tsx` eliminado): cada carta despliega sus paneles, la carta de Inicio trae Mi agenda, Mensajes, Chat del equipo, Colaboradores y Juegos, y el cabezote solo lleva **«◇ Mapa»** + miga + título. Las vistas internas (Agenda, Diseño, Docs) siguen como pestañas dentro de su panel.
+  - **Corrección de clics:** React Flow ponía `pointer-events: none` en línea sobre las cartas (no arrastrables ni seleccionables): **0 de 14** paneles abrían con clics reales. Ahora el mapa pasa `onNodeClick` y los botones llevan `nopan`. Verificado con eventos reales (CDP, ratón y dedo, con temblor): 18/18 y 7/7, ida al panel y vuelta con «◇ Mapa». También: el lienzo colapsaba a altura 0 (faltaba en `PanelTransition.fillHeight`).
+  - Bancos de pruebas con fetch interceptado (no tocan producción): `desktop/dev/mapa.html` y `desktop/dev/app.html` (la app completa, con `?medir`, `?tocar`, `?rutas`, `?piel`, `?modo`).
+- **Archivos Modificados:** `desktop/src/components/MapaVivo.tsx`, `mapa-vivo.css`, `Layout.tsx`, `App.tsx`, `ui/PanelTransition.tsx`, `nav/InicioNavTabs.tsx`, `nav/FlujoNav.tsx` (eliminado), `lib/{flujoApp,navStructure,panelAccess,panelInfo}.ts`, `stores/app.ts`, `icons/mck/paths/panels.tsx`, `desktop/dev/{mapa,app}.*`, `CLAUDE.md`.
+
+### 2026-09-25 22:20 - Piel «Pixel» para toda la app (la letra de siempre)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Piel **`pixel`** como estilo base de todos (`ESTILO_BASE_V = 3`, se adopta una vez conservando modo, tamaños y zoom): `theme/skin-pixel.css` redefine los tokens (paleta PICO-8, claro y oscuro) y viste lo común — esquinas rectas, bordes de 2 px, sombras de bloque, botón que se hunde, foco amarillo, cuadrícula, encabezados de tabla — sin tocar los 61 paneles.
+  - **Las letras no son pixel** (decisión del usuario, legibilidad): todo el texto sigue en Montserrat. Se probó Pixelify Sans (la «C» se cerraba en «O» a 11–13 px) y DotGothic16 (queda como opción en Temas → Fuente).
+  - Registro en los dos lados: `SKINS`/`FontChoice` del panel y las listas de `tickets_db.py` (skin + **dos** listas de fuentes); el test de pieles ahora también vigila las fuentes. Miniatura propia de «Pixel» en Ajustes.
+- **Archivos Modificados:** `desktop/src/theme/{skin-pixel.css,presets.ts,types.ts,applyTheme.ts,fontLoader.ts}`, `lib/userThemeSync.ts`, `main.tsx`, `components/ThemePackPicker.tsx`, `app/services/tickets_db.py`, `tests/test_mapa_producto.py`, `CLAUDE.md`.
+
+### 2026-09-25 20:00 - Colaboradores: tablero de proyecto (datos reales, consenso, producto y rival, pixel art)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - **Cada caja carga contenido real:** foto, cómo/dónde/por qué, tiempo, costo y precio, datos, «si pasa esto → consecuencia → medida» y adjuntos (fotos y facturas PDF en `colaboradores_media/`, gitignored, servidos solo a su diagrama). Flechas rectas por defecto y que piden nombre al crearse. Marcador con lo invertido (tiempo y dinero) por persona.
+  - **Consenso:** propuestas por persona, votos 👍 y cierre con desempate por **turno alternado global**; voto y autoría autoritativos del servidor (`accion_consenso`).
+  - **Producto** (foto en círculo escalonado + SKU, vitrina, precio, empaque, receta con costos y margen, como el Taller de combos) y **Rival** (su publicación y precio; unido a un producto compara «16 % más caro/barato»). Enlaces solo http(s).
+  - **Pixel art** (sprites 8×8 PICO-8 en vez de emojis, botón Clásico/Pixel). Build del colaborador limpio (verificador de `dist-colab`).
+- **Archivos Modificados:** `app/services/colaboradores.py`, `app/routes_colaboradores.py`, `desktop/src/components/ColaboradoresPanel.tsx`, `components/colaboradores/{pixel.tsx,pixel.css}`, `desktop/tailwind.colab.config.ts`, `desktop/dev/colaboradores.*`, `tests/test_colaboradores.py`, `docs/agentic/modules/colaboradores.md`, `.gitignore`.
+
 ### 2026-09-25 08:45 - Cotizar/Facturar: un tercero recién creado no aparecía en el buscador de clientes
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección (Alegra / Cotizar-Facturar). Sin LLM.

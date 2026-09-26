@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
+// Después de index.css: la piel pixel (la base de todos) manda sobre las reglas base.
+import "./theme/skin-pixel.css";
 import { initFantasyPress } from "./lib/fantasyPress";
 import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 

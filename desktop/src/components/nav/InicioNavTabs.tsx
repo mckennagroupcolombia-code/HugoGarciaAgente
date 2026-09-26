@@ -8,7 +8,8 @@ import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
 import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 import ScrollableTabList from "./ScrollableTabList";
 
-function puedeVerTabInicio(
+/** Quién ve cada vista de la Agenda. La usan también las cartas del Mapa (MapaVivo): una sola regla. */
+export function puedeVerTabInicio(
   permisos: Record<string, boolean> | null | undefined,
   nivel: number,
   tab: string,

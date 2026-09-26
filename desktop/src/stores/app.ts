@@ -26,6 +26,7 @@ export type Panel =
   | "entregas-flex"
   | "mapa-sistema"
   | "colaboradores"
+  | "mapa-vivo"
   | "juegos"
   | "arquitectura"
   | "combos"

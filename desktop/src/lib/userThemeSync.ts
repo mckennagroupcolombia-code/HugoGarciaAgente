@@ -12,6 +12,11 @@ export interface UserUiPreferences {
 }
 
 /**
+ * v3 (25-sep-2026): «Pixel» con la LETRA DE SIEMPRE (Montserrat): la v2 traía también una
+ * fuente pixel y se leía peor. Subir a 3 le devuelve la letra a quien ya adoptó la v2.
+ * v2 (25-sep-2026): el estilo base pasó a «Pixel» (la app como un videojuego, el lenguaje
+ * del Mapa y de Colaboradores). v1 (21-sep-2026) fue «Flujo».
+ *
  * El estilo predeterminado de toda la app cambió a «Flujo» (la interfaz como diagrama).
  * Un default nuevo no alcanza a quien ya tenía un tema guardado, así que la primera vez
  * que cada persona entra se le aplica el estilo base UNA vez y se anota esta versión:
@@ -19,7 +24,7 @@ export interface UserUiPreferences {
  * tamaños, el zoom y sus temas guardados (siguen en Temas → Mis temas).
  * Subir el número solo si se quiere volver a llevar a todos a un estilo base nuevo.
  */
-export const ESTILO_BASE_V = 1;
+export const ESTILO_BASE_V = 3;
 
 let migracionPendiente = false;
 

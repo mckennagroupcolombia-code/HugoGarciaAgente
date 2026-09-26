@@ -1865,7 +1865,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         return []
     fonts = {
         "Montserrat", "Inter", "DM Sans", "Nunito", "Outfit",
-        "JetBrains Mono", "Share Tech Mono", "A Note", "Jost", "system-ui",
+        "JetBrains Mono", "Share Tech Mono", "A Note", "Jost", "system-ui", "DotGothic16",
     }
     out: list[dict] = []
     for item in raw[:12]:
@@ -1933,6 +1933,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
                 "A Note",
                 "Jost",
                 "system-ui",
+                "DotGothic16",
             ):
                 return False, "fontSans inválido", None
             panel["fontSans"] = font
@@ -1949,7 +1950,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["radius"] = radius
         skin = panel_in.get("skin")
         if skin is not None:
-            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo"):
+            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo", "pixel"):
                 return False, "skin inválido", None
             panel["skin"] = skin
         font_scale = panel_in.get("fontScale")

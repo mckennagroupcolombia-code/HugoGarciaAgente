@@ -125,6 +125,47 @@ def register_colaboradores_routes(app):
         d = request.get_json(silent=True) or {}
         return jsonify(col.archivar(did, bool(d.get("archivado", True))))
 
+    @app.route("/api/colaboradores/diagramas/<int:did>/consenso", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/consenso", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_consenso(did: int):
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(col.accion_consenso(
+                did, int(g.colab_usuario["id"]), str(d.get("nodo") or ""), str(d.get("accion") or ""),
+                texto=d.get("texto") or "", propuesta=d.get("propuesta") or ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/media", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/media", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_subir_media(did: int):
+        f = request.files.get("archivo")
+        if not f:
+            return jsonify({"error": "No llegó el archivo"}), 400
+        datos = f.read()
+        if len(datos) > col.MAX_MEDIA_BYTES:
+            return jsonify({"error": "El archivo supera los 15 MB"}), 400
+        try:
+            return jsonify(col.guardar_media(did, datos, f.filename or "")), 201
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/colaboradores/diagramas/<int:did>/media/<mid>", methods=["GET"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/media/<mid>", methods=["GET"])
+    @_miembro
+    @_suyo
+    def colab_ver_media(did: int, mid: str):
+        p = col.media_de_diagrama(mid, did)
+        if not p:
+            return jsonify({"error": "No encontrado"}), 404
+        resp = send_file(str(p), mimetype="application/pdf" if p.suffix == ".pdf" else "image/jpeg")
+        resp.headers["Cache-Control"] = "private, max-age=86400"
+        return resp
+
     @app.route("/api/colaboradores/diagramas/<int:did>/archify", methods=["POST"])
     @app.route("/app/api/colaboradores/diagramas/<int:did>/archify", methods=["POST"])
     @_miembro

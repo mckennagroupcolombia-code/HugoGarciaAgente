@@ -333,6 +333,8 @@ export const ETAPAS_APP: EtapaApp[] = [
 
 /** Paneles que existen pero no pertenecen a la secuencia de este negocio. */
 export const FUERA_DEL_FLUJO: PasoApp[] = [
+  // No es una etapa: es el tablero donde se dibujan todas (components/MapaVivo.tsx).
+  { panel: "mapa-vivo", hace: "El mapa: toda la aplicación en una pantalla (pantalla de inicio)" },
   { panel: "placas-concreto", hace: "Calculadora de placas de concreto (otro taller)" },
   { panel: "juegos", hace: "Juegos para un descanso (dentro de la Agenda)" },
   { panel: "chat-equipo", hace: "Conversación operativa del equipo (dentro de la Agenda)" },

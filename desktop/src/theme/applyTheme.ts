@@ -12,6 +12,7 @@ const FONT_STACKS: Record<PanelThemeConfig["fontSans"], string> = {
   "JetBrains Mono": '"JetBrains Mono", ui-monospace, monospace',
   "Share Tech Mono": '"Share Tech Mono", "JetBrains Mono", ui-monospace, monospace',
   "A Note": '"A Note", cursive',
+  "DotGothic16": '"DotGothic16", system-ui, sans-serif',
   "system-ui": "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
@@ -65,7 +66,8 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
     config.skin === "barbie" ||
     config.skin === "bodega" ||
     config.skin === "botica" ||
-    config.skin === "flujo"
+    config.skin === "flujo" ||
+    config.skin === "pixel"
       ? config.skin
       : "clasica";
 
@@ -88,7 +90,10 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
             ? "181 80 42"
             : skin === "botica" && config.accentRgb === "12 96 105"
               ? "61 90 68"
-              : config.accentRgb;
+              // El acento viaja EN LÍNEA sobre <html>: la hoja de la piel no lo puede pisar.
+              : skin === "pixel" && (config.accentRgb === "12 96 105" || config.accentRgb === "8 145 178")
+                ? "29 43 83"
+                : config.accentRgb;
   const accent = dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
   root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
@@ -121,6 +126,8 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
             ? "#ff7eb6"
             : skin === "flujo"
               ? "#0891b2"
+              : skin === "pixel"
+                ? "#1D2B53"
               : skin === "bodega"
                 ? "#b5502a"
               : skin === "botica"

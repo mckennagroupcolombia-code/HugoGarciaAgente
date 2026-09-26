@@ -3,6 +3,7 @@ import type { ThemePackId } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
+import { Sprite } from "./colaboradores/pixel";
 
 export default function ThemePackPicker() {
   const skin = usePanelTheme((s) => s.skin);
@@ -44,6 +45,24 @@ export default function ThemePackPicker() {
 }
 
 function PackPreview({ id }: { id: ThemePackId }) {
+  if (id === "pixel") {
+    // Bloques de consola con borde negro y sombra dura sobre papel cuadriculado, y un sprite.
+    return (
+      <div
+        className="flex h-14 items-end gap-1.5 border-2 border-black px-2.5 py-2"
+        style={{
+          background:
+            "linear-gradient(#f3ddcb 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, #f3ddcb 1px, transparent 1px) 0 0 / 8px 8px, #FFF1E8",
+        }}
+      >
+        <span className="h-7 flex-1 border-2 border-black bg-[#29ADFF] shadow-[2px_2px_0_#000]" />
+        <span className="flex h-11 w-7 items-center justify-center border-2 border-black bg-[#1D2B53] shadow-[2px_2px_0_#000]">
+          <Sprite s="moneda" px={2} />
+        </span>
+        <span className="h-5 flex-1 border-2 border-black bg-[#FF004D] shadow-[2px_2px_0_#000]" />
+      </div>
+    );
+  }
   if (id === "barbie") {
     return (
       <div className="relative flex h-14 items-end gap-1.5 overflow-hidden rounded-xl bg-gradient-to-br from-[#ffeaf4] via-[#fff8fc] to-[#ffd8ec] px-2.5 py-2 shadow-[0_6px_16px_rgba(255,126,182,0.28)] ring-2 ring-[#ffb0d4]">

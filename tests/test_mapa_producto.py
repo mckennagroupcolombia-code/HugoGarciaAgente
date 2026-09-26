@@ -274,7 +274,20 @@ def test_toda_piel_del_panel_se_puede_guardar_en_el_servidor():
     assert m, "no se encontró la validación de skin en tickets_db.py"
     del_servidor = set(re.findall(r'"([a-z]+)"', m.group(1)))
     assert del_panel <= del_servidor, f"pieles que el servidor rechazaría: {sorted(del_panel - del_servidor)}"
-    assert "flujo" in del_panel
+    assert "flujo" in del_panel and "pixel" in del_panel
+
+    # Lo mismo con las fuentes: el backend las valida en DOS sitios (el tema activo y los
+    # temas guardados por la persona). «DotGothic16» (piel pixel, 25-sep-2026) casi cae aquí.
+    tipos = (REPO / "desktop" / "src" / "theme" / "types.ts").read_text(encoding="utf-8")
+    m = re.search(r"export type FontChoice =([^;]+);", tipos)
+    assert m, "no se encontró FontChoice en types.ts"
+    fuentes_panel = set(re.findall(r'"([^"]+)"', m.group(1)))
+    lista_temas = re.search(r"fonts = \{([^}]+)\}", py)
+    lista_activo = re.search(r'font not in \(([^)]+)\):', py)
+    assert lista_temas and lista_activo, "no se encontraron las listas de fuentes en tickets_db.py"
+    for nombre, bloque in (("temas guardados", lista_temas), ("tema activo", lista_activo)):
+        del_servidor = set(re.findall(r'"([^"]+)"', bloque.group(1)))
+        assert fuentes_panel <= del_servidor, f"fuentes que el servidor rechazaría ({nombre}): {sorted(fuentes_panel - del_servidor)}"
 
 
 def test_la_agenda_es_el_origen_y_cada_tramo_describe_sus_variables():

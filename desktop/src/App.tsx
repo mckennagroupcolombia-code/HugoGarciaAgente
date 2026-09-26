@@ -27,6 +27,7 @@ const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
 const EntregasFlexPanel = lazy(() => import("./components/EntregasFlexPanel"));
 const MapaSistemaPanel = lazy(() => import("./components/MapaSistemaPanel"));
 const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"));
+const MapaVivo = lazy(() => import("./components/MapaVivo"));
 const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
 const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
 const CombosPanel = lazy(() => import("./components/CombosPanel"));
@@ -164,6 +165,8 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <EntregasFlexPanel />;
     case "mapa-sistema":
       return <MapaSistemaPanel />;
+    case "mapa-vivo":
+      return <MapaVivo />;
     case "colaboradores":
       return <ColaboradoresPanel />;
     case "juegos":
@@ -364,6 +367,9 @@ const NAV_ORDER: Panel[] = NAV_PANEL_ORDER;
 // Se lee al cargar el módulo: el login limpia la query (`?_token=`) antes de que haya sesión.
 let PANEL_DEL_ENLACE: string | null =
   typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("panel") : null;
+// El mapa es lo primero que ve cada persona al ENTRAR (decisión 25-sep-2026). Una vez por
+// carga de la página: navegar dentro de la app ya no la devuelve al mapa.
+let INICIO_EN_MAPA = true;
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   // "perfil" no es una sección con permiso: es la ficha del propio usuario.
@@ -556,6 +562,19 @@ export default function App() {
   useEffect(() => {
     if (panel === "tickets") setPanel("hugo");
   }, [panel, setPanel]);
+
+  // Al entrar, el mapa. Va ANTES del enlace directo: si hay `?panel=…`, manda el enlace
+  // (ese efecto lo consume después). En el celular también se sale del hub hacia el mapa.
+  useEffect(() => {
+    if (!user || !hasHydrated || !INICIO_EN_MAPA) return;
+    INICIO_EN_MAPA = false;
+    if (PANEL_DEL_ENLACE || !puedeVerPanel(user, "mapa-vivo")) return;
+    setPanel("mapa-vivo");
+    if (isMobile) {
+      useAppStore.getState().setMobileTab("home");
+      setMobileShell("app");
+    }
+  }, [user, hasHydrated, setPanel, isMobile, setMobileShell]);
 
   // Enlace directo a una sección (`/app?panel=recepcion-mercancia`), p. ej. desde el aviso
   // que el bot deja en un grupo de WhatsApp. Se aplica una sola vez, ya con sesión.

@@ -138,6 +138,15 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <circle cx="17.8" cy="13.8" r="0.9" />
     </>
   ),
+  "mapa-vivo": (
+    <>
+      <rect x="2.5" y="9.5" width="5" height="5" rx="1" />
+      <rect x="9.5" y="4" width="5" height="5" rx="1" />
+      <rect x="16.5" y="9.5" width="5" height="5" rx="1" />
+      <rect x="9.5" y="15" width="5" height="5" rx="1" />
+      <path d="M7.5 12h2.2M14.5 12h2M12 9v6" />
+    </>
+  ),
   colaboradores: (
     <>
       <rect x="2.5" y="4" width="7" height="5" rx="1" />

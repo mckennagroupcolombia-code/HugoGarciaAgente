@@ -264,6 +264,7 @@ desktop/dist_cynthia_backup_*/
 app/data/colaboradores.db
 app/data/colaboradores.db-*
 app/data/colaboradores_archify/
+colaboradores_media/
 juegos_partidas/
 
 # APK de colaboradores: la llave de firma y su contraseña no se versionan;
