@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
+import { panelDeInicio } from "../lib/panelAccess";
 import { useAppStore } from "../stores/app";
 import { useProfilePhotoPending } from "../stores/profilePhotoPending";
 import { Icon } from "../icons";
@@ -89,7 +90,7 @@ function PerfilContent({
   }, [pendingFromSidebar, clearPendingFromSidebar]);
 
   function volver() {
-    setPanel("hugo");
+    setPanel(panelDeInicio(useTicketsAuth.getState().user));
     setCentroMandoView("home");
   }
 

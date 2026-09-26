@@ -86,3 +86,12 @@ export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string):
 }
 
 export { esAdminPanel, conPrivilegiosAdminCynthia, modoAvanzadoEfectivo } from "./adminAccess";
+
+/**
+ * La pantalla de inicio de esta persona (26-sep-2026): el Mapa. La portada de la Agenda ya no
+ * existe como pantalla; todo lo que antes «volvía a la Agenda» vuelve aquí. Solo quien no puede
+ * abrir el Mapa (p. ej. un perfil de lista blanca) sigue aterrizando en la Agenda.
+ */
+export function panelDeInicio(user: TicketsUser | null): "mapa-vivo" | "hugo" {
+  return user && puedeVerSeccionPanel(user, "mapa-vivo") ? "mapa-vivo" : "hugo";
+}

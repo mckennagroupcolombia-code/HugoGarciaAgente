@@ -75,7 +75,7 @@ import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
 import { esPanelContabilidad } from "./lib/contabilidadAccess";
-import { puedeVerSeccionPanel } from "./lib/panelAccess";
+import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -450,7 +450,8 @@ export default function App() {
   // portada con otro lenguaje visual y se sentía como otra aplicación.
   const showMobile = isMobile && !forceDesktop && mobileShell === "hub" && mobileTab !== "home";
   const irAgendaMovil = () => {
-    setPanel("hugo");
+    // La pestaña de inicio del celular abre el Mapa (la portada de la Agenda ya no existe).
+    setPanel(panelDeInicio(useTicketsAuth.getState().user));
     setMobileTab("home");
     setMobileShell("app");
   };

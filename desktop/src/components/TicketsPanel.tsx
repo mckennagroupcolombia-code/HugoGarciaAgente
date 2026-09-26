@@ -49,7 +49,7 @@ import {
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
 import PlacasConcretoModal from "./PlacasConcretoModal";
-import { puedeVerSeccionPanel } from "../lib/panelAccess";
+import { panelDeInicio, puedeVerSeccionPanel } from "../lib/panelAccess";
 import { catalogoPermisos, permisosDesconocidos } from "../lib/permisosCatalogo";
 import {
   esSolicitudEtiqueta,
@@ -30354,6 +30354,18 @@ export default function TicketsPanel() {
     setTicketsBootView(null);
   }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab, user?.rol?.nivel]);
 
+  // La portada de la Agenda ya no es una pantalla (26-sep-2026): la pantalla de inicio es el
+  // Mapa. Cualquier camino que aterrice en ella (volver, «Mi día», botón atrás) sigue al Mapa;
+  // las demás vistas (Mensajes, una solicitud, crear…) y el chat de Hugo, que también vive en
+  // «home», no cambian. Solo con la Agenda visible (montada en segundo plano no se lleva a
+  // nadie) y sin una vista pedida en camino (el efecto de arriba la aplica en este mismo ciclo).
+  const panelVisible = useAppStore((s) => s.panel);
+  useEffect(() => {
+    const agendaVisible = panelVisible === "hugo" || panelVisible === "tickets";
+    if (!agendaVisible || ticketsBootView || view !== "home" || hugoChatExpanded) return;
+    if (panelDeInicio(user) === "mapa-vivo") setPanel("mapa-vivo");
+  }, [view, user, setPanel, panelVisible, ticketsBootView, hugoChatExpanded]);
+
   useEffect(() => {
     if (!solicitudBoot?.abrirTicketId) return;
     setView("mensajes");
@@ -30504,7 +30516,7 @@ export default function TicketsPanel() {
             onIrInventario={goIrInventarioConFiltro}
           />
         )}
-        {view === "home" && (
+        {view === "home" && panelDeInicio(user) === "hugo" && (
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
             <CentroMandoHome
               token={token}

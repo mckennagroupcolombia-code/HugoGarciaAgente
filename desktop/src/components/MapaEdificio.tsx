@@ -35,6 +35,24 @@ const CUERPO = [
 ];
 const PASO_A = [...CUERPO, ".kk..kk.", "kk....kk"];
 const PASO_B = [...CUERPO, "..kBBk..", "..kkkk.."];
+/** Mujer: el pelo largo le cae por la espalda y lleva falda (mismo alto que el muñeco). */
+const CUERPO_MUJER = [
+  "..kkkk..", ".knnnnk.", "knncckck", "knncccck", "knnkkkk.",
+  "knXXXXk.", "kXXXXXXk", "kcXXXXck", ".kXXXXk.", "kXXXXXXk",
+];
+const MUJER_A = [...CUERPO_MUJER, ".kc..ck.", "kk....kk"];
+const MUJER_B = [...CUERPO_MUJER, "..kcck..", "..kkkk.."];
+/** Princesa: corona con gema, pelo rubio y vestido largo hasta el piso (asoman los zapatos). */
+const CORONA = ["..y..y..", "..yryy.."];
+const VESTIDO = [...CORONA, ...CUERPO_MUJER, "kXXXXXXk", "kPPPPPPk"];
+const PRINCESA_A = [...VESTIDO, "kk....kk"];
+const PRINCESA_B = [...VESTIDO, "..kkkk.."];
+const FIGURAS = {
+  hombre: [PASO_A, PASO_B],
+  mujer: [MUJER_A, MUJER_B],
+  princesa: [PRINCESA_A, PRINCESA_B],
+} as const;
+type Figura = keyof typeof FIGURAS;
 const CAJA = ["kkkkkkkk", "knnnonnk", "knnnonnk", "kkkkkkkk", "knnnnnnk", "knnnnnnk", "kkkkkkkk"];
 const FRASCO = ["..kkkk..", "..kssk..", ".kkkkkk.", "kwwwwwwk", "kwbbbbwk", "kwbbbbwk", "kwwwwwwk", ".kkkkkk."];
 const PLANTA = ["..g..g..", ".gGg.gG.", "..gGgG..", "...GG...", "..kkkk..", ".knnnnk.", ".knnnnk.", "..kkkk.."];
@@ -52,17 +70,20 @@ const PELOS = ["#AB5236", "#000000", "#5F574F", "#FFA300"];
 type Var = CSSProperties & Record<`--${string}`, string | number>;
 
 /** Alguien que camina de un lado al otro del piso (dos cuadros de paso, como un juego de 8 bits). */
-function Andante({ i, dur = 12, retraso = 0, desde = 4, hasta = 70, carga }: {
-  i: number; dur?: number; retraso?: number; desde?: number; hasta?: number; carga?: string[];
+function Andante({ i, dur = 12, retraso = 0, desde = 4, hasta = 70, carga, figura = "hombre" }: {
+  i: number; dur?: number; retraso?: number; desde?: number; hasta?: number; carga?: string[]; figura?: Figura;
 }) {
-  const colores = { X: CAMISAS[i % CAMISAS.length], n: PELOS[i % PELOS.length] };
+  const colores = figura === "princesa"
+    ? { X: "#FF77A8", n: "#FFEC27" } // vestido rosado y pelo rubio, siempre
+    : { X: CAMISAS[i % CAMISAS.length], n: PELOS[i % PELOS.length] };
+  const [pasoA, pasoB] = FIGURAS[figura];
   const estilo: Var = { "--dur": `${dur}s`, "--retraso": `${-retraso}s`, "--desde": `${desde}cqw`, "--hasta": `${hasta}cqw` };
   return (
     <div className="ed-andante" style={estilo} aria-hidden="true">
       <div className="ed-voltea">
         <div className="ed-pasos">
-          <Sprite s={PASO_A} px={3} colores={colores} className="ed-paso-a" />
-          <Sprite s={PASO_B} px={3} colores={colores} className="ed-paso-b" />
+          <Sprite s={pasoA} px={3} colores={colores} className="ed-paso-a" />
+          <Sprite s={pasoB} px={3} colores={colores} className="ed-paso-b" />
         </div>
         {carga && <Sprite s={carga} px={2} className="ed-carga" />}
       </div>
@@ -95,7 +116,7 @@ function Escena({ id }: { id: string }) {
           </div>
         </div>
         <Cosa x={70} className="ed-maquina"><span className="ed-luz ed-luz-verde" /></Cosa>
-        <Andante i={1} dur={14} desde={2} hasta={16} />
+        <Andante i={1} dur={14} desde={2} hasta={16} figura="mujer" />
         <Cosa x={88}><Sprite s="bloques" px={4} /></Cosa>
       </>);
     case "publicar": // el estudio: la cámara dispara al producto y las pantallas se encienden
@@ -116,7 +137,7 @@ function Escena({ id }: { id: string }) {
           </div>
         ))}
         <Andante i={0} dur={10} desde={52} hasta={86} />
-        <Andante i={5} dur={13} retraso={5} desde={50} hasta={80} carga={["..k..k..", "...kk...", "..kook..", ".kooyok.", "kooyyook", "koooyook", "kooyyook", ".kkkkkk."]} />
+        <Andante i={5} dur={13} retraso={5} desde={50} hasta={80} figura="mujer" carga={["..k..k..", "...kk...", "..kook..", ".kooyok.", "kooyyook", "koooyook", "kooyyook", ".kkkkkk."]} />
         <Cosa x={6}><Sprite s={PLANTA} px={3} /></Cosa>
       </>);
     case "entregar": // despacho: las cajas bajan por la cinta y el camión sale a repartir
@@ -138,7 +159,7 @@ function Escena({ id }: { id: string }) {
           <Sprite s={IMPRESORA} px={3} />
         </Cosa>
         <Cosa x={52}><Sprite s="doc" px={2} /></Cosa>
-        <Andante i={6} dur={12} desde={60} hasta={88} />
+        <Andante i={6} dur={12} desde={60} hasta={88} figura="mujer" />
       </>);
     case "contar": // contabilidad: la gráfica sube y baja, la calculadora trabaja
       return (<>
@@ -154,7 +175,7 @@ function Escena({ id }: { id: string }) {
         <div className="ed-ciudad" aria-hidden="true" />
         <Cosa x={8}><Sprite s="trofeo" px={4} /></Cosa>
         <Cosa x={60} className="ed-escritorio ed-escritorio-grande" />
-        <Andante i={4} dur={18} desde={16} hasta={52} />
+        <Andante i={4} dur={18} desde={16} hasta={52} figura="princesa" />
         <Cosa x={90}><Sprite s={PLANTA} px={3} /></Cosa>
       </>);
     case "sistema": // el sótano: los servidores parpadean y el robot hace la ronda
@@ -313,7 +334,7 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
 
         {/* Planta baja: la recepción. Aquí empieza el día de cada quien. */}
         <section ref={(el) => { refs.current.inicio = el; }} className={`ed-piso ed-recepcion ${llegando === "inicio" ? "ed-llega" : ""}`}
-                 data-etapa="inicio" style={{ "--fondo": "#FFEC27", "--tinta": "#000" } as Var} aria-label="Planta baja · Inicio">
+                 data-etapa="inicio" style={{ "--fondo": "var(--ed-amarillo, #FFEC27)", "--tinta": "var(--ed-negro, #000)" } as Var} aria-label="Planta baja · Inicio">
           <header className="ed-placa">
             <span className="ed-numero">PB</span>
             <div className="min-w-0">
@@ -328,11 +349,6 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
           </header>
           <div className="ed-sala">
             <div className="ed-pared">
-              {origen.puede && (
-                <button type="button" className="ed-estacion ed-principal" data-panel={ORIGEN_APP.panel} onClick={() => inicio.vistaAgenda("home")}>
-                  ▶ {ORIGEN_APP.titulo}
-                </button>
-              )}
               {inicio.token && <BotonMiFicha token={inicio.token} className="ed-estacion ed-ficha" />}
               {origen.puede && inicio.verMensajes && (
                 <button type="button" className="ed-estacion" data-panel={ORIGEN_APP.panel} data-vista="mensajes" onClick={() => inicio.vistaAgenda("mensajes")}>
@@ -352,7 +368,7 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
               <div className="ed-tu ed-tu-recepcion" aria-hidden="true">
                 <Sprite s="jugador" px={4} colores={{ X: "#29ADFF" }} />
               </div>
-              <Andante i={2} dur={10} desde={4} hasta={36} />
+              <Andante i={2} dur={10} desde={4} hasta={36} figura="mujer" />
               <Cosa x={90}><Sprite s={PLANTA} px={3} /></Cosa>
             </div>
           </div>

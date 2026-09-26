@@ -5,7 +5,7 @@ import { PanelIcon } from "../../icons/PanelIcon";
 import { Icon } from "../../icons";
 import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
-import { puedeVerSeccionPanel } from "../../lib/panelAccess";
+import { panelDeInicio, puedeVerSeccionPanel } from "../../lib/panelAccess";
 import ScrollableTabList from "./ScrollableTabList";
 
 /** Quién ve cada vista de la Agenda. La usan también las cartas del Mapa (MapaVivo): una sola regla. */
@@ -64,6 +64,8 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
   }, [panel, enAgenda]);
 
   function irAgenda() {
+    // La portada de la Agenda ya no es una pantalla: la primera pestaña lleva al Mapa.
+    if (panelDeInicio(user) === "mapa-vivo") { setPanel("mapa-vivo"); return; }
     setAccionesBootTab(null);
     setTicketsBootView("home");
     setCentroMandoView("home");
@@ -99,13 +101,13 @@ export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boo
         type="button"
         role="tab"
         aria-selected={agendaActiva}
-        aria-label="Agenda"
-        title="Agenda"
+        aria-label={panelDeInicio(user) === "mapa-vivo" ? "Mapa" : "Agenda"}
+        title={panelDeInicio(user) === "mapa-vivo" ? "Volver al mapa" : "Agenda"}
         onClick={irAgenda}
         className={tabClass(agendaActiva)}
       >
         <Icon name="target" size={22} weight="bold" />
-        <span className={HUB_TAB_LABEL}>{soloVistas ? "Mi día" : "Agenda"}</span>
+        <span className={HUB_TAB_LABEL}>{panelDeInicio(user) === "mapa-vivo" ? "Mapa" : soloVistas ? "Mi día" : "Agenda"}</span>
       </button>
       {showMensajes && (
         <button

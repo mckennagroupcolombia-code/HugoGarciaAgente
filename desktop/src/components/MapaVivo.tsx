@@ -113,7 +113,7 @@ function CartaOrigen({ id, data }: NodeProps) {
   return (
     <div className="mv-carta mv-origen">
       <Manijas entra={d.entra} sale={d.sale} />
-      <div className="mv-cab" style={{ background: "#FFEC27", color: "#000" }}>
+      <div className="mv-cab" style={{ background: "var(--ed-amarillo, #FFEC27)", color: "var(--ed-negro, #000)" }}>
         <Sprite s="jugador" px={2} colores={{ X: "#29ADFF" }} /> Inicio
       </div>
       <div className="space-y-1 p-2">
@@ -123,13 +123,8 @@ function CartaOrigen({ id, data }: NodeProps) {
           <p className="mv-linea mv-linea-urgente"><Sprite s="alerta" px={2} /> {d.urgentes} urgente{d.urgentes === 1 ? "" : "s"}</p>
         )}
         <p className="mv-linea"><Sprite s="reloj" px={2} /> {d.recordatorios} recordatorios hoy</p>
-        {d.puede && (
-          <button type="button" className="mv-btn nodrag nopan w-full" data-panel={ORIGEN_APP.panel}
-                  onClick={() => vistaAgenda("home")}>
-            ▶ {ORIGEN_APP.titulo}
-          </button>
-        )}
-        {/* La ficha del mes de cada quien (Mi rendimiento), justo bajo su agenda. */}
+        {/* La portada de la Agenda ya no existe (26-sep-2026): el Mapa ES el inicio. Aquí queda
+            la ficha del mes de cada quien, y debajo Mensajes y los espacios del equipo. */}
         {token && <BotonMiFicha token={token} className="mv-btn mv-ficha nodrag nopan w-full" />}
         <div className="space-y-1">
           {d.puede && verMensajes && (
@@ -501,8 +496,8 @@ function Mapa() {
     <div ref={contenedor} className="colab-pixel mapa-vivo flex min-h-0 flex-1 flex-col gap-2">
       <div className="px-hud flex min-w-0 flex-wrap items-center gap-2">
         <Sprite s="control" px={2} titulo="Mapa de la aplicación" />
-        <span className="px-t min-w-0 flex-1 truncate" style={{ color: "#FFEC27", fontSize: 16 }}>Mapa de McKenna</span>
-        <span className="px-t hidden sm:inline" style={{ fontSize: 11, color: "#C2C3C7" }}>
+        <span className="px-t min-w-0 flex-1 truncate" style={{ color: "var(--ed-amarillo, #FFEC27)", fontSize: 16 }}>Mapa de McKenna</span>
+        <span className="px-t hidden sm:inline" style={{ fontSize: 11, color: "var(--ed-gris, #C2C3C7)" }}>
           {participa} de {cartas.length} etapas son tuyas
         </span>
         <div className="flex shrink-0 gap-1" role="group" aria-label="Cómo ver la aplicación">

@@ -1,5 +1,7 @@
 import type { EtiquetasTab, Panel } from "../stores/app";
 import { useAppStore } from "../stores/app";
+import { panelDeInicio } from "./panelAccess";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import { writeNavHash } from "./navHash";
 import { mckennaAndroidBridge } from "./androidApp";
@@ -188,14 +190,17 @@ export function handleAppBack(): boolean {
   // En celular, desde paneles completos → volver al hub (no salir de la app).
   // Desde la Agenda (que en el celular ya es la pantalla de inicio) no hay a dónde
   // volver: se deja minimizar la app en vez de «volver» a la misma pantalla.
-  const enAgendaMovil = app.mobileTab === "home" && (app.panel === "hugo" || app.panel === "tickets");
+  const enAgendaMovil = app.mobileTab === "home" && (app.panel === "mapa-vivo" || app.panel === "hugo" || app.panel === "tickets");
   if (
     app.mobileShell === "app"
     && !enAgendaMovil
     && typeof window !== "undefined"
     && window.matchMedia("(max-width: 767px)").matches
   ) {
-    useAppStore.setState({ mobileShell: "hub", panel: "hugo", sidebarOpen: false });
+    // Atrás desde un panel → el Mapa, que es la pantalla de inicio.
+    if (panelDeInicio(useTicketsAuth.getState().user) === "mapa-vivo")
+      useAppStore.setState({ mobileShell: "app", mobileTab: "home", panel: "mapa-vivo", sidebarOpen: false });
+    else useAppStore.setState({ mobileShell: "hub", panel: "hugo", sidebarOpen: false });
     return true;
   }
 

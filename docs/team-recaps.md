@@ -1,3 +1,13 @@
+### 2026-09-26 01:20 - Solo el Mapa: la portada de la Agenda deja de existir
+- **Autor:** Armando García
+- **Tipo de Cambio:** Cambio de navegación. Sin LLM.
+- **Qué se implementó:**
+  - La pantalla de inicio es el **Mapa** para todos. Todos los caminos que abrían la portada de la Agenda (sus secciones del día y de los últimos días) ahora llevan al Mapa: la pestaña del celular (ahora se llama «Mapa»), el botón atrás de Android, «volver» desde Perfil, la pestaña «Mi día» (ahora «Mapa») y un enlace `?panel=hugo`.
+  - Se quitó «▶ Mi agenda» de la carta de Inicio del Mapa y de la recepción del Edificio; queda «Mi ficha», Mensajes y los espacios del equipo.
+  - Mensajes, abrir o crear solicitudes y el chat de Hugo siguen funcionando igual.
+  - Verificado con clics y toques reales en escritorio y celular.
+- **Archivos Modificados:** `desktop/src/{App.tsx,lib/panelAccess.ts,lib/appBackNavigation.ts,components/TicketsPanel.tsx,components/nav/InicioNavTabs.tsx,components/MobileHub.tsx,components/PerfilPanel.tsx,components/MapaVivo.tsx,components/MapaEdificio.tsx,components/Layout.tsx}`, `CLAUDE.md`.
+
 ### 2026-09-26 00:35 - El Edificio McKenna: la app como diorama, y cada módulo es su piso
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + rediseño visual. Sin LLM.

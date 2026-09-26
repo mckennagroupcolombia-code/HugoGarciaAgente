@@ -591,7 +591,7 @@ function PerfilTab({
 // de la columna, no fija: nada queda tapado debajo y no hace falta reservarle hueco.
 
 const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
-  { id: "home", label: "Agenda", icon: "home" },
+  { id: "home", label: "Mapa", icon: "home" },
   { id: "chat", label: "Hugo", icon: "chat" },
   { id: "mensajes", label: "Mensajes", icon: "inbox" },
   { id: "acciones", label: "Rápido", icon: "lightning" },
@@ -691,10 +691,11 @@ export default function MobileHub({
   const setTab = useAppStore((s) => s.setMobileTab);
 
   const navigateTo = useCallback((p: Panel) => {
-    setPanel(p);
     if (p === "hugo" || p === "tickets") {
-      onAgenda();
+      onAgenda();       // sale del hub hacia el Layout (y deja el Mapa)…
+      setPanel(p);      // …y después se abre lo pedido (Mensajes, una solicitud)
     } else {
+      setPanel(p);
       onOpenPanel?.();
     }
   }, [setPanel, onOpenPanel, onAgenda]);

@@ -185,7 +185,7 @@ export default function Layout({
                     <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
                       {piso?.placa && <span className="mck-piso-placa hidden" title="El piso de este módulo en el Edificio">{piso.placa}</span>}
                       {enOrigen
-                        ? "Inicio · tu día"
+                        ? "Inicio"
                         : ubicacion
                           ? `${ubicacion.etapa.titulo} ⇢ ${ubicacion.n}·${ubicacion.tramo.titulo}`
                           : panel === "mapa-vivo"
