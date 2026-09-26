@@ -4172,3 +4172,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Las estrellas de la tarjeta de aprobación en Barbie ahora también son sobre todo doradas.
   - **Verificado:** `npm run build` sin errores; prueba en Chrome headless: primera llamada celebra, la segunda sobre la misma tarea no; capturas del efecto en Barbie.
 - **Archivos Modificados:** `desktop/src/lib/celebracionAprobado.ts`, `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-26 - Docs técnicos: cada producto se enlaza con el documento que más se le parece
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (enlace documento ↔ SKU en Documentos por catálogo)
+- **Qué se implementó:**
+  - **Problema:** `_coincide_archivo` acepta un documento con que la palabra más larga del producto esté en el nombre, y se tomaba el **primero** que coincidía. «SABOR CARNE AHUMADA 100g» mostraba el PDF de «SAL AHUMADA GRUESA…» (la usuaria borró ese PDF por confusión; se regeneró desde su YAML con `generar_pdf_completo`, sin tocar datos ni etiquetas).
+  - **Solución:** `_mejor_coincidencia` en `app/services/documentos_catalogo.py`: entre los que coinciden gana la referencia en el nombre y, si no, el que comparte más palabras con el producto; se descarta el que trae la palabra contraria (`_OPUESTAS`: fino/grueso, refinada/natural, blanca/amarilla). La usan la biblioteca local y el índice de Drive.
+  - Corrige 65 productos que estaban con el documento de otro (aceites → «ACEITE ESENCIAL MANZANILLA», sorbato → polisorbato 20, citrato de magnesio → cloruro, ceras → manteca de cacao, sal rosada fino ↔ gránulos…). Ninguno queda sin documento.
+  - Pendiente (igual que antes): productos sin documento propio siguen tomando uno parecido (MENTOL CRISTAL → celulosa microcristalina, ACEITE DE COCO → manzanilla).
+  - **Verificado:** comparación completa regla vieja vs nueva sobre los 289 productos; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/services/documentos_catalogo.py`, `docs/team-recaps.md`
