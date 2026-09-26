@@ -28,7 +28,7 @@ const LETRERO = ["kkkkkkkkkk", "knnnnnnnnk", "knyyyyyynk", "knnnnnnnnk", "kkkkkk
 const MUEBLE: Record<string, SpriteId[]> = {
   accion: ["ventana", "reloj"], decision: ["estrella", "doc"], entregable: ["cofre", "trofeo"],
   dinero: ["moneda", "bolsa"], externo: ["bandera", "foto"], consenso: ["urna", "pulgar"],
-  producto: ["gema", "bolsa"], competencia: ["bandera", "alerta"],
+  producto: ["gema", "bolsa"], competencia: ["bandera", "alerta"], proveedor: ["cofre", "camion"],
 };
 
 type Var = CSSProperties & Record<`--${string}`, string>;

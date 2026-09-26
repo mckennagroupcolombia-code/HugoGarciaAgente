@@ -148,3 +148,31 @@ comercial para un proyecto conjunto, a mano y desde el celular.
   terminar un piso, fanfarria al terminar la obra. La **lista de proyectos es una calle**: cada proyecto un
   edificio (pisos terminados con luz, el resto en andamio, grúa mientras falte) y un terreno para crear
   uno nuevo. Sin LLM; no cambia lo que se guarda (la etapa se calcula, no se almacena).
+
+- **Vista «Operación» — el ERP gamificado (26-sep-2026)**: por qué existe — los diagramas de flujo
+  planos (1) no daban contexto (por qué/cómo/cuándo/dónde), (2) se estancaban en rombos Sí/No sin
+  consenso ni desempate, (3) no mostraban la propiedad (SKU combo con sub-SKUs, comprado a un externo,
+  en manos de Sebastián, vendido a McKenna, procesado por Armando), (4) eran cajas cerradas sin
+  propiedades ni anidación, y (5) no tenían progresión ni consecuencias. Respuesta:
+  · contexto: el paso tiene **cuándo** además de cómo/dónde/por qué (`VARIABLES`); cuenta para la obra.
+  · decisiones: mesa de guerra = cajas «Consenso»; empate → **habilidad** (`skill` de la caja; decide la
+    única persona cuyo avatar la tiene, modo `skill`, no gasta turno) → si no, turno alterno.
+  · propiedad: cada pieza de la receta lleva **SKU hijo** y **proveedor** (id de una caja «Proveedor»);
+    cada producto muestra su **cadena de propiedad** (Proveedor ▶ Compras ▶ McKenna ▶ Orquestación ▶
+    Cliente) con el dueño actual, derivada de su fase.
+  · objetos configurables: tipo nuevo **`proveedor`** (`entrega_dias`, `fiabilidad` 1–5, insumos en
+    `componentes`); el ente, el reparto y los **avatares** (rol, habilidades, piso, cuenta) en «Reglas».
+  · consecuencias: la obra por pisos, el **dharma** (`colaboradores.dharma`: +1/−1 a quien decidió según
+    `resultados`), la bóveda (pérdida en rojo) y el **riesgo de abastecimiento** (fiabilidad mínima y
+    entrega máxima de los proveedores de la receta).
+  Diorama `colaboradores/OperacionDiorama.tsx` + `operacion.css`: techo cliente · P3 orquestación · mesa
+  de guerra · P2 hub McKenna (bóveda + inventario) · P1 compras · subsuelo proveedores + bitácora.
+  Bucle: comprar → craftear (venta interna a McKenna, suma unidades) → publicar → vender (reparto:
+  compras = costo de la receta + `ensamblaje_pct` sobre ese costo; orquestación = `servicios_pct` sobre
+  la venta; bóveda = el resto; lo que va en otra moneda no se suma y se avisa en `sin_sumar`).
+  **Estado en `doc.operacion`** y SOLO lo cambia `accion_operacion` (`POST …/operacion`): `guardar()`
+  (tablero, restaurar) conserva la que hay y descarta la que llegue, así un guardado no pisa una venta.
+  `_a_dict` entrega `operacion` (con avatares por defecto: Sebastián en compras, Armando en
+  orquestación) y `dharma`. ⚠️ **Simulación**: no toca Alegra, el inventario ni el Libro Mayor. No se
+  exige que cada jugada la haga el avatar de su piso (se registra quién la hizo). Votan solo las dos
+  cuentas del proyecto; un avatar «sin cuenta» (un tercer colaborador aún sin usuario) juega pero no vota.

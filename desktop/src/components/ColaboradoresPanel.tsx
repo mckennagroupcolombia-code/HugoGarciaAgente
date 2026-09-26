@@ -27,20 +27,21 @@ import {
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { Sprite, circuloPixel, type SpriteId } from "./colaboradores/pixel";
 import EdificioProyecto from "./colaboradores/EdificioProyecto";
+import OperacionDiorama, { type NodoOp, type Operacion } from "./colaboradores/OperacionDiorama";
 
 // ─── Modelo (igual al del backend) ──────────────────────────────────────────
 
-type Tipo = "accion" | "decision" | "entregable" | "dinero" | "externo" | "consenso" | "producto" | "competencia";
+type Tipo = "accion" | "decision" | "entregable" | "dinero" | "externo" | "consenso" | "producto" | "competencia" | "proveedor";
 type Carril = "mckenna" | "armando" | "sebastian" | "conjunto";
 type Dinero = { monto: number; moneda: Moneda };
 type Moneda = "COP" | "USD" | "EUR";
 type Dato = { campo: string; valor: string };
 type Consecuencia = { si: string; entonces: string; medida: string };
 type Adjunto = { id: string; nombre: string; tipo: "imagen" | "pdf" };
-type Variables = { como?: string; donde?: string; porque?: string };
+type Variables = { como?: string; donde?: string; cuando?: string; porque?: string };
 type Propuesta = { id: string; autor?: number; texto: string };
-type Resuelto = { propuesta: string; modo: "acuerdo" | "turno"; por?: number };
-type Componente = { nombre: string; cantidad?: string; costo?: Dinero };
+type Resuelto = { propuesta: string; modo: "acuerdo" | "turno" | "skill"; por?: number };
+type Componente = { nombre: string; sku?: string; cantidad?: string; costo?: Dinero; proveedor?: string };
 /** Una caja es un paso del proyecto: además del título carga contenido real
  *  (fotos, facturas, tiempo, dinero, datos, consecuencias, un consenso, un
  *  producto con su receta o un competidor con su precio). Todo opcional. */
@@ -51,6 +52,8 @@ type NodoDoc = {
   asunto?: string; propuestas?: Propuesta[]; votos?: Record<string, string>; resuelto?: Resuelto;
   sku?: string; empaque?: { nombre: string; costo?: Dinero }; componentes?: Componente[];
   url?: string; plataforma?: string;
+  entrega_dias?: number; fiabilidad?: number;   // proveedor (vista Operación)
+  skill?: string;                               // consenso: la habilidad que desempata
 };
 /** Lo que se CALCULA para dibujar y nunca se guarda (claves con `_`; aDoc las quita). */
 type NodoVista = NodoDoc & {
@@ -74,6 +77,10 @@ type Diagrama = {
   turno_actual?: number | null; colaborador_id?: number | null; participantes?: Record<string, string>;
   /** La obra (vista Edificio): pisos, cuántos terminados y avance 0–1. Lo calcula el servidor. */
   obra?: { pisos: number; terminados: number; avance: number };
+  /** La operación (vista Operación): la cambian solo las jugadas del servidor. */
+  operacion?: Operacion;
+  /** Dharma por usuario: decisiones calificadas (+1 salió bien, −1 salió mal). */
+  dharma?: Record<string, number>;
 };
 type Lista = { diagramas: Omit<Diagrama, "doc">[]; yo: { id: number; nombre: string } };
 type Version = { version: number; usuario: string; resumen: string; creado_en: string; nodos: number; flechas: number };
@@ -87,6 +94,7 @@ const TIPOS: Record<Tipo, { label: string; fondo: string; borde: string }> = {
   consenso: { label: "Consenso / votación", fondo: "#fae8ff", borde: "#a21caf" },
   producto: { label: "Producto", fondo: "#FFCCAA", borde: "#AB5236" },
   competencia: { label: "Competencia", fondo: "#FFE4EC", borde: "#FF004D" },
+  proveedor: { label: "Proveedor", fondo: "#E4F7EC", borde: "#008751" },
 };
 // Cada carril es una figura jurídica aparte: la empresa no es Armando.
 const CARRILES: Record<Carril, string> = {
@@ -113,6 +121,7 @@ const MONEDAS: Moneda[] = ["COP", "USD", "EUR"];
 const VARIABLES: { id: keyof Variables; label: string; ph: string }[] = [
   { id: "como", label: "Cómo", ph: "cómo se hace" },
   { id: "donde", label: "Dónde", ph: "dónde ocurre" },
+  { id: "cuando", label: "Cuándo", ph: "cuándo o cada cuánto" },
   { id: "porque", label: "Por qué", ph: "por qué / para qué" },
 ];
 
@@ -687,8 +696,10 @@ function ContenidoCaja({ did, nd, editar, subir, subiendo, extras = false }: {
 
 // ─── Producto y competencia: datos reales en vez de pasos genéricos ──────────
 
-function ProductoEditor({ did, nd, editar, subir, subiendo }: {
+function ProductoEditor({ did, nd, editar, subir, subiendo, proveedores = [] }: {
   did: number; nd: NodoDoc; editar: (c: Partial<NodoDoc>) => void; subir: Subir; subiendo: boolean;
+  /** Las cajas «Proveedor» del tablero: cada pieza de la receta dice a quién se le compra. */
+  proveedores?: { id: string; label: string }[];
 }) {
   const comps = nd.componentes ?? [];
   const moneda: Moneda = nd.precio?.moneda ?? "COP";
@@ -721,7 +732,9 @@ function ProductoEditor({ did, nd, editar, subir, subiendo }: {
           <Sprite s="bloques" px={2} /> Receta: de qué está hecho ({comps.length})
         </p>
         {comps.map((c, i) => (
-          <div key={i} className="flex gap-1">
+          <div key={i} className="flex flex-wrap gap-1">
+            <input placeholder="SKU hijo" value={c.sku ?? ""} autoCapitalize="characters"
+                   onChange={(e) => setComp(i, { sku: e.target.value })} className={`${MINI} w-24`} />
             <input placeholder="pieza" value={c.nombre} onChange={(e) => setComp(i, { nombre: e.target.value })}
                    className={`${MINI} min-w-0 flex-1`} />
             <input placeholder="cant." value={c.cantidad ?? ""} onChange={(e) => setComp(i, { cantidad: e.target.value })}
@@ -730,6 +743,13 @@ function ProductoEditor({ did, nd, editar, subir, subiendo }: {
                    onChange={(e) => setComp(i, { costo: aDinero(e.target.value) })} className={`${MINI} w-20 tabular-nums`} />
             <button type="button" onClick={() => editar({ componentes: comps.filter((_, j) => j !== i) })}
                     className="px-1 text-red-500" aria-label="Quitar pieza">×</button>
+            {proveedores.length > 0 && (
+              <select value={c.proveedor ?? ""} onChange={(e) => setComp(i, { proveedor: e.target.value || undefined })}
+                      className={`${MINI} w-full`} aria-label="A quién se le compra">
+                <option value="">proveedor: —</option>
+                {proveedores.map((v) => <option key={v.id} value={v.id}>de {v.label}</option>)}
+              </select>
+            )}
           </div>
         ))}
         {comps.length < 12 && (
@@ -753,6 +773,57 @@ function ProductoEditor({ did, nd, editar, subir, subiendo }: {
         <summary className="cursor-pointer text-xs font-bold text-muted">Más: tiempo, datos, facturas, escenarios</summary>
         <div className="mt-1">
           <ContenidoCaja extras did={did} nd={nd} editar={editar} subir={subir} subiendo={subiendo} />
+        </div>
+      </details>
+    </div>
+  );
+}
+
+/** Un proveedor (tienda del mercado externo): cuánto tarda, qué tan confiable es y qué vende. */
+function ProveedorEditor({ did, nd, editar, subir, subiendo }: {
+  did: number; nd: NodoDoc; editar: (c: Partial<NodoDoc>) => void; subir: Subir; subiendo: boolean;
+}) {
+  const insumos = nd.componentes ?? [];
+  const setIns = (i: number, cambio: Partial<Componente>) =>
+    editar({ componentes: insumos.map((c, j) => (j === i ? { ...c, ...cambio } : c)) });
+  return (
+    <div className="space-y-2 border-t border-border pt-2">
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-muted">Entrega en
+          <input inputMode="numeric" value={nd.entrega_dias ?? ""} placeholder="días"
+                 onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); editar({ entrega_dias: v === "" ? undefined : Number(v) }); }}
+                 className={`${MINI} ml-1 w-16`} /> días
+        </label>
+        <span className="text-xs text-muted">Fiabilidad</span>
+        {[1, 2, 3, 4, 5].map((k) => (
+          <button key={k} type="button" aria-label={`Fiabilidad ${k} de 5`} aria-pressed={(nd.fiabilidad ?? 0) >= k}
+                  onClick={() => editar({ fiabilidad: nd.fiabilidad === k ? undefined : k })}
+                  className="text-lg leading-none" style={{ color: (nd.fiabilidad ?? 0) >= k ? "#FFA300" : "#C2C3C7" }}>★</button>
+        ))}
+      </div>
+      <UrlCampo valor={nd.url} onCambio={(u) => editar({ url: u })} ph="Su página o catálogo (https://…)" />
+      <div className="space-y-1 rounded border border-border p-2">
+        <p className="px-t flex items-center gap-1 text-xs font-bold text-muted"><Sprite s="cofre" px={2} /> Lo que vende ({insumos.length})</p>
+        {insumos.map((c, i) => (
+          <div key={i} className="flex gap-1">
+            <input placeholder="SKU" value={c.sku ?? ""} onChange={(e) => setIns(i, { sku: e.target.value })} className={`${MINI} w-20`} />
+            <input placeholder="insumo" value={c.nombre} onChange={(e) => setIns(i, { nombre: e.target.value })} className={`${MINI} min-w-0 flex-1`} />
+            <input placeholder="costo" inputMode="numeric" value={c.costo?.monto ?? ""}
+                   onChange={(e) => { const n = Number(e.target.value.replace(/[^\d.]/g, "")); setIns(i, { costo: e.target.value.trim() === "" ? undefined : { monto: n, moneda: "COP" } }); }}
+                   className={`${MINI} w-20 tabular-nums`} />
+            <button type="button" onClick={() => editar({ componentes: insumos.filter((_, j) => j !== i) })}
+                    className="px-1 text-red-500" aria-label="Quitar insumo">×</button>
+          </div>
+        ))}
+        {insumos.length < 12 && (
+          <button type="button" onClick={() => editar({ componentes: [...insumos, { nombre: "" }] })}
+                  className="text-xs font-bold text-accent">＋ insumo</button>
+        )}
+      </div>
+      <details>
+        <summary className="cursor-pointer text-xs font-bold text-muted">Más: cómo, dónde, cuándo, facturas, escenarios</summary>
+        <div className="mt-1">
+          <ContenidoCaja did={did} nd={nd} editar={editar} subir={subir} subiendo={subiendo} />
         </div>
       </details>
     </div>
@@ -790,9 +861,9 @@ function CompetenciaEditor({ did, nd, editar, subir, subiendo, vs }: {
 
 // ─── Consenso: propuestas, votos 👍 y desempate por turno ─────────────────────
 
-function ConsensoEditor({ nd, yoId, participantes, turnoActual, editarAsunto, correr }: {
+function ConsensoEditor({ nd, yoId, participantes, turnoActual, editarAsunto, editarSkill, correr }: {
   nd: NodoDoc; yoId: number; participantes: Record<string, string>; turnoActual?: number | null;
-  editarAsunto: (v: string) => void; correr: (accion: string, extra?: { texto?: string; propuesta?: string }) => Promise<void>;
+  editarAsunto: (v: string) => void; editarSkill: (v: string) => void; correr: (accion: string, extra?: { texto?: string; propuesta?: string }) => Promise<void>;
 }) {
   const props = nd.propuestas ?? [];
   const votos = nd.votos ?? {};
@@ -814,6 +885,9 @@ function ConsensoEditor({ nd, yoId, participantes, turnoActual, editarAsunto, co
       <textarea value={nd.asunto ?? ""} placeholder="¿Qué hay que decidir? (ej. ¿bolsa o caja para el empaque?)"
                 onChange={(e) => editarAsunto(e.target.value)} rows={2}
                 className={`${INP} resize-none`} />
+      <input value={nd.skill ?? ""} placeholder="Habilidad que desempata (ej. negociación): decide quien la tenga"
+             onChange={(e) => editarSkill(e.target.value)} className={INP}
+             title="Si hay empate y solo una persona tiene esta habilidad (en Operación → Reglas), decide ella; si no, el turno" />
 
       {resuelto ? (
         <div className="rounded-lg border border-emerald-400 bg-emerald-50 p-2 text-sm">
@@ -821,7 +895,9 @@ function ConsensoEditor({ nd, yoId, participantes, turnoActual, editarAsunto, co
             <Sprite s="trofeo" px={2} /> Decidido: {props.find((p) => p.id === resuelto.propuesta)?.texto ?? "—"}
           </p>
           <p className="text-xs text-emerald-700">
-            {resuelto.modo === "turno" ? `Por turno de ${nombre(resuelto.por)} (empate)` : "Por acuerdo de los votos"}
+            {resuelto.modo === "turno" ? `Por turno de ${nombre(resuelto.por)} (empate)`
+              : resuelto.modo === "skill" ? `Por habilidad de ${nombre(resuelto.por)} en ${nd.skill ?? "—"} (empate)`
+              : "Por acuerdo de los votos"}
           </p>
           <button type="button" disabled={ocupado} onClick={() => void acto("reabrir")}
                   className="mt-1 text-xs font-bold text-accent disabled:opacity-40">Reabrir para volver a votar</button>
@@ -891,6 +967,8 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
   const rf = useReactFlow();
   const [meta, setMeta] = useState<{ turno?: number | null; participantes: Record<string, string> }>(
     { turno: inicial.turno_actual, participantes: inicial.participantes ?? {} });
+  const [operacion, setOperacion] = useState<{ op?: Operacion; dharma: Record<string, number> }>(
+    { op: inicial.operacion, dharma: inicial.dharma ?? {} });
   const [nodes, setNodes] = useState<Node[]>(() => aFlow(inicial.doc).nodes);
   const [edges, setEdges] = useState<Edge[]>(() => aFlow(inicial.doc).edges);
   const [titulo, setTitulo] = useState(inicial.titulo);
@@ -918,10 +996,13 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
   }, [pleno]);
   // Pixel art por defecto; «Clásico» lo apaga. Es una preferencia de cada quien.
   // Tablero (el diagrama) o Edificio (la obra: cada paso es un piso que se construye al llenarlo).
-  const [vista, setVista] = useState<"tablero" | "edificio">(() => {
-    try { return localStorage.getItem("colab-vista") === "edificio" ? "edificio" : "tablero"; } catch { return "tablero"; }
+  const [vista, setVista] = useState<"tablero" | "edificio" | "operacion">(() => {
+    try {
+      const v = localStorage.getItem("colab-vista");
+      return v === "edificio" || v === "operacion" ? v : "tablero";
+    } catch { return "tablero"; }
   });
-  const cambiarVista = (v: "tablero" | "edificio") => {
+  const cambiarVista = (v: "tablero" | "edificio" | "operacion") => {
     setVista(v);
     try { localStorage.setItem("colab-vista", v); } catch { /* sin almacenamiento: vale por la visita */ }
   };
@@ -941,6 +1022,7 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
     base.current = d.doc;
     sucio.current = false;
     setMeta({ turno: d.turno_actual, participantes: d.participantes ?? {} });
+    setOperacion({ op: d.operacion, dharma: d.dharma ?? {} });
     setEstado({ tipo: aviso ? "aviso" : "ok", texto: aviso ?? `Versión ${d.version}` });
   }, []);
 
@@ -1047,7 +1129,7 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
   function agregarCaja(tipo: Tipo = "accion") {
     const centro = rf.screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
     const id = nuevoId("c");
-    const label = { producto: "Nuevo producto", competencia: "Competidor", consenso: "¿Qué decidimos?" }[tipo as string] ?? "Nuevo paso";
+    const label = { producto: "Nuevo producto", competencia: "Competidor", consenso: "¿Qué decidimos?", proveedor: "Proveedor" }[tipo as string] ?? "Nuevo paso";
     const ancho = tipo === "producto" ? 160 : tipo === "competencia" ? 110 : 80;
     setNodes((ns) => [...ns, { id, type: "caja", position: { x: centro.x - ancho, y: centro.y - 30 },
       data: { id, label, sublabel: "", tipo, carril: "conjunto", x: 0, y: 0 } }]);
@@ -1092,6 +1174,19 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
       aplicarRemoto(d);
     } catch (e) {
       setEstado({ tipo: "error", texto: (e as Error).message || "No se pudo registrar" });
+    }
+  }, [inicial.id, guardar, aplicarRemoto]);
+
+  /** Una jugada de la operación (comprar, craftear, publicar, vender, reglas, calificar). */
+  const jugarOperacion = useCallback(async (accion: string, datos?: Record<string, unknown>): Promise<Operacion | null> => {
+    if (sucio.current) { try { await guardar(); } catch { /* se reintenta solo */ } }
+    try {
+      const d = await api.post<Diagrama>(`/api/colaboradores/diagramas/${inicial.id}/operacion`, { accion, datos: datos ?? {} });
+      aplicarRemoto(d);
+      return d.operacion ?? null;
+    } catch (e) {
+      setEstado({ tipo: "error", texto: (e as Error).message || "No se pudo registrar la jugada" });
+      throw e;
     }
   }, [inicial.id, guardar, aplicarRemoto]);
 
@@ -1277,6 +1372,9 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
         <button type="button" onClick={() => agregarCaja("consenso")} className={`${BTN} inline-flex items-center gap-1`}>
           <Sprite s="urna" px={2} /> Consenso
         </button>
+        <button type="button" onClick={() => agregarCaja("proveedor")} className={`${BTN} inline-flex items-center gap-1`}>
+          <Sprite s="cofre" px={2} /> Proveedor
+        </button>
         <span className="inline-flex shrink-0 gap-1" role="group" aria-label="Cómo ver el proyecto">
           <button type="button" onClick={() => cambiarVista("tablero")} aria-pressed={vista === "tablero"}
                   className={`${BTN} ${vista === "tablero" ? "!bg-accent !text-white" : ""}`}>Tablero</button>
@@ -1284,6 +1382,11 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
                   title="Cada paso es un piso: se construye a medida que lo llenan"
                   className={`${BTN} inline-flex items-center gap-1 ${vista === "edificio" ? "!bg-accent !text-white" : ""}`}>
             <Sprite s="bloques" px={2} /> Edificio
+          </button>
+          <button type="button" onClick={() => cambiarVista("operacion")} aria-pressed={vista === "operacion"}
+                  title="El juego de la operación: proveedores, ensamblaje, McKenna, orquestación y la venta"
+                  className={`${BTN} inline-flex items-center gap-1 ${vista === "operacion" ? "!bg-accent !text-white" : ""}`}>
+            <Sprite s="moneda" px={2} /> Operación
           </button>
         </span>
         <button type="button" onClick={() => setVerHistorial(true)} className={BTN}>Historial</button>
@@ -1309,7 +1412,17 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
       </div>
 
       <div className={`relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-white ${pixel ? "px-lienzo" : ""}`}>
-        {vista === "edificio" ? (
+        {vista === "operacion" && operacion.op ? (
+          <OperacionDiorama
+            nodos={nodes.map((n) => n.data as NodoOp)}
+            operacion={operacion.op}
+            dharma={operacion.dharma}
+            participantes={meta.participantes}
+            jugar={jugarOperacion}
+            onTocar={(id) => setSel({ tipo: "nodo", id })}
+            foto={(mid) => <AuthImg did={inicial.id} mid={mid} className="h-full w-full object-cover" alt="" />}
+          />
+        ) : vista === "edificio" ? (
           <EdificioProyecto
             nodos={nodes.map((n) => n.data as NodoDoc)}
             flechas={edges.map((e) => ({ from: e.source, to: e.target }))}
@@ -1349,14 +1462,14 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))" }}>
           <div className="flex items-center justify-between">
             <p className="px-t text-xs font-bold uppercase text-muted">
-              {{ producto: "Editar producto", competencia: "Editar rival", consenso: "Editar consenso" }[
+              {{ producto: "Editar producto", competencia: "Editar rival", consenso: "Editar consenso", proveedor: "Editar proveedor" }[
                 (nodoSel.data as NodoDoc).tipo as string] ?? "Editar caja"}
             </p>
             <button type="button" onClick={() => setSel(null)} className="px-1 text-lg leading-none text-muted" aria-label="Cerrar">×</button>
           </div>
           <input value={(nodoSel.data as NodoDoc).label}
                  placeholder={{ producto: "Nombre del producto", competencia: "Nombre del competidor o de su producto",
-                                consenso: "Título de la decisión" }[(nodoSel.data as NodoDoc).tipo as string] ?? "¿Qué pasa en este paso?"}
+                                consenso: "Título de la decisión", proveedor: "Nombre del proveedor" }[(nodoSel.data as NodoDoc).tipo as string] ?? "¿Qué pasa en este paso?"}
                  onChange={(e) => editarNodo(nodoSel.id, { label: e.target.value })}
                  className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-sm font-bold text-ink" />
           <input value={(nodoSel.data as NodoDoc).sublabel || ""} placeholder="Detalle (opcional)"
@@ -1382,10 +1495,16 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
             <ConsensoEditor nd={nodoSel.data as NodoDoc} yoId={yo?.id ?? 0}
                             participantes={meta.participantes} turnoActual={meta.turno}
                             editarAsunto={(v) => editarNodo(nodoSel.id, { asunto: v })}
+                            editarSkill={(v) => editarNodo(nodoSel.id, { skill: v })}
                             correr={(accion, extra) => correrConsenso(nodoSel.id, accion, extra)} />
           ) : (nodoSel.data as NodoDoc).tipo === "producto" ? (
             <ProductoEditor did={inicial.id} nd={nodoSel.data as NodoDoc}
-                            editar={(c) => editarNodo(nodoSel.id, c)} subir={subirMedia} subiendo={subiendo} />
+                            editar={(c) => editarNodo(nodoSel.id, c)} subir={subirMedia} subiendo={subiendo}
+                            proveedores={nodes.filter((n) => (n.data as NodoDoc).tipo === "proveedor")
+                              .map((n) => ({ id: n.id, label: (n.data as NodoDoc).label }))} />
+          ) : (nodoSel.data as NodoDoc).tipo === "proveedor" ? (
+            <ProveedorEditor did={inicial.id} nd={nodoSel.data as NodoDoc}
+                             editar={(c) => editarNodo(nodoSel.id, c)} subir={subirMedia} subiendo={subiendo} />
           ) : (nodoSel.data as NodoDoc).tipo === "competencia" ? (
             <CompetenciaEditor did={inicial.id} nd={nodoSel.data as NodoDoc}
                                editar={(c) => editarNodo(nodoSel.id, c)} subir={subirMedia} subiendo={subiendo}

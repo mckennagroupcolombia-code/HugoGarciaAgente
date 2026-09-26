@@ -1,0 +1,134 @@
+/*
+ * El diorama de Operación (OperacionDiorama.tsx). Pixel art con colores escritos a propósito (no los
+ * tokens del tema: el diorama se ve igual en claro y en oscuro, como el Mapa). Letras de la app.
+ */
+.op-obra { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+.op-cielo {
+  position: relative; min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden;
+  border: 3px solid #000; padding: 10px 12px 16px;
+  background: linear-gradient(#1D6FC2 0 80px, #29ADFF 80px 240px, #6CC8FF 240px 480px, #A8E0FF 480px);
+  color: #000;
+}
+.op-hud {
+  position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 14px; padding: 6px 10px; background: #1D2B53; color: #FFF1E8;
+  border: 3px solid #000; box-shadow: 3px 3px 0 #000; font-size: 12px;
+}
+.op-hud > span { display: inline-flex; align-items: center; gap: 4px; }
+.op-hud-t { color: #FFEC27; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; }
+.op-sim { padding: 1px 6px; border: 2px dashed #C2C3C7; color: #C2C3C7; font-size: 11px; }
+.op-perdida { color: #FF77A8; font-weight: 800; }
+.op-error { margin: -6px 0 10px; padding: 6px 10px; background: #FFCCD6; border: 3px solid #C8003E; font-size: 13px; font-weight: 700; }
+
+.op-torre { max-width: 980px; margin: 0 auto; }
+.op-piso {
+  position: relative; display: grid; grid-template-columns: 210px minmax(0, 1fr);
+  background: color-mix(in srgb, var(--fondo) 14%, #FFF1E8);
+  border: 6px solid #5F574F; border-top: 0; border-bottom-width: 10px; box-shadow: inset 0 -3px 0 #000;
+}
+.op-techo { border-top: 6px solid #5F574F; }
+.op-subsuelo { background: #C2C3C7; box-shadow: 0 0 0 100vmax #5A3A22; clip-path: inset(0 -100vmax -100vmax -100vmax); }
+.op-guerra { background: color-mix(in srgb, var(--fondo) 22%, #FFF1E8); }
+.op-placa {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--fondo);
+  color: #000; border-right: 3px solid #000; font-size: 12px; line-height: 1.25;
+}
+.op-placa b { font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
+.op-placa-oscura, .op-guerra .op-placa { color: #FFF1E8; }
+.op-num {
+  display: grid; place-items: center; width: 34px; height: 30px; background: #000; color: #FFEC27;
+  border: 2px solid #FFF1E8; font-weight: 900; font-size: 13px;
+}
+.op-sala { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px; padding: 10px; min-width: 0; }
+.op-vacio { font-size: 12px; color: #5F574F; align-self: center; }
+.op-vacio-claro { color: #1D2B53; }
+
+/* Avatares */
+.op-avatar {
+  display: flex; gap: 8px; align-items: flex-start; max-width: 280px; padding: 6px 8px;
+  background: #fff; border: 3px solid var(--color); box-shadow: 3px 3px 0 #000; font-size: 12px;
+}
+.op-avatar-n { font-weight: 900; font-size: 13px; }
+.op-avatar-r { color: #5F574F; }
+.op-skills { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+.op-skills span { padding: 0 4px; border: 1px solid #000; background: #FFEC27; font-size: 10px; font-weight: 700; }
+.op-avatar-d { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; font-weight: 800; }
+.op-avatar-d > span { display: inline-flex; align-items: center; gap: 3px; }
+
+/* Productos */
+.op-item {
+  display: flex; flex-direction: column; gap: 6px; width: 300px; max-width: 100%; padding: 6px;
+  background: #fff; border: 3px solid #000; box-shadow: 3px 3px 0 #000;
+}
+.op-item-cab { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; font-size: 13px; }
+.op-item-foto { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border: 2px solid #000; background: #FFF1E8; overflow: hidden; }
+.op-item-foto img { width: 100%; height: 100%; object-fit: cover; }
+.op-sku { font-size: 11px; color: #5F574F; }
+.op-receta { margin: 0; padding: 4px 6px; background: #FFF1E8; border: 2px dashed #AB5236; font-size: 11px; list-style: none; }
+.op-receta li { display: flex; justify-content: space-between; gap: 6px; }
+.op-cadena { display: flex; flex-wrap: wrap; gap: 2px; margin: 0; padding: 0; list-style: none; font-size: 10px; font-weight: 700; }
+.op-cadena li { padding: 1px 4px; border: 1px solid #C2C3C7; color: #83769C; }
+.op-cadena li + li::before { content: "▶ "; }
+.op-cadena .op-cadena-paso { color: #000; border-color: #000; }
+.op-cadena .op-cadena-ahora { background: #FFEC27; color: #000; border: 2px solid #000; }
+.op-riesgo { padding: 2px 6px; border: 2px solid #000; font-size: 11px; font-weight: 700; }
+.op-riesgo-alto { background: #FFCCD6; }
+.op-riesgo-medio { background: #FFE8B3; }
+.op-riesgo-bajo { background: #C8F7D6; }
+.op-fila { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.op-inp { padding: 3px 6px; background: #fff; color: #000; border: 2px solid #000; font-size: 13px; }
+
+.op-btn {
+  padding: 5px 10px; background: #1D2B53; color: #FFF1E8; border: 3px solid #000; box-shadow: 3px 3px 0 #000;
+  font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer;
+}
+.op-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
+.op-btn:disabled { opacity: 0.55; cursor: default; }
+.op-btn-claro { background: #FFF1E8; color: #000; }
+.op-btn-mini { padding: 2px 6px; font-size: 11px; box-shadow: 2px 2px 0 #000; }
+.op-vender { background: #008751; animation: op-latido 1s steps(1, end) infinite; }
+@keyframes op-latido { 50% { background: #00A65A; } }
+.op-bien { background: #008751; }
+.op-mal { background: #C8003E; }
+
+/* NPC y tiendas del mercado */
+.op-npc { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; background: #fff; border: 2px solid #000; font-size: 12px; font-weight: 700; cursor: pointer; }
+.op-tienda {
+  display: flex; flex-direction: column; gap: 3px; width: 210px; padding: 0 8px 8px; text-align: left;
+  background: #fff; border: 3px solid #000; box-shadow: 3px 3px 0 #000; font-size: 12px; cursor: pointer;
+}
+.op-toldo { display: block; height: 14px; margin: 0 -8px 4px; background: repeating-linear-gradient(90deg, #C8003E 0 14px, #FFF1E8 14px 28px); border-bottom: 2px solid #000; }
+.op-insumo { font-size: 11px; }
+
+/* Mesa de guerra */
+.op-mesa { display: flex; flex-direction: column; gap: 3px; width: 300px; max-width: 100%; padding: 8px; background: #FFF1E8; border: 3px solid #000; box-shadow: 3px 3px 0 #000; font-size: 12px; }
+.op-mesa-lista { background: #fff; }
+.op-mesa-t { display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; font-size: 13px; }
+.op-resultado { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 2px; font-weight: 700; }
+
+.op-boveda { display: flex; align-items: center; gap: 10px; padding: 8px; background: #fff; border: 3px solid #000; box-shadow: 3px 3px 0 #000; font-size: 13px; }
+
+.op-bitacora { margin-top: 12px; padding: 8px 10px; background: #1D2B53; color: #FFF1E8; border: 3px solid #000; font-size: 12px; line-height: 1.5; }
+.op-bitacora .op-sku { color: #C2C3C7; }
+
+/* La lluvia de monedas de una venta */
+.op-lluvia {
+  position: absolute; inset: 0; z-index: 2; display: flex; justify-content: space-around; align-items: flex-end;
+  padding: 8px; background: rgba(29, 43, 83, 0.82); pointer-events: none;
+}
+.op-monton { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 110px; color: #FFF1E8; font-size: 11px; text-align: center; }
+.op-monton b { color: var(--c); font-size: 16px; }
+.op-moneda { position: absolute; bottom: 40px; left: calc(50% - 12px); animation: op-cae 0.9s steps(8) calc(var(--k) * 0.12s + var(--i) * 0.2s) both; }
+@keyframes op-cae { from { transform: translateY(-120px); opacity: 0; } 20% { opacity: 1; } to { transform: translateY(calc(var(--k) * -4px)); opacity: 1; } }
+
+@media (max-width: 699px) {
+  .op-piso { grid-template-columns: minmax(0, 1fr); }
+  .op-placa { border-right: 0; border-bottom: 3px solid #000; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .op-placa > span:last-child { flex-basis: 100%; }
+  .op-item, .op-mesa, .op-tienda { width: 100%; }
+  .op-lluvia { flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .op-moneda { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .op-obra * { animation: none !important; }
+}

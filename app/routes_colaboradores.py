@@ -138,6 +138,19 @@ def register_colaboradores_routes(app):
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
+    @app.route("/api/colaboradores/diagramas/<int:did>/operacion", methods=["POST"])
+    @app.route("/app/api/colaboradores/diagramas/<int:did>/operacion", methods=["POST"])
+    @_miembro
+    @_suyo
+    def colab_operacion(did: int):
+        """Una jugada del diorama de Operación (simulación: no toca Alegra ni la contabilidad)."""
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(col.accion_operacion(did, int(g.colab_usuario["id"]), str(d.get("accion") or ""),
+                                                d.get("datos") or {}))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.route("/api/colaboradores/diagramas/<int:did>/media", methods=["POST"])
     @app.route("/app/api/colaboradores/diagramas/<int:did>/media", methods=["POST"])
     @_miembro

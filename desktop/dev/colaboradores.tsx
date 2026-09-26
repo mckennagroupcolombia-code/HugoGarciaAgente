@@ -17,6 +17,22 @@ import { etapaObra } from "../src/components/colaboradores/obra";
 
 const COP = (monto: number) => ({ monto, moneda: "COP" });
 
+// La operación de ejemplo (el servidor la arma igual: colaboradores.operacion_de).
+type OpEj = { ente: { nombre: string }; avatares: unknown[]; reparto: { ensamblaje_pct: number; servicios_pct: number };
+  items: Record<string, { fase: string; unidades: number }>; ventas: { reparto: Record<string, unknown> }[];
+  resultados: Record<string, string>; bitacora: { fecha: string; quien: string; texto: string }[] };
+const operacion: OpEj = {
+  ente: { nombre: "McKenna Group S.A.S." },
+  avatares: [
+    { id: "sebastian", nombre: "Sebastián García", rol: "Compras y ensamblaje", skills: ["negociación", "compra", "ensamblaje"],
+      piso: "compras", color: "#b45309", carril: "sebastian", usuario_id: 20 },
+    { id: "armando", nombre: "Armando García", rol: "Orquestación y ventas", skills: ["orquestación", "e-commerce", "diseño", "sistemas"],
+      piso: "orquestacion", color: "#1d4ed8", carril: "armando", usuario_id: 8 },
+  ],
+  reparto: { ensamblaje_pct: 10, servicios_pct: 15 },
+  items: {}, ventas: [], resultados: {}, bitacora: [],
+};
+
 let diagrama = {
   id: 1, titulo: "Collares — proyecto de ejemplo", descripcion: "", version: 1, archivado: 0,
   actualizado_en: "2026-09-25 10:00:00", actualizado_por: 20, actualizado_por_nombre: "Sebastián García",
@@ -30,15 +46,20 @@ let diagrama = {
         tiempo_min: 300, datos: [{ campo: "lote", valor: "20 collares" }],
         consecuencias: [{ si: "se acaban los aros", entonces: "se para el lote", medida: "comprar 20 % de más" }] },
       { id: "c1", label: "¿Bolsa o caja?", tipo: "consenso", carril: "conjunto", x: -520, y: 280,
-        asunto: "¿Qué empaque usamos para el collar M?",
+        asunto: "¿Qué empaque usamos para el collar M?", skill: "negociación",
         propuestas: [{ id: "p8", autor: 8, texto: "Bolsa kraft con visor" }, { id: "p20", autor: 20, texto: "Caja de cartón pequeña" }],
         votos: { "8": "p8" } },
       { id: "p1", label: "Collar de cadena M", tipo: "producto", carril: "conjunto", x: -80, y: -60,
         imagen: "1-foto.jpg", sku: "C-COLLAR-M", precio: COP(45000), url: "https://tienda.ejemplo.co/collar-m",
         empaque: { nombre: "Bolsa kraft", costo: COP(800) },
-        componentes: [{ nombre: "Aros 6 mm", cantidad: "40 un", costo: COP(6000) },
-                      { nombre: "Hebilla", cantidad: "1 un", costo: COP(2500) },
+        componentes: [{ nombre: "Aros 6 mm", sku: "INS-ARO6", cantidad: "40 un", costo: COP(6000), proveedor: "v1" },
+                      { nombre: "Hebilla", sku: "INS-HEB", cantidad: "1 un", costo: COP(2500), proveedor: "v2" },
                       { nombre: "Termoencogible", cantidad: "10 cm", costo: COP(300) }] },
+      { id: "v1", label: "Bisutería El Centro", tipo: "proveedor", carril: "conjunto", x: -520, y: 520,
+        entrega_dias: 2, fiabilidad: 4, componentes: [{ nombre: "Aros 6 mm", sku: "INS-ARO6", costo: COP(150) }] },
+      { id: "v2", label: "Importadora Hebillas", tipo: "proveedor", carril: "conjunto", x: -80, y: 560,
+        entrega_dias: 9, fiabilidad: 2, componentes: [{ nombre: "Hebilla", sku: "INS-HEB", costo: COP(2500) }] },
+      { id: "cl", label: "Clientes de Instagram", tipo: "externo", carril: "conjunto", x: 380, y: 420 },
       { id: "r1", label: "Collar ajustable acero", tipo: "competencia", carril: "conjunto", x: 380, y: -160,
         imagen: "1-rival.jpg", plataforma: "Instagram", precio: COP(52000), url: "https://instagram.com/ejemplo",
         datos: [{ campo: "envío", valor: "gratis" }] },
@@ -99,9 +120,34 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       const b = JSON.parse(String(init?.body ?? "{}"));
       diagrama = { ...diagrama, doc: b.doc, titulo: b.titulo ?? diagrama.titulo, version: diagrama.version + 1 };
     }
-    return json(diagrama);
+    return json({ ...diagrama, operacion, dharma: {} });
   }
   if (ruta.endsWith("/consenso")) return json(diagrama);                     // sin lógica: solo no romper
+  // Operación: imitación mínima de colaboradores.accion_operacion (la lógica real tiene sus pruebas en Python).
+  if (ruta.endsWith("/operacion")) {
+    const b = JSON.parse(String(init?.body ?? "{}"));
+    const dt = b.datos ?? {};
+    const n = diagrama.doc.nodes.find((x) => x.id === dt.nodo) as (typeof diagrama.doc.nodes)[number] | undefined;
+    const it = (operacion.items[dt.nodo] ??= { fase: "sourcing", unidades: 0 });
+    const anotar = (t: string) => operacion.bitacora.push({ fecha: "2026-09-26 10:00", quien: "Armando García", texto: t });
+    if (b.accion === "comprar") { if (it.fase === "sourcing") it.fase = "ensamblado"; anotar(`compró los insumos de «${n?.label}»`); }
+    if (b.accion === "craftear") { it.unidades += Number(dt.cantidad || 1); if (it.fase === "ensamblado") it.fase = "en_mckenna"; anotar(`ensambló ${dt.cantidad} × «${n?.label}»`); }
+    if (b.accion === "publicar") { it.fase = "publicado"; anotar(`publicó «${n?.label}»`); }
+    if (b.accion === "vender") {
+      const cant = Number(dt.cantidad || 1);
+      if (cant > it.unidades) return json({ error: `En la bóveda hay ${it.unidades} unidades` }, 400);
+      const precio = dt.precio?.monto ?? 45000;
+      const costoU = 6000 + 2500 + 300 + 800;
+      const total = precio * cant, costo = costoU * cant;
+      const ensamblaje = costo * 0.1, servicios = total * 0.15;
+      it.unidades -= cant;
+      operacion.ventas.push({ reparto: { moneda: "COP", total, costo, ensamblaje, servicios, mckenna: total - costo - ensamblaje - servicios, sin_sumar: [] } });
+      anotar(`¡vendió ${cant} × «${n?.label}»!`);
+    }
+    if (b.accion === "resultado") operacion.resultados[dt.nodo] = dt.valor;
+    diagrama = { ...diagrama, version: diagrama.version + 1 };
+    return json({ ...diagrama, operacion, dharma: {} });
+  }
   return json({ error: "Banco de pruebas: esta ruta no tiene backend" }, 404);
 };
 
@@ -110,7 +156,7 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
 const q = new URLSearchParams(location.search);
 try {
   localStorage.setItem("colab-pixel", q.has("clasico") ? "0" : "1");
-  localStorage.setItem("colab-vista", q.get("vista") === "edificio" ? "edificio" : "tablero");   // ?vista=edificio
+  localStorage.setItem("colab-vista", q.get("vista") ?? "tablero");   // ?vista=edificio | operacion
 } catch { /* sin almacenamiento */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {

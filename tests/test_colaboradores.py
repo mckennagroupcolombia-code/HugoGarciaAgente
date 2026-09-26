@@ -369,3 +369,65 @@ def test_la_obra_sube_a_medida_que_el_paso_se_llena():
     assert c.etapa_obra({**cons, "resuelto": {"propuesta": "1"}}) == 4
     r = c.resumen_obra({"nodes": [vacio, {**cuatro, "costo": {"monto": 1, "moneda": "COP"}}]})
     assert r == {"pisos": 2, "terminados": 1, "avance": 0.5}
+
+
+# ─── Operación: el diorama de la cadena de valor ─────────────────────────────
+
+def _proyecto_con_producto(base):
+    d = col.crear("Collares", 8, colaborador_id=20)
+    doc = {"nodes": [
+        {"id": "p1", "label": "Collar M", "tipo": "producto", "carril": "conjunto", "x": 0, "y": 0,
+         "sku": "C-COL-M", "precio": {"monto": 45000, "moneda": "COP"},
+         "empaque": {"nombre": "Bolsa", "costo": {"monto": 1000, "moneda": "COP"}},
+         "componentes": [{"nombre": "Aros", "costo": {"monto": 6000, "moneda": "COP"}, "proveedor": "v1"},
+                         {"nombre": "Hebilla", "costo": {"monto": 3, "moneda": "USD"}}]},
+        {"id": "v1", "label": "Bisutería SAS", "tipo": "proveedor", "carril": "conjunto", "x": 0, "y": 200,
+         "entrega_dias": 3, "fiabilidad": 4, "componentes": [{"nombre": "Aros", "costo": {"monto": 6000, "moneda": "COP"}}]},
+    ], "edges": []}
+    return col.guardar(d["id"], doc, d["version"], 8)
+
+
+def test_el_bucle_de_la_operacion_y_el_reparto_de_la_venta(base):
+    d = _proyecto_con_producto(base)
+    did = d["id"]
+    assert [a["id"] for a in d["operacion"]["avatares"]] == ["sebastian", "armando"]   # por defecto
+    assert d["doc"]["nodes"][1]["fiabilidad"] == 4 and d["doc"]["nodes"][0]["componentes"][0]["proveedor"] == "v1"
+    with pytest.raises(ValueError, match="comprar los insumos"):
+        col.accion_operacion(did, 20, "craftear", {"nodo": "p1", "cantidad": 2})
+    col.accion_operacion(did, 8, "reglas", {"reparto": {"ensamblaje_pct": 10, "servicios_pct": 20}})
+    col.accion_operacion(did, 20, "comprar", {"nodo": "p1"})
+    col.accion_operacion(did, 20, "craftear", {"nodo": "p1", "cantidad": 3})
+    with pytest.raises(ValueError, match="publicado"):
+        col.accion_operacion(did, 8, "vender", {"nodo": "p1", "cantidad": 1})
+    col.accion_operacion(did, 8, "publicar", {"nodo": "p1"})
+    with pytest.raises(ValueError, match="hay 3 unidades"):
+        col.accion_operacion(did, 8, "vender", {"nodo": "p1", "cantidad": 4})
+    d = col.accion_operacion(did, 8, "vender", {"nodo": "p1", "cantidad": 2})
+    rep = d["operacion"]["ventas"][-1]["reparto"]
+    # costo por unidad = aros 6000 + bolsa 1000 (la hebilla en USD no se suma: se avisa)
+    assert rep == {"moneda": "COP", "total": 90000.0, "costo": 14000.0, "ensamblaje": 1400.0,
+                   "servicios": 18000.0, "mckenna": 56600.0, "sin_sumar": ["Hebilla (USD)"]}
+    assert d["operacion"]["items"]["p1"] == {"fase": "publicado", "unidades": 1}
+    # Un guardado del tablero (que no trae la operación) no la borra.
+    d2 = col.guardar(did, {k: v for k, v in d["doc"].items() if k != "operacion"}, d["version"], 20)
+    assert d2["operacion"]["items"]["p1"]["unidades"] == 1 and len(d2["operacion"]["ventas"]) == 1
+    assert any("vendió 2" in b["texto"] for b in d2["operacion"]["bitacora"])
+
+
+def test_dharma_y_desempate_por_habilidad(base):
+    d = col.crear("Decisiones", 8, colaborador_id=20)
+    doc = {"nodes": [{"id": "k", "label": "¿Comprar caro?", "tipo": "consenso", "carril": "conjunto", "x": 0, "y": 0,
+                      "asunto": "El proveedor subió", "skill": "negociación"}], "edges": []}
+    d = col.guardar(d["id"], doc, d["version"], 8)
+    did = d["id"]
+    col.accion_consenso(did, 8, "k", "proponer", texto="Comprar caro esta vez")
+    col.accion_consenso(did, 20, "k", "proponer", texto="Buscar otro proveedor")
+    col.accion_consenso(did, 8, "k", "votar", propuesta="p8")
+    col.accion_consenso(did, 20, "k", "votar", propuesta="p20")
+    # Empate: la decisión pide «negociación» y solo Sebastián (20) la tiene → decide él, sin gastar el turno.
+    d = col.accion_consenso(did, 8, "k", "cerrar")
+    res = d["doc"]["nodes"][0]["resuelto"]
+    assert res == {"propuesta": "p20", "modo": "skill", "por": 20}
+    assert d["turno_actual"] in (None, 8)
+    d = col.accion_operacion(did, 8, "resultado", {"nodo": "k", "valor": "mal"})
+    assert d["dharma"] == {"20": -1}

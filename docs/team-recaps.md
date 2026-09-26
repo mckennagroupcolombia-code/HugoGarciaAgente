@@ -1,3 +1,17 @@
+### 2026-09-26 04:00 - Colaboradores: la operación como juego de gestión (ERP gamificado)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Vista **Operación** en cada proyecto: un diorama de la cadena de valor. Subsuelo con los proveedores, P1 compras y ensamblaje (Sebastián), P2 el hub de McKenna con la bóveda y el inventario, la mesa de guerra, P3 orquestación (Armando) y el techo con el cliente final.
+  - Bucle de misiones: **comprar insumos → craftear y venderle a McKenna → publicar → ¡venta!** Al vender caen monedas repartidas según las reglas: costo más ensamblaje para compras, servicios para orquestación y el margen a la bóveda (en rojo si hay pérdida). Todo queda en la bitácora.
+  - Nuevo bloque **Proveedor** (días de entrega, fiabilidad, lo que vende). Cada pieza de la receta lleva su **SKU hijo** y su proveedor, y cada producto muestra su **cadena de propiedad** y su **riesgo de abastecimiento**.
+  - **Reglas**: el ente (margen, costos fijos, capital), el reparto y los **avatares**. Un tercer colaborador se agrega ahí con su rol, sus habilidades y su piso.
+  - **Mesa de guerra y dharma**: un empate lo decide primero la **habilidad** que pide la decisión y, si no, el turno alterno. Una decisión ya tomada se califica («salió bien / mal») y suma o resta dharma a quien decidió.
+  - Los pasos ahora tienen también **cuándo** (contexto completo: qué, quién, cómo, dónde, cuándo, por qué).
+  - Es una **simulación del proyecto**: no toca Alegra, el inventario ni la contabilidad de McKenna.
+  - Verificado: pruebas del servidor (bucle, reparto, que el tablero no borre la operación, dharma, desempate por habilidad) y clics reales en escritorio y celular.
+- **Archivos Modificados:** `app/services/colaboradores.py`, `app/routes_colaboradores.py`, `tests/test_colaboradores.py`, `desktop/src/components/colaboradores/{OperacionDiorama.tsx,operacion.css,obra.ts,EdificioProyecto.tsx}`, `desktop/src/components/ColaboradoresPanel.tsx`, `desktop/dev/colaboradores.tsx`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`.
+
 ### 2026-09-26 02:50 - Colaboradores: cada proyecto es un edificio que se construye
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

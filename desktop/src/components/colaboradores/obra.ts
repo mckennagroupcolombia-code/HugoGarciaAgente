@@ -12,11 +12,11 @@ export const ETAPAS_OBRA = ["Terreno", "Cimientos", "Estructura", "Fachada", "Te
 
 type NodoObra = {
   id: string; tipo: string; x: number; y: number;
-  variables?: { como?: string; donde?: string; porque?: string };
+  variables?: { como?: string; donde?: string; cuando?: string; porque?: string };
   tiempo_min?: number; costo?: unknown; precio?: unknown; imagen?: string; adjuntos?: unknown[];
   datos?: unknown[]; consecuencias?: unknown[];
   asunto?: string; propuestas?: unknown[]; votos?: Record<string, string>; resuelto?: unknown;
-  sku?: string; componentes?: unknown[]; url?: string; plataforma?: string;
+  sku?: string; componentes?: unknown[]; url?: string; plataforma?: string; entrega_dias?: number; fiabilidad?: number;
 };
 
 /** Piezas que el piso tiene, las que le faltan y cuántas hacen falta para terminarlo. */
@@ -35,8 +35,11 @@ export function piezasObra(n: NodoObra): { tiene: string[]; faltan: string[]; me
   } else if (n.tipo === "competencia") {
     pares = [["publicación", Boolean(n.url)], ["precio", Boolean(n.precio)], ["foto", evidencia || Boolean(n.plataforma)]];
     meta = 3;
+  } else if (n.tipo === "proveedor") {
+    pares = [["entrega", n.entrega_dias != null], ["insumos", Boolean(n.componentes?.length)], ["fiabilidad", Boolean(n.fiabilidad)]];
+    meta = 3;
   } else {
-    pares = [["cómo", Boolean(v.como)], ["dónde", Boolean(v.donde)], ["por qué", Boolean(v.porque)],
+    pares = [["cómo", Boolean(v.como)], ["dónde", Boolean(v.donde)], ["cuándo", Boolean(v.cuando)], ["por qué", Boolean(v.porque)],
              ["tiempo", n.tiempo_min != null], ["dinero", Boolean(n.costo || n.precio)], ["fotos", evidencia],
              ["detalle", Boolean(n.datos?.length || n.consecuencias?.length)]];
     meta = 5;

@@ -29,6 +29,7 @@ import os
 import sqlite3
 import subprocess
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "colaboradores.db")
@@ -57,6 +58,7 @@ TIPOS = {
     "consenso": ("security", "consenso: propuestas y votos"),
     "producto": ("database", "producto: foto, SKU, receta y precio"),
     "competencia": ("cloud", "competencia: su publicación y su precio"),
+    "proveedor": ("cloud", "proveedor: entrega, costos y fiabilidad"),
 }
 MAX_NODOS = 300
 # Por dónde sale/entra una flecha en la caja. Son los cuatro lados.
@@ -74,12 +76,13 @@ GROSOR_MIN, GROSOR_MAX = 1, 8
 # ─── Contenido real de cada caja (tablero de proyecto, no solo diagrama) ──────
 # Todos los campos son OPCIONALES: una caja sin ellos es la de siempre.
 MONEDAS = ("COP", "USD", "EUR")
-# Las cinco preguntas del paso; «quién» ya es el carril, «qué» es el título.
-VARIABLES = ("como", "donde", "porque")
+# Las preguntas del paso: «quién» es el carril y «qué» el título; aquí cómo, dónde, cuándo y por qué
+# (contexto para que alguien de fuera entienda cada tarea, 26-sep-2026).
+VARIABLES = ("como", "donde", "cuando", "porque")
 MAX_DATOS = 8            # pares campo: valor ("medida: 40 cm", "margen: 38%")
 MAX_CONSECUENCIAS = 6    # "si pasa esto → consecuencia → posible medida"
 MAX_PROPUESTAS = 6       # ideas puestas a votación en un nodo de consenso
-MODOS_RESUELTO = ("acuerdo", "turno")
+MODOS_RESUELTO = ("acuerdo", "turno", "skill")
 MAX_COMPONENTES = 12     # piezas de la receta de un producto (aro, hebilla, bolsa…)
 MAX_ADJUNTOS = 12        # fotos y facturas por caja
 MEDIA_TIPOS = ("imagen", "pdf")
@@ -255,8 +258,13 @@ def piezas_obra(n: dict) -> tuple[list[str], list[str], int]:
         pares = [("publicación", bool(n.get("url"))), ("precio", bool(n.get("precio"))),
                  ("foto", evidencia or bool(n.get("plataforma")))]
         meta = 3
+    elif tipo == "proveedor":
+        pares = [("entrega", n.get("entrega_dias") is not None), ("insumos", bool(n.get("componentes"))),
+                 ("fiabilidad", bool(n.get("fiabilidad")))]
+        meta = 3
     else:
-        pares = [("cómo", bool(v.get("como"))), ("dónde", bool(v.get("donde"))), ("por qué", bool(v.get("porque"))),
+        pares = [("cómo", bool(v.get("como"))), ("dónde", bool(v.get("donde"))), ("cuándo", bool(v.get("cuando"))),
+                 ("por qué", bool(v.get("porque"))),
                  ("tiempo", n.get("tiempo_min") is not None), ("dinero", bool(n.get("costo") or n.get("precio"))),
                  ("fotos", evidencia), ("detalle", bool(n.get("datos") or n.get("consecuencias")))]
         meta = 5
@@ -289,6 +297,9 @@ def _a_dict(r, *, con_doc: bool = True) -> dict:
         d["doc"] = doc
         # Quiénes pueden votar, con nombre: la caja de consenso los muestra.
         d["participantes"] = {str(uid): _nombre(uid) for uid in _participantes_ids(d.get("colaborador_id"))}
+        # La operación con sus valores por defecto (avatares de hoy) y el dharma de cada persona.
+        d["operacion"] = operacion_de(doc, d.get("colaborador_id"))
+        d["dharma"] = dharma(doc, d.get("colaborador_id"))
     d["nodos"] = len(doc.get("nodes") or [])
     d["flechas"] = len(doc.get("edges") or [])
     d["obra"] = resumen_obra(doc)
@@ -342,6 +353,19 @@ def _extras_nodo(n: dict) -> dict:
         nombre, costo = _texto(emp.get("nombre"), 120), _dinero(emp.get("costo"))
         if nombre or costo:
             extra["empaque"] = {"nombre": nombre, **({"costo": costo} if costo else {})}
+    # ── Proveedor (vista Operación): días de entrega y fiabilidad 1–5; sus insumos van en componentes ──
+    entrega = _num(n.get("entrega_dias"))
+    if entrega is not None:
+        extra["entrega_dias"] = max(0, min(365, entrega))
+    try:
+        fia = int(n.get("fiabilidad"))
+        if 1 <= fia <= 5:
+            extra["fiabilidad"] = fia
+    except (TypeError, ValueError):
+        pass
+    skill = _texto(n.get("skill"), 40)            # consenso: la habilidad que desempata
+    if skill:
+        extra["skill"] = skill
     comps = []
     for c in (n.get("componentes") or [])[:MAX_COMPONENTES * 4]:
         if len(comps) >= MAX_COMPONENTES:        # el tope cuenta piezas válidas, no filas vacías
@@ -356,6 +380,12 @@ def _extras_nodo(n: dict) -> dict:
         costo = _dinero((c or {}).get("costo"))               # lo que cuesta esa pieza en UNA unidad
         if costo:
             fila["costo"] = costo
+        sku_hijo = _texto((c or {}).get("sku"), 40)             # el SKU hijo: la pieza dentro del combo
+        if sku_hijo:
+            fila["sku"] = sku_hijo
+        prov = _texto((c or {}).get("proveedor"), 64)          # id de la caja del proveedor que la vende
+        if prov:
+            fila["proveedor"] = prov
         comps.append(fila)
     if comps:
         extra["componentes"] = comps
@@ -502,7 +532,10 @@ def validar_doc(doc) -> dict:
             "trazo": e.get("trazo") if e.get("trazo") in TRAZOS else "solida",
             "forma": e.get("forma") if e.get("forma") in FORMAS else FORMA_DEFECTO,
         })
-    return {"nodes": nodos, "edges": flechas}
+    out = {"nodes": nodos, "edges": flechas}
+    if isinstance(doc.get("operacion"), dict):
+        out["operacion"] = validar_operacion(doc["operacion"], ids)
+    return out
 
 
 def listar(usuario: dict, incluir_archivados: bool = False) -> list[dict]:
@@ -564,13 +597,17 @@ def guardar(did: int, doc: dict, version_base: int, usuario_id: int, *, titulo: 
             descripcion: str | None = None, resumen: str = "") -> dict:
     """Guarda una nueva versión SOLO si nadie guardó encima de la que se editó."""
     _ensure()
-    limpio = validar_doc(doc)
+    doc = {k: v for k, v in (doc or {}).items() if k != "operacion"} if isinstance(doc, dict) else doc
     with _conn() as con:
         r = con.execute("SELECT * FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
         if not r:
             raise ValueError("Diagrama no encontrado")
         if int(r["version"]) != int(version_base):
             raise Conflicto(_a_dict(r))
+        # La operación (fases, inventario, ventas, reglas) SOLO la cambian las acciones del servidor
+        # (accion_operacion): un guardado del tablero —o restaurar una versión— la conserva tal cual.
+        previa = json.loads(r["doc_json"] or "{}").get("operacion")
+        limpio = validar_doc({**doc, **({"operacion": previa} if previa else {})})
         nueva = int(r["version"]) + 1
         # UPDATE condicionado a la versión: si dos guardan en el mismo instante,
         # solo uno pasa (rowcount 0 para el otro).
@@ -613,6 +650,255 @@ def restaurar(did: int, version: int, version_base: int, usuario_id: int) -> dic
     if not f:
         raise ValueError("Esa versión no existe")
     return guardar(did, json.loads(f["doc_json"]), version_base, usuario_id, resumen=f"Restaurada la versión {version}")
+
+
+# ─── La operación: el diorama de la cadena de valor (26-sep-2026) ─────────────
+# Vista «Operación» de Colaboradores: un juego de gestión sobre el proyecto. Pisos fijos —
+# subsuelo (proveedores) · P1 compras y ensamblaje · P2 el hub de McKenna (bóveda e inventario) ·
+# P3 orquestación y ventas · techo (cliente final)— y un bucle de misiones por producto:
+# comprar insumos → craftear y vender a McKenna (venta interna) → publicar → ¡venta! → reparto.
+# Todo vive en doc["operacion"] y SOLO lo cambia accion_operacion (el guardado del tablero lo
+# conserva). ⚠️ Es una SIMULACIÓN del proyecto: no escribe en Alegra, ni en el inventario, ni en
+# el Libro Mayor.
+PISOS_AVATAR = ("compras", "hub", "orquestacion")
+FASES_ITEM = ("sourcing", "ensamblado", "en_mckenna", "publicado")
+COLORES_AVATAR = ("#b45309", "#1d4ed8", "#0f766e", "#7c3aed", "#b91c1c", "#15803d", "#374151")
+MAX_AVATARES = 8
+MAX_VENTAS = 500
+MAX_BITACORA = 200
+
+
+def _pct(v) -> float:
+    try:
+        return max(0.0, min(100.0, round(float(v), 2)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def avatares_por_defecto(colaborador_id=None) -> list[dict]:
+    """Los dos jugadores de hoy. Un tercero se agrega en «Reglas» sin tocar código."""
+    return [
+        {"id": "sebastian", "nombre": "Sebastián García", "rol": "Compras y ensamblaje",
+         "skills": ["negociación", "compra", "ensamblaje"], "piso": "compras", "color": "#b45309",
+         "carril": "sebastian", "usuario_id": int(colaborador_id) if colaborador_id else None},
+        {"id": "armando", "nombre": "Armando García", "rol": "Orquestación y ventas",
+         "skills": ["orquestación", "e-commerce", "diseño", "sistemas"], "piso": "orquestacion",
+         "color": "#1d4ed8", "carril": "armando", "usuario_id": anfitrion_id()},
+    ]
+
+
+def validar_operacion(op: dict, ids_nodos: set | None = None) -> dict:
+    ids_nodos = ids_nodos or set()
+    ente_in = op.get("ente") or {}
+    ente = {"nombre": _texto(ente_in.get("nombre"), 80) or "McKenna Group S.A.S."}
+    if ente_in.get("margen_pct") not in (None, ""):
+        ente["margen_pct"] = _pct(ente_in.get("margen_pct"))
+    for k in ("costos_fijos", "capital"):
+        d = _dinero(ente_in.get(k))
+        if d:
+            ente[k] = d
+    avatares, vistos = [], set()
+    for a in (op.get("avatares") or [])[:MAX_AVATARES]:
+        aid = _texto((a or {}).get("id"), 40)
+        nombre = _texto((a or {}).get("nombre"), 80)
+        if not aid or not nombre or aid in vistos:
+            continue
+        vistos.add(aid)
+        try:
+            uid = int((a or {}).get("usuario_id")) or None
+        except (TypeError, ValueError):
+            uid = None
+        avatares.append({
+            "id": aid, "nombre": nombre, "rol": _texto(a.get("rol"), 80),
+            "skills": [x for x in (_texto(k, 30) for k in (a.get("skills") or [])[:10]) if x],
+            "piso": a.get("piso") if a.get("piso") in PISOS_AVATAR else "compras",
+            "color": a.get("color") if a.get("color") in COLORES_AVATAR else COLORES_AVATAR[len(avatares) % len(COLORES_AVATAR)],
+            "carril": a.get("carril") if a.get("carril") in CARRILES else None,
+            "usuario_id": uid,
+        })
+    rep = op.get("reparto") or {}
+    items = {}
+    for nid, it in (op.get("items") or {}).items():
+        if ids_nodos and nid not in ids_nodos:
+            continue                                   # la caja se borró: su estado se va con ella
+        try:
+            unidades = max(0, min(1_000_000, int((it or {}).get("unidades") or 0)))
+        except (TypeError, ValueError):
+            unidades = 0
+        items[str(nid)[:64]] = {"fase": it.get("fase") if it.get("fase") in FASES_ITEM else "sourcing", "unidades": unidades}
+    resultados = {str(k)[:64]: v for k, v in (op.get("resultados") or {}).items() if v in ("bien", "mal")}
+    return {
+        "ente": ente, "avatares": avatares,
+        "reparto": {"ensamblaje_pct": _pct(rep.get("ensamblaje_pct")), "servicios_pct": _pct(rep.get("servicios_pct"))},
+        "items": items,
+        "ventas": [v for v in (op.get("ventas") or []) if isinstance(v, dict)][-MAX_VENTAS:],
+        "resultados": resultados,
+        "bitacora": [b for b in (op.get("bitacora") or []) if isinstance(b, dict)][-MAX_BITACORA:],
+    }
+
+
+def operacion_de(doc: dict, colaborador_id=None) -> dict:
+    """La operación del proyecto, con los valores por defecto si nunca se configuró."""
+    op = validar_operacion(doc.get("operacion") or {}, {n.get("id") for n in doc.get("nodes") or []})
+    if not op["avatares"]:
+        op["avatares"] = avatares_por_defecto(colaborador_id)
+    return op
+
+
+def costo_unitario(nodo: dict) -> tuple[float, str, list[str]]:
+    """Lo que cuesta armar UNA unidad (receta + empaque) en la moneda del precio, y lo que no se pudo sumar."""
+    moneda = (nodo.get("precio") or {}).get("moneda") or "COP"
+    total, fuera = 0.0, []
+    piezas = [(c.get("nombre"), c.get("costo")) for c in (nodo.get("componentes") or [])]
+    emp = nodo.get("empaque") or {}
+    if emp.get("costo"):
+        piezas.append((emp.get("nombre") or "empaque", emp.get("costo")))
+    for nombre, costo in piezas:
+        if not costo:
+            continue
+        if costo.get("moneda") != moneda:
+            fuera.append(f"{nombre} ({costo.get('moneda')})")
+            continue
+        total += float(costo.get("monto") or 0)
+    return round(total, 2), moneda, fuera
+
+
+def reparto_venta(nodo: dict, op: dict, cantidad: int, precio_unit: float) -> dict:
+    """Cómo se divide lo que entra por una venta. Puede dar margen negativo: se muestra como pérdida."""
+    costo_u, moneda, fuera = costo_unitario(nodo)
+    total = round(precio_unit * cantidad, 2)
+    costo = round(costo_u * cantidad, 2)
+    ensamblaje = round(costo * op["reparto"]["ensamblaje_pct"] / 100, 2)
+    servicios = round(total * op["reparto"]["servicios_pct"] / 100, 2)
+    return {"moneda": moneda, "total": total, "costo": costo, "ensamblaje": ensamblaje, "servicios": servicios,
+            "mckenna": round(total - costo - ensamblaje - servicios, 2), "sin_sumar": fuera}
+
+
+def accion_operacion(did: int, usuario_id: int, accion: str, datos: dict | None = None) -> dict:
+    """Una jugada de la operación, con autoridad del servidor y dentro de una transacción.
+
+    reglas · comprar · craftear · publicar · vender · resultado (el «dharma» de una decisión).
+    Queda en la bitácora quién la hizo. No se exige que cada jugada la haga el avatar de su piso:
+    se registra quién la hizo (con una sola persona usando la app, bloquearlo impediría jugar).
+    """
+    _ensure()
+    datos = datos or {}
+    uid = int(usuario_id)
+    with _conn() as con:
+        r = con.execute("SELECT * FROM colab_diagramas WHERE id=?", (int(did),)).fetchone()
+        if not r:
+            raise ValueError("Diagrama no encontrado")
+        doc = json.loads(r["doc_json"] or "{}")
+        op = operacion_de(doc, r["colaborador_id"])
+        nodos = {n.get("id"): n for n in doc.get("nodes") or []}
+        quien = _nombre(uid)
+
+        def item(nid: str) -> tuple[dict, dict]:
+            n = nodos.get(nid)
+            if not n or n.get("tipo") != "producto":
+                raise ValueError("Ese producto no existe en el tablero")
+            return n, op["items"].setdefault(nid, {"fase": "sourcing", "unidades": 0})
+
+        def anotar(texto: str, **extra):
+            op["bitacora"].append({"fecha": datetime.now().strftime("%Y-%m-%d %H:%M"), "por": uid,
+                                   "quien": quien, "texto": texto[:300], **extra})
+
+        if accion == "reglas":
+            nueva = validar_operacion({**op, **{k: datos[k] for k in ("ente", "avatares", "reparto") if k in datos}},
+                                      set(nodos))
+            if not nueva["avatares"]:
+                raise ValueError("Tiene que quedar al menos un avatar")
+            op = nueva
+            anotar("cambió las reglas del juego")
+        elif accion == "comprar":
+            n, it = item(str(datos.get("nodo") or ""))
+            if it["fase"] == "sourcing":
+                it["fase"] = "ensamblado"
+            anotar(f"compró los insumos de «{n.get('label')}»", nodo=n["id"])
+        elif accion == "craftear":
+            n, it = item(str(datos.get("nodo") or ""))
+            if it["fase"] == "sourcing":
+                raise ValueError("Primero hay que comprar los insumos")
+            try:
+                cant = int(datos.get("cantidad") or 1)
+            except (TypeError, ValueError):
+                cant = 1
+            if not 1 <= cant <= 10_000:
+                raise ValueError("La cantidad va de 1 a 10.000")
+            it["unidades"] += cant
+            if it["fase"] == "ensamblado":
+                it["fase"] = "en_mckenna"
+            costo_u, moneda, _ = costo_unitario(n)
+            anotar(f"ensambló {cant} × «{n.get('label')}» y se los vendió a {op['ente']['nombre']}",
+                   nodo=n["id"], cantidad=cant, valor={"monto": round(costo_u * cant, 2), "moneda": moneda})
+        elif accion == "publicar":
+            n, it = item(str(datos.get("nodo") or ""))
+            if it["fase"] in ("sourcing", "ensamblado"):
+                raise ValueError("Todavía no hay unidades en McKenna para publicar")
+            it["fase"] = "publicado"
+            anotar(f"publicó «{n.get('label')}»", nodo=n["id"])
+        elif accion == "vender":
+            n, it = item(str(datos.get("nodo") or ""))
+            if it["fase"] != "publicado":
+                raise ValueError("El producto tiene que estar publicado para venderse")
+            try:
+                cant = int(datos.get("cantidad") or 1)
+            except (TypeError, ValueError):
+                cant = 1
+            if cant < 1 or cant > it["unidades"]:
+                raise ValueError(f"En la bóveda hay {it['unidades']} unidades")
+            precio = _dinero(datos.get("precio")) or n.get("precio")
+            if not precio:
+                raise ValueError("El producto no tiene precio: ponlo en su caja o escríbelo al vender")
+            rep = reparto_venta(n, op, cant, float(precio["monto"]))
+            if precio.get("moneda") != rep["moneda"]:
+                raise ValueError("El precio de la venta tiene que ir en la moneda del producto")
+            it["unidades"] -= cant
+            venta = {"id": uuid.uuid4().hex[:10], "nodo": n["id"], "cantidad": cant, "precio_unit": precio,
+                     "fecha": datetime.now().strftime("%Y-%m-%d %H:%M"), "por": uid, "reparto": rep}
+            op["ventas"].append(venta)
+            anotar(f"¡vendió {cant} × «{n.get('label')}»!", nodo=n["id"], venta=venta["id"])
+        elif accion == "resultado":
+            nid = str(datos.get("nodo") or "")
+            n = nodos.get(nid)
+            if not n or n.get("tipo") != "consenso" or not n.get("resuelto"):
+                raise ValueError("Solo se califica una decisión ya tomada")
+            valor = datos.get("valor")
+            if valor in ("bien", "mal"):
+                op["resultados"][nid] = valor
+                anotar(f"calificó la decisión «{n.get('label')}»: salió {valor}", nodo=nid)
+            else:
+                op["resultados"].pop(nid, None)
+        else:
+            raise ValueError("Jugada no reconocida")
+
+        doc["operacion"] = op
+        limpio = validar_doc(doc)
+        nueva = int(r["version"]) + 1
+        con.execute("UPDATE colab_diagramas SET doc_json=?, version=?, actualizado_por=?,"
+                    " actualizado_en=datetime('now') WHERE id=?",
+                    (json.dumps(limpio, ensure_ascii=False), nueva, uid, int(did)))
+        con.execute("INSERT INTO colab_diagrama_versiones (diagrama_id, version, doc_json, usuario_id, resumen)"
+                    " VALUES (?,?,?,?,?)", (int(did), nueva, json.dumps(limpio, ensure_ascii=False), uid,
+                                           f"operación: {accion}"))
+    return obtener(did)
+
+
+def dharma(doc: dict, colaborador_id=None) -> dict:
+    """Puntos por decisión calificada: +1 si salió bien, −1 si salió mal, a quien la decidió
+    (el autor de la propuesta ganadora; en un desempate, quien tenía el turno o la habilidad)."""
+    op = operacion_de(doc, colaborador_id)
+    puntos: dict[str, int] = {}
+    for n in doc.get("nodes") or []:
+        res = n.get("resuelto") or {}
+        valor = op["resultados"].get(n.get("id"))
+        if n.get("tipo") != "consenso" or not res or not valor:
+            continue
+        decidio = res.get("por") if res.get("modo") in ("turno", "skill") else next(
+            (p.get("autor") for p in n.get("propuestas") or [] if p.get("id") == res.get("propuesta")), None)
+        if decidio:
+            puntos[str(decidio)] = puntos.get(str(decidio), 0) + (1 if valor == "bien" else -1)
+    return puntos
 
 
 def accion_consenso(did: int, usuario_id: int, nodo_id: str, accion: str,
@@ -665,15 +951,28 @@ def accion_consenso(did: int, usuario_id: int, nodo_id: str, accion: str,
             if len(lideres) == 1:
                 nodo["resuelto"] = {"propuesta": lideres[0], "modo": "acuerdo"}
             else:
-                # Empate (o nadie ha votado): decide quien tiene el turno global.
-                turno = int(r["turno_actual"] or pares[0])
-                elegido = votos.get(str(turno))
-                if not elegido:
-                    raise ValueError("Hay empate: falta el voto de quien tiene el turno para desempatar")
-                nodo["resuelto"] = {"propuesta": elegido, "modo": "turno", "por": turno}
-                # El turno pasa al otro para el próximo empate.
-                siguiente = next((p for p in pares if p != turno), turno)
-                con.execute("UPDATE colab_diagramas SET turno_actual=? WHERE id=?", (siguiente, int(did)))
+                # Empate: si la decisión pide una habilidad y solo UNA de las personas la tiene
+                # (avatares de la operación), decide ella. Si no, el turno global alterno.
+                nodo["resuelto"] = None
+                skill = (nodo.get("skill") or "").strip().lower()
+                if skill:
+                    op = operacion_de(doc, r["colaborador_id"])
+                    expertos = {a["usuario_id"] for a in op["avatares"] if a.get("usuario_id") in pares
+                                and any(skill == k.lower() for k in a["skills"])}
+                    if len(expertos) == 1:
+                        experto = expertos.pop()
+                        elegido = votos.get(str(experto))
+                        if elegido:
+                            nodo["resuelto"] = {"propuesta": elegido, "modo": "skill", "por": experto}
+                if not nodo.get("resuelto"):
+                    turno = int(r["turno_actual"] or pares[0])
+                    elegido = votos.get(str(turno))
+                    if not elegido:
+                        raise ValueError("Hay empate: falta el voto de quien tiene el turno para desempatar")
+                    nodo["resuelto"] = {"propuesta": elegido, "modo": "turno", "por": turno}
+                    # El turno pasa al otro para el próximo empate.
+                    siguiente = next((p for p in pares if p != turno), turno)
+                    con.execute("UPDATE colab_diagramas SET turno_actual=? WHERE id=?", (siguiente, int(did)))
         else:
             raise ValueError("Acción no reconocida")
 
