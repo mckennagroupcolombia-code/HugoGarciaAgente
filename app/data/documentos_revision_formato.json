@@ -278,7 +278,7 @@
   "C-ALFARB10g": {
     "revisado": true,
     "revisado_por": "@cynthia",
-    "revisado_en": "2026-09-22T16:25:10.815082+00:00",
+    "revisado_en": "2026-09-25T20:29:52.923757+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALFA ARBUTINA.pdf)"
   },
   "C-PAP100g": {
@@ -620,7 +620,7 @@
   "C-ACEESEMAN5mL": {
     "revisado": true,
     "revisado_por": "@cynthia",
-    "revisado_en": "2026-09-22T19:59:32.645127+00:00",
+    "revisado_en": "2026-09-25T20:06:17.760076+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL MANZANILLA.pdf)"
   },
   "C-ACEESEBER5mL": {
@@ -632,7 +632,7 @@
   "C-ACENEE60mL": {
     "revisado": true,
     "revisado_por": "@cynthia",
-    "revisado_en": "2026-09-22T20:03:50.716152+00:00",
+    "revisado_en": "2026-09-25T19:23:00.770242+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE NEEM.pdf)"
   },
   "C-GLUMON500g": {
@@ -802,5 +802,137 @@
     "revisado_por": "@cynthia",
     "revisado_en": "2026-09-23T01:57:13.083543+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALOE VERA.pdf)"
+  },
+  "C-ACENEE120mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:23:00.765488+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE NEEM.pdf)"
+  },
+  "C-ACENEE250mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:23:00.766390+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE NEEM.pdf)"
+  },
+  "C-ACENEE500mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:23:00.769449+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE NEEM.pdf)"
+  },
+  "C-CERABEREFBLA500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:24:58.009634+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA DE ABEJAS REFINADA BLANCA.pdf)"
+  },
+  "C-CERABEREFBLAKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:24:58.010644+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA DE ABEJAS REFINADA BLANCA.pdf)"
+  },
+  "C-PSYESC250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:43:45.727813+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS PSYLLIUM.pdf)"
+  },
+  "C-VASBLA900g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:51:13.432206+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS VASELINA BLANCA.pdf)"
+  },
+  "C-LPRO100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T19:59:31.077632+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS L PROLINA.pdf)"
+  },
+  "C-CERABENAT500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T21:57:39.151305+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS CERA DE ABEJAS NATURAL.pdf)"
+  },
+  "C-GELSILCRI250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T21:59:40.468245+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS GEL SILICA.pdf)"
+  },
+  "C-MANCACREF500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:01:27.981625+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA DE CACAO REFINADA.pdf)"
+  },
+  "C-MANCACREFKg": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:01:27.982571+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANTECA DE CACAO REFINADA.pdf)"
+  },
+  "C-COLHID30mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:03:44.810606+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS COLAGENO HIDROLIZADO.pdf)"
+  },
+  "C-METBIS500g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:05:50.327545+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS METABISULFITO DE SODIO.pdf)"
+  },
+  "C-AMASEL250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:12:02.824360+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SEMILLA DE AMARANTO.pdf)"
+  },
+  "C-MANTOSPAR250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:12:50.597470+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS MANI TOSTADO PARTIDO.pdf)"
+  },
+  "C-ALGSOD100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:14:41.057307+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALGINATO DE SODIO.pdf)"
+  },
+  "C-ALGSOD50g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:14:41.058318+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ALGINATO DE SODIO.pdf)"
+  },
+  "C-FLOSECLAV100g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-25T22:25:55.946308+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS FLORES DE LAVANDA SECAS.pdf)"
+  },
+  "C-UVAPASFLA250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-26T01:46:36.446815+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS UVAS PASAS FLAME.pdf)"
+  },
+  "C-SEMAMA250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-26T03:34:01.842721+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SEMILLA DE AMAPOLA.pdf)"
+  },
+  "C-NUEPEC250g": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-26T03:59:30.254865+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS NUEZ PECAN.pdf)"
   }
 }

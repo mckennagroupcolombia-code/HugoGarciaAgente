@@ -239,7 +239,15 @@
       ],
       "primera_vez": "2026-09-22T13:30:14",
       "ultima_vez": "2026-09-22T13:30:14"
+    },
+    "hola linda": {
+      "veces": 1,
+      "canales": [
+        "whatsapp"
+      ],
+      "primera_vez": "2026-09-25T14:09:24",
+      "ultima_vez": "2026-09-25T14:09:24"
     }
   },
-  "actualizado": "2026-09-22T13:30:14"
+  "actualizado": "2026-09-25T14:09:24"
 }

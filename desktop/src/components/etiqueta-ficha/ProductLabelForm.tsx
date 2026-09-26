@@ -102,6 +102,8 @@ import {
 import { ANCHO_SIMPLE, esFormatoSimple, reticulaSimple } from "../etiqueta-simple/etiquetaSimpleTypes";
 import Etiqueta5ml from "../etiqueta-5ml/Etiqueta5ml";
 import { ANCHO_5ML, esFormato5ml, reticula5ml } from "../etiqueta-5ml/etiqueta5mlTypes";
+import EtiquetaCapsulas from "../etiqueta-capsulas/EtiquetaCapsulas";
+import { esEtiquetaCapsulas, reticulaCapsulas } from "../etiqueta-capsulas/etiquetaCapsulasTypes";
 import EtiquetaCircular from "../etiqueta-circular/EtiquetaCircular";
 import {
   DIAMETRO_CIRCULAR,
@@ -215,6 +217,8 @@ interface PropsFormulario {
    *  al aprobar. Se llama cuando el autoguardado ya terminó. */
   onSiguiente?: (fichaId: string) => void;
 }
+
+const horaCorta = () => new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
 export default function ProductLabelForm(props: PropsFormulario) {
   return (
@@ -505,7 +509,7 @@ function ProductLabelFormInner({
           onSuccess: (res) => {
             fichaIdRef.current = res.ficha.id;
             setFichaId(res.ficha.id);
-            setAutoguardado({ estado: "ok", texto: "Guardado" });
+            setAutoguardado({ estado: "ok", texto: `Guardado ${horaCorta()}` });
           },
           onError: (err) => {
             setAutoguardado({
@@ -533,6 +537,55 @@ function ProductLabelFormInner({
     etapa,
     reintentoGuardado,
   ]);
+
+  /** «Guardar borrador»: guarda ya lo que hay (el autoguardado espera 1,5 s tras la
+   *  última tecla y solo con nombre). No aprueba ni genera PNG, así que lo puede usar
+   *  cualquiera; aprobar sigue siendo de Cynthia. Sin nombre toma el del código de barras
+   *  o el del producto, y el autoguardado hace el alta con ese nombre. */
+  const guardarBorrador = () => {
+    const nombre = nombreFicha.trim();
+    if (!nombre) {
+      const sugerido = (data.barcodeTitle || data.productName || "").trim();
+      if (!sugerido) {
+        setAutoguardado({ estado: "error", texto: "Escribe el nombre de la etiqueta (arriba a la izquierda) para guardarla" });
+        return;
+      }
+      setNombreFicha(sugerido);
+      return;
+    }
+    const idActual = fichaIdRef.current;
+    if (!idActual && creandoRef.current) {
+      setReintentoGuardado((n) => n + 1);
+      return;
+    }
+    if (!idActual) creandoRef.current = true;
+    setAutoguardado({ estado: "guardando" });
+    guardarFichaMutation.mutate(
+      {
+        id: idActual ?? undefined,
+        nombre,
+        data,
+        tipo_nombre: tipoNombre || undefined,
+        categoria: categoria || undefined,
+        es_plantilla_categoria: esPlantillaNueva || undefined,
+        plantilla_id: plantillaOrigenId || undefined,
+        attribute_icons: attributeIcons,
+        text_styles: estilos,
+      },
+      {
+        onSuccess: (res) => {
+          fichaIdRef.current = res.ficha.id;
+          setFichaId(res.ficha.id);
+          setAutoguardado({ estado: "ok", texto: `Borrador guardado ${horaCorta()}` });
+        },
+        onError: (err) =>
+          setAutoguardado({ estado: "error", texto: err instanceof Error ? err.message : "No se pudo guardar" }),
+        onSettled: () => {
+          creandoRef.current = false;
+        },
+      },
+    );
+  };
 
   // Crear plantillas dejó de vivir aquí: la plantilla de una categoría es de
   // lienzo (única que genera etiquetas de muchos SKU de golpe y con ajuste caja
@@ -1221,6 +1274,10 @@ function ProductLabelFormInner({
   const reticula30 = useMemo(() => reticula30ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retSimple = useMemo(() => reticulaSimple(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const ret5ml = useMemo(() => reticula5ml(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  /** 66 × 22 de la categoría «Excipientes y cápsulas»: dos paneles (cápsulas
+   *  de gelatina) en vez de los tres de Aceites Esenciales. */
+  const esCapsulas = esEtiquetaCapsulas(es5ml, categoria);
+  const retCapsulas = useMemo(() => reticulaCapsulas(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retCircular = useMemo(() => reticulaCircular(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retVertical = useMemo(() => reticulaVertical(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
@@ -1635,6 +1692,8 @@ function ProductLabelFormInner({
   const formatoCorto = tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : "tamaño libre";
   const descripcionFormato = es30ml
     ? "Los tres paneles del 30 mL. En edición, lo gris es un ejemplo de referencia y no se imprime."
+    : esCapsulas
+      ? "Cápsulas: dos paneles, marca con el nombre y la presentación a la izquierda; composición, color, conservación, lote, código de barras y pie a la derecha."
     : es5ml
       ? "Los tres paneles del 30 mL en dos filas: matriz técnica de 2×2, marca con el nombre y el contenido neto, y pictograma GHS + Pureza/CAS sobre el código de barras."
       : esSimple
@@ -1664,6 +1723,22 @@ function ProductLabelFormInner({
           onChange={onChange}
           onIconChange={onIconChange}
           onElegirCodigo={(c) => void onElegirCodigo(c)}
+        />
+      </Marco30ml>
+    );
+  } else if (esCapsulas) {
+    lienzo = (
+      <Marco30ml reticula={retCapsulas}>
+        <EtiquetaCapsulas
+          ref={fichaRef}
+          data={data}
+          reticula={retCapsulas}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+          attributeIcons={attributeIcons}
+          onIconChange={onIconChange}
         />
       </Marco30ml>
     );
@@ -1816,7 +1891,22 @@ function ProductLabelFormInner({
                     : "Se guarda sola al cambiar algo"
           }
         />
-        {autoguardado.estado === "error" && <span className="text-[11px] text-red-600">No se guardó</span>}
+        <span
+          className={`max-w-[16rem] truncate text-[11px] ${autoguardado.estado === "error" ? "text-red-600" : "text-muted"}`}
+          title={autoguardado.texto}
+        >
+          {autoguardado.estado === "pendiente"
+            ? "Sin guardar…"
+            : autoguardado.estado === "guardando"
+              ? "Guardando…"
+              : autoguardado.estado === "ok"
+                ? `✓ ${autoguardado.texto ?? "Guardado"}`
+                : autoguardado.estado === "error"
+                  ? `No se guardó: ${autoguardado.texto ?? ""}`
+                  : nombreFicha.trim()
+                    ? ""
+                    : "Sin nombre: no se guarda"}
+        </span>
 
         <select
           value={tipoNombre}
@@ -2080,6 +2170,16 @@ function ProductLabelFormInner({
               </>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={guardarBorrador}
+            disabled={autoguardado.estado === "guardando"}
+            title="Guarda ya la etiqueta tal como está, sin aprobarla ni generar PNG. Se puede seguir editando después."
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:cursor-wait disabled:opacity-60"
+          >
+            {autoguardado.estado === "guardando" ? "Guardando…" : "Guardar borrador"}
+          </button>
 
           {onSiguiente && fichaId && (
             <button

@@ -317,6 +317,12 @@ def _construir() -> dict:
         mp_doc = None  # la materia prima a la que pertenece el documento encontrado
         for c in mp:
             doc = A.mejor_documento(c["codigo"], c["nombre"], docs)
+            # Con varias «materias primas», un parecido de nombre que no tiene nada que ver con
+            # el producto vendido no vale: la bolsa BOLTRA500gZIP se llama «SEMILLA GIRASOL g» en
+            # Alegra y unía la sal ahumada, las nueces o las pasas al documento del girasol. Sin
+            # documento, el taller ofrece crear uno desde cero.
+            if doc and len(mp) > 1 and not _declara_sku(doc, c["codigo"]) and not A.mejor_documento("", nombre, [doc]):
+                doc = None
             if doc:
                 mp_doc = c
                 break
@@ -409,6 +415,9 @@ def _construir() -> dict:
             esl["etiqueta"]["accion"] = {"tipo": "disenar_etiqueta"}
         # Las materias primas a las que se puede unir un documento (para elegirlo a mano también).
         mps = [{"codigo": c["codigo"], "nombre": c["nombre"]} for c in mp if c["existe"] and c["nombre"].strip()]
+        # Primero la que se parece al producto vendido: «Asociar o redactar» busca con el nombre
+        # de la primera, y la bolsa mal nombrada llevaba de la sal ahumada al girasol.
+        mps.sort(key=lambda m: not (A._toks(m["nombre"]) & A._toks(nombre)))
         if esl["documento"].get("no_requiere"):
             pass
         elif esl["documento"]["estado"] == "falta":
@@ -733,6 +742,10 @@ def marcar_documento_no_requerido(ref: str, no_requiere: bool, motivo: str = "",
     return {"ok": True, "ref": ref, "no_requiere": bool(no_requiere)}
 
 
+def _declara_sku(doc: dict, sku: str) -> bool:
+    return sku.lower() in {x.lower() for x in [doc.get("referencia") or "", *doc.get("equivalentes", [])] if x}
+
+
 def invalidar() -> None:
     """Tras escribir algo, la próxima lectura se recalcula."""
     with _lock:
@@ -822,7 +835,7 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregi
     from app.services import alegra_catalogo_db as ac
 
     item = ac.obtener_item(sku)
-    if not item or item.get("type") == "kit":
+    if not item or item.get("type") == "kit" or (item.get("status") or "active") != "active":
         raise ValueError(f"`{sku}` no es un producto de inventario activo en Alegra (la referencia es la materia prima, no el combo)")
 
     texto = ruta.read_text(encoding="utf-8")
@@ -838,7 +851,7 @@ def fijar_sku_documento(archivo: str, sku: str, compartir: bool = False, corregi
         otro = ac.obtener_item(actual)
         if corregir:
             modo = "corregir"
-        elif otro and otro.get("type") != "kit":
+        elif otro and otro.get("type") != "kit" and (otro.get("status") or "active") == "active":
             if not compartir:
                 raise ValueError(f"El documento ya pertenece a `{actual}`, que es otro producto activo. "
                                  "Si los dos son la misma sustancia, compártelo; si no, este producto necesita su propio documento")

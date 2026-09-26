@@ -51,6 +51,45 @@
         "aprobado_at": "2026-09-25T02:51:20",
         "por": "@cynthia"
       }
+    },
+    "646d006ef645": {
+      "barcode": "7700892502639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ALULOSA_250g.png",
+        "aprobado_at": "2026-09-25T04:04:56",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ALULOSA_250g_digital.png",
+        "aprobado_at": "2026-09-25T04:04:56",
+        "por": "@cynthia"
+      }
+    },
+    "0d926b438ada": {
+      "barcode": "7700640052638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites Esenciales/ACEITE_ARBOL_DE_TE_5_mL.png",
+        "aprobado_at": "2026-09-25T04:06:32",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites Esenciales/ACEITE_ARBOL_DE_TE_5_mL_digital.png",
+        "aprobado_at": "2026-09-25T04:06:33",
+        "por": "@cynthia"
+      }
+    },
+    "e0d6e392538d": {
+      "barcode": "7700740102639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/DIHIDROXIACETONA_10g.png",
+        "aprobado_at": "2026-09-25T13:32:31",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/DIHIDROXIACETONA_10g_digital.png",
+        "aprobado_at": "2026-09-25T13:32:31",
+        "por": "@cynthia"
+      }
     }
   }
 }

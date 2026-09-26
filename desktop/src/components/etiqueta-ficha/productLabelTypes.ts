@@ -73,6 +73,17 @@ export interface ProductLabelData {
    *  secos…"). Dato de plantilla: toda etiqueta de la familia la hereda y se
    *  ajusta por producto. */
   alergenos?: string;
+  /** Etiqueta de cápsulas (66 × 22, categoría excipientes): línea bajo el
+   *  nombre («VACÍAS · PARA LLENADO»). Dato de plantilla. */
+  capsulasSubtitulo?: string;
+  /** Cápsulas: tamaño (00, 0, 1…) y color. Datos del producto. */
+  capsulasTamano?: string;
+  capsulasColor?: string;
+  /** Cápsulas: lote y vencimiento escritos en la etiqueta (vacío = raya para timbrar). */
+  lote?: string;
+  vencimiento?: string;
+  /** Cápsulas: ya se escribieron los datos iniciales (ver `parcheInicialCapsulas`). */
+  capsulasIniciada?: boolean;
 
   // ── Formato circular 53 × 53 mm (ceras y mantecas) ───────────────────────
   /** Descripción corta bajo el título curvo. */
@@ -237,6 +248,7 @@ export const CAMPOS_PLANTILLA = [
   "storageSugerido",
   "sinTimbreCentro",
   "alergenos",
+  "capsulasSubtitulo",
   "aplicacionesTitulo",
   "empresa",
   "controlCalidad",

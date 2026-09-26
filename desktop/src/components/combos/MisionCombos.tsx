@@ -358,7 +358,7 @@ function InspectorEtiquetaCuerpo({ c, hermanas, alResolver, abrirEditor }: {
   return (
     <div className="space-y-2.5">
       <p className="text-[11px] text-muted">«{f.nombre}»</p>
-      <PngAprobados e={e} />
+      <PngAprobados e={e} variantes={["impresion"]} />
       {ean && (campos.barcode ?? "") !== ean && (
         <div className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11px] text-ink">
           La etiqueta {campos.barcode ? <>lleva el código <code>{campos.barcode}</code></> : "no lleva código"} y el combo tiene <code>{ean}</code>. Por eso no están conectados.
@@ -400,25 +400,24 @@ function InspectorEtiquetaCuerpo({ c, hermanas, alResolver, abrirEditor }: {
   );
 }
 
-/** Los dos archivos de «Terminar y aprobar»: el PNG de impresión y el digital (marca
- *  desenfocada, el que va a las publicaciones). Aprobar otra vez los reescribe. */
-function PngAprobados({ e }: { e?: Eslabon }) {
+/** Los archivos de «Terminar y aprobar»: Diseño muestra solo el PNG de impresión; Publicación
+ *  muestra los dos, porque el de impresión también va a la web y el digital (marca desenfocada)
+ *  a las publicaciones. Aprobar otra vez los reescribe. */
+function PngAprobados({ e, variantes }: { e?: Eslabon; variantes: ("impresion" | "digital")[] }) {
   if (!e?.png && !e?.png_digital)
     return e?.etiqueta_id ? <p className="text-[11px] text-muted">La etiqueta aún no tiene PNG aprobados (los aprueba Cynthia con «Terminar y aprobar»).</p> : null;
-  const archivos = [
-    { titulo: "Impresión", nombre: e.png },
-    { titulo: "Digital", nombre: e.png_digital },
-  ];
+  const archivos = variantes.map((v) => (v === "impresion" ? { titulo: "Impresión", nombre: e.png } : { titulo: "Digital", nombre: e.png_digital }));
+  const uno = archivos.length === 1;
   return (
     <div>
       <p className="mb-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-muted">
-        Etiqueta aprobada{e.aprobado_at ? ` · ${e.aprobado_at.slice(0, 10)}` : ""}
+        Etiqueta aprobada{uno ? ` · ${archivos[0].titulo.toLowerCase()}` : ""}{e.aprobado_at ? ` · ${e.aprobado_at.slice(0, 10)}` : ""}
       </p>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className={uno ? "" : "grid grid-cols-2 gap-1.5"}>
         {archivos.map(({ titulo, nombre }) => (
           <div key={titulo} className="min-w-0 rounded-md border border-border bg-surface p-1">
             {nombre ? <EtiquetaPng nombre={nombre} /> : <div className="flex h-28 items-center justify-center text-[11px] text-muted">Sin PNG {titulo.toLowerCase()}</div>}
-            <p className="truncate px-0.5 pt-0.5 text-[10px] text-muted" title={nombre || undefined}>{titulo}</p>
+            {!uno && <p className="truncate px-0.5 pt-0.5 text-[10px] text-muted" title={nombre || undefined}>{titulo}</p>}
           </div>
         ))}
       </div>
@@ -673,7 +672,7 @@ function Inspector({ c, clave, hermanas, alResolver, abrirPublicacion, irA, cerr
     return (
       <div className="space-y-2">
         <p className="text-[11.5px] text-muted">{e.detalle}</p>
-        <PngAprobados e={c.eslabones.etiqueta} />
+        <PngAprobados e={c.eslabones.etiqueta} variantes={["impresion", "digital"]} />
         {e.precio ? <p className="text-[12px] tabular-nums text-ink">${Math.round(e.precio).toLocaleString("es-CO")} en la web</p> : null}
         <button className={e.estado === "ok" ? BTN_SEC : BTN} onClick={abrirPublicacion}>{e.estado === "ok" ? "Revisar la publicación…" : "Resolver la publicación…"}</button>
       </div>

@@ -750,6 +750,74 @@ appExpress.get('/monitor', (req, res) => {
     res.json({ actividad: activityLog.slice(0, 50) });
 });
 
+/** GET /chats/buscar?q=texto — lista chats cuyo nombre o número contiene q (SOLO lectura) */
+appExpress.get('/chats/buscar', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const q = String(req.query.q || '').toLowerCase().trim();
+    try {
+        if (!client.info || !client.info.wid) return res.status(503).json({ error: 'Sincronizando…' });
+        const todos = await client.getChats();
+        const hits = todos.filter(c => {
+            const nm = (c.name || '').toLowerCase();
+            const id = ((c.id && c.id._serialized) || '').toLowerCase();
+            return !q || nm.includes(q) || id.includes(q);
+        }).slice(0, 60).map(c => ({
+            chatId: (c.id && c.id._serialized) || '',
+            numero: (c.id && c.id.user) || '',
+            nombre: c.name || null,
+            grupo: !!c.isGroup,
+            ultimo: c.timestamp ? new Date(c.timestamp * 1000).toISOString() : null,
+        }));
+        res.json({ total: hits.length, chats: hits });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/** GET /chat/:numero?limit=N — lee el historial de un chat (SOLO lectura, no envía nada) */
+appExpress.get('/chat/:numero', async (req, res) => {
+    if (!bridgeAuthOk(req)) return res.status(401).json({ error: 'No autorizado' });
+    const numero = req.params.numero;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 60, 300);
+    try {
+        if (!client.info || !client.info.wid) return res.status(503).json({ error: 'Sincronizando…' });
+        const candidatos = await resolverCandidatosChatId(numero);
+        let chat = null, usado = null;
+        for (const cid of candidatos) {
+            try {
+                const c = await client.getChatById(cid);
+                if (c) { chat = c; usado = cid; break; }
+            } catch (e) { /* probar siguiente candidato */ }
+        }
+        if (!chat) {
+            // Fallback: escanear todos los chats por número (id.user) o por nombre
+            const dig = String(numero).replace(/[^0-9]/g, '');
+            try {
+                const todos = await client.getChats();
+                chat = todos.find(c => {
+                    const u = (c.id && c.id.user) || '';
+                    const nm = (c.name || '').toLowerCase();
+                    return u === dig || u.endsWith(dig) || nm.includes('carolina') || nm.includes('global');
+                }) || null;
+                if (chat) usado = chat.id && chat.id._serialized;
+            } catch (e) { /* getChats falló */ }
+        }
+        if (!chat) return res.status(404).json({ error: 'Chat no encontrado', candidatos });
+        const msgs = await chat.fetchMessages({ limit });
+        const salida = msgs.map(m => ({
+            fecha: new Date((m.timestamp || 0) * 1000).toISOString(),
+            de: m.fromMe ? 'yo' : 'ellos',
+            autor: m.author || m.from || '',
+            tipo: m.type,
+            texto: m.body || '',
+            media: !!m.hasMedia,
+        }));
+        res.json({ chatId: usado, nombre: chat.name || null, total: salida.length, mensajes: salida });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 /** GET /qr — QR en texto para escaneo remoto */
 appExpress.get('/qr', (req, res) => {
     if (!ultimoQr) return res.status(404).json({ error: 'Sin QR activo' });

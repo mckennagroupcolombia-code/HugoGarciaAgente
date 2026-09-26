@@ -393,6 +393,24 @@ export const ICONOS_GALERIA_AMPLIADA: IconoQuimicoCircular[] = [
     </svg>`,
   },
   {
+    id: "apariencia_capsulas",
+    nombre: "Cápsulas",
+    categoria: "apariencia",
+    tags: ["apariencia", "capsulas", "capsula", "gelatina", "pastillas", "llenado", "color"],
+    // Dos cápsulas de dos piezas cruzadas; una mitad de cada una rellena.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <g transform="rotate(-40 38 46)">
+        <rect x="16" y="37" width="44" height="18" rx="9" stroke-width="4.5"/>
+        <path d="M38 37 H51 A9 9 0 0 1 51 55 H38 Z" fill="currentColor" stroke="none"/>
+      </g>
+      <g transform="rotate(35 62 62)">
+        <rect x="40" y="53" width="44" height="18" rx="9" stroke-width="4.5"/>
+        <path d="M62 53 H75 A9 9 0 0 1 75 71 H62 Z" fill="currentColor" stroke="none"/>
+      </g>
+    </svg>`,
+  },
+  {
     id: "apariencia_crema",
     nombre: "Crema / Pasta",
     categoria: "apariencia",

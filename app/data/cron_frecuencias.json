@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-23T07:25:19"
+    "ultima_ejecucion": "2026-09-25T07:21:07"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,7 +21,7 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-23T18:00:01"
+    "ultima_ejecucion": "2026-09-25T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
@@ -45,11 +45,11 @@
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-24T15:00:06"
+    "ultima_ejecucion": "2026-09-25T07:00:09"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-23T07:25:55"
+    "ultima_ejecucion": "2026-09-25T06:51:43"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
@@ -57,35 +57,35 @@
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-23T09:13:00"
+    "ultima_ejecucion": "2026-09-25T09:02:44"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-23T09:05:01"
+    "ultima_ejecucion": "2026-09-25T09:05:01"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-25T02:30:01"
+    "ultima_ejecucion": "2026-09-25T22:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-09-25T00:10:31"
+    "ultima_ejecucion": "2026-09-25T18:10:32"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-22T08:23:16"
+    "ultima_ejecucion": "2026-09-25T08:01:46"
   },
   "anulaciones_ra": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-16T07:41:00"
+    "ultima_ejecucion": "2026-09-25T07:36:54"
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-09-25T02:10:01"
+    "ultima_ejecucion": "2026-09-25T22:10:01"
   },
   "precios_trm": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-23T08:40:01"
+    "ultima_ejecucion": "2026-09-25T08:40:01"
   },
   "entregas_flex": {
     "intervalo_horas": 24.0,

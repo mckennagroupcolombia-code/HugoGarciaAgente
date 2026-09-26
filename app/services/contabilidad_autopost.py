@@ -33,6 +33,10 @@ CUENTA_BANCOS = "1110"
 FUENTE_CAJA: dict[str, str] = {
     "meli_venta": CUENTA_MERCADOPAGO,
     "meli_cobro": CUENTA_MERCADOPAGO,
+    # La tienda web cobra por la pasarela de Mercado Pago (PSE, tarjetas, botón
+    # Bancolombia): la plata queda allá y llega al banco con los retiros, igual
+    # que la de MeLi. Hasta el 25-sep-2026 se posteaba contra 1110.
+    "web_venta": CUENTA_MERCADOPAGO,
 }
 
 
@@ -358,8 +362,9 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
             # La descripción se lee en el Libro Mayor: que diga qué es este saldo.
             return [
                 {"cuenta_id": bancos_id, "debito": monto, "credito": 0, "tercero_id": _tercero_mercadopago(),
-                 "descripcion": "Por cobrar a Mercado Pago (130505): la plata de esta venta MeLi queda en "
-                                "Mercado Pago hasta el retiro; el ingreso va en 4135"},
+                 "descripcion": f"Por cobrar a Mercado Pago (130505): la plata de esta venta "
+                                f"{'web' if fuente == 'web_venta' else 'MeLi'} queda en Mercado Pago hasta el "
+                                "retiro; el ingreso va en 4135"},
                 {"cuenta_id": cuenta_id, "debito": 0, "credito": monto, "descripcion": concepto},
             ]
         return [
