@@ -14,11 +14,10 @@ sobre la que se editó; si en el servidor ya hay una más nueva, se rechaza con
 versión queda en `colab_diagrama_versiones`: se puede ver quién cambió qué y
 volver a cualquiera.
 
-**Archify.** El documento se guarda con posiciones libres (x, y) porque así se
-edita con el dedo. `a_archify()` lo traduce al esquema `workflow` de Archify
-—carril = quién lo hace, columna = posición horizontal— y `exportar_archify()`
-entrega el HTML de solo lectura con el mismo acabado que los diagramas del Mapa
-del sistema, para la versión acordada.
+**Un solo estilo: el edificio (26-sep-2026).** El proyecto se ve y se edita como un edificio
+en pixel art: pisos y habitaciones configurables, cada caja colocada en una habitación y
+construida a medida que se llena, y las «flechas» de antes como entregas que un avatar lleva
+de una caja a otra. Se retiraron el tablero de flechas y la exportación a Archify.
 """
 
 from __future__ import annotations
@@ -27,16 +26,13 @@ import io
 import json
 import os
 import sqlite3
-import subprocess
 import uuid
 from datetime import datetime
 from pathlib import Path
 
 _DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "colaboradores.db")
-_EXPORT_DIR = Path(__file__).resolve().parents[1] / "data" / "colaboradores_archify"
 # Fotos y facturas que se cargan en las cajas. Fuera de git (binarios de runtime).
 _MEDIA_DIR = Path(__file__).resolve().parents[2] / "colaboradores_media"
-ARCHIFY = Path.home() / ".claude" / "skills" / "archify" / "bin" / "archify.mjs"
 
 # Quién hace cada paso: son los carriles del diagrama. Cada uno es una figura
 # jurídica aparte —la empresa no es Armando—, así que no se mezclan (21-sep-2026).
@@ -48,7 +44,7 @@ CARRILES = {
 }
 # Valores de la primera versión, que no distinguía persona de empresa.
 _CARRILES_VIEJOS = {"colaborador": "sebastian"}
-# Qué es cada caja. El tipo de Archify decide el color; la leyenda, el significado.
+# Qué es cada caja: una PLANTILLA que precarga campos (toda caja admite los mismos campos libres).
 TIPOS = {
     "accion": ("frontend", "acción o actividad"),
     "decision": ("security", "decisión o acuerdo por definir"),
@@ -59,7 +55,11 @@ TIPOS = {
     "producto": ("database", "producto: foto, SKU, receta y precio"),
     "competencia": ("cloud", "competencia: su publicación y su precio"),
     "proveedor": ("cloud", "proveedor: entrega, costos y fiabilidad"),
+    "libre": ("frontend", "caja libre: sus propios campos"),
 }
+# Íconos pixel que puede llevar una caja (los sprites de colaboradores/pixel.tsx).
+ICONOS = ("moneda", "bolsa", "reloj", "datos", "doc", "foto", "alerta", "urna", "pulgar", "trofeo", "cofre",
+          "bloques", "codigo", "ventana", "estrella", "gema", "bandera", "camion", "jugador", "control")
 MAX_NODOS = 300
 # Por dónde sale/entra una flecha en la caja. Son los cuatro lados.
 LADOS = ("l", "r", "t", "b")
@@ -363,6 +363,13 @@ def _extras_nodo(n: dict) -> dict:
             extra["fiabilidad"] = fia
     except (TypeError, ValueError):
         pass
+    # ── Dónde está y quién la lleva: la habitación del edificio, su ícono y su responsable (avatar) ──
+    for campo, largo in (("habitacion", 40), ("avatar", 40)):
+        val = _texto(n.get(campo), largo)
+        if val:
+            extra[campo] = val
+    if n.get("icono") in ICONOS:
+        extra["icono"] = n["icono"]
     skill = _texto(n.get("skill"), 40)            # consenso: la habilidad que desempata
     if skill:
         extra["skill"] = skill
@@ -531,6 +538,8 @@ def validar_doc(doc) -> dict:
             "grosor": grosor,
             "trazo": e.get("trazo") if e.get("trazo") in TRAZOS else "solida",
             "forma": e.get("forma") if e.get("forma") in FORMAS else FORMA_DEFECTO,
+            # La flecha ahora es una ENTREGA: el avatar que lleva la caja de un lugar a otro.
+            **({"portador": _texto(e.get("portador"), 40)} if _texto(e.get("portador"), 40) else {}),
         })
     out = {"nodes": nodos, "edges": flechas}
     if isinstance(doc.get("operacion"), dict):
@@ -660,17 +669,39 @@ def restaurar(did: int, version: int, version_base: int, usuario_id: int) -> dic
 # Todo vive en doc["operacion"] y SOLO lo cambia accion_operacion (el guardado del tablero lo
 # conserva). ⚠️ Es una SIMULACIÓN del proyecto: no escribe en Alegra, ni en el inventario, ni en
 # el Libro Mayor.
-PISOS_AVATAR = ("compras", "hub", "orquestacion")
 FASES_ITEM = ("sourcing", "ensamblado", "en_mckenna", "publicado")
 COLORES_AVATAR = ("#b45309", "#1d4ed8", "#0f766e", "#7c3aed", "#b91c1c", "#15803d", "#374151")
+# Colores de piso (PICO-8): el color es de la fachada y de la placa.
+COLORES_PISO = ("#5F574F", "#FFA300", "#1D2B53", "#7E2553", "#29ADFF", "#FFEC27", "#008751", "#AB5236", "#83769C", "#FF77A8")
 MAX_AVATARES = 8
 MAX_VENTAS = 500
 MAX_BITACORA = 200
+MAX_PISOS = 12
+MAX_HABITACIONES = 8
+MAX_CAMPOS_ENTE = 10
+MAX_REGLAS = 10
+
+# El edificio con el que arranca todo proyecto (de abajo arriba). Se renombra, se reordena y se
+# amplía en «Construir»: ninguno de estos nombres es obligatorio.
+EDIFICIO_POR_DEFECTO = [
+    ("mercado", "Mercado externo", "#5F574F", [("proveedores", "Proveedores")]),
+    ("compras", "Compras y logística", "#FFA300", [("bodega", "Bodega de insumos"), ("taller", "Taller de ensamblaje")]),
+    ("hub", "Hub · McKenna Group S.A.S.", "#1D2B53", [("boveda", "Bóveda e inventario"), ("sala", "Sala común")]),
+    ("mesa", "Mesa de guerra", "#7E2553", [("decisiones", "Sala de decisiones")]),
+    ("orquestacion", "Orquestación y ventas", "#29ADFF", [("estudio", "Estudio de diseño"), ("sistemas", "Sala de sistemas")]),
+    ("cliente", "Cliente final", "#FFEC27", [("tienda", "Tienda")]),
+]
 
 
-def _pct(v) -> float:
+def edificio_por_defecto() -> dict:
+    return {"pisos": [{"id": pid, "nombre": nom, "color": col,
+                       "habitaciones": [{"id": hid, "nombre": hnom} for hid, hnom in habs]}
+                      for pid, nom, col, habs in EDIFICIO_POR_DEFECTO]}
+
+
+def _pct(v, tope: float = 100.0) -> float:
     try:
-        return max(0.0, min(100.0, round(float(v), 2)))
+        return max(0.0, min(tope, round(float(v), 2)))
     except (TypeError, ValueError):
         return 0.0
 
@@ -687,16 +718,69 @@ def avatares_por_defecto(colaborador_id=None) -> list[dict]:
     ]
 
 
+def _validar_edificio(ed) -> dict:
+    pisos, ids = [], set()
+    for p in ((ed or {}).get("pisos") or [])[:MAX_PISOS]:
+        pid = _texto((p or {}).get("id"), 40)
+        nombre = _texto((p or {}).get("nombre"), 60)
+        if not pid or not nombre or pid in ids:
+            continue
+        ids.add(pid)
+        habs = []
+        for h in (p.get("habitaciones") or [])[:MAX_HABITACIONES]:
+            hid, hnom = _texto((h or {}).get("id"), 40), _texto((h or {}).get("nombre"), 60)
+            if hid and hnom and hid not in ids:
+                ids.add(hid)
+                habs.append({"id": hid, "nombre": hnom})
+        if not habs:                               # un piso sin habitaciones no tiene dónde poner cajas
+            hid = f"{pid}-h1"
+            if hid not in ids:
+                ids.add(hid)
+                habs.append({"id": hid, "nombre": "Espacio"})
+        pisos.append({"id": pid, "nombre": nombre,
+                      "color": p.get("color") if p.get("color") in COLORES_PISO else COLORES_PISO[len(pisos) % len(COLORES_PISO)],
+                      "habitaciones": habs})
+    return {"pisos": pisos} if pisos else edificio_por_defecto()
+
+
+def _validar_reparto(rep: dict) -> dict:
+    """Partidas con nombre (las pone el usuario): base costo o venta, %, y para quién.
+    Lo que no reparten las partidas queda en la bóveda, que también se nombra."""
+    if "reglas" not in rep:
+        # Formato anterior (ensamblaje_pct / servicios_pct): se traduce a partidas con nombre.
+        rep = {"reglas": [
+            {"id": "insumos", "nombre": "Insumos", "base": "costo", "pct": 100, "para": "sebastian"},
+            {"id": "ensamblaje", "nombre": "Ensamblaje", "base": "costo", "pct": rep.get("ensamblaje_pct") or 0, "para": "sebastian"},
+            {"id": "servicios", "nombre": "Servicios", "base": "venta", "pct": rep.get("servicios_pct") or 0, "para": "armando"},
+        ]}
+    reglas, ids = [], set()
+    for rg in (rep.get("reglas") or [])[:MAX_REGLAS]:
+        rid, nombre = _texto((rg or {}).get("id"), 40), _texto((rg or {}).get("nombre"), 40)
+        if not rid or not nombre or rid in ids:
+            continue
+        ids.add(rid)
+        reglas.append({"id": rid, "nombre": nombre, "base": rg.get("base") if rg.get("base") in ("costo", "venta") else "venta",
+                       "pct": _pct(rg.get("pct"), 1000.0), "para": _texto(rg.get("para"), 40) or "boveda"})
+    return {"reglas": reglas, "boveda": _texto(rep.get("boveda"), 40) or "Bóveda"}
+
+
+def _validar_ente(ente_in: dict) -> dict:
+    """El ente: su nombre y campos que se nombran libremente («margen» era un nombre fijo que no servía)."""
+    campos = [{"nombre": _texto((c or {}).get("nombre"), 40), "valor": _texto((c or {}).get("valor"), 80)}
+              for c in (ente_in.get("campos") or [])[:MAX_CAMPOS_ENTE]]
+    if "campos" not in ente_in:                    # formato anterior: se conservan los valores como campos
+        if ente_in.get("margen_pct") not in (None, ""):
+            campos.append({"nombre": "Margen objetivo", "valor": f"{ente_in['margen_pct']} %"})
+        for k, etq in (("costos_fijos", "Costos fijos / mes"), ("capital", "Capital")):
+            d = _dinero(ente_in.get(k))
+            if d:
+                campos.append({"nombre": etq, "valor": f"{d['monto']:,.0f} {d['moneda']}".replace(",", ".")})
+    return {"nombre": _texto(ente_in.get("nombre"), 80) or "McKenna Group S.A.S.",
+            "campos": [c for c in campos if c["nombre"] or c["valor"]]}
+
+
 def validar_operacion(op: dict, ids_nodos: set | None = None) -> dict:
     ids_nodos = ids_nodos or set()
-    ente_in = op.get("ente") or {}
-    ente = {"nombre": _texto(ente_in.get("nombre"), 80) or "McKenna Group S.A.S."}
-    if ente_in.get("margen_pct") not in (None, ""):
-        ente["margen_pct"] = _pct(ente_in.get("margen_pct"))
-    for k in ("costos_fijos", "capital"):
-        d = _dinero(ente_in.get(k))
-        if d:
-            ente[k] = d
     avatares, vistos = [], set()
     for a in (op.get("avatares") or [])[:MAX_AVATARES]:
         aid = _texto((a or {}).get("id"), 40)
@@ -711,12 +795,11 @@ def validar_operacion(op: dict, ids_nodos: set | None = None) -> dict:
         avatares.append({
             "id": aid, "nombre": nombre, "rol": _texto(a.get("rol"), 80),
             "skills": [x for x in (_texto(k, 30) for k in (a.get("skills") or [])[:10]) if x],
-            "piso": a.get("piso") if a.get("piso") in PISOS_AVATAR else "compras",
+            "piso": _texto(a.get("piso"), 40) or "hub",   # id de un piso del edificio
             "color": a.get("color") if a.get("color") in COLORES_AVATAR else COLORES_AVATAR[len(avatares) % len(COLORES_AVATAR)],
             "carril": a.get("carril") if a.get("carril") in CARRILES else None,
             "usuario_id": uid,
         })
-    rep = op.get("reparto") or {}
     items = {}
     for nid, it in (op.get("items") or {}).items():
         if ids_nodos and nid not in ids_nodos:
@@ -728,8 +811,10 @@ def validar_operacion(op: dict, ids_nodos: set | None = None) -> dict:
         items[str(nid)[:64]] = {"fase": it.get("fase") if it.get("fase") in FASES_ITEM else "sourcing", "unidades": unidades}
     resultados = {str(k)[:64]: v for k, v in (op.get("resultados") or {}).items() if v in ("bien", "mal")}
     return {
-        "ente": ente, "avatares": avatares,
-        "reparto": {"ensamblaje_pct": _pct(rep.get("ensamblaje_pct")), "servicios_pct": _pct(rep.get("servicios_pct"))},
+        "edificio": _validar_edificio(op.get("edificio")),
+        "ente": _validar_ente(op.get("ente") or {}),
+        "avatares": avatares,
+        "reparto": _validar_reparto(op.get("reparto") or {}),
         "items": items,
         "ventas": [v for v in (op.get("ventas") or []) if isinstance(v, dict)][-MAX_VENTAS:],
         "resultados": resultados,
@@ -764,14 +849,19 @@ def costo_unitario(nodo: dict) -> tuple[float, str, list[str]]:
 
 
 def reparto_venta(nodo: dict, op: dict, cantidad: int, precio_unit: float) -> dict:
-    """Cómo se divide lo que entra por una venta. Puede dar margen negativo: se muestra como pérdida."""
+    """Cómo se divide lo que entra por una venta, según las partidas. Lo que sobra va a la
+    bóveda; si las partidas suman más que la venta, la bóveda queda negativa (pérdida)."""
     costo_u, moneda, fuera = costo_unitario(nodo)
     total = round(precio_unit * cantidad, 2)
     costo = round(costo_u * cantidad, 2)
-    ensamblaje = round(costo * op["reparto"]["ensamblaje_pct"] / 100, 2)
-    servicios = round(total * op["reparto"]["servicios_pct"] / 100, 2)
-    return {"moneda": moneda, "total": total, "costo": costo, "ensamblaje": ensamblaje, "servicios": servicios,
-            "mckenna": round(total - costo - ensamblaje - servicios, 2), "sin_sumar": fuera}
+    partes = []
+    for rg in op["reparto"]["reglas"]:
+        base = costo if rg["base"] == "costo" else total
+        partes.append({"id": rg["id"], "nombre": rg["nombre"], "para": rg["para"],
+                       "monto": round(base * rg["pct"] / 100, 2)})
+    boveda = round(total - sum(p["monto"] for p in partes if p["para"] != "boveda"), 2)
+    return {"moneda": moneda, "total": total, "costo": costo, "partes": partes,
+            "boveda_nombre": op["reparto"]["boveda"], "boveda": boveda, "sin_sumar": fuera}
 
 
 def accion_operacion(did: int, usuario_id: int, accion: str, datos: dict | None = None) -> dict:
@@ -803,7 +893,11 @@ def accion_operacion(did: int, usuario_id: int, accion: str, datos: dict | None 
             op["bitacora"].append({"fecha": datetime.now().strftime("%Y-%m-%d %H:%M"), "por": uid,
                                    "quien": quien, "texto": texto[:300], **extra})
 
-        if accion == "reglas":
+        if accion == "edificio":
+            ed = _validar_edificio(datos.get("edificio"))
+            op["edificio"] = ed
+            anotar(f"reorganizó el edificio: {len(ed['pisos'])} pisos")
+        elif accion == "reglas":
             nueva = validar_operacion({**op, **{k: datos[k] for k in ("ente", "avatares", "reparto") if k in datos}},
                                       set(nodos))
             if not nueva["avatares"]:
@@ -1036,77 +1130,4 @@ def media_de_diagrama(mid: str, did: int) -> Path | None:
     if not mid or not mid.startswith(f"{int(did)}-"):
         return None
     p = _MEDIA_DIR / mid
-    return p if p.is_file() else None
-
-
-# ─── Archify ────────────────────────────────────────────────────────────────
-
-def a_archify(diagrama: dict) -> dict:
-    """Traduce el diagrama (posiciones libres) al esquema `workflow` de Archify."""
-    doc = diagrama.get("doc") or {}
-    nodos = doc.get("nodes") or []
-    # Columnas: las cajas se agrupan por su posición horizontal (≈ 1 columna por
-    # cada 220 px del lienzo), en el orden en que están de izquierda a derecha.
-    xs = sorted({int(round(float(n["x"]) / 220.0)) for n in nodos})
-    col_de = {x: i for i, x in enumerate(xs)}
-    usados = [c for c in CARRILES if any(n["carril"] == c for n in nodos)] or ["conjunto"]
-    ocupado: dict[tuple, int] = {}
-    arch_nodos = []
-    for n in sorted(nodos, key=lambda n: (float(n["x"]), float(n["y"]))):
-        col = col_de[int(round(float(n["x"]) / 220.0))]
-        # Dos cajas del mismo carril en la misma columna: la segunda pasa a la siguiente.
-        while (n["carril"], col) in ocupado:
-            col += 1
-        ocupado[(n["carril"], col)] = 1
-        nodo = {"id": n["id"], "lane": n["carril"], "col": col, "type": TIPOS[n["tipo"]][0],
-                "label": n["label"], "width": max(135, min(260, 18 + 7 * len(n["label"])))}
-        # El export es de solo lectura y no dibuja fotos: el dato real (precio,
-        # costo) se resume en el subtítulo para que igual quede en el acuerdo.
-        extra = [x for x in (n.get("sku"), n.get("plataforma")) if x]
-        for campo, etq in (("precio", "precio"), ("costo", "costo")):
-            d = n.get(campo)
-            if d:
-                extra.append(f"{etq} {int(d['monto']):,}".replace(",", ".") + f" {d['moneda']}")
-        sub = " · ".join(x for x in [n.get("sublabel"), *extra] if x)
-        if sub:
-            nodo["sublabel"] = sub[:200]
-        arch_nodos.append(nodo)
-    return {
-        "schema_version": 2,
-        "diagram_type": "workflow",
-        "meta": {
-            "title": diagrama.get("titulo") or "Diagrama",
-            "output": f"colab-{diagrama.get('id')}-v{diagrama.get('version')}.html",
-            "legend": {"entries": {TIPOS[t][0]: {"label": TIPOS[t][1]} for t in TIPOS
-                                   if any(n["tipo"] == t for n in nodos)}},
-        },
-        "lanes": [{"id": c, "label": CARRILES[c]} for c in usados],
-        "nodes": arch_nodos,
-        "edges": [{"id": e["id"], "from": e["from"], "to": e["to"], "role": "main",
-                   **({"label": e["label"]} if e.get("label") else {})} for e in (doc.get("edges") or [])],
-    }
-
-
-def exportar_archify(did: int) -> dict:
-    """Genera el HTML de Archify (solo lectura) de la versión actual."""
-    d = obtener(did)
-    if not d:
-        raise ValueError("Diagrama no encontrado")
-    if not (d.get("doc") or {}).get("nodes"):
-        raise ValueError("El diagrama está vacío")
-    if not ARCHIFY.is_file():
-        raise RuntimeError("Archify no está instalado en el servidor")
-    _EXPORT_DIR.mkdir(parents=True, exist_ok=True)
-    fuente = _EXPORT_DIR / f"colab-{did}-v{d['version']}.workflow.json"
-    html = _EXPORT_DIR / f"colab-{did}-v{d['version']}.html"
-    fuente.write_text(json.dumps(a_archify(d), ensure_ascii=False, indent=2), encoding="utf-8")
-    r = subprocess.run(["node", str(ARCHIFY), "deliver", "workflow", str(fuente), str(html)],
-                       capture_output=True, text=True, timeout=300)
-    if r.returncode != 0 or not html.is_file():
-        raise RuntimeError("Archify no pudo generar el diagrama: " + ((r.stdout + r.stderr).strip()[-600:]))
-    return {"version": d["version"], "archivo": html.name}
-
-
-def ruta_export(did: int, version: int) -> Path | None:
-    p = _EXPORT_DIR / f"colab-{int(did)}-v{int(version)}.html"
     return p if p.is_file() else None

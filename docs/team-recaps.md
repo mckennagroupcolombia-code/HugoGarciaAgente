@@ -1,3 +1,16 @@
+### 2026-09-26 05:30 - Colaboradores: un solo estilo, el edificio (fusión de las tres vistas)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Rediseño y simplificación. Sin LLM.
+- **Qué se implementó:**
+  - Se quitaron el **tablero de flechas**, la vista clásica, «Rectas» y **«Ver en Archify»**. Queda **una sola vista**: el proyecto es un edificio en pixel art.
+  - **Pisos y habitaciones configurables** («🏗 Construir»): renombrar, color, reordenar, agregar pisos y habitaciones (un tercer colaborador puede tener su piso).
+  - **Cajas libres**: cada caja se coloca en una habitación, con su ícono, su responsable y **campos propios** con el nombre que quieran. Las plantillas (tarea, producto, proveedor, decisión…) solo precargan campos; hay una **Libre**. Cada caja se construye a medida que se llena.
+  - Las flechas ahora son **entregas**: un avatar camina con la caja de un lugar a otro, por la escalera si cambia de piso. Tocarlo abre la entrega.
+  - **Nada de nombres fijos**: el «margen» desaparece; el ente tiene campos libres y el reparto de cada venta son **partidas con nombre** (qué % del costo o de la venta y para quién). La bóveda también se nombra.
+  - El bucle de venta (comprar → craftear → publicar → ¡venta! con lluvia de monedas) y el dharma siguen, dentro de los bloques.
+  - Verificado con clics reales: construir, colocar una caja libre con campos propios, crear una entrega, vender, renombrar la bóveda y abrir una entrega tocando al avatar.
+- **Archivos Modificados:** `desktop/src/components/ColaboradoresPanel.tsx`, `desktop/src/components/colaboradores/{modelo.ts,campos.tsx,EdificioColab.tsx,edificio-colab.css,obra.css}` (borrados `EdificioProyecto.tsx`, `OperacionDiorama.tsx`, `operacion.css`), `app/services/colaboradores.py`, `app/routes_colaboradores.py`, `tests/test_colaboradores.py`, `desktop/dev/colaboradores.tsx`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`.
+
 ### 2026-09-26 04:00 - Colaboradores: la operación como juego de gestión (ERP gamificado)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

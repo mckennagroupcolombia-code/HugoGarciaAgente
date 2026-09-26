@@ -18,18 +18,33 @@ import { etapaObra } from "../src/components/colaboradores/obra";
 const COP = (monto: number) => ({ monto, moneda: "COP" });
 
 // La operación de ejemplo (el servidor la arma igual: colaboradores.operacion_de).
-type OpEj = { ente: { nombre: string }; avatares: unknown[]; reparto: { ensamblaje_pct: number; servicios_pct: number };
-  items: Record<string, { fase: string; unidades: number }>; ventas: { reparto: Record<string, unknown> }[];
-  resultados: Record<string, string>; bitacora: { fecha: string; quien: string; texto: string }[] };
+type Parte = { id: string; nombre: string; para: string; monto: number };
+type OpEj = Record<string, unknown> & {
+  items: Record<string, { fase: string; unidades: number }>;
+  ventas: { id: string; nodo: string; cantidad: number; fecha: string; reparto: Record<string, unknown> }[];
+  resultados: Record<string, string>; bitacora: { fecha: string; quien: string; texto: string }[];
+  reparto: { reglas: { id: string; nombre: string; base: string; pct: number; para: string }[]; boveda: string };
+};
 const operacion: OpEj = {
-  ente: { nombre: "McKenna Group S.A.S." },
+  edificio: { pisos: [
+    { id: "mercado", nombre: "Mercado externo", color: "#5F574F", habitaciones: [{ id: "proveedores", nombre: "Proveedores" }] },
+    { id: "compras", nombre: "Compras y logística", color: "#FFA300", habitaciones: [{ id: "bodega", nombre: "Bodega de insumos" }, { id: "taller", nombre: "Taller de ensamblaje" }] },
+    { id: "hub", nombre: "Hub · McKenna Group S.A.S.", color: "#1D2B53", habitaciones: [{ id: "boveda", nombre: "Bóveda e inventario" }, { id: "sala", nombre: "Sala común" }] },
+    { id: "mesa", nombre: "Mesa de guerra", color: "#7E2553", habitaciones: [{ id: "decisiones", nombre: "Sala de decisiones" }] },
+    { id: "orquestacion", nombre: "Orquestación y ventas", color: "#29ADFF", habitaciones: [{ id: "estudio", nombre: "Estudio de diseño" }, { id: "sistemas", nombre: "Sala de sistemas" }] },
+    { id: "cliente", nombre: "Cliente final", color: "#FFEC27", habitaciones: [{ id: "tienda", nombre: "Tienda" }] },
+  ] },
+  ente: { nombre: "McKenna Group S.A.S.", campos: [{ nombre: "Colchón para imprevistos", valor: "10 %" }] },
   avatares: [
     { id: "sebastian", nombre: "Sebastián García", rol: "Compras y ensamblaje", skills: ["negociación", "compra", "ensamblaje"],
       piso: "compras", color: "#b45309", carril: "sebastian", usuario_id: 20 },
     { id: "armando", nombre: "Armando García", rol: "Orquestación y ventas", skills: ["orquestación", "e-commerce", "diseño", "sistemas"],
       piso: "orquestacion", color: "#1d4ed8", carril: "armando", usuario_id: 8 },
   ],
-  reparto: { ensamblaje_pct: 10, servicios_pct: 15 },
+  reparto: { boveda: "Bóveda", reglas: [
+    { id: "insumos", nombre: "Insumos", base: "costo", pct: 100, para: "sebastian" },
+    { id: "ens", nombre: "Ensamblaje", base: "costo", pct: 10, para: "sebastian" },
+    { id: "serv", nombre: "Servicios", base: "venta", pct: 15, para: "armando" }] },
   items: {}, ventas: [], resultados: {}, bitacora: [],
 };
 
@@ -68,8 +83,8 @@ let diagrama = {
       { id: "m1", label: "Registrar la venta", tipo: "dinero", carril: "mckenna", x: -80, y: 360, costo: COP(12000), tiempo_min: 20 },
     ],
     edges: [
-      { id: "e1", from: "s1", to: "s2", label: "materiales listos", fromLado: "b", toLado: "t", forma: "recta" },
-      { id: "e2", from: "s2", to: "p1", label: "producto terminado", fromLado: "r", toLado: "l", forma: "recta" },
+      { id: "e1", from: "s1", to: "s2", label: "materiales", portador: "sebastian", fromLado: "b", toLado: "t", forma: "recta" },
+      { id: "e2", from: "s2", to: "m1", label: "collares", portador: "sebastian", fromLado: "r", toLado: "l", forma: "recta" },
       { id: "e3", from: "c1", to: "p1", label: "define el empaque", fromLado: "r", toLado: "b", forma: "recta" },
       { id: "e4", from: "p1", to: "r1", label: "vs", fromLado: "r", toLado: "l", forma: "recta", color: "#b91c1c" },
       { id: "e5", from: "p1", to: "r2", label: "vs", fromLado: "r", toLado: "l", forma: "recta", color: "#b91c1c" },
@@ -139,25 +154,25 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       const precio = dt.precio?.monto ?? 45000;
       const costoU = 6000 + 2500 + 300 + 800;
       const total = precio * cant, costo = costoU * cant;
-      const ensamblaje = costo * 0.1, servicios = total * 0.15;
+      const partes: Parte[] = operacion.reparto.reglas.map((rg) => ({ id: rg.id, nombre: rg.nombre, para: rg.para,
+        monto: (rg.base === "costo" ? costo : total) * rg.pct / 100 }));
       it.unidades -= cant;
-      operacion.ventas.push({ reparto: { moneda: "COP", total, costo, ensamblaje, servicios, mckenna: total - costo - ensamblaje - servicios, sin_sumar: [] } });
+      operacion.ventas.push({ id: String(operacion.ventas.length), nodo: dt.nodo, cantidad: cant, fecha: "2026-09-26 10:00",
+        reparto: { moneda: "COP", total, costo, partes, boveda_nombre: operacion.reparto.boveda,
+                   boveda: total - partes.filter((p) => p.para !== "boveda").reduce((a, p) => a + p.monto, 0), sin_sumar: [] } });
       anotar(`¡vendió ${cant} × «${n?.label}»!`);
     }
     if (b.accion === "resultado") operacion.resultados[dt.nodo] = dt.valor;
+    if (b.accion === "edificio") operacion.edificio = dt.edificio;
+    if (b.accion === "reglas") Object.assign(operacion, { ente: dt.ente, avatares: dt.avatares, reparto: dt.reparto });
     diagrama = { ...diagrama, version: diagrama.version + 1 };
     return json({ ...diagrama, operacion, dharma: {} });
   }
   return json({ error: "Banco de pruebas: esta ruta no tiene backend" }, 404);
 };
 
-// Para capturas sin clics (Chrome headless): ?abrir abre el diagrama, ?sel=<id>
-// toca esa caja y ?clasico apaga el pixel art.
+// Para capturas sin clics (Chrome headless): ?abrir abre el proyecto y ?sel=<id> toca esa caja.
 const q = new URLSearchParams(location.search);
-try {
-  localStorage.setItem("colab-pixel", q.has("clasico") ? "0" : "1");
-  localStorage.setItem("colab-vista", q.get("vista") ?? "tablero");   // ?vista=edificio | operacion
-} catch { /* sin almacenamiento */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {
     const el = document.querySelector<HTMLElement>(sel);
@@ -165,7 +180,7 @@ if (q.has("abrir")) {
   };
   tocar("button.ob-mini", () => {
     const id = q.get("sel");
-    if (id) setTimeout(() => tocar(`.react-flow__node[data-id="${id}"]`, () => {
+    if (id) setTimeout(() => tocar(`[data-caja="${id}"] .eb-cuerpo`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).
       if (q.has("medir")) setTimeout(() => {
         const el = document.querySelector<HTMLElement>(`.px-hoja ${q.get("medir") || "input"}`);

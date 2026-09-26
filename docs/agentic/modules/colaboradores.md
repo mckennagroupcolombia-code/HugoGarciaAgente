@@ -176,3 +176,28 @@ comercial para un proyecto conjunto, a mano y desde el celular.
   orquestación) y `dharma`. ⚠️ **Simulación**: no toca Alegra, el inventario ni el Libro Mayor. No se
   exige que cada jugada la haga el avatar de su piso (se registra quién la hizo). Votan solo las dos
   cuentas del proyecto; un avatar «sin cuenta» (un tercer colaborador aún sin usuario) juega pero no vota.
+
+- **Fusión: un solo estilo, el edificio (26-sep-2026)**. Evaluación con el usuario: el tablero de flechas y
+  las tres vistas (Tablero · Edificio · Operación) sobraban; Operación era lo coherente y debía absorber el
+  criterio de Edificio. Quedó UNA vista (`colaboradores/EdificioColab.tsx` + `edificio-colab.css`):
+  · **Edificio configurable** en `operacion.edificio.pisos[{id,nombre,color,habitaciones[{id,nombre}]}]`
+    (de abajo arriba; hasta 12 pisos y 8 habitaciones por piso), editado con la jugada `edificio`
+    («🏗 Construir»: renombrar, color, reordenar, agregar; no se quita un piso/habitación con cajas).
+    Por defecto: Mercado externo · Compras · Hub McKenna · Mesa de guerra · Orquestación · Cliente final.
+  · **Cajas libres**: `habitacion`, `icono` (lista `ICONOS`) y `avatar` (responsable) en el nodo; plantillas
+    (`PLANTILLAS` en `colaboradores/modelo.ts`, tipo nuevo `libre`) que solo precargan campos; los
+    **campos propios** (`datos`, nombre: valor) siempre a la vista. Una caja vieja sin habitación se ubica
+    por lo que es (`habitacionDe`). Cada bloque muestra su obra (fachada según la etapa, obrero con el
+    color del responsable, «falta …»).
+  · **Entregas** en vez de flechas: `edges[].portador` (avatar); un avatar camina con la caja de un bloque
+    a otro por la escalera del edificio (CSS con `--x0/--y0/--xs/--x1/--y1`, posiciones medidas del DOM).
+    El `div` se mueve y el `button` va dentro (index.css fuerza `position: relative` en todo botón).
+  · **Sin «margen» fijo**: el ente tiene `campos[{nombre,valor}]` (los valores viejos margen/costos/capital
+    se migran a campos) y el reparto son `reglas[{id,nombre,base: costo|venta,pct,para}]` + `boveda`
+    (nombre); la venta guarda `partes[]` y `boveda`. El formato viejo (ensamblaje_pct/servicios_pct) se
+    traduce a Insumos/Ensamblaje/Servicios.
+  · Archivos: `modelo.ts` (tipos, plantillas, `combinar`), `campos.tsx` (editores de la hoja, `Colocacion`,
+    `Entregas`, `Historial`), `EdificioColab.tsx` (vista + Construir + Reglas), `ColaboradoresPanel.tsx`
+    (calle + editor sin React Flow: guardado con versión, fusión en conflicto, sondeo 3 s). Se borraron
+    `EdificioProyecto.tsx`, `OperacionDiorama.tsx` y `operacion.css`; `obra.css` quedó solo para la calle.
+  · Backend: se retiraron `a_archify`/`exportar_archify` y sus rutas.

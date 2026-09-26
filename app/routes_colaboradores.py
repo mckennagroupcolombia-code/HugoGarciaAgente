@@ -178,23 +178,3 @@ def register_colaboradores_routes(app):
         resp = send_file(str(p), mimetype="application/pdf" if p.suffix == ".pdf" else "image/jpeg")
         resp.headers["Cache-Control"] = "private, max-age=86400"
         return resp
-
-    @app.route("/api/colaboradores/diagramas/<int:did>/archify", methods=["POST"])
-    @app.route("/app/api/colaboradores/diagramas/<int:did>/archify", methods=["POST"])
-    @_miembro
-    @_suyo
-    def colab_exportar(did: int):
-        try:
-            return jsonify(col.exportar_archify(did))
-        except (ValueError, RuntimeError) as e:
-            return jsonify({"error": str(e)}), 400
-
-    @app.route("/api/colaboradores/diagramas/<int:did>/archify/<int:version>", methods=["GET"])
-    @app.route("/app/api/colaboradores/diagramas/<int:did>/archify/<int:version>", methods=["GET"])
-    @_miembro
-    @_suyo
-    def colab_archify_html(did: int, version: int):
-        p = col.ruta_export(did, version)
-        if not p:
-            return jsonify({"error": "Esa versión no se ha exportado a Archify"}), 404
-        return send_file(str(p), mimetype="text/html")

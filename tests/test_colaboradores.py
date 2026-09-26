@@ -65,21 +65,6 @@ def test_una_flecha_suelta_no_se_guarda_y_los_ids_se_validan(base):
         col.validar_doc({"nodes": [{"id": "a"}, {"id": "a"}], "edges": []})
 
 
-def test_la_traduccion_a_archify_usa_carriles_y_columnas(base):
-    d = col.crear("R", 8, colaborador_id=20, doc={
-        "nodes": [{"id": "a", "label": "Propuesta", "x": 0, "y": 0, "carril": "mckenna", "tipo": "accion"},
-                  {"id": "b", "label": "Precio", "x": 250, "y": 0, "carril": "sebastian", "tipo": "dinero"},
-                  {"id": "c", "label": "Firma", "x": 500, "y": 80, "carril": "conjunto", "tipo": "decision"}],
-        "edges": [{"id": "e1", "from": "a", "to": "b", "label": "cotiza"}, {"id": "e2", "from": "b", "to": "c"}]})
-    a = col.a_archify(d)
-    assert a["diagram_type"] == "workflow" and a["schema_version"] == 2
-    assert [l["id"] for l in a["lanes"]] == ["mckenna", "sebastian", "conjunto"]
-    assert a["lanes"][0]["label"] == "McKenna Group SAS"
-    assert {n["id"]: n["col"] for n in a["nodes"]} == {"a": 0, "b": 1, "c": 2}
-    assert {n["id"]: n["type"] for n in a["nodes"]}["b"] == "messagebus"
-    assert a["edges"][0]["label"] == "cotiza"
-
-
 # ─── El perfil del colaborador en la API ─────────────────────────────────────
 
 @pytest.fixture()
@@ -319,7 +304,7 @@ def test_la_api_esconde_el_diagrama_de_la_otra_pareja(cliente):
     for metodo, ruta in [("get", f"/api/colaboradores/diagramas/{did}"),
                          ("get", f"/api/colaboradores/diagramas/{did}/versiones"),
                          ("post", f"/api/colaboradores/diagramas/{did}/archivar"),
-                         ("post", f"/api/colaboradores/diagramas/{did}/archify")]:
+                         ("post", f"/api/colaboradores/diagramas/{did}/operacion")]:
         r = getattr(cliente, metodo)(ruta, headers=_h("tok-otra"), json={})
         assert r.status_code == 404, ruta
     r = cliente.put(f"/api/colaboradores/diagramas/{did}", headers=_h("tok-otra"),
@@ -405,8 +390,10 @@ def test_el_bucle_de_la_operacion_y_el_reparto_de_la_venta(base):
     d = col.accion_operacion(did, 8, "vender", {"nodo": "p1", "cantidad": 2})
     rep = d["operacion"]["ventas"][-1]["reparto"]
     # costo por unidad = aros 6000 + bolsa 1000 (la hebilla en USD no se suma: se avisa)
-    assert rep == {"moneda": "COP", "total": 90000.0, "costo": 14000.0, "ensamblaje": 1400.0,
-                   "servicios": 18000.0, "mckenna": 56600.0, "sin_sumar": ["Hebilla (USD)"]}
+    # Las reglas en el formato anterior (ensamblaje/servicios) se traducen a partidas con nombre.
+    assert [(x["nombre"], x["para"], x["monto"]) for x in rep["partes"]] == [
+        ("Insumos", "sebastian", 14000.0), ("Ensamblaje", "sebastian", 1400.0), ("Servicios", "armando", 18000.0)]
+    assert (rep["total"], rep["costo"], rep["boveda"], rep["sin_sumar"]) == (90000.0, 14000.0, 56600.0, ["Hebilla (USD)"])
     assert d["operacion"]["items"]["p1"] == {"fase": "publicado", "unidades": 1}
     # Un guardado del tablero (que no trae la operación) no la borra.
     d2 = col.guardar(did, {k: v for k, v in d["doc"].items() if k != "operacion"}, d["version"], 20)
@@ -431,3 +418,44 @@ def test_dharma_y_desempate_por_habilidad(base):
     assert d["turno_actual"] in (None, 8)
     d = col.accion_operacion(did, 8, "resultado", {"nodo": "k", "valor": "mal"})
     assert d["dharma"] == {"20": -1}
+
+
+def test_partidas_con_nombre_ente_libre_y_edificio_configurable(base):
+    d = _proyecto_con_producto(base)
+    did = d["id"]
+    ed = d["operacion"]["edificio"]["pisos"]
+    assert [p["id"] for p in ed][:2] == ["mercado", "compras"]              # el edificio por defecto
+    # Partidas y campos con el nombre que el usuario quiera («margen» ya no es un nombre fijo).
+    d = col.accion_operacion(did, 8, "reglas", {
+        "ente": {"nombre": "McKenna", "campos": [{"nombre": "Colchón para imprevistos", "valor": "10 %"}]},
+        "reparto": {"boveda": "Caja fuerte", "reglas": [
+            {"id": "r1", "nombre": "Reembolso de materiales", "base": "costo", "pct": 100, "para": "sebastian"},
+            {"id": "r2", "nombre": "Comisión digital", "base": "venta", "pct": 10, "para": "armando"}]}})
+    assert d["operacion"]["ente"]["campos"] == [{"nombre": "Colchón para imprevistos", "valor": "10 %"}]
+    col.accion_operacion(did, 20, "comprar", {"nodo": "p1"})
+    col.accion_operacion(did, 20, "craftear", {"nodo": "p1", "cantidad": 1})
+    col.accion_operacion(did, 8, "publicar", {"nodo": "p1"})
+    rep = col.accion_operacion(did, 8, "vender", {"nodo": "p1", "cantidad": 1})["operacion"]["ventas"][-1]["reparto"]
+    assert [(x["nombre"], x["monto"]) for x in rep["partes"]] == [("Reembolso de materiales", 7000.0), ("Comisión digital", 4500.0)]
+    assert rep["boveda_nombre"] == "Caja fuerte" and rep["boveda"] == 33500.0
+    # Pisos configurables: se renombran, se reordenan; ids repetidos y pisos sin habitación se sanean.
+    d = col.accion_operacion(did, 8, "edificio", {"edificio": {"pisos": [
+        {"id": "a", "nombre": "Diseño gráfico", "color": "#FF77A8", "habitaciones": [{"id": "h1", "nombre": "Mesa de dibujo"}]},
+        {"id": "a", "nombre": "Repetido"},
+        {"id": "b", "nombre": "Sin cuartos", "color": "rojo"}]}})
+    pisos = d["operacion"]["edificio"]["pisos"]
+    assert [p["nombre"] for p in pisos] == ["Diseño gráfico", "Sin cuartos"]
+    assert pisos[1]["habitaciones"] == [{"id": "b-h1", "nombre": "Espacio"}] and pisos[1]["color"] in col.COLORES_PISO
+
+
+def test_la_caja_sabe_donde_esta_y_la_entrega_quien_la_lleva(base):
+    d = col.crear("Colocación", 8, colaborador_id=20)
+    doc = {"nodes": [{"id": "a", "label": "A", "tipo": "libre", "x": 0, "y": 0, "habitacion": "taller",
+                      "icono": "camion", "avatar": "sebastian"},
+                     {"id": "b", "label": "B", "tipo": "accion", "x": 0, "y": 0, "icono": "<script>"}],
+           "edges": [{"id": "e", "from": "a", "to": "b", "label": "cajas listas", "portador": "sebastian"}]}
+    d = col.guardar(d["id"], doc, d["version"], 8)
+    a, b = d["doc"]["nodes"]
+    assert (a["tipo"], a["habitacion"], a["icono"], a["avatar"]) == ("libre", "taller", "camion", "sebastian")
+    assert "icono" not in b                                                  # solo íconos de la lista
+    assert d["doc"]["edges"][0]["portador"] == "sebastian" and d["doc"]["edges"][0]["label"] == "cajas listas"
