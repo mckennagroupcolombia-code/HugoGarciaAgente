@@ -6,8 +6,9 @@
  *  · Cada caja es un BLOQUE colocado en una habitación, y se construye a medida que se llena
  *    (terreno → cimientos → estructura → fachada → terminado, colaboradores/obra.ts): llenar el
  *    cómo, dónde, cuándo y por qué, el tiempo, el dinero o sus campos propios ES construirla.
- *  · Las flechas de antes son ENTREGAS: un avatar camina con la caja de un bloque a otro (sube por la
- *    escalera si cambia de piso). Tocarlo abre la entrega.
+ *  · Las flechas de antes son ENTREGAS, y se ven como RELEVOS (../relevos/CapaRelevos): quien envía
+ *    lleva la caja; en el mismo piso se la entrega en la mano a quien recibe; a otro piso la manda por
+ *    el ascensor y quien recibe la saca en su piso. Uno tras otro, en el orden del proceso.
  *  · El bucle de la operación vive en los bloques de producto (comprar → craftear → publicar →
  *    ¡venta!) y la venta hace llover monedas repartidas según las partidas con nombre de «⚙ Reglas».
  *  · Las decisiones se votan en su bloque y, ya decididas, se califican (dharma).
@@ -19,6 +20,7 @@ import "./edificio-colab.css";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { tocarSonido } from "../../lib/sonidosJuego";
 import { Sprite } from "./pixel";
+import CapaRelevos, { type Geometria, type Relevo } from "../relevos/CapaRelevos";
 import { ETAPAS_OBRA, etapaObra, piezasObra } from "./obra";
 import {
   COLORES_AVATAR, COLORES_PISO, TINTA_PISO, habitacionDe, nuevoId, plantillaDe, plata,
@@ -81,21 +83,28 @@ export default function EdificioColab({
     return { por, boveda };
   }, [op.ventas]);
 
-  // ── Dónde está cada bloque, para que los avatares caminen de uno a otro ──
+  // ── La torre medida: el suelo de cada piso, la puerta del ascensor y dónde está cada bloque ──
   const torre = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<Record<string, { x: number; y: number }>>({});
-  const [anchoTorre, setAnchoTorre] = useState(0);
+  const [geo, setGeo] = useState<{ g: Geometria; cajas: Record<string, { x: number; piso: string }> } | null>(null);
   const medir = useCallback(() => {
     const t = torre.current;
     if (!t) return;
     const tr = t.getBoundingClientRect();
-    const m: Record<string, { x: number; y: number }> = {};
+    const pisosG: Geometria["pisos"] = {};
+    let puertaX = tr.width - 20;
+    t.querySelectorAll<HTMLElement>("section[data-piso]").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      pisosG[el.dataset.piso!] = { suelo: r.bottom - tr.top - 12 };
+      const asc = el.querySelector<HTMLElement>(".eb-ascensor");
+      if (asc) { const a = asc.getBoundingClientRect(); puertaX = a.left - tr.left + a.width / 2; }
+    });
+    const cajas: Record<string, { x: number; piso: string }> = {};
     t.querySelectorAll<HTMLElement>("[data-caja]").forEach((el) => {
       const r = el.getBoundingClientRect();
-      m[el.dataset.caja!] = { x: r.left - tr.left + r.width / 2 - 12, y: r.top - tr.top + r.height - 40 };
+      const piso = el.closest<HTMLElement>("section[data-piso]")?.dataset.piso;
+      if (piso) cajas[el.dataset.caja!] = { x: r.left - tr.left + r.width / 2, piso };
     });
-    setAnchoTorre(tr.width);
-    setPos(m);
+    setGeo({ g: { pisos: pisosG, puertaX }, cajas });
   }, []);
   useLayoutEffect(() => { medir(); }, [medir, nodos, entregas, pisos]);
   useEffect(() => {
@@ -106,6 +115,38 @@ export default function EdificioColab({
     ro.observe(t);
     return () => { ro.disconnect(); cancelAnimationFrame(cuadro); };
   }, [medir]);
+
+  // Las entregas como relevos, en el orden del proceso: primero las que salen de donde nada llega.
+  const relevos = useMemo<Relevo[]>(() => {
+    if (!geo) return [];
+    const porId = new Map(nodos.map((n) => [n.id, n]));
+    const nivel = new Map<string, number>();
+    const prof = (id: string, visto = new Set<string>()): number => {
+      if (nivel.has(id)) return nivel.get(id)!;
+      if (visto.has(id)) return 0;
+      visto.add(id);
+      const antes = entregas.filter((e) => e.to === id).map((e) => prof(e.from, visto) + 1);
+      const v = antes.length ? Math.max(...antes) : 0;
+      nivel.set(id, v);
+      return v;
+    };
+    return [...entregas]
+      .sort((a, b) => prof(a.from) - prof(b.from))
+      .flatMap((e): Relevo[] => {
+        const a = geo.cajas[e.from], b = geo.cajas[e.to];
+        if (!a || !b) return [];
+        const quienEnvia = avatar(e.portador) ?? avatar(porId.get(e.from)?.avatar);
+        let quienRecibe = avatar(porId.get(e.to)?.avatar);
+        // Si nadie tiene el bloque de destino (o es la misma persona en otro piso), recibe quien trabaja ahí.
+        if (!quienRecibe || (quienRecibe.id === quienEnvia?.id && a.piso !== b.piso)) quienRecibe = undefined;
+        return [{
+          id: e.id, desde: a, hasta: b, carga: porId.get(e.from)?.tipo === "dinero" ? "doc" : "caja", etiqueta: e.label || undefined,
+          emisor: { color: quienEnvia?.color ?? "#374151", nombre: quienEnvia?.nombre },
+          receptor: { color: quienRecibe?.color ?? "#83769C", nombre: quienRecibe?.nombre },
+        }];
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geo, entregas, nodos, op.avatares]);
 
   const [lluvia, setLluvia] = useState<RepartoVenta | null>(null);
   const [hoja, setHoja] = useState<"construir" | "reglas" | null>(null);
@@ -168,7 +209,7 @@ export default function EdificioColab({
             const tinta = TINTA_PISO[p.color] ?? "#FFF1E8";
             const suyos = op.avatares.filter((a) => a.piso === p.id);
             return (
-              <section key={p.id} className="eb-piso" style={{ "--piso": p.color, "--tinta": tinta } as Var} aria-label={p.nombre}>
+              <section key={p.id} className="eb-piso" data-piso={p.id} style={{ "--piso": p.color, "--tinta": tinta } as Var} aria-label={p.nombre}>
                 <header className="eb-placa">
                   <span className="eb-num">{nivel === 0 ? "PB" : `P${nivel}`}</span>
                   <b>{p.nombre}</b>
@@ -207,35 +248,14 @@ export default function EdificioColab({
                     );
                   })}
                 </div>
-                <span className="eb-escalera" aria-hidden="true" />
+                <span className="eb-ascensor" aria-hidden="true" />
               </section>
             );
           })}
           <div className="eb-suelo" aria-hidden="true" />
 
-          {/* Las entregas: el avatar camina con la caja de un bloque al otro (por la escalera si cambia de piso). */}
-          <div className="eb-capa">
-            {entregas.map((e, i) => {
-              const a = pos[e.from], b = pos[e.to];
-              if (!a || !b) return null;
-              const mismoPiso = Math.abs(a.y - b.y) < 30;
-              const xs = mismoPiso ? b.x : anchoTorre - 34;
-              const quien = avatar(e.portador);
-              return (
-                // El DIV se mueve (index.css fuerza `position: relative` en todo <button>); el botón va dentro.
-                <div key={e.id} className="eb-porta"
-                     style={{ "--x0": `${a.x}px`, "--y0": `${a.y}px`, "--xs": `${xs}px`, "--x1": `${b.x}px`, "--y1": `${b.y}px`,
-                              "--dur": `${mismoPiso ? 6 : 9}s`, "--retraso": `${-i * 1.7}s` } as Var}>
-                  <button type="button" className="eb-porta-btn" onClick={() => onEntrega(e.id)} data-entrega={e.id}
-                          title={`${quien?.nombre ?? "Alguien"} lleva ${e.label ? `«${e.label}»` : "la caja"} de «${nodos.find((n) => n.id === e.from)?.label}» a «${nodos.find((n) => n.id === e.to)?.label}»`}>
-                    <span className="eb-porta-carga"><Sprite s={CAJA} px={2} /></span>
-                    <Sprite s="jugador" px={3} colores={{ X: quien?.color ?? "#374151" }} />
-                    {e.label && <span className="eb-porta-etq">{e.label}</span>}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+          {/* Las entregas como relevos: de mano en mano en el piso, por el ascensor entre pisos. */}
+          <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} onTocar={onEntrega} />
           {lluvia && <Lluvia r={lluvia} avatares={op.avatares} />}
         </div>
 

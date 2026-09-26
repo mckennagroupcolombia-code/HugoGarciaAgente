@@ -39,7 +39,7 @@
 
 /* Un piso */
 .eb-piso {
-  position: relative; display: grid; grid-template-columns: 180px minmax(0, 1fr) 40px;
+  position: relative; display: grid; grid-template-columns: 180px minmax(0, 1fr); padding-right: 40px;
   background: color-mix(in srgb, var(--piso) 14%, #FFF1E8);
   border: 6px solid #5F574F; border-top: 0; border-bottom-width: 10px; box-shadow: inset 0 -3px 0 #000;
 }
@@ -61,9 +61,10 @@
 .eb-avatar { padding: 6px; background: #fff; color: #000; border: 3px solid var(--color); box-shadow: 2px 2px 0 #000; font-size: 11px; }
 .eb-skills { display: flex; flex-wrap: wrap; gap: 3px; margin: 3px 0; }
 .eb-skills span { padding: 0 4px; border: 1px solid #000; background: #FFEC27; font-size: 10px; font-weight: 700; }
-.eb-escalera {
-  background: repeating-linear-gradient(0deg, transparent 0 10px, #5F574F 10px 13px),
-              linear-gradient(90deg, #AB5236 0 4px, transparent 4px 36px, #AB5236 36px);
+/* El hueco del ascensor, a la derecha de cada piso: por aquí viajan las cajas entre pisos (CapaRelevos). */
+.eb-ascensor {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 40px;
+  background: linear-gradient(90deg, transparent 0 8px, #5F574F 8px 10px, transparent 10px 30px, #5F574F 30px 32px, transparent 32px), #1D2B53;
   border-left: 3px solid #000;
 }
 
@@ -153,26 +154,6 @@
 
 .eb-suelo { height: 22px; background: linear-gradient(#00E436 0 6px, #008751 6px 10px, #5F574F 10px); border-top: 3px solid #000; }
 
-/* Las entregas: el avatar camina con la caja por la escalera */
-.eb-capa { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
-.eb-porta {
-  position: absolute; left: 0; top: 0; pointer-events: auto;
-  animation: eb-lleva var(--dur) steps(60) var(--retraso) infinite;
-}
-@keyframes eb-lleva {
-  0% { transform: translate(var(--x0), var(--y0)); }
-  30% { transform: translate(var(--xs), var(--y0)); }
-  60% { transform: translate(var(--xs), var(--y1)); }
-  88%, 100% { transform: translate(var(--x1), var(--y1)); }
-}
-.eb-porta-btn { display: flex; flex-direction: column; align-items: center; padding: 0; background: none; border: 0; cursor: pointer; }
-.eb-porta-carga { margin-bottom: -2px; animation: eb-bamboleo 0.4s steps(1, end) infinite; }
-@keyframes eb-bamboleo { 50% { transform: translateY(-2px); } }
-.eb-porta-etq {
-  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 18px;
-  padding: 0 4px; background: #FFEC27; border: 2px solid #000; font-size: 10px; font-weight: 800; white-space: nowrap;
-}
-
 /* La lluvia de monedas de una venta */
 .eb-lluvia {
   position: absolute; inset: 0 0 auto 0; z-index: 4; min-height: 220px; padding: 10px;
@@ -195,7 +176,8 @@
 @media (max-width: 699px) {
   .eb-piso { grid-template-columns: minmax(0, 1fr); }
   .eb-placa { border-right: 0; border-bottom: 3px solid #000; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .eb-escalera { display: none; }
+  .eb-piso { padding-right: 34px; }
+  .eb-ascensor { width: 34px; }
   .eb-hab { flex-basis: 100%; border-right: 0; border-bottom: 3px dashed rgba(0, 0, 0, 0.25); }
   .eb-bloque { width: 100%; }
   .eb-grua { width: 70%; right: 20px; }
@@ -203,5 +185,4 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .eb-obra * { animation: none !important; }
-  .eb-porta { transform: translate(var(--x1), var(--y1)); }
 }

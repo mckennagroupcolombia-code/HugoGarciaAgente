@@ -260,20 +260,6 @@
 }
 
 /* Camiones: uno llega al muelle y otro sale a repartir. */
-.mapa-vivo .ed-camion-llega, .mapa-vivo .ed-camion-sale { position: absolute; bottom: 8px; left: 0; }
-.mapa-vivo .ed-camion-llega { animation: ed-llega 12s steps(60) infinite; }
-@keyframes ed-llega {
-  0% { transform: translateX(-60px); }
-  25%, 70% { transform: translateX(6cqw); }
-  100% { transform: translateX(-60px); }
-}
-.mapa-vivo .ed-camion-sale { animation: ed-sale 10s steps(60) infinite; }
-@keyframes ed-sale {
-  0%, 30% { transform: translateX(60cqw); }
-  65% { transform: translateX(105cqw); }
-  65.01% { transform: translateX(-60px); }
-  100% { transform: translateX(60cqw); }
-}
 
 /* La cinta transportadora y lo que viaja encima. */
 .mapa-vivo .ed-cinta {
@@ -396,23 +382,6 @@
     var(--ed-navy, #1D2B53);
   border-left: 3px solid var(--ed-negro, #000);
 }
-.mapa-vivo .ed-cabina {
-  position: absolute;
-  right: 9px;
-  width: 44px;
-  height: 52px;
-  display: flex;
-  background: var(--ed-gris, #C2C3C7);
-  border: 3px solid var(--ed-negro, #000);
-  box-shadow: inset 0 6px 0 var(--ed-amarillo, #FFEC27);
-  padding: 8px 3px 3px;
-  gap: 2px;
-  transition: top 1.1s steps(14);
-  z-index: 2;
-}
-.mapa-vivo .ed-puerta-cabina { flex: 1; background: var(--ed-lavanda, #83769C); border: 2px solid var(--ed-negro, #000); transition: flex 0.25s steps(3); }
-.mapa-vivo .ed-cabina-llega .ed-puerta-cabina { flex: 0.15; }
-.mapa-vivo .ed-cabina-llega { transition-duration: 0.55s; }
 .mapa-vivo .ed-llega .ed-sala { animation: ed-llega-destello 0.3s steps(1, end) 2; }
 @keyframes ed-llega-destello { 50% { background: var(--ed-amarillo, #FFEC27); } }
 
@@ -422,7 +391,9 @@
   .mapa-vivo .ed-piso { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .mapa-vivo .ed-placa { border-right: 0; border-bottom: 3px solid var(--ed-negro, #000); padding: 8px; }
   .mapa-vivo .ed-pregunta { margin-bottom: 4px; }
-  .mapa-vivo .ed-hueco { display: none; }
+  /* El ascensor sigue en el celular (por ahí suben los relevos): angosto, pegado a la derecha. */
+  .mapa-vivo .ed-piso { position: relative; padding-right: 30px; }
+  .mapa-vivo .ed-hueco { position: absolute; top: 0; right: 0; bottom: 0; width: 30px; }
   .mapa-vivo .ed-pared { padding-right: 10px; }
   .mapa-vivo .ed-estacion { max-width: 100%; }
   .mapa-vivo .ed-techo { margin: 0 8px; }
@@ -435,3 +406,8 @@
   .mapa-vivo .ed-cielo *::before,
   .mapa-vivo .ed-cielo *::after { animation: none !important; transition: none !important; }
 }
+
+/* El camión de Entregar arranca a repartir cuando le llega la caja (MapaEdificio → CapaRelevos) y vuelve. */
+.mapa-vivo .ed-camion-parte { animation: ed-parte 3.6s steps(36) both; }
+@keyframes ed-parte { 0% { transform: none; } 45% { transform: translateX(60cqw); opacity: 1; } 46% { opacity: 0; } 55% { transform: translateX(-80cqw); opacity: 0; } 56% { opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mapa-vivo .ed-camion-parte { animation: none; } }

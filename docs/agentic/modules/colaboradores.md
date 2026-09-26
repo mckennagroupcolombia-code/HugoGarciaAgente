@@ -201,3 +201,12 @@ comercial para un proyecto conjunto, a mano y desde el celular.
     (calle + editor sin React Flow: guardado con versión, fusión en conflicto, sondeo 3 s). Se borraron
     `EdificioProyecto.tsx`, `OperacionDiorama.tsx` y `operacion.css`; `obra.css` quedó solo para la calle.
   · Backend: se retiraron `a_archify`/`exportar_archify` y sus rutas.
+
+- **Relevos (26-sep-2026)**: las entregas ya no son avatares sueltos. `components/relevos/CapaRelevos.tsx`
+  (compartida con el Edificio del Mapa) arma un plan por entrega con fotogramas clave (x de cada actor, x/y
+  de la caja, y de la cabina) y lo reproduce a 12 cuadros/s: mismo piso = se entrega en la mano; otro piso
+  = al ascensor (la cabina viene primero), viaja con la caja adentro y quien recibe la saca en su piso. Los
+  relevos van uno tras otro, ordenados por profundidad en el grafo de entregas (el orden del proceso). Quien
+  envía = `portador` o el responsable de la caja de origen; quien recibe = el responsable de la de destino
+  (si no hay, o es la misma persona en otro piso, un trabajador gris del piso). El avance de relevo y el
+  aviso `onPaso` corren en el temporizador, no en el render. Hueco del ascensor `.eb-ascensor` también en celular.

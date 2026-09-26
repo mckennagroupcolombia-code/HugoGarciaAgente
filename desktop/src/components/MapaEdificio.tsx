@@ -15,12 +15,13 @@
  * Con `prefers-reduced-motion` todo queda quieto.
  */
 import "./mapa-edificio.css";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { PanelIcon } from "../icons";
 import { ORIGEN_APP } from "../lib/flujoApp";
 import { PANEL_INFO } from "../lib/panelInfo";
 import type { Panel } from "../stores/app";
 import { Sprite } from "./colaboradores/pixel";
+import CapaRelevos, { type Geometria, type Relevo } from "./relevos/CapaRelevos";
 import { BotonMiFicha } from "./MiRendimiento";
 import {
   COLOR, COLOR_DEF, SOTANO, pisosDelEdificio, placaDePiso, useInicio, type DatosEtapa, type DatosOrigen,
@@ -53,6 +54,28 @@ const FIGURAS = {
   princesa: [PRINCESA_A, PRINCESA_B],
 } as const;
 type Figura = keyof typeof FIGURAS;
+
+// ─── La cadena del negocio (relevos) ──────────────────────────────────────────────────
+// El paquete sube piso por piso en el orden del negocio: llega en el camión a Abastecer, pasa por
+// Preparar, Publicar y Vender, y en Entregar se va en el camión; desde ahí sigue como FACTURA hacia
+// Facturar, Contar y Dirigir. Cada piso tiene a su trabajador en su puesto (su estación, % del ancho
+// del piso): recibe del ascensor, lleva a su estación y manda al siguiente.
+const CADENA = ["abastecer", "preparar", "publicar", "vender", "entregar", "facturar", "contar", "dirigir"];
+const ESTACION: Record<string, number> = {
+  abastecer: 0.2, preparar: 0.7, publicar: 0.34, vender: 0.4, entregar: 0.56, facturar: 0.47, contar: 0.4, dirigir: 0.62,
+};
+const QUIEN: Record<string, Figura> = {
+  abastecer: "hombre", preparar: "mujer", publicar: "hombre", vender: "mujer",
+  entregar: "hombre", facturar: "mujer", contar: "hombre", dirigir: "princesa",
+};
+const TRABAJADOR = (id: string) => {
+  const i = Math.max(0, CADENA.indexOf(id));
+  const figura = QUIEN[id] ?? "hombre";
+  return {
+    color: CAMISAS[i % CAMISAS.length], figura: FIGURAS[figura][0] as unknown as string[],
+    colores: figura === "princesa" ? { X: "#FF77A8", n: "#FFEC27" } : { X: CAMISAS[i % CAMISAS.length], n: PELOS[i % PELOS.length] },
+  };
+};
 const CAJA = ["kkkkkkkk", "knnnonnk", "knnnonnk", "kkkkkkkk", "knnnnnnk", "knnnnnnk", "kkkkkkkk"];
 const FRASCO = ["..kkkk..", "..kssk..", ".kkkkkk.", "kwwwwwwk", "kwbbbbwk", "kwbbbbwk", "kwwwwwwk", ".kkkkkk."];
 const PLANTA = ["..g..g..", ".gGg.gG.", "..gGgG..", "...GG...", "..kkkk..", ".knnnnk.", ".knnnnk.", "..kkkk.."];
@@ -69,43 +92,20 @@ const PELOS = ["#AB5236", "#000000", "#5F574F", "#FFA300"];
 
 type Var = CSSProperties & Record<`--${string}`, string | number>;
 
-/** Alguien que camina de un lado al otro del piso (dos cuadros de paso, como un juego de 8 bits). */
-function Andante({ i, dur = 12, retraso = 0, desde = 4, hasta = 70, carga, figura = "hombre" }: {
-  i: number; dur?: number; retraso?: number; desde?: number; hasta?: number; carga?: string[]; figura?: Figura;
-}) {
-  const colores = figura === "princesa"
-    ? { X: "#FF77A8", n: "#FFEC27" } // vestido rosado y pelo rubio, siempre
-    : { X: CAMISAS[i % CAMISAS.length], n: PELOS[i % PELOS.length] };
-  const [pasoA, pasoB] = FIGURAS[figura];
-  const estilo: Var = { "--dur": `${dur}s`, "--retraso": `${-retraso}s`, "--desde": `${desde}cqw`, "--hasta": `${hasta}cqw` };
-  return (
-    <div className="ed-andante" style={estilo} aria-hidden="true">
-      <div className="ed-voltea">
-        <div className="ed-pasos">
-          <Sprite s={pasoA} px={3} colores={colores} className="ed-paso-a" />
-          <Sprite s={pasoB} px={3} colores={colores} className="ed-paso-b" />
-        </div>
-        {carga && <Sprite s={carga} px={2} className="ed-carga" />}
-      </div>
-    </div>
-  );
-}
-
 /** Un objeto quieto sobre el piso, a `x`% del borde izquierdo. */
 function Cosa({ x, children, className, abajo = 6 }: { x: number; children?: ReactNode; className?: string; abajo?: number }) {
   return <div className={`ed-cosa ${className ?? ""}`} style={{ left: `${x}%`, bottom: abajo }} aria-hidden="true">{children}</div>;
 }
 
 /** Lo que pasa en cada piso. Cada escena cuenta, a su manera, qué se hace ahí. */
-function Escena({ id }: { id: string }) {
+function Escena({ id, camionSale = false }: { id: string; camionSale?: boolean }) {
   switch (id) {
     case "abastecer": // el muelle de carga: llega el camión y se descargan cajas
       return (<>
-        <div className="ed-camion-llega"><Sprite s="camion" px={5} /></div>
+        <Cosa x={2}><Sprite s="camion" px={5} /></Cosa>
         <Cosa x={44}><Sprite s={CAJA} px={3} /></Cosa>
         <Cosa x={48}><Sprite s={CAJA} px={3} /></Cosa>
         <Cosa x={46} abajo={27}><Sprite s={CAJA} px={3} /></Cosa>
-        <Andante i={3} dur={9} desde={20} hasta={40} carga={CAJA} />
         <Cosa x={88}><Sprite s="cofre" px={4} /></Cosa>
       </>);
     case "preparar": // el taller: la cinta lleva frascos a llenar y etiquetar
@@ -116,7 +116,6 @@ function Escena({ id }: { id: string }) {
           </div>
         </div>
         <Cosa x={70} className="ed-maquina"><span className="ed-luz ed-luz-verde" /></Cosa>
-        <Andante i={1} dur={14} desde={2} hasta={16} figura="mujer" />
         <Cosa x={88}><Sprite s="bloques" px={4} /></Cosa>
       </>);
     case "publicar": // el estudio: la cámara dispara al producto y las pantallas se encienden
@@ -126,7 +125,6 @@ function Escena({ id }: { id: string }) {
         <Cosa x={30} className="ed-pedestal"><Sprite s={FRASCO} px={3} /></Cosa>
         <Cosa x={52} abajo={18} className="ed-pantalla"><Sprite s="ventana" px={4} /></Cosa>
         <Cosa x={62} abajo={18} className="ed-pantalla ed-pantalla-2"><Sprite s="ventana" px={4} /></Cosa>
-        <Andante i={4} dur={11} desde={72} hasta={90} />
       </>);
     case "vender": // la tienda: clientes entran, el mostrador suelta monedas
       return (<>
@@ -136,8 +134,6 @@ function Escena({ id }: { id: string }) {
             <Sprite s="moneda" px={2} />
           </div>
         ))}
-        <Andante i={0} dur={10} desde={52} hasta={86} />
-        <Andante i={5} dur={13} retraso={5} desde={50} hasta={80} figura="mujer" carga={["..k..k..", "...kk...", "..kook..", ".kooyok.", "kooyyook", "koooyook", "kooyyook", ".kkkkkk."]} />
         <Cosa x={6}><Sprite s={PLANTA} px={3} /></Cosa>
       </>);
     case "entregar": // despacho: las cajas bajan por la cinta y el camión sale a repartir
@@ -147,8 +143,7 @@ function Escena({ id }: { id: string }) {
             {[0, 1, 2].map((k) => <div key={k} className="ed-viaja" style={{ "--retraso": `${-k * 2}s` } as Var}><Sprite s={CAJA} px={2} /></div>)}
           </div>
         </div>
-        <Andante i={2} dur={8} desde={40} hasta={52} carga={CAJA} />
-        <div className="ed-camion-sale"><Sprite s="camion" px={5} /></div>
+        <Cosa x={60} className={camionSale ? "ed-camion-parte" : ""}><Sprite s="camion" px={5} /></Cosa>
       </>);
     case "facturar": // la oficina de facturas: la impresora no para
       return (<>
@@ -159,7 +154,6 @@ function Escena({ id }: { id: string }) {
           <Sprite s={IMPRESORA} px={3} />
         </Cosa>
         <Cosa x={52}><Sprite s="doc" px={2} /></Cosa>
-        <Andante i={6} dur={12} desde={60} hasta={88} figura="mujer" />
       </>);
     case "contar": // contabilidad: la gráfica sube y baja, la calculadora trabaja
       return (<>
@@ -168,14 +162,12 @@ function Escena({ id }: { id: string }) {
         </div>
         <Cosa x={34} className="ed-escritorio" />
         <Cosa x={36} abajo={30}><Sprite s="datos" px={3} /></Cosa>
-        <Andante i={3} dur={15} desde={50} hasta={88} carga={["kkkkkkkk", "kwwwwwwk", "kwSSSSwk", "kwwwwwwk", "kkkkkkkk"]} />
       </>);
     case "dirigir": // la última planta: vista a la ciudad, el trofeo, alguien pensando
       return (<>
         <div className="ed-ciudad" aria-hidden="true" />
         <Cosa x={8}><Sprite s="trofeo" px={4} /></Cosa>
         <Cosa x={60} className="ed-escritorio ed-escritorio-grande" />
-        <Andante i={4} dur={18} desde={16} hasta={52} figura="princesa" />
         <Cosa x={90}><Sprite s={PLANTA} px={3} /></Cosa>
       </>);
     case "sistema": // el sótano: los servidores parpadean y el robot hace la ronda
@@ -188,7 +180,7 @@ function Escena({ id }: { id: string }) {
         </div>
       </>);
     default:
-      return <Andante i={0} dur={12} />;
+      return null;
   }
 }
 
@@ -209,25 +201,60 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
   const refs = useRef<Record<string, HTMLElement | null>>({});
   const reducir = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // El ascensor: pasea solo entre los pisos donde participas; al tocar una estación va a ese piso.
-  const [cabina, setCabina] = useState<{ top: number; piso: string } | null>(null);
+  // La torre medida (suelo de cada piso, puerta del ascensor, estación de cada piso) para los relevos.
+  const [geo, setGeo] = useState<{ g: Geometria; estaciones: Record<string, number> } | null>(null);
   const [llegando, setLlegando] = useState<string | null>(null);
-  const moverA = useCallback((piso: string) => {
-    const el = refs.current[piso];
-    if (el) setCabina({ top: el.offsetTop + el.offsetHeight - 58, piso });
+  const [camionSale, setCamionSale] = useState(false);
+  const medir = useCallback(() => {
+    const t = torre.current;
+    if (!t) return;
+    const tr = t.getBoundingClientRect();
+    const pisosG: Geometria["pisos"] = {};
+    const estaciones: Record<string, number> = {};
+    let puertaX = tr.width - 29;
+    t.querySelectorAll<HTMLElement>("section[data-etapa]").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      const id = el.dataset.etapa!;
+      pisosG[id] = { suelo: r.bottom - tr.top - 16 };
+      const suelo = el.querySelector<HTMLElement>(".ed-suelo")?.getBoundingClientRect();
+      if (suelo) estaciones[id] = suelo.left - tr.left + suelo.width * (ESTACION[id] ?? 0.5);
+      const hueco = el.querySelector<HTMLElement>(".ed-hueco")?.getBoundingClientRect();
+      if (hueco && hueco.width) puertaX = hueco.left - tr.left + hueco.width / 2;
+    });
+    setGeo({ g: { pisos: pisosG, puertaX }, estaciones });
   }, []);
-  const activos = [...pisos, "inicio", SOTANO].filter((id) => id === "inicio" || porId.get(id)?.participa);
+  useLayoutEffect(() => { medir(); }, [medir, cartas, vertical]);
   useEffect(() => {
-    if (vertical) return;
-    moverA("inicio");
-    if (reducir) return;
-    const t = window.setInterval(() => {
-      if (llegando) return;
-      moverA(activos[Math.floor(Math.random() * activos.length)]);
-    }, 4200);
-    return () => window.clearInterval(t);
+    const t = torre.current;
+    if (!t) return;
+    let cuadro = 0;
+    const ro = new ResizeObserver(() => { cancelAnimationFrame(cuadro); cuadro = requestAnimationFrame(medir); });
+    ro.observe(t);
+    return () => { ro.disconnect(); cancelAnimationFrame(cuadro); };
+  }, [medir]);
+
+  // Los relevos: de cada piso de la cadena al siguiente. Hasta Entregar va la caja; después, la factura.
+  const cadena = CADENA.filter((id) => porId.has(id));
+  const relevos = useMemo<Relevo[]>(() => {
+    if (!geo) return [];
+    return cadena.slice(0, -1).flatMap((de, i): Relevo[] => {
+      const a = cadena[i + 1];
+      const xa = geo.estaciones[de], xb = geo.estaciones[a];
+      if (xa == null || xb == null) return [];
+      const doc = CADENA.indexOf(de) >= CADENA.indexOf("entregar");
+      return [{ id: `${de}>${a}`, desde: { x: xa, piso: de }, hasta: { x: xb, piso: a }, carga: doc ? "doc" : "caja",
+                etiqueta: doc ? "factura" : undefined, emisor: TRABAJADOR(de), receptor: TRABAJADOR(a) }];
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vertical, llegando, activos.join(",")]);
+  }, [geo, cadena.join(",")]);
+  const residentes = useMemo(() => Object.fromEntries(cadena.filter((id) => geo?.estaciones[id] != null)
+    .map((id) => [id, { x: geo!.estaciones[id], ...TRABAJADOR(id) }])),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [geo, cadena.join(",")]);
+  // Cuando la caja llega al camión de Entregar, el camión arranca a repartir (y vuelve).
+  const alPaso = useCallback((id: string) => {
+    if (id.endsWith(">entregar")) { setCamionSale(true); window.setTimeout(() => setCamionSale(false), 3600); }
+  }, []);
 
   // Se entra por la recepción: la primera vez el edificio se muestra con la planta baja a la vista.
   useLayoutEffect(() => {
@@ -236,11 +263,10 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
   }, []);
 
   const ir = useCallback((piso: string, p: Panel) => {
-    if (vertical || reducir) { onAbrir(p); return; }
-    setLlegando(piso);
-    moverA(piso);
-    window.setTimeout(() => onAbrir(p), 650);
-  }, [vertical, reducir, onAbrir, moverA]);
+    if (reducir) { onAbrir(p); return; }
+    setLlegando(piso);                              // el piso destella y se abre el panel
+    window.setTimeout(() => onAbrir(p), 300);
+  }, [reducir, onAbrir]);
 
   const inicio = useInicio((p) => ir("inicio", p));
 
@@ -298,7 +324,7 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
             )}
           </div>
           <div className="ed-suelo">
-            <Escena id={id} />
+            <Escena id={id} camionSale={id === "entregar" && camionSale} />
             {d.mias > 0 && (
               <div className="ed-tu" aria-hidden="true">
                 <span className="ed-burbuja">TÚ</span>
@@ -368,7 +394,8 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
               <div className="ed-tu ed-tu-recepcion" aria-hidden="true">
                 <Sprite s="jugador" px={4} colores={{ X: "#29ADFF" }} />
               </div>
-              <Andante i={2} dur={10} desde={4} hasta={36} figura="mujer" />
+              {/* La recepcionista, en su puesto (antes caminaba sin rumbo). */}
+              <Cosa x={34}><Sprite s={MUJER_A} px={3} colores={{ X: CAMISAS[4], n: PELOS[0] }} /></Cosa>
               <Cosa x={90}><Sprite s={PLANTA} px={3} /></Cosa>
             </div>
           </div>
@@ -377,11 +404,8 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
 
         {porId.has(SOTANO) && piso(SOTANO, true)}
 
-        {!vertical && cabina && (
-          <div className={`ed-cabina ${llegando ? "ed-cabina-llega" : ""}`} style={{ top: cabina.top }} aria-hidden="true">
-            <span className="ed-puerta-cabina" /><span className="ed-puerta-cabina" />
-          </div>
-        )}
+        {/* La cadena del negocio: de mano en mano en cada piso, por el ascensor entre pisos. */}
+        <CapaRelevos relevos={relevos} geometria={geo?.g ?? null} residentes={residentes} onPaso={alPaso} />
       </div>
     </div>
   );

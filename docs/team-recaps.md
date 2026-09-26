@@ -1,3 +1,13 @@
+### 2026-09-26 06:30 - Relevos: el paquete viaja con lógica (Colaboradores y Mapa)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora visual. Sin LLM.
+- **Qué se implementó:**
+  - Pieza nueva `CapaRelevos`, compartida por el edificio de Colaboradores y el del Mapa de McKenna: cada entrega es un **relevo**. En el mismo piso, quien envía camina y **la entrega en la mano** a quien recibe; a otro piso, la lleva al **ascensor** (que viene a buscarla), la cabina sube o baja **con la caja adentro** y en el otro piso quien recibe la saca, la lleva a su estación y la deja. Burbujas «¡Toma!», «¡Arriba!/¡Abajo!», «¡Llegó!».
+  - Los relevos van **uno tras otro, en el orden del proceso**: se lee como la historia del paquete.
+  - **Mapa**: se quitaron los personajes que caminaban sin rumbo y el ascensor que paseaba al azar. Cada piso tiene a su trabajador en su puesto y el paquete sube: Abastecer (llega en el camión) → Preparar → Publicar → Vender → Entregar (el camión arranca a repartir) → como factura, Facturar → Contar → Dirigir.
+  - Verificado siguiendo un relevo cuadro a cuadro en los dos edificios (quién lleva la caja y dónde está la cabina en cada momento), sin errores.
+- **Archivos Modificados:** `desktop/src/components/relevos/{CapaRelevos.tsx,relevos.css}` (nuevos), `desktop/src/components/colaboradores/{EdificioColab.tsx,edificio-colab.css}`, `desktop/src/components/{MapaEdificio.tsx,mapa-edificio.css}`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`.
+
 ### 2026-09-26 05:30 - Colaboradores: un solo estilo, el edificio (fusión de las tres vistas)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Rediseño y simplificación. Sin LLM.

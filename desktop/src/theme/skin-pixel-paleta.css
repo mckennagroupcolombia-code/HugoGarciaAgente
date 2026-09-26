@@ -2,7 +2,7 @@
  * GENERADO por desktop/scripts/pixel/paleta_pixel.py — NO EDITAR A MANO.
  * Traduce a la paleta pixel cada clase de color escrita a mano en los paneles.
  * Regenerar: python3 desktop/scripts/pixel/paleta_pixel.py --escribir
- * 753 clases de color encontradas en desktop/src.
+ * 752 clases de color encontradas en desktop/src.
  */
 
 /* Degradados: el pixel art es plano. Queda el color de inicio (from-*). */
@@ -437,7 +437,6 @@ html[data-mck-skin="pixel"] [class*="bg-gradient-to-"] {
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-gray-500 { color: #665C53; }
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-gray-600 { color: #000000; }
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-gray-700 { color: #000000; }
-:is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-gray-800 { color: #000000; }
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-gray-900 { color: #000000; }
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-green-600 { color: #006B3F; }
 :is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel) .text-green-700 { color: #006B3F; }
@@ -943,7 +942,6 @@ html[data-mck-skin="pixel"].dark .text-gray-400:not(.colab-pixel *) { color: #C2
 html[data-mck-skin="pixel"].dark .text-gray-500:not(.colab-pixel *) { color: #C2C3C7; }
 html[data-mck-skin="pixel"].dark .text-gray-600:not(.colab-pixel *) { color: #FFF1E8; }
 html[data-mck-skin="pixel"].dark .text-gray-700:not(.colab-pixel *) { color: #FFF1E8; }
-html[data-mck-skin="pixel"].dark .text-gray-800:not(.colab-pixel *) { color: #FFF1E8; }
 html[data-mck-skin="pixel"].dark .text-gray-900:not(.colab-pixel *) { color: #FFF1E8; }
 html[data-mck-skin="pixel"].dark .text-green-600:not(.colab-pixel *) { color: #00E436; }
 html[data-mck-skin="pixel"].dark .text-green-700:not(.colab-pixel *) { color: #00E436; }

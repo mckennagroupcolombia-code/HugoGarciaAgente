@@ -1,0 +1,35 @@
+/*
+ * La capa de relevos (CapaRelevos.tsx): muñecos, la caja que viaja y la cabina del ascensor. Las
+ * posiciones las pone el componente (12 cuadros por segundo); aquí solo el aspecto. Colores fijos a
+ * propósito: se ven igual en claro y en oscuro.
+ */
+.rl-capa { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.rl-actor { position: absolute; left: 0; top: 0; }
+.rl-actor-btn { display: block; padding: 0; background: none; border: 0; pointer-events: auto; cursor: pointer; }
+span.rl-actor-btn { pointer-events: none; cursor: default; }
+/* Caminando, las piernas van a saltos. */
+.rl-anda .rl-actor-btn svg { animation: rl-paso 0.33s steps(1, end) infinite; }
+@keyframes rl-paso { 50% { transform: translateY(-2px); } }
+.rl-burbuja {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 18px;
+  padding: 1px 5px; background: #fff; color: #000; border: 2px solid #000; font-size: 10px; font-weight: 900; white-space: nowrap;
+}
+.rl-burbuja::after {
+  content: ""; position: absolute; top: 100%; left: calc(50% - 3px); width: 6px; height: 4px; background: #000;
+}
+.rl-caja { position: absolute; left: 0; top: 0; }
+.rl-etq {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 2px;
+  padding: 0 4px; background: #FFEC27; color: #000; border: 2px solid #000; font-size: 10px; font-weight: 800; white-space: nowrap;
+}
+.rl-destello { position: absolute; left: 0; top: 0; animation: rl-brilla 0.25s steps(1, end) infinite; }
+@keyframes rl-brilla { 50% { opacity: 0.2; } }
+/* La cabina del ascensor: dos puertas; la caja se ve adentro cuando viaja. */
+.rl-cabina {
+  position: absolute; left: 0; top: 0; z-index: -1; display: flex; gap: 2px; width: 34px; height: 40px;
+  padding: 7px 3px 3px; background: #C2C3C7; border: 3px solid #000; box-shadow: inset 0 5px 0 #FFEC27;
+}
+.rl-cabina > span { flex: 1; background: rgba(131, 118, 156, 0.35); border: 2px solid #000; }
+@media (prefers-reduced-motion: reduce) {
+  .rl-capa * { animation: none !important; }
+}
