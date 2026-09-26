@@ -13,6 +13,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "../src/index.css";
 import ColaboradoresPanel from "../src/components/ColaboradoresPanel";
+import { etapaObra } from "../src/components/colaboradores/obra";
 
 const COP = (monto: number) => ({ monto, moneda: "COP" });
 
@@ -82,8 +83,16 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
     return new Response(new Blob([fotoEjemplo(tono)], { type: "image/svg+xml" }));
   }
   if (ruta === "/api/colaboradores/diagramas" && metodo === "GET") {
-    const { doc: _doc, ...resumen } = diagrama;
-    return json({ diagramas: [resumen], yo: { id: 8, nombre: "Armando García" } });
+    const { doc, ...resumen } = diagrama;
+    // La obra la calcula el servidor (colaboradores.resumen_obra); aquí, la misma regla del panel.
+    const etapas = doc.nodes.map((n) => etapaObra(n));
+    const obra = { pisos: etapas.length, terminados: etapas.filter((e) => e === 4).length,
+                   avance: etapas.reduce((a, e) => a + e, 0) / (4 * etapas.length) };
+    // Dos proyectos más, solo para ver la calle: uno terminado y uno recién empezado (no se abren).
+    const otro = (id: number, titulo: string, pisos: number, terminados: number) => ({
+      ...resumen, id, titulo, nodos: pisos, obra: { pisos, terminados, avance: pisos ? terminados / pisos : 0 } });
+    return json({ diagramas: [{ ...resumen, obra }, otro(2, "Aretes — ya en venta", 5, 5), otro(3, "Pulseras de hilo", 12, 1)],
+                  yo: { id: 8, nombre: "Armando García" } });
   }
   if (ruta === "/api/colaboradores/diagramas/1") {
     if (metodo === "PUT") {
@@ -99,13 +108,16 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
 // Para capturas sin clics (Chrome headless): ?abrir abre el diagrama, ?sel=<id>
 // toca esa caja y ?clasico apaga el pixel art.
 const q = new URLSearchParams(location.search);
-try { localStorage.setItem("colab-pixel", q.has("clasico") ? "0" : "1"); } catch { /* sin almacenamiento */ }
+try {
+  localStorage.setItem("colab-pixel", q.has("clasico") ? "0" : "1");
+  localStorage.setItem("colab-vista", q.get("vista") === "edificio" ? "edificio" : "tablero");   // ?vista=edificio
+} catch { /* sin almacenamiento */ }
 if (q.has("abrir")) {
   const tocar = (sel: string, luego?: () => void, intentos = 40) => {
     const el = document.querySelector<HTMLElement>(sel);
     if (el) { el.click(); luego?.(); } else if (intentos > 0) setTimeout(() => tocar(sel, luego, intentos - 1), 100);
   };
-  tocar("button.w-full.text-left", () => {
+  tocar("button.ob-mini", () => {
     const id = q.get("sel");
     if (id) setTimeout(() => tocar(`.react-flow__node[data-id="${id}"]`, () => {
       // ?medir: el estilo calculado de un campo de la hoja, al título (para --dump-dom).

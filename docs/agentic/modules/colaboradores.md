@@ -130,3 +130,21 @@ comercial para un proyecto conjunto, a mano y desde el celular.
   archivo). Sin persona identificada → 403. Cada guardado deja la anterior en
   `respaldos/<juego>/` (últimas 20), una SRAM en blanco no pisa una con datos y «Versiones
   anteriores → Volver a esta» restaura sin borrar la actual. Tests: `tests/test_juegos.py`.
+
+- **La obra — vista «Edificio» (26-sep-2026)**: cada proyecto es un edificio en pixel art y cada caja un
+  **piso** que se construye a medida que se llena. Etapas: terreno → cimientos (andamio) → estructura
+  (vigas) → fachada (luces apagadas) → terminado (luces encendidas y lo que el paso ES: escritorio,
+  cajas, monedas, mesa de votación, la foto del producto en su vitrina…). Regla en
+  `desktop/src/components/colaboradores/obra.ts` y **la misma** en `colaboradores.piezas_obra/etapa_obra`
+  (el servidor la usa en `listar()` → `obra{pisos,terminados,avance}`; `tests/test_colaboradores.py` fija
+  los casos: si cambia una, cambia la otra). Piezas: paso normal = cómo, dónde, por qué, tiempo, dinero,
+  fotos, detalle (se termina con 5 de 7); consenso = asunto, ≥2 propuestas, votos, decisión (sin decisión
+  no pasa de fachada); producto = SKU, foto, receta, precio; rival = publicación, precio, foto o
+  plataforma. Pisos en el orden de las flechas (topológico; a igualdad, por posición; PB = primer paso).
+  `EdificioProyecto.tsx` + `obra.css`: selector **Tablero · Edificio** en la barra del editor
+  (`colab-vista` en localStorage); tocar un piso abre la MISMA hoja de edición; el obrero es la persona
+  del carril; la grúa trabaja arriba y el marcador dice qué le falta al siguiente piso; con todo
+  terminado, bandera y confeti. Suena (lib/sonidosJuego): martillazo al subir de etapa, moneda al
+  terminar un piso, fanfarria al terminar la obra. La **lista de proyectos es una calle**: cada proyecto un
+  edificio (pisos terminados con luz, el resto en andamio, grúa mientras falte) y un terreno para crear
+  uno nuevo. Sin LLM; no cambia lo que se guarda (la etapa se calcula, no se almacena).

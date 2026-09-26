@@ -1,3 +1,15 @@
+### 2026-09-26 02:50 - Colaboradores: cada proyecto es un edificio que se construye
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Nueva vista **Edificio** en cada proyecto (botón Tablero · Edificio): cada paso es un piso, en el orden de las flechas (el primer paso es la planta baja).
+  - Un piso **se construye a medida que se llena**: terreno → cimientos con andamio → estructura de vigas → fachada con las luces apagadas → terminado con las luces encendidas y lo que el paso es (escritorio, cajas, monedas, mesa de votación, la foto del producto en su vitrina). Cada piso dice qué le falta.
+  - El obrero de cada piso es la persona de su carril; una grúa trabaja arriba; con todo terminado, bandera y confeti. Suena un martillazo al subir de etapa, una moneda al terminar un piso y una fanfarria al terminar la obra.
+  - Tocar un piso abre la misma hoja de edición del tablero: llenar el paso ES construir el piso.
+  - La **lista de proyectos es una calle** de edificios, cada uno con sus pisos terminados, el resto en obra y un terreno para empezar uno nuevo.
+  - Verificado con clics reales: al escribir el «cómo» y el «dónde» de la planta baja, el piso pasó a fachada y luego a terminado, con su sonido.
+- **Archivos Modificados:** `desktop/src/components/colaboradores/{obra.ts,EdificioProyecto.tsx,obra.css}` (nuevos), `desktop/src/components/ColaboradoresPanel.tsx`, `app/services/colaboradores.py`, `tests/test_colaboradores.py`, `desktop/dev/colaboradores.tsx`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`.
+
 ### 2026-09-26 02:10 - Sonidos de juego al tocar cada apartado
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

@@ -350,3 +350,22 @@ def test_el_health_check_no_le_dice_que_integraciones_hay(cliente):
     assert r.status_code == 200 and r.get_json() == {"estado": "activo", "version": "2.0.0", "servicios": {}}
     # A un administrador sí le responde el estado real (con sus servicios).
     assert "servicios" in cliente.get("/api/status", headers=_h("tok-armando")).get_json()
+
+
+def test_la_obra_sube_a_medida_que_el_paso_se_llena():
+    """Regla de la vista Edificio (misma en colaboradores/obra.ts): los casos fijan ambas."""
+    from app.services import colaboradores as c
+    vacio = {"id": "a", "tipo": "accion", "label": "x"}
+    assert c.etapa_obra(vacio) == 0
+    assert c.etapa_obra({**vacio, "variables": {"como": "a"}}) == 1                       # 1/5
+    assert c.etapa_obra({**vacio, "variables": {"como": "a", "donde": "b"}}) == 2          # 2/5
+    assert c.etapa_obra({**vacio, "variables": {"como": "a", "donde": "b", "porque": "c"}}) == 2   # 3/5 = 0,6
+    cuatro = {**vacio, "variables": {"como": "a", "donde": "b", "porque": "c"}, "tiempo_min": 30}
+    assert c.etapa_obra(cuatro) == 3                                                         # 4/5
+    assert c.etapa_obra({**cuatro, "costo": {"monto": 1, "moneda": "COP"}}) == 4            # 5/5
+    # Un consenso no se termina sin decisión, aunque tenga todo lo demás.
+    cons = {"id": "k", "tipo": "consenso", "asunto": "a", "propuestas": [{"id": "1"}, {"id": "2"}], "votos": {"8": "1"}}
+    assert c.etapa_obra(cons) == 3
+    assert c.etapa_obra({**cons, "resuelto": {"propuesta": "1"}}) == 4
+    r = c.resumen_obra({"nodes": [vacio, {**cuatro, "costo": {"monto": 1, "moneda": "COP"}}]})
+    assert r == {"pisos": 2, "terminados": 1, "avance": 0.5}

@@ -26,6 +26,7 @@ import {
 } from "react";
 import { api, fetchAuthBlobUrl } from "../api/client";
 import { Sprite, circuloPixel, type SpriteId } from "./colaboradores/pixel";
+import EdificioProyecto from "./colaboradores/EdificioProyecto";
 
 // ─── Modelo (igual al del backend) ──────────────────────────────────────────
 
@@ -71,6 +72,8 @@ type Diagrama = {
   nodos: number; flechas: number; actualizado_en: string; actualizado_por: number | null;
   actualizado_por_nombre: string; archivado: number;
   turno_actual?: number | null; colaborador_id?: number | null; participantes?: Record<string, string>;
+  /** La obra (vista Edificio): pisos, cuántos terminados y avance 0–1. Lo calcula el servidor. */
+  obra?: { pisos: number; terminados: number; avance: number };
 };
 type Lista = { diagramas: Omit<Diagrama, "doc">[]; yo: { id: number; nombre: string } };
 type Version = { version: number; usuario: string; resumen: string; creado_en: string; nodos: number; flechas: number };
@@ -914,6 +917,14 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
     return () => window.removeEventListener("keydown", esc);
   }, [pleno]);
   // Pixel art por defecto; «Clásico» lo apaga. Es una preferencia de cada quien.
+  // Tablero (el diagrama) o Edificio (la obra: cada paso es un piso que se construye al llenarlo).
+  const [vista, setVista] = useState<"tablero" | "edificio">(() => {
+    try { return localStorage.getItem("colab-vista") === "edificio" ? "edificio" : "tablero"; } catch { return "tablero"; }
+  });
+  const cambiarVista = (v: "tablero" | "edificio") => {
+    setVista(v);
+    try { localStorage.setItem("colab-vista", v); } catch { /* sin almacenamiento: vale por la visita */ }
+  };
   const [pixel, setPixel] = useState(() => {
     try { return localStorage.getItem("colab-pixel") !== "0"; } catch { return true; }
   });
@@ -1266,6 +1277,15 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
         <button type="button" onClick={() => agregarCaja("consenso")} className={`${BTN} inline-flex items-center gap-1`}>
           <Sprite s="urna" px={2} /> Consenso
         </button>
+        <span className="inline-flex shrink-0 gap-1" role="group" aria-label="Cómo ver el proyecto">
+          <button type="button" onClick={() => cambiarVista("tablero")} aria-pressed={vista === "tablero"}
+                  className={`${BTN} ${vista === "tablero" ? "!bg-accent !text-white" : ""}`}>Tablero</button>
+          <button type="button" onClick={() => cambiarVista("edificio")} aria-pressed={vista === "edificio"}
+                  title="Cada paso es un piso: se construye a medida que lo llenan"
+                  className={`${BTN} inline-flex items-center gap-1 ${vista === "edificio" ? "!bg-accent !text-white" : ""}`}>
+            <Sprite s="bloques" px={2} /> Edificio
+          </button>
+        </span>
         <button type="button" onClick={() => setVerHistorial(true)} className={BTN}>Historial</button>
         <button type="button" onClick={todasRectas} title="Volver rectas todas las flechas" className={BTN}>Rectas</button>
         <button type="button" onClick={() => void exportarArchify()} disabled={exportando} className={`${BTN} disabled:opacity-40`}>
@@ -1289,6 +1309,18 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
       </div>
 
       <div className={`relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-white ${pixel ? "px-lienzo" : ""}`}>
+        {vista === "edificio" ? (
+          <EdificioProyecto
+            nodos={nodes.map((n) => n.data as NodoDoc)}
+            flechas={edges.map((e) => ({ from: e.source, to: e.target }))}
+            selId={sel?.tipo === "nodo" ? sel.id : null}
+            onTocar={(id) => setSel({ tipo: "nodo", id })}
+            nombreCarril={(c) => CARRILES[c as Carril] ?? c}
+            colorCarril={(c) => COLOR_CARRIL[c as Carril] ?? "#374151"}
+            nombreTipo={(t) => TIPOS[t as Tipo]?.label ?? t}
+            foto={(mid) => <AuthImg did={inicial.id} mid={mid} className="h-full w-full object-cover" alt="" />}
+          />
+        ) : (
         <ReactFlow
           nodes={nodosVista} edges={edges} nodeTypes={TIPOS_NODO} edgeTypes={TIPOS_FLECHA}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
@@ -1307,6 +1339,7 @@ function Editor({ inicial, yo, onVolver }: { inicial: Diagrama; yo?: { id: numbe
             : <Background gap={20} />}
           <Controls showInteractive={false} position="top-left" />
         </ReactFlow>
+        )}
       {/* Hoja FIJA sobre la pantalla (no dentro del lienzo): pegada al lienzo se
           recortaba cuando el lienzo era bajo, y sin scroll de página no se alcanzaba. */}
         {nodoSel && (
@@ -1562,12 +1595,12 @@ export default function ColaboradoresPanel() {
       <div>
         <h2 className="text-base font-bold text-ink">Colaboradores</h2>
         <p className="text-xs text-muted">
-          Diagramas de flujo que construyen juntos, a mano, desde el celular o el computador: cada caja es un paso y
-          cada flecha une un paso con el siguiente. Lo que guarda uno lo ve el otro en segundos.
+          Cada proyecto es un edificio que construyen juntos: cada caja es un piso, y se termina a medida que lo llenan
+          (cómo, dónde, por qué, tiempo, dinero, fotos…). Lo que guarda uno lo ve el otro en segundos.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void crear()} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">＋ Nuevo diagrama</button>
+        <button type="button" onClick={() => void crear()} className="rounded-lg bg-accent px-3 py-1.5 text-sm font-bold text-white">＋ Nuevo proyecto</button>
         <label className="flex items-center gap-1 text-xs text-muted">
           <input type="checkbox" checked={archivados} onChange={(e) => setArchivados(e.target.checked)} /> ver archivados
         </label>
@@ -1580,25 +1613,48 @@ export default function ColaboradoresPanel() {
           Todavía no hay diagramas. Empiecen con «Relación comercial».
         </p>
       )}
-      <div className="grid gap-2 sm:grid-cols-2">
-        {lista.map((d) => (
-          <div key={d.id} className="rounded-xl border border-border bg-surface-panel p-3">
-            <button type="button" onClick={() => void abrir(d.id)} className="w-full text-left">
-              <p className="font-bold text-ink">{d.titulo}</p>
-              <p className="mt-0.5 text-xs text-muted">
-                {d.nodos} cajas · {d.flechas} flechas · versión {d.version}
-              </p>
-              <p className="text-xs text-muted">
-                {d.actualizado_por_nombre ? `Último cambio: ${d.actualizado_por_nombre} · ` : ""}{d.actualizado_en}
-              </p>
-            </button>
-            <div className="mt-2 flex justify-end">
-              <button type="button" onClick={() => void archivar(d.id, !d.archivado)} className="text-xs font-bold text-muted hover:text-ink">
+      {/* La calle de proyectos: cada proyecto es un edificio en obra (pisos terminados con la luz
+          encendida, los demás en andamio, grúa mientras falte). Se entra tocando el edificio. */}
+      <div className="ob-calle">
+        <div className="ob-lote-calle">
+        <button type="button" className="ob-nuevo" onClick={() => void crear()} title="Nuevo proyecto">
+          <Sprite s={["kkkkkkkkkk", "knnnnnnnnk", "knyyyyyynk", "knnnnnnnnk", "kkkkkkkkkk", "....kk....", "....kk...."]} px={4} />
+          ＋ Terreno para un proyecto nuevo
+        </button>
+        <span className="ob-acera" aria-hidden="true" />
+        </div>
+        {lista.map((d) => {
+          const obra = d.obra ?? { pisos: d.nodos, terminados: 0, avance: 0 };
+          const MAX = 10;
+          const visibles = Math.min(obra.pisos, MAX);
+          const hechos = Math.min(obra.terminados, visibles);
+          return (
+            <div key={d.id} className="ob-lote-calle">
+              <button type="button" onClick={() => void abrir(d.id)} className="ob-mini"
+                      title={`${d.titulo} — ${obra.terminados} de ${obra.pisos} pisos terminados`}>
+                {obra.pisos > MAX && <span className="ob-mini-mas">+{obra.pisos - MAX} pisos</span>}
+                {obra.pisos > 0 && obra.terminados < obra.pisos && <span className="ob-mini-grua" aria-hidden="true" />}
+                {obra.pisos > 0 && obra.terminados === obra.pisos && <Sprite s="bandera" px={3} className="mx-auto" />}
+                {Array.from({ length: visibles }, (_, k) => (
+                  <span key={k} aria-hidden="true"
+                        className={`ob-mini-piso ${visibles - k <= hechos ? "ob-mini-hecho" : "ob-mini-obra"}`} />
+                ))}
+                <span className="ob-rotulo">
+                  <b>{d.titulo}</b>
+                  <span className="ob-mini-barra"><span style={{ width: `${Math.round(obra.avance * 100)}%` }} /></span>
+                  {obra.terminados}/{obra.pisos} pisos · {Math.round(obra.avance * 100)} %
+                  <span className="block opacity-80">
+                    {d.actualizado_por_nombre ? `${d.actualizado_por_nombre} · ` : ""}{d.actualizado_en}
+                  </span>
+                </span>
+              </button>
+              <button type="button" onClick={() => void archivar(d.id, !d.archivado)}
+                      className="ob-acera ob-archivar">
                 {d.archivado ? "Desarchivar" : "Archivar"}
               </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

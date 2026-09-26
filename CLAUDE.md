@@ -639,7 +639,7 @@ acción anterior, máx. 30) y las «horas a tiempo estándar» son solo referenc
 Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
 versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
 Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
-`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. **Vista «Edificio» (26-sep-2026):** cada proyecto es un edificio en obra y cada caja un piso que se construye al llenarla (terreno → cimientos → estructura → fachada → terminado); la lista de proyectos es una calle de edificios. Regla en `colaboradores/obra.ts` y la misma en `colaboradores.etapa_obra` (hay test). Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
 terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
 
 ### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)

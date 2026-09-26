@@ -230,6 +230,58 @@ def _participantes_ids(colaborador_id) -> list[int]:
     return [a, int(colaborador_id)] if colaborador_id else [a]
 
 
+# ─── La obra: cada paso es un piso que se construye al llenarlo (26-sep-2026) ───
+# Vista «Edificio» de Colaboradores: un proyecto es un edificio y cada caja un piso.
+# Un piso sube de etapa a medida que la caja tiene sus piezas. ⚠️ La MISMA regla vive en
+# desktop/src/components/colaboradores/obra.ts (el editor la calcula en vivo mientras se
+# escribe); si cambia una, cambia la otra — tests/test_colaboradores.py fija los casos.
+ETAPAS_OBRA = ("terreno", "cimientos", "estructura", "fachada", "terminado")
+
+
+def piezas_obra(n: dict) -> tuple[list[str], list[str], int]:
+    """(piezas que tiene, piezas que faltan, cuántas hacen falta para terminar el piso)."""
+    tipo = n.get("tipo")
+    v = n.get("variables") or {}
+    evidencia = bool(n.get("imagen") or n.get("adjuntos"))
+    if tipo == "consenso":
+        pares = [("asunto", bool(n.get("asunto"))), ("propuestas", len(n.get("propuestas") or []) >= 2),
+                 ("votos", bool(n.get("votos"))), ("decisión", bool(n.get("resuelto")))]
+        meta = 4
+    elif tipo == "producto":
+        pares = [("SKU", bool(n.get("sku"))), ("foto", evidencia), ("receta", bool(n.get("componentes"))),
+                 ("precio", bool(n.get("precio")))]
+        meta = 4
+    elif tipo == "competencia":
+        pares = [("publicación", bool(n.get("url"))), ("precio", bool(n.get("precio"))),
+                 ("foto", evidencia or bool(n.get("plataforma")))]
+        meta = 3
+    else:
+        pares = [("cómo", bool(v.get("como"))), ("dónde", bool(v.get("donde"))), ("por qué", bool(v.get("porque"))),
+                 ("tiempo", n.get("tiempo_min") is not None), ("dinero", bool(n.get("costo") or n.get("precio"))),
+                 ("fotos", evidencia), ("detalle", bool(n.get("datos") or n.get("consecuencias")))]
+        meta = 5
+    return [k for k, ok in pares if ok], [k for k, ok in pares if not ok], meta
+
+
+def etapa_obra(n: dict) -> int:
+    """0 terreno · 1 cimientos · 2 estructura · 3 fachada · 4 terminado."""
+    tiene, _, meta = piezas_obra(n)
+    if not tiene:
+        return 0
+    frac = min(1.0, len(tiene) / meta)
+    etapa = 4 if frac >= 1 else 1 if frac < 0.4 else 2 if frac < 0.7 else 3
+    if n.get("tipo") == "consenso" and not n.get("resuelto"):
+        etapa = min(etapa, 3)                       # sin decisión, el piso no se termina
+    return etapa
+
+
+def resumen_obra(doc: dict) -> dict:
+    nodos = doc.get("nodes") or []
+    etapas = [etapa_obra(n) for n in nodos if isinstance(n, dict)]
+    return {"pisos": len(etapas), "terminados": sum(1 for e in etapas if e == 4),
+            "avance": round(sum(etapas) / (4 * len(etapas)), 3) if etapas else 0.0}
+
+
 def _a_dict(r, *, con_doc: bool = True) -> dict:
     d = dict(r)
     doc = json.loads(d.pop("doc_json") or "{}")
@@ -239,6 +291,7 @@ def _a_dict(r, *, con_doc: bool = True) -> dict:
         d["participantes"] = {str(uid): _nombre(uid) for uid in _participantes_ids(d.get("colaborador_id"))}
     d["nodos"] = len(doc.get("nodes") or [])
     d["flechas"] = len(doc.get("edges") or [])
+    d["obra"] = resumen_obra(doc)
     d["actualizado_por_nombre"] = _nombre(d.get("actualizado_por"))
     return d
 
