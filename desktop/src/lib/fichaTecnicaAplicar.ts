@@ -61,6 +61,20 @@ export async function listarFichasTecnicas(forzar = false): Promise<FichaTecnica
   return listaEnCurso;
 }
 
+/** Documento técnico de un SKU por código (receta del combo → SKU que declara el
+ *  documento), antes que por parecido de título. null si no hay o el servidor no
+ *  responde: entonces se busca por título como siempre. */
+export async function fichaPorSku(sku: string): Promise<{ id: string; titulo: string } | null> {
+  const s = (sku || "").trim();
+  if (!s) return null;
+  try {
+    const r = await api.get<{ id: string; titulo: string }>(`/api/fichas/por-sku/${encodeURIComponent(s)}`);
+    return r?.id ? { id: r.id, titulo: r.titulo } : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Campos de la PLANTILLA (alérgenos, contacto, web…): la ficha los pisa si
  *  los trae, pero si no, se dejan como están — son el valor de la familia,
  *  no un dato suelto de otro producto. Los de producto sí se vacían. */

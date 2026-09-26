@@ -6078,10 +6078,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T22:11:48+00:00"
+          "registrado_en": "2026-09-26T06:55:02+00:00"
         }
       ],
-      "updated_at": "2026-09-25T22:11:48+00:00"
+      "updated_at": "2026-09-26T06:55:02+00:00"
     },
     "C-MANTOSPAR250G": {
       "ref": "C-MANTOSPAR250G",
@@ -6208,6 +6208,27 @@
         }
       ],
       "updated_at": "2026-09-26T03:59:15+00:00"
+    },
+    "SALMARAHUG": {
+      "ref": "SALMARAHUG",
+      "nombre": "SAL AHUMADA GRUESA ORIGINAL GRANO GRUESO 2-5 MM",
+      "lotes": [
+        {
+          "lote_numero": "AASW/GTDC/05",
+          "estado": "sin_cambios",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA SAS",
+          "pais_origen": "Pakistán",
+          "fecha_fabricacion": "31/Mayo/2026",
+          "fecha_vencimiento": "31/Mayo/2028",
+          "fecha_recepcion": "2026-09-26",
+          "codigo_verificacion": "7M6QQ2",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-26T04:43:00+00:00"
+        }
+      ],
+      "updated_at": "2026-09-26T04:43:00+00:00"
     }
   }
 }

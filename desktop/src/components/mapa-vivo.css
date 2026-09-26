@@ -6,10 +6,10 @@
 
 .mapa-vivo .mv-carta {
   width: 300px;
-  color: #000;
-  background: #FFF1E8;
-  border: 3px solid #000;
-  box-shadow: 5px 5px 0 #000;
+  color: var(--ed-negro, #000);
+  background: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  box-shadow: 5px 5px 0 var(--ed-negro, #000);
   /* la fuente de la app */
   font-size: 13px;
   line-height: 1.1;
@@ -22,18 +22,18 @@
 
 /* «Tu camino de hoy»: la etapa donde hay algo tuyo late en amarillo. */
 .mapa-vivo .mv-camino {
-  outline: 4px solid #FFEC27;
+  outline: 4px solid var(--ed-amarillo, #FFEC27);
   outline-offset: 3px;
   animation: mv-latido 1.2s steps(1, end) infinite;
 }
-@keyframes mv-latido { 50% { outline-color: #FFA300; } }
+@keyframes mv-latido { 50% { outline-color: var(--ed-naranja, #FFA300); } }
 
 .mapa-vivo .mv-cab {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 7px 8px;
-  border-bottom: 3px solid #000;
+  border-bottom: 3px solid var(--ed-negro, #000);
   font-weight: 800;
   font-size: 12px; letter-spacing: 0.04em;
   line-height: 1.3;
@@ -42,17 +42,17 @@
 .mapa-vivo .mv-insignia {
   flex-shrink: 0;
   padding: 2px 4px;
-  border: 2px solid #000;
+  border: 2px solid var(--ed-negro, #000);
   font-size: 10px; font-weight: 900;
   line-height: 1;
 }
-.mapa-vivo .mv-tuyas { background: #FFEC27; color: #000; }
-.mapa-vivo .mv-alta { background: #C8003E; color: #FFF1E8; animation: mv-latido-rojo 0.9s steps(1, end) infinite; }
-.mapa-vivo .mv-media { background: #FFA300; color: #000; }
-@keyframes mv-latido-rojo { 50% { background: #7E2553; } }
+.mapa-vivo .mv-tuyas { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); }
+.mapa-vivo .mv-alta { background: var(--ed-rojo-osc, #C8003E); color: var(--ed-crema, #FFF1E8); animation: mv-latido-rojo 0.9s steps(1, end) infinite; }
+.mapa-vivo .mv-media { background: var(--ed-naranja, #FFA300); color: var(--ed-negro, #000); }
+@keyframes mv-latido-rojo { 50% { background: var(--ed-ciruela, #7E2553); } }
 
-.mapa-vivo .mv-pregunta { font-size: 13px; color: #5F574F; margin-bottom: 6px; }
-.mapa-vivo .mv-nota { font-size: 13px; color: #5F574F; }
+.mapa-vivo .mv-pregunta { font-size: 13px; color: var(--ed-gris-osc, #5F574F); margin-bottom: 6px; }
+.mapa-vivo .mv-nota { font-size: 13px; color: var(--ed-gris-osc, #5F574F); }
 .mapa-vivo .mv-nombre { font-weight: 800; font-size: 15px; margin-bottom: 4px; }
 .mapa-vivo .mv-linea { display: flex; align-items: center; gap: 6px; font-size: 13px; }
 
@@ -61,9 +61,9 @@
   font-size: 10px; letter-spacing: 0.04em;
   line-height: 1.4;
   text-transform: uppercase;
-  color: #5F574F;
+  color: var(--ed-gris-osc, #5F574F);
 }
-.mapa-vivo .mv-datos { font-size: 11px; color: #83769C; line-height: 1.05; margin-top: 2px; }
+.mapa-vivo .mv-datos { font-size: 11px; color: var(--ed-lavanda, #83769C); line-height: 1.05; margin-top: 2px; }
 .mapa-vivo .mv-tramos-anchos { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .mapa-vivo .mv-tramos-anchos .mv-tramo { flex: 1 1 240px; min-width: 0; }
 
@@ -75,36 +75,36 @@
   gap: 6px;
   padding: 3px 6px;
   background: #fff;
-  border: 2px solid #000;
-  box-shadow: 2px 2px 0 #000;
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 2px 2px 0 var(--ed-negro, #000);
   font-size: 13px; font-weight: 600;
   line-height: 1.1;
   cursor: pointer;
 }
-.mapa-vivo .mv-panel:hover { background: #FFEC27; }
+.mapa-vivo .mv-panel:hover { background: var(--ed-amarillo, #FFEC27); }
 .mapa-vivo .mv-panel:active { transform: translate(2px, 2px); box-shadow: none; }
-.mapa-vivo .mv-hace { display: block; font-size: 11px; color: #5F574F; white-space: normal; }
+.mapa-vivo .mv-hace { display: block; font-size: 11px; color: var(--ed-gris-osc, #5F574F); white-space: normal; }
 
 .mapa-vivo .mv-btn {
   display: block;
   margin: 4px 0 8px;
   padding: 6px 8px;
-  background: #1D2B53;
-  color: #FFF1E8;
-  border: 3px solid #000;
-  box-shadow: 3px 3px 0 #000;
+  background: var(--ed-navy, #1D2B53);
+  color: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  box-shadow: 3px 3px 0 var(--ed-negro, #000);
   font-weight: 800;
   font-size: 11px; letter-spacing: 0.03em; text-transform: uppercase;
   text-align: left;
   cursor: pointer;
 }
 .mapa-vivo .mv-btn:active { transform: translate(3px, 3px); box-shadow: none; }
-.mapa-vivo .mv-guia { background: #FFA300; color: #000; }
+.mapa-vivo .mv-guia { background: var(--ed-naranja, #FFA300); color: var(--ed-negro, #000); }
 /* «Mi ficha» (MiRendimiento): bajo Mi agenda, en amarillo para distinguirla. */
-.mapa-vivo .mv-ficha { background: #FFEC27; color: #000; }
+.mapa-vivo .mv-ficha { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); }
 .mapa-vivo .mv-ficha:disabled { opacity: 0.6; cursor: default; }
 
-.mapa-vivo .mv-detenido { margin-top: 8px; padding-top: 6px; border-top: 2px dashed #000; }
+.mapa-vivo .mv-detenido { margin-top: 8px; padding-top: 6px; border-top: 2px dashed var(--ed-negro, #000); }
 .mapa-vivo .mv-bloqueo {
   display: block;
   width: 100%;
@@ -114,7 +114,7 @@
   line-height: 1.1;
   cursor: pointer;
 }
-.mapa-vivo .mv-bloqueo:hover { color: #FF004D; }
+.mapa-vivo .mv-bloqueo:hover { color: var(--ed-rojo, #FF004D); }
 
 /* ─── Lo urgente ───
    Titila el APARTADO (el panel donde se resuelve), no la carta entera: administración tendría
@@ -122,52 +122,52 @@
    lleva un marco rojo fijo. Los dos tiempos del parpadeo se leen (texto oscuro sobre rosado,
    crema sobre rojo). */
 /* Gana a «tu camino» (amarillo): si hay algo urgente, el marco es rojo. «TÚ n» sigue en la cabecera. */
-.mapa-vivo .mv-carta.mv-hay-urgente { outline: 4px solid #C8003E; outline-offset: 3px; animation: none; }
+.mapa-vivo .mv-carta.mv-hay-urgente { outline: 4px solid var(--ed-rojo-osc, #C8003E); outline-offset: 3px; animation: none; }
 .mapa-vivo .mv-panel.mv-urgente {
-  background: #FFE3EA;
-  border-color: #C8003E;
-  box-shadow: 2px 2px 0 #C8003E;
+  background: var(--ed-rosa-claro, #FFE3EA);
+  border-color: var(--ed-rojo-osc, #C8003E);
+  box-shadow: 2px 2px 0 var(--ed-rojo-osc, #C8003E);
   animation: mv-urgente 0.9s steps(1, end) infinite;
 }
-@keyframes mv-urgente { 50% { background: #C8003E; color: #FFF1E8; } }
+@keyframes mv-urgente { 50% { background: var(--ed-rojo-osc, #C8003E); color: var(--ed-crema, #FFF1E8); } }
 .mapa-vivo .mv-urg-n {
   flex-shrink: 0;
   padding: 1px 4px;
-  background: #C8003E;
-  color: #FFF1E8;
-  border: 2px solid #000;
+  background: var(--ed-rojo-osc, #C8003E);
+  color: var(--ed-crema, #FFF1E8);
+  border: 2px solid var(--ed-negro, #000);
   font-size: 10px;
   font-weight: 900;
   line-height: 1.1;
 }
-.mapa-vivo .mv-linea-urgente { color: #B00035; font-weight: 700; }
+.mapa-vivo .mv-linea-urgente { color: var(--ed-rojo-hondo, #B00035); font-weight: 700; }
 .mapa-vivo .px-hud .mv-ir-urgente {
-  background: #C8003E;
-  color: #FFF1E8;
-  border-color: #FFF1E8 !important;
+  background: var(--ed-rojo-osc, #C8003E);
+  color: var(--ed-crema, #FFF1E8);
+  border-color: var(--ed-crema, #FFF1E8) !important;
   animation: mv-latido-borde 0.9s steps(1, end) infinite;
 }
-@keyframes mv-latido-borde { 50% { border-color: #FFEC27 !important; } }
+@keyframes mv-latido-borde { 50% { border-color: var(--ed-amarillo, #FFEC27) !important; } }
 
 /* Flechas: hormigas en marcha (se mueven en saltos, como un juego de 8 bits). */
 .mapa-vivo .mv-flecha {
-  stroke: #000;
+  stroke: var(--ed-negro, #000);
   stroke-width: 3;
   stroke-dasharray: 10 6;
   shape-rendering: crispEdges;
   animation: mv-marcha 0.8s steps(4, end) infinite;
 }
-.mapa-vivo .mv-flecha-apagada { stroke: #C2C3C7; animation: none; }
+.mapa-vivo .mv-flecha-apagada { stroke: var(--ed-gris, #C2C3C7); animation: none; }
 @keyframes mv-marcha { to { stroke-dashoffset: -16; } }
 
 .mapa-vivo .mv-etq {
-  color: #000;
+  color: var(--ed-negro, #000);
   position: absolute;
   pointer-events: none;
   padding: 4px 6px;
-  background: #FFEC27;
-  border: 2px solid #000;
-  box-shadow: 2px 2px 0 #000;
+  background: var(--ed-amarillo, #FFEC27);
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 2px 2px 0 var(--ed-negro, #000);
   font-weight: 800;
   font-size: 10px; letter-spacing: 0.03em;
   line-height: 1;
@@ -178,15 +178,15 @@
 /* Barra de arriba: selector de nivel como menú de juego. */
 .mapa-vivo .mv-nivel {
   padding: 4px 6px;
-  border: 2px solid #FFF1E8 !important;
-  color: #FFF1E8;
+  border: 2px solid var(--ed-crema, #FFF1E8) !important;
+  color: var(--ed-crema, #FFF1E8);
   font-weight: 800;
   font-size: 11px !important; letter-spacing: 0.03em;
   line-height: 1;
   text-transform: uppercase;
 }
 /* Le gana a `.colab-pixel .px-hud button` (letra crema): sobre amarillo, la letra va negra. */
-.mapa-vivo .px-hud .mv-nivel-on { background: #FFEC27; color: #000; border-color: #FFEC27 !important; }
+.mapa-vivo .px-hud .mv-nivel-on { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); border-color: var(--ed-amarillo, #FFEC27) !important; }
 
 .mapa-vivo .mv-aviso {
   position: absolute;
@@ -194,7 +194,7 @@
   bottom: 8px;
   padding: 4px 8px;
   background: #fff;
-  border: 2px solid #000;
+  border: 2px solid var(--ed-negro, #000);
   font-size: 12px;
 }
 

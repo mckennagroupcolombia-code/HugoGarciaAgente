@@ -74,12 +74,25 @@ function PackPreview({ id }: { id: ThemePackId }) {
       </div>
     );
   }
-  if (id === "sakura") {
+  if (id === "peach") {
+    // Ventanas crema con marco doble sobre papel marfil cuadriculado en rosa, unidas por un
+    // camino discontinuo; la del medio, rosa ciruela con la moneda.
     return (
-      <div className="flex h-14 items-end gap-1.5 rounded-xl bg-gradient-to-br from-[#ffe4ef] via-[#fff1e6] to-[#ffd9c4] px-2.5 py-2 shadow-[4px_4px_0_rgba(232,92,128,0.35)] ring-2 ring-[#f4bab0]">
-        <span className="h-7 flex-1 rounded-lg bg-white/90 shadow-[2px_2px_0_#e85c80]" />
-        <span className="h-11 w-6 rounded-lg bg-[#e85c80] shadow-[2px_2px_0_#c84068]" />
-        <span className="h-6 flex-1 rounded-lg bg-[#ffc9a8]" />
+      <div
+        className="flex h-14 items-end gap-1 border-2 border-[#4A2040] px-2 py-2"
+        style={{
+          background:
+            "linear-gradient(#f8e2e9 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, #f8e2e9 1px, transparent 1px) 0 0 / 8px 8px, #FFFAF0",
+        }}
+      >
+        <span className="h-7 flex-1 rounded-[2px] border-2 border-[#4A2040] bg-[#F4C2D0] shadow-[inset_0_0_0_2px_#FFF8EC,2px_2px_0_#4A2040]" />
+        <span className="mb-3 w-2 border-t-2 border-dashed border-[#4A2040]" />
+        <span className="flex h-11 w-7 items-center justify-center rounded-[2px] border-2 border-[#4A2040] bg-[#A8486E] shadow-[2px_2px_0_#4A2040]">
+          <Sprite s="moneda" px={2} />
+        </span>
+        <span className="mb-3 w-2 border-t-2 border-dashed border-[#4A2040]" />
+        <span className="h-5 flex-1 rounded-[2px] border-2 border-[#4A2040] bg-[#A7D8F0] shadow-[inset_0_0_0_2px_#FFF8EC,2px_2px_0_#4A2040]" />
+        <span className="h-3 w-3 border-2 border-[#4A2040] bg-[#FFE9A0]" />
       </div>
     );
   }

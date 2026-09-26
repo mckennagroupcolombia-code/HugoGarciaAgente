@@ -1,0 +1,177 @@
+/*
+ * El mapa (MapaVivo + Edificio) en la gama de cada tema (26-sep-2026).
+ * mapa-edificio.css y mapa-vivo.css pintan con variables --ed-* cuyo valor por defecto es la
+ * paleta de consola (PICO-8) del tema Pixel; aquí cada tema las redefine. Los colores de estado
+ * (rojo = alarma, verde = listo, naranja = aviso) se conservan para que se lean igual en todos.
+ *
+ * Papeles: negro = contornos · navy = letrero y placas · gris-osc = techo y muros ·
+ * crema = papel de las cartas Y letra clara (por eso no se oscurece en modo oscuro) · amarillo = luces y resaltes · azul/cielo-* = el cielo.
+ */
+
+/* ─── Barbie Agenda: rosa Barbie y Princesa Peach ─── */
+html[data-mck-skin="barbie"] {
+  --ed-negro: #8A1253; --ed-navy: #C2185B; --ed-ciruela: #8A1253; --ed-gris-osc: #D6509A;
+  --ed-gris-hondo: #A0135F; --ed-gris: #F8C8DC; --ed-crema: #FFF5FA; --ed-amarillo: #FFD700;
+  --ed-azul: #FF69B4; --ed-lavanda: #F49AC1; --ed-rosa: #FF69B4; --ed-rosa-claro: #FFE4F1;
+  --ed-rosa-medio: #FFD1E6; --ed-durazno: #FFD1E6; --ed-cuadricula: #FFC8E1; --ed-cafe: #B5577E;
+  --ed-madera: #8A1253;
+  --ed-cielo-1: #F49AC1; --ed-cielo-3: #FFD1E6; --ed-cielo-4: #FFE4F1;
+}
+html[data-mck-skin="barbie"].dark {
+  --ed-negro: #12020C; --ed-navy: #E0218A; --ed-gris-osc: #6B1A4C; --ed-gris-hondo: #4A0F35;
+  --ed-gris: #F49AC1;
+  --ed-azul: #6B1A4C; --ed-cielo-1: #2A0A1F; --ed-cielo-3: #8A2A62; --ed-cielo-4: #A8457E;
+}
+
+/* ─── Princesa Peach: rosa empolvado, cielo, mantequilla y ciruela ─── */
+html[data-mck-skin="peach"] {
+  --ed-negro: #4A2040; --ed-navy: #A8486E; --ed-ciruela: #4A2040; --ed-gris-osc: #C97793;
+  --ed-gris-hondo: #8E4A6E; --ed-gris: #F4C2D0; --ed-crema: #FFF8EC; --ed-amarillo: #FFE9A0;
+  --ed-azul: #A7D8F0; --ed-lavanda: #E8A0B4; --ed-rosa: #E8A0B4; --ed-rosa-claro: #FDE8EE;
+  --ed-rosa-medio: #F4C2D0; --ed-durazno: #FFE9A0; --ed-cuadricula: #F7DDE5; --ed-cafe: #B98A6E;
+  --ed-madera: #6E3560;
+  --ed-cielo-1: #A7D8F0; --ed-cielo-3: #CDEAF7; --ed-cielo-4: #E8F6FC;
+  /* Estados en la gama de Peach (lo urgente titila fresa ↔ ciruela, no rojo de consola):
+     fresa = alarma, melocotón = aviso, menta = listo. Siguen distinguiéndose entre sí. */
+  --ed-rojo: #E0457B; --ed-rojo-osc: #B8336A; --ed-rojo-hondo: #9C2451;
+  --ed-naranja: #F6A96B; --ed-verde: #7CCBA2; --ed-verde-osc: #3E8E6A;
+}
+html[data-mck-skin="peach"].dark {
+  --ed-negro: #1A0A17; --ed-gris-osc: #5A2A50; --ed-gris-hondo: #3D1F38; --ed-gris: #E8A0B4;
+  --ed-azul: #2E4A6B; --ed-cielo-1: #140A1E; --ed-cielo-3: #2E3F66; --ed-cielo-4: #4A5E8A;
+}
+
+/* ─── Matrix: terminal verde ─── */
+html[data-mck-skin="matrix"] {
+  --ed-negro: #000; --ed-navy: #00220A; --ed-ciruela: #003D10; --ed-gris-osc: #0A3D14;
+  --ed-gris-hondo: #06280D; --ed-gris: #3FA35A; --ed-crema: #CCFFD5; --ed-amarillo: #00FF41;
+  --ed-azul: #003D10; --ed-lavanda: #1F7A35; --ed-rosa: #00C832; --ed-cuadricula: #06280D;
+  --ed-cafe: #0A3D14; --ed-madera: #06280D; --ed-durazno: #0A3D14;
+  --ed-cielo-1: #000A02; --ed-cielo-3: #002B0A; --ed-cielo-4: #003D10;
+}
+
+/* ─── Bodega: terracota y arena ─── */
+html[data-mck-skin="bodega"] {
+  --ed-negro: #2E1A10; --ed-navy: #5A2E1A; --ed-gris-osc: #8B5A3C; --ed-gris-hondo: #6B4028;
+  --ed-gris: #D9C3A5; --ed-crema: #FBF2E3; --ed-amarillo: #F2C14E; --ed-azul: #B5502A;
+  --ed-lavanda: #C08A62; --ed-cuadricula: #EAD8BD;
+  --ed-cielo-1: #D9A77A; --ed-cielo-3: #F0D9B8; --ed-cielo-4: #FBF2E3;
+}
+html[data-mck-skin="bodega"].dark {
+  --ed-negro: #0E0805; --ed-gris-osc: #5A3A26;
+  --ed-azul: #5A3A26; --ed-cielo-1: #1A100A; --ed-cielo-3: #6B4028; --ed-cielo-4: #8B5A3C;
+}
+
+/* ─── Botica: verde botella y mostaza ─── */
+html[data-mck-skin="botica"] {
+  --ed-negro: #14201A; --ed-navy: #23352A; --ed-gris-osc: #3D5A44; --ed-gris-hondo: #2E4634;
+  --ed-gris: #C9D3C3; --ed-crema: #F4F1E4; --ed-amarillo: #D9A826; --ed-azul: #5E8A68;
+  --ed-lavanda: #7C9A82; --ed-cuadricula: #DCE5D6;
+  --ed-cielo-1: #7FA287; --ed-cielo-3: #B9CFBA; --ed-cielo-4: #E9F1E7;
+}
+html[data-mck-skin="botica"].dark {
+  --ed-negro: #070C09; --ed-gris-osc: #2E4634;
+  --ed-azul: #2E4634; --ed-cielo-1: #0E1712; --ed-cielo-3: #3D5A44; --ed-cielo-4: #5E8A68;
+}
+
+/* ─── Flujo: papel técnico cian ─── */
+html[data-mck-skin="flujo"] {
+  --ed-negro: #0F172A; --ed-navy: #0B3D4E; --ed-gris-osc: #475569; --ed-gris-hondo: #334155;
+  --ed-gris: #CBD5E1; --ed-crema: #F8FAFC; --ed-amarillo: #FDE047; --ed-azul: #0891B2;
+  --ed-lavanda: #64748B; --ed-cuadricula: #E2E8F0;
+  --ed-cielo-1: #0E7490; --ed-cielo-3: #7DD3E8; --ed-cielo-4: #CDEFF7;
+}
+html[data-mck-skin="flujo"].dark {
+  --ed-negro: #020617; --ed-gris-osc: #334155;
+  --ed-azul: #164E63; --ed-cielo-1: #041018; --ed-cielo-3: #0E7490; --ed-cielo-4: #155E75;
+}
+
+/* ─── Atelier: papel de taller, sepia ─── */
+html[data-mck-skin="atelier"] {
+  --ed-negro: #2A1C12; --ed-navy: #4E3422; --ed-gris-osc: #7A5A3E; --ed-gris-hondo: #5E4430;
+  --ed-gris: #D6BE9E; --ed-crema: #FFFAF2; --ed-amarillo: #E9B949; --ed-azul: #BA9468;
+  --ed-lavanda: #A88A6A; --ed-cuadricula: #ECDCC4;
+  --ed-cielo-1: #C9A77E; --ed-cielo-3: #ECDCC4; --ed-cielo-4: #F7EEE0;
+}
+html[data-mck-skin="atelier"].dark {
+  --ed-negro: #0E0906; --ed-gris-osc: #5E4430;
+  --ed-azul: #5E4430; --ed-cielo-1: #171009; --ed-cielo-3: #5E4430; --ed-cielo-4: #7A5A3E;
+}
+
+/* ─── Clásica McKenna: petróleo ─── */
+html[data-mck-skin="clasica"] {
+  --ed-negro: #0A1F24; --ed-navy: #0C3F45; --ed-gris-osc: #2B454F; --ed-gris-hondo: #1F343C;
+  --ed-gris: #C5D6D8; --ed-crema: #F4FAFA; --ed-amarillo: #F2C14E; --ed-azul: #3D8A93;
+  --ed-lavanda: #6F9AA0; --ed-cuadricula: #DCEBEC;
+  --ed-cielo-1: #0C6069; --ed-cielo-3: #8CC3C8; --ed-cielo-4: #CFE7E9;
+}
+html[data-mck-skin="clasica"].dark {
+  --ed-negro: #020A0C; --ed-gris-osc: #1F343C;
+  --ed-azul: #0C3F45; --ed-cielo-1: #041215; --ed-cielo-3: #0C6069; --ed-cielo-4: #2B6F77;
+}
+
+/* ─── Los pisos (una etapa por piso; también la franja de cada módulo en Layout) ───
+   Orden: abastecer · preparar · publicar · vender · entregar · facturar · contar · dirigir · sistema.
+   preparar, publicar y sistema son claros (título en tinta oscura); el resto, oscuros. */
+html[data-mck-skin="barbie"] {
+  --ed-piso-abastecer: #B5577E; --ed-piso-preparar: #FFB7D5; --ed-piso-publicar: #FF8CC6;
+  --ed-piso-vender: #C2185B; --ed-piso-entregar: #E0218A; --ed-piso-facturar: #8A1253;
+  --ed-piso-contar: #6B1A4C; --ed-piso-dirigir: #A0135F; --ed-piso-sistema: #F49AC1;
+  --ed-tinta-clara: #FFF5FA; --ed-tinta-oscura: #4A0D2E;
+}
+html[data-mck-skin="peach"] {
+  --ed-piso-abastecer: #3F7FA6; --ed-piso-preparar: #FFE9A0; --ed-piso-publicar: #A7D8F0;
+  --ed-piso-vender: #A8486E; --ed-piso-entregar: #B04E76; --ed-piso-facturar: #6E3560;
+  --ed-piso-contar: #4A2040; --ed-piso-dirigir: #8E4A6E; --ed-piso-sistema: #F4C2D0;
+  --ed-tinta-clara: #FFF8EC; --ed-tinta-oscura: #4A2040;
+}
+html[data-mck-skin="matrix"] {
+  --ed-piso-abastecer: #0A3D14; --ed-piso-preparar: #00FF41; --ed-piso-publicar: #7CFF9B;
+  --ed-piso-vender: #0F5A22; --ed-piso-entregar: #1F7A35; --ed-piso-facturar: #06280D;
+  --ed-piso-contar: #00220A; --ed-piso-dirigir: #134D1F; --ed-piso-sistema: #3FA35A;
+  --ed-tinta-clara: #CCFFD5; --ed-tinta-oscura: #000;
+}
+html[data-mck-skin="bodega"] {
+  --ed-piso-abastecer: #8B5A3C; --ed-piso-preparar: #F2C14E; --ed-piso-publicar: #F0D9B8;
+  --ed-piso-vender: #6B4028; --ed-piso-entregar: #A4441F; --ed-piso-facturar: #5A2E1A;
+  --ed-piso-contar: #3A2012; --ed-piso-dirigir: #7A4A2E; --ed-piso-sistema: #D9C3A5;
+  --ed-tinta-clara: #FBF2E3; --ed-tinta-oscura: #2E1A10;
+}
+html[data-mck-skin="botica"] {
+  --ed-piso-abastecer: #4A6E52; --ed-piso-preparar: #D9A826; --ed-piso-publicar: #B9CFBA;
+  --ed-piso-vender: #3D5A44; --ed-piso-entregar: #7A5C12; --ed-piso-facturar: #2E4634;
+  --ed-piso-contar: #23352A; --ed-piso-dirigir: #56663A; --ed-piso-sistema: #C9D3C3;
+  --ed-tinta-clara: #F4F1E4; --ed-tinta-oscura: #14201A;
+}
+html[data-mck-skin="flujo"] {
+  --ed-piso-abastecer: #0E7490; --ed-piso-preparar: #FDE047; --ed-piso-publicar: #7DD3E8;
+  --ed-piso-vender: #155E75; --ed-piso-entregar: #0369A1; --ed-piso-facturar: #334155;
+  --ed-piso-contar: #0B3D4E; --ed-piso-dirigir: #475569; --ed-piso-sistema: #CBD5E1;
+  --ed-tinta-clara: #F8FAFC; --ed-tinta-oscura: #0F172A;
+}
+html[data-mck-skin="atelier"] {
+  --ed-piso-abastecer: #7A5A3E; --ed-piso-preparar: #E9B949; --ed-piso-publicar: #ECDCC4;
+  --ed-piso-vender: #5E4430; --ed-piso-entregar: #9C4A2A; --ed-piso-facturar: #4E3422;
+  --ed-piso-contar: #2A1C12; --ed-piso-dirigir: #6B5238; --ed-piso-sistema: #D6BE9E;
+  --ed-tinta-clara: #FFFAF2; --ed-tinta-oscura: #2A1C12;
+}
+html[data-mck-skin="clasica"] {
+  --ed-piso-abastecer: #2B6F77; --ed-piso-preparar: #F2C14E; --ed-piso-publicar: #8CC3C8;
+  --ed-piso-vender: #0C6069; --ed-piso-entregar: #1F5560; --ed-piso-facturar: #0C3F45;
+  --ed-piso-contar: #1F343C; --ed-piso-dirigir: #2B454F; --ed-piso-sistema: #C5D6D8;
+  --ed-tinta-clara: #F4FAFA; --ed-tinta-oscura: #0A1F24;
+}
+
+/* ─── La barra del mapa («MAPA DE MCKENNA», niveles, Mapa/Edificio) ───
+   Su navy viene de colaboradores/pixel.css (.px-hud, compartida con Colaboradores); aquí, solo
+   dentro del mapa, toma los colores del tema: fondo = letrero, contorno = negro del tema. */
+html[data-mck-skin] .mapa-vivo .px-hud {
+  background: var(--ed-navy, #1D2B53);
+  color: var(--ed-crema, #FFF1E8);
+  border-color: var(--ed-negro, #000);
+  box-shadow: 3px 3px 0 var(--ed-negro, #000);
+}
+html[data-mck-skin] .mapa-vivo .px-hud button:not(.mv-nivel-on):not(.mv-ir-urgente) {
+  color: var(--ed-crema, #FFF1E8);
+  border-color: var(--ed-crema, #FFF1E8) !important;
+}

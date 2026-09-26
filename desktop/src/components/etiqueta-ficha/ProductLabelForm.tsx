@@ -48,7 +48,7 @@ import {
   type ProductLabelData,
 } from "./productLabelTypes";
 import { useCodigosEan, type CodigoEan } from "../../lib/etiquetasCodigosEan";
-import { cargarPatchDesdeFichaTecnica, listarFichasTecnicas } from "../../lib/fichaTecnicaAplicar";
+import { cargarPatchDesdeFichaTecnica, fichaPorSku, listarFichasTecnicas } from "../../lib/fichaTecnicaAplicar";
 import { cambiosDesdeFicha, fotoFicha, NOMBRE_CAMPO } from "../../lib/fichaTecnicaSync";
 import { api } from "../../api/client";
 import { contenidoNetoDesdeCodigo, filtrarCodigosEanPorTexto } from "../../lib/fichaTecnicaCampos";
@@ -57,6 +57,7 @@ import {
   discrepanciaProducto,
   mejorFichaParaTitulo,
   nombreArchivoDesdeTitulo,
+  normalizarTexto,
   palabrasClave,
   UMBRAL_ENLACE_AUTOMATICO,
 } from "../../lib/fichaTecnicaMatch";
@@ -793,8 +794,11 @@ function ProductLabelFormInner({
     setEnlace({ tipo: "info", texto: `Buscando ficha técnica para "${titulo}"…` });
     const ghsAntes = cambiosGhsRef.current;
     try {
-      const fichas = await listarFichasTecnicas();
-      const mejor = mejorFichaParaTitulo(fichas, titulo);
+      const [fichas, porSku] = await Promise.all([listarFichasTecnicas(), fichaPorSku(codigo.sku || "")]);
+      // Primero por SKU (el documento declara la materia prima del combo); el título solo
+      // si no hay: «SAL MARINA AHUMADA 250g» no se parecía a su documento y quedaba vacía.
+      const fichaSku = porSku ? fichas.find((f) => f.id === porSku.id) ?? { ...porSku, archivo: "" } : null;
+      const mejor = fichaSku ? { ficha: fichaSku, puntaje: 1, claves } : mejorFichaParaTitulo(fichas, titulo);
       if (!mejor || mejor.puntaje < UMBRAL_ENLACE_AUTOMATICO) {
         onChange({ fichaTecnicaId: "", fichaTecnicaTitulo: "" });
         setEnlace({
@@ -823,13 +827,17 @@ function ProductLabelFormInner({
       // Hay productos con dos fichas (p. ej. "GLICERINA" y "GLICERINA
       // VEGETAL"): la del título más parecido gana, pero puede no ser la que
       // tiene los datos. Se nombran las otras para poder corregir con la lupa.
-      const otras = candidatasParaTitulo(fichas, titulo)
-        .filter((c) => c.ficha.id !== mejor.ficha.id)
-        .slice(0, 2);
+      const otras = fichaSku
+        ? []
+        : candidatasParaTitulo(fichas, titulo)
+            .filter((c) => c.ficha.id !== mejor.ficha.id)
+            .slice(0, 2);
       setEnlace({
         tipo: "ok",
         texto:
-          `Ficha técnica enlazada: ${mejor.ficha.titulo} (coincidencia ${Math.round(mejor.puntaje * 100)} % por: ${claves.join(", ")}).`
+          (fichaSku
+            ? `Ficha técnica enlazada por SKU (${codigo.sku}): ${mejor.ficha.titulo}.`
+            : `Ficha técnica enlazada: ${mejor.ficha.titulo} (coincidencia ${Math.round(mejor.puntaje * 100)} % por: ${claves.join(", ")}).`)
           + (otras.length > 0
             ? ` También coincide${otras.length > 1 ? "n" : ""} ${otras
                 .map((c) => `«${c.ficha.titulo}» (${Math.round(c.puntaje * 100)} %)`)
@@ -1312,7 +1320,10 @@ function ProductLabelFormInner({
       for (const [i, codigo] of loteSeleccion.entries()) {
         const titulo = (codigo.nombre_producto || codigo.sku || "").trim();
         const neto = contenidoNetoDesdeCodigo(codigo);
-        const mejor = mejorFichaParaTitulo(fichasTecnicas, titulo);
+        const porSku = await fichaPorSku(codigo.sku || "");
+        const mejor = porSku
+          ? { ficha: fichasTecnicas.find((f) => f.id === porSku.id) ?? { ...porSku, archivo: "" }, puntaje: 1, claves: [] as string[] }
+          : mejorFichaParaTitulo(fichasTecnicas, titulo);
         const patch =
           mejor && mejor.puntaje >= UMBRAL_ENLACE_AUTOMATICO
             ? await cargarPatchDesdeFichaTecnica(mejor.ficha.id).catch(() => null)
@@ -2717,9 +2728,24 @@ function PantallaInicio({
     const obj = skuInicial.trim().toUpperCase();
     const hallado = codigos.find((c) => (c.sku || "").trim().toUpperCase() === obj);
     skuPrecargado.current = true;
-    setQ(skuInicial);
+    // El buscador arranca con el nombre sin la presentación («PSYLLIUM EN ESCAMAS»):
+    // así aparecen la etiqueta de esta presentación, si ya existe, y las de sus hermanas.
+    const nombre = (hallado?.nombre_producto || "").replace(/\s*\d+([.,]\d+)?\s*(g|gr|kg|mg|ml|l|lt|oz|un|und)\b.*$/i, "").trim();
+    setQ(nombre || skuInicial);
     if (hallado) setSku(hallado);
   }, [skuInicial, codigos]);
+  // Buscador de etiquetas y plantillas: todas las palabras deben aparecer (sin tildes)
+  // en el nombre, el tamaño o la categoría.
+  const coincide = (f: FichaEtiquetaGuardada) => {
+    const palabras = normalizarTexto(q).split(" ").filter(Boolean);
+    if (!palabras.length) return true;
+    const texto = normalizarTexto(
+      [f.nombre, etiquetaTamanoTipoNombre(f.tipo_nombre, tipos), f.categoria ? etiquetaCategoria(f.categoria) : ""].join(" "),
+    );
+    return palabras.every((w) => texto.includes(w));
+  };
+  const fichasVistas = fichasGuardadas.filter(coincide);
+  const plantillasVistas = plantillasGuardadas.filter(coincide);
   const categoriaDetectada = useMemo(
     () => (sku ? detectarCategoriaEtiqueta(sku.nombre_producto || sku.sku) : CATEGORIA_ETIQUETA_OTROS),
     [sku],
@@ -2752,7 +2778,26 @@ function PantallaInicio({
       <div className="grid gap-4">
 
         <section className="rounded-xl border border-border bg-surface-panel p-4">
-          {plantillasGuardadas.length > 0 && (
+          <div className="mb-3 flex items-center gap-2">
+            <input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar etiqueta por producto, tamaño o categoría…"
+              autoFocus
+              className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-ink"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="shrink-0 rounded-lg px-2 py-1 text-[11px] text-muted hover:bg-surface-hover hover:text-ink"
+              >
+                Ver todas
+              </button>
+            )}
+          </div>
+          {plantillasVistas.length > 0 && (
             <div className="mb-4 rounded-lg border border-accent/30 bg-accent/5 p-3">
               <h3 className="text-xs font-bold text-ink">Plantillas</h3>
               <p className="mb-2 text-[11px] text-muted">
@@ -2760,7 +2805,7 @@ function PantallaInicio({
                 productos de la familia.
               </p>
               <ul className="space-y-1">
-                {plantillasGuardadas.map((f) => (
+                {plantillasVistas.map((f) => (
                   <li key={f.id}>
                     <button
                       type="button"
@@ -2781,8 +2826,14 @@ function PantallaInicio({
             seguir editándolas.
           </p>
           {fichasGuardadas.length === 0 && <p className="text-xs text-muted">Todavía no hay etiquetas guardadas.</p>}
+          {fichasGuardadas.length > 0 && fichasVistas.length === 0 && (
+            <p className="text-xs text-muted">Ninguna etiqueta coincide con «{q}».</p>
+          )}
+          {q && fichasVistas.length > 0 && (
+            <p className="mb-1 text-[10.5px] text-muted">{fichasVistas.length} de {fichasGuardadas.length}</p>
+          )}
           <ul className="max-h-[420px] space-y-1 overflow-y-auto">
-            {fichasGuardadas.map((f) => (
+            {fichasVistas.map((f) => (
               <li key={f.id} className="flex items-center gap-1 rounded px-2 py-1.5 hover:bg-surface-hover">
                 <button
                   type="button"

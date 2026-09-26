@@ -24,9 +24,9 @@ export type MenuScale = "sm" | "md" | "lg";
  * tamaños fijos en px (badges, iconos, paddings) que abundan en el panel. */
 export type UiZoom = "100" | "115" | "130" | "150";
 
-export type UiSkin = "clasica" | "atelier" | "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
+export type UiSkin = "clasica" | "atelier" | "matrix" | "peach" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
 
-export type ThemePackId = "matrix" | "sakura" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
+export type ThemePackId = "matrix" | "peach" | "barbie" | "bodega" | "botica" | "flujo" | "pixel";
 
 export type ThemeColorKey =
   | "surface"

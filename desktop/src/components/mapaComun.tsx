@@ -11,19 +11,20 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import type { SpriteId } from "./colaboradores/pixel";
 import { puedeVerTabInicio } from "./nav/InicioNavTabs";
 
-/** Color de cada etapa (paleta PICO-8) y si su título va en tinta oscura. */
+/** Color de cada etapa (paleta PICO-8) y si su título va en tinta oscura. Son variables CSS con
+ *  ese color por defecto: cada tema pone su propia gama en theme/mapa-temas.css. */
 export const COLOR: Record<string, { fondo: string; tinta: string; s: SpriteId }> = {
-  abastecer: { fondo: "#AB5236", tinta: "#FFF1E8", s: "cofre" },
-  preparar: { fondo: "#FFA300", tinta: "#000000", s: "bloques" },
-  publicar: { fondo: "#29ADFF", tinta: "#000000", s: "ventana" },
-  vender: { fondo: "#006B3F", tinta: "#FFF1E8", s: "moneda" },
-  entregar: { fondo: "#C8003E", tinta: "#FFF1E8", s: "camion" },
-  facturar: { fondo: "#7E2553", tinta: "#FFF1E8", s: "doc" },
-  contar: { fondo: "#1D2B53", tinta: "#FFF1E8", s: "datos" },
-  dirigir: { fondo: "#5F574F", tinta: "#FFF1E8", s: "estrella" },
-  sistema: { fondo: "#83769C", tinta: "#000000", s: "control" },
+  abastecer: { fondo: "var(--ed-piso-abastecer, #AB5236)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "cofre" },
+  preparar: { fondo: "var(--ed-piso-preparar, #FFA300)", tinta: "var(--ed-tinta-oscura, #000000)", s: "bloques" },
+  publicar: { fondo: "var(--ed-piso-publicar, #29ADFF)", tinta: "var(--ed-tinta-oscura, #000000)", s: "ventana" },
+  vender: { fondo: "var(--ed-piso-vender, #006B3F)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "moneda" },
+  entregar: { fondo: "var(--ed-piso-entregar, #C8003E)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "camion" },
+  facturar: { fondo: "var(--ed-piso-facturar, #7E2553)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "doc" },
+  contar: { fondo: "var(--ed-piso-contar, #1D2B53)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "datos" },
+  dirigir: { fondo: "var(--ed-piso-dirigir, #5F574F)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "estrella" },
+  sistema: { fondo: "var(--ed-piso-sistema, #83769C)", tinta: "var(--ed-tinta-oscura, #000000)", s: "control" },
 };
-export const COLOR_DEF = { fondo: "#5F574F", tinta: "#FFF1E8", s: "datos" as SpriteId };
+export const COLOR_DEF = { fondo: "var(--ed-gris-osc, #5F574F)", tinta: "var(--ed-tinta-clara, #FFF1E8)", s: "datos" as SpriteId };
 
 export type Bloqueo = { etapa: string; id: string; n: number; texto: string; panel: string; severidad: "alta" | "media" };
 export type Bloqueos = { por_etapa: Record<string, { alta: number; media: number; items: Bloqueo[] }> };

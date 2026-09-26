@@ -7,6 +7,12 @@ import "./index.css";
 import "./theme/skin-pixel.css";
 // Traducción de los ~750 colores escritos a mano en los paneles (generada: desktop/scripts/pixel).
 import "./theme/skin-pixel-paleta.css";
+// «Barbie Agenda» sobre la base pixel: rosa Barbie y tonos Peach (claro y oscuro).
+import "./theme/skin-barbie-pixel.css";
+// «Princesa Peach»: menú de videojuego retro en pastel (reemplaza a Sakura, 26-sep-2026).
+import "./theme/skin-peach-pixel.css";
+// El mapa (MapaVivo + Edificio) en la gama de color de cada tema.
+import "./theme/mapa-temas.css";
 import { initFantasyPress } from "./lib/fantasyPress";
 import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 

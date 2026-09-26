@@ -5584,6 +5584,36 @@ def register_routes(app):
             "cambio": doc["archivo"].rsplit(".", 1)[0] != slug_safe,
         })
 
+    @app.route("/app/api/fichas/por-sku/<sku>", methods=["GET"])
+    @app.route("/api/fichas/por-sku/<sku>", methods=["GET"])
+    def api_fichas_por_sku(sku: str):
+        """Documento técnico de un SKU por código, no por parecido de título: el de un combo
+        es el que declara el SKU de su materia prima (receta de Alegra, como en el taller);
+        el de un producto suelto, el que declara ese mismo SKU. La etiqueta lo pide antes de
+        buscar por título («SAL MARINA AHUMADA 250g» no se parece a «SAL AHUMADA GRUESA
+        ORIGINAL GRANO GRUESO 2-5 MM», y el documento sí declara SALMARAHUg)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.mapa_producto import _auditoria, _datos
+
+        A = _auditoria()
+        ref = re.sub(r"[^a-zA-Z0-9_.-]", "", sku).upper()
+        archivo = ""
+        combo = next((c for c in _datos()["combos"] if c["ref"].upper() == ref), None)
+        if combo:
+            d = combo["eslabones"]["documento"]
+            if d.get("por_sku"):
+                archivo = d.get("archivo") or ""
+        else:
+            docs = [d for d in A.documentos_por_titulo()
+                    if ref.lower() in {x.lower() for x in [d.get("referencia") or "", *d.get("equivalentes", [])] if x}]
+            if docs:
+                archivo = A.mejor_documento(ref, "", docs)["archivo"]
+        doc = A.documento_vigente(archivo) if archivo else None
+        if not doc:
+            return jsonify({"error": "No encontrado"}), 404
+        return jsonify({"id": doc["archivo"].rsplit(".", 1)[0], "titulo": doc["titulo"]})
+
     @app.route("/app/api/fichas/datos/<slug>", methods=["GET"])
     @app.route("/api/fichas/datos/<slug>", methods=["GET"])
     def api_fichas_datos_get(slug: str):

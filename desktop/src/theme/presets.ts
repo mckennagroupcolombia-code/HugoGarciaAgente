@@ -137,7 +137,7 @@ export const ACCENT_PRESETS: { id: string; label: string; rgb: string; hex: stri
   { id: "forest", label: "Bosque", rgb: "42 125 78", hex: "#2a7d4e" },
   { id: "sky", label: "Cielo", rgb: "61 138 147", hex: "#3d8a93" },
   { id: "violet", label: "Violeta", rgb: "109 76 154", hex: "#6d4c9a" },
-  { id: "sakura", label: "Sakura", rgb: "232 92 128", hex: "#e85c80" },
+  { id: "peach", label: "Peach", rgb: "168 72 110", hex: "#a8486e" },
   { id: "barbie", label: "Barbie", rgb: "255 126 182", hex: "#ff7eb6" },
   { id: "rose", label: "Rosa", rgb: "190 75 99", hex: "#be4b63" },
   { id: "amber", label: "Ámbar", rgb: "180 120 30", hex: "#b4781e" },
@@ -183,15 +183,15 @@ export const THEME_PACKS: ThemePack[] = [
     mode: "dark",
   },
   {
-    id: "sakura",
-    label: "Sakura",
-    tagline: "Anime shoujo, pasteles cálidos y UI arcade retro.",
-    skin: "sakura",
-    fontSans: "Nunito",
-    radius: "lg",
+    id: "peach",
+    label: "Princesa Peach",
+    tagline: "Menú de videojuego retro en pastel: rosa empolvado, cielo, mantequilla y ciruela.",
+    skin: "peach",
+    fontSans: "Montserrat",
+    radius: "sm",
     fontScale: "md",
     menuScale: "md",
-    accentRgb: "232 92 128",
+    accentRgb: "168 72 110",
     mode: "light",
   },
   {
@@ -203,7 +203,7 @@ export const THEME_PACKS: ThemePack[] = [
     radius: "lg",
     fontScale: "md",
     menuScale: "md",
-    accentRgb: "255 126 182",
+    accentRgb: "224 33 138",
     mode: "light",
   },
   {
@@ -270,9 +270,10 @@ export function sanitizeColors(raw: unknown): ThemeColorMap {
 }
 
 const FONTS = new Set<FontChoice>(FONT_CHOICES.map((f) => f.id));
-const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica", "flujo", "pixel"]);
+const SKINS = new Set<UiSkin>(["clasica", "atelier", "matrix", "peach", "barbie", "bodega", "botica", "flujo", "pixel"]);
 
-/** Variantes visibles: Matrix, Sakura, Barbie Agenda, Bodega y Botica. McKenna/Atelier pasan a Sakura. */
+/** Variantes visibles: Pixel, Matrix, Princesa Peach, Barbie Agenda, Flujo, Bodega y Botica.
+ * «Sakura» se retiró el 26-sep-2026: quien la tenía guardada pasa a Princesa Peach; McKenna/Atelier, a Pixel. */
 function featuredSkin(raw: unknown): UiSkin {
   if (raw === "matrix") return "matrix";
   if (raw === "barbie" || raw === "cherry") return "barbie";
@@ -280,8 +281,8 @@ function featuredSkin(raw: unknown): UiSkin {
   if (raw === "botica") return "botica";
   if (raw === "flujo") return "flujo";
   if (raw === "pixel") return "pixel";
-  if (raw === "sakura" || raw === "clasica" || raw === "atelier") return "sakura";
-  return "sakura";
+  if (raw === "peach" || raw === "sakura") return "peach";
+  return "pixel";
 }
 const MODES = new Set<ThemeMode>(["light", "dark", "system"]);
 const RADII = new Set<RadiusScale>(["sm", "md", "lg"]);
@@ -300,7 +301,7 @@ export function sanitizeCustomTheme(raw: unknown): UserThemePreset | null {
   const fontSans = FONTS.has(fontSansRaw as FontChoice) ? (fontSansRaw as FontChoice) : "Montserrat";
   const accentRgb = typeof r.accentRgb === "string" && isRgbTriple(r.accentRgb) ? r.accentRgb.trim() : "12 96 105";
   const radius = RADII.has(r.radius as RadiusScale) ? (r.radius as RadiusScale) : "md";
-  const skin = SKINS.has(r.skin as UiSkin) ? (r.skin as UiSkin) : "sakura";
+  const skin = r.skin === "sakura" ? "peach" : SKINS.has(r.skin as UiSkin) ? (r.skin as UiSkin) : "pixel";
   const fontScale = FONT_SCALES_SET.has(r.fontScale as FontScale) ? (r.fontScale as FontScale) : "md";
   const menuScale = MENU_SCALES_SET.has(r.menuScale as MenuScale) ? (r.menuScale as MenuScale) : "md";
   return {
@@ -333,15 +334,10 @@ export function sanitizePanelTheme(raw: Partial<PanelThemeConfig> | null | undef
     typeof r.accentRgb === "string" && isRgbTriple(r.accentRgb)
       ? r.accentRgb.trim()
       : MCKENNA_THEME_DEFAULT.accentRgb;
-  // Legacy clasica/atelier → sakura: el acento teal McKenna dejaba la Agenda desvinculada del menú rosa.
   const LEGACY_TEAL = "12 96 105";
-  if (
-    !activeCustomId &&
-    skin === "sakura" &&
-    accentRgb === LEGACY_TEAL &&
-    (rawSkin === "clasica" || rawSkin === "atelier" || rawSkin == null)
-  ) {
-    accentRgb = "232 92 128";
+  // Quien venía de Sakura trae su rosa coral (o el teal viejo): pasa al rosa ciruela de Peach.
+  if (!activeCustomId && skin === "peach" && (accentRgb === LEGACY_TEAL || accentRgb === "232 92 128")) {
+    accentRgb = "168 72 110";
   }
   if (!activeCustomId && skin === "matrix" && accentRgb === LEGACY_TEAL) {
     accentRgb = "0 255 65";
@@ -361,7 +357,7 @@ export function sanitizePanelTheme(raw: Partial<PanelThemeConfig> | null | undef
     skin,
     fontScale: FONT_SCALES_SET.has(r.fontScale as FontScale)
       ? (r.fontScale as FontScale)
-      : r.skin === "atelier" || r.skin === "sakura" || r.skin === "barbie"
+      : r.skin === "atelier" || r.skin === "barbie"
         ? "lg"
         : "md",
     menuScale: MENU_SCALES_SET.has(r.menuScale as MenuScale)

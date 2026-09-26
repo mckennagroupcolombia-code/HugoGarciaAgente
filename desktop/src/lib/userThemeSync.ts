@@ -12,7 +12,7 @@ export interface UserUiPreferences {
 }
 
 /**
- * v4 (26-sep-2026): se vuelve a llevar a todos a «Pixel». Tras la v3, Armando quedó en «Sakura» y
+ * v4 (26-sep-2026): se vuelve a llevar a todos a «Pixel». Tras la v3, Armando quedó en «Sakura» (tema retirado el 26-sep-2026) y
  * Cynthia en «Barbie»: veían el Mapa en pixel (lo es siempre) y los módulos por dentro en otra piel,
  * y parecía que la traducción de colores no se aplicaba. Quien prefiera otra la elige en Temas.
  * v3 (25-sep-2026): «Pixel» con la LETRA DE SIEMPRE (Montserrat): la v2 traía también una
