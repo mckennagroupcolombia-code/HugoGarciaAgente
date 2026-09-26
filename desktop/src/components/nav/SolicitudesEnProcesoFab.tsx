@@ -50,7 +50,8 @@ export default function SolicitudesEnProcesoFab() {
   useEffect(() => {
     if (enCentroMando) setAbierta(false);
   }, [enCentroMando]);
-  if (!user || enCentroMando || enProceso.length === 0) return null;
+  // En el Mapa lo muestra «Tu día» (TuDia.tsx): flotando encima, tapaba esa columna y lo repetía.
+  if (!user || enCentroMando || panel === "mapa-vivo" || enProceso.length === 0) return null;
   if (typeof document === "undefined") return null;
 
   function irA(c?: Conversacion) {

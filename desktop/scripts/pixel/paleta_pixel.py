@@ -148,8 +148,15 @@ def regla(clase: str, oscuro: bool) -> str | None:
     if c is None:
         return None
     pseudo = "".join(VARIANTES[v] for v in variantes if v in VARIANTES)
-    raiz = 'html[data-mck-skin="pixel"]' + (".dark" if oscuro else ":not(.dark)")
-    sel = f"{raiz} .{escapar(clase)}{pseudo}"
+    # El Mapa y Colaboradores (.colab-pixel) son una ISLA CLARA: su papel crema no cambia en modo
+    # oscuro. Dentro de ella rige siempre la traducción clara; la oscura la excluye. Sin esto, en
+    # oscuro las piezas de la Agenda dentro de «Tu día» quedaban con texto oscuro sobre azul marino.
+    if oscuro:
+        raiz, isla = 'html[data-mck-skin="pixel"].dark', ":not(.colab-pixel *)"
+    else:
+        raiz, isla = ':is(html[data-mck-skin="pixel"]:not(.dark), html[data-mck-skin="pixel"].dark .colab-pixel)', ""
+    # ::placeholder es un pseudo-elemento: va al final, después del :not().
+    sel = f"{raiz} .{escapar(clase)}{isla}{pseudo}"
     if prop == "divide":
         sel += " > :not([hidden]) ~ :not([hidden])"
     return f"{sel} {{ {PROPIEDADES[prop]}: {c}; }}"

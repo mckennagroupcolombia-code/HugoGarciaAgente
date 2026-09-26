@@ -98,7 +98,8 @@ html[data-mck-skin="pixel"] .mck-title::before {
 
 /* En oscuro, el acento es fondo de botón (azul profundo, letra blanca) y NO sirve como texto
    sobre el panel: el texto de acento va en el azul brillante de la paleta (5,5:1). */
-html[data-mck-skin="pixel"].dark :is(.text-accent, .hover\:text-accent:hover) { color: #29ADFF; }
+/* (Fuera de la isla clara del Mapa/Colaboradores, donde el acento sigue siendo navy.) */
+html[data-mck-skin="pixel"].dark :is(.text-accent, .hover\:text-accent:hover):not(.colab-pixel *) { color: #29ADFF; }
 
 /* En oscuro, «peligro» y «rosa» se aclararon para leerse como TEXTO; como fondo con letra
    blanca ya no alcanzan (2,7:1): sobre ellos, letra negra. */

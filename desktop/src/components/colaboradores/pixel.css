@@ -26,6 +26,30 @@
   --mck-border-strong: 0 0 0;
   --mck-accent: 29 43 83;
   --mck-accent-hover: 126 37 83;
+  /* Las variables DERIVADAS (index.css, :root) se resuelven donde se declaran: heredadas, traían
+     el azul marino del modo oscuro aunque aquí se redefinan las de base. En la isla clara se
+     declaran de nuevo para que se calculen con sus tokens (25-sep-2026: el dólar de «Tu día»). */
+  /* Colores de estado en su tono claro (los de theme/skin-pixel.css, ≥ 4,5:1 sobre el crema). */
+  --mck-accent-sun: 143 69 0;
+  --mck-accent-sun-deep: 122 62 0;
+  --mck-accent-leaf: 0 107 63;
+  --mck-accent-leaf-deep: 0 77 46;
+  --mck-accent-sky: 11 92 168;
+  --mck-accent-sky-deep: 29 43 83;
+  --mck-accent-rose: 176 0 53;
+  --mck-accent-plum: 126 37 83;
+  --mck-success: 0 107 63;
+  --mck-danger: 176 0 53;
+  --mck-warning: 143 69 0;
+  --mck-card-bg: var(--mck-surface-panel);
+  --mck-section-bg: var(--mck-surface);
+  --mck-title: var(--mck-ink);
+  --mck-subtitle: var(--mck-muted);
+  --mck-menu-bg: var(--mck-surface-panel);
+  --mck-menu-text: var(--mck-ink-secondary);
+  --mck-menu-active-bg: var(--mck-accent);
+  --mck-submenu-bg: var(--mck-surface-panel);
+  --mck-submenu-text: var(--mck-ink-secondary);
 }
 
 .colab-pixel [class*="rounded"] { border-radius: 0 !important; }

@@ -1,3 +1,13 @@
+### 2026-09-26 01:30 - Mapa + Agenda en una sola pantalla: «Tu día»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - El Mapa es la pantalla principal y la Agenda convive con él en la columna **«Tu día»** (plegable; en el celular, hoja que sube desde abajo): lo que te pidieron (lo urgente primero, con la etapa de cada tarea), lo que puedes iniciar, tus recordatorios de hoy, pagos por confirmar, tu quincena y el dólar. Esas tres últimas son las mismas piezas de la Agenda, no copias.
+  - Tocar una tarea **lleva la cámara a su etapa y la hace destellar**; «Abrir» la abre en la Agenda. La Agenda completa sigue a un toque.
+  - Arreglos de fondo: el Mapa y Colaboradores son una «isla clara» que no cambia en modo oscuro; ahora sus piezas internas usan siempre la traducción clara y sus propias variables (antes, en oscuro, el dólar quedaba ilegible). La pestaña del celular quedaba debajo del lienzo por la regla global de botones.
+  - Verificado con toques reales (escritorio y celular: tarea → etapa a la vista, Abrir → Agenda, plegar/desplegar, hoja) y contraste: 0 de 492 textos ilegibles en claro y en oscuro.
+- **Archivos Modificados:** `desktop/src/components/{TuDia.tsx,MapaVivo.tsx,mapa-vivo.css,colaboradores/pixel.css,nav/SolicitudesEnProcesoFab.tsx}`, `desktop/scripts/pixel/paleta_pixel.py`, `desktop/src/theme/{skin-pixel.css,skin-pixel-paleta.css}`, `CLAUDE.md`.
+
 ### 2026-09-26 00:30 - Mapa: lo urgente titila, y cada quien ve lo suyo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

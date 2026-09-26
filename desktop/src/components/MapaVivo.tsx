@@ -37,6 +37,7 @@ import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { puedeVerTabInicio } from "./nav/InicioNavTabs";
 import { Sprite, type SpriteId } from "./colaboradores/pixel";
+import TuDia, { type RecordatorioTuDia, type TareaTuDia } from "./TuDia";
 
 // ─── Datos vivos ─────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ type Bloqueos = { por_etapa: Record<string, { alta: number; media: number; items
 type Ticket = { id: number; titulo?: string | null; categoria?: string | null; asignado_a?: number | null; prioridad?: string | null };
 /** Lo que titila en un panel: cuántas cosas urgentes y por qué (para el título al pasar). */
 type Urgencia = { n: number; porque: string[] };
-type Recordatorio = { proxima_fecha?: string | null };
+type Recordatorio = RecordatorioTuDia;
 
 /** Lo mismo que carga la Agenda (TicketsPanel.cargar), con el token de la persona. */
 async function ticketsGet<T>(ruta: string, token: string): Promise<T> {
@@ -80,6 +81,7 @@ const NIVELES = [
 ] as const;
 const CLAVE_NIVEL = "mck-mapa-vivo-nivel";
 const CLAVE_VISTA = "mck-mapa-vivo-vista";
+const CLAVE_TU_DIA = "mck-mapa-tu-dia";
 
 /** A partir de qué nivel aparece un panel (solo para administración: ve 61 paneles). */
 function nivelDe(p: Panel): number {
@@ -193,7 +195,7 @@ function CartaOrigen({ id, data }: NodeProps) {
 }
 
 function CartaEtapa({ id, data }: NodeProps) {
-  const d = data as DatosEtapa & Lados;
+  const d = data as DatosEtapa & Lados & { destello?: boolean };
   const abrir = useContext(AbrirCtx);
   const c = COLOR[d.etapa.id] ?? COLOR_DEF;
   const alta = d.bloqueos?.alta ?? 0;
@@ -203,7 +205,7 @@ function CartaEtapa({ id, data }: NodeProps) {
   const tramos = d.nivel > 0 ? d.tramos
     : d.tramos.map((t) => ({ ...t, visibles: t.visibles.filter((p) => d.urgentes[p.panel]) })).filter((t) => t.visibles.length);
   return (
-    <div className={`mv-carta ${d.participa ? "" : "mv-apagada"} ${d.mias > 0 ? "mv-camino" : ""} ${hayUrgente ? "mv-hay-urgente" : ""} ${d.ancha ? "mv-ancha" : ""}`}
+    <div className={`mv-carta ${d.participa ? "" : "mv-apagada"} ${d.mias > 0 ? "mv-camino" : ""} ${hayUrgente ? "mv-hay-urgente" : ""} ${d.destello ? "mv-destello" : ""} ${d.ancha ? "mv-ancha" : ""}`}
          data-urgente={hayUrgente ? "1" : undefined}>
       <Manijas entra={d.entra} sale={d.sale} />
       <div className="mv-cab" style={{ background: c.fondo, color: c.tinta }}>
@@ -328,6 +330,14 @@ function Mapa() {
     return Number.isInteger(v) && v >= 0 && v <= 3 && leer(CLAVE_NIVEL) !== null ? v : 1;
   });
   const cambiarNivel = (n: number) => { setNivel(n); guardar(CLAVE_NIVEL, String(n)); };
+  // «Tu día»: abierta por defecto en escritorio, plegada en el celular (tapa el mapa).
+  const [tuDiaAbierto, setTuDiaAbierto] = useState(() => {
+    const v = leer(CLAVE_TU_DIA);
+    return v === null ? !vertical : v === "1";
+  });
+  const alternarTuDia = () => setTuDiaAbierto((a) => { guardar(CLAVE_TU_DIA, a ? "0" : "1"); return !a; });
+  // La carta que «Tu día» señala destella unos segundos.
+  const [destello, setDestello] = useState<string | null>(null);
 
   // Lo detenido que ESTA persona puede atender: el servidor lo filtra por los paneles que
   // puede abrir (app/services/acceso_paneles.py), así que la ve todo el equipo interno.
@@ -344,17 +354,19 @@ function Mapa() {
     refetchInterval: 60_000,
     retry: false,
     queryFn: async () => {
-      const [sol, rec] = await Promise.allSettled([
+      const [sol, rec, acc] = await Promise.allSettled([
         ticketsGet<Ticket[]>("/?tipo=solicitud&activas=1", token!),
         ticketsGet<Recordatorio[]>("/recordatorios", token!),
+        ticketsGet<TareaTuDia[]>("/?tipo=accion&activas=1", token!),   // lo mismo que «Puedo iniciar» de la Agenda
       ]);
       const mias = (sol.status === "fulfilled" && Array.isArray(sol.value) ? sol.value : [])
         .filter((t) => t.asignado_a === user!.id);
       const hoy = new Date().toLocaleDateString("en-CA");
       // Vencen hoy o antes: el mismo criterio con que la Agenda los pone primero.
       const recordatorios = (rec.status === "fulfilled" && Array.isArray(rec.value) ? rec.value : [])
-        .filter((r) => r.proxima_fecha && r.proxima_fecha.slice(0, 10) <= hoy).length;
-      return { mias, recordatorios };
+        .filter((r) => r.proxima_fecha && r.proxima_fecha.slice(0, 10) <= hoy);
+      const acciones = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value : [];
+      return { mias, recordatorios, acciones };
     },
   });
 
@@ -424,7 +436,7 @@ function Mapa() {
       nombre: user?.nombre?.split(" ")[0] ?? "",
       pedidas: tareas.data?.mias.length ?? 0,
       urgentes: (tareas.data?.mias ?? []).filter((t) => t.prioridad === "urgente" || t.prioridad === "alta").length,
-      recordatorios: tareas.data?.recordatorios ?? 0,
+      recordatorios: tareas.data?.recordatorios.length ?? 0,
       puede: Boolean(user && puedeVerSeccionPanel(user, ORIGEN_APP.panel)),
     };
     const ns: Node[] = [];
@@ -490,8 +502,10 @@ function Mapa() {
       });
     }
     for (const n of ns) if (medidas[n.id]) n.measured = medidas[n.id];
+    // La carta que «Tu día» acaba de señalar destella un momento.
+    for (const n of ns) if (n.id === destello) n.data = { ...n.data, destello: true };
     return { nodes: ns, edges: es };
-  }, [cartas, altos, medidas, vertical, user, tareas.data]);
+  }, [cartas, altos, medidas, vertical, user, tareas.data, destello]);
 
   // La cámara: la última vista de esta persona. La primera vez, en escritorio se encuadra
   // todo; en el celular NO (nueve etapas en una pantalla angosta quedan ilegibles): la
@@ -516,8 +530,25 @@ function Mapa() {
     window.setTimeout(() => setPanel(p), reducir ? 0 : 240);
   }, [rf, setPanel]);
 
+  // Desde «Tu día»: la cámara va a la etapa de la tarea y la carta destella. En el celular la
+  // hoja tapa el mapa: se pliega para que se vea a dónde se fue.
+  const temporizadorDestello = useRef<number | null>(null);
+  const verEtapa = useCallback((etapaId: string) => {
+    if (vertical) setTuDiaAbierto(false);
+    setDestello(etapaId);
+    if (temporizadorDestello.current) window.clearTimeout(temporizadorDestello.current);
+    temporizadorDestello.current = window.setTimeout(() => setDestello(null), 2600);
+    window.setTimeout(() => void rf.fitView({ nodes: [{ id: etapaId }], padding: 0.25, maxZoom: 1.3, duration: 450 }), 30);
+  }, [rf, vertical]);
+  const colorEtapa = useCallback((id: string) => COLOR[id] ?? COLOR_DEF, []);
+
   if (!user) return null;
   const participa = cartas.filter((c) => c.participa).length;
+  const tuDia = token ? (
+    <TuDia token={token} mias={tareas.data?.mias ?? []} acciones={tareas.data?.acciones ?? []}
+           recordatorios={tareas.data?.recordatorios ?? []} abierto={tuDiaAbierto} vertical={vertical}
+           onAlternar={alternarTuDia} onVerEtapa={verEtapa} colorEtapa={colorEtapa} />
+  ) : null;
   // Cuánto titila en total y en qué cartas, para «¡Ir a lo urgente!».
   const conUrgente = cartas.filter((c) => Object.keys(c.urgentes).length > 0);
   const totalUrgente = conUrgente.reduce((s, c) => s + Object.values(c.urgentes).reduce((a, u) => a + u.n, 0), 0);
@@ -548,7 +579,8 @@ function Mapa() {
         <button type="button" className="mv-nivel" title="Ver todo el mapa"
                 onClick={() => void rf.fitView({ padding: 0.08, duration: 300 })}>Encuadrar</button>
       </div>
-      <div className="px-lienzo relative min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 gap-2">
+      <div className="px-lienzo relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <svg width="0" height="0" className="absolute" aria-hidden="true">
           <defs>
             <marker id="mv-punta" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="8" markerHeight="8" orient="auto">
@@ -579,6 +611,10 @@ function Mapa() {
         {tareas.isError && (
           <p className="mv-aviso">No se pudieron traer tus pendientes; el mapa sigue funcionando.</p>
         )}
+        {/* En el celular «Tu día» es una hoja SOBRE el lienzo; en escritorio, la columna de al lado. */}
+        {vertical && tuDia}
+      </div>
+      {!vertical && tuDia}
       </div>
     </div>
   );
