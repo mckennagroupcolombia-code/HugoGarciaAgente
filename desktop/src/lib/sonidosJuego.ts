@@ -8,9 +8,13 @@
  * Un solo escuchador en todo el documento (instalarSonidos, desde main.tsx) decide qué suena por
  * lo que se tocó: una estación del Mapa o del Edificio (su etapa sale del `data-etapa` más
  * cercano), algo urgente (alarma), «◇ Mapa» (volver), el selector Mapa · Edificio (pausa) y, con
- * la piel pixel, las pestañas dentro de los módulos (un blip). Se silencia con el botón del Mapa
- * y queda recordado en este navegador.
+ * la piel pixel, las pestañas dentro de los módulos (un blip). El menú rápido (Ctrl+K y la pestaña
+ * «Rápido» del celular) marca cada botón con `data-sonido`: suena como el apartado al que lleva.
+ * Se silencia con el botón del Mapa y queda recordado en este navegador.
  */
+import type { Panel } from "../stores/app";
+import { ubicacionDe } from "./flujoApp";
+
 const CLAVE = "mck-sonidos";
 const VOLUMEN = 0.07;
 let ctx: AudioContext | null = null;
@@ -110,6 +114,12 @@ const SONIDOS: Record<string, (c: AudioContext, t: number) => void> = {
   blip: (c, t) => nota(c, t, 1200, 0.035, "square", 0.45),
 };
 
+/** El sonido del apartado donde vive un panel (el mismo que su estación en el Mapa); blip si no es de ninguno. */
+export function sonidoDePanel(panel: Panel): string {
+  const etapa = ubicacionDe(panel)?.etapa.id;
+  return etapa && SONIDOS[etapa] ? etapa : "blip";
+}
+
 export function tocarSonido(nombre: string) {
   if (!sonidosActivos()) return;
   const hacer = SONIDOS[nombre];
@@ -132,6 +142,8 @@ export function sonidoPara(el: Element | null): string | null {
   const boton = el.closest("button, a, [role='tab']");
   if (!boton || boton.hasAttribute("data-sin-sonido")) return null;
   if (boton.classList.contains("mck-volver-mapa")) return "volver";
+  const marcado = boton.getAttribute("data-sonido");
+  if (marcado && SONIDOS[marcado]) return marcado;
   if (boton.closest(".mapa-vivo, .ed-cielo")) {
     if (boton.matches(".mv-urgente, .ed-urgente, .mv-ir-urgente")) return "urgente";
     if (boton.matches(".mv-nivel")) return "vista";

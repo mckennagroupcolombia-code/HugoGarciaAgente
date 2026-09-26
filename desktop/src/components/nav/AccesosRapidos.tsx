@@ -9,6 +9,7 @@ import { puedeVerSeccionPanel } from "../../lib/panelAccess";
 import { useNavegarPanel } from "../../hooks/useNavegarPanel";
 import { useAppStore, type Panel } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
+import { sonidoDePanel, tocarSonido } from "../../lib/sonidosJuego";
 
 interface Atajos {
   frecuentes: { panel: string; visitas: number; puntaje: number; ultima: string }[];
@@ -116,11 +117,15 @@ export default function AccesosRapidos() {
       setAbierto(false);
     } else if (e.key === "Enter") {
       const p = resultados[0] ?? (!q.trim() ? frecuentes[0] : undefined);
-      if (p) ir(p);
+      if (p) {
+        tocarSonido(sonidoDePanel(p));
+        ir(p);
+      }
     } else if (!q && /^[1-8]$/.test(e.key)) {
       const p = frecuentes[Number(e.key) - 1];
       if (p) {
         e.preventDefault();
+        tocarSonido(sonidoDePanel(p));
         ir(p);
       }
     }
@@ -131,6 +136,7 @@ export default function AccesosRapidos() {
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
+        data-sonido="vista"
         className={`mck-press flex shrink-0 items-center gap-1 rounded-full border px-2 py-1.5 text-[12px] font-bold transition ${
           abierto ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent/40 hover:text-ink"
         }`}
@@ -166,7 +172,7 @@ export default function AccesosRapidos() {
                   <ul className="space-y-1">
                     {resultados.map((p, i) => (
                       <li key={p}>
-                        <button type="button" onClick={() => ir(p)}
+                        <button type="button" onClick={() => ir(p)} data-sonido={sonidoDePanel(p)}
                           className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-surface-hover ${i === 0 ? "bg-accent/5" : ""}`}>
                           <PanelIcon panel={p} size={22} bubble={false} />
                           <span className="min-w-0 flex-1">
@@ -187,7 +193,7 @@ export default function AccesosRapidos() {
                   {frecuentes.length ? (
                     <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                       {frecuentes.map((p, i) => (
-                        <button key={p} type="button" onClick={() => ir(p)}
+                        <button key={p} type="button" onClick={() => ir(p)} data-sonido={sonidoDePanel(p)}
                           title={PANEL_INFO[p].description}
                           className={`relative flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-center transition hover:border-accent hover:bg-accent/5 ${
                             p === panelActual ? "border-accent/60 bg-accent/5" : "border-border"
@@ -209,7 +215,7 @@ export default function AccesosRapidos() {
                       <p className="mb-2 mt-4 px-1 text-[11px] font-bold uppercase tracking-wide text-muted">Volver a</p>
                       <div className="flex flex-wrap gap-1.5">
                         {recientes.map((p) => (
-                          <button key={p} type="button" onClick={() => ir(p)}
+                          <button key={p} type="button" onClick={() => ir(p)} data-sonido={sonidoDePanel(p)}
                             className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[12px] font-bold text-ink hover:border-accent hover:bg-accent/5">
                             <PanelIcon panel={p} size={16} bubble={false} />
                             {PANEL_INFO[p].label}

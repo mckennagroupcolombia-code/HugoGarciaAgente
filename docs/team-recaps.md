@@ -4223,3 +4223,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **Restauración:** «UVAS PASAS FLAME 250g» pasó al id `e74c8452d208` (con sus PNG aprobados en `etiquetas_png_aprobados.json`); la plantilla volvió desde `etiquetas_fichas.json.tmp84192` (última edición 20-sep). Respaldos en `/tmp/*.antes_restaurar_semillas.json`.
   - **Verificado:** la plantilla figura con `es_plantilla_categoria`; reinicio de `agente-pro`.
 - **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `docs/team-recaps.md` (datos: `app/data/etiquetas_fichas.json`, `app/data/etiquetas_png_aprobados.json`)
+
+### 2026-09-26 - Sonidos de juego también en el menú rápido
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (sonidos reactivos)
+- **Qué se implementó:**
+  - `sonidoPara` (`desktop/src/lib/sonidosJuego.ts`) reconoce `data-sonido` en cualquier botón; `sonidoDePanel(panel)` da el sonido del apartado donde vive el panel (`ubicacionDe`, el mismo de su estación en el Mapa) o un blip si no es de ninguno.
+  - Accesos rápidos (Ctrl+K): el botón «Rápido» suena al abrir, y cada destino (lo que más usas, resultados, «Volver a») suena como su apartado, también con Enter y las teclas 1–8.
+  - Celular, pestaña «Rápido»: las operaciones (sync facturas y XML → Facturar, stock → Abastecer, aprendizaje IA → Sistema), el aviso de preventa y los accesos a paneles.
+  - Respeta el mismo interruptor de sonido del Mapa.
+  - **Verificado:** `npm run build`; prueba en Chrome headless de `sonidoPara`/`sonidoDePanel`.
+- **Archivos Modificados:** `desktop/src/lib/sonidosJuego.ts`, `desktop/src/components/nav/AccesosRapidos.tsx`, `desktop/src/components/MobileHub.tsx` (este último queda sin commit: tiene cambios en curso de otra sesión), `docs/team-recaps.md`
