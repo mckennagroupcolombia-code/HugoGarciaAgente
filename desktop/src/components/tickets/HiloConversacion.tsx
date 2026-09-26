@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { TicketsUser } from "../../stores/ticketsAuth";
@@ -7,6 +8,7 @@ import { api } from "../../api/client";
 import { useTicketCronometro, CorridaCronometroBlock, fmtTiempo } from "../Cronometro";
 import {
   PasosSection, MaterialesSection, CategoriaBadge, PrioridadBadge, fmtDate, ticketPermiteMarcarPasos,
+  SolicitudCompraChecklist, esSolicitudCompraDelegada,
 } from "../TicketsPanel";
 import {
   useTimeline, useAdjuntosConversacion, useMarcarVisto, useEnviarMensajeConversacion,
@@ -53,21 +55,29 @@ function fusionarTimeline(eventos: TimelineEvento[], adjuntos: Adjunto[]): Timel
   return items;
 }
 
-export function Avatar({ nombre, enLinea, size = 8 }: { nombre: string | null | undefined; enLinea?: boolean; size?: number }) {
+/** `enLinea` se ignora: el punto de conexión se quitó el 23-sep-2026. */
+export function Avatar({ nombre, size = 8 }: { nombre: string | null | undefined; enLinea?: boolean; size?: number }) {
   return (
     <span
       className="relative shrink-0 flex items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent"
       style={{ width: `${size * 0.25}rem`, height: `${size * 0.25}rem` }}
     >
       {iniciales(nombre)}
-      {enLinea != null && (
-        <span
-          className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface ${enLinea ? "bg-emerald-500" : "bg-muted/30"}`}
-        />
-      )}
     </span>
   );
 }
+
+/** Confirmación propia de la app. `confirm()`/`prompt()` del navegador no se
+ *  dibujan en el modo instalado (PWA / webview del móvil): el texto llegaba a
+ *  aparecer sin botones, así que "Marcar resuelta" no se podía aceptar. */
+type Dialogo = {
+  titulo: string;
+  detalle?: string;
+  okLabel: string;
+  tono: "ok" | "aviso" | "peligro";
+  campo?: { placeholder: string; obligatorio: boolean; vacioMsg?: string };
+  onConfirmar: (texto: string) => void | Promise<void>;
+};
 
 export default function HiloConversacion({
   ticketId, token, user, enLineaIds, onCerrar,
@@ -96,6 +106,10 @@ export default function HiloConversacion({
   const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [msg, setMsg] = useState("");
+  const [dialogo, setDialogo] = useState<Dialogo | null>(null);
+  const [dialogoTexto, setDialogoTexto] = useState("");
+  const [dialogoError, setDialogoError] = useState("");
+  const [dialogoOcupado, setDialogoOcupado] = useState(false);
   // Pedir intervención — pausa la solicitud y crea una sub-solicitud a otro usuario
   // (o al mismo solicitante), o invita a alguien a colaborar sin pausar. Todo queda
   // en la misma pantalla del chat, sin navegar a otra vista.
@@ -145,6 +159,10 @@ export default function HiloConversacion({
     || ticket.soporte_archivo,
   );
   const puedePreguntarCreador = !esCreadoPorMi && ticket.creado_por != null;
+  // Las solicitudes de compra se cierran marcando cada producto (comprado o "no se
+  // consiguió" con motivo); el backend rechaza "resuelto" mientras quede alguno
+  // pendiente. Sin esta lista aquí, el hilo mostraba ese error sin dónde marcar.
+  const esCompra = esSolicitudCompraDelegada(ticket);
   const companeros = equipo.filter((u) => u.id !== user.id);
 
   async function enviarMensaje() {
@@ -160,30 +178,72 @@ export default function HiloConversacion({
     }
   }
 
-  async function marcarResuelto() {
-    if (!confirm(`¿Marcar "${ticket!.titulo}" como resuelta?`)) return;
-    try { await cambiarEstado.mutateAsync({ ticketId, body: { estado: "resuelto" } }); }
+  function abrirDialogo(d: Dialogo) {
+    setDialogoTexto("");
+    setDialogoError("");
+    setDialogo(d);
+  }
+  async function confirmarDialogo() {
+    if (!dialogo || dialogoOcupado) return;
+    const texto = dialogoTexto.trim();
+    if (dialogo.campo?.obligatorio && !texto) {
+      setDialogoError(dialogo.campo.vacioMsg ?? "Completa este campo.");
+      return;
+    }
+    setDialogoOcupado(true);
+    try {
+      await dialogo.onConfirmar(dialogoTexto);
+      setDialogo(null);
+    } finally {
+      setDialogoOcupado(false);
+    }
+  }
+  async function cambiar(body: Record<string, unknown>) {
+    try { await cambiarEstado.mutateAsync({ ticketId, body }); }
     catch (e) { setMsg(e instanceof Error ? e.message : "Error"); setTimeout(() => setMsg(""), 4000); }
   }
-  async function pedirCambios() {
-    const motivo = prompt(
-      `¿Qué falta o qué debería cambiar en "${ticket!.titulo}"? Esto la reabre y se lo notifica a ${contraparteNombre}.`,
-    );
-    if (motivo == null) return; // canceló
-    if (!motivo.trim()) { setMsg("Escribe qué necesitas que se corrija o agregue."); setTimeout(() => setMsg(""), 3500); return; }
-    try { await cambiarEstado.mutateAsync({ ticketId, body: { estado: "pendiente", motivo: motivo.trim() } }); }
-    catch (e) { setMsg(e instanceof Error ? e.message : "Error"); setTimeout(() => setMsg(""), 4000); }
+
+  function marcarResuelto() {
+    abrirDialogo({
+      titulo: "¿Marcar como resuelta?",
+      detalle: ticket!.titulo,
+      okLabel: "Sí, marcar resuelta",
+      tono: "ok",
+      onConfirmar: () => cambiar({ estado: "resuelto" }),
+    });
   }
-  async function aprobar() {
-    if (!confirm(`¿Aprobar y cerrar "${ticket!.titulo}"?`)) return;
-    try { await cambiarEstado.mutateAsync({ ticketId, body: { estado: "resuelto" } }); }
-    catch (e) { setMsg(e instanceof Error ? e.message : "Error"); setTimeout(() => setMsg(""), 4000); }
+  function pedirCambios() {
+    abrirDialogo({
+      titulo: "Pedir cambios",
+      detalle: `¿Qué falta o qué debería cambiar en "${ticket!.titulo}"? Esto la reabre y se lo notifica a ${contraparteNombre}.`,
+      okLabel: "Pedir cambios",
+      tono: "aviso",
+      campo: {
+        placeholder: "Qué necesitas que se corrija o agregue",
+        obligatorio: true,
+        vacioMsg: "Escribe qué necesitas que se corrija o agregue.",
+      },
+      onConfirmar: (motivo) => cambiar({ estado: "pendiente", motivo: motivo.trim() }),
+    });
   }
-  async function rechazar() {
-    const motivo = prompt("Motivo del rechazo (opcional):");
-    if (motivo === null) return;
-    try { await cambiarEstado.mutateAsync({ ticketId, body: { estado: "rechazado", motivo: motivo.trim() || undefined } }); }
-    catch (e) { setMsg(e instanceof Error ? e.message : "Error"); setTimeout(() => setMsg(""), 4000); }
+  function aprobar() {
+    abrirDialogo({
+      titulo: "¿Aprobar y cerrar?",
+      detalle: ticket!.titulo,
+      okLabel: "Aprobar y cerrar",
+      tono: "ok",
+      onConfirmar: () => cambiar({ estado: "resuelto" }),
+    });
+  }
+  function rechazar() {
+    abrirDialogo({
+      titulo: "Rechazar la solicitud",
+      detalle: ticket!.titulo,
+      okLabel: "Rechazar",
+      tono: "peligro",
+      campo: { placeholder: "Motivo del rechazo (opcional)", obligatorio: false },
+      onConfirmar: (motivo) => cambiar({ estado: "rechazado", motivo: motivo.trim() || undefined }),
+    });
   }
   async function tomarla() {
     try { await asignar.mutateAsync({ ticketId, asignadoA: user.id }); }
@@ -337,7 +397,7 @@ export default function HiloConversacion({
             )
           )
         )}
-        {esAsignado && !resuelta && !esAccion && ticket.estado !== "esperando_aprobacion" && !bloqueada && (
+        {esAsignado && !resuelta && !esAccion && !esCompra && ticket.estado !== "esperando_aprobacion" && !bloqueada && (
           <button type="button" onClick={marcarResuelto} className="rounded-full bg-emerald-600/15 px-2.5 py-1 text-[12px] font-bold text-emerald-600 hover:bg-emerald-600/25">
             ✓ Marcar resuelta
           </button>
@@ -348,7 +408,7 @@ export default function HiloConversacion({
             onClick={() => (pedirAbierto ? setPedirAbierto(false) : abrirPedirIntervencion())}
             className={`rounded-full px-2.5 py-1 text-[12px] font-bold ${pedirAbierto ? "bg-accent/20 text-accent" : "bg-muted/10 text-muted hover:bg-muted/20 hover:text-ink"}`}
           >
-            🙋 Pedir intervención
+            <Ico e="🙋" /> Pedir intervención
           </button>
         )}
         {esCreadoPorMi && ticket.estado === "esperando_aprobacion" && (
@@ -368,7 +428,7 @@ export default function HiloConversacion({
         )}
         {bloqueada && (
           <span className="rounded-full bg-muted/10 px-2.5 py-1 text-[12px] font-semibold text-muted">
-            🔒 En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
+            <Ico e="🔒" /> En pausa{ticket.bloqueado_por_asignado_nombre ? ` — esperando a ${ticket.bloqueado_por_asignado_nombre}` : ""}
             {ticket.bloqueado_por_numero ? ` (${ticket.bloqueado_por_numero})` : ""}
           </span>
         )}
@@ -392,7 +452,7 @@ export default function HiloConversacion({
               onClick={() => setModoInter("pausar")}
               className={`rounded-xl border px-3 py-2 text-left transition ${modoInter === "pausar" ? "border-accent/50 bg-accent/10" : "border-border hover:border-accent/40"}`}
             >
-              <p className="text-[12px] font-bold text-ink">🛑 Pausar y delegar</p>
+              <p className="text-[12px] font-bold text-ink"><Ico e="🛑" /> Pausar y delegar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Crea una sub-solicitud. Ésta queda bloqueada hasta que la resuelvan.</p>
             </button>
             <button
@@ -400,7 +460,7 @@ export default function HiloConversacion({
               onClick={() => setModoInter("colaborar")}
               className={`rounded-xl border px-3 py-2 text-left transition ${modoInter === "colaborar" ? "border-accent/50 bg-accent/10" : "border-border hover:border-accent/40"}`}
             >
-              <p className="text-[12px] font-bold text-ink">👥 Invitar a colaborar</p>
+              <p className="text-[12px] font-bold text-ink"><Ico e="👥" /> Invitar a colaborar</p>
               <p className="mt-0.5 text-[11px] text-muted leading-snug">Comparte el hilo sin pausar. Puede ver y escribir aquí mismo.</p>
             </button>
           </div>
@@ -460,12 +520,27 @@ export default function HiloConversacion({
                 target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-xl border border-border px-2.5 py-1 text-[12px] font-semibold text-accent hover:border-accent/50"
               >
-                📎 Ver adjunto de apertura
+                <Ico e="📎" /> Ver adjunto de apertura
               </a>
             )}
             <p className="text-[11px] text-muted">
               Creado {fmtDate(ticket.creado_en)} por {ticket.creado_por_nombre ?? "—"}
             </p>
+          </div>
+        )}
+        {esCompra && (
+          <div className="mb-2 rounded-xl border border-accent/40 bg-surface p-3 shadow-sm">
+            <SolicitudCompraChecklist
+              ticket={ticket}
+              token={token}
+              user={user}
+              onChanged={() => {
+                void qc.invalidateQueries({ queryKey: ["tickets-resumen", ticketId] });
+                void qc.invalidateQueries({ queryKey: ["tickets-timeline", ticketId] });
+                void qc.invalidateQueries({ queryKey: ["tickets-conversaciones"] });
+              }}
+              supervision={!esAsignado}
+            />
           </div>
         )}
         {(ticket.pasos_total ?? 0) > 0 && (
@@ -624,6 +699,56 @@ export default function HiloConversacion({
             : noIniciada
               ? "Dale ▶ Iniciar arriba para poder escribir o adjuntar archivos."
               : "Esta conversación ya está cerrada."}
+        </div>
+      )}
+
+      {dialogo && (
+        <div
+          className="absolute inset-0 z-40 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => !dialogoOcupado && setDialogo(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-border bg-surface p-4 shadow-xl space-y-3"
+          >
+            <p className="text-sm font-extrabold text-ink">{dialogo.titulo}</p>
+            {dialogo.detalle && <p className="text-[12px] leading-snug text-muted">{dialogo.detalle}</p>}
+            {dialogo.campo && (
+              <textarea
+                autoFocus
+                value={dialogoTexto}
+                onChange={(e) => { setDialogoTexto(e.target.value); setDialogoError(""); }}
+                placeholder={dialogo.campo.placeholder}
+                rows={3}
+                className="w-full resize-none rounded-xl border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent/50"
+              />
+            )}
+            {dialogoError && <p className="text-[12px] text-rose-500">{dialogoError}</p>}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDialogo(null)}
+                disabled={dialogoOcupado}
+                className="rounded-full px-3 py-1.5 text-[12px] font-semibold text-muted hover:text-ink disabled:opacity-40"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmarDialogo()}
+                disabled={dialogoOcupado}
+                className={`rounded-full px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-40 ${
+                  dialogo.tono === "peligro" ? "bg-rose-600 hover:bg-rose-700"
+                    : dialogo.tono === "aviso" ? "bg-amber-500 hover:bg-amber-600"
+                      : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {dialogoOcupado ? "Guardando…" : dialogo.okLabel}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

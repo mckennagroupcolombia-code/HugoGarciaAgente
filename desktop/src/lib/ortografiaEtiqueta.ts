@@ -52,6 +52,7 @@ const CAMPOS_SIN_CORRECTOR = new Set<string>([
   "technicalDocuments",
   "cucharaCantidad",
   "cucharaUnidad",
+  "cucharaUtensilio",
   "esloganLogo",
 ]);
 
@@ -219,11 +220,12 @@ const CAMPOS_REVISADOS: readonly { campo: keyof ProductLabelData; titulo: string
   { campo: "productName", titulo: "Nombre del producto" },
   { campo: "classification", titulo: "Clasificación" },
   { campo: "clasificacionTexto", titulo: "Clasificación SGA" },
+  { campo: "modoUso", titulo: "Modo de uso" },
   { campo: "grade", titulo: "Grado" },
   { campo: "gradoInsumo", titulo: "Grado del insumo" },
   { campo: "origin", titulo: "Origen" },
   { campo: "appearance", titulo: "Apariencia" },
-  { campo: "odor", titulo: "Olor" },
+  { campo: "odor", titulo: "Aroma" },
   { campo: "storage", titulo: "Conservación" },
   { campo: "alergenos", titulo: "Alérgenos" },
   { campo: "city", titulo: "Ciudad" },

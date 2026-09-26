@@ -200,6 +200,34 @@ def _coincide_archivo(nombre_producto: str, ref: str, archivo: str) -> bool:
     return False
 
 
+_OPUESTAS = (("fino", "grueso"), ("refinada", "natural"), ("refinado", "natural"), ("blanca", "amarilla"))
+
+
+def _mejor_coincidencia(nombre_producto: str, ref: str, archivos: list[str]) -> str | None:
+    """Entre los archivos que coinciden, el que comparte más palabras con el producto.
+
+    Con quedarse con el primero, una palabra suelta enlazaba mal: «SABOR CARNE AHUMADA» tomaba el
+    documento de «SAL AHUMADA GRUESA…» solo por «AHUMADA». La referencia en el nombre gana siempre.
+    """
+    ref_u = (ref or "").upper().replace("-", "")
+    claves = _palabras_clave(nombre_producto)
+    # No puede traer la palabra contraria: «GRANO GRUESO» no es «GRANO FINO».
+    contrarias = {b for x, y in _OPUESTAS for a_, b in ((x, y), (y, x)) if a_ in claves}
+    mejor, puntos_mejor = None, -1
+    for archivo in archivos:
+        if not _coincide_archivo(nombre_producto, ref, archivo):
+            continue
+        if ref_u and ref_u in archivo.upper().replace("-", ""):
+            return archivo
+        arch_norm = normalizar_nombre_producto(archivo)
+        if set(arch_norm.split()) & contrarias:
+            continue
+        puntos = sum(1 for c in claves if c in arch_norm)
+        if puntos > puntos_mejor:
+            mejor, puntos_mejor = archivo, puntos
+    return mejor
+
+
 def _indice_biblioteca(*, forzar: bool = False) -> list[dict]:
     """Documentos FT (simples en pdf/ y completos FT+COA+SDS en completo/)."""
     now = time.time()
@@ -223,16 +251,15 @@ def _indice_biblioteca(*, forzar: bool = False) -> list[dict]:
 
 def _buscar_ficha_tecnica_biblioteca(nombre: str, ref: str, biblioteca: list[dict]) -> dict | None:
     """Enlaza con el catálogo según el título de la ficha técnica ya elaborada (biblioteca local)."""
-    for archivo in biblioteca:
-        nombre_archivo = archivo.get("nombre") or ""
-        if _coincide_archivo(nombre, ref, nombre_archivo):
-            return {
-                "tiene": True,
-                "origen": "ficha_tecnica_generada",
-                "webViewLink": None,
-                "nombre_archivo": nombre_archivo,
-            }
-    return None
+    nombre_archivo = _mejor_coincidencia(nombre, ref, [a.get("nombre") or "" for a in biblioteca])
+    if not nombre_archivo:
+        return None
+    return {
+        "tiene": True,
+        "origen": "ficha_tecnica_generada",
+        "webViewLink": None,
+        "nombre_archivo": nombre_archivo,
+    }
 
 
 def _buscar_en_indice(
@@ -242,18 +269,20 @@ def _buscar_en_indice(
     *,
     prefijo: str = "",
 ) -> dict | None:
-    for f in indice:
-        fname = f.get("name") or ""
-        if prefijo and not fname.upper().startswith(prefijo.upper()):
-            continue
-        if _coincide_archivo(nombre, ref, fname):
-            return {
-                "drive_id": f.get("id"),
-                "webViewLink": f.get("webViewLink"),
-                "nombre_archivo": fname,
-                "origen": "drive_indice",
-            }
-    return None
+    candidatos = [
+        f for f in indice
+        if not prefijo or (f.get("name") or "").upper().startswith(prefijo.upper())
+    ]
+    elegido = _mejor_coincidencia(nombre, ref, [f.get("name") or "" for f in candidatos])
+    if not elegido:
+        return None
+    f = next(f for f in candidatos if (f.get("name") or "") == elegido)
+    return {
+        "drive_id": f.get("id"),
+        "webViewLink": f.get("webViewLink"),
+        "nombre_archivo": elegido,
+        "origen": "drive_indice",
+    }
 
 
 def _doc_asociado(ref: str, tipo: str, productos_map: dict) -> dict | None:

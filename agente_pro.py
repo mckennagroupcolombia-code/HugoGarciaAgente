@@ -105,10 +105,88 @@ def create_app():
         print(f"⚠️ Proveedores: {e}")
 
     try:
+        from app.routes_precios_trm import register_precios_trm_routes
+        register_precios_trm_routes(app)
+    except Exception as e:
+        print(f"⚠️ Precios TRM: {e}")
+
+    try:
+        from app.routes_ventas_directas import register_ventas_directas_routes
+        register_ventas_directas_routes(app)
+    except Exception as e:
+        print(f"⚠️ Ventas directas: {e}")
+
+    try:
+        from app.routes_entregas_flex import register_entregas_flex_routes
+        register_entregas_flex_routes(app)
+    except Exception as e:
+        print(f"⚠️ Entregas Flex: {e}")
+
+    try:
+        from app.routes_colaboradores import register_colaboradores_routes
+        register_colaboradores_routes(app)
+    except Exception as e:
+        print(f"⚠️ Colaboradores: {e}")
+
+    try:
+        from app.routes_mapa_sistema import register_mapa_sistema_routes
+        register_mapa_sistema_routes(app)
+    except Exception as e:
+        print(f"⚠️ Mapa del sistema: {e}")
+
+    try:
+        from app.routes_canales import register_canales_routes
+        register_canales_routes(app)
+    except Exception as e:
+        print(f"⚠️ Canales internos: {e}")
+
+    try:
+        from app.routes_recepciones import register_recepciones_routes
+        register_recepciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Recepción de mercancía: {e}")
+
+    try:
+        from app.routes_insumos import register_insumos_routes
+        register_insumos_routes(app)
+    except Exception as e:
+        print(f"⚠️ Insumos: {e}")
+
+    try:
+        from app.routes_canales_producto import register_canales_producto_routes
+        register_canales_producto_routes(app)
+    except Exception as e:
+        print(f"⚠️ Canales del producto: {e}")
+
+    try:
+        from app.routes_grabaciones import register_grabaciones_routes
+        register_grabaciones_routes(app)
+    except Exception as e:
+        print(f"⚠️ Grabaciones de pantalla: {e}")
+
+    try:
         from app.routes_anulaciones import register_anulaciones_routes
         register_anulaciones_routes(app)
     except Exception as e:
         print(f"⚠️ Anulaciones / notas crédito: {e}")
+
+    try:
+        from app.routes_conciliacion import register_conciliacion_routes
+        register_conciliacion_routes(app)
+    except Exception as e:
+        print(f"⚠️ Conciliación contador: {e}")
+
+    try:
+        from app.routes_arquitectura import register_arquitectura_routes
+        register_arquitectura_routes(app)
+    except Exception as e:
+        print(f"⚠️ Arquitectura del código: {e}")
+
+    try:
+        from app.routes_declarador import register_declarador_routes
+        register_declarador_routes(app)
+    except Exception as e:
+        print(f"⚠️ Declarador · socios: {e}")
 
     try:
         from app.routes_cron import register_cron_routes
@@ -174,13 +252,30 @@ def create_app():
             import threading
             import time as _time
 
-            from app.services.facturacion_ventas_unificado import listar_ventas_meli_unificado
+            from app.services.facturacion_ventas_unificado import _lanzar_recalculo
+
+            def _prewarm_base_alegra_loop():
+                # La base completa de facturas (búsqueda puntual, botón 🔄,
+                # revalidación): sin ella, la primera consulta tras un reinicio
+                # la bajaba dentro de la petición (~90 s → 504).
+                from app.services.facturacion_ventas_unificado import calentar_base_alegra
+
+                _time.sleep(5)
+                while True:
+                    try:
+                        calentar_base_alegra()
+                    except Exception as _e:
+                        print(f"⚠️ Precalentamiento base Alegra: {_e}")
+                    _time.sleep(1800)
+
+            threading.Thread(target=_prewarm_base_alegra_loop, daemon=True, name="facturacion-base-alegra").start()
 
             def _prewarm_facturacion_loop():
                 _time.sleep(25)  # deja que el resto del arranque termine primero
                 while True:
                     try:
-                        listar_ventas_meli_unificado(dias=7, segmento="concretadas", limite=30, forzar=True)
+                        # Mismo hilo que usa el panel: nunca dos cálculos de la misma vista a la vez.
+                        _lanzar_recalculo(7, "concretadas", 30, True).join()
                     except Exception as _e:
                         print(f"⚠️ Precalentamiento Facturación: {_e}")
                     _time.sleep(50)

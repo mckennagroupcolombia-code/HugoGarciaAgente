@@ -584,8 +584,50 @@ def _paginar_items_alegra(*, tipo: str | None = None) -> list[dict]:
     return out
 
 
+# Si un sync "completo" viera desaparecer más de esta fracción de los activos,
+# se asume anomalía de la API y no se marca nada (evita inactivar medio catálogo).
+_MAX_FRACCION_DESAPARECIDOS = 0.4
+
+
+def _marcar_desaparecidos(vistos: set[str], now: str) -> int:
+    """Marca 'inactive' los ítems locales activos que Alegra ya no devuelve.
+
+    Solo se llama cuando AMBAS paginaciones terminaron completas y sin error
+    (si `_paginar_items_alegra` falla, lanza y nunca se llega aquí). No borra
+    filas: distinguir "inactivo" de "no existe" le importa a la facturación.
+    """
+    if not vistos:
+        return 0
+    cdb._ensure()
+    with cdb._conn() as con:
+        filas = con.execute(
+            "SELECT reference FROM alegra_items WHERE status = 'active'"
+        ).fetchall()
+        activos = [str(r["reference"]) for r in filas]
+        faltan = [ref for ref in activos if ref not in vistos]
+        if not faltan:
+            return 0
+        if len(faltan) > max(20, int(len(activos) * _MAX_FRACCION_DESAPARECIDOS)):
+            print(
+                f"⚠️ Catálogo Alegra: {len(faltan)} de {len(activos)} activos no vinieron "
+                "en el sync; parece anomalía de la API, no se marca ninguno como inactivo."
+            )
+            return 0
+        for ref in faltan:
+            con.execute(
+                "UPDATE alegra_items SET status = 'inactive', updated_at = ? "
+                "WHERE reference = ?",
+                (now, ref),
+            )
+        return len(faltan)
+
+
 def sincronizar_catalogo_alegra(*, en_hilo: bool = False) -> dict[str, Any]:
-    """Sincroniza productos (simple) y kits activos desde Alegra a SQLite."""
+    """Sincroniza productos (simple) y kits desde Alegra a SQLite.
+
+    Además marca 'inactive' lo que desapareció del listado (ver
+    `_marcar_desaparecidos`), para que la copia local sirva para decidir
+    facturabilidad sin llamadas en vivo."""
     if en_hilo:
         with _sync_lock:
             if _sync_estado.get("running"):
@@ -643,16 +685,23 @@ def sincronizar_catalogo_alegra(*, en_hilo: bool = False) -> dict[str, Any]:
         now = _now_iso()
         n_prod = 0
         n_kit = 0
+        vistos: set[str] = set()
         for raw in productos_raw:
-            if (raw.get("status") or "active") != "active":
-                continue
+            ref = str(raw.get("reference") or "").strip()
+            if ref:
+                vistos.add(ref)
+            # Los no activos también se upsertan: así el espejo local conoce su status real.
             upsert_item_desde_alegra(raw)
-            n_prod += 1
+            if (raw.get("status") or "active") == "active":
+                n_prod += 1
         for raw in kits_raw:
-            if (raw.get("status") or "active") != "active":
-                continue
+            ref = str(raw.get("reference") or "").strip()
+            if ref:
+                vistos.add(ref)
             upsert_item_desde_alegra(raw)
-            n_kit += 1
+            if (raw.get("status") or "active") == "active":
+                n_kit += 1
+        desaparecidos = _marcar_desaparecidos(vistos, now)
         with _sync_lock:
             _sync_estado.update({
                 "running": False,
@@ -662,7 +711,8 @@ def sincronizar_catalogo_alegra(*, en_hilo: bool = False) -> dict[str, Any]:
                 "productos": n_prod,
                 "kits": n_kit,
                 "total": n_prod + n_kit,
-                "mensaje": f"OK: {n_prod} productos, {n_kit} combos",
+                "mensaje": f"OK: {n_prod} productos, {n_kit} combos"
+                + (f", {desaparecidos} pasaron a inactivos" if desaparecidos else ""),
             })
         return {
             **estado_sync(),
@@ -670,6 +720,7 @@ def sincronizar_catalogo_alegra(*, en_hilo: bool = False) -> dict[str, Any]:
             "productos": n_prod,
             "kits": n_kit,
             "total": n_prod + n_kit,
+            "desaparecidos": desaparecidos,
             "synced_at": ultima_sync_at(),
         }
     except Exception as e:

@@ -5,9 +5,11 @@ import { PanelIcon } from "../../icons/PanelIcon";
 import { Icon } from "../../icons";
 import { guardarUltimoPanelHub } from "../../lib/hubNav";
 import { HUB_TAB_LABEL, hubTabClass } from "../../lib/hubTabClass";
+import { panelDeInicio, puedeVerSeccionPanel } from "../../lib/panelAccess";
 import ScrollableTabList from "./ScrollableTabList";
 
-function puedeVerTabInicio(
+/** Quién ve cada vista de la Agenda. La usan también las cartas del Mapa (MapaVivo): una sola regla. */
+export function puedeVerTabInicio(
   permisos: Record<string, boolean> | null | undefined,
   nivel: number,
   tab: string,
@@ -18,10 +20,12 @@ function puedeVerTabInicio(
 }
 
 /**
- * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Métricas.
+ * Navegación de Agenda en el cabezote (izquierda): Agenda / Mensajes / Colaboradores / Juegos / Métricas / Mapa.
  * Sustituye el título "Agenda" para no repetir el texto.
+ * `soloVistas`: con la navegación por flujo, Métricas y Mapa ya están en la secuencia del
+ * cabezote; aquí quedan solo las vistas DENTRO de la Agenda (Agenda / Mensajes).
  */
-export default function InicioNavTabs() {
+export default function InicioNavTabs({ soloVistas = false }: { soloVistas?: boolean }) {
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const setPanel = useAppStore((s) => s.setPanel);
@@ -37,12 +41,31 @@ export default function InicioNavTabs() {
   const showSolicitudes = puedeVerTabInicio(permisos, nivel, "solicitudes");
   const showMensajes = showAcciones || showSolicitudes;
 
+  // El mapa de la aplicación es la otra forma de llegar a todo: por secuencia, no por menú.
+  const showMapa = !soloVistas && Boolean(user && puedeVerSeccionPanel(user, "mapa-sistema"));
+  const mapaActivo = panel === "mapa-sistema";
+
+  // Colaboradores vive DENTRO de la Agenda (no es una etapa del negocio), así que
+  // en el flujo no aparecía por ningún lado: solo por Ctrl+K. Va aquí, con las demás
+  // vistas de la Agenda, también en `soloVistas`.
+  const showColaboradores = Boolean(user && puedeVerSeccionPanel(user, "colaboradores"));
+  const colaboradoresActivo = panel === "colaboradores";
+  const showEquipo = Boolean(user && puedeVerSeccionPanel(user, "chat-equipo"));
+  const equipoActivo = panel === "chat-equipo";
+  const showJuegos = Boolean(user && puedeVerSeccionPanel(user, "juegos"));
+  const juegosActivo = panel === "juegos";
+
   useEffect(() => {
     if (panel === "dashboard") guardarUltimoPanelHub("inicio", "dashboard");
+    else if (panel === "mapa-sistema") guardarUltimoPanelHub("inicio", "mapa-sistema");
+    else if (panel === "colaboradores") guardarUltimoPanelHub("inicio", "colaboradores");
+    else if (panel === "juegos") guardarUltimoPanelHub("inicio", "juegos");
     else if (enAgenda) guardarUltimoPanelHub("inicio", "hugo");
   }, [panel, enAgenda]);
 
   function irAgenda() {
+    // La portada de la Agenda ya no es una pantalla: la primera pestaña lleva al Mapa.
+    if (panelDeInicio(user) === "mapa-vivo") { setPanel("mapa-vivo"); return; }
     setAccionesBootTab(null);
     setTicketsBootView("home");
     setCentroMandoView("home");
@@ -69,7 +92,7 @@ export default function InicioNavTabs() {
   );
   const metricasActiva = panel === "dashboard";
   // Métricas del equipo: solo tiene sentido para quien administra la operación.
-  const showMetricas = nivel >= 3;
+  const showMetricas = !soloVistas && nivel >= 3;
   const tabClass = (selected: boolean) => hubTabClass(selected, "mck-hub-tab-etiquetado flex-col");
 
   return (
@@ -78,13 +101,13 @@ export default function InicioNavTabs() {
         type="button"
         role="tab"
         aria-selected={agendaActiva}
-        aria-label="Agenda"
-        title="Agenda"
+        aria-label={panelDeInicio(user) === "mapa-vivo" ? "Mapa" : "Agenda"}
+        title={panelDeInicio(user) === "mapa-vivo" ? "Volver al mapa" : "Agenda"}
         onClick={irAgenda}
         className={tabClass(agendaActiva)}
       >
         <Icon name="target" size={22} weight="bold" />
-        <span className={HUB_TAB_LABEL}>Agenda</span>
+        <span className={HUB_TAB_LABEL}>{panelDeInicio(user) === "mapa-vivo" ? "Mapa" : soloVistas ? "Mi día" : "Agenda"}</span>
       </button>
       {showMensajes && (
         <button
@@ -100,6 +123,48 @@ export default function InicioNavTabs() {
           <span className={HUB_TAB_LABEL}>Mensajes</span>
         </button>
       )}
+      {showEquipo && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={equipoActivo}
+          aria-label="Chat del equipo"
+          title="Chat del equipo — lo que antes iba a los grupos de WhatsApp"
+          onClick={() => setPanel("chat-equipo")}
+          className={tabClass(equipoActivo)}
+        >
+          <PanelIcon panel="chat-equipo" size={22} active={equipoActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Equipo</span>
+        </button>
+      )}
+      {showColaboradores && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={colaboradoresActivo}
+          aria-label="Colaboradores"
+          title="Colaboradores — diagramas compartidos"
+          onClick={() => setPanel("colaboradores")}
+          className={tabClass(colaboradoresActivo)}
+        >
+          <PanelIcon panel="colaboradores" size={22} active={colaboradoresActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Colaboradores</span>
+        </button>
+      )}
+      {showJuegos && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={juegosActivo}
+          aria-label="Juegos"
+          title="Juegos — un rato de descanso"
+          onClick={() => setPanel("juegos")}
+          className={tabClass(juegosActivo)}
+        >
+          <PanelIcon panel="juegos" size={22} active={juegosActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Juegos</span>
+        </button>
+      )}
       {showMetricas && (
         <button
           type="button"
@@ -112,6 +177,20 @@ export default function InicioNavTabs() {
         >
           <PanelIcon panel="dashboard" size={22} active={metricasActiva} bubble={false} />
           <span className={HUB_TAB_LABEL}>Métricas</span>
+        </button>
+      )}
+      {showMapa && (
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mapaActivo}
+          aria-label="Mapa de la aplicación"
+          title="Mapa de la aplicación"
+          onClick={() => setPanel("mapa-sistema")}
+          className={tabClass(mapaActivo)}
+        >
+          <PanelIcon panel="mapa-sistema" size={22} active={mapaActivo} bubble={false} />
+          <span className={HUB_TAB_LABEL}>Mapa</span>
         </button>
       )}
     </ScrollableTabList>

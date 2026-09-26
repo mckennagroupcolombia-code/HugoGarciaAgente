@@ -791,10 +791,18 @@ def registrar_pago_cuota(
         ).fetchone()["cuenta_por_pagar_id"] or cc._cuenta_id_por_codigo(
             con, _cuenta_pasivo_codigo(tercero)
         )
-        cuenta_gasto_id = cc._cuenta_id_por_codigo(con, "5305")
-        cuenta_ret_id = cc._cuenta_id_por_codigo(con, "2365")
+        # PUC real (sep-2026): el interés de un mutuo es 530520 «Intereses»,
+        # subcuenta de 5305 Financieros, y la retención del 7% es 236535
+        # «Rendimientos financieros». Ojo: 236515 NO es rendimientos — es
+        # honorarios; llevarla ahí le daña el renglón del 350 al contador.
+        from app.services import puc_colombia as _puc
+
+        cuenta_gasto_id = cc._cuenta_id_por_codigo(con, "530520")
+        cuenta_ret_id = cc._cuenta_id_por_codigo(
+            con, _puc.cuenta_retencion("rendimientos_financieros")
+        )
     if not cuenta_pasivo_id or not cuenta_gasto_id:
-        raise ValueError("Faltan cuentas en el plan (pasivo del préstamo o 5305 gastos financieros)")
+        raise ValueError("Faltan cuentas en el plan (pasivo del préstamo o 530520 intereses)")
 
     capital = round(float(cuota["abono_capital"]), 2)
     interes_bruto = round(float(cuota["interes_bruto"]), 2)
@@ -803,7 +811,7 @@ def registrar_pago_cuota(
     gasto_financiero = round(interes_bruto + (retencion if prestamo["gross_up"] else 0), 2)
 
     if retencion > 0 and not cuenta_ret_id:
-        raise ValueError("Falta la cuenta 2365 (Retención en la fuente por pagar) en el plan")
+        raise ValueError("Falta la cuenta 236535 (Retención — rendimientos financieros) en el plan")
 
     nombre = tercero.get("nombre") or "prestamista"
     lineas = [
@@ -972,19 +980,87 @@ def _ticket_del_mes_existe(db_path: str, marca_completa: str) -> int | None:
             pass
 
 
+def _borradores_de_cuotas(cuotas: list[dict], creador_id: int | None) -> list[dict]:
+    """Deja cada cuota del mes como borrador de pago en el wizard.
+
+    Best-effort por cuota: que una falle (un tercero sin cuenta, un medio de
+    pago que no existe) no puede impedir que las demás queden montadas ni que
+    se cree el ticket que avisa. Idempotente por `origen_ref`.
+    """
+    from app.services import pagos_wizard as _pw
+
+    medio_defecto = None
+    try:
+        import app.services.contabilidad_core as cc
+
+        activos = [m for m in cc.listar_medios_pago() if m.get("activo")]
+        bancos = [m for m in activos if m.get("tipo") == "banco"] or activos
+        medio_defecto = bancos[0]["id"] if bancos else None
+    except Exception:
+        pass
+
+    out: list[dict] = []
+    for c in cuotas:
+        try:
+            sol = _pw.crear_borrador_idempotente(
+                {
+                    "categoria": "cuota_prestamo",
+                    "concepto": (
+                        f"Cuota {c['numero']}/{c['plazo_meses']} — {c['tercero_nombre']}"
+                    ),
+                    "monto": float(c["cuota_girada"]),
+                    "fecha": c["fecha_vencimiento"],
+                    "tercero_id": c.get("tercero_id"),
+                    "medio_pago_id": c.get("medio_pago_id") or medio_defecto,
+                    "origen_ref": f"prestamo:{c['prestamo_id']}:cuota:{c['numero']}",
+                    "origen_sistema": "prestamos",
+                    "periodo": str(c["fecha_vencimiento"])[:7],
+                    "notas": (
+                        f"Cuenta del prestamista: {c.get('cuenta_bancaria') or 'sin registrar'}. "
+                        "El valor a girar ya trae descontada la retención del 7%."
+                    ),
+                },
+                created_by=creador_id,
+            )
+            out.append(sol)
+        except Exception as e:
+            print(
+                f"⚠️ [PRESTAMOS] no se pudo montar el borrador de la cuota "
+                f"{c.get('numero')} del préstamo {c.get('prestamo_id')}: {e}",
+                flush=True,
+            )
+    return out
+
+
 def crear_recordatorio_pagos_mes(
-    anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False
+    anio: int, mes: int, *, usuario_username: str | None = None, dry_run: bool = False,
+    forzar_futuro: bool = False,
 ) -> dict:
     """Crea el ticket mensual con las cuotas de préstamos a pagar en el mes.
 
     Idempotente: si ya existe el ticket de ese período no crea otro. Si no hay
     cuotas pendientes no crea nada (un ticket vacío cada mes entrena a la gente
     a ignorarlos).
+
+    **No crea el ticket de un mes que todavía no empieza** salvo `forzar_futuro`.
+    El cron lo llama con el mes en curso, pero una llamada a mano con el mes
+    siguiente le metía a despachos, tres semanas antes, un ticket que no puede
+    trabajar — y al quedarse ahí compite por atención con lo que sí es de hoy.
+    Pasó el 2026-09-13 con el ticket de octubre.
     """
     _ensure()
     from app.services import tickets_db as _tdb
 
     periodo = f"{int(anio):04d}-{int(mes):02d}"
+    if not forzar_futuro and periodo > date.today().strftime("%Y-%m") and not dry_run:
+        return {
+            "ok": True, "creado": False, "periodo": periodo,
+            "motivo": (
+                f"El período {periodo} todavía no empieza: el ticket se crea cuando "
+                "llegue el mes. Usa dry_run para verlo, o forzar_futuro=True si de "
+                "verdad quieres adelantarlo."
+            ),
+        }
     cuotas = cuotas_del_mes(anio, mes)
     if not cuotas:
         return {"ok": True, "creado": False, "motivo": "sin cuotas pendientes", "periodo": periodo}
@@ -1006,28 +1082,29 @@ def crear_recordatorio_pagos_mes(
     total_girar = sum(float(c["cuota_girada"]) for c in cuotas)
     total_retencion = sum(float(c["retencion"]) for c in cuotas)
 
-    filas = []
-    for c in cuotas:
-        filas.append(
-            f"- **{c['tercero_nombre']}** (CC/NIT {c['identificacion'] or '—'}) — "
-            f"cuota {c['numero']}/{c['plazo_meses']}, vence {c['fecha_vencimiento']}\n"
-            f"  - Cuenta: {c['cuenta_bancaria'] or '⚠️ sin cuenta registrada'}\n"
-            f"  - **Girar: {_fmt_cop(c['cuota_girada'])}** "
-            f"(capital {_fmt_cop(c['abono_capital'])} + interés neto {_fmt_cop(c['interes_girado'])})\n"
-            f"  - Retención practicada: {_fmt_cop(c['retencion'])} — NO se le gira, va a la DIAN"
-        )
+    filas = [
+        f"- **{c['tercero_nombre']}** — cuota {c['numero']}/{c['plazo_meses']}, "
+        f"vence {c['fecha_vencimiento']}"
+        for c in cuotas
+    ]
 
+    # El ticket NO lleva las cifras. Un valor copiado en un texto se congela el
+    # día que se escribió: TKT-2026-1252 pedía girar $390.590 de un capital que
+    # después se corrigió y de una cuota que el mes de gracia corrió a octubre,
+    # y nadie se enteró. Los montos viven en la solicitud de pago, que los lee
+    # del cronograma cada vez que se abre.
     descripcion = (
-        f"Pagos de préstamos a terceros del período **{periodo}**.\n\n"
-        f"Montar en Sucursal Negocios **{len(cuotas)} transferencia(s)** por un total de "
-        f"**{_fmt_cop(total_girar)}**.\n\n"
+        f"Cuotas de préstamos que vencen en **{periodo}**: **{len(cuotas)}**.\n\n"
         + "\n".join(filas)
-        + "\n\n**Importante:** el valor a girar ya viene con la retención en la fuente del 7% "
-        "descontada (rendimientos financieros). Ese descuento lo asume el prestamista y McKenna "
-        f"lo consigna a la DIAN — total retenido este mes: {_fmt_cop(total_retencion)}.\n\n"
-        "Al terminar, **comenta en este ticket** confirmando qué se giró (fecha y "
-        "referencia de cada transferencia). Con eso, quien lleva el Libro Mayor marca "
-        "las cuotas como pagadas y queda el asiento contable.\n\n"
+        + "\n\nYa quedaron como **borrador** en el panel: **Contabilidad → "
+        "Solicitudes de pago**, filtro «Borradores».\n\n"
+        "Para cada una: verifica que hay que pagarla, confirma la cuenta del "
+        "prestamista y envíala a aprobación. Ahí se ve el asiento exacto "
+        "(capital, interés y retención por separado) antes de confirmar, y el "
+        "asiento nace al aprobar.\n\n"
+        "**Los montos no están en este ticket a propósito**: se leen del "
+        "cronograma en vivo, así que si una cuota cambia, cambia el borrador. "
+        "Un número copiado acá envejecería sin avisar.\n\n"
         f"{MARCA_TICKET} {periodo}"
     )
 
@@ -1037,6 +1114,8 @@ def crear_recordatorio_pagos_mes(
             "cuotas": len(cuotas), "total_girar": round(total_girar, 2),
             "asignado_a": asignado_a, "descripcion": descripcion,
         }
+
+    borradores = _borradores_de_cuotas(cuotas, creador_id)
 
     ticket, err = _tdb.crear_ticket(
         {
@@ -1063,6 +1142,7 @@ def crear_recordatorio_pagos_mes(
     return {
         "ok": True, "creado": True, "ticket_id": ticket_id, "periodo": periodo,
         "cuotas": len(cuotas), "total_girar": round(total_girar, 2), "asignado_a": asignado_a,
+        "borradores": [s_["id"] for s_ in borradores],
     }
 
 
@@ -1089,6 +1169,10 @@ def trazabilidad(prestamo_id: int) -> dict:
     _ensure()
     import app.services.contabilidad_core as cc
 
+    # La cuenta por cobrar a socios era 1355 y migró a 1325; los asientos guardan
+    # el código vivo, así que hay que comparar contra él (un literal '1355' no casa).
+    cod_cxc_socios = cc.codigo_vivo("1355")
+
     p = obtener_prestamo(prestamo_id)
     if not p:
         raise ValueError("Préstamo no encontrado")
@@ -1100,9 +1184,12 @@ def trazabilidad(prestamo_id: int) -> dict:
         ids.append(int(p["movimiento_desembolso_id"]))
     with _conn() as con:
         # Tramos adicionales: mismo prestamista, mismo tipo de asiento.
+        # Excluye anulados: un desembolso corregido (p.ej. partido en dos
+        # consignaciones) deja el asiento viejo anulado, y contarlo duplicaría
+        # el capital recibido.
         for r in con.execute(
             "SELECT id FROM cc_movimientos WHERE tipo_origen='prestamo_recibido'"
-            " AND tercero_id=? ORDER BY fecha, id",
+            " AND tercero_id=? AND estado<>'anulado' ORDER BY fecha, id",
             (p["tercero_id"],),
         ):
             if int(r["id"]) not in ids:
@@ -1116,7 +1203,7 @@ def trazabilidad(prestamo_id: int) -> dict:
     for mid in ids:
         mov = cc.obtener_movimiento(mid)
         for l in (mov or {}).get("lineas", []):
-            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["debito"]:
+            if l["cuenta_codigo"] == cod_cxc_socios and l.get("tercero_id") and l["debito"]:
                 recibido_por[int(l["tercero_id"])] = recibido_por.get(
                     int(l["tercero_id"]), 0.0
                 ) + float(l["debito"])
@@ -1128,9 +1215,9 @@ def trazabilidad(prestamo_id: int) -> dict:
                 "SELECT DISTINCT m.id FROM cc_movimientos m"
                 " JOIN cc_movimiento_lineas l ON l.movimiento_id = m.id"
                 " JOIN cc_plan_cuentas c ON c.id = l.cuenta_id"
-                f" WHERE m.tipo_origen='reposicion_socio' AND c.codigo='1355'"
+                f" WHERE m.tipo_origen='reposicion_socio' AND c.codigo=?"
                 f"   AND l.tercero_id IN ({marcas}) ORDER BY m.fecha, m.id",
-                tuple(recibido_por),
+                (cod_cxc_socios, *recibido_por),
             ):
                 repos.append(int(r["id"]))
 
@@ -1213,7 +1300,7 @@ def trazabilidad(prestamo_id: int) -> dict:
         if a["clase"] != "reposicion":
             continue
         for l in a["lineas"]:
-            if l["cuenta_codigo"] == "1355" and l.get("tercero_id") and l["credito"]:
+            if l["cuenta_codigo"] == cod_cxc_socios and l.get("tercero_id") and l["credito"]:
                 tid = int(l["tercero_id"])
                 repuesto_por[tid] = repuesto_por.get(tid, 0.0) + float(l["credito"])
     socios = [
@@ -1425,14 +1512,34 @@ def estado_alegra(prestamo_id: int) -> dict:
 # Cuenta contable de Alegra para la línea del documento soporte. Los intereses
 # de un mutuo son gasto financiero, no un producto: por eso va cuenta y no ítem
 # (ver alegra.crear_documento_soporte_alegra).
-CUENTA_ALEGRA_INTERESES_DEFAULT = "5252"   # Gastos por Intereses financieros
+#
+# ⚠️ Es la id **5949**, que en Alegra corresponde al código PUC **530520
+# Intereses**, y NO la 5252 «Gastos por Intereses financieros» que estaba antes.
+# La 5252 sigue existiendo pero es una de las **8 cuentas sobrevivientes del
+# catálogo NIIF** (de 997) que quedaron **sin código PUC** cuando Alegra migró,
+# y en modo PUC las rechaza: `HTTP 400 · 11060 «No se encontró una de las
+# cuentas contables asociadas a la factura de compra»`. Se descubrió al emitir
+# el primer documento soporte de un pago (18-sep-2026), y de no haberlo visto
+# la cuota del 9-oct habría fallado igual.
+#
+# Se resuelve con `alegra_espejo.cuenta_alegra("530520")` para no volver a
+# escribir una id a mano, que es justo como se llegó a la 5252.
+CUENTA_ALEGRA_INTERESES_DEFAULT = "5949"   # PUC 530520 Intereses
 
 
 def _doc_soporte_activo() -> bool:
     """Modo sombra por defecto. No es duda legal (el Concepto 000112 de 2024 la
-    resolvió), sino que un documento soporte emitido ya viajó a la DIAN y solo
-    se corrige con nota de ajuste: no se prende sin que alguien lo decida y sin
-    que exista el ítem de intereses en Alegra."""
+    resolvió), sino que un documento soporte emitido no se borra: se corrige con
+    nota de ajuste.
+
+    ⚠️ Estado al 2026-09-14 (TKT-2026-1323): **falta habilitar el documento
+    soporte ELECTRÓNICO en Alegra**. La plantilla 10 (`supportDocument`) tiene
+    `isElectronic: false` y sin resolución de numeración, mientras que la de
+    factura (15) sí está habilitada con resolución. Encender esta bandera hoy
+    crearía documentos que quedan en Alegra pero **no se transmiten a la DIAN**:
+    no sirven como soporte de la deducción y gastan numeración que después habría
+    que rehacer. Lo demás ya está listo (retención del 7 % id 14, cuenta 5252,
+    los cuatro prestamistas como contactos)."""
     return (os.getenv("PRESTAMOS_DOC_SOPORTE_ACTIVO", "0") or "0").strip() == "1"
 
 
@@ -1623,7 +1730,11 @@ def resumen_retenciones_mes(anio: int, mes: int) -> dict:
                   FROM cc_movimiento_lineas l
                   JOIN cc_movimientos m ON m.id = l.movimiento_id
                   JOIN cc_plan_cuentas c ON c.id = l.cuenta_id
-                 WHERE c.codigo = '2365'
+                 -- 2365 y sus subcuentas por concepto (236525, 236535, 236540…):
+                 -- este es el control contra el que se compara el detalle del 350,
+                 -- y mirar solo la cuenta plana lo dejaría en cero desde que la
+                 -- retención se desglosa (migración al PUC real, sep-2026).
+                 WHERE c.codigo LIKE '2365%'
                    AND m.estado <> 'anulado'
                    AND m.fecha BETWEEN ? AND ?
                 """,
@@ -1800,21 +1911,36 @@ def crear_ticket_retenciones_mes(anio: int, mes: int, *, dry_run: bool = False) 
         if r["total_retencion"] > 0
         else "_Este período no tuvo retención por intereses de préstamos._"
     )
+    # El ticket NO lleva las cifras. Un monto escrito acá se congela el día que
+    # se escribió: TKT-2026-1223 decía $96.251 de agosto-2026 y el mismo día
+    # entró el backfill de 29 asientos de retención sobre compras que lo subió
+    # a $761.138, con la declaración venciendo nueve días después. Las cifras
+    # vivas están en el panel, que las lee de la cuenta 2365 cada vez que se
+    # abre. Lo que sí va acá es lo que no cambia: el período, el vencimiento y
+    # qué hay que hacer.
+    conteo = len(unificado["terceros"])
     descripcion = (
         f"Retención en la fuente practicada en **{periodo}**, para la declaración "
         f"mensual (formulario 350).\n\n"
-        f"**TOTAL A DECLARAR Y PAGAR: {_fmt_cop(unificado['total_retencion'])}**\n\n"
-        f"Por concepto: {conceptos_txt}\n\n"
-        + encabezado_prestamos
-        + otros_texto
-        + "\n\n"
+        f"Hay **{conteo} tercero(s)** con retención en el período"
+        + (f", en {len(unificado['por_concepto'])} concepto(s): "
+           + ", ".join(c.replace("_", " ") for c in sorted(unificado["por_concepto"]))
+           if unificado.get("por_concepto") else "")
+        + ".\n\n"
+        "**El detalle con los montos está en el panel:** Contabilidad → Préstamos → "
+        "Retenciones, con la base y el valor por tercero y por concepto.\n\n"
         + ("\n\n".join(avisos) + "\n\n" if avisos else "")
         + _texto_vencimiento(r)
         + "**Qué hay que hacer:**\n"
-        "- Pasarle este detalle al contador para incluirlo en la declaración mensual de retención "
-        "en la fuente.\n"
+        "- Pedirle al contador el formulario 350 del período. **La cifra que se declara "
+        "es la de él**, que incluye todas las compras sobre la cuantía mínima: lo del "
+        "panel sirve para contrastar, no para reemplazarlo.\n"
+        "- Si el 350 y el panel no se parecen, hay compras sin registrar en el Libro "
+        "Mayor (o al revés) — eso es lo que hay que resolver antes de declarar.\n"
         "- Al pagar, comentar acá la fecha y el comprobante: quien lleva el Libro Mayor "
         "registra el egreso contra 2365 para que deje de figurar como deuda con la DIAN.\n\n"
+        "_Los montos no van en este ticket a propósito: se leen del libro en vivo, así "
+        "que un asiento que entre mañana cambia el panel y no este texto._\n\n"
         f"{MARCA_TICKET_RETENCIONES} {periodo}"
     )
 

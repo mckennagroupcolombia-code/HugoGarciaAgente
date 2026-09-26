@@ -7,18 +7,70 @@
         "fragancia",
         "perfume",
         "aroma lipo",
-        "aroma hidro"
+        "aroma hidro",
+        "fregancia"
       ]
     },
     {
       "id": "aceites-esenciales",
       "etiqueta": "Aceites Esenciales",
-      "claves": []
+      "claves": [
+        "aceite esencial",
+        "esencial",
+        "esencia de",
+        "oleorresina"
+      ]
+    },
+    {
+      "id": "manteca-ceras",
+      "etiqueta": "Mantecas & Ceras",
+      "claves": [
+        "cera",
+        "manteca",
+        "karite",
+        "butter",
+        "parafina",
+        "vaselina",
+        "lanolina",
+        "alcohol cetilico",
+        "alcohol ceto",
+        "cetearilico",
+        "cetoestearilico",
+        "estearilico",
+        "acido estearico",
+        "lanette",
+        "sebo",
+        "cebo de"
+      ]
     },
     {
       "id": "aceites",
       "etiqueta": "Aceites & Grasas",
-      "claves": []
+      "claves": [
+        "aceite",
+        "oleo",
+        "grasa vegetal",
+        "trigliceridos",
+        "mct",
+        "escualano"
+      ]
+    },
+    {
+      "id": "hierbas-desecadas",
+      "etiqueta": "Extractos Frutales & Hierbas",
+      "claves": [
+        "extracto",
+        "tintura",
+        "polvo de hoja",
+        "hidrolato",
+        "agua de rosas",
+        "flores secas",
+        "flor de jamaica",
+        "matcha",
+        "te verde",
+        "orellana",
+        "hongo"
+      ]
     },
     {
       "id": "semillas",
@@ -31,13 +83,41 @@
         "sesamo",
         "quinua",
         "amapola",
-        "girasol"
+        "girasol",
+        "mani",
+        "almendra",
+        "nuez",
+        "maranon",
+        "marañon",
+        "pistacho",
+        "avellana",
+        "uva pasa",
+        "ciruela",
+        "arandano",
+        "datil",
+        "goji",
+        "coco deshidratado",
+        "cocos deshidratado",
+        "calabaza",
+        "sal rosada"
       ]
     },
     {
       "id": "cereales-harinas",
       "etiqueta": "Harinas",
-      "claves": []
+      "claves": [
+        "harina",
+        "avena",
+        "salvado",
+        "almidon",
+        "fecula",
+        "maiz",
+        "arroz",
+        "maltodextrina",
+        "dextrosa",
+        "inulina",
+        "fibra"
+      ]
     },
     {
       "id": "vitaminas",
@@ -53,7 +133,75 @@
         "cianocobalamina",
         "colecalciferol",
         "pantenol",
-        "melatonina"
+        "melatonina",
+        "papaina",
+        "bromelina",
+        "enzima",
+        "amilasa",
+        "lactasa"
+      ]
+    },
+    {
+      "id": "excipientes",
+      "etiqueta": "Cápsulas & Excipientes",
+      "claves": [
+        "capsula",
+        "excipiente",
+        "estearato de magnesio",
+        "dioxido de silicio",
+        "celulosa microcristalina",
+        "aglutinante",
+        "desintegrante"
+      ]
+    },
+    {
+      "id": "aminoacidos-proteinas",
+      "etiqueta": "Aminoácidos & Proteínas",
+      "claves": [
+        "colageno",
+        "proteina",
+        "albumina",
+        "arginina",
+        "glicina",
+        "lisina",
+        "creatina",
+        "taurina",
+        "glutamina",
+        "carnitina",
+        "citrulina",
+        "fenilalanina",
+        "ornitina",
+        "prolina",
+        "teanina",
+        "triptofano",
+        "metionina",
+        "histidina",
+        "aminoacido",
+        "bcaa",
+        "peptido",
+        "keratina",
+        "queratina",
+        "elastina",
+        "suero de leche",
+        "suero leche",
+        "gelatina"
+      ]
+    },
+    {
+      "id": "conservantes",
+      "etiqueta": "Conservantes",
+      "claves": [
+        "conservante",
+        "sharomix",
+        "benzoato",
+        "sorbato de",
+        "fenoxietanol",
+        "parabeno",
+        "geogard",
+        "cosgard",
+        "propionato",
+        "glutaraldehido",
+        "sorbato potasio"
       ]
     },
     {
@@ -70,34 +218,72 @@
         "carbonato de calcio",
         "oxido de zinc",
         "oxido de magnesio",
-        "mineral"
+        "mineral",
+        "cloruro",
+        "bicarbonato",
+        "carbonato",
+        "cremor tartaro",
+        "lactato",
+        "sulfato",
+        "fosfato",
+        "sal de epsom"
       ]
     },
     {
-      "id": "aminoacidos-proteinas",
-      "etiqueta": "Aminoácidos & Proteínas",
-      "claves": []
-    },
-    {
-      "id": "conservantes",
-      "etiqueta": "Conservantes",
+      "id": "aditivos",
+      "etiqueta": "Aditivos alimentarios",
       "claves": [
-        "conservante",
-        "sharomix",
-        "benzoato",
-        "sorbato",
-        "fenoxietanol",
-        "parabeno",
-        "geogard",
-        "cosgard",
-        "propionato",
-        "glutaraldehido"
+        "alulosa",
+        "fructosa",
+        "eritritol",
+        "sucralosa",
+        "estevia",
+        "stevia",
+        "xilitol",
+        "sorbitol",
+        "maltitol",
+        "glutamato",
+        "sabor",
+        "saborizante",
+        "acido citrico",
+        "acido malico",
+        "acido tartarico",
+        "acido fumarico",
+        "colorante alimentario",
+        "colorante caramelo",
+        "edulcorante",
+        "acidulante"
       ]
     },
     {
       "id": "gelificantes",
       "etiqueta": "Gelificantes & Espesantes & Emulsificantes",
-      "claves": []
+      "claves": [
+        "goma",
+        "xantan",
+        "xantana",
+        "xanthan",
+        "guar",
+        "carragenina",
+        "pectina",
+        "agar",
+        "carbomer",
+        "carbopol",
+        "espesante",
+        "gelificante",
+        "alginato",
+        "celulosa",
+        "emulsificante",
+        "emulsionante",
+        "polawax",
+        "cera autoemulsionante",
+        "lecitina",
+        "polisorbato",
+        "tween",
+        "span",
+        "monoestearato",
+        "olivem"
+      ]
     },
     {
       "id": "tensoactivos",
@@ -125,30 +311,44 @@
       "etiqueta": "Solventes",
       "claves": [
         "solvente",
-        "alcohol",
         "etanol",
         "isopropilico",
         "glicerina",
         "propilenglicol",
         "butilenglicol",
-        "acetona",
         "thinner",
         "varsol",
         "dpg",
         "agua destilada",
         "agua destilda",
-        "dmso"
+        "dmso",
+        "alcohol etilico",
+        "alcohol isopropilico",
+        "alcohol perfumeria",
+        "alcohol bencilico",
+        "alcohol antiseptico"
       ]
     },
     {
       "id": "arcillas",
       "etiqueta": "Arcillas",
-      "claves": []
-    },
-    {
-      "id": "excipientes",
-      "etiqueta": "Cápsulas & Excipientes",
-      "claves": []
+      "claves": [
+        "arcilla",
+        "bentonita",
+        "caolin",
+        "kaolin",
+        "talco",
+        "silice",
+        "silica",
+        "diatomea",
+        "zeolita",
+        "carbon activado",
+        "dioxido de titanio",
+        "dioxido titanio",
+        "oxido de zinc",
+        "oxido zinc",
+        "oxido de hierro"
+      ]
     },
     {
       "id": "colorantes-reactivos",
@@ -159,28 +359,44 @@
         "violeta de genciana",
         "fucsina",
         "reactivo",
-        "indicador"
+        "indicador",
+        "azul metileno"
       ]
     },
     {
       "id": "activos-cosmeticos",
       "etiqueta": "Activos Cosméticos",
-      "claves": []
-    },
-    {
-      "id": "manteca-ceras",
-      "etiqueta": "Mantecas & Ceras",
-      "claves": []
-    },
-    {
-      "id": "hierbas-desecadas",
-      "etiqueta": "Extractos Frutales & Hierbas",
-      "claves": []
-    },
-    {
-      "id": "otros",
-      "etiqueta": "Otros",
-      "claves": []
+      "claves": [
+        "hialuronico",
+        "retinal",
+        "peptidos",
+        "coenzima",
+        "argireline",
+        "matrixyl",
+        "urea",
+        "alantoina",
+        "aloe",
+        "bisabolol",
+        "arbutina",
+        "cafeina",
+        "mentol",
+        "embrion",
+        "gusano de seda",
+        "baba de caracol",
+        "salicilico",
+        "glicolico",
+        "kojico",
+        "mandelico",
+        "azelaico",
+        "tranexamico",
+        "lactico",
+        "dha",
+        "dihidroxiacetona",
+        "pantenol",
+        "retinol",
+        "elastina hidrolizada",
+        "colageno hidrolizado 30"
+      ]
     }
   ]
 }

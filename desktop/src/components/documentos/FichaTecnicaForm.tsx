@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import { sugerirCampoFicha } from "../../lib/sugerirCampoFicha";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { Field, listaDesdeTexto } from "./DocumentoGeneradorTab";
@@ -11,6 +12,7 @@ export interface FichaTecnicaFormState {
   referencia: string;
   sinonimos: string;
   cas: string;
+  pureza: string;
   paisOrigen: string;
   fabricante: string;
   fechaRevision: string;
@@ -245,6 +247,9 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
     referencia: state.referencia,
     sinonimos: state.sinonimos,
     cas: state.cas,
+    // Clave `concentracion`: la que el PDF imprime y la que la etiqueta
+    // lee para su casilla PUREZA. El rotulo visible es "Pureza".
+    concentracion: state.pureza,
     pais_origen: state.paisOrigen,
     fabricante: state.fabricante,
     fecha_revision: state.fechaRevision,
@@ -286,8 +291,9 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     valorEnFilas(identidad, "nombre del producto");
 
   const fisicasKeys = new Set([
-    "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor",
+    "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "aroma",
     "formula quimica", "solubilidad", "humedad", "inercia quimica",
+    "pureza", "concentracion",
   ]);
   const extraProps = props
     .filter(([k]) => !fisicasKeys.has(k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
@@ -315,6 +321,12 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     referencia: String(datos.referencia || "") || valorEnFilas(identidad, "referencia siigo", "referencia"),
     sinonimos: flat("sinonimos", "synonyms") || valorEnFilas(identidad, "sinonimos", "sinonimo", "synonyms"),
     cas: String(datos.cas || "") || valorEnFilas(identidad, "cas", "cas #", "cas number"),
+    // Muchas fichas traen la pureza como fila suelta de `propiedades`
+    // ("Pureza" o "Concentracion"): se recoge para que no se pierda.
+    pureza:
+      flat("concentracion", "pureza", "purity")
+      || valorEnFilas(identidad, "concentracion", "pureza")
+      || valorEnFilas(props, "pureza", "concentracion"),
     paisOrigen:
       flat("pais_origen", "country_of_origin", "origin") ||
       valorEnFilas(identidad, "pais de origen", "pais origen", "origen", "country of origin"),
@@ -346,7 +358,8 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
       cf.indice_saponificacion ||
       valorEnFilas(props, "indice de saponificacion", "indice saponificacion", "saponification value"),
     ph: flat("ph") || cf.ph || valorEnFilas(props, "ph"),
-    olor: flat("olor", "odour", "odor") || cf.olor || valorEnFilas(props, "olor", "odour", "odor"),
+    olor: flat("olor", "aroma", "odour", "odor") || cf.olor
+      || valorEnFilas(props, "aroma", "olor", "odour", "odor"),
     sabor: flat("sabor", "taste") || cf.sabor || valorEnFilas(props, "sabor", "taste"),
     modoUso:
       flat("modo_uso", "usage", "directions", "incorporation") ||
@@ -480,6 +493,7 @@ export default function FichaTecnicaForm({
         case "ph":
           updates.ph = val; break;
         case "olor":
+        case "aroma":
         case "odour":
         case "odor":
           updates.olor = val; break;
@@ -581,7 +595,7 @@ export default function FichaTecnicaForm({
     mutationFn: (campo: string) => {
       const nombre = state.nombreProducto.trim();
       if (!nombre) throw new Error("Indique el nombre del producto primero");
-      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", { campo, nombre }, { timeoutMs: 180000 });
+      return sugerirCampoFicha(campo, nombre);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
@@ -718,6 +732,13 @@ export default function FichaTecnicaForm({
             onChange={(v) => patch({ presentacion: v })}
             placeholder="Ej. 75.000 PCS · 10 kg"
           />
+          <Field
+            label="Pureza"
+            value={state.pureza}
+            onChange={(v) => patch({ pureza: v })}
+            placeholder="Ej. ≥ 99 %, 98.5 ~ 101.0 %, 20 % en solución"
+            mono
+          />
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -761,7 +782,7 @@ export default function FichaTecnicaForm({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
-            label="Olor"
+            label="Aroma"
             value={state.olor}
             onChange={(v) => patch({ olor: v })}
             placeholder="Ej. Inodoro o ligero aroma"
@@ -781,7 +802,7 @@ export default function FichaTecnicaForm({
             { label: "Punto de fusión",           campo: "punto_fusion",          val: state.puntoFusion,           set: (v: string) => patch({ puntoFusion: v }),           ph: "Ej. 58-62 °C", formula: false },
             { label: "Índice de saponificación",  campo: "indice_saponificacion", val: state.indiceSaponificacion,  set: (v: string) => patch({ indiceSaponificacion: v }),  ph: "Ej. 190-200 mg KOH/g", formula: false },
             { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0", formula: false },
-            { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆", formula: true },
+            { label: "Fórmula molecular",         campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆", formula: true },
             { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría", formula: false },
           ].map(({ label, campo, val, set, ph: placeholder, formula }) => (
             <Field
@@ -863,44 +884,6 @@ export default function FichaTecnicaForm({
             placeholder={"Una recomendación por línea. Ej:\nPREVENCIÓN: Evitar inhalar polvo. Usar EPP adecuado.\nRESPUESTA: En caso de contacto ocular, lavar con agua abundante.\nALMACENAMIENTO: Mantener en lugar seco y bien ventilado."}
             actions={<IaBtn label="IA" {...ia("recomendaciones")} />}
           />
-        </section>
-      )}
-      {!hideColorAcento && (
-        <section className="space-y-3">
-          <SectionTitle>Color del formato</SectionTitle>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { hex: "#069DC2", nombre: "Azul McKenna" },
-              { hex: "#003DA5", nombre: "Azul marino" },
-              { hex: "#5CB85C", nombre: "Verde claro" },
-              { hex: "#37474F", nombre: "Gris antracita" },
-              { hex: "#6A1B9A", nombre: "Morado" },
-              { hex: "#B71C1C", nombre: "Rojo" },
-              { hex: "#FFA040", nombre: "Naranja claro" },
-              { hex: "#000000", nombre: "Negro" },
-            ].map(({ hex, nombre }) => (
-              <button
-                key={hex}
-                type="button"
-                title={nombre}
-                onClick={() => patch({ colorAcento: hex })}
-                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: hex,
-                  borderColor: state.colorAcento === hex ? "#fff" : hex,
-                  outline: state.colorAcento === hex ? `2px solid ${hex}` : "none",
-                }}
-              />
-            ))}
-            <input
-              type="color"
-              value={state.colorAcento}
-              onChange={(e) => patch({ colorAcento: e.target.value })}
-              title="Color personalizado"
-              className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
-            />
-          </div>
-          <p className="text-[10px] text-muted">Selecciona una paleta o usa el selector para un color personalizado.</p>
         </section>
       )}
 

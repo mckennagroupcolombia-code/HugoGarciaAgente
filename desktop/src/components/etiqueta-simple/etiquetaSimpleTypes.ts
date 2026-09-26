@@ -24,6 +24,11 @@ export function esFormatoSimple(
 /** Ancho de diseño en px: la etiqueta se maqueta a este ancho y se escala. */
 export const ANCHO_SIMPLE = 900;
 
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_SIMPLE = 11;
+
 /** Grado del subtítulo cuando la etiqueta no trae uno: son alimentos. */
 export const GRADO_SIMPLE_POR_DEFECTO = "ALIMENTARIO";
 
@@ -54,6 +59,10 @@ export interface ReticulaSimple {
   /** Alto del recuadro en blanco para el timbre físico (10 mm reales). */
   timbre: number;
 }
+
+/** Alto de las dos barras del acento que cierran la banda superior: el
+ *  recuadro «INSUMO GRADO …» y la barra de la web miden lo mismo. */
+export const ALTO_BARRA_SIMPLE = 36;
 
 /** Alto del recuadro del timbre, en mm. */
 export const ALTO_TIMBRE_MM = 10;
@@ -101,12 +110,15 @@ export function reticulaSimple(anchoMm?: number, altoMm?: number): ReticulaSimpl
 }
 
 /** Tamaños de letra (máximo, mínimo) del ajuste automático, en px de diseño.
- *  El contenido neto es lo más grande; el nombre le sigue. */
+ *  El contenido neto es lo más grande; el nombre le sigue. El recuadro del
+ *  grado y el origen van un 30 % más grandes que al principio (17 y 21 px), a
+ *  pedido: son lo que se lee de lejos junto al nombre. */
 export const TAM_SIMPLE = {
   nombre: [58, 28],
   neto: [76, 44],
   dato: [21, 14],
-  subtitulo: [17, 11],
+  origen: [27, 14],
+  subtitulo: [22, 11],
   info: [16, 11],
   franja: [18, 12],
 } as const satisfies Record<string, readonly [number, number]>;
@@ -125,6 +137,7 @@ export function variablesSimple(r: ReticulaSimple, accentColor?: string): CSSPro
     "--es-pie": `${r.pie}px`,
     "--es-respiro": `${r.respiro}px`,
     "--es-timbre": `${r.timbre}px`,
+    "--es-barra": `${ALTO_BARRA_SIMPLE}px`,
     // La franja de contacto reutiliza las reglas de la etiqueta 30 mL.
     "--e30-linea": `${r.linea}px`,
   } as CSSProperties;

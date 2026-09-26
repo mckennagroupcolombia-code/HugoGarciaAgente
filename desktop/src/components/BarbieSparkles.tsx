@@ -12,7 +12,8 @@ type Sparkle = {
   hue: number;
 };
 
-/** Brillos suaves para el skin Barbie Agenda (respeta prefers-reduced-motion). */
+/** Brillos suaves para el skin Barbie Agenda (respeta prefers-reduced-motion).
+ *  En modo oscuro casi todos son dorados y con halo, a juego con el filete de oro. */
 export default function BarbieSparkles() {
   const skin = usePanelTheme((s) => s.skin);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -47,7 +48,10 @@ export default function BarbieSparkles() {
       sparkles = Array.from({ length: n }, () => spawn(true));
     }
 
+    const oscuro = () => document.documentElement.classList.contains("dark");
+
     function spawn(anywhere: boolean): Sparkle {
+      const oro = oscuro() ? Math.random() < 0.72 : false;
       return {
         x: Math.random() * w,
         y: anywhere ? Math.random() * h : -8,
@@ -56,7 +60,7 @@ export default function BarbieSparkles() {
         spin: (Math.random() - 0.5) * 0.04,
         life: anywhere ? Math.random() : 0,
         maxLife: 0.55 + Math.random() * 0.9,
-        hue: Math.random() < 0.55 ? 330 : Math.random() < 0.5 ? 300 : 45,
+        hue: oro ? 43 : Math.random() < 0.55 ? 330 : Math.random() < 0.5 ? 300 : 45,
       };
     }
 
@@ -65,7 +69,18 @@ export default function BarbieSparkles() {
       c.translate(x, y);
       c.rotate(rot);
       c.globalAlpha = alpha;
-      c.fillStyle = `hsla(${hue}, 90%, 72%, 1)`;
+      if (hue === 43) {
+        // Oro: centro casi blanco que vira a dorado, con halo cálido.
+        const g = c.createRadialGradient(0, 0, 0, 0, 0, size);
+        g.addColorStop(0, "rgba(255, 248, 220, 1)");
+        g.addColorStop(0.45, "rgba(246, 212, 120, 1)");
+        g.addColorStop(1, "rgba(200, 150, 50, 1)");
+        c.fillStyle = g;
+        c.shadowColor = "rgba(246, 205, 110, 0.9)";
+        c.shadowBlur = size * 1.6;
+      } else {
+        c.fillStyle = `hsla(${hue}, 90%, 72%, 1)`;
+      }
       c.beginPath();
       for (let i = 0; i < 4; i++) {
         const a = (i * Math.PI) / 2;

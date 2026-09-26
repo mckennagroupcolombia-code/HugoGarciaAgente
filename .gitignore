@@ -49,9 +49,17 @@ app/data/5s_audio/
 # Fotos evidencia de empaque (runtime)
 app/data/empaque_uploads/
 app/data/empaque_evidencia.db
+# Recepción de mercancía (fotos de llegada + su base; ver app/services/recepcion_mercancia.py)
+app/data/recepcion_uploads/
+app/data/recepciones.db
+app/data/recepciones.db-*
 # Agente de ventas WA v2: pedidos en curso, pausas y bitácora de turnos (runtime)
 app/data/ventas_wa.db
+app/data/precios_trm.db
 app/data/ventas_wa.db-*
+app/data/ventas_directas.db
+app/data/ventas_directas.db-*
+cotizaciones_pdf/
 app/data/ventas_wa_sombra.db
 app/data/ventas_wa_sombra.db-*
 # Estado del auditor de canales (runtime)
@@ -89,6 +97,7 @@ package-lock.json
 
 # React SPA build output
 desktop/dist/
+desktop/dist-colab/
 
 # Puente WhatsApp (sesión y caché local; no commitear)
 bot-mckenna/.wwebjs_auth_nueva/
@@ -165,6 +174,8 @@ tmp_reportes_stock/
 
 # Contenido · videos subidos/procesados para quitar marca de agua (runtime, puede pesar)
 contenido_video/
+# Grabaciones de pantalla y sus clips (app/tools/grabacion_pantalla.py)
+grabaciones_pantalla/
 
 # Red de proveedores (SQLite runtime, ver app/services/proveedores_db.py)
 app/data/proveedores.db
@@ -192,3 +203,88 @@ PAGINA_WEB/site/data/borradores_blog/
 docs/contabilidad/*/Soportes_Contador/
 docs/contabilidad/**/declaraciones_contador.json
 docs/contabilidad/comparacion_350_vs_2365.json
+app/data/alegra_contactos_cache.json
+
+# Motor OCR copiado de node_modules (desktop/scripts/copy-ocr-assets.mjs)
+desktop/public/assets/ocr/
+# Entregas Flex MeLi (se regenera con scripts/entregas_flex_cron.py --dias 90 --forzar)
+app/data/entregas_flex.db
+app/data/entregas_flex.db-*
+# Candado y copia previa del almacén de etiquetas (app/tools/etiquetas_fichas.py)
+app/data/etiquetas_fichas.lock
+app/data/etiquetas_fichas.json.bak
+app/data/etiquetas_fichas.json.tmp*
+
+# Binarios y logs de runtime que cambiaban a diario ESTANDO versionados
+# (auditoría 20-sep-2026). El tar nocturno de backup_drive.py ya los respalda;
+# en git solo producían diffs binarios inútiles y commits automáticos.
+#   contabilidad.db 60 commits · facturacion_ventas_cache.db 32 · orders.db 102
+#   log_cron.txt 278 commits (lo escriben los ~28 cron cada noche)
+app/data/contabilidad.db
+app/data/contabilidad.db-*
+app/data/facturacion_ventas_cache.db
+app/data/facturacion_ventas_cache.db-*
+PAGINA_WEB/site/data/orders.db
+PAGINA_WEB/site/data/orders.db-*
+log_cron.txt
+
+# Archify: evidencia de verificación visual (capturas PNG + recibo): se regenera
+# con `archify visual-check` y son binarios que cambian en cada corrida.
+docs/arquitectura/*.visual-check.json
+docs/arquitectura/*.visual-check.html
+docs/arquitectura/*.visual-check.*.png
+# El HTML de cada diagrama (~800 KB, 9 archivos) se regenera desde su .json con
+# `python3 scripts/diagramas_arquitectura.py entregar`. Se versiona la fuente, no el derivado.
+docs/arquitectura/*.html
+
+# Residuales de la auditoría de auto-commits (21-sep-2026). Ya estaban en
+# .gitignore o eran derivados, pero seguían rastreados y los ~2 auto-commits
+# diarios los volvían a versionar. Se quedan en disco; los respalda el tar
+# nocturno de backup_drive.py.
+#   etiquetas_recursos_png.json  2 MB · 55 versiones · 15,6 MB de historial
+#   meli_facturas_entrega.json   1,2 MB · 51 versiones · estado de facturación
+#   tsconfig.tsbuildinfo         derivado de build · 93 commits
+app/data/etiquetas_recursos_png.json
+app/data/meli_facturas_entrega.json
+desktop/tsconfig.tsbuildinfo
+
+# Snapshot de arquitectura (codebase-memory-mcp). Derivado del código: se
+# regenera con `python3 scripts/arquitectura_cbm.py`. El grafo cambia en cada
+# commit, así que versionarlo repetiría el problema de los auto-commits.
+app/data/arquitectura_cbm/
+# Grafo interactivo de Emerge (derivado del código): python3 scripts/arquitectura_emerge.py
+app/data/arquitectura_emerge/
+
+# Respaldo de un build del SPA que quedo versionado por error el 5-sep-2026
+# (112 archivos, 14 MB). desktop/dist/ ya estaba ignorado; esta copia se
+# escapo del patron. Es derivado: se regenera con `npm run build`.
+desktop/dist_cynthia_backup_*/
+
+# Colaboradores (diagramas compartidos): base y exportaciones Archify generadas en runtime
+app/data/colaboradores.db
+app/data/colaboradores.db-*
+app/data/colaboradores_archify/
+colaboradores_media/
+juegos_partidas/
+
+# APK de colaboradores: la llave de firma y su contraseña no se versionan;
+# la APK y el build tampoco (se regeneran con android-colab/compilar.sh).
+android-colab/keystore.properties
+android-colab/*.keystore
+android-colab/*.apk
+android-colab/app/build/
+android-colab/build/
+android-colab/.gradle/
+android-colab/local.properties
+
+# Pagos, propuestas y tarifas del mapa de funciones (RRHH): salarios, no van a git
+app/data/rrhh_valoracion.json
+# Control de horas por quincena: explicaciones de tiempo y caché de sesiones de desarrollo
+app/data/control_horas.json
+app/data/sesiones_ia_cache.json
+app/data/pagos_clientes.db
+
+# Insumos: base propia y fotos de referencia (binarios que sube el operador)
+app/data/insumos.db
+app/data/insumos.db-*
+fotos_insumos/

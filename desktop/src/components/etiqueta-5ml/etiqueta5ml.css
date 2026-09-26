@@ -1,0 +1,270 @@
+/*
+ * Etiqueta 5 mL (66 × 22 mm) — tres paneles horizontales, dos filas.
+ *
+ * Solo la estructura es propia (`.e5-*`): las piezas de dentro —casillas
+ * editables, celdas técnicas, franjas de contacto, tabla, contenido neto,
+ * pictograma GHS, código de barras— son las mismas de la etiqueta 30 mL y
+ * usan sus clases `e30-*`, por eso el componente importa los dos CSS. Aquí
+ * solo se reajustan las medidas que estaban pensadas para 11,8 px/mm: esta
+ * etiqueta se maqueta a 18 px/mm (ver `PX_POR_MM`), así que un ícono de 38 px
+ * del 30 mL mediría 2,1 mm en vez de 3,2 y se vería diminuto.
+ *
+ * Las medidas de la retícula llegan como variables desde `variables5ml` y el
+ * color, del logo elegido (--acento). Rellenos de un solo color, sin
+ * degradados. Las pistas usan minmax(0, …): el contenido nunca cambia el
+ * ancho ni el alto de una fila; el texto se encoge (useAjusteTexto).
+ */
+
+.e5-etiqueta {
+  box-sizing: border-box;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: var(--e5-separacion);
+  padding: var(--e5-margen);
+  overflow: hidden;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.e5-etiqueta *,
+.e5-etiqueta *::before,
+.e5-etiqueta *::after {
+  box-sizing: border-box;
+  font-style: normal;
+}
+
+.e5-etiqueta p,
+.e5-etiqueta h1 {
+  margin: 0;
+}
+
+/* Dato vacío en edición: ejemplo de referencia en gris (no se imprime). */
+.e5-etiqueta .e30-ejemplo {
+  color: #a8a8a8 !important;
+}
+.e5-etiqueta .e30-franja .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ── Paneles ─────────────────────────────────────────────────────────────── */
+
+.e5-panel {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: var(--e5-borde) solid var(--acento);
+  border-radius: var(--e5-radio);
+}
+
+.e5-panel > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Dos filas, no tres: es la diferencia de fondo con el 30 mL. */
+.e5-panel-izq {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr)) var(--e5-franja);
+}
+
+.e5-panel-centro {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--e5-fila) minmax(0, 1fr) var(--e5-neto);
+}
+
+.e5-panel-der {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr)) var(--e5-franja);
+}
+
+/* ── Celdas técnicas: reajuste de escala ─────────────────────────────────── */
+
+.e5-etiqueta .e30-celda {
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+/* 46 px ≈ 2,6 mm: el mismo peso visual que los 38 px del 30 mL, que a su
+   escala son 3,2 mm. El trazo se recalcula igual, para que la línea no
+   engorde al agrandar la caja. */
+.e5-etiqueta .e30-celda-icono {
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  border-radius: 4px;
+}
+.e5-etiqueta .e30-svg > svg * {
+  stroke-width: 4;
+}
+
+.e5-etiqueta .e30-celda-titulo {
+  letter-spacing: 0.02em;
+}
+
+/* ── Franjas de contacto ─────────────────────────────────────────────────── */
+
+.e5-etiqueta .e30-franja-dato {
+  gap: 6px;
+  height: 74%;
+  padding: 0 6px;
+}
+.e5-etiqueta .e30-franja-icono svg {
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.8;
+}
+/* La franja de la web va sin ícono: el hueco no debe dejar aire a la
+   izquierda del texto, que si no queda descentrado. */
+.e5-etiqueta .e30-franja-icono:empty {
+  display: none;
+}
+
+/* ── Panel central ───────────────────────────────────────────────────────── */
+
+.e5-etiqueta .e30-logo {
+  padding: 8px 0;
+}
+/* Con lema: la fila no crece, el logo cede el alto (como en el 30 mL). */
+.e5-etiqueta .e30-logo-con-lema {
+  gap: 2px;
+  padding: 6px 0 5px;
+}
+.e5-lema {
+  font-size: 17px;
+}
+.e5-etiqueta .e30-logo-caja {
+  width: 78%;
+}
+.e5-etiqueta .e30-logo-vacio {
+  font-size: 16px;
+  letter-spacing: 0.06em;
+}
+
+.e5-identidad {
+  gap: 3px;
+  padding: 4px 8px;
+}
+
+.e5-subtitulo {
+  letter-spacing: 0.02em;
+  font-size: 22px;
+}
+
+.e5-neto {
+  padding: 0 8px;
+}
+.e5-etiqueta .e30-neto-titulo {
+  letter-spacing: 0.04em;
+}
+
+/* ── Panel derecho ───────────────────────────────────────────────────────── */
+
+/* Fila 1: pictograma GHS a la izquierda y la tabla Pureza/CAS a la derecha.
+   El pictograma se lleva el 34 %, igual que en la columna de clasificación
+   del 30 mL, para que la tabla conserve ancho de sobra para el número CAS. */
+.e5-ficha {
+  display: grid;
+  grid-template-columns: 34% 66%;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  overflow: hidden;
+}
+
+.e5-ghs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 6px 0 6px 6px;
+}
+.e5-etiqueta .e30-ghs-circulo {
+  width: 84px;
+  height: 84px;
+  padding: 6px;
+  border-width: 3px;
+}
+.e5-etiqueta .e30-ghs-pictograma {
+  width: 88px;
+  height: 88px;
+}
+.e5-etiqueta .e30-ghs-n2 {
+  width: 116px;
+}
+.e5-etiqueta .e30-ghs-n2 .e30-ghs-pictograma {
+  width: 56px;
+  height: 56px;
+}
+.e5-etiqueta .e30-ghs-n3 {
+  width: 104px;
+}
+.e5-etiqueta .e30-ghs-n3 .e30-ghs-pictograma {
+  width: 50px;
+  height: 50px;
+}
+
+/* Columna derecha de la fila 1: la tabla arriba y el timbre debajo. */
+.e5-ficha-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+}
+/* Espacio del timbre: mismo ancho que la tabla, ~3,5 mm de alto. */
+.e5-timbre {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 94%;
+  height: 62px;
+}
+.e30-editando .e5-timbre {
+  border: 1.5px dashed #b8b8b8;
+  border-radius: 4px;
+}
+.e5-timbre > span {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b0b0b0;
+}
+
+.e5-tabla {
+  width: 94%;
+  margin-right: 6px;
+  grid-auto-rows: 38px;
+  border-width: 1.5px;
+}
+.e5-tabla .e30-tabla-campo {
+  padding: 0 5px;
+  border-right-width: 1.5px;
+}
+.e5-tabla .e30-tabla-valor {
+  padding: 0 5px;
+}
+.e5-tabla .e30-tabla-fila1 {
+  border-bottom-width: 1.5px;
+}
+
+/* Fila 2: el código de barras, a ancho completo del panel. No hay hueco de
+   timbre (el 30 mL sí lo reserva): con 21 mm de panel, cada milímetro que se
+   le quite al código lo aleja más de poder escanearse. */
+.e5-etiqueta .e30-barras {
+  padding: 6px 0;
+}
+.e5-etiqueta .e30-barras-boton {
+  width: 94%;
+}

@@ -45,7 +45,7 @@ fbq('track','PageView');
    (sin JS, reduced-motion, previews) todo el contenido queda visible. */
 (function(){try{if('IntersectionObserver' in window&&!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){document.documentElement.classList.add('js-reveal');}}catch(e){}})();
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260913h">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260914i">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -109,6 +109,155 @@ fbq('track','PageView');
 {% endblock %}
 </head>
 <body class="tema-{{ TEMA_ACTIVO | default('clasico') }}">
+{#
+  Fondo químico del sitio (14-sep-2026). Vive en base.html, así que aparece en
+  TODAS las páginas. Es una capa fija de 100vw×100vh con z-index:-1: el blanco
+  de `body` se propaga al lienzo, de modo que esta capa queda por encima de ese
+  blanco y por debajo de todo el contenido. aria-hidden y pointer-events:none —
+  no lo lee un lector de pantalla ni intercepta un solo clic.
+  viewBox 1600×900 con `slice`; ver gen_sitio.py para el reparto por franjas.
+#}
+<div class="chemistry-background chemistry-background--sitio" aria-hidden="true">
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="presentation">
+    <g class="chemical chemical--l1">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:0.20s" d="M196.3 169.0 L196.3 231.0 L250.0 262.0 L303.7 231.0 L303.7 169.0 L250.0 138.0 Z"/>
+        <path class="draw-line" pathLength="100" style="--d:0.20s" d="M211.2 172.5 L245.6 152.7"/>
+        <path class="draw-line" pathLength="100" style="--d:0.20s" d="M211.2 227.5 L245.6 247.3"/>
+        <path class="draw-line" pathLength="100" style="--d:0.20s" d="M293.2 219.8 L293.2 180.2"/>
+        <path class="draw-line" pathLength="100" style="--d:0.90s" d="M312.0 200.0 L340.0 184.0"/>
+        <circle class="electron" cx="348.0" cy="178.0" r="3" style="--d:2.75s;--p:10.8s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--l2">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M140.0 683.0 L174.0 717.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M174.0 717.0 L208.0 683.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M206.4 684.6 L240.4 718.6"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M209.6 681.4 L243.6 715.4"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M242.0 717.0 L276.0 683.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M276.0 683.0 L310.0 717.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.55s" d="M310.0 717.0 L344.0 683.0"/>
+        <circle class="electron" cx="140.0" cy="683.0" r="3" style="--d:2.85s;--p:11.6s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--l3">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:0.75s" d="M308.7 486.5 L330.0 470.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.75s" d="M330.0 470.0 L351.3 486.5"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.75s" cx="330.0" cy="470.0" r="3.4"/>
+        <circle class="electron" cx="320.0" cy="456.0" r="3" style="--d:2.70s;--p:10.4s"/>
+        <circle class="electron" cx="340.0" cy="456.0" r="3" style="--d:2.70s;--p:10.4s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--r1">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:0.25s" d="M1160.0 187.0 L1180.0 176.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.25s" d="M1180.0 176.0 L1200.0 187.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.25s" d="M1180.0 176.0 L1180.0 156.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.25s" d="M1180.0 176.0 L1190.0 195.0"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.25s" cx="1180.0" cy="176.0" r="3.4"/>
+        <path class="draw-line" pathLength="100" style="--d:0.60s" d="M1261.0 184.2 L1287.0 184.2"/>
+        <path class="draw-line" pathLength="100" style="--d:0.60s" d="M1261.0 179.8 L1287.0 179.8"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.60s" cx="1261.0" cy="182.0" r="3.4"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.60s" cx="1287.0" cy="182.0" r="3.4"/>
+        <path class="draw-line" pathLength="100" style="--d:2.00s" d="M1312.0 182.0 L1388.0 182.0"/>
+        <path class="draw-line" pathLength="100" style="--d:2.00s" d="M1380.0 177.0 L1388.0 182.0"/>
+        <path class="draw-line" pathLength="100" style="--d:2.00s" d="M1380.0 187.0 L1388.0 182.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.95s" d="M1426.0 184.2 L1445.0 184.2"/>
+        <path class="draw-line" pathLength="100" style="--d:0.95s" d="M1426.0 179.8 L1445.0 179.8"/>
+        <path class="draw-line" pathLength="100" style="--d:0.95s" d="M1459.0 184.2 L1478.0 184.2"/>
+        <path class="draw-line" pathLength="100" style="--d:0.95s" d="M1459.0 179.8 L1478.0 179.8"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.95s" cx="1426.0" cy="182.0" r="3.4"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.95s" cx="1452.0" cy="182.0" r="3.4"/>
+        <circle class="draw-line" pathLength="100" style="--d:0.95s" cx="1478.0" cy="182.0" r="3.4"/>
+        <circle class="electron" cx="1180.0" cy="150.0" r="3" style="--d:2.80s;--p:11.2s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--r2">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:1.10s" d="M1244.4 624.0 L1244.4 672.0 L1286.0 696.0 L1327.6 672.0 L1327.6 624.0 L1286.0 600.0 Z"/>
+        <path class="draw-line" pathLength="100" style="--d:1.10s" d="M1256.0 626.7 L1282.6 611.4"/>
+        <path class="draw-line" pathLength="100" style="--d:1.10s" d="M1256.0 669.3 L1282.6 684.6"/>
+        <path class="draw-line" pathLength="100" style="--d:1.10s" d="M1319.4 663.4 L1319.4 632.6"/>
+        <path class="draw-line" pathLength="100" style="--d:2.25s" d="M1352.0 643.0 L1444.0 643.0"/>
+        <path class="draw-line" pathLength="100" style="--d:2.25s" d="M1437.0 639.1 L1444.0 643.0"/>
+        <path class="draw-line" pathLength="100" style="--d:2.25s" d="M1352.0 653.0 L1444.0 653.0"/>
+        <path class="draw-line" pathLength="100" style="--d:2.25s" d="M1359.0 656.9 L1352.0 653.0"/>
+        <circle class="electron" cx="1352.0" cy="634.0" r="3" style="--d:2.90s;--p:12.0s"/>
+        <circle class="electron" cx="1444.0" cy="662.0" r="3" style="--d:2.90s;--p:12.0s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--r3">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:1.35s" d="M1404.0 440.2 L1423.0 440.2"/>
+        <path class="draw-line" pathLength="100" style="--d:1.35s" d="M1404.0 435.8 L1423.0 435.8"/>
+        <path class="draw-line" pathLength="100" style="--d:1.35s" d="M1437.0 440.2 L1456.0 440.2"/>
+        <path class="draw-line" pathLength="100" style="--d:1.35s" d="M1437.0 435.8 L1456.0 435.8"/>
+        <circle class="draw-line" pathLength="100" style="--d:1.35s" cx="1404.0" cy="438.0" r="3.4"/>
+        <circle class="draw-line" pathLength="100" style="--d:1.35s" cx="1430.0" cy="438.0" r="3.4"/>
+        <circle class="draw-line" pathLength="100" style="--d:1.35s" cx="1456.0" cy="438.0" r="3.4"/>
+        <circle class="electron" cx="1386.0" cy="424.0" r="3" style="--d:2.70s;--p:10.4s"/>
+        <circle class="electron" cx="1474.0" cy="424.0" r="3" style="--d:2.70s;--p:10.4s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--fondo chemical--fondoC1">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:0.45s" d="M632.0 222.0 L662.0 250.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.45s" d="M663.5 251.6 L693.5 223.6"/>
+        <path class="draw-line" pathLength="100" style="--d:0.45s" d="M660.5 248.4 L690.5 220.4"/>
+        <path class="draw-line" pathLength="100" style="--d:0.45s" d="M692.0 222.0 L722.0 250.0"/>
+        <path class="draw-line" pathLength="100" style="--d:0.45s" d="M722.0 250.0 L752.0 222.0"/>
+        <circle class="electron" cx="632.0" cy="220.0" r="3" style="--d:2.95s;--p:12.4s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--fondo chemical--fondoC2">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:1.55s" d="M772.2 477.0 L772.2 523.0 L812.0 546.0 L851.8 523.0 L851.8 477.0 L812.0 454.0 Z"/>
+        <path class="draw-line" pathLength="100" style="--d:1.55s" d="M783.2 479.6 L808.7 464.9"/>
+        <path class="draw-line" pathLength="100" style="--d:1.55s" d="M783.2 520.4 L808.7 535.1"/>
+        <path class="draw-line" pathLength="100" style="--d:1.55s" d="M844.0 514.7 L844.0 485.3"/>
+        <circle class="electron" cx="858.0" cy="486.0" r="3" style="--d:3.00s;--p:12.8s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--fondo chemical--fondoC3">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:1.75s" d="M880.2 757.3 L900.0 742.0"/>
+        <path class="draw-line" pathLength="100" style="--d:1.75s" d="M900.0 742.0 L919.8 757.3"/>
+        <circle class="draw-line" pathLength="100" style="--d:1.75s" cx="900.0" cy="742.0" r="3.4"/>
+        <circle class="electron" cx="890.0" cy="728.0" r="3" style="--d:2.75s;--p:10.8s"/>
+        <circle class="electron" cx="910.0" cy="728.0" r="3" style="--d:2.75s;--p:10.8s"/>
+      </g>
+    </g>
+    <g class="chemical chemical--fondo chemical--fondoC4">
+      <g class="chem-flota">
+        <path class="draw-line" pathLength="100" style="--d:1.95s" d="M638.5 678.6 L666.5 704.6"/>
+        <path class="draw-line" pathLength="100" style="--d:1.95s" d="M641.5 675.4 L669.5 701.4"/>
+        <path class="draw-line" pathLength="100" style="--d:1.95s" d="M668.0 703.0 L696.0 677.0"/>
+        <path class="draw-line" pathLength="100" style="--d:1.95s" d="M696.0 677.0 L724.0 703.0"/>
+      </g>
+    </g>
+    <g class="particles">
+      <g class="orbita" style="transform-origin:330px 470px;--t:16s">
+        <circle class="electron" cx="370.0" cy="470.0" r="2.6" style="--d:2.80s;--p:10s"/>
+      </g>
+      <g class="orbita" style="transform-origin:1430px 438px;--t:13s">
+        <circle class="electron" cx="1474.0" cy="438.0" r="2.6" style="--d:3.05s;--p:13s"/>
+      </g>
+      <circle class="electron" cx="430" cy="300" r="2.4" style="--d:2.60s;--p:9.0s"/>
+      <circle class="electron" cx="196" cy="560" r="2.4" style="--d:2.70s;--p:9.8s"/>
+      <circle class="electron" cx="520" cy="118" r="2.4" style="--d:2.80s;--p:10.6s"/>
+      <circle class="electron" cx="1092" cy="300" r="2.4" style="--d:2.90s;--p:11.4s"/>
+      <circle class="electron" cx="1540" cy="560" r="2.4" style="--d:3.00s;--p:12.2s"/>
+      <circle class="electron" cx="1120" cy="780" r="2.4" style="--d:3.10s;--p:13.0s"/>
+      <circle class="electron" cx="760" cy="156" r="2.4" style="--d:3.20s;--p:13.8s"/>
+      <circle class="electron" cx="980" cy="620" r="2.4" style="--d:3.30s;--p:14.6s"/>
+      <circle class="electron" cx="868" cy="340" r="2.4" style="--d:3.40s;--p:15.4s"/>
+      <circle class="electron" cx="700" cy="810" r="2.4" style="--d:3.50s;--p:16.2s"/>
+    </g>
+
+  </svg>
+</div>
 {% set account_nav_href = url_for('cuenta_entrar') if (google_oauth_ready and not customer_logged_in) else url_for('mis_pedidos') %}
 {% set account_nav_label = 'Iniciar sesión' if (google_oauth_ready and not customer_logged_in) else 'Mis pedidos' %}
 {% set show_admin_pedidos_link = admin_panel_enabled and admin_orders_session_ok %}
@@ -397,6 +546,7 @@ fbq('track','PageView');
 
 <script src="{{ url_for('static', filename='js/main.js') }}?v=20260912a"></script>
 <script src="{{ url_for('static', filename='js/trazabilidad.js') }}?v=20260913b" defer></script>
+<script src="{{ url_for('static', filename='js/hero-parallax.js') }}?v=20260914c" defer></script>
 {% block scripts %}{% endblock %}
 
 {% if META_PIXEL_ID %}

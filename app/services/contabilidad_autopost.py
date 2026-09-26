@@ -18,10 +18,35 @@ from __future__ import annotations
 from typing import Any
 
 from app.services import contabilidad_core as cc
+from app.services.puc_colombia import CUENTA_MERCADOPAGO
 from app.services.contabilidad_ledger import armar_libro
 from app.services.extracto_bancario import id_movimiento_ledger
 
 CUENTA_BANCOS = "1110"
+# Dónde cae la plata de cada fuente. Una venta de MeLi NO llega al banco: la
+# cobra MercadoPago, la libera días después y sale al banco en retiros
+# redondos («PAGO INTERBANC MERCADOPAGO»). Postearla contra Bancos —como se
+# hizo hasta sep-2026— inflaba 1110 con dinero que aún no estaba ahí y dejaba
+# los retiros sin contrapartida. La venta y su comisión van a la cuenta por
+# cobrar a Mercado Pago (130505, ver `puc_colombia.CUENTA_MERCADOPAGO`); el
+# retiro es Debe 1110 / Haber 130505 (lo causa el taller de conciliación).
+FUENTE_CAJA: dict[str, str] = {
+    "meli_venta": CUENTA_MERCADOPAGO,
+    "meli_cobro": CUENTA_MERCADOPAGO,
+    # La tienda web cobra por la pasarela de Mercado Pago (PSE, tarjetas, botón
+    # Bancolombia): la plata queda allá y llega al banco con los retiros, igual
+    # que la de MeLi. Hasta el 25-sep-2026 se posteaba contra 1110.
+    "web_venta": CUENTA_MERCADOPAGO,
+}
+
+
+def _tercero_mercadopago() -> int | None:
+    """El tercero al que se le lleva el saldo por cobrar de las ventas MeLi."""
+    with cc._conn() as con:
+        r = con.execute(
+            "SELECT id FROM cc_terceros WHERE nombre LIKE 'MERCADO PAGO%' AND activo=1 ORDER BY id LIMIT 1"
+        ).fetchone()
+    return int(r[0]) if r else None
 
 # fuente (armar_libro) -> código de cuenta PUC contraparte de Bancos.
 # Ingreso: Debe Bancos / Haber esta cuenta. Egreso: Debe esta cuenta / Haber Bancos.
@@ -50,6 +75,15 @@ def _cuenta_id(cuentas_por_codigo: dict[str, int], codigo: str) -> int:
     if not cid:
         raise ValueError(f"Cuenta PUC {codigo} no existe (¿falta sembrar/migrar el plan de cuentas?)")
     return cid
+
+
+def _mapa_cuentas(cc) -> dict[str, int]:
+    """Delega en `contabilidad_core.mapa_cuentas_por_codigo()`.
+
+    La lógica vive allá, que es el módulo dueño de la tabla: tenerla duplicada
+    acá fue lo que hizo que este camino no viera los alias de la migración.
+    """
+    return cc.mapa_cuentas_por_codigo()
 
 
 def _lineas_creditos_adquiridos(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -> list[dict]:
@@ -316,14 +350,26 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
         return _lineas_factura_proveedor(row, cuentas_por_codigo)
 
     monto = round(float(row["monto"] or 0), 2)
-    bancos_id = _cuenta_id(cuentas_por_codigo, CUENTA_BANCOS)
+    caja = FUENTE_CAJA.get(fuente, CUENTA_BANCOS)
+    es_mp = caja == CUENTA_MERCADOPAGO
+    caja_nombre = "MercadoPago" if es_mp else "Bancos"
+    bancos_id = _cuenta_id(cuentas_por_codigo, caja)
     cuenta_id = _cuenta_id(cuentas_por_codigo, FUENTE_MAPEO[fuente])
     concepto = row["concepto"]
 
     if row["tipo"] == "ingreso":
+        if es_mp:
+            # La descripción se lee en el Libro Mayor: que diga qué es este saldo.
+            return [
+                {"cuenta_id": bancos_id, "debito": monto, "credito": 0, "tercero_id": _tercero_mercadopago(),
+                 "descripcion": f"Por cobrar a Mercado Pago (130505): la plata de esta venta "
+                                f"{'web' if fuente == 'web_venta' else 'MeLi'} queda en Mercado Pago hasta el "
+                                "retiro; el ingreso va en 4135"},
+                {"cuenta_id": cuenta_id, "debito": 0, "credito": monto, "descripcion": concepto},
+            ]
         return [
             {"cuenta_id": bancos_id, "debito": monto, "credito": 0,
-             "descripcion": f"Entrada vía Bancos — {concepto}"},
+             "descripcion": f"Entrada vía {caja_nombre} — {concepto}"},
             {"cuenta_id": cuenta_id, "debito": 0, "credito": monto,
              "descripcion": concepto},
         ]
@@ -331,8 +377,132 @@ def _lineas_para_fila(row: dict[str, Any], cuentas_por_codigo: dict[str, int]) -
         {"cuenta_id": cuenta_id, "debito": monto, "credito": 0,
          "descripcion": concepto},
         {"cuenta_id": bancos_id, "debito": 0, "credito": monto,
-         "descripcion": f"Salida vía Bancos — {concepto}"},
+         "descripcion": f"Salida vía {caja_nombre} — {concepto}"},
     ]
+
+
+def _ya_posteado_documento(fuente: str, referencia_doc: str) -> bool:
+    """¿Ya hay asiento de esta fuente para este documento (factura, pedido)?
+
+    El dedup por hash exige que la fila sea idéntica campo a campo. Cuando la
+    venta se causa EN EL MOMENTO (al facturar) y el cron la vuelve a ver horas
+    después leída de Alegra, cualquier diferencia de formato —la fecha, cómo
+    viene el NIT— cambiaría el hash y la postearía dos veces. El número de
+    factura o la referencia del pedido no cambian: por eso el segundo cerrojo.
+    """
+    if not fuente or not referencia_doc:
+        return False
+    with cc._conn() as con:
+        return con.execute(
+            """SELECT 1 FROM cc_movimientos
+                WHERE tipo_origen = ? AND estado <> 'anulado'
+                  AND json_extract(plantilla_datos_json, '$.referencia') = ?
+                LIMIT 1""",
+            (f"auto_{fuente}", referencia_doc),
+        ).fetchone() is not None
+
+
+def _tercero_por_identificacion(ident: str) -> int | None:
+    """El tercero del libro con esa cédula o NIT, si existe (solo dígitos)."""
+    import re
+
+    if not re.sub(r"\D", "", ident or ""):
+        return None
+    for t in cc.listar_terceros(solo_activos=False):
+        if cc.mismo_documento(t.get("identificacion") or "", ident):
+            return int(t["id"])
+    return None
+
+
+def postear_fila(row: dict[str, Any], *, cuentas_por_codigo: dict[str, int] | None = None,
+                 tercero_id: int | None = None) -> dict[str, Any]:
+    """Postea UNA fila con la forma de `armar_libro()` al libro propio.
+
+    Es el cuerpo del cron, sacado a una función para que la venta se cause en
+    el instante en que nace —al facturar una venta directa, al facturar un
+    pedido web— igual que la solicitud de pago nace con su asiento, y no seis
+    horas después cuando pase el cron. El cron sigue existiendo como red: lo que
+    ya se posteó acá lo omite por hash o por documento.
+
+    Devuelve {"creado": bool, "omitido": bool, "movimiento_id": int|None, "referencia": str}.
+    """
+    fuente = row.get("fuente") or ""
+    referencia = f"auto:{id_movimiento_ledger(row)}"
+    if fuente not in FUENTES_SOPORTADAS:
+        raise ValueError(f"Fuente sin mapeo contable: {fuente}")
+    if float(row.get("monto") or 0) <= 0:
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
+    if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": referencia}
+    if cc.antes_del_corte(str(row.get("fecha") or "")):
+        raise ValueError(cc.motivo_corte(str(row.get("fecha") or "")))
+    cuentas = cuentas_por_codigo or _mapa_cuentas(cc)
+    # Una venta a un cliente que ya es tercero nace con él: la contraparte de
+    # `siigo_venta` es la identificación que Alegra devuelve de la factura.
+    if tercero_id is None and fuente in ("siigo_venta", "web_venta"):
+        tercero_id = _tercero_por_identificacion(str(row.get("contraparte") or ""))
+    mov = cc.crear_movimiento(
+        fecha=row["fecha"],
+        concepto=row["concepto"],
+        lineas=_lineas_para_fila(row, cuentas),
+        tercero_id=tercero_id,
+        referencia=referencia,
+        tipo_origen=f"auto_{fuente}",
+        plantilla_datos=row,
+    )
+    return {"creado": True, "omitido": False, "movimiento_id": int(mov["id"]), "referencia": referencia, "tercero_id": tercero_id}
+
+
+def causar_venta_directa(venta: dict[str, Any]) -> dict[str, Any]:
+    """La venta directa recién facturada, al libro, ya.
+
+    La fila se arma exactamente como la armaría `_ingresos_siigo` cuando el
+    cron lea esa factura de Alegra: fecha de emisión, concepto «Venta Alegra»,
+    referencia = número de factura, contraparte = identificación del cliente.
+    Así el hash coincide y el cron la omite; y si no coincidiera, la omite por
+    el número de factura.
+
+    Una venta con origen MeLi NO pasa por acá: esa ya entra como `meli_venta`
+    y la factura se descarta por `factura_ya_contada`.
+    """
+    from app.services.contabilidad_ledger import _row
+
+    if (venta.get("origen") or "") == "meli":
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": "", "motivo": "venta MeLi: entra por meli_venta"}
+    numero = str(venta.get("factura_numero") or "").strip()
+    if not numero:
+        raise ValueError("La venta no tiene número de factura: no se causa hasta que Alegra la emita")
+    cliente = venta.get("cliente") or {}
+    fecha = str(venta.get("facturado") or venta.get("actualizado") or "")[:10]
+    row = _row(
+        fecha=fecha,
+        tipo="ingreso",
+        fuente="siigo_venta",
+        concepto="Venta Alegra",
+        monto=float(venta.get("total") or 0),
+        referencia=numero,
+        contraparte=str(cliente.get("identificacion") or ""),
+    )
+    return postear_fila(row)
+
+
+def causar_pedido_web(order: dict[str, Any]) -> dict[str, Any]:
+    """El pedido web aprobado, al libro, ya — misma fila que `_ingresos_web`."""
+    from app.services.contabilidad_ledger import _row
+
+    if str(order.get("status") or "").lower() != "approved":
+        return {"creado": False, "omitido": True, "movimiento_id": None, "referencia": "", "motivo": "pedido no aprobado"}
+    row = _row(
+        fecha=str(order.get("created_at") or "")[:10],
+        tipo="ingreso",
+        fuente="web_venta",
+        concepto="Venta página web",
+        monto=float(order.get("total") or 0),
+        referencia=str(order.get("reference") or ""),
+        contraparte=str(order.get("buyer_name") or ""),
+        extra={"status": order.get("status")},
+    )
+    return postear_fila(row)
 
 
 def _ya_posteado(referencia: str) -> bool:
@@ -357,15 +527,42 @@ def auto_postear_periodo(
     pero este módulo todavía no sabe clasificar quedan en `fuentes_sin_mapeo`
     (nunca se descartan en silencio)."""
     cc._ensure()
+    # Antes del corte manda el contador: ese período ya lo declaró con su propia
+    # contabilidad y el libro propio no lo reescribe. Se recorta el rango en vez
+    # de rechazarlo entero, para que un backfill que empiece antes siga sirviendo
+    # para lo que sí es nuestro.
+    avisos_corte: list[str] = []
+    corte = cc.fecha_corte()
+    if cc.antes_del_corte(desde):
+        avisos_corte.append(
+            f"El rango empezaba el {desde}, antes del corte contable ({corte}): se recortó. "
+            "Ese período lo declaró el contador y el libro propio no lo reescribe. "
+            "Para cambiarlo, CONTABILIDAD_FECHA_CORTE."
+        )
+        desde = corte
+    if hasta and cc.antes_del_corte(hasta):
+        return {
+            "creados": 0, "omitidos": 0, "errores": [], "fuentes_sin_mapeo": {},
+            "montos_por_fuente": {},
+            "avisos": avisos_corte + [
+                f"Todo el rango es anterior al corte contable ({corte}): no se posteó nada. "
+                + cc.motivo_corte(hasta)
+            ],
+            "bloqueado_por_corte": True,
+        }
     libro = armar_libro(desde, hasta, incluir_meli=incluir_meli, incluir_siigo=incluir_siigo)
-    cuentas_por_codigo = {c["codigo"]: c["id"] for c in cc.listar_plan_cuentas(solo_activas=False)}
+    cuentas_por_codigo = _mapa_cuentas(cc)
 
     creados = 0
     omitidos = 0
     fuentes_sin_mapeo: dict[str, int] = {}
     errores: list[dict[str, Any]] = []
 
+    montos_por_fuente: dict[str, float] = {}
     for row in libro["movimientos"]:
+        montos_por_fuente[row.get("fuente") or "?"] = round(
+            montos_por_fuente.get(row.get("fuente") or "?", 0.0) + float(row.get("monto") or 0), 2
+        )
         fuente = row.get("fuente") or ""
         if fuente not in FUENTES_SOPORTADAS:
             fuentes_sin_mapeo[fuente] = fuentes_sin_mapeo.get(fuente, 0) + 1
@@ -375,7 +572,7 @@ def auto_postear_periodo(
             continue
 
         referencia = f"auto:{id_movimiento_ledger(row)}"
-        if _ya_posteado(referencia):
+        if _ya_posteado(referencia) or _ya_posteado_documento(fuente, str(row.get("referencia") or "")):
             omitidos += 1
             continue
         if dry_run:
@@ -404,4 +601,13 @@ def auto_postear_periodo(
         "fuentes_sin_mapeo": fuentes_sin_mapeo,
         "errores": errores,
         "dry_run": dry_run,
+        # `armar_libro` avisa cuando una fuente remota se cortó por tiempo
+        # (`_REMOTE_BUDGET_S`, 28 s, pensados para el panel). En un backfill eso
+        # significa postear un período INCOMPLETO, y descartar el aviso hacía
+        # que la corrida se viera exitosa —«1.300 creados»— sin decir que
+        # faltaban facturas. Se propaga para que quien corre el backfill lo vea.
+        "avisos": avisos_corte + (libro.get("avisos") or []),
+        # Cuánto se postea, por fuente: «1.300 asientos» no permite contrastar
+        # contra la facturación; «$80M en ventas» sí.
+        "montos_por_fuente": montos_por_fuente,
     }

@@ -122,23 +122,6 @@
   flex: 1 1 auto;
   min-width: 0;
 }
-/* Copia invisible del nombre para medir su renglón más ancho (el recuadro
-   del grado toma ese ancho). No se ve ni ocupa lugar. */
-.es-nombre-espejo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  visibility: hidden;
-  pointer-events: none;
-  text-align: center;
-}
-.es-nombre-caja > .es-nombre-espejo {
-  flex: none;
-}
-.es-nombre-copia {
-  width: auto;
-}
-
 /* Lupa de fichas técnicas (solo en edición), en la esquina de la columna. */
 .es-lupa {
   position: absolute;
@@ -159,26 +142,32 @@
   color: var(--acento);
 }
 
+/* Recuadro «INSUMO GRADO …»: un renglón de lado a lado de la columna, con el
+   mismo alto que la barra de la web (`--es-barra`). Las dos son la última
+   fila de su mitad de la banda, así que terminan en la misma línea. */
 .es-subtitulo {
-  flex: none;
-  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--es-barra);
   overflow: hidden;
-  padding: 6px 10px;
+  padding: 0 12px;
   text-align: center;
   border-radius: 6px;
   background: var(--acento);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #ffffff;
 }
-/* El texto del recuadro va en su propia caja (sin el relleno del recuadro)
-   para medir sus renglones: uno si cabe, dos si el nombre es muy corto. */
 .es-subtitulo-texto {
   display: block;
+  min-width: 0;
+  max-width: 100%;
   line-height: 1.15;
-  overflow-wrap: normal;
+  white-space: nowrap;
 }
 /* Menú del grado dentro del recuadro: subrayado blanco, no del acento. */
 .es-subtitulo .e30-grado-boton {
@@ -327,6 +316,13 @@
   font-weight: 700;
   color: #111111;
 }
+/* El origen va un 30 % más grande que los datos del pie (rótulo y dato). */
+.es-datos-origen .es-dato-rotulo {
+  font-size: 25px;
+}
+.es-datos-origen .es-dato-texto {
+  font-size: 27px;
+}
 
 /* Textos centrados en esta columna (también en edición). */
 .es-cabeza-izq,
@@ -376,7 +372,7 @@
   align-items: center;
   justify-content: center;
   width: 90%;
-  height: 32px;
+  height: var(--es-barra);
   margin-top: 4px;
   padding: 0 10px;
   overflow: hidden;

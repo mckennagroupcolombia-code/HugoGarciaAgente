@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { api, fetchAuthBlobUrl } from "../api/client";
+import { useEffect, useMemo, useState } from "react";
+import { api, fetchAuthBlobUrl, postAuthBlobUrl } from "../api/client";
 
 /**
  * Guías (rótulos) de envío para la impresora térmica Vretti.
@@ -9,6 +9,9 @@ import { api, fetchAuthBlobUrl } from "../api/client";
  * (tienda web / WhatsApp), se genera un PDF de 10x15 cm — una página por
  * paquete — y se manda a la térmica. Cada rótulo queda registrado, así que el
  * conteo del día sirve para la casilla "envíos" de Operativos → Mensajería.
+ *
+ * La vista previa pide el PDF real al mismo endpoint que imprime (sin
+ * registrar nada): lo que se ve aquí es lo que sale de la impresora.
  */
 
 type Pedido = {
@@ -23,8 +26,6 @@ type Pedido = {
   ciudad: string;
   departamento: string;
   observaciones: string;
-  contenido: string[];
-  valor_declarado: number;
   guia: string;
   transportadora: string;
   listo: boolean;
@@ -71,10 +72,8 @@ const MANUAL_VACIO = {
   ciudad: "",
   departamento: "",
   observaciones: "",
-  contenido: "",
   piezas: "1",
   peso_kg: "",
-  valor_declarado: "",
   guia: "",
   transportadora: "Interrapidísimo",
 };
@@ -90,6 +89,8 @@ export default function GuiasEnvioPanel() {
   const [modo, setModo] = useState<"pedidos" | "manual" | "ajustes">("pedidos");
   const [manual, setManual] = useState({ ...MANUAL_VACIO });
   const [remitenteForm, setRemitenteForm] = useState<Remitente | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
 
   const pedidosQ = useQuery<{ pedidos: Pedido[]; total: number; sin_direccion: number }>({
     queryKey: ["guias-pedidos", busqueda],
@@ -110,6 +111,52 @@ export default function GuiasEnvioPanel() {
     if (blob) window.open(blob, "_blank", "noopener");
     else setError("No se pudo abrir el PDF de los rótulos");
   };
+
+  /** Cuerpo del PDF que se va a pedir: el primer pedido marcado, o el envío suelto. */
+  const cuerpoRotulo = () => {
+    if (modo === "manual") {
+      if (!manual.nombre || !manual.direccion || !manual.ciudad) return null;
+      return { manual: { ...manual, piezas: Number(manual.piezas || 1) }, tamano };
+    }
+    const k = seleccion[0];
+    if (!k) return null;
+    const [canal, ...resto] = k.split(":");
+    return { pedidos: [{ canal, id: resto.join(":") }], tamano };
+  };
+
+  const previsualizar = async () => {
+    const body = cuerpoRotulo();
+    if (!body) {
+      setError(
+        modo === "manual"
+          ? "Completa nombre, dirección y ciudad para ver la vista previa"
+          : "Marca un pedido para ver cómo queda su rótulo",
+      );
+      return;
+    }
+    setError(null);
+    setPreviewBusy(true);
+    const r = await postAuthBlobUrl("/api/guias/previsualizar", body);
+    setPreviewBusy(false);
+    if ("error" in r) return setError(r.error);
+    setPreview((anterior) => {
+      if (anterior) URL.revokeObjectURL(anterior);
+      return r.url;
+    });
+  };
+
+  // Si cambia el tamaño del rollo o la selección, la vista previa abierta ya no
+  // corresponde a lo que se va a imprimir: mejor cerrarla que mostrar algo viejo.
+  useEffect(() => {
+    setPreview((anterior) => {
+      if (anterior) URL.revokeObjectURL(anterior);
+      return null;
+    });
+  }, [tamano, modo, seleccion]);
+
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
 
   const crearMut = useMutation({
     mutationFn: (body: Record<string, unknown>) =>
@@ -228,6 +275,51 @@ export default function GuiasEnvioPanel() {
       {msg && <p className="text-xs font-semibold text-emerald-600">{msg}</p>}
       {error && <p className="text-xs font-semibold text-danger">{error}</p>}
 
+      <section className="rounded-xl border border-border bg-surface-panel p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-muted">Vista previa</h3>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {modo === "manual"
+                ? "Muestra el rótulo del envío suelto tal como saldrá impreso."
+                : "Muestra el rótulo del primer pedido marcado, tal como saldrá impreso."}{" "}
+              No registra nada ni gasta papel.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void previsualizar()}
+              disabled={previewBusy}
+              className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-ink hover:bg-surface disabled:opacity-40"
+            >
+              {previewBusy ? "Generando…" : preview ? "Actualizar vista previa" : "Ver vista previa"}
+            </button>
+            {preview && (
+              <button
+                type="button"
+                onClick={() => {
+                  URL.revokeObjectURL(preview);
+                  setPreview(null);
+                }}
+                className="text-[11px] font-bold text-muted hover:underline"
+              >
+                Cerrar
+              </button>
+            )}
+          </div>
+        </div>
+        {preview && (
+          <div className="mt-3 flex justify-center">
+            <iframe
+              title="Vista previa del rótulo"
+              src={preview}
+              className="h-[560px] w-full max-w-[420px] rounded-lg border border-border bg-white"
+            />
+          </div>
+        )}
+      </section>
+
       {modo === "pedidos" && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -345,11 +437,7 @@ export default function GuiasEnvioPanel() {
             setError(null);
             setMsg(null);
             crearMut.mutate({
-              manual: {
-                ...manual,
-                piezas: Number(manual.piezas || 1),
-                valor_declarado: Number(manual.valor_declarado || 0),
-              },
+              manual: { ...manual, piezas: Number(manual.piezas || 1) },
               copias,
               tamano,
             });
@@ -415,14 +503,6 @@ export default function GuiasEnvioPanel() {
               className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-2 text-sm text-ink"
             />
           </Campo>
-          <Campo label="Contenido (una línea por producto)" className="sm:col-span-2">
-            <textarea
-              rows={3}
-              value={manual.contenido}
-              onChange={(e) => setManual((m) => ({ ...m, contenido: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-2 text-sm text-ink"
-            />
-          </Campo>
           <Campo label="Piezas">
             <input
               type="number"
@@ -432,12 +512,10 @@ export default function GuiasEnvioPanel() {
               className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-2 text-sm text-ink"
             />
           </Campo>
-          <Campo label="Valor declarado (opcional)">
+          <Campo label="Peso (kg, opcional)">
             <input
-              type="number"
-              min={0}
-              value={manual.valor_declarado}
-              onChange={(e) => setManual((m) => ({ ...m, valor_declarado: e.target.value }))}
+              value={manual.peso_kg}
+              onChange={(e) => setManual((m) => ({ ...m, peso_kg: e.target.value }))}
               className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-2 text-sm text-ink"
             />
           </Campo>

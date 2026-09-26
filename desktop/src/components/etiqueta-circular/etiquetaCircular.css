@@ -64,7 +64,7 @@
 }
 .ec-curvo-titulo {
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.012em;
   text-transform: uppercase;
 }
 /* El aviso de control de calidad es informativo, no de marca. */
@@ -110,16 +110,32 @@
   text-align: center;
 }
 
+/* Logo + lema bajo el arco del título. El logo cede el alto al lema; el
+   tamaño del lema lo iguala `LemaLogo` al ancho del logo dibujado. */
+.ec-logo {
+  gap: 3px;
+  overflow: visible;
+}
+.ec-logo .ec-logo-caja {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+}
+.ec-lema {
+  font-size: 14px;
+}
+
 .ec-descripcion {
   width: 100%;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: 500;
   line-height: 1.26;
   color: #111111;
 }
 
 .ec-aplicaciones-titulo {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #333333;
 }
@@ -129,36 +145,46 @@
   width: 100%;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 3px;
 }
 
-/* Viñeta a la izquierda y el texto centrado al lado, como en la referencia:
-   la viñeta no se mueve aunque el texto ocupe uno o tres renglones. */
+/* Texto centrado con la viñeta al comienzo, como en la referencia.
+ *
+ * La viñeta y el texto son UNA pareja centrada, no una columna de viñetas más
+ * una columna de texto: con dos columnas fijas, un renglón corto se centraba
+ * en su columna y dejaba la viñeta suelta al margen, lejos de su texto. Aquí
+ * la casilla mide lo que mide su texto (`flex: 0 1 auto`), así que en un
+ * renglón corto la viñeta viaja pegada a él y la pareja entera queda al
+ * centro; en un texto largo la casilla crece hasta el ancho de la banda y la
+ * viñeta se queda donde tiene que estar, al principio del primer renglón. */
 .ec-item {
-  display: grid;
-  grid-template-columns: calc(var(--ec-vineta) * 2.4) minmax(0, 1fr);
-  align-items: start;
-  column-gap: 6px;
+  display: flex;
   width: 100%;
+  align-items: flex-start;
+  justify-content: center;
+  column-gap: calc(var(--ec-vineta) * 1.2);
 }
 .ec-item-vineta {
   margin-top: 0.42em;
+  flex: 0 0 auto;
   width: var(--ec-vineta);
   height: var(--ec-vineta);
   border-radius: 50%;
   background: #111111;
-  justify-self: center;
 }
-/* Alineado a la izquierda, no centrado como el resto del bloque: centrado,
-   un renglón corto se despega de su viñeta y la deja suelta al margen. */
 .ec-item-texto,
 .ec-item-caja :where(.e30-campo) {
-  text-align: left;
+  text-align: center;
+}
+/* En edición la casilla es un <textarea>: si midiera lo que su texto, escribir
+   sería imposible (la caja se encogería con cada borrado). Ocupa la banda. */
+.ec-editando .ec-item-caja {
+  flex: 1 1 auto;
 }
 
 .ec-item-texto {
   min-width: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   line-height: 1.22;
   color: #111111;
@@ -209,19 +235,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 3px;
-}
-
-/* Franja decorativa de segmentos de color sobre las barras (§8). */
-.ec-franja-color {
-  display: flex;
-  width: 78%;
-  height: var(--ec-franja);
-  overflow: hidden;
-  border-radius: 1px;
-}
-.ec-franja-color span {
-  flex: 1 1 0;
+  gap: 2px;
 }
 
 .ec-etiqueta .e30-barras {
@@ -234,7 +248,7 @@
 
 .ec-neto {
   width: 100%;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 600;
   line-height: 1;
   color: var(--acento);

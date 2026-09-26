@@ -685,7 +685,9 @@ def listar_catalogo_studio(
         "total": len(filas),
         "stats": stats,
         "plantillas_sin_producto": sin_producto[:80],
-        "plantillas_png_sin_producto": png_sueltos[:80],
+        # Sin tope de 80: la carpeta ya pasa de 110 y lo que quedaba después
+        # (orden alfabético) no salía en la biblioteca de Imprimir.
+        "plantillas_png_sin_producto": png_sueltos[:2000],
     }
 
 

@@ -72,3 +72,37 @@ def _bloquear_smtp_real_en_tests(monkeypatch):
     """
     monkeypatch.setattr(smtplib, "SMTP", _FakeSMTP)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _FakeSMTP)
+
+
+_BANDERAS_DOCUMENTOS_FISCALES = (
+    "PAGOS_DOC_SOPORTE_ACTIVO", "PAGOS_DOC_SOPORTE_TRANSMITIR", "PRESTAMOS_DOC_SOPORTE_ACTIVO",
+    "COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO", "MELI_AUTOFACTURA_ENTREGA_ACTIVO",
+)
+
+
+@pytest.fixture(autouse=True)
+def _sin_documentos_fiscales_reales_en_tests(monkeypatch):
+    """Ningún test debe crear nada en la Alegra real.
+
+    Varios módulos hacen `load_dotenv(.env)` al importarse, así que los tests
+    corren con las banderas de PRODUCCIÓN encendidas. El fixture de
+    `test_prestamos.py` no apagaba `PRESTAMOS_DOC_SOPORTE_ACTIVO` y cada corrida
+    emitía un documento soporte real a «Juan Pérez» (79123456): DSMG2 a DSMG5 del
+    19-sep-2026, que se comieron numeración de la resolución DIAN y hubo que
+    borrar a mano. Se apagan las banderas y, por si otra se escapa, se bloquea
+    toda escritura HTTP hacia Alegra (los tests que simulan Alegra parchean más
+    arriba y no llegan hasta aquí).
+    """
+    import requests
+
+    for bandera in _BANDERAS_DOCUMENTOS_FISCALES:
+        monkeypatch.delenv(bandera, raising=False)
+
+    original = requests.sessions.Session.request
+
+    def _request(self, method, url, *args, **kwargs):
+        if "alegra.com" in str(url) and str(method).upper() != "GET":
+            raise RuntimeError(f"Test intentó escribir en la Alegra real: {method} {url}")
+        return original(self, method, url, *args, **kwargs)
+
+    monkeypatch.setattr(requests.sessions.Session, "request", _request)

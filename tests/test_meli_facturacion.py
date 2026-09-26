@@ -69,7 +69,7 @@ def test_el_asiento_se_carga_contra_mercadopago_no_contra_bancos(monkeypatch):
     ], 35_926_378.0)
 
     lineas = mf.lineas_asiento("2026-08-01")
-    contrapartida = [l for l in lineas if l["cuenta"] == "111010"]
+    contrapartida = [l for l in lineas if l["cuenta"] == "130505"]   # saldo por cobrar a Mercado Pago
     assert len(contrapartida) == 1
     assert contrapartida[0]["credito"] == 35_926_378.0
     assert not [l for l in lineas if l["cuenta"] == "1110"]   # el banco no se toca

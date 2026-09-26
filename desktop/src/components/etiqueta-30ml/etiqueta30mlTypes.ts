@@ -41,6 +41,11 @@ export function sonMedidas(
  *  escala entera (vista previa, PNG, impresión): el contenido nunca reflua. */
 export const ANCHO_30ML = 1200;
 
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_30ML = 17;
+
 /** Medidas de la retícula, en px de diseño. Todas salen de aquí: ningún
  *  panel define alturas propias, así las líneas de los tres coinciden. */
 export interface Reticula30ml {
@@ -78,7 +83,9 @@ export function reticula30ml(anchoMm?: number, altoMm?: number): Reticula30ml {
   const interior = alto - 2 * margen - 2 * borde;
   const franja = Math.round(interior * 0.15);
   const fila = (interior - franja) / 3;
-  const neto = Math.round(interior * 0.27);
+  // Banda del valor (= franja) más una pista corta para el título: el resto
+  // del alto lo usa el espacio del timbre, debajo de la tabla de pureza.
+  const neto = franja + 26;
   return {
     ancho: ANCHO_30ML,
     alto,
@@ -119,19 +126,29 @@ export interface Celda30ml {
 
 /** Matriz 2 × 3 del panel izquierdo, en orden de lectura. */
 export const CELDAS_30ML: readonly Celda30ml[] = [
-  { campo: "composition", titulo: "Fórmula química", icono: "composicion_matraz" },
+  { campo: "composition", titulo: "Fórmula molecular", icono: "composicion_matraz" },
   { campo: "grade", titulo: "Grado", icono: "calidad_medalla_lineal" },
   { campo: "storage", titulo: "Conservación", icono: "conservacion_termometro" },
   { campo: "origin", titulo: "Origen", icono: "origen_globo_meridianos" },
   { campo: "appearance", titulo: "Apariencia", icono: "apariencia_escamas" },
-  { campo: "odor", titulo: "Olor", icono: "aroma_nariz_percepcion" },
+  { campo: "odor", titulo: "Aroma", icono: "aroma_nariz_percepcion" },
 ];
 
+/** Casillas en el orden que pide la plantilla (`ordenCeldas`). Solo vale una
+ *  lista con las seis claves, cada una una vez: un orden a medias dejaría una
+ *  casilla sin dibujar y el dato de un producto sin imprimir. */
+export function celdas30ml(data: ProductLabelData): readonly Celda30ml[] {
+  const claves = (data.ordenCeldas || "").split(",").map((c) => c.trim()).filter(Boolean);
+  if (claves.length !== CELDAS_30ML.length || new Set(claves).size !== claves.length) return CELDAS_30ML;
+  const ordenadas = claves.map((k) => CELDAS_30ML.find((c) => c.campo === k));
+  return ordenadas.every(Boolean) ? (ordenadas as Celda30ml[]) : CELDAS_30ML;
+}
+
 /** Títulos elegibles de la primera celda (menú del título). Se guarda en
- *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66; si trae un
- *  título de esa ficha que aquí no aplica ("Fórmula molecular"), se ve el
- *  primero de esta lista. */
-export const TITULOS_FORMULA_30ML = ["Fórmula química", "Composición"] as const;
+ *  `compositionTitulo`, el mismo dato de la ficha de 76 × 66 — las mismas
+ *  dos opciones, en el orden propio de este formato. Si trae un título
+ *  antiguo que ya no está en la lista, se ve el primero. */
+export const TITULOS_FORMULA_30ML = ["Fórmula molecular", "Composición"] as const;
 
 export function tituloFormula30ml(data: ProductLabelData): string {
   const t = data.compositionTitulo || "";
@@ -165,11 +182,41 @@ export function pictogramasGhs(data: ProductLabelData): string[] {
   });
 }
 
+/** Títulos elegibles del bloque de clasificación. Los dos últimos solo tienen
+ *  sentido en un producto SIN pictograma GHS: ahí el círculo «¡NO GHS» ya dice
+ *  que no es peligroso y el texto puede aprovecharse para el uso. */
+export const TITULOS_CLASIFICACION_30ML = ["Clasificación", "Modo de uso", "Sugerencia"] as const;
+
+/** Título que se dibuja. Un producto peligroso lleva siempre «Clasificación».
+ *  En vista —lo que se imprime— un título de uso sin texto propio vuelve a
+ *  «Clasificación»: debajo saldría la frase del SGA, que no es un modo de uso. */
+export function tituloClasificacion30ml(data: ProductLabelData, editMode: boolean): string {
+  const [porDefecto] = TITULOS_CLASIFICACION_30ML;
+  if (esPeligrosoGhs(data.ghs)) return porDefecto;
+  const t = data.clasificacionTitulo || "";
+  if (!(TITULOS_CLASIFICACION_30ML as readonly string[]).includes(t)) return porDefecto;
+  if (!editMode && !textoPropioClasificacion(data).trim()) return porDefecto;
+  return t;
+}
+
+/** Dato que muestra y edita el bloque: bajo «Modo de uso» es `modoUso`, que
+ *  llega de la ficha técnica; si no, el texto de clasificación. */
+export function campoClasificacion30ml(data: ProductLabelData): "modoUso" | "clasificacionTexto" {
+  return !esPeligrosoGhs(data.ghs) && data.clasificacionTitulo === "Modo de uso" ? "modoUso" : "clasificacionTexto";
+}
+
+/** Lo escrito para el bloque. Bajo «Modo de uso», lo que se hubiera escrito
+ *  antes en la clasificación sigue valiendo mientras la ficha no traiga uno. */
+export function textoPropioClasificacion(data: ProductLabelData): string {
+  if (campoClasificacion30ml(data) === "modoUso") return data.modoUso || data.clasificacionTexto || "";
+  return data.clasificacionTexto || "";
+}
+
 /** Texto de clasificación de la etiqueta. Sin texto propio, un producto no
  *  peligroso lleva la frase del SGA; uno peligroso NO recibe esa frase por
  *  defecto (sería falsa): queda en blanco hasta que se escriba. */
 export function textoClasificacion(data: ProductLabelData): string {
-  const propio = (data.clasificacionTexto || "").trim();
+  const propio = textoPropioClasificacion(data).trim();
   if (propio) return propio;
   return esPeligrosoGhs(data.ghs) ? "" : CLASIFICACION_NO_PELIGROSO;
 }

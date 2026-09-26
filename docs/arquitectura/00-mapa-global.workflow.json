@@ -1,0 +1,274 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Mapa global — de la compra al Libro Mayor",
+    "output": "00-mapa-global.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        },
+        "messagebus": {
+          "label": "mensajería"
+        },
+        "external": {
+          "label": "cliente o tercero"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "abastecer",
+        "label": "Abastecer",
+        "focus": [
+          "pago",
+          "inventario",
+          "libro"
+        ],
+        "note": "La compra entra al inventario y al Libro Mayor en el mismo asiento, antes de que salga el dinero."
+      },
+      {
+        "id": "preparar",
+        "label": "Preparar",
+        "focus": [
+          "inventario",
+          "combo",
+          "etiqueta",
+          "publicacion"
+        ],
+        "note": "De la materia prima al combo publicado: receta, documento técnico, código EAN y etiqueta."
+      },
+      {
+        "id": "vender",
+        "label": "Vender",
+        "focus": [
+          "publicacion",
+          "venta",
+          "factura",
+          "libro"
+        ],
+        "note": "Tres canales venden; se factura al entregar y el ingreso llega al libro."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "conta",
+      "label": "Contabilidad"
+    },
+    {
+      "id": "prod",
+      "label": "Producto"
+    },
+    {
+      "id": "canal",
+      "label": "Canales de venta"
+    },
+    {
+      "id": "entrega",
+      "label": "Entrega y factura"
+    }
+  ],
+  "phases": [
+    {
+      "id": "abastecer",
+      "label": "Abastecer",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "preparar",
+      "label": "Preparar el producto",
+      "fromCol": 2,
+      "toCol": 3
+    },
+    {
+      "id": "vender",
+      "label": "Vender y cobrar",
+      "fromCol": 4,
+      "toCol": 5,
+      "variant": "emphasis"
+    }
+  ],
+  "mainPath": [
+    "pago",
+    "inventario",
+    "combo",
+    "etiqueta",
+    "publicacion",
+    "venta",
+    "factura",
+    "libro"
+  ],
+  "nodes": [
+    {
+      "id": "pago",
+      "lane": "conta",
+      "col": 0,
+      "type": "frontend",
+      "label": "Solicitud de pago",
+      "sublabel": "compra al proveedor",
+      "width": 135
+    },
+    {
+      "id": "inventario",
+      "lane": "prod",
+      "col": 1,
+      "type": "database",
+      "label": "Inventario Alegra",
+      "sublabel": "materia prima",
+      "width": 135
+    },
+    {
+      "id": "combo",
+      "lane": "prod",
+      "col": 2,
+      "type": "backend",
+      "label": "Combo de venta",
+      "sublabel": "receta",
+      "width": 115
+    },
+    {
+      "id": "etiqueta",
+      "lane": "prod",
+      "col": 3,
+      "type": "backend",
+      "label": "Documento y etiqueta",
+      "sublabel": "TDS · EAN · diseño",
+      "width": 156
+    },
+    {
+      "id": "publicacion",
+      "lane": "canal",
+      "col": 3,
+      "type": "cloud",
+      "label": "Publicación",
+      "sublabel": "MeLi + tienda web",
+      "width": 108
+    },
+    {
+      "id": "venta",
+      "lane": "canal",
+      "col": 4,
+      "type": "external",
+      "label": "Venta",
+      "sublabel": "MeLi · web · WhatsApp",
+      "width": 129
+    },
+    {
+      "id": "factura",
+      "lane": "entrega",
+      "col": 5,
+      "type": "backend",
+      "label": "Factura al entregar",
+      "sublabel": "Alegra · DIAN",
+      "width": 149
+    },
+    {
+      "id": "libro",
+      "lane": "conta",
+      "col": 5,
+      "type": "database",
+      "label": "Libro Mayor",
+      "sublabel": "asientos + conciliación",
+      "width": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-pago-inventario",
+      "from": "pago",
+      "to": "inventario",
+      "label": "compra",
+      "role": "main"
+    },
+    {
+      "id": "e-pago-libro",
+      "from": "pago",
+      "to": "libro",
+      "label": "asiento",
+      "variant": "emphasis",
+      "role": "branch"
+    },
+    {
+      "id": "e-inventario-combo",
+      "from": "inventario",
+      "to": "combo",
+      "label": "receta",
+      "role": "main"
+    },
+    {
+      "id": "e-combo-etiqueta",
+      "from": "combo",
+      "to": "etiqueta",
+      "role": "main",
+      "label": "respalda"
+    },
+    {
+      "id": "e-etiqueta-publicacion",
+      "from": "etiqueta",
+      "to": "publicacion",
+      "role": "main"
+    },
+    {
+      "id": "e-publicacion-venta",
+      "from": "publicacion",
+      "to": "venta",
+      "role": "main"
+    },
+    {
+      "id": "e-venta-factura",
+      "from": "venta",
+      "to": "factura",
+      "label": "entrega",
+      "role": "main"
+    },
+    {
+      "id": "e-factura-libro",
+      "from": "factura",
+      "to": "libro",
+      "label": "ingreso",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Cada caja es un flujo detallado",
+      "items": [
+        "Pago, producto, tres canales de venta y contabilidad",
+        "Se abren desde la lista de flujos de este panel"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "El libro recibe por dos lados",
+      "items": [
+        "El pago entra al aprobarse, antes de girar",
+        "La venta entra cuando se factura al entregar"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Una sola llave une todo: el SKU",
+      "items": [
+        "Materia prima (AMICREMONg) ≠ combo (C-CREMON500g)",
+        "Sin combo no hay EAN, ni etiqueta, ni venta"
+      ]
+    }
+  ]
+}

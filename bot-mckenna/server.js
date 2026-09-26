@@ -337,6 +337,75 @@ const panelBotSentContent = new Map();
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 /** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
+// Espejo al historial del panel: los grupos operativos oficiales (inventario en
+// app/data/grupos_whatsapp_oficiales.json). Antes su conversación no quedaba en ningún lado:
+// «ya», «listo», acuerdos de pago solo vivían en el teléfono de cada quien.
+const GRUPOS_ESPEJO = [...new Set([
+    ...GRUPOS_COMANDO,
+    GRUPO_SEDE_SUR,
+    '120363199083417559@g.us', // Compras, Pedidos USA y China
+    '120363427149881627@g.us', // Cuentas USD COP
+    '120363045181721155@g.us', // MCKG PEDIDOS / COMPRAS
+    '120363291230325649@g.us', // Pago de pedidos
+    '120363425078570875@g.us', // Registro_Facturas_Compras
+    '120363197905312482@g.us', // Solo guías y cuentas USA
+    ...envLimpio('GRUPOS_ESPEJO_WA', '').split(',').map(x => x.trim()).filter(Boolean),
+])];
+const espejoRecientes = new Set(); // wa_ids ya espejados (evita doble por message + message_create)
+
+function autorMensaje(msg) {
+    // En grupos, quién escribió: msg.author (participante). En 1:1, msg.from.
+    const a = msg.author || (msg.fromMe ? '' : msg.from) || '';
+    return String(a).replace('@c.us', '').replace('@lid', '');
+}
+
+async function espejarGrupoPanel(msg, chatId) {
+    try {
+        if (!GRUPOS_ESPEJO.includes(chatId)) return;
+        const texto = (msg.body || '').trim();
+        if (!texto && !msg.hasMedia) return;
+        const waId = serializarWaId(msg) || '';
+        if (waId && espejoRecientes.has(waId)) return;
+        if (waId) {
+            espejoRecientes.add(waId);
+            if (espejoRecientes.size > 800) espejoRecientes.clear();
+        }
+        // Fotos del grupo: se guardan para que el canal interno del panel (y la recepción de
+        // mercancía) no las pierda. Solo imágenes y con tope; si la descarga falla (el error
+        // opaco "r" de whatsapp-web.js), el mensaje sigue llegando como "[adjunto]".
+        let mediaPath = '';
+        let mediaMime = '';
+        if (msg.hasMedia && msg.type === 'image') {
+            try {
+                const media = await msg.downloadMedia();
+                const bytes = media && media.data ? Math.floor(media.data.length * 3 / 4) : 0;
+                if (media && media.mimetype && media.mimetype.startsWith('image/') && bytes <= 8 * 1024 * 1024) {
+                    const ext = media.mimetype.split('/')[1].split(';')[0] || 'jpg';
+                    if (!fs.existsSync(DIR_COMPROBANTES)) fs.mkdirSync(DIR_COMPROBANTES, { recursive: true });
+                    const nombre = `grupo_${chatId.split('@')[0]}_${Date.now()}.${ext}`;
+                    fs.writeFileSync(path.join(DIR_COMPROBANTES, nombre), media.data, 'base64');
+                    mediaPath = 'comprobantes/' + nombre;
+                    mediaMime = media.mimetype.split(';')[0];
+                }
+            } catch (e) {
+                console.warn('espejo grupo: foto no descargada:', (e && e.message) || e);
+            }
+        }
+        await enviarHistorialPanel([{
+            wa_id: waId,
+            jid: chatId,
+            ts: msg.timestamp || Math.floor(Date.now() / 1000),
+            from_me: !!msg.fromMe,
+            texto: texto || '[adjunto]',
+            tiene_media: !!msg.hasMedia,
+            type: msg.type || '',
+            enviado_por: msg.fromMe ? 'humano' : autorMensaje(msg),
+            ...(mediaPath ? { media_path: mediaPath, media_mime: mediaMime, nombre_arch: path.basename(mediaPath) } : {}),
+        }]);
+    } catch (e) {
+        console.warn('espejo grupo:', e.message);
+    }
+}
 
 function claveContenidoBot(chatJid, texto) {
     const t = String(texto || '').trim().slice(0, 240);
@@ -424,6 +493,8 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
             sender: chatId,
             remoteJid: chatId,
             mensaje: textoNorm,
+            author: msg.fromMe ? (NUMERO_NEGOCIO_WA || '') : autorMensaje(msg),
+            ts: msg.timestamp || Math.floor(Date.now() / 1000),
             es_grupo_contabilidad: GRUPOS_ADMIN.includes(chatId),
             hasMedia: false
         }, { timeout: 120000 });
@@ -470,6 +541,8 @@ async function procesarMensajeSedeSur(msg, chatId) {
             sender:               msg.from,
             remoteJid:            chatId,
             mensaje:              texto,
+            author:               msg.fromMe ? (NUMERO_NEGOCIO_WA || '') : autorMensaje(msg),
+            ts:                   msg.timestamp || Math.floor(Date.now() / 1000),
             hasMedia,
             mediaPath,
             mediaType,
@@ -499,6 +572,7 @@ async function procesarMensajeSedeSur(msg, chatId) {
 client.on('message_create', async (msg) => {
     if (!sistemaListo) return;
     const chatId = await obtenerChatIdComandoAsync(msg);
+    if (chatId && chatId.includes('@g.us')) await espejarGrupoPanel(msg, chatId);
     const textoProbe = normalizarComando(msg.body || '').toLowerCase();
     const enGrupoCmd = GRUPOS_COMANDO.includes(chatId);
 
@@ -544,6 +618,7 @@ client.on('message', async (msg) => {
     if (msg.type === 'call_log') return;
 
     const chatIdComando = await obtenerChatIdComandoAsync(msg);
+    if (chatIdComando && chatIdComando.includes('@g.us')) await espejarGrupoPanel(msg, chatIdComando);
     const esGrupoComando = GRUPOS_COMANDO.includes(chatIdComando);
     const textoProbe = normalizarComando(msg.body || '').toLowerCase();
     const esCmdMeli = esComandoMeliOperativo(textoProbe);
@@ -734,6 +809,26 @@ client.on('message', async (msg) => {
 // ==========================================
 // 4. API PARA PYTHON (REPORTES MELI)
 // ==========================================
+// ── Cese de actividades global (app/data/cese_actividades.json) ─────────────
+// Mientras esté activo, ningún envío por API llega a un cliente: solo grupos y los
+// números internos listados. Lo escrito desde el teléfono no pasa por aquí.
+const CESE_ARCHIVO = path.join(__dirname, '..', 'app', 'data', 'cese_actividades.json');
+function ceseBloquea(chatId) {
+    let cfg = null;
+    try { cfg = JSON.parse(fs.readFileSync(CESE_ARCHIVO, 'utf8')); } catch (e) { return false; }
+    if (!cfg || !cfg.activa) return false;
+    const id = String(chatId || '');
+    if (id.endsWith('@g.us')) return false;
+    const dig = (x) => String(x || '').split('@')[0].replace(/\D/g, '');
+    const internos = new Set((cfg.numeros_internos || []).map(dig).filter(Boolean));
+    return !internos.has(dig(id));
+}
+function responderCese(res, chatId, origen) {
+    console.log(`⛔ [CESE] envío a cliente bloqueado (${origen}): ${chatId}`);
+    logActividad('ERROR', { texto: `Cese de actividades: envío bloqueado (${origen})`, de: chatId });
+    return res.status(423).json({ status: "error", error: "Cese de actividades: no se envían mensajes a clientes" });
+}
+
 app.post('/enviar', async (req, res) => {
     const { numero, mensaje } = req.body;
 
@@ -746,6 +841,7 @@ app.post('/enviar', async (req, res) => {
         }
 
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar');
 
         const sentMsg = await client.sendMessage(chatId, mensaje);
         // Registrar ID para evitar loop en SEDE SUR (mensaje fromMe del propio bot)
@@ -789,6 +885,7 @@ app.post('/enviar-archivo', async (req, res) => {
         }
         const { MessageMedia } = require('whatsapp-web.js');
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar-archivo');
         if (!filePath || !fs.existsSync(filePath)) {
             return res.status(400).json({ status: "error", error: `Archivo no encontrado: ${filePath}` });
         }
@@ -876,6 +973,7 @@ app.post('/enviar-ptt', async (req, res) => {
         }
         const { MessageMedia } = require('whatsapp-web.js');
         const chatId = numero.includes('@') ? numero : `${numero}@c.us`;
+        if (ceseBloquea(chatId)) return responderCese(res, chatId, 'API /enviar-ptt');
         const mime = mimeType || 'audio/mpeg';
         const media = new MessageMedia(mime, audioBase64, 'voice.mp3');
         await client.sendMessage(chatId, media, { sendAudioAsVoice: true });

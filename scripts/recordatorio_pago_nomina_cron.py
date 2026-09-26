@@ -102,13 +102,49 @@ def _crear_ticket_nomina(quincena: str) -> int | None:
         print("🔴 No existe usuario 'admin' — no se pudo crear el ticket.")
         return None
 
-    descripcion = (
-        f"Recordatorio automático: toca calcular y aprobar el pago de nómina de la "
-        f"quincena {quincena}. Verificar horas/novedades del periodo antes de girar."
+    # McKenna NO tiene trabajadores formales: lo que se paga cada quincena es
+    # prestación de servicios (5135, retención de servicios 4%/6%), no nómina
+    # (5105, que afirmaría una relación laboral que no existe). Quién cobra y
+    # cuánto vive en las plantillas de pago recurrente, no dentro de este
+    # script: agregar o quitar a alguien no debería ser un cambio de código.
+    from app.services import pagos_wizard as _pw
+
+    borradores = _pw.instanciar_plantillas_de(
+        "nomina", quincena, fecha=datetime.now().strftime("%Y-%m-%d"), created_by=creado_por
     )
+    nuevos = [b for b in borradores if not b.get("ya_existia")]
+
+    if borradores:
+        filas = "\n".join(
+            f"- {b['concepto']}" + (f" — {b['tercero']['nombre']}" if b.get("tercero") else "")
+            for b in borradores
+        )
+        descripcion = (
+            f"Pagos por prestación de servicios de la quincena {quincena}: "
+            f"**{len(borradores)}**.\n\n{filas}\n\n"
+            "Ya están como **borrador** en **Contabilidad → Solicitudes de pago**, "
+            "filtro «Borradores».\n\n"
+            "Para cada uno: verifica el periodo trabajado y las novedades, ajusta el "
+            "monto si cambió y envíalo a aprobación. Ahí se ve el asiento exacto "
+            "(5135 con la retención de servicios) antes de confirmar.\n\n"
+            "**Los montos no van en este ticket a propósito**: viven en la solicitud, "
+            "donde se pueden corregir. Un número copiado acá envejecería sin avisar."
+        )
+    else:
+        descripcion = (
+            f"Toca pagar la quincena {quincena} por prestación de servicios, pero "
+            "**no hay plantillas de pago recurrente configuradas**, así que no se "
+            "montó ningún borrador.\n\n"
+            "Créalas una sola vez en **Contabilidad → Solicitudes de pago**: una por "
+            "persona, categoría «Prestación de servicios», marcada como recurrente "
+            "quincenal. De ahí en adelante el sistema las monta solo cada quincena.\n\n"
+            "⚠️ **No usar la categoría «Nómina»**: McKenna no tiene trabajadores "
+            "formales y esa cuenta (5105) afirmaría una relación laboral que no existe."
+        )
+
     data = {
         "tipo": "solicitud",
-        "titulo": "APROBAR PAGO NOMINA",
+        "titulo": f"Prestación de servicios — quincena {quincena}",
         "categoria": "logistica",
         "descripcion": descripcion,
         "prioridad": "urgente",

@@ -39,7 +39,7 @@ cd desktop && npm run build
 # Luego reiniciar Flask: sudo systemctl restart agente-pro
 
 # Catálogo PDF
-source venv/bin/activate && python3 generar_catalogo.py
+source venv/bin/activate && python3 scripts/generar_catalogo.py
 
 # Puente WhatsApp (Node, puerto 3000)
 cd bot-mckenna && npm ci && npm start
@@ -108,7 +108,7 @@ git pull origin main    # o: git pull origin master
 ├── webhook_meli.py                Flask app notificaciones MeLi (puerto 8080)
 ├── preventa_meli.py               Orquestador preguntas de preventa MeLi
 ├── modulo_posventa.py             Gestión post-venta (RUT, devoluciones)
-├── generar_catalogo.py            Genera PDF catálogo con fotos de MeLi
+│   (generar_catalogo.py vive en scripts/ y app/tools/, no en la raíz)
 │
 ├── PAGINA_WEB/site/               Tienda y contenido (Flask `website.py`): pedidos, catálogo, datos JSON
 │
@@ -145,6 +145,7 @@ git pull origin main    # o: git pull origin master
 │   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
 │   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
 │   │   ├── mensajeria_pagos.py   Envíos diarios + lotes de pago a transportadoras (ex Excel «ENVIOS INTERRA»)
+│   │   ├── declarador.py          Socios: expediente fiscal + Declarador de activos digitales (Flujo Q)
 │   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
 │   │
 │   ├── tools/
@@ -177,7 +178,7 @@ git pull origin main    # o: git pull origin master
 ├── cotizaciones_preliminares/     JSON de cotizaciones en progreso
 ├── DISENO CORPORATIVO/            Logo e isotipo McKenna
 │
-├── pipeline_contenido_facebook.py Copy→Imagen→Voz→Video→Facebook (consola)
+├── app/tools/pipeline_contenido_facebook.py  Copy→Imagen→Voz→Video→Facebook (consola)
 ├── generar_infografias_facebook.py Infografías PIL publicadas en Facebook (consola)
 ├── sincronizar_facebook.py        Limpia y republica la página de Facebook (consola)
 │
@@ -192,88 +193,19 @@ git pull origin main    # o: git pull origin master
 
 ## Variables de Entorno (.env)
 
-```env
-# IA
-GOOGLE_API_KEY              # Google GenAI (Gemini) — red de seguridad WhatsApp/web/preventa, pipelines de contenido
-ANTHROPIC_API_KEY           # Claude API — obligatorio: modelo por defecto en WhatsApp, `/chat`, Web Chat, preventa MeLi y herramientas del agente
-WEB_API_URL                 # Base URL API stock/precios sitio web (opcional; ver sincronizar_productos_pagina_web)
-WEB_API_KEY                 # Bearer para API web (opcional)
+**Catálogo completo, con qué hace cada una y su default: `.env.example`.** Al agregar una variable
+nueva, documentarla ahí (comentario en línea aparte: systemd no quita un `# comentario` al final).
 
-# MercadoLibre
-MELI_CREDS_PATH             # Ruta a credenciales_meli.json
-
-# WhatsApp (Evolution API)
-EVOLUTION_API_URL           # Endpoint Evolution API
-EVOLUTION_API_KEY           # Clave autenticación
-INSTANCE_NAME               # Nombre instancia WA
-
-# Google
-SPREADSHEET_ID              # ID Google Sheet (catálogo/inventario)
-TDS_FOLDER_ID               # Google Drive folder fichas técnicas
-
-# Grupos WhatsApp
-GRUPO_CONTABILIDAD_WA       # ID grupo contabilidad (default: 120363407538342427@g.us)
-GRUPO_INVENTARIO_WA         # ID grupo inventario
-TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
-GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
-GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
-GRUPO_COTIZACIONES_WA       # Solicitudes de cotización desde mckennagroup.co/cotizar (default: GRUPO_PEDIDOS_WEB_WA)
-GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio + entregado
-# Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
-
-# API
-CHAT_API_TOKEN              # Token para endpoints /chat y /sync/*
-ADMIN_TOKEN                 # Token admin
-
-# Infraestructura
-CLOUDFLARE_TUNNEL_TOKEN     # Token túnel Cloudflare
-
-# Multimedia / Redes Sociales (scripts de consola)
-IDEOGRAM_API_KEY            # Generación de imágenes con IA (Ideogram)
-ELEVENLABS_API_KEY          # Síntesis de voz TTS en español (ElevenLabs)
-FAL_KEY                     # Generación de video (fal.ai / Kling v1.6)
-FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
-FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
-
-# Operaciones, observabilidad y cron
-MENSAJERIA_APROBADOR        # Username del panel que aprueba los pagos de mensajería (default: armando)
-GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
-AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
-AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
-AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. scripts/,app/tools/,tests/
-AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
-AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
-AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
-
-# Préstamos de terceros (app/services/prestamos.py — ver Flujo M)
-PRESTAMOS_DIA_RECORDATORIO   # Día del mes del ticket de pagos a despachos (default 5)
-PRESTAMOS_USUARIO_PAGOS      # Username que monta los pagos en Sucursal Negocios (default jerry)
-PRESTAMOS_RECORDATORIO_ACTIVO # 0 = desactiva el cron sin tocar el crontab
-PRESTAMOS_MUTUARIO_RAZON     # Razón social en el contrato (default McKenna Group S.A.S.)
-PRESTAMOS_MUTUARIO_NIT       # NIT en el contrato (default 901.316.016-3, verificado en Alegra)
-PRESTAMOS_MUTUARIO_REPRESENTANTE # Representante legal que firma (opcional)
-PRESTAMOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real a la DIAN (default 0 = modo sombra)
-PRESTAMOS_ALEGRA_ITEM_REF    # Referencia del ítem de intereses en Alegra (default INTERES-MUTUO)
-PRESTAMOS_DIA_AVISO_RETENCIONES # Día del mes del ticket de retenciones (default 3, sobre el mes anterior)
-UVT_<año>                    # Valor de la UVT si no está cargado en retenciones.py (ej. UVT_2027)
-EMAIL_CONTADOR               # Correo del contador para el detalle mensual de retenciones
-COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO # 1 = emite documento soporte real de compras a socios (default 0 = sombra)
-COMPRAS_SOCIOS_ALEGRA_ITEM_REF    # Referencia del ítem de mercancía en Alegra (default MERCANCIA-SOCIO)
-ALEGRA_ESPEJO_ACTIVO         # 1 = postea los asientos del Libro Mayor a Alegra (default 0 = sombra)
-PRESTAMOS_USUARIO_CONTABILIDAD # Username que coordina con el contador (si no, Sistemas → Aliados)
-ALEGRA_TEMPLATE_DOC_SOPORTE  # Plantilla de numeración supportDocument (default 10)
-
-# Recuperación de compra (app/tools/recuperacion_compra.py + scripts/recuperacion_compra_cron.py)
-RECUPERACION_COMPRA_ACTIVO      # 0 = no envía correos a pedidos web sin pagar (el cron sigue instalado)
-RECUPERACION_COMPRA_VENTANA_DIAS # Solo pedidos de los últimos N días (default 14)
-RECUPERACION_COMPRA_MAX_POR_CORRIDA # Tope de correos por corrida del cron (default 20)
-
-# Presupuesto LLM (app/services/llm_budget.py — ver regla obligatoria abajo)
-LLM_BUDGET_DIARIO_USD       # Umbral de alerta diaria (default 5.0): WhatsApp a GRUPO_ALERTAS_SISTEMAS_WA
-LLM_BUDGET_TOPE_USD         # Tope duro diario (default 15.0): se bloquean nuevas llamadas LLM
-LLM_BUDGET_BATCH_LLAMADAS   # Máx llamadas por proceso batch sin autorizar (default 25)
-LLM_BUDGET_BATCH_USD        # Máx USD estimados por proceso batch sin autorizar (default 1.0)
-```
+Las que más cuestan si se tocan sin saber:
+- `ANTHROPIC_API_KEY` (obligatoria, modelo por defecto de los canales) · `GOOGLE_API_KEY` (red de seguridad Gemini).
+- `CHAT_API_TOKEN` (Bearer de `/chat` y `/api/*`) · `ADMIN_TOKEN`.
+- `LLM_BUDGET_DIARIO_USD` / `LLM_BUDGET_TOPE_USD` / `LLM_BUDGET_BATCH_*` — ver la regla obligatoria abajo.
+- `ALEGRA_ESPEJO_ACTIVO` — **en 1 desde el 2026-09-14** (el contador arma el 350 con lo que ve en Alegra).
+- `CONTABILIDAD_LEDGER_BUDGET_S` / `_MAX_PAGINAS` / `_MAX_PAGINAS_MELI` — defaults del panel; un
+  **backfill** necesita subirlos (1800 / 500 / 300) o postea un período a medias que parece completo.
+- Banderas de modo sombra (default 0): `PRESTAMOS_DOC_SOPORTE_ACTIVO`, `PAGOS_DOC_SOPORTE_ACTIVO`,
+  `COMPRAS_SOCIOS_DOC_SOPORTE_ACTIVO`, `MELI_AUTOFACTURA_ENTREGA_ACTIVO`. Encenderlas emite documentos reales a la DIAN.
+- Grupos de WhatsApp por área: `GRUPO_*_WA`; inventario oficial en `app/data/grupos_whatsapp_oficiales.json`.
 
 ### ⚠️ REGLA OBLIGATORIA — Presupuesto de gasto LLM
 
@@ -401,6 +333,26 @@ Operador confirma con: "ok 463"
 Operador rechaza con: "no 463"
   → Sistema avisa al cliente que el pago no fue válido
 ```
+
+**Registro durable (24-sep-2026, «Del chat al registro»):** cada comprobante y cada ok/no queda en
+`app/services/pagos_clientes.py` → `app/data/pagos_clientes.db` (gitignored): cliente, hora, imagen,
+monto detectado y QUIÉN decidió (el puente ahora manda `author` en los comandos de grupo). Al arrancar,
+`routes.py` reconstruye `pagos_pendientes_confirmacion` desde ahí (un reinicio ya no borra pendientes;
+72 h sin decisión → `vencido`). Bandeja: `GET /api/tickets/pagos-clientes` → tarjeta «Pagos de clientes»
+en la Agenda (`PagosClientes.tsx`, solo aparece si hay filas).
+
+**Comandos y grupos cuentan y quedan (mismo cambio):**
+- Un comando o mensaje del equipo en un grupo oficial se anota como actividad suya
+  (`pagos_clientes.registrar_actividad_wa` → `panel_eventos_operativos`, panel `whatsapp`, tipos
+  `comando_wa`/`wa_grupo`) y **suma al control de horas**. Solo en tiempo real (±10 min): un sync
+  viejo no falsea horas. El mapeo es por `usuarios.telefono`.
+- **Espejo de grupos**: `server.js` (`GRUPOS_ESPEJO`, ampliable con `GRUPOS_ESPEJO_WA`) manda cada
+  mensaje de los grupos oficiales al ingest del panel → `wa_chats.db` con `enviado_por` = teléfono del
+  autor; en Agenda → Mensajes los grupos salen con su nombre (`wa_chats.nombre_grupo`). El «ya» del
+  grupo ya no se evapora. ⚠️ `mensajeAPayloadHistorial` sigue rechazando grupos a propósito (clientes);
+  el espejo usa su propio payload SIN `sender_phone` (con él, el mensaje caería al 1:1 del autor).
+- Al cerrar cualquier tarea el panel pregunta «¿Cuántas quedaron?» (opcional; empaque sigue obligatorio).
+- El aviso «ya quedó» al que pidió algo ya existía: `tickets_notificaciones.notificar_ticket_resuelto`.
 
 ### F. Sincronización de Facturas MeLi ↔ Siigo
 
@@ -599,58 +551,145 @@ Es **la única línea de esta operación que aparece en el extracto** y la que s
 `cc:<id>` para `extracto_bancario.vincular()`. Panel: Préstamos → «Cómo funciona».
 
 **Retención:** `app/services/retenciones.py` (tarifas, cuantías mínimas, UVT por año —
-UVT 2026 = $52.374, Res. DIAN 000238/2025). La mayoría de estas compras queda **bajo
-las 27 UVT** y no lleva retención. Explicación viva en /app → Préstamos → «Cómo funciona».
+UVT 2026 = $52.374, Res. DIAN 000238/2025). Compras: mínimo **10 UVT desde 2026**
+(27 UVT hasta 2025; `retenciones.MINIMO_UVT_DESDE`). Explicación viva en /app → Préstamos → «Cómo funciona».
 Ficha completa: `docs/agentic/modules/relaciones-socios-terceros.md`.
 
 ### O. Solicitudes de pago con asiento automático
 
+**Detalle completo, historia y casos: `docs/agentic/modules/pagos-solicitudes.md`** (leerla antes
+de tocar `pagos_wizard.py`, `pagos_proveedor.py`, `doc_soporte_pagos.py`, `impuestos_por_cuenta.py`
+o retenciones).
+
 ```
-/app → Contabilidad → Solicitudes de pago   (PagosWizardPanel.tsx)
-  1. Elegir QUÉ se paga (13 categorías: proveedor, flete, servicio público,
-     honorarios, prestación de servicios, arriendo, nómina, cuota de préstamo,
-     reintegro a socio, impuestos, seguros, mantenimiento, otro)
-  2. Las opciones salen de los SALDOS REALES: proveedores con deuda en 2205,
-     cuotas del mes, servicios activos, retención pendiente en 2365
-  3. Se MUESTRA el asiento antes de aprobar
-  4. Al aprobar → asiento en el Libro Mayor + comprobante en Alegra
+/app → Contabilidad → Solicitudes de pago   (PagosWizardPanel.tsx, app/services/pagos_wizard.py)
+  borrador → pendiente → aprobada (nace el asiento + espejo Alegra) → en_banco → pagada (con comprobante)
 ```
 
-**Por qué existe:** hasta sep-2026 los pagos se aprobaban como tickets de texto
-libre ("APROBAR PAGO DE FACTORES") y el asiento dependía de que alguien se
-acordara después. No se hacía — el Libro Mayor tenía las compras pero no los
-pagos, y Bancos quedaba descuadrado. Es el mismo patrón que ya falló con las
-notas crédito (6 semanas) y las compras Gmail (96 sin postear): **lo que se deja
-como paso manual posterior, no se hace**.
+Reglas que no se rompen:
+- **Lo que se deja como paso manual posterior, no se hace**: el asiento nace al **aprobar**; el
+  documento soporte se emite al aprobar; el pago en Alegra se registra al confirmar el giro.
+- **La cuenta del PUC decide el impuesto** (`impuestos_por_cuenta.py`), no un botón; el perfil
+  tributario vive en el **tercero** (`cc_terceros`: `retefuente_exento`, `regimen_simple`,
+  `ica_por_mil`, `retencion_asume_mckenna`, `emite_doc_soporte`). El wizard **informa** los
+  impuestos, no los pregunta; «Ajustar» solo para gross-up / ICA de otro municipio / GMF.
+- **Renta e ICA son independientes**; solo Régimen SIMPLE (Art. 911/907 E.T.) apaga los dos.
+- **Gross-up solo si está pactado** en la ficha (`retencion_asume_mckenna`), validado en backend.
+- **Tres personas, dos tokens**: quien aprueba prepara en el banco; el otro admin confirma con la
+  captura. `montar_en_banco()` / `confirmar_pago()` lo exigen en backend. `aprobar()` no
+  contabiliza dos veces: la guarda es tener `movimiento_id`.
+- **Compras**: se contabilizan con la cotización, renglón por renglón a 1435, **IVA a 240810**
+  (nunca a inventario), IVA del documento (el del catálogo Alegra no sirve) y `total_documento`
+  debe cuadrar para aprobar. Combos (`C-…`) fuera del picker.
+- **Una compra se solicita como copia fiel de la cotización/proforma** (24-sep-2026,
+  `pagos_proveedor.validar_compra`, en crear · enviar · aprobar): todos los renglones, cada uno un
+  producto **activo en Alegra** (no combo, no renglón sin SKU) y `total_documento` obligatorio y
+  cuadrado al peso. Se acabaron `productos_opcionales` y «Agregar … sin referencia»: lo que no está
+  en el catálogo se crea antes en «Crear en Alegra». Un borrador puede guardarse a medias.
+- **Documento soporte** (plantilla 10 DSMG, `PAGOS_DOC_SOPORTE_ACTIVO`): solo a personas naturales
+  no obligadas a facturar; cuenta vía `alegra_espejo.cuenta_alegra()`; ReteICA dentro del documento.
+  Con documento soporte el asiento **no se espeja** (duplicaba el gasto en Alegra). Nace BORRADOR al
+  aprobar y se transmite con el botón **«Emitir a la DIAN»** (Administración); todo al peso; nunca PUT a /bills.
+  ⚠️ **Un PUT a Alegra reemplaza, no es parcial** (reenviar el documento entero); el documento
+  congela una foto del proveedor; personas naturales van como **NIT con DV**, no CC.
+- ⛔ **Fecha de corte contable** `CONTABILIDAD_FECHA_CORTE` (default **2026-09-01**): lo anterior es
+  del contador. `espejar_movimiento()` devuelve `bloqueado_por_corte` (`forzar` NO lo salta) y
+  `auto_postear_periodo()` recorta el rango.
+- ⛔ **Registro de facturas de compra APAGADO** (`FACTURAS_COMPRA_REGISTRO_ACTIVO=1` lo reactiva);
+  la **descarga de XML sigue viva** porque alimenta `perfil_tributario_dian.py` (O-15/O-47), que
+  **propone, nunca aplica**.
+- Mensajería (Fidel Rocha): **523550 + retefuente 1 % + ReteICA 4,14 ‰**; desmarcado de SIMPLE,
+  falta su RUT.
+- Otros módulos del mismo ciclo: `terceros_historial.py` (append-only), `contabilidad_mayor.libro_diario()`,
+  `pagos_impuestos.py` (recibos del contador → 2365/2367/2368…, no es gasto),
+  `puc_colombia.DESCRIPCIONES` (guía de las 79 cuentas; test exige que ninguna quede sin guía).
 
-**Dos caminos, un solo motor:**
-- **Solicitar** (cualquiera con permiso `pagos`): crea la solicitud → ticket al
-  aprobador → al aprobar nace el asiento.
-- **Registrar directo** (solo nivel administrador — Cynthia y Armando): un paso,
-  sin ticket. Ellos montan y aprueban sus propios pagos; auto-aprobarse en dos
-  pasos es burocracia sin control real. Queda anotado «Registrado directamente
-  por X» y el panel lo marca con un chip: saltarse el control es válido,
-  **ocultarlo no**. Un test verifica que el asiento sea idéntico por ambos
-  caminos — si divergieran, un mismo pago quedaría contabilizado distinto según
-  quién lo registre.
+### Mi mes en el panel (ficha de rendimiento, 23-sep-2026)
+En la Agenda, cada persona ve sus horas del último mes, sus funciones (veces, promedio por vez, horas) y el tipo
+de trabajo, y abre «Ver mi ficha» en letra grande (`MiRendimiento.tsx` → `GET /api/tickets/rendimiento`,
+`app/services/rendimiento.py`, sin LLM). Administración ve la de cualquiera. **No muestra pagos ni valoraciones.**
+Solo cuenta lo registrado en el panel; el desarrollo con IA y el trabajo físico sin tarea abierta no suman.
 
-**Tres decisiones:** (a) el asiento se muestra antes de confirmar por los dos
-caminos — firmar un monto sin ver la cuenta es firmar a ciegas; (b) el asiento
-nace al **aprobar**, no al solicitar, así una solicitud rechazada no deja rastro;
-(c) si Alegra falla, el asiento interno igual queda y el espejo se reintenta.
+### Mapa de funciones (RRHH, 23-sep-2026)
+/app → RRHH · Compensaciones → «Mapa de funciones»: persona × etapa en vivo (horas, veces, promedio por vez,
+valor = horas × tarifa del nivel N1–N5), horas que cubre el pago, comisión de WhatsApp y **valor de mercado en
+honorarios** (`mapa_funciones.honorario_equivalente`). Pagos, propuestas, tarifas y mercado en
+`app/data/rrhh_valoracion.json` (**fuera de git: salarios**). Rutas `/api/rrhh/mapa-funciones*` (permiso rrhh).
 
-**«Honorarios» y «Prestación de servicios» no son lo mismo** (sep-2026): quien
-presta servicios operativos a McKenna sin ser nómina —calidad, empaque, apoyo—
-va a **5135 con retención de servicios (4% declarante / 6% no)**, no a 5110 con
-la de honorarios (10-11%). Sin esa categoría propia el pago solo podía entrar
-como honorario o como «Otro», y una tarifa equivocada sale del bolsillo de una
-persona real.
+### Control de horas por quincena (23-sep-2026)
+Honorarios con **dedicación pactada** (camino A): horas por quincena = pago quincenal ÷ valor hora de mercado (÷ **159 h/mes**,
+las efectivas de un tiempo completo con 42 h/semana; no 210, que incluye domingos pagados; festivos en `festivos_co.py`, sin meta) de su
+labor. «Mi quincena» en la Agenda y «Control de horas» en RRHH (`app/services/control_horas.py`). Horas activas por
+bloques de 15 min sin doble conteo (panel + cronómetro + sesiones de IA de `RENDIMIENTO_SESIONES_IA`) + tiempo
+explicado y aprobado (máx. 6 h/semana). Horas de más × valor hora = cuenta de cobro. **Nunca** poner horario de
+entrada/salida: es subordinación y convierte la prestación de servicios en contrato laboral.
+**Regla visible para todos:** se pide completar las horas convenidas, no rapidez; lo que se haga después son horas
+adicionales **al mismo valor hora** (son honorarios, no horas extra laborales: sin recargo). Quien atiende colectas de MeLi
+(`colectas: true` en la persona; hoy Jenniffer, Stella y Victor) debe estar **disponible de lunes a viernes**: es la
+disponibilidad que el servicio exige, no un horario; a esas personas no se les dice que repongan horas «cualquier día».
+Cocinar el almuerzo del equipo (Víctor) sí cuenta como actividad del servicio. **Detalle por día** (`control_horas.detalle_dia`, `GET /api/tickets/control-horas/dia?fecha=`): tocar un día en «Mi
+quincena», en la ficha o en RRHH abre `DiaDetalle` — tramos con hora, qué se hizo (tarea con cronómetro y su resultado,
+panel y nº de acciones, desarrollo con IA), ratos sin registro que no cuentan y lo que quedó terminado. Sale de
+`_fuentes()`, la misma función del total: el detalle y la suma no pueden divergir (hay test). Abrir **Juegos** no cuenta
+(`PANELES_DESCANSO`). Resumen semanal por WhatsApp: `scripts/resumen_semanal_horas_cron.py` (viernes 17:30, solo envía con `RESUMEN_HORAS_WA_ACTIVO=1`). Los **tiempos estándar** (`tiempos_estandar.py`, mediana de lo
+cronometrado, ≥5 muestras; **nunca tiempos estimados a mano**: un ticket sin cronómetro cuenta su huella real, minutos desde la
+acción anterior, máx. 30) y las «horas a tiempo estándar» son solo referencia de administración, no se muestran a la persona.
 
-**Plan de cuentas ampliado** para que esto sirva: antes TODO gasto caía en 5135
-«Servicios» (luz, contador y fletes juntos). Ahora hay 19 cuentas de gasto con
-códigos PUC reales — 513550 Transporte/fletes, 513530 Energía, 5110 Honorarios,
-5120 Arrendamientos… — y **las 35 cuentas están mapeadas a Alegra** una a una.
-Ver `app/services/pagos_wizard.py` y `alegra_espejo.MAPA_PUC`.
+### Colaboradores (diagramas compartidos, 21-sep-2026)
+Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
+versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
+Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
+`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. **Vista «Edificio» (26-sep-2026):** cada proyecto es un edificio en obra y cada caja un piso que se construye al llenarla (terreno → cimientos → estructura → fachada → terminado); la lista de proyectos es una calle de edificios. Regla en `colaboradores/obra.ts` y la misma en `colaboradores.etapa_obra` (hay test). Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**
+
+### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
+
+```
+/app → Contabilidad → Libro Mayor  (LibroMayorPanel.tsx, reorganizado sep-2026; orden cambiado 17-sep)
+  ├─ Ámbito EMPRESA — abre en el libro, no en la conciliación:
+  │    1 Libro Mayor  PUC con saldos (MayorCuentasPanel: resumen por clase, árbol con terceros
+  │                   desplegables, vista «Por tercero», extracto) · balance · asientos · cuentas T · informes
+  │    2 Registrar    acciones rápidas (ingreso, egreso, compra/pago socio, proveedor, aporte) + asiento manual
+  │    3 Conciliar banco  wizard de 4 pasos (cargar extracto → emparejar → clasificar → verificar)
+  │    4 Configurar   plan de cuentas · terceros · créditos adquiridos
+  │    (claves localStorage `-v2` para que nadie siga aterrizando en Conciliar)
+  └─ Ámbito SOCIOS (= sección Contabilidad → Socios; SociosPanel.tsx) — wizard de 7 pasos por socio:
+       1 Empecemos: cuestionario interactivo de 5 preguntas (cripto, declaró antes, desde qué año,
+         otras plataformas, préstamos con familia) + cédula. No pide nada más; lo ya cargado se deduce
+       2 Plan de carga: qué documentos pide ESE caso, cómo conseguirlos, cuántos tiene vs. el socio de
+         referencia («así lo hizo Armando», solo conteos), carga por renglón/año, «no aplica»,
+         y botón para crear la carpeta del socio en el Declarador con la estructura de Armando
+       3 Extractos personales (tercero_id en extractos_bancarios; cobertura por mes con huecos)
+       4 Cuenta con McKenna (CuentaSocioPanel embebido)
+       5 Cruces socio ↔ empresa (banco personal vs banco/libro de McKenna, ±1 COP, ±3 días)
+       6 Activos digitales — Declarador: años gravables (F210 declarado vs efecto cripto FIFO),
+         documentos por categoría, pendientes con clave estable, agente con herramientas
+       7 Cierre: resumen copiable para el contador
+
+       7 Cierre: **expediente para el contador** — línea de tiempo año por año (qué se
+         declaró · qué pasó · qué cuesta corregir · soportes con su ruta) y **descarga en PDF**
+         (`GET /api/socios/<id>/informe.pdf`, `app/tools/declarador_pdf.py`). La carpeta del
+         socio se normaliza con `organizar_carpeta()`: subcarpetas numeradas
+         (`01_Declaraciones_Renta_F210/`, `05_Certificados_Tributarios_Banco/2024/`…),
+         nombres legibles (`F210_2021.pdf`, `Tarjeta_8017_2025-04.xlsx`) y `LEEME.md`;
+         nunca toca `Calculos/` ni `Para_Contador/`.
+
+app/services/declarador.py     tablas dl_* en contabilidad.db; importar_carpeta() lee SOLO
+                               /home/mckg/Declarador/<Nombre>/ (DECLARADOR_DIR; Calculos/ y
+                               Para_Contador/ de Armando están enlazados dentro de Armando/); agente
+                               Claude tool-use con llm_budget (contexto «declarador»)
+app/routes_declarador.py       /api/socios/* — cada socio ve SOLO su expediente; solo la cuenta
+                               `admin` real (o CHAT_API_TOKEN crudo) ve todos
+```
+
+**Por qué existe:** la conciliación de criptoactivos de Armando (Binance 2020-2025, F210 2020-2024,
+exógena, extractos) se hizo en agosto de 2026 con un agente de terminal en `/home/mckg/Declarador`
+y quedó en markdown y CSV. La contabilidad del socio está pegada a la de la empresa (reintegros
+de compras con tarjeta personal, préstamos, cuota de manejo), así que ahora vive **dentro** del
+Libro Mayor: el socio carga sus extractos aquí (más datos para cruzar) y la declaración se sigue
+construyendo en el panel. **El banco personal de un socio nunca entra a la conciliación de la
+empresa** (`_filtro_titular` en `extracto_bancario.py`); solo se cruza con ella en el paso 4.
+Ficha: `docs/agentic/modules/contabilidad.md` → «Socios dentro de la contabilidad».
 
 ### P. Agente de ventas v2 (WhatsApp + chat web) con supervisión
 
@@ -697,6 +736,54 @@ app/services/auditor_canales.py + scripts/auditor_canales_cron.py   nivel 3: cad
 - `wa_bot_detect.parece_respuesta_bot` ya no marca como bot los mensajes con "veci": el asesor
   también lo escribe, y ese falso positivo hacía creer que nadie humano atendía el chat.
 
+### R. Ventas directas por WhatsApp (cotizar y facturar desde /app)
+
+```
+/app → Facturación → Cotizar/Facturar   (CotizarFacturarPanel.tsx, wizard de 5 pasos)
+  1 Origen    ⚡ pedido del agente IA (ventas_wa, solo modo activo) → salta a Revisar
+              🪄 chat de WhatsApp (extracción con IA, llm_budget) · ✍️ desde cero · ventas recientes
+  2 Cliente   buscador de contactos Alegra; cédula/NIT obligatoria solo para facturar
+  3 Productos precio sugerido = WEB (decisión 11-sep), MeLi de referencia; IVA por línea; envío sin IVA
+  4 Revisar   base / IVA / total calculados en el backend
+  5 Acción    Cotizar (PDF + cotización en Alegra + WhatsApp) · Facturar (DIAN, doble confirmación)
+
+app/services/ventas_directas.py   SQLite app/data/ventas_directas.db (gitignored)
+                                  borrador → cotizada → facturando → facturada (o anulada)
+app/routes_ventas_directas.py     /api/ventas-directas/*, permiso `cotizar-facturar` o admin
+```
+
+**Por qué (16-sep-2026):** Jenniffer cotizaba en la interfaz de Alegra y el IVA salía dos veces.
+**La lista de precios de Alegra guarda el precio FINAL con IVA** (`precios_canales` y `precios_trm`
+le copian el de MeLi) y cada ítem trae además IVA 19%: la interfaz de Alegra toma ese precio como
+base y le vuelve a sumar el impuesto (LECITINA SOYA 500g: lista $19.800 → sugiere $23.562). Las
+facturas por API no sufren esto porque `crear_factura_venta_alegra` saca el IVA antes
+(`_precio_base_con_impuesto`); `ventas_directas.crear_cotizacion_alegra` hace lo mismo con
+`POST /estimates` y avisa si el total de Alegra difiere más de $5 del de la app. **No cotizar ni
+facturar a mano en Alegra mientras la lista siga con IVA incluido.** Cambiar la lista a precios
+base es la corrección de fondo, pero toca todo lo que lee `price` de Alegra como precio final
+(precios_canales, precios_trm, rentabilidad, picker del panel) — decisión pendiente.
+
+**Venta de MeLi con RUT (22-sep-2026):** empresas compran en MeLi y mandan el RUT para que la
+factura salga a su nombre; MeLi no da correo ni teléfono. En el paso 1, «Venta de Mercado Libre»
+(`GET /api/ventas-directas/meli/<pack u orden>`) trae comprador (billing_info) y productos y deja
+`origen=meli`, `origen_ref=pack_id`. Al facturar se aplican las barreras de «Facturar ahora»
+(registro local, documento fiscal en MeLi, factura en Alegra por `purchase_order`), la factura
+sale con `purchase_order=pack_id`, el PDF se sube a MeLi y las órdenes quedan `facturada` en
+`meli_facturas_entrega.json` — así ninguna de las dos vías emite otra. El **WhatsApp del cliente
+es opcional** (antes era obligatorio: el operador ponía «.» y cotizar/facturar fallaba con
+«Teléfono inválido»). **Tipo de documento:** `identificacion_fiscal()` manda NIT/CC a Alegra
+(selector en el paso 2, o deducido por nombre de empresa / forma de NIT) y comprueba el DV; sin
+esto Alegra adivinaba por longitud y EQUISURE S.A.S (FE465) quedó como CC.
+
+**Comisión WhatsApp (23-sep-2026):** `comisiones_mes()` / `GET /api/ventas-directas/comisiones` — 3 %
+(`VENTAS_DIRECTAS_COMISION_PCT`) sobre productos sin IVA ni envío de las ventas facturadas del mes, a quien
+creó la venta; excluye origen `meli`. Chip en la barra del módulo y detalle en «Ventas recientes».
+
+Facturar marca la venta `facturando` **antes** de llamar a Alegra (un segundo clic o una pestaña
+duplicada no emite otra factura) y la devuelve a su estado si Alegra falla. Un pedido IA facturado
+se cierra en `ventas_wa`. Los endpoints viejos `/api/facturacion/cotizar` y `/facturar-directo`
+siguen vivos (el segundo ahora sí pasa `medio_pago`), pero el panel ya no los usa.
+
 ### K. Pagos de mensajería (ex Excel «ENVIOS INTERRA»)
 
 Origen: TKT-2026-1219 — despachos (Jenniffer) llevaba en un Excel aparte un renglón por día con
@@ -715,9 +802,20 @@ aprobación del pago abriendo un ticket a mano. Ahora vive en el panel:
 
 app/services/mensajeria_pagos.py   tablas `mensajeria_envios` / `mensajeria_lotes` en
                                    contabilidad.db; comprobantes en comprobantes/mensajeria/
-contabilidad_ledger._egresos_mensajeria   lote pagado → fuente "mensajeria_pago" en
+contabilidad_ledger._egresos_mensajeria   lote pagado SIN solicitud → fuente "mensajeria_pago" en
                                    Ingresos/Egresos → autopost al Libro Mayor (PUC 5135)
 ```
+
+**Unificado con Solicitudes de pago (15-sep-2026):** en cada lote «solicitado» hay un selector de
+tercero (la transportadora en el Libro Mayor, creable ahí mismo) y el botón **«Pasar a Solicitudes
+de pago»** → `mensajeria_pagos.solicitar_pago_wizard()` crea la solicitud (`flete_transporte`,
+513550, `origen_ref="mensajeria:<lote>"`) y guarda `solicitud_pago_id` en el lote. Desde ahí el pago
+sigue el camino único: aprobar (nace el asiento) → montar en el banco → confirmar con el segundo
+token y el comprobante. Al confirmarlo, `pagos_wizard._avisar_al_origen()` marca el lote como pagado
+y le copia el comprobante (despachos no entra a Contabilidad). **Un lote con `solicitud_pago_id` ya
+no se postea por `_egresos_mensajeria`** — el asiento lo hace la solicitud y contarlo dos veces
+duplicaría el gasto. El ticket suelto de aprobación sigue disponible como «Solo pedir aprobación»,
+sin asiento, para casos que no pasen por contabilidad.
 
 Permiso: `mensajeria`, heredado también de `servicios`, `operativos` o `pedidos` — el registro lo
 lleva despachos y la aprobación administración (ver `desktop/src/lib/contabilidadAccess.ts`).
@@ -738,14 +836,23 @@ impresora es una **Vretti térmica, rollo de 10x15 cm** (también hay 10x10 y 5x
 
 POST /api/guias/rotulos → registra los rótulos y devuelve la URL del PDF
 GET  /api/guias/rotulos.pdf?ids=1,2&tamano=10x15 → PDF, una página por paquete
+POST /api/guias/previsualizar → PDF de prueba (no registra nada) para la vista previa
 GET  /api/guias/conteo?fecha=YYYY-MM-DD → rótulos impresos ese día
 ```
 
-El PDF lo arma ReportLab (`generar_pdf`): encabezado con isotipo, bloque grande de
-destinatario (nombre, teléfono, dirección, ciudad/depto), remitente, contenido, piezas/valor y
-código de barras Code128 con la guía o la referencia del pedido. Todo en negro sobre blanco —
-la térmica es monocromo — y el `ImageReader` del logo se crea **una sola vez** por PDF (si se
-crea dentro del bucle, un lote de 20 rótulos pesa ~16 MB).
+El PDF lo arma ReportLab (`generar_pdf`) en **bandas de altura fija** (encabezado ·
+destinatario · remitente · pie), no en flujo continuo: dos paquetes con datos de distinto largo
+salen iguales y la dirección queda siempre a la misma altura. Encabezado con el **logotipo**
+(`LOGOTIPO TURQUESA.png` pasado a negro con su canal alfa, cacheado en `_logo_negro()` — si se
+convierte por rótulo, un lote de 20 pesa ~16 MB) y el lema **«Proveemos a tus ideas»**;
+destinatario; remitente con la identidad fiscal de `app/services/empresa.py`; pie con piezas,
+peso, transportadora y código de barras Code128 (guía o referencia del pedido).
+
+**No lleva contenido ni valor declarado** (`normalizar_datos` los descarta a propósito): el
+rótulo va pegado por fuera de la caja y detallar qué hay dentro y cuánto vale es justo lo que no
+conviene en un paquete que viaja. `POST /api/guias/previsualizar` devuelve el mismo PDF **sin
+registrar el rótulo** — es lo que muestra la vista previa del panel, así que no puede divergir de
+lo que se imprime.
 
 **MeLi queda fuera a propósito:** esas ventas viajan con la etiqueta que genera Mercado Libre
 (Colecta/Flex); un rótulo propio no la reemplaza.
@@ -755,140 +862,496 @@ día — usar" de la casilla *envíos* en Operativos → Mensajería, para no co
 
 Permiso del panel: `guias-envio`, heredado de `pedidos` o `empaque` (`App.tsx::puedeVerPanel`).
 
+### S. Grabar pantalla → fragmentos → WhatsApp (bridge supervisor)
+
+```
+/app → Contenido → 🔴 Grabar pantalla   (GrabacionPantalla.tsx; también en Sistemas → Supervisor WA)
+  1 Elegir pantalla/ventana/pestaña (getDisplayMedia) + audio de la pestaña y/o micrófono
+    (mezclados con AudioContext en una sola pista)
+  2 Opcional: arrastrar sobre la vista previa la SECCIÓN a enviar (recorte en píxeles)
+  3 MediaRecorder sube un trozo cada 2 s → POST /api/grabaciones/<id>/trozo (en orden, con reintento)
+  4 Detener → /finalizar: remux `-c copy` (el WebM de MediaRecorder no trae duración ni índice)
+  5 Editor: marcar inicio/fin (teclas I / O), «Ver fragmento», cambiar la sección → «Sacar fragmento»
+     → ffmpeg en hilo: corte + crop + H.264/AAC, bitrate calculado para quedar < 15 MB
+  6 Enviar → bridge supervisor :3001 POST /enviar-video {numero, filePath, caption}
+```
+
+`app/tools/grabacion_pantalla.py` + `app/routes_grabaciones.py`; archivos en `grabaciones_pantalla/<id>/`
+(gitignored). Mismo bridge y selector de contactos que «Enviar Voz» (`SupervisorDestino.tsx`).
+**Por qué por trozos:** una subida única al final choca con `MAX_CONTENT_LENGTH` (48 MB) y con el corte
+de 100 s de Cloudflare, y si la pestaña se cierra se pierde todo; así lo grabado ya está en el servidor
+(«Recuperar» cierra una grabación interrumpida). El recorte se aplica al cortar, no al grabar, para poder
+cambiar la sección después. `/enviar-video` solo lee MP4 dentro de `grabaciones_pantalla/`. Sin LLM.
+Requiere Chrome/Edge por https o localhost (por IP de la LAN el navegador bloquea getDisplayMedia); en
+Linux el audio de la pantalla completa no siempre llega — compartir una **pestaña** con su audio.
+
+### T. Entregas Flex de MeLi (horas de reparto, evolución semanal)
+
+```
+scripts/entregas_flex_cron.py  (23:15 diario, job "entregas_flex" en Tareas Programadas)
+  └─ app/services/entregas_flex.py::sincronizar(dias=10)
+       ├─ /orders/search paid (paginador propio con reintentos, ver abajo)
+       ├─ GET /shipments/{id} → logistic.type == "self_service" (Flex), localidad, fecha prometida
+       ├─ GET /shipments/{id}/history → impreso / salida (date_shipped) / entregado
+       └─ app/data/entregas_flex.db (gitignored): solo consulta envíos nuevos o abiertos
+/app → Atención → Entregas Flex  (EntregasFlexPanel.tsx) — lee /api/entregas-flex/resumen, sin llamar a MeLi
+```
+
+Todas las horas se guardan en hora de Bogotá (MeLi responde en -04:00). Las comparaciones son
+últimas 4 semanas vs. las 4 anteriores; «patrones» solo avisa cambios de ≥15 min o ≥5 puntos.
+Corte del mismo día: `ENTREGAS_FLEX_CORTE_HORA` (decimal, default 12.33 = 12:20, medido en el
+estudio del 17-sep-2026). Backfill: `scripts/entregas_flex_cron.py --dias 90 --forzar`. Sin LLM.
+⚠️ No usa `meli.listar_ordenes_meli_por_estado`: esa función corta la paginación en silencio ante
+un error de red (18-sep-2026: la misma llamada devolvió 1.797 y luego 700 órdenes de 30 días).
+
+### U. Mapa del sistema y anatomía de combos (dónde se rompe la cadena de un producto)
+
+```
+/app → Agenda → Mapa · Inventario → Mapa del sistema   (MapaSistemaPanel.tsx; también en Sistemas)
+  ├─ **La aplicación como diagrama de flujo navegable** (MapaAppFlujo.tsx): los 61 paneles reordenados por la
+  │    SECUENCIA del negocio —abastecer → preparar → publicar → vender → entregar → facturar → contar, más
+  │    Dirigir y Sistema que las acompañan— con lo que cada etapa tiene detenido ahora. Etapa → tramos en
+  │    orden → panel (abre de verdad) o diagrama de Archify. Estructura: `desktop/src/lib/flujoApp.ts`
+  ├─ Cadena del producto, con conteos vivos (refresco 30 s): combo en Alegra → documento técnico
+  │    → código EAN → diseño de etiqueta → publicación. Cada caja: cuántos pasan, cuántos se quedan y por qué
+  ├─ «Documentos sin combo»: fichas escritas que ninguna receta usa (el caso propionato de calcio)
+  ├─ «Unir por SKU»: revisión en lote para escribir `referencia` en los documentos que hoy se unen por nombre
+  ├─ Ciclo de la solicitud de pago (5 estados, quién actúa en cada uno) y conexiones externas
+  └─ «Los flujos del proyecto»: toda la lógica en diagramas de Archify con un mismo lenguaje (una franja por
+       persona o sistema, tiempo de izquierda a derecha): mapa global + pago, producto, tres canales de
+       venta, contabilidad y procesos. Incrustados e interactivos; fuentes en docs/arquitectura/*.json
+/app → Inventario → Combos             (CombosPanel.tsx) — la «fotografía» de cada combo:
+       inventario (su receta: materia prima, bolsa, envase, tapa, etiqueta, cuchara…) + equipamiento
+       (documento, EAN, etiqueta, publicación). Una ranura vacía dice por qué y trae el botón que la destraba
+
+app/services/mapa_producto.py   solo lectura salvo `fijar_sku_documento()`; sin LLM, sin llamar a Alegra ni MeLi
+app/services/mapa_app.py        bloqueos por etapa: junta señales que cada módulo YA produce (checklist contable,
+                                resumen de pagos, matriz de productos, caché de inventario, orders.db). No calcula nada nuevo
+app/routes_mapa_sistema.py      /api/mapa-sistema/* — administrador, o permiso `mapa-sistema` / `combos`
+```
+
+**El modelo (no redescubrirlo):** en Alegra conviven el **producto de inventario** (`AMICREMONg`,
+materia prima) y el **combo de venta** (`type=kit`, `C-CREMON500g` = gramos + empaque + etiqueta). El
+documento técnico describe la **materia prima** y el combo lo **hereda por su receta**; el EAN nace del
+**SKU de venta**; la etiqueta se une por **código de barras**. Por eso `documento.referencia` nunca
+coincide con el catálogo web (que lista combos): es por diseño. Las reglas de qué es empaque y cómo se
+empareja un documento viven en `scripts/auditar_catalogo_combos.py`; el servicio las importa, no las repite.
+
+**Por qué el propionato de calcio no tenía etiqueta:** su documento está completo, pero ningún combo en
+Alegra lo usa. Sin combo no hay SKU de venta → sin SKU no hay EAN → el generador en lote lo salta. Se
+arregla creando el combo, no redactando otro documento. El 2026-09-20 había 101 documentos así.
+
+**Reordenar la app es editar un archivo.** El menú agrupa por departamento («Contabilidad» tenía 22 paneles, entre
+ellos Stock, Costos y Crear en Alegra); `flujoApp.ts` los ubica donde se USAN. Un test falla si un panel de
+`panelInfo.ts` queda sin lugar o aparece en dos (`tests/test_mapa_producto.py`). Una fuente de bloqueos que falle se omite y se anuncia en
+`sin_senal` — un mapa que se cae por un módulo escondería justo lo que debe mostrar. Para sumar una señal: una
+función en `_FUENTES` que devuelva `_b(etapa, id, n, texto, panel)`.
+
+**Mapa vivo — la pantalla de inicio de todos (25-sep-2026).** Panel `mapa-vivo` (`components/MapaVivo.tsx` +
+`mapa-vivo.css`, lenguaje pixel de Colaboradores): toda la app en un lienzo React Flow, **armado desde `flujoApp.ts`**
+(no hay otra estructura) y **filtrado con `puedeVerSeccionPanel`** (cada quien ve solo los paneles que puede abrir; una
+etapa ajena sale apagada sin nombrar sus paneles). Escritorio: camino en **serpentina** de 4 cartas por fila (Inicio →
+Abastecer → Preparar → Publicar, baja, Vender → Entregar → Facturar → Contar) y Dirigir/Sistema como bandas; en una sola
+fila de 8 no se leía nada. Celular (<700 px): columna que arranca arriba a tamaño de lectura (no se encuadra todo). Vivo:
+detenidos de `/api/mapa-sistema/bloqueos` (misma queryKey que FlujoNav) y solicitudes asignadas a la persona ubicadas por
+`etapaDeTicket` → la etapa con algo suyo late en amarillo («tu camino»). Tocar un panel acerca la cámara y lo abre; se
+vuelve con **«◇ Mapa»** del cabezote (antes «◇ Todo el flujo», que abría Mapa del sistema solo a administración).
+`App.tsx` pone el mapa **una vez por carga de página** (`INICIO_EN_MAPA`); un `?panel=…` manda sobre él. **Lo urgente titila** (25-sep-2026): `GET /api/mapa-sistema/urgencias` lo ve TODO el equipo interno, filtrado **en el servidor** por los paneles que cada quien puede abrir (`mapa_app.urgencias_para` + `app/services/acceso_paneles.py`, réplica de `panelAccess.ts` para los paneles a los que apunta alguna fuente; `tests/test_acceso_paneles.py` exige una regla decidida para cada uno). La persona sale del token PERSONAL (`X-Tickets-Token`): `CHAT_API_TOKEN` solo lo recibe administración. Titila el APARTADO (lo detenido de severidad alta + las solicitudes propias `alta`/`urgente`), no la carta, que solo lleva marco rojo; «¡Ir a lo urgente!» encuadra esas cartas. **Sin niveles de detalle** (26-sep-2026): se quitaron Etapas · Cotidiano · Operación · Todo; la barra solo lleva **Mapa · Edificio** y cada quien ve SIEMPRE todos los paneles que puede abrir, con «Detenido ahora» en cada etapa (lo que hace cada panel va en el título al pasar el cursor). **Sonidos de juego** (26-sep-2026, `lib/sonidosJuego.ts`, instalado en `App.tsx`): un solo escuchador `pointerdown` elige el sonido por lo que se tocó — la etapa del `data-etapa` más cercano en el Mapa y el Edificio (timbre en Inicio, pitazos de camión en Abastecer, martillo en Preparar, obturador en Publicar, moneda en Vender, camión que arranca en Entregar, impresora en Facturar, calculadora en Contar, fanfarria en Dirigir, computadora en Sistema), alarma en lo urgente, «◇ Mapa» = volver, Mapa · Edificio = pausa, y con la piel pixel un blip en las pestañas de los módulos. **Sintetizados** con Web Audio al estilo NES (cuadrada/triangular/ruido): los juegos de la sección Juegos son ROMs emuladas y su audio NO se copia. Botón «♪ Sonido / Silencio» en la barra del Mapa (`mck-sonidos` en localStorage); el último sonido queda en `data-ultimo-sonido` de `<html>` para pruebas. Un botón con `data-sin-sonido` no suena. **«Tu día» se retiró** (26-sep-2026: como franja no era responsive en el celular y en escritorio no decía nada que la carta de Inicio no dijera): la carta de Inicio lleva **«Mi ficha»** (`BotonMiFicha` de `MiRendimiento.tsx`, abre la ficha del mes en un portal). **La portada de la Agenda ya no existe como pantalla** (26-sep-2026, decisión del usuario: «solo deja el mapa»): `panelDeInicio(user)` (`lib/panelAccess.ts`) es la pantalla de inicio y todo lo que antes «volvía a la Agenda» va al Mapa — `TicketsPanel` desvía su vista `home` al Mapa (salvo con el chat de Hugo abierto, con una vista pedida en camino o si la Agenda no es el panel visible), la primera pestaña de `InicioNavTabs` se llama «Mapa», la barra del celular dice «Mapa», el botón atrás de Android y «volver» de Perfil llevan al Mapa, y se quitó «▶ Mi agenda» del Mapa y del Edificio. Mensajes, las solicitudes, crear y el chat de Hugo siguen igual. Quien no puede abrir el Mapa sigue en la Agenda. **Vista «Edificio»** (`MapaEdificio.tsx` + `mapa-edificio.css`, selector Mapa · Edificio en la barra, recordado en `mck-mapa-vivo-modo`): la misma aplicación como diorama pixel en corte — cada etapa es un **piso** (Abastecer P1 con el muelle de carga … Contar P7, Dirigir P8, Inicio = planta baja/recepción, Sistema = sótano S1), cada panel una estación en la pared, y lo que se mueve dice algo: sirena donde hay urgencias, notas pegadas = lo detenido, tu muñeco «TÚ» donde tienes solicitudes, luces apagadas donde no participas; el ascensor sube al piso y abre el panel. Los datos NO se recalculan: salen de `MapaVivo` (tipos, colores, `useInicio`, numeración de pisos en `mapaComun.tsx`), así el tablero y el edificio no pueden contar distinto. Todo en CSS con `steps()` y `cqw`; `prefers-reduced-motion` lo detiene. **Cada módulo es su piso** (piel pixel): `Layout.tsx` pone `data-piso` y `--mck-piso` en `<main>` → placa «P5» en la miga (`placaDePiso`), losa del color de la etapa bajo el cabezote, pared con rayas, encabezado de tablas teñido, botones de bloque y puertas de ascensor al entrar (`.mck-animate-enter`, sin `forwards` para no recortar menús). `ESTILO_BASE_V = 4`: re-adopta la piel pixel una vez (Armando tenía sakura y Cynthia barbie guardadas: por eso los módulos no se veían pixel). ⚠️ El Mapa y Colaboradores son una **isla clara** (`.colab-pixel`): no cambian en modo oscuro. Dentro rige la traducción de colores CLARA (el generador excluye la oscura con `:not(.colab-pixel *)`) y la isla redeclara las variables DERIVADAS (`--mck-card-bg: var(--mck-surface-panel)`…) y los tokens de estado: una variable que referencia otra se resuelve donde se declara, y heredada traía el azul marino del modo oscuro. ⚠️ Una pestaña flotante debe ser un `<div>` posicionado con el botón adentro (`index.css` fuerza `position: relative` en todo `<button>`). ⚠️ React Flow
+v12 toma las medidas de un nodo controlado de `node.measured`: el mapa las devuelve desde `onNodesChange` o las flechas no
+se dibujan. ⚠️ Un panel de lienzo (altura completa) va en **DOS** listas: `Layout.tsx` (rama de hubs) **y**
+`ui/PanelTransition.tsx` (`fillHeight`); con solo la primera, el lienzo colapsa a altura 0 dentro de la app (pasó con el
+mapa el 25-sep, y el banco del panel suelto no lo mostraba). Bancos: `desktop/dev/mapa.html?perfil=admin|despachos&nivel=0-3`
+(el mapa solo) y `desktop/dev/app.html?perfil=…&medir&tocar=Texto,Otro` (la **app completa** con sesión de ejemplo; errores
+de consola y recorrido de clics al `<title>`, para `--dump-dom`). Ambos con fetch interceptado. ⚠️ Chrome headless no baja
+de 500 px de ancho: una captura «de 390» es una página de 500 recortada.
+
+**Sin menú de arriba (25-sep-2026): se navega SOLO desde el Mapa.** `nav/FlujoNav.tsx` (la fila de etapas → tramos →
+paneles del cabezote) se **eliminó**: cada carta del Mapa despliega sus paneles, la carta de Inicio trae las vistas de la
+Agenda (Mensajes, Chat del equipo, Colaboradores, Juegos; la regla es `puedeVerTabInicio`, exportada de
+`InicioNavTabs`) y el cabezote solo lleva **«◇ Mapa»** (`.mck-volver-mapa`) + miga + título. Quedan como pestañas
+DENTRO de su panel las vistas de la Agenda (`InicioNavTabs soloVistas`) y las de Diseño y Docs. ⚠️ **Clics en el
+Mapa:** React Flow escribe `pointer-events: none` EN LÍNEA sobre un nodo que no se arrastra, no se selecciona y no tiene
+manejador de clic; el Mapa pasa `onNodeClick` para que sus cartas reciban eventos, y sus botones llevan `nopan` (un
+clic con temblor no arrastra el lienzo). Sin eso, 0 de 14 paneles abrían con clics reales mientras `element.click()`
+sí funcionaba: **probar clics con eventos reales** (CDP `Input.dispatchMouseEvent`/`dispatchTouchEvent`), no con
+`element.click()`. Lo que sigue describe la navegación por flujo tal como era antes de ese cambio.
+
+**Toda la interfaz es el flujo (21-sep-2026), y va de lo general a lo avanzado.** El cabezote era `nav/FlujoNav.tsx`:
+- **Origen — «Mi agenda»**: siempre el primer nodo del flujo (`ORIGEN_APP` en `flujoApp.ts`); la *pantalla* de inicio es el
+  Mapa vivo, donde la Agenda es la primera carta. Es donde cada
+  quien ve lo que le pidieron e inicia acciones; **no** es un panel más de una etapa (un test lo exige). Con la Agenda
+  abierta, debajo solo van sus vistas (Mi día · Mensajes) y ninguna etapa se despliega sola.
+- **Etapas** en secuencia con lo detenido → al tocar una se despliegan sus **tramos** con los paneles de uso normal
+  (tocarla otra vez la recoge) → **«+N avanzado»** muestra los de uso ocasional (`tier: "advanced"` de `panelInfo.ts`).
+- **«◇ Todo el flujo»** abre el Mapa: **un solo diagrama** (`MapaAppFlujo.tsx`) origen ⇢ 7 etapas en columnas ⇢ carriles
+  Dirigir y Sistema, con zoom semántico de 4 niveles — Etapas · Cotidiano (`core`) · Operación (+`standard`) · Todo
+  (+`advanced`, qué hace cada panel y las **variables** de cada tramo, `datos` en `flujoApp.ts`). El nivel se recuerda en
+  `localStorage`; en «Etapas», tocar una etapa despliega solo esa columna. Un tramo sin `datos` hace fallar el test.
+- **Dentro de la Agenda** (`AgendaFlujo.tsx`, montado en `CentroMandoHome` de `TicketsPanel.tsx`): «tu día, en orden» =
+  tres carriles *Me pidieron ⇢ Puedo iniciar ⇢ Me espera*. Cada nodo abre su ticket como siempre y a la derecha dice a qué
+  **etapa** pertenece (salta al panel donde se resuelve); debajo, «a dónde lleva tu día» reparte lo tuyo en la secuencia.
+  La etapa sale de `lib/flujoTickets.ts`: reglas por palabras del **título**, en orden, sin IA — la `categoria` del ticket
+  no sirve («logistica» es el valor por defecto del 80 %). Sin regla, el nodo no lleva etapa: no se inventa. Equipo,
+  ecosistema, commits y cambios quedan recogidos en «+ Equipo y sistema». La TRM sigue arriba, como estaba decidido.
+- Sobre el título va la **miga** (`ubicacionDe()`): «PREPARAR ⇢ 4·RESPALDARLO». Las pestañas que quedan (Diseño, Docs,
+  Libro Mayor…) son **vistas dentro de un panel** y en la piel «flujo» se dibujan como nodos (CSS al final de `index.css`,
+  fuera de `@layer` porque las reglas base de `.mck-hub-tab` también lo están).
+- El menú por departamento sigue detrás de Menú de usuario → «Volver a la navegación clásica» (`uiMode.navClasica`);
+  con el flujo activo se ocultan «← Agenda» y la franja «Ir a…». El móvil (`MobileHub`) no cambió: ya abría en la agenda.
+  Los conteos de bloqueos son de administración: a quien la API le responde 403 simplemente no se le muestran.
+El estilo predeterminado es la piel **«pixel»** desde el 25-sep-2026 (`ESTILO_BASE_V = 3`; antes «flujo»): toda la
+app como un videojuego, el lenguaje del Mapa y de Colaboradores. `theme/skin-pixel.css` (importado en `main.tsx`
+DESPUÉS de `index.css`, sin `@layer`) no toca los 61 paneles: redefine los tokens `--mck-*` (PICO-8, claro y oscuro) y
+viste lo común — esquinas rectas (salvo `.rounded-full`), tarjetas `rounded-xl/2xl.border` con borde de 2 px y sombra
+dura, sombras de Tailwind vía `--tw-shadow` (los anillos de foco siguen), botón `.bg-accent` que se hunde, foco
+amarillo, cabezote, pestañas y encabezados de tabla. **Colores escritos a mano:** los paneles usan ~750 clases de color
+propias (`bg-white`, `text-emerald-400`, `bg-red-500/15`…) que no pasan por los tokens; sin traducir, un panel mezclaba dos
+estilos (Pedidos Web, pensado para fondo oscuro, se veía lavado). `desktop/scripts/pixel/paleta_pixel.py` las lleva a seis
+familias pixel (papel: texto, pálido, suave, fuerte, hondo, borde; claro y oscuro) y GENERA `theme/skin-pixel-paleta.css`
+(no editar a mano; `--escribir`). Las «pastillas» (`rounded-full` con `px-*`) pasan a bloque. `tests/test_piel_pixel.py`
+falla si hay una clase nueva sin traducir, si un texto traducido o un token usado como texto baja de 4,5:1, o si un
+dibujo de etiqueta imprimible usa clases que la piel cambia. Auditoría con el navegador real (contraste de cada texto
+visible contra su fondo compuesto, 12 paneles): 0 de 448 ilegibles en claro y en oscuro; la piel «flujo» tenía 80.
+En oscuro el acento es fondo de botón (`11 92 168`) y el TEXTO de acento se pinta aparte (`#29ADFF`): ningún tono sirve
+para las dos cosas. **Las letras NO son pixel** (decisión del usuario, legibilidad):
+la piel no toca fuentes ni tamaños de texto y todo se lee en Montserrat, también en el Mapa y en Colaboradores (sus
+rótulos «de juego» son Montserrat en negrita y mayúsculas). Se probaron Pixelify Sans (la «C» se cerraba en «O» a
+11–13 px) y DotGothic16 (legible; queda como opción en Temas → Fuente); la v2 de `ESTILO_BASE_V` traía DotGothic16 y
+la v3 devolvió Montserrat a quien ya la había adoptado. ⚠️ El **acento** y la **fuente del cuerpo** viajan EN LÍNEA
+sobre `<html>` (`theme/applyTheme.ts`): una hoja de piel no los pisa; van por el paquete y por `baseAccent`.
+La piel «flujo» (`index.css`: papel frío, cuadrícula, monoespaciada — el lenguaje de Archify) sigue en Temas.
+Como un default nuevo no alcanza a quien ya tenía tema guardado, `lib/userThemeSync.ts` lo aplica **una sola vez**
+por persona (`ESTILO_BASE_V`, guardado como `preferencias_ui.estilo_v`) conservando modo claro/oscuro, tamaños, zoom
+y «Mis temas»; después manda lo que cada quien elija en Temas. ⚠️ Una piel nueva va en **dos** listas: `SKINS` de
+`theme/presets.ts` y la validación de `tickets_db.actualizar_preferencias_ui` — si falta en la segunda se ve bien
+y el PUT responde 400 en silencio. ⚠️ Una **fuente** nueva, igual, en `FontChoice` y en las **dos** listas de fuentes
+de `tickets_db.py` (tema activo y temas guardados). Ambas cosas las vigila `test_toda_piel_del_panel_se_puede_guardar_en_el_servidor`.
+
+**Taller de combos (21-sep-2026) — la guía de la etapa «Preparar».** Una etapa puede declarar `guia` en `flujoApp.ts`
+(`abre`, no `panel`: ese panel ya vive en un tramo); sale como nodo lleno «▶ Taller de combos» al desplegar Preparar y en
+su columna del Mapa. Abre `combos` en vista `mision` (`combosVista` en `stores/app.ts`; «Ver todos los combos» pasa a la
+galería). `components/combos/MisionCombos.tsx`: un combo a la vez, **su foto en el centro** y sus seis piezas alrededor
+(receta · etiqueta en la receta · documento · EAN · diseño de etiqueta · publicación); conexión viva = completa, punteada
+= ranura vacía; «siguiente paso» marca la primera que falta. La cola se arma una vez por visita, primero los que están a
+una pieza de cerrarse, y recuerda el caso en `sessionStorage` (ir al Studio y volver no lo pierde). El inspector resuelve
+ahí mismo: **crear el EAN** (propuesta de `…/ean-propuesto` → el `POST /api/etiquetas/codigos-ean` de siempre), **unir el
+documento por SKU**, y en la etiqueta **tamaño, plantilla y textos** vía `GET/POST /api/mapa-sistema/etiqueta/<id>` →
+`etiquetas_fichas.actualizar_campos_ficha()` (mismo candado y misma escritura que el Studio; permiso
+`puede_ver_etiquetas_avanzado`; lista blanca `CAMPOS_EDITABLES`, sin logos ni estilos; una plantilla de categoría no se
+edita desde un producto). ⚠️ `guardar_ficha` REEMPLAZA la ficha entera: toda edición parcial pasa por esa función. El PNG
+no se regenera: exportar sigue siendo del Studio. Premio: la conexión se enciende, «+1 conexión», anillo de la foto, y con
+6/6 celebración + marcador del día (`localStorage`) y del catálogo; respeta `prefers-reduced-motion`. Los 40 productos sin
+combo van aparte (no hay producto de venta que dibujar) con salida a Crear en Alegra.
+⚠️ `index.css` fuerza `position: relative; overflow: hidden` en **todos** los `button` de `#root`: un botón con `absolute`
+se queda en el flujo. Posicionar un `div` y meter el botón dentro.
+
+**Unir un documento a su materia prima (corregido 21-sep-2026).** El documento describe la materia prima y el combo lo
+hereda; el enlace firme es `referencia: <SKU>` en el YAML. Tres fallos impedían hacerlo desde el taller:
+(1) hay recetas cuyos componentes llegan **sin nombre** en la copia local de Alegra → nada parecía empaque, el kit quedaba
+con diez «materias primas» y no se ofrecía unir; ahora el nombre se toma del catálogo por código, y COPA/DOSIFICADOR/BALA/
+SCOOP son empaque (la copa dosificadora iba como segunda materia prima en 19 recetas). (2) `fijar_sku_documento()` se negaba
+a tocar un documento que ya declarara SKU, aunque fuera uno caduco (`ALUg` cuando el producto es `ALUALLg`, o el código de
+un combo): ahora **reemplaza** la referencia que NO es un producto de inventario activo, y solo con `compartir=True` agrega
+el SKU a `referencias_equivalentes` cuando el documento ya pertenece a OTRA materia prima activa (misma sustancia, dos
+códigos); `mejor_documento()` encuentra el documento por cualquiera de sus SKU. El lote «Unir por SKU» sigue proponiendo solo
+el modo `fijar`: reemplazar o compartir se decide caso a caso. (3) si el parecido de nombre no encontraba el documento no
+había cómo elegirlo: `GET /api/mapa-sistema/documentos?q=` + buscador en el inspector («Enlazar un documento que ya existe…»,
+con selector de materia prima si la receta tiene varias).
+**Asociar desde Docs técnicos.** La biblioteca de Docs técnicos lista PDF generados y no tenía cómo decir «este es el
+documento de aquel producto»: quien llegaba desde un combo sin ficha quedaba en un callejón. Ahora, si se llega desde un
+combo cuyo documento no está unido por SKU (`tallerRetorno.asociarDoc`, con sus `mps`), la biblioteca abre con el bloque
+«Asociar un documento a «<combo>»»: buscador sobre los YAML (no sobre los PDF), botón «Asociar a este combo» por documento,
+confirmación y «← Seguir con el combo». Es la misma pieza del taller (`components/combos/EnlazarDocumento.tsx`), así que
+corrige referencias caducas y solo comparte un documento si se confirma. También entra por ahí la galería de Combos.
+**Editar en su apartado y volver.** Cada pieza del taller salta a su sitio ya abierto en ESE producto —Studio en la etiqueta
+(`abrirFormulario({fichaId})`), Códigos EAN, Docs técnicos con el buscador sembrado, Publicaciones en el SKU, Catálogo
+Alegra en el kit— vía `saltarDesdeTaller()` / `tallerSalto` en `stores/app.ts`, y queda un botón flotante «← Seguir con
+<combo>» (`tallerRetorno`, en `Layout.tsx`; flotante porque el Studio inmersivo oculta el cabezote) que devuelve al mismo caso.
+
+**La lista de todos los combos vive en la misma ventana del taller (21-sep-2026).** Tres columnas: lista · tablero ·
+inspector. La lista (`ListaCombos` en `MisionCombos.tsx`) es a la vez la galería y **la cola**: lo que se busca o se filtra
+(Por completar · A una pieza · Sin documento · Sin código · Sin etiqueta · Receta rota · Completos · Todos) es lo que
+recorren «Anterior / Siguiente»; el combo en curso nunca sale de la lista aunque deje de cumplir el filtro al completarse.
+Cada fila trae sus seis segmentos y **cada segmento es un botón**: abre ese combo directamente en esa pieza. Teclado: ← →
+cambian de combo, 1–6 abren una pieza, F las fotos (no actúan mientras se escribe en un campo). La galería anterior quedó
+como enlace «vista clásica».
+
+**El taller cabe en la ventana, sin desplazar la página.** `useAltoDisponible()` (en `MisionCombos.tsx`) mide lo que queda bajo
+el cabezote —que cambia de alto al desplegar una etapa— y fija ese alto a la raíz; adentro todo es `flex`/`grid` con
+`min-h-0`, y solo la lista y el inspector tienen desplazamiento propio. El tablero se ajusta al alto QUE QUEDA, no solo al
+ancho: `.mck-mision-lienzo` es un contenedor con tamaño y el tablero mide `min(100cqw, 100cqh × 1000/640)`; con el tablero
+bajo 640 px los nodos se ensanchan y usan nombre corto (`CORTO`, por `@container`). ≥1280 px: tres columnas · 1024–1279:
+la lista pasa a franja horizontal sobre tablero + inspector · <1024: se apila y la página fluye normal. Los productos sin
+combo dejaron de ser un bloque al pie: son el filtro «Sin combo» de la lista. Verificado sin desplazamiento de página en
+1920×1080, 1600×1000, 1440×900, 1366×768, 1280×720 y 1100×800.
+
+**El taller no tiene barra lateral: todo se resuelve en emergentes guiados (21-sep-2026).** La columna derecha del inspector
+se quitó —casi siempre traía un solo botón— y el tablero ocupa ese espacio (lista · tablero). Tocar una pieza (o las teclas
+1–6 / F, o un segmento de la lista) abre `PiezaEmergente` sobre el tablero: arriba la **pregunta que guía** (`preguntaGuia()`:
+qué pasa y qué se propone — «No tiene código de barras. Este es el siguiente número libre: ¿lo creamos?»), en el cuerpo el
+mismo `Inspector`, y abajo «Siguiente pendiente: <pieza> →». El banner «siguiente paso» trae **«Resolver ahora →»**. Al
+resolver una pieza el emergente **pasa solo a la siguiente pendiente** con la tira «Listo: <pieza> — seguimos…»; si el combo
+quedó completo se cierra para que se vea la celebración. La publicación y la etiqueta tienen su emergente propio
+(`PublicacionEmergente`, `EtiquetaEmergente`). Si el combo ya tiene etiqueta, tocar la pieza abre **de una vez** el editor (formato y exportación) y al cerrarlo se cierra también la pieza. En ese editor (el mismo del Studio) hay **un solo botón, «Terminar y aprobar los PNG»** (se quitaron «Guardar PNG para imprimir» e «Imprimir»): genera el PNG de impresión y, con la casilla **«Desenfoque»** (marcada por defecto), a la vez el `_digital` —OCR de «MCKENNA GROUP» + desenfoque en el navegador con **radio 10** (`RADIO_DESENFOQUE_ETIQUETA`; Studio Visual/MeLi sigue en 28), sin marcar nada—; la persona revisa las dos vistas previas lado a lado y «Aprobar y guardar los dos» sube cada uno a su carpeta (`ETIQUETAS STUDIO/<Cat>` y `PUBLICACIONES DIGITALES/<Cat>`). Si el OCR no encuentra la marca, la aprobación queda bloqueada hasta marcar las zonas a mano. En Diseño → Studio el editor de una etiqueta se abre **dentro de la pestaña «Categorías»**, en el lugar del detalle y al lado de la lista (`StudioCategoriasPanel editor=…`); ya no es vista inmersiva: quedan el cabezote, las pestañas y el buscador. Tocar otra categoría o pestaña cierra el editor. Cada categoría de la lista se **despliega** (▶) y muestra sus etiquetas como árbol; tocar una la abre en el editor (la abierta queda resaltada). El buscador filtra por **etiqueta** primero: antes, «chia» caía en las palabras clave de Semillas y mostraba sus 33 etiquetas, como si no filtrara; escribir en él cierra el editor para ver los resultados. **El lienzo es lo protagonista (23-sep):** el editor (`ProductLabelForm`, también en el taller) son tres franjas — barra de herramientas de UNA línea (volver · nombre · punto de autoguardado · formato · Editar/Vista · «Más» · «Terminar y aprobar»), **mesa de trabajo** que llena el resto y agranda la etiqueta hasta ×2,2 (`useEscalaAjuste` con `llenar`, `ESCALA_MAXIMA_MESA`) y barra de estado (formato, código, ficha técnica, avisos como fichas). Categoría, retícula, desenfoque, plantilla, restablecer y SVG viven en «Más». El botón **«Ficha técnica»** de la barra abre en un emergente el documento técnico enlazado (`FichasTecnicasPanel archivoInicial=<fichaTecnicaId>`) para corregir el dato en su origen; **la etiqueta se actualiza sola** (`lib/fichaTecnicaSync.ts`): guarda en `data.fichaTecnicaBase` la foto de lo que trajo de la ficha la última vez y, al abrirse o al volver de la ficha, aplica SOLO los campos que cambiaron en la ficha desde esa foto — lo ajustado a mano en la etiqueta sin tocar la ficha se respeta. Fuera: contenido neto (manda el EAN) y conservación (manda la sugerida de la familia). Una etiqueta sin foto (las anteriores al 23-sep) la toma al abrirse la primera vez; si la ficha se editó antes desde el propio editor o el Espacio de producto, se compara con la foto tomada al entrar a editarla. **Documento vigente:** guardar un documento con otro título crea OTRO YAML con el mismo SKU y el viejo se queda (42 SKU tenían varios el 23-sep, p. ej. «CHÍA» y «SEMILLLA DE CHÍA»). Antes de sincronizar, la etiqueta pregunta `GET /api/fichas/datos/<id>/vigente` (`auditar_catalogo_combos.documento_vigente`: mismo SKU, más completo y, a igual estado, el más reciente) y se re-enlaza a él; `mejor_documento` desempata igual, así que Mapa, taller y Espacio de producto abren el mismo documento. Reemplaza el «Ajustar la ficha técnica» que solo tenía el emergente del taller. Con una etiqueta abierta la lista de categorías se pliega a un riel (`mck-studio-lista-plegada`). Capas: pieza `z-45` < kit (`EditarModal`, `z-50`) < documento y etiqueta
+(`z-70`); Esc cierra la pieza solo si no hay otro emergente encima, y con un emergente abierto las flechas no cambian de combo.
+
+**El premio suena, y la foto avisa.** Al completarse las seis piezas suena una moneda (`combos/sonidoMoneda.ts`: dos
+notas de onda cuadrada, si5 → mi6, **sintetizadas** con Web Audio — no se carga ni se distribuye ningún audio ajeno); se
+silencia con el interruptor «sonido» del marcador (queda en `localStorage`). Y si el combo quedó completo pero **su foto no
+está al día**, la imagen del centro **parpadea** (`.mck-mision-foto-parpadea`: late un halo ámbar por FUERA y la foto se
+atenúa, pero el círculo sigue blanco y opaco — con opacidad en el círculo se veían cruzadas las seis líneas que pasan por
+detrás; con `prefers-reduced-motion` queda un aro fijo) y el aviso dice «Solo queda la foto». `mapa_producto._estado_foto()` decide: `sin_foto` · `prestada` (la vitrina la
+tomó de otra publicación por parecido de nombre, `photo_match_type: identity`) · `anterior_a_etiqueta` (la fecha del
+archivo de MeLi, `…_042023-O.jpg`, es anterior al último rediseño de la etiqueta → muestra la etiqueta vieja) · `ok`. El
+21-sep-2026: 28 de 243 al día, 146 con la etiqueta anterior, 54 sin foto, 15 prestadas. Antes de completarse solo se ve un
+aro ámbar y «foto por actualizar» bajo el contador: no parpadea para no distraer mientras se trabaja.
+
+**El documento técnico se revisa en un emergente.** En la pieza «Documento técnico», «Revisar el documento aquí…» abre
+`combos/DocumentoEmergente.tsx`: cabecera con estado y SKU declarado, primero **lo que impide publicarlo** (`_vacio_motivo`,
+`_vacio_pendientes`, `_pedido_proveedor`, o por qué un borrador/antigua no cuenta como listo), y en pestañas sus tres partes
+—Ficha técnica · COA · SDS— con cuántos campos van sin dato y si está firmada, más las fuentes. Abajo, las acciones que
+cierran la pieza: **«Es este: unirlo a <SKU>»** (o corregir/compartir el enlace), «No es este: elegir otro…» y «Editarlo en
+Docs técnicos →». Datos de `GET /api/mapa-sistema/documentos/<archivo>/revision` → `mapa_producto.revisar_documento()`:
+solo lectura, **no genera PDF** ni toca el YAML, y no envía las imágenes embebidas (firma en base64). «Sin dato» no es un
+error: muchos campos no aplican al producto (sabor de un aceite, INS de un cosmético).
+
+**«No requiere documento técnico» (22-sep-2026).** Hay publicaciones que no llevan documento (envases vacíos, accesorios…): en la pieza «Documento técnico» una casilla lo marca **por combo** (`POST /api/mapa-sistema/combos/<ref>/documento-no-requerido`, admin o permiso `fichas`) con motivo opcional; queda en `app/data/documento_no_requerido.json` (quién, cuándo, por qué) y la pieza cuenta como completa. No toca ningún YAML; desmarcar la vuelve a pedir.
+
+**…y se EDITA ahí mismo.** «Editar aquí» convierte cada valor del emergente en campo (textos, filas, ítems de lista y celdas
+de las tablas del COA/SDS); lo cambiado se resalta y se guarda todo junto por `POST …/documentos/<archivo>/editar` →
+`mapa_producto.editar_documento()` (administrador o permiso `fichas`). Reglas: solo valores que YA existen (no crea
+claves), por RUTA dentro del YAML (`["_coa","parametros",1,2]`); **no** deja tocar `referencia` (eso es «Unir», que valida
+el SKU contra Alegra), ni el nombre (de él salen el archivo y el emparejamiento), ni imágenes, ni claves privadas; la tabla
+`propiedades` es DERIVADA y se rehace con `normalizar_datos_ficha` como al guardar desde Docs técnicos. Guarda con el mismo
+`yaml.dump` de Docs técnicos, con **respaldo** en `fichas_word/datos/_respaldo_edicion/` y **rastro** en `_ediciones` (quién,
+cuándo, qué campos). ⚠️ Un documento **publicado** (`_tipo: completo`, sin `_borrador`) lo muestra la web directamente desde
+ese archivo: editarlo cambia lo que ve el cliente y NO regenera el PDF ya emitido → exige marcar una confirmación
+(`confirmar_publicado`); firmar, generar el PDF o cambiar el nombre sigue siendo de Docs técnicos.
+
+**La receta se corrige en un emergente, sin salir del taller.** En las piezas «Receta» y «Etiqueta en la receta» el botón
+ya no navega: abre `combos/KitEmergente.tsx`, que es el **mismo** `EditarModal` de Catálogo Alegra (exportado de
+`CatalogoAlegraPanel.tsx`) montado con `createPortal`, y guarda por el mismo `PATCH /api/alegra/catalogo/<sku>` con sus
+mismas reglas (si el kit ya tiene movimientos en Alegra deja cambiar nombre y precio, no la receta). Al guardar, el
+endpoint actualiza la copia local del catálogo y el taller refresca sus piezas. El enlace «abrir en Catálogo Alegra» queda
+como salida secundaria. ⚠️ Esto SÍ escribe en Alegra: en pruebas de navegador se intercepta el PATCH.
+
+**Fotos, presentaciones y componentes en el taller (21-sep-2026).** La **foto del centro se toca**: abre la principal y
+las secundarias (`fotos`, del `cache.json` de la web) y salta a Publicaciones en ese SKU, que es donde se cambian, ordenan y
+suben (web y MeLi por separado). **Presentaciones:** `familia` = la materia prima única de la receta; los combos que la
+comparten son presentaciones del mismo producto (250 g · 500 g · kg) y salen como tira sobre el tablero. Comparten
+documento (es de la materia prima) pero **cada una es su combo: su EAN, su etiqueta, su tamaño y su plantilla**; si una no
+tiene etiqueta, el inspector ofrece abrir la de la hermana como punto de partida. Un kit con varias materias primas no es
+presentación de ninguna (`familia` vacía). **Componentes:** cada pieza de la receta (bolsa, etiqueta, tapa…) muestra sus
+existencias de referencia y abre Catálogo Alegra buscando su código. Las existencias salen de `siigo_stock_cache.json`, el
+caché que ya deja el panel de Inventario — acá **solo se lee el archivo**, nunca se llama a Siigo; muchos empaques están en
+negativo porque se descuentan y nunca se cargaron. `unit_cost` de la copia de Alegra viene en 0: no se muestra costo.
+
+**La cadena se mide por producto ADQUIRIDO**, no por combo (`matriz_productos()`): de 191 materias primas, 33 llegan
+completas a la vitrina y 82 se venden sin etiqueta o sin documento listo. Vista por combos, las 40 compradas sin
+ninguna presentación de venta ni siquiera existen.
+
+Reglas de las acciones:
+- **No nace una segunda vía de escritura**: una ranura vacía **lleva al apartado que ya existe** para
+  resolverla — el código EAN a Diseño → Códigos EAN con el combo ya cargado (`eanPrefill` en `stores/app.ts`,
+  lo consume `CodigosEanPanel`), la etiqueta al Studio, el documento a Docs técnicos. Combos no crea nada por
+  su cuenta (`GET …/ean-propuesto` sigue existiendo, solo informa).
+- **No se ofrece código a un combo con la receta rota** (solo empaque, sin componentes): el equipo los
+  dejó sin código a propósito el 2026-09-19.
+- **`fijar_sku_documento()` edita UNA línea** del YAML (no re-serializa: `yaml.dump` reordenaría 248
+  documentos), respalda en `fichas_word/datos/_respaldo_referencia/`, aborta si al releer cambió algo más
+  que `referencia`, no pisa una referencia existente y exige que el SKU sea un producto de inventario
+  activo (un `C-…` se rechaza: la referencia es la materia prima). Requiere administrador o permiso `fichas`.
+- **Diagramas**: se versiona la fuente `docs/arquitectura/*.json` + `indice.json` (orden y textos del panel);
+  el HTML es derivado (`.gitignore`) y se genera con `python3 scripts/diagramas_arquitectura.py entregar`.
+  Antes de añadir o tocar un flujo, leer `docs/arquitectura/README.md`: el tipo `workflow` tiene solo 6
+  columnas, y una etiqueta de arista larga deja la ruta «imposible» sin decir por qué.
+- En «Unir por SKU» solo vienen marcados los de **nombre idéntico**; los *conflictos* (dos materias primas
+  reclaman el mismo documento: karité amarilla/blanca, colágeno g/mL) no se pueden marcar.
+
+### W. Espacio de producto (23-sep-2026)
+
+```
+/app → Diseño → «Por producto»  (también desde Docs técnicos; en el flujo: Preparar → Respaldarlo)
+  EspacioProductoPanel.tsx — se elige la presentación (combo C-…) una vez y cada pestaña es el
+  apartado de siempre ya abierto en ella:
+    Ficha técnica   FichasTecnicasPanel archivoInicial=<documento.archivo>
+    Etiqueta        ProductLabelForm (su «Ficha técnica» salta a la pestaña; al volver ofrece «Traer»)
+    Código EAN      CodigosEanPanel filtrado (sin código: alta precargada con el SKU, como el taller)
+    PNG aprobados   ETIQUETAS STUDIO + PUBLICACIONES DIGITALES por nombre de archivo
+```
+
+**Por qué:** el trabajo de un producto saltaba entre dos secciones del menú (Diseño y Docs técnicos)
+buscando el mismo producto en cada una. La unión documento ↔ etiqueta ↔ EAN es la de
+`/api/mapa-sistema/combos` (la del taller); no nace otra forma de escribir. Permiso: `producto`,
+o `combos` / `mapa-sistema` (el backend lo acepta en `_PERMISOS` de `routes_mapa_sistema.py`).
+Diseño y Docs siguen para el trabajo en lote. Los PNG se reconocen por el nombre del archivo
+(nace del título del código de barras): si la etiqueta tiene otro título, no aparecen.
+
+### X. Códigos EAN ↔ combos de Alegra (23-sep-2026)
+
+Cada código EAN (Diseño → Códigos EAN) se registra con el SKU de venta del combo (`C-…`).
+`app/services/ean_alegra.py` lo enlaza con el combo de Alegra y escribe el número en el **campo
+adicional «Código de barras»** del ítem (custom field de la empresa, clave `barcode`; estaba
+**inactivo** y vacío en los 243 combos — se activó ese día). Solo toca ese campo (PUT parcial).
+- `GET /api/etiquetas/codigos-ean/alegra`: cada código con su estado — `enlazado`, `aproximado`
+  (difiere en espacios/mayúsculas), `producto` (existe como producto simple, no kit), `sin_combo` —
+  y la última carga. Columna «Alegra» en la lista del panel.
+- `POST …/codigos-ean/sincronizar-alegra`: carga todos en segundo plano (pausa por el límite de Alegra).
+- Registrar o corregir un código lo sube solo (`_ean_a_alegra_en_segundo_plano` en routes.py).
+- ⚠️ El botón viejo «Subir EAN a Alegra» llamaba a `siigo.sincronizar_barcodes_ean_a_siigo`: leía
+  combos de Alegra pero **escribía en Siigo**. La ruta `sincronizar-siigo` sigue, el panel ya no la usa.
+- Corregidos el 23-sep 6 SKU de EAN que eran typo del combo (`C-ALMNAL500g`→`C-ALMNAT500g`,
+  `C- PISTOS250g`, `C-BTMS125g`, `C-ACEESEMANZ5mL`, `C-CAF100`, `C-LANOLINA40g`, y `C-ACEITEATRE5mL`→`C-ACETEATRE5mL` porque Alegra renombró el combo y la copia local seguía con el viejo); la cera blanca 500 g
+  tiene DOS EAN (115 y 116), cada uno en una etiqueta distinta — pendiente de decidir.
+
+### Y. Cese de actividades global (23-sep-2026)
+
+Un comando pausa todos los canales de venta (reestructuración, control de inventario):
+`python3 scripts/cese_actividades.py --activar | --desactivar | --estado`. Sin reinicios: cada pieza lee su archivo.
+- **MeLi**: `scripts/pausa_global_meli.py` guarda en `app/data/meli_pausa_global.json` la lista de lo que
+  estaba activo ANTES de pausar y al reactivar solo toca esa lista. Mientras esté activa,
+  `meli.pausa_global_meli_activa()` impide que la sincronización de stock reactive publicaciones (lo hacía
+  sola al cargar stock). Reactivar a mano una por una desde el panel sigue funcionando.
+- **Web**: `PAGINA_WEB/site/data/MANTENIMIENTO` con «cese» → `mantenimiento/cese.html` (503; el IPN de
+  MercadoPago sigue pasando).
+- **WhatsApp**: `app/data/cese_actividades.json`. En `/whatsapp` un cliente 1:1 recibe el aviso de
+  suspensión (una vez cada 6 h por chat) y el mensaje no llega al bot ni a modo humano. El puente
+  (`server.js`) rechaza con 423 `/enviar`, `/enviar-archivo` y `/enviar-ptt` a todo lo que no sea grupo ni
+  `numeros_internos` → ningún envío del panel (asesor desde /app, confirmaciones de pago) llega al cliente.
+  ⚠️ Lo que alguien escriba **desde el teléfono** no se puede frenar por software.
+
+### Z. Canales del producto (24-sep-2026)
+
+/app → Publicar → «Canales del producto» (`components/canales_producto/`, `app/services/canales_producto.py`): cada
+SKU de venta en todos sus canales — Alegra → receta → documento/EAN/etiqueta → MeLi → web → **¿se puede facturar?** —
+con la misma regla de la facturación (`resolver_producto_venta_alegra` + `alegra_sku_alias_venta.json`) pero contra la
+**copia local** (cero llamadas vivas; «Verificar facturación en vivo» por SKU es la única). **Solo diagnóstico:** cada
+problema salta al apartado que ya existe (`saltarDesdeTaller` con `origen: "canales-producto"`, así «← Seguir con…»
+vuelve aquí). Clasificaciones por gravedad: `vendible_no_facturable` · `inactivo_publicado` · `inactivo_con_alias` ·
+`pausado_no_facturable` · `discrepancia_canales` · `incompleto` · `suelto` · `completo`. Pestaña Categorías: etiquetas vs
+web vs MeLi (MeLi sin dato local todavía). Alimenta el bloqueo de «Publicar» en el flujo (`mapa_app._canales`).
+- ⚠️ **Cese de actividades:** MeLi reporta «paused» TODO lo que el cese pausó; `meli_pausa_global.json` dice qué estaba
+  activo antes, y eso se cuenta como publicado (`pausada_por_cese`). Sin esto, 150 SKUs parecían «se venden y no
+  facturan»; de verdad eran 10 (24-sep).
+- **La copia local de Alegra ahora marca inactivos**: `sincronizar_catalogo_alegra()` upserta también los no activos y
+  pasa a `inactive` lo que Alegra ya no devuelve — solo con paginación completa y si desaparece < 40 % (anomalía de la
+  API = no toca nada). Corre sola a las 7:00 (`monitor.py`, `catalogo_alegra_dia`).
+- Un producto SIMPLE vendido en MeLi (sin combo) es `incompleto`, no `completo`: no descuenta empaque y la web no lo muestra.
+
+### AA. Chat del equipo, campana y recepción de mercancía (24-sep-2026)
+
+Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloquear** (lo del teléfono no se frena):
+- **Chat del equipo** (Agenda → «Equipo», panel `chat-equipo`, `app/services/canales_internos.py`, tablas en
+  `tickets.db`): canales sin cronómetro, fotos con la cámara, «→ tarea» / «Reportar incidente» abre una solicitud de la
+  Agenda ya llenada (categoría `incidente` sembrada). Cada mensaje cuenta como actividad (`registrar_evento_panel`).
+  Un canal puede enlazarse a un grupo oficial: entra lo del grupo (hook al final de `wa_chats.ingestar_desde_whatsapp`)
+  y, con «ida y vuelta», sale lo del panel con el nombre del autor; anti-eco por texto (el puente no devuelve el id).
+  Las rutas usan su propio `_auth`: el panel manda el token de API como Bearer y la sesión en `X-Tickets-Token`.
+- **Fotos de grupos**: `espejarGrupoPanel()` en `server.js` ahora descarga imágenes (≤ 8 MB) a `comprobantes/grupo_*`.
+  Activo desde el reinicio del puente del 24-sep 15:25.
+- **Campana** (cabezote, también en celular): `notificaciones_panel.py`. `tickets_notificaciones.enviar_texto_operador`
+  guarda SIEMPRE el aviso y solo manda WhatsApp si `usuarios.notif_pref` ≠ `inapp` (default `ambos`: nada cambia hasta
+  que cada quien elija «Solo en el panel» en la campana).
+- **Recepción de mercancía** (Abastecer → «3·Recibirla», `app/services/recepcion_mercancia.py`, `recepciones.db`):
+  llegada con fotos y conteo contra lo esperado; lo esperado sale de la **solicitud de pago de la compra** (renglones con
+  SKU/cantidad). Cerrar exige todo contado → `verificada` o `con_diferencias`, y avisa en el canal `inventario`. No
+  escribe inventario ni contabilidad.
+- **Redirección**: `app/data/redireccion_panel.json` (reglas regex → aviso con enlace `/app?panel=…`, un aviso por regla
+  y grupo cada 2 h). **Encendido desde el 24-sep** (el bot escribe en los grupos reales; `"activo": false` lo apaga sin reiniciar). Canales creados ese día: «Inventario y llegadas» ↔ MCKG PEDIDOS / COMPRAS y «Sede Sur» ↔ MCKG SEDE SUR (ida y vuelta), «Compras USA y China» (solo llegada).
+- Enlace directo: `/app?panel=<id>` abre esa sección (App.tsx, `PANEL_DEL_ENLACE`).
+
+### AB. Insumos: foto de referencia, equivalencias y contador (25-sep-2026)
+
+Abastecer → Recibirla → Recepción de mercancía → pestaña **«Insumos: fotos y contador»** (`components/insumos/`,
+`app/services/insumos.py`, `app/routes_insumos.py`, `/api/insumos/*`). Sin LLM; no llama a Alegra ni a MeLi.
+- **Foto de referencia por SKU de inventario** (`FotoInsumo.tsx`): se toma con la cámara donde falte y se ve en el buscador
+  y los renglones del wizard de pagos, en cada renglón de una recepción y en la vista de insumos. Se guarda reducida a
+  JPEG ≤1000 px en `fotos_insumos/` (gitignored); índice en `app/data/insumos.db` (gitignored).
+- **Equivalencias** (`app/data/insumos_equivalentes.json`): un SKU que ya no se compra pero no se puede borrar porque
+  combos con ventas lo tienen en la receta (Alegra no deja cambiarla). El buscador lo oculta, `validar_compra` lo rechaza
+  («usa X») y el contador lo suma al canónico. Primer caso: `PASBLA180mL` → `PAS180BLAUn` (13 combos siguen con el viejo;
+  C-LHIS100g ya se cambió; respaldo de recetas en `app/data/_respaldo_recetas_PASBLA180mL_2026-09-25.json`).
+- **Contador por lotes** (decisión de Armando 25-sep): las existencias arrancan con los lotes que se registran. Sin control,
+  existencia = compras − consumo **desde la primera compra registrada** (lo vendido antes salió del inventario viejo); con
+  control (conteo físico, antes de comprar otro lote) se sigue desde lo contado. Comprado (asientos vivos de solicitudes de
+  pago y compras con `plantilla_datos.items`) − consumido (ventas
+  de `facturacion_ventas_cache.db` + `ventas_directas.db` facturadas no-MeLi, × receta del combo; un producto vendido
+  suelto se consume a sí mismo) desde `CONTABILIDAD_FECHA_CORTE`. **Alegra no lleva existencias de insumos**: sin
+  compra registrada ni control no hay existencia (no se inventa).
+  Estados: `ok` · `revisar` (existencia negativa: vendido más de lo registrado → hacer el control) · `sin_lote` (se usa
+  pero nunca se registró compra ni control) · `sin_uso` (sin combos, compras ni ventas: candidato a inactivar). Ventas cuyo SKU no tiene receta local se listan aparte, no se inventa su consumo.
+
+### AC. Buscador de chats y cobros sin factura (25-sep-2026)
+
+Agente WhatsApp → pestaña **Buscar** (`WhatsAppBuscar.tsx`, `app/services/wa_busqueda.py`, rutas `/api/bot/chats/buscar` y
+`/api/bot/chats/cobros-sin-factura`). Buscador sobre `wa_chats.db` por palabras, teléfono o valor (320.000 = 320000 =
+320,000), agrupado por conversación y con «Abrir chat». «Cobros sin factura»: los cobros Llave/QR/Nequi del extracto de la
+empresa sin vincular, cada uno con el chat donde se confirmó ese valor (−12 a +3 días), cédula/NIT y correo que escribió el
+cliente, lo cotizado y la conversación. Solo lectura, sin LLM, sin Alegra. Contexto: al conciliar septiembre, de 33 cobros
+por QR/Llave solo 11 tenían factura en Alegra; tras la migración (2-sep) solo 19 ventas WhatsApp se facturaron y Siigo quedó
+suspendido desde el 4-sep. Los pedidos web se cobran por Mercado Pago y el auto-posteo los lleva a 1110: pendiente
+pasarlos a 130505 como las ventas MeLi.
+
+### V. Iconografía minimalista de todo /app (21-sep-2026)
+
+La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,
+sin relleno) que ya existía para el menú. Tres piezas:
+- **`<Ico e="📦" />`** (`icons/Ico.tsx`): icono EN LÍNEA con el texto, mide lo que la letra (`svg.mck-ico` = 1,1 em) y
+  toma su color. El valor sigue siendo el emoji —el código dice qué se quiso decir— y **`icons/emojiMap.ts`** decide qué
+  se dibuja (~200 emojis → 111 iconos; se agregaron 18: gear, globe, sparkle, trophy, bag, bottle, cap, spoon, shield,
+  puzzle, bulb, coins, ruler, compass, tree, scale, hand, broom). Un emoji sin icono asignado se muestra tal cual, nunca
+  como un círculo genérico. Un test exige que todo lo mapeado apunte a un icono que exista (si no, `Icon` devuelve
+  `null` y el botón queda sin icono y sin aviso).
+- **`ico("🎫 Generar ticket")`** (`icons/icoTexto.tsx`): para textos que llegan como CADENA (ternarios, el `label` de una
+  tabla de estados): dibuja el emoji inicial como icono y deja el resto igual.
+- **`<PanelIcon panel=… bubble={false} />`**: el icono PROPIO de cada panel; es lo que usan la navegación por flujo y el Mapa.
+
+Para un emoji nuevo: mapearlo en `emojiMap.ts` y correr desde `desktop/src/` los dos scripts de
+`desktop/scripts/iconos/` (`emoji_a_ico.py` y `cadenas_a_ico.py`, con `--aplicar`; sin él, ensayo en seco). Reglas que
+NO se rompen: solo se reemplaza un emoji que es **texto JSX inequívoco** (justo tras el cierre de una etiqueta, o que
+abre la línea bajo una); nunca dentro de cadenas, template literals (mensajes de WhatsApp, HTML de impresión),
+atributos, `<option>` (no admite SVG), ni en lo que **dibuja etiquetas imprimibles** (`etiqueta-*`, `VisualCanvasEditor`,
+pictogramas GHS). El primer intento, más laxo, metió un `<Ico>` dentro de una cadena por confundir un `>` de
+comparación con el cierre de una etiqueta: por eso la regla es estricta. Lo que queda con emoji es contenido, no
+interfaz: mensajes de clientes en WhatsApp y el texto de commits y recaps.
+
+**Build con dos usuarios (mckg y cynthia):** `dist/` y `public/assets/ocr/` quedaron con grupo `mckg` (cynthia
+pertenece a él), `g+w` y setgid, y `scripts/copy-ocr-assets.mjs` ya no hace `copyFileSync` encima de un archivo del otro
+(daba EPERM y el build moría antes de tsc): si pesa lo mismo no lo toca; si no, lo borra y lo copia.
+
 ### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
 
-Ver ficha completa en `docs/agentic/modules/contabilidad.md`. Resumen:
+**Detalle completo: `docs/agentic/modules/contabilidad.md`** (sección «Flujo J completo»).
 
 ```
-app/services/contabilidad_core.py   Libro de partida doble propio: PUC, terceros, medios de
-                                     pago, asientos (débito=crédito validado), cuenta en T,
-                                     balance de comprobación. Plantillas: compra_socio_amazon,
-                                     pago_socio, compra_proveedor, ingreso, egreso,
-                                     prestamo_recibido/otorgado + sus abonos.
-app/services/contabilidad_ledger.py armar_libro() (solo lectura: ventas MeLi/web/Siigo, compras,
-                                     compras exterior, servicios, impuestos, créditos) +
-                                     movimientos_manuales_como_libro() (los asientos manuales de
-                                     arriba, en el mismo formato de fila, para fusionar sin tocar
-                                     armar_libro()).
-app/services/contabilidad_autopost.py  auto_postear_periodo(): traduce cada fila de armar_libro()
-                                     a un asiento real (FUENTE_MAPEO fuente→cuenta PUC), dedupe
-                                     por referencia="auto:<hash>". Cron cada 6h
-                                     (scripts/contabilidad_autopost_cron.py, job
-                                     "contabilidad_autopost" en Sistemas → Tareas Programadas) +
-                                     backfill manual (scripts/backfill_contabilidad_autopost.py).
-app/services/meli_facturacion.py    La factura mensual de MeLi, desglosada por concepto y
-                                     traducida al PUC. GET /billing/integration/... — **5 peticiones
-                                     por minuto**, el módulo pacea solo y cachea los períodos
-                                     cerrados. Existe porque ese gasto no se ve por ningún lado:
-                                     MeLi cobra $44-47M/mes (de los cuales ~$24M son PUBLICIDAD) y
-                                     **nada de eso pasa por el extracto bancario** — la factura se
-                                     cobra contra el saldo de MercadoPago (111010), y el banco solo
-                                     ve el traslado que fondea esa cuenta.
-                                     ⚠️ NO usar `meli_ads.gasto_ads_por_rango()` para contabilizar:
-                                     para ago-2026 reportó $654.448 cuando la factura cobró
-                                     $23.853.390 (35x). Las métricas sirven para decidir campañas;
-                                     la factura es la fuente de verdad.
-                                     ⚠️ Los `detail_sub_type` que empiezan por «B» son anulaciones y
-                                     RESTAN, aunque la API los manda en positivo y sin marcarlos
-                                     CREDIT. Van a la misma cuenta que anulan (BV→CV, BXD→CXD,
-                                     BFF→CFF: se cambia la B por C). Sumándolos en positivo, agosto
-                                     daba $46.013.088 contra los $44.175.672 reales.
-app/services/extracto_clasificador.py  Propone cuenta PUC + tercero para las líneas de banco
-                                     que NO tienen contrapartida en el libro (las que
-                                     `sugerencias_auto` no puede emparejar porque la operación
-                                     nunca se contabilizó: 200 de 358 en jul-ago 2026). Reglas por
-                                     descripción del banco; `proponer()` / `resumen()` NO escriben
-                                     nada. Endpoint `/api/contabilidad/extractos/clasificacion`.
-                                     Tres trampas que las reglas evitan a propósito: (a) los
-                                     traslados a MercadoPago son plata propia, no ingreso ni gasto
-                                     ($40,7M en ago-2026); (b) el banco rotula «PAGO A PROVE» la
-                                     quincena de quien presta servicios — persona natural va a 5135
-                                     con retención, no a 2205; (c) una entrada sin identificar no se
-                                     marca como venta, que ya entra por el auto-posteo.
-app/services/extracto_bancario.py   Conciliación bancaria (ya existente): importar extracto,
-                                     vincular/desvincular, sugerencias automáticas,
-                                     pendientes_por_clasificar() (líneas de banco sin vínculo).
-                                     `vincular()` es agnóstica al formato de movimiento_id — un
-                                     hash de armar_libro() o "cc:<id>" de un asiento manual
-                                     funcionan igual.
+contabilidad_core.py      partida doble propia: PUC, terceros, asientos, balance, plantillas
+puc_colombia.py           PUC real (Dec. 2650) + ALIAS de códigos viejos; migrar() registra alias aplicados
+contabilidad_ledger.py    armar_libro() (solo lectura) + factura_ya_contada() contra doble conteo
+contabilidad_autopost.py  auto_postear_periodo() → asientos (cron 6h + backfill)
+contabilidad_mayor.py     árbol del PUC, extracto por cuenta (PDF/CSV), libro diario
+iva_ventas.py             IVA de ventas → 240805 desde facturas Alegra (resta notas crédito)
+alegra_puc.py / alegra_espejo.py   puente por código con Alegra; espejo y anulación de comprobantes
+meli_facturacion.py       factura mensual MeLi (5 req/min); ⚠️ no usar meli_ads para contabilizar
+extracto_bancario.py / extracto_clasificador.py   conciliación y propuestas para líneas sin vínculo
+conciliacion_contador.py  350/490 del contador vs 2365 → hallazgos + TKT (sin LLM)
 ```
 
-Panel: Contabilidad → **Libro Mayor** (PUC/terceros/asientos/balance) y **Préstamos**
-(`PrestamosPanel.tsx`, permiso propio no heredado — datos sensibles de socios). Contabilidad →
-**Ingresos y Egresos** fusiona `armar_libro()` con los asientos manuales y agrega la bandeja
-**"Pendientes por clasificar"**: clasificar una línea de banco sin vínculo crea el asiento
-correcto (incl. préstamo) y la vincula en un solo paso. Adjuntar comprobante (`ComprobanteWidget.tsx`,
-compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras courier de un socio.
+Trampas conocidas: saldo en Mercado Pago = **`130505`** (cuenta por cobrar, `CUENTA_MERCADOPAGO`; la venta MeLi
+se causa en 4135 y el retiro al banco es traslado Debe 1110 / Haber 130505, nunca ingreso); `2367`=IVA retenido, `2380`=acreedores varios, rendimientos = `236535` (no
+236515); `529505` cambió de significado (orden de migración importa). Un backfill necesita subir
+`CONTABILIDAD_LEDGER_BUDGET_S` (período a medias queda cuadrado y parece completo). Ante un **503
+de Alegra, releer antes de reintentar** (POST que sí se ejecutó). IVA de ventas nunca como
+total/1,19 (hay excluidos, Art. 424).
 
 ### M. Préstamos de terceros (captación con particulares)
 
-```
-/app → Contabilidad → Préstamos   (sección propia; PrestamosCronogramaPanel.tsx)
-  ├─ «+ Prestamista»: alta del tercero con cédula, correo, teléfono y cuenta bancaria
-  │    → valida lo que el préstamo necesitará (no al desembolsar, cuando ya es tarde),
-  │      lo inscribe como contacto en Alegra y avisa si llevará documento soporte.
-  │      No duplica si ya existe esa cédula: completa lo que falte
-  ├─ Crear: tercero + capital + tasa E.A. + plazo + reparto de capital por tramos
-  │    → cronograma de N cuotas + asiento de desembolso (banco / 2295-2380)
-  ├─ Simulador en vivo: muestra ANTES de comprometerse qué gana el prestamista
-  │    (bruto y neto) y cuánto cuesta realmente a McKenna (TIR → efectiva anual)
-  ├─ Documentos PDF: contrato de mutuo (al desembolsar) y certificado de estado.
-  │    Se generan siempre; el ENVÍO por correo al tercero pide confirmación
-  ├─ Alegra: consulta de solo lectura si ya es contacto, con botón para inscribirlo
-  ├─ Reporte mensual al prestamista: lo girado en el mes (capital / interés / retención)
-  │    + certificado de estado adjunto. Envío manual, nunca automático tras un pago
-  └─ Pagar cuota → asiento capital(2295/2380) + interés(5305) + retención(2365) + banco
-
-scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
-  ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
-  │           todas las cuotas del mes: prestamista, cédula, cuenta, valor a girar
-  └─ día 3  → UN ticket de contabilidad con la retención practicada el mes ANTERIOR,
-              detalle por tercero para el formulario 350 + control contra la cuenta
-              2365 + fecha exacta de vencimiento (app/services/calendario_tributario.py,
-              año gravable 2026 cargado). Sube a prioridad crítica si vence en ≤5 días
-```
-
-**Condiciones vigentes (sep-2026):** 25% E.A. (= 1,8769% mensual vencido), 24 cuotas,
-capital 30% el primer año / 70% el segundo, retención del 7% **a cargo del prestamista**.
-Sobre $10.000.000 el prestamista gana **$2.796.620 brutos (27,97%)** y recibe
-$2.600.857 netos (26,01%).
-
-**Tres cifras distintas que no se deben confundir** (van las tres en el panel y en el PDF):
-la **tasa pactada** (25% E.A., lo único que se acuerda), el **rendimiento bruto** (27,97%,
-consecuencia del cronograma) y el **rendimiento neto** (26,01%, tras retención). 25% E.A.
-no da 50% a dos años porque el interés va sobre saldo insoluto: el capital promedio
-realmente prestado es $6,2M, no $10M.
-
-**Palanca de diseño:** devolver capital más tarde sube lo que gana el prestamista **sin
-cambiar la tasa** (0/100 → 34,72%; 30/70 → 27,97%; 50/50 → 23,46%), y el costo para
-McKenna es 25% E.A. en los tres casos. Descartado a propósito el "interés fijo sobre
-capital inicial", que cuesta ~30% E.A. real por el mismo capital promedio.
-
-**Retención:** McKenna es agente retenedor; descuenta el 7% (Art. 395 ET) y lo consigna
-a la DIAN. **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
-la asume McKenna y el costo real sube a 26,95% E.A.
-
-**Documento soporte (DIAN Concepto 000112 int 7 de 2024):** por el **capital** NO se emite
-(el mutuo no es venta de bienes ni servicios; se respalda con contrato + transferencia); por
-los **intereses** SÍ, pero solo si el prestamista es persona natural **no** obligada a
-facturar — si es jurídica u obligado, la factura la expide él. Se emite por el interés bruto
-de cada cuota vía `POST /bills` con plantilla `supportDocument` (id=10 en la cuenta; ⚠️ la
-id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca en modo sombra**
-(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`): antes de encender hay que crear en Alegra el ítem
-`INTERES-MUTUO` (hoy no existe).
-
-**Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
-(DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito
-del calendario es el **6**, no el 3 (el 3 es el DV; verificado contra GET /company de Alegra).
-La identidad fiscal (razón social, NIT, ciudad) vive **solo** en `app/services/empresa.py` —
-ningún módulo debe volver a escribir el literal. **No extrapola**: para un año sin tabla
-cargada dice "fecha no confirmada" en vez de adivinar — cargar 2027 cuando salga el decreto.
-
-⚠️ **Sin validar aún:** tarifa de retención según tipo de prestamista (confirmar con el
-contador), certificado anual de retenciones en formato DIAN (el plazo sí está: último día
-hábil de marzo), tope de usura (el contrato lo afirma pero nadie lo valida en código) y riesgo
-de captación masiva si esto escala a muchos terceros. Ficha completa, cronología y
-decisiones abiertas: `docs/agentic/modules/prestamos.md`.
+**Detalle completo: `docs/agentic/modules/prestamos.md`.** Panel Contabilidad → Préstamos
+(`PrestamosCronogramaPanel.tsx`, `app/services/prestamos.py`); cron
+`scripts/prestamos_recordatorio_cron.py` (día 5 ticket de pagos a despachos, día 3 ticket de
+retenciones del mes anterior). Condiciones vigentes: 25% E.A., 24 cuotas, capital 30/70, retención
+7% a cargo del prestamista contra **236535**. Documento soporte solo por los **intereses** y solo a
+persona natural no obligada a facturar (`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`, sombra). Identidad
+fiscal solo en `app/services/empresa.py`; dígito del calendario DIAN = **6** (no el DV 3).
 
 ---
 
@@ -939,15 +1402,26 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 | `/api/proveedores/*` | GET/POST/PUT | Bearer / permiso `logistica-internacional` | Red de proveedores: directorio, ¿quién vende…?, precios históricos, catálogos Gmail, oferta web, cotizaciones (ver Flujo I) |
 | `/api/etiquetas/categorias` | GET/PUT | Bearer / permiso Studio | Categorías de producto de las etiquetas (aceites, frutos secos, conservantes…): primer nivel de Diseño → Studio visual. El PUT reemplaza la lista completa y lo eliminado **no** se resucita — ver `app/tools/etiquetas_categorias.py` |
 | `/api/guias/*` | GET/POST | Bearer | Rótulos de envío para impresora térmica: pedidos despachables, remitente, generación del PDF (`/api/guias/rotulos.pdf`), historial y conteo diario — ver `app/tools/guias_envio.py` y Flujo L |
+| `/api/entregas-flex/*` | GET/POST | Bearer / permiso `entregas-flex`, `pedidos`, `empaque` o `guias-envio` | Horas de entrega de los envíos Flex de MeLi: `resumen?semanas=N` (serie semanal, patrones, localidades, corte, abiertos), `estado`, `sincronizar` (segundo plano) — ver `app/services/entregas_flex.py` y Flujo T |
 | `/api/mensajeria/*` | GET/POST/DELETE | Bearer | Pagos de mensajería: días de envíos, lotes de pago, ticket de aprobación y comprobante — ver `app/services/mensajeria_pagos.py` y Flujo K |
+| `/api/precios-trm/*` | GET/PUT/POST | Bearer / nivel administrador | Precios indexados a la TRM: estado y propuesta, config, recalcular, aplicar, descartar — ver `app/services/precios_trm.py` |
 | `/api/costos-ia` | GET | — | Costos LLM vía API (hoy/semana/histórico 30d); ver `app/services/llm_budget.py`. Consumido por `bot-mckenna` `/costos-ia` |
 | `/api/contabilidad/cc/*` | GET/POST/PATCH/DELETE | Bearer | Libro Mayor propio (partida doble): plan de cuentas, terceros, medios de pago, movimientos, cuentas T, balance de comprobación, plantillas (socios, proveedores, préstamos, ingreso/egreso) — ver `app/services/contabilidad_core.py` y Flujo J |
 | `/api/contabilidad/cc/movimientos/<id>/comprobante` | GET/POST/DELETE | Bearer | Ver/adjuntar/quitar el comprobante de sustento de un asiento (clave para compras sin factura fiscal) |
-| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar — ver `app/services/pagos_wizard.py` y Flujo O |
+| `/api/contabilidad/cc/arbol` | GET | Bearer | El Libro Mayor como árbol del PUC con saldos por nivel (`solo_movimiento=0` para ver también las cuentas sin usar) — ver `app/services/contabilidad_mayor.py` |
+| `/api/contabilidad/cc/extracto/<id>` | GET | Bearer | Extracto de una cuenta: saldo inicial, cada línea con su contrapartida y saldo corrido, resumen por tercero. `subcuentas=1`, `tercero_id`, `desde`/`hasta`. Añadir `.pdf` o `.csv` para el documento |
+| `/api/contabilidad/cc/auxiliar-terceros` | GET | Bearer | Auxiliar por tercero: cada tercero con sus cuentas y saldos (`desde`/`hasta`). `cc/arbol?terceros=1` agrega el mismo desglose dentro de cada cuenta |
+| `/api/contabilidad/cc/balance.pdf` | GET | Bearer | Balance de comprobación jerárquico en PDF, con la sangría por nivel del PUC |
+| `/api/ventas-directas/*` | GET/POST/PUT | Bearer / permiso `cotizar-facturar` | Venta directa WhatsApp: calcular IVA por línea, precio sugerido, borrador, cotizar (PDF + Alegra `/estimates`), facturar (DIAN), anular, pedidos del agente IA — ver `app/services/ventas_directas.py` y Flujo R |
+| `/api/pagos/*` | GET/POST | Bearer | Solicitudes de pago: categorías, opciones desde saldos reales, previsualización del asiento, crear/aprobar/rechazar; `proveedores` (libro + Alegra), `proveedores/adoptar`, `productos` (catálogo Alegra), `verificar-factura` (multipart, cotejo sin LLM), `solicitudes/<id>/factura` — ver `app/services/pagos_wizard.py`, `pagos_proveedor.py` y Flujo O |
 | `/api/prestamos/*` | GET/POST | Bearer | Préstamos de terceros con cronograma: simular, crear, cuotas, pagar, documento PDF (contrato/certificado), envío al prestamista, contacto Alegra y ticket mensual — ver `app/services/prestamos.py` y Flujo M |
+| `/api/conciliacion/*` | GET/POST | Bearer / permiso `libro-mayor` o `conciliacion-contador` | Cruce declaraciones del contador (350/490 bajados de Gmail) ↔ cuenta 2365: hallazgos con clave estable, decisiones del wizard y TKT — ver `app/services/conciliacion_contador.py` y Flujo J |
 | `/api/contabilidad/autopost` | POST | Bearer | Postea manualmente al Libro Mayor lo que agrega `armar_libro()` en el rango dado — ver `app/services/contabilidad_autopost.py` |
 | `/api/contabilidad/ingresos-egresos/manuales` | GET | Bearer | Asientos manuales del Libro Mayor en formato de fila de libro, para fusionar con `armar_libro()` en Ingresos/Egresos |
-| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (cualquier extracto) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar" |
+| `/api/contabilidad/extractos/pendientes` | GET | Bearer | Líneas de banco (extractos de la empresa) sin ningún vínculo en el rango — bandeja "Pendientes por clasificar". Con `tercero_id` (también en GET/POST `/extractos`) opera sobre los extractos PERSONALES de ese socio |
+| `/api/socios/*` | GET/POST/PATCH/DELETE | Bearer / propio socio o admin real | Expediente fiscal de socios (Declarador): perfil, documentos, años gravables, hallazgos, cruces banco socio ↔ empresa, agente con herramientas — ver `app/routes_declarador.py` y Flujo Q |
+| `/api/mapa-sistema/*` | GET/POST | Bearer / administrador o permiso `mapa-sistema`, `combos` (escritura: admin o `fichas`) | Mapa vivo de la cadena del producto y del ciclo de pago, anatomía de combos, propuesta de EAN, unión documento↔materia prima por SKU y diagramas de Archify — ver `app/services/mapa_producto.py` y Flujo U |
+| `/api/grabaciones/*` | GET/POST/PATCH/DELETE | Bearer (archivos de video sin Bearer: el id es el token) | Grabaciones de pantalla por trozos, recorte de sección, clips MP4 y envío por el bridge supervisor — ver Flujo S |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 
@@ -961,7 +1435,22 @@ decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 
 **URL**: `http://localhost:8081/app`  
 **Stack**: React 19 + TypeScript + Vite + Tailwind CSS + Zustand + React Query  
-**Build**: `desktop/dist/` (servido por Flask como archivos estáticos)
+**Build**: `desktop/dist/` (servido por Flask como archivos estáticos, **solo con sesión**)
+
+**Acceso al panel** (`app/spa_sesion.py`): `/app` y `/app/assets/*` exigen la cookie `mck_panel`
+(HttpOnly, 8 h, la misma vida que la fila en `sesiones`). Sin ella se entrega `app/templates/
+ingreso_panel.html`, HTML plano que no cuenta nada del proyecto; ese archivo es lo único público.
+La cookie la dejan el login, la vuelta de Google, `/app?_token=` y `POST /api/tickets/auth/sesion-panel`
+(la pantalla de ingreso la usa para revalidar una sesión que ya estaba en el navegador, sin volver a
+pedir la contraseña). `PANEL_SIN_SESION=1` en el `.env` es el interruptor de emergencia. La API no
+cambió: sigue con el token Bearer.
+⚠️ **La app Android (WebView, UA `McKennaPanelAndroid`) también pasa por esa pantalla:** su «Entrar con
+Google» debe ir a `/app/auth/google/start?app=android`, o la vuelta de Google se queda en Chrome y la app
+nunca recibe la sesión (22-sep-2026: Victor y Stella, mismo Vivo V2066 con la APK 1.3.1, no pudieron
+entrar desde el 21-sep). Cualquier pantalla de ingreso nueva debe detectar el UA igual que
+`googleAuthStartUrl()`. **Celular (23-sep-2026):** «Agenda» es la misma agenda de escritorio (Layout +
+FlujoNav) con la barra inferior `BarraMovil` (Agenda · Hugo · Mensajes · Rápido · Yo); el hub solo pinta
+esas cuatro pestañas, con el mismo lenguaje de la piel «flujo».
 
 ### Paneles disponibles
 
@@ -1118,7 +1607,7 @@ Comando del grupo:
 ## Generación de Catálogo PDF
 
 ```python
-# generar_catalogo.py - flujo:
+# scripts/generar_catalogo.py - flujo:
 1. leer_productos_sheets() → lee Sheets, extrae meli_id_to_sku de col A
 2. fetch_meli_photos(token, meli_id_to_sku) → descarga 1ª foto por item_id
 3. Inyecta photo_path en cada producto
@@ -1262,7 +1751,7 @@ Gemini (copy + prompts)
 
 | Script | Uso | Descripción |
 |--------|-----|-------------|
-| `pipeline_contenido_facebook.py` | `python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
+| `app/tools/pipeline_contenido_facebook.py` | `python3 -m app.tools.pipeline_contenido_facebook --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
 | `generar_infografias_facebook.py` | `python3 generar_infografias_facebook.py --tipo receta --n 3` | Infografías estáticas con PIL sin video ni audio |
 | `sincronizar_facebook.py` | `python3 sincronizar_facebook.py` | Borra y republica la página con productos, guías y blog posts actuales |
 
@@ -1322,7 +1811,7 @@ Scripts de investigación científica automatizada y publicación en WordPress. 
 
 | Script | Descripción | Output |
 |--------|-------------|--------|
-| `generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
+| `app/tools/generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
 | `generar_posts_masivos.py` | 20+ posts comparativos (ej: Niacinamida vs Clindamicina). Cada post incluye hallazgos contrastados, gráficas SVG/CSS inline, bibliografía. Usa PubMed con filtros MeSH. | `/PAGINA_WEB/site/data/posts.json` |
 | `generar_recetas_masivas.py` | 40+ recetas de formulación en 4 categorías: cosmética, nutrición, perfumería, hogar. Genera ingredientes, cantidades, modo de preparación, precauciones con Gemini. | `/PAGINA_WEB/site/data/recetas.json` |
 
@@ -1337,7 +1826,7 @@ generar_y_publicar_contenido('Niacinamida cosmética', 'post_blog', publicar=Tru
 "
 
 # Guías masivas (62 ingredientes)
-python3 generar_guias_masivas.py
+python3 -m app.tools.generar_guias_masivas
 
 # Posts comparativos
 python3 generar_posts_masivos.py

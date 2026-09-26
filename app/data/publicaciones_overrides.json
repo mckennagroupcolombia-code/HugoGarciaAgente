@@ -54,8 +54,8 @@
     "updated_at": "2026-06-12T01:06:35.179537"
   },
   "C-ACEESEJEN5mL": {
-    "meli_item_id": "1394253550",
-    "updated_at": "2026-06-12T01:06:50.410021"
+    "meli_item_id": "MCO1394253550",
+    "updated_at": "2026-09-20T13:50:06.495841"
   },
   "C-ACEESEMANZ5mL": {
     "meli_item_id": "MCO1278643483",
@@ -152,10 +152,6 @@
   "C-EXTRAMAL500g": {
     "meli_item_id": "MCO1518232374",
     "updated_at": "2026-06-12T01:44:29.042114"
-  },
-  "C-ACEESELIM5mL": {
-    "meli_item_id": "MCO1394253550",
-    "updated_at": "2026-08-14T12:37:52.592957"
   },
   "C-DPAN50m": {
     "meli_item_id": "MCO585538997",
@@ -286,12 +282,12 @@
     "updated_at": "2026-08-04T16:03:04.002585"
   },
   "C-COCDESHIL500g": {
-    "meli_item_id": "MCO4208343872",
-    "updated_at": "2026-08-04T16:04:48.200310"
+    "meli_item_id": "MCO4354293808",
+    "updated_at": "2026-09-20T13:59:07.426988"
   },
   "C-COCDESHIL250g": {
-    "meli_item_id": "MCO4208635856",
-    "updated_at": "2026-08-04T23:33:39.331959"
+    "meli_item_id": "MCO4354281272",
+    "updated_at": "2026-09-20T13:59:07.426988"
   },
   "C-CERCARKg": {
     "meli_item_id": "MCO1610626412",
@@ -300,10 +296,6 @@
   "C- PISTOS250g": {
     "meli_item_id": "MCO2035213641",
     "updated_at": "2026-08-04T17:34:07.947510"
-  },
-  "C-ALBHV500g": {
-    "meli_item_id": "MCO3022724080",
-    "updated_at": "2026-08-04T17:33:53.369075"
   },
   "C-NUEBRA250g": {
     "meli_item_id": "MCO4158346500",
@@ -469,10 +461,6 @@
     "meli_item_id": "MCO1393840298",
     "updated_at": "2026-08-14T12:34:52.224932"
   },
-  "C-ACEESENHIEBUE5mL": {
-    "meli_item_id": "MCO3152503164",
-    "updated_at": "2026-08-14T12:40:40.765587"
-  },
   "C-ALFARB10g": {
     "meli_item_id": "MCO1817885111",
     "updated_at": "2026-08-14T12:41:06.574863"
@@ -513,10 +501,6 @@
     "meli_item_id": "MCO3124326468",
     "updated_at": "2026-08-14T13:52:27.122554"
   },
-  "C-ACEESENJEN5mL": {
-    "meli_item_id": "MCO3124400002",
-    "updated_at": "2026-08-14T13:53:00.022467"
-  },
   "ACEESENMAN5mL": {
     "meli_item_id": "MCO1393840298",
     "updated_at": "2026-08-14T13:53:37.956933"
@@ -536,10 +520,6 @@
   "C-FRGHDR120mL": {
     "meli_item_id": "MCO605885731",
     "updated_at": "2026-08-14T13:56:45.222627"
-  },
-  "C-INL500g": {
-    "meli_item_id": "MCO1582274449",
-    "updated_at": "2026-08-14T13:57:59.998346"
   },
   "CGLCMG250g": {
     "meli_item_id": "MCO3065166542",
@@ -653,10 +633,6 @@
     "meli_item_id": "MCO1732025061",
     "updated_at": "2026-09-03T00:24:21.474873"
   },
-  "C-LHIS100g": {
-    "meli_item_id": "MCO1050313694",
-    "updated_at": "2026-09-03T00:23:42.120268"
-  },
   "GOTVID50mL": {
     "meli_item_id": "MCO1938766622",
     "updated_at": "2026-09-03T00:25:21.965852"
@@ -700,5 +676,23 @@
   "C-ACEESEROM5mL": {
     "meli_item_id": "1278678363",
     "updated_at": "2026-06-12T01:10:55.054039"
+  },
+  "C-SHA70550mL": {
+    "imagenes_web": [
+      "C-SHA70550mL.png"
+    ],
+    "updated_at": "2026-09-15T10:17:40.631499"
+  },
+  "C-ALBHUE500g": {
+    "meli_item_id": "MCO3022724080",
+    "updated_at": "2026-08-04T17:33:53.369075"
+  },
+  "C-INU500g": {
+    "meli_item_id": "MCO991717213",
+    "updated_at": "2026-09-20T13:50:19.992224"
+  },
+  "C-LHIS100g": {
+    "meli_item_id": "MCO1050313694",
+    "updated_at": "2026-09-20T13:52:13.068127"
   }
 }

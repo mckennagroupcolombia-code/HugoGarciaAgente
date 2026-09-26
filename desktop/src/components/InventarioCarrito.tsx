@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useEffect, useMemo, useState } from "react";
 import { questNavBtn } from "../lib/questStyles";
 import { useInventarioCarrito, type CarritoMaterial } from "../stores/inventarioCarrito";
@@ -105,7 +106,7 @@ export function InventarioCarritoNavBtn({
       className={`relative ${questNavBtn(!!active)}`}
       title="Carrito de compras (inventario)"
     >
-      🛒 Carrito
+      <Ico e="🛒" /> Carrito
       {count > 0 && (
         <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-600 px-1 text-[10px] font-black text-white leading-none shadow-sm">
           {count}
@@ -129,7 +130,7 @@ export function InventarioCarritoBadge({
       className="relative rounded-paper border-2 border-amber-500/60 bg-amber-500/15 px-3 py-2 text-sm font-bold text-amber-900 transition hover:border-amber-500 dark:text-amber-200"
       title="Ver carrito de compras"
     >
-      🛒 Carrito
+      <Ico e="🛒" /> Carrito
       <span className="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-black text-white">
         {count}
       </span>
@@ -313,7 +314,7 @@ export function InventarioCarritoModal({
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
           <div>
             <h3 id="inventario-carrito-title" className="text-lg font-extrabold text-ink">
-              🛒 Carrito de compras
+              <Ico e="🛒" /> Carrito de compras
             </h3>
             <p className="text-xs text-muted">
               Materiales para pedir o reponer stock

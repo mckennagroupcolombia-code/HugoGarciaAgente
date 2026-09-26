@@ -569,6 +569,14 @@ def _formatear_fecha_revision(fecha: str) -> str:
     return t
 
 
+#: Títulos con los que las fichas ya guardadas escribieron esas filas dentro
+#: de `propiedades`. Se siguen leyendo, pero siempre se imprime el nuevo.
+_TITULOS_VIEJOS: dict[str, list[str]] = {
+    "formula_quimica": ["fórmula química", "formula quimica"],
+    "olor": ["olor"],
+}
+
+
 def _valor_en_filas(filas: list[list[str]], *claves: str) -> str:
     claves_n = {_normalizar(c) for c in claves}
     for label, val in filas:
@@ -620,8 +628,9 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         identidad_out.append(["FECHA DE REVISIÓN", _formatear_fecha_revision(fecha)])
     if pais_origen:
         identidad_out.append(["PAÍS DE ORIGEN", pais_origen])
-    if fabricante:
-        identidad_out.append(["FABRICANTE", fabricante])
+    # El fabricante NO se publica en ningún documento (decisión del negocio,
+    # 2026-09-19): hacia afuera solo va el país de origen. El dato se conserva en
+    # el YAML porque la trazabilidad interna de lotes lo usa (lotes_materia_prima).
 
     comp_rows = _filas_tabla(d.get("composicion"))
     comp_labels = {_normalizar(r[0]) for r in comp_rows if r}
@@ -658,14 +667,18 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         ("punto_fusion", "Punto de fusión"),
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
-        ("olor", "Olor"),
+        ("olor", "Aroma"),
         ("sabor", "Sabor"),
-        ("formula_quimica", "Fórmula química"),
+        ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
     ):
         val = (cf.get(key) or "").strip() if cf else ""
         if not val:
-            val = _valor_en_filas(filas_prop_legacy, label.lower(), _normalizar(label))
+            # Las fichas viejas guardaron la fila como "Fórmula química": se
+            # buscan los dos títulos, se imprime siempre el nuevo.
+            titulos = [label.lower(), _normalizar(label)]
+            titulos += _TITULOS_VIEJOS.get(key, [])
+            val = _valor_en_filas(filas_prop_legacy, *titulos)
         if val:
             propiedades.append([label, val])
 
@@ -688,8 +701,10 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "indice de saponificacion",
         "ph",
         "olor",
+        "aroma",
         "sabor",
         "formula quimica",
+        "formula molecular",
         "solubilidad",
     }
     existentes = {_normalizar(p[0]) for p in propiedades}
@@ -1136,15 +1151,14 @@ def _contexto_html(
     sinonimos = (d.get("sinonimos") or "").strip()
     cas = (d.get("cas") or "").strip()
     pais_origen = (d.get("pais_origen") or "").strip()
-    fabricante = (d.get("fabricante") or "").strip()
     fecha = _formatear_fecha_revision(d.get("fecha_revision") or "")
     from app.services.documento_cientifico import _asegurar_punto_final
     descripcion = _asegurar_punto_final((d.get("descripcion") or "").strip())
 
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
-        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "sabor",
-        "formula quimica", "solubilidad",
+        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "aroma",
+        "sabor", "formula quimica", "formula molecular", "solubilidad",
     }
     cf = d.get("caracteristicas_fisicas") or {}
     propiedades_fijas: list[tuple[str, str]] = []
@@ -1153,15 +1167,17 @@ def _contexto_html(
         ("punto_fusion", "Punto de fusión"),
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
-        ("olor", "Olor"),
+        ("olor", "Aroma"),
         ("sabor", "Sabor"),
-        ("formula_quimica", "Fórmula química"),
+        ("formula_quimica", "Fórmula molecular"),
         ("solubilidad", "Solubilidad"),
     ]
     for key, label in etiquetas:
         val = (cf.get(key) or "").strip()
         if not val:
-            val = _valor_en_filas(_filas_tabla(d.get("propiedades")), label.lower(), _normalizar(label))
+            titulos = [label.lower(), _normalizar(label)]
+            titulos += _TITULOS_VIEJOS.get(key, [])
+            val = _valor_en_filas(_filas_tabla(d.get("propiedades")), *titulos)
         if val:
             propiedades_fijas.append((label, val))
 
@@ -1201,7 +1217,15 @@ def _contexto_html(
     lote = (d.get("lote") or "").strip()
 
     # Info clave normativa/etiqueta (opcional; solo se muestra si viene diligenciada)
-    concentracion = (d.get("concentracion") or "").strip()
+    # La pureza puede venir del campo propio de la FT o de la identificación
+    # compartida del documento completo (FT+COA+SDS), que se guarda bajo
+    # `_coa.identificacion`. Se leen las dos para que la fila salga en la FT
+    # aunque se haya escrito en la identificación de arriba.
+    _coa_ident = ((d.get("_coa") or {}).get("identificacion") or {})
+    concentracion = (
+        (d.get("concentracion") or "").strip()
+        or str(_coa_ident.get("concentracion") or "").strip()
+    )
     grado = (d.get("grado") or "").strip()
     hs_code = (d.get("hs_code") or d.get("codigo_arancelario") or "").strip()
     documento_id = (d.get("documento_id") or "").strip()
@@ -1252,7 +1276,8 @@ def _contexto_html(
         "sinonimos": sinonimos,
         "cas": cas,
         "pais_origen": pais_origen,
-        "fabricante": fabricante,
+        # Nunca llega a una plantilla (PDF ni web): solo país de origen.
+        "fabricante": "",
         "fecha_revision": fecha,
         "descripcion": descripcion,
         "propiedades": propiedades_fijas,
@@ -1291,6 +1316,7 @@ def generar_pdf_html(
     FICHAS_PDF_DIR.mkdir(parents=True, exist_ok=True)
 
     ctx = _contexto_html(datos, cabezote_id)
+    limpiar_contextos_documento(ctx, None, None)
     titulo = ctx["titulo"]
     nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
     destino = salida or (FICHAS_PDF_DIR / nombre_pdf)
@@ -1399,10 +1425,11 @@ def _contexto_coa(datos_coa: dict) -> dict:
         "vida_util": (lote.get("vida_util") or "").strip(),
         "tamano_lote": (lote.get("tamano_lote") or "").strip(),
         "pais_origen": (lote.get("pais_origen") or "").strip(),
-        "fabricante": (lote.get("fabricante") or "").strip(),
+        "fabricante": "",  # no se publica; ver normalizar_datos_ficha
         "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
         "fecha_emision": (lote.get("fecha_emision") or "").strip(),
         "parametros": filas,
+        "composicion": [f for f in _filas_tabla_n(datos_coa.get("composicion"), 3) if any(c.strip() for c in f)],
         "metales": _filas_tabla_n(datos_coa.get("metales"), 4),
         "microbiologia": _filas_tabla_n(datos_coa.get("microbiologia"), 4),
         "dictamen": (datos_coa.get("dictamen") or "").strip(),
@@ -1427,18 +1454,178 @@ def _contexto_coa(datos_coa: dict) -> dict:
 _COA_CAMPOS_EXCLUSIVOS = (
     "concentracion", "presentacion", "incluye",
     "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
-    "pais_origen", "fabricante", "fecha_analisis", "fecha_emision",
+    "pais_origen", "fecha_analisis", "fecha_emision",
     "empaque", "almacenamiento", "precauciones", "observaciones",
     "firma_nombre", "firma_cargo", "firma_organizacion", "firma_imagen_src",
     "codigo_verificacion", "dictamen",
 )
 
 
+
+# ── Nada sin diligenciar en el PDF (21-sep-2026) ──────────────────────────────
+# Una casilla vacía — o con un relleno como «-», «—», «N/A», «— completar —» —
+# no se imprime: ni la fila sin valores, ni la columna vacía en toda la tabla,
+# ni la sección que queda sin contenido. Se aplica a los contextos ya armados
+# (FT, COA, SDS) justo antes de renderizar, en el PDF y en la web.
+
+_RE_RELLENO = re.compile(
+    r"^\s*(?:[-—–_.·]+|n\s*/?\s*a|n\.?d\.?|none|null|s/?d|sin\s+dato|—?\s*completar\s*—?|por\s+completar)\s*$",
+    re.I,
+)
+
+
+def es_relleno(valor) -> bool:
+    """True si el valor está vacío o es solo un relleno."""
+    if valor is None:
+        return True
+    texto = str(valor).strip()
+    return not texto or bool(_RE_RELLENO.match(texto))
+
+
+def _celda(valor) -> str:
+    return "" if es_relleno(valor) else str(valor).strip()
+
+
+def limpiar_tabla(filas, n: int, *, rotulo_basta: bool = False) -> tuple[list[list[str]], list[int]]:
+    """(filas, columnas visibles). La primera columna es el rótulo: una fila sin
+    ningún valor después del rótulo se quita, y una columna vacía en todas las
+    filas no se dibuja. `rotulo_basta`: el rótulo solo ya es dato (un componente
+    sin porcentaje sigue siendo un componente)."""
+    limpias: list[list[str]] = []
+    for fila in filas or []:
+        celdas = [_celda(c) for c in list(fila)[:n]]
+        celdas += [""] * (n - len(celdas))
+        valores = celdas if (rotulo_basta or n == 1) else celdas[1:]
+        if any(valores):
+            limpias.append(celdas)
+    cols = [0] + [i for i in range(1, n) if any(f[i] for f in limpias)]
+    return limpias, cols
+
+
+def celdas_sin_huecos(filas: list[list[str]], cols: list[int]) -> list[list[tuple[str, int, int]]]:
+    """Cada fila como [(texto, colspan, columna)]: una celda vacía que queda en
+    una fila con datos se une a la celda con dato de su izquierda, para que la
+    tabla no muestre huecos (menta: «Calidad | — | 100 % puro»)."""
+    salida = []
+    for fila in filas:
+        celdas: list[list] = []
+        for i in cols:
+            texto = fila[i] if i < len(fila) else ""
+            if texto or not celdas:
+                celdas.append([texto, 1, i])
+            else:
+                celdas[-1][1] += 1
+        salida.append([tuple(c) for c in celdas])
+    return salida
+
+
+def _limpiar_textos(ctx: dict) -> None:
+    for clave, valor in list(ctx.items()):
+        if isinstance(valor, str) and es_relleno(valor):
+            ctx[clave] = ""
+
+
+def limpiar_contextos_documento(ft_ctx: dict | None, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    """Quita del documento todo lo que no está diligenciado (ver arriba)."""
+    if ft_ctx:
+        _limpiar_textos(ft_ctx)
+        ft_ctx["propiedades"] = [tuple(f) for f in limpiar_tabla(ft_ctx.get("propiedades"), 2)[0]]
+        comp, cols = limpiar_tabla(ft_ctx.get("composicion"), 2, rotulo_basta=True)
+        ft_ctx["composicion"] = [tuple(f) for f in comp]
+        ft_ctx["composicion_cols"] = cols
+        ft_ctx["composicion_celdas"] = celdas_sin_huecos(comp, cols)
+        ft_ctx["marco_normativo"] = [
+            (_celda(c), _celda(d)) for c, d in (ft_ctx.get("marco_normativo") or []) if _celda(d)
+        ]
+        for clave in ("aplicaciones", "recomendaciones"):
+            if isinstance(ft_ctx.get(clave), list):
+                ft_ctx[clave] = [x for x in ft_ctx[clave] if not es_relleno(x)]
+        if isinstance(ft_ctx.get("propiedades_extra"), list):
+            ft_ctx["propiedades_extra"] = [
+                (_celda(a), _celda(b)) for a, b in ft_ctx["propiedades_extra"] if _celda(a) or _celda(b)
+            ]
+    if coa_ctx:
+        _limpiar_textos(coa_ctx)
+        for clave, n in (("parametros", 3), ("metales", 4), ("microbiologia", 4), ("composicion", 3)):
+            filas, cols = limpiar_tabla(coa_ctx.get(clave), n, rotulo_basta=clave == "composicion")
+            coa_ctx[clave] = filas
+            coa_ctx[f"{clave}_cols"] = cols
+            coa_ctx[f"{clave}_celdas"] = celdas_sin_huecos(filas, cols)
+        coa_ctx["composicion_con_cas"] = 2 in coa_ctx["composicion_cols"]
+        # Sin el nombre comercial: el PDF no lo imprime en esta sección (va en el título).
+        coa_ctx["tiene_identificacion"] = any(coa_ctx.get(k) for k in (
+            "inci", "cas", "formula", "einces", "concentracion", "grado", "presentacion", "incluye",
+        ))
+    if sds_ctx:
+        _limpiar_textos(sds_ctx)
+        for clave in ("propiedades", "propiedades_propias"):
+            sds_ctx[clave] = [tuple(f) for f in limpiar_tabla(sds_ctx.get(clave), 2)[0]]
+        pel = sds_ctx.get("peligros") or {}
+        if pel:
+            pel["frases_h"] = [(c, t) for c, t in pel.get("frases_h") or [] if c or not es_relleno(t)]
+            pel["frases_p"] = [
+                (g, [(c, t) for c, t in frases if c or not es_relleno(t)]) for g, frases in pel.get("frases_p") or []
+            ]
+            pel["frases_p"] = [(g, fr) for g, fr in pel["frases_p"] if fr]
+            pel["tiene_contenido"] = bool(
+                pel.get("clasificacion") or pel.get("senal") or pel.get("pictogramas")
+                or pel.get("frases_h") or pel.get("frases_p")
+            )
+
+def sds_con_recomendaciones_ft(datos_sds: dict, ft_ctx: dict) -> dict:
+    """SDS vieja sin recomendaciones propias + FT con recomendaciones GHS → se las pasa."""
+    recs_ft = list(ft_ctx.get("recomendaciones") or [])
+    if not recs_ft or not isinstance(datos_sds, dict) or datos_sds.get("esquema") == 2:
+        return datos_sds
+    pel = datos_sds.get("peligros") if isinstance(datos_sds.get("peligros"), dict) else {}
+    if datos_sds.get("recomendaciones") or pel.get("recomendaciones"):
+        return datos_sds
+    return {**datos_sds, "recomendaciones": recs_ft, "_recomendaciones_de_ft": True}
+
+
+def preparar_sds_documento(ft_ctx: dict, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    from app.services.sds_estructura import preparar_sds_documento as _preparar
+
+    _preparar(ft_ctx, coa_ctx, sds_ctx)
+
+
+def mover_composicion_al_coa(ft_ctx: dict, coa_ctx: dict | None, sds_ctx: dict | None) -> None:
+    """La tabla de composición se imprime en el COA (decisión 21-sep-2026).
+
+    El formulario la guardaba en la SDS (`_sds.composicion`) y la FT tenía la
+    suya (`composicion`); los documentos viejos siguen así. Si hay COA, la
+    primera que exista — la del COA, la de la SDS o la de la FT — pasa al COA
+    y se quita de las otras dos secciones para que no salga repetida. Sin COA,
+    la de la SDS pasa a la FT: la SDS no lleva sección de composición."""
+    if not coa_ctx:
+        # La SDS ya no imprime composición: sin COA, la de la SDS pasa a la FT.
+        if sds_ctx and sds_ctx.get("composicion") and not ft_ctx.get("composicion"):
+            ft_ctx["composicion"] = [
+                (f[0], f[1] if len(f) > 1 else "") for f in sds_ctx["composicion"]
+                if any((c or "").strip() for c in f)
+            ]
+        if sds_ctx:
+            sds_ctx["composicion"] = []
+        return
+    filas = list(coa_ctx.get("composicion") or [])
+    if not filas and sds_ctx:
+        filas = [list(f) for f in (sds_ctx.get("composicion") or []) if any((c or "").strip() for c in f)]
+    if not filas:
+        filas = [[c, v, ""] for c, v in (ft_ctx.get("composicion") or [])]
+    coa_ctx["composicion"] = filas
+    coa_ctx["composicion_con_cas"] = any(len(f) > 2 and (f[2] or "").strip() for f in filas)
+    ft_ctx["composicion"] = []
+    if sds_ctx:
+        # La SDS impresa sola (seccion_sola='sds') sí la trae, desde el COA.
+        sds_ctx["composicion"] = []
+        sds_ctx["composicion_coa"] = filas
+
+
 def _coa_diligenciado(coa_ctx: dict) -> bool:
     """True si el COA trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((coa_ctx.get(campo) or "").strip() for campo in _COA_CAMPOS_EXCLUSIVOS):
         return True
-    for clave in ("parametros", "metales", "microbiologia"):
+    for clave in ("parametros", "composicion", "metales", "microbiologia"):
         for fila in coa_ctx.get(clave) or []:
             if any((celda or "").strip() for celda in fila):
                 return True
@@ -1462,7 +1649,18 @@ def _con_firma_default(coa_ctx: dict) -> dict:
 
 
 def _contexto_sds(datos_sds: dict) -> dict:
-    """Aplana los datos del formulario SDS para el template HTML combinado."""
+    """Aplana los datos del formulario SDS para el template HTML combinado.
+
+    Cualquier SDS se lee en el esquema 2 (`sds_estructura.normalizar_sds`):
+    peligros estructurados y sin el bloque de «recomendaciones» que los repetía."""
+    from app.services.sds_estructura import normalizar_sds, peligros_para_documento
+
+    # Una SDS vieja cuyo único contenido eran recomendaciones (texto de la FT)
+    # queda vacía al normalizar; se sigue considerando diligenciada para no
+    # despublicar el documento de la web por el cambio de formato.
+    contenido_previo = bool(_lineas_recomendaciones_sds(datos_sds or {}))
+    recs_de_ft = bool((datos_sds or {}).get("_recomendaciones_de_ft"))
+    datos_sds, _avisos = normalizar_sds(datos_sds)
     ident = (datos_sds.get("identificacion") or {})
     pel = (datos_sds.get("peligros") or {})
     man = (datos_sds.get("manipulacion") or {})
@@ -1523,15 +1721,14 @@ def _contexto_sds(datos_sds: dict) -> dict:
         "usos": (ident.get("usos") or "").strip(),
         "telefono": (ident.get("telefono_emergencia") or "").strip(),
         "clasificacion": (pel.get("clasificacion") or "").strip(),
-        "pictogramas": (pel.get("pictogramas") or "").strip(),
+        "peligros": peligros_para_documento(datos_sds),
+        "contenido_previo": contenido_previo,
+        "contenido_previo_es_de_ft": contenido_previo and recs_de_ft,
         "composicion": _filas3(datos_sds.get("composicion")),
-        "primeros_auxilios": _filas2(datos_sds.get("primeros_auxilios")),
-        "manipulacion": (man.get("manipulacion") or "").strip(),
         "almacenamiento": (man.get("almacenamiento") or "").strip(),
         "propiedades": _filas2(datos_sds.get("propiedades")),
         "normativa": (reg.get("normativa") or "").strip(),
         "observaciones": (reg.get("observaciones") or "").strip(),
-        "recomendaciones": _lineas_recomendaciones_sds(datos_sds),
         # Secciones 5,6,8,10,11,12,13,14,16 (GHS 16 secciones) — opcionales,
         # solo se muestran si vienen diligenciadas para ese producto.
         "incendios": (datos_sds.get("incendios") or "").strip(),
@@ -1573,20 +1770,25 @@ def _lineas_recomendaciones_sds(datos_sds: dict) -> list[str]:
 
 
 _SDS_CAMPOS_EXCLUSIVOS = (
-    "usos", "telefono", "clasificacion", "pictogramas",
-    "manipulacion", "almacenamiento", "normativa", "observaciones",
+    "usos", "telefono", "clasificacion",
+    "almacenamiento", "normativa", "observaciones",
     "incendios", "vertidos", "exposicion", "estabilidad", "toxicologia",
     "ecologia", "eliminacion", "transporte", "otra_info",
 )
 
 
-def _sds_diligenciado(sds_ctx: dict) -> bool:
+def _sds_diligenciado(sds_ctx: dict, *, contar_recomendaciones_ft: bool = True) -> bool:
     """True si el SDS trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
     if any((sds_ctx.get(campo) or "").strip() for campo in _SDS_CAMPOS_EXCLUSIVOS):
         return True
-    if any((linea or "").strip() for linea in (sds_ctx.get("recomendaciones") or [])):
+    if sds_ctx.get("contenido_previo") and (
+        contar_recomendaciones_ft or not sds_ctx.get("contenido_previo_es_de_ft")
+    ):
         return True
-    for clave in ("composicion", "primeros_auxilios", "propiedades"):
+    pel = sds_ctx.get("peligros") or {}
+    if pel.get("clasificacion") or pel.get("pictogramas") or pel.get("frases_h") or pel.get("frases_p") or pel.get("senal"):
+        return True
+    for clave in ("composicion", "propiedades"):
         for fila in sds_ctx.get(clave) or []:
             if any((celda or "").strip() for celda in fila):
                 return True
@@ -1600,8 +1802,13 @@ def generar_pdf_completo(
     *,
     cabezote_id: str | None = None,
     salida: Path | None = None,
+    borrador: bool = False,
 ) -> dict:
-    """Genera un PDF unificado FT + COA + SDS desde datos de formulario."""
+    """Genera un PDF unificado FT + COA + SDS desde datos de formulario.
+
+    `borrador=True` es para vistas previas de documentos que Calidad aún no
+    revisó: sale sin la firma del COA y con una banda «BORRADOR» en cada página.
+    Un certificado sin resultados de lote no puede circular firmado."""
     from jinja2 import Environment, FileSystemLoader
     from weasyprint import HTML
 
@@ -1619,21 +1826,21 @@ def generar_pdf_completo(
     coa_ctx = _contexto_coa(datos_coa) if datos_coa else None
     if coa_ctx and not _coa_diligenciado(coa_ctx):
         coa_ctx = None
-    elif coa_ctx:
+    elif coa_ctx and not borrador:
         coa_ctx = _con_firma_default(coa_ctx)
-    sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
-
-    # GHS/SGA pertenece a SDS: migrar recomendaciones históricas guardadas en FT
-    recs_ft = list(ft_ctx.get("recomendaciones") or [])
+    # GHS/SGA pertenece a SDS: las recomendaciones históricas guardadas en la FT
+    # entran a la SDS antes de normalizarla, para repartirse en su sección.
+    # Solo si el documento ya tiene una SDS propia: crear una para alojarlas
+    # producía una hoja de seguridad sin clasificación GHS.
+    sds_ctx = _contexto_sds(sds_con_recomendaciones_ft(datos_sds, ft_ctx)) if datos_sds else None
     if sds_ctx is not None:
-        # Solo se mueven si el documento ya tiene una SDS propia. Crear una SDS
-        # para alojarlas producia una hoja de seguridad sin clasificacion GHS.
         ft_ctx["recomendaciones"] = []
-        if recs_ft and not (sds_ctx.get("recomendaciones") or []):
-            sds_ctx["recomendaciones"] = recs_ft
 
     if sds_ctx and not _sds_diligenciado(sds_ctx):
         sds_ctx = None
+    mover_composicion_al_coa(ft_ctx, coa_ctx, sds_ctx)
+    preparar_sds_documento(ft_ctx, coa_ctx, sds_ctx)
+    limpiar_contextos_documento(ft_ctx, coa_ctx, sds_ctx)
 
     from app.services.formula_molecular import formula_a_html_sub
 
@@ -1651,6 +1858,7 @@ def generar_pdf_completo(
         ft=ft_ctx,
         coa=coa_ctx,
         sds=sds_ctx,
+        borrador=borrador,
     )
 
     HTML(string=html_str, base_url=str(tpl_dir)).write_pdf(str(destino))
@@ -1911,8 +2119,11 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
         "índice de saponificación": "indice_saponificacion",
         "ph": "ph",
         "olor": "olor",
+        "aroma": "olor",
         "formula quimica": "formula_quimica",
         "fórmula química": "formula_quimica",
+        "formula molecular": "formula_quimica",
+        "fórmula molecular": "formula_quimica",
         "solubilidad": "solubilidad",
         "humedad": "humedad",
         "inercia quimica": "inercia_quimica",

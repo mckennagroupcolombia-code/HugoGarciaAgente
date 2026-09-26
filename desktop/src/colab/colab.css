@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Solo los tonos que usa la app de colaboradores (los del panel en modo claro). */
+:root {
+  --mck-surface: 232 250 251;
+  --mck-surface-panel: 244 253 254;
+  --mck-surface-input: 255 255 255;
+  --mck-surface-hover: 207 240 244;
+  --mck-ink: 2 45 51;
+  --mck-ink-secondary: 10 74 82;
+  --mck-ink-muted: 45 126 134;
+  --mck-border: 157 205 212;
+  --mck-border-strong: 95 179 188;
+  --mck-muted: 58 126 135;
+  --mck-accent: 12 96 105;
+  --mck-accent-hover: 4 81 89;
+  --mck-success: 42 125 78;
+  --mck-danger: 200 106 106;
+  --mck-warning: 232 168 56;
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: rgb(var(--mck-surface));
+  color: rgb(var(--mck-ink));
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}

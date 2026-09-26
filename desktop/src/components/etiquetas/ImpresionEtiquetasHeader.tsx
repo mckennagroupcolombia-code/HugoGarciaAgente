@@ -32,30 +32,35 @@ export function ImpresionEtiquetasHeader({
   const mostrarEstado = vista === "documento" && impConectada !== undefined;
 
   return (
-    <header className="mck-header-glass flex flex-shrink-0 flex-wrap items-center gap-1.5 border-b border-accent/25 bg-accent px-2.5 py-1.5 text-white sm:gap-2 sm:px-3">
+    // Sin `mck-header-glass`: esa clase pinta un fondo claro translúcido que gana
+    // a `bg-accent` y dejaba el texto y el botón de volver (blancos) invisibles.
+    <header className="flex flex-shrink-0 flex-wrap items-center gap-1.5 border-b border-accent/25 bg-accent px-2.5 py-1.5 text-white sm:gap-2 sm:px-3">
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/15">
-          <Icon name="printer" size={13} className="text-white" />
-        </div>
+        {vista === "documento" ? (
+          <button
+            type="button"
+            onClick={() => onVistaChange("catalogo")}
+            aria-label="Volver a la biblioteca de archivos"
+            title="Volver a la biblioteca de archivos (Esc)"
+            className="mck-press flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-white bg-white px-3 text-xs font-bold text-accent shadow-sm hover:bg-white/90"
+          >
+            <span aria-hidden="true" className="text-base leading-none">←</span>
+            <span>Volver a la biblioteca</span>
+          </button>
+        ) : (
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white/15">
+            <Icon name="printer" size={13} className="text-white" />
+          </div>
+        )}
         <div className="min-w-0">
-          <p className="truncate text-[12px] font-bold leading-tight">Impresión de etiquetas</p>
-          <p className="truncate text-[9px] leading-tight opacity-75">
+          <p className="truncate text-sm font-bold leading-tight">Impresión de etiquetas</p>
+          <p className="truncate text-[11px] leading-tight opacity-80">
             {vista === "catalogo"
-              ? "Archivos PNG listos para imprimir"
+              ? "Elige la etiqueta que vas a imprimir"
               : `Epson CW-C4000u${skuActivo ? ` · ${skuActivo}` : ""}`}
           </p>
         </div>
       </div>
-
-      {vista === "documento" && (
-        <button
-          type="button"
-          onClick={() => onVistaChange("catalogo")}
-          className="mck-press rounded border border-white/25 px-2 py-0.5 text-[9px] font-medium text-white/85 hover:bg-white/10"
-        >
-          ← Archivos
-        </button>
-      )}
 
       {mostrarEstado && (
         <Badge

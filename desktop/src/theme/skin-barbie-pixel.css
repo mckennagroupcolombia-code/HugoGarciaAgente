@@ -1,0 +1,148 @@
+/*
+ * «Barbie Agenda» sobre la base pixel (26-sep-2026). La forma (esquinas, bordes de 2 px, sombras
+ * de bloque) viene de skin-pixel.css; aquí va el COLOR: rosa Barbie y las tonalidades de la
+ * Princesa Peach (vestido, rosa claro, corona dorada), con contornos y sombras en ciruela en
+ * vez de negro, para que todo el panel se lea rosado en claro y en oscuro.
+ * El acento (#E0218A) viaja en línea sobre <html> (theme/applyTheme.ts).
+ * Va después de skin-pixel.css (main.tsx) y sin @layer: manda sobre index.css.
+ *
+ *   Rosa Barbie   #E0218A   acento, botones, pestaña activa
+ *   Ciruela       #8A1253   contornos y sombras de bloque (claro)
+ *   Vestido Peach #F49AC1   bordes suaves, hover
+ *   Rosa claro    #FFD1E6   fondos, cuadrícula
+ *   Corona        #FFD700   foco y selección
+ */
+
+/* ─── Claro ────────────────────────────────────────────────────────────────── */
+html[data-mck-skin="barbie"]:not(.dark) {
+  --mck-surface: 255 228 241;
+  --mck-surface-panel: 255 245 250;
+  --mck-surface-input: 255 255 255;
+  --mck-surface-hover: 255 209 230;
+  --mck-ink: 74 13 46;
+  --mck-ink-secondary: 138 18 83;
+  --mck-ink-muted: 150 50 105;
+  --mck-muted: 150 50 105;
+  --mck-border: 138 18 83;
+  --mck-border-strong: 138 18 83;
+  --mck-title: 194 24 91;
+  --mck-subtitle: 150 50 105;
+  --mck-accent-rose: 194 24 91;
+  --mck-accent-plum: 138 18 83;
+  --mck-accent-sun: 143 69 0;
+  --mck-success: 0 107 63;
+  --mck-sombra: 138 18 83;
+  --mck-shadow-paper: 3px 3px 0 rgb(138 18 83);
+  --mck-shadow-paper-sm: 2px 2px 0 rgb(138 18 83);
+  --mck-shadow-paper-lg: 5px 5px 0 rgb(138 18 83);
+  --mck-cuadricula: 255 200 225;
+  --mck-menu-bg: 255 209 230;
+  --mck-menu-text: 138 18 83;
+  --mck-menu-active-bg: 224 33 138;
+  --mck-menu-active-text: 255 255 255;
+  --mck-submenu-bg: 255 228 241;
+  --mck-submenu-text: 138 18 83;
+  --mck-card-bg: 255 245 250;
+  --mck-section-bg: 255 228 241;
+}
+
+/* ─── Oscuro: noche de gala, contornos rosa Barbie ────────────────────────── */
+html[data-mck-skin="barbie"].dark {
+  --mck-surface: 42 10 31;
+  --mck-surface-panel: 74 15 53;
+  --mck-surface-input: 58 12 42;
+  --mck-surface-hover: 107 26 76;
+  --mck-ink: 255 228 241;
+  --mck-ink-secondary: 255 183 213;
+  --mck-ink-muted: 244 154 193;
+  --mck-muted: 244 154 193;
+  --mck-border: 255 105 180;
+  --mck-border-strong: 255 183 213;
+  --mck-subtitle: 244 154 193;
+  --mck-accent-rose: 255 140 198;
+  --mck-accent-plum: 255 140 198;
+  --mck-sombra: 18 2 12;
+  --mck-shadow-paper: 3px 3px 0 rgb(18 2 12);
+  --mck-shadow-paper-sm: 2px 2px 0 rgb(18 2 12);
+  --mck-shadow-paper-lg: 5px 5px 0 rgb(18 2 12);
+  --mck-cuadricula: 64 16 46;
+  --mck-menu-bg: 58 12 42;
+  --mck-menu-text: 255 183 213;
+  --mck-menu-active-bg: 224 33 138;
+  --mck-menu-active-text: 255 255 255;
+  --mck-submenu-bg: 42 10 31;
+  --mck-card-bg: 74 15 53;
+  --mck-section-bg: 42 10 31;
+}
+
+/* Fondo: la cuadrícula del papel pixel, en rosa (los brillos de Barbie siguen encima). */
+html[data-mck-skin="barbie"] body,
+html[data-mck-skin="barbie"].dark body {
+  background:
+    linear-gradient(rgb(var(--mck-cuadricula)) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, rgb(var(--mck-cuadricula)) 1px, transparent 1px) 0 0 / 24px 24px,
+    rgb(var(--mck-surface));
+}
+
+/* Cabezote plano, raya rosa Barbie debajo. */
+html[data-mck-skin="barbie"] .mck-header-glass,
+html[data-mck-skin="barbie"].dark .mck-header-glass {
+  background: rgb(var(--mck-surface-panel));
+  backdrop-filter: none;
+  border-bottom: 3px solid rgb(224 33 138);
+  box-shadow: 0 3px 0 rgb(var(--mck-sombra));
+}
+
+/* Tarjetas: contorno de color (ciruela / rosa) y sombra de bloque; fuera los filetes de oro. */
+html[data-mck-skin="barbie"] :is(.mck-card, .lm-card),
+html[data-mck-skin="barbie"].dark :is(.mck-card, .lm-card) {
+  border: 2px solid rgb(var(--mck-border));
+  box-shadow: 3px 3px 0 rgb(var(--mck-sombra));
+}
+html[data-mck-skin="barbie"] :is(.rounded-xl, .rounded-2xl, .rounded-3xl).border { border-color: rgb(var(--mck-border)); }
+
+/* Botón principal: rosa Barbie, letra blanca, sombra de bloque. */
+html[data-mck-skin="barbie"] .mck-btn-primary,
+html[data-mck-skin="barbie"].dark .mck-btn-primary {
+  background: rgb(224 33 138);
+  color: #fff;
+  border: 2px solid rgb(var(--mck-sombra));
+  box-shadow: 3px 3px 0 rgb(var(--mck-sombra));
+}
+
+/* Pestañas y menú: la activa en rosa Barbie. */
+html[data-mck-skin="barbie"] :is(.mck-hub-tab.is-active, .mck-nav-item.is-active),
+html[data-mck-skin="barbie"].dark :is(.mck-hub-tab.is-active, .mck-nav-item.is-active) {
+  background: rgb(224 33 138);
+  color: #fff;
+  box-shadow: 2px 2px 0 rgb(var(--mck-sombra));
+}
+
+/* Tablas: encabezado rosa Peach con raya ciruela (en oscuro, rosa). */
+html[data-mck-skin="barbie"] thead th,
+html[data-mck-skin="barbie"].dark thead th {
+  background: rgb(var(--mck-surface-hover));
+  color: rgb(var(--mck-ink));
+  border-bottom: 2px solid rgb(var(--mck-border));
+}
+
+/* Títulos: el cuadrito de bloque en rosa Barbie; en oscuro, el título en rosa claro (sin el oro). */
+html[data-mck-skin="barbie"] .mck-title::before { background: rgb(224 33 138); }
+html[data-mck-skin="barbie"].dark :is(.mck-header-glass h1, .mck-title) {
+  background: none;
+  color: rgb(255 183 213);
+  -webkit-text-fill-color: currentColor;
+  filter: none;
+}
+
+/* Foco y selección: la corona de Peach. */
+html[data-mck-skin="barbie"] :is(input, select, textarea, button, a):focus-visible {
+  outline: 3px solid #FFD700;
+  box-shadow: 0 0 0 5px rgb(var(--mck-sombra));
+}
+html[data-mck-skin="barbie"] ::selection { background: #FFD1E6; color: #4A0D2E; }
+
+/* En oscuro, el acento como TEXTO va en rosa claro (el #E0218A es para fondos). */
+html[data-mck-skin="barbie"].dark :is(.text-accent, .hover\:text-accent:hover) { color: #FF8CC6; }
+
+html[data-mck-skin="barbie"] ::-webkit-scrollbar-thumb { background: rgb(224 33 138); }

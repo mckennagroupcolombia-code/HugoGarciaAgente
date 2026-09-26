@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { Ico } from "../../icons/Ico";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  CATEGORIA_ICONO_POR_CAMPO,
   CATEGORIAS_ICONOS_QUIMICA,
   ICONOS_QUIMICA_CIRCULARES,
   iconoQuimicoASvgDataUrl,
@@ -11,6 +13,9 @@ import {
 interface Props {
   abierta: boolean;
   colorTinta?: string;
+  /** Celda de la etiqueta que se edita (origin, odor, storage…): la galería
+   *  abre en su categoría. */
+  campo?: string | null;
   onCerrar: () => void;
   onElegir: (svgDataUrl: string, icono: IconoQuimicoCircular) => void;
 }
@@ -18,6 +23,7 @@ interface Props {
 export default function GaleriaIconosQuimicosModal({
   abierta,
   colorTinta = "#1a1a1a",
+  campo,
   onCerrar,
   onElegir,
 }: Props) {
@@ -28,6 +34,12 @@ export default function GaleriaIconosQuimicosModal({
   // ficha de etiqueta) ese borde solo suma una línea más sin aportar nada,
   // y competía con el resto del trazo ya delgado.
   const [conCirculo, setConCirculo] = useState(false);
+
+  useEffect(() => {
+    if (!abierta) return;
+    setBuscar("");
+    setCategoria((campo && CATEGORIA_ICONO_POR_CAMPO[campo]) || "todos");
+  }, [abierta, campo]);
 
   const iconosFiltrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
@@ -56,7 +68,7 @@ export default function GaleriaIconosQuimicosModal({
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/15 text-base text-accent">
-              ⚗️
+              <Ico e="⚗️" />
             </span>
             <div>
               <h3 className="text-sm font-bold text-ink">Galería de Iconos Circulares</h3>
@@ -79,7 +91,7 @@ export default function GaleriaIconosQuimicosModal({
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted text-xs">
-                🔍
+                <Ico e="🔍" />
               </span>
               <input
                 type="text"
@@ -141,6 +153,11 @@ export default function GaleriaIconosQuimicosModal({
                 }`}
               >
                 {cat.label}
+                <span className="ml-1 opacity-60">
+                  {cat.id === "todos"
+                    ? ICONOS_QUIMICA_CIRCULARES.length
+                    : ICONOS_QUIMICA_CIRCULARES.filter((i) => i.categoria === cat.id).length}
+                </span>
               </button>
             ))}
           </div>
@@ -150,7 +167,7 @@ export default function GaleriaIconosQuimicosModal({
         <div className="flex-1 overflow-y-auto p-4">
           {iconosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="text-3xl opacity-40">🧪</span>
+              <span className="text-3xl opacity-40"><Ico e="🧪" /></span>
               <p className="mt-2 text-xs font-semibold text-ink">No se encontraron iconos</p>
               <p className="text-[11px] text-muted">Prueba con otra palabra clave o categoría</p>
             </div>

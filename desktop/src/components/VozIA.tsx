@@ -1,3 +1,5 @@
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
 import { useState, useRef, useEffect, useCallback, MutableRefObject } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -853,7 +855,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
                   disabled={eliminarPerfilMut.isPending}
                   title="Borrar este perfil de voz"
                   className="rounded-lg border border-red-500/30 px-3 text-red-400 hover:bg-red-500/10 transition disabled:opacity-40 text-xs">
-                  {eliminarPerfilMut.isPending ? "…" : "🗑"}
+                  {eliminarPerfilMut.isPending ? "…" : ico("🗑")}
                 </button>
               )}
             </div>
@@ -931,7 +933,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
                   <button onClick={() => vbFileInputRef.current?.click()}
                     title="Subir archivo de audio"
                     className="rounded-xl border border-border px-3 text-muted hover:text-ink hover:border-violet-500/40 transition text-xs">
-                    📎
+                    <Ico e="📎" />
                   </button>
                 </div>
               )}
@@ -1039,7 +1041,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
                         disabled={eliminarGeneracionMut.isPending}
                         title="Borrar esta generación"
                         className="rounded border border-red-500/30 px-1.5 py-0.5 text-red-400 hover:bg-red-500/10 transition disabled:opacity-40">
-                        🗑
+                        <Ico e="🗑" />
                       </button>
                     </div>
                   ))}
@@ -1416,7 +1418,7 @@ export default function VozIA() {
                 : "border-border text-muted hover:text-ink"
             }`}
           >
-            {listenMode ? "🟢 Escuchando" : "👂 Escucha"}
+            {listenMode ? ico("🟢 Escuchando") : ico("👂 Escucha")}
           </button>
 
           {/* Notificaciones */}
@@ -1426,7 +1428,7 @@ export default function VozIA() {
                 ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-400"
                 : "border-border text-muted hover:text-ink"
             }`}>
-            🔔
+            <Ico e="🔔" />
             {notificaciones.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
                 {notificaciones.length}

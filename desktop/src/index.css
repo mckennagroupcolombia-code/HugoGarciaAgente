@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Afkari Studio — A Note (títulos Sakura / Barbie / Atelier + Temas → Fuente) */
+/* Afkari Studio — A Note (títulos Barbie / Atelier + Temas → Fuente) */
 @font-face {
   font-family: "A Note";
   src: url("./assets/fonts/ANote.ttf") format("truetype");
@@ -60,7 +60,7 @@
    *
    * IMPORTANTE: solo en `html.dark`. Si se define en `.dark` genérico, un hijo con
    * class="dark" (p. ej. quest-canvas de la Agenda) re-aplica el teal McKenna y
-   * anula skin Sakura/Matrix heredado del <html> — menú morado + Agenda teal.
+   * anula skin Peach/Matrix heredado del <html> — menú morado + Agenda teal.
    */
   html.dark {
     --mck-surface: 43 69 79;
@@ -150,7 +150,7 @@
   /*
    * Bodega — terracota + arena, como las etiquetas kraft y los tarros de
    * materia prima en bodega. Paleta cálida y seria para el panel de
-   * operaciones (no decorativa como Sakura/Barbie).
+   * operaciones (no decorativa como Peach/Barbie).
    */
   html[data-mck-skin="bodega"]:not(.dark) {
     --mck-surface: 242 235 221;
@@ -206,6 +206,110 @@
     background:
       radial-gradient(ellipse 80% 50% at 0% -10%, rgb(var(--mck-accent) / 0.14), transparent 55%),
       rgb(var(--mck-surface));
+  }
+
+  /*
+   * Flujo — la app como diagrama técnico (el lenguaje de los flujos de Archify):
+   * papel frío con cuadrícula, nodos de borde fino, títulos monoespaciados y un
+   * color por significado (cian persona · verde plataforma · violeta dato ·
+   * ámbar externo · rosa bloqueo). Es la piel por defecto: la navegación por flujo
+   * (FlujoNav) y el Mapa de la aplicación se leen como un mismo diagrama.
+   */
+  html[data-mck-skin="flujo"]:not(.dark) {
+    --mck-surface: 246 248 251;
+    --mck-surface-panel: 255 255 255;
+    --mck-surface-input: 255 255 255;
+    --mck-surface-hover: 235 241 247;
+    --mck-ink: 15 23 42;
+    --mck-ink-secondary: 51 65 85;
+    --mck-ink-muted: 100 116 139;
+    --mck-border: 209 218 229;
+    --mck-border-strong: 148 163 184;
+    --mck-muted: 100 116 139;
+    --mck-title: 15 23 42;
+    --mck-accent-sun: 217 119 6;
+    --mck-accent-sun-deep: 180 83 9;
+    --mck-accent-leaf: 5 150 105;
+    --mck-accent-leaf-deep: 4 120 87;
+    --mck-accent-sky: 8 145 178;
+    --mck-accent-sky-deep: 14 116 144;
+    --mck-accent-rose: 225 29 72;
+    --mck-accent-plum: 124 58 237;
+    --mck-success: 5 150 105;
+    --mck-danger: 225 29 72;
+    --mck-warning: 217 119 6;
+    --mck-shadow-paper: 0 1px 0 rgba(15, 23, 42, 0.05), 0 8px 24px -14px rgba(15, 23, 42, 0.25);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(15, 23, 42, 0.05);
+    --mck-shadow-paper-lg: 0 1px 0 rgba(15, 23, 42, 0.06), 0 18px 40px -18px rgba(15, 23, 42, 0.3);
+  }
+  html[data-mck-skin="flujo"].dark {
+    --mck-surface: 8 13 24;
+    --mck-surface-panel: 15 23 42;
+    --mck-surface-input: 22 32 54;
+    --mck-surface-hover: 35 48 74;
+    --mck-ink: 226 232 240;
+    --mck-ink-secondary: 186 198 214;
+    --mck-ink-muted: 136 151 172;
+    --mck-border: 44 58 84;
+    --mck-border-strong: 80 98 128;
+    --mck-muted: 136 151 172;
+    --mck-title: 226 232 240;
+    --mck-accent-sun: 245 170 60;
+    --mck-accent-sun-deep: 217 119 6;
+    --mck-accent-leaf: 52 211 153;
+    --mck-accent-leaf-deep: 16 185 129;
+    --mck-accent-sky: 56 189 218;
+    --mck-accent-sky-deep: 34 160 190;
+    --mck-accent-rose: 251 113 133;
+    --mck-accent-plum: 167 139 250;
+    --mck-success: 52 211 153;
+    --mck-danger: 251 113 133;
+    --mck-warning: 245 170 60;
+    --mck-shadow-paper: 0 1px 0 rgba(0, 0, 0, 0.4), 0 10px 28px -14px rgba(0, 0, 0, 0.7);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(0, 0, 0, 0.35);
+    --mck-shadow-paper-lg: 0 1px 0 rgba(0, 0, 0, 0.45), 0 20px 44px -18px rgba(0, 0, 0, 0.8);
+  }
+  /* El lienzo: cuadrícula de 24 px, como el fondo de un diagrama. */
+  html[data-mck-skin="flujo"] body {
+    letter-spacing: 0;
+    line-height: 1.5;
+    background:
+      linear-gradient(rgb(var(--mck-border) / 0.35) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, rgb(var(--mck-border) / 0.35) 1px, transparent 1px) 0 0 / 24px 24px,
+      rgb(var(--mck-surface));
+  }
+  html[data-mck-skin="flujo"] .mck-title,
+  html[data-mck-skin="flujo"] .mck-flujo-nav,
+  html[data-mck-skin="flujo"] .mck-flujo-nodo {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    letter-spacing: -0.01em;
+  }
+  html[data-mck-skin="flujo"] .mck-title {
+    font-size: 19px;
+    font-weight: 500;
+  }
+  html[data-mck-skin="flujo"] .mck-title::before {
+    content: "";
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-right: 10px;
+    border-radius: 50%;
+    background: rgb(var(--mck-accent));
+    vertical-align: 2px;
+  }
+  html[data-mck-skin="flujo"] .mck-header-glass {
+    background: rgb(var(--mck-surface-panel) / 0.92);
+    backdrop-filter: blur(6px);
+    box-shadow: none;
+  }
+  html[data-mck-skin="flujo"] .mck-flujo-nodo {
+    font-size: 11.5px;
+    font-weight: 500;
+    box-shadow: 0 1px 0 rgb(var(--mck-ink) / 0.05);
+  }
+  html[data-mck-skin="flujo"] .mck-flujo-tramo {
+    background: rgb(var(--mck-surface) / 0.7);
   }
 
   /*
@@ -352,100 +456,6 @@
     box-shadow: var(--mck-shadow-paper);
   }
 
-  /* Sakura — anime shoujo + arcade retro, pasteles cálidos. */
-  html[data-mck-skin="sakura"]:not(.dark) {
-    --mck-surface: 255 236 228;
-    --mck-surface-panel: 255 246 241;
-    --mck-surface-input: 255 252 250;
-    --mck-surface-hover: 255 214 204;
-    --mck-ink: 92 36 52;
-    --mck-ink-secondary: 140 58 78;
-    --mck-ink-muted: 176 98 112;
-    --mck-border: 244 186 176;
-    --mck-border-strong: 232 120 132;
-    --mck-muted: 168 88 102;
-    --mck-accent: 232 92 128;
-    --mck-accent-hover: 204 64 104;
-    --mck-accent-sun: 244 180 90;
-    --mck-accent-rose: 255 150 160;
-    --mck-accent-plum: 210 140 190;
-    --mck-success: 90 160 120;
-    --mck-shadow-paper: 4px 4px 0 rgba(232, 92, 128, 0.28);
-    --mck-shadow-paper-sm: 2px 2px 0 rgba(232, 92, 128, 0.2);
-    --mck-shadow-paper-lg: 6px 6px 0 rgba(232, 92, 128, 0.32);
-    --mck-menu-bg: 255 242 236;
-    --mck-menu-text: 140 58 78;
-    --mck-menu-active-bg: 232 92 128;
-    --mck-menu-active-text: 255 255 255;
-    --mck-submenu-bg: 255 236 228;
-    --mck-submenu-text: 140 58 78;
-    --mck-title: 92 36 52;
-    --mck-subtitle: 168 88 102;
-    --mck-card-bg: 255 248 244;
-    --mck-section-bg: 255 236 228;
-  }
-  html[data-mck-skin="sakura"].dark {
-    --mck-surface: 42 22 34;
-    --mck-surface-panel: 62 32 46;
-    --mck-surface-input: 74 38 54;
-    --mck-surface-hover: 96 48 68;
-    --mck-ink: 255 232 236;
-    --mck-ink-secondary: 244 196 206;
-    --mck-ink-muted: 214 150 166;
-    --mck-border: 140 72 96;
-    --mck-border-strong: 232 120 150;
-    --mck-muted: 220 160 174;
-    --mck-accent: 255 130 160;
-    --mck-accent-hover: 232 92 128;
-    --mck-shadow-paper: 4px 4px 0 rgba(255, 130, 160, 0.28);
-    --mck-shadow-paper-sm: 2px 2px 0 rgba(255, 130, 160, 0.2);
-    --mck-shadow-paper-lg: 6px 6px 0 rgba(255, 130, 160, 0.35);
-    --mck-menu-bg: 52 26 40;
-    --mck-menu-text: 244 196 206;
-    --mck-menu-active-bg: 232 92 128;
-    --mck-menu-active-text: 255 255 255;
-    --mck-submenu-bg: 48 24 38;
-    --mck-card-bg: 62 32 46;
-    --mck-section-bg: 42 22 34;
-  }
-  html[data-mck-skin="sakura"] body {
-    letter-spacing: 0;
-    background:
-      radial-gradient(circle at 10% 12%, rgb(255 186 198 / 0.55), transparent 34%),
-      radial-gradient(circle at 92% 6%, rgb(255 214 150 / 0.42), transparent 30%),
-      radial-gradient(circle at 78% 92%, rgb(255 168 150 / 0.38), transparent 36%),
-      linear-gradient(180deg, #fff3ea 0%, #ffe6ef 48%, #ffdcc8 100%);
-  }
-  html[data-mck-skin="sakura"].dark body {
-    background:
-      radial-gradient(circle at 12% 10%, rgb(232 92 128 / 0.22), transparent 40%),
-      radial-gradient(circle at 90% 90%, rgb(180 90 140 / 0.2), transparent 42%),
-      #2a1622;
-  }
-  html[data-mck-skin="sakura"] .mck-card,
-  html[data-mck-skin="sakura"] .lm-card {
-    border-width: 3px;
-    box-shadow: var(--mck-shadow-paper);
-  }
-  html[data-mck-skin="sakura"] .mck-card-interactive:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0 rgb(var(--mck-accent) / 0.35);
-  }
-  html[data-mck-skin="sakura"] .mck-btn-primary {
-    border: 3px solid rgb(var(--mck-ink) / 0.12);
-    box-shadow: 0 4px 0 rgb(var(--mck-accent-hover));
-  }
-  html[data-mck-skin="sakura"] .mck-btn-primary:hover {
-    transform: translateY(-2px);
-  }
-  html[data-mck-skin="sakura"] .mck-nav-item.is-active {
-    box-shadow: 3px 3px 0 rgb(var(--mck-accent) / 0.35);
-  }
-  html[data-mck-skin="sakura"] .mck-header-glass h1,
-  html[data-mck-skin="sakura"] .mck-title {
-    letter-spacing: 0.02em;
-  }
-
   /* Barbie Agenda — planner glam, rosa chicle */
   html[data-mck-skin="barbie"]:not(.dark) {
     --mck-surface: 255 244 250;
@@ -557,7 +567,11 @@
     background: none;
     -webkit-background-clip: unset;
     background-clip: unset;
-    color: #ff7eb6;
+    color: #c2185b;
+  }
+  html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+  html[data-mck-skin="barbie"].dark .mck-title {
+    color: #ff9fca;
   }
 
   * {
@@ -1514,13 +1528,21 @@
 
 #root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):not(.paso-checklist-input),
 #root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx) {
-  position: relative;
   overflow: hidden;
   isolation: isolate;
   transition:
     transform 0.16s cubic-bezier(0.34, 1.22, 0.64, 1),
     box-shadow 0.22s ease,
     filter 0.14s ease;
+}
+
+/* El destello del clic necesita un contenedor posicionado, pero sin pisar un
+   botón que ya se posiciona solo (fixed/absolute/sticky de Tailwind): esta regla
+   no está en ninguna capa y le gana a las utilidades. Así el «+» flotante del
+   celular quedaba dentro del flujo, cortado contra el borde izquierdo. */
+#root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):not(.paso-checklist-input):not(.fixed):not(.absolute):not(.sticky),
+#root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx):not(.fixed):not(.absolute):not(.sticky) {
+  position: relative;
 }
 
 #root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):active,
@@ -1646,10 +1668,19 @@
     background-color: #fff !important;
   }
 
-  /* Native controls without explicit bg still inherit light ink on white UA chrome */
-  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.mck-paper-white),
-  .dark textarea:not(.mck-paper-white),
-  .dark select:not(.mck-paper-white) {
+  /* Native controls without explicit bg still inherit light ink on white UA chrome.
+   * Nunca dentro de una etiqueta: el papel es siempre blanco y sus casillas
+   * editables (`.e30-campo`, EditableField) heredan el color que fija el diseño;
+   * con esta regla tomaban la tinta clara del tema (rosa en Barbie oscuro). */
+  .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ),
+  .dark textarea:not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ),
+  .dark select:not(.mck-paper-white):not(
+      :where(.mck-paper-white, .e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta) *
+    ) {
     color: rgb(var(--mck-ink));
   }
 
@@ -2056,13 +2087,13 @@ p.text-sm.text-ink-secondary {
   line-height: 1.35;
 }
 
-/* Atelier / Sakura: anula el 9px global + tipografía e interacción propias. */
+/* Atelier / Peach / Barbie…: anula el 9px global + tipografía e interacción propias. */
 html[data-mck-skin="atelier"] .text-sm.text-muted,
 html[data-mck-skin="atelier"] p.text-sm.text-ink-secondary,
 html[data-mck-skin="atelier"] .mck-help-text,
-html[data-mck-skin="sakura"] .text-sm.text-muted,
-html[data-mck-skin="sakura"] p.text-sm.text-ink-secondary,
-html[data-mck-skin="sakura"] .mck-help-text,
+html[data-mck-skin="peach"] .text-sm.text-muted,
+html[data-mck-skin="peach"] p.text-sm.text-ink-secondary,
+html[data-mck-skin="peach"] .mck-help-text,
 html[data-mck-skin="barbie"] .text-sm.text-muted,
 html[data-mck-skin="barbie"] p.text-sm.text-ink-secondary,
 html[data-mck-skin="barbie"] .mck-help-text,
@@ -2077,7 +2108,7 @@ html[data-mck-skin="botica"] .mck-help-text {
 }
 
 html[data-mck-skin="atelier"] aside.mck-sidebar,
-html[data-mck-skin="sakura"] aside.mck-sidebar,
+html[data-mck-skin="peach"] aside.mck-sidebar,
 html[data-mck-skin="barbie"] aside.mck-sidebar,
 html[data-mck-skin="bodega"] aside.mck-sidebar,
 html[data-mck-skin="botica"] aside.mck-sidebar {
@@ -2089,14 +2120,14 @@ html[data-mck-skin="botica"] aside.mck-sidebar {
      de Sidebar.tsx, pero estos selectores de tema tienen más especificidad y
      ganaban siempre, dejando el sidebar fijo en 16rem sin poder colapsar. */
   html[data-mck-skin="atelier"] aside.mck-sidebar,
-  html[data-mck-skin="sakura"] aside.mck-sidebar,
+  html[data-mck-skin="peach"] aside.mck-sidebar,
   html[data-mck-skin="barbie"] aside.mck-sidebar,
   html[data-mck-skin="bodega"] aside.mck-sidebar,
   html[data-mck-skin="botica"] aside.mck-sidebar {
     width: 0.75rem;
   }
   html[data-mck-skin="atelier"] aside.mck-sidebar:hover,
-  html[data-mck-skin="sakura"] aside.mck-sidebar:hover,
+  html[data-mck-skin="peach"] aside.mck-sidebar:hover,
   html[data-mck-skin="barbie"] aside.mck-sidebar:hover,
   html[data-mck-skin="bodega"] aside.mck-sidebar:hover,
   html[data-mck-skin="botica"] aside.mck-sidebar:hover {
@@ -2105,7 +2136,7 @@ html[data-mck-skin="botica"] aside.mck-sidebar {
 }
 
 html[data-mck-skin="atelier"] .mck-nav-item,
-html[data-mck-skin="sakura"] .mck-nav-item,
+html[data-mck-skin="peach"] .mck-nav-item,
 html[data-mck-skin="barbie"] .mck-nav-item,
 html[data-mck-skin="bodega"] .mck-nav-item,
 html[data-mck-skin="botica"] .mck-nav-item {
@@ -2118,7 +2149,6 @@ html[data-mck-skin="bodega"] .mck-nav-item:not(.is-active):hover,
 html[data-mck-skin="botica"] .mck-nav-item:not(.is-active):hover {
   transform: translateX(5px);
 }
-html[data-mck-skin="sakura"] .mck-nav-item:not(.is-active):hover,
 html[data-mck-skin="barbie"] .mck-nav-item:not(.is-active):hover {
   transform: translateX(4px) translateY(-1px);
 }
@@ -2143,7 +2173,7 @@ html[data-mck-menu="lg"] .mck-nav-item {
   transform: none;
 }
 html[data-mck-skin="atelier"] .mck-hub-tab.mck-nav-item,
-html[data-mck-skin="sakura"] .mck-hub-tab.mck-nav-item,
+html[data-mck-skin="peach"] .mck-hub-tab.mck-nav-item,
 html[data-mck-skin="barbie"] .mck-hub-tab.mck-nav-item,
 html[data-mck-skin="bodega"] .mck-hub-tab.mck-nav-item,
 html[data-mck-skin="botica"] .mck-hub-tab.mck-nav-item {
@@ -2161,11 +2191,7 @@ html[data-mck-menu="lg"] .mck-hub-tab.mck-nav-item span {
 }
 
 html[data-mck-skin="atelier"] .mck-header-glass h1,
-html[data-mck-skin="atelier"] .mck-title,
-html[data-mck-skin="sakura"] .mck-header-glass h1,
-html[data-mck-skin="sakura"] .mck-title,
-html[data-mck-skin="barbie"] .mck-header-glass h1,
-html[data-mck-skin="barbie"] .mck-title {
+html[data-mck-skin="atelier"] .mck-title {
   font-family: "A Note", cursive !important;
   font-weight: 400 !important;
   font-style: normal !important;
@@ -2176,6 +2202,26 @@ html[data-mck-skin="barbie"] .mck-title {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Barbie Agenda: cuento de princesas, sin cursivas — títulos en Cinzel Decorative
+   (capitulares romanas con remates de libro de cuentos) con un filo dorado; el cuerpo
+   sigue en Jost para que tablas y formularios se lean como oficina. */
+html[data-mck-skin="barbie"] .mck-header-glass h1,
+html[data-mck-skin="barbie"] .mck-title {
+  font-family: "Cinzel Decorative", "Cinzel", Georgia, serif !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  font-synthesis: none;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.9), 0 2px 6px rgb(212 175 55 / 0.35);
+}
+html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+html[data-mck-skin="barbie"].dark .mck-title {
+  text-shadow: 0 0 10px rgb(240 200 120 / 0.35);
+}
+
 /* Título de cada ventana (Inicio, Atención…): px fijos, no rem ni menú lateral. */
 #root header.mck-header-glass h1.mck-title {
   font-size: 26px !important;
@@ -2183,7 +2229,7 @@ html[data-mck-skin="barbie"] .mck-title {
 }
 
 html[data-mck-skin="atelier"] .mck-header-glass h1,
-html[data-mck-skin="sakura"] .mck-header-glass h1,
+html[data-mck-skin="peach"] .mck-header-glass h1,
 html[data-mck-skin="barbie"] .mck-header-glass h1 {
   font-size: 26px !important;
 }
@@ -2207,8 +2253,8 @@ aside.mck-sidebar {
 }
 html[data-mck-skin="atelier"] .mck-header-glass [role="tab"],
 html[data-mck-skin="atelier"] .mck-scroll-tabs button,
-html[data-mck-skin="sakura"] .mck-header-glass [role="tab"],
-html[data-mck-skin="sakura"] .mck-scroll-tabs button,
+html[data-mck-skin="peach"] .mck-header-glass [role="tab"],
+html[data-mck-skin="peach"] .mck-scroll-tabs button,
 html[data-mck-skin="barbie"] .mck-header-glass [role="tab"],
 html[data-mck-skin="barbie"] .mck-scroll-tabs button,
 html[data-mck-skin="bodega"] .mck-header-glass [role="tab"],
@@ -2241,7 +2287,7 @@ html[data-mck-skin="botica"] .mck-card-interactive:active {
 }
 
 html[data-mck-skin="atelier"] .mck-btn,
-html[data-mck-skin="sakura"] .mck-btn,
+html[data-mck-skin="peach"] .mck-btn,
 html[data-mck-skin="barbie"] .mck-btn,
 html[data-mck-skin="bodega"] .mck-btn,
 html[data-mck-skin="botica"] .mck-btn {
@@ -2260,21 +2306,20 @@ html[data-mck-skin="bodega"] .mck-btn-primary:active,
 html[data-mck-skin="botica"] .mck-btn-primary:active {
   transform: translateY(2px);
 }
-html[data-mck-skin="sakura"] .mck-btn-primary:active,
 html[data-mck-skin="barbie"] .mck-btn-primary:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 rgb(var(--mck-accent-hover));
 }
 
 html[data-mck-skin="atelier"] table,
-html[data-mck-skin="sakura"] table,
+html[data-mck-skin="peach"] table,
 html[data-mck-skin="barbie"] table,
 html[data-mck-skin="bodega"] table,
 html[data-mck-skin="botica"] table {
   font-size: 0.8rem;
 }
 html[data-mck-skin="atelier"] thead th,
-html[data-mck-skin="sakura"] thead th,
+html[data-mck-skin="peach"] thead th,
 html[data-mck-skin="barbie"] thead th,
 html[data-mck-skin="bodega"] thead th,
 html[data-mck-skin="botica"] thead th {
@@ -2285,9 +2330,9 @@ html[data-mck-skin="botica"] thead th {
 html[data-mck-skin="atelier"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 html[data-mck-skin="atelier"] select,
 html[data-mck-skin="atelier"] textarea,
-html[data-mck-skin="sakura"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
-html[data-mck-skin="sakura"] select,
-html[data-mck-skin="sakura"] textarea,
+html[data-mck-skin="peach"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+html[data-mck-skin="peach"] select,
+html[data-mck-skin="peach"] textarea,
 html[data-mck-skin="barbie"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
 html[data-mck-skin="barbie"] select,
 html[data-mck-skin="barbie"] textarea,
@@ -2304,9 +2349,9 @@ html[data-mck-skin="botica"] textarea {
 html[data-mck-skin="atelier"] .mck-sidebar button,
 html[data-mck-skin="atelier"] aside .text-\[11px\],
 html[data-mck-skin="atelier"] aside .text-\[9px\],
-html[data-mck-skin="sakura"] .mck-sidebar button,
-html[data-mck-skin="sakura"] aside .text-\[11px\],
-html[data-mck-skin="sakura"] aside .text-\[9px\],
+html[data-mck-skin="peach"] .mck-sidebar button,
+html[data-mck-skin="peach"] aside .text-\[11px\],
+html[data-mck-skin="peach"] aside .text-\[9px\],
 html[data-mck-skin="barbie"] .mck-sidebar button,
 html[data-mck-skin="barbie"] aside .text-\[11px\],
 html[data-mck-skin="barbie"] aside .text-\[9px\],
@@ -2319,15 +2364,6 @@ html[data-mck-skin="botica"] aside .text-\[9px\] {
   font-size: 0.82rem;
 }
 
-html[data-mck-skin="sakura"] .mck-header-glass {
-  background: rgb(255 246 241 / 0.92);
-}
-html[data-mck-skin="sakura"].dark .mck-header-glass {
-  background: rgb(42 22 34 / 0.94);
-}
-html[data-mck-skin="sakura"] aside.mck-sidebar {
-  border-right: 3px solid rgb(var(--mck-border));
-}
 html[data-mck-skin="barbie"] .mck-header-glass {
   background: rgb(255 247 251 / 0.92);
 }
@@ -2397,8 +2433,8 @@ html[data-mck-skin="botica"].dark .mck-header-glass {
 }
 html[data-mck-skin="barbie"] .mck-hub-tab:not(.is-active) .mck-illus-icon,
 html[data-mck-skin="barbie"] .mck-hub-tab:not(.is-active) .mck-icon,
-html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-illus-icon,
-html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
+html[data-mck-skin="peach"] .mck-hub-tab:not(.is-active) .mck-illus-icon,
+html[data-mck-skin="peach"] .mck-hub-tab:not(.is-active) .mck-icon {
   color: rgb(var(--mck-ink));
 }
 
@@ -2487,9 +2523,9 @@ html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
   html[data-mck-skin="atelier"] .mck-card-interactive:hover,
   html[data-mck-skin="atelier"] .mck-nav-item:not(.is-active):hover,
   html[data-mck-skin="atelier"] .mck-btn-primary:hover,
-  html[data-mck-skin="sakura"] .mck-card-interactive:hover,
-  html[data-mck-skin="sakura"] .mck-nav-item:not(.is-active):hover,
-  html[data-mck-skin="sakura"] .mck-btn-primary:hover,
+  html[data-mck-skin="peach"] .mck-card-interactive:hover,
+  html[data-mck-skin="peach"] .mck-nav-item:not(.is-active):hover,
+  html[data-mck-skin="peach"] .mck-btn-primary:hover,
   html[data-mck-skin="barbie"] .mck-card-interactive:hover,
   html[data-mck-skin="barbie"] .mck-nav-item:not(.is-active):hover,
   html[data-mck-skin="barbie"] .mck-btn-primary:hover,
@@ -2546,4 +2582,311 @@ html[data-mck-skin="sakura"] .mck-hub-tab:not(.is-active) .mck-icon {
   #root .mck-panel-scroll > div[class*="md:p-6"] {
     padding: 0.65rem;
   }
+}
+
+/*
+ * Piel «flujo» — las pestañas de VISTA (Agenda · Mensajes, las de Diseño, Docs, Libro Mayor…)
+ * hablan el mismo lenguaje que la navegación por flujo: nodos en fila, borde fino, monoespaciada.
+ * Sin esto quedaban como botones de icono apilado del menú viejo debajo de un cabezote de diagrama.
+ * Va fuera de @layer porque las reglas base de .mck-hub-tab también lo están.
+ */
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item,
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 0;
+  min-width: 0;
+  padding: 0.28rem 0.6rem;
+  border: 1px solid rgb(var(--mck-border));
+  border-radius: 0.45rem;
+  background: rgb(var(--mck-surface-input));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  box-shadow: 0 1px 0 rgb(var(--mck-ink) / 0.05);
+  transform: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item::before {
+  display: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item:not(.is-active):hover {
+  border-color: rgb(var(--mck-accent) / 0.5);
+  background: rgb(var(--mck-surface-hover));
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-nav-item.is-active {
+  border-color: rgb(var(--mck-accent));
+  background: rgb(var(--mck-accent));
+  color: #fff;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab.mck-hub-tab-etiquetado:has(.mck-icon, .mck-illus-icon) > .mck-hub-tab-label,
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-hub-tab-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-icon,
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-illus-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+html[data-mck-skin="flujo"] .mck-hub-tab .mck-illus-icon svg {
+  width: 100%;
+  height: 100%;
+}
+html[data-mck-skin="flujo"] .mck-flujo-miga {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Taller de combos (misión): las conexiones que se encienden y el premio al completar. */
+@keyframes mck-mision-pulso { 0%, 100% { box-shadow: 0 0 0 0 rgb(var(--mck-accent) / 0.55); } 50% { box-shadow: 0 0 0 9px rgb(var(--mck-accent) / 0); } }
+@keyframes mck-mision-gana { 0% { transform: translate(-50%, -50%) scale(1); } 35% { transform: translate(-50%, -50%) scale(1.09); } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes mck-mision-sube { 0% { opacity: 0; transform: translateY(6px); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-22px); } }
+@keyframes mck-mision-destello { 0% { stroke-width: 3.5; filter: drop-shadow(0 0 0 rgb(var(--mck-accent-leaf))); } 40% { stroke-width: 8; filter: drop-shadow(0 0 8px rgb(var(--mck-accent-leaf))); } 100% { stroke-width: 3.5; filter: none; } }
+@keyframes mck-mision-premio { 0% { box-shadow: 0 0 0 0 rgb(var(--mck-accent-sun) / 0.8); } 100% { box-shadow: 0 0 0 26px rgb(var(--mck-accent-sun) / 0); } }
+@keyframes mck-mision-confeti { 0% { transform: translateY(-10%) rotate(0); opacity: 1; } 100% { transform: translateY(720%) rotate(540deg); opacity: 0; } }
+.mck-mision-pulso { animation: mck-mision-pulso 1.6s ease-out infinite; }
+.mck-mision-gana { animation: mck-mision-gana 700ms ease-out; }
+.mck-mision-sube { animation: mck-mision-sube 2.2s ease-out forwards; }
+.mck-mision-destello { animation: mck-mision-destello 1.4s ease-out; }
+.mck-mision-premio { animation: mck-mision-premio 1.3s ease-out 3; }
+.mck-mision-confeti { position: absolute; top: 0; width: 7px; height: 12px; border-radius: 2px; animation: mck-mision-confeti 2.4s ease-in forwards; }
+@keyframes mck-mision-estrella {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0) rotate(-40deg); }
+  18% { opacity: 1; transform: translate(-50%, -6px) scale(1.25) rotate(0); }
+  34% { opacity: 0.45; transform: translate(-50%, -12px) scale(0.85) rotate(12deg); }
+  50% { opacity: 1; transform: translate(-50%, -20px) scale(1.1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -56px) scale(0.4) rotate(30deg); }
+}
+.mck-mision-estrella { position: absolute; opacity: 0; line-height: 1; text-shadow: 0 0 4px currentColor, 0 0 10px currentColor, 0 0 18px rgb(255 79 163 / 0.7); animation: mck-mision-estrella 2.6s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .mck-mision-pulso, .mck-mision-gana, .mck-mision-sube, .mck-mision-destello, .mck-mision-premio { animation: none; }
+  .mck-mision-confeti, .mck-mision-estrella, .mck-mision-viajero { display: none; }
+}
+
+/* Taller de combos: el tablero se ajusta al alto QUE QUEDA, no solo al ancho. Desde 1024 px el
+   lienzo es un contenedor con tamaño y el tablero toma el mayor 1000×640 que quepa en él. */
+@media (min-width: 1024px) {
+  .mck-mision-lienzo {
+    container-type: size;
+    flex: 1 1 0;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mck-mision-lienzo > .mck-mision-tablero {
+    width: min(100cqw, calc(100cqh * 1000 / 640));
+    max-width: none;
+    margin: 0;
+  }
+}
+.mck-mision-tablero { container-type: inline-size; }
+.mck-nodo-corto { display: none; }
+@container (max-width: 640px) {
+  .mck-mision-nodo { width: 29% !important; }
+  .mck-nodo-largo { display: none; }
+  .mck-nodo-corto { display: inline; }
+}
+@container (max-width: 460px) {
+  .mck-mision-tablero .mck-flujo-nodo { padding: 0.2rem 0.35rem; }
+}
+
+/* <Ico/>: icono lineal del tamaño del texto que lo rodea (los atributos width/height del SVG
+   ceden ante esto). Es la iconografía minimalista que reemplaza a los emojis de la interfaz. */
+svg.mck-ico {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.17em;
+  flex: none;
+}
+
+/* Taller de combos: el combo ya está completo pero su foto no está al día → la foto del centro llama la
+   atención SIN volverse transparente: el círculo sigue blanco y opaco (por detrás pasan las seis líneas del
+   tablero; con opacidad en el círculo se veían cruzadas). Late un halo ámbar por fuera y la foto se atenúa
+   sobre el blanco. */
+@keyframes mck-mision-foto-halo {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(var(--mck-accent-sun) / 0.85); border-color: rgb(var(--mck-accent-sun)); }
+  50% { box-shadow: 0 0 0 14px rgb(var(--mck-accent-sun) / 0); border-color: rgb(var(--mck-accent-sun) / 0.35); }
+}
+@keyframes mck-mision-foto-tenue {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.mck-mision-foto-parpadea { background: #fff !important; opacity: 1 !important; animation: mck-mision-foto-halo 1.3s ease-in-out infinite; }
+.mck-mision-foto-parpadea img { animation: mck-mision-foto-tenue 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mck-mision-foto-parpadea { animation: none; box-shadow: 0 0 0 4px rgb(var(--mck-accent-sun) / 0.6); }
+  .mck-mision-foto-parpadea img { animation: none; }
+}
+
+/* Barbie Agenda · modo oscuro «de gala»: el rosa de siempre con filete dorado clásico
+   (marcos finos de doble línea, títulos en oro bruñido y un brillo cálido). Solo en .dark. */
+html[data-mck-skin="barbie"].dark {
+  --mck-oro: 212 175 95;
+  --mck-oro-claro: 246 220 150;
+  --mck-oro-hondo: 150 110 45;
+  --mck-accent-sun: 232 196 110;
+  --mck-border: 150 78 104;
+  --mck-border-strong: 212 175 95;
+  --mck-shadow-paper: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(212, 175, 95, 0.28);
+  --mck-shadow-paper-sm: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(212, 175, 95, 0.22);
+  --mck-shadow-paper-lg: 0 14px 36px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(212, 175, 95, 0.32);
+}
+html[data-mck-skin="barbie"].dark body {
+  background-color: #2c1022;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgb(246 220 150 / 0.16), transparent 45%),
+    radial-gradient(circle at 12% 12%, rgb(255 126 182 / 0.2), transparent 38%),
+    radial-gradient(circle at 88% 88%, rgb(212 175 95 / 0.14), transparent 40%),
+    /* damasco muy tenue: rombos de filete dorado */
+    repeating-linear-gradient(45deg, transparent 0 34px, rgb(212 175 95 / 0.045) 34px 35px),
+    repeating-linear-gradient(-45deg, transparent 0 34px, rgb(212 175 95 / 0.045) 34px 35px),
+    linear-gradient(180deg, #341628 0%, #2c1022 60%, #230a1b 100%);
+}
+/* Tarjetas: marco de doble filete (exterior dorado, interior rosa) y un reflejo arriba. */
+html[data-mck-skin="barbie"].dark .mck-card,
+html[data-mck-skin="barbie"].dark .lm-card {
+  border-color: rgb(var(--mck-oro) / 0.55);
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--mck-surface-panel)),
+    inset 0 0 0 4px rgb(var(--mck-oro) / 0.22),
+    inset 0 1px 0 4px rgb(var(--mck-oro-claro) / 0.06),
+    var(--mck-shadow-paper);
+}
+html[data-mck-skin="barbie"].dark .mck-card-interactive:hover {
+  box-shadow:
+    inset 0 0 0 3px rgb(var(--mck-surface-panel)),
+    inset 0 0 0 4px rgb(var(--mck-oro) / 0.35),
+    0 12px 28px rgb(0 0 0 / 0.35),
+    0 0 22px rgb(var(--mck-oro) / 0.28);
+}
+/* Botón principal: rosa con canto de oro. */
+html[data-mck-skin="barbie"].dark .mck-btn-primary {
+  border: 1.5px solid rgb(var(--mck-oro-claro) / 0.85);
+  box-shadow:
+    0 4px 0 rgb(var(--mck-oro-hondo)),
+    0 8px 22px rgb(var(--mck-oro) / 0.3),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+/* Títulos en oro bruñido. */
+html[data-mck-skin="barbie"].dark .mck-header-glass h1,
+html[data-mck-skin="barbie"].dark .mck-title {
+  background: linear-gradient(180deg, #fff1c4 0%, #f0cf7a 38%, #c8962f 62%, #f6dc96 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgb(80 40 10 / 0.6)) drop-shadow(0 0 10px rgb(var(--mck-oro) / 0.35));
+}
+/* Cabezote y menú: filete dorado en el borde. */
+html[data-mck-skin="barbie"].dark .mck-header-glass {
+  background: rgb(44 14 32 / 0.94);
+  border-bottom: 1px solid rgb(var(--mck-oro) / 0.45);
+  box-shadow: 0 1px 0 rgb(var(--mck-oro) / 0.12), 0 6px 18px rgb(0 0 0 / 0.3);
+}
+html[data-mck-skin="barbie"].dark aside.mck-sidebar {
+  border-right: 1px solid rgb(var(--mck-oro) / 0.5);
+  box-shadow: inset -3px 0 0 rgb(var(--mck-surface)), inset -4px 0 0 rgb(var(--mck-oro) / 0.2);
+}
+html[data-mck-skin="barbie"].dark .mck-nav-item.is-active {
+  box-shadow: inset 0 0 0 1px rgb(var(--mck-oro-claro) / 0.75), 0 4px 16px rgb(var(--mck-oro) / 0.3);
+}
+/* Tablas: cabecera con filete dorado. */
+html[data-mck-skin="barbie"].dark thead th {
+  color: rgb(var(--mck-oro-claro));
+  border-bottom: 1px solid rgb(var(--mck-oro) / 0.5);
+}
+html[data-mck-skin="barbie"].dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):focus,
+html[data-mck-skin="barbie"].dark select:focus,
+html[data-mck-skin="barbie"].dark textarea:focus {
+  border-color: rgb(var(--mck-oro) / 0.9);
+  box-shadow: 0 0 0 3px rgb(var(--mck-oro) / 0.2);
+}
+
+/* ── Cabezote de flujo: menos ruido, niveles más claros (23-sep-2026) ─────────
+   Conteos teñidos en vez de rellenos (siete etapas en rojo = nada destaca), el
+   subnivel de tramos como banda aparte de las etapas, y las filas que se
+   desplazan se desvanecen en el borde para que se note que hay más. */
+.mck-flujo-conteo {
+  border-radius: 9999px;
+  padding: 0 0.4rem;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+.mck-flujo-conteo.is-alta {
+  color: rgb(var(--mck-accent-rose));
+  background: rgb(var(--mck-accent-rose) / 0.12);
+}
+.mck-flujo-conteo.is-media {
+  color: rgb(var(--mck-accent-sun-deep, var(--mck-accent-sun)));
+  background: rgb(var(--mck-accent-sun) / 0.14);
+}
+.mck-flujo-desliza {
+  padding-right: 1.5rem;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 1.5rem), transparent);
+}
+.mck-flujo-desliza::-webkit-scrollbar { display: none; }
+.mck-flujo-subnivel {
+  margin-top: 0.125rem;
+  padding-top: 0.375rem;
+  border-top: 1px dashed rgb(var(--mck-border) / 0.9);
+}
+/* Controles de vista (pantalla, pantalla completa, temas, claro/oscuro): una sola
+   cápsula en vez de cuatro círculos sueltos compitiendo con el título. */
+.mck-cabezote-vista {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border: 1px solid rgb(var(--mck-border));
+  border-radius: 9999px;
+  background: rgb(var(--mck-surface-input) / 0.6);
+}
+.mck-cabezote-vista button {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: rgb(var(--mck-ink-secondary)) !important;
+}
+.mck-cabezote-vista button:hover {
+  background: rgb(var(--mck-surface-hover)) !important;
+  color: rgb(var(--mck-ink)) !important;
+}
+
+/* ── Barra inferior del celular (Agenda · Hugo · Mensajes · Rápido · Yo) ───── */
+.mck-barra-movil {
+  display: flex;
+  border-top: 1px solid rgb(var(--mck-border));
+  background: rgb(var(--mck-surface-panel) / 0.96);
+  backdrop-filter: blur(6px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mck-barra-movil-item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.5rem 0 0.45rem;
+  color: rgb(var(--mck-muted));
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+}
+.mck-barra-movil-item.is-active {
+  color: rgb(var(--mck-accent));
+  border-top-color: rgb(var(--mck-accent));
+}
+.mck-barra-movil-item .mck-barra-movil-label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }

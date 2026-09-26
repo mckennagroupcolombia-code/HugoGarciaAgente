@@ -910,44 +910,6 @@ def _safe_migrate(fn):
 
 
 def init_db():
-    _safe_migrate(_repair_broken_fk)
-    _safe_migrate(_migrate_categorias)
-    _safe_migrate(_migrate_materiales_tipo)
-    _safe_migrate(_migrate_zonas_subareas)
-    _safe_migrate(_migrate_mision_zona_id)
-    _safe_migrate(_migrate_zonas_tipo)
-    _safe_migrate(_migrate_mision_frecuencia)
-    _safe_migrate(_migrate_mision_modo_ciclo)
-    _safe_migrate(_migrate_ticket_frecuencia)
-    _safe_migrate(_migrate_ticket_paso_notas)
-    _safe_migrate(_migrate_ticket_paso_duracion)
-    from app.services.misiones_timing import _migrate_mision_corridas
-    from app.services.ticket_timing import _migrate_ticket_corridas
-    from app.services.recetas_ops import _migrate_recetas_ops
-    _safe_migrate(_migrate_mision_corridas)
-    _safe_migrate(_migrate_ticket_corridas)
-    _safe_migrate(_migrate_recetas_ops)
-    _safe_migrate(_migrate_dependencias_prerequisitos)
-    _safe_migrate(_migrate_ticket_tipo)
-    _safe_migrate(_migrate_ticket_fecha_inicio)
-    _safe_migrate(_migrate_usuario_google)
-    _safe_migrate(_migrate_usuario_permisos)
-    _safe_migrate(_migrate_usuario_preferencias_ui)
-    _safe_migrate(_migrate_usuario_departamentos)
-    _safe_migrate(_migrate_usuario_telefono)
-    _safe_migrate(_migrate_usuario_documento_identidad)
-    _safe_migrate(_migrate_ticket_protocolo_id)
-    _safe_migrate(_migrate_protocolos_alcance)
-    _safe_migrate(_migrate_ticket_subtipo)
-    from app.services.panel_presencia import _migrate_panel_presencia
-    _safe_migrate(_migrate_panel_presencia)
-    _safe_migrate(_migrate_adjunto_paso_id)
-    _safe_migrate(_migrate_pendientes)
-    _safe_migrate(_migrate_recordatorios)
-    _safe_migrate(_migrate_recordatorios_hora)
-    _safe_migrate(_migrate_recordatorios_bimestral)
-    _safe_migrate(_migrate_recordatorios_asignado)
-    _safe_migrate(_migrate_protocolo_accesos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -1010,8 +972,10 @@ def init_db():
                 color               TEXT DEFAULT '#0c6069',
                 tipo                TEXT NOT NULL DEFAULT 'secuencial'
                                         CHECK(tipo IN ('secuencial','paralelo')),
-                categoria           TEXT DEFAULT 'logistica'
-                                        CHECK(categoria IN ('rrhh','logistica','mantenimiento')),
+                -- Sin CHECK a propósito: las categorías viven en la tabla
+                -- `categorias`, que el usuario administra. Una lista quemada acá
+                -- quedó obsoleta el día que se creó la cuarta.
+                categoria           TEXT DEFAULT 'logistica',
                 estado              TEXT NOT NULL DEFAULT 'borrador'
                                         CHECK(estado IN ('borrador','activa','completada','cancelada')),
                 total_etapas        INTEGER DEFAULT 0,
@@ -1035,7 +999,9 @@ def init_db():
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 numero          TEXT NOT NULL UNIQUE,
                 titulo          TEXT NOT NULL,
-                categoria       TEXT NOT NULL CHECK(categoria IN ('rrhh','logistica','mantenimiento')),
+                -- Sin CHECK: ver la nota en `misiones`. Producción ya usa nueve
+                -- categorías y esta lista solo permitía tres.
+                categoria       TEXT NOT NULL DEFAULT 'logistica',
                 descripcion     TEXT NOT NULL,
                 estado          TEXT NOT NULL DEFAULT 'pendiente'
                                     CHECK(estado IN ('pendiente','en_proceso','esperando_aprobacion','resuelto','rechazado')),
@@ -1313,7 +1279,60 @@ def init_db():
                 actualizado_en TEXT DEFAULT (datetime('now'))
             );
         """)
+        # Un ítem de la lista puede cerrarse de dos formas: comprado, o "no se
+        # consiguió" con el motivo escrito. Sin la segunda, una solicitud con un
+        # producto agotado quedaba imposible de cerrar (el asignado veía
+        # "Faltan N producto(s)" y no tenía cómo explicar por qué).
+        _add_col(db, "lista_compras_ticket", "no_conseguido", "INTEGER DEFAULT 0")
+        _add_col(db, "lista_compras_ticket", "motivo_no_compra", "TEXT")
         db.commit()
+
+    # Las migraciones corren DESPUÉS de crear el esquema, no antes. Cada una
+    # empieza preguntando si una tabla o columna ya existe, así que en una
+    # base nueva todas se saltaban calladas (`_safe_migrate` traga
+    # OperationalError) y la base quedaba a medias hasta que alguien llamara
+    # init_db por segunda vez: de ahí el «2ª pasada» que los tests hacían a
+    # mano. En una instalación nueva eso dejaba `tickets` sin la columna
+    # `tipo` y rechazando categorías válidas.
+    _safe_migrate(_repair_broken_fk)
+    _safe_migrate(_migrate_categorias)
+    _safe_migrate(_migrate_materiales_tipo)
+    _safe_migrate(_migrate_zonas_subareas)
+    _safe_migrate(_migrate_mision_zona_id)
+    _safe_migrate(_migrate_zonas_tipo)
+    _safe_migrate(_migrate_mision_frecuencia)
+    _safe_migrate(_migrate_mision_modo_ciclo)
+    _safe_migrate(_migrate_ticket_frecuencia)
+    _safe_migrate(_migrate_ticket_paso_notas)
+    _safe_migrate(_migrate_ticket_paso_duracion)
+    from app.services.misiones_timing import _migrate_mision_corridas
+    from app.services.ticket_timing import _migrate_ticket_corridas
+    from app.services.recetas_ops import _migrate_recetas_ops
+    _safe_migrate(_migrate_mision_corridas)
+    _safe_migrate(_migrate_ticket_corridas)
+    _safe_migrate(_migrate_recetas_ops)
+    _safe_migrate(_migrate_dependencias_prerequisitos)
+    _safe_migrate(_migrate_ticket_tipo)
+    _safe_migrate(_migrate_ticket_fecha_inicio)
+    _safe_migrate(_migrate_usuario_google)
+    _safe_migrate(_migrate_usuario_permisos)
+    _safe_migrate(_migrate_usuario_preferencias_ui)
+    _safe_migrate(_migrate_usuario_departamentos)
+    _safe_migrate(_migrate_usuario_telefono)
+    _safe_migrate(_migrate_usuario_documento_identidad)
+    _safe_migrate(_migrate_ticket_protocolo_id)
+    _safe_migrate(_migrate_protocolos_alcance)
+    _safe_migrate(_migrate_ticket_subtipo)
+    from app.services.panel_presencia import _migrate_panel_presencia
+    _safe_migrate(_migrate_panel_presencia)
+    _safe_migrate(_migrate_adjunto_paso_id)
+    _safe_migrate(_migrate_pendientes)
+    _safe_migrate(_migrate_recordatorios)
+    _safe_migrate(_migrate_recordatorios_hora)
+    _safe_migrate(_migrate_recordatorios_bimestral)
+    _safe_migrate(_migrate_recordatorios_asignado)
+    _safe_migrate(_migrate_protocolo_accesos)
+
     print("✅ Centro de Mando (tickets DB) inicializado")
 
 
@@ -1438,8 +1457,11 @@ def _log(db, ticket_id: int, usuario_id: int | None, accion: str,
 
 def login_usuario(username: str, password: str):
     with _conn() as db:
+        # Se entra con el usuario o con el correo registrado (el contador externo
+        # no tiene por qué recordar un «username»).
         row = db.execute(
-            "SELECT * FROM usuarios WHERE username=? AND activo=1", (username,)
+            "SELECT * FROM usuarios WHERE (username=? OR LOWER(email)=LOWER(?)) AND activo=1",
+            (username, username),
         ).fetchone()
         if not row or not check_password_hash(row["password_hash"], password):
             return None, "Credenciales inválidas"
@@ -1582,6 +1604,12 @@ TAREA_SYNC_FACTURAS_FALTANTES_SIIGO = "meli_sync_facturas_faltantes_siigo"
 # El contador suele ser externo, así que el ticket va a quien coordina con él
 # (asignable en Sistemas → Aliados). Ver app/services/prestamos.py.
 TAREA_PRESTAMOS_DECLARAR_RETENCIONES = "prestamos_declarar_retenciones"
+# Hallazgos del cruce declaraciones del contador ↔ Libro Mayor (Contabilidad →
+# Conciliación contador). Cae al mismo usuario que coordina retenciones si no se asigna.
+TAREA_CONCILIACION_CONTADOR = "conciliacion_contador"
+# Quién aprueba las solicitudes de pago (Contabilidad → Solicitudes de pago). Si no se asigna,
+# cae a PAGOS_APROBADOR (default armando). Ver app/services/pagos_wizard.py::_aprobador_id.
+TAREA_PAGOS_APROBADOR = "pagos_aprobador"
 
 # Marker line embedded in ticket.descripcion for automated re-sync on resolution.
 # Example:
@@ -1837,7 +1865,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         return []
     fonts = {
         "Montserrat", "Inter", "DM Sans", "Nunito", "Outfit",
-        "JetBrains Mono", "Share Tech Mono", "A Note", "system-ui",
+        "JetBrains Mono", "Share Tech Mono", "A Note", "Jost", "system-ui", "DotGothic16",
     }
     out: list[dict] = []
     for item in raw[:12]:
@@ -1853,7 +1881,7 @@ def _limpiar_temas_custom(raw: object) -> list | None:
         mode = item.get("mode") if item.get("mode") in ("light", "dark", "system") else "light"
         font = item.get("fontSans") if item.get("fontSans") in fonts else "Montserrat"
         radius = item.get("radius") if item.get("radius") in ("sm", "md", "lg") else "md"
-        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica") else "clasica"
+        skin = item.get("skin") if item.get("skin") in ("clasica", "atelier", "matrix", "peach", "barbie", "bodega", "botica", "flujo", "pixel") else "clasica"
         font_scale = item.get("fontScale") if item.get("fontScale") in ("sm", "md", "lg", "xl") else "md"
         menu_scale = item.get("menuScale") if item.get("menuScale") in ("sm", "md", "lg") else "md"
         colors = _limpiar_colores_tema(item.get("colors")) or {}
@@ -1903,7 +1931,9 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
                 "JetBrains Mono",
                 "Share Tech Mono",
                 "A Note",
+                "Jost",
                 "system-ui",
+                "DotGothic16",
             ):
                 return False, "fontSans inválido", None
             panel["fontSans"] = font
@@ -1920,7 +1950,7 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             panel["radius"] = radius
         skin = panel_in.get("skin")
         if skin is not None:
-            if skin not in ("clasica", "atelier", "matrix", "sakura", "barbie", "bodega", "botica"):
+            if skin not in ("clasica", "atelier", "matrix", "peach", "barbie", "bodega", "botica", "flujo", "pixel"):
                 return False, "skin inválido", None
             panel["skin"] = skin
         font_scale = panel_in.get("fontScale")
@@ -1962,6 +1992,12 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
         if quest:
             clean["quest"] = quest
 
+    # Versión del estilo base ya adoptado por este usuario (ver desktop/src/lib/userThemeSync.ts):
+    # permite cambiar el estilo predeterminado de todos UNA vez sin pisar lo que elijan después.
+    estilo_v = preferencias.get("estilo_v")
+    if isinstance(estilo_v, int) and not isinstance(estilo_v, bool) and 0 <= estilo_v <= 99:
+        clean["estilo_v"] = estilo_v
+
     if not clean:
         return False, "Nada que guardar", None
 
@@ -1982,6 +2018,8 @@ def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, 
             merged["panel"] = {**(merged.get("panel") or {}), **clean["panel"]}
         if "quest" in clean:
             merged["quest"] = {**(merged.get("quest") or {}), **clean["quest"]}
+        if "estilo_v" in clean:
+            merged["estilo_v"] = clean["estilo_v"]
         db.execute(
             "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
             (_json.dumps(merged), user_id),
@@ -3578,7 +3616,15 @@ def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
     return get_ticket(ticket_id, {"id": usuario_id, "rol": {"nivel": 3}}), None
 
 
-def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None) -> tuple:
+def crear_ticket(
+    data: dict, usuario_id: int, archivo_nombre: str | None = None, *, notificar: bool = True,
+) -> tuple:
+    """`notificar=False` crea el ticket sin el WhatsApp individual al asignado.
+
+    Lo usan los procesos por lote (p. ej. `scripts/anulaciones_cron.py`): con un
+    WhatsApp por ticket, la primera corrida de RA mandó 84 mensajes seguidos al
+    mismo operador en 7 segundos. Quien pasa False debe avisar él, consolidado.
+    """
     with _conn() as db:
         numero = _generar_numero(db)
         try:
@@ -3652,12 +3698,13 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
                 pasos_raw = _pasos_desde_protocolo(db, protocolo_id)
             _insertar_pasos_ticket(db, tid, pasos_raw)
             db.commit()
-            try:
-                from app.services.tickets_notificaciones import notificar_ticket_creado
-                from app.observability import spawn_thread
-                spawn_thread(notificar_ticket_creado, (tid,), daemon=True)
-            except Exception:
-                pass
+            if notificar:
+                try:
+                    from app.services.tickets_notificaciones import notificar_ticket_creado
+                    from app.observability import spawn_thread
+                    spawn_thread(notificar_ticket_creado, (tid,), daemon=True)
+                except Exception:
+                    pass
             return _ticket_full(db, tid), None
         except Exception as e:
             return None, str(e)
@@ -3882,6 +3929,15 @@ def _es_solicitud_etiqueta_ticket(t: dict) -> bool:
     return False
 
 
+def _items_lista_sin_resolver(db, ticket_id: int) -> int:
+    """Ítems de la lista que no están ni comprados ni justificados como no conseguidos."""
+    return db.execute(
+        "SELECT COUNT(*) AS n FROM lista_compras_ticket "
+        "WHERE ticket_id=? AND COALESCE(comprado,0)=0 AND COALESCE(no_conseguido,0)=0",
+        (ticket_id,),
+    ).fetchone()["n"]
+
+
 def cambiar_estado(
     ticket_id: int,
     nuevo_estado: str,
@@ -3890,7 +3946,13 @@ def cambiar_estado(
     *,
     resultado_cantidad: float | None = None,
     resultado_unidad: str | None = None,
+    notificar: bool = True,
+    cierre_por_proceso: bool = False,
 ) -> tuple:
+    """`notificar=False` omite el WhatsApp del cambio de estado: lo usan los módulos que
+    avisan con su propio texto (Solicitudes de pago). `cierre_por_proceso=True` deja
+    resolver una solicitud a quien no es el asignado cuando la cierra un proceso del
+    sistema — p. ej. el segundo token del giro lo da el otro administrador."""
     valid = {"pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado"}
     if nuevo_estado not in valid:
         return False, "Estado inválido"
@@ -3907,7 +3969,7 @@ def cambiar_estado(
                 return False, "Solo Administración puede aprobar este tipo de ticket."
             # Las solicitudes solo pueden resolverlas el asignado,
             # EXCEPTO cuando están en revisión: el creador puede aprobarlas.
-            if t["tipo"] == "solicitud" and t["asignado_a"] != uid:
+            if t["tipo"] == "solicitud" and t["asignado_a"] != uid and not cierre_por_proceso:
                 aprobacion_por_creador = (
                     t["estado"] == "esperando_aprobacion" and t["creado_por"] == uid
                 )
@@ -3917,27 +3979,23 @@ def cambiar_estado(
             if not is_authorized:
                 return False, "Sin autorización"
             if (t.get("subtipo") or "").strip() == "compra":
-                pend = db.execute(
-                    "SELECT COUNT(*) AS n FROM lista_compras_ticket "
-                    "WHERE ticket_id=? AND comprado=0",
-                    (ticket_id,),
-                ).fetchone()["n"]
+                pend = _items_lista_sin_resolver(db, ticket_id)
                 if pend:
-                    return False, f"Faltan {pend} producto(s) por marcar en la lista de compras"
+                    return False, (
+                        f"Faltan {pend} producto(s) por marcar: márcalos como comprados "
+                        "o indica por qué no se compraron"
+                    )
             elif _es_solicitud_etiqueta_ticket(t):
                 n_lista = db.execute(
                     "SELECT COUNT(*) AS n FROM lista_compras_ticket WHERE ticket_id=?",
                     (ticket_id,),
                 ).fetchone()["n"]
                 if n_lista > 0:
-                    pend = db.execute(
-                        "SELECT COUNT(*) AS n FROM lista_compras_ticket "
-                        "WHERE ticket_id=? AND comprado=0",
-                        (ticket_id,),
-                    ).fetchone()["n"]
+                    pend = _items_lista_sin_resolver(db, ticket_id)
                     if pend:
                         return False, (
-                            f"Faltan {pend} producto(s) por marcar como impreso en el pedido"
+                            f"Faltan {pend} producto(s) por marcar como impresos "
+                            "o por indicar por qué no se imprimieron"
                         )
             # Solicitudes con pasos: todos deben estar completados antes de resolver
             elif t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
@@ -4067,7 +4125,9 @@ def cambiar_estado(
             _programar_renovacion_ticket(db, ticket_id)
 
         db.commit()
-        if nuevo_estado == "resuelto":
+        if not notificar:
+            pass
+        elif nuevo_estado == "resuelto":
             try:
                 from app.services.tickets_notificaciones import notificar_ticket_resuelto
                 from app.observability import spawn_thread
@@ -4222,7 +4282,9 @@ def listar_comentarios(ticket_id: int) -> list:
 
 
 def agregar_comentario(ticket_id: int, usuario_id: int,
-                       texto: str, es_interno: bool = False) -> int:
+                       texto: str, es_interno: bool = False, *, notificar: bool = True) -> int:
+    """`notificar=False` omite el WhatsApp «escribió en la solicitud»: los crons que
+    comentan en lote (revisión de facturación MeLi) avisan una sola vez al final."""
     with _conn() as db:
         cur = db.execute(
             "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) VALUES (?,?,?,?)",
@@ -4232,7 +4294,7 @@ def agregar_comentario(ticket_id: int, usuario_id: int,
         _log(db, ticket_id, usuario_id, "comentario_agregado", detalles=texto[:100])
         db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (ticket_id,))
         db.commit()
-        if not es_interno:
+        if not es_interno and notificar:
             try:
                 from app.services.tickets_notificaciones import notificar_comentario_agregado
                 from app.observability import spawn_thread
@@ -4758,6 +4820,23 @@ def actualizar_compra_ticket(item_id: int, data: dict) -> tuple:
             campos["notas"] = (data["notas"] or "").strip() or None
         if "comprado" in data:
             campos["comprado"] = 1 if data["comprado"] in (1, True, "1", "true") else 0
+            # Comprado y "no conseguido" son excluyentes: marcar uno limpia el otro,
+            # para que no quede un ítem comprado arrastrando un motivo viejo.
+            if campos["comprado"]:
+                campos["no_conseguido"] = 0
+                campos["motivo_no_compra"] = None
+        if "no_conseguido" in data:
+            campos["no_conseguido"] = 1 if data["no_conseguido"] in (1, True, "1", "true") else 0
+            if campos["no_conseguido"]:
+                campos["comprado"] = 0
+                motivo = (data.get("motivo_no_compra") or "").strip()
+                if not motivo:
+                    return None, "Escribe por qué no se compró este producto"
+                campos["motivo_no_compra"] = motivo
+            else:
+                campos["motivo_no_compra"] = None
+        elif "motivo_no_compra" in data:
+            campos["motivo_no_compra"] = (data["motivo_no_compra"] or "").strip() or None
         if "material_id" in data:
             campos["material_id"] = int(data["material_id"]) if data["material_id"] else None
         if not campos:

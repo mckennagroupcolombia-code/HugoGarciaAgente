@@ -461,6 +461,124 @@ def register_rrhh_routes(app):
             _guardar(data)
         return jsonify({"ok": True, "nomina": limpias})
 
+    # ── Mapa de funciones (horas, valor por dificultad y pago; ver app/services/mapa_funciones.py) ──
+
+    @app.route("/api/rrhh/mapa-funciones", methods=["GET"])
+    @app.route("/app/api/rrhh/mapa-funciones", methods=["GET"])
+    @_auth_rrhh
+    def rrhh_mapa_funciones():
+        from app.services.mapa_funciones import mapa
+
+        try:
+            dias = max(7, min(int(request.args.get("dias") or 30), 90))
+        except ValueError:
+            dias = 30
+        return jsonify(mapa(dias))
+
+    @app.route("/api/rrhh/mapa-funciones/persona/<int:uid>", methods=["PUT"])
+    @app.route("/app/api/rrhh/mapa-funciones/persona/<int:uid>", methods=["PUT"])
+    @_auth_rrhh
+    def rrhh_mapa_persona(uid: int):
+        from app.services.mapa_funciones import actualizar_persona
+
+        try:
+            return jsonify(actualizar_persona(uid, request.get_json(silent=True) or {}))
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/rrhh/mapa-funciones/general", methods=["PUT"])
+    @app.route("/app/api/rrhh/mapa-funciones/general", methods=["PUT"])
+    @_auth_rrhh
+    def rrhh_mapa_general():
+        from app.services.mapa_funciones import actualizar_general
+
+        try:
+            actualizar_general(request.get_json(silent=True) or {})
+            return jsonify({"ok": True})
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/rrhh/mapa-funciones/extras", methods=["POST"])
+    @app.route("/app/api/rrhh/mapa-funciones/extras", methods=["POST"])
+    @_auth_rrhh
+    def rrhh_mapa_extra_agregar():
+        from app.services.mapa_funciones import agregar_extra
+
+        d = request.get_json(silent=True) or {}
+        try:
+            e = agregar_extra(int(d.get("usuario_id") or 0), d.get("funcion") or "", float(d.get("horas_semana") or 0),
+                              int(d.get("nivel") or 2), etapa=d.get("etapa") or "", nota=d.get("nota") or "",
+                              autor=(getattr(request, "rrhh_usuario", {}) or {}).get("nombre") or "")
+            return jsonify(e), 201
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/rrhh/mapa-funciones/extras/<extra_id>", methods=["DELETE"])
+    @app.route("/app/api/rrhh/mapa-funciones/extras/<extra_id>", methods=["DELETE"])
+    @_auth_rrhh
+    def rrhh_mapa_extra_quitar(extra_id: str):
+        from app.services.mapa_funciones import quitar_extra
+
+        return (jsonify({"ok": True}), 200) if quitar_extra(extra_id) else (jsonify({"error": "No existe"}), 404)
+
+    # ── Control de horas por quincena (app/services/control_horas.py) ──
+
+    @app.route("/api/rrhh/control-horas", methods=["GET"])
+    @app.route("/app/api/rrhh/control-horas", methods=["GET"])
+    @_auth_rrhh
+    def rrhh_control_horas():
+        from app.services.control_horas import estado, explicaciones
+        from app.services.rendimiento import equipo_para_selector
+
+        q = request.args.get("quincena") or None
+        personas = []
+        for u in equipo_para_selector():
+            try:
+                e = estado(u["id"], quincena=q, con_dinero=True)
+            except ValueError:
+                continue
+            if "pactadas" in e or e["horas"]:
+                personas.append(e)
+        pend = explicaciones(estado="pendiente")
+        nombres = {u["id"]: u["nombre"] for u in equipo_para_selector()}
+        for x in pend:
+            x["nombre"] = nombres.get(x["usuario_id"], "")
+        return jsonify({"personas": personas, "pendientes": pend})
+
+    @app.route("/api/rrhh/control-horas/explicaciones/<eid>", methods=["POST"])
+    @app.route("/app/api/rrhh/control-horas/explicaciones/<eid>", methods=["POST"])
+    @_auth_rrhh
+    def rrhh_control_horas_revisar(eid: str):
+        from app.services.control_horas import revisar
+
+        d = request.get_json(silent=True) or {}
+        try:
+            return jsonify(revisar(eid, bool(d.get("aprobar")), (getattr(request, "rrhh_usuario", {}) or {}).get("nombre") or ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/rrhh/tiempos-estandar", methods=["GET"])
+    @app.route("/app/api/rrhh/tiempos-estandar", methods=["GET"])
+    @_auth_rrhh
+    def rrhh_tiempos_estandar():
+        from app.services.rendimiento import _POR_ID
+        from app.services.tiempos_estandar import DIAS_BASE, MIN_MUESTRAS, estandares
+
+        filas = [{"id": k, "funcion": _POR_ID[k][1] if k in _POR_ID else k, **v} for k, v in estandares().items()]
+        filas.sort(key=lambda x: (x.get("origen") != "cronómetro", -(x.get("muestras") or 0)))
+        return jsonify({"estandares": filas, "dias_base": DIAS_BASE, "min_muestras": MIN_MUESTRAS})
+
+    @app.route("/api/rrhh/control-horas/cuenta-cobro", methods=["GET"])
+    @app.route("/app/api/rrhh/control-horas/cuenta-cobro", methods=["GET"])
+    @_auth_rrhh
+    def rrhh_control_horas_cuenta():
+        from app.services.control_horas import cuenta_de_cobro
+
+        try:
+            return jsonify(cuenta_de_cobro(int(request.args.get("usuario_id") or 0), request.args.get("quincena") or ""))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
     @app.route("/api/rrhh/agente", methods=["POST"])
     @app.route("/app/api/rrhh/agente", methods=["POST"])
     @_auth_rrhh

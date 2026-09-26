@@ -1,0 +1,252 @@
+/*
+ * Tablero de Colaboradores en pixel art.
+ *
+ * Todo lo del tablero va bajo .colab-pixel (se apaga con el botón «Clásico»).
+ * En vez de reescribir cada clase, se REDEFINEN los tokens del tema dentro del
+ * tablero (los --mck-* son tripletas RGB): hojas, campos y botones toman la
+ * paleta PICO-8 solos. Las tarjetas de producto y de rival (.px-prod,
+ * .px-rival) son pixel siempre: son las «cartas» del juego.
+ *
+ * Las LETRAS no son pixel (decisión 25-sep-2026, por legibilidad): todo el texto va en la
+ * fuente de la app; el pixel art es lo demás — paleta, bordes, sombras de bloque,
+ * esquinas, sprites, cuadrícula y cursor. Los rótulos «de juego» son la misma fuente en
+ * negrita y mayúsculas.
+ */
+
+.colab-pixel {
+  --mck-surface: 255 241 232;
+  --mck-surface-panel: 255 241 232;
+  --mck-surface-input: 255 255 255;
+  --mck-surface-hover: 255 204 170;
+  --mck-ink: 0 0 0;
+  --mck-ink-secondary: 95 87 79;
+  --mck-ink-muted: 95 87 79;
+  --mck-muted: 95 87 79;
+  --mck-border: 0 0 0;
+  --mck-border-strong: 0 0 0;
+  --mck-accent: 29 43 83;
+  --mck-accent-hover: 126 37 83;
+  /* Las variables DERIVADAS (index.css, :root) se resuelven donde se declaran: heredadas, traían
+     el azul marino del modo oscuro aunque aquí se redefinan las de base. En la isla clara se
+     declaran de nuevo para que se calculen con sus tokens (25-sep-2026: el dólar de «Tu día»). */
+  /* Colores de estado en su tono claro (los de theme/skin-pixel.css, ≥ 4,5:1 sobre el crema). */
+  --mck-accent-sun: 143 69 0;
+  --mck-accent-sun-deep: 122 62 0;
+  --mck-accent-leaf: 0 107 63;
+  --mck-accent-leaf-deep: 0 77 46;
+  --mck-accent-sky: 11 92 168;
+  --mck-accent-sky-deep: 29 43 83;
+  --mck-accent-rose: 176 0 53;
+  --mck-accent-plum: 126 37 83;
+  --mck-success: 0 107 63;
+  --mck-danger: 176 0 53;
+  --mck-warning: 143 69 0;
+  --mck-card-bg: var(--mck-surface-panel);
+  --mck-section-bg: var(--mck-surface);
+  --mck-title: var(--mck-ink);
+  --mck-subtitle: var(--mck-muted);
+  --mck-menu-bg: var(--mck-surface-panel);
+  --mck-menu-text: var(--mck-ink-secondary);
+  --mck-menu-active-bg: var(--mck-accent);
+  --mck-submenu-bg: var(--mck-surface-panel);
+  --mck-submenu-text: var(--mck-ink-secondary);
+}
+
+.colab-pixel [class*="rounded"] { border-radius: 0 !important; }
+
+.colab-pixel .px-t,
+.colab-pixel .px-hoja summary {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+/* Campos: bloque blanco con borde negro. */
+.colab-pixel input,
+.colab-pixel textarea,
+.colab-pixel select {
+  border: 2px solid #000 !important;
+  background: #fff;
+  color: #000;
+}
+.colab-pixel input:focus,
+.colab-pixel textarea:focus,
+.colab-pixel select:focus { outline: 3px solid #FFEC27; outline-offset: 0; }
+
+/* Botones de juego: sombra dura que se «hunde» al tocar. */
+.colab-pixel .px-btn {
+  font-size: 12px !important;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  border: 3px solid #000 !important;
+  box-shadow: 3px 3px 0 #000;
+  padding: 8px 10px !important;
+}
+.colab-pixel .px-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
+
+/* HUD: la barra de arriba, como el marcador de un juego. */
+.colab-pixel .px-hud {
+  background: #1D2B53;
+  color: #FFF1E8;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  padding: 4px 6px;
+}
+.colab-pixel .px-hud input {
+  border: 0 !important;
+  background: transparent;
+  color: #FFEC27;
+  font-size: 15px;
+  font-weight: 800;
+}
+.colab-pixel .px-hud button { color: #FFF1E8; border-color: #FFF1E8 !important; }
+
+.colab-pixel .px-marcador {
+  background: #000;
+  color: #FFF1E8;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #5F574F;
+}
+
+/* Hojas de edición: ventana de diálogo de RPG. */
+.colab-pixel .px-hoja {
+  border: 4px solid #000 !important;
+  box-shadow: 6px 6px 0 #000 !important;
+}
+
+/* El lienzo: papel con cuadrícula (la cuadrícula la pone <Background variant="lines">). */
+.colab-pixel .px-lienzo {
+  background: #FFF1E8 !important;
+  border: 4px solid #000 !important;
+}
+
+/* Flechas: sin suavizado, como líneas de 8 bits. */
+.colab-pixel .react-flow__edge-path { shape-rendering: crispEdges; }
+
+/* Etiqueta de flecha en HTML: se ajusta sola al texto (la SVG de React Flow se medía una vez). */
+.colab-etq {
+  position: absolute;
+  pointer-events: all;
+  cursor: pointer;
+  padding: 2px 6px;
+  white-space: nowrap;
+  background: rgb(255 255 255 / 0.9);
+  border: 1px solid;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.colab-pixel .colab-etq {
+  padding: 4px 6px;
+  background: #FFF1E8;
+  border: 2px solid #000 !important;
+  border-radius: 0;
+  box-shadow: 2px 2px 0 #000;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.colab-pixel .react-flow__handle {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 0 !important;
+  border: 2px solid #000 !important;
+}
+.colab-pixel .react-flow__controls { border: 3px solid #000; box-shadow: 3px 3px 0 #000; }
+.colab-pixel .react-flow__controls-button { border-bottom: 2px solid #000; }
+
+/* Caja seleccionada: cursor amarillo que parpadea en dos tiempos. */
+.px-sel {
+  outline: 3px solid #FFEC27;
+  outline-offset: 3px;
+  animation: px-parpadeo 0.8s steps(1, end) infinite;
+}
+@keyframes px-parpadeo { 50% { outline-color: #000; } }
+@media (prefers-reduced-motion: reduce) { .px-sel { animation: none; } }
+
+/* ─── Carta de producto: foto al centro y sus apartados alrededor ─── */
+.px-prod,
+.px-rival {
+  color: #000;
+  background: #FFF1E8;
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0 #000;
+}
+.px-prod { width: 320px; }
+.px-rival { width: 220px; }
+
+.px-cab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 3px solid #000;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  color: #FFF1E8;
+  text-transform: uppercase;
+}
+.px-prod .px-cab { background: #1D2B53; }
+.px-rival .px-cab { background: #C8003E; }
+
+.px-vs {
+  padding: 2px 4px;
+  background: #FFEC27;
+  color: #000;
+  border: 2px solid #000;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.px-sat {
+  position: absolute;
+  width: 104px;
+  transform: translate(-50%, -50%);
+  padding: 3px 5px;
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+}
+.px-sat-vacio { border-style: dashed; background: #FFF1E8; box-shadow: none; color: #5F574F; }
+.px-sat-t {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+.px-sat-v {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.px-rival-foto {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #FFCCAA;
+  border-bottom: 3px solid #000;
+}
+/* Sin captura: la bandera al centro (display:block de arriba le ganaba al flex). */
+.px-rival-vacio { display: flex; align-items: center; justify-content: center; height: 88px; }
+.px-rival-precio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 800;
+}

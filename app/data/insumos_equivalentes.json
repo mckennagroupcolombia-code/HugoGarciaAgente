@@ -1,0 +1,10 @@
+{
+  "_doc": "SKU de inventario que ya no se compra, apuntando al que lo reemplaza. No se borra en Alegra porque hay combos con ventas que lo tienen en la receta (Alegra no deja cambiarla). Las compras se registran al SKU de «usar», el buscador de productos oculta el viejo y el contador de insumos suma los dos. Lo lee app/services/insumos.py.",
+  "equivalencias": {
+    "PASBLA180mL": {
+      "usar": "PAS180BLAUn",
+      "motivo": "Mismo pastillero de 180 mL duplicado en Alegra. Decisión de Armando el 25-sep-2026: se deja PAS180BLAUn. PASBLA180mL sigue en la receta de 13 combos con ventas (C-ACIMAL100g, C-ACISAL50g, C-ACISAL100g, C-ALGSODCLOCAL50g, C-ALGSODLACCAL50g, C-AMILCAR100g, C-AMILTRI100g, C-CAF100g, C-EXTTEMATVER100g, C-LPRO100g, C-LTEA100g, C-LTRI100g, C-SUC100g); C-LHIS100g ya se pasó a PAS180BLAUn.",
+      "desde": "2026-09-25"
+    }
+  }
+}

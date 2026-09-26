@@ -19,6 +19,26 @@ function sugerirConsultaOrigen(sku: string): string {
   return stem.length >= 2 ? stem : s;
 }
 
+/** Producto base de un combo por presentación: C-SEMGIR250g → SEMGIRg «SEMILLA DE GIRASOL g», 250 g por combo. */
+function sugerirProductoBase(comboCodigo: string, comboNombre: string) {
+  const s = comboCodigo.replace(/^c-\s*/i, "").trim();
+  const m = s.match(/^(.*?)(\d+(?:[.,]\d+)?)\s*(kg|g|ml|l)$/i);
+  const u = (m?.[3] || "g").toLowerCase();
+  const unidad: "g" | "mL" = u === "ml" || u === "l" ? "mL" : "g";
+  const factor = u === "kg" || u === "l" ? 1000 : 1;
+  const cantidad = m ? Math.round(Number(m[2].replace(",", ".")) * factor) : 0;
+  const stem = (m?.[1] || sugerirConsultaOrigen(s)).replace(/[-_]+$/g, "");
+  const nombreBase = comboNombre
+    .replace(/\s*\d+(?:[.,]\d+)?\s*(kg|g|ml|l)\b.*$/i, "")
+    .trim();
+  return {
+    codigo: stem ? `${stem}${unidad}` : "",
+    nombre: nombreBase ? `${nombreBase} ${unidad}` : "",
+    unidad,
+    cantidad,
+  };
+}
+
 interface DetalleComboSiigo {
   ok: boolean;
   error?: string;
@@ -129,8 +149,9 @@ export default function CrearProductosSiigoPanel({
   onCreado?: (info: { codigo: string; nombre: string }) => void;
   /** Precarga SKU y nombre (p. ej. desde una fila de Códigos EAN). */
   inicial?: SiigoAltaInicial | null;
-  /** duplicar: fuerza combo y pide un combo origen para copiar la receta. */
-  accion?: "crear" | "duplicar";
+  /** duplicar: fuerza combo y pide un combo origen para copiar la receta.
+   *  ajustar: abre el combo `inicial.codigo` ya existente con sus componentes para editarlos. */
+  accion?: "crear" | "duplicar" | "ajustar";
 }) {
   const modoCompacto = compact;
   const duplicarCombo = accion === "duplicar";
@@ -145,6 +166,9 @@ export default function CrearProductosSiigoPanel({
         : "C-"
     : "C-";
   const [modo, setModo] = useState<Modo>(naceComoCombo ? "combo" : "producto");
+  /** Desde una fila EAN «sin combo»: el producto que se cree es el base del combo, no el SKU del EAN. */
+  const flujoComboEan = accion === "crear" && esCodigoCombo(codigoInicial);
+  const productoBase = flujoComboEan ? sugerirProductoBase(codigoInicial, nombreInicial) : null;
 
   // Producto
   const [codigo, setCodigo] = useState(naceComoCombo ? "" : codigoInicial);
@@ -209,6 +233,29 @@ export default function CrearProductosSiigoPanel({
     verificarCodigo.mutate(codigoInicial);
   }, [codigoInicial, verificarCodigo]);
 
+  /** Flujo EAN: vuelve al combo con el producto base puesto como componente (cantidad según la presentación). */
+  function usarBaseEnCombo(baseCodigo: string, baseNombre: string, aviso: string) {
+    const cant =
+      productoBase && productoBase.cantidad > 0 && productoBase.unidad === unidad
+        ? String(productoBase.cantidad)
+        : "1";
+    setComponentes((prev) => {
+      if (prev.some((c) => c.codigo.trim().toUpperCase() === baseCodigo.toUpperCase())) return prev;
+      const i = prev.findIndex((c) => !c.codigo.trim());
+      const linea = { ...(i >= 0 ? prev[i] : nuevaLinea()), codigo: baseCodigo, nombre: baseNombre, cantidad: cant };
+      return i >= 0 ? prev.map((c, j) => (j === i ? linea : c)) : [...prev, linea];
+    });
+    const destino = comboCodigo.replace(/^c-/i, "").trim() ? comboCodigo.trim() : comboCodigoInicial;
+    if (destino !== comboCodigo.trim()) setComboCodigo(destino);
+    if (!comboNombre.trim()) setComboNombre(nombreInicial);
+    setModo("combo");
+    setCheck(null);
+    setResultado({
+      ok: true,
+      mensaje: `${aviso} Ahora revisa la cantidad y pulsa «Crear combo en Alegra» para ${destino}.`,
+    });
+  }
+
   const crearProducto = useMutation({
     mutationFn: () =>
       api.post<CrearResp>("/api/siigo/productos", {
@@ -226,6 +273,10 @@ export default function CrearProductosSiigoPanel({
       if (res.ok) {
         const creadoCodigo = res.siigo_producto?.codigo || codigo.trim();
         const creadoNombre = res.siigo_producto?.nombre || nombre.trim();
+        if (flujoComboEan) {
+          usarBaseEnCombo(creadoCodigo, creadoNombre, `Producto base ${creadoCodigo} creado.`);
+          return;
+        }
         setCheck({
           codigo: creadoCodigo,
           existe_en_siigo: true,
@@ -557,6 +608,15 @@ export default function CrearProductosSiigoPanel({
   }
 
   /** Desde resultados de búsqueda: copia receta a un combo nuevo (SKU/nombre destino). */
+  // Flujo EAN «Revisar»: el combo ya existe; se abre cargado con sus componentes.
+  const ajusteInicialHecho = useRef(false);
+  useEffect(() => {
+    if (accion !== "ajustar" || ajusteInicialHecho.current || codigoInicial.length < 2) return;
+    ajusteInicialHecho.current = true;
+    ajustarDesdeHallazgo({ codigo: codigoInicial, nombre: nombreInicial, type: "kit" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accion, codigoInicial]);
+
   function duplicarDesdeHallazgo(item: BusquedaItem) {
     setResultado(null);
     setAjustandoCombo(false);
@@ -736,6 +796,20 @@ export default function CrearProductosSiigoPanel({
     const c = (codigoDestino || editandoCodigo || codigoActivo).trim();
     const n = nombreMayusculasAlegra(nombreDestino ?? editandoNombre);
     if (!c || !n || actualizarNombre.isPending) return;
+    // Renombrar cambia un producto que ya existe en Alegra: se confirma mostrando antes y después.
+    const anterior =
+      (check && check.codigo.trim().toUpperCase() === c.toUpperCase() ? check.siigo_producto?.nombre : undefined)
+      || catalogoItems.find((it) => it.codigo.trim().toUpperCase() === c.toUpperCase())?.nombre
+      || "";
+    if (anterior.trim() === n) return;
+    if (
+      !window.confirm(
+        `¿Cambiar el nombre de ${c} en Alegra?\n\nAntes: ${anterior || "(desconocido)"}\nAhora: ${n}\n\n` +
+          "Esto no crea nada: renombra el producto o combo que ya existe con ese código.",
+      )
+    ) {
+      return;
+    }
     actualizarNombre.mutate({ codigo: c, nombre: n });
   }
 
@@ -780,6 +854,42 @@ export default function CrearProductosSiigoPanel({
             </>
           )}
         </p>
+      )}
+
+      {flujoComboEan && productoBase?.codigo && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-ink">
+          {modo === "combo" ? (
+            <>
+              <span className="min-w-0 flex-1">
+                ¿Aún no existe el producto base? Créalo primero
+                (<span className="font-mono font-semibold">{productoBase.codigo}</span>) y vuelve aquí
+                con él puesto en la receta. El SKU del EAN no cambia.
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCodigo(productoBase.codigo);
+                  setNombre(productoBase.nombre);
+                  setUnidad(productoBase.unidad);
+                  setModo("producto");
+                  setAjustandoCombo(false);
+                  setResultado(null);
+                  setCheck(null);
+                  verificarCodigo.mutate(productoBase.codigo);
+                }}
+                className="rounded-lg border border-accent px-2.5 py-1 text-xs font-bold text-accent hover:bg-accent/10"
+              >
+                Crear producto base
+              </button>
+            </>
+          ) : (
+            <span>
+              Estás creando el <b>producto base</b> del combo{" "}
+              <span className="font-mono font-semibold">{comboCodigo.trim() || comboCodigoInicial}</span>.
+              Al crearlo vuelves al combo con él en la receta; el SKU del EAN no cambia.
+            </span>
+          )}
+        </div>
       )}
 
       <div className="flex gap-1 rounded-xl border border-border bg-surface p-1">
@@ -1496,6 +1606,22 @@ export default function CrearProductosSiigoPanel({
             {actualizarCombo.isPending
               ? "Guardando composición…"
               : "Guardar composición en Alegra"}
+          </button>
+        )}
+        {existe && flujoComboEan && modo === "producto" && check && (
+          <button
+            type="button"
+            onClick={() =>
+              usarBaseEnCombo(
+                check.codigo,
+                check.siigo_producto?.nombre || nombre.trim(),
+                `Producto base ${check.codigo} (ya existía).`,
+              )
+            }
+            className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-sky-700"
+            title="Pone este producto como componente del combo del EAN, sin crear ni renombrar nada"
+          >
+            Usar en el combo
           </button>
         )}
         {existe && (

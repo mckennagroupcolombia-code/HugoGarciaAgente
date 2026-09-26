@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useEffect, useMemo, useState } from "react";
 import type { TicketsUser } from "../../stores/ticketsAuth";
 import {
@@ -92,7 +93,7 @@ function ConversacionRow({
             {abierta ? "●" : "✓"} {ESTADO_LABEL[c.estado] ?? c.estado}
           </span>
           <span className="min-w-0 max-w-[9rem] truncate text-muted/80">{c.contraparte_nombre}</span>
-          {c.adjuntos_total > 0 && <span className="shrink-0 text-muted/80">📎{c.adjuntos_total}</span>}
+          {c.adjuntos_total > 0 && <span className="shrink-0 text-muted/80"><Ico e="📎" />{c.adjuntos_total}</span>}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">

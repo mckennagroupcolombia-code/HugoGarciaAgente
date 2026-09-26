@@ -129,6 +129,138 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "core",
     category: "atencion",
   },
+  "entregas-flex": {
+    emoji: "🛵",
+    label: "Entregas Flex",
+    description:
+      "A qué hora llegan los envíos Flex de MercadoLibre (reparto propio en Bogotá) y cómo cambia eso semana a semana: salida de la ruta, hora de entrega, corte del mismo día, localidades y envíos que se quedaron en el camino.",
+    tips: [
+      "Los datos se actualizan solos cada noche a las 23:15, cuando ya cerró la ruta. «Actualizar ahora» trae lo del día.",
+      "«Patrones» compara las últimas 4 semanas contra las 4 anteriores y solo avisa cambios de 15 min o 5 puntos.",
+      "Una entrega marcada de madrugada casi siempre es el mensajero cerrando el envío días después, no una entrega real.",
+    ],
+    tier: "standard",
+    category: "atencion",
+  },
+  arquitectura: {
+    emoji: "\u{1F9ED}",
+    label: "Arquitectura del c\u00f3digo",
+    description:
+      "Qu\u00e9 archivo llama a cu\u00e1l y qu\u00e9 funciones no usa nadie, derivado del c\u00f3digo real con codebase-memory-mcp. El Mapa del sistema cuenta el flujo del negocio; esto cuenta el de las llamadas.",
+    tips: [
+      "Toca un archivo en el mapa para ver qui\u00e9n lo llama y a qui\u00e9n llama.",
+      "El n\u00famero de c\u00f3digo muerto trae su embudo a la vista: el dato crudo del grafo tiene ~93% de falsos positivos (referencias JSX y rutas Flask no generan arista de llamada).",
+      "Es un snapshot, no una consulta viva: se regenera con `python3 scripts/arquitectura_cbm.py`.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
+  "chat-equipo": {
+    emoji: "💬",
+    label: "Chat del equipo",
+    description:
+      "La conversación operativa del equipo dentro del panel: lo que llega, fotos, cantidades y avisos. Queda registrada, se puede buscar y cuenta como actividad. Un canal puede enlazarse a un grupo de WhatsApp mientras dura la transición.",
+    tips: [
+      "Escribir aquí no pide cronómetro: es para coordinar. Lo que alguien debe resolver va como tarea en la Agenda.",
+      "📷 toma la foto directo con la cámara del celular.",
+      "Los canales enlazados muestran lo que se escribe en el grupo de WhatsApp; con «ida y vuelta», lo del panel también llega al grupo.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  "recepcion-mercancia": {
+    emoji: "📦",
+    label: "Recepción de mercancía",
+    description:
+      "Lo que llega a bodega: quién lo recibió, fotos, cantidades contadas contra lo esperado y diferencias. Reemplaza el aviso suelto en el grupo de WhatsApp.",
+    tips: [
+      "Si la mercancía viene con factura de compra, elígela: los productos esperados se cargan solos.",
+      "Toma fotos de las cajas y de la factura física al recibir.",
+      "Al cerrar, las diferencias quedan anotadas y se avisa en el canal de inventario.",
+    ],
+    tier: "core",
+    category: "inventario",
+  },
+  juegos: {
+    emoji: "🎮",
+    label: "Juegos",
+    description:
+      "Un rato de descanso dentro de la Agenda. Los juegos corren aislados del panel: no ven tu sesión ni tus datos y no se conectan a internet.",
+    tips: [
+      "Duck Hunt: apunta con el mouse y dispara con clic. Tienes 3 tiros por pato.",
+      "Circus Charlie: el original de NES emulado, 5 etapas. Enter arranca, ← → corre, Espacio salta; M silencia.",
+      "El sonido arranca después del primer clic (el navegador no deja reproducir audio antes).",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  colaboradores: {
+    emoji: "🤝",
+    label: "Colaboradores",
+    description:
+      "Diagramas de flujo que Armando construye con un colaborador externo, a mano y desde el celular: cajas que se arrastran, flechas que las unen y un texto por paso, hasta acordar entre los dos cómo se relacionan en un proyecto conjunto.",
+    tips: [
+      "Toca «＋ Caja» y arrástrala con el dedo. Para unir dos cajas: toca una → «Unir con otra caja» → toca la otra.",
+      "Lo que guarda uno lo ve el otro en segundos; si los dos editan a la vez, los cambios se combinan.",
+      "Cada guardado es una versión: en «Historial» se puede volver a cualquiera.",
+      "«Ver en Archify» genera la versión presentable (solo lectura), con el acabado de los diagramas del Mapa del sistema.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  "mapa-vivo": {
+    emoji: "🧭",
+    label: "Mapa",
+    description:
+      "Toda la aplicación en una sola pantalla: la secuencia del negocio de la compra a la contabilidad, con lo que a ti te toca en cada etapa, lo que está detenido y tus pendientes. Es la pantalla de inicio.",
+    tips: [
+      "Arrastra para moverte y pellizca (o usa la rueda) para acercarte. «Encuadrar» vuelve a mostrar todo.",
+      "Toca un panel dentro de una etapa para abrirlo. Para volver, «◇ Mapa» en el cabezote.",
+      "La etapa que late en amarillo tiene solicitudes tuyas: es tu camino de hoy. Las apagadas son de otras personas.",
+      "«Etapas · Cotidiano · Todo» cambia cuánto detalle se ve; «Todo» dice qué se hace en cada panel.",
+    ],
+    tier: "core",
+    category: "inicio",
+  },
+  "mapa-sistema": {
+    emoji: "🗺️",
+    label: "Mapa del sistema",
+    description:
+      "Cómo se conectan las piezas de un producto (combo en Alegra → documento técnico → código EAN → etiqueta → publicación) y de un pago, con los números de este momento: cuántos pasan cada eslabón, cuáles se quedan y por qué.",
+    tips: [
+      "Toca una caja para ver qué productos se quedan en ese eslabón y el motivo de cada uno.",
+      "«Documentos sin combo» son fichas ya escritas que nada vende: no les falta documento, les falta el combo en Alegra.",
+      "Se actualiza solo cada 30 segundos y no llama a Alegra ni a MeLi: lee la copia local del catálogo.",
+    ],
+    tier: "standard",
+    category: "inventario",
+  },
+  producto: {
+    emoji: "🏷️",
+    label: "Espacio de producto",
+    description:
+      "Una presentación de venta con todo lo que la respalda en un solo lugar: su ficha técnica (TDS · COA · SDS), su etiqueta, su código EAN y los PNG aprobados. Se elige el producto una vez; cada pestaña es el apartado de siempre ya abierto en él.",
+    tips: [
+      "Los puntos de cada pestaña dicen si esa pieza está completa (verde), a medias (ámbar) o falta (rojo).",
+      "Si corriges la ficha técnica y pasas a la etiqueta, la barra de estado ofrece traer lo corregido.",
+      "Diseño y Docs técnicos siguen existiendo para el trabajo en lote (varias etiquetas, la biblioteca de PDF).",
+    ],
+    tier: "core",
+    category: "diseno",
+  },
+  combos: {
+    emoji: "🧩",
+    label: "Combos",
+    description:
+      "La fotografía de cada producto de venta con todo lo que lo compone: la receta que descuenta de inventario (materia prima, bolsa, envase, etiqueta, cuchara…) y lo que lo respalda (documento técnico, código EAN, diseño de etiqueta y publicación).",
+    tips: [
+      "Una ranura vacía es algo que falta: el texto dice por qué y qué la destraba.",
+      "Si la receta descuenta una cantidad distinta a la presentación (500 g que descuentan 5001), aparece como aviso.",
+      "La etiqueta se muestra cuando ya se exportó a PNG desde Diseño → Imprimir con el mismo nombre del combo.",
+    ],
+    tier: "standard",
+    category: "inventario",
+  },
   empaque: {
     emoji: "📷",
     label: "Empaque",
@@ -204,6 +336,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "En Catálogo → Sitios verás dos ventanas: Página web | Mercado Libre.",
       "Web: botón «No mostrar en la web», ordenar/eliminar fotos. MeLi: editar precio, pausar/activar y fotos.",
       "Marca las fotos que no sirven (☑) y elimínalas; la ★ es la que se ve primero en cada sitio.",
+    ],
+    tier: "standard",
+    category: "publicaciones",
+  },
+
+  "canales-producto": {
+    emoji: "📡",
+    label: "Canales del producto",
+    description:
+      "Cada SKU de venta en todos sus canales a la vez: si existe en Alegra, si tiene combo, EAN, documento y etiqueta, si está en MercadoLibre y en la web, y si una venta suya se puede facturar. Solo muestra: cada problema lleva al apartado donde se corrige.",
+    tips: [
+      "Empieza por «No se puede facturar»: son publicaciones que venden con un código que Alegra no conoce.",
+      "«Verificar en vivo» pregunta a Alegra lo mismo que preguntaría la facturación, para ese SKU.",
+      "La pestaña Categorías pone lado a lado la categoría de etiquetas, la de la web y la de MeLi.",
     ],
     tier: "standard",
     category: "publicaciones",
@@ -451,11 +597,26 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     emoji: "🧮",
     label: "Libro Mayor",
     description:
-      "Contabilidad de partida doble propia: plan de cuentas, terceros (proveedores, clientes, socios), asientos con débito/crédito y cuentas T. Incluye plantillas para compras de socios (p.ej. Amazon con comisión, registradas como cuenta por pagar) y compras a proveedores/socios-proveedores (p.ej. materia prima transformada).",
+      "Contabilidad de partida doble propia, organizada en cuatro etapas: Conciliar (cargar extracto → emparejar → clasificar → verificar), Registrar (ingresos, egresos, compras y pagos de socios, asiento manual), Consultar (movimientos, cuentas T, balance, informes) y Configurar (plan de cuentas, terceros, créditos). El ámbito «Socios» abre el expediente personal de cada socio.",
     tips: [
-      "Vista Simple: acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor) y saldos pendientes con cada socio.",
-      "Vista Avanzada: plan de cuentas, terceros, cuentas T por cuenta y balance de comprobación.",
+      "Conciliar es un wizard: cada paso dice si está hecho, parcial o pendiente y lleva a la acción exacta.",
+      "Registrar reúne las acciones rápidas (ingreso, egreso, compra de socio, pago a socio, compra a proveedor, aporte) y el asiento manual.",
       "Toda compra de un socio a nombre propio (p.ej. Amazon) se registra como cuenta por pagar al socio, no como gasto directo — el giro posterior salda esa cuenta.",
+      "Cambia a «Socios» arriba para ver la contabilidad personal de un socio dentro de la de la empresa.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
+  socios: {
+    emoji: "🧑‍💼",
+    label: "Socios",
+    description:
+      "Expediente fiscal de cada socio dentro de la contabilidad de McKenna: sus extractos bancarios personales, su cuenta con la empresa, los cruces banco-socio ↔ banco-empresa, y el Declarador de activos digitales (declaraciones F210 presentadas, historial de Binance, efecto por año, pendientes y un agente asesor). Es un wizard: cada paso muestra qué falta y dónde se completa.",
+    tips: [
+      "Cada socio ve SOLO su expediente; únicamente la cuenta admin ve los de todos.",
+      "«Importar carpeta del Declarador» trae los documentos, años y pendientes que ya se trabajaron en /home/mckg/Declarador sin copiarlos.",
+      "Los extractos personales nunca entran a la conciliación de la empresa: solo se cruzan con ella en el paso «Cruces».",
+      "El agente lee el expediente con herramientas y registra hallazgos; cada llamada pasa por el presupuesto LLM.",
     ],
     tier: "standard",
     category: "contabilidad",
@@ -470,6 +631,20 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "Las opciones salen de los saldos reales: proveedores con deuda, cuotas del mes, servicios activos.",
       "El asiento se MUESTRA antes de aprobar — quien firma ve contra qué cuenta va.",
       "Una solicitud rechazada no deja ningún rastro contable.",
+    ],
+    tier: "standard",
+    category: "contabilidad",
+  },
+  "conciliacion-contador": {
+    emoji: "🧭",
+    label: "Conciliación contador",
+    description:
+      "Cruce de lo que el contador declaró (formularios 350 y recibos 490 bajados del correo) contra la cuenta 2365 del Libro Mayor. Cada diferencia es un paso del wizard: se decide, y si hay que resolverla con el contador se vuelve TKT del Centro de Mando.",
+    tips: [
+      "«Bajar del correo y analizar» trae los PDF del contador desde el Gmail de la empresa y los cruza; no usa IA.",
+      "Un hallazgo que deja de detectarse se cierra solo — no hay que marcarlo.",
+      "Marcar a un tercero como Régimen SIMPLE cambia sus datos en el Libro Mayor; crear el TKT no cambia nada hasta que alguien lo resuelva.",
+      "Historial muestra quién decidió qué, con el número de ticket y su estado.",
     ],
     tier: "standard",
     category: "contabilidad",
@@ -610,12 +785,13 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   contenido: {
     emoji: "🎬",
     label: "Contenido",
-    description: "Herramientas para preparar video antes de publicarlo. Por ahora: quitar una marca de agua estática (franja o región fija) de un video.",
+    description: "Herramientas de video: quitar una marca de agua estática, generar audio con la voz clonada y grabar una sección de la pantalla con su audio para sacar fragmentos y enviarlos por WhatsApp.",
     tips: [
       "Sube el video y ajusta la franja inferior (o una región exacta) donde está la marca.",
       "El proceso corre en segundo plano — puedes seguir usando el panel mientras termina.",
       "Se conserva el audio original del video automáticamente.",
       "Videos largos o en alta resolución tardan más: el inpainting se calcula fotograma a fotograma.",
+      "Grabar pantalla: comparte una pestaña con su audio, marca inicio/fin con I y O y envía el fragmento por WhatsApp.",
     ],
     tier: "standard",
     category: "contenido",

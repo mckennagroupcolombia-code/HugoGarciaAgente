@@ -70,3 +70,39 @@ def test_put_establecer_paso_completado(tickets_client):
     pasos2 = data2["pasos"] if isinstance(data2, dict) else data2
     paso2 = next(p for p in pasos2 if p["id"] == 10)
     assert paso2["completado"] == 0
+
+
+# ── Una base nueva queda completa en la primera pasada (sep-2026) ───────────
+# Las 34 migraciones corrían ANTES del executescript que crea las tablas, así
+# que en una base nueva todas se saltaban calladas: faltaban columnas y el
+# CREATE TABLE traía un CHECK que solo permitía tres categorías de las nueve
+# que se usan. `crear_ticket` con categoría 'contabilidad' fallaba en silencio
+# (devuelve error, no excepción) hasta que alguien llamara init_db otra vez.
+
+
+def test_base_nueva_acepta_las_categorias_reales_en_la_primera_pasada(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app.services import tickets_db as tdb
+
+    monkeypatch.setattr(tdb, "DB_PATH", str(tmp_path / "t.db"))
+    tdb.init_db()   # UNA sola vez, como en una instalación nueva
+
+    con = sqlite3.connect(tdb.DB_PATH)
+    con.execute("INSERT OR IGNORE INTO roles (id,nombre,nivel) VALUES (1,'A',3)")
+    con.execute("INSERT OR IGNORE INTO usuarios (id,username,nombre,password_hash,rol_id,activo)"
+                " VALUES (1,'admin','A','x',1,1)")
+    con.commit()
+
+    for categoria in ("contabilidad", "logistica", "diseno", "operaciones"):
+        t, err = tdb.crear_ticket(
+            {"tipo": "solicitud", "titulo": "P", "categoria": categoria,
+             "descripcion": "d", "prioridad": "alta"},
+            1, None,
+        )
+        assert not err, f"categoría {categoria}: {err}"
+        assert t["numero"]
+
+    # Las columnas que agregan las migraciones tienen que estar ya
+    cols = {r[1] for r in con.execute("PRAGMA table_info(tickets)")}
+    assert {"tipo", "subtipo", "frecuencia", "protocolo_id", "fecha_inicio"} <= cols

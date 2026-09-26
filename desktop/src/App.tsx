@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useAppStore, type Panel, waitForAppHydration } from "./stores/app";
 import { useTicketsAuth, type TicketsUser, ensureTicketsAuthHydrated } from "./stores/ticketsAuth";
-import MobileHub, { useMobileLayout } from "./components/MobileHub";
+import MobileHub, { BarraMovil, useMobileLayout } from "./components/MobileHub";
+import VentanaAuxiliarShell from "./components/VentanaAuxiliarShell";
+import { esVentanaAuxiliar } from "./lib/ventanaAuxiliar";
+import { readNavHash } from "./lib/navHash";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import TicketsPanel from "./components/TicketsPanel";
@@ -21,6 +24,14 @@ const FichasTecnicasPanel = lazy(() => import("./components/FichasTecnicasPanel"
 const PedidosWebPanel = lazy(() => import("./components/PedidosWebPanel"));
 const EmpaquePanel = lazy(() => import("./components/EmpaquePanel"));
 const GuiasEnvioPanel = lazy(() => import("./components/GuiasEnvioPanel"));
+const EntregasFlexPanel = lazy(() => import("./components/EntregasFlexPanel"));
+const MapaSistemaPanel = lazy(() => import("./components/MapaSistemaPanel"));
+const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"));
+const MapaVivo = lazy(() => import("./components/MapaVivo"));
+const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
+const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
+const CombosPanel = lazy(() => import("./components/CombosPanel"));
+const EspacioProductoPanel = lazy(() => import("./components/EspacioProductoPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
 const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
@@ -42,26 +53,30 @@ const PlacasConcretoPanel = lazy(() => import("./components/PlacasConcretoPanel"
 const ContenidoPanel = lazy(() => import("./components/ContenidoPanel"));
 const InventarioPanel = lazy(() => import("./components/InventarioPanel"));
 const PublicacionesPanel = lazy(() => import("./components/PublicacionesPanel"));
+const CanalesProductoPanel = lazy(() => import("./components/canales_producto/CanalesProductoPanel"));
+const ChatEquipoPanel = lazy(() => import("./components/chat_equipo/ChatEquipoPanel"));
+const RecepcionMercanciaPanel = lazy(() => import("./components/recepcion/RecepcionMercanciaPanel"));
 const VitrinaWebPanel = lazy(() => import("./components/VitrinaWebPanel"));
 const LogisticaInternacionalPanel = lazy(
   () => import("./components/LogisticaInternacionalPanel"),
 );
 const Settings = lazy(() => import("./components/Settings"));
 const PerfilPanel = lazy(() => import("./components/PerfilPanel"));
+import { PANEL_INFO } from "./lib/panelInfo";
 import { usePanelTheme } from "./stores/panelTheme";
 import { useQuestTheme } from "./stores/questTheme";
 import {
   applyUserUiPreferences,
+  guardarMigracionEstilo,
   resetSaveBaseline,
   scheduleSaveUserUiPreferences,
 } from "./lib/userThemeSync";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
-import { esPanelContabilidad, puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
-import { puedeVerModuloLogistica } from "./lib/logisticaAccess";
-import { esAdminPanel } from "./lib/adminAccess";
-import { puedeVerGuiasEnvio } from "./lib/panelAccess";
+import { esPanelContabilidad } from "./lib/contabilidadAccess";
+import { panelDeInicio, puedeVerSeccionPanel } from "./lib/panelAccess";
+import { instalarSonidos } from "./lib/sonidosJuego";
 import { NAV_PANEL_ORDER } from "./lib/navStructure";
 
 function PanelCargando() {
@@ -72,16 +87,18 @@ function PanelCargando() {
   );
 }
 
-function PanelRouter() {
+function PanelRouter({ panel }: { panel?: Panel } = {}) {
   return (
     <Suspense fallback={<PanelCargando />}>
-      <PanelRouterInner />
+      <PanelRouterInner impuesto={panel} />
     </Suspense>
   );
 }
 
-function PanelRouterInner() {
-  const panel = useAppStore((s) => s.panel);
+/** `impuesto` gana sobre el store: ver VentanaAuxiliarShell. */
+function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
+  const delStore = useAppStore((s) => s.panel);
+  const panel = impuesto ?? delStore;
   switch (panel) {
     case "hugo":
     case "tickets":
@@ -124,7 +141,9 @@ function PanelRouterInner() {
     case "creditos-adquiridos":
     case "prestamos":
     case "pagos":
+    case "conciliacion-contador":
     case "libro-mayor":
+    case "socios":
       return <ContabilidadPanel />;
     case "rentabilidad":
     case "publicidad":
@@ -143,6 +162,22 @@ function PanelRouterInner() {
       return <EmpaquePanel />;
     case "guias-envio":
       return <GuiasEnvioPanel />;
+    case "entregas-flex":
+      return <EntregasFlexPanel />;
+    case "mapa-sistema":
+      return <MapaSistemaPanel />;
+    case "mapa-vivo":
+      return <MapaVivo />;
+    case "colaboradores":
+      return <ColaboradoresPanel />;
+    case "juegos":
+      return <JuegosPanel />;
+    case "arquitectura":
+      return <ArquitecturaPanel />;
+    case "combos":
+      return <CombosPanel />;
+    case "producto":
+      return <EspacioProductoPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -156,6 +191,12 @@ function PanelRouterInner() {
       return <InventarioPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
+    case "canales-producto":
+      return <CanalesProductoPanel />;
+    case "chat-equipo":
+      return <ChatEquipoPanel />;
+    case "recepcion-mercancia":
+      return <RecepcionMercanciaPanel />;
     case "vitrina-web":
       return <VitrinaWebPanel />;
     case "logistica-importaciones":
@@ -211,6 +252,33 @@ function AppLoginView({
         setLoading(false);
       });
   }, [onLogin, bootstrapUntil]);
+
+  // Ingreso con correo (o usuario) y contraseña: para quien no entra con Google
+  // —el contador externo—. El servidor frena la fuerza bruta (5 fallos → 15 min).
+  const [cred, setCred] = useState({ usuario: "", clave: "" });
+  const ingresarConClave = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    setLoading(true);
+    try {
+      const r = await fetch("/api/tickets/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cred.usuario.trim(), password: cred.clave }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || !body?.token || !body?.usuario?.id) {
+        setAuthError(body?.error === "Credenciales inválidas" ? "Correo o contraseña incorrectos." : (body?.error || `Error ${r.status}`));
+        setLoading(false);
+        return;
+      }
+      bootstrapUntil.current = Date.now() + OAUTH_BOOTSTRAP_MS;
+      onLogin(body.token as string, body.usuario as TicketsUser, body.usuario.api_token ?? null);
+    } catch {
+      setAuthError("No se pudo conectar con el servidor.");
+      setLoading(false);
+    }
+  }, [cred, onLogin, bootstrapUntil]);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
@@ -269,6 +337,24 @@ function AppLoginView({
           </a>
         )}
 
+        {!loading && (
+          <form onSubmit={(e) => void ingresarConClave(e)} className="mt-5 space-y-2 border-t border-border pt-5">
+            <p className="text-center text-xs text-muted">o con tu correo y contraseña</p>
+            <input type="text" autoComplete="username" value={cred.usuario}
+                   onChange={(e) => setCred({ ...cred, usuario: e.target.value })}
+                   placeholder="Correo o usuario"
+                   className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent" />
+            <input type="password" autoComplete="current-password" value={cred.clave}
+                   onChange={(e) => setCred({ ...cred, clave: e.target.value })}
+                   placeholder="Contraseña"
+                   className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent" />
+            <button type="submit" disabled={!cred.usuario.trim() || !cred.clave}
+                    className="w-full rounded-paper border-2 border-border bg-surface py-2.5 text-sm font-semibold text-ink transition hover:border-accent disabled:opacity-40">
+              Ingresar
+            </button>
+          </form>
+        )}
+
         <p className="mt-5 text-center text-xs text-muted">
           Solo cuentas autorizadas por el administrador
         </p>
@@ -279,29 +365,25 @@ function AppLoginView({
 
 const NAV_ORDER: Panel[] = NAV_PANEL_ORDER;
 
+// Se lee al cargar el módulo: el login limpia la query (`?_token=`) antes de que haya sesión.
+let PANEL_DEL_ENLACE: string | null =
+  typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("panel") : null;
+// El mapa es lo primero que ve cada persona al ENTRAR (decisión 25-sep-2026). Una vez por
+// carga de la página: navegar dentro de la app ya no la devuelve al mapa.
+let INICIO_EN_MAPA = true;
+
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  // "perfil" no es una sección con permiso: es la ficha del propio usuario.
   if (panel === "perfil") return true;
-  const logistica = puedeVerModuloLogistica(user, panel);
-  if (logistica !== null) return logistica;
-  const contab = puedeVerModuloContabilidad(user, panel);
-  if (contab !== null) return contab;
-  if (panel === "etiquetas") return true;
-  if (panel === "empaque") return true;
-  // Rótulos de envío: los hace quien despacha (pedidos/empaque). Regla
-  // compartida con el menú (lib/panelAccess) para que no diverjan.
-  if (panel === "guias-envio") return puedeVerGuiasEnvio(user);
-  if (panel === "hugo" || panel === "tickets") {
-    if (esAdminPanel(user)) return true;
-    const p = user.permisos_secciones;
-    if (!p) return true;
-    return Boolean(p.tickets);
-  }
-  if (esAdminPanel(user)) return true;
-  const p = user.permisos_secciones;
-  if (!p) return panel === "settings";
-  if (panel === "postventa" && p.preventa) return true;
-  if (panel === "vitrina-web" && p.publicaciones) return true;
-  return Boolean(p[panel]);
+  // Fuente de verdad ÚNICA con el menú (lib/panelAccess). No duplicar la
+  // escalera de permisos acá: si divergen, un panel que el menú muestra rebota
+  // al abrirse — y como HubNavTabs guarda el último subpanel visitado del hub
+  // (guardarUltimoPanelHub), el hub COMPLETO queda inaccesible desde el
+  // launcher. Pasó con "Correo Ventas" (ventas-email, heredado de `preventa`
+  // solo en panelAccess): al usuario jerry se le cerró toda la sección
+  // Atención — preventa, postventa, pedidos web, empaque, guías y agente WA —
+  // aunque tenía los permisos.
+  return puedeVerSeccionPanel(user, panel);
 }
 
 const OAUTH_BOOTSTRAP_MS = 4000;
@@ -344,6 +426,7 @@ export default function App() {
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
+  const setAccesoDenegado = useAppStore((s) => s.setAccesoDenegado);
   const hasHydrated = useAppStore((s) => s._hasHydrated);
   const lastAppliedPrefs = useRef<string | null>(null);
   const bootstrapUntil = useRef(0);
@@ -354,13 +437,30 @@ export default function App() {
   const [forceDesktop, setForceDesktop] = useState(
     () => typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1"
   );
+  // Ventana auxiliar: el apartado se lee del hash con el que se abrió y se
+  // queda acá, fuera del store, para no pisarle el panel a la ventana principal.
+  const [auxiliar] = useState(esVentanaAuxiliar);
+  const [panelAux, setPanelAux] = useState<Panel>(() => readNavHash()?.panel ?? "hugo");
   // Hub simplificado por defecto en móvil (incluida la app Android) — el usuario elige
   // "vista escritorio" explícitamente desde el hub si la necesita; al abrir paneles →
   // Layout responsive (mobileShell=app).
-  const showMobile = isMobile && !forceDesktop && mobileShell === "hub";
+  const mobileTab = useAppStore((s) => s.mobileTab);
+  const setMobileTab = useAppStore((s) => s.setMobileTab);
+  // «Agenda» en el celular ES la agenda de escritorio (Layout + navegación por flujo):
+  // el hub solo pinta Hugo · Mensajes · Rápido · Yo. Antes el celular tenía su propia
+  // portada con otro lenguaje visual y se sentía como otra aplicación.
+  const showMobile = isMobile && !forceDesktop && mobileShell === "hub" && mobileTab !== "home";
+  const irAgendaMovil = () => {
+    // La pestaña de inicio del celular abre el Mapa (la portada de la Agenda ya no existe).
+    setPanel(panelDeInicio(useTicketsAuth.getState().user));
+    setMobileTab("home");
+    setMobileShell("app");
+  };
 
   useEffect(() => {
     document.documentElement.classList.remove("mck-apk");
+    // Sonidos de juego al tocar los apartados (Mapa, Edificio, pestañas con la piel pixel).
+    instalarSonidos();
   }, []);
 
   useEffect(() => {
@@ -393,6 +493,7 @@ export default function App() {
     lastAppliedPrefs.current = json;
     applyUserUiPreferences(user.preferencias_ui);
     resetSaveBaseline(user.preferencias_ui);
+    guardarMigracionEstilo(token);
   }, [user, token]);
 
   useEffect(() => {
@@ -466,14 +567,39 @@ export default function App() {
     if (panel === "tickets") setPanel("hugo");
   }, [panel, setPanel]);
 
-  // Si el panel guardado no es visible para este usuario, ir al primero disponible
+  // Al entrar, el mapa. Va ANTES del enlace directo: si hay `?panel=…`, manda el enlace
+  // (ese efecto lo consume después). En el celular también se sale del hub hacia el mapa.
+  useEffect(() => {
+    if (!user || !hasHydrated || !INICIO_EN_MAPA) return;
+    INICIO_EN_MAPA = false;
+    if (PANEL_DEL_ENLACE || !puedeVerPanel(user, "mapa-vivo")) return;
+    setPanel("mapa-vivo");
+    if (isMobile) {
+      useAppStore.getState().setMobileTab("home");
+      setMobileShell("app");
+    }
+  }, [user, hasHydrated, setPanel, isMobile, setMobileShell]);
+
+  // Enlace directo a una sección (`/app?panel=recepcion-mercancia`), p. ej. desde el aviso
+  // que el bot deja en un grupo de WhatsApp. Se aplica una sola vez, ya con sesión.
+  useEffect(() => {
+    if (!user || !hasHydrated || !PANEL_DEL_ENLACE) return;
+    const destino = PANEL_DEL_ENLACE as Panel;
+    PANEL_DEL_ENLACE = null;
+    if (destino in PANEL_INFO && puedeVerPanel(user, destino)) setPanel(destino);
+  }, [user, hasHydrated, setPanel]);
+
+  // Si el panel guardado no es visible para este usuario, ir al primero
+  // disponible — y DECIRLO. Sin el aviso, el rebote se ve como "el panel me
+  // saca de la pantalla" y nadie sabe que falta un permiso.
   useEffect(() => {
     if (!user || !hasHydrated) return;
     if (!puedeVerPanel(user, panel)) {
       const first = NAV_ORDER.find((p) => puedeVerPanel(user, p)) ?? "settings";
+      setAccesoDenegado(panel);
       setPanel(first);
     }
-  }, [user, panel, setPanel, hasHydrated]);
+  }, [user, panel, setPanel, setAccesoDenegado, hasHydrated]);
 
   if (!authHydrated) {
     return (
@@ -515,6 +641,17 @@ export default function App() {
     );
   }
 
+  if (auxiliar) {
+    return (
+      <>
+        <ThemesDialog />
+        <VentanaAuxiliarShell panel={panelAux} onPanel={setPanelAux}>
+          <PanelRouter panel={panelAux} />
+        </VentanaAuxiliarShell>
+      </>
+    );
+  }
+
   if (showMobile) {
     return (
       <>
@@ -528,6 +665,7 @@ export default function App() {
             setMobileShell("app");
           }}
           onOpenPanel={() => setMobileShell("app")}
+          onAgenda={irAgendaMovil}
         />
       </>
     );
@@ -539,13 +677,18 @@ export default function App() {
       <BarbieSparkles />
       <ThemesDialog />
       <Layout
-        onBackToMobileHub={
-          isMobile && !forceDesktop
-            ? () => {
+        barraMovil={
+          isMobile && !forceDesktop ? (
+            <BarraMovil
+              active="home"
+              onChange={(t) => {
+                if (t === "home") return irAgendaMovil();
+                setMobileTab(t);
                 setMobileShell("hub");
-                setPanel("hugo");
-              }
-            : undefined
+              }}
+              conNueva={panel === "hugo" || panel === "tickets"}
+            />
+          ) : undefined
         }
         onExitForceDesktop={
           forceDesktop && isMobile

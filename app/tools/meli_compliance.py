@@ -1968,7 +1968,13 @@ def crear_publicacion_meli(
                 _actualizar_descripcion(item_id, descripcion, headers)
                 # Reactivar si quedó pausada por stock
                 item_live = obtener_item_meli(item_id)
-                if item_live and item_live.get("status") == "paused":
+                from app.services.meli import pausa_global_meli_activa
+
+                if (
+                    item_live
+                    and item_live.get("status") == "paused"
+                    and not pausa_global_meli_activa()
+                ):
                     sub = [str(s).lower() for s in (item_live.get("sub_status") or [])]
                     if "out_of_stock" in sub and user_product_id:
                         _asignar_stock_user_product(user_product_id, stock)

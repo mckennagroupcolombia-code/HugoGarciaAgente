@@ -3,7 +3,18 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
+// Después de index.css: la piel pixel (la base de todos) manda sobre las reglas base.
+import "./theme/skin-pixel.css";
+// Traducción de los ~750 colores escritos a mano en los paneles (generada: desktop/scripts/pixel).
+import "./theme/skin-pixel-paleta.css";
+// «Barbie Agenda» sobre la base pixel: rosa Barbie y tonos Peach (claro y oscuro).
+import "./theme/skin-barbie-pixel.css";
+// «Princesa Peach»: menú de videojuego retro en pastel (reemplaza a Sakura, 26-sep-2026).
+import "./theme/skin-peach-pixel.css";
+// El mapa (MapaVivo + Edificio) en la gama de color de cada tema.
+import "./theme/mapa-temas.css";
 import { initFantasyPress } from "./lib/fantasyPress";
+import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
@@ -53,3 +64,5 @@ createRoot(document.getElementById("root")!).render(
 );
 
 initFantasyPress();
+// Monedas que paga el servidor por las acciones de cada usuario: se ven en cualquier panel.
+escucharMonedasDelServidor();

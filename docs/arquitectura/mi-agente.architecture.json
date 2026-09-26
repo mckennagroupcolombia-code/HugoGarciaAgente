@@ -1,0 +1,451 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Arquitectura de mi-agente — McKenna Group",
+    "output": "mi-agente.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1270,
+      690
+    ],
+    "views": [
+      {
+        "id": "camino-cliente",
+        "label": "Camino del cliente",
+        "focus": [
+          "whatsapp",
+          "bridges",
+          "agente",
+          "routes",
+          "services"
+        ],
+        "note": "Un mensaje de WhatsApp entra por el puente Node y termina en la capa de servicios cruzando el monolito de rutas."
+      },
+      {
+        "id": "monolito",
+        "label": "El cuello de botella",
+        "focus": [
+          "agente",
+          "routes",
+          "blueprints",
+          "services"
+        ],
+        "note": "1.023 de las 1.291 rutas viven en un solo archivo; los 14 blueprints reparten apenas el resto."
+      },
+      {
+        "id": "sin-rutas",
+        "label": "Lo que no pasa por rutas",
+        "focus": [
+          "meli",
+          "webhook",
+          "cron",
+          "services",
+          "stores"
+        ],
+        "note": "El webhook de MercadoLibre y los cron entran directo a servicios, sin tocar la capa de rutas de :8081."
+      }
+    ],
+    "repository": {
+      "url": "https://github.com/mckennagroupcolombia-code/HugoGarciaAgente",
+      "provider": "github",
+      "link_mode": "local-only",
+      "revision": "fe779280078782fc75d13c4f3df9f25894e96363"
+    }
+  },
+  "components": [
+    {
+      "id": "meli",
+      "type": "external",
+      "label": "MercadoLibre",
+      "sublabel": "webhooks",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        160,
+        64
+      ],
+      "tag": "questions · orders · shipments"
+    },
+    {
+      "id": "whatsapp",
+      "type": "external",
+      "label": "WhatsApp",
+      "sublabel": "whatsapp-web.js",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "panel",
+      "type": "frontend",
+      "label": "Panel React",
+      "sublabel": "/app · React 19",
+      "pos": [
+        40,
+        320
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "tienda",
+      "type": "frontend",
+      "label": "Tienda web",
+      "sublabel": "mckennagroup.co",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "cron",
+      "type": "backend",
+      "label": "Cron · systemd",
+      "sublabel": "~28 tareas",
+      "pos": [
+        40,
+        560
+      ],
+      "size": [
+        160,
+        64
+      ]
+    },
+    {
+      "id": "webhook",
+      "type": "backend",
+      "label": "webhook_meli.py",
+      "sublabel": "Flask :8080",
+      "pos": [
+        270,
+        80
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "webhook_meli.py",
+          "label": "webhook MeLi"
+        }
+      ]
+    },
+    {
+      "id": "bridges",
+      "type": "messagebus",
+      "label": "Puentes Node",
+      "sublabel": ":3000 · :3001",
+      "pos": [
+        270,
+        200
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "bot-mckenna/server.js",
+          "label": "puente WhatsApp"
+        }
+      ],
+      "tag": "bot-mckenna · supervisor"
+    },
+    {
+      "id": "agente",
+      "type": "backend",
+      "label": "agente_pro.py",
+      "sublabel": "Flask :8081",
+      "pos": [
+        270,
+        320
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "agente_pro.py",
+          "label": "app principal"
+        }
+      ]
+    },
+    {
+      "id": "website",
+      "type": "backend",
+      "label": "website.py",
+      "sublabel": "Flask :8083",
+      "pos": [
+        270,
+        440
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "PAGINA_WEB/site/website.py",
+          "label": "tienda"
+        }
+      ]
+    },
+    {
+      "id": "routes",
+      "type": "backend",
+      "label": "app/routes.py",
+      "sublabel": "24.887 líneas · 1.023 rutas",
+      "pos": [
+        520,
+        210
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "tag": "356 imports diferidos",
+      "sources": [
+        {
+          "path": "app/routes.py",
+          "label": "monolito de rutas"
+        }
+      ]
+    },
+    {
+      "id": "blueprints",
+      "type": "backend",
+      "label": "14 × routes_*.py",
+      "sublabel": "5.743 líneas · 268 rutas",
+      "pos": [
+        520,
+        400
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "app/routes_tickets.py",
+          "label": "blueprint mayor"
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "type": "backend",
+      "label": "app/services · app/tools",
+      "sublabel": "57 módulos de dominio",
+      "pos": [
+        790,
+        300
+      ],
+      "size": [
+        200,
+        76
+      ],
+      "tag": "contabilidad · alegra"
+    },
+    {
+      "id": "stores",
+      "type": "database",
+      "label": "SQLite · ChromaDB",
+      "sublabel": "tickets · wa_chats",
+      "pos": [
+        1040,
+        190
+      ],
+      "size": [
+        190,
+        70
+      ],
+      "tag": "contabilidad.db"
+    },
+    {
+      "id": "apis",
+      "type": "external",
+      "label": "APIs externas",
+      "sublabel": "Claude · Gemini",
+      "pos": [
+        1040,
+        410
+      ],
+      "size": [
+        190,
+        70
+      ],
+      "tag": "Alegra · Siigo · MeLi"
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Servidor McKenna — un proceso por puerto",
+      "wraps": [
+        "webhook",
+        "bridges",
+        "agente",
+        "website",
+        "routes",
+        "blueprints",
+        "services",
+        "stores"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "meli-webhook",
+      "from": "meli",
+      "to": "webhook",
+      "label": "POST /notifications",
+      "labelDy": 56
+    },
+    {
+      "id": "wa-bridges",
+      "from": "whatsapp",
+      "to": "bridges",
+      "label": "sesión Chromium",
+      "labelDy": -26
+    },
+    {
+      "id": "panel-agente",
+      "from": "panel",
+      "to": "agente",
+      "label": "Bearer /api/*",
+      "labelDy": -26
+    },
+    {
+      "id": "tienda-website",
+      "from": "tienda",
+      "to": "website",
+      "label": "HTTPS",
+      "labelDy": -26
+    },
+    {
+      "id": "bridges-agente",
+      "from": "bridges",
+      "to": "agente",
+      "label": "POST /whatsapp",
+      "labelDy": 24
+    },
+    {
+      "id": "website-agente",
+      "from": "website",
+      "to": "agente",
+      "label": "/api/*",
+      "variant": "dashed"
+    },
+    {
+      "id": "agente-routes",
+      "from": "agente",
+      "to": "routes",
+      "label": "79 % de las rutas",
+      "variant": "emphasis",
+      "labelAt": [
+        490,
+        302
+      ]
+    },
+    {
+      "id": "agente-blueprints",
+      "from": "agente",
+      "to": "blueprints",
+      "label": "21 %"
+    },
+    {
+      "id": "routes-services",
+      "from": "routes",
+      "to": "services"
+    },
+    {
+      "id": "blueprints-services",
+      "from": "blueprints",
+      "to": "services"
+    },
+    {
+      "id": "webhook-services",
+      "from": "webhook",
+      "to": "services",
+      "label": "procesa en hilos daemon",
+      "variant": "dashed"
+    },
+    {
+      "id": "cron-services",
+      "from": "cron",
+      "to": "services",
+      "label": "sin pasar por rutas",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "bottom",
+      "via": [
+        [
+          120,
+          648
+        ],
+        [
+          890,
+          648
+        ]
+      ],
+      "labelAt": [
+        505,
+        648
+      ]
+    },
+    {
+      "id": "services-stores",
+      "from": "services",
+      "to": "stores",
+      "label": "lee · escribe"
+    },
+    {
+      "id": "services-apis",
+      "from": "services",
+      "to": "apis",
+      "label": "HTTPS"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Lo que está bien resuelto",
+      "items": [
+        "Un proceso por puerto, con su unidad systemd",
+        "Los webhooks responden 200 y procesan en hilos daemon"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "El cuello de botella",
+      "items": [
+        "app/routes.py concentra 1.023 de 1.291 rutas",
+        "356 imports dentro de funciones para evitar ciclos"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Por dónde partirlo",
+      "items": [
+        "routes_tickets.py ya extrae 189 rutas: el patrón funciona",
+        "Un blueprint por sprint, empezando por lo que más se toca"
+      ]
+    }
+  ]
+}

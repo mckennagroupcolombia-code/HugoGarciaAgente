@@ -37,6 +37,9 @@ export default function TechnicalCell({
   onEditarIcono,
   tituloOpciones,
   onTituloChange,
+  prefijoEstilo = "e30",
+  tamValor = TAM_30ML.valorCelda,
+  tamTitulo = 12.5,
 }: {
   campo: string;
   titulo: string;
@@ -52,6 +55,15 @@ export default function TechnicalCell({
   lineas?: string;
   onChange?: (v: string) => void;
   onEditarIcono?: () => void;
+  /** Prefijo de la clave en `text_styles`: cada formato guarda el tamaño y la
+   *  fuente de sus casillas por separado (30 mL = "e30", 5 mL = "e5"), si no
+   *  cambiar el título en una etiqueta lo cambiaría en la otra. */
+  prefijoEstilo?: string;
+  /** Tamaño máximo y mínimo del valor, en px de diseño. No es comparable
+   *  entre formatos: cada uno se maqueta a su propia escala de px por mm. */
+  tamValor?: readonly [number, number];
+  /** Tamaño del título, en px de diseño. */
+  tamTitulo?: number;
 }) {
   const cajaRef = useRef<HTMLDivElement>(null);
   return (
@@ -68,8 +80,8 @@ export default function TechnicalCell({
       <EditableLabel
         texto={titulo}
         editMode={editMode}
-        styleKey={`e30_${campo}Titulo`}
-        defaultFontSize={12.5}
+        styleKey={`${prefijoEstilo}_${campo}Titulo`}
+        defaultFontSize={tamTitulo}
         as="p"
         className="e30-celda-titulo"
         opciones={onTituloChange ? tituloOpciones : undefined}
@@ -80,9 +92,9 @@ export default function TechnicalCell({
         valor={valor}
         onChange={onChange}
         editMode={editMode}
-        styleKey={`e30_${campo}`}
+        styleKey={`${prefijoEstilo}_${campo}`}
         ejemplo={ejemplo}
-        tam={TAM_30ML.valorCelda}
+        tam={tamValor}
         maxLineas={3}
         cajaRef={cajaRef}
         multilinea

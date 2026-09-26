@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, fetchAuthBlobUrl } from "../api/client";
@@ -20,8 +21,8 @@ function esArchivoExtracto(file: File): boolean {
   );
 }
 
-function primerArchivoExtracto(files: FileList | File[]): File | null {
-  return Array.from(files).find(esArchivoExtracto) ?? null;
+function archivosExtracto(files: FileList | File[]): File[] {
+  return Array.from(files).filter(esArchivoExtracto);
 }
 
 function hayArchivosArrastrados(dt: DataTransfer): boolean {
@@ -367,11 +368,18 @@ function ExtractoCell({
  */
 export default function IngresosEgresosPanel({
   abrirPendientesSignal,
+  abrirCargaSignal,
+  abrirSugerenciasSignal,
 }: {
   /** Incrementar este número (desde fuera, ej. Libro Mayor → Informes) abre la
    * bandeja "Pendientes por clasificar" — útil para enlazar directo desde un
    * informe o atajo externo. */
   abrirPendientesSignal?: number;
+  /** Incrementar abre el selector de archivo para cargar un extracto (paso 1 del
+   * wizard «Conciliar» de Libro Mayor). */
+  abrirCargaSignal?: number;
+  /** Incrementar lanza «Vincular automáticamente» (paso 2 del wizard). */
+  abrirSugerenciasSignal?: number;
 } = {}) {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -413,6 +421,13 @@ export default function IngresosEgresosPanel({
   useEffect(() => {
     if (abrirPendientesSignal) setPendientesAbierto(true);
   }, [abrirPendientesSignal]);
+  useEffect(() => {
+    if (abrirCargaSignal) fileRef.current?.click();
+  }, [abrirCargaSignal]);
+  useEffect(() => {
+    if (abrirSugerenciasSignal) void abrirAutoVincular();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirSugerenciasSignal]);
   const [clasificarLinea, setClasificarLinea] = useState<PendienteLinea | null>(null);
   const [clasificarTipo, setClasificarTipo] = useState<ClasifTipo>("prestamo");
   const [clasificarSub, setClasificarSub] = useState<ClasifSub>("nuevo");
@@ -526,11 +541,17 @@ export default function IngresosEgresosPanel({
         if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
         base.cuenta_ingreso_id = Number(clasificarForm.cuenta_id);
         if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        // `registrar_ingreso` lee «valor», no «monto» — que es el que usan las
+        // plantillas de préstamos de arriba. Mandando solo «monto», la plantilla
+        // recibía valor 0 y respondía «fecha, concepto, valor… son requeridos»:
+        // clasificar una línea como ingreso o egreso nunca funcionó.
+        base.valor = linea.monto;
         ruta = "ingreso";
       } else {
         if (!clasificarForm.cuenta_id) throw new Error("Selecciona la cuenta contable");
         base.cuenta_gasto_id = Number(clasificarForm.cuenta_id);
         if (clasificarForm.tercero_id) base.tercero_id = Number(clasificarForm.tercero_id);
+        base.valor = linea.monto;  // ver nota en la rama de ingreso
         ruta = "egreso";
       }
       const r = await api.post<{ ok?: boolean; error?: string; movimiento?: { id: number } }>(
@@ -748,36 +769,66 @@ export default function IngresosEgresosPanel({
     }
   };
 
-  const onUpload = async (file: File) => {
+  const subirUnExtracto = async (file: File, aplicarNombre: boolean) => {
+    const fd = new FormData();
+    fd.append("archivo", file);
+    if (aplicarNombre && nombreExtracto.trim()) fd.append("nombre", nombreExtracto.trim());
+    if (banco.trim()) fd.append("banco", banco.trim());
+    if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
+    const r = await api.upload<{
+      ok?: boolean;
+      extracto?: {
+        id?: number;
+        nombre?: string;
+        lineas_count?: number;
+        periodo_desde?: string;
+        periodo_hasta?: string;
+      };
+      error?: string;
+    }>("/api/contabilidad/extractos", fd, { timeoutMs: 180_000 });
+    if (r.error) throw new Error(r.error);
+    return r.extracto;
+  };
+
+  /** Sube uno o varios extractos, en orden: el nombre manual solo aplica cuando es un solo archivo. */
+  const onUpload = async (archivos: File[]) => {
+    if (archivos.length === 0) return;
+    const varios = archivos.length > 1;
     setUploadBusy(true);
-    setUploadMsg(null);
+    setUploadMsg(varios ? `Subiendo 1 de ${archivos.length}…` : null);
+    const hechos: string[] = [];
+    const fallos: string[] = [];
     try {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      if (nombreExtracto.trim()) fd.append("nombre", nombreExtracto.trim());
-      if (banco.trim()) fd.append("banco", banco.trim());
-      if (cuenta.trim()) fd.append("cuenta", cuenta.trim());
-      const r = await api.upload<{
-        ok?: boolean;
-        extracto?: {
-          id?: number;
-          nombre?: string;
-          lineas_count?: number;
-          periodo_desde?: string;
-          periodo_hasta?: string;
-        };
-        error?: string;
-      }>("/api/contabilidad/extractos", fd, { timeoutMs: 180_000 });
-      if (r.error) throw new Error(r.error);
-      const ex = r.extracto;
-      const etiqueta = ex?.nombre ? ` «${ex.nombre}»` : "";
-      setUploadMsg(
-        `Extracto${etiqueta} guardado (#${ex?.id ?? "?"}): ${ex?.lineas_count ?? 0} líneas (${ex?.periodo_desde ?? "?"} → ${ex?.periodo_hasta ?? "?"}). Queda en la base de datos.`,
-      );
-      setNombreExtracto("");
-      await refreshAll();
-    } catch (e) {
-      setUploadMsg((e as Error).message || "Error al subir extracto");
+      for (let i = 0; i < archivos.length; i++) {
+        const file = archivos[i];
+        if (varios) setUploadMsg(`Subiendo ${i + 1} de ${archivos.length}: «${file.name}»…`);
+        try {
+          const ex = await subirUnExtracto(file, !varios);
+          hechos.push(
+            `«${ex?.nombre ?? file.name}» (#${ex?.id ?? "?"}): ${ex?.lineas_count ?? 0} líneas (${ex?.periodo_desde ?? "?"} → ${ex?.periodo_hasta ?? "?"})`,
+          );
+        } catch (e) {
+          fallos.push(`«${file.name}»: ${(e as Error).message || "no se pudo subir"}`);
+        }
+      }
+      if (!varios) {
+        setUploadMsg(
+          hechos.length
+            ? `Extracto ${hechos[0]}. Queda en la base de datos.`
+            : fallos[0] ?? "Error al subir extracto",
+        );
+      } else {
+        const partes = [
+          `${hechos.length} de ${archivos.length} extractos guardados.`,
+          ...(hechos.length ? [hechos.join(" · ")] : []),
+          ...(fallos.length ? [`No se pudieron subir: ${fallos.join(" · ")}`] : []),
+        ];
+        setUploadMsg(partes.join(" "));
+      }
+      if (hechos.length) {
+        if (!varios) setNombreExtracto("");
+        await refreshAll();
+      }
     } finally {
       setUploadBusy(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -815,12 +866,12 @@ export default function IngresosEgresosPanel({
     e.stopPropagation();
     setDropActivo(false);
     if (uploadBusy) return;
-    const file = primerArchivoExtracto(e.dataTransfer.files);
-    if (!file) {
-      setUploadMsg("Arrastre un CSV, Excel o PDF de extracto bancario.");
+    const files = archivosExtracto(e.dataTransfer.files);
+    if (files.length === 0) {
+      setUploadMsg("Arrastre uno o varios CSV, Excel o PDF de extracto bancario.");
       return;
     }
-    void onUpload(file);
+    void onUpload(files);
   };
 
   const onConsultarExtracto = async () => {
@@ -859,8 +910,9 @@ export default function IngresosEgresosPanel({
         <div>
           <h2 className="text-base font-bold text-ink">Tabla de contabilidad</h2>
           <p className="text-xs text-muted">
-            Ingresos y egresos por fecha. Arrastra el extracto bancario (CSV/Excel/PDF) a esta
-            pantalla o elige el archivo, y vincula cada movimiento contable con la línea del banco.
+            Ingresos y egresos por fecha. Arrastra los extractos bancarios (CSV/Excel/PDF) a esta
+            pantalla o elígelos con el botón — puedes marcar varios con Shift o Ctrl — y vincula cada
+            movimiento contable con la línea del banco.
           </p>
         </div>
 
@@ -995,18 +1047,19 @@ export default function IngresosEgresosPanel({
               ref={fileRef}
               type="file"
               accept=".csv,.xlsx,.xlsm,.txt,.tsv,.pdf,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void onUpload(f);
+                const files = archivosExtracto(e.target.files ?? []);
+                if (files.length) void onUpload(files);
               }}
             />
             <div
               role="button"
               tabIndex={uploadBusy ? -1 : 0}
               aria-disabled={uploadBusy}
-              aria-label="Arrastrar o elegir extracto bancario"
-              title="Arrastra el CSV, Excel o PDF, o haz clic para elegirlo"
+              aria-label="Arrastrar o elegir extractos bancarios"
+              title="Arrastra uno o varios CSV, Excel o PDF, o haz clic para elegirlos (Shift o Ctrl para seleccionar varios)"
               onClick={() => {
                 if (!uploadBusy) fileRef.current?.click();
               }}
@@ -1034,7 +1087,7 @@ export default function IngresosEgresosPanel({
               title="Abrir carpeta de extractos guardados"
             >
               <span aria-hidden className="text-sm leading-none">
-                📁
+                <Ico e="📁" />
               </span>
               Biblioteca
               {(extractosQ.data?.extractos?.length ?? 0) > 0 && (
@@ -1050,7 +1103,7 @@ export default function IngresosEgresosPanel({
               title="Buscar movimientos del libro y líneas del extracto que calzan por fecha y monto, para confirmarlos en bloque"
             >
               <span aria-hidden className="text-sm leading-none">
-                🔗
+                <Ico e="🔗" />
               </span>
               Vincular automáticamente
             </button>
@@ -1061,7 +1114,7 @@ export default function IngresosEgresosPanel({
               title="Líneas del banco (de cualquier extracto) sin ningún movimiento contable asociado en este rango"
             >
               <span aria-hidden className="text-sm leading-none">
-                ⚠️
+                <Ico e="⚠️" />
               </span>
               Pendientes por clasificar
               {(pendientesQ.data?.pendientes?.length ?? 0) > 0 && (
@@ -1537,7 +1590,7 @@ export default function IngresosEgresosPanel({
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
-                  <span aria-hidden>📁</span>
+                  <span aria-hidden><Ico e="📁" /></span>
                   Carpeta de extractos
                 </h3>
                 <p className="text-[11px] text-muted">
@@ -1722,7 +1775,7 @@ export default function IngresosEgresosPanel({
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-bold text-ink">
-                  <span aria-hidden>🔗</span>
+                  <span aria-hidden><Ico e="🔗" /></span>
                   Vincular automáticamente
                 </h3>
                 <p className="text-[11px] text-muted">

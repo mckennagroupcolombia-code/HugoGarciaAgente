@@ -4,22 +4,27 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/copy-ocr-assets.mjs && vite",
+    "build": "node scripts/copy-ocr-assets.mjs && tsc -b && vite build && npm run build:colab",
     "preview": "vite preview",
     "qa:smoke": "npm run build && node scripts/qa-smoke.mjs",
     "qa:alegra-nombre": "node scripts/qa-alegra-nombre.mjs",
     "qa:behavior": "node scripts/qa-behavior.mjs",
-    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior"
+    "qa:panel-access": "node scripts/qa-panel-access.mjs",
+    "qa:full": "npm run qa:smoke && npm run qa:alegra-nombre && npm run qa:behavior && npm run qa:panel-access",
+    "build:colab": "vite build -c vite.colab.config.ts && node scripts/verificar-build-colab.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.75.0",
+    "@xyflow/react": "^12.11.6",
     "html-to-image": "^1.11.13",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "tesseract.js": "^7.0.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { ico } from "../../icons/icoTexto";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import { ETIQUETAS_GC_TIME } from "../../lib/etiquetasPrefetch";
@@ -27,6 +28,7 @@ import {
   type FormatoEtiquetaValor,
 } from "./SelectorFormatoEtiqueta";
 import { Banner, Button, StatTile, FilterChip, Badge } from "./ui";
+import { Icon } from "../../icons";
 
 export interface CatalogoStudioFila {
   sku: string;
@@ -132,6 +134,63 @@ interface Props {
   onAbrirPng?: (item: RecursoPngCatalogo) => void;
 }
 
+/** Tamaño de las miniaturas de Imprimir (ancho mínimo de tarjeta, en px). */
+const TAMANOS_MINIATURA = [
+  { id: "s", etiqueta: "Pequeñas", minPx: 110 },
+  { id: "m", etiqueta: "Medianas", minPx: 160 },
+  { id: "l", etiqueta: "Grandes", minPx: 240 },
+] as const;
+type TamanoMiniatura = (typeof TAMANOS_MINIATURA)[number]["id"];
+const LS_TAMANO_MINIATURA = "mck.imprimir.tamanoMiniatura";
+
+function leerTamanoMiniatura(): TamanoMiniatura {
+  try {
+    const v = window.localStorage.getItem(LS_TAMANO_MINIATURA);
+    if (v === "s" || v === "m" || v === "l") return v;
+  } catch {
+    /* sin localStorage */
+  }
+  return "m";
+}
+
+/** "ETIQUETAS STUDIO/Semillas/MANI_NATURAL_TOSTADO_500g_4.png" → "MANI NATURAL TOSTADO 500g 4" */
+function nombreLegiblePng(nombre: string): string {
+  const base = nombre.includes("/") ? nombre.split("/").pop() || nombre : nombre;
+  return base.replace(/\.(png|jpe?g)$/i, "").replace(/[_]+/g, " ").trim();
+}
+
+/** Miniatura que solo pide el archivo cuando la tarjeta se acerca a la pantalla:
+ *  la biblioteca pasa de 100 PNG y cada uno se baja completo. */
+function MiniaturaPerezosa({ nombre }: { nombre: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || visible) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) setVisible(true);
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+  return (
+    <div ref={ref} className="flex h-full w-full items-center justify-center [&>img]:max-h-full [&>img]:max-w-full">
+      {visible ? (
+        <MiniaturaRecursoPng nombre={nombre} />
+      ) : (
+        <div className="h-2/3 w-2/3 animate-pulse rounded bg-surface-hover" />
+      )}
+    </div>
+  );
+}
+
 function filaTieneAi(f: CatalogoStudioFila): boolean {
   return f.fuente === "ai" && Boolean(f.archivo_ai?.trim());
 }
@@ -178,6 +237,11 @@ export function EtiquetasStudioCatalogo({
   const [pngVistaPrevia, setPngVistaPrevia] = useState<RecursoPngCatalogo | null>(null);
   const [pngDescargando, setPngDescargando] = useState<string | null>(null);
   const [pngEliminandoUno, setPngEliminandoUno] = useState<string | null>(null);
+  // Vista de Imprimir: tamaño de miniatura, filtro de categoría y modo organizar.
+  const [tamanoMini, setTamanoMini] = useState<TamanoMiniatura>(leerTamanoMiniatura);
+  const [catFiltro, setCatFiltro] = useState("");
+  const [organizar, setOrganizar] = useState(false);
+  const buscarRef = useRef<HTMLInputElement>(null);
 
   const qc = useQueryClient();
   const { data: catsData } = useCategoriasEtiqueta();
@@ -823,7 +887,7 @@ export function EtiquetasStudioCatalogo({
                     }}
                     className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded border border-danger/40 bg-white/95 text-[11px] leading-none text-danger shadow-sm transition hover:bg-danger hover:text-white disabled:opacity-50"
                   >
-                    {pngEliminandoUno === nombre ? "…" : "🗑"}
+                    {pngEliminandoUno === nombre ? "…" : ico("🗑")}
                   </button>
                 )}
                 <button
@@ -885,6 +949,15 @@ export function EtiquetasStudioCatalogo({
       nombre={pngVistaPrevia.nombre}
       formato={pngVistaPrevia}
       onCerrar={() => setPngVistaPrevia(null)}
+      onImprimir={
+        soloArchivosPng && onAbrirPng
+          ? () => {
+              const item = pngVistaPrevia;
+              setPngVistaPrevia(null);
+              onAbrirPng(item);
+            }
+          : undefined
+      }
       onDescargar={() => void descargarPng(pngVistaPrevia.nombre)}
       onEliminar={
         puedeEliminarPng
@@ -902,30 +975,340 @@ export function EtiquetasStudioCatalogo({
   ) : null;
 
   if (soloArchivosPng) {
+    const totalPng = plantillasPngFiltradas.length;
+    // Una sola rejilla corrida: la categoría ya se elige con los chips, así que
+    // repetirla como secciones solo gastaba alto y obligaba a desplazarse más.
+    const itemsVisibles = catFiltro
+      ? (gruposPng.find((g) => g.id === catFiltro)?.items ?? [])
+      : [...plantillasPngFiltradas].sort((a, b) =>
+          nombreLegiblePng(a.nombre).localeCompare(nombreLegiblePng(b.nombre), "es", { numeric: true }),
+        );
+    const primerPng = itemsVisibles[0];
+    const minPx = TAMANOS_MINIATURA.find((t) => t.id === tamanoMini)?.minPx ?? 160;
+    const abrir = (item: RecursoPngCatalogo) => {
+      if (onAbrirPng) onAbrirPng(item);
+      else setPngVistaPrevia(item);
+    };
+    const chip = (activo: boolean) =>
+      `mck-press inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition ${
+        activo
+          ? "border-accent bg-accent text-white"
+          : "border-border bg-surface text-ink-secondary hover:border-accent/50 hover:text-ink"
+      }`;
+
     return (
-      <div className="space-y-4 mck-stagger">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative min-w-[200px] flex-1">
-            <input
-              className="w-full rounded-paper border-2 border-border bg-surface py-2 pl-3 pr-3 text-sm outline-none transition focus:border-accent"
-              placeholder="Buscar archivo PNG…"
-              value={buscar}
-              onChange={(e) => setBuscar(e.target.value)}
-            />
-          </div>
-          {isFetching && <span className="text-xs text-muted">Actualizando…</span>}
-          {!isFetching && data && (
-            <span className="text-xs text-muted tabular-nums">
-              {plantillasPngFiltradas.length}
-              {buscar.trim() ? ` / ${data.plantillas_png_sin_producto?.length ?? 0}` : ""} PNG
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Barra fija: buscar, tamaño de miniatura y organizar. Solo se desplaza la rejilla. */}
+        <div className="flex-shrink-0 space-y-1.5 border-b border-border bg-surface-panel/60 px-3 py-2 sm:px-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Icon
+                name="search"
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              />
+              <input
+                ref={buscarRef}
+                autoFocus
+                type="text"
+                inputMode="search"
+                aria-label="Buscar etiqueta"
+                // mck-field-lg: sale de la regla global de campos compactos (1.65rem).
+                className="mck-field-lg h-10 w-full rounded-paper border-2 border-border bg-surface pl-9 pr-9 text-sm outline-none transition focus:border-accent"
+                placeholder="Buscar producto o tamaño…"
+                title="Enter abre la primera etiqueta de la lista"
+                value={buscar}
+                onChange={(e) => setBuscar(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && primerPng) {
+                    e.preventDefault();
+                    abrir(primerPng);
+                  } else if (e.key === "Escape" && buscar) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setBuscar("");
+                  }
+                }}
+              />
+              {/* El <span> lleva la posición: index.css fuerza position:relative en
+                  todo <button> de #root y anula la clase `absolute`. */}
+              {buscar && (
+                <span className="absolute right-1.5 top-1/2 flex -translate-y-1/2">
+                  <button
+                    type="button"
+                    aria-label="Limpiar búsqueda"
+                    onClick={() => {
+                      setBuscar("");
+                      buscarRef.current?.focus();
+                    }}
+                    className="mck-icon-btn flex items-center justify-center rounded-full text-muted hover:bg-surface-hover hover:text-ink"
+                  >
+                    <Icon name="close" size={14} />
+                  </button>
+                </span>
+              )}
+            </div>
+            <span className="text-xs tabular-nums text-muted">
+              {isFetching ? "Actualizando…" : `${totalPng} ${totalPng === 1 ? "etiqueta" : "etiquetas"}`}
             </span>
+            <div
+              role="group"
+              aria-label="Tamaño de las miniaturas"
+              className="flex h-10 items-center rounded-paper border border-border bg-surface p-0.5"
+            >
+              {TAMANOS_MINIATURA.map((t, i) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  aria-pressed={tamanoMini === t.id}
+                  title={`Miniaturas ${t.etiqueta.toLowerCase()}`}
+                  onClick={() => {
+                    setTamanoMini(t.id);
+                    try {
+                      window.localStorage.setItem(LS_TAMANO_MINIATURA, t.id);
+                    } catch {
+                      /* sin localStorage */
+                    }
+                  }}
+                  className={`flex h-full w-10 items-center justify-center rounded transition ${
+                    tamanoMini === t.id ? "bg-accent text-white" : "text-muted hover:bg-surface-hover hover:text-ink"
+                  }`}
+                >
+                  {/* Un cuadrado que crece: se entiende sin leer. */}
+                  <span
+                    aria-hidden
+                    className="rounded-[3px] border-2 border-current"
+                    style={{ width: 9 + i * 5, height: 9 + i * 5 }}
+                  />
+                  <span className="sr-only">{t.etiqueta}</span>
+                </button>
+              ))}
+            </div>
+            {puedeEliminarPng && (
+              <button
+                type="button"
+                aria-pressed={organizar}
+                onClick={() => {
+                  setOrganizar((v) => !v);
+                  setPngSeleccionados(new Set());
+                }}
+                title="Cambiar categoría o eliminar etiquetas"
+                className={`mck-press inline-flex h-10 items-center gap-1.5 rounded-paper border px-3 text-xs font-semibold transition ${
+                  organizar
+                    ? "border-accent-plum bg-accent-plum text-white"
+                    : "border-border bg-surface text-ink-secondary hover:border-accent-plum/60 hover:text-ink"
+                }`}
+              >
+                <Icon name="folder" size={15} />
+                {organizar ? "Listo" : "Organizar"}
+              </button>
+            )}
+          </div>
+
+          {gruposPng.length > 1 && (
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="group" aria-label="Filtrar por categoría">
+              <button type="button" className={chip(!catFiltro)} onClick={() => setCatFiltro("")}>
+                Todas
+                <span className="tabular-nums opacity-70">{totalPng}</span>
+              </button>
+              {gruposPng.map((g) => (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={chip(catFiltro === g.id)}
+                  onClick={() => setCatFiltro((v) => (v === g.id ? "" : g.id))}
+                >
+                  {g.etiqueta}
+                  <span className="tabular-nums opacity-70">{g.items.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {organizar && (
+            <div className="flex flex-wrap items-center gap-3 rounded-paper border border-accent-plum/30 bg-accent-plum/10 px-3 py-1.5 text-xs text-accent-plum">
+              <span className="font-semibold">Organizar:</span>
+              <span className="text-ink-secondary">cambia la categoría en cada tarjeta o marca varias para eliminarlas.</span>
+              <label className="ml-auto flex cursor-pointer items-center gap-1.5 font-medium">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={totalPng > 0 && plantillasPngFiltradas.every((n) => pngSeleccionados.has(n.nombre))}
+                  onChange={() => {
+                    setPngSeleccionados((prev) => {
+                      const todosMarcados = plantillasPngFiltradas.every((n) => prev.has(n.nombre));
+                      const next = new Set(prev);
+                      plantillasPngFiltradas.forEach((n) =>
+                        todosMarcados ? next.delete(n.nombre) : next.add(n.nombre),
+                      );
+                      return next;
+                    });
+                  }}
+                />
+                Seleccionar todo
+              </label>
+              {pngSeleccionados.size > 0 && (
+                <Button variant="destructive" size="sm" loading={pngEliminandoLote} onClick={eliminarPngSeleccionados}>
+                  {pngEliminandoLote ? "Eliminando…" : `Eliminar (${pngSeleccionados.size})`}
+                </Button>
+              )}
+            </div>
           )}
         </div>
+
         {error instanceof Error && (
-          <Banner tone="danger" className="text-xs">{error.message}</Banner>
+          <Banner tone="danger" className="flex-shrink-0 rounded-none border-x-0 border-t-0 text-xs">{error.message}</Banner>
         )}
-        {seccionPng}
-        {!onAbrirPng && lightboxPng}
+        {pngErrorLote && (
+          <Banner tone="danger" className="flex-shrink-0 rounded-none border-x-0 border-t-0 text-xs">{pngErrorLote}</Banner>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 sm:px-4">
+          {itemsVisibles.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <Icon name="search" size={28} className="text-muted/60" />
+              <p className="text-sm font-medium text-muted">
+                {isFetching ? "Cargando etiquetas…" : buscar.trim() ? `Nada coincide con "${buscar.trim()}"` : "Sin etiquetas PNG"}
+              </p>
+              {(buscar.trim() || catFiltro) && !isFetching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBuscar("");
+                    setCatFiltro("");
+                  }}
+                  className="rounded-lg border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent hover:text-white"
+                >
+                  Ver todas
+                </button>
+              )}
+            </div>
+          ) : (
+                <div
+                  className="grid gap-2 pt-3"
+                  style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(${minPx}px, 45%), 1fr))` }}
+                >
+                  {itemsVisibles.map((item) => {
+                    const nombre = item.nombre;
+                    const marcado = pngSeleccionados.has(nombre);
+                    const fmt = labelFormatoPng(item);
+                    const legible = nombreLegiblePng(nombre);
+                    return (
+                      <div
+                        key={nombre}
+                        className={`group relative flex flex-col overflow-hidden rounded-xl border bg-surface-panel shadow-paper-sm transition focus-within:ring-2 focus-within:ring-accent/50 hover:-translate-y-0.5 hover:border-accent hover:shadow-md ${
+                          marcado ? "border-accent ring-2 ring-accent/40" : "border-border"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          title={organizar ? `Marcar ${legible}` : `Imprimir ${legible}`}
+                          onClick={() => (organizar ? alternarSeleccionPng(nombre) : abrir(item))}
+                          className="relative block aspect-[7/6] w-full bg-white outline-none"
+                        >
+                          <span className="absolute inset-1 block">
+                            <MiniaturaPerezosa nombre={nombre} />
+                          </span>
+                          {!organizar && (
+                            <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-accent/90 py-1.5 text-xs font-bold text-white opacity-0 transition group-focus-within:opacity-100 group-hover:opacity-100">
+                              <Icon name="printer" size={14} />
+                              Imprimir
+                            </span>
+                          )}
+                        </button>
+                        {organizar ? (
+                          <input
+                            type="checkbox"
+                            aria-label={`Seleccionar ${legible}`}
+                            checked={marcado}
+                            onChange={() => alternarSeleccionPng(nombre)}
+                            className="absolute left-2 top-2 h-5 w-5 cursor-pointer rounded shadow"
+                          />
+                        ) : (
+                          <span className="absolute right-2 top-2 flex gap-1.5 transition sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
+                            <button
+                              type="button"
+                              aria-label={`Ver ${legible} en grande`}
+                              title="Ver en grande"
+                              onClick={() => setPngVistaPrevia(item)}
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-white/95 text-ink-secondary shadow-sm transition hover:border-accent hover:text-accent"
+                            >
+                              <Icon name="eye" size={16} />
+                            </button>
+                            {/* Eliminar directo, sin pasar por Organizar: es lo que se
+                                usa a diario para quitar una etiqueta mal generada. */}
+                            {puedeEliminarPng && (
+                              <button
+                                type="button"
+                                aria-label={`Eliminar ${legible}`}
+                                title={`Eliminar ${legible} de la biblioteca`}
+                                disabled={pngEliminandoUno === nombre}
+                                onClick={() => {
+                                  if (!window.confirm(`¿Eliminar "${nombre}" de la biblioteca?`)) return;
+                                  eliminarPngMut.mutate(nombre);
+                                }}
+                                className="flex h-9 w-9 items-center justify-center rounded-full border border-danger/40 bg-white/95 text-danger shadow-sm transition hover:bg-danger hover:text-white disabled:opacity-50"
+                              >
+                                {pngEliminandoUno === nombre ? "…" : <Icon name="trash" size={16} />}
+                              </button>
+                            )}
+                          </span>
+                        )}
+                        <div className="flex flex-1 flex-col gap-0.5 border-t border-border/60 px-2 py-1.5">
+                          <p
+                            className={`${tamanoMini === "s" ? "truncate" : "line-clamp-2"} text-xs font-semibold leading-snug text-ink`}
+                            title={nombre}
+                          >
+                            {legible}
+                          </p>
+                          <p className="truncate text-[11px] text-muted">
+                            {fmt || "Sin formato"}
+                            {!catFiltro && ` · ${etiquetaCategoriaEn(categoriasEtiqueta, item.categoria_producto || CATEGORIA_ETIQUETA_OTROS)}`}
+                          </p>
+                          {organizar && (
+                            <div className="mt-1 flex items-center gap-1.5">
+                              {/* Reasignar categoría: lo deducido del nombre acierta casi siempre,
+                                  pero el operador manda y la corrección queda guardada. */}
+                              <select
+                                value={item.categoria_producto || CATEGORIA_ETIQUETA_OTROS}
+                                disabled={recategorizando === nombre}
+                                aria-label={`Categoría de ${legible}`}
+                                title="Categoría de producto"
+                                onChange={(e) => {
+                                  setRecategorizando(nombre);
+                                  recategorizarPngMut.mutate({ nombre, categoria: e.target.value });
+                                }}
+                                className="h-8 min-w-0 flex-1 rounded border border-border bg-surface px-1.5 text-[11px] text-ink-secondary disabled:opacity-50"
+                              >
+                                {categoriasEtiqueta.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.etiqueta}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                title={`Eliminar ${legible} de la biblioteca`}
+                                aria-label={`Eliminar ${legible}`}
+                                disabled={pngEliminandoUno === nombre}
+                                onClick={() => {
+                                  if (!window.confirm(`¿Eliminar "${nombre}" de la biblioteca?`)) return;
+                                  eliminarPngMut.mutate(nombre);
+                                }}
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-danger/40 text-danger transition hover:bg-danger hover:text-white disabled:opacity-50"
+                              >
+                                {pngEliminandoUno === nombre ? "…" : <Icon name="trash" size={15} />}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+          )}
+        </div>
+        {lightboxPng}
       </div>
     );
   }

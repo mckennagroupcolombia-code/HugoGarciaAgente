@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -178,7 +179,7 @@ function MenuFormatoDropdown({
               setAbierto(false);
             }}
           >
-            ✏️ Otro tamaño…
+            <Ico e="✏️" /> Otro tamaño…
           </button>
         </div>,
         document.body,
@@ -486,7 +487,7 @@ export function SelectorFormatoEtiqueta({
               className="rounded-lg border border-accent px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-50"
               title="Guardar en catálogo de formatos"
             >
-              💾
+              <Ico e="💾" />
             </button>
           </>
         )}
@@ -543,7 +544,7 @@ export function SelectorFormatoEtiqueta({
               className="rounded border border-white/40 px-1.5 py-1 text-[10px] font-bold text-white hover:bg-white/15 disabled:opacity-50"
               title="Guardar en catálogo"
             >
-              💾
+              <Ico e="💾" />
             </button>
           </>
         )}
@@ -583,7 +584,7 @@ export function SelectorFormatoEtiqueta({
             className="inline-flex h-9 items-center gap-1 rounded border-2 border-accent px-2 text-[10px] font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-50"
             title="Guardar en catálogo"
           >
-            💾 {guardar.isPending ? "…" : msgGuardar || "Guardar"}
+            <Ico e="💾" /> {guardar.isPending ? "…" : msgGuardar || "Guardar"}
           </button>
         </div>
       </>
@@ -621,7 +622,7 @@ export function SelectorFormatoEtiqueta({
             className="inline-flex h-9 items-center gap-1 rounded border-2 border-accent px-2.5 text-[11px] font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-50"
             title="Guardar en el menú de formatos"
           >
-            💾 {guardar.isPending ? "…" : "Guardar"}
+            <Ico e="💾" /> {guardar.isPending ? "…" : "Guardar"}
           </button>
         </div>
       </div>

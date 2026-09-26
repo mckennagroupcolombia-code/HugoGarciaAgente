@@ -89,6 +89,18 @@ def _primer_nombre(nombre: str) -> str:
 def enviar_texto_operador(usuario_id: int | None, texto: str) -> bool:
     if not _notif_habilitada():
         return False
+    # Todo aviso queda en la campana del panel; el WhatsApp solo si la persona lo quiere.
+    pref = "ambos"
+    if usuario_id:
+        try:
+            from app.services import notificaciones_panel
+
+            notificaciones_panel.desde_texto(int(usuario_id), texto, tipo="ticket")
+            pref = notificaciones_panel.preferencia(int(usuario_id))
+        except Exception as exc:
+            print(f"[tickets-notif] campana del panel: {exc}")
+    if pref == "inapp":
+        return True
     numero = telefono_operador(usuario_id)
     if not numero:
         print(f"[tickets-notif] Sin teléfono para usuario {usuario_id}")
@@ -156,6 +168,10 @@ def notificar_ticket_creado(ticket_id: int) -> None:
             texto = f"Compras: {creador} te solicita {titulo}."
         elif subtipo == "etiqueta":
             texto = f"Etiquetas: {creador} pidió {titulo}."
+        elif subtipo == "pago":
+            # Título «Aprobar pago — Servicios: $81.490» → «Servicios: $81.490».
+            que = re.sub(r"^\s*Aprobar pago\s*[—-]\s*", "", t.get("titulo") or "")
+            texto = f"Solicitud de pago: {creador} te pide aprobar {_titulo_corto(que, 60)}."
         elif t["tipo"] == "solicitud":
             texto = f"{creador} te ha hecho una solicitud: {titulo}"
         else:
@@ -270,7 +286,7 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
     with _conn_ctx() as db:
         t = _ticket_row(db, ticket_id)
         if not t or t["tipo"] != "solicitud":
-            return
+            return None, ""
         creador = t.get("creado_por")
         if not creador or creador == resolvio_uid:
             return
@@ -278,6 +294,31 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
         titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
         texto = f"{resolvio} terminó {titulo} y pide tu aprobación."
         _programar(creador, texto)
+
+
+def notificar_solicitud_pago(ticket_id: int, actor_uid: int | None, evento: str, detalle: str = "") -> None:
+    """Los dos únicos avisos que recibe quien pidió un pago (sep-2026).
+
+    Antes le llegaba un «X escribió en la solicitud» por cada comentario automático
+    (aprobado, montado en el banco…), repetidos e iguales, y ninguno al terminar: el
+    ticket no se cerraba porque el segundo token lo da quien no es el asignado.
+    Ahora: `escrito` cuando se aprueba y `terminado` cuando se gira o se rechaza.
+    Nadie más recibe estos avisos, y a quien se lo hizo a sí mismo no le llega.
+    """
+    with _conn_ctx() as db:
+        t = _ticket_row(db, ticket_id)
+        if not t:
+            return
+        creador = t.get("creado_por")
+        if not creador or creador == actor_uid:
+            return
+        actor = _primer_nombre(_nombre_usuario(db, actor_uid))
+        titulo = _titulo_corto(t.get("titulo") or "tu solicitud de pago", 60)
+    verbo = "terminó" if evento == "terminado" else "escribió en"
+    texto = f"{actor} {verbo} tu solicitud: {titulo}."
+    if detalle:
+        texto += f" {detalle.strip()}"
+    _programar(creador, texto)
 
 
 def notificar_ticket_reabierto(ticket_id: int, reabrio_uid: int) -> None:
@@ -299,6 +340,26 @@ def notificar_comentario_agregado(ticket_id: int, autor_uid: int) -> None:
     """Aviso liviano a la contraparte de una solicitud cuando le escriben un mensaje
     nuevo en el chat — no se dispara para notas internas (es_interno) ni para el
     propio autor del mensaje."""
+    contraparte, texto = _aviso_comentario(ticket_id, autor_uid)
+    if contraparte:
+        _programar(contraparte, texto)
+
+
+def notificar_comentarios_en_lote(ticket_id: int, autor_uid: int, cantidad: int) -> bool:
+    """Un solo aviso por `cantidad` comentarios que un proceso por lote dejó en la
+    solicitud. Síncrono: lo llaman crons que terminan enseguida y un hilo daemon
+    podría morir sin enviar."""
+    if cantidad <= 0:
+        return False
+    contraparte, texto = _aviso_comentario(ticket_id, autor_uid)
+    if not contraparte:
+        return False
+    if cantidad > 1:
+        texto = texto.replace(" escribió en la solicitud:", f" dejó {cantidad} mensajes en la solicitud:", 1)
+    return enviar_texto_operador(contraparte, texto)
+
+
+def _aviso_comentario(ticket_id: int, autor_uid: int) -> tuple[int | None, str]:
     with _conn_ctx() as db:
         t = _ticket_row(db, ticket_id)
         if not t or t["tipo"] != "solicitud":
@@ -312,11 +373,10 @@ def notificar_comentario_agregado(ticket_id: int, autor_uid: int) -> None:
         else:
             contraparte = None
         if not contraparte or contraparte == autor_uid:
-            return
+            return None, ""
         autor = _primer_nombre(_nombre_usuario(db, autor_uid))
         titulo = _titulo_corto(t.get("titulo") or "una solicitud", 60)
-        texto = f"{autor} escribió en la solicitud: {titulo}"
-        _programar(contraparte, texto)
+        return contraparte, f"{autor} escribió en la solicitud: {titulo}"
 
 
 def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> None:

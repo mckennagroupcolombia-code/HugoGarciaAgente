@@ -1,6 +1,11 @@
 {
   "tipos": [
     {
+      "nombre": "1 kg",
+      "ancho_mm": 102.0,
+      "alto_mm": 76.0
+    },
+    {
       "nombre": "1 Lt",
       "ancho_mm": 108.0,
       "alto_mm": 76.0
@@ -26,6 +31,11 @@
       "alto_mm": 38.0
     },
     {
+      "nombre": "38x102",
+      "ancho_mm": 38.0,
+      "alto_mm": 102.0
+    },
+    {
       "nombre": "5 g",
       "ancho_mm": 50.0,
       "alto_mm": 42.0
@@ -41,9 +51,24 @@
       "alto_mm": 32.0
     },
     {
+      "nombre": "58×54 mm",
+      "ancho_mm": 58.0,
+      "alto_mm": 54.0
+    },
+    {
+      "nombre": "CIRCLE",
+      "ancho_mm": 53.9,
+      "alto_mm": 53.9
+    },
+    {
       "nombre": "Circular",
       "ancho_mm": 55.0,
       "alto_mm": 55.0
+    },
+    {
+      "nombre": "Circular 50",
+      "ancho_mm": 50.0,
+      "alto_mm": 50.0
     },
     {
       "nombre": "Circular 53",
@@ -65,5 +90,6 @@
       "ancho_mm": 54.0,
       "alto_mm": 58.0
     }
-  ]
+  ],
+  "eliminados": []
 }

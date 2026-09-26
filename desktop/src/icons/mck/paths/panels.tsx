@@ -71,14 +71,27 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
   ),
   sync: (
     <>
-      <path d="M20 11a7 7 0 1 0-1.6-4.4M20 4v4h-4" />
-      <path d="M4 13a7 7 0 1 0 1.6 4.4M4 20v-4h4" />
+      {/* Dos flechas en ciclo. Las anteriores usaban el arco LARGO (flag 1) y se montaban una
+          sobre otra: a 14 px se veía como dos trazos sueltos. */}
+      <path d="M19 5v4.5h-4.5" />
+      <path d="M5 19v-4.5h4.5" />
+      <path d="M6.2 9.5a6.5 6.5 0 0 1 10.9-2.4L19 9.5" />
+      <path d="M17.8 14.5a6.5 6.5 0 0 1-10.9 2.4L5 14.5" />
     </>
   ),
   stock: (
     <>
       <path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" />
       <path d="M12 11l7-4M12 11v10M12 11L5 7" />
+    </>
+  ),
+  producto: (
+    <>
+      <path d="M7 3h7l4 4v6" />
+      <path d="M7 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4" />
+      <path d="M9 9h5M9 13h3" />
+      <path d="M14 15.5l3-3h4v4l-3 3a1.4 1.4 0 0 1-2 0l-2-2a1.4 1.4 0 0 1 0-2z" />
+      <circle cx="19" cy="14.5" r=".6" />
     </>
   ),
   fichas: (
@@ -107,6 +120,87 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M4 6.5A1.5 1.5 0 0 1 5.5 5h9L20 10.5 14.5 16h-9A1.5 1.5 0 0 1 4 14.5v-8z" />
       <path d="M7 9v3M9.5 9v3M12 9v3" />
       <path d="M6 19h12" />
+    </>
+  ),
+  arquitectura: (
+    <>
+      <circle cx="6" cy="6" r="2.5" />
+      <circle cx="18" cy="10" r="2.5" />
+      <circle cx="9" cy="18" r="2.5" />
+      <path d="M8.2 7.2l7.6 2.1M16.6 12.1l-5.9 4.4M7.1 8.4l1.4 7.2" />
+    </>
+  ),
+  juegos: (
+    <>
+      <rect x="2.5" y="7" width="19" height="11" rx="4" />
+      <path d="M7.5 10.5v4M5.5 12.5h4" />
+      <circle cx="15.5" cy="11.5" r="0.9" />
+      <circle cx="17.8" cy="13.8" r="0.9" />
+    </>
+  ),
+  "mapa-vivo": (
+    <>
+      <rect x="2.5" y="9.5" width="5" height="5" rx="1" />
+      <rect x="9.5" y="4" width="5" height="5" rx="1" />
+      <rect x="16.5" y="9.5" width="5" height="5" rx="1" />
+      <rect x="9.5" y="15" width="5" height="5" rx="1" />
+      <path d="M7.5 12h2.2M14.5 12h2M12 9v6" />
+    </>
+  ),
+  colaboradores: (
+    <>
+      <rect x="2.5" y="4" width="7" height="5" rx="1" />
+      <rect x="14.5" y="15" width="7" height="5" rx="1" />
+      <path d="M9.5 6.5h4a2 2 0 0 1 2 2V15" />
+      <path d="M13.5 13l2 2 2-2" />
+      <circle cx="6" cy="17.5" r="2.5" />
+    </>
+  ),
+  "mapa-sistema": (
+    <>
+      <rect x="3" y="4" width="6" height="5" rx="1" />
+      <rect x="15" y="4" width="6" height="5" rx="1" />
+      <rect x="9" y="15" width="6" height="5" rx="1" />
+      <path d="M9 6.5h6M6 9v3h6v3M18 9v3h-6" />
+    </>
+  ),
+  "chat-equipo": (
+    <>
+      <path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
+      <path d="M19 9h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-1v2.5L16 18h-3" />
+    </>
+  ),
+  "recepcion-mercancia": (
+    <>
+      <path d="M3 8l9-4 9 4v9l-9 4-9-4z" />
+      <path d="M3 8l9 4 9-4M12 12v9" />
+      <path d="M8.5 15.5l2 2 3.5-4" />
+    </>
+  ),
+  "canales-producto": (
+    <>
+      <circle cx="12" cy="12" r="2.5" />
+      <circle cx="4.5" cy="5.5" r="2" />
+      <circle cx="19.5" cy="5.5" r="2" />
+      <circle cx="4.5" cy="18.5" r="2" />
+      <circle cx="19.5" cy="18.5" r="2" />
+      <path d="M6 7l4.2 3.3M18 7l-4.2 3.3M6 17l4.2-3.3M18 17l-4.2-3.3" />
+    </>
+  ),
+  combos: (
+    <>
+      <rect x="3" y="3" width="8" height="8" rx="1.5" />
+      <rect x="13" y="3" width="8" height="8" rx="1.5" />
+      <rect x="3" y="13" width="8" height="8" rx="1.5" />
+      <path d="M17 14v6M14 17h6" />
+    </>
+  ),
+  "entregas-flex": (
+    <>
+      <circle cx="6.5" cy="16.5" r="2.5" />
+      <circle cx="17.5" cy="16.5" r="2.5" />
+      <path d="M9 16.5h6l2-5h-4l-2-4H8" />
+      <path d="M15 7.5h2.5" />
     </>
   ),
   facturas: (
@@ -211,6 +305,16 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M4 9h16" />
     </>
   ),
+  // Dos personas (los socios) sobre una carpeta abierta: el expediente
+  // fiscal personal de cada socio, dentro de la contabilidad de la empresa.
+  socios: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3 20v-1.5a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4V20" />
+      <path d="M15 14.5h1.5a3.5 3.5 0 0 1 3.5 3.5v2" />
+    </>
+  ),
   // Documento con el borde inferior dentado (comprobante) y una flecha de
   // retorno: una nota crédito devuelve el valor de una factura ya emitida.
   anulaciones: (
@@ -246,6 +350,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
     <>
       <path d="M4 8h11M15 8l-3-3M15 8l-3 3" />
       <path d="M20 16H9M9 16l3-3M9 16l3 3" />
+    </>
+  ),
+  "conciliacion-contador": (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M15.5 8.5l-2.2 5-5 2.2 2.2-5z" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2" />
     </>
   ),
   tickets: (

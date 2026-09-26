@@ -400,3 +400,87 @@ Endpoints: `/api/prestamos` (GET/POST), `/api/prestamos/<id>`,
   solo el certificado de estado del préstamo.
 - No hay anulación de préstamo ni reversión de cuota pagada desde el panel; se
   haría anulando el asiento en Libro Mayor y corrigiendo a mano.
+
+
+---
+
+## Resumen del Flujo M (movido desde CLAUDE.md el 2026-09-19)
+
+
+```
+/app → Contabilidad → Préstamos   (sección propia; PrestamosCronogramaPanel.tsx)
+  ├─ «+ Prestamista»: alta del tercero con cédula, correo, teléfono y cuenta bancaria
+  │    → valida lo que el préstamo necesitará (no al desembolsar, cuando ya es tarde),
+  │      lo inscribe como contacto en Alegra y avisa si llevará documento soporte.
+  │      No duplica si ya existe esa cédula: completa lo que falte
+  ├─ Crear: tercero + capital + tasa E.A. + plazo + reparto de capital por tramos
+  │    → cronograma de N cuotas + asiento de desembolso (banco / 2295-2380)
+  ├─ Simulador en vivo: muestra ANTES de comprometerse qué gana el prestamista
+  │    (bruto y neto) y cuánto cuesta realmente a McKenna (TIR → efectiva anual)
+  ├─ Documentos PDF: contrato de mutuo (al desembolsar) y certificado de estado.
+  │    Se generan siempre; el ENVÍO por correo al tercero pide confirmación
+  ├─ Alegra: consulta de solo lectura si ya es contacto, con botón para inscribirlo
+  ├─ Reporte mensual al prestamista: lo girado en el mes (capital / interés / retención)
+  │    + certificado de estado adjunto. Envío manual, nunca automático tras un pago
+  └─ Pagar cuota → asiento capital(2195/2355) + interés(530520) + retención(236535) + banco
+
+scripts/prestamos_recordatorio_cron.py   (corre a diario, dos trabajos)
+  ├─ día 5  → UN ticket a despachos (PRESTAMOS_USUARIO_PAGOS, default `jerry`) con
+  │           todas las cuotas del mes: prestamista, cédula, cuenta, valor a girar
+  └─ día 3  → UN ticket de contabilidad con la retención practicada el mes ANTERIOR,
+              detalle por tercero para el formulario 350 + control contra la cuenta
+              2365 + fecha exacta de vencimiento (app/services/calendario_tributario.py,
+              año gravable 2026 cargado). Sube a prioridad crítica si vence en ≤5 días
+```
+
+**Condiciones vigentes (sep-2026):** 25% E.A. (= 1,8769% mensual vencido), 24 cuotas,
+capital 30% el primer año / 70% el segundo, retención del 7% **a cargo del prestamista**.
+Sobre $10.000.000 el prestamista gana **$2.796.620 brutos (27,97%)** y recibe
+$2.600.857 netos (26,01%).
+
+**Tres cifras distintas que no se deben confundir** (van las tres en el panel y en el PDF):
+la **tasa pactada** (25% E.A., lo único que se acuerda), el **rendimiento bruto** (27,97%,
+consecuencia del cronograma) y el **rendimiento neto** (26,01%, tras retención). 25% E.A.
+no da 50% a dos años porque el interés va sobre saldo insoluto: el capital promedio
+realmente prestado es $6,2M, no $10M.
+
+**Palanca de diseño:** devolver capital más tarde sube lo que gana el prestamista **sin
+cambiar la tasa** (0/100 → 34,72%; 30/70 → 27,97%; 50/50 → 23,46%), y el costo para
+McKenna es 25% E.A. en los tres casos. Descartado a propósito el "interés fijo sobre
+capital inicial", que cuesta ~30% E.A. real por el mismo capital promedio.
+
+**Retención:** McKenna es agente retenedor; descuenta el 7% (Art. 395 ET) y lo consigna
+a la DIAN, contra **236535 «Rendimientos financieros»** (no 236515, que es honorarios). **La asume el prestamista** — no es costo extra para McKenna. Con `gross_up`
+la asume McKenna y el costo real sube a 26,95% E.A.
+
+**Documento soporte (DIAN Concepto 000112 int 7 de 2024):** por el **capital** NO se emite
+(el mutuo no es venta de bienes ni servicios; se respalda con contrato + transferencia); por
+los **intereses** SÍ, pero solo si el prestamista es persona natural **no** obligada a
+facturar — si es jurídica u obligado, la factura la expide él. Se emite por el interés bruto
+de cada cuota vía `POST /bills` con plantilla `supportDocument` (id=10 en la cuenta; ⚠️ la
+id=16 se llama "Documento Soporte" pero es `saleTicket`, no usarla). **Arranca en modo sombra**
+(`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`). Al 2026-09-14 ya no falta nada técnico: el ítem
+`INTERES-MUTUO` existe (id 624) pero **no se usa** — el documento va por cuenta contable
+(5252), porque Alegra rechaza `purchases.items` con error 11034 en esta cuenta; y la
+retención de rendimientos financieros al 7 % se creó en Alegra (id 14) y está mapeada en
+`RETENCIONES_ALEGRA`, así que el documento ya sale con la retención incluida (verificado en
+dry run con la cuota 1 del préstamo #1: $21.022). **Lo que falta es un trámite, no código
+(TKT-2026-1323):** la plantilla 10 (`supportDocument`) tiene `isElectronic: false` y sin
+resolución de numeración, así que hoy los documentos quedarían en Alegra sin transmitirse a la
+DIAN. Hay que pedir la resolución de documento soporte (Res. 000167/2021) y habilitarlo en
+Alegra antes de encender la bandera.
+
+**Calendario DIAN:** `app/services/calendario_tributario.py` tiene el año gravable 2026
+(DUR 1625, Arts. 1.6.1.13.2.33. y 1.2.6.6.). El NIT de McKenna es 901.316.016-3 → el dígito
+del calendario es el **6**, no el 3 (el 3 es el DV; verificado contra GET /company de Alegra).
+La identidad fiscal (razón social, NIT, ciudad) vive **solo** en `app/services/empresa.py` —
+ningún módulo debe volver a escribir el literal. **No extrapola**: para un año sin tabla
+cargada dice "fecha no confirmada" en vez de adivinar — cargar 2027 cuando salga el decreto.
+
+⚠️ **Sin validar aún:** tarifa de retención según tipo de prestamista (confirmar con el
+contador), certificado anual de retenciones en formato DIAN (el plazo sí está: último día
+hábil de marzo), tope de usura (el contrato lo afirma pero nadie lo valida en código) y riesgo
+de captación masiva si esto escala a muchos terceros. Ficha completa, cronología y
+decisiones abiertas: `docs/agentic/modules/prestamos.md`.
+
+---

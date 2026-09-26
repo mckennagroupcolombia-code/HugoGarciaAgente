@@ -19,6 +19,8 @@
  * acercar ×1.3, nada quede recortado.
  */
 
+import { ICONOS_GALERIA_AMPLIADA } from "./iconosGaleriaAmpliada";
+
 export interface IconoQuimicoCircular {
   id: string;
   nombre: string;
@@ -78,6 +80,19 @@ export const CATEGORIAS_ICONOS_QUIMICA = [
   { id: "seguridad", label: "⚠️ Seguridad" },
 ] as const;
 
+/** Categoría con la que abre la galería según la celda de la etiqueta que se
+ *  está editando (claves de `attribute_icons`), para no tener que buscar el
+ *  ícono entre todos. Sin celda conocida abre en «Todos». */
+export const CATEGORIA_ICONO_POR_CAMPO: Record<string, IconoQuimicoCircular["categoria"]> = {
+  origin: "origen",
+  odor: "aroma",
+  appearance: "apariencia",
+  composition: "composicion",
+  grade: "calidad",
+  storage: "conservacion",
+  alergenos: "seguridad",
+};
+
 /** Apertura común: trazo 4, puntas redondas, sin relleno por defecto. */
 const SVG_ABRE =
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">`;
@@ -123,6 +138,18 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
       <line x1="30" y1="18" x2="30" y2="82" stroke-width="5"/>
       <line x1="22" y1="82" x2="38" y2="82" stroke-width="4"/>
       <path d="M30 22 C38 17 46 27 54 22 C60 18 66 19 72 22 L72 50 C66 47 60 46 54 50 C46 55 38 45 30 50 Z" fill="currentColor" stroke-width="3"/>
+    </svg>`,
+  },
+
+  {
+    id: "origen_mapa_colombia",
+    nombre: "Mapa de Colombia",
+    categoria: "origen",
+    tags: ["origen", "colombia", "mapa", "pais", "nacional", "hecho en colombia", "procedencia"],
+    // Silueta de Colombia simplificada desde Natural Earth 1:50m (dominio público), 62 de alto.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M56.1 21.1 L51 24.9 L48.5 31 L51.8 37.2 L53.5 39.1 L60.5 39.4 L63.1 42.4 L70.3 42.2 L68.9 48.5 L71 52.5 L68.9 54.8 L71.3 56.3 L68.6 58.7 L61.5 58.9 L61.5 61.3 L64.1 62.8 L60.8 63.1 L60.7 65.7 L63.2 69.7 L61.1 81 L58.2 79.3 L60.6 75.1 L57.4 73.5 L50 74.1 L43.1 66 L37.7 63.6 L33.5 63.8 L27.5 59.2 L34.7 50.7 L34.1 43.7 L31.6 38.3 L34.2 35.6 L35.3 33.3 L40 30.1 L39.8 27.5 L43 23.9 L45.6 23.1 L48.7 23.2 L54.6 19 Z" stroke-width="4"/>
     </svg>`,
   },
 
@@ -210,7 +237,7 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
   // --- COMPOSICIÓN ---
   {
     id: "composicion_matraz",
-    nombre: "Matraz / Fórmula Química",
+    nombre: "Matraz / Fórmula molecular",
     categoria: "composicion",
     tags: ["composicion", "formula", "quimica", "matraz", "laboratorio", "erlenmeyer", "lineal"],
     // Matraz Erlenmeyer lineal con nivel de líquido y dos burbujas (etiqueta 30 mL).
@@ -491,4 +518,5 @@ export const ICONOS_QUIMICA_CIRCULARES: IconoQuimicoCircular[] = [
       <rect x="39" y="52" width="22" height="17" rx="3" fill="currentColor" stroke="none"/>
     </svg>`,
   },
+  ...ICONOS_GALERIA_AMPLIADA,
 ];

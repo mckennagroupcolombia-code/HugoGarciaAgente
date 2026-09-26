@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
@@ -287,7 +288,7 @@ export default function Settings() {
             onClick={() => refetchServicios()}
             className="text-xs text-muted hover:text-ink transition"
           >
-            🔄 Actualizar
+            <Ico e="🔄" /> Actualizar
           </button>
         </div>
 
@@ -320,7 +321,7 @@ export default function Settings() {
             onClick={() => refetchGit()}
             className="text-xs text-muted hover:text-ink transition"
           >
-            🔄
+            <Ico e="🔄" />
           </button>
         </div>
 
@@ -342,7 +343,7 @@ export default function Settings() {
             </div>
             {gitData.commits_behind > 0 && (
               <div className="col-span-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-400">
-                ⚠️ {gitData.commits_behind} commit{gitData.commits_behind !== 1 ? "s" : ""} por detrás del remoto
+                <Ico e="⚠️" /> {gitData.commits_behind} commit{gitData.commits_behind !== 1 ? "s" : ""} por detrás del remoto
               </div>
             )}
           </dl>
@@ -393,7 +394,20 @@ export default function Settings() {
       <SupervisorSection onMarkRunning={markRunning} />
 
       {/* ── App Android ── */}
-      {isAdmin && <ApkBuilderSection />}
+      {isAdmin && (
+        <ApkBuilderSection
+          endpoint="/api/build-apk"
+          titulo="App Android del panel"
+          descripcion="Para el equipo: el panel completo, con alarmas, micrófono y cámara"
+        />
+      )}
+      {isAdmin && (
+        <ApkBuilderSection
+          endpoint="/api/build-apk-colab"
+          titulo="App de colaboradores externos"
+          descripcion="Solo Colaboradores y la Agenda con Armando; no trae nada del panel (android-colab/)"
+        />
+      )}
 
       {/* ── Teléfonos operadores (notas de voz supervisor) ── */}
       {isAdmin && <TelefonosOperadoresSection />}
@@ -415,11 +429,13 @@ interface ApkStatus {
   apk_size_kb: number | null;
 }
 
-function ApkBuilderSection() {
+/** Tarjeta de compilar/descargar una APK. Hay dos: la del panel (android-twa/) y la
+ * de colaboradores externos (android-colab/), cada una con su endpoint. */
+function ApkBuilderSection({ endpoint, titulo, descripcion }: { endpoint: string; titulo: string; descripcion: string }) {
   // apiToken = CHAT_API_TOKEN (devuelto desde /auth/me solo para admins)
   // Es el que valida _api_token_valido() en el backend
   const apiToken = useTicketsAuth((s) => s.apiToken) ?? useAuthStore.getState().token;
-  const [version, setVersion] = useState("1.0.0");
+  const [version, setVersion] = useState("");
   const [status, setStatus] = useState<ApkStatus | null>(null);
   const [polling, setPolling] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -427,14 +443,15 @@ function ApkBuilderSection() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const d = await api.get<ApkStatus>("/api/build-apk/status");
+      const d = await api.get<ApkStatus>(`${endpoint}/status`);
       setStatus(d);
+      if (d.version) setVersion((v) => v || d.version!);
       if (d.status !== "building") {
         setPolling(false);
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
       }
     } catch {}
-  }, []);
+  }, [endpoint]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
@@ -451,7 +468,7 @@ function ApkBuilderSection() {
 
   async function startBuild() {
     try {
-      await api.post("/api/build-apk", { version });
+      await api.post(endpoint, { version: version || "1.0.0" });
       setPolling(true);
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(fetchStatus, 2000);
@@ -462,7 +479,7 @@ function ApkBuilderSection() {
   }
 
   function downloadApk() {
-    window.location.href = `/api/build-apk/download?token=${encodeURIComponent(apiToken ?? "")}`;
+    window.location.href = `${endpoint}/download?token=${encodeURIComponent(apiToken ?? "")}`;
   }
 
   const building = status?.status === "building";
@@ -474,11 +491,9 @@ function ApkBuilderSection() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>📱</span> App Android (TWA)
+            <span><Ico e="📱" /></span> {titulo}
           </h3>
-          <p className="text-xs text-muted mt-0.5">
-            Genera el APK firmado para distribuir a los colaboradores
-          </p>
+          <p className="text-xs text-muted mt-0.5">{descripcion}</p>
         </div>
         {ready && (
           <span className="shrink-0 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5">
@@ -664,7 +679,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "control-inventario", label: "Inventario" },
   { id: "publicaciones", label: "Publicaciones" },
   { id: "placas-concreto", label: "Placas de Concreto" },
-  { id: "contenido", label: "Contenido (quitar marca de agua de video)" },
+  { id: "contenido", label: "Contenido (video, audio y grabar pantalla)" },
   { id: "logistica-internacional", label: "Logística Internacional" },
   { id: "voz",        label: "Voz IA" },
   { id: "settings",   label: "Ajustes" },
@@ -687,6 +702,7 @@ const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
   { id: "costos-productos", label: "Costos de productos (incl. con Facturas o Sync)" },
   { id: "catalogo-alegra", label: "Catálogo Alegra — productos y combos (espejo local)" },
   { id: "libro-mayor",   label: "Libro Mayor — partida doble, diario/conciliación, préstamos, créditos adquiridos, cuentas T (permiso propio, no heredado)" },
+  { id: "conciliacion-contador", label: "Conciliación contador — cruce 350/490 ↔ 2365 con tickets (también vía Libro Mayor)" },
   { id: "operativos",    label: "Operativos — RR.HH. / Impuestos / Servicios / Mensajería (avanzado)" },
   { id: "rrhh",          label: "RRHH · Compensaciones (también vía Operativos)" },
   { id: "impuestos",     label: "Pagos de impuestos (vía Operativos)" },
@@ -1208,7 +1224,7 @@ function AgentScheduleSection() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>🤖</span> Agente Hugo — WhatsApp
+            <span><Ico e="🤖" /></span> Agente Hugo — WhatsApp
           </h3>
           <p className="text-xs text-muted mt-0.5">
             Controla cuándo Hugo responde automáticamente a los clientes
@@ -1290,11 +1306,11 @@ function AgentScheduleSection() {
             <div className="rounded-lg bg-surface-hover border border-border px-4 py-3 text-xs text-muted space-y-1.5">
               <p className="font-semibold text-ink text-[12px]">¿Cómo funciona?</p>
               <div className="flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">👤</span>
+                <span className="text-emerald-400 mt-0.5"><Ico e="👤" /></span>
                 <span><strong className="text-ink">Dentro del horario</strong> → el equipo atiende. Hugo queda en silencio para no interrumpir.</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="text-accent mt-0.5">🤖</span>
+                <span className="text-accent mt-0.5"><Ico e="🤖" /></span>
                 <span><strong className="text-ink">Fuera del horario</strong> (noches, fines de semana, festivos) → Hugo responde automáticamente para no perder clientes.</span>
               </div>
             </div>

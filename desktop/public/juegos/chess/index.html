@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<title>Chessmaster</title>
+	<style>
+		html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 480px; height: 320px; }
+		html, body, canvas, button {
+			touch-action: none; -webkit-user-select: none; user-select: none;
+			-webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+		}
+		#lienzo { display: block; width: 480px; height: 320px; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+		#aviso { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; color: #9ca3af; font: 11px 'Courier New', monospace; pointer-events: none; }
+		/* Controles táctiles: solo se muestran cuando hay un toque (ver emulador.js). */
+		#tactil { position: absolute; inset: 0; display: none; pointer-events: none; }
+		#tactil.visible { display: block; }
+		#tactil button {
+			position: absolute; width: 44px; height: 44px; border-radius: 50%;
+			border: 2px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff;
+			font: bold 14px monospace; pointer-events: auto; padding: 0;
+		}
+		#tactil button:active, #tactil button.activo { background: rgba(255,255,255,.4); }
+		#arr { left: 54px; bottom: 96px; } #aba { left: 54px; bottom: 8px; }
+		#izq { left: 10px; bottom: 52px; } #der { left: 98px; bottom: 52px; }
+		#a { right: 10px; bottom: 52px; } #b { right: 60px; bottom: 20px; }
+		#tactil #l { left: 10px; top: 8px; width: 56px; height: 26px; border-radius: 13px; font-size: 12px; }
+		#tactil #r { right: 10px; top: 8px; width: 56px; height: 26px; border-radius: 13px; font-size: 12px; }
+		#tactil #start { right: 76px; top: 8px; width: 64px; height: 26px; border-radius: 13px; font-size: 11px; }
+		#tactil #select { right: 146px; top: 8px; width: 64px; height: 26px; border-radius: 13px; font-size: 11px; }
+	</style>
+</head>
+<body>
+	<canvas id="lienzo" width="240" height="160" tabindex="0"></canvas>
+	<div id="aviso">CARGANDO EL CARTUCHO...</div>
+	<div id="tactil">
+		<button id="arr" type="button" data-tecla="ArrowUp" aria-label="Arriba">&#9650;</button>
+		<button id="aba" type="button" data-tecla="ArrowDown" aria-label="Abajo">&#9660;</button>
+		<button id="izq" type="button" data-tecla="ArrowLeft" aria-label="Izquierda">&#9664;</button>
+		<button id="der" type="button" data-tecla="ArrowRight" aria-label="Derecha">&#9654;</button>
+		<button id="a" type="button" data-tecla="KeyX" aria-label="A">A</button>
+		<button id="b" type="button" data-tecla="KeyZ" aria-label="B">B</button>
+		<button id="l" type="button" data-tecla="KeyA" aria-label="L">L</button>
+		<button id="r" type="button" data-tecla="KeyS" aria-label="R">R</button>
+		<button id="select" type="button" data-tecla="ShiftRight" aria-label="Select">SELECT</button>
+		<button id="start" type="button" data-tecla="Enter" aria-label="Start">START</button>
+	</div>
+	<script type="module" src="emulador.js"></script>
+</body>
+</html>

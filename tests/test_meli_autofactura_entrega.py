@@ -653,3 +653,32 @@ def test_procesar_entrega_ignora_estados_no_delivered(monkeypatch, tmp_path):
     m.procesar_entrega_meli_para_factura("SHIP-4")
 
     assert llamado == []
+
+
+def _orden_con_reembolso(qty, precio, devuelto):
+    return {
+        "id": 2000018509202610,
+        "status": "partially_refunded",
+        "order_items": [{"item": {"id": "MCO566619739", "seller_custom_field": "MANCAC500", "title": "Manteca De Cacao 500 Gr"},
+                         "quantity": qty, "unit_price": precio}],
+        "payments": [{"status": "approved", "transaction_amount": qty * precio, "transaction_amount_refunded": devuelto}],
+    }
+
+
+def test_construir_lineas_descuenta_unidades_reembolsadas(monkeypatch):
+    from app.tools import meli_autofactura_entrega as m
+
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+    lines, err = m._construir_lineas_factura_desde_orden_meli(_orden_con_reembolso(2, 14365.0, 14365.0))
+    assert err is None
+    assert lines[0]["cantidad"] == 1.0
+    assert lines[0]["precio_unitario"] == 14365.0
+
+
+def test_construir_lineas_reembolso_que_no_cuadra_no_adivina(monkeypatch):
+    from app.tools import meli_autofactura_entrega as m
+
+    monkeypatch.setattr(m, "buscar_producto_alegra_por_referencia", lambda sku: {"id": "1", "name": sku, "price": 0})
+    lines, err = m._construir_lineas_factura_desde_orden_meli(_orden_con_reembolso(2, 14365.0, 9000.0))
+    assert lines == []
+    assert "a mano" in err

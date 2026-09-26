@@ -1,14 +1,21 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import SystemAlertsBanner from "./SystemAlertsBanner";
 import TeamActivityBanner from "./TeamActivityBanner";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
 import ContabilidadHerramientas from "./ContabilidadHerramientas";
 import HubNavTabs from "./nav/HubNavTabs";
 import DisenoNavTabs from "./nav/DisenoNavTabs";
+import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
+import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
+import { COLOR, COLOR_DEF, placaDePiso } from "./mapaComun";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
+import AccesosRapidos from "./nav/AccesosRapidos";
+import CampanaNotificaciones from "./chat_equipo/CampanaNotificaciones";
 import ThemeModeToggle from "./ThemeModeToggle";
+import PantallaControles from "./nav/PantallaControles";
 import { TemasHeaderButton } from "./TemasSidebarButton";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -17,7 +24,7 @@ import { useNavegarPanel } from "../hooks/useNavegarPanel";
 import { Icon } from "../icons";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { modoAvanzadoEfectivo } from "../lib/adminAccess";
-import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
+import { esPanelContabilidad, puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import {
   esSeccionHub,
   navSectionForPanel,
@@ -32,8 +39,12 @@ export default function Layout({
   children,
   onBackToMobileHub,
   onExitForceDesktop,
+  barraMovil,
 }: {
   children: ReactNode;
+  /** Celular: barra inferior Agenda · Hugo · Mensajes · Rápido · Yo. Con ella, los
+   *  controles de vista y el menú de usuario viven en «Yo» y el cabezote queda libre. */
+  barraMovil?: ReactNode;
   /** Vuelve al hub móvil simplificado (sin forzar escritorio). */
   onBackToMobileHub?: () => void;
   /** Sale del modo “vista escritorio” forzada en el teléfono. */
@@ -44,8 +55,25 @@ export default function Layout({
   const panel = useAppStore((s) => s.panel);
   const centroMandoView = useAppStore((s) => s.centroMandoView);
   const etiquetasStudioInmersivo = useAppStore((s) => s.etiquetasStudioInmersivo);
+  const libroMayorEnfoque = useAppStore((s) => s.libroMayorEnfoque);
+  const cotizarEnfoque = useAppStore((s) => s.cotizarEnfoque);
   const user = useTicketsAuth((s) => s.user);
-  const { advanced: advancedToggle } = useUiMode();
+  const { advanced: advancedToggle, navClasica } = useUiMode();
+  // La app se navega por la secuencia del negocio (FlujoNav); la de departamentos queda como respaldo.
+  const navFlujo = !navClasica;
+  const tallerRetorno = useAppStore((st) => st.tallerRetorno);
+  const volverAlTaller = useAppStore((st) => st.volverAlTaller);
+  const enOrigen = panel === "hugo" || panel === "tickets";
+  // La Agenda y lo que vive dentro de ella: llevan sus vistas como pestañas propias.
+  const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "chat-equipo";
+  const puedeVerMapa = Boolean(user && puedeVerSeccionPanel(user, "mapa-vivo"));
+  const ubicacion = ubicacionDe(panel);
+  // El piso del Edificio donde queda este módulo (la piel pixel lo dibuja: placa, losa y color).
+  const piso = enOrigen
+    ? { id: "inicio", placa: "PB", fondo: "#FFEC27", tinta: "#000" }
+    : ubicacion
+      ? { id: ubicacion.etapa.id, placa: placaDePiso(ubicacion.etapa.id), ...(COLOR[ubicacion.etapa.id] ?? COLOR_DEF) }
+      : null;
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
   // El inbox de "Mensajes" es un chat de dos paneles (como Home) que necesita
@@ -62,12 +90,17 @@ export default function Layout({
     ? "Mi perfil"
     : panel === "settings"
     ? "Ajustes"
-    : isHub && sectionLabel
+    : isHub && sectionLabel && !navFlujo
     ? sectionLabel
     : panelInfo?.label ?? "Panel de operaciones";
 
   /** Contenedor de contenido: hubs = flex + scroll interno (como Contabilidad). */
-  const studioEtiquetasFill = panel === "etiquetas" && etiquetasStudioInmersivo;
+  // Sin cromo: el Studio de etiquetas en su lienzo, y el Libro Mayor en modo
+  // enfoque. Mismo trato: nada de cabezote ni pestañas, el contenido llena.
+  const studioEtiquetasFill =
+    (panel === "etiquetas" && etiquetasStudioInmersivo) ||
+    (esPanelContabilidad(panel) && libroMayorEnfoque) ||
+    (panel === "facturacion" && cotizarEnfoque);
   const contentScrollClass = isCentroMando
     ? hubIntegrado
       ? "flex min-h-0 flex-col overflow-hidden px-2 pt-2 sm:px-3 sm:pt-2.5 lg:px-4 lg:pt-3"
@@ -83,9 +116,25 @@ export default function Layout({
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       <SolicitudesEnProcesoFab />
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent" data-piso={piso?.id}
+            style={piso ? ({ "--mck-piso": piso.fondo, "--mck-piso-tinta": piso.tinta } as CSSProperties) : undefined}>
+        {/* En Docs técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
+        {tallerRetorno && panel !== (tallerRetorno.origen ?? "combos") && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
+          <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
+            <button
+              type="button"
+              onClick={volverAlTaller}
+              title={tallerRetorno.origen === "canales-producto" ? "Volver a Canales del producto" : "Volver al taller de combos para seguir completando este producto"}
+              className="mck-flujo-nodo mck-mision-pulso flex max-w-full items-center gap-2 rounded-full border-2 border-white/70 bg-accent px-4 py-2 text-[13px] font-bold text-white shadow-paper-lg hover:opacity-90"
+            >
+              <span aria-hidden="true">←</span>
+              <span className="truncate">Seguir con {tallerRetorno.nombre}</span>
+            </button>
+          </div>
+        )}
         {!studioEtiquetasFill && (
           <>
+            <AccesoDenegadoBanner />
             <SystemAlertsBanner />
             <TeamActivityBanner />
           </>
@@ -108,7 +157,7 @@ export default function Layout({
               </button>
             )}
             <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5">
-              {sectionId !== "inicio" && !studioEtiquetasFill && (
+              {sectionId !== "inicio" && !studioEtiquetasFill && !navFlujo && (
                 <button
                   type="button"
                   onClick={() => navegarPanel("hugo")}
@@ -119,8 +168,43 @@ export default function Layout({
                   Agenda
                 </button>
               )}
-              {/* Agenda: pestañas a la izquierda (sin título duplicado "Agenda"). */}
-              {sectionId === "inicio" ? (
+              {navFlujo && panel !== "mapa-vivo" && puedeVerMapa && (
+                <button
+                  type="button"
+                  onClick={() => navegarPanel("mapa-vivo")}
+                  title="Volver al mapa: desde ahí se abre todo"
+                  className="mck-flujo-nodo mck-volver-mapa flex shrink-0 items-center gap-1 rounded-lg border border-accent bg-accent px-2.5 py-1.5 text-[12px] font-bold text-white hover:opacity-90"
+                >
+                  ◇ Mapa
+                </button>
+              )}
+              {navFlujo ? (
+                /* Flujo: la miga dice en qué punto de la secuencia estás; el título, el panel. */
+                <>
+                  <div className="min-w-0">
+                    <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                      {piso?.placa && <span className="mck-piso-placa hidden" title="El piso de este módulo en el Edificio">{piso.placa}</span>}
+                      {enOrigen
+                        ? "Inicio"
+                        : ubicacion
+                          ? `${ubicacion.etapa.titulo} ⇢ ${ubicacion.n}·${ubicacion.tramo.titulo}`
+                          : panel === "mapa-vivo"
+                            ? "Inicio · toda la aplicación"
+                            : panel === "mapa-sistema"
+                              ? "Todo el flujo"
+                              : "Fuera de la secuencia"}
+                    </p>
+                    <h1 className="mck-title truncate text-[22px] font-bold leading-tight tracking-tight">
+                      {enOrigen ? ORIGEN_APP.titulo : headerTitle}
+                    </h1>
+                  </div>
+                  {enOrigen && (
+                    <div className="hidden shrink-0 border-l border-border/60 pl-2 sm:flex">
+                      <EquipoConectadoBar />
+                    </div>
+                  )}
+                </>
+              ) : sectionId === "inicio" ? (
                 <>
                   <div className="min-w-0 shrink">
                     <InicioNavTabs />
@@ -173,29 +257,48 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
-              {/* Diseño: pestañas inline solo con ancho suficiente (≥ xl) */}
-              {sectionId === "diseno" && (
-                <div className="mr-0.5 hidden min-w-0 max-w-[min(100%,42rem)] border-r border-border/80 pr-1.5 xl:block">
-                  <DisenoNavTabs />
-                </div>
+              {barraMovil && <CampanaNotificaciones />}
+              {!barraMovil && (
+                <>
+                  <AccesosRapidos />
+                  <CampanaNotificaciones />
+                  <div className="mck-cabezote-vista">
+                    <PantallaControles />
+                    <TemasHeaderButton />
+                    <ThemeModeToggle />
+                  </div>
+                  <UserMenuButton />
+                </>
               )}
-              <TemasHeaderButton />
-              <ThemeModeToggle />
-              <UserMenuButton />
             </div>
           </div>
 
+          {/* Sin menú de arriba (25-sep-2026): toda la navegación sale del Mapa, donde cada etapa
+              despliega sus paneles; «◇ Mapa» (arriba a la izquierda) vuelve a él desde cualquier
+              lado. Lo que sigue aquí son vistas DENTRO de un panel, no navegación entre paneles:
+              las de la Agenda (Mi día · Mensajes · Equipo…) y las pestañas de Diseño y Docs. */}
+          {navFlujo && enFamiliaAgenda && (
+            <div className="mck-flujo-vistas flex min-w-0 items-center gap-1.5">
+              <InicioNavTabs soloVistas />
+            </div>
+          )}
+          {navFlujo && (sectionId === "diseno" || sectionId === "docs") && (
+            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+              {sectionId === "diseno" ? <DisenoNavTabs /> : <DocsNavTabs />}
+            </div>
+          )}
+
           {/* Agenda ya lleva pestañas en la fila del cabezote (izquierda). */}
-          {showHubTabs && sectionId !== "inicio" && (
+          {!navFlujo && showHubTabs && sectionId !== "inicio" && (
             <div
-              className={`mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5 ${
-                sectionId === "diseno" ? "xl:hidden" : ""
-              }`}
+              className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5"
             >
               {sectionId === "contabilidad" ? (
                 <ContabilidadNavTabs />
               ) : sectionId === "diseno" ? (
                 <DisenoNavTabs />
+              ) : sectionId === "docs" ? (
+                <DocsNavTabs />
               ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}
@@ -209,6 +312,10 @@ export default function Layout({
             {isHub && !isCentroMando ? (
               sectionId === "contabilidad" ||
               sectionId === "publicaciones" ||
+              panel === "colaboradores" ||
+              panel === "mapa-vivo" ||
+              panel === "juegos" ||
+              panel === "chat-equipo" ||
               studioEtiquetasFill ? (
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                   <PanelTransition>{children}</PanelTransition>
@@ -223,7 +330,35 @@ export default function Layout({
             )}
           </div>
         </div>
+        {barraMovil}
       </main>
+    </div>
+  );
+}
+
+/** Aviso cuando el guard devuelve al usuario por falta de permiso.
+ * Antes el rebote era silencioso: la persona veía que "el panel la saca de la
+ * pantalla" sin saber que le faltaba un acceso (pasó con Solicitudes de pago). */
+function AccesoDenegadoBanner() {
+  const panel = useAppStore((s) => s.accesoDenegado);
+  const setAccesoDenegado = useAppStore((s) => s.setAccesoDenegado);
+  if (!panel) return null;
+  const nombre = PANEL_INFO[panel]?.label ?? panel;
+  return (
+    <div className="flex items-start gap-2 border-b border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+      <Icon name="warning" size={16} weight="duotone" className="mt-0.5 shrink-0" />
+      <p className="min-w-0 flex-1 leading-snug">
+        No tienes acceso a <strong>{nombre}</strong>, así que te devolvimos al panel anterior.
+        Pídele a un administrador el permiso en Gestión de usuarios → Accesos al panel.
+      </p>
+      <button
+        type="button"
+        onClick={() => setAccesoDenegado(null)}
+        className="mck-press shrink-0 rounded px-1.5 py-0.5 font-bold hover:bg-amber-100 dark:hover:bg-amber-900/40"
+        aria-label="Cerrar aviso"
+      >
+        ✕
+      </button>
     </div>
   );
 }

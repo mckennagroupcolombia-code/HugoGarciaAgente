@@ -1,0 +1,345 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Producto — del registro al combo enlazado",
+    "output": "02-flujo-producto.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "base",
+        "label": "1 · El producto base",
+        "focus": [
+          "solicitud",
+          "inicia",
+          "skubase",
+          "base"
+        ],
+        "note": "Un administrador toma la solicitud y lleva todo el flujo: elige la unidad mínima y supervisa el SKU propuesto."
+      },
+      {
+        "id": "combo",
+        "label": "2 · El combo",
+        "focus": [
+          "base",
+          "combo",
+          "tamano",
+          "skucombo",
+          "ean"
+        ],
+        "note": "Se define la cantidad; el administrador decide el tamaño de etiqueta según cantidad, categoría y si es polvo o líquido."
+      },
+      {
+        "id": "enlaces",
+        "label": "3 · Los cuatro enlaces",
+        "focus": [
+          "ean",
+          "enlaza",
+          "sheets",
+          "doc",
+          "pub"
+        ],
+        "note": "El mismo administrador enlaza el combo con su documento técnico, MeLi, la página web y el inventario en Google Sheets."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "adm",
+      "label": "Administrador · el mismo en todo el flujo"
+    },
+    {
+      "id": "app",
+      "label": "Plataforma · algoritmos"
+    },
+    {
+      "id": "inv",
+      "label": "Inventario · Alegra y Google Sheets"
+    },
+    {
+      "id": "dis",
+      "label": "Diseño · etiquetas"
+    },
+    {
+      "id": "docs",
+      "label": "Docs técnicos"
+    },
+    {
+      "id": "canal",
+      "label": "Canales de venta"
+    }
+  ],
+  "phases": [
+    {
+      "id": "f-base",
+      "label": "Producto base",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "f-combo",
+      "label": "Producto tipo combo",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "f-enlaces",
+      "label": "Enlaces",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "solicitud",
+    "inicia",
+    "skubase",
+    "base",
+    "combo",
+    "tamano",
+    "skucombo",
+    "ean",
+    "enlaza",
+    "pub"
+  ],
+  "nodes": [
+    {
+      "id": "solicitud",
+      "lane": "app",
+      "col": 0,
+      "type": "security",
+      "label": "Solicitud de registro",
+      "sublabel": "viene de un pago",
+      "width": 163
+    },
+    {
+      "id": "inicia",
+      "lane": "adm",
+      "col": 1,
+      "type": "security",
+      "label": "Inicia el registro",
+      "sublabel": "unidad: g · mL · un",
+      "width": 142
+    },
+    {
+      "id": "skubase",
+      "lane": "app",
+      "col": 1,
+      "type": "backend",
+      "label": "Propone el SKU",
+      "sublabel": "abrevia el nombre",
+      "width": 115
+    },
+    {
+      "id": "base",
+      "lane": "inv",
+      "col": 2,
+      "type": "database",
+      "label": "Producto base",
+      "sublabel": "ACERICmL",
+      "width": 108
+    },
+    {
+      "id": "combo",
+      "lane": "adm",
+      "col": 3,
+      "type": "frontend",
+      "label": "Crea el combo",
+      "sublabel": "define la cantidad",
+      "width": 113
+    },
+    {
+      "id": "tamano",
+      "lane": "adm",
+      "col": 4,
+      "type": "frontend",
+      "label": "Define el tamaño de etiqueta",
+      "sublabel": "cantidad · categoría · polvo o líquido",
+      "width": 221
+    },
+    {
+      "id": "skucombo",
+      "lane": "app",
+      "col": 4,
+      "type": "security",
+      "label": "SKU del combo",
+      "sublabel": "C-ACERIC250mL",
+      "width": 108
+    },
+    {
+      "id": "ean",
+      "lane": "dis",
+      "col": 4,
+      "type": "backend",
+      "label": "Código EAN-13",
+      "sublabel": "se crea en el momento",
+      "width": 129
+    },
+    {
+      "id": "sheets",
+      "lane": "inv",
+      "col": 5,
+      "type": "cloud",
+      "label": "Google Sheets",
+      "sublabel": "inventario",
+      "width": 108
+    },
+    {
+      "id": "doc",
+      "lane": "docs",
+      "col": 5,
+      "type": "backend",
+      "label": "Documento técnico",
+      "sublabel": "TDS · COA · SDS",
+      "width": 135
+    },
+    {
+      "id": "pub",
+      "lane": "canal",
+      "col": 5,
+      "type": "cloud",
+      "label": "Publicaciones",
+      "sublabel": "MeLi + página web",
+      "width": 108
+    },
+    {
+      "id": "enlaza",
+      "lane": "adm",
+      "col": 5,
+      "type": "frontend",
+      "label": "Enlaza el combo",
+      "sublabel": "los cuatro enlaces",
+      "width": 122
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-solicitud-inicia",
+      "from": "solicitud",
+      "to": "inicia",
+      "label": "atiende",
+      "role": "main",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-inicia-skubase",
+      "from": "inicia",
+      "to": "skubase",
+      "label": "nombre",
+      "role": "main"
+    },
+    {
+      "id": "e-skubase-base",
+      "from": "skubase",
+      "to": "base",
+      "label": "SKU",
+      "role": "main"
+    },
+    {
+      "id": "e-base-combo",
+      "from": "base",
+      "to": "combo",
+      "label": "asocia",
+      "role": "main"
+    },
+    {
+      "id": "e-combo-tamano",
+      "from": "combo",
+      "to": "tamano",
+      "label": "cantidad",
+      "role": "main"
+    },
+    {
+      "id": "e-tamano-skucombo",
+      "from": "tamano",
+      "to": "skucombo",
+      "role": "main"
+    },
+    {
+      "id": "e-skucombo-ean",
+      "from": "skucombo",
+      "to": "ean",
+      "label": "SKU",
+      "variant": "emphasis",
+      "role": "main"
+    },
+    {
+      "id": "e-ean-enlaza",
+      "from": "ean",
+      "to": "enlaza",
+      "label": "código",
+      "role": "main"
+    },
+    {
+      "id": "e-enlaza-sheets",
+      "from": "enlaza",
+      "to": "sheets",
+      "role": "branch"
+    },
+    {
+      "id": "e-enlaza-doc",
+      "from": "enlaza",
+      "to": "doc",
+      "role": "branch"
+    },
+    {
+      "id": "e-enlaza-pub",
+      "from": "enlaza",
+      "to": "pub",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Un solo administrador, de principio a fin",
+      "items": [
+        "Quien toma la solicitud registra, crea el combo y enlaza",
+        "Hoy esos pasos están repartidos en paneles distintos"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Dos SKU, dos algoritmos",
+      "items": [
+        "Base: 3 letras por palabra + unidad → ACERICmL (ya existe)",
+        "Combo: C- + abreviación + cantidad → C-ACERIC250mL"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Decisiones de la persona",
+      "items": [
+        "Tamaño de etiqueta: cantidad, categoría, polvo o líquido",
+        "El EAN-13 no se reserva: se crea en el momento"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Por construir",
+      "items": [
+        "La solicitud de registro y su cola de administradores",
+        "El SKU del combo: hoy solo se antepone C- a mano"
+      ]
+    }
+  ]
+}

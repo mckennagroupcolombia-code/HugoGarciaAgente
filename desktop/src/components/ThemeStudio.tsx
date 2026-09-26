@@ -270,7 +270,7 @@ export default function ThemeStudio() {
           Quitar colores propios
         </button>
         <button type="button" onClick={() => reset()} className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-muted hover:text-accent">
-          Restaurar Sakura
+          Restaurar Pixel
         </button>
       </div>
     </div>

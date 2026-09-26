@@ -120,7 +120,8 @@ def parse_490(t: str) -> dict:
     anio = re.search(r"1\.\s*Año\s+((?:\d\s*){4})", t)
     concepto = re.search(r"2\.\s*Concepto\s+((?:\d\s*){2})", t)
     per = re.search(r"3\.\s*Per[ií]odo\s+(\d\s?\d?)(?!\d)", t)
-    nform = re.search(r"4\.\s*Número de formulario\s+(\d{10,})", t)
+    # En el 490 el número del recibo (49…) queda en la línea siguiente al rótulo.
+    nform = re.search(r"4\.\s*Número de formulario\s+(\d{10,})", t) or re.search(r"\b(49\d{11})\b", t)
     ref = re.search(r"29\s*\.\s*No\. de formulario\s+(\d{10,})", t) or re.search(r"(?m)^\s+\d\s+\d\s+(\d{13})\s*$", t)
     fecha = re.search(r"recibo\s+((?:\d\s*){8})", t)
     imp = re.search(r"Valor pago impuesto\s+([\d,]+)", t)

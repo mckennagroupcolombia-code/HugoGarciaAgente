@@ -1,9 +1,10 @@
+import { useAppStore } from "../stores/app";
 import { useEffect, useId, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { nombreMayusculasAlegra } from "../lib/alegraNombreProducto";
 
-interface CatalogoItem {
+export interface CatalogoItem {
   id: string;
   reference: string;
   name: string;
@@ -101,7 +102,8 @@ function nuevaComp(parcial?: Partial<CompEdit>): CompEdit {
   };
 }
 
-function EditarModal({
+/** También lo usa el taller de combos (combos/KitEmergente.tsx): mismo emergente, misma escritura. */
+export function EditarModal({
   item,
   busy,
   error,
@@ -722,6 +724,17 @@ export default function CatalogoAlegraPanel() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
+  // Llegada desde el taller de combos: el catálogo abre buscando ese kit.
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "catalogo-alegra") return;
+    if (tallerSalto.buscar) {
+      setQ(tallerSalto.buscar);
+      setQDebounced(tallerSalto.buscar);
+    }
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto]);
   const [clase, setClase] = useState<ClaseCatalogo>("product");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [detalleCache, setDetalleCache] = useState<Record<string, Componente[]>>({});

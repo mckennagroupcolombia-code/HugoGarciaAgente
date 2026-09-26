@@ -1,0 +1,332 @@
+/*
+ * Etiqueta de cápsulas (66 × 22 mm) — dos paneles horizontales, 55 % / 45 %.
+ *
+ * La estructura es propia (`.ecap-*`); las casillas editables, el logo, el
+ * nombre y el código de barras son las piezas del 30 mL (`e30-*`), por eso el
+ * componente importa los dos CSS. Escala: 18 px/mm, como el 5 mL.
+ *
+ * Todas las alturas llegan de `variablesCapsulas` (--ecap-filas-*): ninguna
+ * franja se mide sola, y las pistas van a px fijos, así el contenido nunca
+ * estira una fila; el texto se encoge (useAjusteTexto). Rellenos de un solo
+ * color, sin sombras ni degradados.
+ */
+
+.ecap-etiqueta {
+  box-sizing: border-box;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: var(--ecap-separacion);
+  padding: var(--ecap-margen);
+  overflow: hidden;
+  background: #ffffff;
+  color: #111111;
+  font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 1.15;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.ecap-etiqueta *,
+.ecap-etiqueta *::before,
+.ecap-etiqueta *::after {
+  box-sizing: border-box;
+  font-style: normal;
+}
+
+.ecap-etiqueta p,
+.ecap-etiqueta h1 {
+  margin: 0;
+}
+
+/* Dato vacío en edición: ejemplo en gris (no se imprime). */
+.ecap-etiqueta .e30-ejemplo {
+  color: #a8a8a8 !important;
+}
+.ecap-pie .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ── Paneles ─────────────────────────────────────────────────────────────── */
+
+.ecap-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border: var(--ecap-borde) solid var(--acento);
+  border-radius: var(--ecap-radio);
+}
+.ecap-panel > * {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ecap-panel-principal {
+  grid-template-rows: var(--ecap-filas-principal);
+}
+.ecap-panel-auxiliar {
+  grid-template-rows: var(--ecap-filas-auxiliar);
+}
+
+/* ── Panel principal ─────────────────────────────────────────────────────── */
+
+.ecap-etiqueta .ecap-marca {
+  gap: 3px;
+  padding: 10px 0 8px;
+}
+.ecap-etiqueta .ecap-marca .e30-logo-caja {
+  width: 80%;
+}
+.ecap-lema {
+  font-size: 20px;
+}
+.ecap-etiqueta .e30-logo-vacio {
+  font-size: 18px;
+  letter-spacing: 0.06em;
+}
+
+.ecap-identidad {
+  gap: 4px;
+  padding: 6px 12px;
+}
+.ecap-etiqueta .ecap-nombre {
+  font-weight: 800;
+  line-height: 1.02;
+}
+.ecap-subtitulo {
+  flex: none;
+  width: 100%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #111111;
+}
+
+.ecap-presentacion {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ── Casillas ────────────────────────────────────────────────────────────── */
+
+.ecap-titulo {
+  flex: none;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--acento);
+}
+
+.ecap-valor {
+  width: 100%;
+  font-weight: 500;
+  text-align: left;
+  line-height: 1.12;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+  color: #111111;
+}
+.ecap-valor-destacado {
+  font-weight: 800;
+}
+
+/* Título arriba, valor debajo (Tamaño, Contenido). */
+.ecap-dato {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 10px;
+  text-align: center;
+}
+.ecap-dato-valor {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.ecap-dato-valor > .e30-campo-wrap,
+.ecap-dato-valor > .ecap-valor {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 2ch;
+  max-width: 100%;
+}
+.ecap-dato .ecap-valor {
+  text-align: center;
+  white-space: nowrap;
+}
+/* En edición la casilla mide lo que su texto, así «UNIDADES» queda pegado
+   al número y el pie no reparte huecos. */
+.ecap-dato-valor .e30-campo,
+.ecap-pie .e30-campo {
+  field-sizing: content;
+  width: auto;
+  max-width: 100%;
+}
+.ecap-sufijo {
+  flex: none;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #111111;
+}
+
+/* Título y valor en la misma línea, sobre una raya discreta (Lote, Vencimiento). */
+.ecap-dato-linea {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 4px 10px;
+}
+.ecap-subrayado {
+  flex: 1 1 auto;
+  align-self: center;
+  justify-content: flex-start;
+  min-height: 26px;
+  border-bottom: 1.5px solid #9a9a9a;
+}
+.ecap-subrayado > .e30-campo-wrap {
+  flex: 1 1 auto;
+  width: 100%;
+}
+.ecap-dato-linea .ecap-valor {
+  text-align: left;
+}
+
+/* Ícono a la izquierda, texto a la derecha (Composición, Color, Conservación). */
+.ecap-casilla {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px 3px 8px;
+}
+.ecap-etiqueta .ecap-icono {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: 4px;
+}
+.ecap-etiqueta .e30-svg > svg * {
+  stroke-width: 4;
+}
+.ecap-casilla-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Dos casillas iguales, con la línea vertical en la primera. */
+.ecap-par {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* ── Código de barras ────────────────────────────────────────────────────── */
+
+.ecap-etiqueta .e30-barras {
+  padding: 6px 0 4px;
+}
+.ecap-etiqueta .e30-barras-boton {
+  width: 92%;
+}
+
+/* Sin código válido: la franja de color y un rótulo en su lugar. */
+.ecap-barras-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+.ecap-franja-colores {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: 70%;
+  height: 10px;
+}
+.ecap-barras-rotulo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70%;
+  flex: 1 1 auto;
+  border: 1.5px dashed #b8b8b8;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #9a9a9a;
+}
+
+/* ── Pie corporativo ─────────────────────────────────────────────────────── */
+
+/* La web es el dato más largo y no se puede partir: se lleva más ancho. */
+.ecap-pie {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  background: var(--acento);
+  color: #ffffff;
+}
+.ecap-pie-dato {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 74%;
+  min-width: 0;
+  padding: 0 5px;
+}
+.ecap-pie-dato + .ecap-pie-dato {
+  border-left: var(--ecap-linea) solid #ffffff;
+}
+.ecap-pie-icono {
+  display: flex;
+  flex: none;
+  color: #ffffff;
+}
+.ecap-pie-icono svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
+}
+.ecap-pie-dato > .e30-campo-wrap {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 3ch;
+}
+.ecap-pie-texto {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1.08;
+  text-align: center;
+  white-space: pre-line;
+  color: #ffffff;
+}

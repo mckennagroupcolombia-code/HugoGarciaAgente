@@ -3421,13 +3421,21 @@ def _modo_mantenimiento():
         return jsonify({"ok": False, "estado": "mantenimiento"}), 503
     if request.path == "/pago/confirmacion":
         return None  # el IPN de MercadoPago se procesa igual: es dinero ya cobrado
+    # Con «cese» dentro de la bandera (scripts/cese_actividades.py) la página dice que no
+    # se reciben pedidos, en vez de «volvemos en unos minutos».
     try:
-        cuerpo = _MANTENIMIENTO_HTML.read_text(encoding="utf-8")
+        es_cese = "cese" in _MANTENIMIENTO_FLAG.read_text(encoding="utf-8").lower()
+    except OSError:
+        es_cese = False
+    html = _MANTENIMIENTO_HTML.with_name("cese.html") if es_cese else _MANTENIMIENTO_HTML
+    try:
+        cuerpo = html.read_text(encoding="utf-8")
     except OSError:
         cuerpo = "<p>Estamos en mantenimiento. Vuelve en unos minutos.</p>"
     from flask import Response
 
-    return Response(cuerpo, status=503, mimetype="text/html", headers={"Retry-After": "120", "Cache-Control": "no-store"})
+    reintento = "3600" if es_cese else "120"
+    return Response(cuerpo, status=503, mimetype="text/html", headers={"Retry-After": reintento, "Cache-Control": "no-store"})
 
 
 @app.route("/checkout/reanudar/<token>")
@@ -4393,7 +4401,7 @@ def confianza_portada(ruta_origen: dict, colombia: dict) -> list[dict]:
     n_dep = int((colombia or {}).get("n_alcanzados") or 0)
     tot_dep = int((colombia or {}).get("total_departamentos") or 33)
     return [
-        {"icono": "certificate", "titulo": "Importación legal", "cifra": "VUCE + COA por lote", "texto": "Visto bueno INVIMA"},
+        {"icono": "certificate", "titulo": "Importación legal", "cifra": "COA y ficha técnica de lote", "texto": "Permisos según el producto"},
         {"icono": "file-text", "titulo": "Documentación", "cifra": f"{n_tds} fichas técnicas · {n_coa} COA", "texto": "Publicadas en la web"},
         {"icono": "truck", "titulo": "Despachos", "cifra": f"{n_dep} de {tot_dep} departamentos", "texto": "Interrapidísimo con guía"},
         {"icono": "lock", "titulo": "Pago seguro", "cifra": "PSE · tarjetas · Nequi", "texto": "Mercado Pago"},

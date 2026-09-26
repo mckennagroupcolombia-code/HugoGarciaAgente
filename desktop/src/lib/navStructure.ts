@@ -44,8 +44,15 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     label: "Agenda",
     hub: true,
     items: [
+      // El mapa va primero: es la pantalla de inicio y el primer panel al que se cae si
+      // el guardado no está permitido (NAV_PANEL_ORDER sale de este orden).
+      { panel: "mapa-vivo", tier: "core" },
       { panel: "hugo", tier: "core" },
       { panel: "dashboard", tier: "core" },
+      { panel: "mapa-sistema", tier: "core" },
+      { panel: "chat-equipo", tier: "core" },
+      { panel: "colaboradores", tier: "core" },
+      { panel: "juegos", tier: "core" },
     ],
   },
   {
@@ -59,6 +66,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "pedidos", tier: "core" },
       { panel: "empaque", tier: "core" },
       { panel: "guias-envio", tier: "core" },
+      { panel: "entregas-flex", tier: "standard" },
       { panel: "whatsapp", tier: "standard" },
     ],
   },
@@ -76,7 +84,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "diseno",
     label: "Diseño",
     hub: true,
-    items: [{ panel: "etiquetas", tier: "core" }],
+    items: [
+      { panel: "producto", tier: "core" },
+      { panel: "etiquetas", tier: "core" },
+    ],
   },
   {
     id: "docs",
@@ -88,11 +99,16 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "contabilidad",
     label: "Contabilidad",
     hub: true,
+    // Operativos es "standard" a propósito (15-sep-2026): adentro vive
+    // Mensajería, que la lleva despachos a diario (Flujo K). Con tier
+    // "advanced" la pestaña no aparecía hasta activar el modo avanzado, así que
+    // quien tiene el permiso no encontraba el panel — el permiso decide el
+    // acceso, el modo avanzado solo esconde lo que casi nadie usa.
     items: CONTABILIDAD_PANELS.filter((panel) => !CONTABILIDAD_TAB_OCULTAS.has(panel)).map(
       (panel) => ({
         panel,
         tier:
-          panel === "costos-productos" || panel === "rrhh" || panel === "operativos"
+          panel === "costos-productos" || panel === "rrhh"
             ? ("advanced" as PanelTier)
             : ("standard" as PanelTier),
       }),
@@ -116,7 +132,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     items: [
       { panel: "control-inventario", tier: "core" },
+      { panel: "recepcion-mercancia", tier: "core" },
       { panel: "stock", tier: "standard" },
+      { panel: "combos", tier: "standard" },
+      { panel: "mapa-sistema", tier: "standard" },
     ],
   },
   {
@@ -126,6 +145,7 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     items: [
       { panel: "publicaciones", tier: "standard" },
+      { panel: "canales-producto", tier: "standard" },
       { panel: "vitrina-web", tier: "standard" },
     ],
   },
@@ -147,6 +167,8 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     hub: true,
     advancedOnly: true,
     items: [
+      { panel: "mapa-sistema", tier: "advanced" },
+      { panel: "arquitectura", tier: "advanced" },
       { panel: "supervisor", tier: "advanced" },
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },

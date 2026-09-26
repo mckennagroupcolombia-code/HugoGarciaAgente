@@ -1,7 +1,9 @@
+import { Ico } from "../icons/Ico";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { api } from "../api/client";
 import ComprobanteWidget from "./ComprobanteWidget";
+import TerceroSelect from "./TerceroSelect";
 
 /**
  * Pagos de mensajería (Interrapidísimo y otras transportadoras).
@@ -40,6 +42,8 @@ type Lote = {
   soporte_nombre?: string;
   rango: string;
   dias: Envio[];
+  tercero_id?: number | null;
+  solicitud_pago_id?: number | null;
 };
 
 type Resumen = {
@@ -551,26 +555,29 @@ export default function MensajeriaPanel() {
                 <div className="flex flex-wrap items-center gap-2">
                   {l.estado === "solicitado" && (
                     <>
-                      {!l.ticket_id && (
+                      {!l.solicitud_pago_id && !l.ticket_id && (
                         <button
                           type="button"
                           onClick={() => aprobacionMut.mutate(l.id)}
-                          className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold text-ink hover:bg-surface"
+                          className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold text-muted hover:bg-surface"
+                          title="Ticket suelto, sin asiento contable. Preferible mandarlo a Solicitudes de pago."
                         >
-                          Pedir aprobación
+                          Solo pedir aprobación
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setPagando(l);
-                          setFormPago((f) => ({ ...f, monto: String(l.total), fecha_pago: hoy() }));
-                        }}
-                        className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-bold text-white"
-                      >
-                        Registrar pago
-                      </button>
+                      {!l.solicitud_pago_id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setPagando(l);
+                            setFormPago((f) => ({ ...f, monto: String(l.total), fecha_pago: hoy() }));
+                          }}
+                          className="rounded-lg border border-border px-3 py-1.5 text-[11px] font-bold text-ink hover:bg-surface"
+                        >
+                          Registrar pago
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -595,6 +602,17 @@ export default function MensajeriaPanel() {
                   )}
                 </div>
               </div>
+
+              {l.estado === "solicitado" && !l.solicitud_pago_id && (
+                <EnviarASolicitudes lote={l} onHecho={refrescar} onError={setError} />
+              )}
+              {l.solicitud_pago_id && (
+                <p className="mt-3 rounded-lg border border-accent/30 bg-accent/5 px-3 py-2 text-[11px] text-ink">
+                  <Ico e="🧾" /> Va por <b>Contabilidad → Solicitudes de pago #{l.solicitud_pago_id}</b>: allí se
+                  aprueba (y nace el asiento), se gira con los dos tokens de la Sucursal Virtual y se
+                  adjunta el comprobante. Cuando se confirme el giro, este lote queda pagado solo.
+                </p>
+              )}
 
               {pagando?.id === l.id && (
                 <form
@@ -719,5 +737,64 @@ function Campo({
       <span className="font-bold text-muted">{label}</span>
       {children}
     </label>
+  );
+}
+
+/**
+ * El lote de mensajería entra al flujo único de pagos.
+ *
+ * Antes este pago vivía aparte: un ticket de texto libre pedía aprobarlo y el
+ * asiento solo aparecía cuando alguien marcaba el lote como pagado. El resto de
+ * los pagos ya tiene un solo camino —solicitud → asiento al aprobar → giro con
+ * los dos tokens → comprobante— y no había razón para que este fuera la
+ * excepción. Lo único que hay que decirle es a quién se le paga: la
+ * transportadora como tercero del Libro Mayor (se puede crear aquí mismo).
+ */
+function EnviarASolicitudes({
+  lote,
+  onHecho,
+  onError,
+}: {
+  lote: Lote;
+  onHecho: () => void;
+  onError: (m: string | null) => void;
+}) {
+  const [terceroId, setTerceroId] = useState(lote.tercero_id ? String(lote.tercero_id) : "");
+  const mut = useMutation({
+    mutationFn: () =>
+      api.post<{ ok?: boolean; error?: string; solicitud_id?: number }>(
+        `/api/mensajeria/lotes/${lote.id}/solicitud-pago`,
+        { tercero_id: terceroId ? Number(terceroId) : null },
+      ),
+    onSuccess: (r) => {
+      if (r.error) return onError(r.error);
+      onError(null);
+      onHecho();
+    },
+    onError: (e) => onError((e as Error).message),
+  });
+
+  return (
+    <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <TerceroSelect
+        label={`¿A quién se le paga? (${lote.transportadora})`}
+        value={terceroId}
+        onChange={setTerceroId}
+        tiposPermitidos={["proveedor", "otro"]}
+      />
+      <button
+        type="button"
+        onClick={() => mut.mutate()}
+        disabled={!terceroId || mut.isPending}
+        className="rounded-lg bg-accent px-3 py-2 text-[11px] font-bold text-white disabled:opacity-40"
+      >
+        {mut.isPending ? "Enviando…" : "Pasar a Solicitudes de pago"}
+      </button>
+      <p className="text-[10px] text-muted sm:col-span-2">
+        Queda como flete (cuenta 513550) con los días del lote en la solicitud. El asiento nace al
+        aprobarla, no ahora, y este lote deja de contabilizarse por su cuenta para que el gasto no
+        quede dos veces.
+      </p>
+    </div>
   );
 }

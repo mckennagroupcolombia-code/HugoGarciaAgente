@@ -2,6 +2,7 @@
  * Tras elegir el formato del lienzo: subir/pegar foto → Visión IA diagramá
  * el layout escalado a ese tamaño (no plantilla SCI fija).
  */
+import { ico } from "../../icons/icoTexto";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../api/client";
 import { imagenDesdePortapapeles } from "../../lib/clipboardImage";
@@ -182,7 +183,7 @@ export default function ScanCapturaLayoutPanel({
             onClick={() => fileRef.current?.click()}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
-            {escaneando ? "Diagramando…" : "📷 Subir captura"}
+            {escaneando ? "Diagramando…" : ico("📷 Subir captura")}
           </button>
           <button
             type="button"

@@ -1,4 +1,5 @@
 export { Icon } from "./Icon";
+export { Ico } from "./Ico";
 export { IllustrationIcon } from "./IllustrationIcon";
 export { PanelIcon } from "./PanelIcon";
 export { TopicIcon, TopicIconLabel } from "./TopicIcon";

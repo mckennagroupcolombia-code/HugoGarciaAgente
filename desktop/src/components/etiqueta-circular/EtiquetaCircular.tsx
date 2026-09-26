@@ -8,6 +8,8 @@ import {
 } from "react";
 import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import PopoverFlotante from "../etiqueta-ficha/PopoverFlotante";
+import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
+import LemaLogo from "../etiqueta-30ml/LemaLogo";
 import { EJEMPLO_ETIQUETA, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
 import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
 import BarcodeSection from "../etiqueta-30ml/BarcodeSection";
@@ -15,8 +17,8 @@ import { textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
+  ALTO_FRANJA_CIRCULAR,
   arcoTexto,
-  COLORES_FRANJA_BARRAS,
   lineasAplicaciones,
   TRAMOS_CIRCULAR,
   unirAplicaciones,
@@ -84,6 +86,8 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
   const bandas = reticula.bandas;
   const tam = reticula.tam;
 
+  const logoRef = useRef<HTMLDivElement>(null);
+  const [menuLogo, setMenuLogo] = useState(false);
   const bandaDescRef = useRef<HTMLDivElement>(null);
   const bandaListaRef = useRef<HTMLDivElement>(null);
 
@@ -123,8 +127,10 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           <path id={idCiudad} fill="none" d={arcoTexto(centro, rAnillo - sepArco, TRAMOS_CIRCULAR.empresa.desde, TRAMOS_CIRCULAR.empresa.hasta, true)} />
         </defs>
 
-        <circle className="ec-borde-exterior" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
-        <circle className="ec-borde-interior" cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
+        {/* fill="none" como ATRIBUTO: al rasterizar (html-to-image) se pierde el CSS de
+            la clase y un <circle> sin relleno explícito sale negro, tapando toda la etiqueta. */}
+        <circle className="ec-borde-exterior" fill="none" cx={centro} cy={centro} r={rExterior} strokeWidth={reticula.lineaFina} />
+        <circle className="ec-borde-interior" fill="none" cx={centro} cy={centro} r={rInterior} strokeWidth={reticula.linea} />
 
         <TextoCurvo
           idPath={idTitulo}
@@ -193,10 +199,43 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
         {/* Lupa de fichas técnicas: fuera del recorrido de los textos, en el
             hueco que queda arriba a la derecha del anillo. */}
         {editable && onChange && (
-          <div style={{ position: "absolute", top: diametro * 0.09, right: diametro * 0.3 }}>
+          <div style={{ position: "absolute", top: diametro * 0.345, right: diametro * 0.115 }}>
             <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
           </div>
         )}
+
+        {/* Logo y lema de la casa, igual que en las demás etiquetas: el logo se
+            elige de DISEÑO CORPORATIVO y el lema es constante. */}
+        <div
+          ref={logoRef}
+          className="ec-banda ec-logo"
+          style={{ top: bandas.logo.top, height: bandas.logo.alto, width: bandas.logo.ancho }}
+        >
+          <button
+            type="button"
+            disabled={!editable}
+            onClick={() => setMenuLogo((v) => !v)}
+            title={editable ? "Elegir logo (carpeta DISEÑO CORPORATIVO)" : undefined}
+            className="e30-logo-caja ec-logo-caja mck-btn-no-fx"
+          >
+            {data.logoUrl ? (
+              <img className="ec-logo-img" src={data.logoUrl} alt="Logotipo" />
+            ) : editMode ? (
+              <span className="e30-logo-vacio">McKenna Group</span>
+            ) : null}
+          </button>
+          <LemaLogo logoRef={logoRef} logoUrl={data.logoUrl} className="ec-lema" />
+          {onChange && (
+            <MenuLogoCorporativo
+              data={data}
+              onChange={onChange}
+              anchorRef={logoRef}
+              abierto={editable && menuLogo}
+              onCerrar={() => setMenuLogo(false)}
+              alinear="centro"
+            />
+          )}
+        </div>
 
         <div
           ref={bandaDescRef}
@@ -281,16 +320,12 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           style={{ top: bandas.barras.top, height: bandas.barras.alto, width: bandas.barras.ancho }}
         >
           <div className="ec-barras-caja">
-            <div className="ec-franja-color" aria-hidden="true">
-              {COLORES_FRANJA_BARRAS.map((c) => (
-                <span key={c} style={{ background: c }} />
-              ))}
-            </div>
             <BarcodeSection
               value={data.barcode}
               editMode={editable}
               onChange={(v) => onChange?.({ barcode: v })}
               onElegirCodigo={onElegirCodigo}
+              franja={{ alto: ALTO_FRANJA_CIRCULAR }}
             />
           </div>
         </div>

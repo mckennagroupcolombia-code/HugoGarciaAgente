@@ -46,6 +46,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Escribe a quien dejó un pedido web sin pagar (máximo dos correos por pedido, con enlace que rearma el carrito). RECUPERACION_COMPRA_ACTIVO=0 lo apaga.",
         "script": "scripts/recuperacion_compra_cron.py",
     },
+    "precios_trm": {
+        "nombre": "Precios según TRM (propuesta)",
+        "descripcion": "Compara la TRM BanRep de hoy con la TRM con la que se fijó cada precio y propone subir o bajar (traslado y umbral en Rentabilidad → Precios TRM). No cambia nada: un administrador aprueba. PRECIOS_TRM_ACTIVO=0 lo apaga.",
+        "script": "scripts/precios_trm_cron.py",
+    },
     "auditoria_scripts": {
         "nombre": "Auditoría de scripts",
         "descripcion": "py_compile de los scripts del manifiesto; alerta por WhatsApp si algo falla.",
@@ -133,6 +138,11 @@ JOBS: dict[str, dict[str, str]] = {
         "nombre": "Cobertura geográfica MeLi (departamento/municipio)",
         "descripcion": "Acumula día a día en qué municipios reales se despachan pedidos de MercadoLibre (GET /shipments/{id} por envío nuevo), para la sección \"¿A dónde hemos llegado?\" del inicio de la tienda web. No hay backfill retroactivo: solo crece hacia adelante.",
         "script": "scripts/actualizar_cobertura_meli_cron.py",
+    },
+    "entregas_flex": {
+        "nombre": "Entregas Flex MeLi (horas de entrega)",
+        "descripcion": "Guarda la hora de salida y de entrega de cada envío Flex (reparto propio en Bogotá) para ver en Atención → Entregas Flex cómo evoluciona semana a semana. Solo consulta envíos nuevos o abiertos de los últimos 10 días; sin IA. ENTREGAS_FLEX_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/entregas_flex_cron.py",
     },
     "contabilidad_autopost": {
         "nombre": "Auto-posteo contable (libro de partida doble)",

@@ -54,7 +54,7 @@
   min-width: 0;
 }
 
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo {
   display: block;
   width: 100%;
   min-width: 0;
@@ -77,25 +77,25 @@
   resize: none;
   transition: border-color 0.12s ease, background-color 0.12s ease;
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo:hover {
   border-color: var(--acento-50);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo:focus {
   border-color: var(--acento);
   background: var(--acento-suave);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo::placeholder {
   color: #a8a8a8;
   opacity: 1;
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro:hover {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo-oscuro:hover {
   border-color: rgba(255, 255, 255, 0.6);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro:focus {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo-oscuro:focus {
   border-color: #ffffff;
   background: rgba(255, 255, 255, 0.14);
 }
-:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta) .e30-campo-oscuro::placeholder {
+:where(.e30-etiqueta, .es-etiqueta, .ec-etiqueta, .e5-etiqueta, .ev-etiqueta, .ecap-etiqueta) .e30-campo-oscuro::placeholder {
   color: rgba(255, 255, 255, 0.6);
 }
 
@@ -105,6 +105,12 @@
   outline: 1px dashed #dc2626;
   outline-offset: 1px;
 }
+
+/* OJO: toda etiqueta que use `CampoEtiqueta` tiene que estar en esa lista de
+   arriba. `.ev-etiqueta` (38 × 102 vertical) faltaba y sus casillas salían con
+   el estilo por defecto del navegador: fondo BLANCO sobre la barra de acento y
+   texto a la izquierda en vez de centrado. Si se agrega un formato nuevo, va
+   aquí también. */
 
 /* ── Paneles ─────────────────────────────────────────────────────────────── */
 
@@ -151,7 +157,8 @@
 
 /* Dato vacío en edición: ejemplo de referencia en gris (no se imprime). */
 .e30-etiqueta .e30-ejemplo,
-.es-etiqueta .e30-ejemplo {
+.es-etiqueta .e30-ejemplo,
+.ev-etiqueta .e30-ejemplo {
   color: #a8a8a8 !important;
 }
 
@@ -330,6 +337,40 @@
   object-fit: contain;
 }
 
+/* Logo + lema en la misma fila (solo el panel central de 102 × 38; el 5 mL
+   la reutiliza con su propio tamaño de lema). La fila no crece: el logo cede el alto. */
+.e30-logo-con-lema {
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 0 7px;
+}
+.e30-logo-con-lema .e30-logo-caja {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+}
+.e30-lema {
+  flex: none;
+  color: var(--acento);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Copia del lema a tamaño de referencia, solo para medir (`LemaLogo`):
+   fuera del flujo e invisible, con el mismo peso y espaciado que el real. */
+.e30-lema-espejo {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  font-size: 100px !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .e30-logo-vacio {
   display: flex;
   align-items: center;
@@ -415,9 +456,11 @@
   display: grid;
   flex: none;
   grid-template-columns: 49% 51%;
-  grid-template-rows: repeat(2, 28px);
+  /* Filas automáticas, no `repeat(2, …)`: en vista la fila PUREZA sin dato no se
+     dibuja y la tabla debe medir lo que sus filas, no dejar un hueco bajo CAS. */
+  grid-auto-rows: 24px;
   width: 87%;
-  border: 1.75px solid var(--acento);
+  border: 1.5px solid var(--acento);
 }
 
 .e30-tabla-campo,
@@ -432,7 +475,7 @@
 }
 
 .e30-tabla-campo {
-  border-right: 1.75px solid var(--acento);
+  border-right: 1.5px solid var(--acento);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -446,7 +489,38 @@
 }
 
 .e30-tabla-fila1 {
-  border-bottom: 1.75px solid var(--acento);
+  border-bottom: 1.5px solid var(--acento);
+}
+
+/* Espacio para el timbre, debajo de la tabla y de su mismo ancho (~4 mm de
+   alto). Se imprime en blanco; la guía punteada solo existe en edición. */
+.e30-timbre-centro {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 87%;
+  height: 48px;
+  box-sizing: border-box;
+}
+/* Plantillas sin timbre central (`sinTimbreCentro`): la tabla toma ese alto
+   con filas más holgadas y el resto se reparte entre nombre, subtítulo y tabla. */
+.e30-sin-timbre {
+  justify-content: space-evenly;
+}
+.e30-sin-timbre .e30-tabla {
+  grid-auto-rows: 36px;
+}
+.e30-editando .e30-timbre-centro {
+  border: 1px dashed #b8b8b8;
+  border-radius: 4px;
+}
+.e30-timbre-centro > span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b0b0b0;
 }
 
 /* Dos pistas: el título arriba y, abajo, una banda del mismo alto que las
@@ -686,6 +760,49 @@
   max-width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+/* ── Fila del código de barras: timbre a la izquierda ────────────────────
+      Activos cosméticos (30 mL) reserva a la izquierda del código un hueco
+      en blanco para el timbre físico. El código se va a la derecha con el
+      mismo margen del 3 % que tiene el bloque de información técnica de
+      arriba (que va al 94 % centrado), así los dos cierran en la misma
+      vertical. El rótulo «Timbre» es solo una ayuda de edición. */
+
+.e30-timbre-fila {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.e30-timbre {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.e30-timbre-nota {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b4b4b4;
+}
+
+/* La caja del código ocupa el 60 % derecho de la fila: su borde izquierdo
+   arranca un 15 % más a la derecha que en el primer reparto (75 %), que es
+   lo que ensancha el hueco del timbre hasta el 40 % de la fila. El código
+   se ajusta a esa caja, así que encoge en la misma proporción. */
+.e30-timbre-fila .e30-barras {
+  flex: 0 0 60%;
+  justify-content: flex-end;
+  padding-right: 3%;
+}
+.e30-timbre-fila .e30-barras-boton {
+  width: 100%;
 }
 
 /* ── Guías de la retícula (casilla «Retícula», solo en edición: el PNG y la

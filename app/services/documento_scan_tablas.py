@@ -310,6 +310,7 @@ def _prompt_estructurar_ft(transcripcion: str, multi_nota: str) -> str:
         '  "solubilidad": "...",\n'
         '  "humedad": "...",\n'
         '  "formula_quimica": "...",\n'
+        '  "concentracion": "pureza o concentracion (ensayo/assay), ej. 98.1 %",\n'
         '  "modo_uso": "...",\n'
         '  "propiedades_lista": "Nombre|Descripción por línea",\n'
         '  "aplicaciones": "una por línea",\n'
@@ -319,8 +320,17 @@ def _prompt_estructurar_ft(transcripcion: str, multi_nota: str) -> str:
         '  "fabricante": "...",\n'
         '  "presentacion": "cantidad/peso",\n'
         '  "almacenamiento": "...",\n'
-        '  "pais_origen": "..."\n'
+        '  "pais_origen": "...",\n'
+        '  "einecs": "numero EINECS si aparece",\n'
+        '  "grado": "grado del insumo (alimentario, cosmetico, farmaceutico...)",\n'
+        '  "parametros": "tabla de analisis/resultados: UNA linea por fila, '
+        'formato Parametro|Especificacion|Resultado"\n'
         "}\n"
+        "IMPORTANTE sobre \"parametros\": si el documento trae una tabla de "
+        "resultados, analisis, especificaciones o control de calidad, copia TODAS "
+        "sus filas, de arriba a abajo, sin resumir ni omitir ninguna. Si una fila "
+        "no tiene especificacion o resultado, deja esa celda vacia pero conserva "
+        "el separador |. No inventes filas que no esten en la transcripcion.\n"
         f"{instruccion_traducir_es()}\n"
         "SOLO JSON válido, sin markdown."
     )
@@ -382,6 +392,21 @@ def _parametros_desde_transcripcion(transcripcion: str) -> str:
         seen.add(k)
         uniq.append(ln)
     return "\n".join(uniq)
+
+
+def _parametros_a_texto(valor: Any) -> str:
+    """`parametros` como texto Parametro|Espec|Resultado, aunque llegue como lista."""
+    if isinstance(valor, (list, tuple)):
+        lineas = []
+        for f in valor:
+            if isinstance(f, (list, tuple)):
+                lineas.append("|".join(str(c).strip() for c in f))
+            elif isinstance(f, dict):
+                lineas.append("|".join(str(c).strip() for c in f.values()))
+            else:
+                lineas.append(str(f).strip())
+        return "\n".join(ln for ln in lineas if ln)
+    return str(valor or "")
 
 
 def fusionar_texto_parametros(existente: str, nuevo: str) -> str:
@@ -521,6 +546,38 @@ def _extraer_coa_un_paso(
     return espanolizar_campos_documento(fused)
 
 
+_RE_FILA_PUREZA = re.compile(
+    r"^\s*(pureza|ensayo|assay|purity|contenido|valoraci[oó]n|riqueza)\b", re.I
+)
+
+
+def _completar_concentracion(campos: dict[str, Any] | None) -> dict[str, Any]:
+    """Si el documento no trae la pureza como dato suelto, la toma de la tabla.
+
+    La casilla «Pureza» del formulario lee `concentracion`. Muchos COA solo la
+    traen como fila de la tabla (Pureza / Ensayo / Assay): se usa el resultado
+    del lote y, si no es una cifra («Conforme»), la especificación.
+    """
+    if not isinstance(campos, dict) or str(campos.get("concentracion") or "").strip():
+        return campos or {}
+    crudo = campos.get("parametros")
+    filas: list[list[str]] = []
+    if isinstance(crudo, list):
+        for f in crudo:
+            filas.append([str(c) for c in f] if isinstance(f, (list, tuple)) else str(f).split("|"))
+    else:
+        filas = [ln.split("|") for ln in str(crudo or "").splitlines()]
+    for fila in filas:
+        celdas = [c.strip() for c in fila] + ["", ""]
+        if not _RE_FILA_PUREZA.match(celdas[0]):
+            continue
+        for valor in (celdas[2], celdas[1]):
+            if re.search(r"\d", valor):
+                campos["concentracion"] = valor
+                return campos
+    return campos
+
+
 def extraer_coa_desde_imagenes(
     partes: list[tuple[bytes, str]],
     *,
@@ -600,7 +657,7 @@ def extraer_coa_desde_imagenes(
             "Intente de nuevo o adjunte las páginas de una en una."
         )
 
-    params = str(parsed.get("parametros") or "")
+    params = _parametros_a_texto(parsed.get("parametros"))
     n_lineas_params = len([ln for ln in params.splitlines() if "|" in ln and ln.strip()])
     n_filas_ocr = len(
         [
@@ -613,12 +670,12 @@ def extraer_coa_desde_imagenes(
         extra = traducir_parametros(_parametros_desde_transcripcion(transcripcion))
         if extra:
             parsed["parametros"] = fusionar_texto_parametros(
-                str(parsed.get("parametros") or ""), extra
+                _parametros_a_texto(parsed.get("parametros")), extra
             )
 
     parsed["_transcripcion"] = transcripcion[:8000]
     parsed["_imagenes"] = n
-    return espanolizar_campos_documento(parsed)
+    return _completar_concentracion(espanolizar_campos_documento(parsed))
 
 
 def extraer_ft_desde_imagenes(
@@ -640,24 +697,49 @@ def extraer_ft_desde_imagenes(
     prompt1 = (multi_nota + "\n" if multi_nota else "") + _PROMPT_TABLAS_FT
     t1 = 50 if n > 1 else min(120, 40 + 20 * n)
     _p(f"Leyendo {n} archivo(s)…")
+    # El paso 1 puede fallar (timeout, red, cuota). Se sigue al plan B, pero la
+    # causa se conserva: si el plan B tampoco da nada, se reporta el motivo real
+    # en vez de devolver un formulario a medias sin explicación.
+    fallo_paso1: Exception | None = None
     try:
         transcripcion = _transcribir_paginas(
             partes_ok, prompt1, timeout_s=t1, contexto="ft_scan_tablas"
         )
     except Exception as e:
-        log.warning("ft_scan_tablas falló: %s", e)
+        log.warning("ft_scan_tablas falló (%s): %s", type(e).__name__, e)
+        fallo_paso1 = e
         transcripcion = ""
 
     if not transcripcion or len(transcripcion) < 40:
+        if fallo_paso1 is None:
+            log.warning(
+                "ft_scan_tablas devolvió %s caracteres — se reintenta en un paso",
+                len(transcripcion or ""),
+            )
         _p("Reintentando lectura…")
-        texto = _gemini_vision(
-            partes_ok,
-            "PRIMERO lee todas las tablas; LUEGO JSON.\n"
-            + _prompt_estructurar_ft("(lee las imagenes)", multi_nota),
-            timeout_s=min(150, 45 + 25 * n),
-            contexto="ft_scan_un_paso",
+        try:
+            texto = _gemini_vision(
+                partes_ok,
+                "PRIMERO lee todas las tablas; LUEGO JSON.\n"
+                + _prompt_estructurar_ft("(lee las imagenes)", multi_nota),
+                timeout_s=min(150, 45 + 25 * n),
+                contexto="ft_scan_un_paso",
+            )
+        except Exception as e:
+            log.warning("ft_scan_un_paso falló (%s): %s", type(e).__name__, e)
+            if fallo_paso1 is not None:
+                raise RuntimeError(
+                    f"No se pudo leer el documento: {fallo_paso1}"
+                ) from fallo_paso1
+            raise
+        campos = _completar_concentracion(
+            espanolizar_campos_documento(parsear_json_objeto(texto) or {})
         )
-        return espanolizar_campos_documento(parsear_json_objeto(texto) or {})
+        if not campos and fallo_paso1 is not None:
+            raise RuntimeError(
+                f"No se pudo leer el documento: {fallo_paso1}"
+            ) from fallo_paso1
+        return campos
 
     _p("Armando el formulario…")
     texto_json = _gemini_texto(
@@ -667,7 +749,22 @@ def extraer_ft_desde_imagenes(
     )
     parsed = parsear_json_objeto(texto_json or "") or {}
     if parsed:
+        # Si el JSON dejó fuera filas que el OCR sí leyó, se recuperan de la
+        # transcripción (mismo rescate que el pipeline del COA).
+        params = _parametros_a_texto(parsed.get("parametros"))
+        n_lineas_params = len([ln for ln in params.splitlines() if "|" in ln and ln.strip()])
+        n_filas_ocr = len(
+            [
+                ln
+                for ln in transcripcion.splitlines()
+                if "|" in ln and not ln.strip().lower().startswith("columnas")
+            ]
+        )
+        if n_filas_ocr >= 4 and n_lineas_params < max(3, n_filas_ocr // 3):
+            extra = traducir_parametros(_parametros_desde_transcripcion(transcripcion))
+            if extra:
+                parsed["parametros"] = fusionar_texto_parametros(params, extra)
         parsed["_transcripcion"] = transcripcion[:8000]
         parsed["_imagenes"] = n
-    return espanolizar_campos_documento(parsed)
+    return _completar_concentracion(espanolizar_campos_documento(parsed))
 

@@ -1,3 +1,1122 @@
+### 2026-09-26 02:50 - Colaboradores: cada proyecto es un edificio que se construye
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Nueva vista **Edificio** en cada proyecto (botón Tablero · Edificio): cada paso es un piso, en el orden de las flechas (el primer paso es la planta baja).
+  - Un piso **se construye a medida que se llena**: terreno → cimientos con andamio → estructura de vigas → fachada con las luces apagadas → terminado con las luces encendidas y lo que el paso es (escritorio, cajas, monedas, mesa de votación, la foto del producto en su vitrina). Cada piso dice qué le falta.
+  - El obrero de cada piso es la persona de su carril; una grúa trabaja arriba; con todo terminado, bandera y confeti. Suena un martillazo al subir de etapa, una moneda al terminar un piso y una fanfarria al terminar la obra.
+  - Tocar un piso abre la misma hoja de edición del tablero: llenar el paso ES construir el piso.
+  - La **lista de proyectos es una calle** de edificios, cada uno con sus pisos terminados, el resto en obra y un terreno para empezar uno nuevo.
+  - Verificado con clics reales: al escribir el «cómo» y el «dónde» de la planta baja, el piso pasó a fachada y luego a terminado, con su sonido.
+- **Archivos Modificados:** `desktop/src/components/colaboradores/{obra.ts,EdificioProyecto.tsx,obra.css}` (nuevos), `desktop/src/components/ColaboradoresPanel.tsx`, `app/services/colaboradores.py`, `tests/test_colaboradores.py`, `desktop/dev/colaboradores.tsx`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`.
+
+### 2026-09-26 02:10 - Sonidos de juego al tocar cada apartado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Cada departamento suena a lo que hace cuando se toca uno de sus apartados, en el Mapa y en el Edificio: timbre en Inicio, pitazos de camión en Abastecer, martillo en Preparar, obturador de cámara en Publicar, moneda en Vender, camión que arranca en Entregar, impresora en Facturar, calculadora en Contar, fanfarria en Dirigir y computadora en Sistema.
+  - Lo urgente suena como alarma; «◇ Mapa» tiene su sonido de volver, cambiar Mapa/Edificio suena a pausa y, con la piel pixel, las pestañas dentro de los módulos hacen un blip.
+  - Estilo de 8 bits como los juegos de la sección Juegos (Circus Charlie, la pesca), pero **sintetizado** en el navegador: no se copió el audio de esos juegos.
+  - Botón «♪ Sonido / Silencio» en la barra del Mapa (se recuerda en cada navegador).
+  - Verificado con clics reales: cada apartado elige su sonido y el silencio los apaga.
+- **Archivos Modificados:** `desktop/src/lib/sonidosJuego.ts` (nuevo), `desktop/src/App.tsx`, `desktop/src/components/MapaVivo.tsx`, `CLAUDE.md`.
+
+### 2026-09-26 01:45 - Mapa sin niveles: siempre todo el edificio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Simplificación de la interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Se quitaron los botones Etapas · Cotidiano · Operación · Todo. La barra del Mapa queda con **Mapa · Edificio** (y «¡Ir a lo urgente!» / «Encuadrar»).
+  - Cada quien ve siempre **todos** los paneles que puede abrir, en el tablero y en todos los pisos del edificio, con lo detenido de cada etapa.
+  - Verificado con clics reales (administración, escritorio y celular), sin errores de consola.
+- **Archivos Modificados:** `desktop/src/components/{MapaVivo.tsx,MapaEdificio.tsx}`, `desktop/dev/app.tsx`, `CLAUDE.md`.
+
+### 2026-09-26 01:20 - Solo el Mapa: la portada de la Agenda deja de existir
+- **Autor:** Armando García
+- **Tipo de Cambio:** Cambio de navegación. Sin LLM.
+- **Qué se implementó:**
+  - La pantalla de inicio es el **Mapa** para todos. Todos los caminos que abrían la portada de la Agenda (sus secciones del día y de los últimos días) ahora llevan al Mapa: la pestaña del celular (ahora se llama «Mapa»), el botón atrás de Android, «volver» desde Perfil, la pestaña «Mi día» (ahora «Mapa») y un enlace `?panel=hugo`.
+  - Se quitó «▶ Mi agenda» de la carta de Inicio del Mapa y de la recepción del Edificio; queda «Mi ficha», Mensajes y los espacios del equipo.
+  - Mensajes, abrir o crear solicitudes y el chat de Hugo siguen funcionando igual.
+  - Verificado con clics y toques reales en escritorio y celular.
+- **Archivos Modificados:** `desktop/src/{App.tsx,lib/panelAccess.ts,lib/appBackNavigation.ts,components/TicketsPanel.tsx,components/nav/InicioNavTabs.tsx,components/MobileHub.tsx,components/PerfilPanel.tsx,components/MapaVivo.tsx,components/MapaEdificio.tsx,components/Layout.tsx}`, `CLAUDE.md`.
+
+### 2026-09-26 00:35 - El Edificio McKenna: la app como diorama, y cada módulo es su piso
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + rediseño visual. Sin LLM.
+- **Qué se implementó:**
+  - **Se retiró «Tu día»**: como franja se veía mal, en el celular no era responsive y en escritorio no aportaba. En su lugar, la carta de **Inicio** trae **«Mi ficha»** (las horas del mes y la ficha grande) justo bajo Mi agenda.
+  - **Vista «Edificio»** (botón Mapa · Edificio arriba del mapa): toda la aplicación como un edificio en corte, en pixel art. Cada departamento es un piso — Abastecer (P1, muelle de carga con camión) · Preparar (cinta con frascos) · Publicar (estudio con flash) · Vender (tienda con monedas) · Entregar (despacho, sale el camión) · Facturar (impresora) · Contar (gráfica viva) · Dirigir (último piso, vista a la ciudad) · Inicio en la recepción · Sistema en el sótano (servidores parpadeando). Cada panel es una estación en la pared; el ascensor sube al piso y lo abre.
+  - Lo que se mueve dice algo real: **sirena** donde hay urgencias, **notas pegadas** con lo detenido, **tu muñeco «TÚ»** en los pisos donde tienes solicitudes y **luces apagadas** donde no participas.
+  - **Cada módulo, por dentro, es su piso**: placa «P5» en el cabezote, la losa del color de su etapa, pared con rayas, tablas teñidas, botones de bloque y puertas de ascensor al entrar. Y la piel pixel se vuelve a aplicar una vez a todos (Armando tenía «sakura» y Cynthia «barbie» guardadas: por eso sus módulos seguían con el estilo anterior).
+  - Verificado con clics y toques reales (escritorio y celular; perfil administración y despachos) y contraste: 0 textos ilegibles en el edificio y en Pedidos/Libro Mayor, claro y oscuro.
+- **Archivos Modificados:** `desktop/src/components/{MapaEdificio.tsx,mapa-edificio.css,mapaComun.tsx,MapaVivo.tsx,mapa-vivo.css,MiRendimiento.tsx,Layout.tsx,nav/SolicitudesEnProcesoFab.tsx}` (borrado `TuDia.tsx`), `desktop/src/theme/skin-pixel.css`, `desktop/src/lib/userThemeSync.ts`, `desktop/dev/app.tsx`, `CLAUDE.md`.
+
+### 2026-09-26 01:30 - Mapa + Agenda en una sola pantalla: «Tu día»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - El Mapa es la pantalla principal y la Agenda convive con él en la columna **«Tu día»** (plegable; en el celular, hoja que sube desde abajo): lo que te pidieron (lo urgente primero, con la etapa de cada tarea), lo que puedes iniciar, tus recordatorios de hoy, pagos por confirmar, tu quincena y el dólar. Esas tres últimas son las mismas piezas de la Agenda, no copias.
+  - Tocar una tarea **lleva la cámara a su etapa y la hace destellar**; «Abrir» la abre en la Agenda. La Agenda completa sigue a un toque.
+  - Arreglos de fondo: el Mapa y Colaboradores son una «isla clara» que no cambia en modo oscuro; ahora sus piezas internas usan siempre la traducción clara y sus propias variables (antes, en oscuro, el dólar quedaba ilegible). La pestaña del celular quedaba debajo del lienzo por la regla global de botones.
+  - Verificado con toques reales (escritorio y celular: tarea → etapa a la vista, Abrir → Agenda, plegar/desplegar, hoja) y contraste: 0 de 492 textos ilegibles en claro y en oscuro.
+- **Archivos Modificados:** `desktop/src/components/{TuDia.tsx,MapaVivo.tsx,mapa-vivo.css,colaboradores/pixel.css,nav/SolicitudesEnProcesoFab.tsx}`, `desktop/scripts/pixel/paleta_pixel.py`, `desktop/src/theme/{skin-pixel.css,skin-pixel-paleta.css}`, `CLAUDE.md`.
+
+### 2026-09-26 00:30 - Mapa: lo urgente titila, y cada quien ve lo suyo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - En el Mapa **titila el apartado que necesita atención ya**: lo detenido de severidad alta (pedidos sin despachar, agotados, movimientos sin clasificar…) y las solicitudes propias de prioridad alta/urgente, cada cosa en el panel donde se resuelve, con su número y el porqué al pasar el ratón. La carta de la etapa lleva marco rojo fijo; un panel urgente aparece aunque el nivel de detalle lo esconda; botón **«¡Ir a lo urgente! (N)»** que encuadra esas cartas.
+  - **Cada quien ve lo suyo:** ruta nueva `GET /api/mapa-sistema/urgencias`, filtrada en el servidor por los paneles que la persona puede abrir (`app/services/acceso_paneles.py`, réplica de las reglas del menú; lo contable sensible no se hereda de facturación). Antes solo administración veía lo detenido. Con los permisos reales: despachos ve inventario y pedidos, contabilidad su parte, contador y colaborador externo nada.
+  - Verificado: clics reales (20/20 ratón, 5/5 dedo) sobre los botones que titilan, contraste 0 ilegibles en claro y oscuro, y la cámara de «¡Ir a lo urgente!» deja las cartas urgentes completas a la vista.
+- **Archivos Modificados:** `app/services/{acceso_paneles.py,mapa_app.py}`, `app/routes_mapa_sistema.py`, `desktop/src/components/{MapaVivo.tsx,mapa-vivo.css}`, `desktop/dev/app.tsx`, `tests/test_acceso_paneles.py`, `CLAUDE.md`.
+
+### 2026-09-25 23:40 - Piel pixel dentro de todos los paneles (los colores escritos a mano)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Al abrir un panel (p. ej. Pedidos Web) se mezclaban dos estilos: los paneles usan ~750 clases de color propias que la piel no alcanzaba, y algunas pensadas para fondo oscuro se veían lavadas sobre el crema. `desktop/scripts/pixel/paleta_pixel.py` las traduce a la paleta pixel (seis familias, claro y oscuro) y genera `theme/skin-pixel-paleta.css`; las pastillas redondas pasan a bloques.
+  - Contraste corregido en tokens de la piel, encabezados del mapa y acento en oscuro (fondo de botón y texto de acento separados).
+  - Medido con el navegador real (contraste de cada texto visible, 12 paneles): **0 de 448 ilegibles en claro y en oscuro** (la piel anterior tenía 80).
+  - `tests/test_piel_pixel.py`: falla si aparece un color sin traducir, si un texto o token queda bajo 4,5:1, o si un dibujo de etiqueta imprimible usa clases que la piel cambia.
+- **Archivos Modificados:** `desktop/scripts/pixel/paleta_pixel.py`, `desktop/src/theme/{skin-pixel.css,skin-pixel-paleta.css,applyTheme.ts}`, `main.tsx`, `components/{MapaVivo.tsx,mapa-vivo.css,ColaboradoresPanel.tsx,colaboradores/pixel.css}`, `desktop/dev/app.tsx`, `tests/test_piel_pixel.py`, `CLAUDE.md`.
+
+### 2026-09-25 22:50 - Mapa vivo: pantalla de inicio, se navega solo desde él (sin menú de arriba)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Panel nuevo **`mapa-vivo`** (`MapaVivo.tsx`): toda la app en un lienzo React Flow con estética pixel, armado desde `lib/flujoApp.ts` (sin estructura paralela) y filtrado con `puedeVerSeccionPanel` (cada quien ve solo sus paneles; las etapas ajenas salen apagadas sin nombrarlos). Camino en **serpentina** de 4 cartas por fila en escritorio (Inicio → Abastecer → Preparar → Publicar, baja, Vender → Entregar → Facturar → Contar) y columna en celular. Vivo: detenidos (`/api/mapa-sistema/bloqueos`), solicitudes de la persona ubicadas por etapa (`etapaDeTicket`) → la etapa con algo suyo late («tu camino»). Niveles Etapas · Cotidiano · Operación · Todo.
+  - **Es la pantalla de inicio de todos** (`App.tsx`, una vez por carga; `?panel=` manda). **Se quitó el menú de arriba** (`nav/FlujoNav.tsx` eliminado): cada carta despliega sus paneles, la carta de Inicio trae Mi agenda, Mensajes, Chat del equipo, Colaboradores y Juegos, y el cabezote solo lleva **«◇ Mapa»** + miga + título. Las vistas internas (Agenda, Diseño, Docs) siguen como pestañas dentro de su panel.
+  - **Corrección de clics:** React Flow ponía `pointer-events: none` en línea sobre las cartas (no arrastrables ni seleccionables): **0 de 14** paneles abrían con clics reales. Ahora el mapa pasa `onNodeClick` y los botones llevan `nopan`. Verificado con eventos reales (CDP, ratón y dedo, con temblor): 18/18 y 7/7, ida al panel y vuelta con «◇ Mapa». También: el lienzo colapsaba a altura 0 (faltaba en `PanelTransition.fillHeight`).
+  - Bancos de pruebas con fetch interceptado (no tocan producción): `desktop/dev/mapa.html` y `desktop/dev/app.html` (la app completa, con `?medir`, `?tocar`, `?rutas`, `?piel`, `?modo`).
+- **Archivos Modificados:** `desktop/src/components/MapaVivo.tsx`, `mapa-vivo.css`, `Layout.tsx`, `App.tsx`, `ui/PanelTransition.tsx`, `nav/InicioNavTabs.tsx`, `nav/FlujoNav.tsx` (eliminado), `lib/{flujoApp,navStructure,panelAccess,panelInfo}.ts`, `stores/app.ts`, `icons/mck/paths/panels.tsx`, `desktop/dev/{mapa,app}.*`, `CLAUDE.md`.
+
+### 2026-09-25 22:20 - Piel «Pixel» para toda la app (la letra de siempre)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Piel **`pixel`** como estilo base de todos (`ESTILO_BASE_V = 3`, se adopta una vez conservando modo, tamaños y zoom): `theme/skin-pixel.css` redefine los tokens (paleta PICO-8, claro y oscuro) y viste lo común — esquinas rectas, bordes de 2 px, sombras de bloque, botón que se hunde, foco amarillo, cuadrícula, encabezados de tabla — sin tocar los 61 paneles.
+  - **Las letras no son pixel** (decisión del usuario, legibilidad): todo el texto sigue en Montserrat. Se probó Pixelify Sans (la «C» se cerraba en «O» a 11–13 px) y DotGothic16 (queda como opción en Temas → Fuente).
+  - Registro en los dos lados: `SKINS`/`FontChoice` del panel y las listas de `tickets_db.py` (skin + **dos** listas de fuentes); el test de pieles ahora también vigila las fuentes. Miniatura propia de «Pixel» en Ajustes.
+- **Archivos Modificados:** `desktop/src/theme/{skin-pixel.css,presets.ts,types.ts,applyTheme.ts,fontLoader.ts}`, `lib/userThemeSync.ts`, `main.tsx`, `components/ThemePackPicker.tsx`, `app/services/tickets_db.py`, `tests/test_mapa_producto.py`, `CLAUDE.md`.
+
+### 2026-09-25 20:00 - Colaboradores: tablero de proyecto (datos reales, consenso, producto y rival, pixel art)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - **Cada caja carga contenido real:** foto, cómo/dónde/por qué, tiempo, costo y precio, datos, «si pasa esto → consecuencia → medida» y adjuntos (fotos y facturas PDF en `colaboradores_media/`, gitignored, servidos solo a su diagrama). Flechas rectas por defecto y que piden nombre al crearse. Marcador con lo invertido (tiempo y dinero) por persona.
+  - **Consenso:** propuestas por persona, votos 👍 y cierre con desempate por **turno alternado global**; voto y autoría autoritativos del servidor (`accion_consenso`).
+  - **Producto** (foto en círculo escalonado + SKU, vitrina, precio, empaque, receta con costos y margen, como el Taller de combos) y **Rival** (su publicación y precio; unido a un producto compara «16 % más caro/barato»). Enlaces solo http(s).
+  - **Pixel art** (sprites 8×8 PICO-8 en vez de emojis, botón Clásico/Pixel). Build del colaborador limpio (verificador de `dist-colab`).
+- **Archivos Modificados:** `app/services/colaboradores.py`, `app/routes_colaboradores.py`, `desktop/src/components/ColaboradoresPanel.tsx`, `components/colaboradores/{pixel.tsx,pixel.css}`, `desktop/tailwind.colab.config.ts`, `desktop/dev/colaboradores.*`, `tests/test_colaboradores.py`, `docs/agentic/modules/colaboradores.md`, `.gitignore`.
+
+### 2026-09-25 08:45 - Cotizar/Facturar: un tercero recién creado no aparecía en el buscador de clientes
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Alegra / Cotizar-Facturar). Sin LLM.
+- **Qué pasaba:** `buscar_clientes_alegra` paginaba /contacts en vivo y cortaba en **15 páginas = 450**, pero Alegra tiene **636 contactos** ordenados por nombre; los del final (S–Z) y los nuevos no aparecían. Además /contacts topa en 30 por página (~80 s recorrerlos todos) y no usaba la búsqueda por identificación.
+- **Arreglo:**
+  - **Atajo por identificación exacta:** una cédula/NIT se resuelve en UNA petición (`params identification=`), aunque esté en la cola. Encuentra al instante un tercero recién creado por su cédula.
+  - **Búsqueda por nombre sobre caché de todos los contactos** (Alegra no soporta texto): caché en disco (`app/data/alegra_contactos_cache.json`, gitignored) + **refresco en segundo plano** (no bloquea; la primera búsqueda responde con lo cacheado). TTL 10 min.
+  - **Al crear un contacto** (`_resolver_o_crear_contacto_alegra`) se invalida la caché para que el nuevo aparezca pronto por nombre; por cédula es inmediato (vía atajo en vivo).
+- **Verificación:** contactos «Z» (Zulima id 630, Zharick id 505) ahora aparecen por nombre y por cédula; caché en disco al día (636); búsqueda por nombre 0.00 s tras cargar; agente-pro reiniciado.
+- **Archivos Modificados:** `app/services/alegra.py`.
+
+### 2026-09-25 08:30 - Cotizar/Facturar: cola «Por facturar» estilo taller — Fase 3
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó:**
+  - Botón **«Por facturar (N)»** en Cotizar/Facturar que abre la cola de **ventas WhatsApp cobradas sin factura** (reusa `wa_busqueda.cobros_sin_factura`): cada caso muestra el cobro (fecha, monto, banco), el cliente sugerido del chat (nombre, cédula, correo, teléfono; «en el libro» si ya existe) y lo cotizado. Estados identificado/ambiguo/sin_rastro.
+  - **«Preparar factura»** precarga el wizard: cliente del chat (o Consumidor Final si no hay cédula), teléfono, nota con el cobro, y guarda `cobro_extracto_id`. El operador agrega productos (Fase 1) y factura (Fase 2). **Al facturar, el cobro del banco se vincula automáticamente al asiento** (`causar_venta_directa` → `movimiento_id`) y el caso sale de la cola.
+  - Backend: columna `cobro_extracto_id` en `ventas_directas` (migración en caliente), `casos_por_facturar()`, endpoint `GET /api/ventas-directas/por-facturar`, y auto-vínculo en `facturar()`.
+- **Verificación:** `casos_por_facturar()` devuelve 22 casos con cliente/cédula/cotizado; `npm run build` limpio; agente-pro reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`.
+
+### 2026-09-25 08:00 - Cotizar/Facturar: soporte de pago (pegar Ctrl+V / adjuntar) — Fase 2
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó:**
+  - En el paso «Cotizar/Facturar» se puede adjuntar el **pantallazo/comprobante de pago del cliente**: pegándolo con **Ctrl+V** (mismo `lib/clipboardImage.ts` que Competencia) o eligiendo archivo (imagen/PDF). Se ve («ver» abre con Bearer vía `fetchAuthBlobUrl`) y se quita.
+  - Backend: columnas `soporte_path/nombre/mime` en `ventas_directas` (migración en caliente) + `guardar_soporte` / `ruta_soporte` / `eliminar_soporte`; archivos en `comprobantes/ventas_directas/` (gitignored). Endpoints `POST/GET/DELETE /api/ventas-directas/<id>/soporte` (multipart o base64 del portapapeles; tope 12 MB).
+  - Guarda la venta antes de subir para tener id; el listener de pegado solo actúa en el paso 3 y no interfiere al escribir en campos.
+- **Verificación:** backend importa y funciones presentes; `npm run build` limpio (main + colab); `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`.
+
+### 2026-09-25 07:30 - Cotizar/Facturar: facturar ventas WhatsApp sin cédula y sin SKU (Fase 1)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Flujo R). Sin LLM.
+- **Qué se implementó (Fase 1 de un plan de 5 frentes):**
+  - **Consumidor Final por defecto:** clientes WhatsApp que no dan cédula ya no bloquean la factura. Botón «Facturar a Consumidor Final» en el paso Cliente (precarga NIT 222222222222) y, en backend, `facturar()` usa Consumidor Final si no hay identificación. Se relajó `puedeFacturar` (ya no exige cédula; un NIT mal escrito lo sigue rechazando el DV).
+  - **Productos sin SKU (migración SIIGO→Alegra):** se crearon 2 genéricos de venta en Alegra — `VENTA-VARIO-GRAVADO` (id 734, IVA 19%) y `VENTA-VARIO-EXCLUIDO` (id 735, sin IVA). En el buscador (cuando el producto no está en Alegra) y en los pendientes del chat, botones «agregar sin SKU: gravado 19% / excluido». La línea guarda el nombre real (va como `description` a la factura) y el IVA lo pone el genérico. Sufijo único `::<n>` para permitir varios sin SKU en una misma factura sin colisión (backend ignora el sufijo).
+  - **Borrador a prueba de errores:** si Alegra rechaza la factura, la venta queda en su estado anterior CON el motivo guardado en `avisos` (no se pierde el cliente ni las líneas); el frontend ya guardaba antes de facturar y no vacía el wizard.
+  - Se extendió `crear_item_servicio_alegra` (impuesto opcional) y `crear_factura_venta_alegra` (override de `description` por línea, aditivo — no cambia web/MeLi).
+- **Pendiente (fases 2-3):** pegar/adjuntar soporte de pago (Ctrl+V) y el apartado interactivo estilo taller para el TKT de Jenniffer (resolver caso por caso). Enlazar (alias) y crear-en-Alegra del #5.
+- **Verificación:** backend probado (genéricos múltiples resuelven con IVA correcto, sin colisión, descripción con nombre real); `npm run build` limpio (main + colab). ⚠️ Requiere reiniciar `agente-pro` para los cambios de Python.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`. Alegra: 2 productos genéricos nuevos.
+
+### 2026-09-25 06:45 - Préstamos: trazabilidad contaba desembolsos anulados
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.
+- **Qué se implementó:**
+  - La consulta de «tramos» en `prestamos.trazabilidad()` (asientos `tipo_origen='prestamo_recibido'` del mismo prestamista) **no excluía los anulados**. Al corregir un desembolso (partirlo en dos consignaciones y anular el combinado), el asiento viejo anulado seguía apareciendo → duplicaba el capital recibido. Se agrega `AND estado<>'anulado'`.
+  - Contexto: el préstamo de Carmenza Prieto ($16.950.000) estaba como un solo asiento (1485), pero entró en **dos consignaciones por cajero** ($9.300.000 + $7.650.000). Como `extracto_vinculos.movimiento_id` es UNIQUE (1:1), se partió el desembolso en dos tramos `prestamo_recibido` (cc:5917/5918) para vincular cada consignación; el 1485 quedó anulado. El total (2195 Carmenza) y el capital del préstamo no cambian.
+- **Verificación:** `trazabilidad(3)` ahora lista solo los dos tramos vivos; 2195 de Carmenza sigue en $16.950.000; ambas líneas de banco vinculadas.
+- **Archivos Modificados:** `app/services/prestamos.py` (las causaciones/vínculos son datos en `contabilidad.db`).
+
+### 2026-09-25 06:10 - Préstamos: trazabilidad no veía las reposiciones del socio (1355 → 1325)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (módulo Préstamos). Sin LLM.
+- **Qué se implementó:**
+  - `prestamos.trazabilidad()` buscaba la cuenta por cobrar a socios con el literal `1355`, pero esa cuenta **migró a 1325** (`codigo_vivo("1355") == "1325"`) y los asientos guardan el código vivo. Resultado: el grafo del préstamo **no detectaba quién recibió el capital ni las reposiciones del socio** (salían en cero).
+  - Se reemplazan las 3 referencias por `cod_cxc_socios = cc.codigo_vivo("1355")` (robusto ante futuras migraciones); la consulta SQL de reposiciones queda parametrizada.
+- **Verificación:** `trazabilidad(4)` (préstamo MUTUO-VHGB-2026) ahora detecta las 4 reposiciones de Armando y reporta recibió $20.000.000 / repuso $19.998.997. Contexto: se causó en conciliación el abono REPO-VHGB-4 ($1.000.000, 21-sep) que completa el capital (queda $1.003 de cola).
+- **Archivos Modificados:** `app/services/prestamos.py` (único cambio de código; las causaciones de conciliación son datos en `contabilidad.db`).
+
+### 2026-09-25 05:00 - Taller de conciliación: costos bancarios reconocidos + cruce de compra Factores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (clasificador de extractos) + causaciones en el Libro Mayor. Sin LLM.
+- **Qué se implementó:**
+  - **Clasificador de extractos** (`extracto_clasificador.py`): la regla de costos bancarios ahora reconoce `CUOTA PLAN` (cuota plan canal negocios + su IVA) y `MANEJO TARJ` (banco abrevia «C MANEJO TARJ DEB», no «CUOTA MANEJO»). Antes caían en «Sin patrón / revisar» y el taller no ofrecía causarlas. Ambas → 530505 «Costo bancario», confianza alta; de octubre en adelante se causan de un clic.
+  - **Causaciones de septiembre en el taller** (datos en `contabilidad.db`, fuera de git):
+    - Cuota plan canal negocios 01-sep: D 530505 $78.000 (cuota) + $14.820 (IVA) / C 1110 (cc:5904/5905).
+    - Manejo tarjeta débito 10-sep: D 530505 $18.050 / C 1110 (cc:5906).
+    - **Cruce compra FACTORES Y MERCADEO factura FEE104568** (el pago del 10-sep por $5.037.327 cuadra al peso con esa factura): compra renglón por renglón a 1435 por SKU ($4.531.500, 14 materias primas) + IVA descontable 240810 $619.115 / 2205 $5.150.615 (cc:5907); retención compras 2,5% D 2205 / C 2365 $113.288 (cc:5908); pago D 2205 / C 1110 $5.037.327 vinculado a la línea de banco (cc:5909). El 2205 de la factura netea a cero. IVA solo sobre la base gravada; 4 ítems excluidos (vitaminas E/C, D-pantenol, urea, Art. 424).
+- **Verificación:** los tres asientos del cruce balanceados (deb=cred); 2205 de FEE104568 = 0; clasificador probado (las tres descripciones ahora dan 530505/alta). Las líneas de jul/ago quedan antes del corte 2026-09-01 (del contador), no se tocaron.
+- **Archivos Modificados:** `app/services/extracto_clasificador.py` (único cambio de código; las causaciones son datos en `contabilidad.db`).
+
+### 2026-09-24 16:00 - Canales del producto, chat del equipo, campana y recepción de mercancía
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nuevas funcionalidades (Publicar, Agenda, Abastecer) + puente WA. Sin LLM.
+- **Qué se implementó:**
+  - **Canales del producto** (Publicar): cada SKU de venta en Alegra → receta → documento/EAN/etiqueta → MeLi → web → ¿factura? Solo diagnóstico, con salto al apartado que corrige. Hoy: 10 SKUs activos que venden y no se pueden facturar, 140 pausados con código que Alegra no conoce, 22 discrepancias, 135 incompletos, 27 sin publicar, 143 completos. Pestaña Categorías (etiquetas vs web).
+  - **Copia local de Alegra marca inactivos** (antes todo quedaba «active» para siempre) y se sincroniza sola a las 7:00.
+  - **Chat del equipo** (Agenda → Equipo): canales sin cronómetro, fotos con la cámara, mensaje → solicitud/incidente; cuenta como actividad; enlazable a un grupo oficial de WhatsApp (entrada, y salida opcional con anti-eco).
+  - **Campana de avisos**: todo aviso de tickets queda en el panel; cada persona elige «Solo en el panel» para dejar de recibirlo por WhatsApp.
+  - **Recepción de mercancía** (Abastecer → Recibirla): llegada con fotos, conteo contra la compra (renglones de la solicitud de pago), cierre verificado o con diferencias, aviso al canal Inventario.
+  - **Redirección desde grupos WA** (apagada por defecto) y enlaces directos `/app?panel=…`. El puente descarga las fotos de los grupos espejo (al reiniciarlo).
+- **Verificación:** 44 tests nuevos + humo (127 en verde); suite completa 74 fallos, los 74 idénticos en HEAD limpio (ninguno nuevo); capturas reales en PC y celular; endpoints probados en producción.
+- **Archivos Modificados:** `app/services/{canales_producto,canales_internos,notificaciones_panel,recepcion_mercancia,redireccion_panel}.py` (nuevos), `app/routes_{canales_producto,canales,recepciones}.py` (nuevos), `app/services/{alegra_catalogo_db,mapa_app,tickets_notificaciones,wa_chats}.py`, `app/monitor.py`, `agente_pro.py`, `bot-mckenna/server.js`, `app/data/redireccion_panel.json`, `desktop/src/components/{canales_producto,chat_equipo,recepcion}/*`, `desktop/src/hooks/useCanalesEquipo.ts`, registros de panel (`App.tsx`, `stores/app.ts`, `lib/{panelInfo,flujoApp,navStructure,panelAccess,permisosCatalogo}.ts`, `icons/mck/paths/panels.tsx`, `Layout.tsx`, `nav/{FlujoNav,InicioNavTabs}.tsx`, `CombosPanel.tsx`, `combos/MisionCombos.tsx`), tests, `.gitignore`, `CLAUDE.md`, `docs/agentic/CONTRACTS.md`
+
+### 2026-09-23 23:55 - Horas justas (÷159, festivos, colectas) y «Del chat al registro» (etapa 2)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Control de horas + registro operativo (backend, panel y puente WA). Sin LLM.
+- **Qué se implementó:**
+  - **Control de horas:** valor hora de mercado ÷ **159 h/mes** (efectivas de un tiempo completo con 42 h/sem, antes 176); calendario de festivos propio (`festivos_co.py`, 19 en 2026 incl. Ley 2578) — un festivo no tiene meta; horas adicionales **al mismo valor** (se quitó el recargo: honorarios, no horas extra); marca `colectas` (Jenniffer/Stella/Víctor: disponibilidad L–V para colectas MeLi, sin horario); detalle por día (`detalle_dia` + `DiaDetalle`: tramos con hora, cómo se midió, ratos sin registro que no cuentan) saliendo de la MISMA función que el total (hay test); «Mi quincena» rediseñada como dos anillos (hoy/quincena) tocables; Juegos no cuenta como actividad; resumen semanal por WhatsApp (`resumen_semanal_horas_cron.py`, viernes 17:30, apagado con `RESUMEN_HORAS_WA_ACTIVO=0`).
+  - **Del chat al registro (etapa 2, informe del 24-sep):** registro durable de pagos de clientes (`pagos_clientes.py` + bandeja «Pagos de clientes» en la Agenda: quién decidió el ok/no, cuándo, comprobante; pendientes sobreviven al reinicio y vencen a 72 h); los comandos de grupo llevan `author` desde el puente y **cuentan como actividad** de quien los envía (`comando_wa`/`wa_grupo`, solo en tiempo real); **espejo de los grupos oficiales** a `wa_chats.db` (`GRUPOS_ESPEJO` en server.js; en Mensajes salen con su nombre); al cerrar cualquier tarea el panel pregunta «¿Cuántas quedaron?» (opcional; empaque sigue obligatorio).
+- **Verificación:** tests nuevos (`test_pagos_clientes`, festivos, detalle-día) + suites de horas 16/16 y humo 77/77; endpoint con Bearer verificado; capturas reales del panel (PC y celular). ⚠️ Al reiniciar el puente reapareció el error «r» (previo); se recuperó al segundo reinicio.
+
+### 2026-09-23 23:30 - «Mi quincena» y la ficha, más fáciles de leer para personas mayores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Agenda). Sin LLM.
+- **Qué se implementó:**
+  - Revisado en un banco de pruebas con datos reales, a 390 px (celular). Problemas: todo a la vez, tabla que se partía, tono de regaño («atrasado», «faltaron» en naranja en días sin registro), dos cifras distintas (quincena vs mes), mezcla de tú/usted y mención al pago.
+  - «Mi quincena»: una frase grande de cómo va hoy (verde si completó el día); barra de la quincena; los días como círculos grandes (verde completo, amarillo le faltó un poco, gris punteado sin registrar, morado fin de semana) con una sola leyenda; tocar un día sin registro abre «Contar un trabajo que no quedó registrado» con esa fecha; «¿Cómo funciona?» plegado (abierto solo la primera vez); botones de 52 px a lo ancho; «usted» y «jornada acordada» en lugar de «pago».
+  - «Mi ficha»: tarjeta sin segunda cifra grande; en la ficha, primero «Su quincena» y después «Su mes en el panel» con su periodo; barras con la etiqueta encima (en el celular se veían como puntos); sin funciones de 0 h; variación menor al 10 % en tono neutro.
+  - `RENDIMIENTO_IMPRIMEN` incluye a stella por defecto (usa el Studio para imprimir, no para diseñar).
+- **Archivos Modificados:** `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/MiRendimiento.tsx`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `app/services/rendimiento.py`, `.env.example`, `docs/team-recaps.md`
+
+### 2026-09-23 22:30 - Tiempos estándar y regla explícita: completar las horas convenidas, no la rapidez
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (RRHH / Agenda). Sin LLM.
+- **Qué se implementó:**
+  - `app/services/tiempos_estandar.py`: tiempo estándar por función = mediana de lo cronometrado por el equipo en 90 días (mínimo 5 veces, entre 1 min y 10 h; por unidad si la tarea registró cantidad). «Horas a tiempo estándar» = cada ejecución cerrada × su estándar medido; ticket sin cronómetro = su huella real. `GET /api/rrhh/tiempos-estandar`; columna en Control de horas y bloque en la ficha de RRHH. **Solo para administración**: la persona no ve horas por rapidez.
+  - **Corrección el mismo día:** se quitaron los tiempos «estimados» a mano (15 min por nota crédito, 10 por aprobación…). Convertían 85 expedientes de notas crédito que Jenniffer cerró en tandas (72 de 83 a menos de 2 min del anterior, ≈2 h reales) en 21,5 h. Ahora un ticket cerrado sin cronómetro cuenta su **huella real**: minutos desde la acción anterior de la persona en el panel (máx. 30). Su 2ª quincena pasó de 37,7 h a 16,2 h a tiempo estándar.
+  - `rendimiento.py`: «Aprobar pago» es su propia función (antes contaba como montar una solicitud, 47 min cada una).
+  - **Regla visible para todos** (Agenda «Mi quincena» y ficha): lo que se necesita es completar las horas convenidas, no la rapidez; se reparten libremente (sin hora de entrada ni salida); lo que se haga después son horas adicionales que se reconocen aparte, con otro valor, cuando administración las aprueba.
+  - Valor de las horas adicionales: recargo configurable sobre el valor hora de mercado (`rrhh_valoracion.json → horas_adicionales.recargo_pct`, default 0 %), editable en RRHH → Control de horas; lo usa la cuenta de cobro.
+  - Tests: `tests/test_tiempos_estandar.py` (2) y ajustes en `test_control_horas.py`; 105 en verde. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/tiempos_estandar.py`, `app/services/control_horas.py`, `app/services/mapa_funciones.py`, `app/services/rendimiento.py`, `app/routes_rrhh.py`, `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/rrhh/ControlHoras.tsx`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `tests/test_tiempos_estandar.py`, `tests/test_control_horas.py`, `docs/team-recaps.md`, `CLAUDE.md`
+
+### 2026-09-23 21:30 - Control de horas por quincena: «Mi quincena» en la Agenda, explicaciones de tiempo y cuenta de cobro por horas de más
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda / RRHH). Sin LLM.
+- **Qué se implementó:**
+  - **Decisión (camino A, honorarios):** cada quien tiene una dedicación pactada = pago de la quincena ÷ valor hora de mercado de su labor (punto medio del rango de mercado en honorarios ÷ 176 h). Autogestión, sin horario de entrada ni salida (un horario fijado por la empresa es subordinación y vuelve la prestación de servicios contrato laboral).
+  - `app/services/control_horas.py`: horas activas por bloques de 15 min (acciones del panel, tareas con cronómetro < 10 h y sesiones de desarrollo con IA de `RENDIMIENTO_SESIONES_IA`) sin doble conteo; meta diaria de lunes a viernes; «al día» frente a lo esperado; explicaciones de tiempo no registrado (máx. 6 h/semana, últimos 20 días, pendientes de aprobación); cuenta de cobro = horas de más × valor hora. Datos en `app/data/control_horas.json` (gitignored); caché de sesiones en `sesiones_ia_cache.json` (gitignored).
+  - Rutas: `GET /api/tickets/control-horas` y `POST …/explicaciones` (la persona, sin dinero); `GET /api/rrhh/control-horas`, `POST …/explicaciones/<id>` (aprobar), `GET …/cuenta-cobro` (RRHH).
+  - Panel: «Mi quincena» en la Agenda (barra de avance, hoy llevas X de Y, al día/atrasado, «Explicar tiempo no registrado» en letra grande) y pestaña «Control de horas» en RRHH (tabla por persona, aprobaciones, cuenta de cobro sugerida).
+  - Septiembre: Armando 1ª quincena 121 h vs 41,7 pactadas → 79,3 h de más = $2.377.335 (2ª, al 23: $878.385 y subiendo); Cynthia 1ª quincena 5,2 h de más = $106.075. Sus sesiones de desarrollo no son legibles desde la cuenta mckg: si desarrolló fuera del panel, no suma.
+  - **Registro día por día:** `estado()` devuelve `dias` (horas del día, meta de lunes a viernes, diferencia); tabla «Mis días» abierta en la Agenda y desplegable por persona en RRHH.
+  - 3 tests en `tests/test_control_horas.py` (103 en verde con los relacionados). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/control_horas.py`, `app/services/rendimiento.py`, `app/routes_tickets.py`, `app/routes_rrhh.py`, `desktop/src/components/MiQuincena.tsx`, `desktop/src/components/rrhh/ControlHoras.tsx`, `desktop/src/components/TicketsPanel.tsx`, `desktop/src/components/RRHHPanel.tsx`, `tests/test_control_horas.py`, `.gitignore`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 20:30 - RRHH: «Mapa de funciones» integrado al panel, con valor de mercado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (RRHH · Compensaciones). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** el artefacto «Mapa de funciones» de la revisión de honorarios se hacía con cifras fijas del 23-sep; ahora vive en /app y se calcula en vivo.
+  - `app/services/mapa_funciones.py`: matriz persona × etapa (abastecer → casa) con las funciones de `rendimiento.py`, valor = horas × tarifa del nivel, horas que cubre el pago, comisión de WhatsApp (promedio de chats + mes real de Cotizar/Facturar), estadísticas de WhatsApp de los últimos días y funciones anotadas a mano. **Mercado:** salario de un cargo comparable llevado a honorarios (`honorario_equivalente`: prestaciones 21,83 %, aporte 8 %, auxilio hasta 2 SMMLV, PILA de independiente ≈11,6 %; piso = SMMLV 2026 $1.750.905).
+  - Configuración con dinero (pagos, propuestas, tarifas, mercado, extras) en `app/data/rrhh_valoracion.json`, **en .gitignore**; sembrada con lo acordado en la revisión.
+  - Rutas `/api/rrhh/mapa-funciones` (GET, `persona/<id>` PUT, `general` PUT, `extras` POST/DELETE), permiso rrhh o administrador.
+  - Panel: pestaña «Mapa de funciones» (primera de RRHH): totales, recorrido del pedido, franja de WhatsApp, matriz con tono por valor, panel de detalle, anotar funciones no registradas, ficha en letra grande con pago, comisión, «¿Cuánto vale en el mercado?» y edición de pago/propuesta.
+  - `rendimiento.py`: lo que imprime quien no diseña queda con id `imprimir_studio`.
+  - 2 tests en `tests/test_mapa_funciones.py`. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/mapa_funciones.py`, `app/services/rendimiento.py`, `app/routes_rrhh.py`, `desktop/src/components/rrhh/MapaFunciones.tsx`, `desktop/src/components/RRHHPanel.tsx`, `tests/test_mapa_funciones.py`, `.gitignore`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 19:10 - Agenda: «Mi mes en el panel» y ficha de rendimiento en letra grande
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda / RRHH). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** medir el desempeño de cada quien con lo que ya registra el panel, igual que la ficha del artefacto «Mapa de funciones» de la revisión de honorarios, pero en vivo y visible para cada persona.
+  - `app/services/rendimiento.py`: últimos 30 días (llevado a un mes) — cada función con veces, promedio por vez (cronómetro), horas; tipos de trabajo N1–N5; comparación con los 30 días anteriores; días activos. Tareas de más de 10 h no cuentan; tiempo por módulo hasta la siguiente acción (máx. 30 min); si hay cronómetro y panel se toma el mayor. Quien desarrolla (`RENDIMIENTO_DESARROLLADORES`) no «empaca»: ese tiempo es trabajo sobre el módulo; quien imprime (`RENDIMIENTO_IMPRIMEN`) no «diseña».
+  - `GET /api/tickets/rendimiento`: cada quien ve la suya; nivel 3 puede pedir `?usuario_id=` y recibe la lista del equipo. Colaborador externo: 403.
+  - Agenda: tarjeta «Mi mes en el panel» (horas, días activos, variación, 3 funciones principales) y «Ver mi ficha»: ficha a pantalla completa en letra de 20 px (24 px con «Letra más grande»), alto contraste, frases cortas. **Sin pagos ni valoraciones** (la propuesta de honorarios no está decidida).
+  - 3 tests en `tests/test_rendimiento.py`. Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/rendimiento.py`, `app/routes_tickets.py`, `desktop/src/components/MiRendimiento.tsx`, `desktop/src/components/TicketsPanel.tsx`, `tests/test_rendimiento.py`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 17:55 - Cotizar/Facturar: comisión del 3 % sobre las ventas de WhatsApp
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Facturación → Cotizar/Facturar). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** en la revisión de honorarios del equipo se acordó que quien atiende WhatsApp cobra una comisión del 3 % sobre lo que vende por ese canal (parte variable de Jenniffer). Hacía falta una cifra exacta y no a mano.
+  - `ventas_directas.comisiones_mes(mes)`: ventas **facturadas** en el mes, por quien creó la venta (quien atendió al cliente). Base = productos **sin IVA ni envío** (`subtotal − envio`). Excluye anuladas y las de origen `meli` (MeLi facturada con RUT). Porcentaje en `VENTAS_DIRECTAS_COMISION_PCT` (default 3).
+  - `GET /api/ventas-directas/comisiones?mes=AAAA-MM`: el vendedor ve solo lo suyo; administración ve a todos.
+  - Panel: en la barra de Cotizar/Facturar, «septiembre: $… · comisión 3 % $…» (se recarga al facturar) y el detalle por vendedor arriba de «Ventas recientes».
+  - Septiembre al 23: 4 ventas de jerry, $2.531.400, base $2.136.296 → $64.089. Incluye FE465 (EQUISURE, $2.353.000): venta de WhatsApp (tiene teléfono del cliente y ninguna referencia de pack de MeLi), así que sí cuenta para la comisión.
+  - 1 test nuevo en `tests/test_ventas_directas.py` (18 en verde). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `.env.example`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 - Cese de actividades global: MeLi pausado, web en mantenimiento y WhatsApp con aviso automático
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (operación). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** se pausan todos los canales de venta mientras se reestructura la operación y se hace control de inventarios.
+  - **Un solo interruptor:** `scripts/cese_actividades.py --activar | --desactivar | --estado`. Cada pieza lee su archivo en cada petición: no hace falta reiniciar para prender o apagar.
+  - **MeLi:** `scripts/pausa_global_meli.py` guarda la lista de lo activo ANTES de pausar (279 publicaciones, 0 fallos; las 175 que ya estaban pausadas no se tocan) y al reactivar solo toca esa lista. Mientras dure, la sincronización de stock ya no reactiva publicaciones sola (`meli.pausa_global_meli_activa()`).
+  - **Web:** la bandera `MANTENIMIENTO` con «cese» sirve `mantenimiento/cese.html` (503): «Tendremos un mantenimiento para seguir mejorando tu experiencia… no estamos recibiendo pedidos nuevos». El IPN de MercadoPago sigue pasando.
+  - **WhatsApp:** un cliente 1:1 recibe el aviso (una vez cada 6 h por chat) y su mensaje no llega ni al bot ni a modo humano. El puente rechaza con 423 `/enviar`, `/enviar-archivo` y `/enviar-ptt` a todo lo que no sea grupo ni número interno: ninguna respuesta humana desde el panel llega al cliente. Lo escrito desde el teléfono no se puede frenar.
+  - Tras reiniciar, el puente tardó ~25 min en quedar listo (error «r» de whatsapp-web.js ya conocido; la librería está en su última versión).
+- **Archivos Modificados:** `app/services/cese_actividades.py`, `app/services/meli.py`, `app/tools/meli_compliance.py`, `app/routes.py`, `bot-mckenna/server.js`, `PAGINA_WEB/site/website.py`, `PAGINA_WEB/site/mantenimiento/cese.html`, `scripts/cese_actividades.py`, `scripts/pausa_global_meli.py`, `app/data/cese_actividades.json`, `app/data/meli_pausa_global.json`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-23 - Cuenta de cobro del contador: respuesta automática con el soporte del pago (Libro Mayor + Alegra + DIAN)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección (cron del contador). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** William (contador) manda su cuenta de cobro por correo y había que responderle a mano. Además, el cron viejo buscaba la cuenta de cobro del mes EN CURSO y William cobra el mes anterior: nunca creó un ticket de pago solo.
+  - **Apenas llega su cuenta de cobro** (`scripts/cuenta_cobro_contador_cron.py`, cada 5 min; solo lee encabezados y procesa si hay un correo nuevo suyo): si ya está pagada y con documento soporte emitido, se le responde **en el mismo hilo** con un solo PDF (`app/tools/expediente_pago.py`): cruce de las tres fuentes (Libro Mayor · Alegra · DIAN), el asiento con códigos PUC, la contabilización en Alegra (documento soporte + comprobante de egreso + efecto neto, con la cuenta por pagar en $0) y el documento soporte como anexo; aparte, el XML firmado. Las páginas 1 y 2 van como imagen en el cuerpo del correo.
+  - **Si no está pagada:** ticket a Jenniffer con la cuenta de cobro adjunta y un borrador en Solicitudes de pago. Cuando el pago se confirma y sale el documento soporte, la siguiente corrida le responde sola. Pagado pero con documento soporte en borrador → espera, no le escribe.
+  - **Mismo pago, dos cifras:** a William se le giran $1.200.000 libres y el documento soporte va por $1.210.483 porque McKenna asume el ReteICA 8,66 ‰; su cuenta de cobro puede traer cualquiera de las dos. Se aceptan pagos anticipados (hasta 60 días antes; el de septiembre se pagó el 21-sep). El borrador se monta por lo girado: el asistente suma el ICA encima y con el bruto lo contaba dos veces ($1.221.057).
+  - El XML de la DIAN no trae retenciones (el formato no discrimina el ICA): la columna DIAN muestra el valor total y el ICA queda en el Libro Mayor (2368) y en Alegra. La API de Alegra no entrega el PDF de un documento soporte: la representación gráfica la arma McKenna.
+  - Candado para que el cron rápido y el de las 9:00 nunca respondan dos veces. `cuentas_cobro_correo` guarda el Message-ID para responder en el hilo. Cron de 5 min instalado en el crontab. 15 tests nuevos en verde; correos de prueba solo al buzón de McKenna.
+- **Archivos Modificados:** `app/services/cuenta_cobro_contador.py`, `app/tools/expediente_pago.py`, `app/tools/comprobante_contable.py`, `app/services/cuentas_cobro_correo.py`, `scripts/cuenta_cobro_contador_cron.py`, `scripts/recordatorio_pago_contador_cron.py`, `scripts/instalar_cron_mcKenna.sh`, `tests/test_cuenta_cobro_contador.py`, `.env.example`, `docs/team-recaps.md`
+
+### 2026-09-23 - Cotizar/Facturar reorganizado: cliente primero, WhatsApp como herramienta, vista previa en vivo y modo sin menú
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Facturación → Cotizar/Facturar). Sin LLM nuevo.
+- **Qué se implementó:**
+  - **Por qué:** el módulo abría obligando a elegir un «origen» (pedido IA, MeLi, chat de WhatsApp, desde cero) y la cotización normal quedaba como una opción más. Se entendía mal y el cliente se creaba casi a escondidas.
+  - **Tres pasos:** 1 Cliente → 2 Productos → 3 Cotizar o facturar (el antiguo «Revisar» se reemplazó por la vista previa). Paso 1 con los datos que exige Alegra: tipo de cliente (Empresa · NIT / Persona natural · cédula), documento con el dígito de verificación calculado y validado en vivo, razón social o nombres, correo para la factura electrónica, WhatsApp, dirección y ciudad; qué falta para cotizar y para facturar; estado «Sin guardar / Creado / Ya estaba en Alegra · #id · Libro Mayor ✓» y botón «Guardar cliente en Alegra».
+  - **«Completar desde…»** como herramienta dentro de los pasos: chat de WhatsApp (chats recientes o texto pegado; solo llena lo que está vacío y dice qué completó), venta de Mercado Libre con RUT y pedido del agente IA. En Productos, «Traer productos de un chat».
+  - **Vista previa en vivo** a la derecha: réplica del PDF con logotipo, colores de la web, De/Para, tabla con IVA y totales, que se dibuja mientras se llena. «Ver PDF exacto» genera el PDF real sin guardar ni enviar (`POST /api/ventas-directas/vista-previa.pdf`, misma función `documento_cotizacion()` que la cotización real).
+  - **Ocultar menú** (quita el cabezote de la app y las pestañas de Facturación; Esc lo devuelve; flag `cotizarEnfoque` del store, no persistido) y **Pantalla completa** del navegador. «Ventas recientes» pasó a un panel lateral.
+  - El logo embebido en el PDF se reduce a 800 px: la cotización pasa de ~640 KB a ~170 KB.
+  - Verificado en Chrome a 1440×900 y 400×860 con la creación en Alegra interceptada. 17 tests de ventas directas en verde.
+- **Archivos Modificados:** `desktop/src/components/CotizarFacturarPanel.tsx`, `desktop/src/components/FacturacionPanel.tsx`, `desktop/src/components/Layout.tsx`, `desktop/src/stores/app.ts`, `desktop/src/assets/marca/logotipo-turquesa.png`, `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `app/tools/cotizacion_pdf.py`, `docs/team-recaps.md`
+
+### 2026-09-23 - Cotizar/Facturar: crear el cliente desde «¿A quién le vendemos?» en Alegra y en el Libro Mayor
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Facturación → Cotizar/Facturar → paso Cliente). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** al cotizar y luego facturar, la venta se causa en el Libro Mayor buscando el tercero por identificación; si el cliente no existía como tercero, el asiento nacía sin contraparte (caso EQUISURE, FE465). El paso 2 solo buscaba contactos existentes en Alegra y el cliente nuevo se creaba «a escondidas» al facturar.
+  - **Botón «Crear cliente en Alegra y Libro Mayor»** en el paso 2 (`CotizarFacturarPanel.tsx`): con nombre e identificación llenos, crea el contacto en Alegra con el tipo de documento real (NIT/CC, DV validado con el algoritmo de la DIAN, base sin DV hacia Alegra) y el tercero tipo `cliente` en el Libro Mayor. Si ya existía en Alegra o en el libro, lo reutiliza y lo dice; en el libro completa correo/teléfono vacíos sin pisar lo que había. Si Alegra rechaza, no se crea nada y muestra el motivo.
+  - Backend: `ventas_directas.crear_cliente()` + `registrar_tercero_cliente()` (reutilizada por `asegurar_tercero_cliente`, que sigue corriendo al cotizar y facturar como red), `POST /api/ventas-directas/clientes` (permiso `cotizar-facturar` o admin). `alegra._resolver_o_crear_contacto_alegra` acepta `resultado={}` para saber si creó o encontró el contacto.
+  - Tests: 4 nuevos en `tests/test_ventas_directas.py` (alta en Alegra + libro, sin duplicar tercero, rechazo de Alegra no toca el libro, NIT mal escrito). Panel compilado y `agente-pro` reiniciado.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/services/alegra.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `docs/team-recaps.md`
+
+### 2026-09-23 - Cotización en PDF: nuevo formato de marca y textos que ya no se montan
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + rediseño (Facturación → Cotizar/Facturar → PDF de cotización). Sin LLM.
+- **Qué se implementó:**
+  - **Problema:** la cotización salía con la razón social del cliente y la descripción del producto montadas sobre la columna siguiente. La tabla usaba cadenas planas, que ReportLab no parte en líneas. Además el pie decía «NIT 901.XXX.XXX-X».
+  - **Rediseño** (`app/tools/cotizacion_pdf.py`, reescrito): mismo logotipo que la factura de Alegra (`LOGOTIPO TURQUESA.png`), paleta del tema clásico de la web (#0c6069 / #045159 / #022d33 / #3a7e87) y Montserrat (cae a Helvetica si falta). Cabecera con logo, número, fecha y fecha de vencimiento; tarjetas De / Para con NIT real desde `empresa.py` y contacto desde el remitente de Guías de envío; tabla con referencia bajo el nombre, columna IVA por línea y cabecera repetida en cada página; bloque «TOTAL A PAGAR»; condiciones; pie con identidad y numeración. Todo texto variable en `Paragraph`: verificado con nombres de 100 caracteres y 35 líneas en 4 páginas.
+  - `ventas_directas.cotizar()` ahora pasa al PDF el IVA de cada línea, el WhatsApp del cliente y `VIGENCIA_DIAS`. `facturacion_directa.enviar_cotizacion` sigue funcionando sin cambios (sin `iva_pct` la columna IVA no se muestra).
+  - Servicio `agente-pro` reiniciado con el cambio. Pendiente del usuario: cargar la dirección de McKenna en Atención → Guías de envío → Remitente para que salga en la cotización.
+- **Archivos Modificados:** `app/tools/cotizacion_pdf.py`, `app/services/ventas_directas.py`, `docs/team-recaps.md`
+
+### 2026-09-23 - Colaboradores externos: app y APK propias; el código fuente del panel ya no se entrega
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de seguridad + nueva app (Agenda → Colaboradores). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** un colaborador externo (Sebastián) recibía el mismo bundle del panel que el equipo (1,2 MB con los 61 paneles nombrados), podía descargar cualquier chunk por su nombre y los `.map`, que traían 134 archivos TypeScript completos con sus comentarios. La API ya estaba cerrada; el frontend no.
+  - **Sourcemaps:** `/app/assets/*.map` → 404 para todos (se siguen generando para depurar en el servidor). Verificado en producción.
+  - **Otra aplicación para el colaborador:** build aparte `desktop/vite.colab.config.ts` → `desktop/dist-colab/` con solo Colaboradores y una Agenda mínima con Armando (pedirle algo, comentar, marcar como hecha). 460 KB, sin sourcemaps, sin nombres de otros módulos. `npm run build` la compila y `verificar-build-colab.mjs` falla si se cuela algo del panel. El servidor se la entrega a quien tiene el perfil `colaborador_externo` y le niega los archivos del panel.
+  - **API de la Agenda:** el colaborador ya no ve comentarios internos ni la lista de categorías (nombres de áreas internas).
+  - **APK propia** `android-colab/` («McKenna Colaboradores», `co.mckennagroup.colaboradores`, 44 KB): un WebView, solo permiso de red, llave de firma propia no versionada. El login de Google vuelve por `mckennacolab://` y convive con la APK del panel en el mismo celular.
+  - ⚠️ Falta probar con la sesión real del colaborador y la APK instalada en un celular (Google login incluido).
+- **Archivos Modificados:** `app/routes.py`, `app/spa_sesion.py`, `app/routes_tickets.py`, `app/templates/ingreso_panel.html`, `desktop/src/colab/*`, `desktop/vite.colab.config.ts`, `desktop/tailwind.colab.config.ts`, `desktop/colaboradores.html`, `desktop/scripts/verificar-build-colab.mjs`, `desktop/package.json`, `android-colab/*`, `tests/test_acceso_panel.py`, `docs/agentic/modules/colaboradores.md`, `CLAUDE.md`, `.gitignore`
+
+### 2026-09-22 - Cotizar/Facturar: ventas de Mercado Libre con RUT ya se facturan (teléfono opcional, factura ligada al pack, NIT vs CC)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + nueva funcionalidad (Facturación → Cotizar/Facturar). Sin LLM.
+- **Qué se implementó:**
+  - **Por qué no salía la factura:** caso recurrente de empresas que compran en MeLi y mandan el RUT. MeLi no da teléfono ni correo; el panel exigía «WhatsApp del cliente», el operador ponía «.» y cotizar/facturar respondía «Teléfono inválido». La venta 2000015079567449 (JP BIOINGENIERIA, `COT-20260922-001`) quedó en borrador sin llegar a Alegra.
+  - **WhatsApp opcional:** sin número se factura igual y solo no se envía el PDF; un número a medio escribir sí se detiene.
+  - **«Venta de Mercado Libre» en el paso 1** (`GET /api/ventas-directas/meli/<pack u orden>`): trae comprador (billing_info) y productos. Al facturar aplica las barreras de «Facturar ahora» (registro local, documento fiscal en MeLi, factura en Alegra), emite con `purchase_order=pack_id`, sube el PDF a MeLi y marca las órdenes `facturada`: ninguna de las dos vías emite una segunda factura.
+  - **NIT vs CC:** Cotizar/Facturar no mandaba el tipo y Alegra adivinaba por longitud — EQUISURE S.A.S (FE465) quedó como **CC**. `identificacion_fiscal()` manda NIT/CC (selector en el paso 2 o deducido por nombre de empresa / forma de NIT) y comprueba el dígito de verificación.
+  - ⚠️ Pendiente: decidir qué hacer con el contacto CC de EQUISURE y su FE465; la venta de JP BIOINGENIERIA hay que facturarla por el nuevo camino con el correo del RUT.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `app/routes_ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `CLAUDE.md`
+
+### 2026-09-22 - Abonos de Bancolombia a la asesora también por WhatsApp
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (cron `reenvio_alertas_banco`, cada 5 min). Sin LLM.
+- **Qué se implementó:**
+  - Además de la copia del correo a Jenniffer, cada abono («Recibiste $… por QR de …») llega como mensaje al +57 318 243 2463 (`REENVIO_BANCO_WA`), con la frase del movimiento sin saludo ni pie. Sale por la cuenta supervisora (:3001) con el puente principal de respaldo.
+  - Primero sale el correo; si el WhatsApp falla queda en `wa_pendientes` y se reintenta hasta ~1 h sin repetir el correo. OTP, claves y aprobaciones siguen sin salir nunca.
+  - Mensaje de prueba entregado (salió por el puente principal: el supervisor no respondió «success»).
+- **Archivos Modificados:** `app/tools/reenvio_alertas_banco.py`, `scripts/reenvio_alertas_banco_cron.py`, `scripts/instalar_cron_mcKenna.sh`, `.env.example`, `tests/test_reenvio_alertas_banco.py`
+
+### 2026-09-22 - Arquitectura del código: grafo interactivo con Emerge en lugar de la nube 3D de CBM
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña «Grafo interactivo»); se retira la pestaña «Grafo 3D». Sin LLM.
+- **Qué se implementó:**
+  - **Por qué:** el visor 3D de codebase-memory-mcp abría con 5.000 de 40.456 nodos (variables y rutas, 1 arista): puntos rojos sueltos sobre negro, sin filtros por URL ni modo claro. No se puede arreglar desde fuera sin parchear su JavaScript.
+  - **Emerge** (github.com/glato/emerge) analiza el código por su cuenta y deja un HTML estático con un grafo de fuerzas d3: cada punto un archivo, cada línea un import, color por comunidad (Louvain), tamaño por líneas o fan-in, buscador, mapa de calor y modo claro/oscuro. Dos análisis: **Python** del servidor (app/, scripts, tienda; ~2.300 nodos) y **TypeScript** del panel (desktop/src; ~1.000).
+  - `scripts/emerge_config.yaml` (qué carpetas entran y cuáles no) + `scripts/arquitectura_emerge.py` (runner). Flask sirve la salida en `/app/arquitectura-emerge/<python|panel>/…` con la cookie del panel y rol administrador; `GET /api/arquitectura/emerge` dice qué hay generado y de cuándo.
+  - Trampas que costaron: Emerge no arranca en Python 3.12 (importa `pkg_resources` y `pip` internos) → entorno propio `~/.venvs/emerge` con Python 3.10 (uv) + `emerge-viz`, `setuptools<70` y `pip`. Al terminar cada análisis copia la URL al portapapeles (pyperclip) y en un servidor sin X11 revienta **después** del primer análisis, así que el segundo nunca corría: el runner anula `pyperclip.copy`. Su exportador d3 escribe siempre `html/emerge.html`, por eso cada análisis va a su carpeta.
+  - Verificado en Chrome dentro del panel: los dos grafos cargan y se cambia entre ellos. El proxy `/app/cbm/` del visor de CBM sigue en el código sin pestaña; se puede retirar cuando se quiera.
+- **Archivos Modificados:** `scripts/emerge_config.yaml` (nuevo), `scripts/arquitectura_emerge.py` (nuevo), `app/routes_arquitectura.py`, `desktop/src/components/ArquitecturaPanel.tsx`, `.gitignore`
+
+### 2026-09-22 - Arquitectura del código: diagrama de Archify «Cómo se compone el código» en vez de la nube 3D
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva vista (Sistema → Arquitectura del código → pestaña Diagrama, ahora la primera). Sin LLM.
+- **Qué se implementó:**
+  - **El grafo 3D del binario no sirve para leer el proyecto** (oscuro, 40.000 puntos, sin pregunta que responda). Lo que sí gustó fue ver de qué se compone el repo y qué depende de qué, así que eso se dibuja con Archify, el mismo lenguaje de «Los flujos del proyecto».
+  - **`scripts/arquitectura_diagrama.py`** agrupa el snapshot de codebase-memory-mcp en 9 grupos de archivos (raíz, panel React, app/agent, scripts, tienda, app/ rutas y núcleo, app/services, app/tools, tests) y escribe `docs/arquitectura/07-codigo.architecture.json`; el HTML sale de `diagramas_arquitectura.py entregar`. Las posiciones son fijas (elegidas para que ninguna flecha atraviese un nodo ni se cruce con otra); las cifras salen del snapshot.
+  - **Qué muestra:** todo converge en `app/services` (950 llamadas de fuera), el ciclo `app/ ↔ app/services` (97 / 94 llamadas: por eso hay imports dentro de funciones) y el paso por `app/tools`. Solo cuenta llamadas dentro del mismo lenguaje: CBM también «resuelve» nombres iguales entre Python y TypeScript (134 falsas, la mayor services → panel 68) y eso no es dependencia. Se dibujan 10 aristas; los pesos menores siguen en la tabla «Mapa de dependencias».
+  - **El código muerto también vive en el diagrama:** cada caja dice cuántas funciones muertas confirmadas tiene (panel React 93, app/tools 41, app/services 38…), hay un recorrido guiado «Dónde está el código muerto» y una tarjeta con el embudo. Mismo dato que la pestaña «Código muerto», que sigue con la lista por archivo.
+  - El panel lo incrusta por el endpoint de diagramas del Mapa del sistema (Bearer + blob). La pestaña «Grafo 3D» queda de última por si alguien la quiere.
+  - Validación Archify showcase: 9 comprobaciones, 0 errores; `visual-check` en 1440×900, 1600×1000, 1920×1080 y 2048×1320 sin desbordes. Revisado a ojo en Chrome dentro del panel.
+  - ⚠️ `tests/test_mapa_producto.py::test_todo_panel_tiene_un_lugar_en_el_flujo_de_la_app` falla desde antes: `colaboradores` no está en `flujoApp.ts`. No es de esta tarea.
+- **Archivos Modificados:** `scripts/arquitectura_diagrama.py` (nuevo), `docs/arquitectura/07-codigo.architecture.json` (nuevo), `docs/arquitectura/indice.json`, `desktop/src/components/ArquitecturaPanel.tsx`
+
+### 2026-09-22 - Arquitectura del código: botón «◇ Código» en el cabezote, binario para mckg y snapshot regenerado
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de navegación + corrección de script (Sistema → Arquitectura del código). Sin LLM.
+- **Qué se implementó:**
+  - **El panel existía desde el 21-sep pero nadie lo veía:** vive en la etapa «Sistema» como panel avanzado (solo tras «+N avanzado») y solo para administrador. Ahora el cabezote de flujo tiene **«◇ Código»** al lado de «◇ Todo el flujo»: «Todo el flujo» cuenta el negocio, «Código» cuenta qué archivo llama a cuál y qué funciones no usa nadie (codebase-memory-mcp).
+  - **Binario `codebase-memory-mcp` v0.11.0 instalado para mckg** (`~/.local/bin`, copiado de la cuenta de cynthia; `CBM_BIN` lo sobreescribe). El índice de CBM es por usuario: en una cuenta nueva hay que correr `python3 scripts/arquitectura_cbm.py --reindexar` (~8 min).
+  - **`--reindexar` no funcionaba:** el ayudante pasaba `--format json` a todas las herramientas y `index_repository` lo rechaza. Ahora esa llamada va sin la bandera y con `--name` fijo para que las consultas encuentren el proyecto.
+  - **El informe se contaba a sí mismo:** el escáner de menciones lee `.md`, y `docs/arquitectura/codigo-muerto.md` lista por nombre las 196 funciones confirmadas; en la segunda corrida todas tenían «una mención más» y las confirmadas cayeron a 2. `EXCLUIR_MENCIONES` deja fuera ese informe y la carpeta del snapshot. Snapshot del 22-sep: 42.442 nodos, 105.759 aristas, 197 confirmadas.
+  - Los archivos del módulo eran del grupo `cynthia`; pasaron a grupo `mckg` con escritura para que ambos usuarios puedan regenerar.
+  - **Grafo 3D dentro del panel (pestaña nueva, la primera):** el binario trae su propio visor HTTP del grafo (sigma + three.js), pero escucha solo en `127.0.0.1:9749`, sin autenticación y con `frame-ancestors 'none'`, así que desde la LAN o el túnel no se veía. Flask lo proxea en **`/app/cbm/…`** con la sesión del panel (cookie `mck_panel`, que lleva `path=/app`: por eso va bajo `/app` y no en la raíz) y solo para administrador; reescribe las rutas absolutas del bundle (`/assets`, `/api`, `/rpc`) y sustituye la CSP para que quepa en un iframe. Si el demonio está apagado la pestaña dice cómo encenderlo. Verificado en Chrome: el visor carga y dibuja el grafo de `home-mckg-mi-agente` en el lienzo. ⚠️ El visor muestra el índice del demonio que esté corriendo (hoy el de cynthia, del 21-sep), no los JSON del snapshot: pueden tener fechas distintas.
+  - **Nota de historial:** el botón «◇ Código» y el arreglo del script entraron en el auto-commit del backup nocturno `0f3570a` (02:00) antes de poder commitearlos aparte.
+- **Archivos Modificados:** `desktop/src/components/nav/FlujoNav.tsx`, `scripts/arquitectura_cbm.py`, `app/routes_arquitectura.py` (proxy `/app/cbm`, `/api/arquitectura/visor`), `desktop/src/components/ArquitecturaPanel.tsx` (pestaña Grafo 3D), `desktop/vite.config.ts`, `tests/test_arquitectura_visor.py` (nuevo, 8 pruebas)
+
+### 2026-09-22 - Juegos en la Agenda: emuladores de NES, SNES y GBA con partidas guardadas y traducciones
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Agenda → Juegos). Sin LLM.
+- **Qué se implementó:**
+  - **Tres emuladores dentro del panel**, cada uno en un iframe con sandbox y CSP propia: Circus Charlie (NES, `jsnes`), Bassin's Black Bass (SNES, Snes9x en WebAssembly) y Chessmaster (Game Boy Advance, mGBA en WebAssembly). Las ROM las trajo el usuario; uso interno detrás del login (los `LEEME.md` de cada carpeta dejan la nota legal). Se borró el remake propio en canvas de Circus Charlie al llegar la ROM original.
+  - **Partidas guardadas por usuario:** el iframe aislado no tiene almacenamiento, así que el juego manda la SRAM del cartucho al panel por `postMessage` y el panel la sube con su Bearer a `GET/PUT /api/juegos/partidas/<juego>` (`juegos_partidas/usuario_<id>/`, fuera de git). Se sincroniza cada 10 s, al ocultar la pestaña y antes de cerrar el juego. **Esc dentro del juego sale al panel** (el «QUIT» de Bassin's está hecho para apagar la consola y congelaba la pantalla; se cambió su texto).
+  - **CSP de los juegos wasm:** `'wasm-unsafe-eval'`, `blob:` para el AudioWorklet y `connect-src 'self'` (la URL absoluta rompía tras el túnel de Cloudflare, que entrega el host `127.0.0.1:8081`); `Access-Control-Allow-Origin: *` porque desde el origen «null» del sandbox los módulos ES y los fetch van en modo CORS.
+  - **Traducciones al español en la ROM, en sitio y con el mismo largo** (no se encontraron tablas de punteros utilizables): Bassin's Black Bass, 421 mensajes (diálogos, consejos, cebos, especies, reglas); Chessmaster, 511 textos de interfaz (menús, opciones, niveles, mensajes del tablero, títulos del tutor, consejero). Quedan en inglés los rótulos gráficos de Bassin's y la prosa de Chessmaster (tutorial y comentarios de partidas, ~300 KB). Flujo reproducible en `traduccion/` de cada juego.
+- **Archivos Modificados:** `app/routes.py` (`_csp_juego`, `_JUEGOS_WASM`, `/api/juegos/partidas`), `desktop/src/components/JuegosPanel.tsx` (puente de partidas, Esc), `desktop/public/juegos/{circus-nes,bass,chess}/` (nuevos; `circus/` borrado), `desktop/src/lib/panelInfo.ts`, `tests/test_juegos.py` (12 pruebas), `.gitignore`
+
+### 2026-09-21 - Accesos rápidos (⚡ / Ctrl+K): cada persona llega en un clic a lo que más usa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (cabezote de /app, todas las vistas). Sin LLM.
+- **Qué se implementó:**
+  - **Botón ⚡ «Rápido» en el cabezote y atajo Ctrl/⌘+K desde cualquier parte.** Abre un menú con **«Lo que más usas»** (hasta 8 paneles, numerados: con el buscador vacío la tecla 1–8 los abre), **«Volver a»** (los últimos paneles visitados) y un **buscador** sobre todos los paneles a los que la persona tiene acceso (Enter abre el primero).
+  - **Sale de la telemetría que ya existía:** cada cambio de panel queda como `panel_view` en `panel_eventos_operativos` (~16.900 desde mayo). `GET /api/tickets/panel/atajos` los rankea por persona en los últimos 45 días, con peso por recencia (vida media de 10 días), así que el menú se acomoda solo cuando alguien cambia de oficio. Agenda, perfil y ajustes no cuentan como atajo.
+  - Solo ofrece paneles que el usuario puede abrir (misma regla del menú, `puedeVerSeccionPanel`), para que un atajo nunca rebote.
+  - Hoy, por ejemplo: Jenniffer → Facturación, WhatsApp, Correo ventas, Solicitudes de pago; Cynthia → Etiquetas, Docs técnicos, Publicaciones, Stock.
+- **Archivos Modificados:** `desktop/src/components/nav/AccesosRapidos.tsx` (nuevo), `desktop/src/components/Layout.tsx`, `app/services/panel_presencia.py` (`atajos_frecuentes`), `app/routes_tickets.py`, `tests/test_panel_atajos.py` (nuevo, 4 pruebas)
+
+### 2026-09-21 - Solicitudes de pago: al solicitante le llegan solo dos avisos, y el ticket se cierra al girar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago · avisos de WhatsApp a operadores). Sin LLM.
+- **Qué se implementó:**
+  - **Antes:** cada paso automático del pago (aprobado, montado en la Sucursal) dejaba un comentario en el ticket y cada comentario mandaba a quien pidió el pago un «Armando escribió en la solicitud: Aprobar pago — …», iguales entre sí. Al girar con el segundo token **no llegaba nada**: el ticket intentaba cerrarse a nombre de quien dio el segundo token, que no es el asignado, y `cambiar_estado` lo rechazaba en silencio. Por eso los tickets de pago quedaban «pendiente» hasta que alguien los cerraba a mano.
+  - **Ahora, al solicitante le llegan exactamente dos avisos:** «<Aprobador> escribió en tu solicitud: … Pago aprobado y contabilizado; falta girarlo en el banco.» y «<Quien giró> terminó tu solicitud: … Pago girado por $X; el comprobante está en la solicitud.». Si se rechaza, el segundo es «… terminó tu solicitud: … La rechazó: <motivo>.». Si alguien se pide un pago a sí mismo, no recibe avisos.
+  - El ticket se cierra solo al confirmar el giro y al rechazar (`cambiar_estado(..., cierre_por_proceso=True, notificar=False)`).
+  - El aviso al aprobador al crear la solicitud dice qué es: «Solicitud de pago: Jenniffer te pide aprobar Servicios: $81.490.» en vez de «te ha hecho una solicitud».
+  - Los mensajes que las personas escriben a mano en el chat de la solicitud siguen avisando como siempre.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/tickets_notificaciones.py`, `app/services/tickets_db.py` (`cambiar_estado`: `notificar`, `cierre_por_proceso`), `tests/test_pagos_avisos_solicitante.py` (nuevo, 4 pruebas)
+
+### 2026-09-21 - Solicitudes de pago: los terceros nuevos de Alegra ya aparecen en la lista de proveedores
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Contabilidad → Solicitudes de pago). Sin LLM; solo lectura de contactos en Alegra.
+- **Qué se implementó:**
+  - **Por qué no aparecían:** el listado le pedía a Alegra solo los contactos con la casilla «Proveedor» marcada (`type=provider`), y casi nadie la marca al crear el tercero: 281 de 339 contactos no tienen tipo, entre ellos todos los recién creados. Ahora se traen todos los contactos activos y solo se excluyen los que son exclusivamente clientes (337 entran).
+  - **Cache de una hora sin salida:** si la búsqueda (nombre o NIT) no encuentra nada, se vuelve a bajar la lista de Alegra (máx. una vez por minuto), así el tercero recién creado aparece al buscarlo. Lo mismo al adoptarlo.
+  - **Lista incompleta en cache:** si Alegra fallaba a mitad de la paginación se guardaba la lista a medias durante una hora, escondiendo justo los contactos más nuevos. Ahora no se guarda y se usa la última completa.
+- **Archivos Modificados:** `app/services/pagos_proveedor.py`
+
+### 2026-09-21 - Taller de combos: fotos, presentaciones, componentes en el inventario y asociar el documento desde Docs técnicos
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora + corrección (Preparar → Taller de combos · Docs técnicos → Biblioteca). Sin LLM, sin llamar a Alegra, MeLi ni Siigo.
+- **Qué se implementó:**
+  - **Asociar el documento desde Docs técnicos (corrección):** al saltar a Docs técnicos desde un combo sin ficha, la biblioteca solo lista PDF y **no había botón para asociar** el documento al producto. Ahora, si se llega desde un combo al que le falta ese enlace, la biblioteca abre con el bloque **«Asociar un documento a «<combo>»»**: dice a qué materia prima se asocia, trae el buscador con el nombre puesto y cada documento tiene su botón «Asociar a este combo»; al terminar confirma y ofrece «← Seguir con el combo». Es la misma pieza del inspector del taller, así que corrige un SKU caduco y solo comparte un documento si se confirma. El botón de «Docs técnicos» de la **galería de Combos** entra por el mismo camino. El buscador de la biblioteca se sembraba con el nombre completo de la materia prima y daba cero resultados: ahora usa sus dos primeras palabras.
+  - **Fotos:** la foto del centro del tablero se toca: muestra la principal y las secundarias, y lleva a Publicaciones abierto en ese SKU, donde se cambian, ordenan y suben (web y MeLi por separado). 189 de 243 combos tienen fotos.
+  - **Presentaciones:** sobre el tablero sale la tira de presentaciones del mismo producto (los combos que comparten materia prima: 250 g · 500 g · kg), cada una con sus piezas completas y el tamaño de su etiqueta; tocar una cambia el tablero a esa presentación. Comparten el documento técnico (es de la materia prima), pero **cada una es su combo: su EAN, su etiqueta, su tamaño y su plantilla**. Si una no tiene etiqueta, se ofrece abrir la de su hermana como punto de partida. Hay 54 productos con más de una presentación; un kit con varias materias primas no es presentación de ninguna.
+  - **Componentes en el inventario:** en la pieza Receta cada componente (bolsa, etiqueta, tapa, materia prima) es un botón que abre Catálogo Alegra buscando su código, con regreso al combo, y muestra sus existencias de referencia.
+- **Pendiente (decisión de una persona):** las existencias son la referencia de Siigo que ya usa el panel de Inventario (el taller solo lee ese archivo). **Muchos empaques están en negativo** —bolsa 13×21 en −5.059, etiqueta térmica en −4.838— porque se descuentan con cada venta y nunca se cargaron: habría que decidir si se cargan o si se dejan de descontar. El costo unitario viene en 0 para todo el catálogo en la copia de Alegra, así que no se muestra costo por componente.
+- **Archivos Modificados:** `desktop/src/components/combos/EnlazarDocumento.tsx` (nuevo), `components/combos/MisionCombos.tsx`, `components/combos/comun.tsx`, `components/FichasTecnicasPanel.tsx`, `stores/app.ts`, `app/services/mapa_producto.py`, `tests/test_mapa_producto.py` (27 pruebas), `CLAUDE.md` (Flujo U).
+
+### 2026-09-21 - Taller de combos: ya se puede enlazar el documento técnico, y cada pieza se edita en su apartado con botón para volver
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección + mejora (Preparar → Taller de combos). Sin LLM, sin llamar a Alegra ni a MeLi.
+- **Qué se implementó:**
+  - **Por qué no dejaba enlazar la documentación técnica — tres causas:**
+    1. En varias recetas los componentes llegan **sin nombre** en la copia local de Alegra. Sin nombre nada parecía empaque: un kit quedaba con diez «materias primas» y el taller no ofrecía unir nada. Ahora el nombre se toma del catálogo por código. Además la **copa dosificadora** contaba como segunda materia prima en 19 recetas; ya es empaque, igual que dosificador, bala y scoop.
+    2. Documentos con un **SKU viejo o equivocado** (el de Alulosa declara `ALUg` y el producto es `ALUALLg`; otros llevan el código de un combo). El sistema se negaba a tocar un documento que ya tuviera SKU, aunque estuviera roto. Ahora, si el SKU declarado **no es un producto activo** en Alegra, ofrece «corregir el enlace»; si es **otra materia prima activa**, no lo pisa y ofrece **compartir** el documento (`referencias_equivalentes`), para la misma sustancia comprada con dos códigos.
+    3. Si el parecido de nombre no encontraba el documento, **no había cómo elegirlo a mano** (ALMENDRA NATURAL salía «sin ficha» y existen dos documentos de almendra). Ahora el inspector tiene «Enlazar un documento que ya existe…» con buscador por nombre o SKU y, si la receta tiene varias materias primas, deja elegir a cuál pertenece.
+  - **Cómo quedan los 243 combos en la pieza Documento:** 178 se unen por SKU con un clic, 11 piden corregir el enlace, 1 compartir, 14 no tienen documento (se enlaza a mano o se redacta) y 15 no tienen materia prima en la receta (primero se arregla el kit en Alegra). El lote «Unir por SKU» del mapa sigue proponiendo solo los casos simples: corregir o compartir se decide uno a uno.
+  - **Editar en su apartado y volver:** cada pieza salta a su sitio **ya abierto en ese producto** — el Studio directo en la etiqueta del combo, Códigos EAN con el combo escrito, Docs técnicos con el buscador puesto, Publicaciones en ese SKU (web y MeLi), Catálogo Alegra buscando el kit — y queda un botón flotante **«← Seguir con <combo>»** que devuelve al mismo caso del taller. Es flotante porque el Studio en pantalla completa oculta el cabezote.
+- **Pendiente (decisión de una persona):** los 15 combos sin materia prima en su receta se corrigen en Alegra; los 14 sin documento necesitan que alguien decida si el documento existe con otro nombre o hay que redactarlo. Compartir un documento entre dos materias primas es una decisión de calidad: solo cuando son la misma sustancia.
+- **Archivos Modificados:** `app/services/mapa_producto.py`, `app/routes_mapa_sistema.py`, `scripts/auditar_catalogo_combos.py`, `desktop/src/components/combos/MisionCombos.tsx`, `components/combos/comun.tsx`, `components/Layout.tsx`, `components/CombosPanel.tsx`, `components/PublicacionesPanel.tsx`, `components/FichasTecnicasPanel.tsx`, `components/CatalogoAlegraPanel.tsx`, `components/plantillas-visuales/PlantillasVisualesPanel.tsx`, `stores/app.ts`, `tests/test_mapa_producto.py` (26 pruebas), `CLAUDE.md` (Flujo U).
+
+### 2026-09-21 - Toda la interfaz de /app pasa a ser un diagrama de flujo, y «Preparar» abre un taller de combos caso a caso
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + rediseño de navegación (todo /app). Sin LLM, sin llamar a Alegra ni a MeLi.
+- **Qué se implementó:**
+  - **La app se navega por la secuencia del negocio, no por departamento.** El cabezote ya no muestra pestañas por área sino un flujo: **«Mi agenda»** (el origen, siempre primero) ⇢ Abastecer ⇢ Preparar ⇢ Publicar ⇢ Vender ⇢ Entregar ⇢ Facturar ⇢ Contar, más Dirigir y Sistema que acompañan a todas. Cada etapa muestra lo que tiene detenido ahora; al tocarla despliega sus tramos con los paneles de uso normal, y «+N avanzado» muestra los de uso ocasional. Sobre el título, una miga dice dónde estás («PREPARAR ⇢ 4·RESPALDARLO»). Los 61 paneles se ubican en un solo archivo (`lib/flujoApp.ts`); el menú viejo sigue en Menú de usuario → «Volver a la navegación clásica».
+  - **«◇ Todo el flujo»: el proyecto entero en un solo diagrama**, con cuatro niveles de detalle que se recuerdan: Etapas · Cotidiano · Operación · Todo (con qué hace cada panel y las **variables** de cada tramo: SKU base, combo C-…, EAN-13, asiento 1435, dos tokens…). Cada caja abre el panel de verdad. Los bloqueos salen de señales que cada módulo ya produce (`app/services/mapa_app.py`): checklist contable, solicitudes de pago, matriz de productos, inventario, pedidos web.
+  - **La Agenda por dentro habla el mismo idioma:** «tu día, en orden» = Me pidieron ⇢ Puedo iniciar ⇢ Me espera. Cada solicitud o acción abre su ticket como siempre y dice a qué **etapa** pertenece, con salto al panel donde se resuelve. La etapa sale de palabras del título (`lib/flujoTickets.ts`, sin IA): la categoría del ticket no sirve, 1.006 de 1.279 dicen «logistica». Equipo, ecosistema y commits quedan recogidos en «+ Equipo y sistema».
+  - **Taller de combos (la guía de «Preparar»):** un combo a la vez, **su foto en el centro** y sus seis piezas alrededor (receta, etiqueta en la receta, documento, EAN, diseño de etiqueta, publicación). Conexión viva = completa; punteada = ranura vacía; «siguiente paso» marca la primera que falta. Ahí mismo se **crea el EAN** (con el endpoint de siempre), se **une el documento por SKU**, y en la etiqueta se definen **tamaño y plantilla** y se corrigen sus **textos**. Si el código de la etiqueta no es el del combo, lo dice y ofrece usar el del combo. Al resolver una pieza se enciende su conexión y, con las seis, se celebra y suma al marcador del día y del catálogo (hoy **10 de 243** combos completos). Empieza por los que están a una pieza de cerrarse.
+  - **Estilo «Flujo» como predeterminado** (papel frío, cuadrícula, nodos, monoespaciada en la navegación). Se aplica **una sola vez** a cada persona al entrar, conservando su modo claro/oscuro, tamaños, zoom y «Mis temas»; después manda lo que elija en Temas.
+  - **Tres fallos corregidos de paso:** el servidor no aceptaba guardar la piel nueva (respondía 400 en silencio; ahora hay test que compara las dos listas); el semáforo «Ecosistema» de la Agenda marcaba el agente **caído siempre** porque consultaba `mckenna-agente`, la unidad deshabilitada a propósito (ahora `agente-pro`); y desde Combos, «generar código» lleva a Diseño → Códigos EAN con el combo ya escrito.
+  - **Edición de etiquetas sin perder nada:** `guardar_ficha` reemplaza la ficha entera (logo de 184 KB incluido), así que corregir un texto desde el taller pasa por `etiquetas_fichas.actualizar_campos_ficha()`: lee, mezcla y guarda bajo el mismo candado, con lista blanca de campos y el mismo permiso del Studio. Una plantilla de categoría no se edita desde un producto.
+- **Pendiente (decisión de una persona):** guardar cambios en una etiqueta **no regenera el PNG** (exportar sigue siendo del Studio); el taller aún no abre el Studio directo en la etiqueta del combo (copia el nombre); los **40 productos comprados sin ningún combo** van en lista aparte porque crearlos escribe en Alegra. Afloró que hay etiquetas con código de barras que no está en el registro de EAN (ALMENDRA NATURAL 500g lleva 7700025002630 y el combo figura sin código). El interior de los demás paneles y el móvil conservan su diseño anterior. Siguen abiertas las cuatro decisiones del «expediente de producto».
+- **Archivos Modificados:** `desktop/src/lib/flujoApp.ts`, `lib/flujoTickets.ts`, `components/nav/FlujoNav.tsx`, `components/MapaAppFlujo.tsx`, `components/AgendaFlujo.tsx`, `components/combos/MisionCombos.tsx`, `components/combos/comun.tsx`, `components/CombosPanel.tsx`, `components/Layout.tsx`, `components/TicketsPanel.tsx`, `components/MapaSistemaPanel.tsx`, `components/InicioLauncher.tsx`, `components/nav/InicioNavTabs.tsx`, `components/nav/UserMenuButton.tsx`, `components/etiquetas/CodigosEanPanel.tsx`, `components/ThemePackPicker.tsx`, `lib/userThemeSync.ts`, `lib/navStructure.ts`, `stores/app.ts`, `stores/uiMode.ts`, `theme/*`, `index.css`, `App.tsx`; `app/services/mapa_app.py` (nuevo), `app/services/mapa_producto.py`, `app/routes_mapa_sistema.py`, `app/tools/etiquetas_fichas.py`, `app/services/tickets_db.py`, `app/services/salud_servicios.py`; `tests/test_mapa_producto.py` (22 pruebas); `CLAUDE.md` (Flujo U).
+
+### 2026-09-20 23:20 - Mapa del sistema y Combos: ver dónde se rompe la cadena de un producto, y toda la lógica en diagramas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Inventario → Mapa del sistema · Inventario → Combos). Sin LLM, sin llamar a Alegra ni a MeLi.
+- **Qué se implementó:**
+  - **Por qué el propionato de calcio nunca tuvo etiqueta:** su documento está completo, pero **ningún combo en Alegra lo usa**. Sin combo no hay SKU de venta → sin SKU no hay EAN → el generador de etiquetas en lote lo salta. Es uno de **101 documentos sin combo**. Se arregla creando el combo, no redactando otro documento. Ninguna pantalla lo decía; ahora sí.
+  - **Inventario → Mapa del sistema:** la cadena combo en Alegra → documento → EAN → etiqueta → publicación, con conteos vivos (cada 30 s). Cada caja dice cuántos pasan y cuáles se quedan, con el motivo. Hoy, de 243 combos: 19 con la receta rota, 32 sin código, 28 sin etiqueta; y **211 se unen a su documento solo por parecido de nombre** (solo 25 de 248 documentos declaran su SKU), que es lo que hace redactar documentos repetidos. También el ciclo de la solicitud de pago (5 estados, quién actúa) y las conexiones externas.
+  - **«Unir por SKU»** (dentro del mapa): revisión en lote de 98 documentos para escribirles `referencia`. Vienen marcados solo los 44 de nombre idéntico; 4 conflictos (karité amarilla/blanca, colágeno g/mL) no se pueden marcar. Edita UNA línea del YAML, con respaldo, y rechaza un `C-…` (la referencia es la materia prima).
+  - **Inventario → Combos:** la «fotografía» de cada combo como ficha de videojuego: su **inventario** (la receta: materia prima, bolsas, envase, tapa, etiqueta, cuchara, mano de obra) y su **equipamiento** (documento, EAN, etiqueta, publicación). Una ranura vacía dice por qué y trae el botón que la destraba: generar el código (propone número y presentación; crea con el endpoint de siempre), unir por SKU, ir al Studio o a Docs técnicos. Muestra el PNG real de la etiqueta. Hizo visible, por ejemplo, que `C-ACDKOJDPAL30mL` descuenta envase, gotero y tapa pero **ninguna materia prima**.
+  - **Los flujos del proyecto (Archify):** toda la lógica en 9 diagramas con un mismo lenguaje —una franja por persona o sistema, el tiempo de izquierda a derecha—, incrustados e interactivos en el mapa: mapa global, solicitud de pago (el asiento nace al aprobar, antes de que salga el dinero con el Token 2), producto, dónde se rompe la cadena, venta MeLi, web y WhatsApp, contabilidad, y procesos y puertos. En rojo, lo que hoy no existe: la solicitud de registro de producto con su cola y el algoritmo del SKU del combo (`C-` + abreviación + cantidad; hoy solo se antepone `C-` a mano). El del SKU base ya existe (`generar_codigo_producto`).
+  - Se versiona la fuente `docs/arquitectura/*.json` + `indice.json`; el HTML (~800 KB c/u) es derivado y se genera con `python3 scripts/diagramas_arquitectura.py entregar`.
+- **Pendiente (decisión de una persona):** fijar el SKU en los 44 documentos idénticos (un clic en el mapa); crear en Alegra los combos de los documentos sin combo; decidir si el flujo de Producto —que lleva un solo administrador de principio a fin— se construye como un asistente paso a paso. `app/data/etiquetas_fichas.json` pesa 42 MB porque cada etiqueta incrusta el mismo logo de 184 KB.
+- **Archivos Modificados:** `app/services/mapa_producto.py`, `app/routes_mapa_sistema.py`, `agente_pro.py`, `desktop/src/components/MapaSistemaPanel.tsx`, `desktop/src/components/CombosPanel.tsx`, registro del panel (`App.tsx`, `stores/app.ts`, `lib/navStructure.ts`, `lib/panelInfo.ts`, `lib/permisosCatalogo.ts`, iconos), `docs/arquitectura/*`, `scripts/diagramas_arquitectura.py`, `tests/test_mapa_producto.py`, `CLAUDE.md` (Flujo U), `.gitignore`.
+
+### 2026-09-20 23:10 - Auditoría de peso del repo: el venv baja de 9,25 a 1,26 GB y se quitan 29 archivos huérfanos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (limpieza). Sin cambios de comportamiento para el usuario. Sin LLM.
+- **Qué se implementó:**
+  - **El repo pesaba 17 GB y casi nada era código**: 9,25 GB de venv (7 GB de PyTorch + CUDA que nadie importaba), 2,1 GB de sesiones de WhatsApp, 1,7 GB de backups. Se desinstalaron torch, triton, `nvidia-*`, transformers, diffusers, gradio, modelscope, scikit-learn, pandas, pyarrow, playwright (pip), la cadena de librosa y `qwen-tts`. **venv 9,25 → 1,26 GB, repo 17 → 8,2 GB, 285 → 236 paquetes, `pip check` limpio.** La voz de producción (voicebox) corre en su propio venv y no se tocó.
+  - **Whisper sigue en GPU sin torch**: `faster-whisper` usa `ctranslate2`; torch solo se importaba para detectar CUDA. Ahora usa `ctranslate2.get_cuda_device_count()`. Verificado transcribiendo en `cuda (float16)` con torch bloqueado.
+  - `qwen3_disponible()` decía `true` mirando solo el paquete: sin torch, `/api/voz/sintetizar` habría elegido qwen3 y reventado en vez de seguir a ElevenLabs. Ahora comprueba también torch. `onnxruntime-gpu` → `onnxruntime` (CPU): había perdido su provider CUDA y escupía un error en cada embedding.
+  - **`requirements.txt` ahora describe el entorno**: 28 → 42 paquetes (faltaban 14 que el código importaba: CairoSVG, weasyprint, PyPDF2, pyzbar, faster-whisper, ctranslate2…). **No agregar `qwen-tts`**: arrastra torch y devuelve los 7 GB. `requirements.lock.txt` es la foto de ANTES, solo para revertir.
+  - **29 archivos huérfanos eliminados** (20 scripts de migraciones ya corridas y generadores de catálogo redundantes + 9 componentes React del rediseño de navegación), verificados contra crontab, systemd y `scripts_manifest.json`. Se conservó `scripts/renovar_oauth_meli.py`: es la recuperación manual de credenciales MeLi.
+  - **Salen de git los binarios que cambiaban a diario** (siguen en disco y en el tar nocturno): `contabilidad.db` (60 commits), `facturacion_ventas_cache.db`, `orders.db` (102) y `log_cron.txt` (278). El 58 % de los commits del repo son auto-commits de estos archivos.
+  - `gentle-ai` 1.25.4 → 3.4.0 y Engram 1.15.4 → 2.0.0 (respaldo en `~/backups_manual/engram_20260920/`). `ECOSYSTEM.md` los describía como «por evaluar» y llevaban meses instalados. Rutas de archivos movidos corregidas en `CLAUDE.md`.
+- **Pendiente:** `pytest tests/` completo da 32 fallos **anteriores a este cambio** (verificado contra un worktree en HEAD: cero regresiones); son tests que no siguieron al código (Siigo→Alegra, un stub sin `refresh=`). `engram doctor` sale en error por una cola de sync de otro proyecto (`eth-usdc-bot`), no se tocó. Hay dos SKU con dos códigos EAN cada uno (`C-ACERIC250ML`, `C-MANTOSPAR500G`). El crontab tiene `auditor_canales_cron.py` duplicado.
+- **Archivos Modificados:** `requirements.txt`, `requirements.lock.txt`, `app/services/whisper_stt.py`, `app/services/tts_qwen3.py`, `.gitignore`, `CLAUDE.md`, `docs/agentic/ECOSYSTEM.md`; 20 scripts y 9 componentes eliminados.
+
+### 2026-09-20 - Documentos técnicos: 20 fichas antiguas (solo TDS) pasadas a borrador TDS + COA + SDS
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Contenido (Fichas técnicas → Borradores). Sin cambios de código, sin LLM por API.
+- **Qué se implementó:** dos lotes con `scripts/fichas_lote_autor.py`, mismo molde de los documentos ya completos (TDS con propiedades funcionales `Título|texto`, COA con especificación de monografía y **resultado vacío**, SDS de 16 secciones sin primeros auxilios ni manipulación, sin fabricante). Todo queda como **borrador sin firma** en Documentos técnicos → Borradores; nada se publicó.
+  - `fichas_word/autor/2026-09-20c/`: SCI, BTMS 50, cafeína, cera carnauba, elastina, urea, betaína de coco, albúmina de huevo (alimento: TDS + COA con alérgenos, sin SDS), aloe vera, ácido glicólico 50 %.
+  - `fichas_word/autor/2026-09-20d/`: benzoato de sodio, bicarbonato de sodio, cocoamida DEA, dióxido de titanio, óxido de zinc, goma guar, cloruro de magnesio, citrato de zinc, dextrosa, fructosa.
+  - Estado documental (auditoría de combos): borradores 18 → 40, fichas antiguas 45 → 23.
+  - **Errores de las fichas antiguas corregidos** (cada uno anotado en `_fuentes`): la albúmina decía servir «para personas con alergias al huevo» (ES huevo); el glicólico al 50 % indicaba aplicarlo directo en la piel (es corrosivo, H314); fórmulas de otra sustancia en goma guar y citrato de zinc; «soluble en agua» en óxido de zinc y citrato de zinc; pH ácido en bicarbonato y neutro en cocoamida DEA; cafeína «muy soluble»; microbiología con el signo invertido («≥ 10000») en seis fichas; «cumple USP» en sustancias sin monografía; marcas de fabricante en los sinónimos del BTMS.
+  - ⚠️ **La frase de la albúmina estaba publicada** («sustituto del huevo… útil para personas con alergias al huevo»): salía en la ficha del producto en la tienda web y en el texto de su etiqueta. Se quitó esa oración de `PAGINA_WEB/site/data/fichas_tecnicas.json`, `cache.json`, `app/data/etiquetas_fichas.json` y del YAML antiguo. **Falta reiniciar `mckenna-website`** para que la web deje de servirla desde memoria, y revisar la descripción en MeLi.
+  - **Compliance de materia prima:** se retiraron dosis de suplemento, uso laxante y beneficios corporales (cloruro de magnesio, cafeína, urea, aloe, elastina, fructosa).
+- **Pendiente (decisión de una persona):** citrato de zinc — la ficha vieja decía 13 % de zinc y el grado USP tiene ≥ 31,3 %: confirmar con el COA antes de publicar. Glicólico 50 % — confirmar si la fórmula propia se neutraliza (pH) y poner pictograma de corrosión en la etiqueta del frasco. «TEGO» es marca de un fabricante: ¿renombrar a BETAÍNA DE COCO? Etiquetas con pictograma pendiente: óxido de zinc y citrato de zinc (GHS09), cocoamida DEA y BTMS (GHS05). Revisar que MeLi/web no repitan las frases retiradas de albúmina y cloruro de magnesio. Siguen 23 fichas antiguas, 20 vacías y 7 completas sin `_tipo: completo`.
+- **Archivos Modificados:** `fichas_word/autor/2026-09-20c/*.yaml`, `fichas_word/autor/2026-09-20d/*.yaml`, `fichas_word/datos/borrador_ft_coa_sds_*.yaml` (20 nuevos), `docs/auditoria_catalogo_combos.md`, `docs/team-recaps.md`
+
+### 2026-09-20 - Seis artículos de reventa creados en Alegra (publicaciones activas sin producto)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)
+- **Qué se implementó:** mismo criterio de las bolsas para hongos — producto simple por unidad, se conserva el SKU que ya tenía MeLi, precio = MeLi, IVA 19 %, costo $0 (no hay compra en el historial). Cada uno releído y resuelto por la facturación; en MeLi quedaron los dos campos de SKU iguales: `OILBMBVC` aceite para bomba de vacío (id 648, $60.000); `KTBKRPRB` kit beakers y probetas (id 649, $268.000; MCO888492103 y MCO1319828203); `DISLIJ2000` disco lija grano 2000 (id 650, $14.900); `ERLMYR50mL` erlenmeyer 50 mL (id 651, $15.500); `SoMoNiSeMa1.6` soportes de motor Nissan Sentra (id 652, $340.000); `KITPULTAL9V` kit pulido taladro 9 V (id 653, $88.000) — este no tenía SKU, se le creó y se cargó en MCO1765489343.
+- **Pendiente:** cargar costos con la próxima compra. Faltan los que necesitan materia prima + receta: sulfato ferroso 500 g, arcilla amarilla 250 g, eritritol 500 g (`ERIg` a $12,5/g, FA271345 Interkrol, no existe en Alegra), L-isoleucina 100 g, aceite mineral 1 L, fragancia cosmética 250 mL.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Seis combos nuevos en Alegra para publicaciones activas que no se podían facturar por SKU
+- **Autor:** Armando García
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra)
+- **Qué se implementó:** recetas aprobadas por Armando — copia de la presentación hermana con la cantidad ajustada, precio = MeLi, IVA 19 %. Cada uno releído desde Alegra y resuelto por `resolver_producto_venta_alegra`:
+  - `C-CREMON100g` (id 642, $14.900): 100 `AMICREMONg` + empaque de `C-CREMON500g`. MCO862333529, 196 vendidas.
+  - `C-TEGBETLt` (id 643, $49.350): 1000 `TEGBETg` + empaque de `C-GLIVEGLt` (`BOTGLILt`). MCO595871453, 132 vendidas.
+  - `C-BCAA500g` (id 644, $80.900): 500 `AMIBCAg` + empaque de `C-AMIBCA250g`. MCO1050151269.
+  - `C-ALA250g` (id 645, $52.900): 250 `ALAg` + empaque de `C-ALA100g`. MCO851538777 y MCO1354834051.
+  - `C-KITREPCOS2` (id 646, $59.415): el kit #1 con 30 `VITETOC99Pg` (vitamina E) en vez de `FOR-VITC20PmL`, según la descripción de MCO851988655 (hialurónico, aloe, elastina, vitamina E). 100 vendidas.
+  - `C-AGUDESSOBRpH` (id 647, $15.500): `C-AGUDES250mL` + 1 × `C-SOBCALpH3un`. MCO2068301233.
+- **Pendiente:** `C-GOTPLA3mL10Un` (610 vendidas), `C-VAS400g` y `ALCPRFLT` esperan que Armando confirme empaque/fórmula. Frente 3: 13 productos sin nada en Alegra.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Triptófano y teanina 100 g: de producto suelto a combo con materia prima
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra)
+- **Qué se implementó:**
+  - `C-LTRI100g` (MCO952731685, 331 vendidas) y `C-LTEA100g` (MCO1050487497, 382 vendidas) eran productos sueltos sin receta: cada venta se facturaba sin descontar materia prima ni empaque. Mismo criterio que la histidina (decisión de Armando: el código de venta `C-…` se conserva y debe ser combo). Recreados con `crear_combo_en_alegra`, que renombra el ítem anterior a `…-LEGACY` inactivo (ids 74 y 63; copias en `~/backups_manual/alegra_C-L{TRI,TEA}100g_suelto_antes_20260920.json`): `C-LTRI100g` id 640, $32.000, 100 `AMILTRIg`; `C-LTEA100g` id 641, $39.000, 100 `AMITEAg`. Empaque, el del combo de triptófano que ya existía: `PASBLA180mL`, `TAP38MSENUn`, `LNRIND36.2mm`, `BANPAS180mm`, `SCO1g`, `ETQ100g`, `ETQTRM`, `BURB`, `BOLSEGBLAUn`. MeLi no se tocó (los SKU ya eran esos).
+- **Pendiente:** `C-AMILTRI100g` (combo de triptófano duplicado, sin publicación) sigue activo. **`C-AMILCAR100g` «L CARNITINA 100g» tiene como materia prima 100 g de `AMITEAg` (teanina)**: revisar. Otros productos sueltos con código `C-…`: `C-ARCVRT250g`, `C-DHA10g`, `C-CEBCOR150g`, `C-CREMON250g`, `C-EXTMAL500g`, `C-FRBSGL120mL`, `C-KITACIHIA30mL`, `C-REVVID6mm`, `C-SOBCALpH3un`, `C-VERMAL30mL`, `C-VITCACIASC100g`.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Beakers 50 / 25 / 10 mL: la venta facturaba el beaker suelto y no descontaba empaque
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / Sheets)
+- **Qué se implementó:**
+  - No eran duplicados: `BKR50ML` / `BKR25ML` / `BKR10ML` son el beaker como artículo de inventario y `C-VASPRE50mL` / `25mL` / `10mL` el combo de venta (beaker + `BOLSEGBLAUn` + `ETQTRM` + 2 `PPLBRB10cms`), mismo precio. Las publicaciones tenían SELLER_SKU = combo pero `seller_custom_field` = `BKR…`, y la facturación lee el segundo: se descontaba el beaker pero nunca el empaque (668 vendidos entre los tres).
+  - Los combos de 25 y 10 mL no tenían el beaker entre sus componentes: se agregó 1 × `BKR25ML` y 1 × `BKR10ML` con `actualizar_combo_alegra` (copias previas en `~/backups_manual/alegra_C-VASPRE{25,10}mL_antes_20260920.json`). El de 50 y el de 100 mL ya estaban completos.
+  - MCO833400087, MCO833400305 y MCO1171713653 quedaron con `C-VASPRE…` en los dos campos (y en Sheets col B); verificado que resuelven al combo. Los `BKR…` siguen activos: son el inventario real y por ahí entran las compras.
+  - Hierbabuena, mismo caso del jengibre: `C-ACEESEHIEBUE5mL` (id 527) es el combo completo y `C-ACEESENHIEBUE5mL` (id 184) un producto suelto sin receta, con una «N» de más. MCO3152503164 (38 vendidas) facturaba por el suelto y no descontaba nada; quedó con `C-ACEESEHIEBUE5mL` en los dos campos, igual que MCO1278712229. Claves viejas retiradas de `publicaciones_overrides.json` y `stock_web.json`. El suelto se **inactivó** con el visto bueno de Armando, tras verificar que ninguna publicación, producto web ni equivalencia lo usa; copia en `~/backups_manual/alegra_C-ACEESENHIEBUE5mL_antes_de_inactivar_20260920.json`.
+- **Pendiente:** el inventario de empaque en Alegra quedó inflado por las ventas pasadas (no se ajustó).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Coco deshidratado: el combo de 500 g descontaba 250 g; combo de 250 g creado
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web / datos locales)
+- **Qué se implementó:**
+  - `C-COCDESHIL500g` (Alegra id 559) se llamaba «COCO DESHIDRATADO HILOS 250g» y descontaba 250 g de `COCDESHILg`, pero valía $20.000, el precio de la publicación de 500 g (MCO4354293808): cada venta de 500 g descontaba la mitad. Corregido con `actualizar_combo_alegra` a 500 g y nombre «… 500g» (Alegra lo permitió; copia previa en `~/backups_manual/alegra_C-COCDESHIL500g_antes_20260920.json`).
+  - Nuevo combo `C-COCDESHIL250g` (id 639, $11.000 = MeLi, IVA 19 % como el de 500 g) para MCO4354281272, con el mismo empaque: `BLSMTL13X21cms`, `BOLVAC8X12`, `ETQ100g`, `ETQTRM`. En MeLi los SKU terminan en «G» mayúscula; el resolvedor no distingue mayúsculas, no se tocaron.
+  - Códigos de barras y etiquetas ya estaban correctos. `publicaciones_overrides.json` apuntaba a dos publicaciones eliminadas (MCO4208343872 / MCO4208635856): ahora a las vigentes. Catálogo web reconstruido (180 productos antes y después): «Coco Deshidratado Hilos» pasó de un producto «250g» con SKU de 500 g y sin precio a una familia con 2 presentaciones (250 g $9.900, 500 g $18.000 web).
+- **Pendiente:** ajuste de inventario de `COCDESHILg` por las ventas de 500 g que descontaron 250 g (2 vendidas en la publicación actual). Costo de referencia: $24,2/g (BO15756, Productos 3A, 4-jul-2026).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/cache.json` (y derivados del refresh), `docs/team-recaps.md`
+
+### 2026-09-20 - SKU mal digitados en MeLi (paso 1 de las 35 publicaciones sin SKU en Alegra) + publicaciones con los dos campos de SKU distintos
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (MeLi / Sheets / Alegra / datos locales)
+- **Qué se implementó:**
+  - De las 35 publicaciones activas cuyo SKU no existe en Alegra, 7 ya se facturan por equivalencia (ylang, 2 de mandarina, 4 de cápsulas). Paso 1, los errores de digitación — se corrigió el SKU en MeLi (SELLER_SKU y custom field) y se verificó que `resolver_producto_venta_alegra` lo encuentra: MCO3124400002 `C-ACEESENJEN5mL` → `C-ACEESEJEN5mL`; MCO1582274449 `C-INL500g` → `C-INU500g` (comparte SKU con MCO991717213, la principal); MCO1765424925 sin SKU → `INJGER5UN`; MCO1050313694 L-histidina: **se deja `C-LHIS100g`** (decisión de Armando: el SKU de venta `C-…` es el definitivo; se había cambiado a `LHST100G` y se devolvió) y, por indicación suya, quedó como **combo igual al de prolina** (`C-LPRO100g`): materia prima nueva `L-AMIHISg` «L AMINOACIDO HISTIDINA G» (Alegra id 637, gramo, IVA 19 %, costo $0 — no hay compra en el historial) y combo `C-LHIS100g` «L HISTIDINA 100g» (id 638, $43.900 = MeLi): 100 `L-AMIHISg`, `PASBLA180mL`, `TAP38MBLAUn`, `LINPASUn`, `BANPAS180mm`, `BOLSEGBLAUn`, `ETQTRM`. La equivalencia temporal a `LHST100G` se retiró; `LHST100G` (id 182, producto suelto sin receta) se **inactivó** con el visto bueno de Armando, tras verificar que ninguna publicación, producto web ni equivalencia lo usa; copia en `~/backups_manual/alegra_LHST100G_antes_de_inactivar_20260920.json`. Precio de `C-ACEESEJEN5mL` en Alegra $17.000 → $17.500 (manda MeLi).
+  - **Hallazgo:** la facturación lee primero `seller_custom_field` (`facturacion_ventas_unificado.py:430`, `meli_autofactura_entrega.py:248`), y 7 publicaciones tenían ese campo distinto del SELLER_SKU. Corregidas las 3 inequívocas dejando ambos campos con el SKU que sí existe: MCO1394253550 «Aceite Esencial De Jengibre» (224 vendidas) tenía custom `C-ACEESELIM5mL` = **limón**, así que se facturaba como limón; MCO3152478202 romero tenía `OILESNRMR5mL` y MCO1298425191 carnauba `CRCRNLB`, que no existen en Alegra.
+  - Datos locales: `publicaciones_overrides.json` (claves viejas pasadas al SKU corregido; `C-INU500g` y `C-ACEESEJEN5mL` apuntan a su publicación principal; se quitó el override de limón, que apuntaba a la publicación de jengibre — no hay publicación de limón) y `stock_web.json`.
+- **Pendiente:** 4 publicaciones con dos ítems duplicados en Alegra, decide Armando cuál queda: beakers 50/25/10 mL (`C-VASPRE…` vs `BKR…ML`) y hierbabuena (`C-ACEESEHIEBUE5mL` vs `C-ACEESENHIEBUE5mL`). Revisar si las ventas pasadas de jengibre salieron facturadas como limón. Siguen: coco deshidratado (combo 500 g que descuenta 250 g), 9 combos por crear y 13 productos sin nada en Alegra.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - `C-COL50g` (colorante alimentario 50 g) inactivado en Alegra
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / web)
+- **Qué se implementó:**
+  - `C-COL50g` (Alegra id 577, $33.900) no tenía componentes: cada venta se facturaba sin descontar inventario y sin costo. Su publicación de MeLi ya se había eliminado; Armando confirmó que no existe. Verificado antes de tocarlo: ninguna publicación de MeLi con ese SKU y ningún producto en la tienda web. Inactivado con `PUT /items/577 {"status": "inactive"}` y releído. Copia del ítem en `~/backups_manual/alegra_C-COL50g_antes_de_inactivar_20260920.json`.
+  - Se quitó de `stock_web.json` la clave huérfana `C-COL50G` (6 unidades sin producto en la tienda).
+- **Pendiente:** queda una entrada inofensiva en `publicaciones_overrides.json`. Siguen las 35 publicaciones activas cuyo SKU no existe en Alegra.
+- **Archivos Modificados:** `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Bolsas para cultivo de hongos: SKU propio en vez de los `AS-43` / `AS-44` heredados
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi)
+- **Qué se implementó:**
+  - `AS-44` en Alegra es «COLLAR DE PERRO EN CUERO RAZA MEDIANA» (id 222) y en MeLi lo llevaba «Bolsas Para Setas Bolsas Para Cultivo De Hongos» (MCO1340299743, 7 vendidas): una venta se habría facturado como collar a $58.000. Código heredado de astroselling. `AS-43` (MCO1915649374, «Bolsas Cultivo Hongos», 1 vendida) no existía en Alegra. Las dos publicaciones son el mismo producto: paquete de 60 bolsas con filtro de 0,2 micras, $209.000, ambas pausadas sin existencias.
+  - Armando pidió un SKU propio → `BLSCULHON60Un` «BOLSAS CULTIVO HONGOS FILTRO 0.2 MICRAS X 60 UN» (Alegra id 636, producto simple, unidad, $209.000 = precio MeLi, IVA 19 %). Asignado a las dos publicaciones (SELLER_SKU y custom field, verificado releyendo MeLi). Ninguna está en Sheets. `agente-pro` y `webhook-meli` reiniciados.
+- **Pendiente:** el costo quedó en $0 (no hay factura de compra en el historial); cargarlo cuando se vuelvan a comprar. El collar `AS-44` sigue activo en Alegra sin publicación que lo use. `C-COL50g` sigue esperando decisión.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Celulosa microcristalina: dos referencias (101 y 102), cada una con su ficha, código y etiqueta
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Documentos técnicos + códigos de barras + etiquetas
+- **Qué se implementó:**
+  - El código `C-CELMIC101500g` tenía una etiqueta que decía «A 102» (solo existía ficha del 102). Compras: FEE97643 (11-jun-2026) grado 101 y FEE99814 (11-jul-2026) 25 kg de «A 102», ambas de Factores y Mercadeo y ambas cargadas al mismo código `CELMICg`. Armando confirmó que se manejan las DOS referencias.
+  - Ficha 102: retitulada «CELULOSA MICROCRISTALINA 102» (la «A» era ruido de la factura); YAML `ft_coa_sds_celulosa_microcristalina_102.yaml` y PDF regenerado; los archivos «A 102» quedaron en `fichas_word/_respaldo_yaml/`.
+  - Ficha 101: **borrador** `borrador_ft_coa_sds_celulosa_microcristalina_101.yaml` (misma sustancia y monografía; lo propio del grado —partícula ≈50 µm, granulación húmeda— y el origen India van marcados «deducido»; COA con especificaciones y SIN resultados: son de lote). Fuente: `fichas_word/autor/2026-09-20/celulosa_microcristalina_101.yaml`.
+  - Códigos de barras: 7701025002637 sigue siendo el 101 (solo se corrigió el doble espacio del nombre); nuevo **7702555002647** (n.º 255) `C-CELMIC102500g` «CELULOSA MICROCRISTALINA 102 500g».
+  - Etiquetas 500 g de cada grado generadas y revisadas en Cápsulas & Excipientes; la etiqueta vieja (PNG y ficha de etiqueta) se retiró.
+  - Materias primas creadas en Alegra, una por grado: `CELMIC101g` (id 632) y `CELMIC102g` (id 633), unidad gramo, costo $16/g (FEE97643 y FEE99814), IVA 19 %, lista $25 (la que tenía Siigo). `CELMICg` era un código de Siigo y nunca existió en Alegra, así que no hubo inventario que separar.
+  - Combos creados en Alegra: `C-CELMIC101500g` (id 634) y `C-CELMIC102500g` (id 635), **$23.900** con IVA 19 % (precio elegido por Armando, igual al alcohol cetílico 500 g). Receta aprobada, la de los excipientes de 500 g sin cuchara: 500 g de la materia prima del grado, `BLSMTL13X21cms`, `BOLVAC8X12`, `BOLSEGBLAUn`, `ETQ250g`, 2 `PPLBRB10cms`, `VNP20cms`.
+- **Pendiente:** publicación en MeLi y tienda web (no existe ninguna). Las compras futuras deben entrar a `CELMIC101g` / `CELMIC102g`, no a `CELMICg`. Pedir a Factores y Mercadeo el COA del lote de 101.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `fichas_word/` y `app/data/etiquetas_fichas.json` (no versionados), `docs/team-recaps.md`
+
+### 2026-09-20 - Polisorbato Tween 20 de 250 mL: combo propio + emparejador de fichas que distingue números
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra / MeLi / web / etiquetas) + corrección de bug
+- **Qué se implementó:**
+  - Las publicaciones de 250 mL (MCO1910972470, 85 vendidas) y 500 mL compartían el SKU `C-POLTWE20P500mL`: cada venta de 250 mL se facturaba como 500 mL y descontaba 500 g y el envase de 500 cc (~21 kg de polisorbato descontados de más en Alegra, pendiente de ajuste de inventario).
+  - Receta aprobada por Armando → combo `C-POLTWE20P250mL` (Alegra id 631, $26.500 = precio MeLi, IVA 19 %): 250 `POLTWE20Pg`, `ENVBTR250cc`, tapa 38 mm, liner, copa, bolsa 12x20, etiqueta 3x2,625, térmica, 2 burbuja, vinipel, 2 operativos mínimos.
+  - SKU cambiado en MeLi y Sheets; código de barras 7702542502648 (n.º 254); etiqueta 250 mL generada con el flujo de lote; catálogo web reconstruido (180 productos, familia «Polisorbato Tween 20» con 250 y 500 mL; de paso entraron `C-MANCACNAT500g` y `C-HARPAN00Kg`) y stock web cargado desde MeLi (8 / 0 / 0). `agente-pro` y `webhook-meli` reiniciados; `resolver_producto_venta_alegra` resuelve el SKU nuevo.
+  - **Bug encontrado al revisar la etiqueta:** salió con nombre y CAS del **Tween 80**. `fichaTecnicaMatch.ts` descarta los números sueltos como presentación, así que «TWEEN 20» y «TWEEN 80» puntuaban igual y ganó el borrador del 80 creado el 19-sep. Nuevo `numerosEnConflicto()`: si los dos títulos traen número suelto y ninguno coincide, la candidata se descarta (si solo uno lo trae no se afirma nada). Etiqueta rehecha y verificada (POLISORBATO 20, CAS 9005-64-5). Panel recompilado.
+- **Pendiente:** la misma regla destapó `C-CELMIC101500g` «CELULOSA MICROCRISTALINA 101 500g», cuya etiqueta dice «A 102» (solo existe ficha técnica del grado 102): confirmar qué grado se vende. Ajuste de inventario del polisorbato. Siguen `AS-44` y `C-COL50g`.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `app/data/etiquetas_codigos_ean.json`, `app/data/etiquetas_fichas.json` (no versionado), `PAGINA_WEB/site/data/{cache,stock_web,catalogo_extra_siigo,origen_materias}.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Goma arábiga: publicaciones eliminadas en MeLi
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de publicaciones (Mercado Libre)
+- **Qué se implementó:**
+  - Se eliminaron, a pedido del usuario, MCO2055189788 «Goma Arábiga 500gr» (66 vendidas) y MCO2055177320 «Goma Arábiga 1 Kg» (39 vendidas), ambas pausadas sin existencias, sin pedidos por entregar ni preguntas pendientes. Copia completa de cada una en `~/backups_manual/meli_<id>_antes_de_eliminar_20260920.json`.
+  - Motivo: la de 1 kg llevaba el SKU `C-GOMXANKg`, que es el de la goma XANTANA — una venta se habría facturado como xantana a $38.900 descontando inventario de xantana. La goma arábiga no existe en Alegra (ni inventario ni combo) y `GMARB500g` tampoco. `C-GOMXANKg` queda ahora con una sola publicación (MCO1255107965).
+- **Tienda web:** también se retiró «Goma Arábiga 500g» (`GMARB500g`). No venía de MeLi sino de la lista de SKUs extra: se quitó de `catalogo_extra_siigo.json` (si no, la próxima reconstrucción la vuelve a traer de Siigo), de `cache.json` (179 → 178 productos, edición puntual para no depender de un refresh que se trunca en silencio), de `stock_web.json` y de `origen_materias.json`; reinicio de `mckenna-website` y verificado: 0 apariciones en /tienda y /catalogo, la página del producto da 404. Respaldo en `~/backups_manual/web_goma_arabiga_20260920/`. En /cotizar sigue «Goma Arábiga Polvo-terrón» como materia prima bajo pedido (oferta de proveedores): es otra cosa y no se tocó.
+- **Pendiente:** conflictos de SKU restantes: polisorbato 250 mL y `AS-44`.
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Precios de Alegra igualados a Mercado Libre (28 productos)
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Datos (Alegra — precio de lista)
+- **Qué se implementó:**
+  - Regla del negocio: ante una diferencia **manda el precio de MeLi**. Se aplicó con `actualizar_precio_alegra_producto` a **28 SKU**, cada uno verificado releyendo desde Alegra. Precios anteriores en `~/backups_manual/alegra_precios_antes_20260920.json`. Casos notables: agitador magnético $177 → $422.000; cera de abejas natural $1 → $31.000; bergamota 5 mL $0 → $19.900; vaselina 900 g $21.800 → $49.000; almendra 250 g $62.400 → $16.900; semilla de calabaza 250 g $49.900 → $14.000; placa de aluminio $50.000 → $109.900.
+  - **Error corregido en el acto:** `C-GOMXANKg` (goma xantana) recibió $58.000 desde una publicación de goma ARÁBIGA que tiene mal puesto ese SKU; el filtro por palabras lo dejó pasar porque ambas dicen «goma». Revertido a $38.900. Al comparar títulos no basta una palabra en común: exigir el sustantivo distintivo.
+- **Pendiente (conflictos de SKU en MeLi):** «Goma Arábiga 1 Kg» (MCO2055177320) lleva el SKU de la xantana; «Polisorbato Tween 20 250 ml» lleva el del de 500 mL; `AS-44` apunta en Alegra a un collar de perro y en MeLi a bolsas para setas. Siguen los 35 SKU de publicaciones activas que no existen en Alegra (`docs/precios_meli_vs_alegra.md`).
+- **Archivos Modificados:** `docs/team-recaps.md`
+
+### 2026-09-20 - Cierre de los 6 combos sin código y comparación de precios MeLi vs. Alegra
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · códigos de barras · etiquetas)
+- **Qué se implementó:**
+  - **Regla fijada por el negocio: el precio real es el de Mercado Libre.** Albúmina `C-ALBHUE500g` quedó en $44.900.
+  - **Manteca de cacao natural** (`C-MANCACNAT500g`): sí se vende (MCO577142200, 247 vendidas, pausada sin existencias). El combo descontaba 5.001 g y costaba $1 → 500 g y $69.500; el SKU en MeLi tenía una errata (`C-MANNCACNAT500g`); código de barras 7702525002646, ficha retitulada «MANTECA DE CACAO NATURAL» y etiqueta.
+  - **Harina de panadería 00** (`C-HARPAN00Kg`): precio $0 → $15.000; SKU en MeLi `HRNTRG00Kg` → `C-HARPAN00Kg`; código 7702530012647; ficha nueva como alimento (fortificación, «contiene gluten») y etiqueta. El nombre del código no puede terminar en «00 Kg»: la app lee «00» como contenido neto (quedó «… 00 1000g»).
+  - **Colorante alimentario:** la publicación MCO1140118070 («Colorante Alimentos 30 Gr Rojo») se **eliminó** de MeLi a pedido del usuario por título mal escrito (copia completa en `~/backups_manual/`). Prometía 30 g, el SKU decía 50 g y la única compra era de frascos de 25 g; el combo `C-COL50g` sigue en Alegra sin componentes.
+  - **Comparación de precios en vivo** (`docs/precios_meli_vs_alegra.md`): 237 coinciden, **35 con precio distinto** y **180 publicaciones cuyo SKU no existe en Alegra**. Entre las diferencias hay SKU mal puestos en MeLi: la goma arábiga usa `C-GOMXANKg` (xantana) y el polisorbato de 250 mL usa el SKU del de 500 mL.
+- **Pendiente:** aplicar el precio de MeLi en Alegra a los casos limpios; decidir los conflictos de SKU; desactivar `C-COL50g`; IVA de la harina (19 % en Alegra; la harina de trigo tributa al 5 %, Art. 468-1 E.T. — consultar al contador); dos publicaciones no están en la hoja de Sheets.
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/precios_meli_vs_alegra.md`, `docs/team-recaps.md`
+
+### 2026-09-20 - Albúmina de huevo: un solo combo (`C-ALBHUE500g`) y dátiles con un solo nombre
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Saneamiento de catálogo (Alegra · MeLi · tienda web · códigos de barras)
+- **Qué se implementó:**
+  - **Albúmina 500 g:** había dos combos con el mismo nombre. `C-ALBHUE500g` (el SKU que debe quedar) estaba a medio armar: $1 y 1 g de albúmina. Se le copió la composición y el precio del que sí funcionaba (`C-ALBHV500g`: 500 g + 7 empaques, $21.500, IVA 19 %) con `actualizar_combo_alegra`, verificado releyendo desde Alegra. Estado previo en `~/backups_manual/alegra_albumina_antes_20260920.json`.
+  - Canales movidos al SKU final: publicación MeLi MCO3022724080 y hoja de Sheets (`actualizar_sku_meli_item`), código de barras 7702445002641, `publicaciones_overrides.json`, `origen_materias.json`, `stock_web.json` y catálogo de la tienda. `C-ALBHV500g` quedó **inactivo** en Alegra (no borrado) y con equivalencia `C-ALBHV500g → C-ALBHUE500g` en `alegra_sku_alias_venta.json`.
+  - **`resolver_producto_venta_alegra` ahora prefiere la equivalencia cuando el SKU directo está INACTIVO.** Antes devolvía el ítem inactivo: un pedido de MeLi hecho antes del cambio (conserva el SKU de ese momento) se habría facturado contra un combo retirado.
+  - **Dátiles:** ficha, PDF, códigos de barras y etiquetas unificados como «DÁTILES SAYED SIN HUESO» (Alegra y la factura de compra dicen «Sayed»; la ficha decía «sin hueso»).
+  - ⚠️ **`POST /api/refresh` de la tienda puede truncarse en silencio:** con un `Connection reset` de MeLi al listar publicaciones pausadas, el catálogo bajó de 179 a 173 productos sin error (se ocultaron 6 con existencias). Un segundo refresco lo dejó completo. Tras refrescar, comparar el conteo contra el anterior.
+- **Pendiente:** Alegra tiene la albúmina a $21.500 y la tienda web a $40.410; todos los componentes de empaque tienen costo $0 (ningún combo calcula margen); ¿la etiqueta térmica 10×15 va dentro de los combos? Siguen por revisar: manteca de cacao natural, harina de panadería y colorante alimentario.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/data/alegra_sku_alias_venta.json`, `app/data/publicaciones_overrides.json`, `app/data/etiquetas_codigos_ean.json`, `PAGINA_WEB/site/data/origen_materias.json`, `PAGINA_WEB/site/data/stock_web.json`, `docs/team-recaps.md`
+
+### 2026-09-20 - Códigos de barras para combos de Alegra que no tenían (grupo 1) y alérgenos en la cuadrícula
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Datos + producción (Diseño → Códigos EAN y Etiquetas)
+- **Qué se implementó:**
+  - Las etiquetas en lote parten del catálogo de códigos de barras, así que **lo que no tiene código no recibe etiqueta**: por eso no aparecían productos como el propionato de calcio. 61 fichas técnicas estaban en ese caso.
+  - **Grupo 1 — combos que ya existen en Alegra sin código de barras:** se crearon **14 códigos** (n.º 238 a 251): aceites esenciales de bergamota, canela, clavo e ylang ylang 5 mL; ácido salicílico 50 g; agua de rosas 250 mL; albúmina de huevo 500 g (`C-ALBHV500g`); carbón activado 800 g; carbonato de magnesio 500 g; cera lanette 500 g; creatina 1000 g; gel sílica 250 g; L-prolina 100 g; sucralosa 100 g. Con sus 14 etiquetas.
+  - **Dátiles Sayed:** ya tenían código, pero registrado con un SKU que no existe en Alegra (`C-DATSINHUE…`); se corrigió a `C-DATSAY250g/500g` sin cambiar el código.
+  - **No se les creó código (combos rotos o incompletos en Alegra):** `C-ALBHUE500g` y `C-MANCACNAT500g` (precio $1, cantidades erradas, duplican a otros buenos), harina de panadería (precio $0, sin materia prima) y colorante alimentario (sin componentes ni color definido).
+  - Fichas: datos de etiqueta deducidos para 9 fichas antiguas; ficha nueva de gel sílica; «ALCOHOL CETO ESTEARÍLICO» retitulada «CERA LANETTE (ALCOHOL CETOESTEARÍLICO)»; clasificación SGA del ylang ylang.
+  - **Alérgenos:** el formato de cuadrícula (76×66) no tiene casilla de alérgenos. Huevo, leche y soya se declaran ahora dentro de «Composición» («… CONTIENE HUEVO») en albúmina, proteínas de suero, suero de leche, proteína aislada de soya y lecitina; regeneradas sus 5 etiquetas.
+- **Pendiente:** grupo 3 (18 combos cuyo código de barras está registrado con un SKU distinto al de Alegra) y grupo 2 (unos 49 productos con ficha que no existen en Alegra: requieren definir SKU y presentaciones). El formato de cuadrícula muestra un solo pictograma GHS aunque la ficha tenga varios (ácido salicílico 50 g).
+- **Archivos Modificados:** `app/data/etiquetas_codigos_ean.json`, `docs/team-recaps.md`
+
+### 2026-09-19 (cierre) - Etiquetas de mL y demás presentaciones: 110 más, todas las diagramaciones revisadas
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Producción + correcciones de diagramación y de datos (Diseño → Studio → Etiquetas del formulario)
+- **Qué se implementó:**
+  - **110 etiquetas** en 5 mL, 30 mL, 100 g, pastillero y 76×66 (`docs/etiquetas_ml_estado.md`); con las 114 de gramos son **224**. El formato de cada SKU sale de la etiqueta que lleva su combo en Alegra, no del nombre: los aceites de 250 mL van en 76×66 y el neem de 120 mL en 69×51 (la plantilla vertical 38×102 no está terminada: recorta textos y deja marcos de edición). 20 plantillas nuevas por categoría y formato, cada una con su «INSUMO GRADO …» correcto, que en estos formatos es un campo de la PLANTILLA.
+  - **Diagramación:** la fila PUREZA sin dato ya no se dibuja en 30 mL y 5 mL, y la tabla mide lo que sus filas (`grid-auto-rows`); en 100 g desaparece el ícono «!» suelto cuando no hay alérgenos; en 5 mL el pie recortaba «Bogotá · Colombi» porque la plantilla fijaba la letra en 20 px (ahora 13); la **circular salía negra** porque el `fill: none` de sus anillos vivía solo en CSS y se pierde al rasterizar (ahora es atributo del SVG). Aun así la circular no se produce en PNG: el nombre en arco se desborda — usar la exportación SVG del panel.
+  - **Datos corregidos por la revisión:** «ÁCIDO SALICÍLICO 30 mL» es la solución al 20 % y tomaba la ficha del polvo; esa solución figuraba como «NO GHS» y lleva **H318 y H361d** por límites de concentración; su PUREZA era un texto de instrucciones. **20 aceites esenciales salían «NO GHS»**: se les puso su clasificación típica (H304, H317, H411; cítricos además H226; tomillo H314; albahaca H341/H351). Colágeno 30 mL y sorbitol 500 mL (líquidos) enlazaban con fichas de polvo. Fichas nuevas: sorbitol líquido, hialurónico alto y bajo peso, kójico dipalmitato, polisorbato 80. Categorías: «POLISORBATO» caía en Conservantes por *sorbato* y «DIHIDROXIACETONA» en Solventes por *acetona*.
+- **Pendiente:** etiquetas circulares (5) por SVG; kits, gramera y el combo «alginato + lactato» necesitan etiqueta propia; en 5 mL el nombre «ACEITE ESENCIAL ORGÁNICO DE LAVANDA» queda muy justo en tres renglones; el formato de 5 mL muestra como máximo 3 pictogramas GHS.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/CenterProductPanel.tsx`, `etiqueta30ml.css`, `etiqueta-5ml/Etiqueta5ml.tsx`, `etiqueta5ml.css`, `etiqueta-simple/EtiquetaSimple.tsx`, `etiqueta-circular/EtiquetaCircular.tsx`, `app/data/etiquetas_categorias.json`, `app/data/etiquetas_codigos_ean.json`, `docs/etiquetas_ml_estado.md`, `docs/team-recaps.md`
+
+### 2026-09-19 (noche) - Fichas sin casillas vacías, 114 etiquetas y almacén de etiquetas blindado
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Datos + producción + corrección de un bug de pérdida de datos
+- **Qué se implementó:**
+  - **Cambio de criterio: ninguna casilla vacía.** `scripts/fichas_completar_deducciones.py` rellena SOLO lo vacío, en este orden: documento del proveedor → mapa de orígenes del sitio (etiqueta y web dicen lo mismo) → lo que ya se responde en preventa/WhatsApp (grado) → literatura técnica (aroma, fórmula, composición, CAS, conservación y, en último caso, principal país productor). Cada dato deja su procedencia en `_fuentes` marcada «(deducido)»; informe en `docs/fichas_datos_deducidos.md`. **214 datos en 95 fichas**, más conservación explícita en 164 (antes la app la sintetizaba de la SDS y salía vacía o con «Guardar bajo llave»). Los resultados del COA NO se deducen.
+  - **15 fichas nuevas** (borradores TDS + SDS) para productos que no tenían ninguna: cera de abejas natural, cremor tártaro, agua destilada, dipropilenglicol (origen Corea del Sur, documentado), aceite de linaza, aceite de coco, aceite esencial de limón, DHA, ácido mandélico, L-carnitina, cianocobalamina, glutaraldehído 2 %, retinol 5 %, fragancia liposoluble y cápsulas de gelatina.
+  - **114 etiquetas de 250/500/1000 g** en 15 categorías (`docs/etiquetas_gramos_estado.md`), revisadas en imagen y auditando los datos guardados de cada una. Solo quedan fuera 3: cera de abejas «amarilla» (su ficha declara parafinas y polietileno) y un código con nombre basura.
+  - **Errores de datos cazados por la revisión:** la ficha «VITAMINA C» era la suspensión líquida al 30 % y la app la enlazaba con el ácido ascórbico en polvo (se retituló); SCI tenía una fórmula molecular inventada (es una mezcla); extracto de malta traía el **CAS del poliestireno**; inulina con GHS07/H317 contradiciendo su SDS; betaína de coco es de India según la ficha del fabricante (el mapa web dice Malasia). Erratas del catálogo de códigos corregidas por API sin alterar ningún código de barras: POTASO, NATRURAL, FREGANCIA, ESENCIALCORTEZA, «TENSO ACTIVO SCI Kg».
+  - ⚠️ **Incidente: el almacén de etiquetas perdió todas las fichas (19:04).** `etiquetas_fichas._save_all` escribía en el sitio y sin candado, y `_load_all` tomaba cualquier error de lectura como «lista vacía»: con el lote y el autoguardado escribiendo a la vez sobre un archivo de 6 MB, una lectura a medias devolvió [] y el guardado siguiente dejó 3 fichas de ~190. Restaurado desde el respaldo de las 16:10 (las 43 fichas del equipo, intactas). Ahora: escritura atómica (temporal + `os.replace`), candado entre hilos y procesos, `.json.bak` de la versión anterior y **error** si el archivo es ilegible (nunca se guarda encima). `tests/test_etiquetas_fichas_almacen.py`.
+- **Pendiente:** confirmar con Calidad los datos deducidos cuando llegue documento del proveedor; decidir qué es la «cera de abejas refinada amarilla»; limpiar en el catálogo de códigos el SKU `C- PISTOS250g` (con espacio), la entrada sin nombre de `C-MANTOSPAR500g` y «CITRATO POTASIO 250g MAGNESIO 250g».
+- **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `scripts/fichas_completar_deducciones.py`, `tests/test_etiquetas_fichas_almacen.py`, `app/data/etiquetas_codigos_ean.json`, `docs/fichas_datos_deducidos.md`, `docs/etiquetas_gramos_estado.md`, `docs/team-recaps.md`
+
+### 2026-09-19 (tarde) - Etiquetas 250/500/1000 g en lote: alineación, categorías y 50 etiquetas terminadas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de diseño + datos + producción (Diseño → Studio → Etiquetas del formulario)
+- **Qué se implementó:**
+  - **Alineación de la cuadrícula** (`ProductAttributeGrid`, `ProductAttribute`): cada FILA se centra en vertical y sus dos módulos arrancan a la misma altura, así íconos y títulos quedan en línea aunque un valor tenga 1 renglón y el otro 3 (medido en Chromium: íconos 34/34 px, márgenes 25/26 px). El valor va centrado con `text-wrap: balance`; antes iba justificado y abría huecos entre palabras. El alto reservado de 3 renglones solo aplica en edición.
+  - **PUREZA/CAS**: en vista —lo que se imprime— la fila sin dato no se dibuja (`TechnicalIdentity`).
+  - **El lote también guarda la etiqueta de cada SKU** (antes solo subía el PNG): queda editable y enlazada a su plantilla, código de barras y ficha técnica; si ya existía, se actualiza.
+  - **Bug de carpetas**: el lote nombraba la carpeta con la lista FIJA de categorías del código (`etiquetaCategoria`), no con la que editó el operador → «Semillas» en vez de «Semillas & Frutos Secos» y el id crudo en las categorías nuevas. Ahora usa `etiquetaCategoriaEn(categorias, id)`.
+  - **Categorías**: 10 de 19 habían quedado SIN palabras clave al reorganizarlas desde el panel, y 86 de 119 SKU caían en «otros». Se completaron las claves respetando nombres y fusiones del operador; «alcohol» a secas ya no manda el alcohol cetílico a Solventes; categoría nueva **Aditivos alimentarios** (alulosa, fructosa, ácido cítrico, glutamato, sorbitol). Quedan en «otros» solo gramera y kits.
+  - **11 plantillas nuevas de 250 / 500 / 1000 g** (76×66 mm) clonadas de la de Sales minerales con color y logo de la paleta corporativa: conservantes, aditivos, gelificantes, harinas, vitaminas, excipientes, tensoactivos, arcillas, mantecas y ceras, solventes, extractos.
+  - **50 etiquetas terminadas** y revisadas una por una (`docs/etiquetas_gramos_estado.md`). 66 quedan pendientes porque su ficha no trae **origen** (44), **grado** (37) o **aroma** (21): son hechos del producto comprado y no se inventan en una etiqueta. Solo 6 se pudieron completar con evidencia (la propia ficha o la factura: «VASELINA BLANCA USP INDIA»).
+  - Fichas corregidas por la revisión de etiquetas: conservación redactada en 8 que la tenían vacía; creatina sin «Guardar bajo llave» ni «Inodoro, típicamente.»; **inulina** traía GHS07/H317 contradiciendo su propia SDS; fórmula de glicina; composición de colágeno y proteína aislada de soya. **CERA ABEJAS REFINADA AMARILLA** se retiró: su ficha declara parafinas y polietileno.
+  - `desktop/dev/etiqueta.html`: banco de pruebas SOLO de desarrollo que monta el formulario real sin el panel (el panel exige sesión de Google; no entra al build).
+- **Pendiente:** llenar origen/grado/aroma en las 66; decidir colores de las plantillas nuevas; la plantilla de Aminoácidos & Proteínas tiene letra más pequeña que las demás (1 estilo vs 28); el correo de compras casi no trae COA de proveedor (20 documentos, casi todos de 2021) — los COA de lotes recientes llegan por otro canal; `test_formulario_manteca` falla desde antes (busca una plantilla de lienzo borrada).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`, `ProductAttributeGrid.tsx`, `ProductLabelForm.tsx`, `TechnicalIdentity.tsx`, `desktop/dev/etiqueta.html`, `desktop/dev/etiqueta.tsx`, `app/data/etiquetas_categorias.json`, `docs/etiquetas_gramos_estado.md`, `docs/team-recaps.md`
+
+### 2026-09-19 - Documentos técnicos: sin fabricante, borradores sin firma y primer lote TDS-COA-SDS
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Política de documentos + herramienta nueva (Documentos técnicos)
+- **Qué se implementó:**
+  - **El fabricante ya no se publica en ningún documento**: hacia afuera solo va el **país de origen**. `_contexto_html` y `_contexto_coa` dejan de entregar el dato a las plantillas (PDF completo, FT simple, COA en Word, página `/verificar`); el YAML lo conserva porque la trazabilidad interna de lotes lo usa. Se regeneraron los **33 PDF** que lo imprimían (originales en `fichas_word/_respaldo_pre_fabricante_2026-09-19/`).
+  - **Borradores sin firma**: `generar_pdf_completo(borrador=True)` saca la vista previa con banda «BORRADOR · SIN VALIDEZ» y **sin la firma de Calidad**. Antes, un COA con especificaciones pero sin resultados salía firmado.
+  - `scripts/fichas_lote_autor.py`: carga un lote de documentos escritos en YAML (`fichas_word/autor/<fecha>/`), con `_fuentes` y `_pendientes` por documento. Los nuevos entran como **borrador** del panel; `modo: completar` añade secciones a uno ya publicado respaldando su YAML. Frena si una fila trae celdas de más (una coma sin comillas partía «Máx. 0,5 %» en dos columnas). Sin LLM.
+  - Primer lote: SDS de 15 secciones para **ÁCIDO SALICÍLICO** (clasificación armonizada CLP cotejada), **ALULOSA** (vuelve a publicarse), **PROPIONATO DE CALCIO** (H318, especificación JECFA/FCC; sale de «omitidos») y **CREATINA MONOHIDRATO**. **ACEITE ESENCIAL CORTEZA DE CEDRO reescrito entero**: traía INCI de limonaria y un COA de polvo cristalino (fusión 158-161 °C); el proveedor declara *Cedrus atlantica* — INCI Cedrus Atlantica Bark Oil, H304/H317/H411, UN 3082. Su COA quedó sin tabla de ensayos: no hay resultados reales del lote. Se retiró el duplicado «SULU 100% PURE CEDARWOOD…», que llevaba la marca en el título.
+  - **Inventario ≠ combo** (`scripts/auditar_catalogo_combos.py` → `docs/auditoria_catalogo_combos.md`): la ficha describe la **materia prima** (`AMICREMONg`), no el combo que se vende (`C-CREMON500g` = gramos + bolsa + cuchara + etiqueta). Por buscar SKU solo en la vitrina web se propuso un SKU que ya existía y se redactaron tres borradores de documentos ya publicados (creatina, semillas de calabaza por el plural, niacinamida = «VITAMINA B3»); se descartaron y a los existentes solo se les puso el SKU. La auditoría encuentra: 14 combos sin componentes, 13 SKU `C-…` creados como producto simple, 8 cantidades que no cuadran (`C-MANCACNAT500g` descuenta 5001 g; `C-ACISAL50g`, 1 g; tres con un «1» pegado: 51, 301, 5001), 3 combos sin materia prima, 9 documentos completos **sin publicar** por no llevar `_tipo: completo`.
+  - **La web enlaza el documento por SKU**: `buscar_documento_completo_web` resuelve combo → componentes → `referencia` del documento antes de caer al parecido de nombres («ESENCIALCORTEZA» y «ACETE» dejaban esos productos sin ficha).
+  - Regla que se mantiene: los **resultados** del COA salen del COA del proveedor, nunca de la bibliografía. La especificación sí puede salir de la farmacopea o de la norma.
+- **Pendiente:** reautorizar Gmail (`python3 scripts/reautorizar_gmail.py`) — sin el correo no hay COA de proveedor ni facturas de septiembre; `PAGINA_WEB/site/templates/_documento_tecnico.html` es de `cynthia` y aún tiene las ramas muertas de «Fabricante» (ya no reciben dato); el modelo ACEITE ESENCIAL CORTEZA DE CEDRO trae datos de otro producto; 5 pruebas de `test_documentos_web` fallan desde antes porque LACTATO DE CALCIO no tiene SDS; reiniciar `agente-pro` y `mckenna-website`.
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `app/services/coa.py`, `app/templates/documento_completo_pdf.html`, `app/templates/ficha_tecnica_pdf.html`, `PAGINA_WEB/site/templates/verificar.html`, `app/services/documentos_web.py`, `scripts/fichas_lote_autor.py`, `scripts/auditar_catalogo_combos.py`, `docs/auditoria_catalogo_combos.md`, `docs/team-recaps.md`
+
+### 2026-09-18 - El IVA de las ventas deja de estar dentro de los ingresos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección contable (Contabilidad → Libro Mayor)
+- **Qué se implementó:**
+  - Las ventas se contabilizaban por su **total** contra 4135, pero McKenna es responsable de IVA: parte de ese total no es ingreso suyo sino IVA que le debe a la DIAN. Resultado: ingresos inflados y el IVA sin reconocer como pasivo, así que al pagar la declaración no había contra qué bajarla. Reconocido a **240805 IVA generado**: julio $12.066.709 · agosto $11.655.994 · septiembre $4.071.769 = **$27.794.472**. Los ingresos quedan en $60,3M / $55,1M / $32,0M.
+  - **La cifra sale de las facturas, no de dividir por 1,19.** Hay materias primas excluidas (Art. 424 E.T.): en 300 facturas, 484 ítems al 19% y 12 sin IVA. Aplicar la tarifa a todo inventaría IVA sobre lo excluido y lo declararía de más.
+  - **Se restan las notas crédito**, que era el hueco grande. Agosto tuvo **712 notas crédito por $44.441.972** ($4.560.640 de IVA): la campaña de corrección del IVA duplicado de astroselling, que anuló cada factura mala y reexpidió. Sin restarlas se habrían declarado $4,56M de IVA sobre ventas anuladas. Era además la causa real de un hueco de $46,8M entre lo facturado y el libro — antes de dar con ella se descartaron dos hipótesis (duplicación en la lista de facturas, y puesta al día de facturación), las dos verificadas contra los datos y las dos falsas.
+  - **Lee los dos sistemas** según la fecha de corte de migración (2026-09-02): consultar solo Alegra devolvía $0 de IVA para julio y agosto. En Siigo el IVA vive en `items[].taxes[].value`, sin totales de cabecera.
+  - `resumen()` contrasta lo facturado neto contra el ingreso del libro y dice en qué dirección está el hueco: negativo = facturas sin contabilizar, positivo = ventas sin facturar. Tras el arreglo las tres diferencias quedan en rango de timing (−$7,0M / −$2,4M / +$10,2M).
+  - Los tests tardaban 104 s porque salían a Siigo y Alegra de verdad; el fixture ahora corta la red por defecto (0,76 s).
+- **Pendiente:** el **IVA descontable de compras** (240810) para poder armar el formulario 300 completo; y la diferencia entre los dos caminos de lectura de facturas de Siigo (~$7,4M de venta directa en julio).
+- **Archivos Modificados:** `app/services/iva_ventas.py`, `scripts/reconocer_iva_ventas.py`, `tests/test_iva_ventas.py`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-18 16:30 - Facturar MeLi: descontar las unidades reembolsadas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Facturación → Ventas, «Facturar ahora» y autofactura al entregar)
+- **Qué se implementó:**
+  - Cuando se despacha menos de lo vendido, MeLi devuelve la diferencia pero la orden conserva la cantidad original (`partially_refunded`). Antes el botón la rechazaba como «no pagada» y, de haberla emitido, habría facturado las unidades que nunca salieron.
+  - `_descontar_unidades_reembolsadas()` descuenta de la línea las unidades que equivalen al reembolso. Si no cuadra con unidades enteras de UN solo producto, no adivina: pide facturar a mano.
+  - Caso real: pack 2000015079330551 (2 × Manteca de Cacao 500 g, 1 reembolsada) facturado como **FE448** por 1 unidad, $14.365.
+- **Archivos Modificados:** `app/tools/meli_autofactura_entrega.py`, `tests/test_meli_autofactura_entrega.py`, `docs/team-recaps.md`
+
+### 2026-09-18 - Documento soporte con CUDS, fecha de corte contable e historial por tercero
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + correcciones (Contabilidad → Solicitudes de pago, Libro Mayor)
+- **Qué se implementó:**
+  - **Documento soporte a no obligados a facturar.** Al aprobar un pago a alguien que cobra con cuenta de cobro (Art. 616-2), se emite el documento soporte con su **CUDS** contra la plantilla DSMG de Alegra, y al confirmar el giro se salda allá. Sin él, el Art. 771-2 E.T. deja el gasto **sin soporte para deducir**: solo la mensajería de Fidel Rocha son ~$46,4M/año, $16,2M de mayor renta al 35%. Emitido el **DSMG1** en vivo (aceptado por la DIAN). Arranca en sombra por tercero (`emite_doc_soporte`); hoy solo Fidel.
+  - **Fecha de corte contable (`CONTABILIDAD_FECHA_CORTE=2026-09-01`).** Lo anterior lo declaró el contador con su propio mecanismo y **él fijará los saldos iniciales**; el libro propio no reescribe ese pasado. El espejo a Alegra devuelve `bloqueado_por_corte` (y **`forzar` no lo salta**) y el auto-posteo **recorta** el rango en vez de rechazarlo.
+  - **La cuenta del PUC decide el impuesto, no el botón.** `impuestos_por_cuenta.py` traduce cada cuenta a su concepto de retención e ICA. Se quitaron los botones de Transporte y Servicios públicos y las **tres preguntas de impuestos** del wizard: ahora se informan con su motivo. El gross-up dejó de ser elegible — se pacta en la ficha del tercero (eran $28.657 por quincena que cualquiera podía hacer asumir a McKenna con un clic).
+  - **La compra se contabiliza con la cotización.** «Productos» elige materias primas por su **referencia** de Alegra y el asiento reproduce la cotización renglón por renglón, con el **IVA a 240810** (antes se cargaba a inventario). `total_documento` exige que la réplica cuadre con el documento. Probado con la cotización real PRE0031580: las cinco cifras al centavo. Se **apagó el registro de facturas de compra** (era el paso doble), conservando la descarga de XML.
+  - **Libro Diario e historial por tercero.** El Diario muestra los asientos en orden con cuenta, nombre, débito y crédito (+CSV). El historial guarda **el porqué** del perfil tributario de cada tercero y lo que le ha pasado: decisiones, indicaciones del contador, incidentes y documentos. Append-only.
+  - **Cinco defectos que solo aparecieron emitiendo en vivo:** cuentas de Alegra muertas del catálogo NIIF (523550 y la **5252 de préstamos**, que habría tumbado la cuota del 9-oct), personas naturales creadas como **CC** cuando la DIAN exige **NIT con DV**, el **ReteICA** fuera del documento, el pago sin registrar (pasivo fantasma) y `retefuente_exento` que se **desmarcaba solo** a los autorretenedores.
+- **Archivos Modificados:** `app/services/` (doc_soporte_pagos, impuestos_por_cuenta, perfil_tributario_dian, terceros_historial — nuevos; pagos_wizard, pagos_proveedor, alegra, alegra_espejo, alegra_puc, contabilidad_core, contabilidad_mayor, contabilidad_autopost, puc_colombia, prestamos), `app/routes.py`, `app/tools/` (sincronizar_facturas_de_compra_siigo, importar_productos_siigo, extracto_contable_pdf), `desktop/src/components/` (PagosWizardPanel, LibroMayorPanel, MayorCuentasPanel, MobileHub), `CLAUDE.md`, 11 suites de tests
+
+### 2026-09-18 - Julio y agosto entran al Libro Mayor, y cinco fallos silenciosos que lo impedían
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + backfill (Contabilidad → Libro Mayor)
+- **Qué se implementó:**
+  - **El libro no tenía julio ni agosto.** $189M facturados contra $4,6M contabilizados. Causa: el cron de auto-posteo cubre una **ventana móvil de 10 días** y el backfill nunca se corrió para esos meses, así que el libro arrancaba de hecho cuando arrancó el cron. Backfill aplicado: julio **$72.377.616** (1.782 asientos) y agosto **$66.709.442** (1.776).
+  - **Doble conteo de ingresos.** El libro tomaba ingresos de TRES fuentes que se solapan: órdenes de MeLi, pedidos web y **facturas** — que son las facturas de esas mismas órdenes. `factura_ya_contada()` omite la factura cuyo canal ya se contó. Se anularon **128 asientos ya posteados ($7.065.505)** y el filtro evitó **$16,9M más** en agosto. El daño estaba contenido **por accidente**: el listado de facturas se cortaba a los 28 s y apenas traía un día; subir ese presupuesto habría inflado el ingreso solo.
+  - **La marca no siempre está al principio.** Las facturas de corrección del IVA duplicado de astroselling dicen «Reemplaza FV-… — corrección IVA … **Venta Mercado Libre #2000013…**». Con `startswith` se escapaban 343 facturas de agosto. Ahora la marca va **atada al número de orden** (8+ dígitos), que cubre los tres formatos reales y rechaza una mención suelta («nota sobre la venta MercadoLibre anterior»).
+  - **Los topes de lectura eran del panel.** MeLi cortaba en 25 páginas —escondía **$18,7M solo en julio**—, Alegra abortaba toda la lectura ante UN timeout de página, y a un período anterior a la migración se le pedía a Alegra un **rango invertido** («desde septiembre hasta julio»), que producía un aviso de truncamiento por un motivo inexistente. Ahora: `CONTABILIDAD_LEDGER_BUDGET_S`, `CONTABILIDAD_LEDGER_MAX_PAGINAS`, `CONTABILIDAD_LEDGER_MAX_PAGINAS_MELI`, reintento por página, y se omite la consulta imposible.
+  - **Que se note cuando falte algo.** `auto_postear_periodo` propaga los avisos de lectura truncada y el monto por fuente; el script los imprime y dice «✓ lectura completa» cuando no falta nada. Antes decía «1.300 creados» y nada más: un período posteado a medias queda **cuadrado**, se ve completo y nadie vuelve a mirarlo. Las notas de rutina (el dedup) van separadas de la alarma, porque una alarma que suena siempre deja de mirarse.
+  - **Dos regresiones propias de la migración al PUC**, encontradas al ejercitar caminos que no se habían tocado desde entonces: (a) `contabilidad_autopost` armaba su propio diccionario código→id y devolvía la cuenta MUERTA — 8 compras de socios fallaron con «cuenta 2380 inactiva»; (b) tres consultas SQL filtraban por el código viejo y devolvían **vacío**: `saldo_socios()` mostraba CERO donde había $3,7M (Cynthia $2.227.982, Armando $1.522.623). Se centralizó en `contabilidad_core.mapa_cuentas_por_codigo()` y se agregó `puc_colombia.equivalentes()` para las consultas por código.
+  - **Reconocimiento del IVA de ventas** (`app/services/iva_ventas.py`, sin aplicar todavía): saca el IVA de Ingresos a **240805 IVA generado**, tomando la cifra de las **facturas emitidas** y no de dividir por 1,19 — hay materias primas excluidas (484 ítems al 19% y 12 sin IVA en 300 facturas). Lee Siigo **y** Alegra según la fecha de corte: consultar solo Alegra devolvía $0 para julio y agosto.
+  - **Verificado:** 465 tests pasan (≈40 nuevos). Balance y árbol cuadran. Respaldos de cada paso en `~/backups_manual/`.
+- **Pendiente:** aplicar el IVA (julio $12,2M, agosto $16,2M, septiembre $4,4M) y resolver por qué `armar_libro` y una consulta directa a Siigo ven distinto conjunto de facturas directas (~$7,4M en julio).
+- **Archivos Modificados:** `app/services/puc_colombia.py`, `app/services/contabilidad_ledger.py`, `app/services/contabilidad_autopost.py`, `app/services/contabilidad_core.py`, `app/services/compras_socios.py`, `app/services/anulaciones_motor.py`, `app/services/iva_ventas.py`, `app/services/pagos_wizard.py`, `app/routes.py`, `scripts/backfill_contabilidad_autopost.py`, `scripts/anular_ventas_duplicadas.py`, `scripts/reconocer_iva_ventas.py`, `tests/test_puc_colombia.py`, `tests/test_ingresos_sin_doble_conteo.py`, `tests/test_ledger_lectura_completa.py`, `tests/test_iva_ventas.py`, `docs/team-recaps.md`
+
+### 2026-09-18 - Imprimir: botón «Cargar del ordenador» (PDF, PNG o JPG)
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Nueva funcionalidad (Diseño → Imprimir)
+- **Qué se implementó:**
+  - **Botón «Cargar del ordenador» en el encabezado de Imprimir** (biblioteca y ventana de impresión). Acepta PDF, PNG o JPG; el archivo se guarda en la biblioteca de siempre (`subir-pdf` o `recursos-png`) y se abre directo en la ventana de impresión, sin pasar por Studio.
+  - **El formato sale solo:** para imágenes se usa la inferencia que ya existía; para PDF, `POST /api/etiquetas/subir-pdf` devuelve ahora `ancho_mm`/`alto_mm` de la página 1 (PyMuPDF) y el panel elige el formato del catálogo con esas medidas (tolerancia 0,6 mm) o arma uno con el tamaño.
+  - **Formato editable solo en ese caso:** el selector de la cinta sigue en solo lectura para lo que viene del catálogo y se desbloquea cuando el archivo vino del ordenador, para corregir el tamaño a mano.
+  - **Lo cargado queda en la biblioteca de Imprimir.** Esa biblioteca solo lista imágenes de `Recursos PNG/ETIQUETAS STUDIO/`, así que la primera versión subía bien pero el archivo no volvía a aparecer (las imágenes iban a la raíz y los PDF a la carpeta de PDF). Ahora las imágenes se suben con `carpeta=ETIQUETAS STUDIO` y `subir-pdf` con `biblioteca_imprimir=1` deja la página 1 como PNG a 600 dpi en esa carpeta, con su formato (tolerancia 1,5 mm: un PDF de 101×38 calza con el rollo 102×38 «30 mL»). Se abre esa copia: lo que se imprime es lo que queda guardado.
+  - **Tope de 80 en el catálogo.** `listar_catalogo_studio` devolvía `png_sueltos[:80]` y la carpeta ya tiene 117: las últimas en orden alfabético (parte de Sales minerales, Semillas, Vitaminas) no salían en la biblioteca. Subido a 2000.
+  - **Verificado:** `tsc --noEmit` y `npm run build` sin errores, `agente-pro` reiniciado y respondiendo. No se revisó en navegador (el panel pide login con Google).
+- **Archivos Modificados:** `desktop/src/components/EtiquetasPanel.tsx`, `app/routes.py`, `app/tools/etiquetas_studio.py`, `docs/team-recaps.md`
+
+### 2026-09-17 - Pagos de impuestos desde el recibo del contador, y el Libro Mayor abre en el PUC
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Contabilidad → Solicitudes de pago, Libro Mayor)
+- **Qué se implementó:**
+  - **Concepto «🏛️ Impuestos» en Solicitudes de pago.** La categoría existía en el backend pero el formulario simple no la ofrecía. Ahora lista los recibos que manda el contador (490 de la DIAN, formulario de pago de Hacienda) y pone sola la cuenta: renta del 350 → 2365, reteIVA del 350 → 2367, RTICA → 2368, ICA anual → 2412. Pagar un impuesto **no es gasto**: baja la deuda que quedó al practicar la retención. El PDF del recibo queda como soporte y la referencia `dian:490:<n>` es la misma de Conciliación contador; un recibo ya asentado (incluso desde el extracto) no se vuelve a ofrecer.
+  - **Avisos antes de pagar:** cuando el libro tiene causado menos de lo que se paga y cuando el 350 descuenta retención en exceso (renglón 129).
+  - **Correo del contador del 16-sep:** 350 de agosto = renta $299.000 + reteIVA $242.000 (dos recibos 490, $541.000); IVA del cuatrimestre 2 con saldo a favor de $80.000, sin pago.
+  - **Libro Mayor abre en el plan de cuentas con saldos**, no en la conciliación (que pasa a la pestaña 3). Resumen por clase (activo, pasivo, patrimonio, ingresos, gastos, resultado), árbol del PUC con saldo inicial, débitos, créditos y saldo final, **terceros desplegables dentro de cada cuenta**, vista **«Por tercero»** (auxiliar) y extracto de cada causación con su contrapartida. Nuevo `GET /api/contabilidad/cc/auxiliar-terceros` y `cc/arbol?terceros=1`.
+  - **Verificado:** 151 tests (6 nuevos). No se revisó en navegador porque el panel pide login con Google.
+- **Pendiente:** la 2367 y la 2368 están en $0 en el libro aunque se declaran cada período (falta causar reteIVA y RTICA; pedir detalle por tercero a William); agosto tiene $761.138 en 2365 contra $483.000 declarados; los 490 de febrero a junio y los RTICA/ICA de 2026 no están en el libro.
+- **Archivos Modificados:** `app/services/pagos_impuestos.py`, `app/services/contabilidad_mayor.py`, `app/routes.py` (ya incluido en 36ce120), `desktop/src/components/PagosWizardPanel.tsx`, `desktop/src/components/MayorCuentasPanel.tsx`, `desktop/src/components/LibroMayorPanel.tsx`, `tests/test_pagos_impuestos.py`, `tests/test_contabilidad_mayor.py`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-16 - El libro y Alegra pasan al PUC real (Decreto 2650), y el Libro Mayor se puede leer por cuenta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Migración contable + nueva funcionalidad (Contabilidad → Libro Mayor, Solicitudes de pago, Préstamos)
+- **Qué se implementó:**
+  - **Libro Mayor por cuenta contable.** El libro tenía 1.600 asientos pero para verlos por cuenta solo había un desplegable plano de 39 cuentas que pintaba una cuenta T sin saldo corrido, y un balance de una sola lista del que no se podía entrar a nada. Ahora: **árbol del PUC** (clase → grupo → cuenta → subcuenta) con saldo inicial, débitos, créditos y saldo final en cada nivel, y el **extracto** de cualquier cuenta con su saldo corrido, la **contrapartida de cada línea** (contra qué se movió el asiento), el resumen por tercero y descarga en **PDF y CSV**. `app/services/contabilidad_mayor.py`, `app/tools/extracto_contable_pdf.py`, `MayorCuentasPanel.tsx`.
+  - **Migración al PUC real.** El libro usaba códigos escritos a ojo y **tres significaban otra cosa en el decreto**: `2367` es IVA retenido (no «costos y gastos por pagar», que es `2335`), `2380` es «Acreedores varios» (socios es `2355`) y `5299` es «Provisiones» (comisiones es `529505`). Se verificó cada código contra el decreto antes de escribirlo. Se movieron 62 líneas; **el balance no cambió un peso** ($618.475.440 antes y después). Las cuentas viejas se desactivan, no se borran, y `_cuenta_id_por_codigo` resuelve por alias para que los ~60 call-sites que dicen `"2380"` no se rompieran el mismo día.
+  - **El bug que casi cuesta $52M.** `529505` es a la vez origen (la publicidad se va a `523560`) y destino (las comisiones llegan de `5299`). Repetir la migración se habría llevado los $52,3M de comisiones a publicidad, y **el estado del plan no permite detectarlo** (la cuenta queda activa, con otro nombre, idéntica a una sin migrar). Se registra en `cc_puc_alias_aplicados` qué alias ya corrió. Hay test; corre tres veces seguidas sin mover nada.
+  - **Alegra pasó al catálogo PUC** y con eso **reasignó todas sus ids internas**: el `MAPA_PUC` escrito a mano quedó apuntando a cuentas que ya no existen, y el espejo creía tener cuenta para 1435 y 4135 —1.269 asientos de ventas— cuando habría posteado contra una id muerta. Ahora el puente es el código (`alegra_puc.construir_mapa()`) y el respaldo viejo solo vale si la id sigue viva. Se crearon en Alegra las 8 cuentas que su catálogo parcial no traía (`5235/523560`, `5295/529505`, `1125/112515`, `235510`, `219505`). **Resultado: de 1.341 asientos bloqueados a 0.**
+  - **Prestación de servicios corregida.** A Víctor, Stella y Jenniffer se les practicaba retención de renta del 4 %; el contador aclaró que a ellos no se les practica renta pero sí **ICA (9,66 por mil → 2368)**, y el gasto va a **511095**, no al saco de 5135. El perfil vive ahora **en la ficha del tercero** (`retefuente_exento`, `ica_por_mil`, `cuenta_gasto_default`), no en cada pago: lo que se deja para acordarse en cada quincena no se hace. Se corrigieron los 5 asientos de septiembre con asientos de ajuste (ya estaban espejados en Alegra, y un comprobante emitido no se borra): la 2365 bajó los **$164.542** exactos. A nadie se le giró nada — ese valor nunca salió de su bolsillo.
+  - **La cuenta contable la elige el operador.** La categoría propone, no impone: selector del PUC agrupado por familia en los dos formularios de pago, y el backend solo acepta gasto, costo o inventario (un pago no se carga contra Bancos ni contra Ventas). Antes, para llevar un gasto a la cuenta correcta había que elegir «Otro» y con eso se perdía la retención de la categoría.
+  - **Préstamos:** el interés pasa a **530520** y la retención del 7 % a **236535** «Rendimientos financieros» — ojo, `236515` es honorarios, no rendimientos. La retención se asienta por concepto en su subcuenta de 2365, que es como el contador arma el 350; `retenciones.resumen_periodo` y el control del ticket mensual leen `2365%` o el desglose los dejaba en cero.
+  - **`5195 Diversos` quedó en $0** (tenía $3,17M). Era el cajón donde el auto-posteo tira lo que no sabe clasificar: 47 % eran fletes de Interrapidísimo y 40 % el registro mercantil. Se reclasificó **en el sitio** porque ninguno estaba espejado todavía. Caso a destacar: las pilas AAA de Tronex van **dentro** de las grameras que McKenna vende, así que no eran gasto sino **mercancía (1435)** — dejarlas como gasto infla el margen del producto.
+  - **Verificado:** 349 tests pasan (11 nuevos del PUC, 14 del Libro Mayor por cuenta), balance y árbol cuadran en $623.548.750, y los tres scripts corren con `--dry-run` por defecto. Backups de cada paso en `~/backups_manual/`.
+- **Pendiente:** confirmar con el contador si Armando (socio) lleva el mismo trato de retención que los otros tres; William no existe todavía como tercero; y no se aplicó ICA retroactivo a septiembre (crearía una deuda nueva con el municipio sobre plata ya girada).
+- **Archivos Modificados:** `app/services/puc_colombia.py`, `app/services/alegra_puc.py`, `app/services/contabilidad_mayor.py`, `app/tools/extracto_contable_pdf.py`, `app/services/contabilidad_core.py`, `app/services/pagos_wizard.py`, `app/services/prestamos.py`, `app/services/retenciones.py`, `app/services/alegra_espejo.py`, `app/routes.py`, `desktop/src/components/MayorCuentasPanel.tsx`, `desktop/src/components/LibroMayorPanel.tsx`, `desktop/src/components/PagosWizardPanel.tsx`, `scripts/corregir_prestacion_servicios_sep2026.py`, `scripts/crear_cuentas_puc_alegra.py`, `scripts/reclasificar_gastos_diversos.py`, `tests/test_puc_colombia.py`, `tests/test_contabilidad_mayor.py`, `CLAUDE.md`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`
+
+### 2026-09-16 - Salario de socios en Solicitudes de pago, con la opción de pagar solo una parte
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (Contabilidad → Solicitudes de pago)
+- **Qué se implementó:**
+  - **Botón «🧑‍💼 Salario de socio»** en el formulario de pagos. Armando y Cynthia no tienen contrato laboral, así que lo que cobran por su trabajo es prestación de servicios: va a **5135 con retención de servicios** (4 % declarante / 6 % no), no a nómina. La lista de a quién pagarle sale de los terceros marcados como socio, no de un campo libre.
+  - **«¿Se paga completo?» — el 100 % o una parte.** El gasto y la retención se causan por el valor total, se gire o no, porque el mes ya se trabajó. Lo que no alcance a pagarse queda como **cuenta por pagar a la persona** (2380 si es socio, 2367 si es cualquier otro prestador) y el panel lo dice con nombre y monto antes de aprobar. Ejemplo real de la prueba: salario de $3.000.000, retención $120.000, se giran $1.000.000 y quedan **$1.880.000 por pagar**.
+  - **Botón «⏳ Saldo pendiente»** para girar después lo que quedó debiendo: baja la cuenta por pagar y **no vuelve a causar gasto ni retención**, porque eso ya se hizo. La lista de opciones sale de los saldos reales de 2380 y 2367, con el monto sugerido.
+  - **La opción de pago parcial también quedó en Servicios, Prestación de servicios y Honorarios**, no solo para socios: el problema de liquidez es el mismo con cualquier prestador.
+  - **Dos errores que aparecieron al probarlo de punta a punta y que había que arreglar igual:** `aprobar()` reconstruye las líneas a mano cuando hay impuestos, y se comía la línea del saldo —el asiento salía como si se hubiera pagado todo y la deuda con la persona desaparecía—; y el recálculo al aprobar **no pasaba el modo de retención**, así que una quincena pactada libre de retención volvía a salir con ella descontada. Es exactamente el error que costó plata en septiembre con tres quincenas.
+  - **Verificado** sobre copias de las bases, el ciclo completo: causar el salario con pago parcial, ver subir la cuenta por pagar, girar el saldo después y verla volver a cero; más un pago completo como control.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/routes.py`, `desktop/src/components/PagosWizardPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-16 - El escáner del Documento Completo ya llena la tabla del COA
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección (Fichas técnicas → Documento completo)
+- **Qué se implementó:**
+  - Al adjuntar un pantallazo o PDF, la sección COA quedaba vacía aunque el documento trajera una tabla de resultados (caso MANÍ BRASILEÑO RUNNER - TOSTADO PARTIDO: FT llena, `_coa.parametros: []`). Causa doble: el prompt de estructuración del escáner FT (`_prompt_estructurar_ft`) no tenía ningún campo `parametros`, así que el OCR leía la tabla y el segundo paso la descartaba; y el handler `onCamposExtraidos` solo escribía en la FT, nunca llamaba a `setCoaParametros`.
+  - `documento_scan_tablas.py`: el prompt pide `parametros` (Parámetro|Especificación|Resultado, todas las filas), `einecs` y `grado`. Se añade el rescate de filas que ya tenía el COA: si el JSON trae menos filas de las que el OCR leyó, se reconstruyen desde la transcripción (`_parametros_desde_transcripcion` + `fusionar_texto_parametros`).
+  - El paso 1 ya no se traga la causa del fallo (timeout, DNS, cuota): la conserva y, si el plan B tampoco devuelve nada, lanza `No se pudo leer el documento: <causa>` en vez de un formulario a medias. Ambos pasos dejan rastro en el log.
+  - `FichasTecnicasPanel.tsx`: los `parametros` extraídos van a la tabla COA y `einecs`/`grado` a sus casillas; solo rellena lo que esté vacío. Una sola `mensajeScanLegible` traduce `JSON.parse: unexpected character` y fallos de red en los dos caminos (imagen/PDF y enlace/texto); el de enlace mostraba el error crudo del navegador.
+  - **Verificado** con un COA sintético en portugués (7 filas): 7/7 filas extraídas y traducidas, lote y fabricante correctos. Requiere reinicio de `agente-pro`; el arreglo se escribió después del último reinicio (14:38), por eso el primer intento seguía sin extraer.
+- **Archivos Modificados:** `app/services/documento_scan_tablas.py`, `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-16 - Sin casillas «Manipulación» y «Primeros auxilios» en la SDS del Documento Completo
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Ajuste (Fichas técnicas → Documento completo, Sección 3 — SDS)
+- **Qué se implementó:**
+  - A pedido del usuario se quitan las dos casillas del formulario y también del documento generado. `FichasTecnicasPanel.tsx` (`DocumentoCompletoTabContent`): fuera los campos, sus botones de IA, los estados `sdsPrimeros`/`sdsManipulacion`, la precarga desde borradores y las claves en `buildDatos`.
+  - `documento_completo_pdf.html`: desaparece la Sección 4 «Primeros auxilios»; la 7 pasa de «Manipulación y almacenamiento» a «Almacenamiento» (se conserva la fila de almacenamiento, que no era parte del pedido y sigue llegando de borradores antiguos).
+  - `ficha_tecnica.py`: `_contexto_sds` deja de mapear `primeros_auxilios` y `manipulacion`; salen de `_SDS_CAMPOS_EXCLUSIVOS` y de `_sds_diligenciado`. `documento_cientifico.py`: se retiran `sds_primeros_auxilios` y `sds_manipulacion` de `_CAMPOS_PERMITIDOS`, de `_CAMPOS_ORACION_CORTA` y sus prompts, que quedaban muertos.
+  - **No se tocó** la pestaña SDS suelta (`SdsTabContent`, generador DOCX `sds.py`), que conserva ambas casillas, ni la plantilla del sitio público (`PAGINA_WEB/.../_documento_tecnico.html`), que está guardada por `{% if %}` y simplemente no muestra nada.
+  - Los borradores guardados con esos datos no se pierden en disco, pero dejan de cargarse en el formulario y de salir en el PDF. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/templates/documento_completo_pdf.html`, `app/services/ficha_tecnica.py`, `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
+### 2026-09-16 13:13 - Precios que suben y bajan con la TRM oficial, con aprobación
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad
+- **Qué se implementó:**
+  - **Cómo se calcula:** cada producto guarda su precio y la TRM BanRep del día en que se fijó. Si la TRM se aleja más que el umbral (2 %), se propone mover el precio en `variación × traslado` (60 %): TRM 4.000 → 4.200 = +5 %, precio +3 %. Sube y baja. Los precios que terminan en 900 siguen terminando en 900 (11.900 → 12.900, al más cercano); el resto se redondea a $100. Todo se ajusta en la pestaña.
+  - **Nada cambia sin aprobación:** una tarea diaria (8:40, `precios_trm` en Tareas Programadas) calcula la propuesta para todo el catálogo (449 publicaciones de MeLi) y avisa al grupo de Facturación Ventas. Un administrador aprueba o descarta en **/app → Rentabilidad → Precios TRM**; al aprobar se escriben MeLi y Alegra, y la web se regenera una vez al final del lote.
+  - **Protecciones:** un precio cambiado a mano se toma como base nueva con la TRM de ese día; si MeLi cambió después de la propuesta, ese producto no se toca; una TRM a más de 25 % de la base se toma como dato malo y no se propone nada; un lote interrumpido por un reinicio queda marcado como error a los 30 min.
+  - **Arranque:** la primera corrida (17-sep 8:40) solo guarda la base con la TRM de ese día. Si los precios se fijaron con otro dólar, poner ese valor en «TRM de referencia inicial» antes.
+  - Sin LLM. `PRECIOS_TRM_ACTIVO=0` apaga el cron. Crontab instalado; de paso se quitó una línea duplicada de `reenvio_alertas_banco_cron.py` que quedó fuera del bloque del instalador.
+- **Archivos Modificados:** `app/services/precios_trm.py` (nuevo), `app/routes_precios_trm.py` (nuevo), `scripts/precios_trm_cron.py` (nuevo), `tests/test_precios_trm.py` (nuevo), `desktop/src/components/PreciosTrmTab.tsx` (nuevo), `desktop/src/components/RentabilidadPanel.tsx`, `agente_pro.py`, `app/services/cron_scheduler.py`, `app/data/cron_frecuencias.json`, `scripts/instalar_cron_mcKenna.sh`, `.gitignore`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-15 - Reposiciones de los socios por los préstamos de familiares: Cynthia en cero, Armando con $1.001.003
+- **Autor:** Armando García
+- **Tipo de Cambio:** Registro contable
+- **Qué se implementó:**
+  - **Contexto:** el dinero de los prestamistas familiares no entró por el banco de McKenna sino a cuentas personales de los socios, así que el préstamo nace contra la cuenta **1355 (por cobrar a socios)** y cada socio lo repone después. Esas reposiciones son las únicas líneas que aparecen en el extracto.
+  - **Tres abonos nuevos:** Armando $3.998.997 el 13-sep y $5.000.000 el 14-sep (contra el préstamo de Víctor Hugo García); Cynthia $5.700.000 el 14-sep (contra el tramo adicional de Antonio Ruiz). Asiento en cada caso: débito Bancos, crédito 1355 con el tercero, `tipo_origen = reposicion_socio`, referencias REPO-VHGB-2, REPO-VHGB-3 y REPO-ARUIZ-2.
+  - **Cómo queda la 1355:** Cynthia en **$0** —completó los $16 millones de Antonio— y Armando en **$1.001.003**. Armando había dicho «$1.000.000»: hay **$1.003 de diferencia** que conviene confirmar contra el extracto, quizá un costo de transferencia o un redondeo. No se ajustó por cuenta propia.
+  - **Lo que NO cambia:** el pasivo con los prestamistas (cuenta 2295) sigue igual —Gloria Stella $29M, Víctor $20M, Lira Carmenza $16,95M, Antonio $16M— porque la reposición es entre la empresa y el socio, no un pago al prestamista. Eso solo baja cuando se pagan las cuotas, la primera el 9 de octubre.
+  - **Los tres asientos ya están en Alegra** (comprobantes 125, 126 y 127) gracias al espejo encendido ayer. Quedan pendientes de conciliar porque todavía no se ha cargado el extracto bancario de septiembre.
+- **Archivos Modificados:** ninguno de código; asientos 1796, 1797 y 1798 en `app/data/contabilidad.db` y sus comprobantes en Alegra
+
+### 2026-09-15 13:10 - Las casillas de permisos ya se pueden dar desde Gestión de usuarios, y no vuelven a quedarse cortas
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (cierre del ciclo permisos ↔ UI ↔ backend)
+- **Qué se implementó:**
+  - **El problema de fondo:** la lista de casillas de «Accesos al panel» estaba escrita a mano y ofrecía **22 de los 48 permisos** que el código honra. Faltaban justo los que hacían falta hoy —`pagos` (Solicitudes de pago), `prestamos`, `socios`, `conciliacion-contador`, `whatsapp` (Agente WA), `guias-envio`—: el permiso existía en el código y en la base, pero **no había forma de otorgarlo desde el panel**. Un operario como Jenniffer no podía recibir Solicitudes de pago aunque se quisiera.
+  - **Las casillas ahora se derivan, no se escriben** (`desktop/src/lib/permisosCatalogo.ts`): salen de `NAV_SECTIONS` —las secciones reales del menú— y cada clave se **verifica contra `puedeVerSeccionPanel`** antes de ofrecerse, así que marcarla abre de verdad ese panel. Un apartado nuevo aparece como casilla sin que nadie se acuerde de agregarlo. Se agrupan como el menú, con la nota de qué hereda cada permiso, y las claves guardadas que ya no controlan nada se listan aparte en vez de desaparecer sin avisar.
+  - **`App.tsx` dejó de tener su propia escalera de permisos** y delega en `panelAccess`. Tenerla por duplicado ya había costado caro: «Correo Ventas» se heredaba de `preventa` solo en el menú, así que el panel aparecía y rebotaba al abrirse — y como el hub recuerda el último subpanel visitado, **a Jenniffer se le cerró toda la sección Atención** teniendo los permisos.
+  - **El backend entra al mismo circuito.** Los grupos del guard de contabilidad salieron a `PERMISOS_CONTABILIDAD`, a nivel de módulo en `app/routes.py`, y el QA comprueba que **cada clave que el backend exige tenga casilla en Gestión de usuarios**. Sin eso, proteger un endpoint con un permiso que la UI no sabe dar lo deja cerrado para siempre: es el mismo error de antes, visto desde el otro lado.
+  - **Y esto ya no depende de que alguien se acuerde:** `desktop/scripts/qa-panel-access.mjs` corre ahora dentro de `pytest` (`tests/test_qa_panel_access.py`) además de `npm run qa:panel-access`. Comprobado a propósito con un permiso inventado en el guard: la suite falla nombrándolo.
+  - **Verificado de punta a punta, en vivo:** con Jenniffer en 403 sobre Solicitudes de pago, se marcó su casilla desde la API de administración → pasa a **200** en el wizard y en los catálogos que necesita, y **sigue en 403** en Libro Mayor y Préstamos. Al desmarcarla, vuelve a 403. 158 tests en verde.
+- **Archivos Modificados:** `desktop/src/lib/permisosCatalogo.ts` (nuevo), `desktop/src/components/TicketsPanel.tsx`, `desktop/src/App.tsx`, `desktop/scripts/qa-panel-access.mjs` (nuevo), `desktop/package.json`, `app/routes.py`, `tests/test_qa_panel_access.py` (nuevo), `docs/team-recaps.md`
+
+### 2026-09-15 12:20 - El guard de permisos se extendió a todo el hub Contabilidad
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de control de acceso (continuación del cambio anterior)
+- **Qué se implementó:**
+  - **Mismo hueco, más módulos.** Tras cerrar `/api/pagos/*`, con la sesión de `jerry` (nivel operario, sin ningún permiso contable) seguían respondiendo 200: `/api/contabilidad/cc/*` (Libro Mayor completo, terceros, balances), `/api/prestamos` (cédula, correo y **cuenta bancaria** de cada prestamista y socio), `/api/socios/saldos`, `/api/contabilidad/extractos/*`, `/creditos`, `/ingresos-egresos`, `/checklist` y `/api/alegra/espejo`. Todos son módulos cuyo propio código dice "permiso propio, no heredado — datos sensibles", y eso solo lo aplicaba el frontend.
+  - **Se hizo por prefijo, no ruta por ruta.** Un `before_request` en `app/routes.py` (`_guard_permisos_contabilidad`) resuelve qué permisos exige cada ruta y responde 401 sin sesión / 403 sin permiso. Así una ruta contable nueva **nace protegida** en vez de nacer abierta — que es exactamente cómo se abrieron estas — y el alias `/app/api/...` del proxy queda cubierto por el mismo camino.
+  - **Cuatro grupos, calcados de `lib/contabilidadAccess.ts`** para no romper a quien sí tiene el permiso: catálogos compartidos (plan de cuentas, terceros, medios de pago) abiertos a `libro-mayor`/`prestamos`/`socios`/`pagos` —el wizard de pagos crea terceros desde TerceroSelect—; Libro Mayor, extractos y créditos a `libro-mayor`/`prestamos`/`socios` —el panel de Préstamos lee `/cc/movimientos` para su cronograma—; Préstamos a `prestamos`/`libro-mayor`; y cuenta de socios a `socios`/`libro-mayor`/`prestamos`. Rol administrador entra siempre; `CHAT_API_TOKEN` también, para crons y procesos internos.
+  - **El expediente fiscal del Declarador (`/api/socios/<id>/…`) quedó intacto**, con su propio control de que cada socio ve solo el suyo.
+  - **Verificado en vivo** tras reiniciar `agente-pro`, con sesiones reales de `jerry` y de Armando: 13 rutas dan **403** para ella y **200** para él y para el token de sistema; su sesión de tickets sigue normal. En tests, `tests/test_permisos_api_contabilidad.py` (renombrado desde `test_pagos_permisos_api.py`) pasó de 10 a **37 casos**, incluido uno que comprueba que una ruta contable inventada también queda cerrada.
+  - **Nota para quien siga:** ningún usuario activo tiene hoy permisos contables explícitos — quienes usan el hub (Cynthia, Armando, admin) entran por rol administrador. Si mañana se le da Contabilidad a alguien de nivel operario, hay que marcarle la casilla correspondiente en Gestión de usuarios; antes de este cambio "funcionaba" sin marcarla porque nadie estaba mirando.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_permisos_api_contabilidad.py`, `docs/team-recaps.md`
+
+### 2026-09-15 11:30 - Jenniffer no debe ver las solicitudes de pago: en el menú no las veía, por API sí
+
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de control de acceso
+- **Qué se implementó:**
+  - **El hallazgo:** el usuario `jerry` (Jenniffer, despachos, nivel operario) no tiene los permisos `pagos` ni `libro-mayor`, así que el panel le ocultaba Contabilidad → Solicitudes de pago. Pero las rutas `/api/pagos/*` solo exigían `_api_token_valido()`, que acepta la sesión de **cualquier** usuario del panel. Probado con su propia sesión contra el servidor en vivo: devolvía el listado completo de solicitudes con proveedor, monto, estado y totales, el directorio de proveedores con sus saldos en 2205, la factura adjunta de cada solicitud y los endpoints de aprobar y rechazar. **Ocultar en el menú no es restringir.**
+  - **El arreglo:** las 17 rutas de `/api/pagos/*` pasan ahora por `_pagos_rechazo()`, que exige lo mismo que el panel (`lib/contabilidadAccess.ts`, sección "pagos"): permiso propio `pagos` o `libro-mayor`, o rol administrador; `CHAT_API_TOKEN` sigue entrando para crons y procesos internos. Mismo patrón que ya usaban `app/routes_anulaciones.py` y `app/routes_conciliacion.py`, que sí estaban protegidas.
+  - **Verificado en vivo tras reiniciar `agente-pro`:** con la sesión de `jerry`, las seis rutas probadas responden **403**; con el token de sistema, 200. Su sesión de tickets sigue funcionando normal (`/api/tickets/auth/me` → 200), así que no perdió nada de lo suyo.
+  - **Lo que NO quedó cubierto y hay que decidir aparte:** con esa misma sesión siguen abiertos `/api/contabilidad/cc/*` (movimientos y terceros del Libro Mayor), `/api/prestamos` (cédula, correo y cuenta bancaria de prestamistas y socios), `/api/socios/saldos` y `/api/contabilidad/extractos/*`. Son los módulos cuyo propio código dice "permiso propio, no heredado — datos sensibles", y hoy solo lo cumple el frontend. El arreglo es el mismo guard; se dejó fuera de este cambio por tocar más paneles de los que se pidió revisar.
+- **Archivos Modificados:** `app/routes.py`, `tests/test_pagos_permisos_api.py` (nuevo, 10 casos), `docs/team-recaps.md`
+
+### 2026-09-14 12:40 - Etiquetas: los cuadros de texto de la ficha ya no cortan el último renglón
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha 76 × 66 · campos editables)
+- **Qué se implementó:**
+  - Algunos campos de la ficha —se veía en Conservación de Sales minerales— mostraban el texto cortado con barra de desplazamiento en lugar de estirarse hasta caberlo.
+  - **Causa: dos píxeles de borde.** El cuadro se estira poniendo `height = scrollHeight`, pero `scrollHeight` mide contenido más relleno y NO el borde, mientras que el campo es `box-sizing: border-box`, de modo que la altura asignada sí incluye el borde. El borde punteado de 1 px arriba y 1 px abajo se comía 2 px por dentro y el texto se quedaba siempre ese pelo corto. Medido: Conservación tenía 66 px de cuadro para 68 px de texto. Ahora se suma el grosor del borde.
+  - **Y se vuelve a medir cuando hace falta.** Antes solo se ajustaba al cambiar el valor; el texto también reflúye cuando termina de cargar la tipografía web (hasta entonces se mide con la de repuesto) y cuando cambia el ancho de la celda. Se pasó a `useLayoutEffect` —mide antes de pintar, sin parpadeo—, se añadió la versión de las fuentes como dependencia (`useVersionFuentes`, el mismo hook que ya usaban los formatos de 30 mL y circular) y un `ResizeObserver` sobre el propio campo.
+  - **Comprobado con los textos reales** de las fichas guardadas, sobre la retícula maestra de verdad (960 px, 3 columnas, filas del cuerpo): los seis módulos pasan de tener uno cortado a que cuadro y texto midan lo mismo en todos.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/EditableField.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 15:40 - No se encendió la emisión de documentos soporte: Alegra no los transmite a la DIAN todavía
+- **Autor:** Armando García
+- **Tipo de Cambio:** Verificación previa a una acción fiscal + ticket de trámite
+- **Qué se implementó:**
+  - **Se iba a encender `PRESTAMOS_DOC_SOPORTE_ACTIVO=1` y la verificación previa lo frenó.** Contra la API de Alegra: la plantilla 15 de **factura** electrónica está habilitada (`isElectronic: true`, resolución 18764115063321, rango 1-20.000, vence 2028-09-02), pero la plantilla 10 de **documento soporte** tiene `isElectronic: false`, sin resolución de numeración y sin rango. Son dos habilitaciones distintas ante la DIAN.
+  - **Qué habría pasado si se enciende:** los documentos de las cuotas se crearían en Alegra pero **no se transmitirían a la DIAN**. No servirían como soporte de la deducción del gasto financiero —que es exactamente para lo que se emiten— y además consumirían numeración de una plantilla que después habría que rehacer. Por eso se dejó en sombra y se documentó en el propio código, en `_doc_soporte_activo()`.
+  - **TKT-2026-1323** con los pasos: pedir a la DIAN la resolución de numeración para documento soporte en adquisiciones a no obligados a facturar (Res. 000167 de 2021), cargarla en Alegra y habilitar el electrónico en la plantilla 10. No se puede por API. Plazo: la primera cuota con retención vence el **9 de octubre** ($21.022 de Antonio Ruiz; $85.400 ese mes entre los cuatro prestamistas).
+  - **Lo que sí quedó listo y no hay que volver a revisar:** el ítem INTERES-MUTUO existe (id 624) aunque el documento no lo usa —va por cuenta contable 5252—; la retención «Rendimientos financieros 7 %» se creó en Alegra (id 14) y está mapeada; los cuatro prestamistas ya son contactos con correo (ids 112, 32, 29, 33); y el ensayo en seco de la cuota 1 sale correcto con la retención de $21.021,58.
+  - **Mientras tanto la retención no queda invisible:** con el espejo encendido, el asiento del Libro Mayor de cada pago llega solo a Alegra como comprobante contable, así que el contador la ve aunque el documento soporte todavía no se emita.
+- **Archivos Modificados:** `app/services/prestamos.py`, `CLAUDE.md`, `docs/team-recaps.md`; fuera del repo: TKT-2026-1323
+
+### 2026-09-14 15:05 - Trii en el expediente (la venta de 2025 dio pérdida) y la retención del 7 % creada en Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos nuevos en el expediente + configuración en Alegra
+- **Qué se implementó:**
+  - **Trii es la plataforma y Acciones & Valores la comisionista que la respalda:** las cifras de los tres CSV que subió Armando cuadran al peso con los certificados ya cargados (compras 2024 por $2.757.985, 2025 por $3.685.445, ventas 2025 por $6.568.820, dividendos $761.088). Lo que Trii agrega y el certificado no tenía es el **detalle operación por operación con fechas, precios y comisiones**, que es lo que permite calcular la ganancia real.
+  - **Resultado del cálculo FIFO, con las comisiones dentro del costo: la venta de acciones de 2025 dio PÉRDIDA de $227.651, no ganancia.** La venta del 27-abr-2025 de 3.254 ECOPETROL por $5.954.820 pierde $330.401; las 50 BVC por $614.000 ganan $102.750. Tenencia menor a dos años, así que es renta ordinaria, no ganancia ocasional. Las 185 ECOPETROL que quedaban se vendieron el 6-ene-2026 con ganancia de $27.600, que va en el año gravable 2026 y no en 2025.
+  - **El flujo con el banco quedó documentado** para la justificación patrimonial: $6.450.000 en depósitos aprobados y $7.001.969 en retiros, con la advertencia de que hay cinco depósitos RECHAZADOS por $6.500.000 que no son salida de dinero aunque aparezcan en el archivo.
+  - **Sobre el ítem INTERES-MUTUO: ya existía** en Alegra (id 624) y además **no se usa** — el documento soporte va por cuenta contable (5252) porque Alegra rechaza los ítems en esta cuenta con el error 11034. Lo que sí faltaba, y era el bloqueo real, es que **la retención de rendimientos financieros al 7 % (Art. 395 ET) no estaba configurada**: de las 13 retenciones de la cuenta ninguna era esa, así que el documento soporte de una cuota habría salido SIN retención y el contador no la habría visto por esa vía. Se creó por API (id 14, `POST /retentions` responde 201) y se mapeó en el código.
+  - **Verificado en dry run con la cuota 1 real del préstamo #1:** el documento ahora sale con `retentions: [{id 14, amount 21.021,58}]`. Ya no falta nada técnico para emitirlo; falta la decisión de encender `PRESTAMOS_DOC_SOPORTE_ACTIVO=1`, que no se tocó porque un documento soporte emitido viaja a la DIAN y solo se corrige con nota de ajuste.
+  - **Verificado:** 85 tests, PDF del expediente regenerado (301 documentos), cálculo FIFO contrastado contra los certificados de la comisionista.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/declarador.py`, `app/services/conciliacion_contador.py`, `CLAUDE.md`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Armando/15_Inversiones_Acciones_y_Valores/` y la retención nueva en Alegra
+
+### 2026-09-14 14:10 - Espejo a Alegra encendido, 2026 cuadrado al peso, y los certificados de la comisionista en el expediente
+- **Autor:** Armando García
+- **Tipo de Cambio:** Operación sobre datos + categoría nueva en el expediente de socios
+- **Qué se implementó:**
+  - **El espejo quedó encendido** (`ALEGRA_ESPEJO_ACTIVO=1`) y se reespejó lo que faltaba: 73 asientos de enero a junio y los 15 asientos con retención de julio y agosto. **La cuenta 2365 de 2026 quedó en $2.931.292 en el Libro Mayor y $2.931.292 en Alegra, diferencia cero en los ocho meses.** El hallazgo de «$2.621.225 que el contador no ve» se cerró solo al volver a analizar. De aquí en adelante cada asiento nuevo llega a Alegra sin que nadie haga nada.
+  - **Las 484 ventas diarias de MeLi de julio-agosto NO se espejaron hacia atrás, a propósito:** no aportan al 350, y volcarlas habría llenado Alegra de comprobantes sin relación con lo que el contador necesita. Van solas de ahora en adelante.
+  - **Tres arreglos que hicieron falta para que el reespejo terminara.** `GET /journals/types` devuelve todos los comprobantes con sus líneas, así que se vuelve más lento cuanto más se espeja: con 20 s de timeout empezó a fallar apenas pasó de 100 comprobantes y tumbaba el lote. Ahora son 90 s, con caché de 10 minutos y, si la recarga falla, sigue con el valor anterior. El contacto de Alegra se resolvía con una petición por línea (200 para un semestre sobre 20 terceros) y ahora se cachea. Y la lectura de retenciones reintenta ante 503 y marca `parcial` si se corta: una lectura a medias reportaba tres meses en cero y habría acusado al contador de un faltante inexistente.
+  - **Certificados de Acciones & Valores 2024 y 2025** (NIT 860.071.562-1, cuenta 266039), que Armando dejó en la carpeta: categoría nueva `inversiones`, carpeta `15_Inversiones_Acciones_y_Valores/<año>/`, pregunta nueva en el cuestionario y copias sin clave de los PDF (venían protegidos con la cédula). Los zips duplicados se retiraron.
+  - **Lo que dicen esos certificados, ya como hallazgos del expediente:** a 31-dic-2024 tenía **$3.179.061** en la comisionista (BVC 50 y ECOPETROL 1.551, más caja) y a 31-dic-2025 **$350.434**; **retención ya practicada a favor de $10.862 y $8.561**, que se restan del impuesto en la corrección; **dividendos 2025 por $761.088 sin retención**, que son ingreso a declarar; y ventas por $6.568.820 cuya ganancia hay que calcular contra el costo fiscal. La cuenta se abrió el 17-feb-2024, así que 2020-2023 quedaron marcados «no aplica».
+  - **Verificado:** libro contra Alegra mes a mes tras cada tanda, 85 tests, `tsc`, build, PDF del expediente regenerado (298 documentos).
+- **Archivos Modificados:** `app/services/alegra_espejo.py`, `app/services/conciliacion_contador.py`, `app/services/declarador.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `docs/team-recaps.md`; fuera del repo: `.env` (bandera del espejo), `/home/mckg/Declarador/Armando/15_Inversiones_Acciones_y_Valores/`
+
+### 2026-09-14 12:20 - Etiquetas: el cuadro de los atributos deja de encoger al bajar la letra
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Corrección (ficha 76 × 66 · módulos de atributo)
+- **Qué se implementó:**
+  - En la plantilla de Sales minerales, bajar el tamaño de letra de un atributo desde el menú de tipografía **encogía también su cuadro** y descuadraba la fila. Se veía sobre todo en Olor y Conservación.
+  - La causa: el alto mínimo del cuadro estaba escrito en `em` (`min-h-[3.7em]`), y `em` sigue al tamaño de letra. Al bajar la fuente de 14 a 9 px, el suelo del cuadro pasaba de 51,8 a 33,3 px. Ahora está en px (`min-h-[52px]`, los mismos tres renglones al tamaño por defecto): el cuadro conserva su alto se elija la letra que se elija, y sigue creciendo solo si el texto pide más de tres renglones.
+  - **Comprobado por el camino real:** se montó la retícula de atributos en modo edición y se bajó la letra de Olor y Conservación a 9 px con la misma llamada que hace el menú de tipografía. Medido en el navegador: la fuente pasa de 14 a 9 px y el cuadro se queda en 52 px, antes y después.
+  - Afecta a los seis módulos (Origen, Apariencia, Olor, Composición, Grado, Conservación) de todos los formatos que usan la ficha de 76 × 66, no solo a Sales minerales.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductAttribute.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 12:30 - Conciliación contador: alertar de las retenciones que el contador no puede ver en Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (dos detectores) + hallazgo medido
+- **Qué se implementó:**
+  - **Se midió el hueco y es grande.** El contador arma el 350 con lo que ve en Alegra. Contrastando las dos fuentes: el Libro Mayor tiene **$2.931.292** acreditados en la cuenta 2365 durante 2026; en Alegra hay **$310.067**. Son **$2.621.225 de retención practicada que él no puede ver**, y los meses de enero a junio están en cero al otro lado. En Alegra hay **0 facturas de compra** de 2026 y solo 11 comprobantes contables, de los cuales 4 tocan retención.
+  - **`retenciones_visibles_en_alegra(año)`** (en `alegra_espejo.py`, solo lectura) suma lo que el contador vería: líneas de comprobante contable que acreditan una cuenta de retención por pagar (5108 a 5123) más las retenciones aplicadas dentro de facturas de compra. Si faltan credenciales o la API falla lo dice; no devuelve ceros en silencio, que se leerían como «Alegra está al día».
+  - **Dos detectores nuevos** en Conciliación contador, tipo «👁️ Lo que el contador NO ve»: `_det_alegra_vs_libro` (compara mes a mes y propone las dos salidas: encender el espejo `ALEGRA_ESPEJO_ACTIVO=1` o dar acceso de solo lectura al Libro Mayor) y `_det_retencion_prestamos`, que es preventivo.
+  - **La retención de los préstamos es el caso más delicado** y todavía no ha ocurrido: 96 cuotas por pagar con retención del 7 % sobre intereses, **$1.604.281 en total**, a los cuatro prestamistas. La primera vence el **9 de octubre** y ese mes suma **$85.400**. Nace de un pago de McKenna, no de una factura de proveedor: no llega al contador por ninguna otra vía, y hoy están apagados tanto el espejo a Alegra como el documento soporte. Si se practica y nadie la declara, el dinero queda retenido sin consignar, que es lo que sanciona el Art. 402 del Código Penal.
+  - **Contexto de TKT-2026-1301:** ese ticket pide a William el detalle por tercero de los 350 de 2026 porque el contador tiene compras que nunca llegaron al sistema. Esto es el espejo del mismo problema en la dirección contraria: el sistema tiene retenciones que el contador no tiene. Los dos huecos se cierran con el mismo acuerdo.
+  - **Verificado:** los dos detectores corridos contra los datos reales y registrados por `analizar()` (21 hallazgos pendientes, 2 nuevos), leídos por el endpoint del panel. Tests de declarador y smoke (85) pasan; los cinco fallos de `test_precios_canales` son anteriores y ajenos.
+- **Archivos Modificados:** `app/services/alegra_espejo.py`, `app/services/conciliacion_contador.py`, `desktop/src/components/ConciliacionContadorPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 11:50 - Etiquetas: la plantilla se ve entera al abrirla, sin barras de desplazamiento
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Mejora de interfaz (vista previa de los cuatro formatos)
+- **Qué se implementó:**
+  - **Cada plantilla se dibuja a la escala que haga falta para caber entera** en el hueco disponible, por ancho y por alto, en vez de abrirse a tamaño de diseño con barras. Cada formato tiene la suya: medido en un hueco de 660 px, el 30 mL sale al 55 %, el 69 × 51 al 73 % y el circular al 96 %. Nunca se agranda por encima del 100 %, y por debajo del 30 % deja de encoger y el marco vuelve a recorrerse (una ventana muy angosta no debe volver la etiqueta ilegible).
+  - **Se revierte a propósito una decisión anterior**, que era abrir siempre al 100 % y desplazarse. Aquella se tomó porque encoger la etiqueta rompía la edición; pero lo que la rompía era cambiar las medidas, no escalar. Aquí se aplica `transform: scale()` sobre el **lienzo completo**: el ajuste automático de texto sigue midiendo a tamaño de diseño (`scrollWidth`/`clientWidth`, que no ven transformaciones), los textos curvos miden en unidades del SVG y el navegador transforma las coordenadas de los clics. La ficha de 76 × 66 ya venía escalando así.
+  - **Comprobado con edición real, no solo mirando:** sobre un lienzo al 64 %, un clic en el centro en pantalla de la casilla del nombre enfocó esa casilla y lo tecleado llegó al estado del componente. Es justo lo que falló en el intento anterior, así que se probó antes de dar el cambio por bueno.
+  - `useEscalaAjuste` (nuevo) concentra el cálculo y lo usan tanto `Marco30ml` (30 mL, 69 × 51, circular) como el marco de la ficha de 76 × 66. No recalcula al desplazarse: la escala cambiando bajo el cursor sería peor que la barra.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/useEscalaAjuste.ts` (nuevo), `desktop/src/components/etiqueta-30ml/Marco30ml.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 11:50 - Socios: la carpeta de Cynthia organizada igual que la de Armando, y el expediente unificado en un solo sitio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica + organización de archivos
+- **Qué se implementó:**
+  - **La carpeta de Cynthia quedó con la misma estructura y los mismos nombres** que la de Armando: `01_Declaraciones_Renta_F210/F210_2019.pdf` … `F210_2024.pdf`, `02_Informacion_Exogena_DIAN/Exogena_2021.xls` … `Exogena_2025.xlsx`, `09_Binance_Evidencia_API/` con el export por API. Su `LEEME.md` y su informe en PDF (9 páginas) ya están generados.
+  - **El organizador ahora también recoge lo que se subió por el panel.** Los 11 documentos principales de Cynthia (seis F210 y cinco exógenas) vivían en `comprobantes/socios/1/` con nombre de timestamp (`20260913205356_2019.pdf`), fuera de su carpeta: el contador no los habría encontrado. Ahora se llevan a la carpeta del socio y se renombran, así que el expediente completo queda en un solo sitio, sin importar por dónde entró cada archivo.
+  - **Un socio nuevo nace con la estructura final.** `CARPETAS_SOCIO` (lo que crea el botón «Crear carpeta») se unificó con las carpetas a las que lleva `organizar_carpeta()`; antes eran dos nomenclaturas distintas y el socio nuevo empezaba con una que luego cambiaba.
+  - **Años fuera del período elegido.** Cynthia subió sus F210 de 2019 y 2020 pero pidió organizar desde 2021, así que esos años salían en blanco en el informe. Ahora se marcan «Fuera del período elegido» y explican cómo incluirlos.
+  - **Dos arreglos del importador:** `LEEME.md` (el índice de la carpeta) y `00_Informe_Para_El_Contador/` (el PDF que genera el propio panel) dejaron de registrarse como soportes; el informe estaba llegando a citarse a sí mismo.
+  - **Verificado:** 85 tests (uno actualizado por la estructura unificada), `tsc`, build, los dos PDF regenerados y revisados página por página.
+- **Archivos Modificados:** `app/services/declarador.py`, `app/tools/declarador_pdf.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Cynthia/` reorganizada
+
+### 2026-09-14 11:30 - Etiquetas: la franja de color en los cuatro formatos, dentro del SVG del código, y zona de timbre en Activos Cosméticos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de diseño (4 formatos) + corrección de fondo en el generador EAN-13
+- **Qué se implementó:**
+  - **La franja de ocho colores sobre el código de barras pasa a los cuatro formatos** (ficha 76 × 66, 30 mL, 69 × 51 y circular 53), no solo al circular. Todos desembocan en el mismo `BarcodeBlock`, así que la franja se dibuja desde ahí y cada formato solo pasa su alto (`ALTO_FRANJA_*`).
+  - **Se dibuja DENTRO del SVG del código, no como capa del DOM.** Es la única forma de que empiece y acabe justo donde las barras: la zona muda del EAN-13 es asimétrica (11 módulos a la izquierda, 7 a la derecha), así que el centro de las barras cae en el 51,8 % de la imagen y no en el 50 %, y encima `object-fit: contain` escala distinto en cada formato (en el 30 mL manda el ancho, en el circular el alto). Compartiendo coordenadas con las barras el encaje es exacto a cualquier escala — y la franja viaja sola al PNG y a la impresión. `generarEAN13` acepta ahora un parámetro opcional `franja`; sin él el código sale idéntico a antes, que es lo que necesitan el buscador de SKU y la herramienta de arrastrar al lienzo.
+  - **Activos Cosméticos (30 mL): el código se corre a la derecha** y deja libre a su izquierda el 40 % de la fila (~9,5 mm) para estampar el timbre físico. Cierra en la misma vertical que el bloque de información técnica de arriba (94 % centrado = 3 % de margen). El hueco sale en blanco; el rótulo «Timbre» solo se ve en edición. Acotado a `.e30-timbre-fila`: los otros tres formatos comparten `.e30-barras` y no se tocaron. **Ojo:** el código queda en 13,6 mm de ancho impreso, un 36 % del nominal EAN-13 (37,3 mm) — por debajo del mínimo de la norma. Conviene probar una etiqueta impresa antes de usarlo en punto de venta.
+  - **Circular 53 — proporciones.** El borde exterior sube del 3,5 % al 1,5 % de margen (el círculo llega casi al filo), el título va de 48,5 a 60 px reales y el bloque central se recompone sin franjas muertas. El título no crecía aunque se subiera su tamaño: `TextoCurvo` lo encoge hasta que quepa en su arco, y con `letter-spacing: 0.05em` pedía 521 px sobre un arco de 491. Se bajó el espaciado a 0,012em, se abrió el tramo a ±68° y se bajó un punto el radio para que la tinta no roce el aro naranja.
+  - **Verificado con render, no por constante:** se montó una página aislada que dibuja los componentes reales y se capturó con Chrome headless (Puppeteer) desde el servidor, porque el panel exige inicio de sesión con Google. Ahí se vio que un primer montaje de la franja dejaba el código del 30 mL y del 69 × 51 **en cero píxeles de ancho** — `.e30-barras` es flex en fila y la franja al 100 % lo dejaba sin sitio. Sin renderizar, eso se habría ido a producción con los códigos invisibles.
+- **Archivos Modificados:** `desktop/src/lib/ean13.ts`, `desktop/src/components/etiqueta-ficha/{BarcodeBlock.tsx,franjaBarras.ts (nuevo),ProductLabelForm.tsx,productLabelTypes.ts}`, `desktop/src/components/etiqueta-30ml/{BarcodeSection.tsx,RightDocumentationPanel.tsx,etiqueta30mlTypes.ts,etiqueta30ml.css}`, `desktop/src/components/etiqueta-simple/{EtiquetaSimple.tsx,etiquetaSimpleTypes.ts}`, `desktop/src/components/etiqueta-circular/{EtiquetaCircular.tsx,etiquetaCircular.css,etiquetaCircularTypes.ts}`, `docs/team-recaps.md`
+
+### 2026-09-14 05:20 - Socios: informe del expediente en PDF y carpeta reorganizada con nombres que el contador entiende
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (PDF) + reorganización de archivos
+- **Qué se implementó:**
+  - **El informe cronológico se descarga en PDF** desde el paso «Expediente para el contador» (`GET /api/socios/<id>/informe.pdf`, `app/tools/declarador_pdf.py` con ReportLab). 13 páginas para Armando: portada con el total a regularizar y el resumen por año, un mapa de en qué carpeta está cada cosa, y luego una página por año gravable con las tres columnas (declarado · lo que pasó · efecto de corregir), la línea de tiempo de movimientos con rastro bancario y **la lista de soportes con su ruta relativa**, para abrir el PDF y la carpeta al lado y cruzar sin preguntar. Se regenera en cada descarga (los intereses corren por días) y queda guardado en `00_Informe_Para_El_Contador/` dentro de la propia carpeta del socio.
+  - **La carpeta del socio quedó organizada.** `organizar_carpeta()` movió **253 archivos** de `/home/mckg/Declarador/Armando/` —que tenía 42 zips y 23 PNG sueltos en la raíz— a subcarpetas numeradas: `01_Declaraciones_Renta_F210`, `02_Informacion_Exogena_DIAN`, `03_Extractos_Cuenta_Ahorros/<año>`, `04_Extractos_Tarjetas_Credito/<año>`, `05_Certificados_Tributarios_Banco/<año>`, `06_Cuotas_de_Creditos`, `07_Binance_Historial_Transacciones`, `08_Binance_Tenencia_31_Diciembre`, `10_Otras_Plataformas_Littio`, `13_Soportes_Varios`, `14_Referencia_Formulario_210`.
+  - **Y con nombres que se entienden sin abrirlos:** los originales venían con números de radicado y UUID. Ahora son `F210_2021.pdf`, `Exogena_2023.xlsx`, `Tarjeta_8017_2025-04.xlsx`, `Credito_310158870_2024-08.xlsx`, `Certificado_Retencion_y_GMF_2024.xlsx`, `Reporte_Anual_Costos_2022.xlsx`, `Binance_Historial_2020-2025.csv`, `Binance_Tenencia_31dic2025.pdf`, `Littio_Captura_07.jpeg`. La ruta de cada documento se actualizó en el expediente, se escribió un `LEEME.md` con la tabla de carpetas, y se guardó un respaldo de las rutas anteriores por si hay que revertir.
+  - **Lo que no se toca:** `Calculos/` y `Para_Contador/` son enlaces a carpetas compartidas con los scripts del motor; el organizador los salta. Se retiró la carpeta `Littio/` (71 capturas byte a byte idénticas a las ya organizadas) y las carpetas viejas que quedaron vacías. Un registro quedó huérfano —el `reporte_Exogena2020.xls` que en realidad era el de 2022— porque el archivo ya no estaba en disco; se eliminó del expediente y su contenido sigue en `Exogena_2022.xls`.
+  - **Verificado:** 85 tests, `tsc`, build, PDF renderizado y revisado página por página, descarga probada por HTTP (200, `application/pdf`, 13 páginas) y botón probado en Chromium.
+- **Archivos Modificados:** `app/tools/declarador_pdf.py` (nuevo), `app/services/declarador.py`, `app/routes_declarador.py`, `desktop/src/components/SociosPanel.tsx`, `CLAUDE.md`, `docs/team-recaps.md`; fuera del repo: toda la carpeta `/home/mckg/Declarador/Armando/` reorganizada
+
+### 2026-09-14 05:05 - Socios: el expediente como línea de tiempo, un documento que el contador recorre año por año
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (paso 7 del wizard de Socios)
+- **Qué se implementó:**
+  - **El paso «Listo para el contador» dejó de ser una lista de pendientes y pasó a ser el documento del expediente.** Se llama ahora **«Expediente para el contador»** y presenta, en orden cronológico, un bloque por año gravable con la misma estructura en los seis: **1 · Lo que dice la declaración** (patrimonio, deudas, renta líquida, impuesto, con el aviso de que va sin criptoactivos) · **2 · Lo que realmente pasó** (tenencia en Binance al 31-dic con el detalle por moneda, ganancia o pérdida realizada, y el patrimonio bruto real del año = declarado + cripto) · **3 · Efecto de corregir** (renta e impuesto corregidos, mayor valor, sanción, intereses con sus días, total) más el respaldo bancario del año (meses de extracto y cifras de la tarjeta).
+  - **Línea de tiempo real dentro de cada año,** con hitos fechados que el contador puede cruzar contra el banco: cada **compra y venta P2P** completada (monto exacto en COP, tasa implícita, método de pago y número de orden, de `evidencia_binance_p2p.csv`), cada **desembolso de crédito** con su fecha, plazo y tasa (leídos de los certificados de Bancolombia), los **retiros y depósitos** de cripto con su red, y el cierre del año con la **presentación de la declaración**. Por defecto se ven solo los relevantes (declaración, créditos y P2P sobre $1M); un clic despliega los traslados y retiros.
+  - **Los soportes cuelgan del año al que pertenecen.** Cada bloque lista sus documentos con categoría, nombre y rango de años cuando uno cubre varios, y se abren con un clic; los cálculos e informes que cubren todo el período quedan en una sección aparte al final. Arriba, el total a regularizar y un índice de años que salta al bloque.
+  - **Backend:** `declarador.cronologia()` (endpoint `GET /api/socios/<id>/cronologia`, aparte del expediente porque lee los CSV de evidencia y los certificados del disco), más `creditos_desde_certificados()` y `hitos_binance()`. «Copiar como texto» genera el mismo documento en texto plano para pegarlo en un correo al contador.
+  - **Verificado:** 8 tests de declarador + smoke (85), `tsc`, build y recorrido en Chromium de los seis años de Armando (32 hitos en 2021, 42 soportes en 2024).
+- **Archivos Modificados:** `app/services/declarador.py`, `app/routes_declarador.py`, `desktop/src/components/SociosPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 04:35 - Socios: el certificado anual de Bancolombia cubre los extractos de tarjeta que el banco ya no entrega
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora técnica (plan de carga) + lectura de fuentes alternativas
+- **Qué se implementó:**
+  - **El mapa pedía extractos mensuales de tarjeta de 2021-2023 que Bancolombia ya no entrega** (solo conserva los últimos 12-24 meses), y los pintaba en rojo como si faltara algo conseguible. Al abrir los certificados que Armando ya había cargado se confirmó que el **«Reporte anual de costos totales»** trae, por año y por tarjeta, los consumos en COP y USD con número de operaciones, los pagos a capital e intereses, **cuántos avances en efectivo hubo** y las cuotas de manejo; y el **certificado anual de retención** trae el saldo de la tarjeta a 31 de diciembre y los intereses causados.
+  - **Requisitos con `alternativas`.** Un tipo de documento puede declarar qué otra fuente lo sustituye: si falta el extracto de tarjeta de un año pero hay certificado anual, la casilla queda **«✓ cubierto · por certificado»** (verde con borde punteado, con su propia entrada en la leyenda) en vez de roja, y deja de contar como faltante.
+  - **Las cifras se leen de verdad, no se asumen.** `resumen_tarjeta_certificado()` parsea el xlsx (sin LLM; suma las secciones cuando el año trae dos tarjetas) y el detalle de la casilla muestra consumos, pagos, intereses, avances, cuota de manejo, saldo a 31-dic, tarjetas y de qué archivo salió cada cifra. Dato útil que salió de ahí: **en 2021 y 2022 no hubo ningún avance en efectivo**, así que ninguna compra de cripto de esos años se fondeó por esa vía; los avances aparecen en 2023 (3), 2024 (2) y 2025 (1).
+  - El renglón pasó a llamarse «Movimientos de tarjetas de crédito» y su «cómo conseguirlo» explica la ruta real: extracto mensual mientras exista, certificado tributario para lo viejo. El plan de Armando pasó de 13 faltantes a **7**, y de 25/38 a **36/43** documentos cubiertos (84 %); lo único que queda de tarjeta es 2020.
+  - **Verificado:** 8 tests de declarador + smoke (85), `tsc`, build y revisión en Chromium de la fila del mapa y del detalle con las cifras de 2022.
+- **Archivos Modificados:** `app/services/declarador.py`, `desktop/src/components/SociosPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-14 04:15 - Socios: plan de carga con matriz por año, meta calculable (activos omitidos, impuesto, sanción e intereses) y tenencias en el tiempo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Remasterización del paso «Plan de carga» + cálculo de la corrección por activos omitidos
+- **Qué se implementó:**
+  - **Mapa del expediente (documento × año).** Cada tipo de documento es una fila y cada año gravable una columna; la casilla dice qué hay (verde con el nombre del archivo, ámbar «7/12 meses», rojo «falta», gris «no declaró» / «no aplica»). Clic en una casilla abre el detalle debajo: los archivos con «leer» y «abrir» y «añadir otro», o el para qué, el cómo y el botón de subir. Las filas completas se colapsan en «✓ Completo · 2020–2025»; «Qué falta» lista solo lo pendiente, ordenado por si **bloquea el cálculo** (solo el historial de Binance) o es soporte, y explica qué pasa si no se consigue. Un archivo que cubre varios años (historial Binance 2020-2025, PDF de la cuenta 2019-2024) cuenta en cada año y se puede ajustar «hasta» desde el detalle; los zip ya descomprimidos no se cuentan dos veces.
+  - **«La meta» arriba de todo, con veredicto.** Dice si con lo cargado el cálculo ya está completo, y muestra cinco cifras: activos omitidos al último cierre presentado, mayor impuesto, sanción del 10 % (Art. 644), intereses de mora estimados (Art. 635, tasa editable, compuesta día a día desde cada presentación) y total si se corrige hoy. Año por año: situación (corregir / en preparación / no declarada / ¿declaraste?), activo omitido a 31-dic (renglón 29), efecto cripto (renglón 74), impuesto pagado → corregido y costo de corregir. Vías legales (588, 239-1, 641, normalización) en un desplegable.
+  - **Cálculos cargados desde `Declarador/Calculos`:** `tenencia_fifo_por_anio()` reconstruye el costo fiscal de lo que quedaba en Binance al 31 de diciembre de cada año (el informe de agosto solo tenía 2025; el motor coincide al 0,3 %) y una serie mensual; `impuesto_renta_art241()` con la UVT histórica 2020-2022 reproduce el impuesto de los F210 presentados y el mayor valor del informe (2021 $2.978.062, 2023 $336.886). «Evolución de la tenencia»: barras mes a mes 2020-2025 y tabla moneda × cierre de año.
+  - **Alineado con el calendario:** la declaración del año en ventana (agosto–octubre del siguiente) sale «En preparación» con el turno de años anteriores (23 de octubre), no como faltante ni como pendiente; el hallazgo automático «borrador 2025» quedó descartado. Estado nuevo de año `no_presentada` («no presenté ese año») y «no aplica» por año (exógena 2020, confirmado con la DIAN).
+  - **Revisión completa de `/home/mckg/Declarador` y de los 31 zip de Bancolombia que dejó Armando** (tarjetas sep-2024 a ago-2026, reportes anuales de costos 2021-2025, certificados de retención/GMF y de crédito 2024-2025): descomprimidos en la convención de carpetas, categorías nuevas «crédito» y «certificado bancario», clasificación de zips por contenido, año de exógena leído de adentro del archivo (el `reporte_Exogena2020.xls` era el de 2022), extractos trimestrales 2025 importados (cobertura 12/12), duplicados de `Littio/` retirados del expediente. Cynthia: cifras de sus seis F210 registradas; los .xls viejos ya se leen (LibreOffice).
+  - **Hallazgos nuevos en el expediente:** el motor FIFO liquida como venta las suscripciones a Earn/Staking y los traslados a billetera propia (recalculado: 2021 sube a $27,5M, 2024 baja a $35,5M — decisión del contador); los «depósitos directos» del 2024-11-14 son el regreso de los retiros del 2024-09-17. `Declarador/API2.jpeg` tiene una llave API de Binance en claro: borrar y revocar.
+  - **Verificado:** 8 tests de declarador (2 nuevos: tabla Art. 241 y tenencia FIFO) + smoke, `tsc`, build, panel revisado en Chromium. Parte del código ya viajó en el auto-commit de las 23:00 (2710fa1); este commit completa el bloque.
+- **Archivos Modificados:** `app/services/declarador.py`, `app/services/retenciones.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Armando/` (Extractos Bancarios 2026, Certificados Bancolombia)
+
+### 2026-09-14 01:30 - Socios: cuestionario interactivo, plan de carga con referencia y carpeta de Cynthia
+- **Autor:** Armando García
+- **Tipo de Cambio:** Remasterización del wizard de Socios + datos de Cynthia
+- **Qué se implementó:**
+  - **El wizard ya no pide datos que no hacen falta.** El paso 1 «Empecemos» es un cuestionario de 5 preguntas, una a la vez con botones grandes (¿cripto?, ¿declaró antes?, ¿desde qué año?, ¿otras plataformas?, ¿préstamos con familia?) más la cédula. Teléfono, cuenta bancaria, UID de Binance y carpeta se quitaron del formulario. Lo que ya se deduce del expediente aparece contestado «(deducido)» y se puede cambiar; Armando no tiene que volver a responder lo que sus 224 documentos ya dicen.
+  - **Paso 2 «Plan de carga».** Según las respuestas, lista los 9 tipos de documento (F210, exógena, extractos de cuenta y de tarjeta, CSV y snapshot de Binance, evidencia API, otras plataformas, soportes de préstamos): para qué sirve, cómo conseguirlo paso a paso (DIAN, Bancolombia, Binance), cuántos tiene el socio por año y **cuántos tiene el otro socio como referencia** («así lo hizo Armando», solo cantidades, nunca cifras). Cada año tiene su botón de subir; «No aplica en mi caso» lo saca del progreso; los extractos llevan al paso 3.
+  - **Carpeta de Cynthia creada** en `/home/mckg/Declarador/Cynthia/` con la misma estructura numerada que Armando (01_Declaraciones_Renta … 06_Soportes), un `LEEME.md` que explica qué va dónde y cómo se consigue cada cosa, y la plantilla `declarado_f210.json`. Su export de la API de Binance (que estaba suelto en `declaracion_impuestos_binance_titi/`) quedó copiado en `04_Binance/api_export/` y registrado (10 documentos). El botón «Crear carpeta» del plan hace lo mismo para cualquier socio nuevo.
+  - **Corrección importante:** la primera importación de Cynthia se trajo los cálculos cripto de Armando (`Calculos/` estaba en la raíz del Declarador) y le sembró 6 años con ganancias que no son suyas. Se limpió su expediente, `Calculos/`, `Para_Contador/` y `balance_cripto_dian.md` quedaron enlazados dentro de `Armando/`, el importador solo recorre la carpeta de cada socio y se salta `Para_Contador/` (copias) salvo el informe principal. Los 139 documentos duplicados que eso generó en Armando se borraron (queda en 224).
+  - **Verificado:** 6 tests (`tests/test_declarador.py`, uno nuevo para cuestionario/plan/referencia/carpeta), `tsc`, build y reinicio. Ambos expedientes reimportados y revisados por API.
+- **Archivos Modificados:** `app/services/declarador.py`, `app/routes_declarador.py`, `desktop/src/components/SociosPanel.tsx`, `tests/test_declarador.py`, `CLAUDE.md`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Cynthia/` (nueva), enlaces en `/home/mckg/Declarador/Armando/`
+
+### 2026-09-14 00:40 - Libro Mayor jerárquico + Socios dentro de la contabilidad + Declarador en el panel
+- **Autor:** Armando García
+- **Tipo de Cambio:** Remasterización de UX + módulo nuevo (Contabilidad → Socios)
+- **Qué se implementó:**
+  - **Libro Mayor por etapas, no por pestañas planas.** Las 10 subvistas al mismo nivel (diario, plan de cuentas, terceros, movimientos, cuentas T, balance, asiento manual, informes, créditos, cuenta de socio) se agrupan ahora en el orden en que se trabaja: **1 Conciliar · 2 Registrar · 3 Consultar · 4 Configurar**, con un segundo nivel dentro de cada etapa. «Conciliar» lleva un **wizard de 4 pasos con estado real** (extracto reciente → emparejar automáticamente → clasificar pendientes → verificar balance) que ejecuta la acción exacta sobre el Diario de siempre; no se reescribió ninguna vista, solo se ordenaron. Arriba, un conmutador de **ámbito Empresa / Socios**.
+  - **La contabilidad de los socios vive dentro de la de la empresa.** `extractos_bancarios` tiene ahora `tercero_id` (NULL = McKenna). Un socio carga **sus extractos personales** en el mismo motor, pero `_filtro_titular()` garantiza que su banco **nunca** aparezca como candidato, sugerencia ni pendiente de la conciliación de la empresa; solo se cruza con ella en el paso «Cruces» (monto ±1, fecha ±3 días, y dice si el lado McKenna ya tiene asiento).
+  - **Wizard de Socios (6 pasos):** perfil fiscal → extractos personales (cobertura por mes con huecos en rojo) → cuenta con McKenna → cruces → **activos digitales** → cierre con resumen copiable para el contador. El backend calcula el estado de cada paso (hecho / parcial / pendiente) y el texto de qué falta.
+  - **El Declarador de `/home/mckg/Declarador` quedó integrado.** `importar_carpeta` registra los archivos de la carpeta del socio sin copiarlos (categoría y año por nombre: F210, exógena, extractos de cuenta y de tarjeta, CSV y snapshot de Binance, Littio, cálculos, informes), siembra lo declarado en cada F210 desde `declarado_f210.json`, agrega el motor FIFO (`eventos_realizados_fifo.csv`) por año y cédula, y crea los pendientes conocidos más los que se deducen de los datos (años presentados sin cripto, borrador sin presentar). El **agente** del Declarador (contador experto en cripto) corre en el panel con herramientas —lee documentos (pdf/xlsx/csv/md), consulta el extracto personal, cruza con la empresa, registra hallazgos y actualiza años— por `llm_budget`; Gemini de respaldo sin herramientas.
+  - **Privacidad:** cada socio ve SOLO su expediente (usuario ↔ tercero); únicamente la cuenta `admin` real o el token de sistema ven todos. Nivel 3 no basta (los dos socios lo tienen). Test de rutas lo verifica.
+  - **Hecho en vivo:** expediente de Armando importado (217 documentos incl. 94 capturas, años 2020-2025 con efecto cripto —2021 +$19,9M, 2024 +$46,1M, 2022 −$19,3M—, 18 pendientes abiertos) y su historial bancario 2019-2024 (5.116 movimientos) cargado como extracto personal #10. Ítem nuevo en el checklist de Inicio.
+  - **Verificado:** 5 tests nuevos (`tests/test_declarador.py`: filtros por titular, cruces, importación idempotente, documentos, privacidad de rutas) + los de extractos y smoke; `tsc` + `npm run build`. Un test intermedio escribió 8 terceros de prueba en la base real (el fixture no parcheaba `contabilidad_core._DB_PATH`); se borraron y el fixture quedó corregido.
+  - **Pendiente:** carpeta de Cynthia (solo existe el export de la API de Binance); extractos 2025-2026 de Armando para que «Cruces» tenga rango en común con la empresa; captura de pantalla del wizard no revisada en navegador.
+- **Archivos Modificados:** `app/services/declarador.py` (nuevo), `app/routes_declarador.py` (nuevo), `app/services/extracto_bancario.py`, `app/services/contabilidad_checklist.py`, `app/routes.py`, `agente_pro.py`, `desktop/src/components/SociosPanel.tsx` (nuevo), `LibroMayorPanel.tsx`, `IngresosEgresosPanel.tsx`, `CuentaSocioPanel.tsx`, `ContabilidadPanel.tsx`, `ContabilidadInicioPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{contabilidadAccess.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `tests/test_declarador.py` (nuevo), `CLAUDE.md`, `docs/agentic/modules/contabilidad.md`, `docs/team-recaps.md`; fuera del repo: `/home/mckg/Declarador/Armando/declarado_f210.json` (seed)
+
+### 2026-09-13 21:40 - Solicitud de pago a proveedor: solo por el wizard (proveedor, SKU, factura cotejada)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + regla de proceso
+- **Qué se implementó:**
+  - **Un pago a proveedor ya no entra como solicitud de texto libre.** En el Centro de Mando aparece «💸 Solicitud de pago a proveedor», que lleva a Contabilidad → Solicitudes de pago con el wizard abierto; y `POST /api/tickets` rechaza (400 + botón «Ir a Solicitudes de pago») una solicitud que parezca un pago a proveedor (`_parece_solicitud_de_pago`: verbo de pago + proveedor/factura/cotización; «pago de nómina» o «imprimir etiquetas» no se bloquean).
+  - **Wizard de 5 pasos** para `compra_proveedor` (1435) y `factura_proveedor` (2205): **proveedor** de un solo listado (terceros del Libro Mayor con su saldo 2205 + contactos «provider» de Alegra, que se adoptan como tercero al elegirlos; `app/services/pagos_proveedor.py`) → **productos con SKU** del catálogo espejo de Alegra (búsqueda por palabras en cualquier orden; precio sin IVA e IVA por línea: el monto es la suma con IVA, que es lo que cobra la factura, y la retención va sobre la base) → **factura o cotización cotejada** (`POST /api/pagos/verificar-factura`: XML DIAN, PDF o ZIP; NIT, número, total y cada producto; sin IA; si el archivo es foto sin texto lo dice) → asiento a la vista → enviar. Sin productos o sin cotejo el backend no crea la solicitud; si el cotejo no es fiel, exige una explicación que viaja al ticket.
+  - El ticket al aprobador lleva productos, subtotal/IVA/total, resultado del cotejo y asiento. Aprobador: aliado nuevo «Solicitudes de pago» (Sistemas → Aliados) o `PAGOS_APROBADOR`. Al aprobar, la factura queda como comprobante del asiento. Régimen SIMPLE del tercero → retención 0.
+  - **Verificado** con la FE38029 real de Alexandra: el cotejo primero detectó productos sin IVA contra total con IVA; con IVA por línea dio fiel copia. Probado sobre copias de las bases (una prueba a medias dejó una solicitud en la base real; se borró). Wizard visto en el navegador.
+  - **Pendientes conocidos:** el catálogo Alegra no trae costos unitarios (el precio se digita); una compra pagada por `compra_proveedor` y luego recibida por el correo de facturas podría duplicar inventario — el número de factura queda guardado para cruzarlo.
+- **Archivos Modificados:** `app/services/pagos_proveedor.py` (nuevo), `app/services/pagos_wizard.py`, `app/routes.py`, `app/routes_tickets.py`, `app/services/tickets_db.py`, `desktop/src/components/PagosWizardPanel.tsx`, `TicketsPanel.tsx`, `desktop/src/stores/app.ts`, `CLAUDE.md`, `docs/agentic/modules/desktop-panel.md`, `.gitignore`, `docs/team-recaps.md`
+
+### 2026-09-13 18:30 - Conciliación contador: wizard de hallazgos con TKT (cruce 350/490 ↔ 2365)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Módulo nuevo (Contabilidad → Conciliación contador)
+- **Qué se implementó:**
+  - El cruce de las declaraciones del contador contra la cuenta 2365 vivía en un markdown; ahora cada inconsistencia es un **hallazgo** con clave estable en `cc_conciliacion_hallazgos` (`app/services/conciliacion_contador.py`, sin LLM) y el usuario los recorre **uno por pantalla, tipo Duolingo**: barra de avance, monto en juego, «por qué importa», «qué se sugiere», terceros del libro ese mes y soporte PDF. Decisiones: crear TKT, ya está resuelto, no aplica, marcar tercero como natural / **Régimen SIMPLE** (bandera nueva `cc_terceros.regimen_simple`), y **registrar el pago de un recibo 490** en el libro (asiento 2365 → Bancos con el PDF adjunto, idempotente por `dian:490:<n>`). Re-analizar no duplica ni pisa decisiones; lo que deja de detectarse se cierra solo.
+  - Detecta: diferencias mensuales del 350 (jurídicas / naturales por separado), recibos 490 sin egreso en la 2365, retención por vencer sin 350 (con estimado del libro), 350 vencidos que no llegaron por correo, terceros con cédula tipados como jurídicos y retenciones a terceros SIMPLE. «Bajar del correo y analizar» corre en segundo plano los scripts de Gmail + extracción.
+  - Hallazgos de hoy: 20. Se registró el pago de la retención de dic-2025 ($795.000, recibo 490 del 19-ene-2026, asiento #1663; no estaba en Siigo) y se abrió TKT-2026-1313 a Armando para definir con William la fecha de corte de Alegra (Alegra no tiene nada anterior al 2-sep-2026; William tiene usuario pero no registra ahí).
+  - Hallazgo de fondo: Alexandra Benavides está en Régimen SIMPLE (pie de sus facturas; el XML dice `R-99-PN` igual) → las 3 retenciones de 2026 ($153.556) fueron indebidas y McKenna las asumió. Documentado en `PENDIENTES-CONTABILIDAD.md` 4-bis.
+  - Tarea de aliados `conciliacion_contador`, ítem en el checklist de Inicio, permiso `conciliacion-contador` (o `libro-mayor`).
+- **Archivos Modificados:** `app/services/conciliacion_contador.py` (nuevo), `app/routes_conciliacion.py` (nuevo), `agente_pro.py`, `app/services/contabilidad_checklist.py`, `app/services/tickets_db.py`, `app/routes_tickets.py`, `scripts/extraer_declaraciones_contador.py`, `desktop/src/components/ConciliacionContadorPanel.tsx` (nuevo), `ContabilidadPanel.tsx`, `ContabilidadInicioPanel.tsx`, `Settings.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{contabilidadAccess.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `CLAUDE.md`, `docs/agentic/PENDIENTES-CONTABILIDAD.md`, `docs/agentic/modules/desktop-panel.md`, `docs/team-recaps.md`
+
+### 2026-09-13 15:55 - Etiqueta circular: SVG vectorial, diámetro de impresión y lista centrada
+- **Autor:** Cynthia
+- **Tipo de Cambio:** Nueva funcionalidad + ajuste de composición
+- **Qué se implementó:**
+  - **Exportación a SVG vectorial (§16 del pliego), el hueco que quedaba del formato circular.** La etiqueta son dos capas —un `<svg>` con los círculos y los cuatro textos curvos, y encima bandas HTML— y el PNG las aplanaba rasterizando. `exportarSvgCircular.ts` las pasa las dos a vectores: los curvos viajan con su `textPath` intacto, las barras entran como el SVG que ya genera `lib/ean13` (sigue siendo vectorial, no una imagen), la franja de ocho colores y las viñetas salen como `<rect>`/`<circle>`, y el archivo lleva escritas sus medidas físicas (`width="53mm"`), así que la imprenta lo abre a tamaño real sin escalar nada. Las fuentes van incrustadas (`getFontEmbedCSS`), o Montserrat —que es parte del diseño— se perdería en la máquina que lo abra.
+  - **Por qué no `html-to-image.toSvg`:** envuelve el HTML en un `foreignObject`, que no es vectorial de verdad y donde Montserrat suele caer a la fuente del sistema. En su lugar se lee el DOM ya maquetado: cada renglón se mide con `Range.getClientRects()` —el mismo motor CSS que se ve en pantalla decidió dónde parte cada línea— y sale como un `<text>` en su posición. Lo que se exporta es, renglón por renglón, lo que hay en la pantalla.
+  - **Dos fallos que solo se vieron abriendo el SVG resultante**, no leyendo el código: (1) el serializador de HTML (`innerHTML`) no escapa las comillas de `font-family: "Segoe UI"` y el archivo salía mal formado — se serializa con `XMLSerializer` y la familia va sin comillas, que en SVG no las necesita; (2) el volcado de estilos computados descartaba el valor `none`, que es justo el `fill` de los dos círculos: sin ese atributo el relleno por defecto de SVG es negro y la etiqueta salía como un disco negro.
+  - **Diámetro final de impresión (§14):** casilla «Diámetro: __ mm» junto a Formato, solo en la redonda. Cambia el tamaño **físico** del PNG, del SVG y de la impresión; el diseño se sigue maquetando 1:1 a `DIAMETRO_CIRCULAR` y no se mueve en pantalla. Con «↺» vuelve al del Formato, y mientras esté cambiado el pie de la etiqueta lo dice.
+  - **Lista de aplicaciones centrada (§7), sin la viñeta suelta.** El 13-sep se había alineado a la izquierda porque, centrada en una retícula de dos columnas, un renglón corto se centraba en su columna y dejaba la viñeta lejos, contra el margen. Ahora la viñeta y el texto son **una pareja centrada**: la casilla mide lo que mide su texto, así que en «Bálsamos labiales.» la viñeta viaja pegada a él y el conjunto queda al centro, y en un texto de tres renglones la casilla crece hasta el ancho de la banda y la viñeta se queda al principio del primero. En edición la casilla vuelve a ocupar la banda entera: con un `<textarea>` del ancho de su texto, escribir sería imposible.
+  - **Verificado, no supuesto:** con un banco de pruebas (esbuild + Chrome headless del servidor, fuera del repo y ya borrado) que monta el componente real, exporta y mide. El hueco viñeta↔texto sale en 6 px **en las cuatro filas** (de uno, dos y tres renglones) y la pareja queda centrada con 0 px de desvío en todas. El SVG resultante valida como XML y trae 5 `textPath`, 25 `<text>`, la franja, las barras y `53mm × 53mm`; renderizado se ve igual que la etiqueta en pantalla.
+- **Lo que NO se hizo, a propósito:** el pliego pedía además un panel de formulario lateral en dos columnas (§14-15). Se descartó por la regla del 11-sep: toda plantilla se edita **sobre la etiqueta**, como la de 250/500 g. Tampoco se cambió el generador de barras a JsBarcode: `lib/ean13` ya da EAN-13 en SVG, sin dependencia externa, y es lo que hace posible que el código siga siendo vectorial al exportar.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-circular/exportarSvgCircular.ts` (nuevo), `desktop/src/components/etiqueta-circular/etiquetaCircular.css`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+
 ### 2026-09-13 14:30 - La caja "En este momento" de la portada deja de amanecer en cero
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora de portada (datos + plantilla + CSS)
@@ -2619,3 +3738,511 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - **MeLi no se incluye a propósito:** esas ventas van con la etiqueta de Mercado Libre (Colecta/Flex).
   - Detalle de implementación: el `ImageReader` del isotipo se crea una vez por PDF; dentro del bucle, un lote de 20 rótulos pesaba ~16 MB.
 - **Archivos Modificados:** `app/tools/guias_envio.py` (nuevo), `app/routes.py`, `desktop/src/components/GuiasEnvioPanel.tsx` (nuevo), `MensajeriaPanel.tsx`, `desktop/src/App.tsx`, `desktop/src/stores/app.ts`, `desktop/src/lib/{navStructure.ts,panelInfo.ts}`, `desktop/src/icons/mck/paths/panels.tsx`, `CLAUDE.md`, `docs/team-recaps.md`
+
+### 2026-09-15 - Conservación de la etiqueta enlazada con la ficha técnica
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → Ficha de etiqueta)
+- **Qué se implementó:**
+  - La casilla **Conservación** de la etiqueta (Sales minerales y todas las demás) salía vacía aunque la ficha técnica sí dijera cómo guardar el producto.
+  - Causa: `camposDesdeFichaTecnica` solo leía el almacenamiento cuando el bloque `recomendaciones` traía el encabezado `ALMACENAMIENTO:` (estilo SDS). La mayoría de las fichas — CITRATO DE POTASIO entre ellas — lo tienen como párrafo corrido ("Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco…"), así que el campo quedaba en `— completar —` y el enlace lo trataba como vacío.
+  - Ahora, si no hay esa sección, se usa el bloque `recomendaciones` completo (FT y SDS) y `sintetizarConservacion` saca las frases de conservar, descartando modo de uso y caducidad como ya hacía.
+  - Verificado contra las 194 fichas de `fichas_word/datos`: la Conservación pasa de 134 a 157 fichas con dato (+23), sin cambiar ninguna de las que ya venía bien.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - Conservación: síntesis de máximo 15 palabras
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas + Fichas técnicas)
+- **Qué se implementó:**
+  - Regla del usuario: la casilla **Conservación** es una síntesis concreta, nunca el párrafo de la ficha. Tope duro de **15 palabras** en los dos extremos.
+  - Etiqueta (`fichaTecnicaCampos.ts`): `sintetizarConservacion` ahora corta por palabras, no por caracteres, recortando **por cláusulas** para que quede una instrucción completa ("Guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz"). El resumen se aplica también a lo que una persona escribió en "Conservación y almacenamiento" (si el resumen saliera vacío se respeta su texto tal cual).
+  - IA (`documento_cientifico.py`): el prompt de `conservacion` pide UNA oración de máximo 15 palabras que empiece por verbo en infinitivo, concreta (envase, lugar, temperatura/humedad/luz) y sin vida útil, fechas ni modo de uso. `recortar_a_palabras` impone el tope aunque el modelo devuelva un párrafo.
+  - Verificado contra las 194 fichas: 157 con Conservación, **ninguna pasa de 15 palabras**.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `app/services/documento_cientifico.py`, `docs/team-recaps.md`
+
+### 2026-09-15 - Volver a la biblioteca desde la ventana de impresión
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Diseño → Imprimir)
+- **Qué se implementó:**
+  - Al elegir una etiqueta en la biblioteca de impresión se abría la ventana de impresión sin una forma clara de regresar: el único enlace era un "← Archivos" de 9 px perdido entre los chips del cabezote, y ni el botón atrás del navegador ni el de Android volvían al catálogo (se salía del panel).
+  - Cabezote (`ImpresionEtiquetasHeader.tsx`): en la vista de documento el ícono de impresora se reemplaza por un botón **← Volver** destacado en el extremo izquierdo, con `aria-label` y tooltip "Volver a la biblioteca de archivos (Esc)".
+  - `EtiquetasPanel.tsx` (`TabImprimir`): la vista de documento registra un `registerNestedBackHandler` que ejecuta `volverACatalogoPng`, y escucha **Esc** (ignorando inputs, textareas, selects, contenteditable y diálogos, y desactivado mientras están abiertos el modal de pedidos o el instalador).
+  - `appBackNavigation.ts`: `onPopState` ahora consulta los manejadores anidados antes de cambiar de panel y reancla el historial, así el botón atrás del navegador de escritorio también respeta las vistas anidadas (antes solo lo hacía el bridge de Android).
+  - El botón pequeño junto a la vista previa del PNG queda como "← Archivos" con el mismo tooltip.
+- **Archivos Modificados:** `desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx`, `desktop/src/components/EtiquetasPanel.tsx`, `desktop/src/lib/appBackNavigation.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla OLOR pasa a llamarse AROMA
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas)
+- **Qué se implementó:**
+  - Petición del usuario: en las casillas de todas las plantillas de etiqueta, donde decía **OLOR** ahora dice **AROMA**.
+  - `etiquetaFormulario.ts`: `labelCampoEtiqueta` y el bloque de `BLOQUES_FICHA_GRID` pasan a `AROMA`.
+  - `plantillasVisuales.ts`: el nombre de capa del campo en el editor visual pasa a `AROMA`.
+  - `ProductAttributeGrid.tsx` (etiqueta ficha) y `etiqueta30mlTypes.ts` (formato 30 mL): el título de la casilla pasa a `Aroma`.
+  - `ortografiaEtiqueta.ts`: el revisor ortográfico reporta el campo como `Aroma`.
+  - `productLabelTypes.ts`: el texto de muestra queda "Aroma dulce y cremoso…".
+  - Datos: en `app/data/plantillas_visuales.json` una sola plantilla tenía el título ya escrito a mano (`ALCOHOL CETILICO 500g` → `OLOR:` → `AROMA:`). Las 201 plantillas quedan idénticas salvo ese texto. La prosa descriptiva que menciona "olor" (ACEITE DE RICINO, LANOLINA, AGUA DESTILADA, etc.) **no** se tocó: no son casillas.
+  - Las claves internas (`olor`, `odor`) se conservan para no romper plantillas ni el enlace con las fichas técnicas.
+  - **Fuera de alcance:** las fichas técnicas, COA y SDS (`ficha_tecnica.py`, `documento_traducir_es.py`, `FichaTecnicaForm.tsx`, `plantillaFichaTecnicaMp.ts`) siguen diciendo "Olor", que es el término normativo de propiedades físico-químicas.
+- **Archivos Modificados:** `desktop/src/lib/etiquetaFormulario.ts`, `desktop/src/lib/plantillasVisuales.ts`, `desktop/src/lib/ortografiaEtiqueta.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `app/data/plantillas_visuales.json`, `docs/team-recaps.md`
+
+### 2026-09-15 - Composición: el desplegable ofrece "Fórmula química"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas)
+- **Qué se implementó:**
+  - El desplegable del título de la casilla de composición ya existía, pero las opciones no coincidían entre formatos: la ficha 76×66 daba `Composición · Fórmula molecular` y el formato 30 mL `Fórmula química · Composición`, aunque los dos guardan el mismo dato (`compositionTitulo`). Elegir "Fórmula molecular" en la ficha se veía como "Fórmula química" en 30 mL.
+  - Decisión del usuario: **reemplazar** "Fórmula molecular" por "Fórmula química". `TITULOS_COMPOSICION` queda `["Composición", "Fórmula química"]` — las mismas dos opciones que 30 mL, cada formato con su orden (y por tanto su valor por defecto).
+  - `productLabelTypes.ts`: nueva `tituloComposicion(data)`, espejo de `tituloFormula30ml`, que valida el dato guardado contra la lista. `ProductAttributeGrid.tsx` la usa en vez de `data.compositionTitulo || TITULOS_COMPOSICION[0]`, así una ficha antigua con "Fórmula molecular" cae a "Composición" en vez de mostrar un título que ya no está en el menú.
+  - No hizo falta migrar datos: las 4 fichas guardadas en `app/data/etiquetas_fichas.json` con `compositionTitulo` traen "Composición", ninguna "Fórmula molecular".
+  - **Nota:** los 133 SVG del catálogo antiguo en `app/data/etiquetas_ai_cache/` sí dicen "Fórmula molecular", pero son renders del .ai original, no plantillas editables, y el desplegable no los toca.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - "Fórmula molecular" en el documento técnico y enlazada a la etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas técnicas + Etiquetas)
+- **Qué se implementó:**
+  - La fila se titula **Fórmula molecular** (antes "Fórmula química") en el formulario FT, en el PDF de la ficha y en el documento completo. La clave interna sigue siendo `formula_quimica`: no hay que tocar ningún YAML.
+  - Compatibilidad con lo ya guardado: las fichas viejas traen la fila como "Fórmula química" en `propiedades`; se buscan los dos títulos y se imprime siempre el nuevo, sin duplicar la fila en "propiedades extra". El lector de Word/PDF reconoce los dos encabezados.
+  - **Etiqueta enlazada:** la casilla de composición ahora toma el MISMO dato de la ficha. Si la ficha trae fórmula, la casilla muestra la fórmula y se titula "Fórmula molecular"; si no (o si dice "No aplica", como en alimentos y mezclas), vuelve a ser la lista de componentes bajo "Composición". El menú del título de la etiqueta y el formato de 30 mL dicen "Fórmula molecular".
+  - **Lectura química:** el valor se formatea con `formatearFormulaMolecular` / `formula_a_html_sub` — los subíndices bajan y los coeficientes se quedan en tamaño normal: `C6H5K3O7` → C₆H₅K₃O₇, `MgCl2·6H2O` → MgCl₂·6H₂O, `Ca(OH)2` → Ca(OH)₂.
+  - Verificado contra las 194 fichas: 106 tienen fórmula y todas salen con subíndices correctos.
+- **Archivos Modificados:** `app/services/ficha_tecnica.py`, `desktop/src/lib/{fichaTecnicaCampos.ts,fichaTecnicaAplicar.ts,iconosQuimicaCirculares.ts}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-30ml/etiqueta30mlTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - GLICERINA VEGETAL: la etiqueta enlazaba la ficha sin datos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → enlace con ficha técnica)
+- **Qué se implementó:**
+  - Síntoma: abrir una plantilla de Sales minerales, elegir el código de barras de GLICERINA VEGETAL y ver Origen, Grado y Conservación vacías, aunque el documento **completo** de glicerina las tiene.
+  - Causa: hay dos fichas del mismo producto. `glicerina_vegetal.yaml` (parcial, 18 claves) se titula "GLICERINA VEGETAL" y puntúa **1.00** contra el título del EAN; `ft_coa_sds_glicerina.yaml` (`_tipo: completo`, 30 claves) se titula solo "GLICERINA" y puntúa **0.48**. El enlace automático elige por parecido de título, así que ganaba la parcial.
+  - Verificado ejecutando `camposDesdeFichaTecnica` sobre las dos: la parcial dejaba vacías `origin`, `grade`, `storage` y `classification`; el completo las trae todas.
+  - Arreglo de datos: a `glicerina_vegetal.yaml` se le añadieron `pais_origen: Colombia`, `grado: USP` y `conservacion` (tomados del completo; `grado` sale de `_coa.identificacion.grado`). La clasificación "MATERIA PRIMA GRADO USP" se deriva sola del grado. Respaldo en `/tmp/glicerina_vegetal.bak_20260915_1305.yaml`, fuera del repo. Las otras 18 claves quedaron intactas.
+  - Arreglo de interfaz: nueva `candidatasParaTitulo` en `fichaTecnicaMatch.ts` (ranking de las fichas que llegan al umbral) y el mensaje de enlace en `ProductLabelForm.tsx` ahora nombra las otras candidatas: "Ficha técnica enlazada: X (100 %). También coincide «Y» (48 %) — usa la lupa junto al nombre si esa es la correcta." Antes el problema era invisible.
+  - **Descartado:** preferir automáticamente el documento `completo`. Barridos los 232 EAN contra las 193 fichas, solo hay 4 casos donde el enlace se salta un completo; 3 son las glicerinas y el cuarto ("SUERO LECHE DULCE" → `SUERO DE LECHE` en vez de `PROTEÍNA DE SUERO DE LECHE`) el enlace lo hace bien. La regla acertaría 3 veces y fallaría 1.
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaMatch.ts`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `fichas_word/datos/glicerina_vegetal.yaml`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla Olor de la ficha técnica se titula "Aroma"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas técnicas)
+- **Qué se implementó:**
+  - En el formulario FT, en el PDF de la ficha y en el documento completo la fila pasa de **Olor** a **Aroma** — el mismo título que ya usaba la etiqueta. Clave interna `olor` sin cambios: no se toca ningún YAML.
+  - Los títulos anteriores quedan en `_TITULOS_VIEJOS` (un solo lugar, junto a "Fórmula química" → "Fórmula molecular"): las fichas ya guardadas traen la fila como "Olor" dentro de `propiedades`, se siguen leyendo y se imprimen con el título nuevo, sin duplicar la fila en "propiedades extra".
+  - Reconocen los dos encabezados: el lector de Word/PDF, el traductor de documentos en inglés (`odor`/`odour` → Aroma), el escáner del formulario y el paso ficha → etiqueta.
+  - La capa "Olor" de la plantilla visual «Ficha técnica MP» también se llama Aroma.
+  - **No se tocó la SDS:** en la sección 9 "Olor" es el término del formato GHS.
+  - Verificado: fila vieja `[['Olor','Característico']]` sale como `[['Aroma','Característico']]`, y las 194 fichas siguen entregando el dato a la etiqueta (129 con aroma).
+- **Archivos Modificados:** `app/services/{ficha_tecnica.py,ficha_tecnica_word.py,documento_traducir_es.py}`, `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/{fichaTecnicaCampos.ts,plantillaFichaTecnicaMp.ts}`, `docs/team-recaps.md`
+
+### 2026-09-15 - Aroma: el enlace funciona, faltaba el dato en 64 fichas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Reporte: "en AROMA no está asociando la información de la ficha técnica". Verificado ejecutando `camposDesdeFichaTecnica` contra las 193 fichas: **el enlace sí funciona** (CITRATO DE POTASIO → "Inodoro.", GLICERINA VEGETAL → "Olor característico muy tenue…"). Lo que pasa es que **64 fichas no tienen el dato**: ni `caracteristicas_fisicas.olor` ni fila "Olor"/"Aroma" en `propiedades`. Para comparar, Apariencia solo falta en 5 — Aroma era el campo peor diligenciado.
+  - En Sales minerales estaban vacías 6 de 20: CITRATO DE ZINC, CLORURO DE MAGNESIO, ESTEARATO DE MAGNESIO, ÓXIDO DE ZINC, SAL ROSADA DEL HIMALAYA, SORBATO DE POTASIO.
+  - Se llenaron 12 fichas en las que el aroma ya estaba escrito **dentro de la Apariencia o la Descripción**, pasándolo a su casilla sin inventar nada: ÁCIDO ASCÓRBICO y CARBÓN ACTIVADO y PROPILENGLICOL ("Inodoro."), VASELINA BLANCA ("Inodora."), ÁCIDO LÁCTICO, ÁCIDO SALICÍLICO 20 % SOLUCIÓN, ALCANFOR, ALOE VERA, BETAÍNA DE COCO, COCOAMIDA DEA, DMSO, EMBRIÓN DE PATO. La Apariencia se dejó intacta.
+  - Corregido SULFATO DE CONDROITINA: el Aroma traía `≤ 0,35`, un dato de otra fila. Se vació `caracteristicas_fisicas.olor` y se quitó la fila `Olor` de `propiedades` (la etiqueta leía esa fila como respaldo y seguía mostrando el valor).
+  - Quedan 52 fichas sin Aroma, a diligenciar desde el panel de Fichas técnicas.
+  - **Descartados:** BÓRAX (la única mención es "capacidad para eliminar olores", que describe su función) y `vaselina.yaml` (título roto `titulo: SEGURIDAD`, apariencia vacía, duplicado del completo de vaselina — decidir aparte si se arregla o se archiva).
+  - Sin cambios de código. Respaldos de los 13 YAML en `/tmp/aroma_bak_20260915_1324/`, fuera del repo.
+- **Archivos Modificados:** 13 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Las fichas guardadas seguían mostrando la fila "Olor"
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Reporte: la casilla de la ficha técnica seguía titulada "Olor". El código ya estaba bien desde `abb62dd` (`ficha_tecnica.py:669` y `:1170`, `FichaTecnicaForm.tsx:766`, `plantillaFichaTecnicaMp.ts:211`), el servicio se reinició a las 13:13:26 y `_contexto_html` devuelve `('Aroma', 'Inodoro.')`.
+  - Causa: **121 de las 193 fichas tenían la fila guardada como `- - Olor` dentro de `propiedades`** en su propio YAML. `normalizar_datos_ficha` la reescribe a "Aroma", pero solo al normalizar o guardar; en disco seguía el título viejo, así que cualquier vista que lea los datos tal cual mostraba "Olor".
+  - Migradas las 121 fichas (122 filas): solo se renombró el **título** de esa fila, nunca su valor. Verificado ficha por ficha que la lista de propiedades conserva longitud, orden y valores, y que el resto de claves del YAML queda idéntico. Quedan 0 filas "Olor" y 127 "Aroma".
+  - No se tocó `- - Olor y sabor neutros` (1 caso): ahí "Olor" es parte de un valor, no un título.
+  - **Fuera de alcance a propósito:** la **SDS** conserva "Olor" en la sección 9 (`fichas_word/plantillas/SDS PLANTILLA.docx`, placeholder `{{PF_OLOR}}`) porque es el término del formato GHS, igual que decidió `abb62dd`.
+  - **Pendiente análogo:** 101 fichas guardan todavía la fila `- - Fórmula química`, que `b1382f6` renombró a "Fórmula molecular" en la normalización. Mismo patrón: el título viejo sigue en disco. Solo 1 ficha tiene ya la fila nueva.
+  - Sin cambios de código. Respaldos de los 121 YAML en `/tmp/olor_a_aroma_bak_20260915_1333/`, fuera del repo.
+- **Archivos Modificados:** 121 archivos en `fichas_word/datos/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Glicerina: cerrado el duplicado de fichas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Fichas técnicas)
+- **Qué se implementó:**
+  - Síntoma: la ficha técnica decía "Aroma: Inodoro" pero al cargar el SKU en la plantilla de etiqueta salía "Olor característico muy tenue y ligeramente dulce…". El texto venía de `glicerina_vegetal.yaml` → `caracteristicas_fisicas.olor`.
+  - Raíz: dos fichas del mismo producto con **valores distintos** en Aroma, Apariencia y pH. La parcial se titulaba "GLICERINA VEGETAL" (empataba 1.00 con el EAN) y el documento completo solo "GLICERINA" (0.48), así que la etiqueta tomaba la parcial. El arreglo del recap anterior solo había llenado los campos *vacíos* (Origen, Grado, Conservación), no los que discrepaban.
+  - Decisión del usuario: dejar solo el completo. En `ft_coa_sds_glicerina.yaml` se retituló a "GLICERINA VEGETAL" `titulo`, `nombre_producto`, la fila `NOMBRE DEL PRODUCTO` de `identidad`, y `_coa.titulo` y `_sds.titulo` para que el PDF completo sea coherente. `_coa.identificacion.nombre_comercial` sigue siendo "GLICERINA REFINADA" (dato del proveedor).
+  - `glicerina_vegetal.yaml` movido a `fichas_word/datos_archivados/`. `listar_yaml_datos` usa `DATOS_DIR.glob("*.yaml")`, no recursivo, así que deja de listarse: 193 → 192 fichas, y "GLICERINA VEGETAL" queda como única candidata con puntaje 1.00.
+  - Verificado con `camposDesdeFichaTecnica`: la etiqueta ahora carga Aroma "Inodoro.", Origen "Colombia", Grado "USP", Clasificación "MATERIA PRIMA GRADO USP", Conservación, CAS, Apariencia, Descripción y fórmula C₃H₈O₃ — todo del documento completo.
+  - Sin cambios de código. Respaldos de los dos YAML en `/tmp/glicerina_cierre_20260915_1339/`, fuera del repo.
+  - **Nota:** si aparecen más productos con ficha parcial + completo, el síntoma se repite. El aviso de candidatas añadido en `e6f7c1a` lo hace visible en el mensaje de enlace.
+- **Archivos Modificados:** `fichas_word/datos/ft_coa_sds_glicerina.yaml`, `fichas_word/datos_archivados/glicerina_vegetal.yaml` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - La ficha de etiqueta llena el marco del formato
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → ficha 76×66)
+- **Qué se implementó:**
+  - Síntoma: al cargar el SKU la etiqueta "se comprimía" y quedaba una banda lateral vacía.
+  - Causa: la ficha se maqueta a `ANCHO_DISENO = 960` con alto libre, y `marco.escala = Math.min(1, alto / altoDiseno)` la dibujaba escalada entera cuando el contenido crecía más que el marco. Con las filas en `minmax(160px, auto)`, los textos largos del SKU hacían crecer `altoDiseno` y la escala caía (76×66 → marco de 960×834; a ~1000 px de contenido, escala ≈ 0.83, banda de ~160 px). Y como el lienzo se ancla `absolute left-0 top-0` con `transformOrigin: "top left"`, la banda quedaba toda junta a la derecha y abajo en vez de repartida.
+  - Arreglo: nuevo `altoMarcoFicha` (mismo cálculo que `marco`, pero disponible antes de maquetar). El lienzo lleva `minHeight: altoMarcoFicha`, el contenedor pasa a `flex h-full flex-col` y el cuerpo a `min-h-0 flex-1` con `FILAS_CUERPO_REPARTIDAS = "repeat(3, minmax(min-content, 1fr))"`. Cabecera, código de barras y pie conservan su alto natural; las tres filas de atributos se reparten el resto, así la ficha mide exactamente el marco y no queda hueco.
+  - `minHeight` y no `height`, y `min-content` y no `0`, a propósito: si algún contenido llegara a pasarse del marco, la ficha crece y `marco.escala` la dibuja completa como hasta ahora, en vez de que el `overflow-hidden` del lienzo recorte un renglón de la etiqueta.
+  - Los formatos 30 mL, 69×51 y circular no se tocan: tienen su propio lienzo y `altoMarcoFicha` queda `undefined` para ellos, igual que cuando no hay formato elegido (ahí sigue el `FILAS_CUERPO` de siempre).
+  - **Sin verificar visualmente:** `bot.mckennagroup.co/app` pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`, pero el encuadre lo tiene que revisar el usuario.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-09-15 - Casilla de Pureza en la ficha técnica, asociada a la etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Fichas técnicas + Etiquetas)
+- **Qué se implementó:**
+  - Reporte: la ficha técnica no tenía casilla de Pureza para asociarla a la etiqueta. Confirmado: el dato existía de punta a punta (la etiqueta lo lee como `concentracionValor` → casilla PUREZA; el PDF lo imprimía) **menos la casilla para diligenciarlo** — `FichaTecnicaForm.tsx` no tenía ningún campo de pureza ni concentración.
+  - Barrido de las 192 fichas: 32 tenían el dato donde la etiqueta lo lee, **36 lo tenían en una fila suelta de `propiedades`** titulada "Pureza"/"Concentración" que la extracción no miraba, y 124 no lo tenían.
+  - `FichaTecnicaForm.tsx`: nuevo campo **Pureza** en el estado, junto a "Presentación / cantidad". Se guarda en la clave `concentracion` (la que ya usan el PDF y la etiqueta, así que las 32 fichas existentes se siguen leyendo). Al abrir una ficha el valor se recoge de `concentracion`, de `identidad` o de la fila de `propiedades`, por ese orden. "pureza" y "concentracion" se añaden a `fisicasKeys` para que la fila no se duplique en "Propiedades funcionales". Sin botón de IA: la pureza sale del certificado de análisis, no se sugiere.
+  - `fichaTecnicaCampos.ts`: `concentracionRaw` añade como último respaldo `valorEnFilas(datos.propiedades, "pureza", "concentracion")`. Con eso las 36 fichas viejas llegan a la etiqueta **sin migrar ningún dato**. Verificadas las 30 con valor numérico: todas cargan (ÁCIDO BENZOICO 99%, HIDROQUINONA 98.5 ~ 101.05 %, SULFATO DE CONDROITINA ≥ 90%…).
+  - `documento_completo_pdf.html`: el rótulo pasa de "Concentración" a **"Pureza"** en la FT (línea 311) y en el COA (línea 462), para que se llame igual en los tres sitios. La clave interna no cambia. No hace falta reiniciar: el `Environment` de Jinja se crea en cada generación (`ficha_tecnica.py:1304`, `:1621`).
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y no se puede entrar desde aquí. Compila y pasa `tsc`; el encuadre de la casilla nueva lo revisa el usuario.
+  - **Detectado de paso:** dos fichas distintas con el título "SORBATO DE POTASIO" — otro duplicado como el de glicerina.
+- **Archivos Modificados:** `desktop/src/components/documentos/FichaTecnicaForm.tsx`, `desktop/src/lib/fichaTecnicaCampos.ts`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md`
+
+### 2026-09-15 - La casilla de la cuchara deja escoger cuchara o copa
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → ficha 76×66)
+- **Qué se implementó:**
+  - Petición: donde dice "Incluye cuchara medidora de:" debe poder escogerse entre cuchara y copa, con desplegable.
+  - `productLabelTypes.ts`: nuevo campo `cucharaUtensilio` en `ProductLabelData` y `TITULOS_CUCHARA = ["Incluye cuchara medidora de:", "Incluye copa medidora de:"]`, con `tituloCuchara(data)` que valida el valor guardado contra la lista. Mismo patrón que `TITULOS_CAS` (CAS/EINECS) y `TITULOS_COMPOSICION`.
+  - `CucharaMedidora.tsx`: el rótulo deja de ser texto fijo y pasa a `EditableLabel` con `opciones` / `valorOpcion` / `onElegirOpcion` — el menú del título que ese componente ya soportaba, así que el desplegable se abre igual que el de CAS/EINECS, sin interfaz nueva.
+  - El campo se llama `cucharaUtensilio` y no `cucharaTitulo` a propósito: `cucharaTitulo` ya estaba ocupado como `styleKey` de los estilos de texto de esa misma casilla.
+  - `cucharaUtensilio` entra en `CAMPOS_PLANTILLA` (es del diseño de la familia, como `cucharaCantidad` y `cucharaUnidad`, así que no se vacía al cambiar de SKU) y en `CAMPOS_SIN_CORRECTOR` de `ortografiaEtiqueta.ts` (es un título de menú, no texto escrito a mano).
+  - Las fichas guardadas sin el campo ven "Incluye cuchara medidora de:", el primero de la lista — nada cambia hasta que se escoja copa.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+  - **Nota:** el motor SVG (`app/tools/etiquetas_svg_engine.py:169`) tiene su propio texto por defecto "Incluye cuchara medidora." y ya admite `texto_cuchara` personalizado; es otra ruta de generación y no se tocó.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/productLabelTypes.ts`, `desktop/src/components/etiqueta-ficha/CucharaMedidora.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/lib/ortografiaEtiqueta.ts`, `docs/team-recaps.md`
+
+### 2026-09-15 - La Pureza no se veía en el documento completo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Fichas técnicas)
+- **Qué se implementó:**
+  - La casilla de Pureza añadida en `47e6926` solo se veía en la **FT sola**. `FichaTecnicaForm` se monta dos veces: en `FichasTecnicasPanel.tsx:460` completa, y en `:2360` con `hideIdentificacion` para el **documento completo FT+COA+SDS**, donde la identificación es compartida por las tres secciones. La casilla nueva cayó dentro de ese bloque oculto.
+  - En la identificación compartida el campo ya existía, pero rotulado **"Concentración"** (`FichasTecnicasPanel.tsx:680`) y dentro del bloque del COA, así que no se reconocía como la pureza. Renombrado a **"Pureza"**, con ejemplo en el marcador. Se sigue guardando en `_coa.identificacion.concentracion`, que la etiqueta ya leía vía `coaIdent.concentracion`.
+  - `ficha_tecnica.py`: `_contexto_html` leía la pureza solo de `concentracion` top-level, así que lo escrito en la identificación compartida salía en el COA pero **no** en la fila de la FT. Ahora toma también `_coa.identificacion.concentracion`. Verificado: con el dato solo en el COA, `ft.concentracion` devuelve `'99.5 %'`.
+  - **Requiere reiniciar el servicio:** el cambio es Python. `sudo systemctl restart agente-pro` — el clasificador de permisos impide hacerlo desde aquí, lo ejecuta el usuario. El renombrado del rótulo es frontend y ya está desplegado.
+  - **Pendiente análogo:** `grado` tiene el mismo patrón (se edita en la identificación compartida pero el PDF de la FT lo lee solo de top-level). No se tocó para no ampliar el alcance.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/services/ficha_tecnica.py`, `docs/team-recaps.md`
+
+### 2026-09-15 - Regenerados los 75 documentos FT+COA+SDS con los rótulos nuevos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos / operación (Documentos técnicos)
+- **Qué se implementó:**
+  - Los PDF publicados eran del 2026-09-12, anteriores a los cambios de rótulo de hoy. Auditados con `pdftotext`: **79 de 82** en `completo/` y **137 de 154** en `pdf/` traían `Olor`, `Fórmula química` o `Concentración`.
+  - Respaldo previo obligatorio (ver [[generar-ficha-destino]]): `/home/mckg/backups_manual/completo_antes_regen_2026-09-15_1433.tar.gz`, 83 archivos, 65 MB, fuera del repo.
+  - Regenerados **75** documentos con `generar_pdf_completo(d, d.get("_coa"), d.get("_sds"), cabezote_id=d.get("_cabezote_id"), salida=<ruta existente>)`, pasando `salida` explícito para escribir sobre el mismo nombre y no tocar la raíz de `fichas_word/`. 0 fallos, 75 s. 74 sobrescribieron su PDF; 1 nuevo (CHÍA, que no tenía).
+  - Verificado con una auditoría acotada a la tabla "Especificaciones fisicoquímicas" de la FT: **71 con rótulos nuevos, 0 de los regenerados con rótulos viejos**. La primera auditoría daba 25 falsos positivos porque buscaba en todo el PDF: "Olor" aparece también en los parámetros del COA (dato del proveedor) y en la sección 9 de la SDS (término GHS, intencional), y "concentración" en prosa del modo de uso.
+  - **9 PDF quedaron huérfanos** — existen en `completo/` pero ya no tienen un YAML `_tipo: completo` que los regenere, así que 5 conservan rótulos viejos: ÁCIDO ASCÓRBICO, ÁCIDO HIALURÓNICO, ALANTOÍNA, MANTECA KARITÉ, VITAMINA B3 (+ CAOLÍN G30M, CAOLÍN USP, COCO DESECADO GRASO HILOS LARGOS, y GLICERINA por el renombrado a GLICERINA VEGETAL de hoy). Son de fichas fusionadas o retiradas el 11-12 de septiembre. No se tocaron: los retira el usuario si quiere.
+  - **Drive: no se subió nada.** `configuracion_drive()` devuelve `delegacion_configurada: False`, `folder_pdf_id: None`, `impersonate_email: None`. Falta compartir las carpetas con `agente-sheets@mi-agente-ubuntu.iam.gserviceaccount.com` como Editor, definir `TDS_DRIVE_IMPERSONATE` en `.env` y activar la delegación de dominio en Admin Google.
+  - No se tocaron los 137 de `pdf/` (FT simples): el usuario eligió solo los completos.
+- **Archivos Modificados:** 75 PDF en `fichas_word/completo/` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Formato nuevo 38 × 102 mm vertical (Aceites & Grasas)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → formato nuevo)
+- **Qué se implementó:**
+  - Formato **"Vertical 38"** (38 × 102 mm), quinto lienzo de Studio Visual junto a la ficha 76×66, el 30 mL, el 69×51 y el circular. Ojo: el formato "30 mL" ya era 102 × 38 — el mismo tamaño acostado —, así que `esFormatoVertical` compara ancho con ancho (`sonMedidas`) y no se confunden.
+  - `etiqueta-vertical/etiquetaVerticalTypes.ts`: medidas, detección por nombre o por medidas, y `reticulaVertical`. Los siete bloques se declaran en **milímetros** (11 · 16 · 18,5 · 16 · 9 · 21,5 · 10 = 102) y se convierten a px a 12 px/mm (456 × 1224); el último absorbe el redondeo, así que la suma es exactamente el alto de la etiqueta y no hay sobrante ni recorte. Si el formato se renombra a otras medidas, los bloques se reparten proporcionalmente.
+  - `etiquetaVertical.css`: azul #087CE0 fijo, Montserrat, divisorias de 0,15 mm. Los bloques comparten borde (`border-bottom` del de arriba, `border-left` de la segunda columna) para que no salgan líneas dobles. Sin sombras ni degradados.
+  - `EtiquetaVertical.tsx`: cabecera con nombre y barra de grado, dos filas de dos casillas con el valor en recuadro punteado, beneficios en tres columnas, contenido neto, marca con el **código de barras debajo del logo y del lema**, y pie azul con ubicación y web.
+  - **Se edita en el sitio**, como el resto de la app — no con formulario lateral, que era lo que pedía el brief pero contradice la regla fijada (ver [[interfaz-unificada-etiquetas]]). Reutiliza `CampoEtiqueta` (el texto se encoge para caber sin mover la retícula), `EditableLabel`, `BarcodeBlock` (EAN-13 real de `lib/ean13`, con dígito de control y zonas blancas), `MenuLogoCorporativo`, `GaleriaIconosQuimicosModal` y `Marco30ml` (zoom conservando proporción).
+  - Iconos: ojo, gota de aroma, matraz y escudo salen de la galería existente; gota, copo de nieve, rostro con hoja, pin y globo se dibujaron como SVG de contorno con `currentColor` y trazo uniforme.
+  - Campos nuevos: `beneficio1`, `beneficio2`, `beneficio3` en `ProductLabelData`. El resto reutiliza los de siempre (productName, gradoInsumo, appearance, odor, composition, storage, netContent, barcode, logoUrl, city, website), así que el enlace con la ficha técnica funciona igual.
+  - El lema "Proveemos a tus ideas" usa la constante `ESLOGAN` de `ProductHeader` (ahora exportada): no es dato de producto.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google y el usuario no adjuntó la imagen de referencia, así que la diagramación se hizo solo desde la descripción escrita. Compila y pasa `tsc`; hay que revisarla en pantalla y a la impresión.
+  - **Falta:** crear la plantilla de la categoría `aceites` (Aceites & Grasas) con este formato, desde Studio → Categorías → Nueva plantilla.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/` (3 archivos nuevos), `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `productLabelTypes.ts`, `ProductHeader.tsx`, `app/data/etiquetas_tipos.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Renombrar plantillas guardadas en Studio Visual
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual → biblioteca de plantillas)
+- **Qué se implementó:**
+  - Hasta ahora el título de una plantilla se fijaba al crearla y no había forma de cambiarlo: se podían renombrar carpetas y capas, pero no la plantilla. La única salida era duplicarla o rehacerla.
+  - `renombrar_plantilla(pid, nombre_nuevo)` en `app/tools/plantillas_visuales.py` y endpoint `POST /api/plantillas-visuales/renombrar`. Va **aparte de `guardar_plantilla`** a propósito: esa reescribe la entrada completa, así que un POST que solo llevara el nombre dejaría `formato` en `{}` y `elementos` en `[]` — es decir, borraría el diseño.
+  - El nombre se normaliza (espacios colapsados, recorte a 120 caracteres) y se rechaza vacío; si no cambia, no reescribe el JSON. Actualiza `updated_at`.
+  - Front: botón **Renombrar** en la tarjeta de cada plantilla, junto a Duplicar y Eliminar, con `window.prompt` precargado con el nombre actual — el mismo patrón que ya usaba renombrar carpeta. Invalida `["plantillas-visuales"]`.
+  - El nombre es solo un rótulo: no se deriva nada de él (ver [[formatos-por-tamano]]). Ojo: `tipo_etiqueta` / `tipo_nombre` son otra cosa y **no** los toca este cambio, así que el layout 30 mL y la detección de troquel redondo siguen intactos.
+- **Archivos Modificados:** `app/tools/plantillas_visuales.py`, `app/routes.py`, `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-15 - Formato 5 mL (66 × 22 mm) para Aceites Esenciales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → formato nuevo)
+- **Qué se implementó:**
+  - El formato **"5 mL" (66 × 22 mm) ya existía** en `etiquetas_tipos.json` y la categoría **`aceites-esenciales`** en `etiquetas_categorias.json`: lo que faltaba era la diagramación. Ahora usa la estructura de la etiqueta de 30 mL (Activos Cosméticos) reducida, en `desktop/src/components/etiqueta-5ml/`.
+  - **Dos filas en vez de tres.** A 22 mm de alto, una tercera fila deja el texto por debajo de 2,5 pt y no se lee impreso. `reticula5ml` reparte igual que la del 30 mL (franja del 15 %, filas iguales, la fila del logo del panel central del mismo alto que las laterales para que las líneas coincidan), pero sobre dos filas.
+  - Reparto: **izquierdo** matriz 2×2 (Fórmula/Composición, Origen, Conservación, Aroma) + franja ciudad/teléfono · **centro** logo, nombre, «INSUMO GRADO …», contenido neto · **derecho** pictograma GHS + tabla Pureza/CAS, código de barras a ancho completo, franja con la web.
+  - **Qué se quitó del 30 mL y por qué:** las celdas Grado (ya va en el subtítulo) y Apariencia (no informa en un aceite, siempre líquido); el texto de clasificación SGA y el bloque «Información técnica / Disponible en»; y el hueco del timbre físico, que en un frasco de 5 mL va en la tapa o el estuche. Queda el pictograma GHS, que es lo exigible.
+  - **Escala propia: 18 px/mm** (1188 × 396 px), no los 11,8 px/mm del 30 mL — hace falta para maquetar textos de 3 pt sin redondeos y rasterizar a 300 DPI sin interpolar. Consecuencia a tener presente: **los valores de `TAM_5ML` no son comparables con los de `TAM_30ML`**; para leerlos en puntos, px ÷ 6,35. Por eso `etiqueta5ml.css` reajusta íconos, franjas y tabla: los 38 px del ícono del 30 mL son 3,2 mm allá y serían 2,1 mm aquí.
+  - Reutiliza las piezas del 30 mL (`TechnicalCell`, `ContactFooter`, `BarcodeSection`, `CampoEtiqueta`, `Marco30ml`, `GradoInsumo`, galerías de íconos y GHS, `MenuLogoCorporativo`, `BuscadorFichaTecnica`) y su CSS; solo la estructura de paneles es propia (`.e5-*`). Edición **en el sitio**, misma interfaz que 250/500 g ([[interfaz-unificada-etiquetas]]).
+  - `TechnicalCell` y `ContactFooter` ganan `prefijoEstilo`, `tamValor` y `tamTitulo` (por defecto, lo de siempre: el 30 mL no cambia). El prefijo importa: sin él, los dos formatos compartirían las claves de `text_styles` y cambiar el tamaño de un título en una etiqueta lo cambiaría en la otra.
+  - **El código de barras queda a ~52 % de magnificación** (≈19,4 mm útiles frente a los 37,29 mm del EAN-13 nominal). GS1 pide 80 % como mínimo, así que **hay que probarlo con el escáner real antes de mandar a imprimir**; si falla, las salidas son EAN-8 o llevar el código al estuche. El usuario pidió incluirlo aun sabiéndolo (decisión del 2026-09-15).
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`; falta revisarla en pantalla y a la impresión.
+  - De paso: los textos de ayuda de este formato y del Vertical 38 tenían escapes `\uXXXX` en texto JSX plano, donde no los interpreta nadie y salían literales en pantalla ("matriz t\u00e9cnica"). Convertidos a carácter real.
+  - **Falta:** crear la plantilla de la categoría Aceites Esenciales con este formato, desde Studio → Categorías → Nueva plantilla (el logo y el color de la categoría los elige el usuario).
+- **Archivos Modificados:** `desktop/src/components/etiqueta-5ml/` (3 archivos nuevos), `desktop/src/components/etiqueta-30ml/TechnicalCell.tsx`, `ContactFooter.tsx`, `etiqueta30ml.css`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `docs/team-recaps.md`
+
+### 2026-09-15 - El formato 38×102 pasa a llamarse por su tamaño y su plantilla va a Aceites Esenciales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas)
+- **Qué se implementó:**
+  - Corrección del recap anterior: la plantilla va en **`aceites-esenciales`** (Aceites Esenciales), no en `aceites`. No hubo nada que mover: la plantilla estaba pendiente de crear.
+  - El formato se llamaba **"Vertical 38"**, incumpliendo la regla de que los formatos nuevos toman como nombre su tamaño (ver [[formatos-por-tamano]]). Renombrado a **`38x102`** en `app/data/etiquetas_tipos.json`, y `esFormatoVertical` ajustada a ese nombre. La detección por medidas (38 × 102 mm) ya funcionaba sola, así que el formato se reconoce aunque se lo vuelva a renombrar.
+  - Creada la plantilla **«Plantilla de Aceites Esenciales 38×102 mm»** (id `276fa3d3d001`) en `app/data/etiquetas_fichas.json`, clonando el **diseño** de la plantilla de 5 mL de esa misma categoría — logo, acento, contacto, web y documentos técnicos — y dejando en blanco todos los datos de producto, incluidos los tres beneficios. Respaldo en `/tmp/etiquetas_fichas.bak_*.json`.
+  - La categoría `aceites-esenciales` queda con dos plantillas: 5 mL (66 × 22 mm) y 38×102 mm.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVerticalTypes.ts`, `app/data/etiquetas_tipos.json`, `app/data/etiquetas_fichas.json` (los dos últimos fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - Retirada la plantilla de 5 mL de Aceites & Grasas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Etiquetas)
+- **Qué se implementó:**
+  - Retirada «Plantilla de Aceites & Grasas tamaño 5 mL» (id `fe5837a6a367`, formato 5 mL = 66 × 22 mm) de `app/data/etiquetas_fichas.json`. 28 → 27 fichas.
+  - Comprobado antes de tocarla: ninguna etiqueta guardada se creó a partir de ella (`plantilla_origen_id` / `plantillaOrigenId`) y no había otras referencias en `app/data/`.
+  - **No se destruyó**: la ficha completa quedó en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/fe5837a6a367.json`, más una copia íntegra del JSON anterior en esa misma carpeta. Es el mismo criterio de las fichas retiradas del 2026-09-11: mover fuera, no borrar.
+  - `aceites` (Aceites & Grasas) queda con 250 / 500 g y 30 mL. El formato 5 mL sigue existiendo y su plantilla de `aceites-esenciales` no se tocó.
+- **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - La plantilla 38×102 pasa a Aceites & Grasas como «250 mL envase PET»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (Etiquetas)
+- **Qué se implementó:**
+  - El formato `38x102` ya existía del turno anterior; lo que cambió es dónde vive su plantilla. La única que hay (id `276fa3d3d001`) pasó de `aceites-esenciales` a **`aceites`** (Aceites & Grasas, donde van los vegetales) y se retituló **«Plantilla de Aceites Vegetales 250 mL envase PET»**. Los datos de producto siguen en blanco.
+  - Corregido un arrastre del clonado: la plantilla traía `accentColor: #1C71D8`, heredado de la de Aceites Esenciales 5 mL, que no correspondía ni a lo que imprime el lienzo (#087CE0, fijo en `AZUL_VERTICAL`) ni al acento de la categoría (#F9A72B). Se puso en **#087CE0**, el azul real del formato.
+  - **Pendiente de decisión:** el lienzo 38×102 usa un azul fijo por pedido del brief, así que ignora el `accentColor` de la plantilla — a diferencia de los demás formatos. Las otras dos plantillas de `aceites` usan el naranja #F9A72B. Si la familia debe verse naranja, hay que cambiar `AZUL_VERTICAL` por `var(--acento)` en `etiquetaVertical.css`.
+  - `aceites-esenciales` queda solo con la plantilla de 5 mL. `aceites` queda con 250/500 g, 30 mL y 38×102.
+  - Respaldo del JSON previo en `/home/mckg/backups_manual/plantillas_retiradas_2026-09-15/`.
+- **Archivos Modificados:** `app/data/etiquetas_fichas.json` (fuera del repo), `docs/team-recaps.md`
+
+### 2026-09-15 - El formato 38×102 respeta el acento de la plantilla
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - El acento no cambiaba al escoger el color junto al logo. Causa: el lienzo se escribió con el azul **fijo** `#087CE0` que pedía el brief y nunca aplicaba `variablesAcento`, a diferencia de los otros cuatro formatos. Los 11 usos del color en el CSS apuntaban a una variable propia (`--ev-azul`) que se fijaba en el componente.
+  - `EtiquetaVertical.tsx` publica ahora `variablesAcento(data.accentColor || AZUL_VERTICAL)` en el lienzo, y el CSS usa `var(--acento)` en sus 11 usos: títulos, divisorias, recuadros punteados, iconos, barra de grado y pie. `AZUL_VERTICAL` queda solo como valor por defecto cuando la plantilla no trae acento.
+  - Con esto el formato se comporta como los demás: el color se elige por plantilla y la familia puede llevar su propio tono (las otras dos de `aceites` usan el naranja #F9A72B).
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `etiquetaVerticalTypes.ts`, `docs/team-recaps.md`
+
+### 2026-09-16 - El lema mide lo mismo que el logo en el formato 38×102
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - «Proveemos a tus ideas» se dimensionaba por su tamaño de letra (15 px fijos), independiente del logo, así que quedaba más ancho o más estrecho según la imagen cargada. Ahora mide **exactamente** el ancho del logo.
+  - `EtiquetaVertical.tsx`: un `useLayoutEffect` mide el ancho real de la imagen del logo y el del lema, y de ahí sale el tamaño de letra por regla de tres. La medida del texto se toma de una **copia invisible a 100 px** (`.ev-lema-espejo`), no del lema real: medir el propio lema haría que cambiarle el tamaño cambiara la medida y el cálculo oscilaría. Un `ResizeObserver` sobre la imagen y el espejo lo recalcula si el logo cambia de tamaño o se carga otro.
+  - El espejo replica peso y `letter-spacing` del lema; si no coincidieran, la regla de tres saldría desviada. Está fuera del flujo y oculto, así que no afecta a la maqueta ni a la impresión.
+  - El lema pasa a una sola línea (`white-space: nowrap`) para que el ancho medido sea el del texto completo, y deja de llevar `font-size` en el CSS. Sin logo cargado vuelve a su tamaño por defecto.
+  - **Efecto secundario:** el lema deja de ser un `EditableLabel`, así que ya no tiene menú de tamaño propio — ahora lo manda el logo, que es justo lo pedido.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Formato 38×102: datos, iconos y pie un 80 % más grandes
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - A pedido del usuario, ×1,8 en los tres grupos que señaló. El nombre, la barra de grado y el contenido neto **no** se tocaron.
+  - `TAM.valor` 17 → 31 px (~10,5 pt), `TAM.beneficio` y `TAM.pie` 16 → 29 px (~9,9 pt), con sus mínimos de ajuste subidos en la misma proporción. Iconos de casilla y de beneficio de 3,6 → **6,5 mm**; los del pie de 17 → 31 px. Mismos valores en el CSS.
+  - Los mínimos se subieron también (y no solo los máximos) a propósito: `CampoEtiqueta` encoge el texto para caber, así que subir solo el máximo no habría cambiado nada en pantalla.
+  - Espacio que queda, calculado con la retícula real (12 px/mm):
+    - Fila Apariencia/Aroma: 75 px libres → **2,1 renglones** de 31 px, ~14 caracteres cada uno (~29 en total).
+    - Fila Composición/Conservación: 105 px → **2,9 renglones** (~40 caracteres).
+    - Beneficios: 80 px → **2,4 renglones** de 29 px, ~10 caracteres cada uno (~24 en total).
+    - Pie: dos renglones ocupan 67 px de los 120 disponibles; sobra sitio.
+  - Los textos del ejemplo entran justos ("Líquido de tonalidad rosada" 27 caracteres, "Agua destilada de rosas y conservante." 37, "Sensación refrescante" 21). Con textos más largos `CampoEtiqueta` los encoge y, si ni al mínimo caben, marca la casilla en rojo en edición.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Formato 38×102: el texto editable no se centraba
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Etiquetas → formato 38×102)
+- **Qué se implementó:**
+  - El texto de Beneficios salía torcido. Causa: en vista es un `<p>` y hereda el `text-align: center` del contenedor, pero en edición `CampoEtiqueta` dibuja un `<textarea>`/`<input>`, y **los campos de formulario no heredan `text-align`**: arrancan a la izquierda. Por eso se veía bien en la vista terminada y mal al editar.
+  - El fallo era sistemático, no solo en beneficios: el componente pasaba las clases `ev-valor-texto` y `ev-grado-texto`, que **no existían** en el CSS, así que esos campos tampoco tenían centrado propio y dependían de una herencia que el textarea no aplica.
+  - `etiquetaVertical.css`: regla explícita para `.ev-etiqueta .e30-campo`, `.e30-campo-wrap`, `.ev-valor-texto` y `.ev-grado-texto`, más `text-align: center` propio en `.ev-beneficio-texto`. Cubre los valores de las cuatro casillas, el nombre, la barra de grado, los beneficios, el contenido neto y las dos líneas del pie.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-vertical/etiquetaVertical.css`, `docs/team-recaps.md`
+
+### 2026-09-16 - Ficha de etiqueta: casilla "Desenfoque" para publicaciones digitales
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Etiquetas → ficha de etiqueta, todos los formatos)
+- **Qué se implementó:**
+  - Nueva casilla **Desenfoque** en la cabecera de la ficha (junto a Retícula). Con ella marcada, al confirmar "Guardar e ir a desenfoque" en la vista previa, el PNG de impresión se guarda como siempre en `ETIQUETAS STUDIO/<Categoría>` y acto seguido se abre la ventana de selección por recuadro (la misma `DesenfoquePlantillaModal` de Studio Visual: botón "Pie McKenna", altura del pie, radio, arrastrar recuadros, preview).
+  - "Usar esta versión" sube la copia desenfocada a **`PUBLICACIONES DIGITALES/<Categoría>`**, con sufijo `_digital.png` y el mismo formato (mm, dpi, tipo). Esa carpeta está fuera de `ETIQUETAS STUDIO`, así que Diseño → Imprimir no la lista: queda solo como base para publicaciones digitales con restricciones sobre los datos impresos. Se ve en la biblioteca/galería (que recorre todo el árbol).
+  - El desenfoque se hace **en el navegador** (`lib/desenfoqueLocal.ts`, filtro `blur()` del canvas sobre cada recuadro, dos pasadas para que en los bordes de la imagen no se transparente el texto nítido). Motivo: el endpoint `/api/plantillas-visuales/desenfoque` exige permiso de Studio Visual, mientras que la ficha de etiqueta solo pide token; así no cambia Python ni hace falta reiniciar `agente-pro`.
+  - `DesenfoquePlantillaModal` gana tres props opcionales (`titulo`, `subtitulo`, `desenfocar`) sin cambiar el comportamiento en Plantillas Visuales. El modal se carga con `lazy` para no arrastrar la librería de exportación al chunk de la ficha.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/plantillas-visuales/DesenfoquePlantillaModal.tsx`, `desktop/src/lib/desenfoqueLocal.ts` (nuevo), `docs/team-recaps.md`
+
+### 2026-09-16 - MeLi: mensaje automático al comprador cuando se vende un SKU
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Mercado Libre → webhook `orders_v2`, posventa)
+- **Qué se implementó:**
+  - Nuevo módulo `app/meli_mensaje_venta_sku.py`: cuando entra una orden **pagada** y alguno de sus ítems tiene un SKU listado en `app/data/mensajes_venta_sku.json`, escribe el texto configurado en el chat posventa de la compra (misma `responder_mensaje_posventa` de la cola) y avisa al grupo de WhatsApp de posventa con el código de la orden para complementar con `posventa <código>: ...`.
+  - Primer caso: SKU `C-FRBSGL120mL` (fragancia cosmética 120 mL, publicación MCO576054003) → "Hola! Buen día. Por favor confírmanos qué aroma deseas para la fragancia cosmética. Quedamos atentos."
+  - **Una sola vez por orden+SKU.** MeLi manda `orders_v2` muchas veces por la misma orden (hasta 11 en un día); el módulo reserva la clave en `app/data/mensajes_venta_sku_enviados.json` bajo un `threading.Lock` **antes** de enviar, así dos hilos paralelos no duplican el mensaje (justo lo que pasó hoy con la auto-respuesta de factura del pack 2000015043063893). Si MeLi rechaza el envío, se libera la clave y la siguiente notificación de la orden reintenta.
+  - Enganche en `_procesar_orden_meli` (`webhook_meli.py`) dentro del bucle de ítems, tras leer el SKU; usa `seller_sku` de la orden como respaldo. Va envuelto en `try` para no afectar el sync de stock.
+  - Apagado global con `MELI_MENSAJE_VENTA_SKU_ACTIVO=0`. Para añadir productos basta editar el JSON (clave = SKU, `texto`, `activo`); no requiere reinicio porque se lee en cada orden.
+  - Tests: `tests/test_meli_mensaje_venta_sku.py` (config, una sola vez por orden, SKU no configurado, fallo y reintento, apagado por entorno).
+  - **Requiere `sudo systemctl restart webhook-meli`** para que el webhook cargue el módulo.
+- **Archivos Modificados:** `app/meli_mensaje_venta_sku.py` (nuevo), `app/data/mensajes_venta_sku.json` (nuevo), `webhook_meli.py`, `tests/test_meli_mensaje_venta_sku.py` (nuevo), `docs/agentic/modules/webhook-meli.md`, `docs/team-recaps.md`
+
+### 2026-09-16 - Studio: galería «Etiquetas para publicaciones»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual → nueva pestaña)
+- **Qué se implementó:**
+  - Nueva pestaña **Etiquetas para publicaciones** en Studio (junto a Categorías / Catálogo antiguo / Recursos). Muestra los PNG de `PUBLICACIONES DIGITALES/` (recursivo) agrupados por la subcarpeta de categoría en la que los deja la ficha; lo suelto en la raíz va a "Sin categoría", no se esconde. Buscador, contador, vista previa con descargar y eliminar, y estado vacío que explica cómo se generan (casilla «Desenfoque» de la ficha).
+  - `StudioPublicacionesPanel.tsx` (nuevo) sigue el patrón de `StudioEtiquetasPanel`. `studioEtiquetasData.ts` gana `CARPETA_PUBLICACIONES_DIGITALES`, `useEtiquetasPublicaciones` (clave `["etiquetas-recursos-png", "PUBLICACIONES DIGITALES", "lista"]`, así subir/borrar un PNG la invalida por prefijo) y `categoriaDeRutaEtiqueta` acepta la carpeta raíz como tercer parámetro.
+  - La ficha (`ProductLabelForm`) importa ahora la constante de carpeta desde `studioEtiquetasData` en vez de tener la suya.
+  - `StudioSubvista` (stores/app.ts) admite `"publicaciones"`; la pestaña persiste en localStorage como las demás.
+  - **Sin verificar visualmente:** el panel pide inicio de sesión con Google. Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioPublicacionesPanel.tsx` (nuevo), `studioEtiquetasData.ts`, `PlantillasVisualesPanel.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/stores/app.ts`, `docs/team-recaps.md`
+
+### 2026-09-17 - Publicaciones → Crear desde cero: HTTP 504 al publicar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (Publicaciones → Crear desde cero, MeLi)
+- **Qué se implementó:**
+  - **Causa:** `POST /api/meli/compliance/crear-nueva` hacía todo en una sola petición (búsqueda de activas y pausadas en MeLi, contenido con IA si faltaba, predicción de categoría, subida de fotos, alta del ítem, revisión inicial). Cloudflare corta los POST a ~100 s y devuelve 504; el hilo de Flask seguía, así que la publicación podía crearse igual aunque el panel mostrara error. Mismo problema que ya se había resuelto en el escáner COA (`coa_scan_jobs`).
+  - **Backend:** nuevo `app/services/meli_crear_jobs.py` (job en memoria, TTL 1 h, hilo con `spawn_thread`). El POST acepta `asincrono: true` y responde al instante `{job_id}`; nuevo `GET /api/meli/compliance/crear-nueva/<job_id>` devuelve `status/progreso/segundos/resultado/error`. Sin la bandera el endpoint sigue síncrono (scripts, dry_run).
+  - **Front (`MeliComplianceTab`):** la mutación de crear envía `asincrono: true` y consulta el job cada 3 s (hasta 20 min, tolera 5 fallos de red seguidos). El botón muestra el avance y los segundos; debajo, aviso de que puede tardar y no cerrar la pestaña. Si vence el plazo, el mensaje pide revisar el historial antes de reintentar, para no duplicar.
+  - Pendiente si se repite en «Corregir y republicar»: `republicarMut` usa el mismo tipo de flujo síncrono y puede sufrir el mismo corte.
+  - **Requiere `sudo systemctl restart agente-pro`** (cambio en Python). Front compilado y desplegado.
+- **Archivos Modificados:** `app/services/meli_crear_jobs.py` (nuevo), `app/routes.py`, `desktop/src/components/MeliComplianceTab.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - Studio: desenfoque automático de «MCKENNA GROUP» por OCR
+- **Autor:** Armando García
+- **Tipo de Cambio:** Funcionalidad (Studio Visual y ficha de etiqueta → ventana de desenfoque)
+- **Qué se implementó:**
+  - La ventana de desenfoque (`DesenfoquePlantillaModal`) ya no espera a que el usuario marque recuadros: al abrirse corre un **OCR en el navegador** (tesseract.js), busca el texto "MCKENNA GROUP" — el logo y también la web y el correo, que lo llevan pegado (`mckennagroup.co`) —, marca esas zonas y genera el preview sola. El usuario solo revisa y pulsa "Usar esta versión". Aplica a los dos usos del modal: exportar en Plantillas Visuales (blur en servidor) y casilla «Desenfoque» de la ficha (blur local).
+  - Lo manual queda de respaldo: botón "Detectar MCKENNA GROUP" para repetir, "Pie McKenna", recuadros a mano (teléfono, NIT: el OCR solo busca la marca) y "Limpiar zonas". Lo dibujado a mano mientras corre el OCR se conserva; re-detectar no duplica zonas. Si el OCR no encuentra nada o no carga, avisa y se sigue a mano.
+  - `lib/ocrMarca.ts` (nuevo): escala la etiqueta a 1900 px sobre fondo blanco y hace **tres pasadas** (~3 s): modo automático, modo texto disperso (el automático pierde el logo de trazo fino bajo el dibujo) y una tercera sobre una imagen preprocesada que deja en negro solo el texto que va sobre rellenos de color u oscuros (botón azul de la web, franja café de Semillas), que Tesseract toma por imagen y se salta. Coincidencia tolerante a una letra mal leída; cajas solapadas se unen y se les da margen para tapar el ®.
+  - **Motor self-hosted, sin CDN:** `desktop/scripts/copy-ocr-assets.mjs` copia worker, núcleo WASM (3 variantes SIMD) e idioma `eng` de `node_modules` a `public/assets/ocr` (en `.gitignore`), y corre antes de `dev` y `build`. Va bajo `/app/assets/` porque es lo único estático que sirve Flask. El idioma se copia **descomprimido** (`gzip: false`): Flask etiqueta los `.gz` con `Content-Encoding: gzip` y el navegador recibía un cuerpo vacío. Solo se descarga al abrir la ventana (~9 MB la primera vez; luego caché).
+  - Dependencias nuevas: `tesseract.js` y `@tesseract.js-data/eng` (dev). Sin cambios en Python ni reinicio.
+  - **Verificado** en Chrome headless con el código real (`ocrMarca.ts` + `desenfoqueLocal.ts`) sobre `LACTATO_CALCIO_250g_3.png` y `MANI_NATURAL_TOSTADO_500g_4.png`: logo, web y correo detectados y desenfocados en ambas. **Sin verificar dentro del panel** (pide inicio de sesión con Google). Compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/lib/ocrMarca.ts` (nuevo), `desktop/scripts/copy-ocr-assets.mjs` (nuevo), `desktop/src/components/plantillas-visuales/DesenfoquePlantillaModal.tsx`, `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/package.json`, `desktop/package-lock.json`, `.gitignore`, `docs/team-recaps.md`
+
+### 2026-09-17 - Diseño → Imprimir: biblioteca de etiquetas rehecha (miniaturas accesibles)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Diseño → Imprimir)
+- **Qué se implementó:**
+  - **Problema:** la vista de miniaturas era difícil de usar: 6 por fila con texto de 9 px, recuadro con scroll propio dentro de la página, y en cada tarjeta un checkbox, una papelera de 20 px y un select de categoría compitiendo con el clic de imprimir. Además los botones superpuestos (papelera, limpiar) caían fuera de sitio: `index.css` fuerza `position: relative` en todo `<button>` de `#root` y anula la clase `absolute`.
+  - **Biblioteca nueva** (`EtiquetasStudioCatalogo`, rama `soloArchivosPng`, solo la usa Imprimir): ocupa el alto de la pantalla con barra fija arriba y solo la rejilla se desplaza. Buscador grande con foco automático, botón de limpiar, **Enter abre la primera** y Esc limpia. **Tamaño de miniatura** Pequeñas/Medianas/Grandes (120/180/260 px, se recuerda en `localStorage` `mck.imprimir.tamanoMiniatura`). **Chips por categoría** con conteo para filtrar. Encabezados de categoría pegajosos.
+  - **Tarjetas:** miniatura grande sobre blanco, nombre legible a 2 líneas (sin carpeta, extensión ni guiones bajos) y tamaño. Clic = ir a imprimir (franja "Imprimir" al pasar el cursor o enfocar); botón de ojo = **ver en grande**, y el lightbox gana botón **Imprimir** (`LightboxImagen.onImprimir`). Las imágenes se piden **solo al acercarse a la pantalla** (`IntersectionObserver`): antes se bajaban los ~100 PNG completos al abrir.
+  - **Modo «Organizar»** (solo quien puede eliminar): ahí viven checkbox, seleccionar todo, eliminar en lote, papelera y cambio de categoría, con controles de 32 px. Fuera de ese modo la tarjeta queda limpia.
+  - **Vista de impresión:** las copias salen de la cinta y pasan junto al botón, con − / + de 44 px; el botón dice **«Imprimir N copias»** y mide 44 px. Cabecera con textos legibles y botón «← Etiquetas» siempre con texto.
+  - **Corrección — no se podía volver a la biblioteca:** la cabecera de Imprimir llevaba `mck-header-glass`, cuyo fondo claro translúcido gana a `bg-accent`; el título y el botón de volver (blancos) quedaban invisibles. Se quitó la clase (cabecera sólida) y el botón ahora es blanco con texto «← Volver a la biblioteca»; el «← Archivos» de 9 px sobre la vista previa pasó a «✕ Cerrar» de tamaño normal. Esc sigue funcionando. Verificado con captura.
+  - **Ajuste — rejilla corrida:** con «Todas» (y con cualquier chip) ya no se parte en secciones por categoría: una sola rejilla ordenada por nombre, sin encabezados; la categoría va como texto en la tarjeta (`tamaño · categoría`) cuando no hay filtro. Tarjetas más compactas (miniatura 7:6 al ras, menos relleno, separación de 8 px) y tamaños 110/160/240 px: en 1440 px caben 8 por fila en «Medianas».
+  - Trucos por el CSS global: botones `absolute` van dentro de un `<span>` posicionado; el buscador usa `mck-field-lg` para salir de la regla de campos compactos; el input de copias va en un `<span>` para que la regla «botón junto a input» no encoja los − / +.
+  - **Verificado** con un arnés temporal (vite dev + Chrome headless, API simulada con los 99 PNG reales) en 1440 px y 420 px: rejilla, organizar, búsqueda + Enter, hover y lightbox. El arnés se borró. La barra de copias/Imprimir **no** se vio en navegador (necesita toda la pestaña con sesión); compila y pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/etiquetas/EtiquetasStudioCatalogo.tsx`, `desktop/src/components/etiquetas/RecursoPngViewer.tsx`, `desktop/src/components/etiquetas/ImpresionEtiquetasHeader.tsx`, `desktop/src/components/EtiquetasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiquetas: la casilla Composición no se llenaba desde la ficha técnica (aceites esenciales)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha de etiqueta ← ficha técnica)
+- **Qué se implementó:**
+  - **Causa:** `camposDesdeFichaTecnica` solo leía `composicion` de la raíz del YAML. En las fichas FT + COA + SDS la tabla de componentes se diligencia en la sección 3 del SDS (`_sds.composicion`) y la de la raíz queda `[]`: 194 de 201 fichas tienen la raíz vacía y 39 de ellas sí traen composición en el SDS — entre ellas 17 de los 20 aceites esenciales.
+  - **Arreglo:** si la composición de la FT está vacía se usa la del SDS (nombres de componentes separados por coma, como antes). Mismo cambio en las dos copias de la extracción: `lib/fichaTecnicaCampos.ts` (ficha de etiqueta actual) y `lib/etiquetaFormulario.ts` (formulario antiguo). La fórmula molecular sigue teniendo prioridad cuando existe; ningún aceite esencial la trae.
+  - Siguen sin composición en ningún lado: `aceite_esencial_rosas`, `aceite_esencial_tomillo`, `aceite_esencial_ylang_ylang` (fichas viejas sin SDS). En la mayoría de los `vacio_ft_coa_sds_*` el único componente es el propio aceite («Aceite esencial de menta piperita (Mentha × piperita)») porque falta el perfil GC del proveedor.
+  - Solo front; compilado y desplegado. Sin verificar en el panel (login Google).
+- **Archivos Modificados:** `desktop/src/lib/fichaTecnicaCampos.ts`, `desktop/src/lib/etiquetaFormulario.ts`, `docs/team-recaps.md`
+
+### 2026-09-17 - Fichas técnicas: Composición como tabla de 2 columnas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz (Fichas Técnicas → SDS)
+- **Qué se implementó:**
+  - La casilla **Composición** dejó de ser un cuadro de texto `componente|concentración`: ahora es una tabla **Componente · Porcentaje** con la misma mecánica que «Parámetros de análisis» (fila por componente, ✕ para quitar, + para agregar, «Limpiar tabla», botón IA en la cabecera). Aplica en los dos sitios donde aparece: el formulario SDS suelto y el de la ficha completa FT + COA + SDS (conserva el aviso «requerida para este tipo de insumo»).
+  - Nuevo `components/documentos/TablaComposicion.tsx`. El valor sigue viajando como texto `componente|porcentaje|CAS` por línea, así que IA, escáner, guardado (`filasTresDesdeTexto`) y Word no cambian. La tercera columna (CAS del componente, que ya traen varias fichas) **no se muestra pero se conserva** al editar. `|` y saltos de línea escritos en una celda se cambian por espacio.
+  - Solo front; compilado y desplegado. Sin verificar en el panel (login Google); pasa `tsc`.
+- **Archivos Modificados:** `desktop/src/components/documentos/TablaComposicion.tsx` (nuevo), `desktop/src/components/FichasTecnicasPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-17 - COA y SDS: se quita «Nombre comercial»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste (Fichas Técnicas → COA)
+- **Qué se implementó:**
+  - Formulario del Certificado de análisis (`FichasTecnicasPanel`, sección Identificación): se eliminó la casilla **Nombre comercial**. Al guardar, `identificacion.nombre_comercial` toma el **título** (antes era al revés), porque sin casilla ya no habría dónde corregir un nombre viejo; el dato se sigue guardando para lotes y búsquedas.
+  - PDF del documento completo (`app/templates/documento_completo_pdf.html`): se quitó la fila «Nombre comercial» de «Identificación del producto» del COA. El título del producto sigue en la cabecera. La plantilla se lee en cada render: no requiere reinicio.
+  - **Después, también en la hoja de seguridad:** se quitó la fila «Nombre comercial» de la sección 1 del SDS en el PDF y la casilla del formulario SDS suelto (guarda el título como nombre comercial, igual que el COA).
+  - **No se tocó:** el COA suelto en Word (`app/services/coa.py`), donde «Nombre comercial» es una celda fija de la plantilla .docx.
+- **Archivos Modificados:** `desktop/src/components/FichasTecnicasPanel.tsx`, `app/templates/documento_completo_pdf.html`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiqueta 102 × 38 mm: lema «Proveemos a tus ideas» bajo el logo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Ajuste de diseño (ficha de etiqueta → formato horizontal de tres paneles)
+- **Qué se implementó:**
+  - Panel central de la etiqueta de 102 × 38 mm (`etiqueta-30ml/CenterProductPanel.tsx`): debajo del logo va ahora el lema de la casa, la misma constante `ESLOGAN` de la ficha de 76 × 66 y de la vertical, en el color de acento. Pedido para la plantilla de Activos cosméticos; como la maqueta es única por formato, sale en todas las categorías que usan 102 × 38.
+  - La fila del logo **no crece** (sigue alineada con las filas de los paneles laterales): el logo cede alto al lema (`.e30-logo-con-lema`, lema de 18 px sobre 1200 px de ancho ≈ 4,3 pt impreso, ancho similar al del logotipo). El 5 mL reutiliza `.e30-logo` pero no lleva lema: la clase nueva solo se pone en el panel de 102 × 38.
+  - **Verificado** con arnés (LabelPreview real + logo morado): el lema queda centrado bajo el logo, sin mover nombre ni contenido neto. Arnés borrado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-30ml/CenterProductPanel.tsx`, `desktop/src/components/etiqueta-30ml/etiqueta30ml.css`, `docs/team-recaps.md`
+
+### 2026-09-17 - Etiquetas 250 / 500 g: el lienzo ya no se queda encogido ni deja huecos al editar textos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (ficha de etiqueta → marco de formato)
+- **Qué se implementó:**
+  - **Problema:** en las plantillas con marco (Sales minerales 250 / 500 g y demás formatos de la ficha de dos columnas), al agrandar un texto o su tamaño de letra el lienzo se ensanchaba para que cupiera, pero al reducirlo **ya no volvía a bajar**: la etiqueta se quedaba pequeña, con una banda blanca bajo el pie (y, con el ancho en el tope, un margen vacío a la derecha). Además se ensanchaba de más, porque se medía con los campos de texto todavía al alto del ancho anterior.
+  - **Solución** (`ProductLabelForm.tsx`): el ancho de maquetación se busca de cero en cada cambio (datos, tamaños/fuentes, íconos, modo edición), probando anchos sobre el lienzo antes de pintar —ensanche proporcional + bisección— y se queda con el **menor** ancho al que el contenido cabe (texto lo más grande posible, mismo resultado subiendo que bajando). Los `<textarea>` se reajustan antes de medir (`ajustarAltoTextarea`, extraída de `EditableField.tsx`).
+  - Las filas del cuerpo ahora sí se reparten el alto sobrante (`flex-1` en vez de `h-full`, que contra un alto mínimo no se resuelve). Holgura de ajuste 0,1 % (antes 0,5 %, asomaba un filo a la derecha). Si ni en el tope cabe, la ficha se centra en el marco.
+  - **Verificado** con arnés (formulario real + datos de GLICINA 250 g): letra 18→48→15 y texto largo→corto, siempre sin hueco a la derecha ni abajo; formato 70×70 reparte filas. Arnés borrado.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-ficha/ProductLabelForm.tsx`, `desktop/src/components/etiqueta-ficha/EditableField.tsx`, `docs/team-recaps.md`
+
+### 2026-09-25 - Facturación web: PRTASLSYKG (proteína de soya 1 kg) factura como C-PROAISSOY1000g
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (alias de SKU de venta → Alegra)
+- **Qué se implementó:**
+  - **Problema:** el pedido web MCKG-D7A40CED6A no se facturaba: «PRTASLSYKG: no existe en Alegra». El código nuevo es `PROAISSOYg`, pero ese es el producto base **por gramo**; apuntar el SKU directo ahí habría facturado «2 g» y descontado 2 g del inventario.
+  - **Solución:** se creó en Alegra el combo `C-PROAISSOY1000g` «PROTEINA AISLADA SOYA 1000g» (id 725, 1.000 × `PROAISSOYg`, precio de lista $47.610) y se agregó el alias `PRTASLSYKG → C-PROAISSOY1000g` en `app/data/alegra_sku_alias_venta.json`.
+  - **Verificado:** reintento de la factura del pedido → FE706, STAMPED_AND_ACCEPTED_WITH_OBSERVATIONS.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `docs/team-recaps.md`
+
+### 2026-09-25 - Facturación de ventas: 5 equivalencias más de SKU de venta → Alegra
+- **Autor:** Armando García
+- **Tipo de Cambio:** Datos (alias de SKU de venta → Alegra)
+- **Qué se implementó:**
+  - Revisión de ventas sin factura por «no existe en Alegra»: 5 SKU de venta tienen el mismo producto en Alegra con otro código. Se agregaron a `app/data/alegra_sku_alias_venta.json`: `C-ACEESENJEN5mL → C-ACEESEJEN5mL`, `C-ACEESENLIM5mL → C-ACEESELIM5mL`, `C-ACEESECORCED5mL → C-ACEESECORTCED5mL`, `OILESNCLV5mL → C-ACEESECLA5mL`, `SBCRD150g → C-SEBCOR150g`.
+  - Destraba 5 ventas de MeLi (2000018241240264, 2000018491965110, 2000018494803032, 2000018453816394, 2000018563925934) y 2 pedidos web (MCKG-DF8F24F61F; MCKG-AC9E5A56A9 además necesita el combo de neem + oleato). Las facturas no se emitieron desde aquí.
+  - **Verificado:** `resolver_producto_venta_alegra` resuelve los 5 códigos a ítems activos.
+- **Archivos Modificados:** `app/data/alegra_sku_alias_venta.json`, `docs/team-recaps.md`
+
+### 2026-09-25 - Studio: galería de íconos ampliada por categoría (28 → 101)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (galería de íconos de las etiquetas)
+- **Qué se implementó:**
+  - **Problema:** la galería de íconos de las celdas de la ficha tenía 4–6 íconos por categoría y uno solo en Seguridad; productos distintos terminaban con los mismos íconos.
+  - **Solución:** 73 íconos nuevos en `desktop/src/lib/iconosGaleriaAmpliada.ts` (mismo estilo: viewBox 100, `currentColor`, trazo 4–5, círculo exterior r=44 que se puede quitar), unos 10 por categoría: origen (montañas, brote, árbol, importado avión/barco, brújula, cultivo, marino, mineral, fábrica), aroma (menta, cítrico, lavanda, canela, incienso, café, herbal, frutal, pino, picante, inodoro), apariencia (cristales, bloque, aceite, gel, semillas, perlas, crema, gema, tonos, tamiz), composición (tubos, %, torta, ácido graso, gotero, balanza, INCI, mortero, activo natural, mezcla), calidad (estrellas, pulgar, laurel, corona, trofeo, COA, microscopio, lote, aprobado, BPM, sello natural), conservación (luz, refrigerar, oscuro, vencimiento, lado arriba, frágil, bien cerrado, ventilado, calor, ambiente) y seguridad (advertencia, guantes, gafas, mascarilla, niños, no ingerir, primeros auxilios, ojos, casco, uso externo, ventilación).
+  - La galería abre en la categoría de la celda que se edita (`campo` → `CATEGORIA_ICONO_POR_CAMPO`: origin→Origen, odor→Aroma, storage→Conservación, alergenos→Seguridad…) en 250/500 g, 30 mL, 5 mL, 69×51 y vertical; cada pestaña muestra cuántos íconos tiene.
+  - **Verificado:** `npm run build` (tsc) sin errores; captura con arnés de la galería abierta desde Aroma (16 íconos). Arnés borrado.
+- **Archivos Modificados:** `desktop/src/lib/iconosGaleriaAmpliada.ts` (nuevo), `desktop/src/lib/iconosQuimicaCirculares.ts`, `desktop/src/components/plantillas-visuales/GaleriaIconosQuimicosModal.tsx`, `desktop/src/components/etiqueta-ficha/ProductAttributeGrid.tsx`, `desktop/src/components/etiqueta-30ml/LeftTechnicalPanel.tsx`, `desktop/src/components/etiqueta-5ml/Etiqueta5ml.tsx`, `desktop/src/components/etiqueta-simple/EtiquetaSimple.tsx`, `desktop/src/components/etiqueta-vertical/EtiquetaVertical.tsx`, `docs/team-recaps.md`
+
+### 2026-09-25 - Tareas: una sola celebración por tarea cumplida, con estrellas doradas en Barbie Agenda
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (celebración de tareas)
+- **Qué se implementó:**
+  - Al cumplir una tarea (marcarla lista con `PUT /api/tickets/<id>/estado` → `resuelto`, o `POST /api/tickets/<id>/completar-accion`) el escucha global de `fetch` (`escucharMonedasDelServidor`) dispara `celebrarTareaCumplida(id)`: lluvia de estrellas doradas + estallido al centro. En el tema Barbie Agenda son 90 estrellas casi todas de oro (algún destello rosa); en los demás temas, estrellas de oro y confeti. Vale para el panel de tareas, misiones, la Agenda y la app de colaboradores.
+  - Una sola vez por tarea y por día (memoria + `localStorage` `mck-tareas-celebradas`): reabrir y volver a cerrar no repite el efecto. Un solo sonido: la fanfarria del efecto; la moneda del árbitro que llega en la misma respuesta se muestra callada y se quitó `playChimeExito` del botón «Marcar lista».
+  - Las estrellas de la tarjeta de aprobación en Barbie ahora también son sobre todo doradas.
+  - **Verificado:** `npm run build` sin errores; prueba en Chrome headless: primera llamada celebra, la segunda sobre la misma tarea no; capturas del efecto en Barbie.
+- **Archivos Modificados:** `desktop/src/lib/celebracionAprobado.ts`, `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-26 - Docs técnicos: cada producto se enlaza con el documento que más se le parece
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección (enlace documento ↔ SKU en Documentos por catálogo)
+- **Qué se implementó:**
+  - **Problema:** `_coincide_archivo` acepta un documento con que la palabra más larga del producto esté en el nombre, y se tomaba el **primero** que coincidía. «SABOR CARNE AHUMADA 100g» mostraba el PDF de «SAL AHUMADA GRUESA…» (la usuaria borró ese PDF por confusión; se regeneró desde su YAML con `generar_pdf_completo`, sin tocar datos ni etiquetas).
+  - **Solución:** `_mejor_coincidencia` en `app/services/documentos_catalogo.py`: entre los que coinciden gana la referencia en el nombre y, si no, el que comparte más palabras con el producto; se descarta el que trae la palabra contraria (`_OPUESTAS`: fino/grueso, refinada/natural, blanca/amarilla). La usan la biblioteca local y el índice de Drive.
+  - Corrige 65 productos que estaban con el documento de otro (aceites → «ACEITE ESENCIAL MANZANILLA», sorbato → polisorbato 20, citrato de magnesio → cloruro, ceras → manteca de cacao, sal rosada fino ↔ gránulos…). Ninguno queda sin documento.
+  - Pendiente (igual que antes): productos sin documento propio siguen tomando uno parecido (MENTOL CRISTAL → celulosa microcristalina, ACEITE DE COCO → manzanilla).
+  - **Verificado:** comparación completa regla vieja vs nueva sobre los 289 productos; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/services/documentos_catalogo.py`, `docs/team-recaps.md`
+
+### 2026-09-26 - Studio: la plantilla de una categoría ya no se puede pisar al guardar un producto
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + restauración de datos
+- **Qué se implementó:**
+  - **Problema:** a las 00:30 del 26-sep la etiqueta «UVAS PASAS FLAME 250g» se guardó con el id de la plantilla de Semillas & Frutos Secos (`3315aef8818d`) y sin `es_plantilla_categoria`: `guardar_ficha` reemplazó el registro y la categoría se quedó sin plantilla. Las 38 etiquetas de la categoría no se tocaron.
+  - **Solución:** `_guardar_ficha_bajo_candado` (`app/tools/etiquetas_fichas.py`): si el id es de una plantilla de categoría y el guardado no viene marcado como plantilla, se crea una etiqueta nueva con `plantilla_id` = la plantilla; el editor toma el id nuevo de la respuesta.
+  - **Restauración:** «UVAS PASAS FLAME 250g» pasó al id `e74c8452d208` (con sus PNG aprobados en `etiquetas_png_aprobados.json`); la plantilla volvió desde `etiquetas_fichas.json.tmp84192` (última edición 20-sep). Respaldos en `/tmp/*.antes_restaurar_semillas.json`.
+  - **Verificado:** la plantilla figura con `es_plantilla_categoria`; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `docs/team-recaps.md` (datos: `app/data/etiquetas_fichas.json`, `app/data/etiquetas_png_aprobados.json`)
+
+### 2026-09-26 - Sonidos de juego también en el menú rápido
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (sonidos reactivos)
+- **Qué se implementó:**
+  - `sonidoPara` (`desktop/src/lib/sonidosJuego.ts`) reconoce `data-sonido` en cualquier botón; `sonidoDePanel(panel)` da el sonido del apartado donde vive el panel (`ubicacionDe`, el mismo de su estación en el Mapa) o un blip si no es de ninguno.
+  - Accesos rápidos (Ctrl+K): el botón «Rápido» suena al abrir, y cada destino (lo que más usas, resultados, «Volver a») suena como su apartado, también con Enter y las teclas 1–8.
+  - Celular, pestaña «Rápido»: las operaciones (sync facturas y XML → Facturar, stock → Abastecer, aprendizaje IA → Sistema), el aviso de preventa y los accesos a paneles.
+  - Respeta el mismo interruptor de sonido del Mapa.
+  - **Verificado:** `npm run build`; prueba en Chrome headless de `sonidoPara`/`sonidoDePanel`.
+- **Archivos Modificados:** `desktop/src/lib/sonidosJuego.ts`, `desktop/src/components/nav/AccesosRapidos.tsx`, `desktop/src/components/MobileHub.tsx` (este último queda sin commit: tiene cambios en curso de otra sesión), `docs/team-recaps.md`

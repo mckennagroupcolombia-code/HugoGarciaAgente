@@ -75,6 +75,16 @@ def ensure_mensajeria_tables() -> None:
                 ON mensajeria_envios(lote_id);
             """
         )
+        # El lote puede pagarse por el flujo unificado de Contabilidad →
+        # Solicitudes de pago: ahí queda el tercero (la transportadora en el
+        # Libro Mayor) y la solicitud que le da asiento, giro y comprobante.
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(mensajeria_lotes)")}
+        for col, ddl in (
+            ("tercero_id", "INTEGER"),
+            ("solicitud_pago_id", "INTEGER"),
+        ):
+            if col not in cols:
+                con.execute(f"ALTER TABLE mensajeria_lotes ADD COLUMN {col} {ddl}")
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
@@ -706,6 +716,99 @@ def solicitar_aprobacion(lote_id: int, *, creado_por: int | None = None) -> dict
         "ok": True,
         "ticket_id": ticket.get("id"),
         "numero": ticket.get("numero"),
+        "lote": obtener_lote(lote_id),
+    }
+
+
+def _medio_pago_default() -> int | None:
+    """De dónde sale la plata. Es la misma cuenta de la que sale todo lo demás
+    (Bancolombia ahorros); si no aparece, el primer medio activo."""
+    try:
+        import app.services.contabilidad_core as cc
+
+        medios = [m for m in cc.listar_medios_pago() if m.get("activo")]
+        for m in medios:
+            if "bancolombia" in str(m.get("nombre") or "").lower():
+                return int(m["id"])
+        return int(medios[0]["id"]) if medios else None
+    except Exception:
+        return None
+
+
+def solicitar_pago_wizard(
+    lote_id: int,
+    *,
+    tercero_id: int | None = None,
+    medio_pago_id: int | None = None,
+    creado_por: int | None = None,
+) -> dict[str, Any]:
+    """Manda el lote a Contabilidad → Solicitudes de pago, en vez de a un ticket suelto.
+
+    **Por qué.** Hasta sep-2026 este pago vivía aparte: un ticket de texto libre
+    pedía aprobarlo y el asiento solo aparecía cuando alguien marcaba el lote
+    como pagado. El resto de los pagos de McKenna ya tiene un solo camino
+    —solicitud → asiento al aprobar → giro con dos tokens → comprobante— y este
+    no tenía por qué ser la excepción.
+
+    El lote queda amarrado a la solicitud (`solicitud_pago_id`) y **deja de
+    postearse por su cuenta** en Ingresos/Egresos: el asiento lo hace la
+    solicitud, si no el gasto quedaría dos veces.
+    """
+    lote = obtener_lote(lote_id)
+    if not lote:
+        raise ValueError("Lote no encontrado")
+    if lote.get("solicitud_pago_id"):
+        return {"ok": True, "solicitud_id": lote["solicitud_pago_id"],
+                "mensaje": "Este lote ya está en Solicitudes de pago.", "lote": lote}
+    if lote.get("estado") == "pagado":
+        raise ValueError("El lote ya está pagado: no hay nada que solicitar")
+    if not tercero_id and not lote.get("tercero_id"):
+        raise ValueError(
+            f"Falta el tercero: elige a «{lote.get('transportadora')}» en el Libro Mayor "
+            "(o créalo ahí mismo) para que el asiento sepa a quién se le paga"
+        )
+    medio = int(medio_pago_id or 0) or _medio_pago_default()
+    if not medio:
+        raise ValueError("No hay medio de pago configurado en el Libro Mayor")
+
+    from app.services.pagos_wizard import crear_solicitud
+
+    tid = int(tercero_id or lote["tercero_id"])
+    dias = lote.get("dias") or []
+    concepto = f"Mensajería · {lote.get('transportadora')}"
+    if dias:
+        concepto += f" ({lote['rango']}, {len(dias)} día(s), {sum(int(d.get('cantidad') or 0) for d in dias)} envíos)"
+    detalle = "\n".join(
+        f"- {d['fecha']} · {d.get('cantidad') or 0} envío(s) · {_formato_cop(float(d.get('valor') or 0))}"
+        + (f" · {d['enlace']}" if d.get("enlace") else "")
+        for d in dias
+    )
+    sol = crear_solicitud(
+        {
+            "categoria": "flete_transporte",
+            "monto": lote["total"],
+            "concepto": concepto,
+            "fecha": _hoy(),
+            "tercero_id": tid,
+            "medio_pago_id": medio,
+            "referencia": f"lote-{lote_id}",
+            "origen_sistema": "mensajeria",
+            "origen_ref": f"mensajeria:{lote_id}",
+            "notas": f"Días incluidos:\n{detalle}" if detalle else "",
+        },
+        created_by=creado_por,
+    )
+    with _conn() as con:
+        con.execute(
+            "UPDATE mensajeria_lotes SET solicitud_pago_id = ?, tercero_id = ?,"
+            " ticket_id = COALESCE(ticket_id, ?), updated_at = datetime('now') WHERE id = ?",
+            (int(sol["id"]), tid, sol.get("ticket_id"), int(lote_id)),
+        )
+    _invalidar_libro()
+    return {
+        "ok": True,
+        "solicitud_id": sol["id"],
+        "ticket_id": sol.get("ticket_id"),
         "lote": obtener_lote(lote_id),
     }
 

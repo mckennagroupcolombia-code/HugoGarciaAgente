@@ -20,11 +20,58 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime, timedelta
 from typing import Any
 
-# Presupuesto para APIs remotas en el panel (segundos). Lo local siempre se incluye.
+# Presupuesto para APIs remotas (segundos). Lo local siempre se incluye.
+#
+# Los 28 s son para el PANEL, donde alguien está esperando la pantalla y vale
+# más una cifra parcial rápida que una exacta lenta. Un backfill es lo
+# contrario: postear un período a medias es peor que no postearlo, porque queda
+# cuadrado, se ve completo y nadie vuelve a mirarlo. Por eso el lote sube el
+# presupuesto con `CONTABILIDAD_LEDGER_BUDGET_S`.
+def _remote_budget_s() -> float:
+    try:
+        return max(5.0, float(os.getenv("CONTABILIDAD_LEDGER_BUDGET_S") or 28.0))
+    except (TypeError, ValueError):
+        return 28.0
+
+
 _REMOTE_BUDGET_S = 28.0
 _SIIGO_PAGE_SIZE = 100
 _SIIGO_MAX_PAGES = 20
 _MELI_MAX_PAGES = 25
+# Reintentos de una misma página antes de darla por perdida (ver el bucle de
+# Alegra): una página lenta no debe costar el período entero.
+_INTENTOS_POR_PAGINA = 3
+
+
+def _con_fuente(fuente: str, mensaje: str) -> str:
+    """Antepone la fuente al mensaje **sin tapar el marcador `info:`**.
+
+    Los avisos se clasifican por ese prefijo: los informativos (el dedup hizo su
+    trabajo) no deben mostrarse como «lectura incompleta». Envolverlos en
+    `f"Alegra: {msg}"` los dejaba como «Alegra: info: …», que ya no empieza por
+    `info:` — y el backfill volvía a gritar que faltaban datos en cada corrida.
+    """
+    msg = str(mensaje or "")
+    if msg.lstrip().startswith("info:"):
+        return f"info: {fuente}: {msg.lstrip()[5:].strip()}"
+    return msg if msg.startswith(fuente) else f"{fuente}: {msg}"
+
+
+def _max_paginas_facturas() -> int:
+    """Tope de páginas al listar facturas. El default cubre el panel; un backfill
+    de un mes entero necesita más, y quedarse corto postea el período a medias."""
+    try:
+        return max(10, int(os.getenv("CONTABILIDAD_LEDGER_MAX_PAGINAS") or (_SIIGO_MAX_PAGES * 3)))
+    except (TypeError, ValueError):
+        return _SIIGO_MAX_PAGES * 3
+
+
+def _max_paginas_meli() -> int:
+    """Igual, para el listado de órdenes de MeLi (`_MELI_MAX_PAGES`)."""
+    try:
+        return max(10, int(os.getenv("CONTABILIDAD_LEDGER_MAX_PAGINAS_MELI") or _MELI_MAX_PAGES))
+    except (TypeError, ValueError):
+        return _MELI_MAX_PAGES
 _CACHE_TTL_S = 90.0
 _libro_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
@@ -278,6 +325,11 @@ def _egresos_mensajeria(desde: str, hasta: str) -> list[dict]:
         monto = float(lote.get("total") or 0)
         if monto <= 0:
             continue
+        # Si el lote se pagó por Contabilidad → Solicitudes de pago, su asiento
+        # ya lo hizo la solicitud al aprobarse. Contarlo también acá dejaría el
+        # mismo flete dos veces en el gasto.
+        if lote.get("solicitud_pago_id"):
+            continue
         dias = lote.get("dias") or []
         concepto = f"Mensajería · {lote.get('transportadora') or 'Transportadora'}"
         if dias:
@@ -494,35 +546,55 @@ def _facturas_alegra_rapido(
     pagina = 0
     truncado = False
     aviso: str | None = None
+    max_paginas = _max_paginas_facturas()
 
-    while pagina <= _SIIGO_MAX_PAGES * 3:  # 30/pagina ~ misma cantidad de llamadas que 100/pagina antes
+    while pagina <= max_paginas:
         if time.monotonic() >= deadline:
             truncado = True
             aviso = f"Alegra: tiempo límite; {len(facturas)} facturas parciales"
             break
-        try:
-            params = {
-                "date_afterEqual": desde,
-                "limit": _ALEGRA_PAGE_SIZE,
-                "start": pagina * _ALEGRA_PAGE_SIZE,
-            }
-            if hasta:
-                params["date_beforeEqual"] = hasta
-            to = _segundos_restantes(deadline, tope=12.0)
-            res = requests.get(
-                f"{_ALEGRA_BASE}/invoices",
-                headers=headers,
-                params=params,
-                timeout=to,
-            )
-        except requests.Timeout:
+        params = {
+            "date_afterEqual": desde,
+            "limit": _ALEGRA_PAGE_SIZE,
+            "start": pagina * _ALEGRA_PAGE_SIZE,
+        }
+        if hasta:
+            params["date_beforeEqual"] = hasta
+
+        # Una página lenta ya no aborta la lectura entera. Antes, un solo
+        # `requests.Timeout` hacía `break` y devolvía lo que llevara: en el
+        # panel eso es aceptable (se ve una cifra parcial), pero un backfill
+        # posteaba el período a medias y quedaba cuadrado, que es como nadie lo
+        # vuelve a mirar. Se reintenta la MISMA página; solo si se agotan los
+        # intentos se da por truncado.
+        res = None
+        ultimo_error: Exception | None = None
+        for intento in range(_INTENTOS_POR_PAGINA):
+            if time.monotonic() >= deadline:
+                break
+            try:
+                res = requests.get(
+                    f"{_ALEGRA_BASE}/invoices",
+                    headers=headers,
+                    params=params,
+                    timeout=_segundos_restantes(deadline, tope=12.0),
+                )
+                ultimo_error = None
+                break
+            except requests.Timeout as e:
+                ultimo_error = e
+                res = None
+                if intento + 1 < _INTENTOS_POR_PAGINA:
+                    time.sleep(min(2.0 * (intento + 1), 5.0))
+            except Exception as e:
+                if facturas:
+                    return facturas, f"Alegra: error parcial ({len(facturas)} facturas): {e}"
+                return [], f"Alegra red: {e}"
+        if res is None:
             truncado = True
-            aviso = f"Alegra: timeout; {len(facturas)} facturas parciales"
+            aviso = (f"Alegra: la página {pagina} no respondió tras {_INTENTOS_POR_PAGINA} intentos "
+                     f"({ultimo_error}); {len(facturas)} facturas parciales")
             break
-        except Exception as e:
-            if facturas:
-                return facturas, f"Alegra: error parcial ({len(facturas)} facturas): {e}"
-            return [], f"Alegra red: {e}"
 
         if res.status_code == 200:
             batch = res.json() or []
@@ -530,6 +602,7 @@ def _facturas_alegra_rapido(
                 break
             for f in batch:
                 f["purchase_order"] = f.get("anotation") or ""
+                f["_origen_sistema"] = "alegra"
             facturas.extend(batch)
             if len(batch) < _ALEGRA_PAGE_SIZE:
                 break
@@ -538,7 +611,7 @@ def _facturas_alegra_rapido(
 
         return facturas, f"Alegra HTTP {res.status_code}"
 
-    if pagina > _SIIGO_MAX_PAGES * 3 and not truncado:
+    if pagina > max_paginas and not truncado:
         truncado = True
         aviso = f"Alegra: tope de páginas; {len(facturas)} facturas parciales"
     return facturas, aviso if truncado else None
@@ -662,13 +735,65 @@ def _facturas_siigo_rapido(
         if aviso_siigo:
             avisos.append(aviso_siigo)
 
+    # Alegra solo tiene facturas DESDE la migración. Para un período anterior,
+    # `max(desde, corte)` da una fecha posterior a `hasta` y se le pedía a Alegra
+    # un rango invertido («desde el 2-sep hasta el 31-jul»): la API no responde,
+    # se agotan los reintentos y el backfill se declara truncado por un motivo
+    # que no existe. Peor que el tiempo perdido es el aviso falso, que empuja a
+    # subir presupuestos que no eran el problema.
     desde_alegra = max(desde, FECHA_CORTE_MIGRACION_ALEGRA)
-    f_alegra, aviso_alegra = _facturas_alegra_rapido(desde_alegra, hasta, deadline=deadline)
-    facturas.extend(f_alegra)
-    if aviso_alegra:
-        avisos.append(aviso_alegra)
+    if not hasta or desde_alegra <= hasta:
+        f_alegra, aviso_alegra = _facturas_alegra_rapido(desde_alegra, hasta, deadline=deadline)
+        facturas.extend(f_alegra)
+        if aviso_alegra:
+            avisos.append(aviso_alegra)
 
     return facturas, "; ".join(avisos) if avisos else None
+
+
+# Marcas que deja el facturador en `observations` cuando la factura corresponde
+# a una venta que YA entró al libro por su propio canal.
+# La marca que deja el facturador, EXIGIENDO el número de orden/pack que la
+# acompaña. Tres razones para atarla al número y no buscar solo el texto:
+#
+#  1. No siempre está al principio. Una factura de corrección dice «Reemplaza
+#     FV-2-67352 — corrección IVA duplicado parcial (astroselling). Venta
+#     Mercado Libre #2000013…»: con `startswith` se escapaban 343 facturas de
+#     agosto por $17,7M, que se habrían contado dos veces.
+#  2. Buscar el texto suelto en cualquier parte traería el problema contrario:
+#     «nota sobre la venta MercadoLibre anterior» no es una venta.
+#  3. El número es lo que prueba que esa factura corresponde a una orden
+#     concreta, que es justo la que ya está contada por su canal.
+#
+# Dos grafías: Alegra escribe «Venta MercadoLibre — Pack 2000…» y astroselling,
+# en Siigo, «Venta Mercado Libre #2000…».
+_RE_YA_CONTADA = re.compile(
+    r"(venta\s+mercado\s*libre|venta\s+meli)\s*(?:[—\-:#]|\b(?:pack|orden)\b|\s)*\s*#?\s*(\d{8,})"
+    r"|pedido\s+web\s*[:#\-]?\s*(mckg[\w\-]*|\d+)",
+    re.IGNORECASE,
+)
+
+
+def factura_ya_contada(f: dict) -> bool:
+    """¿Esta factura es de una venta que el libro ya registró por su canal?
+
+    El libro toma los ingresos de TRES fuentes que se solapan: las órdenes de
+    MeLi (`meli_venta`), los pedidos de la tienda (`web_venta`) y las facturas
+    (`siigo_venta`). Una venta de MeLi facturada aparecía en dos de ellas y se
+    contaba dos veces.
+
+    Hasta sep-2026 el daño estaba contenido **por accidente**: el listado de
+    facturas se corta a los 28 s (`_REMOTE_BUDGET_S`) y apenas alcanzaba a traer
+    un día. Subir ese presupuesto —o que Alegra respondiera más rápido— habría
+    inflado el ingreso solo, sin que nadie tocara nada, y por un monto distinto
+    cada vez. Por eso el filtro va acá y no en el presupuesto de tiempo.
+
+    La marca la pone el propio facturador en `observations`
+    («Venta MercadoLibre — Pack 2000…»), que es dato de la factura y no una
+    heurística sobre el cliente o el monto.
+    """
+    obs = str(f.get("observations") or f.get("observaciones") or "")
+    return bool(_RE_YA_CONTADA.search(obs))
 
 
 def _ingresos_siigo(
@@ -677,15 +802,20 @@ def _ingresos_siigo(
     *,
     deadline: float | None = None,
 ) -> tuple[list[dict], str | None]:
-    dl = deadline if deadline is not None else (time.monotonic() + _REMOTE_BUDGET_S)
+    dl = deadline if deadline is not None else (time.monotonic() + _remote_budget_s())
     facturas, aviso = _facturas_siigo_rapido(desde, hasta, deadline=dl)
     out = []
+    omitidas = 0
     for f in facturas or []:
         fecha = _fecha10(f.get("date"))
         if not _en_rango(fecha, desde, hasta):
             continue
         monto = float(f.get("total") or 0)
         if monto <= 0:
+            continue
+        if factura_ya_contada(f):
+            # Ya entró como `meli_venta` / `web_venta`: contarla acá la duplica.
+            omitidas += 1
             continue
         num = ""
         name = f.get("name") or {}
@@ -703,13 +833,24 @@ def _ingresos_siigo(
                 tipo="ingreso",
                 fuente="siigo_venta",
                 # Concepto fijo: la UI agrupa por concepto+fecha (sumatoria del día).
-                # El número de factura va en referencia.
-                concepto="Venta Alegra",
+                # El número de factura va en referencia. Se distingue el sistema
+                # de origen porque antes del corte de migración (2026-09-02) la
+                # factura viene de Siigo, y rotular «Venta Alegra» un asiento de
+                # Siigo despista a quien revisa de dónde salió la cifra.
+                concepto=("Venta Alegra" if f.get("_origen_sistema") == "alegra" else "Venta Siigo"),
                 monto=monto,
                 referencia=num or str(f.get("id") or ""),
                 contraparte=cliente,
             )
         )
+    if omitidas:
+        # Va marcado como informativo, NO como aviso de lectura incompleta: el
+        # dedup funcionando es el camino normal, no una anomalía. Mezclarlo con
+        # los avisos hacía que el backfill gritara «LA LECTURA NO FUE COMPLETA»
+        # en cada corrida, y una alarma que suena siempre deja de mirarse —
+        # justo cuando la de verdad aparezca.
+        nota = f"info: {omitidas} facturas omitidas por venir de un canal ya contado (MeLi/web)"
+        aviso = f"{aviso}; {nota}" if aviso else nota
     return out, aviso
 
 
@@ -717,15 +858,23 @@ def _meli_ordenes_rango(
     desde: str,
     hasta: str,
     *,
-    max_pages: int = _MELI_MAX_PAGES,
+    max_pages: int | None = None,
     deadline: float | None = None,
 ) -> tuple[list[dict], list[dict], str | None]:
-    """Ingresos por ventas MeLi pagadas + egresos por comisión (marketplace_fee)."""
+    """Ingresos por ventas MeLi pagadas + egresos por comisión (marketplace_fee).
+
+    `max_pages=None` toma el tope de `CONTABILIDAD_LEDGER_MAX_PAGINAS_MELI`: el
+    default (25 páginas ≈ 1.250 órdenes) alcanza para el panel pero corta un mes
+    completo, y un mes cortado posteado al libro queda cuadrado y parece
+    completo.
+    """
+    if max_pages is None:
+        max_pages = _max_paginas_meli()
     try:
         import requests
         from app.utils import refrescar_token_meli
 
-        dl = deadline if deadline is not None else (time.monotonic() + _REMOTE_BUDGET_S)
+        dl = deadline if deadline is not None else (time.monotonic() + _remote_budget_s())
         token = refrescar_token_meli()
         if not token:
             return [], [], "Sin token MeLi"
@@ -854,7 +1003,7 @@ def armar_libro(
     movimientos.extend(cobro_rows)
     movimientos.extend(_ingresos_web(desde, hasta))
 
-    deadline = time.monotonic() + _REMOTE_BUDGET_S
+    deadline = time.monotonic() + _remote_budget_s()
     if incluir_siigo or incluir_meli:
         # No usar `with ThreadPoolExecutor`: al salir espera hilos que aún
         # pueden estar en un requests.get y alarga la respuesta del panel.
@@ -869,7 +1018,7 @@ def armar_libro(
                 ] = "meli"
             done, not_done = wait(
                 list(futures.keys()),
-                timeout=_REMOTE_BUDGET_S + 3.0,
+                timeout=_remote_budget_s() + 3.0,
             )
             for fut in done:
                 kind = futures[fut]
@@ -878,9 +1027,7 @@ def armar_libro(
                         ing_s, err_s = fut.result(timeout=0.1)
                         movimientos.extend(ing_s)
                         if err_s:
-                            avisos.append(
-                                err_s if err_s.startswith("Alegra") else f"Alegra: {err_s}"
-                            )
+                            avisos.append(_con_fuente("Alegra", err_s))
                     else:
                         ing_m, egr_m, err_m = fut.result(timeout=0.1)
                         movimientos.extend(ing_m)

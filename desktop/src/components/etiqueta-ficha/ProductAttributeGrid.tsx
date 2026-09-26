@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
-import { TITULOS_COMPOSICION, type ProductLabelData } from "./productLabelTypes";
+import { TITULOS_COMPOSICION, tituloComposicion, type ProductLabelData } from "./productLabelTypes";
 
 export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
 
@@ -67,8 +67,8 @@ export default function ProductAttributeGrid({
     [
       ["Origen", "origin"],
       ["Apariencia", "appearance"],
-      ["Olor", "odor"],
-      [data.compositionTitulo || TITULOS_COMPOSICION[0], "composition"],
+      ["Aroma", "odor"],
+      [tituloComposicion(data), "composition"],
       ["Grado", "grade"],
       ["Conservación", "storage"],
     ] as [string, AttributeKey][]
@@ -86,38 +86,54 @@ export default function ProductAttributeGrid({
       // derecha comparte exactamente las mismas líneas de fila.
       style={{ gridRow: "span 3", gridTemplateRows: "subgrid" }}
     >
-      {celdas.map((c, i) => {
-        const esColIzq = i % 2 === 0;
-        const esFilaUltima = i >= celdas.length - 2;
+      {/* Una fila = un contenedor propio. `content-center` centra en vertical
+          el renglón implícito (tan alto como el módulo más largo de la fila) y
+          los dos módulos arrancan a la misma altura: los íconos y títulos de
+          una misma fila quedan en línea aunque un valor tenga 1 renglón y el
+          otro 3. Centrar cada celda por separado desalineaba los íconos. */}
+      {[0, 2, 4].map((ini) => {
+        const fila = celdas.slice(ini, ini + 2);
+        const esFilaUltima = ini >= celdas.length - 2;
         return (
           <div
-            key={c.campo}
-            className={`${esColIzq ? "border-r-[1.5px] border-[color:var(--acento)]" : ""} ${
+            key={ini}
+            className={`relative col-span-2 grid grid-cols-2 content-center items-start ${
               esFilaUltima ? "" : "border-b-[1.5px] border-[color:var(--acento)]"
             }`}
           >
-            <ProductAttribute
-              icon={c.icon}
-              iconSrc={attributeIcons[c.campo]}
-              title={c.title}
-              value={data[c.campo]}
-              onChange={(v) => onChange({ [c.campo]: v })}
-              editMode={editMode}
-              onEditarIcono={() => setCampoAbierto(c.campo)}
-              styleKey={c.campo}
-              {...(c.campo === "composition"
-                ? {
-                    tituloOpciones: TITULOS_COMPOSICION,
-                    onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
-                  }
-                : {})}
+            {/* Divisoria central a todo el alto de la fila (las celdas ya no
+                miden la fila entera, así que no pueden llevar el borde). */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 right-1/2 border-r-[1.5px] border-[color:var(--acento)]"
             />
+            {fila.map((c) => (
+              <div key={c.campo}>
+                <ProductAttribute
+                  icon={c.icon}
+                  iconSrc={attributeIcons[c.campo]}
+                  title={c.title}
+                  value={data[c.campo]}
+                  onChange={(v) => onChange({ [c.campo]: v })}
+                  editMode={editMode}
+                  onEditarIcono={() => setCampoAbierto(c.campo)}
+                  styleKey={c.campo}
+                  {...(c.campo === "composition"
+                    ? {
+                        tituloOpciones: TITULOS_COMPOSICION,
+                        onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
+                      }
+                    : {})}
+                />
+              </div>
+            ))}
           </div>
         );
       })}
 
       <GaleriaIconosQuimicosModal
         abierta={campoAbierto !== null}
+        campo={campoAbierto}
         onCerrar={() => setCampoAbierto(null)}
         onElegir={(svgDataUrl) => {
           if (campoAbierto) onIconChange(campoAbierto, svgDataUrl);

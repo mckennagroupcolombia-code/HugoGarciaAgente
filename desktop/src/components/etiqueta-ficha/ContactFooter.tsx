@@ -1,5 +1,5 @@
 import EditableField from "./EditableField";
-import { IconoCorreo, IconoTelefono, IconoUbicacion } from "./iconosLineales";
+import { IconoCorreo, IconoContacto, IconoUbicacion } from "./iconosLineales";
 import { RETICULA_MAESTRA } from "./productLabelTypes";
 
 /** Pie de página: barra naranja sólida con 3 grupos de contacto — misma
@@ -26,7 +26,7 @@ export default function ContactFooter({
   // size={32} = el doble del tamaño por defecto (16) de este set de íconos.
   const grupos = [
     { key: "city", icon: <IconoUbicacion size={32} />, value: city, onChange: onCityChange },
-    { key: "phone", icon: <IconoTelefono size={32} />, value: phone, onChange: onPhoneChange },
+    { key: "phone", icon: <IconoContacto texto={phone} size={32} />, value: phone, onChange: onPhoneChange },
     { key: "email", icon: <IconoCorreo size={32} />, value: email, onChange: onEmailChange },
   ];
   return (

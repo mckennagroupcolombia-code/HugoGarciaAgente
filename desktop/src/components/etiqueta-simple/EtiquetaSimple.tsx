@@ -1,9 +1,9 @@
-import { forwardRef, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import BuscadorFichaTecnica from "../etiqueta-ficha/BuscadorFichaTecnica";
 import { EditableLabel } from "../etiqueta-ficha/EditableField";
 import MenuLogoCorporativo from "../etiqueta-ficha/MenuLogoCorporativo";
 import { EJEMPLO_ETIQUETA, normalizarHex, type ProductLabelData } from "../etiqueta-ficha/productLabelTypes";
-import { IconoCorreo, IconoTelefono, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
+import { IconoCorreo, IconoContacto, IconoUbicacion } from "../etiqueta-ficha/iconosLineales";
 import type { IconoKey } from "../etiqueta-ficha/ProductAttributeGrid";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { IconoCelda } from "../etiqueta-30ml/TechnicalCell";
@@ -14,7 +14,13 @@ import ContactFooter from "../etiqueta-30ml/ContactFooter";
 import { GradoInsumo } from "../etiqueta-30ml/CenterProductPanel";
 import { PREFIJO_SUBTITULO, textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useAjusteTexto } from "../etiqueta-30ml/useAjusteTexto";
-import { GRADO_SIMPLE_POR_DEFECTO, TAM_SIMPLE, variablesSimple, type ReticulaSimple } from "./etiquetaSimpleTypes";
+import {
+  ALTO_FRANJA_SIMPLE,
+  GRADO_SIMPLE_POR_DEFECTO,
+  TAM_SIMPLE,
+  variablesSimple,
+  type ReticulaSimple,
+} from "./etiquetaSimpleTypes";
 import "../etiqueta-30ml/etiqueta30ml.css";
 import "./etiquetaSimple.css";
 
@@ -76,55 +82,16 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
   const [iconoAbierto, setIconoAbierto] = useState<IconoKey | null>(null);
   const editable = editMode && Boolean(onChange);
 
-  // ── El recuadro «INSUMO GRADO …» mide lo mismo que el nombre ─────────────
-  // Se mide el renglón más ancho del nombre con una copia invisible del texto
-  // (misma letra y mismo ancho de caja, así corta los renglones igual) y el
-  // recuadro toma ese ancho. En edición el nombre es un textarea, por eso la
-  // copia y no el propio elemento.
-  const cajaNombreRef = useRef<HTMLDivElement>(null);
-  const espejoRef = useRef<HTMLSpanElement>(null);
+  // ── El recuadro «INSUMO GRADO …» va de lado a lado de la columna ─────────
+  // Un solo renglón, a lo ancho de la columna del producto y con el alto de
+  // la barra de la web: las dos barras del acento cierran la banda superior
+  // a la misma altura. Si el grado es largo, la letra se encoge.
   const subtituloRef = useRef<HTMLSpanElement>(null);
-  const [anchoNombre, setAnchoNombre] = useState<number | null>(null);
-  const textoNombre = (data.productName || "").trim()
-    ? data.productName
-    : editMode
-      ? EJEMPLO_ETIQUETA.productName
-      : "";
-  useLayoutEffect(() => {
-    const caja = cajaNombreRef.current;
-    const espejo = espejoRef.current;
-    const nombre = caja?.querySelector<HTMLElement>(".es-nombre:not(.es-nombre-copia)");
-    if (!caja || !espejo || !nombre) return;
-    const medir = () => {
-      const cs = getComputedStyle(nombre);
-      const envoltura = espejo.parentElement as HTMLElement;
-      envoltura.style.width = `${nombre.clientWidth}px`;
-      espejo.style.fontSize = cs.fontSize;
-      espejo.style.fontFamily = cs.fontFamily;
-      // Medidas en px de diseño: el marco escala la etiqueta con transform.
-      const escala = caja.getBoundingClientRect().width / (caja.offsetWidth || 1) || 1;
-      const ancho = textoNombre.trim() ? Math.ceil(espejo.getBoundingClientRect().width / escala) : 0;
-      setAnchoNombre((prev) => (prev === ancho ? prev : ancho));
-    };
-    medir();
-    // El nombre cambia de tamaño de letra al ajustarse, y el ancho del texto
-    // al llegar la fuente web: se vuelve a medir en los dos casos.
-    const ro = new ResizeObserver(medir);
-    ro.observe(nombre);
-    const fuentes = typeof document !== "undefined" ? document.fonts : undefined;
-    fuentes?.addEventListener("loadingdone", medir);
-    return () => {
-      ro.disconnect();
-      fuentes?.removeEventListener("loadingdone", medir);
-    };
-  }, [textoNombre, editMode]);
   const grado = data.gradoInsumo || GRADO_SIMPLE_POR_DEFECTO;
-  // Si el nombre es corto, el texto del recuadro pasa a dos renglones
-  // («INSUMO GRADO / ALIMENTARIO») y se achica lo necesario para caber.
-  useAjusteTexto(subtituloRef, `${grado}|${anchoNombre ?? ""}|${editable}`, {
+  useAjusteTexto(subtituloRef, `${grado}|${editable}`, {
     max: TAM_SIMPLE.subtitulo[0],
     min: TAM_SIMPLE.subtitulo[1],
-    maxLineas: 2,
+    maxLineas: 1,
   });
   const cambio = (campo: keyof ProductLabelData) =>
     onChange ? (v: string) => onChange({ [campo]: v }) : undefined;
@@ -146,7 +113,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
               <BuscadorFichaTecnica onAplicar={onChange} consultaInicial={data.barcodeTitle || ""} />
             </div>
           )}
-          <div ref={cajaNombreRef} className="es-nombre-caja">
+          <div className="es-nombre-caja">
             <CampoEtiqueta
               as="h1"
               valor={data.productName || ""}
@@ -160,13 +127,8 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
               multilinea
               className="es-nombre"
             />
-            <div className="es-nombre-espejo" aria-hidden="true">
-              <span ref={espejoRef} className="es-nombre es-nombre-copia">
-                {textoNombre}
-              </span>
-            </div>
           </div>
-          <p className="es-subtitulo" style={anchoNombre ? { width: anchoNombre } : undefined}>
+          <p className="es-subtitulo">
             <span ref={subtituloRef} className="es-subtitulo-texto">
               {PREFIJO_SUBTITULO}{" "}
               <GradoInsumo
@@ -274,7 +236,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
                   editMode={editMode}
                   styleKey="es_origin"
                   ejemplo={EJEMPLO_ETIQUETA.origin}
-                  tam={TAM_SIMPLE.dato}
+                  tam={TAM_SIMPLE.origen}
                   maxLineas={1}
                   className="es-dato-texto"
                 />
@@ -311,6 +273,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
           <BarcodeSection
             value={data.barcode}
             editMode={editable}
+            franja={{ alto: ALTO_FRANJA_SIMPLE }}
             onChange={(v) => onChange?.({ barcode: v })}
             onElegirCodigo={onElegirCodigo}
           />
@@ -344,30 +307,33 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
                 />
               </div>
             </div>
-            <div className="es-dato">
-              <button
-                type="button"
-                className="e30-celda-icono es-dato-icono mck-btn-no-fx"
-                disabled={!editable || !onIconChange}
-                onClick={() => setIconoAbierto("alergenos")}
-                title={editable ? "Cambiar ícono de alérgenos" : undefined}
-              >
-                <IconoCelda elegido={attributeIcons.alergenos} porDefecto="seguridad_atencion" />
-              </button>
-              <div className="es-dato-cuerpo">
-                <CampoEtiqueta
-                  valor={data.alergenos || ""}
-                  onChange={cambio("alergenos")}
-                  editMode={editMode}
-                  styleKey="es_alergenos"
-                  ejemplo={EJEMPLO_ETIQUETA.alergenos}
-                  tam={TAM_SIMPLE.dato}
-                  maxLineas={2}
-                  multilinea
-                  className="es-dato-texto es-alergenos"
-                />
+            {/* Sin alérgenos que declarar, la fila entera sobra: dejaba un ícono «!» suelto. */}
+            {(editMode || (data.alergenos || "").trim()) && (
+              <div className="es-dato">
+                <button
+                  type="button"
+                  className="e30-celda-icono es-dato-icono mck-btn-no-fx"
+                  disabled={!editable || !onIconChange}
+                  onClick={() => setIconoAbierto("alergenos")}
+                  title={editable ? "Cambiar ícono de alérgenos" : undefined}
+                >
+                  <IconoCelda elegido={attributeIcons.alergenos} porDefecto="seguridad_atencion" />
+                </button>
+                <div className="es-dato-cuerpo">
+                  <CampoEtiqueta
+                    valor={data.alergenos || ""}
+                    onChange={cambio("alergenos")}
+                    editMode={editMode}
+                    styleKey="es_alergenos"
+                    ejemplo={EJEMPLO_ETIQUETA.alergenos}
+                    tam={TAM_SIMPLE.dato}
+                    maxLineas={2}
+                    multilinea
+                    className="es-dato-texto es-alergenos"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -380,6 +346,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
         {onIconChange && (
           <GaleriaIconosQuimicosModal
             abierta={iconoAbierto !== null}
+            campo={iconoAbierto}
             colorTinta={normalizarHex(data.accentColor)}
             onCerrar={() => setIconoAbierto(null)}
             onElegir={(svgDataUrl) => {
@@ -394,7 +361,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
           tam={TAM_SIMPLE.franja}
           datos={[
             { clave: "city", icono: <IconoUbicacion />, texto: data.city || "", ejemplo: EJEMPLO_ETIQUETA.city, onChange: cambio("city") },
-            { clave: "phone", icono: <IconoTelefono />, texto: data.phone || "", ejemplo: EJEMPLO_ETIQUETA.phone, onChange: cambio("phone") },
+            { clave: "phone", icono: <IconoContacto texto={data.phone || ""} />, texto: data.phone || "", ejemplo: EJEMPLO_ETIQUETA.phone, onChange: cambio("phone") },
             { clave: "email", icono: <IconoCorreo />, texto: data.email || "", ejemplo: EJEMPLO_ETIQUETA.email, onChange: cambio("email") },
           ]}
         />

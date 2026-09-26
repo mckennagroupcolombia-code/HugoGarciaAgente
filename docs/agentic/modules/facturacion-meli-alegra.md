@@ -191,3 +191,139 @@ efectivo. `paymentForm` sí se queda en `CASH`: ahí significa "de contado", no 
 Las facturas ya emitidas conservan el medio equivocado; corregirlo exigiría nota crédito +
 reexpedición. Es decisión del contador si vale la pena (el medio de pago no altera bases ni
 impuestos).
+
+## 10. Revisión por venta en vez de ticket global (21-sep-2026)
+
+**Por qué.** El panel decía «120 casos por revisar». Cruzados contra Alegra ese día:
+- **94 «sin facturar»** → **85 ya tenían factura** (FE400–FE433 del 16-sep, FE556–FE571 del mismo
+  21-sep…). El histórico es una foto: la venta se facturó después y nadie volvió a consultarla. Causas:
+  «Facturar ahora» no actualizaba la fila; el refresco individual no guardaba las ventas en tránsito y
+  solo cruzaba facturas por `order_id` (las del botón van contra el `pack_id`, distinto aunque el
+  carrito tenga una sola orden); y el margen de 48h caía a la **fecha de creación del envío** si faltaba
+  `date_delivered` (un pedido recién entregado aparecía vencido). Solo 9 estaban realmente sin factura.
+- **24 «posible doble»** → reales: FV-2-713xx/714xx de astroselling en Siigo + FE de Alegra vigente
+  (1–3 sep). Son los «duplicados completos» de packs de **una sola orden**: `regularizar_packs_parciales.py`
+  salta los packs con menos de 2 órdenes (`if len(ords) < 2: continue`), así que nunca se anularon.
+  Aparte, `posible_duplicado` contaba facturas de Alegra **ya anuladas** con NC → casos resueltos reaparecían.
+- **2 «falta subir a MeLi»** (FE494, FE151).
+
+**Qué cambió.**
+- `posible_duplicado` solo si la factura de Alegra sigue vigente (sin NC), en listado, pack diferido y
+  consulta individual.
+- `_fecha_entrega_envio()`: `date_delivered` → `last_updated` → None (= en margen). Nunca `date_created`.
+- `consultar_venta_individual`: facturas siempre a nivel pack; guarda también en tránsito; una cancelada
+  con factura solo es «resuelta» si tiene NC (antes bastaba con que existiera la factura).
+- «Facturar ahora» invalida los cachés y reconsulta la venta al terminar (devuelve `venta`).
+- **Revalidación del histórico** (`revalidar_historial_en_segundo_plano`, `filas_para_revalidar`): las
+  filas cuya foto envejece (accionables, en tránsito, en margen, dobles) se reconsultan en segundo plano
+  al leer el histórico (como mucho cada 5 min, 60 filas) o con el botón «Revalidar pendientes»
+  (`POST …/revalidar`). Precarga la base de Alegra una vez por corrida; sin LLM.
+- **Revisado sin ticket**: `POST …/marcar-revisado` → tabla `revisiones_venta` del mismo SQLite;
+  `revisado_map_facturacion()` junta esa tabla con los pasos de los tickets viejos. `anotar_filas()`
+  pone `revisado` e `intervencion` **al servir** (no en la foto), así se ven al instante.
+- **Pedir intervención** (`POST …/pedir-intervencion`, `revision_facturacion.pedir_intervencion`): en
+  cualquier venta MeLi el operador elige a quién y el problema (incluido «error al facturar», que se
+  precarga con el mensaje de Alegra). Crea UNA solicitud por venta, título
+  `Intervención facturación MeLi · <pack_id> · <problema>`, con facturas, Siigo, cruce, productos y
+  enlace a MeLi. Si ya hay una abierta para ese pack, agrega el mensaje como comentario. La fila
+  muestra «TKT-… · con <nombre>» y deja de contar como «por revisar» (se cuenta aparte).
+- Se quitó el botón «Generar ticket de revisión». El cron `revision_facturacion` ya **no** arma el
+  ticket global ni pide sugerencias de IA: recalcula, revalida, cierra los globales viejos completos y
+  manda un WhatsApp solo con casos **nuevos** sin revisar ni intervención (tabla `avisos_revision`).
+  El endpoint `generar-ticket-revision` sigue vivo por compatibilidad, sin uso en el panel.
+
+Tests: `tests/test_facturacion_revision_por_venta.py`.
+
+## 11. Doble emisión Alegra↔Alegra, reembolsos y bandeja de resolución (21-sep-2026, tarde)
+
+**Incidente.** El 18 y 21-sep «Facturar ahora» emitió **22 facturas de más en 15 ventas ($1.724.532)**:
+FE453/455, FE451/452, FE576/577, FE561/562, FE553/554, FE550/551, FE547-549, FE545/546, FE540/541,
+FE538/539, FE534/535, FE532/533, FE525-527, **FE516-FE521 (6 en 24 s)**, FE479/480. Causa: la ruta de
+carritos multi-orden (`facturar_pack_meli_manual`) no marcaba «en proceso»; sus barreras (estado local,
+documento fiscal en MeLi) se escriben al TERMINAR y la emisión tarda 30-100 s, así que peticiones
+simultáneas sobre la misma venta (reintentos tras el corte de Cloudflare, doble clic, dos pestañas)
+pasaban todas. El panel no lo mostraba: solo detectaba el doble Siigo↔Alegra.
+
+**Arreglos.**
+- Candado por venta en `facturar_pack_meli_manual` (`_EN_CURSO`) + verificación DIRECTA en Alegra
+  (`_facturas_alegra_existentes`, últimas 60 facturas por orden de compra/anotación/observaciones)
+  justo antes de emitir. La lógica de emisión quedó en `_facturar_pack_meli_manual_sin_candado`.
+- `_venta_no_cuadra`: no se factura si una orden está cancelada o MeLi reembolsó plata (reclamo /
+  mediación): se explica y se pide intervención. Caso 2000018509202610: 2 unidades, mediación
+  5579357205 (PDD9955) devolvió una; FE448 por una unidad es correcta.
+- `construir_cruce_pack`: `reembolsado` (faltante explicado por reembolso = coincide con lo pagado),
+  `equivalencias` (mismo producto con otro código: misma cantidad y monto ±2 %, p. ej.
+  C-ACEESECORCED5mL → C-ACEESECORTCED5mL, que no está en `alegra_sku_alias_venta.json`) y
+  `excedentes` (más unidades facturadas que vendidas). `_marcar_duplicado_alegra`: ≥2 facturas
+  vigentes + excedentes = `duplicado_alegra` / `posible_duplicado`.
+- `app/services/facturacion_resolucion.py`: `contexto_venta` (reporte «¿Por qué pasó?» con reclamos,
+  reembolsos, cancelaciones, envío y hora de emisión de cada factura; tabla `contexto_venta`, se arma
+  solo al revalidar ventas raras), `plan_anular_sobrantes`/`anular_sobrantes` (Siigo manda → anular las
+  de Alegra; Alegra↔Alegra → se conserva la primera; reactivación temporal de ítems inactivos ante 9053;
+  relee NC antes de emitir) y `subir_pdf_meli`.
+- Endpoints `…/contexto/<id>` (GET guardado, POST rearma), `…/resolver/anular` (sin `confirmar` = plan;
+  con `confirmar` = notas crédito DIAN), `…/resolver/subir-meli`.
+- Panel: vista inicial **«Bandeja de resolución»** con pestañas Doble factura · Sin facturar · Factura
+  incompleta · Sin subir a MeLi · Cancelada sin NC; en cada venta «¿Por qué pasó?», el botón que la
+  resuelve, «Pedir intervención» y «Revisado». «Facturar seleccionadas» factura **de una en una** y se
+  puede detener. «Todas las ventas» es la lista de antes.
+
+**Causa de fondo (encontrada después): el panel reenviaba el POST.** `desktop/src/api/client.ts::request()`
+reintentaba con el otro prefijo (`/app/api` ↔ `/api`) toda respuesta que no fuera JSON, **también en
+POST**. El corte de Cloudflare a ~100 s (524) o un 502 durante un reinicio devuelven HTML: el panel
+reenviaba la misma solicitud mientras la primera seguía emitiendo (por eso el log mezcla las dos rutas).
+Sumado a eso, el botón usaba UNA variable `facturando`: facturar otra venta rehabilitaba el botón de la
+primera. Y la ruta de carritos multi-orden (commit a2c15d0, 9-sep) nunca tuvo la marca «en proceso» que sí
+tiene la de una sola orden. Corregido: el cliente solo reintenta con otro prefijo en GET/HEAD (y en
+POST solo ante 404/405, que significan que la ruta no se alcanzó); ante 502/504/524 en un POST avisa
+«pudo haberse completado, actualiza antes de reintentar»; `facturando` es un conjunto por venta.
+Ese reintento afectaba a TODAS las operaciones POST/PUT/DELETE del panel (~400 llamadas).
+Candado también en el navegador (`useCandadoFacturar` en `VentasAstroKillerPanel.tsx`): tras un clic, el
+botón de ESA venta queda deshabilitado hasta que la ventana traiga datos nuevos después de terminar la
+petición; si la conexión se cortó, además hay que esperar 2 min antes de que «Actualizar» lo libere
+(el servidor puede seguir emitiendo). Aplica al botón de la lista, al de la bandeja y a «Facturar
+seleccionadas».
+
+## 12. Cierre del empalme y de la doble emisión (22-sep-2026)
+
+Autorizado por Armando en la conversación, tras verificar por tercero en Siigo y Alegra:
+- **21 NC por doble emisión Alegra↔Alegra** (NC98–NC118): se conservó la primera emitida, que es
+  además la que MeLi tiene como documento fiscal (verificado leyendo el PDF de cada pack).
+- **26 NC por el empalme Siigo↔Alegra** (NC119–NC144): se conservó la FV de Siigo (astroselling).
+  Antes de cada una se comprobó que la FV exista, referencie el pack y no tenga NC en Siigo.
+  **FE16 NO se anuló**: su FV-2-71386 ya estaba anulada en Siigo con NC-2-840, así que la válida es FE16.
+  FE10 (marcada «falso positivo» el 5-sep) sí era doble real: FV-2-71399 referencia el pack.
+- En 12 de esas 26 ventas MeLi mostraba el PDF de la FE ya anulada: se reemplazó por el PDF de la FV
+  de Siigo (`eliminar_documentos_fiscales_meli` + `subir_factura_meli`, mismo método del 9-sep).
+- Log de todo en `app/data/regularizacion_packs_log.jsonl` (tipos `doble_*_22sep`, `meli_pdf_reemplazado_22sep`).
+- Resultado verificado en Alegra: 0 ventas con más de una factura vigente.
+
+**Hallazgo colateral — contacto «Consumidor Final» sobrescrito.** Las 26 NC del empalme fallaron al
+principio con Alegra 9228 («el tipo de identificación del cliente es distinto al que tenía al hacer el
+documento»): `_resolver_o_crear_contacto_alegra` actualizaba el contacto encontrado por identificación
+con el nombre y tipo del comprador, y dos ventas con el NIT genérico 222222222222 lo renombraron
+(FE308 «Diana Orozco» NIT, FE486 «Jaiver Quintero pinzon» NIT). Corregido: el contacto genérico nunca
+se modifica (siempre «Consumidor Final», CC). Se restauró el contacto id 1 en Alegra. FE308 y FE486
+quedaron con ese nombre en su foto (no se tocan). Test: `test_contacto_consumidor_final_no_se_sobrescribe`.
+
+Con esto queda cerrado el empalme de la migración (§3-§6): no quedan facturas duplicadas vigentes.
+Sigue abierto solo A71352 (Fork Catering, §6), que es decisión del contador.
+
+**«Facturar ahora» en segundo plano (22-sep-2026).** Aun sin duplicar, la emisión tardaba 32-211 s y
+Cloudflare corta a los 100 s: la persona veía «HTTP 504» aunque la factura sí salía (25 facturas
+FE584–FE608 emitidas después del candado, 0 duplicadas). Ahora `POST …/facturar-ahora` responde 202 al
+instante y lanza un hilo (`_correr_facturacion` en routes.py); el panel (`facturarYEsperar`) consulta
+`GET …/facturar-ahora/estado/<order_id>` cada 4 s. Un segundo POST mientras corre devuelve el mismo
+trabajo. Si el agente se reinicia a mitad, el estado responde `desconocido` y el panel pide revisar la
+venta antes de reintentar (el candado del servidor y la verificación en Alegra siguen activos).
+
+**Falso «Falta subir a MeLi» y 504 en 🔄 (22-sep-2026).** `meli_pack_tiene_documento_fiscal` devuelve
+False ante cualquier error/timeout de MeLi: justo después de subir el PDF de FE608 (pack
+2000014940327035) el panel mostró «Falta subir» con el PDF ya en MeLi. Ahora el estado usa
+`meli.meli_documento_fiscal_estado` (True/False/None, con reintento) y solo marca
+`facturada_pendiente_subir_meli` si MeLi CONFIRMA que no hay documento; la revalidación sube el PDF sola
+en ese caso (factura única vigente, sin Siigo; MeLi rechaza con 409 si ya hay uno). La consulta
+puntual ya no baja toda la base de Alegra dentro de la petición: usa una base de hasta 6 h + las 60
+facturas y 30 NC más recientes, y la renueva en segundo plano; `calentar_base_alegra()` la prepara al
+arrancar y cada 30 min (agente_pro.py), y `_facturas_alegra_cacheadas` es de una sola descarga a la vez.
+🔄 sobre 2000018361505814: 90 s → 42 s. «Subir PDF» y «Anular» actualizan la fila en segundo plano.

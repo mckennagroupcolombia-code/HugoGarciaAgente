@@ -1,0 +1,27 @@
+html, body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	background-color: #000;
+}
+
+.gameSceneContainer div {
+	margin: 0 auto;
+	cursor: crosshair;
+	border: solid 4px #000;
+}
+
+/* El panel escala el iframe para llenar la pantalla: pixel art nítido, sin suavizado. */
+canvas {
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+
+/* Celular: sin zoom, sin desplazamiento y sin el resaltado azul al tocar. */
+html, body, canvas {
+	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-touch-callout: none;
+}

@@ -1,4 +1,5 @@
 import BarcodeBlock from "../etiqueta-ficha/BarcodeBlock";
+import type { FranjaBarras } from "../etiqueta-ficha/franjaBarras";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 
 /** Código de barras de la etiqueta 30 mL: es el mismo `BarcodeBlock` de la
@@ -10,11 +11,13 @@ export default function BarcodeSection({
   editMode,
   onChange,
   onElegirCodigo,
+  franja,
 }: {
   value: string;
   editMode: boolean;
   onChange: (v: string) => void;
   onElegirCodigo?: (codigo: CodigoEan) => void;
+  franja?: FranjaBarras;
 }) {
   return (
     <BarcodeBlock
@@ -22,6 +25,7 @@ export default function BarcodeSection({
       onChange={onChange}
       onElegirCodigo={onElegirCodigo}
       editMode={editMode}
+      franja={franja}
       className="e30-barras"
       claseBoton="e30-barras-boton mck-btn-no-fx"
       claseImagen="e30-barras-img"

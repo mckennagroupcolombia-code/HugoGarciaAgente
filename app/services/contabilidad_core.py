@@ -34,6 +34,51 @@ TIPOS_TERCERO = ("proveedor", "cliente", "socio", "empleado", "otro")
 TIPOS_PERSONA = ("natural", "juridica")
 
 
+# ─── Fecha de corte contable ───────────────────────────────────────────────
+#
+# **Lo anterior al corte es territorio del contador y no se toca.**
+#
+# Hasta agosto de 2026 la contabilidad de McKenna la llevó él: discriminaba los
+# impuestos con un mecanismo propio que no conocemos, y sobre eso presentó las
+# declaraciones (el 350 del período 8 se presentó el 16-sep-2026). El libro
+# propio nació después y **no puede pretender explicar ese pasado**: va a fijar
+# los saldos iniciales él, por la migración de Siigo a Alegra.
+#
+# Sin esta guarda, cualquier script o clic puede meter a Alegra un asiento de un
+# período ya declarado y desordenarle lo que presentó. No es hipotético: el
+# 18-sep-2026 aparecieron tres asientos de IVA generado de julio, agosto y un
+# septiembre **sin terminar**, y los pagos a Fidel de julio/agosto —hechos con
+# el tratamiento viejo, contra 513550 y sin retención— estaban listos para
+# espejarse. Lo que se deja al criterio de cada quien, un día se hace mal.
+#
+# Los asientos anteriores al corte NO se borran: documentan movimientos
+# bancarios reales y varios están conciliados contra el extracto. Simplemente
+# dejan de propagarse hacia afuera.
+FECHA_CORTE_DEFECTO = "2026-09-01"
+
+
+def fecha_corte() -> str:
+    """Fecha desde la cual el libro propio es la fuente. Antes manda el contador."""
+    v = (os.getenv("CONTABILIDAD_FECHA_CORTE") or "").strip()
+    return v or FECHA_CORTE_DEFECTO
+
+
+def antes_del_corte(fecha: str | None) -> bool:
+    f = str(fecha or "")[:10]
+    return bool(f) and f < fecha_corte()
+
+
+def motivo_corte(fecha: str | None) -> str:
+    """Por qué no se toca ese período, en una frase que sirva al que la lea."""
+    return (
+        f"El asiento es del {str(fecha or '')[:10]}, anterior al corte contable "
+        f"({fecha_corte()}). Ese período ya lo declaró el contador con su propia "
+        "contabilidad y el libro propio no lo reescribe: se corrige de las "
+        "declaraciones siguientes en adelante. Para cambiar el corte, "
+        "CONTABILIDAD_FECHA_CORTE."
+    )
+
+
 @contextmanager
 def _conn():
     con = sqlite3.connect(_DB_PATH)
@@ -127,7 +172,10 @@ def init_db() -> None:
     _migrar_cuentas_v2()
     _migrar_columnas_v3()
     _migrar_columnas_v4()
+    _migrar_columnas_v5()
     _ensure_gastos_personales()
+    _sembrar_puc_real()
+    _corregir_2367()
     _initialized = True
 
 
@@ -157,6 +205,88 @@ def _migrar_columnas_v4() -> None:
         # en vez de retenerle de más a alguien y tener que devolvérselo.
         if "declarante" not in cols:
             con.execute("ALTER TABLE cc_terceros ADD COLUMN declarante INTEGER NOT NULL DEFAULT 1")
+
+
+def _migrar_columnas_v5() -> None:
+    """cc_terceros: perfil tributario propio de cada tercero (sep-2026).
+
+    Nació de un caso concreto: a Víctor, Stella y Jenniffer se les venía
+    practicando retención de renta del 4% por prestación de servicios, y el
+    contador aclaró que a ellos NO se les practica renta pero SÍ ICA. Hasta
+    ahora eso se decidía por la categoría del pago, igual para todo el mundo, y
+    la única forma de excluir a alguien era acordarse de marcar una casilla en
+    cada pago. Lo que se olvida una vez se olvida siempre: guardarlo en el
+    tercero lo convierte en una propiedad de la persona, no en un descuido
+    posible.
+
+    - `retefuente_exento`: no se le practica retención de RENTA (el ICA se
+      sigue evaluando aparte; son dos impuestos distintos).
+    - `ica_por_mil`: tarifa de ICA que le aplica, en por mil. 0 = no se le
+      retiene ICA.
+    - `cuenta_gasto_default`: la cuenta PUC a la que suele ir su pago (511095
+      para quienes prestan servicios), para que el wizard la traiga puesta.
+    """
+    with _conn() as con:
+        cols = {r["name"] for r in con.execute("PRAGMA table_info(cc_terceros)")}
+        if "retefuente_exento" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN retefuente_exento INTEGER NOT NULL DEFAULT 0"
+            )
+        if "ica_por_mil" not in cols:
+            con.execute("ALTER TABLE cc_terceros ADD COLUMN ica_por_mil REAL NOT NULL DEFAULT 0")
+        if "cuenta_gasto_default" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN cuenta_gasto_default TEXT NOT NULL DEFAULT ''"
+            )
+        # El 4x1000: técnicamente lo cobra el banco por la transacción, no el
+        # tercero. Pero en la práctica «a este proveedor se le paga con ICA y
+        # 4x1000» es una sola decisión que se toma una vez y se repite cada mes,
+        # y tenerla aquí es lo que evita volver a marcar las casillas —y
+        # olvidarlas— en cada quincena.
+        if "gmf_por_defecto" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN gmf_por_defecto INTEGER NOT NULL DEFAULT 0"
+            )
+        # Régimen SIMPLE (Art. 911 ET: no se le practica retención). La creaba
+        # `conciliacion_contador` la primera vez que alguien abría ese panel, y
+        # hasta entonces `previsualizar` leía un campo inexistente: la exención
+        # simplemente no se aplicaba, sin error ni aviso. Es una propiedad del
+        # tercero, así que la crea el módulo que es dueño de la tabla.
+        if "regimen_simple" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN regimen_simple INTEGER NOT NULL DEFAULT 0"
+            )
+        # De qué cuenta se le paga habitualmente a este tercero. Completa la
+        # ficha de «pago recurrente»: con la cuenta del gasto y los impuestos ya
+        # guardados, un pago que se repite cada mes queda con todo puesto y solo
+        # hay que escribir el valor. Es lo que pidió el operador (sep-2026):
+        # volver a elegir lo mismo cada vez es donde se equivoca uno.
+        if "medio_pago_default" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN medio_pago_default INTEGER NOT NULL DEFAULT 0"
+            )
+        # «Con esta persona se pactó pagarle libre de retención»: McKenna asume
+        # la retención como mayor gasto y el beneficiario recibe el valor
+        # completo. Es un ACUERDO COMERCIAL con alguien concreto, no una opción
+        # de cada pago — por eso vive acá y no en un radio del wizard.
+        #
+        # Que fuera elegible en cada pago significaba que cualquiera podía hacer
+        # que McKenna pagara los impuestos de un tercero con un clic: sobre la
+        # quincena de mensajería son $28.657 que salen del banco de más y que
+        # nadie pactó. Apagado por defecto para todos.
+        # «A este tercero hay que emitirle documento soporte» (no está obligado
+        # a facturar, Art. 616-2). La creaba `doc_soporte_pagos` la primera vez
+        # que se emitía uno, y hasta entonces cualquiera que leyera el campo veía
+        # `None` — es exactamente lo que ya pasó con `regimen_simple`: la
+        # propiedad es del tercero, así que la crea el módulo dueño de la tabla.
+        if "emite_doc_soporte" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN emite_doc_soporte INTEGER NOT NULL DEFAULT 0"
+            )
+        if "retencion_asume_mckenna" not in cols:
+            con.execute(
+                "ALTER TABLE cc_terceros ADD COLUMN retencion_asume_mckenna INTEGER NOT NULL DEFAULT 0"
+            )
 
 
 def _ensure_gastos_personales() -> None:
@@ -256,6 +386,47 @@ def _migrar_cuentas_v2() -> None:
             )
 
 
+def _corregir_2367() -> None:
+    """2367 es «Impuesto a las ventas retenido» (reteIVA) en el Decreto 2650.
+
+    El libro la sembró con el nombre «Costos y gastos por pagar», que es 2335, y
+    el sembrado corre ANTES que el del PUC real, así que el `INSERT OR IGNORE`
+    conserva el nombre equivocado incluso en bases nuevas. Los datos ya se
+    movieron a 2335 (`puc_colombia.ALIAS`), así que acá solo se corrige el
+    rótulo y se reactiva: McKenna es responsable de IVA y va a necesitar esa
+    cuenta para el reteIVA que practique.
+
+    Se corrige **solo si conserva el nombre viejo**: si alguien ya la renombró
+    o le dio otro uso, no se toca.
+    """
+    with _conn() as con:
+        fila = con.execute("SELECT id, nombre FROM cc_plan_cuentas WHERE codigo='2367'").fetchone()
+        if not fila or fila["nombre"] != "Costos y gastos por pagar":
+            return
+        con.execute(
+            """UPDATE cc_plan_cuentas
+                  SET nombre='Impuesto a las ventas retenido', activa=1,
+                      notas=TRIM(COALESCE(notas,'') ||
+                            ' · Hasta sep-2026 este código se usó, mal, para «costos y gastos por '
+                            || 'pagar»; eso vive en 2335.')
+                WHERE id=?""",
+            (fila["id"],),
+        )
+
+
+def _sembrar_puc_real() -> None:
+    """Cuentas del Decreto 2650 que el libro usa (`puc_colombia.PUC_MCKENNA`).
+
+    Solo CREA las que falten; no mueve nada. El traslado de lo ya asentado en
+    los códigos viejos lo hace `puc_colombia.migrar()`, que es una operación
+    explícita con `dry_run` — no algo que deba pasar solo al arrancar Flask.
+    """
+    from app.services.puc_colombia import sembrar
+
+    with _conn() as con:
+        sembrar(con)
+
+
 def _ensure() -> None:
     if not _initialized:
         init_db()
@@ -316,6 +487,36 @@ def _sembrar_datos_iniciales() -> None:
 
 
 def _cuenta_id_por_codigo(con: sqlite3.Connection, codigo: str) -> int | None:
+    """Id de la cuenta por código, tolerante a los códigos viejos.
+
+    Hasta sep-2026 el libro usó códigos escritos a ojo (2380 para socios, 2367
+    para costos por pagar, 2295 para préstamos de particulares) que en el
+    Decreto 2650 significan otra cosa. `puc_colombia.migrar()` movió los datos a
+    los códigos reales, pero hay ~60 call-sites repartidos en 10 archivos que
+    todavía piden el código viejo. En vez de renombrarlos todos el mismo día —
+    y arriesgar préstamos, socios y pagos de una sola vez — el código viejo
+    resuelve acá al nuevo vía `puc_colombia.ALIAS`, y los call-sites se limpian
+    de a poco. Si el código existe tal cual, este atajo ni se consulta.
+    """
+    # Activa primero: la cuenta vieja NO se borra al migrar, se desactiva, así
+    # que buscar por código exacto sin filtrar devolvería la fila muerta y el
+    # alias no se consultaría nunca.
+    row = con.execute(
+        "SELECT id FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (codigo,)
+    ).fetchone()
+    if row:
+        return row["id"]
+    from app.services.puc_colombia import resolver
+
+    equivalente = resolver(codigo)
+    if equivalente != codigo:
+        row = con.execute(
+            "SELECT id FROM cc_plan_cuentas WHERE codigo=? AND activa=1", (equivalente,)
+        ).fetchone()
+        if row:
+            return row["id"]
+    # Último recurso: la fila inactiva. Se devuelve en vez de None para que el
+    # error que vea quien llama sea «cuenta inactiva» y no «cuenta_id inválido».
     row = con.execute("SELECT id FROM cc_plan_cuentas WHERE codigo=?", (codigo,)).fetchone()
     return row["id"] if row else None
 
@@ -327,6 +528,13 @@ def _naturaleza_por_tipo(tipo: str) -> str:
 
 
 def listar_plan_cuentas(solo_activas: bool = True, tipo: str | None = None) -> list[dict]:
+    """El plan de cuentas, con la guía de qué operación vive en cada una.
+
+    La descripción viaja pegada a la cuenta y no en un documento aparte: un
+    manual en otra parte es un manual que nadie abre. Es lo que permite que el
+    contador —o cualquiera que abra el libro dentro de un año— sepa qué
+    significa un saldo sin preguntarle a quien lo asentó.
+    """
     _ensure()
     where = []
     params: list = []
@@ -341,14 +549,81 @@ def listar_plan_cuentas(solo_activas: bool = True, tipo: str | None = None) -> l
     sql += " ORDER BY codigo"
     with _conn() as con:
         rows = con.execute(sql, params).fetchall()
-    return [dict(r) for r in rows]
+    return [_con_guia(dict(r)) for r in rows]
+
+
+def _con_guia(cuenta: dict) -> dict:
+    """Agrega a una cuenta su descripción de uso y su efecto tributario.
+
+    Dos fuentes distintas a propósito: `puc_colombia.DESCRIPCIONES` dice QUÉ
+    operación vive ahí y `impuestos_por_cuenta` dice qué impuestos acarrea. Se
+    juntan aquí para que quien lea el libro las vea de una vez, pero se escriben
+    por separado porque se corrigen por razones distintas.
+    """
+    from app.services import impuestos_por_cuenta as _ipc
+    from app.services import puc_colombia as _puc
+
+    codigo = str(cuenta.get("codigo") or "")
+    cuenta["descripcion"] = _puc.descripcion(codigo)
+    perfil = _ipc.perfil(codigo)
+    cuenta["concepto_retencion"] = perfil["concepto_retencion"] or ""
+    cuenta["ica_por_mil"] = perfil["ica_por_mil"]
+    cuenta["nota_tributaria"] = perfil["nota"] if perfil["conocida"] else ""
+    return cuenta
+
+
+def codigo_vivo(codigo: str) -> str:
+    """El código de la cuenta VIVA que hoy responde por `codigo`.
+
+    `111010 MercadoPago – saldo en plataforma` está inactiva y es alias de
+    `112515`; quien escriba «111010» en una regla o en una propuesta tiene que
+    terminar en 112515, no en la cuenta muerta (que `crear_movimiento` rechaza).
+    Resuelve por `mapa_cuentas_por_codigo`, que ya sabe de alias y de activas.
+    """
+    cid = mapa_cuentas_por_codigo().get(str(codigo))
+    if not cid:
+        return str(codigo)
+    for c in listar_plan_cuentas(solo_activas=False):
+        if int(c["id"]) == int(cid):
+            return str(c["codigo"])
+    return str(codigo)
+
+
+def mapa_cuentas_por_codigo() -> dict[str, int]:
+    """Código PUC → id de la cuenta **viva** que le corresponde hoy.
+
+    Existe porque el patrón `{c["codigo"]: c["id"] for c in listar_plan_cuentas()}`
+    se repitió en varios módulos y rompe en silencio después de una migración:
+    un código desactivado (2380 → 2355) seguía resolviendo a la cuenta muerta y
+    `crear_movimiento` rechazaba el asiento con «cuenta inactiva». Así fallaron
+    8 compras de socios en el backfill de agosto-2026, un día después de migrar,
+    porque ese camino no pasaba por `_cuenta_id_por_codigo`.
+
+    Dos reglas, las dos aprendidas a los golpes:
+
+    * las activas pisan a las inactivas, para que un código nunca resuelva a una
+      cuenta muerta si hay una viva con ese mismo código;
+    * un alias solo se aplica si el código viejo **no** existe vivo. `529505`
+      dejó de ser publicidad y hoy es «Comisiones»: aplicarle su alias mandaría
+      las comisiones a publicidad.
+    """
+    _ensure()
+    from app.services.puc_colombia import ALIAS
+
+    activas = {c["codigo"]: c["id"] for c in listar_plan_cuentas(solo_activas=True)}
+    mapa = {c["codigo"]: c["id"] for c in listar_plan_cuentas(solo_activas=False)}
+    mapa.update(activas)
+    for viejo, nuevo in ALIAS.items():
+        if viejo not in activas and nuevo in activas:
+            mapa[viejo] = activas[nuevo]
+    return mapa
 
 
 def obtener_cuenta(cuenta_id: int) -> dict | None:
     _ensure()
     with _conn() as con:
         row = con.execute("SELECT * FROM cc_plan_cuentas WHERE id=?", (cuenta_id,)).fetchone()
-    return dict(row) if row else None
+    return _con_guia(dict(row)) if row else None
 
 
 def crear_cuenta(payload: dict) -> dict:
@@ -421,6 +696,20 @@ def eliminar_cuenta(cuenta_id: int) -> bool:
 
 
 # ─── Terceros ───────────────────────────────────────────────────────────────
+
+def mismo_documento(a: str, b: str) -> bool:
+    """¿Son la misma cédula o NIT? Solo dígitos; un NIT con dígito de
+    verificación (10 dígitos) es el mismo que sin él (9)."""
+    import re
+
+    x = re.sub(r"\D", "", a or "")
+    y = re.sub(r"\D", "", b or "")
+    if not x or not y:
+        return False
+    if x == y:
+        return True
+    return (len(x) == 10 and len(y) == 9 and x[:9] == y) or (len(y) == 10 and len(x) == 9 and y[:9] == x)
+
 
 def listar_terceros(
     tipo: str | None = None, q: str | None = None, solo_activos: bool = True
@@ -507,6 +796,16 @@ def actualizar_tercero(tercero_id: int, payload: dict) -> dict:
         campos["usuario_id"] = int(payload["usuario_id"]) if payload["usuario_id"] else None
     if "activo" in payload:
         campos["activo"] = 1 if payload["activo"] else 0
+    # Banderas tributarias del tercero. `retencion_asume_mckenna` solo se cambia
+    # aquí, en la ficha: es un acuerdo con esa persona, no una casilla del pago.
+    for bandera in ("retefuente_exento", "regimen_simple", "gmf_por_defecto",
+                    "retencion_asume_mckenna"):
+        if bandera in payload:
+            campos[bandera] = 1 if payload[bandera] else 0
+    if "ica_por_mil" in payload:
+        campos["ica_por_mil"] = round(float(payload["ica_por_mil"] or 0), 4)
+    if "cuenta_gasto_default" in payload:
+        campos["cuenta_gasto_default"] = str(payload["cuenta_gasto_default"] or "").strip()
     if not campos:
         return actual
     sets = ", ".join(f"{k} = ?" for k in campos)
@@ -579,6 +878,16 @@ def actualizar_medio_pago(medio_pago_id: int, payload: dict) -> dict:
         campos["tipo"] = str(payload["tipo"] or "").strip()
     if "activo" in payload:
         campos["activo"] = 1 if payload["activo"] else 0
+    # Banderas tributarias del tercero. `retencion_asume_mckenna` solo se cambia
+    # aquí, en la ficha: es un acuerdo con esa persona, no una casilla del pago.
+    for bandera in ("retefuente_exento", "regimen_simple", "gmf_por_defecto",
+                    "retencion_asume_mckenna"):
+        if bandera in payload:
+            campos[bandera] = 1 if payload[bandera] else 0
+    if "ica_por_mil" in payload:
+        campos["ica_por_mil"] = round(float(payload["ica_por_mil"] or 0), 4)
+    if "cuenta_gasto_default" in payload:
+        campos["cuenta_gasto_default"] = str(payload["cuenta_gasto_default"] or "").strip()
     if not campos:
         return actual
     sets = ", ".join(f"{k} = ?" for k in campos)
@@ -768,6 +1077,18 @@ def listar_movimientos(
                  ORDER BY ml.movimiento_id, ml.orden""",
             ids,
         ).fetchall()
+        # Comprobante en Alegra de cada asiento, si el espejo ya corrió alguna
+        # vez (la tabla la crea alegra_espejo, así que puede no existir).
+        espejos: dict[int, str] = {}
+        try:
+            espejos = {
+                r["movimiento_id"]: r["alegra_journal_id"]
+                for r in con.execute(
+                    f"SELECT movimiento_id, alegra_journal_id FROM cc_alegra_espejo"
+                    f" WHERE movimiento_id IN ({placeholders})", ids)
+            }
+        except sqlite3.OperationalError:
+            pass
         terceros_ids = {m["tercero_id"] for m in movs if m["tercero_id"]}
         terceros_map: dict[int, dict] = {}
         if terceros_ids:
@@ -784,6 +1105,7 @@ def listar_movimientos(
         m["total_debito"] = round(sum(x["debito"] for x in ls), 2)
         m["total_credito"] = round(sum(x["credito"] for x in ls), 2)
         m["tercero"] = terceros_map.get(m["tercero_id"]) if m["tercero_id"] else None
+        m["alegra_journal_id"] = espejos.get(m["id"], "")
         out.append(m)
     return out
 

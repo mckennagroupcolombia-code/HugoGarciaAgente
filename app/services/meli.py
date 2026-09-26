@@ -311,6 +311,36 @@ def actualizar_seller_custom_field_meli(item_id: str, sku: str) -> str:
     return f"❌ Error actualizando seller_custom_field de {item_id}: {detalle}"
 
 
+def meli_documento_fiscal_estado(pack_id: str, *, token: str | None = None, intentos: int = 2) -> bool | None:
+    """True/False si MeLi CONFIRMA que el pack tiene (o no) documento fiscal;
+    None si no se pudo saber (timeout, 429, 5xx). `meli_pack_tiene_documento_fiscal`
+    devuelve False en ese caso, y el panel mostraba «Falta subir a MeLi» para
+    facturas cuyo PDF sí estaba (pack 2000014940327035, FE608, 22-sep-2026)."""
+    import time as _t
+
+    pack_id = str(pack_id or "").strip()
+    if not pack_id:
+        return None
+    token = token or refrescar_token_meli()
+    if not token:
+        return None
+    for i in range(max(1, intentos)):
+        try:
+            res = requests.get(
+                f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents",
+                headers={"Authorization": f"Bearer {token}"}, timeout=15,
+            )
+            if res.status_code == 200:
+                return bool(res.json().get("fiscal_documents") or [])
+            if res.status_code == 404:
+                return False
+        except (requests.RequestException, ValueError):
+            pass
+        if i + 1 < intentos:
+            _t.sleep(2)
+    return None
+
+
 def meli_pack_tiene_documento_fiscal(pack_id: str, *, token: str | None = None) -> bool:
     """
     Indica si el pack ya tiene documento fiscal en MeLi.
@@ -698,6 +728,27 @@ def subir_adjunto_mensaje_meli(
     return {"ok": True, "filename": filename}
 
 
+PAUSA_GLOBAL_MELI_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "meli_pausa_global.json"
+)
+
+
+def pausa_global_meli_activa() -> bool:
+    """
+    True mientras la tienda de MeLi esté pausada entera a propósito (23-sep-2026).
+    Mientras tanto ninguna sincronización de stock ni publicación reactiva ítems;
+    solo un operador desde el panel, uno por uno. El archivo guarda además la lista
+    de lo que estaba activo, para reactivar exactamente eso al levantar la pausa.
+    """
+    try:
+        import json
+
+        with open(PAUSA_GLOBAL_MELI_PATH, encoding="utf-8") as f:
+            return bool((json.load(f) or {}).get("activa"))
+    except (OSError, ValueError):
+        return False
+
+
 def _reactivar_item_meli_si_pausada(
     item_id: str,
     headers: dict,
@@ -713,6 +764,8 @@ def _reactivar_item_meli_si_pausada(
     """
     if int(nuevo_stock) <= 0:
         return ""
+    if pausa_global_meli_activa():
+        return " · sigue pausada (pausa global MeLi)"
 
     import time
 
@@ -957,10 +1010,16 @@ def _actualizar_stock_meli_item(item_id: str, nuevo_stock: int, headers: dict) -
                 "PUT",
                 f"https://api.mercadolibre.com/items/{item_id}",
                 headers={**headers, "Content-Type": "application/json"},
-                json={"available_quantity": nuevo_stock, "status": "active"},
+                json=(
+                    {"available_quantity": nuevo_stock}
+                    if pausa_global_meli_activa()
+                    else {"available_quantity": nuevo_stock, "status": "active"}
+                ),
                 timeout=20,
             )
             if res_combo is not None and res_combo.status_code in (200, 201):
+                if pausa_global_meli_activa():
+                    return f"✅ {item_id} → {nuevo_stock} uds · sigue pausada (pausa global MeLi)"
                 return f"✅ {item_id} → {nuevo_stock} uds · reactivada"
             return (
                 f"❌ {item_id}: pausada y no se pudo actualizar/reactivar "

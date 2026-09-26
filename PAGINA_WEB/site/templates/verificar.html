@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Verificar lote — McKenna Group{% endblock %}
-{% block description %}Consulte el fabricante, país de origen y documentos (ficha técnica y certificado de análisis) del lote de materia prima que recibió.{% endblock %}
+{% block description %}Consulte el país de origen y los documentos (ficha técnica y certificado de análisis) del lote de materia prima que recibió.{% endblock %}
 
 {% block content %}
 <style>
@@ -108,7 +108,6 @@
         <div class="vf-grid">
           <div class="vf-field"><label>Referencia</label><span>{{ resultado.ref }}</span></div>
           <div class="vf-field"><label>N.º de lote</label><span>{{ l.lote_numero }}</span></div>
-          {% if l.fabricante %}<div class="vf-field"><label>Fabricante</label><span>{{ l.fabricante }}</span></div>{% endif %}
           {% if l.pais_origen %}<div class="vf-field"><label>País de origen</label><span>{{ l.pais_origen }}</span></div>{% endif %}
           {% if l.fecha_fabricacion %}<div class="vf-field"><label>Fecha de fabricación</label><span>{{ l.fecha_fabricacion }}</span></div>{% endif %}
           {% if l.fecha_vencimiento %}<div class="vf-field"><label>Fecha de vencimiento</label><span>{{ l.fecha_vencimiento }}</span></div>{% endif %}

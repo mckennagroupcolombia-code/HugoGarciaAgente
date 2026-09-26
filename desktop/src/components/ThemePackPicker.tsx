@@ -3,6 +3,7 @@ import type { ThemePackId } from "../theme/types";
 import { usePanelTheme } from "../stores/panelTheme";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
+import { Sprite } from "./colaboradores/pixel";
 
 export default function ThemePackPicker() {
   const skin = usePanelTheme((s) => s.skin);
@@ -44,6 +45,24 @@ export default function ThemePackPicker() {
 }
 
 function PackPreview({ id }: { id: ThemePackId }) {
+  if (id === "pixel") {
+    // Bloques de consola con borde negro y sombra dura sobre papel cuadriculado, y un sprite.
+    return (
+      <div
+        className="flex h-14 items-end gap-1.5 border-2 border-black px-2.5 py-2"
+        style={{
+          background:
+            "linear-gradient(#f3ddcb 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, #f3ddcb 1px, transparent 1px) 0 0 / 8px 8px, #FFF1E8",
+        }}
+      >
+        <span className="h-7 flex-1 border-2 border-black bg-[#29ADFF] shadow-[2px_2px_0_#000]" />
+        <span className="flex h-11 w-7 items-center justify-center border-2 border-black bg-[#1D2B53] shadow-[2px_2px_0_#000]">
+          <Sprite s="moneda" px={2} />
+        </span>
+        <span className="h-5 flex-1 border-2 border-black bg-[#FF004D] shadow-[2px_2px_0_#000]" />
+      </div>
+    );
+  }
   if (id === "barbie") {
     return (
       <div className="relative flex h-14 items-end gap-1.5 overflow-hidden rounded-xl bg-gradient-to-br from-[#ffeaf4] via-[#fff8fc] to-[#ffd8ec] px-2.5 py-2 shadow-[0_6px_16px_rgba(255,126,182,0.28)] ring-2 ring-[#ffb0d4]">
@@ -55,12 +74,25 @@ function PackPreview({ id }: { id: ThemePackId }) {
       </div>
     );
   }
-  if (id === "sakura") {
+  if (id === "peach") {
+    // Ventanas crema con marco doble sobre papel marfil cuadriculado en rosa, unidas por un
+    // camino discontinuo; la del medio, rosa ciruela con la moneda.
     return (
-      <div className="flex h-14 items-end gap-1.5 rounded-xl bg-gradient-to-br from-[#ffe4ef] via-[#fff1e6] to-[#ffd9c4] px-2.5 py-2 shadow-[4px_4px_0_rgba(232,92,128,0.35)] ring-2 ring-[#f4bab0]">
-        <span className="h-7 flex-1 rounded-lg bg-white/90 shadow-[2px_2px_0_#e85c80]" />
-        <span className="h-11 w-6 rounded-lg bg-[#e85c80] shadow-[2px_2px_0_#c84068]" />
-        <span className="h-6 flex-1 rounded-lg bg-[#ffc9a8]" />
+      <div
+        className="flex h-14 items-end gap-1 border-2 border-[#4A2040] px-2 py-2"
+        style={{
+          background:
+            "linear-gradient(#f8e2e9 1px, transparent 1px) 0 0 / 8px 8px, linear-gradient(90deg, #f8e2e9 1px, transparent 1px) 0 0 / 8px 8px, #FFFAF0",
+        }}
+      >
+        <span className="h-7 flex-1 rounded-[2px] border-2 border-[#4A2040] bg-[#F4C2D0] shadow-[inset_0_0_0_2px_#FFF8EC,2px_2px_0_#4A2040]" />
+        <span className="mb-3 w-2 border-t-2 border-dashed border-[#4A2040]" />
+        <span className="flex h-11 w-7 items-center justify-center rounded-[2px] border-2 border-[#4A2040] bg-[#A8486E] shadow-[2px_2px_0_#4A2040]">
+          <Sprite s="moneda" px={2} />
+        </span>
+        <span className="mb-3 w-2 border-t-2 border-dashed border-[#4A2040]" />
+        <span className="h-5 flex-1 rounded-[2px] border-2 border-[#4A2040] bg-[#A7D8F0] shadow-[inset_0_0_0_2px_#FFF8EC,2px_2px_0_#4A2040]" />
+        <span className="h-3 w-3 border-2 border-[#4A2040] bg-[#FFE9A0]" />
       </div>
     );
   }
@@ -70,6 +102,24 @@ function PackPreview({ id }: { id: ThemePackId }) {
         <span className="h-7 flex-1 rounded-lg bg-white/80 shadow-[0_2px_0_#e1d4b7]" />
         <span className="h-11 w-6 rounded-lg bg-[#b5502a] shadow-[0_2px_0_#953f1f]" />
         <span className="h-6 flex-1 rounded-lg bg-[#2f6e68]" />
+      </div>
+    );
+  }
+  if (id === "flujo") {
+    // Tres nodos unidos por flechas sobre cuadrícula: la app como diagrama.
+    return (
+      <div
+        className="flex h-14 items-center gap-1 rounded-lg px-2.5 ring-1 ring-[#cbd5e1]"
+        style={{
+          background:
+            "linear-gradient(#e2e8f0 1px, transparent 1px) 0 0 / 10px 10px, linear-gradient(90deg, #e2e8f0 1px, transparent 1px) 0 0 / 10px 10px, #f8fafc",
+        }}
+      >
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#0891b2] bg-[#ecfeff]" />
+        <span className="text-[10px] text-[#64748b]">→</span>
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#059669] bg-[#ecfdf5]" />
+        <span className="text-[10px] text-[#64748b]">→</span>
+        <span className="h-6 flex-1 rounded border-[1.5px] border-[#7c3aed] bg-[#f5f3ff]" />
       </div>
     );
   }

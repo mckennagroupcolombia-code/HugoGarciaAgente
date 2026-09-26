@@ -1,9 +1,12 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { ico } from "../icons/icoTexto";
+import { Ico } from "../icons/Ico";
+import EnlazarDocumento from "./combos/EnlazarDocumento";
+import { useAppStore } from "../stores/app";
+import { Fragment, useCallback, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import ImageLightbox from "./ImageLightbox";
 import DocumentoGeneradorTab, {
-  type DocLayoutOpciones,
   type GenerarDocResult,
   Field,
   filasDesdeTexto,
@@ -12,15 +15,18 @@ import DocumentoGeneradorTab, {
   textoDesdeFilas,
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
+import { TablaComposicion } from "./documentos/TablaComposicion";
 import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import CoaDocumentosScanner from "./documentos/CoaDocumentosScanner";
-import CargarDocumentosWebButton from "./documentos/CargarDocumentosWebButton";
+import CargarDocumentosWebButton, { type CargarDocumentosWebResult } from "./documentos/CargarDocumentosWebButton";
 import FirmaPegable from "./documentos/FirmaPegable";
+import SdsSeccion, { SDS_VACIA, sdsAPayload, sdsDesdeDatos, type ContextoFt, type SdsForm } from "./documentos/SdsSeccion";
 import DocumentosCatalogoTab, { type ProductoDocumentacion } from "./documentos/DocumentosCatalogoTab";
 import {
   PARAMETROS_COA_FALLBACK,
   parseParamRows,
   rowsToParamString,
+  separarParametrosPegados,
   type ParamRow,
 } from "../lib/coaParametros";
 import { formatearFormulaMolecular } from "../lib/formulaMolecular";
@@ -34,19 +40,11 @@ import {
   type TipoInsumo,
 } from "../lib/clasificacionInsumo";
 import { esperarJobScan } from "../lib/scanJobPoll";
+import { sugerirCampoFicha } from "../lib/sugerirCampoFicha";
 import { Icon, type UiIconName } from "../icons";
 import { HUB_TAB_LABEL, hubTabClass } from "../lib/hubTabClass";
+import { celebrarAprobacion } from "../lib/celebracionAprobado";
 
-type TabDoc = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
-
-/** "revision" va primera a propósito: es la entrada guiada — "esto es lo
- * que falta por revisar/corregir contra el formato vigente" — antes de que
- * el usuario tenga que decidir en cuál de las demás pestañas entrar. */
-const TABS: { id: TabDoc; label: string; icon: UiIconName }[] = [
-  { id: "revision", label: "Revisión guiada", icon: "listChecks" },
-  { id: "biblioteca", label: "Biblioteca", icon: "books" },
-  { id: "completo", label: "Ficha Técnica COA SDS", icon: "file" },
-];
 
 interface ArchivoGenerado {
   nombre: string;
@@ -77,8 +75,184 @@ interface BibliotecaDatosResult {
   tiene_datos: boolean;
 }
 
+/** Primer tramo del «detalle» del taller («vacía · unido por SKU» → «vacía»). */
+function estadoDoc(detalle?: string): string {
+  return (detalle || "").split(" · ")[0].trim();
+}
+
+const ESTADO_DOC_TONO: Record<string, string> = {
+  ok: "border-emerald-600/40 bg-emerald-600/10 text-emerald-800 dark:text-emerald-300",
+  aviso: "border-accent-sun/60 bg-accent-sun/15 text-ink",
+  falta: "border-accent-rose/50 bg-accent-rose/10 text-accent-rose",
+};
+
+/**
+ * Llegada desde el taller de combos: una sola tarjeta dice de qué producto se trata, qué documento
+ * es, qué le falta y cuál es el siguiente paso. Antes se aterrizaba en la biblioteca de PDF con el
+ * escáner de COA encima y un buscador que no encontraba nada (un documento sin PDF no aparece ahí).
+ *
+ * - Con documento encontrado: se abre solo en el editor (una vez por documento) y la tarjeta lista
+ *   los pendientes que dejó quien lo redactó (`_vacio_pendientes` del YAML).
+ * - Sin documento: dos salidas lado a lado — enlazar uno que ya existe o empezar desde cero.
+ */
+function DocDelCombo({ onAbrir, editando, onVolver }: {
+  onAbrir: (datos: Record<string, unknown>) => void;
+  editando: boolean;
+  /** Dentro de la ventana del taller: cerrar la ventana en vez de navegar al taller. */
+  onVolver?: () => void;
+}) {
+  const retorno = useAppStore((st) => st.tallerRetorno);
+  const volverAlTaller = useAppStore((st) => st.volverAlTaller);
+  const volver = onVolver ?? volverAlTaller;
+  const setTab = useAppStore((st) => st.setDocsTab);
+  const [archivoElegido, setArchivoElegido] = useState<string | null>(null);
+  const [elegir, setElegir] = useState(false);
+  const [verPendientes, setVerPendientes] = useState(true);
+  const [nuevoAbierto, setNuevoAbierto] = useState(false);
+  const abiertoRef = useRef<string | null>(null);
+
+  const archivo = archivoElegido || retorno?.doc?.archivo || "";
+  const slug = archivo.replace(/\.ya?ml$/i, "");
+  const docQ = useQuery({
+    queryKey: ["fichas-datos-slug", slug],
+    queryFn: () => api.get<{ archivo: string; datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(slug)}`),
+    enabled: Boolean(slug),
+    staleTime: 30_000,
+  });
+
+  // Abre el documento en el editor apenas llega, una sola vez por documento.
+  useEffect(() => {
+    if (!docQ.data || abiertoRef.current === slug) return;
+    abiertoRef.current = slug;
+    onAbrir(docQ.data.datos);
+  }, [docQ.data, slug, onAbrir]);
+
+  if (!retorno) return null;
+  const mps = retorno.mps ?? [];
+  const datos = docQ.data?.datos;
+  const titulo = String(datos?.titulo || datos?.nombre_producto || retorno.doc?.titulo || "");
+  const estado = archivoElegido ? "" : estadoDoc(retorno.doc?.detalle);
+  const tono = retorno.doc?.estado ?? (archivo ? "aviso" : "falta");
+  const pendientes = Array.isArray(datos?._vacio_pendientes) ? (datos!._vacio_pendientes as unknown[]).map(String) : [];
+  const motivo = String(datos?._vacio_motivo || "");
+
+  const desdeCero = () => {
+    const mp = mps[0];
+    // El nombre del combo sin su presentación («ALMENDRA NATURAL 250g» → «ALMENDRA NATURAL»); el de la
+    // materia prima trae el empaque de compra («…AMERICANA CAJA 22.68 KG»).
+    const nombre = retorno.nombre.replace(/\s+\d+([.,]\d+)?\s*(g|gr|kg|ml|l|un|und)$/i, "").trim().toUpperCase();
+    abiertoRef.current = "__nuevo__";
+    setNuevoAbierto(true);
+    onAbrir({ titulo: nombre, nombre_producto: nombre, referencia: mp?.codigo || "" });
+  };
+
+  return (
+    <section className="rounded-xl border border-accent/50 bg-surface-panel p-3 shadow-paper-sm" aria-label="Documento del combo">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-wide text-muted">Desde el taller de combos</p>
+        <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+          {retorno.nombre} <code className="font-normal text-muted">{retorno.ref}</code>
+        </p>
+        <button type="button" onClick={volver} className="rounded-md border border-border bg-surface px-2.5 py-1 text-[12px] font-semibold text-ink hover:border-accent">
+          ← Volver al combo
+        </button>
+      </div>
+
+      {archivo ? (
+        <div className="mt-2 border-t border-border/70 pt-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Ico e="📄" />
+            <span className="text-[14px] font-bold text-ink">{titulo || archivo}</span>
+            {estado && <span className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase ${ESTADO_DOC_TONO[tono] ?? ""}`}>{estado}</span>}
+            <span className="ml-auto flex flex-wrap items-center gap-2">
+              {docQ.isLoading && <span className="text-[12px] text-muted">Abriendo…</span>}
+              {docQ.isError && <span className="text-[12px] text-accent-rose">No se pudo leer el documento ({archivo}).</span>}
+              {datos && (editando ? (
+                <span className="text-[12px] font-semibold text-accent">✓ Abierto en el editor, abajo</span>
+              ) : (
+                <button type="button" onClick={() => { onAbrir(datos); setTab("completo"); }} className="rounded-md border border-accent bg-accent px-3 py-1 text-[12px] font-bold text-white hover:opacity-90">
+                  Abrir en el editor
+                </button>
+              ))}
+              {mps.length > 0 && !elegir && (
+                <button type="button" onClick={() => setElegir(true)} className="text-[11.5px] text-muted underline decoration-dotted hover:text-ink">
+                  ¿No es este documento?
+                </button>
+              )}
+            </span>
+          </div>
+
+          {(pendientes.length > 0 || motivo) && (
+            <div className="mt-2 rounded-lg border border-accent-sun/50 bg-accent-sun/10 px-3 py-2">
+              <button type="button" onClick={() => setVerPendientes((v) => !v)} className="flex w-full items-center justify-between text-left text-[12px] font-bold text-ink">
+                <span>Lo que le falta para quedar listo{pendientes.length ? ` (${pendientes.length})` : ""}</span>
+                <span className="text-muted">{verPendientes ? "▲" : "▼"}</span>
+              </button>
+              {verPendientes && (
+                <ol className="mt-1.5 max-h-36 list-decimal space-y-1 overflow-y-auto pl-5 pr-1 text-[12px] leading-snug text-ink">
+                  {(pendientes.length ? pendientes : [motivo]).map((t, k) => <li key={k}>{t}</li>)}
+                </ol>
+              )}
+            </div>
+          )}
+          {datos && !pendientes.length && !motivo && (
+            <p className="mt-1.5 text-[12px] text-muted">
+              Revisa las tres secciones del editor (Ficha técnica → COA → SDS), guarda y genera el documento. Luego vuelve al combo.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="mt-2 grid gap-3 border-t border-border/70 pt-2 md:grid-cols-2">
+          <div>
+            <p className="text-[12.5px] font-bold text-ink">1 · ¿Ya existe el documento?</p>
+            <p className="mb-2 text-[11.5px] text-muted">Búscalo y asócialo: todas las presentaciones de la materia prima lo heredan.</p>
+            <EnlazarDocumento
+              mps={mps}
+              inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""}
+              etiquetaBoton="Asociar y abrir"
+              onHecho={(r) => { setArchivoElegido(r.archivo); setTab("completo"); }}
+            />
+          </div>
+          <div className="md:border-l md:border-border/70 md:pl-3">
+            <p className="text-[12.5px] font-bold text-ink">2 · ¿No existe?</p>
+            <p className="mb-2 text-[11.5px] text-muted">
+              Empieza uno nuevo con el nombre y el SKU de la materia prima ya puestos{mps[0] ? <> (<code>{mps[0].codigo}</code>)</> : null}.
+            </p>
+            <button type="button" onClick={desdeCero} className="rounded-md border border-accent bg-accent px-3 py-1.5 text-[12px] font-bold text-white hover:opacity-90">
+              Empezar desde cero
+            </button>
+            {nuevoAbierto && editando && (
+              <p className="mt-2 text-[12px] font-semibold text-accent">✓ Documento nuevo abierto abajo. Al guardarlo queda unido a <code>{mps[0]?.codigo}</code>.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {archivo && elegir && (
+        <div className="mt-2 rounded-lg border border-accent/40 bg-accent/5 p-2">
+          <EnlazarDocumento
+            mps={mps}
+            inicial={mps[0]?.nombre.split(" ").slice(0, 2).join(" ") ?? ""}
+            etiquetaBoton="Usar este"
+            onCancelar={() => setElegir(false)}
+            onHecho={(r) => { setElegir(false); setArchivoElegido(r.archivo); setTab("completo"); }}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
 function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
   const [busqueda, setBusqueda] = useState("");
+  // Llegada desde el taller de combos: la biblioteca abre buscando el documento de ese producto.
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "fichas") return;
+    if (tallerSalto.buscar) setBusqueda(tallerSalto.buscar);
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewNombre, setPreviewNombre] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -181,16 +355,28 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   return (
     <div className="space-y-4">
-      <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-ink">Cargar documentos en la página web</p>
-          <p className="mt-0.5 text-xs text-muted">
-            Publica solo documentos completos (FT + COA + SDS) en las páginas de producto de mckennagroup.co.
-          </p>
+      {/* La biblioteca es la lista de PDF generados. Escanear un COA y publicar en la web son tareas
+          ocasionales: una fila compacta (el escáner plegado) en vez de media pantalla sobre la lista. */}
+      <div className="grid gap-2 md:grid-cols-2">
+        <details className="group rounded-xl border border-border bg-surface-panel open:md:col-span-2">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5">
+            <span>
+              <span className="block text-sm font-semibold text-ink"><Ico e="📷" /> Escanear el COA de un proveedor</span>
+              <span className="block text-xs text-muted">Fotos o PDF → la IA llena el documento</span>
+            </span>
+            <span className="text-muted group-open:rotate-180">▼</span>
+          </summary>
+          <div className="border-t border-border px-2 pb-2 pt-2">
+            <CoaDocumentosScanner archivos={data?.archivos ?? []} onEditar={onEditar} />
+          </div>
+        </details>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface-panel px-4 py-2.5">
+          <span>
+            <span className="block text-sm font-semibold text-ink">Publicar en la página web</span>
+            <span className="block text-xs text-muted">Solo documentos completos (FT + COA + SDS)</span>
+          </span>
+          <CargarDocumentosWebButton />
         </div>
-        <CargarDocumentosWebButton />
       </div>
 
       {deleteError && (
@@ -221,7 +407,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
           title="Registra un lote autogenerado (4 letras + consecutivo) para cada ficha técnica guardada que aún no tenga uno"
           className="ml-auto rounded-lg border border-accent/50 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/10 disabled:opacity-40"
         >
-          {generarLotesMut.isPending ? "Generando…" : "🔢 Generar lotes faltantes"}
+          {generarLotesMut.isPending ? "Generando…" : ico("🔢 Generar lotes faltantes")}
         </button>
       </div>
 
@@ -348,7 +534,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
                           className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger"
                           title="Eliminar archivo"
                         >
-                          🗑
+                          <Ico e="🗑" />
                         </button>
                       </div>
                     )}
@@ -448,7 +634,6 @@ function FichaTecnicaTabContent({
       loadDatos={loadDatos}
       buildDatos={buildDatos}
       showWordPdfFolders={false}
-      showFichaLayout
       showDrive={false}
       showYamlMode={false}
       showGuardarYaml={false}
@@ -588,7 +773,7 @@ function CoaTabContent({
     () => ({
       titulo,
       identificacion: {
-        nombre_comercial: nombreComercial || titulo,
+        nombre_comercial: titulo || nombreComercial,
         referencia_interna: referencia,
         nombre_inci: inci,
         cas,
@@ -638,10 +823,7 @@ function CoaTabContent({
       const n = (titulo || nombreComercial || producto?.nombre_base || "").trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
       try {
-        const r = await api.post<{ valor?: string }>("/api/fichas/sugerir-campo", {
-          campo: "coa_parametros",
-          nombre: n,
-        }, { timeoutMs: 180000 });
+        const r = await sugerirCampoFicha("coa_parametros", n);
         const filas = (r.valor || "").trim();
         if (parseParamRows(filas).some((row) => row.parametro)) return filas;
       } catch {
@@ -672,12 +854,12 @@ function CoaTabContent({
         <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
           <Field label="EINECS" value={einces} onChange={setEinces} />
-          <Field label="Concentración" value={concentracion} onChange={setConcentracion} />
+          <Field label="Pureza" value={concentracion} onChange={setConcentracion}
+            placeholder="Ej. ≥ 99 %, 98.5 ~ 101.0 %" />
           <Field label="Presentación" value={presentacion} onChange={setPresentacion} />
           <Field label="Incluye" value={incluye} onChange={setIncluye} />
         </div>
@@ -911,7 +1093,7 @@ function SdsTabContent({
     () => ({
       titulo,
       identificacion: {
-        nombre_comercial: nombreComercial || titulo,
+        nombre_comercial: titulo || nombreComercial,
         referencia_interna: referencia,
         nombre_inci: inci,
         cas,
@@ -949,7 +1131,6 @@ function SdsTabContent({
         <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
         <p className="text-xs font-medium text-muted">Identificación</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
           <Field label="INCI / químico" value={inci} onChange={setInci} />
           <Field label="CAS" value={cas} onChange={setCas} />
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} formula />
@@ -959,7 +1140,7 @@ function SdsTabContent({
         <p className="text-xs font-medium text-muted">Peligros</p>
         <Field label="Clasificación GHS" value={clasificacion} onChange={setClasificacion} rows={2} />
         <Field label="Pictogramas / frases H-P" value={pictogramas} onChange={setPictogramas} rows={2} />
-        <Field label="Composición (componente|concentración)" value={composicion} onChange={setComposicion} rows={4} mono />
+        <TablaComposicion value={composicion} onChange={setComposicion} />
         <Field label="Primeros auxilios (caso|instrucción)" value={primerosAuxilios} onChange={setPrimerosAuxilios} rows={4} mono />
         <Field label="Manipulación" value={manipulacion} onChange={setManipulacion} rows={2} />
         <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
@@ -978,6 +1159,17 @@ function SeccionBanner({ titulo }: { titulo: string }) {
       <span className="text-sm font-bold uppercase tracking-widest text-accent">{titulo}</span>
     </div>
   );
+}
+
+/** Traduce fallos de red/proxy a algo accionable; el resto pasa tal cual. */
+function mensajeScanLegible(msg: string): string {
+  if (/NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)) {
+    return "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel, luego vuelve a adjuntar la imagen.";
+  }
+  if (/JSON\.parse|unexpected character|Unexpected token|Failed to execute 'json'/i.test(msg)) {
+    return "El servidor no devolvió JSON (el agente se reinició, se cayó o el proxy respondió una página de error). Recarga el panel y vuelve a intentar; si sigue, reinicia el agente en :8081.";
+  }
+  return msg;
 }
 
 function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<string, unknown>) => void }) {
@@ -1052,13 +1244,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       if (gen !== scanGenRef.current) return;
       if (e instanceof DOMException && e.name === "AbortError") return;
       const msg = e instanceof Error ? e.message : String(e);
-      setError(
-        /NetworkError|Failed to fetch|Network request failed|Load failed|ECONNREFUSED|connection refused/i.test(msg)
-          ? "No hay conexión con el agente (:8081). Reinicia el servicio y recarga el panel, luego vuelve a adjuntar la imagen."
-          : /JSON\.parse|unexpected character|Failed to execute 'json'/i.test(msg)
-            ? "El servidor no respondió JSON (proxy o agente caído). Reinicia el agente en :8081 y recarga el panel."
-            : msg,
-      );
+      setError(mensajeScanLegible(msg));
     } finally {
       if (gen !== scanGenRef.current) return;
       setScanning(false);
@@ -1095,7 +1281,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
       setOk(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      setError(mensajeScanLegible(msg));
       if (/descarga|HTTP|bloque|Cloudflare|conexión|connect|reset/i.test(msg)) {
         setMostrarPegar(true);
       }
@@ -1262,7 +1448,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
                 key={`${p.name}-${i}`}
                 className="flex h-20 max-w-[140px] items-center gap-1 rounded border border-border bg-surface-input px-2"
               >
-                <span className="text-[10px] text-muted">📄</span>
+                <span className="text-[10px] text-muted"><Ico e="📄" /></span>
                 <span className="truncate text-[10px] text-ink">{p.name}</span>
               </div>
             ),
@@ -1307,7 +1493,7 @@ function CoaSection({
   errorSugerir: string | null;
 }) {
   /* ── Tabla de parámetros ── */
-  const rows = parseParamRows(coaParametros);
+  const rows = parseParamRows(coaParametros, { editable: true });
   const rowsParaTabla = rows.length ? rows : [{ parametro: "", especificacion: "", resultado: "" }];
   const tieneParametros = rows.some((r) => r.parametro || r.especificacion || r.resultado);
   const sinInfoCoa = !coaEinces.trim() && !coaGrado.trim() && !tieneParametros;
@@ -1325,6 +1511,25 @@ function CoaSection({
   const removeRow = (i: number) => {
     const next = rowsParaTabla.filter((_, idx) => idx !== i);
     setCoaParametros(rowsToParamString(next.length ? next : [{ parametro: "", especificacion: "", resultado: "" }]));
+  };
+
+  /** Pegar la tabla de un COA («Peso molecular|121.16 g/mol» por línea) la reparte en filas. */
+  const [avisoPegado, setAvisoPegado] = useState<string | null>(null);
+  const onPasteRow = (i: number, ev: ReactClipboardEvent<HTMLInputElement>) => {
+    const nuevas = separarParametrosPegados(ev.clipboardData.getData("text"));
+    if (!nuevas.length) return; // texto normal: se pega como siempre
+    ev.preventDefault();
+    const actual = rowsParaTabla[i];
+    const vacia = !actual.parametro.trim() && !actual.especificacion.trim() && !actual.resultado.trim();
+    const antes = rowsParaTabla.slice(0, vacia ? i : i + 1);
+    const despues = rowsParaTabla.slice(i + 1);
+    setCoaParametros(rowsToParamString([...antes, ...nuevas, ...despues]));
+    const sinResultado = nuevas.filter((r) => !r.resultado).length;
+    setAvisoPegado(
+      `Se separaron ${nuevas.length} parámetro${nuevas.length === 1 ? "" : "s"}.` +
+        (sinResultado ? ` ${sinResultado} sin resultado: complete la columna «Resultado».` : "") +
+        " Revise que cada valor haya quedado en su fila.",
+    );
   };
 
   const cellCls = "w-full bg-transparent px-2 py-1.5 text-xs outline-none focus:bg-accent/5";
@@ -1423,6 +1628,7 @@ function CoaSection({
                     <input
                       value={row.parametro}
                       onChange={(e) => updateRow(i, "parametro", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Aspecto"
                       className={cellCls}
                     />
@@ -1431,6 +1637,7 @@ function CoaSection({
                     <input
                       value={row.especificacion}
                       onChange={(e) => updateRow(i, "especificacion", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Polvo blanco"
                       className={cellCls}
                     />
@@ -1439,6 +1646,7 @@ function CoaSection({
                     <input
                       value={row.resultado}
                       onChange={(e) => updateRow(i, "resultado", e.target.value)}
+                      onPaste={(e) => onPasteRow(i, e)}
                       placeholder="Ej. Cumple"
                       className={cellCls}
                     />
@@ -1458,15 +1666,25 @@ function CoaSection({
             </tbody>
           </table>
         </div>
-        <button
-          type="button"
-          onClick={addRow}
-          title="Agregar fila"
-          aria-label="Agregar fila"
-          className="mt-2 inline-flex h-8 w-8 items-center justify-center rounded border border-border text-muted hover:border-accent hover:text-accent"
-        >
-          <Icon name="plus" size={14} weight="bold" />
-        </button>
+        {avisoPegado && (
+          <p className="mt-1 text-[10px] text-accent" role="status">
+            {avisoPegado}
+          </p>
+        )}
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={addRow}
+            title="Agregar fila"
+            aria-label="Agregar fila"
+            className="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-muted hover:border-accent hover:text-accent"
+          >
+            <Icon name="plus" size={14} weight="bold" />
+          </button>
+          <span className="text-[10px] text-muted">
+            Puede pegar la tabla del COA en cualquier celda (un parámetro por línea: «Pureza|98.5 ~ 101.05»); se reparte en filas.
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -1485,12 +1703,176 @@ function IaBtn({ label, loading, onClick }: { label: string; loading: boolean; o
   );
 }
 
+/** El valor tras `ms` sin cambios (para no consultar al servidor por cada tecla). */
+function useDebounced<T>(valor: T, ms: number): T {
+  const [v, setV] = useState(valor);
+  useEffect(() => {
+    const t = setTimeout(() => setV(valor), ms);
+    return () => clearTimeout(t);
+  }, [valor, ms]);
+  return v;
+}
+
+/** «Referencia enlazada»: a qué SKU (materia prima de Alegra) está unido el documento, y
+ *  corregirlo. De ese enlace dependen los lotes, Imprimir y el taller de combos. */
+function ReferenciaEnlazada({
+  titulo,
+  referencia,
+  onReferencia,
+}: {
+  titulo: string;
+  referencia: string;
+  onReferencia: (sku: string) => void;
+}) {
+  const qc = useQueryClient();
+  const tituloDeb = useDebounced(titulo.trim(), 600);
+  const info = useQuery({
+    queryKey: ["doc-referencia", tituloDeb],
+    queryFn: () =>
+      api.get<{ archivo: string; existe: boolean; referencia: string; equivalentes: string[]; nombres: Record<string, string> }>(
+        `/api/mapa-sistema/documentos/referencia?titulo=${encodeURIComponent(tituloDeb)}`,
+      ),
+    enabled: tituloDeb.length > 1,
+    staleTime: 30_000,
+  });
+  const [editando, setEditando] = useState(false);
+  const [q, setQ] = useState("");
+  const qDeb = useDebounced(q.trim(), 300);
+  const busq = useQuery({
+    queryKey: ["doc-referencia-buscar", qDeb],
+    queryFn: () =>
+      api.get<{ items: { codigo: string; nombre: string }[] }>(
+        `/api/siigo/productos/buscar?q=${encodeURIComponent(qDeb)}&excluir_combos=1&limit=15`,
+      ),
+    enabled: editando && qDeb.length > 1,
+    staleTime: 60_000,
+  });
+  const [ocupado, setOcupado] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  const d = info.data;
+  const actual = (d?.existe ? d.referencia : "") || referencia;
+  const nombreDe = (sku: string) => d?.nombres?.[sku] || "";
+
+  const refrescar = async () => {
+    await api.post("/api/mapa-sistema/invalidar").catch(() => null);
+    await qc.invalidateQueries({ queryKey: ["doc-referencia"] });
+    await qc.invalidateQueries({ queryKey: ["mapa-sistema-combos"] });
+    await qc.invalidateQueries({ queryKey: ["mision-documentos"] });
+  };
+
+  const elegir = async (sku: string, nombre: string) => {
+    setMsg(null);
+    onReferencia(sku); // queda también en el documento al volver a generarlo
+    if (!d?.existe) {
+      setEditando(false);
+      setMsg({ ok: true, texto: `Quedará unido a ${sku} al guardar o generar el documento.` });
+      return;
+    }
+    setOcupado(true);
+    try {
+      const r = await api.post<{ ok: boolean; errores: { error: string }[] }>("/api/mapa-sistema/documentos/fijar-sku", {
+        items: [{ archivo: d.archivo, sku, corregir: true }],
+      });
+      if (!r.ok) throw new Error(r.errores[0]?.error || "No se pudo corregir");
+      await refrescar();
+      setEditando(false);
+      setQ("");
+      setMsg({ ok: true, texto: `Corregido: el documento queda unido a ${sku}${nombre ? ` · ${nombre}` : ""}.` });
+    } catch (e: unknown) {
+      setMsg({ ok: false, texto: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  const quitarEquivalente = async (sku: string) => {
+    if (!d?.existe) return;
+    setOcupado(true);
+    setMsg(null);
+    try {
+      const r = await api.post<{ ok?: boolean; error?: string }>("/api/mapa-sistema/documentos/quitar-sku", { archivo: d.archivo, sku });
+      if (r.ok === false) throw new Error(r.error || "No se pudo quitar");
+      await refrescar();
+      setMsg({ ok: true, texto: `${sku} ya no comparte este documento.` });
+    } catch (e: unknown) {
+      setMsg({ ok: false, texto: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted">Referencia enlazada (SKU de la materia prima)</p>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-input px-2.5 py-1.5">
+        {actual ? (
+          <span className="text-sm text-ink">
+            <code className="font-bold">{actual}</code>
+            {nombreDe(actual) && <span className="text-muted"> · {nombreDe(actual)}</span>}
+          </span>
+        ) : (
+          <span className="text-sm text-amber-700">Sin referencia: el documento no está unido a ningún producto.</span>
+        )}
+        {(d?.equivalentes ?? []).map((sku) => (
+          <span key={sku} className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-ink" title="Comparte este documento">
+            también <code>{sku}</code>
+            {nombreDe(sku) && <span className="text-muted">· {nombreDe(sku)}</span>}
+            <button type="button" disabled={ocupado} onClick={() => void quitarEquivalente(sku)} className="text-muted hover:text-danger" title={`Quitar ${sku}`}>
+              ✕
+            </button>
+          </span>
+        ))}
+        <button
+          type="button"
+          onClick={() => { setEditando((v) => !v); setMsg(null); }}
+          className="ml-auto rounded border border-accent/40 px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent/10"
+        >
+          {editando ? "Cancelar" : actual ? "Corregir" : "Enlazar"}
+        </button>
+      </div>
+      {editando && (
+        <div className="space-y-1 rounded-lg border border-accent/40 bg-accent/5 p-2">
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar la materia prima por nombre o SKU…"
+            className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+          {busq.isLoading && <p className="text-[11px] text-muted">Buscando…</p>}
+          <div className="max-h-56 space-y-1 overflow-y-auto">
+            {(busq.data?.items ?? []).map((it) => (
+              <button
+                key={it.codigo}
+                type="button"
+                disabled={ocupado || it.codigo === actual}
+                onClick={() => void elegir(it.codigo, it.nombre)}
+                className="flex w-full items-center gap-2 rounded border border-border bg-surface-input px-2 py-1 text-left text-xs text-ink hover:border-accent disabled:opacity-50"
+              >
+                <code className="shrink-0 font-bold">{it.codigo}</code>
+                <span className="min-w-0 flex-1 truncate">{it.nombre}</span>
+                {it.codigo === actual && <span className="text-[10px] font-bold text-emerald-700">actual</span>}
+              </button>
+            ))}
+            {busq.data && busq.data.items.length === 0 && <p className="text-[11px] text-muted">Ningún producto coincide.</p>}
+          </div>
+        </div>
+      )}
+      {msg && <p className={`text-[11px] ${msg.ok ? "text-emerald-700" : "text-danger"}`}>{msg.texto}</p>}
+    </div>
+  );
+}
+
 function DocumentoCompletoTabContent({
   producto,
   preload,
+  onVolver,
 }: {
   producto: ProductoDocumentacion | null;
   preload: Record<string, unknown> | null;
+  /** Dentro de la ventana del taller: volver al combo tras dar el visto bueno. */
+  onVolver?: () => void;
 }) {
   /* FT — delegado a FichaTecnicaForm mediante refs */
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
@@ -1516,61 +1898,15 @@ function DocumentoCompletoTabContent({
 
   /* ── Campos compartidos (una sola vez en el formulario) ── */
   const [nombre, setNombre] = useState("");
+  const desdeTaller = useAppStore((st) => Boolean(st.tallerRetorno));
   const [referencia, setReferencia] = useState("");
   const [cas, setCas] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
   const [inci, setInci] = useState("");
-  const [colorAcento, setColorAcento] = useState("#069DC2");
-  const [cabezoteId, setCabezoteId] = useState("default");
-
+  // El formato FT + COA + SDS lleva un único logo y color: el turquesa corporativo
+  // (lo impone ficha_tecnica.LOGO_FORMATO / COLOR_FORMATO). Ya no se elige.
+  const colorAcento = "#044D5C";
   const qc = useQueryClient();
-  const cabezoteFileRef = useRef<HTMLInputElement>(null);
-  const [cabezoteConfirmDelete, setCabezoteConfirmDelete] = useState<string | null>(null);
-  const [cabezoteDeleting, setCabezoteDeleting] = useState<string | null>(null);
-  const [cabezoteDeleteError, setCabezoteDeleteError] = useState<string | null>(null);
-  const [cabezotePreview, setCabezotePreview] = useState<{ src: string; nombre: string } | null>(null);
-
-  const { data: layoutOpciones } = useQuery({
-    queryKey: ["fichas-opciones"],
-    queryFn: () => api.get<DocLayoutOpciones>("/api/fichas/opciones"),
-  });
-
-  const cabezoteUploadMut = useMutation({
-    mutationFn: (file: File) => {
-      const fd = new FormData();
-      fd.append("archivo", file);
-      const base = file.name.replace(/\.[^.]+$/, "");
-      if (base.trim()) fd.append("nombre", base.trim());
-      return api.upload<{ ok: boolean; cabezote: { id: string; nombre: string } }>("/api/fichas/cabezotes/subir", fd);
-    },
-    onSuccess: (r) => {
-      setCabezoteId(r.cabezote.id);
-      void qc.invalidateQueries({ queryKey: ["fichas-opciones"] });
-    },
-  });
-
-  const handleCabezoteDelete = async (id: string) => {
-    if (cabezoteDeleting) return;
-    setCabezoteDeleting(id);
-    setCabezoteDeleteError(null);
-    try {
-      const { resolvePanelApiUrl } = await import("../api/client");
-      const { useTicketsAuth } = await import("../stores/ticketsAuth");
-      const { useAuthStore } = await import("../stores/auth");
-      const t = useTicketsAuth.getState();
-      const token = t.apiToken || t.token || useAuthStore.getState().token || "";
-      const url = resolvePanelApiUrl(`/api/fichas/cabezotes/${encodeURIComponent(id)}/eliminar`, "DELETE");
-      const res = await fetch(url, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (cabezoteId === id) setCabezoteId("default");
-      void qc.invalidateQueries({ queryKey: ["fichas-opciones"] });
-    } catch (err) {
-      setCabezoteDeleteError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setCabezoteDeleting(null);
-      setCabezoteConfirmDelete(null);
-    }
-  };
 
   /* ── COA: solo campos exclusivos ── */
   const [coaEinces, setCoaEinces] = useState("");
@@ -1584,22 +1920,24 @@ function DocumentoCompletoTabContent({
   const inciGuardar = casillas.inci ? "" : inci;
   const insGuardar = casillas.ins ? "" : ins;
   const [coaParametros, setCoaParametros] = useState("");
+  /* Composición: se imprime en el COA (antes vivía en la SDS) */
+  const [coaComposicion, setCoaComposicion] = useState("");
   const [coaFirmaNombre, setCoaFirmaNombre] = useState("");
   const [coaFirmaCargo, setCoaFirmaCargo] = useState("");
   const [coaFirmaOrganizacion, setCoaFirmaOrganizacion] = useState("");
   const [coaFirmaImagenB64, setCoaFirmaImagenB64] = useState("");
 
-  /* ── SDS: solo campos exclusivos ── */
-  const [sdsClasificacion, setSdsClasificacion] = useState("");
-  const [sdsPictogramas, setSdsPictogramas] = useState("");
-  const [sdsComposicion, setSdsComposicion] = useState("");
-  const [sdsPrimeros, setSdsPrimeros] = useState("");
-  const [sdsManipulacion, setSdsManipulacion] = useState("");
-  const [sdsRecomendaciones, setSdsRecomendaciones] = useState("");
+  /* ── SDS (esquema 2, ver documentos/SdsSeccion.tsx) ── */
+  const [sdsForm, setSdsForm] = useState<SdsForm>(SDS_VACIA);
+  const [sdsAvisos, setSdsAvisos] = useState<string[]>([]);
+  const sdsCargaRef = useRef(0);
+  const [sdsCargando, setSdsCargando] = useState(false);
 
   /* Generación */
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<{ pdf_nombre: string } | null>(null);
+  /** Etiquetas que cambiaron al generar el documento (o el error al intentarlo). */
+  const [etiquetasSync, setEtiquetasSync] = useState<{ ok: boolean; texto: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   /* ── IA sugerencias campos compartidos + SDS ── */
@@ -1607,7 +1945,7 @@ function DocumentoCompletoTabContent({
     mutationFn: (campo: string) => {
       const n = nombre.trim();
       if (!n) throw new Error("Indique el nombre del producto primero");
-      return api.post<{ valor: string }>("/api/fichas/sugerir-campo", { campo, nombre: n }, { timeoutMs: 180000 });
+      return sugerirCampoFicha(campo, n);
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
@@ -1616,12 +1954,7 @@ function DocumentoCompletoTabContent({
         case "inci":                   setInci(v); break;
         case "nombre_comercial":       setNombreComercial(v); break;
 
-        case "sds_clasificacion_ghs":  setSdsClasificacion(v); break;
-        case "sds_pictogramas":        setSdsPictogramas(v); break;
-        case "composicion":            setSdsComposicion(v); break;
-        case "sds_primeros_auxilios":  setSdsPrimeros(v); break;
-        case "sds_manipulacion":       setSdsManipulacion(v); break;
-        case "recomendaciones":        setSdsRecomendaciones(v); break;
+        case "composicion":            setCoaComposicion(v); break;
         case "coa_einecs":             setCoaEinces(v); break;
         case "coa_grado":              setCoaGrado(v); break;
         case "coa_parametros":         setCoaParametros(v); break;
@@ -1641,12 +1974,7 @@ function DocumentoCompletoTabContent({
       if (!n) throw new Error("Indique el nombre del producto primero");
       let parametros = "";
       try {
-        const r = await api.post<{ valor?: string; error?: string }>(
-          "/api/fichas/sugerir-campo",
-          { campo: "coa_parametros", nombre: n },
-          { timeoutMs: 180000 },
-        );
-        if (r.error) throw new Error(r.error);
+        const r = await sugerirCampoFicha("coa_parametros", n);
         parametros = (r.valor || "").trim();
       } catch {
         parametros = "";
@@ -1714,8 +2042,6 @@ function DocumentoCompletoTabContent({
     setTipoInsumo(esTipoInsumo(datos.tipo_insumo) ? datos.tipo_insumo : "");
     setIns(String(datos.ins || ""));
 
-    if (datos._cabezote_id) setCabezoteId(String(datos._cabezote_id));
-    if (datos.color_acento) setColorAcento(String(datos.color_acento));
 
     // Promover lote/fechas del bloque COA al formulario FT (fuente del completo).
     // Preferir valores del escaneo (_coa.lote / top-level) para que sí se vean en el editor.
@@ -1748,26 +2074,47 @@ function DocumentoCompletoTabContent({
       else if (sdsIdent.numero_ce) setCoaEinces(String(sdsIdent.numero_ce));
       if (coaIdent.grado) setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
+      if (coaData.composicion) setCoaComposicion(textoDesdeFilasTres(coaData.composicion));
       setCoaFirmaNombre(String(coaFirma.nombre || ""));
       setCoaFirmaCargo(String(coaFirma.cargo || ""));
       setCoaFirmaOrganizacion(String(coaFirma.organizacion || ""));
       setCoaFirmaImagenB64(String(coaFirma.imagen_b64 || ""));
     }
 
+    // SDS: se convierte al esquema 2 en el backend (misma regla que el PDF).
+    const carga = ++sdsCargaRef.current;
+    setSdsAvisos([]);
     if (sdsData) {
-      const peligros = (sdsData.peligros as Record<string, unknown>) || {};
-      const manip = (sdsData.manipulacion as Record<string, unknown>) || {};
-      if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
-      if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
-      if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
-      if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
-      if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
-      const recSds = String(sdsData.recomendaciones || peligros.recomendaciones || "");
-      if (recSds.trim()) setSdsRecomendaciones(recSds);
+      // Documentos anteriores guardaban la composición en la SDS: pasa al COA.
+      if (sdsData.composicion && !coaData?.composicion) {
+        setCoaComposicion(textoDesdeFilasTres(sdsData.composicion));
+      }
+      // Recomendaciones GHS históricas guardadas en la FT: entran a la SDS para repartirse.
+      const recFt = String(datos.recomendaciones || "");
+      const pel = (sdsData.peligros as Record<string, unknown>) || {};
+      const sdsEntrada =
+        recFt.trim() && sdsData.esquema !== 2 && !sdsData.recomendaciones && !pel.recomendaciones
+          ? { ...sdsData, recomendaciones: recFt }
+          : sdsData;
+      setSdsForm(sdsDesdeDatos(sdsEntrada.esquema === 2 ? sdsEntrada : null));
+      setSdsCargando(true);
+      void api
+        .post<{ sds: Record<string, unknown>; avisos: string[] }>("/api/fichas/sds/normalizar", { sds: sdsEntrada })
+        .then((r) => {
+          if (carga !== sdsCargaRef.current) return;
+          setSdsForm(sdsDesdeDatos(r.sds));
+          setSdsAvisos(r.avisos || []);
+        })
+        .catch(() => {
+          if (carga === sdsCargaRef.current) setSdsAvisos(["No se pudo convertir la hoja del formato anterior; recargue el documento."]);
+        })
+        .finally(() => {
+          if (carga === sdsCargaRef.current) setSdsCargando(false);
+        });
+    } else {
+      setSdsForm(SDS_VACIA);
+      setSdsCargando(false);
     }
-    // Migrar recomendaciones GHS históricas guardadas en FT → SDS
-    const recFt = String(datos.recomendaciones || "");
-    if (recFt.trim()) setSdsRecomendaciones((prev) => prev.trim() || recFt);
   }, []);
 
   /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
@@ -1808,6 +2155,7 @@ function DocumentoCompletoTabContent({
         tamano_lote: String(ft.presentacion || ""),
       },
       parametros: filasTresDesdeTexto(coaParametros),
+      composicion: filasTresDesdeTexto(coaComposicion),
       firma: {
         nombre: coaFirmaNombre,
         cargo: coaFirmaCargo,
@@ -1817,11 +2165,11 @@ function DocumentoCompletoTabContent({
     };
   }, [
     nombre, nombreComercial, referencia, inciGuardar, casGuardar,
-    einecsGuardar, insGuardar, coaGrado, coaParametros,
+    einecsGuardar, insGuardar, coaGrado, coaParametros, coaComposicion,
     coaFirmaNombre, coaFirmaCargo, coaFirmaOrganizacion, coaFirmaImagenB64,
   ]);
 
-  const buildSdsDatos = useCallback(() => ({
+  const buildSdsDatos = useCallback(() => sdsAPayload(sdsForm, {
     titulo: nombre,
     identificacion: {
       nombre_comercial: nombreComercial || nombre,
@@ -1830,16 +2178,19 @@ function DocumentoCompletoTabContent({
       cas: casGuardar,
       numero_ce: einecsGuardar,
     },
-    peligros: { clasificacion: sdsClasificacion, pictogramas: sdsPictogramas },
-    composicion: filasTresDesdeTexto(sdsComposicion),
-    primeros_auxilios: filasDesdeTexto(sdsPrimeros),
-    manipulacion: { manipulacion: sdsManipulacion },
-    recomendaciones: sdsRecomendaciones,
-  }), [
-    nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar,
-    sdsClasificacion, sdsPictogramas, sdsComposicion,
-    sdsPrimeros, sdsManipulacion, sdsRecomendaciones,
-  ]);
+  }), [nombre, nombreComercial, referencia, inciGuardar, casGuardar, einecsGuardar, sdsForm]);
+
+  /** Lo que la FT ya dice: la SDS lo muestra como referencia y la IA no lo repite. */
+  const obtenerFtParaSds = useCallback((): ContextoFt => {
+    const ft = buildFtRef.current() as Record<string, unknown>;
+    const cf = (ft.caracteristicas_fisicas as Record<string, unknown>) || {};
+    return {
+      conservacion: String(ft.conservacion || ""),
+      propiedades: Object.entries(cf)
+        .filter(([, v]) => String(v || "").trim())
+        .map(([k, v]) => [k.replace(/_/g, " "), String(v)] as [string, string]),
+    };
+  }, []);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -1862,7 +2213,6 @@ function DocumentoCompletoTabContent({
     ft: _buildFt(),
     coa: buildCoaDatos(),
     sds: buildSdsDatos(),
-    cabezote_id: cabezoteId,
   });
 
   const _getToken = async () => {
@@ -1912,10 +2262,18 @@ function DocumentoCompletoTabContent({
     }
   };
 
-  const handleGenerar = async () => {
-    setLoading(true);
+  const [cargaWeb, setCargaWeb] = useState<{ ok: true; data: CargarDocumentosWebResult } | { ok: false; error: string } | null>(null);
+
+  const handleGenerar = async ({ cargarWeb = false }: { cargarWeb?: boolean } = {}) => {
     setError(null);
     setResultado(null);
+    setCargaWeb(null);
+    if (sdsForm.sugeridaIa && !sdsForm.vistoBueno) {
+      setError("La hoja de seguridad es una sugerencia de IA: revísela y dé el visto bueno en la Sección 3 antes de generar el documento final.");
+      document.getElementById("sds-seccion")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setLoading(true);
     try {
       const { resolvePanelApiUrl } = await import("../api/client");
       const token = await _getToken();
@@ -1928,12 +2286,64 @@ function DocumentoCompletoTabContent({
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
       setResultado(json);
+      // El documento es la fuente de las etiquetas: sus cambios llegan ya a todas
+      // las enlazadas, no solo a la que se abra después en el editor.
+      setEtiquetasSync(null);
+      if (json.slug) {
+        try {
+          const { propagarFichaTecnicaAEtiquetas } = await import("../lib/fichaTecnicaAplicar");
+          const cambiadas = await propagarFichaTecnicaAEtiquetas([json.slug, `borrador_${json.slug}`]);
+          void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
+          setEtiquetasSync({
+            ok: true,
+            texto: cambiadas.length
+              ? `Etiquetas actualizadas (${cambiadas.length}): ${cambiadas.map((e) => e.nombre).join(", ")}.`
+              : "Las etiquetas enlazadas ya tenían estos datos.",
+          });
+        } catch (e: unknown) {
+          setEtiquetasSync({
+            ok: false,
+            texto: `No se pudieron actualizar las etiquetas: ${e instanceof Error ? e.message : String(e)}`,
+          });
+        }
+      }
+      celebrarAprobacion({ titulo: "¡Ficha técnica aprobada!", detalle: json.pdf_nombre || nombre, ref: nombre, mision: "ficha_aprobada" });
       void refetchBorradores();
+      if (cargarWeb) {
+        try {
+          const data = await api.post<CargarDocumentosWebResult>("/api/fichas/biblioteca/cargar-web", {}, { timeoutMs: 120000 });
+          setCargaWeb({ ok: true, data });
+        } catch (e: unknown) {
+          setCargaWeb({ ok: false, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      // Desde el taller, generar el documento final ES el visto bueno de revisado: se marca en
+      // todas las presentaciones que heredan el documento (es de la materia prima) y se vuelve al combo.
+      const retornoTaller = useAppStore.getState().tallerRetorno;
+      if (retornoTaller?.ref) {
+        try {
+          await api.post("/api/documentos/revision-checklist/marcar", {
+            producto_ref: retornoTaller.ref,
+            revisado: true,
+            con_presentaciones: true,
+            notas: `Visto bueno al generar el documento desde el taller de combos (${json.pdf_nombre || nombre})`,
+          });
+        } catch {
+          /* el PDF ya quedó generado; la marca de revisión se puede poner desde Revisión guiada */
+        }
+        onVolver?.();
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
+  };
+
+  // Se genera desde la ventana de vista previa; al terminar se cierra para ver el resultado o el error.
+  const generarDesdeVistaPrevia = async () => {
+    await handleGenerar({ cargarWeb: true });
+    setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
   };
 
   const previewMut = useMutation({
@@ -1944,7 +2354,7 @@ function DocumentoCompletoTabContent({
       const genRes = await fetch(genUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify(_buildBody()),
+        body: JSON.stringify({ ..._buildBody(), vista_previa: true }),
       });
       const json = await genRes.json();
       if (!genRes.ok || json.error) throw new Error(json.error || `Error ${genRes.status}`);
@@ -1984,14 +2394,20 @@ function DocumentoCompletoTabContent({
     URL.revokeObjectURL(a.href);
   };
 
+  // Desde el taller se trabaja UN producto: solo sus borradores, no la lista de todos.
+  const normTitulo = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+  const borradoresVisibles = desdeTaller
+    ? nombre.trim() ? borradores.filter((b) => normTitulo(b.titulo) === normTitulo(nombre)) : []
+    : borradores;
+
   return (
     <div className="relative space-y-4 pb-28">
 
-      {borradores.length > 0 && (
+      {borradoresVisibles.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2.5 space-y-2">
-          <p className="text-xs font-medium text-ink">Borradores guardados</p>
+          <p className="text-xs font-medium text-ink">{desdeTaller ? "Hay un borrador guardado de este producto" : "Borradores guardados"}</p>
           <ul className="space-y-1">
-            {borradores.slice(0, 8).map((b) => (
+            {borradoresVisibles.slice(0, 8).map((b) => (
               <li key={b.id} className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="min-w-0 flex-1 truncate text-ink">{b.titulo}</span>
                 {b.guardado_at && (
@@ -2023,6 +2439,7 @@ function DocumentoCompletoTabContent({
           onChange={setNombre}
           placeholder="Ej. Ácido cítrico"
         />
+        <ReferenciaEnlazada titulo={nombre} referencia={referencia} onReferencia={setReferencia} />
         <div className="space-y-1.5">
           <p className="text-xs text-muted">Tipo de insumo</p>
           <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
@@ -2154,6 +2571,19 @@ function DocumentoCompletoTabContent({
             autoCompletarFtRef.current(strCampos);
             loadFtRef.current(campos);
 
+            // Sección COA: la tabla de resultados del documento escaneado.
+            // Solo rellena lo que esté vacío, para no pisar ediciones manuales.
+            const paramsEscan = strCampos.parametros || "";
+            if (
+              paramsEscan &&
+              parseParamRows(paramsEscan).some((r) => r.parametro) &&
+              !parseParamRows(coaParametros).some((r) => r.parametro)
+            ) {
+              setCoaParametros(paramsEscan);
+            }
+            if (strCampos.einecs && !coaEinces.trim()) setCoaEinces(strCampos.einecs);
+            if (strCampos.grado && !coaGrado.trim()) setCoaGrado(strCampos.grado);
+
             const vacios = FT_CAMPOS_AUTOSUGERIR.filter((c) => !strCampos[c]);
             setCamposVaciosEscan(vacios);
             setSugerirVaciosError(null);
@@ -2206,153 +2636,6 @@ function DocumentoCompletoTabContent({
           </div>
         )}
 
-        {/* Color del formato */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted">Color del formato</p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { hex: "#069DC2", nombre: "Azul McKenna", logo: "logo_azul" },
-              { hex: "#003DA5", nombre: "Azul marino", logo: "logo_azul" },
-              { hex: "#5CB85C", nombre: "Verde claro", logo: "logo_azul" },
-              { hex: "#37474F", nombre: "Gris antracita", logo: "logo_gris" },
-              { hex: "#6A1B9A", nombre: "Morado", logo: "logo_morado" },
-              { hex: "#B71C1C", nombre: "Rojo", logo: "logo_cafe" },
-              { hex: "#FFA040", nombre: "Naranja claro", logo: "logo_amarillo" },
-              { hex: "#000000", nombre: "Negro", logo: "logo_gris" },
-            ].map(({ hex, nombre: n, logo }) => (
-              <button
-                key={hex}
-                type="button"
-                title={n}
-                onClick={() => {
-                  setColorAcento(hex);
-                  if (layoutOpciones?.cabezotes.some((c) => c.id === logo)) {
-                    setCabezoteId(logo);
-                  }
-                }}
-                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-                style={{
-                  backgroundColor: hex,
-                  borderColor: colorAcento === hex ? "#fff" : hex,
-                  outline: colorAcento === hex ? `2px solid ${hex}` : "none",
-                }}
-              />
-            ))}
-            <input
-              type="color"
-              value={colorAcento}
-              onChange={(e) => setColorAcento(e.target.value)}
-              title="Color personalizado"
-              className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
-            />
-          </div>
-        </div>
-
-        {/* Cabezote */}
-        {layoutOpciones && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-medium text-muted">Cabezote del encabezado</p>
-              <button
-                type="button"
-                onClick={() => cabezoteFileRef.current?.click()}
-                disabled={cabezoteUploadMut.isPending}
-                className="shrink-0 rounded border border-accent/40 bg-accent/10 px-2.5 py-1 text-[11px] font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
-              >
-                {cabezoteUploadMut.isPending ? "Subiendo…" : "+ Subir imagen"}
-              </button>
-            </div>
-            <input
-              ref={cabezoteFileRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                e.target.value = "";
-                if (file) cabezoteUploadMut.mutate(file);
-              }}
-            />
-            <div className="flex flex-wrap gap-3">
-              {layoutOpciones.cabezotes.map((c) => {
-                const imgSrc = `/api/fichas/cabezotes/${encodeURIComponent(c.id)}/imagen`;
-                const selected = cabezoteId === c.id;
-                const isDeleting = cabezoteDeleting === c.id;
-                const isConfirming = cabezoteConfirmDelete === c.id;
-                return (
-                  <div
-                    key={c.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => !isConfirming && !isDeleting && setCabezoteId(c.id)}
-                    onKeyDown={(e) => e.key === "Enter" && !isConfirming && !isDeleting && setCabezoteId(c.id)}
-                    className={`group relative w-36 cursor-pointer select-none overflow-hidden rounded-xl border-2 transition-all ${
-                      selected ? "border-accent shadow-[0_0_0_3px] shadow-accent/20" : "border-border hover:border-accent/60"
-                    }`}
-                  >
-                    {c.id === "default" ? (
-                      <div className={`flex h-14 w-full flex-col items-center justify-center gap-1 ${selected ? "bg-accent/10 text-accent" : "bg-surface-input text-muted"}`}>
-                        <span className="text-[10px] font-medium">Sin cabezote</span>
-                      </div>
-                    ) : (
-                      <div className="relative h-20 w-full bg-white mck-paper-white">
-                        <img src={imgSrc} alt={c.nombre} className="h-full w-full object-contain p-1" />
-                        <button
-                          type="button"
-                          title="Vista previa"
-                          onClick={(e) => { e.stopPropagation(); setCabezotePreview({ src: imgSrc, nombre: c.nombre }); }}
-                          className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/90 text-ink shadow opacity-0 transition-opacity group-hover:opacity-100"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-                        </button>
-                      </div>
-                    )}
-                    {selected && (
-                      <div className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white shadow-sm">✓</div>
-                    )}
-                    <div className="flex h-7 items-center gap-1 border-t border-border/40 bg-surface-panel px-2" onClick={(e) => e.stopPropagation()}>
-                      <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-ink">{c.nombre}</span>
-                      {c.id !== "default" && !isDeleting && !isConfirming && (
-                        <button
-                          type="button"
-                          title="Eliminar"
-                          onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(c.id); setCabezoteDeleteError(null); }}
-                          className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted/50 hover:bg-danger/10 hover:text-danger"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 11 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"><path d="M1 3h9M4 3V2h3v1M1.5 3l.7 6.3a1 1 0 001 .9h3.6a1 1 0 001-.9L8.5 3"/></svg>
-                        </button>
-                      )}
-                    </div>
-                    {isConfirming && !isDeleting && (
-                      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-surface-panel/95" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-[10px] font-semibold text-ink">¿Eliminar?</p>
-                        <div className="flex gap-1.5">
-                          <button type="button" onClick={(e) => { e.stopPropagation(); void handleCabezoteDelete(c.id); }} className="rounded bg-danger px-2.5 py-1 text-[10px] font-bold text-white hover:opacity-85">Sí</button>
-                          <button type="button" onClick={(e) => { e.stopPropagation(); setCabezoteConfirmDelete(null); }} className="rounded border border-border bg-surface-input px-2 py-1 text-[10px] text-ink">No</button>
-                        </div>
-                      </div>
-                    )}
-                    {isDeleting && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-surface-panel/90">
-                        <span className="text-[10px] text-muted">Eliminando…</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {cabezoteDeleteError && <p className="text-xs text-danger">{cabezoteDeleteError}</p>}
-            {cabezotePreview && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setCabezotePreview(null)}>
-                <div className="relative max-w-xl rounded-xl bg-white mck-paper-white p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                  <img src={cabezotePreview.src} alt={cabezotePreview.nombre} className="max-h-64 w-full object-contain" />
-                  <p className="mt-2 text-center text-xs text-muted">{cabezotePreview.nombre}</p>
-                  <button type="button" onClick={() => setCabezotePreview(null)} className="absolute right-2 top-2 rounded bg-surface-input px-2 py-1 text-xs text-ink hover:bg-border">✕ Cerrar</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ─── FICHA TÉCNICA ─── */}
@@ -2389,64 +2672,33 @@ function DocumentoCompletoTabContent({
         sugiriendo={sugerirCoaMut.isPending}
         errorSugerir={sugerirCoaMut.isError ? (sugerirCoaMut.error as Error).message : null}
       />
-
-      {/* ─── SDS: solo campos exclusivos ─── */}
-      <SeccionBanner titulo="Sección 3 — Hoja de Datos de Seguridad (SDS)" />
-      <div className="space-y-4">
-        <p className="text-xs font-medium text-muted">Peligros</p>
-        <Field
-          label="Clasificación GHS"
-          value={sdsClasificacion}
-          onChange={setSdsClasificacion}
-          rows={2}
-          actions={<IaBtn {...ia("sds_clasificacion_ghs")} />}
-        />
-        <Field
-          label="Pictogramas / frases H-P"
-          value={sdsPictogramas}
-          onChange={setSdsPictogramas}
-          rows={2}
-          actions={<IaBtn {...ia("sds_pictogramas")} />}
-        />
-        <Field
+      <div className="mt-4">
+        <TablaComposicion
           label={
             casillas.composicionRequerida
-              ? "Composición (componente|concentración) · requerida para este tipo de insumo"
-              : "Composición (componente|concentración)"
+              ? "Composición · requerida para este tipo de insumo"
+              : "Composición"
           }
-          value={sdsComposicion}
-          onChange={setSdsComposicion}
-          rows={4}
-          mono
+          value={coaComposicion}
+          onChange={setCoaComposicion}
           actions={<IaBtn {...ia("composicion")} />}
-        />
-        <Field
-          label="Primeros auxilios (caso|instrucción)"
-          value={sdsPrimeros}
-          onChange={setSdsPrimeros}
-          rows={4}
-          mono
-          actions={<IaBtn {...ia("sds_primeros_auxilios")} />}
-        />
-        <Field
-          label="Manipulación"
-          value={sdsManipulacion}
-          onChange={setSdsManipulacion}
-          rows={2}
-          actions={<IaBtn {...ia("sds_manipulacion")} />}
-        />
-        <Field
-          label="Recomendaciones para manejo seguro (GHS/SGA)"
-          value={sdsRecomendaciones}
-          onChange={setSdsRecomendaciones}
-          rows={5}
-          placeholder="Se recomienda guardar en envases bien cerrados… Una idea por línea."
-          actions={<IaBtn {...ia("recomendaciones")} />}
         />
       </div>
 
+      {/* ─── SDS: solo campos exclusivos ─── */}
+      <SeccionBanner titulo="Sección 3 — Hoja de Datos de Seguridad (SDS)" />
+      <SdsSeccion
+        value={sdsForm}
+        onChange={setSdsForm}
+        nombre={nombre}
+        identificacion={{ cas: casGuardar, inci: inciGuardar }}
+        obtenerFt={obtenerFtParaSds}
+        avisos={sdsAvisos}
+        cargando={sdsCargando}
+      />
+
       {/* ─── Resultado / errores (sin botones de acción: van flotantes) ─── */}
-      {(error || previewMut.isError || resultado || borradorMsg || borradorError) && (
+      {(error || previewMut.isError || resultado || cargaWeb || borradorMsg || borradorError) && (
         <div className="mt-6 space-y-2 rounded-lg border border-border p-4">
           {error && (
             <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
@@ -2472,8 +2724,31 @@ function DocumentoCompletoTabContent({
               >
                 Descargar PDF
               </button>
-              <CargarDocumentosWebButton compact />
+              {cargaWeb?.ok === false && <CargarDocumentosWebButton compact />}
             </div>
+          )}
+          {etiquetasSync && (
+            <p
+              className={`rounded px-3 py-2 text-sm ${
+                etiquetasSync.ok ? "bg-emerald-500/10 text-emerald-700" : "bg-red-500/10 text-red-700"
+              }`}
+            >
+              {etiquetasSync.texto}
+            </p>
+          )}
+          {cargaWeb?.ok === true && (
+            <p className="rounded bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700">
+              {cargaWeb.data.sitio?.ok === false
+                ? `Cargado en el índice de la web; la tienda no respondió (${cargaWeb.data.sitio?.error || "sin respuesta"}).`
+                : `Cargado en la página web: ${cargaWeb.data.total} documento(s) completo(s) visibles en la tienda.`}
+              {!!cargaWeb.data.omitidos_titulos?.some((t) => normTitulo(t) === normTitulo(nombre)) &&
+                " Este producto no se publicó: le falta COA, SDS o PDF."}
+            </p>
+          )}
+          {cargaWeb?.ok === false && (
+            <p className="rounded bg-danger/10 px-3 py-2 text-sm text-danger">
+              El PDF se generó, pero no se pudo cargar en la web: {cargaWeb.error}. Use «Cargar en página web» para reintentar.
+            </p>
           )}
         </div>
       )}
@@ -2495,17 +2770,10 @@ function DocumentoCompletoTabContent({
               type="button"
               onClick={() => previewMut.mutate()}
               disabled={previewMut.isPending || loading}
-              className="min-w-[8rem] flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-ink hover:border-accent disabled:opacity-40"
+              className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              title="El PDF final se genera desde la vista previa"
             >
               {previewMut.isPending ? "Generando vista previa…" : "Vista previa"}
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerar}
-              disabled={loading || previewMut.isPending}
-              className="min-w-[9rem] flex-1 rounded-lg bg-accent py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {loading ? "Generando documento…" : "Ficha Técnica COA SDS"}
             </button>
           </div>
         </div>
@@ -2515,7 +2783,7 @@ function DocumentoCompletoTabContent({
       {previewUrl && (
         <div
           className="fixed inset-0 z-50 flex flex-col bg-black/80"
-          onClick={(e) => { if (e.target === e.currentTarget) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}
+          onClick={(e) => { if (e.target === e.currentTarget && !loading) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); } }}
         >
           <div className="flex h-full flex-col">
             <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-panel px-4 py-2.5 shadow">
@@ -2528,8 +2796,18 @@ function DocumentoCompletoTabContent({
                 >
                   Descargar PDF
                 </a>
+                {/* El PDF final solo se genera después de ver la vista previa. */}
                 <button
                   type="button"
+                  onClick={() => void generarDesdeVistaPrevia()}
+                  disabled={loading}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {loading ? "Generando y cargando a la web…" : desdeTaller ? "Dar el visto bueno, generar y cargar a la web" : "Generar y cargar a la web"}
+                </button>
+                <button
+                  type="button"
+                  disabled={loading}
                   onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-ink hover:border-danger hover:text-danger"
                 >
@@ -2549,12 +2827,21 @@ function DocumentoCompletoTabContent({
   );
 }
 
-export default function FichasTecnicasPanel() {
-  const [tab, setTab] = useState<TabDoc>("biblioteca");
+export default function FichasTecnicasPanel({ onVolver, archivoInicial }: {
+  /** Montado en la ventana del taller de combos: «Volver al combo» cierra la ventana. */
+  onVolver?: () => void;
+  /** Documento (slug o nombre del YAML) a abrir de una vez en el editor: lo usa el
+   *  editor de etiquetas para corregir la ficha técnica sin salir de la etiqueta. */
+  archivoInicial?: string;
+} = {}) {
+  // La pestaña vive en el store: la barra está en el cabezote (DocsNavTabs).
+  const tab = useAppStore((st) => st.docsTab);
+  const setTab = useAppStore((st) => st.setDocsTab);
   const [ftPreload, setFtPreload] = useState<Record<string, unknown> | null>(null);
   const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
   const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
   const [completoPreload, setCompletoPreload] = useState<Record<string, unknown> | null>(null);
+  const [completoKey, setCompletoKey] = useState(0);
 
   const handleEditar = (r: BibliotecaDatosResult) => {
     const hoy = (() => {
@@ -2615,42 +2902,55 @@ export default function FichasTecnicasPanel() {
       payload = stampFechaHoy(r.datos); // ft
     }
     setCompletoPreload(payload);
+    setCompletoKey((k) => k + 1);
     setTab("completo");
   };
 
+  // Documento que llega desde el taller: editor limpio (key nueva) con ese YAML.
+  const handleEditarRef = useRef(handleEditar);
+  handleEditarRef.current = handleEditar;
+  const abrirDesdeTaller = useCallback((datos: Record<string, unknown>) => {
+    handleEditarRef.current({ tipo: "completo", titulo: String(datos.titulo || ""), datos, yaml: "", tiene_datos: true });
+  }, []);
+
+  const slugInicial = (archivoInicial || "").replace(/\.ya?ml$/i, "");
+  const [errorInicial, setErrorInicial] = useState<string | null>(null);
+  const [cargandoInicial, setCargandoInicial] = useState(Boolean(slugInicial));
+  useEffect(() => {
+    if (!slugInicial) return;
+    let vivo = true;
+    setCargandoInicial(true);
+    api
+      .get<{ datos: Record<string, unknown> }>(`/api/fichas/datos/${encodeURIComponent(slugInicial)}`)
+      .then((r) => {
+        if (vivo) abrirDesdeTaller(r.datos);
+      })
+      .catch((e: unknown) => {
+        if (vivo) setErrorInicial(e instanceof Error ? e.message : "No se pudo abrir la ficha técnica");
+      })
+      .finally(() => {
+        if (vivo) setCargandoInicial(false);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [slugInicial, abrirDesdeTaller]);
+
   return (
     <div className="mx-auto max-w-4xl space-y-3 pb-4">
-      <div>
-        <h2 className="text-base font-semibold text-ink">Documentos técnicos</h2>
-      </div>
-
-      <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-surface-panel p-1" role="tablist" aria-label="Documentos técnicos">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            aria-label={t.label}
-            title={t.label}
-            onClick={() => setTab(t.id)}
-            className={hubTabClass(tab === t.id, "mck-hub-tab-etiquetado flex-col")}
-          >
-            <Icon name={t.icon} size={22} weight="bold" />
-            <span className={HUB_TAB_LABEL}>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
+      {cargandoInicial && <p className="p-4 text-sm text-muted">Abriendo la ficha técnica…</p>}
+      {errorInicial && <p className="p-4 text-sm text-red-600">{errorInicial}</p>}
+      <DocDelCombo onAbrir={abrirDesdeTaller} editando={tab === "completo"} onVolver={onVolver} />
       {tab === "ft" && <FichaTecnicaTabContent producto={null} preload={ftPreload} />}
       {tab === "coa" && <CoaTabContent producto={null} preload={coaPreload} />}
       {tab === "sds" && <SdsTabContent producto={null} preload={sdsPreload} />}
-      {tab === "completo" && <DocumentoCompletoTabContent producto={null} preload={completoPreload} />}
+      {tab === "completo" && <DocumentoCompletoTabContent key={completoKey} producto={null} preload={completoPreload} onVolver={onVolver} />}
       {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
       {tab === "revision" && (
         <DocumentosCatalogoTab
           onGenerar={(producto) => {
             setCompletoPreload({ titulo: producto.nombre, nombre_producto: producto.nombre });
+            setCompletoKey((k) => k + 1);
             setTab("completo");
           }}
         />

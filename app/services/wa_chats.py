@@ -2,6 +2,7 @@
 Historial de conversaciones WhatsApp para el panel de operaciones.
 Almacena mensajes entrantes (clientes) y salientes (bot o humano) en SQLite.
 """
+import json
 import sqlite3
 import time
 import os
@@ -362,6 +363,37 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
             actualizados += 1
         else:
             insertados += 1
+        # Espejo de grupos oficiales: un mensaje NUEVO y reciente de un miembro del equipo
+        # en un grupo cuenta como actividad suya (control de horas). Los de sync viejo no.
+        if not antes and "@g.us" in jid and not from_me:
+            try:
+                from app.services.pagos_clientes import registrar_actividad_wa
+
+                registrar_actividad_wa(enviado, tipo="wa_grupo", detalle=texto[:150], ts=ts_val)
+            except Exception:
+                pass
+        # Espejo transitorio: si el grupo está enlazado a un canal interno del panel,
+        # el mensaje también aparece allí (el equipo migra del WhatsApp al panel).
+        if not antes and "@g.us" in jid:
+            try:
+                from app.services.canales_internos import espejar_desde_wa
+
+                espejar_desde_wa(
+                    jid=jid, wa_id=wa_id, texto=texto, from_me=from_me, autor=enviado,
+                    ts=ts_val, media_path=str(raw.get("media_path") or ""),
+                    media_mime=str(raw.get("media_mime") or ""),
+                )
+            except Exception as e:
+                print(f"[wa_chats] espejo a canal interno: {e}")
+            # Redirigir sin bloquear: si lo que se escribió ya vive en el panel, el bot
+            # deja el enlace (apagado por defecto; app/data/redireccion_panel.json).
+            if not from_me and time.time() - ts_val < 600:
+                try:
+                    from app.services.redireccion_panel import procesar_mensaje_grupo
+
+                    procesar_mensaje_grupo(jid, texto)
+                except Exception as e:
+                    print(f"[wa_chats] redirección al panel: {e}")
     return {
         "insertados": insertados,
         "actualizados": actualizados,
@@ -386,6 +418,28 @@ def marcar_leido(jid: str) -> None:
             )
     except Exception as e:
         print(f"[wa_chats] error marcar_leido: {e}")
+
+
+_NOMBRES_GRUPOS: dict[str, str] | None = None
+
+
+def nombre_grupo(jid: str) -> str:
+    """Nombre del grupo oficial (inventario grupos_whatsapp_oficiales.json), o '' si no es grupo conocido."""
+    global _NOMBRES_GRUPOS
+    if "@g.us" not in str(jid or ""):
+        return ""
+    if _NOMBRES_GRUPOS is None:
+        m: dict[str, str] = {}
+        try:
+            with open(os.path.join(os.path.dirname(_DB), "grupos_whatsapp_oficiales.json"), encoding="utf-8") as fh:
+                inv = json.load(fh)
+            for g in (inv.get("grupos") or []) + [inv.get("pedidos_web_exclusivo") or {}]:
+                if g.get("jid"):
+                    m[g["jid"]] = str(g.get("nombre") or "")
+        except Exception:
+            pass
+        _NOMBRES_GRUPOS = m
+    return _NOMBRES_GRUPOS.get(str(jid), "")
 
 
 def listar_conversaciones(limit: int = 60) -> list[dict]:

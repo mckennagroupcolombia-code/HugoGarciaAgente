@@ -12,6 +12,7 @@ import hashlib
 import io
 import os
 import re
+import zipfile
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -193,8 +194,33 @@ def ensure_extracto_tables() -> None:
                 con.execute(
                     "ALTER TABLE extractos_bancarios ADD COLUMN nombre TEXT NOT NULL DEFAULT ''"
                 )
+            # Titular del extracto: NULL = la empresa (McKenna); un id de
+            # cc_terceros (tipo socio) = extracto PERSONAL de ese socio. Los
+            # extractos de socios nunca entran a la conciliación de la empresa
+            # (candidatos/sugerencias/pendientes filtran por titular) — son
+            # datos del socio para SU contabilidad y su declaración de renta,
+            # y solo se cruzan con la empresa vía declarador.cruces_socio_empresa.
+            if "tercero_id" not in cols:
+                con.execute(
+                    "ALTER TABLE extractos_bancarios ADD COLUMN tercero_id INTEGER"
+                )
+                con.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_extracto_tercero ON extractos_bancarios(tercero_id)"
+                )
         except Exception:
             pass
+
+
+def _filtro_titular(tercero_id: int | None, alias: str = "e") -> tuple[str, list[Any]]:
+    """Cláusula SQL para restringir por titular del extracto.
+
+    `tercero_id=None` → solo extractos de la empresa (`tercero_id IS NULL`);
+    un entero → solo los de ese socio. Se usa en toda consulta que agrega
+    líneas de varios extractos, para que el banco personal de un socio jamás
+    aparezca como candidato/pendiente de la contabilidad de McKenna."""
+    if tercero_id is None:
+        return f"{alias}.tercero_id IS NULL", []
+    return f"{alias}.tercero_id = ?", [int(tercero_id)]
 
 
 def _norm_header(h: str) -> str:
@@ -930,6 +956,87 @@ def _guardar_pdf_fallido(contenido: bytes, nombre: str, motivo: str) -> str:
         return ""
 
 
+def _es_movimientos_bancolombia(matrix: list[list]) -> bool:
+    """¿Es el CSV de «Movimientos» de la Sucursal Virtual de Bancolombia?
+
+    Sin encabezados y por posición, 10 columnas:
+    cuenta · sucursal · (vacía) · AAAAMMDD · (vacía) · valor con signo ·
+    código de transacción · descripción · 0 · (vacía).
+
+    Es otro archivo distinto del consolidado (`_es_consolidado_bancolombia`):
+    aquí la fecha va en la 4ª columna, no en la 1ª, y no trae líneas de SALDO
+    contra las cuales verificar. Se reconoce porque TODAS las filas del inicio
+    traen fecha de 8 dígitos en esa posición y un valor numérico en la 6ª.
+    """
+    if not matrix:
+        return False
+    vistas = 0
+    for fila in matrix[:20]:
+        if len(fila) < 9:
+            return False
+        # La 1ª columna es el número de cuenta («428-000009-74»): un CSV con
+        # encabezados trae ahí un rótulo y se descarta en la primera fila.
+        cuenta = str(fila[0]).strip()
+        if not cuenta or not any(c.isdigit() for c in cuenta):
+            return False
+        f = str(fila[3]).strip()
+        if len(f) != 8 or not f.isdigit():
+            return False
+        if not (1900 <= int(f[:4]) <= 2199 and 1 <= int(f[4:6]) <= 12 and 1 <= int(f[6:]) <= 31):
+            return False
+        try:
+            float(str(fila[5]).strip())
+        except ValueError:
+            return False
+        vistas += 1
+    # Basta una fila válida: los chequeos de arriba son específicos de este
+    # archivo, y un rango de un solo día también se baja y se carga.
+    return vistas >= 1
+
+
+def _parse_movimientos_bancolombia(matrix: list[list]) -> list[dict[str, Any]]:
+    """Movimientos del CSV de Sucursal Virtual.
+
+    El signo del valor es el que manda: negativo = salió plata (débito),
+    positivo = entró (crédito). El código de transacción (4065 llave, 8162 pago
+    a proveedor, 3339 GMF…) se guarda como referencia: es lo único estable que
+    trae el archivo para reconocer la clase de movimiento cuando la descripción
+    viene truncada a 30 caracteres.
+
+    A diferencia del consolidado, este archivo NO trae saldos, así que no hay
+    contra qué verificar lo leído; por eso se es estricto al reconocerlo.
+    """
+    movs: list[dict[str, Any]] = []
+    for n_fila, fila in enumerate(matrix, start=1):
+        if len(fila) < 9:
+            continue
+        f = str(fila[3]).strip()
+        if len(f) != 8 or not f.isdigit():
+            continue
+        fecha = f"{f[:4]}-{f[4:6]}-{f[6:]}"
+        try:
+            valor = float(str(fila[5]).strip())
+        except ValueError:
+            continue
+        monto = round(abs(valor), 2)
+        if monto < 0.01:
+            continue
+        desc = str(fila[7]).strip()[:220] or "(sin descripción)"
+        ref = str(fila[6]).strip()[:80]
+        tipo = "debito" if valor < 0 else "credito"
+        movs.append({
+            "fecha": fecha,
+            "descripcion": desc,
+            "referencia": ref,
+            "monto": monto,
+            "tipo": tipo,
+            "saldo": None,
+            "fila_origen": n_fila,
+            "hash_linea": _hash_linea(fecha, tipo, monto, desc, ref, n_fila),
+        })
+    return movs
+
+
 def _es_consolidado_bancolombia(matrix: list[list]) -> bool:
     """¿Es el CSV consolidado de Bancolombia, sin encabezados y por posición?
 
@@ -1015,8 +1122,36 @@ def _parse_consolidado_bancolombia(matrix: list[list]) -> list[dict[str, Any]]:
     return movs
 
 
+def _desempacar_zip(contenido: bytes, nombre: str) -> tuple[bytes, str]:
+    """Sucursal Negocios entrega los movimientos dentro de un .zip.
+
+    Pedirle a alguien que descomprima antes de arrastrar es un paso que se
+    olvida y que además deja dos copias del mismo archivo dando vueltas. Si el
+    zip trae un solo archivo de datos, se usa ese; si trae varios, se falla
+    diciendo cuáles, porque elegir uno a la suerte sería peor.
+    """
+    with zipfile.ZipFile(io.BytesIO(contenido)) as z:
+        candidatos = [
+            i for i in z.infolist()
+            if not i.is_dir()
+            and not i.filename.startswith("__MACOSX/")
+            and i.filename.lower().endswith((".csv", ".txt", ".tsv", ".xlsx", ".xlsm", ".pdf"))
+        ]
+        if not candidatos:
+            raise ValueError("El .zip no trae ningún CSV, Excel ni PDF de extracto")
+        if len(candidatos) > 1:
+            cuales = ", ".join(sorted(c.filename for c in candidatos))
+            raise ValueError(
+                f"El .zip trae {len(candidatos)} archivos ({cuales}). "
+                "Descomprímelo y sube el que corresponde."
+            )
+        return z.read(candidatos[0]), candidatos[0].filename
+
+
 def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
-    """Parsea CSV, XLSX o PDF a lista de movimientos normalizados."""
+    """Parsea CSV, XLSX, PDF o un .zip que contenga uno de esos."""
+    if contenido[:2] == b"PK" and (nombre or "").lower().endswith(".zip"):
+        contenido, nombre = _desempacar_zip(contenido, nombre)
     name = (nombre or "").lower()
     if name.endswith(".pdf") or (contenido[:4] == b"%PDF"):
         try:
@@ -1059,6 +1194,8 @@ def parse_extracto_bytes(contenido: bytes, nombre: str) -> list[dict[str, Any]]:
 
     if _es_consolidado_bancolombia(matrix):
         return _parse_consolidado_bancolombia(matrix)
+    if _es_movimientos_bancolombia(matrix):
+        return _parse_movimientos_bancolombia(matrix)
     return _rows_from_matrix(matrix)
 
 
@@ -1073,6 +1210,83 @@ def _guardar_archivo(contenido: bytes, nombre: str) -> str:
     return fname
 
 
+def _clave_conciliacion(fecha: str, tipo: str, monto: float, orden: int) -> tuple:
+    """Identidad de una línea del banco, estable entre descargas.
+
+    El banco no da un identificador propio de movimiento, y la descripción
+    cambia según de dónde se saque (el PDF trae «Pago A Proveedores», el CSV de
+    movimientos «PAGO A PROVE MARCOS FIDEL RO»). Lo único que siempre coincide
+    es fecha + dirección + monto; `orden` desempata los movimientos realmente
+    repetidos del mismo día (dos giros de $2.500.000 el 21-sep son dos pagos
+    distintos, y ambos deben quedar).
+    """
+    return (fecha, tipo, round(float(monto or 0), 2), orden)
+
+
+def _con_orden(lineas: list[dict[str, Any]]) -> list[tuple[tuple, dict[str, Any]]]:
+    """Empareja cada línea con su clave, numerando los repetidos del mismo día."""
+    vistas: dict[tuple, int] = {}
+    salida = []
+    for ln in lineas:
+        base = (ln["fecha"], ln["tipo"], round(float(ln["monto"] or 0), 2))
+        vistas[base] = vistas.get(base, 0) + 1
+        salida.append((_clave_conciliacion(*base, vistas[base]), ln))
+    return salida
+
+
+def _claves_ya_cargadas(
+    desde: str, hasta: str, tercero_id: int | None
+) -> dict[tuple, tuple]:
+    """Líneas del mismo titular ya guardadas en el rango: clave → (id, desc, ref)."""
+    w_tit, p_tit = _filtro_titular(tercero_id)
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT m.fecha, m.tipo, m.monto, m.id, m.descripcion, m.referencia
+                  FROM extracto_movimientos m
+                  JOIN extractos_bancarios e ON e.id = m.extracto_id
+                 WHERE {w_tit} AND m.fecha BETWEEN ? AND ?
+                 ORDER BY m.fecha, m.id""",
+            (*p_tit, desde, hasta),
+        ).fetchall()
+    previas = [
+        {"fecha": r[0], "tipo": r[1], "monto": r[2], "_id": r[3],
+         "_desc": r[4], "_ref": r[5]}
+        for r in rows
+    ]
+    return {
+        k: (p["_id"], p["_desc"], p["_ref"]) for k, p in _con_orden(previas)
+    }
+
+def _mejorar_descripcion(clave_a_id: dict, clave: tuple, ln: dict[str, Any]) -> bool:
+    """La misma línea, bajada de una fuente mejor, mejora la que ya estaba.
+
+    El PDF del banco entrega «Pago A Proveedores» a secas; el CSV de
+    movimientos, «PAGO A PROVE CYNTHIA ALEXAND». Es el mismo movimiento —por
+    eso se descartó como repetido— pero una descripción sirve para clasificar
+    y la otra no, así que la repetida no se tira: se usa para completar.
+    """
+    fila = clave_a_id.get(clave)
+    if not fila:
+        return False
+    mov_id, desc_vieja, ref_vieja = fila
+    desc_nueva = (ln.get("descripcion") or "").strip()
+    ref_nueva = (ln.get("referencia") or "").strip()
+    mejor_desc = len(desc_nueva) > len((desc_vieja or "").strip())
+    mejor_ref = bool(ref_nueva) and not (ref_vieja or "").strip()
+    if not (mejor_desc or mejor_ref):
+        return False
+    with _conn() as con:
+        con.execute(
+            "UPDATE extracto_movimientos SET descripcion = ?, referencia = ? WHERE id = ?",
+            (
+                desc_nueva if mejor_desc else desc_vieja,
+                ref_nueva if mejor_ref else ref_vieja,
+                mov_id,
+            ),
+        )
+    return True
+
+
 def importar_extracto(
     contenido: bytes,
     nombre_archivo: str,
@@ -1081,15 +1295,51 @@ def importar_extracto(
     cuenta: str = "",
     notas: str = "",
     nombre: str = "",
+    tercero_id: int | None = None,
+    fusionar: bool = True,
 ) -> dict[str, Any]:
+    """Guarda un extracto. Con `fusionar` (por defecto) descarta las líneas que
+    ya estaban cargadas para ese titular.
+
+    La conciliación no se hace una vez al mes: se baja el archivo de Sucursal
+    Negocios (Reportes y archivos → Saldos consolidados → Movimientos) desde el
+    1 del mes hasta hoy, varias veces al mes. Sin esto, cada descarga volvía a
+    insertar los días ya cargados y el banco aparecía con el doble de
+    movimientos, cada copia pidiendo su propio asiento.
+    """
     ensure_extracto_tables()
     lineas = parse_extracto_bytes(contenido, nombre_archivo)
     if not lineas:
         raise ValueError("El archivo no tiene movimientos reconocibles")
 
-    archivo_path = _guardar_archivo(contenido, nombre_archivo)
     fechas = sorted(l["fecha"] for l in lineas)
     periodo_desde, periodo_hasta = fechas[0], fechas[-1]
+    leidas = len(lineas)
+    repetidas = 0
+    mejoradas = 0
+    if fusionar:
+        ya = _claves_ya_cargadas(periodo_desde, periodo_hasta, tercero_id)
+        nuevas = []
+        for clave, ln in _con_orden(lineas):
+            if clave in ya:
+                repetidas += 1
+                if _mejorar_descripcion(ya, clave, ln):
+                    mejoradas += 1
+            else:
+                nuevas.append(ln)
+        lineas = nuevas
+        if not lineas:
+            extra = (
+                f" Se mejoró la descripción de {mejoradas}."
+                if mejoradas
+                else ""
+            )
+            raise ValueError(
+                f"Nada nuevo que cargar: las {leidas} líneas de este archivo "
+                f"({periodo_desde} → {periodo_hasta}) ya están en el libro." + extra
+            )
+
+    archivo_path = _guardar_archivo(contenido, nombre_archivo)
     nombre_l = (nombre or "").strip()[:120]
     if not nombre_l:
         bits = [
@@ -1102,8 +1352,8 @@ def importar_extracto(
         cur = con.execute(
             """INSERT INTO extractos_bancarios
                  (banco, cuenta, periodo_desde, periodo_hasta,
-                  archivo_nombre, archivo_path, notas, lineas_count, nombre)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                  archivo_nombre, archivo_path, notas, lineas_count, nombre, tercero_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 (banco or "").strip()[:80],
                 (cuenta or "").strip()[:40],
@@ -1114,6 +1364,7 @@ def importar_extracto(
                 (notas or "").strip()[:400],
                 len(lineas),
                 nombre_l,
+                int(tercero_id) if tercero_id else None,
             ),
         )
         extracto_id = int(cur.lastrowid)
@@ -1146,13 +1397,32 @@ def importar_extracto(
             (insertadas, extracto_id),
         )
 
-    return obtener_extracto(extracto_id) or {
+    base = obtener_extracto(extracto_id) or {
         "id": extracto_id,
         "nombre": nombre_l,
         "lineas_count": insertadas,
         "periodo_desde": periodo_desde,
         "periodo_hasta": periodo_hasta,
     }
+    # Para que la pantalla pueda decir «12 nuevas, 98 ya estaban» en vez de
+    # dejar creer que se cargó el archivo entero otra vez.
+    base["lineas_leidas"] = leidas
+    base["lineas_repetidas"] = repetidas
+    base["lineas_mejoradas"] = mejoradas
+    # El 4x1000 y los intereses de ahorros se causan solos (25-sep-2026): destino
+    # sin duda, decenas de líneas de centavos. Solo en el extracto de la EMPRESA:
+    # el banco personal de un socio nunca entra al libro de McKenna.
+    # `EXTRACTO_CAUSAR_AUTOMATICO=0` lo apaga sin tocar código.
+    if tercero_id is None and insertadas and os.getenv("EXTRACTO_CAUSAR_AUTOMATICO", "1").strip() != "0":
+        try:
+            from app.services.extracto_clasificador import causar_automaticos
+
+            if periodo_desde and periodo_hasta:
+                r = causar_automaticos(periodo_desde, periodo_hasta)
+                base["causados_automaticos"] = {"n": r["aplicadas"], "monto": r["monto"], "errores": r["errores"]}
+        except Exception as e:  # causar no puede tumbar el cargue del extracto
+            base["causados_automaticos"] = {"error": str(e)}
+    return base
 
 
 def renombrar_extracto(extracto_id: int, nombre: str) -> dict[str, Any] | None:
@@ -1171,20 +1441,27 @@ def renombrar_extracto(extracto_id: int, nombre: str) -> dict[str, Any] | None:
     return obtener_extracto(int(extracto_id))
 
 
-def listar_extractos(limit: int = 50) -> list[dict[str, Any]]:
+def listar_extractos(
+    limit: int = 50, *, tercero_id: int | None = None, todos: bool = False
+) -> list[dict[str, Any]]:
+    """Extractos cargados. Por defecto SOLO los de la empresa; con
+    `tercero_id` los personales de ese socio; `todos=True` sin filtro (uso
+    administrativo/diagnóstico)."""
     ensure_extracto_tables()
+    where, params = ("1=1", []) if todos else _filtro_titular(tercero_id)
     with _conn() as con:
         rows = con.execute(
-            """SELECT e.*,
+            f"""SELECT e.*,
                       (SELECT COUNT(*) FROM extracto_movimientos m
                          WHERE m.extracto_id = e.id) AS movs,
                       (SELECT COUNT(*) FROM extracto_vinculos v
                          JOIN extracto_movimientos m ON m.id = v.extracto_mov_id
                         WHERE m.extracto_id = e.id) AS vinculados
                FROM extractos_bancarios e
+               WHERE {where}
                ORDER BY e.id DESC
                LIMIT ?""",
-            (max(1, min(int(limit), 200)),),
+            (*params, max(1, min(int(limit), 500))),
         ).fetchall()
     out = []
     for r in rows:
@@ -1204,6 +1481,7 @@ def listar_extractos(limit: int = 50) -> list[dict[str, Any]]:
                 "notas": d.get("notas") or "",
                 "lineas_count": int(d.get("movs") or d.get("lineas_count") or 0),
                 "vinculados": int(d.get("vinculados") or 0),
+                "tercero_id": d.get("tercero_id"),
             }
         )
     return out
@@ -1214,6 +1492,7 @@ def consultar_por_concepto(
     *,
     extracto_id: int | None = None,
     limit: int = 500,
+    tercero_id: int | None = None,
 ) -> dict[str, Any]:
     """
     Busca líneas de extracto cuyo concepto/descripción/referencia contenga el texto.
@@ -1239,6 +1518,10 @@ def consultar_por_concepto(
     if extracto_id is not None and int(extracto_id) > 0:
         sql += " AND m.extracto_id = ?"
         params.append(int(extracto_id))
+    else:
+        w, p = _filtro_titular(tercero_id)
+        sql += f" AND {w}"
+        params.extend(p)
     sql += " ORDER BY m.fecha DESC, m.id DESC LIMIT ?"
     params.append(lim)
 
@@ -1337,12 +1620,17 @@ def obtener_extracto(extracto_id: int, *, solo_sin_vincular: bool = False) -> di
         "notas": e.get("notas") or "",
         "lineas_count": len(movimientos),
         "vinculados": vinculados,
+        "tercero_id": e.get("tercero_id"),
         "movimientos": movimientos,
     }
 
 
 def pendientes_por_clasificar(
-    desde: str | None = None, hasta: str | None = None, *, limit: int = 200
+    desde: str | None = None,
+    hasta: str | None = None,
+    *,
+    limit: int = 200,
+    tercero_id: int | None = None,
 ) -> list[dict[str, Any]]:
     """Líneas de banco (de cualquier extracto cargado) sin ningún vínculo, en un
     rango de fechas — la bandeja "Pendientes por clasificar" de Ingresos/Egresos.
@@ -1351,8 +1639,9 @@ def pendientes_por_clasificar(
     extracto), esto cruza todos los extractos del rango — es la vista que
     responde "¿estamos contabilizando todos los movimientos del banco?"."""
     ensure_extracto_tables()
-    where = ["v.id IS NULL"]
-    params: list[Any] = []
+    w_tit, p_tit = _filtro_titular(tercero_id)
+    where = ["v.id IS NULL", w_tit]
+    params: list[Any] = list(p_tit)
     if desde:
         where.append("m.fecha >= ?")
         params.append(desde)
@@ -1456,6 +1745,7 @@ def saldo_bancario_mas_reciente() -> dict[str, Any] | None:
     with _conn() as con:
         extracto = con.execute(
             """SELECT * FROM extractos_bancarios
+               WHERE tercero_id IS NULL
                ORDER BY periodo_hasta DESC, created_at DESC, id DESC
                LIMIT 1"""
         ).fetchone()
@@ -1510,6 +1800,15 @@ def vincular(extracto_mov_id: int, movimiento_id: str, notas: str = "") -> dict[
         row = con.execute(
             "SELECT * FROM extracto_vinculos WHERE id = ?", (vid,)
         ).fetchone()
+    # Un pago de impuestos vinculado por cualquier camino (botón del Taller, lote,
+    # vínculo a mano) lleva adjunto el recibo del contador, si su asiento lo cita.
+    if mid.startswith("cc:"):
+        try:
+            from app.services.pagos_impuestos import adjuntar_soporte_recibo
+
+            adjuntar_soporte_recibo(int(mid[3:]))
+        except Exception:
+            pass   # el soporte es un plus: su falta no deshace el vínculo
     return dict(row) if row else {"id": vid, "extracto_mov_id": extracto_mov_id, "movimiento_id": mid}
 
 
@@ -1605,8 +1904,13 @@ def candidatos_para_movimiento(
     ventana_dias: int = 7,
     tolerancia: float = 1.0,
     limit: int = 30,
+    tercero_id: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Sugiere líneas de extracto sin vincular cerca en fecha/monto/tipo."""
+    """Sugiere líneas de extracto sin vincular cerca en fecha/monto/tipo.
+
+    Solo mira extractos del titular indicado (por defecto la empresa): una
+    línea del banco personal de un socio nunca es candidata para un asiento
+    de McKenna."""
     ensure_extracto_tables()
     f = (fecha or "")[:10]
     if not f:
@@ -1620,19 +1924,22 @@ def candidatos_para_movimiento(
     # ingreso libro ↔ crédito banco; egreso ↔ débito
     tipo_banco = "credito" if tipo_libro == "ingreso" else "debito"
     monto = abs(float(monto or 0))
+    w_tit, p_tit = _filtro_titular(tercero_id)
     with _conn() as con:
         rows = con.execute(
-            """SELECT m.*, e.banco, e.cuenta, e.archivo_nombre, e.id AS extracto_id
+            f"""SELECT m.*, e.banco, e.cuenta, e.archivo_nombre, e.id AS extracto_id
                FROM extracto_movimientos m
                JOIN extractos_bancarios e ON e.id = m.extracto_id
                LEFT JOIN extracto_vinculos v ON v.extracto_mov_id = m.id
                WHERE v.id IS NULL
+                 AND {w_tit}
                  AND m.fecha BETWEEN ? AND ?
                  AND m.tipo = ?
                  AND ABS(m.monto - ?) <= ?
                ORDER BY ABS(julianday(m.fecha) - julianday(?)), ABS(m.monto - ?)
                LIMIT ?""",
             (
+                *p_tit,
                 desde,
                 hasta,
                 tipo_banco,
@@ -1714,3 +2021,114 @@ def sugerencias_auto(
             }
         )
     return sugerencias
+
+
+# ── Titulares distintos de la empresa (socios) ──────────────────────────────
+
+
+def cobertura_mensual(tercero_id: int | None) -> dict[str, Any]:
+    """Qué meses cubren los extractos de un titular, por cuenta bancaria.
+
+    Devuelve ``{"cuentas": [{"banco", "cuenta", "meses": ["2025-01", ...],
+    "desde", "hasta", "extractos": n, "lineas": n}], "anios": {2025: {"meses_con": 12,
+    "faltan": []}}}``. Es la base del paso «Extractos» del wizard de socios:
+    muestra los huecos (meses sin extracto) en vez de dejar que el usuario
+    los descubra al declarar. Un mes cuenta como cubierto si al menos una
+    línea de esa cuenta cae en él."""
+    ensure_extracto_tables()
+    w, p = _filtro_titular(tercero_id)
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT e.banco, e.cuenta, substr(m.fecha, 1, 7) AS mes,
+                       COUNT(*) AS n, COUNT(DISTINCT e.id) AS n_ext
+                FROM extracto_movimientos m
+                JOIN extractos_bancarios e ON e.id = m.extracto_id
+                WHERE {w}
+                GROUP BY e.banco, e.cuenta, mes
+                ORDER BY e.banco, e.cuenta, mes""",
+            p,
+        ).fetchall()
+    cuentas: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in rows:
+        d = dict(r)
+        key = ((d.get("banco") or "").strip(), (d.get("cuenta") or "").strip())
+        c = cuentas.setdefault(
+            key,
+            {"banco": key[0], "cuenta": key[1], "meses": [], "lineas": 0, "extractos": 0},
+        )
+        if d["mes"]:
+            c["meses"].append(d["mes"])
+        c["lineas"] += int(d["n"] or 0)
+        c["extractos"] = max(c["extractos"], int(d["n_ext"] or 0))
+    out_cuentas = []
+    anios: dict[int, set[str]] = {}
+    for c in cuentas.values():
+        meses = sorted(set(c["meses"]))
+        c["meses"] = meses
+        c["desde"] = meses[0] if meses else ""
+        c["hasta"] = meses[-1] if meses else ""
+        for m in meses:
+            try:
+                anios.setdefault(int(m[:4]), set()).add(m)
+            except ValueError:
+                continue
+        out_cuentas.append(c)
+    resumen_anios: dict[str, Any] = {}
+    for anio, meses in sorted(anios.items()):
+        todos = {f"{anio}-{i:02d}" for i in range(1, 13)}
+        faltan = sorted(todos - meses)
+        resumen_anios[str(anio)] = {"meses_con": len(meses), "faltan": faltan}
+    return {"cuentas": out_cuentas, "anios": resumen_anios}
+
+
+def lineas_por_titular(
+    tercero_id: int | None,
+    *,
+    desde: str | None = None,
+    hasta: str | None = None,
+    tipo: str | None = None,
+    limit: int = 5000,
+) -> list[dict[str, Any]]:
+    """Todas las líneas de extracto de un titular en un rango (sin importar
+    de qué extracto vienen). Lo usa `declarador.cruces_socio_empresa` para
+    cruzar el banco personal del socio contra los asientos de McKenna."""
+    ensure_extracto_tables()
+    w, p = _filtro_titular(tercero_id)
+    where = [w]
+    params: list[Any] = list(p)
+    if desde:
+        where.append("m.fecha >= ?")
+        params.append(desde)
+    if hasta:
+        where.append("m.fecha <= ?")
+        params.append(hasta)
+    if tipo in ("debito", "credito"):
+        where.append("m.tipo = ?")
+        params.append(tipo)
+    params.append(max(1, min(int(limit), 20000)))
+    with _conn() as con:
+        rows = con.execute(
+            f"""SELECT m.id, m.extracto_id, m.fecha, m.descripcion, m.referencia,
+                       m.monto, m.tipo, m.saldo, e.banco, e.cuenta
+                FROM extracto_movimientos m
+                JOIN extractos_bancarios e ON e.id = m.extracto_id
+                WHERE {" AND ".join(where)}
+                ORDER BY m.fecha, m.id
+                LIMIT ?""",
+            params,
+        ).fetchall()
+    return [
+        {
+            "id": r["id"],
+            "extracto_id": r["extracto_id"],
+            "fecha": r["fecha"],
+            "descripcion": r["descripcion"] or "",
+            "referencia": r["referencia"] or "",
+            "monto": float(r["monto"] or 0),
+            "tipo": r["tipo"],
+            "saldo": r["saldo"],
+            "banco": r["banco"] or "",
+            "cuenta": r["cuenta"] or "",
+        }
+        for r in rows
+    ]

@@ -14,7 +14,7 @@
     },
     {
       "id": "dd339426d1f7",
-      "sku": "C-ALMNAL500g",
+      "sku": "C-ALMNAT500g",
       "nombre_producto": "ALMENDRA NATURAL 500g",
       "numero_producto": 2,
       "presentacion": "500",
@@ -50,13 +50,14 @@
     {
       "id": "d3d649dedced",
       "sku": "C-COCDESHIL500g",
-      "nombre_producto": "COCOS DESHIDRATADO HILOS  500g",
+      "nombre_producto": "COCO DESHIDRATADO HILOS 500g",
       "numero_producto": 5,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700055002631",
-      "creado_at": "2026-07-09T02:36:50"
+      "creado_at": "2026-07-09T02:36:50",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "5c73ab9d69dc",
@@ -67,7 +68,8 @@
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700062502636",
-      "creado_at": "2026-07-09T02:38:10"
+      "creado_at": "2026-07-09T02:38:10",
+      "actualizado_at": "2026-09-23T15:22:55"
     },
     {
       "id": "05f53adaa120",
@@ -84,13 +86,14 @@
     {
       "id": "b2441d20b3e5",
       "sku": "C-CERABENAT500g",
-      "nombre_producto": "CERA DE ABEJAS NATRURAL 500g",
+      "nombre_producto": "CERA DE ABEJAS NATURAL 500g",
       "numero_producto": 8,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700085002632",
-      "creado_at": "2026-07-15T12:17:52"
+      "creado_at": "2026-07-15T12:17:52",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "d093bd665464",
@@ -106,7 +109,7 @@
     },
     {
       "id": "952449248827",
-      "sku": "C- PISTOS250g",
+      "sku": "C-PISTOS250g",
       "nombre_producto": "PISTACHOS TOSTADOS  250g",
       "numero_producto": 10,
       "presentacion": "250",
@@ -240,7 +243,7 @@
     },
     {
       "id": "fdd9649d3c67",
-      "sku": "C-BTMS125g",
+      "sku": "C-BTMS50125g",
       "nombre_producto": "BTMS 50 125g",
       "numero_producto": 22,
       "presentacion": "125",
@@ -263,14 +266,15 @@
     },
     {
       "id": "59dfa4ca9348",
-      "sku": "C-ACIASAL30mL",
-      "nombre_producto": "ACIDO SALICILICO 30mL",
+      "sku": "C-ACDSAL20P30mL",
+      "nombre_producto": "ACIDO SALICILICO 20% 30mL",
       "numero_producto": 24,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700240302638",
-      "creado_at": "2026-07-13T13:12:57"
+      "creado_at": "2026-07-13T13:12:57",
+      "actualizado_at": "2026-09-24T12:44:07"
     },
     {
       "id": "ec1b2114a46c",
@@ -296,14 +300,15 @@
     },
     {
       "id": "10f1f8094451",
-      "sku": "C-ACIGLI30mL",
-      "nombre_producto": "ACIDO GLICOLICO 30mL",
+      "sku": "C-ACIGLI50P30mL",
+      "nombre_producto": "ACIDO GLICOLICO 50% 30mL",
       "numero_producto": 27,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700270302639",
-      "creado_at": "2026-07-13T13:14:32"
+      "creado_at": "2026-07-13T13:14:32",
+      "actualizado_at": "2026-09-24T12:44:07"
     },
     {
       "id": "7cf3ec833c88",
@@ -318,36 +323,27 @@
     },
     {
       "id": "2511c8ce0c06",
-      "sku": "C-ACIHIAALTPES30mL",
-      "nombre_producto": "ACIDO HIALURONICO ALTO PESO 30mL",
+      "sku": "C-ACIHIAALTPES85P30mL",
+      "nombre_producto": "ACIDO HIALURONICO ALTO PESO MOLECULAR 30mL",
       "numero_producto": 29,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700290302633",
-      "creado_at": "2026-07-13T13:15:46"
+      "creado_at": "2026-07-13T13:15:46",
+      "actualizado_at": "2026-09-24T12:44:07"
     },
     {
       "id": "15cdcbd52e3f",
       "sku": "C-FRALIP120mL",
-      "nombre_producto": "FREGANCIA LIPOSOLUBLE 120mL",
+      "nombre_producto": "FRAGANCIA LIPOSOLUBLE 120mL",
       "numero_producto": 30,
       "presentacion": "120",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700301202631",
-      "creado_at": "2026-07-13T22:54:32"
-    },
-    {
-      "id": "dcf92499f799",
-      "sku": "C-MANKAR125g",
-      "nombre_producto": "MANTECA KARITE 125g",
-      "numero_producto": 31,
-      "presentacion": "125",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700311252633",
-      "creado_at": "2026-07-14T00:14:19"
+      "creado_at": "2026-07-13T22:54:32",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "65e9f08fcd45",
@@ -359,28 +355,6 @@
       "bimestre": 3,
       "codigo": "7700324002638",
       "creado_at": "2026-07-14T00:14:52"
-    },
-    {
-      "id": "64c1237e3882",
-      "sku": "C-ACEARBTE30mL",
-      "nombre_producto": "ACEITE DE ARBOL DE TE 30mL",
-      "numero_producto": 33,
-      "presentacion": "030",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700330302630",
-      "creado_at": "2026-07-14T15:12:03"
-    },
-    {
-      "id": "993c188aa194",
-      "sku": "C-ACEARG50mL",
-      "nombre_producto": "ACEITE DE ARGÁN 50mL",
-      "numero_producto": 34,
-      "presentacion": "050",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700340502631",
-      "creado_at": "2026-07-14T15:13:16"
     },
     {
       "id": "526f60c94a95",
@@ -477,15 +451,15 @@
     },
     {
       "id": "030b42e5bfde",
-      "sku": "C-ALGSOLACCAL50g",
-      "nombre_producto": "ALGINATO DE SODIO + LACTATO DE CALCIO 50g C/U",
+      "sku": "C-ALGSODLACCAL50g",
+      "nombre_producto": "ALGINATO SODIO LACTATO CALCIO 50g",
       "numero_producto": 43,
       "presentacion": "050",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700430502633",
       "creado_at": "2026-07-23T10:16:41",
-      "actualizado_at": "2026-07-23T11:14:41"
+      "actualizado_at": "2026-09-24T12:44:56"
     },
     {
       "id": "b4f25e94c5bc",
@@ -533,14 +507,15 @@
     },
     {
       "id": "04e7eef86a46",
-      "sku": "C-ACEESECORCED5mL",
+      "sku": "C-ACEESECORTCED5mL",
       "nombre_producto": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
       "numero_producto": 48,
       "presentacion": "005",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700480052638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-21T17:44:47"
     },
     {
       "id": "32255c17865a",
@@ -599,7 +574,7 @@
     },
     {
       "id": "40dfd371aed1",
-      "sku": "C-ACEESEMANZ5mL",
+      "sku": "C-ACEESEMAN5mL",
       "nombre_producto": "ACEITE ESENCIAL MANZANILLA 5mL",
       "numero_producto": 54,
       "presentacion": "005",
@@ -666,14 +641,15 @@
     },
     {
       "id": "390aa6f450d5",
-      "sku": "C-ACEESNMEN5mL",
-      "nombre_producto": "ACEITE ESENCIAL MENTA 5mL",
+      "sku": "C-ACEESEMEN5mL",
+      "nombre_producto": "ACEITE ESENCIAL MENTA 5 mL",
       "numero_producto": 60,
       "presentacion": "005",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7700600052630",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-21T15:41:23"
     },
     {
       "id": "a4f11d1e6b42",
@@ -711,7 +687,7 @@
     },
     {
       "id": "3c1286d784e9",
-      "sku": "C-ACEITEATRE5mL",
+      "sku": "C-ACETEATRE5mL",
       "nombre_producto": "ACEITE ARBOL DE TE 5 mL",
       "numero_producto": 64,
       "presentacion": "005",
@@ -1074,17 +1050,6 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
-      "id": "abee269f79c3",
-      "sku": "C-BENSOD500",
-      "nombre_producto": "BENZOATO SODIO 500g",
-      "numero_producto": 97,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700975002636",
-      "creado_at": "2026-07-14T15:35:25"
-    },
-    {
       "id": "852913224b22",
       "sku": "C-BENSOD500g",
       "nombre_producto": "BENZOATO DE SODIO 500g",
@@ -1132,17 +1097,18 @@
     {
       "id": "06d88e39f99c",
       "sku": "C-CELMIC101500g",
-      "nombre_producto": "CELULOSA MICROCRISTALINA  101 500g",
+      "nombre_producto": "CELULOSA MICROCRISTALINA 101 500g",
       "numero_producto": 102,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701025002637",
-      "creado_at": "2026-07-30T12:00:34"
+      "creado_at": "2026-07-30T12:00:34",
+      "actualizado_at": "2026-09-20T02:19:14"
     },
     {
       "id": "7369519d1dea",
-      "sku": "C-CAF100",
+      "sku": "C-CAF100g",
       "nombre_producto": "CAFEINA 100g",
       "numero_producto": 103,
       "presentacion": "100",
@@ -1175,14 +1141,15 @@
     },
     {
       "id": "17ac0132c3ac",
-      "sku": "C-SCI 250g",
-      "nombre_producto": "SCI 250g",
+      "sku": "C-TENSCI250g",
+      "nombre_producto": "TENSOACTIVO SCI 250g",
       "numero_producto": 106,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701062502633",
-      "creado_at": "2026-08-17T23:11:55"
+      "creado_at": "2026-08-17T23:11:55",
+      "actualizado_at": "2026-09-24T12:44:56"
     },
     {
       "id": "580530407414",
@@ -1231,14 +1198,15 @@
     },
     {
       "id": "baae1985003e",
-      "sku": "C-SCI 500g",
-      "nombre_producto": "SCI 500g",
+      "sku": "C-TENSCI500g",
+      "nombre_producto": "TENSOACTIVO SCI 500g",
       "numero_producto": 111,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701115002639",
-      "creado_at": "2026-08-17T23:12:25"
+      "creado_at": "2026-08-17T23:12:25",
+      "actualizado_at": "2026-09-24T12:44:56"
     },
     {
       "id": "358bdba52d25",
@@ -1274,17 +1242,6 @@
       "bimestre": 3,
       "codigo": "7701140012634",
       "creado_at": "2026-08-21T15:52:32"
-    },
-    {
-      "id": "e5924af045f1",
-      "sku": "C-CERABEREFBLA500",
-      "nombre_producto": "CERA ABEJAS REFINADA BLANCA 500g",
-      "numero_producto": 115,
-      "presentacion": "500",
-      "anio": 26,
-      "bimestre": 3,
-      "codigo": "7701155002637",
-      "creado_at": "2026-07-14T15:35:25"
     },
     {
       "id": "494b716e5ec5",
@@ -1433,13 +1390,14 @@
     {
       "id": "bbf5338e9e8e",
       "sku": "C-CITPOTKg",
-      "nombre_producto": "CITRATO POTASO Kg",
+      "nombre_producto": "CITRATO POTASIO Kg",
       "numero_producto": 129,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701290012638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T19:00:57"
     },
     {
       "id": "7a52d29321b0",
@@ -1510,13 +1468,14 @@
     {
       "id": "f3a3627d8585",
       "sku": "C-COLHID30mL",
-      "nombre_producto": "COLAGENO HIDROLIZADO 30mL",
+      "nombre_producto": "COLAGENO HIDROLIZADO COSMETICO 30mL",
       "numero_producto": 136,
       "presentacion": "030",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7701360302638",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T20:23:35"
     },
     {
       "id": "88fe85b83291",
@@ -1642,15 +1601,15 @@
     },
     {
       "id": "f79b9f21d472",
-      "sku": "C-DATSINHUE250g",
-      "nombre_producto": "DATILES SIN HUESO 250g",
+      "sku": "C-DATSAY250g",
+      "nombre_producto": "DATILES SAYED SIN HUESO 250g",
       "numero_producto": 148,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701482502640",
       "creado_at": "2026-09-06T15:16:52",
-      "actualizado_at": "2026-09-12T13:21:55"
+      "actualizado_at": "2026-09-20T00:34:45"
     },
     {
       "id": "aaedcd4b9987",
@@ -1677,15 +1636,15 @@
     },
     {
       "id": "1435ea1ea37d",
-      "sku": "C-DATSINHUE500g",
-      "nombre_producto": "DATILES SIN HUESO 500g",
+      "sku": "C-DATSAY500g",
+      "nombre_producto": "DATILES SAYED SIN HUESO 500g",
       "numero_producto": 151,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701515002642",
       "creado_at": "2026-09-06T15:16:52",
-      "actualizado_at": "2026-09-12T13:22:26"
+      "actualizado_at": "2026-09-20T00:34:45"
     },
     {
       "id": "e654a129b102",
@@ -1811,13 +1770,14 @@
     {
       "id": "cb477ca71f1a",
       "sku": "C-SALROSHIMGRU250g",
-      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 250g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM 250g",
       "numero_producto": 163,
       "presentacion": "250",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701632502643",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-18T13:24:03"
     },
     {
       "id": "0f8ad80f0096",
@@ -1910,13 +1870,14 @@
     {
       "id": "b39b6025a7e3",
       "sku": "C-SALROSHIMGRU500g",
-      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 500g",
+      "nombre_producto": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM 500g",
       "numero_producto": 172,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 4,
       "codigo": "7701725002647",
-      "creado_at": "2026-09-06T15:16:52"
+      "creado_at": "2026-09-06T15:16:52",
+      "actualizado_at": "2026-09-18T13:24:19"
     },
     {
       "id": "7146f592618a",
@@ -2030,7 +1991,7 @@
     },
     {
       "id": "99ac7b1c7050",
-      "sku": "C-LANOLINA40g",
+      "sku": "C-LAN40g",
       "nombre_producto": "LANOLINA 40g",
       "numero_producto": 183,
       "presentacion": "040",
@@ -2340,13 +2301,14 @@
     {
       "id": "14c64348cb65",
       "sku": "C-SOR500mL",
-      "nombre_producto": "SORBITOL 500mL",
+      "nombre_producto": "SORBITOL LIQUIDO 500mL",
       "numero_producto": 211,
       "presentacion": "500",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702115002636",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T20:23:35"
     },
     {
       "id": "23601aeaa900",
@@ -2369,6 +2331,17 @@
       "bimestre": 3,
       "codigo": "7702131002634",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "68e6b27738ee",
+      "sku": "C-GLI250g",
+      "nombre_producto": "GLICINA 250g",
+      "numero_producto": 214,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702142502642",
+      "creado_at": "2026-09-14T23:42:41"
     },
     {
       "id": "0eebd13e7fe5",
@@ -2472,13 +2445,14 @@
     {
       "id": "6138ffe3fc29",
       "sku": "C-TENSCIKg",
-      "nombre_producto": "TENSO ACTIVO SCI Kg",
+      "nombre_producto": "SCI Kg",
       "numero_producto": 224,
       "presentacion": "001",
       "anio": 26,
       "bimestre": 3,
       "codigo": "7702240012630",
-      "creado_at": "2026-07-14T15:35:25"
+      "creado_at": "2026-07-14T15:35:25",
+      "actualizado_at": "2026-09-19T19:41:35"
     },
     {
       "id": "b49fe916b1e5",
@@ -2547,6 +2521,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "8c40ef561591",
+      "sku": "C-GLI500g",
+      "nombre_producto": "GLICINA 500g",
+      "numero_producto": 231,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702315002641",
+      "creado_at": "2026-09-14T23:43:09"
+    },
+    {
       "id": "3f31600bab2b",
       "sku": "C-VITE30mL",
       "nombre_producto": "VITAMINA E 30mL",
@@ -2556,6 +2541,493 @@
       "bimestre": 3,
       "codigo": "7702320302637",
       "creado_at": "2026-07-14T15:35:25"
+    },
+    {
+      "id": "5719974186f5",
+      "sku": "C-MANTOSPAR250g",
+      "nombre_producto": "MANI TOSTADO PARTIDO 250g",
+      "numero_producto": 233,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702332502643",
+      "creado_at": "2026-09-16T23:41:01",
+      "actualizado_at": "2026-09-17T00:00:49"
+    },
+    {
+      "id": "0b8aca630e0e",
+      "sku": "C-MANTOSPAR500g",
+      "nombre_producto": "MANI TOSTADO PARTIDO  500g",
+      "numero_producto": 235,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702355002649",
+      "creado_at": "2026-09-17T00:01:25"
+    },
+    {
+      "id": "9cccdcd36471",
+      "sku": "C-ACEESELAV5mL",
+      "nombre_producto": "ACEITE  ESENCIAL LAVANDA 5mL",
+      "numero_producto": 236,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702360052646",
+      "creado_at": "2026-09-17T15:17:26"
+    },
+    {
+      "id": "3dbeccd364b0",
+      "sku": "C-COCDESHILKg",
+      "nombre_producto": "COCO DESHIDRATADO 1000g",
+      "numero_producto": 237,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702370012647",
+      "creado_at": "2026-09-18T00:56:52"
+    },
+    {
+      "id": "0dd51e725b62",
+      "sku": "C-ACEESEBER5mL",
+      "nombre_producto": "ACEITE ESENCIAL BERGAMOTA 5mL",
+      "numero_producto": 238,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702380052640",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0bcc1f833ae7",
+      "sku": "C-ACEESECAN5mL",
+      "nombre_producto": "ACEITE ESENCIAL CANELA 5mL",
+      "numero_producto": 239,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702390052647",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "393e27e44b03",
+      "sku": "C-ACEESECLA5mL",
+      "nombre_producto": "ACEITE ESENCIAL CLAVO 5mL",
+      "numero_producto": 240,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702400052643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "4cba159bfa28",
+      "sku": "C-ACEESEYLAYLA5mL",
+      "nombre_producto": "ACEITE ESENCIAL YLANG YLANG 5mL",
+      "numero_producto": 241,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702410052640",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "ebdad417c4c1",
+      "sku": "C-ACISAL50g",
+      "nombre_producto": "ACIDO SALICILICO 50g",
+      "numero_producto": 242,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702420502647",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "af901362769b",
+      "sku": "C-AGUROS250mL",
+      "nombre_producto": "AGUA DE ROSAS 250mL",
+      "numero_producto": 243,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702432502642",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "5ca56b56ace9",
+      "sku": "C-ALBHUE500g",
+      "nombre_producto": "ALBUMINA DE HUEVO 500g",
+      "numero_producto": 244,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702445002641",
+      "creado_at": "2026-09-19T23:29:41",
+      "actualizado_at": "2026-09-20T00:42:15"
+    },
+    {
+      "id": "80b80d98f3df",
+      "sku": "C-CARACTPEL800g",
+      "nombre_producto": "CARBON ACTIVADO 800g",
+      "numero_producto": 245,
+      "presentacion": "800",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702458002645",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "d5b4e58cb4f2",
+      "sku": "C-CARMAG500g",
+      "nombre_producto": "CARBONATO DE MAGNESIO 500g",
+      "numero_producto": 246,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702465002645",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0bdef23684cf",
+      "sku": "C-CERLAN500g",
+      "nombre_producto": "CERA LANETTE 500g",
+      "numero_producto": 247,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702475002642",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "fa8dfb2d894c",
+      "sku": "C-CREMON1000g",
+      "nombre_producto": "CREATINA MONOHIDRATO 1000g",
+      "numero_producto": 248,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702480012643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "0edc621cbda8",
+      "sku": "C-GELSILCRI250g",
+      "nombre_producto": "GEL SILICA 250g",
+      "numero_producto": 249,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702492502644",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "7dbd580ea45c",
+      "sku": "C-LPRO100g",
+      "nombre_producto": "L PROLINA 100g",
+      "numero_producto": 250,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702501002646",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "df9cc1b9996b",
+      "sku": "C-SUC100g",
+      "nombre_producto": "SUCRALOSA 100g",
+      "numero_producto": 251,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702511002643",
+      "creado_at": "2026-09-19T23:29:41"
+    },
+    {
+      "id": "df90afd598ef",
+      "sku": "C-MANCACNAT500g",
+      "nombre_producto": "MANTECA DE CACAO NATURAL 500g",
+      "numero_producto": 252,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702525002646",
+      "creado_at": "2026-09-20T01:10:54"
+    },
+    {
+      "id": "488d34babbb1",
+      "sku": "C-HARPAN00Kg",
+      "nombre_producto": "HARINA DE PANADERIA 00 1000g",
+      "numero_producto": 253,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702530012647",
+      "creado_at": "2026-09-20T01:18:19",
+      "actualizado_at": "2026-09-20T01:19:44"
+    },
+    {
+      "id": "9066d04bbad9",
+      "sku": "C-POLTWE20P250mL",
+      "nombre_producto": "POLISORBATO TWEEN 20 250mL",
+      "numero_producto": 254,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702542502648",
+      "creado_at": "2026-09-20T02:02:25"
+    },
+    {
+      "id": "2f9586b80b0f",
+      "sku": "C-CELMIC102500g",
+      "nombre_producto": "CELULOSA MICROCRISTALINA 102 500g",
+      "numero_producto": 255,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702555002647",
+      "creado_at": "2026-09-20T02:19:14"
+    },
+    {
+      "id": "c3a23a847879",
+      "sku": "C-NUEPEC250g",
+      "nombre_producto": "NUEZ PECAN 250 g",
+      "numero_producto": 257,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702572502649",
+      "creado_at": "2026-09-24T11:37:10"
+    },
+    {
+      "id": "ec3986706f95",
+      "sku": "C-NUEPEC500g",
+      "nombre_producto": "NUEZ PECAN 500g",
+      "numero_producto": 258,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702585002648",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "29bf0a2335d4",
+      "sku": "C-NUENOG250g",
+      "nombre_producto": "NUEZ DEL NOGAL 250g",
+      "numero_producto": 259,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702592502643",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "fe7fff2f5727",
+      "sku": "C-NUENOG500g",
+      "nombre_producto": "NUEZ DEL NOGAL 500g",
+      "numero_producto": 260,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702605002641",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "288709599250",
+      "sku": "C-PSYESC250g",
+      "nombre_producto": "PSYLLIUM EN ESCAMAS 250g",
+      "numero_producto": 261,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702612502646",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "a83789789a45",
+      "sku": "C-PSYESC500g",
+      "nombre_producto": "PSYLLIUM EN ESCAMAS 500g",
+      "numero_producto": 262,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702625002645",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "f6ee30b6b9ba",
+      "sku": "C-SEMQUIROJ250g",
+      "nombre_producto": "SEMILLA DE QUINUA ROJA 250g",
+      "numero_producto": 263,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702632502640",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "12148031075d",
+      "sku": "C-SEMQUIROJ500g",
+      "nombre_producto": "SEMILLA DE QUINUA ROJA 500g",
+      "numero_producto": 264,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702645002649",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "9a2fa40d1976",
+      "sku": "C-AMASEL250g",
+      "nombre_producto": "AMARANTO SELECCIONADO 250g",
+      "numero_producto": 265,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702652502644",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "42b846c2240c",
+      "sku": "C-AMASEL500g",
+      "nombre_producto": "AMARANTO SELECCIONADO 500g",
+      "numero_producto": 266,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702665002643",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "0c6f8e99fdf1",
+      "sku": "C-SEMAMA250g",
+      "nombre_producto": "SEMILLA DE AMAPOLA 250g",
+      "numero_producto": 267,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702672502648",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "73295b155a17",
+      "sku": "C-SEMAMA500g",
+      "nombre_producto": "SEMILLA DE AMAPOLA 500g",
+      "numero_producto": 268,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702685002647",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "a88bbd78aac1",
+      "sku": "C-UVAPASFLA250g",
+      "nombre_producto": "UVAS PASAS FLAME 250g",
+      "numero_producto": 269,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702692502642",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "4f75098d0174",
+      "sku": "C-UVAPASFLA500g",
+      "nombre_producto": "UVAS PASAS FLAME 500g",
+      "numero_producto": 270,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702705002640",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "a54264b700b9",
+      "sku": "C-ALBSEC250g",
+      "nombre_producto": "ALBARICOQUE SECO 250g",
+      "numero_producto": 271,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702712502645",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "fc9cf9880bb6",
+      "sku": "C-ALBSEC500g",
+      "nombre_producto": "ALBARICOQUE SECO 500g",
+      "numero_producto": 272,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702725002644",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "9e21870b25da",
+      "sku": "C-SALROSAJOCHI250g",
+      "nombre_producto": "SAL ROSADA CON AJO Y CHILI 250g",
+      "numero_producto": 273,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702732502649",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "ab0e3c6b11f9",
+      "sku": "C-SALROSAJOCHI500g",
+      "nombre_producto": "SAL ROSADA CON AJO Y CHILI 500g",
+      "numero_producto": 274,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702745002648",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "ab7944bd9c38",
+      "sku": "C-MARTOS250g",
+      "nombre_producto": "MARAÑON TOSTADO 250g",
+      "numero_producto": 275,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702752502643",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "4c028ba343a1",
+      "sku": "C-MARTOS500g",
+      "nombre_producto": "MARAÑON TOSTADO 500g",
+      "numero_producto": 276,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702765002642",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "20b17fc5c68f",
+      "sku": "C-SALMARAHU250g",
+      "nombre_producto": "SAL MARINA AHUMADA 250g",
+      "numero_producto": 277,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702772502647",
+      "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "1dae42235a55",
+      "sku": "C-SALMARAHU500g",
+      "nombre_producto": "SAL MARINA AHUMADA 500g",
+      "numero_producto": 278,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702785002646",
+      "creado_at": "2026-09-24T11:42:52"
     }
   ]
 }

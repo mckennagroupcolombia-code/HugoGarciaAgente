@@ -8,14 +8,1533 @@
       "numero_factura": "FV0000",
       "proveedor": "Proveedor Desconocido",
       "nit": "999999999",
-      "fecha": "2026-08-22",
+      "fecha": "2026-09-18",
       "total": 0,
       "accion": null,
       "estado": "archivo",
-      "timestamp": "2026-08-22T12:00:00",
+      "timestamp": "2026-09-18T12:00:00",
       "items_resumen": [],
       "items_count": 0,
       "fuente": "evento.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-SBP21083",
+      "sufijo": "1083",
+      "numero_factura": "SBP21083",
+      "proveedor": "STEREN COLOMBIA S.A.S",
+      "nit": "901109730",
+      "fecha": "2026-09-17",
+      "total": 959800.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-17T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "DESHUMIDIFICADOR CON TANQUE DE 3L",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 403277.31,
+          "precio_neto": null,
+          "subtotal": 806554.62
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad90110973000319SBP21083.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FECC1129",
+      "sufijo": "1129",
+      "numero_factura": "FECC1129",
+      "proveedor": "UNIFORMES Y BORDADOS H Y F SAS",
+      "nit": "901567417",
+      "fecha": "2026-09-17",
+      "total": 190400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-17T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "UNIFORME ANTIFLUIDO",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 60000.0,
+          "precio_neto": null,
+          "subtotal": 120000.0
+        },
+        {
+          "nombre": "BLUSAS EN ANTUFLUIDO",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 40000.0,
+          "precio_neto": null,
+          "subtotal": 40000.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "901567417_FECC1129.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE80663462",
+      "sufijo": "3462",
+      "numero_factura": "FE80663462",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-16",
+      "total": 23400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-16T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205773137",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE80663462.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE80574324",
+      "sufijo": "4324",
+      "numero_factura": "FE80574324",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-15",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-15T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205681648",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE80574324.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE80532891",
+      "sufijo": "2891",
+      "numero_factura": "FE80532891",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-15",
+      "total": 51900.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-15T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205626705",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 33400.0,
+          "precio_neto": null,
+          "subtotal": 33400.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205626219",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z080025156905426FE80532891.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FA272993",
+      "sufijo": "2993",
+      "numero_factura": "FA272993",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "fecha": "2026-09-14",
+      "total": 2393257.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-14T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "LANOLINA ANHIDRA USP",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 124500.0,
+          "precio_neto": null,
+          "subtotal": 373500.0
+        },
+        {
+          "nombre": "ALOE VERA",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 79200.0,
+          "precio_neto": null,
+          "subtotal": 79200.0
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "",
+          "cantidad": 40.0,
+          "unidad": "",
+          "precio_unitario": 16400.0,
+          "precio_neto": null,
+          "subtotal": 656000.0
+        },
+        {
+          "nombre": "TEGOBETAINA-BETAINA GRX20 KG",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 7700.0,
+          "precio_neto": null,
+          "subtotal": 154000.0
+        },
+        {
+          "nombre": "GLUTAMATO MONOSODICO MALLA 100",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 8400.0,
+          "precio_neto": null,
+          "subtotal": 210000.0
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 9000.0,
+          "precio_neto": null,
+          "subtotal": 450000.0
+        },
+        {
+          "nombre": "COLAGENO HIDRO POR KILOS",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 88440.0,
+          "precio_neto": null,
+          "subtotal": 88440.0
+        }
+      ],
+      "items_count": 7,
+      "fuente": "z08001372240002600272993.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE80430274",
+      "sufijo": "0274",
+      "numero_factura": "FE80430274",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-14",
+      "total": 63900.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-14T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205502739",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 28600.0,
+          "precio_neto": null,
+          "subtotal": 28600.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205501966",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 26500.0,
+          "precio_neto": null,
+          "subtotal": 26500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205501343",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 8800.0,
+          "precio_neto": null,
+          "subtotal": 8800.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "z080025156905426FE80430274.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FEE104568",
+      "sufijo": "4568",
+      "numero_factura": "FEE104568",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "fecha": "2026-09-12",
+      "total": 5037327.5,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-12T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "CLORURO DE MAGNESIO HEXAHIDRATADO/ MAGNESIUM CHLORIDE HEXAHYDRATE",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 5800.0,
+          "precio_neto": null,
+          "subtotal": 145000.0
+        },
+        {
+          "nombre": "ALANTOINA/ALLANTOIN",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 38000.0,
+          "precio_neto": null,
+          "subtotal": 76000.0
+        },
+        {
+          "nombre": "PRO-B 80",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 42000.0,
+          "precio_neto": null,
+          "subtotal": 840000.0
+        },
+        {
+          "nombre": "VITAMINA E ATFA 99% USP",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 192000.0,
+          "precio_neto": null,
+          "subtotal": 384000.0
+        },
+        {
+          "nombre": "VITAMINA C CRISTALES/VITAMIN C CRYSTAL",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 14500.0,
+          "precio_neto": null,
+          "subtotal": 362500.0
+        },
+        {
+          "nombre": "GELATINA FG 280 BLOOM /GELATIN FG 280",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 25000.0,
+          "precio_neto": null,
+          "subtotal": 625000.0
+        },
+        {
+          "nombre": "ALULOSA/ALLULOSE",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 16000.0,
+          "precio_neto": null,
+          "subtotal": 400000.0
+        },
+        {
+          "nombre": "GOMA XANTHAN 200 MESH (F)",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 14600.0,
+          "precio_neto": null,
+          "subtotal": 365000.0
+        },
+        {
+          "nombre": "INULINA 90%",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 20000.0,
+          "precio_neto": null,
+          "subtotal": 400000.0
+        },
+        {
+          "nombre": "DEXTROSA MONOHIDRATADA/DEXTROSE  MONO",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 4800.0,
+          "precio_neto": null,
+          "subtotal": 120000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - ARGININA BASE",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 75000.0,
+          "precio_neto": null,
+          "subtotal": 150000.0
+        },
+        {
+          "nombre": "D-PANTENOL",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 82000.0,
+          "precio_neto": null,
+          "subtotal": 164000.0
+        },
+        {
+          "nombre": "UREA USP",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 14500.0,
+          "precio_neto": null,
+          "subtotal": 362500.0
+        },
+        {
+          "nombre": "MALTODEXTRINA M100 GPC",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 5500.0,
+          "precio_neto": null,
+          "subtotal": 137500.0
+        }
+      ],
+      "items_count": 14,
+      "fuente": "ad08000778280002600633550.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE80070620",
+      "sufijo": "0620",
+      "numero_factura": "FE80070620",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-10",
+      "total": 30500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-10T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205161741",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12000.0,
+          "precio_neto": null,
+          "subtotal": 12000.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205161310",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z080025156905426FE80070620.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE79949771",
+      "sufijo": "9771",
+      "numero_factura": "FE79949771",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-09",
+      "total": 71600.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-09T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205037280",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12500.0,
+          "precio_neto": null,
+          "subtotal": 12500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205036764",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12000.0,
+          "precio_neto": null,
+          "subtotal": 12000.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205039541",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700205035732",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 28600.0,
+          "precio_neto": null,
+          "subtotal": 28600.0
+        }
+      ],
+      "items_count": 4,
+      "fuente": "z080025156905426FE79949771.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE79823460",
+      "sufijo": "3460",
+      "numero_factura": "FE79823460",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-08",
+      "total": 82500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-08T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204894653",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204893939",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12500.0,
+          "precio_neto": null,
+          "subtotal": 12500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204896821",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 34800.0,
+          "precio_neto": null,
+          "subtotal": 34800.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204895629",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 16700.0,
+          "precio_neto": null,
+          "subtotal": 16700.0
+        }
+      ],
+      "items_count": 4,
+      "fuente": "z080025156905426FE79823460.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FVE21324",
+      "sufijo": "1324",
+      "numero_factura": "FVE21324",
+      "proveedor": "CADIEP DISTRIBUCIONES S.A.S.",
+      "nit": "832007865",
+      "fecha": "2026-09-08",
+      "total": 2530800.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-08T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "PROPIONATO DE CALCIO 99% (2293)",
+          "codigo": "",
+          "cantidad": 75.0,
+          "unidad": "",
+          "precio_unitario": 10000.0,
+          "precio_neto": null,
+          "subtotal": 750000.0
+        },
+        {
+          "nombre": "GLICINA USP (2326)",
+          "codigo": "",
+          "cantidad": 75.0,
+          "unidad": "",
+          "precio_unitario": 19600.0,
+          "precio_neto": null,
+          "subtotal": 1470000.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z08320078650112600021324.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-1007100449260",
+      "sufijo": "9260",
+      "numero_factura": "1007100449260",
+      "proveedor": "SODIMAC COLOMBIA S.A.",
+      "nit": "800242106",
+      "fecha": "2026-09-04",
+      "total": 21900.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-04T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "RESPIRADOR N95  2UND",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18403.36,
+          "precio_neto": null,
+          "subtotal": 18403.36
+        }
+      ],
+      "items_count": 1,
+      "fuente": "0800242106021261007100449260.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE79472090",
+      "sufijo": "2090",
+      "numero_factura": "FE79472090",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-04",
+      "total": 21600.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-04T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204543875",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 21600.0,
+          "precio_neto": null,
+          "subtotal": 21600.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE79472090.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FV12872",
+      "sufijo": "2872",
+      "numero_factura": "FV12872",
+      "proveedor": "TODO CAJAS DE CARTON SAS",
+      "nit": "901217846",
+      "fecha": "2026-09-04",
+      "total": 517650.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-04T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "CAJA DISEÑO ARMABLE 12X8X4",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 800.0,
+          "precio_neto": null,
+          "subtotal": 80000.0
+        },
+        {
+          "nombre": "CAJA DISEÑO ARMABLE DE 17X11X4 CM EN CARTON MICRO CORRUGADO",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 1150.0,
+          "precio_neto": null,
+          "subtotal": 115000.0
+        },
+        {
+          "nombre": "CAJAS DISEÑO ARMABLE DE MEDIDAS 11x4x4 (LARGO X ANCHO X ALTO) INTERNAS EN CARTON",
+          "codigo": "",
+          "cantidad": 400.0,
+          "unidad": "",
+          "precio_unitario": 600.0,
+          "precio_neto": null,
+          "subtotal": 240000.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "z0901217846008260000035b.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-EYU300712",
+      "sufijo": "0712",
+      "numero_factura": "EYU300712",
+      "proveedor": "SOLUCIONES ALEGRA S.A.S",
+      "nit": "900559088",
+      "fecha": "2026-09-03",
+      "total": 2107620.22,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-03T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "Cloud Computing - Ajuste Colombia",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 2107620.22,
+          "precio_neto": null,
+          "subtotal": 2107620.22
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z09005590880002600329926.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-FE79228259",
+      "sufijo": "8259",
+      "numero_factura": "FE79228259",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-09-02",
+      "total": 67000.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-02T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204266687",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 20900.0,
+          "precio_neto": null,
+          "subtotal": 20900.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204269069",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 33500.0,
+          "precio_neto": null,
+          "subtotal": 33500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204268261",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 12600.0,
+          "precio_neto": null,
+          "subtotal": 12600.0
+        }
+      ],
+      "items_count": 3,
+      "fuente": "z080025156905426FE79228259.zip"
+    },
+    {
+      "origen": "gmail-2026",
+      "id": "gmail-2026-CIV2336",
+      "sufijo": "2336",
+      "numero_factura": "CIV2336",
+      "proveedor": "COMERCIALIZADORA INTERNACIONAL C.I. S.A.S.",
+      "nit": "811000608",
+      "fecha": "2026-09-02",
+      "total": 1304800.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-09-02T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "PET/PBD 3S ZIPP DP 35MM TRANS",
+          "codigo": "",
+          "cantidad": 100.0,
+          "unidad": "",
+          "precio_unitario": 200.0,
+          "precio_neto": null,
+          "subtotal": 20000.0
+        },
+        {
+          "nombre": "PET/PBD 3S ZIPP  TRANS",
+          "codigo": "",
+          "cantidad": 5000.0,
+          "unidad": "",
+          "precio_unitario": 220.0,
+          "precio_neto": null,
+          "subtotal": 1100000.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "z08110006080152600002336.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-SE96234",
+      "sufijo": "6234",
+      "numero_factura": "SE96234",
+      "proveedor": "SU FERRETERIA LA SABANA SAS",
+      "nit": "900327185",
+      "fecha": "2026-08-31",
+      "total": 425572.56,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-31T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "FLANCHE PVC 1\" (REF PVC 289)",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 3361.0,
+          "precio_neto": null,
+          "subtotal": 40332.0
+        },
+        {
+          "nombre": "CODO POLIETILENO 1\" (REF PLTLN 52)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 1000.0,
+          "precio_neto": null,
+          "subtotal": 24000.0
+        },
+        {
+          "nombre": "TEE POLIETILENO 1\" (REF PLTLN 86)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 1000.0,
+          "precio_neto": null,
+          "subtotal": 24000.0
+        },
+        {
+          "nombre": "FLANCHE PVC 1\" (REF PVC 289)",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 3361.0,
+          "precio_neto": null,
+          "subtotal": 40332.0
+        },
+        {
+          "nombre": "ACOPLE POLIETILENO 1\" (REF PLTLN 94)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 588.0,
+          "precio_neto": null,
+          "subtotal": 14112.0
+        },
+        {
+          "nombre": "FLANCHE PVC 1/2\" (REF PVC 267)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 3193.0,
+          "precio_neto": null,
+          "subtotal": 76632.0
+        },
+        {
+          "nombre": "ACOPLE POLIETILENO 1/2\" (REF PLTLN 92)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 336.0,
+          "precio_neto": null,
+          "subtotal": 8064.0
+        },
+        {
+          "nombre": "TEE POLIETILENO 1/2\" (REF PLTLN 84)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 420.0,
+          "precio_neto": null,
+          "subtotal": 10080.0
+        },
+        {
+          "nombre": "CODO POLIETILENO 1/2\" (REF PLTLN 50)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 504.0,
+          "precio_neto": null,
+          "subtotal": 12096.0
+        },
+        {
+          "nombre": "CODO POLIETILENO 16 MM (REF PLTLN 49)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 252.0,
+          "precio_neto": null,
+          "subtotal": 6048.0
+        },
+        {
+          "nombre": "TEE POLIETILENO 16MM (REF PLTLN 34)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 280.0,
+          "precio_neto": null,
+          "subtotal": 6720.0
+        },
+        {
+          "nombre": "ACOPLE POLIETILENO 1/2 X 16 MM (REF ASPR 66)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 290.0,
+          "precio_neto": null,
+          "subtotal": 6960.0
+        },
+        {
+          "nombre": "REGISTRO MANGUERA-MANGUERA 16 MM (REF ASPR 93)",
+          "codigo": "",
+          "cantidad": 24.0,
+          "unidad": "",
+          "precio_unitario": 1304.0,
+          "precio_neto": null,
+          "subtotal": 31296.0
+        },
+        {
+          "nombre": "TAPON MACHO PVC 1/2\" INGEP (REF PVC 471)",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 420.0,
+          "precio_neto": null,
+          "subtotal": 2520.0
+        },
+        {
+          "nombre": "TAPON MACHO PVC 1\" INGEP (REF PVC 470)",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 672.0,
+          "precio_neto": null,
+          "subtotal": 4032.0
+        },
+        {
+          "nombre": "REGISTRO PVC SOLDADO 1/2\" (REF PVC 164)",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 2100.0,
+          "precio_neto": null,
+          "subtotal": 12600.0
+        },
+        {
+          "nombre": "REGISTRO PVC ROSCADO 1/2\" (REF PVC 156)",
+          "codigo": "",
+          "cantidad": 6.0,
+          "unidad": "",
+          "precio_unitario": 2100.0,
+          "precio_neto": null,
+          "subtotal": 12600.0
+        },
+        {
+          "nombre": "UNIVERSAL PVC PRESION  1/2\" SABANA (REF PVC 521)",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 2100.0,
+          "precio_neto": null,
+          "subtotal": 25200.0
+        }
+      ],
+      "items_count": 18,
+      "fuente": "ad09003271850112600096234.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE79013717",
+      "sufijo": "3717",
+      "numero_factura": "FE79013717",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-31",
+      "total": 26500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-31T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700204013521",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 26500.0,
+          "precio_neto": null,
+          "subtotal": 26500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad080025156905426FE79013717.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEV79003",
+      "sufijo": "9003",
+      "numero_factura": "FEV79003",
+      "proveedor": "ENVASAR S A S",
+      "nit": "830062441",
+      "fecha": "2026-08-29",
+      "total": 104931.82,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-29T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "TAPA18mm CORTA COLORES SURTIDOS",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 56.0,
+          "precio_neto": null,
+          "subtotal": 2800.0
+        },
+        {
+          "nombre": "ENV. PET BALA 60ml 8GR S/TAPA",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 285.0,
+          "precio_neto": null,
+          "subtotal": 14250.0
+        },
+        {
+          "nombre": "TAPA NO. 38 BLANCA",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 66.0,
+          "precio_neto": null,
+          "subtotal": 3300.0
+        },
+        {
+          "nombre": "PASTILLERO 60CC BLANCO LISO PVC B.38 S/TAPA",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 524.0,
+          "precio_neto": null,
+          "subtotal": 26200.0
+        },
+        {
+          "nombre": "E. CILIND. 1000CC B. ANCHA PEAD BLANCO C/T",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 2017.0,
+          "precio_neto": null,
+          "subtotal": 24204.0
+        },
+        {
+          "nombre": "E. CILIND. 500CC B. ANCHA PEAD BLCO. C/T",
+          "codigo": "",
+          "cantidad": 12.0,
+          "unidad": "",
+          "precio_unitario": 1452.0,
+          "precio_neto": null,
+          "subtotal": 17424.0
+        }
+      ],
+      "items_count": 6,
+      "fuente": "z08300624410082600002509.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE78796405",
+      "sufijo": "6405",
+      "numero_factura": "FE78796405",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-28",
+      "total": 16400.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-28T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203805750",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 16400.0,
+          "precio_neto": null,
+          "subtotal": 16400.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "ad080025156905426FE78796405.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE78657205",
+      "sufijo": "7205",
+      "numero_factura": "FE78657205",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-27",
+      "total": 18500.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-27T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203670431",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        }
+      ],
+      "items_count": 1,
+      "fuente": "z080025156905426FE78657205.zip"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEA18545",
+      "sufijo": "8545",
+      "numero_factura": "FEA18545",
+      "proveedor": "GLOBAL TRADING DE COLOMBIA S.A.S",
+      "nit": "900132921",
+      "fecha": "2026-08-25",
+      "total": 8265335.28,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-25T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "ACEITE DE COCO CAJA X 16 LITROS (4 X 4LT C/U)",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 496000.0,
+          "precio_neto": null,
+          "subtotal": 496000.0
+        },
+        {
+          "nombre": "AJONJOLI NEGRO SACO X 25KG",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 612500.0,
+          "precio_neto": null,
+          "subtotal": 1225000.0
+        },
+        {
+          "nombre": "ARANDANO AMERICANO CAJA X 11.34 KG",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 226800.0,
+          "precio_neto": null,
+          "subtotal": 453600.0
+        },
+        {
+          "nombre": "ALMENDRA NPX 30/32 EXTRA CAJA X 22.68KG AMERICANA",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 748440.0,
+          "precio_neto": null,
+          "subtotal": 1496880.0
+        },
+        {
+          "nombre": "BAYAS DE GOJI BERRY CAJA X 20KG (4X5KG)",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 760000.0,
+          "precio_neto": null,
+          "subtotal": 760000.0
+        },
+        {
+          "nombre": "DATILES SAYED X 10KG",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 200000.0,
+          "precio_neto": null,
+          "subtotal": 600000.0
+        },
+        {
+          "nombre": "SAL ROSADA DEL HIMALAYA SACO 25KG GRANO FINO",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 225000.0,
+          "precio_neto": null,
+          "subtotal": 675000.0
+        },
+        {
+          "nombre": "SAL ROSADA DEL HIMALAYA SACO 25KG GRANO GRUESO",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 225000.0,
+          "precio_neto": null,
+          "subtotal": 675000.0
+        },
+        {
+          "nombre": "SEMILLA DE CHIA BOLIVIANA SACO X 25KG",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 450000.0,
+          "precio_neto": null,
+          "subtotal": 900000.0
+        }
+      ],
+      "items_count": 9,
+      "fuente": "ad09001329210082600004871.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE78408400",
+      "sufijo": "8400",
+      "numero_factura": "FE78408400",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-25",
+      "total": 32200.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-25T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203415647",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 23400.0,
+          "precio_neto": null,
+          "subtotal": 23400.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203414774",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 8800.0,
+          "precio_neto": null,
+          "subtotal": 8800.0
+        }
+      ],
+      "items_count": 2,
+      "fuente": "ad080025156905426FE78408400.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FA272306",
+      "sufijo": "2306",
+      "numero_factura": "FA272306",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "fecha": "2026-08-25",
+      "total": 5710682.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-25T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "SORBITOL POLVO",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 9380.0,
+          "precio_neto": null,
+          "subtotal": 234500.0
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 9000.0,
+          "precio_neto": null,
+          "subtotal": 450000.0
+        },
+        {
+          "nombre": "CAOLIN USP",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 4800.0,
+          "precio_neto": null,
+          "subtotal": 96000.0
+        },
+        {
+          "nombre": "VASELINA BLANCA USP INDIA X 17",
+          "codigo": "",
+          "cantidad": 17.0,
+          "unidad": "",
+          "precio_unitario": 14500.0,
+          "precio_neto": null,
+          "subtotal": 246500.0
+        },
+        {
+          "nombre": "CAOLIN COLOIDAL",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 4800.0,
+          "precio_neto": null,
+          "subtotal": 120000.0
+        },
+        {
+          "nombre": "D-PANTENOL",
+          "codigo": "",
+          "cantidad": 2.0,
+          "unidad": "",
+          "precio_unitario": 107000.0,
+          "precio_neto": null,
+          "subtotal": 214000.0
+        },
+        {
+          "nombre": "ACIDO GLICOLICO",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 130000.0,
+          "precio_neto": null,
+          "subtotal": 390000.0
+        },
+        {
+          "nombre": "ACEITE DE JOJOBA GOLDEN",
+          "codigo": "",
+          "cantidad": 3.0,
+          "unidad": "",
+          "precio_unitario": 151350.0,
+          "precio_neto": null,
+          "subtotal": 454050.0
+        },
+        {
+          "nombre": "CERA DE ABEJAS BLANCA NACION",
+          "codigo": "",
+          "cantidad": 24.7,
+          "unidad": "",
+          "precio_unitario": 18300.0,
+          "precio_neto": null,
+          "subtotal": 452010.0
+        },
+        {
+          "nombre": "CITRATO DE CALCIO",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 8000.0,
+          "precio_neto": null,
+          "subtotal": 200000.0
+        },
+        {
+          "nombre": "MANTECA DE CACAO",
+          "codigo": "",
+          "cantidad": 40.0,
+          "unidad": "",
+          "precio_unitario": 16600.0,
+          "precio_neto": null,
+          "subtotal": 664000.0
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "",
+          "cantidad": 80.0,
+          "unidad": "",
+          "precio_unitario": 16400.0,
+          "precio_neto": null,
+          "subtotal": 1312000.0
+        }
+      ],
+      "items_count": 12,
+      "fuente": "ad08001372240002600272306.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE78255411",
+      "sufijo": "5411",
+      "numero_factura": "FE78255411",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "fecha": "2026-08-24",
+      "total": 80200.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-24T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203266684",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 18500.0,
+          "precio_neto": null,
+          "subtotal": 18500.0
+        },
+        {
+          "nombre": "MENSAJERÍA ESTÁNDAR 700203265732",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 8800.0,
+          "precio_neto": null,
+          "subtotal": 8800.0
+        },
+        {
+          "nombre": "CARGA TERRESTRE 700203265147",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 26450.0,
+          "precio_neto": null,
+          "subtotal": 26450.0
+        },
+        {
+          "nombre": "CARGA TERRESTRE 700203264789",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 26450.0,
+          "precio_neto": null,
+          "subtotal": 26450.0
+        }
+      ],
+      "items_count": 4,
+      "fuente": "ad080025156905426FE78255411.xml"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-ING1141217",
+      "sufijo": "1217",
+      "numero_factura": "ING1141217",
+      "proveedor": "LA INGLESA LCS S.A.S",
+      "nit": "901798961",
+      "fecha": "2026-08-23",
+      "total": 132000.0,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-23T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "HARINA EL LOBO X 50 KILO",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 125714.29,
+          "precio_neto": null,
+          "subtotal": 125714.29
+        }
+      ],
+      "items_count": 1,
+      "fuente": "00000901316016F20260823ID257071.ZIP"
+    },
+    {
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEE102832",
+      "sufijo": "2832",
+      "numero_factura": "FEE102832",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "fecha": "2026-08-21",
+      "total": 3220642.5,
+      "accion": null,
+      "estado": "archivo",
+      "timestamp": "2026-08-21T12:00:00",
+      "items_resumen": [
+        {
+          "nombre": "PRO-B 80",
+          "codigo": "",
+          "cantidad": 20.0,
+          "unidad": "",
+          "precio_unitario": 42000.0,
+          "precio_neto": null,
+          "subtotal": 840000.0
+        },
+        {
+          "nombre": "AMINOACIDO L - PROLINA CAS: 147-85-3",
+          "codigo": "",
+          "cantidad": 1.0,
+          "unidad": "",
+          "precio_unitario": 102000.0,
+          "precio_neto": null,
+          "subtotal": 102000.0
+        },
+        {
+          "nombre": "ACIDO CITRICO/CITRIC ACID ANHY  30-100  WEIFANG",
+          "codigo": "",
+          "cantidad": 25.0,
+          "unidad": "",
+          "precio_unitario": 5300.0,
+          "precio_neto": null,
+          "subtotal": 132500.0
+        },
+        {
+          "nombre": "AMINOACIDO CREATINA MONOHIDRATO",
+          "codigo": "",
+          "cantidad": 50.0,
+          "unidad": "",
+          "precio_unitario": 20000.0,
+          "precio_neto": null,
+          "subtotal": 1000000.0
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "",
+          "cantidad": 75.0,
+          "unidad": "",
+          "precio_unitario": 9200.0,
+          "precio_neto": null,
+          "subtotal": 690000.0
+        }
+      ],
+      "items_count": 5,
+      "fuente": "ad08000778280002600562939.zip"
     },
     {
       "origen": "archivo-2026",
@@ -89,70 +1608,8 @@
       "fuente": "ad08001584320162600004215.xml"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-FEE102832",
-      "sufijo": "2832",
-      "numero_factura": "FEE102832",
-      "proveedor": "FACTORES Y MERCADEO S.A.",
-      "nit": "800077828",
-      "fecha": "2026-08-21",
-      "total": 3220642.5,
-      "accion": null,
-      "estado": "archivo",
-      "timestamp": "2026-08-21T12:00:00",
-      "items_resumen": [
-        {
-          "nombre": "PRO-B 80",
-          "codigo": "",
-          "cantidad": 20.0,
-          "unidad": "",
-          "precio_unitario": 42000.0,
-          "precio_neto": null,
-          "subtotal": 840000.0
-        },
-        {
-          "nombre": "AMINOACIDO L - PROLINA CAS: 147-85-3",
-          "codigo": "",
-          "cantidad": 1.0,
-          "unidad": "",
-          "precio_unitario": 102000.0,
-          "precio_neto": null,
-          "subtotal": 102000.0
-        },
-        {
-          "nombre": "ACIDO CITRICO/CITRIC ACID ANHY  30-100  WEIFANG",
-          "codigo": "",
-          "cantidad": 25.0,
-          "unidad": "",
-          "precio_unitario": 5300.0,
-          "precio_neto": null,
-          "subtotal": 132500.0
-        },
-        {
-          "nombre": "AMINOACIDO CREATINA MONOHIDRATO",
-          "codigo": "",
-          "cantidad": 50.0,
-          "unidad": "",
-          "precio_unitario": 20000.0,
-          "precio_neto": null,
-          "subtotal": 1000000.0
-        },
-        {
-          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
-          "codigo": "",
-          "cantidad": 75.0,
-          "unidad": "",
-          "precio_unitario": 9200.0,
-          "precio_neto": null,
-          "subtotal": 690000.0
-        }
-      ],
-      "items_count": 5,
-      "fuente": "ad08000778280002600562939.zip"
-    },
-    {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-FEV78637",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FEV78637",
       "sufijo": "8637",
       "numero_factura": "FEV78637",
       "proveedor": "ENVASAR S A S",
@@ -204,8 +1661,8 @@
       "fuente": "z08300624410082600002397.zip"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-GQ10434",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-GQ10434",
       "sufijo": "0434",
       "numero_factura": "GQ10434",
       "proveedor": "GLOBALQUIMIA LIMITADA",
@@ -257,8 +1714,8 @@
       "fuente": "z09001435990112600010434.zip"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-FE38029",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE38029",
       "sufijo": "8029",
       "numero_factura": "FE38029",
       "proveedor": "ALEXANDRA KATHERINE BENAVIDES SALAMANCA",
@@ -301,8 +1758,8 @@
       "fuente": "88ab04d2-55cd-4b4b-b42b-353c755eb175.zip"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-FE77920527",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-FE77920527",
       "sufijo": "0527",
       "numero_factura": "FE77920527",
       "proveedor": "INTER RAPIDISIMO S.A",
@@ -336,8 +1793,8 @@
       "fuente": "z080025156905426FE77920527.zip"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-PYLF3838",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-PYLF3838",
       "sufijo": "3838",
       "numero_factura": "PYLF3838",
       "proveedor": "DISEÑO PLASTICO PYL S.A.S",
@@ -359,11 +1816,11 @@
         }
       ],
       "items_count": 1,
-      "fuente": "z09009614370082600000efe.zip"
+      "fuente": "ad09009614370082600000efe.xml"
     },
     {
-      "origen": "gmail-2026",
-      "id": "gmail-2026-BO16906",
+      "origen": "archivo-2026",
+      "id": "archivo-2026-BO16906",
       "sufijo": "6906",
       "numero_factura": "BO16906",
       "proveedor": "PRODUCTOS 3A SAS",
@@ -421,7 +1878,7 @@
         }
       ],
       "items_count": 5,
-      "fuente": "z0800158432016260000420a.zip"
+      "fuente": "ad0800158432016260000420a.xml"
     },
     {
       "origen": "archivo-2026",
@@ -8955,7 +10412,7 @@
       "fuente": "z080025156905426FE56701926.zip"
     }
   ],
-  "actualizado": "2026-08-22T11:21:14.948515",
+  "actualizado": "2026-09-18T00:09:15.948245",
   "fuente": "gmail+local",
   "errores": []
 }

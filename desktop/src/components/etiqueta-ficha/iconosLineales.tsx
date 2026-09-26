@@ -84,6 +84,37 @@ export function IconoTelefono({ size = 16, className }: Props) {
   );
 }
 
+/** Carné / documento de identificación — acompaña al NIT. */
+export function IconoIdentificacion({ size = 16, className }: Props) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+      <circle cx="9" cy="10.6" r="2.1" />
+      <path d="M5.8 15.8c.5-1.4 1.7-2.1 3.2-2.1s2.7.7 3.2 2.1" />
+      <path d="M15.5 11h3.2" />
+    </svg>
+  );
+}
+
+/** El mismo hueco del pie lleva unas veces el teléfono y otras el NIT: en
+ *  TODAS las fichas guardadas el NIT ocupa el campo `phone`, que dibujaba un
+ *  auricular al lado de un número de identificación. El ícono se decide por
+ *  lo que dice el texto, no por cómo se llama el campo — así quedan bien las
+ *  etiquetas ya guardadas sin tocar sus datos, y quien escriba un teléfono de
+ *  verdad sigue viendo el auricular. */
+export function IconoContacto({ texto, size = 16, className }: Props & { texto: string }) {
+  return esIdentificacion(texto) ? (
+    <IconoIdentificacion size={size} className={className} />
+  ) : (
+    <IconoTelefono size={size} className={className} />
+  );
+}
+
+/** "NIT: 901316016-3", "N.I.T 901…", "RUT 12345" → es identificación. */
+export function esIdentificacion(texto: string): boolean {
+  return /(^|\s)(nit|rut|ruc|nif|cif|rfc|cc|ce)(\s|:|\.|$)/i.test((texto || "").replace(/\./g, ""));
+}
+
 export function IconoCorreo({ size = 16, className }: Props) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} {...base}>

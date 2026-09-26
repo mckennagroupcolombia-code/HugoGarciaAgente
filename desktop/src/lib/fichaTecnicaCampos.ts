@@ -6,6 +6,7 @@
  * removido) porque estas funciones no dependen de nada de ese sistema.
  */
 import { clasificacionSgaDesdeSds, codigosGhs } from "./ghsIconos";
+import { formatearFormulaMolecular } from "./formulaMolecular";
 
 interface CodigoEanBuscable {
   nombre_producto: string;
@@ -149,8 +150,34 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     cf.apariencia,
     valorEnFilas(datos.propiedades, "apariencia", "appearance"),
   );
-  const olorRaw = pick(cf.olor, valorEnFilas(datos.propiedades, "olor", "odour", "odor"));
-  const composicionRaw = flattenComposicion(datos.composicion);
+  // La fila de la ficha se titula "Aroma"; las guardadas antes dicen "Olor".
+  const olorRaw = pick(
+    cf.olor,
+    valorEnFilas(datos.propiedades, "aroma", "olor", "odour", "odor"),
+  );
+  // En el formulario FT+COA+SDS la composición se diligencia en el COA
+  // (`_coa.composicion`, desde 21-sep-2026); los documentos anteriores la tienen
+  // en la SDS (`_sds.composicion`). La de la FT suele quedar vacía.
+  const composicionRaw =
+    flattenComposicion(datos.composicion) ||
+    flattenComposicion((coa as Record<string, unknown>).composicion) ||
+    flattenComposicion(sds.composicion);
+  // Fórmula molecular: la casilla de la etiqueta muestra el MISMO dato que la
+  // fila "Fórmula molecular" del documento técnico (`caracteristicas_fisicas.
+  // formula_quimica`; en el COA/SDS viaja como `formula_molecular`). Se
+  // formatea para que se lea como química: los subíndices bajan y los
+  // coeficientes (·2H₂O) se quedan en tamaño normal.
+  const formulaRaw = formatearFormulaMolecular(
+    pick(
+      cf.formula_quimica,
+      cf.formula_molecular,
+      datos.formula_quimica,
+      datos.formula_molecular,
+      ident.formula_molecular,
+      coaIdent.formula_molecular,
+      valorEnFilas(datos.propiedades, "formula molecular", "formula quimica", "formula"),
+    ),
+  );
   // "Conservación y almacenamiento" del formulario FT+COA+SDS: es lo que
   // escribió una persona para ESTE producto, así que va tal cual y manda
   // sobre cualquier cosa que se deduzca de la SDS.
@@ -158,12 +185,28 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
   // Sin ese campo, lo que la ficha diga sobre conservar el producto vive
   // dentro del bloque de recomendaciones de la SDS, bajo el encabezado
   // "ALMACENAMIENTO:", mezclado con las frases P. De ahí hay que resumirlo.
+  // La mayoría de las fichas (CITRATO DE POTASIO y el resto de Sales
+  // minerales entre ellas) NO traen ese encabezado: "recomendaciones" es un
+  // párrafo corrido ("Se recomienda guardar en empaques bien cerrados…").
+  // Por eso, si no hay sección, se usa el bloque entero — `sintetizarConservacion`
+  // ya se queda solo con las frases de conservar y descarta modo de uso y
+  // caducidad. Sin este respaldo la casilla Conservación salía vacía.
   const almacenamientoRaw = pick(
     seccionRecomendaciones(sds.recomendaciones, "ALMACENAMIENTO"),
     seccionRecomendaciones(datos.recomendaciones, "ALMACENAMIENTO"),
+    texto(datos.recomendaciones),
+    texto(sds.recomendaciones),
     Array.isArray(datos.estabilidad) ? (datos.estabilidad as unknown[]).map(texto).filter(Boolean).join(" ") : "",
   );
-  const concentracionRaw = pick(datos.concentracion, ident.concentracion, coaIdent.concentracion);
+  // Pureza. Muchas fichas la guardaron como fila suelta de `propiedades`
+  // ("Pureza" / "Concentracion") en vez del campo propio: se lee tambien de
+  // ahi para que la casilla PUREZA de la etiqueta no salga vacia.
+  const concentracionRaw = pick(
+    datos.concentracion,
+    ident.concentracion,
+    coaIdent.concentracion,
+    valorEnFilas(datos.propiedades, "pureza", "concentracion"),
+  );
   const pesoRaw = pick(datos.presentacion, ident.presentacion, lote.tamano_lote);
   // El GHS solo puede venir de un campo dedicado a clasificación de peligro
   // (nunca de "recomendaciones" de uso). Sin campo explícito, el valor
@@ -204,9 +247,15 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     apariencia: aparienciaRaw || FICHA_SIN_DATO,
     olor: olorRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
+    formulaMolecular: formulaRaw || FICHA_SIN_DATO,
     grado,
+    // La casilla es una síntesis de máximo 15 palabras, venga de donde venga:
+    // también se resume lo que una persona escribió en "Conservación y
+    // almacenamiento" (si el resumen sale vacío se respeta su texto tal cual).
     almacenamiento:
-      conservacionFicha
+      (conservacionFicha
+        ? sintetizarConservacion(conservacionFicha) || conservacionFicha
+        : "")
       || (almacenamientoRaw ? sintetizarConservacion(almacenamientoRaw) : "")
       || FICHA_SIN_DATO,
     // Declaración de alérgenos del formulario FT+COA+SDS ("Contiene: …").
@@ -220,6 +269,11 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
         ? (datos.aplicaciones as unknown[]).map(texto).filter(Boolean).join("\n")
         : texto(datos.aplicaciones))
       || FICHA_SIN_DATO,
+    // «Modo de uso» del formulario FT+COA+SDS, resumido: en la ficha es un
+    // párrafo y en la etiqueta 30 mL la casilla tiene tres renglones.
+    modoUso: sintetizarModoUso(texto(datos.modo_uso)) || FICHA_SIN_DATO,
+    // Beneficios del formato vertical 38 × 102: dos, de máximo 10 palabras.
+    ...beneficiosDesdeFicha(datos),
     peso: pesoRaw || FICHA_SIN_DATO,
   };
 }
@@ -302,6 +356,38 @@ const CLAVES_CADUCIDAD =
 const COLA_CADUCIDAD = /\s*,?\s*(hasta por|durante|por un per[ií]odo de|por)\s+\d+\s*(meses|años)[^.;]*/gi;
 /** ~3 renglones de 14 px en la celda de la ficha (≈ 45-50 caracteres por renglón). */
 const MAX_CARACTERES_CONSERVACION = 150;
+/** Regla del usuario: la casilla Conservación es una SÍNTESIS concreta, nunca
+ *  el párrafo de la ficha. Tope duro de 15 palabras — lo que cabe leer de un
+ *  vistazo en la etiqueta. */
+export const MAX_PALABRAS_CONSERVACION = 15;
+
+function contarPalabras(t: string): number {
+  return (t.trim().match(/\S+/g) || []).length;
+}
+
+/** Recorta una frase a `max` palabras cortando por cláusulas (comas y punto
+ *  y coma), para que el resultado siga siendo una instrucción completa:
+ *  "Guardar en empaques bien cerrados en un lugar fresco y seco, alejado de
+ *  la luz, el calor y la humedad." → "Guardar en empaques bien cerrados en un
+ *  lugar fresco y seco". Solo si la primera cláusula ya se pasa se corta a
+ *  mitad de cláusula (nunca a mitad de palabra). */
+function recortarAPalabras(frase: string, max: number): string {
+  if (contarPalabras(frase) <= max) return frase;
+  const clausulas = frase.split(/(?<=[,;])\s+/);
+  let out = "";
+  for (const c of clausulas) {
+    const cand = out ? `${out} ${c}` : c;
+    if (contarPalabras(cand) > max) break;
+    out = cand;
+  }
+  if (!out) {
+    const palabras = frase.match(/\S+/g) || [];
+    out = palabras.slice(0, max).join(" ");
+  }
+  const paren = out.lastIndexOf("(");
+  if (paren > 0 && !out.slice(paren).includes(")")) out = out.slice(0, paren);
+  return out.replace(/[,;\s]+$/, "");
+}
 
 function limpiarFrase(f: string): string {
   const sin = f
@@ -319,12 +405,17 @@ function limpiarFrase(f: string): string {
 
 /** Resume el texto de almacenamiento de la ficha técnica a lo esencial de
  *  CÓMO conservar el producto — ambiente, humedad, temperatura, luz,
- *  envase — en no más de ~3 renglones. Se descartan las frases de modo de
- *  uso, caducidad o fecha de fabricación, se quitan las muletillas ("Se
- *  recomienda…") y van primero las frases con verbo de almacenar. Si el
- *  texto no dice nada de conservación (solo modo de uso), devuelve "" para
- *  que el operador lo escriba. */
-export function sintetizarConservacion(texto: string, maxChars = MAX_CARACTERES_CONSERVACION): string {
+ *  envase — en una síntesis concreta de máximo 15 palabras (regla del
+ *  usuario). Se descartan las frases de modo de uso, caducidad o fecha de
+ *  fabricación, se quitan las muletillas ("Se recomienda…") y van primero
+ *  las frases con verbo de almacenar. Si el texto no dice nada de
+ *  conservación (solo modo de uso), devuelve "" para que el operador lo
+ *  escriba. */
+export function sintetizarConservacion(
+  texto: string,
+  maxPalabras = MAX_PALABRAS_CONSERVACION,
+  maxChars = MAX_CARACTERES_CONSERVACION,
+): string {
   const limpio = (texto || "").replace(/\s+/g, " ").trim();
   if (!limpio) return "";
   const frases = limpio
@@ -341,25 +432,119 @@ export function sintetizarConservacion(texto: string, maxChars = MAX_CARACTERES_
   if (candidatas.length === 0) candidatas = frases.filter((f) => CLAVES_ALMACENAR.test(f) && !CLAVES_USO.test(f));
   if (candidatas.length === 0) return "";
 
+  // Se van sumando frases mientras quepan en el tope de palabras; la primera
+  // se recorta por cláusulas si ella sola ya se pasa.
   let out = "";
   for (const f of candidatas) {
     const frase = limpiarFrase(f);
     if (!frase) continue;
-    if (!out) out = frase;
-    else if (`${out} ${frase}`.length <= maxChars) out = `${out} ${frase}`;
-    else break;
-  }
-  if (out.length > maxChars) {
-    // Cortar en la última coma o espacio antes del límite, nunca a mitad
-    // de palabra ni dejando un paréntesis abierto.
-    let corte = out.slice(0, maxChars);
-    const paren = corte.lastIndexOf("(");
-    if (paren > 0 && !corte.slice(paren).includes(")")) corte = corte.slice(0, paren);
-    const idx = Math.max(corte.lastIndexOf(","), corte.lastIndexOf(";"), corte.lastIndexOf(" "));
-    out = corte.slice(0, idx > 40 ? idx : corte.length);
+    if (!out) {
+      out = recortarAPalabras(frase, maxPalabras);
+      if (contarPalabras(out) >= maxPalabras) break;
+    } else {
+      const cand = `${out} ${frase}`;
+      if (contarPalabras(cand) <= maxPalabras && cand.length <= maxChars) out = cand;
+      else break;
+    }
   }
   out = out.replace(/[,;\s]+$/, "");
   if (!out) return "";
   if (!/[.!?]$/.test(out)) out += ".";
   return out;
+}
+
+/** Tope de la casilla «Modo de uso» (30 mL): tres renglones, como Conservación. */
+export const MAX_PALABRAS_MODO_USO = 25;
+
+/** Resume el modo de uso de la ficha técnica a sus primeras frases
+ *  completas, sin muletillas («Se recomienda…», «Es importante…»), hasta
+ *  `maxPalabras`. «Uso externo y siempre diluido. Incorporar en la fase
+ *  oleosa…» → «Uso externo y siempre diluido.» Si la primera frase ya se
+ *  pasa, se recorta por cláusulas. */
+export function sintetizarModoUso(texto: string, maxPalabras = MAX_PALABRAS_MODO_USO): string {
+  const limpio = (texto || "").replace(/\s+/g, " ").trim();
+  if (!limpio) return "";
+  const frases = limpio
+    .split(/(?<=[.;])\s+/)
+    .map((f) => limpiarFrase(f.trim()))
+    .filter(Boolean);
+  let out = "";
+  for (const frase of frases) {
+    if (!out) {
+      out = recortarAPalabras(frase, maxPalabras);
+      if (contarPalabras(out) >= maxPalabras) break;
+      continue;
+    }
+    const cand = `${out.replace(/;$/, ".")} ${frase}`;
+    if (contarPalabras(cand) > maxPalabras) break;
+    out = cand;
+  }
+  out = out.replace(/[,;:\s]+$/, "");
+  if (!out) return "";
+  return /[.!?]$/.test(out) ? out : `${out}.`;
+}
+
+/** Tope de cada beneficio del formato vertical (regla del usuario). */
+export const MAX_PALABRAS_BENEFICIO = 10;
+
+/** Propiedades que describen cómo se obtiene o qué contiene el producto:
+ *  son ciertas, pero no son un beneficio para quien lo usa. */
+const PROPIEDAD_NO_BENEFICIO =
+  /^(extra[ií]d|obtenid|prensad|refinad|destilad|rico en|contiene|fuente de|origen|pureza|grado|punto de|densidad|[ií]ndice|ph\b|solubilid|viscosidad|peso molecular|rotaci[oó]n|humedad|acidez)/i;
+
+/** Palabras que no pueden cerrar un resumen («… al cabello y»). */
+const CONECTOR_FINAL = /^(y|e|o|u|a|al|lo|de|del|en|con|sin|por|para|que|el|la|los|las|un|una|su|sus|como|entre)$/i;
+
+/** Palabra con la que una idea no puede terminar: un infinitivo o un «así»
+ *  esperan lo que sigue («contribuye a reducir», «no aporta sabor, así»). */
+const FINAL_COLGANTE = /^(as[ií]|tambi[eé]n|adem[aá]s|obtiene|logra|consigue|\p{L}+(ar|er|ir))$/iu;
+
+/** Primeras palabras de `frase`, hasta `max`, cortando donde empieza otra
+ *  idea (coma, «y», «que», «para»…) sin dejar la frase colgando. Vacío si
+ *  ninguna idea completa de 3 palabras o más cabe. */
+function primeraIdea(frase: string, max: number): string {
+  const palabras = frase.replace(/[.;:]+$/, "").split(/\s+/).filter(Boolean);
+  if (palabras.length <= max) return palabras.join(" ");
+  const cortes: number[] = [];
+  for (let i = 1; i <= max; i++) {
+    const anterior = palabras[i - 1];
+    const siguiente = palabras[i] || "";
+    if (/[,;]$/.test(anterior) || /^(y|e|o|que|para|pero|aunque|mientras|donde)$/i.test(siguiente)) cortes.push(i);
+  }
+  for (const corte of cortes.reverse()) {
+    let out = palabras.slice(0, corte);
+    while (out.length && CONECTOR_FINAL.test(out[out.length - 1].replace(/[,;]$/, ""))) out = out.slice(0, -1);
+    const ultima = (out[out.length - 1] || "").replace(/[,;]$/, "");
+    if (out.length >= 3 && !FINAL_COLGANTE.test(ultima)) return out.join(" ").replace(/[,;]$/, "");
+  }
+  return "";
+}
+
+/** Un beneficio en máximo `max` palabras: «Acondicionador capilar|Aporta
+ *  cuerpo y brillo al cabello y ayuda…» → «Acondicionador capilar: aporta
+ *  cuerpo y brillo al cabello.» */
+export function resumirBeneficio(item: string, max = MAX_PALABRAS_BENEFICIO): string {
+  const [tituloRaw, ...resto] = (item || "").split("|");
+  const titulo = limpiarFrase(tituloRaw.replace(/\s+/g, " ").trim()).replace(/[.:]+$/, "");
+  const detalle = limpiarFrase(resto.join(" ").replace(/\s+/g, " ").trim());
+  if (!titulo) return "";
+  const nTitulo = contarPalabras(titulo);
+  if (nTitulo >= max || !detalle) {
+    const t = primeraIdea(titulo, max) || recortarAPalabras(titulo, max);
+    return /[.!?]$/.test(t) ? t : `${t}.`;
+  }
+  const idea = primeraIdea(detalle, max - nTitulo);
+  if (!idea) return `${titulo}.`;
+  return `${titulo}: ${idea.charAt(0).toLowerCase()}${idea.slice(1)}.`;
+}
+
+/** Dos beneficios desde la ficha: sus propiedades («Título|detalle»),
+ *  primero las que hablan del uso; sin propiedades, sus aplicaciones. */
+function beneficiosDesdeFicha(datos: Record<string, unknown>): { beneficio1: string; beneficio2: string } {
+  const lista = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map(texto).filter(Boolean) : []);
+  const propiedades = lista(datos.propiedades_lista);
+  const deUso = propiedades.filter((p) => !PROPIEDAD_NO_BENEFICIO.test(p.split("|")[0].trim()));
+  const fuente = [...deUso, ...propiedades.filter((p) => !deUso.includes(p)), ...lista(datos.aplicaciones)];
+  const [b1 = "", b2 = ""] = fuente.map((p) => resumirBeneficio(p)).filter(Boolean);
+  return { beneficio1: b1 || FICHA_SIN_DATO, beneficio2: b2 || FICHA_SIN_DATO };
 }

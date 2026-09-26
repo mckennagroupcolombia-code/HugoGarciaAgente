@@ -6,7 +6,7 @@
  * la categoría: tiene su plantilla, sus diseños de partida y las etiquetas ya
  * hechas con ella.
  */
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -24,6 +24,8 @@ import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import {
   CARPETA_ETIQUETAS_STUDIO,
   categoriaDeRutaEtiqueta,
+  coincideBusqueda,
+  normalizarBusqueda,
   useEtiquetasStudio,
   type EtiquetaStudioPng,
 } from "./studioEtiquetasData";
@@ -49,15 +51,59 @@ export interface PlantillaDeCategoria {
   doc?: PlantillaVisualDoc;
 }
 
+/** Dónde está una etiqueta en su camino a la impresora:
+ *  - `por_aprobar`: existe en el formulario pero nadie ha aprobado su PNG.
+ *  - `aprobada`: el formulario y su PNG aprobado en ETIQUETAS STUDIO (una sola fila).
+ *  - `solo_png`: PNG aprobado sin etiqueta editable detrás (no se puede abrir en el editor). */
+export type EstadoEtiqueta = "por_aprobar" | "aprobada" | "solo_png";
+
+export const TEXTO_ESTADO_ETIQUETA: Record<EstadoEtiqueta, string> = {
+  por_aprobar: "por aprobar",
+  aprobada: "aprobada",
+  solo_png: "solo PNG",
+};
+
 /** Una etiqueta hecha con la plantilla de la categoría. */
 export interface EtiquetaDeCategoria {
   clave: string;
   nombre: string;
   detalle: string;
-  /** PNG terminado en la biblioteca; sin esto, es una etiqueta aún editable. */
+  estado: EstadoEtiqueta;
+  /** PNG aprobado en la biblioteca (el más reciente si hay varias versiones). */
   png?: EtiquetaStudioPng;
-  /** Etiqueta guardada del formulario, todavía editable. */
+  /** Cuántos PNG aprobados hay de esta etiqueta (`_2`, `_3`… cuentan). */
+  versionesPng?: number;
+  /** Etiqueta guardada del formulario, editable. */
   fichaId?: string;
+}
+
+/** Letras y números en mayúscula, sin tildes: «SEMILLA DE CHÍA 500g» y
+ *  «SEMILLA_DE_CHIA_500g_3.png» quedan comparables. */
+function claveNombre(s: string): string {
+  return (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+/** Nombre del PNG sin carpeta, extensión, escala (`_6.25x`) ni versión (`_2`). */
+function claveDePng(nombre: string): string {
+  const archivo = (nombre || "").split("/").pop() || "";
+  return claveNombre(
+    archivo
+      .replace(/\.(png|jpe?g|webp)$/i, "")
+      .replace(/_\d+(\.\d+)?x(_\d+)?$/i, "")
+      .replace(/(_digital)?(_\d+)?$/i, ""),
+  );
+}
+
+/** Por aprobar primero (es lo que queda por hacer), luego las aprobadas. */
+const ORDEN_ESTADO: Record<EstadoEtiqueta, number> = { por_aprobar: 0, aprobada: 1, solo_png: 2 };
+function ordenarEtiquetas(lista: EtiquetaDeCategoria[]): EtiquetaDeCategoria[] {
+  return [...lista].sort(
+    (a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || a.nombre.localeCompare(b.nombre, "es"),
+  );
 }
 
 export interface ResumenCategoria {
@@ -107,7 +153,46 @@ export function useResumenCategorias() {
       lista.push(item);
       etiquetasPorCategoria.set(cat, lista);
     };
+    // Un PNG aprobado y la etiqueta del formulario de la que salió son LA MISMA
+    // etiqueta: antes salían como dos filas casi iguales y no se sabía cuál era la
+    // aprobada. El PNG se nombra con el título del código de barras (o el nombre),
+    // así que se unen por ese nombre; el PNG deja de ser una fila aparte.
+    const pngsPorClave = new Map<string, EtiquetaStudioPng[]>();
     for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
+      if (!categoriaDeRutaEtiqueta(e.nombre, categorias)) continue;
+      const k = claveDePng(e.nombre);
+      if (!k) continue;
+      const lista = pngsPorClave.get(k) ?? [];
+      lista.push(e);
+      pngsPorClave.set(k, lista);
+    }
+    const pngsUnidos = new Set<EtiquetaStudioPng>();
+    const fichasEtiqueta = (Array.isArray(fichas) ? fichas : []).filter(
+      // Cualquier etiqueta del formulario con categoría, salvo las plantillas y
+      // los restos del mecanismo viejo (`__plantilla__*`). No se exige
+      // `plantilla_id` a propósito: exigirlo escondía lo recién creado antes de
+      // que ese campo existiera.
+      (f) => !f.es_plantilla_categoria && f.categoria && !esIdPlantillaFicha(f.id),
+    );
+    for (const f of fichasEtiqueta) {
+      const tam = etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt);
+      const claves = [f.data?.barcodeTitle, f.nombre, f.data?.productName].map((x) => claveNombre(x || "")).filter(Boolean);
+      const pngs = claves.map((k) => pngsPorClave.get(k)).find((l) => l && l.length > 0) ?? [];
+      pngs.forEach((p) => pngsUnidos.add(p));
+      const masReciente = [...pngs].sort((a, b) => (b.subido_at || "").localeCompare(a.subido_at || ""))[0];
+      push(f.categoria as string, {
+        clave: `ficha:${f.id}`,
+        nombre: f.nombre,
+        detalle: tam,
+        estado: masReciente ? "aprobada" : "por_aprobar",
+        png: masReciente,
+        versionesPng: pngs.length || undefined,
+        fichaId: f.id,
+      });
+    }
+    // PNG aprobados que no salen de ninguna etiqueta del formulario.
+    for (const e of Array.isArray(etiquetas) ? etiquetas : []) {
+      if (pngsUnidos.has(e)) continue;
       const cat = categoriaDeRutaEtiqueta(e.nombre, categorias);
       if (!cat) continue;
       push(cat, {
@@ -117,21 +202,9 @@ export function useResumenCategorias() {
           e.ancho_mm && e.alto_mm
             ? etiquetaTamanoFormato(e.tipo_etiqueta, e.ancho_mm, e.alto_mm)
             : etiquetaTamanoTipoNombre(e.tipo_etiqueta, tiposEt),
+        estado: "solo_png",
         png: e,
-      });
-    }
-    for (const f of Array.isArray(fichas) ? fichas : []) {
-      // Cualquier etiqueta del formulario con categoría, salvo las plantillas y
-      // los restos del mecanismo viejo (`__plantilla__*`). No se exige
-      // `plantilla_id` a propósito: exigirlo escondía lo recién creado antes de
-      // que ese campo existiera.
-      if (f.es_plantilla_categoria || !f.categoria || esIdPlantillaFicha(f.id)) continue;
-      const tam = etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt);
-      push(f.categoria, {
-        clave: `ficha:${f.id}`,
-        nombre: f.nombre,
-        detalle: `${tam}${tam ? " · " : ""}en edición`,
-        fichaId: f.id,
+        versionesPng: 1,
       });
     }
     // Etiquetas del formulario marcadas como plantilla de su categoría.
@@ -163,7 +236,7 @@ export function useResumenCategorias() {
         categoria,
         plantillas: [...deLienzo, ...(fichasPlantilla.get(categoria.id) ?? [])],
         disenos,
-        etiquetas: etiquetasPorCategoria.get(categoria.id) ?? [],
+        etiquetas: ordenarEtiquetas(etiquetasPorCategoria.get(categoria.id) ?? []),
       };
     });
   }, [plantillasData, etiquetas, fichas, categorias, tiposData]);
@@ -181,7 +254,99 @@ export function nombreVisibleEtiqueta(nombre: string): string {
     .trim();
 }
 
+/** "2.99×2.6 in · 76×66 mm · en edición" → "76×66 mm ✎" (✎ = aún editable). En las listas
+ *  el tamaño en pulgadas se comía el espacio y cortaba el dato; el texto completo
+ *  sigue en el `title`. */
+function tamanoCorto(texto: string): string {
+  return (texto || "")
+    .replace(/^[\d.,]+\s*[×x]\s*[\d.,]+\s*in\s*·\s*/i, "")
+    .replace(/\s*·\s*en edición$/i, " ✎");
+}
+
+/** Alto que queda desde donde arranca el elemento hasta el borde de la ventana.
+ *  El editor se dimensionaba con `100dvh - 11rem`, un número fijo que no sabía
+ *  cuánto mide el cabezote (cambia al desplegar una etapa del flujo): la página
+ *  se desplazaba y el lienzo no se veía entero. Igual que en el taller de combos. */
+function useAltoDisponible<T extends HTMLElement>(activo: boolean) {
+  const ref = useRef<T>(null);
+  const [alto, setAlto] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!activo) {
+      setAlto(null);
+      return;
+    }
+    const medir = () => {
+      const el = ref.current;
+      if (!el) return;
+      setAlto(window.innerWidth < 1024 ? null : Math.max(420, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 12)));
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    const ro = new ResizeObserver(medir);
+    const cabezote = document.querySelector("header");
+    if (cabezote) ro.observe(cabezote);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener("resize", medir);
+      ro.disconnect();
+    };
+  }, [activo]);
+  return { ref, alto };
+}
+
+/** Marca del estado de una etiqueta: forma + color + texto, para que no dependa
+ *  solo del color. Aprobada = check verde lleno; por aprobar = círculo ámbar hueco. */
+function MarcaEstado({ estado, compacta = false }: { estado: EstadoEtiqueta; compacta?: boolean }) {
+  if (estado === "aprobada" || estado === "solo_png") {
+    return (
+      <span
+        className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
+        title={estado === "aprobada" ? "Aprobada: su PNG ya está en ETIQUETAS STUDIO" : "Solo el PNG aprobado: no hay etiqueta editable detrás"}
+        aria-label={TEXTO_ESTADO_ETIQUETA[estado]}
+      >
+        <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2.5 6.2l2.3 2.3 4.7-5" />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`inline-block shrink-0 rounded-full border-2 border-amber-500 ${compacta ? "h-3 w-3" : "h-3.5 w-3.5"}`}
+      title="Por aprobar: todavía no tiene PNG aprobado"
+      aria-label={TEXTO_ESTADO_ETIQUETA[estado]}
+    />
+  );
+}
+
+/** Parte la lista (ya ordenada) en «por aprobar» y «aprobadas». */
+function gruposPorEstado(lista: EtiquetaDeCategoria[]) {
+  return [
+    { id: "por_aprobar", titulo: "Por aprobar", items: lista.filter((e) => e.estado === "por_aprobar") },
+    { id: "aprobadas", titulo: "Aprobadas", items: lista.filter((e) => e.estado !== "por_aprobar") },
+  ].filter((g) => g.items.length > 0);
+}
+
+/** Siguiente trabajo tras aprobar `fichaId`: la próxima etiqueta «por aprobar»
+ *  de su misma categoría, en el orden de la lista (después de la actual y, si
+ *  no hay, desde el principio). Solo las que se abren en el editor. */
+export function siguienteEtiquetaPorAprobar(
+  resumen: ResumenCategoria[],
+  fichaId: string,
+): EtiquetaDeCategoria | null {
+  const r = resumen.find((x) => x.etiquetas.some((e) => e.fichaId === fichaId));
+  if (!r) return null;
+  const actual = r.etiquetas.find((e) => e.fichaId === fichaId)!;
+  const pendientes = r.etiquetas.filter((e) => e.estado === "por_aprobar" && e.fichaId && e.fichaId !== fichaId);
+  return pendientes.find((e) => e.nombre.localeCompare(actual.nombre, "es") > 0) ?? pendientes[0] ?? null;
+}
+
+const CLAVE_CATEGORIA_ABIERTA = "mck-studio-categoria-abierta";
+const CLAVE_LISTA_PLEGADA = "mck-studio-lista-plegada";
+
 interface Props {
+  /** Texto del buscador de Studio: filtra categorías, plantillas y etiquetas. */
+  buscar?: string;
   /** Primera plantilla de una categoría (pide el tamaño). */
   onCrearPlantilla: (categoriaId: string) => void;
   /** Otra plantilla de la misma categoría, para otro tamaño. */
@@ -192,17 +357,85 @@ interface Props {
   onNuevaEtiqueta: (p: PlantillaDeCategoria) => void;
   /** Abrir una etiqueta ya hecha de la categoría. */
   onAbrirEtiqueta: (e: EtiquetaDeCategoria) => void;
+  /** Editor de una etiqueta abierto: ocupa el lugar del detalle, al lado de la
+   *  lista, dentro de la pestaña Categorías (no como pantalla aparte). */
+  editor?: ReactNode;
+  /** Etiqueta abierta en el editor: se resalta en el árbol de la lista. */
+  etiquetaAbiertaId?: string;
+  /** Se eligió una categoría en la lista (con `editor`, para cerrarlo y ver su detalle). */
+  onElegirCategoria?: (id: string) => void;
 }
 
 export default function StudioCategoriasPanel({
+  buscar = "",
   onCrearPlantilla,
   onOtroTamano,
   onAbrirPlantilla,
   onNuevaEtiqueta,
   onAbrirEtiqueta,
+  editor,
+  etiquetaAbiertaId,
+  onElegirCategoria,
 }: Props) {
   const { resumen, categorias, cargando } = useResumenCategorias();
   const qc = useQueryClient();
+  // Categoría abierta en el detalle. Se recuerda: al volver de un formulario este
+  // panel se monta de nuevo y sin esto siempre reabriría la primera.
+  const [selId, setSelId] = useState<string>(() => {
+    try {
+      return localStorage.getItem(CLAVE_CATEGORIA_ABIERTA) || "";
+    } catch {
+      return "";
+    }
+  });
+  function elegirCategoria(id: string) {
+    setSelId(id);
+    setConfirmando(null);
+    setEditandoCat(null);
+    try {
+      localStorage.setItem(CLAVE_CATEGORIA_ABIERTA, id);
+    } catch {
+      /* sin almacenamiento: solo no se recuerda */
+    }
+    onElegirCategoria?.(id);
+  }
+  /** Con una etiqueta abierta la lista se pliega a un riel para dejarle el
+   *  ancho al lienzo; se recuerda lo que cada quien prefiera. */
+  const [plegada, setPlegada] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(CLAVE_LISTA_PLEGADA) !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const cambiarPlegada = (v: boolean) => {
+    setPlegada(v);
+    try {
+      localStorage.setItem(CLAVE_LISTA_PLEGADA, v ? "1" : "0");
+    } catch {
+      /* sin almacenamiento */
+    }
+  };
+  /** Categorías desplegadas en la lista lateral (muestran sus etiquetas debajo). */
+  const [desplegadas, setDesplegadas] = useState<Set<string>>(() => new Set());
+  const alternarDesplegada = (id: string) =>
+    setDesplegadas((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  /** Abrir una etiqueta desde el árbol: marca su categoría sin cerrar el editor. */
+  const abrirDesdeArbol = (catId: string, e: EtiquetaDeCategoria) => {
+    setSelId(catId);
+    try {
+      localStorage.setItem(CLAVE_CATEGORIA_ABIERTA, catId);
+    } catch {
+      /* sin almacenamiento */
+    }
+    onAbrirEtiqueta(e);
+  };
+  const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>(Boolean(editor));
   const [creandoCat, setCreandoCat] = useState(false);
   const [nombreCat, setNombreCat] = useState("");
   const [clavesCat, setClavesCat] = useState("");
@@ -312,6 +545,7 @@ export default function StudioCategoriasPanel({
     const otros = categorias.filter((c) => c.id === "otros");
     guardarCategoriasMut.mutate([...sinOtros, nueva, ...otros], {
       onSuccess: () => {
+        elegirCategoria(id);
         setCreandoCat(false);
         setNombreCat("");
         setClavesCat("");
@@ -319,308 +553,529 @@ export default function StudioCategoriasPanel({
     });
   }
 
-  // Primero las que tienen trabajo hecho; las vacías al final, para que la
-  // portada no abra con veinte tarjetas en blanco.
+  // Orden alfabético, que es como se busca en una lista; las que aún no tienen
+  // plantilla van al final.
   const ordenadas = useMemo(
     () =>
       [...resumen].sort((a, b) => {
-        if (a.plantillas.length !== b.plantillas.length) {
-          return b.plantillas.length - a.plantillas.length;
-        }
+        const vaciaA = a.plantillas.length === 0 ? 1 : 0;
+        const vaciaB = b.plantillas.length === 0 ? 1 : 0;
+        if (vaciaA !== vaciaB) return vaciaA - vaciaB;
         return a.categoria.etiqueta.localeCompare(b.categoria.etiqueta, "es");
       }),
     [resumen],
   );
 
+  // Buscador: manda lo que coincide en las ETIQUETAS. Si alguna coincide, la
+  // categoría muestra solo esas. Antes la categoría salía entera cuando la
+  // búsqueda caía en sus palabras clave: «chia» es clave de Semillas & Frutos
+  // Secos y mostraba sus 33 etiquetas, como si el buscador no filtrara. Entera
+  // solo sale si ninguna etiqueta coincide pero sí su nombre, claves o plantillas.
+  const q = normalizarBusqueda(buscar);
+  const visibles = useMemo(() => {
+    if (!q) return ordenadas;
+    const conEtiquetas: ResumenCategoria[] = [];
+    const soloCategoria: ResumenCategoria[] = [];
+    for (const r of ordenadas) {
+      const etiquetas = r.etiquetas.filter((e) => coincideBusqueda(`${e.nombre} ${e.detalle} ${TEXTO_ESTADO_ETIQUETA[e.estado]}`, q));
+      if (etiquetas.length > 0) {
+        conEtiquetas.push({ ...r, etiquetas });
+        continue;
+      }
+      const porCategoria =
+        coincideBusqueda(`${r.categoria.etiqueta} ${(r.categoria.claves || []).join(" ")}`, q) ||
+        r.plantillas.some((p) => coincideBusqueda(`${p.nombre} ${p.formato}`, q));
+      if (porCategoria) soloCategoria.push(r);
+    }
+    // Primero donde hay etiquetas que coinciden: es la que se abre en el detalle.
+    return [...conEtiquetas, ...soloCategoria];
+  }, [ordenadas, q]);
+  const conCoincidencias = useMemo(
+    () => new Set(q ? ordenadas.filter((r) => r.etiquetas.some((e) => coincideBusqueda(`${e.nombre} ${e.detalle} ${TEXTO_ESTADO_ETIQUETA[e.estado]}`, q))).map((r) => r.categoria.id) : []),
+    [ordenadas, q],
+  );
+
   if (cargando) {
     return (
-      <div className="flex justify-center py-20">
+      <div ref={raiz} className="flex justify-center py-20">
         <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     );
   }
 
-  return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <p className="min-w-0 flex-1 text-xs text-muted">
-          Una plantilla es un formulario que sirve para toda una categoría y un tamaño de
-          etiqueta. Desde ella se hacen las etiquetas de cada producto, que quedan en{" "}
-          <span className="font-medium text-ink">{CARPETA_ETIQUETAS_STUDIO}</span> y se
-          imprimen desde Diseño → Imprimir.
-        </p>
-        <button
-          type="button"
-          onClick={() => setCreandoCat((v) => !v)}
-          className="shrink-0 rounded-lg border border-accent/40 px-3 py-2 text-sm font-semibold text-accent hover:bg-accent/10"
-        >
-          {creandoCat ? "Cancelar" : "+ Categoría"}
-        </button>
-      </div>
+  // Con búsqueda, la categoría recordada solo se conserva si tiene etiquetas que
+  // coinciden; si no, se abre la primera con resultados.
+  const recordada = visibles.find((r) => r.categoria.id === selId);
+  const sel =
+    (q && recordada && visibles[0] && recordada.etiquetas.length === 0 && visibles[0].etiquetas.length > 0
+      ? visibles[0]
+      : recordada) ?? visibles[0] ?? null;
+  // Con el buscador activo `sel.etiquetas` viene filtrada; los avisos cuentan todas.
+  const totalEtiquetasSel = sel
+    ? (resumen.find((r) => r.categoria.id === sel.categoria.id)?.etiquetas.length ?? sel.etiquetas.length)
+    : 0;
 
-      {creandoCat && (
-        <div className="mb-4 rounded-xl border border-border bg-surface-panel p-3">
-          <div className="flex flex-wrap gap-2">
-            <input
-              autoFocus
-              value={nombreCat}
-              onChange={(e) => setNombreCat(e.target.value)}
-              placeholder="Nombre (ej. Sales de baño)"
-              className="min-w-[12rem] flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs"
-            />
-            <input
-              value={clavesCat}
-              onChange={(e) => setClavesCat(e.target.value)}
-              placeholder="Palabras clave, separadas por comas (opcional)"
-              className="min-w-[14rem] flex-[2] rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs"
-            />
+  const lista = (
+      <nav
+        className={`mb-3 lg:sticky lg:top-0 lg:mb-0 ${editor ? "lg:flex lg:h-full lg:min-h-0 lg:flex-col" : ""}`}
+        aria-label="Categorías de producto"
+      >
+        <div className="mb-1.5 flex items-center gap-2">
+          <p className="min-w-0 flex-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            Categorías ({q ? `${visibles.length} de ${ordenadas.length}` : ordenadas.length})
+          </p>
+          {editor && (
             <button
               type="button"
-              onClick={crearCategoria}
-              disabled={!nombreCat.trim() || guardarCategoriasMut.isPending}
-              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+              onClick={() => cambiarPlegada(true)}
+              title="Plegar la lista para darle más espacio al lienzo"
+              className="hidden shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:bg-surface-hover hover:text-ink lg:block"
             >
-              {guardarCategoriasMut.isPending ? "Creando…" : "Crear"}
+              «
             </button>
-          </div>
-          <p className="mt-1 text-[10px] text-muted">
-            Las palabras clave sirven para reconocer sola la categoría de un producto por su nombre.
-          </p>
-          {errorCat && <p className="mt-1 text-[11px] text-danger">{errorCat}</p>}
+          )}
+          {!editor && (
+          <button
+            type="button"
+            onClick={() => setCreandoCat((v) => !v)}
+            className="shrink-0 rounded-lg border border-accent/40 px-2 py-1 text-[11px] font-semibold text-accent hover:bg-accent/10"
+          >
+            {creandoCat ? "Cancelar" : "+ Categoría"}
+          </button>
+          )}
         </div>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ordenadas.map(({ categoria, plantillas, etiquetas }) => {
-          const principal = plantillas[0] ?? null;
-          return (
-            <article
-              key={categoria.id}
-              className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel"
-            >
-              <div className="flex min-h-[110px] items-center justify-center bg-[#525659] p-3">
-                {principal?.doc ? (
-                  <PlantillaVisualMiniatura doc={principal.doc} maxAncho={150} maxAlto={104} />
-                ) : principal ? (
-                  <p className="px-3 text-center text-[11px] text-white/80">
-                    {plantillas.length} plantilla{plantillas.length === 1 ? "" : "s"}
-                    <br />
-                    <span className="text-white/50">
-                      {plantillas.map((p) => p.formato).join(" · ")}
+        {/* En pantallas angostas la lista es una tira horizontal: no empuja el detalle hacia abajo. */}
+        <ul
+          className={`flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:overflow-x-hidden lg:pb-0 lg:pr-1 ${
+            editor ? "lg:min-h-0 lg:flex-1" : "lg:max-h-[calc(100dvh-13.5rem)]"
+          }`}
+        >
+          {visibles.map((r) => {
+            const activa = sel?.categoria.id === r.categoria.id;
+            const abierto = desplegadas.has(r.categoria.id) || conCoincidencias.has(r.categoria.id);
+            return (
+              <li key={r.categoria.id} className="shrink-0 lg:shrink">
+                <div className="flex items-center gap-0.5">
+                {/* Desplegar: solo en la columna (lg); en la tira horizontal no cabe un árbol. */}
+                <button
+                  type="button"
+                  onClick={() => alternarDesplegada(r.categoria.id)}
+                  disabled={r.etiquetas.length === 0}
+                  aria-expanded={abierto}
+                  aria-label={`${abierto ? "Recoger" : "Desplegar"} las etiquetas de ${r.categoria.etiqueta}`}
+                  title={r.etiquetas.length === 0 ? "Sin etiquetas" : abierto ? "Recoger" : "Ver sus etiquetas"}
+                  className="hidden h-6 w-5 shrink-0 items-center justify-center rounded text-[10px] text-muted hover:bg-surface-hover hover:text-ink disabled:opacity-30 lg:flex"
+                >
+                  <span className={`inline-block transition-transform ${abierto ? "rotate-90" : ""}`}>▶</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => elegirCategoria(r.categoria.id)}
+                  aria-current={activa ? "true" : undefined}
+                  title={r.categoria.etiqueta}
+                  className={`flex w-full min-w-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-left text-xs transition lg:whitespace-normal ${
+                    activa
+                      ? "bg-accent font-semibold text-white"
+                      : "border border-border text-ink hover:bg-surface-hover lg:border-transparent"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1 lg:truncate">{r.categoria.etiqueta}</span>
+                  {r.plantillas.length === 0 ? (
+                    <span className={`shrink-0 text-[10px] ${activa ? "text-white/70" : "text-muted"}`}>
+                      sin plantilla
                     </span>
-                  </p>
-                ) : (
-                  <p className="px-3 text-center text-[11px] text-white/70">
-                    Sin plantilla todavía
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-1 flex-col gap-2 px-3 py-2.5">
-                {editandoCat === categoria.id ? (
-                  <div className="space-y-1.5">
-                    <input
-                      autoFocus
-                      value={editNombre}
-                      onChange={(e) => setEditNombre(e.target.value)}
-                      placeholder="Nombre de la categoría"
-                      className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
-                    />
-                    <input
-                      value={editClaves}
-                      onChange={(e) => setEditClaves(e.target.value)}
-                      placeholder="Palabras clave, separadas por comas"
-                      className="w-full rounded border border-border bg-surface px-2 py-1 text-[11px]"
-                    />
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => guardarEdicion(categoria.id)}
-                        disabled={!editNombre.trim() || guardarCategoriasMut.isPending}
-                        className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-40"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditandoCat(null)}
-                        className="rounded border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-1">
-                    <h3
-                      className="min-w-0 flex-1 truncate text-sm font-semibold text-ink"
-                      title={categoria.etiqueta}
+                  ) : (
+                    <span
+                      className={`shrink-0 rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${
+                        activa ? "bg-white/20 text-white" : "bg-surface-hover text-ink-secondary"
+                      }`}
+                      title={`${r.etiquetas.filter((e) => e.estado !== "por_aprobar").length} aprobada(s) de ${r.etiquetas.length} etiqueta(s) · ${r.plantillas.length} plantilla(s)`}
                     >
-                      {categoria.etiqueta}
-                    </h3>
-                    {confirmando === `cat:${categoria.id}` ? (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <span className="text-[10px] text-danger">
-                          {plantillas.length + etiquetas.length > 0
-                            ? `Se queda con ${plantillas.length} plantilla(s) y ${etiquetas.length} etiqueta(s) sin categoría.`
-                            : "¿Eliminar?"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => eliminarCategoria(categoria.id)}
-                          disabled={borrando === `cat:${categoria.id}`}
-                          className="rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                      {r.etiquetas.filter((e) => e.estado !== "por_aprobar").length}/{r.etiquetas.length}
+                    </span>
+                  )}
+                </button>
+                </div>
+                {abierto && r.etiquetas.length > 0 && (
+                  <div className="mb-1 ml-3 mt-0.5 hidden border-l border-border pl-1.5 lg:block">
+                    {gruposPorEstado(r.etiquetas).map((g) => (
+                      <div key={g.id}>
+                        <p
+                          className={`mt-1 px-1.5 text-[9px] font-bold uppercase tracking-wider ${
+                            g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
+                          }`}
                         >
-                          {borrando === `cat:${categoria.id}` ? "…" : "Sí, eliminar"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmando(null)}
-                          className="rounded border border-border px-1.5 py-0.5 text-[10px] text-ink-secondary hover:bg-surface-hover"
-                        >
-                          No
-                        </button>
+                          {g.titulo} · {g.items.length}
+                        </p>
+                        <ul>
+                          {g.items.map((e) => {
+                            const esta = Boolean(etiquetaAbiertaId && e.fichaId === etiquetaAbiertaId);
+                            return (
+                              <li key={e.clave}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // Ya está abierta: volver a tocarla no la recarga.
+                                    if (!esta) abrirDesdeArbol(r.categoria.id, e);
+                                  }}
+                                  aria-current={esta ? "true" : undefined}
+                                  title={`${e.nombre}${e.detalle ? ` · ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
+                                    (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
+                                  }${esta ? " · abierta ahora" : ""}${e.fichaId ? "" : " · se ve en Recursos"}`}
+                                  className={`flex w-full min-w-0 items-center gap-1.5 rounded px-1.5 py-0.5 text-left text-[11px] ${
+                                    esta
+                                      ? "cursor-default bg-accent font-semibold text-white"
+                                      : e.estado === "por_aprobar"
+                                        ? "text-ink hover:bg-surface-hover"
+                                        : "text-muted hover:bg-surface-hover hover:text-ink"
+                                  }`}
+                                >
+                                  <MarcaEstado estado={e.estado} compacta />
+                                  <span className="min-w-0 flex-1 truncate">{e.nombre}</span>
+                                  {esta && <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-white/80">abierta</span>}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
-                    ) : (
-                      <div className="flex shrink-0 gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => empezarEdicion(categoria)}
-                          title="Editar nombre y palabras clave"
-                          className="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-surface-hover hover:text-ink"
-                        >
-                          ✎
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmando(`cat:${categoria.id}`)}
-                          title="Eliminar categoría"
-                          className="rounded px-1.5 py-0.5 text-[11px] text-muted hover:bg-red-50 hover:text-red-600"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Una plantilla por tamaño. El chip abre la plantilla para ajustarla;
-                    hacer una etiqueta de un producto va por el botón de abajo. */}
-                {plantillas.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {plantillas.map((p) => (
-                      <button
-                        key={`${p.motor}:${p.id}`}
-                        type="button"
-                        onClick={() => onAbrirPlantilla(p)}
-                        title={`Ajustar ${p.nombre}`}
-                        className="rounded-full border border-accent/40 bg-accent/5 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/15"
-                      >
-                        {p.formato}
-                      </button>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-[11px] text-muted">
-                    Aún no hay un formulario para esta familia de productos.
-                  </p>
                 )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+  );
 
-                {plantillas.length > 0 && (
-                  <div className="rounded-lg border border-border bg-surface p-2">
-                    <p className="mb-1 text-[10px] font-semibold text-ink-secondary">
-                      Etiquetas de esta categoría ({etiquetas.length})
-                    </p>
-                    {etiquetas.length === 0 ? (
-                      <p className="text-[10px] text-muted">
-                        Todavía ninguna. Usa «Nueva etiqueta» para hacer la primera.
-                      </p>
-                    ) : (
-                      <ul className="max-h-32 space-y-0.5 overflow-y-auto">
-                        {etiquetas.map((e) => (
-                          <li key={e.clave} className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => onAbrirEtiqueta(e)}
-                              title={e.nombre}
-                              className="flex min-w-0 flex-1 items-baseline gap-1.5 rounded px-1 py-0.5 text-left hover:bg-surface-hover"
-                            >
-                              <span className="min-w-0 flex-1 truncate text-[11px] text-ink">
-                                {e.nombre}
-                              </span>
-                              {e.detalle && (
-                                <span className="shrink-0 text-[9px] text-muted">{e.detalle}</span>
-                              )}
-                            </button>
-                            {confirmando === e.clave ? (
-                              <span className="flex shrink-0 items-center gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => eliminarEtiqueta(e)}
-                                  disabled={borrando === e.clave}
-                                  className="rounded bg-danger px-1.5 py-0.5 text-[9px] font-bold text-white disabled:opacity-50"
-                                >
-                                  {borrando === e.clave ? "…" : "Eliminar"}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmando(null)}
-                                  className="rounded border border-border px-1 py-0.5 text-[9px] text-ink-secondary hover:bg-surface-hover"
-                                >
-                                  No
-                                </button>
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => setConfirmando(e.clave)}
-                                title="Eliminar etiqueta"
-                                className="shrink-0 rounded px-1 py-0.5 text-[11px] text-muted hover:bg-red-50 hover:text-red-600"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
+  return (
+    // Lista + detalle: las categorías caben todas a la izquierda y a la derecha
+    // se ve solo la elegida. La portada anterior (una tarjeta alta por categoría)
+    // pedía 3,4 pantallas de scroll y una lista con scroll propio en cada tarjeta.
+    <div
+      ref={raiz}
+      style={editor && alto ? { height: alto } : undefined}
+      className={`lg:grid ${editor ? "lg:items-stretch" : "lg:items-start"} ${
+        editor && plegada ? "lg:grid-cols-[2.25rem_minmax(0,1fr)] lg:gap-2" : "lg:grid-cols-[15.5rem_minmax(0,1fr)] lg:gap-4"
+      }`}
+    >
+      {editor && plegada ? (
+        <>
+          {/* Riel: la lista plegada. En celular la tira horizontal sigue igual. */}
+          <button
+            type="button"
+            onClick={() => cambiarPlegada(false)}
+            title="Mostrar las categorías y sus etiquetas"
+            className="hidden h-full w-9 flex-col items-center gap-2 rounded-xl border border-border bg-surface-panel py-3 text-muted hover:bg-surface-hover hover:text-ink lg:flex"
+          >
+            <span className="text-sm">»</span>
+            <span className="text-[11px] font-semibold tracking-wide [writing-mode:vertical-rl]">
+              Categorías · {sel?.categoria.etiqueta ?? ""}
+            </span>
+          </button>
+          <div className="lg:hidden">{lista}</div>
+        </>
+      ) : (
+        lista
+      )}
 
-                <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
-                  {plantillas.length === 0 ? (
+      {editor ? (
+        <div className="flex min-h-[70dvh] min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface lg:h-full lg:min-h-0">
+          {editor}
+        </div>
+      ) : (
+      <div className="min-w-0">
+        {creandoCat && (
+          <div className="mb-3 rounded-xl border border-border bg-surface-panel p-3">
+            <div className="flex flex-wrap gap-2">
+              <input
+                autoFocus
+                value={nombreCat}
+                onChange={(e) => setNombreCat(e.target.value)}
+                placeholder="Nombre (ej. Sales de baño)"
+                className="min-w-[12rem] flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs"
+              />
+              <input
+                value={clavesCat}
+                onChange={(e) => setClavesCat(e.target.value)}
+                placeholder="Palabras clave, separadas por comas (opcional)"
+                className="min-w-[14rem] flex-[2] rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs"
+              />
+              <button
+                type="button"
+                onClick={crearCategoria}
+                disabled={!nombreCat.trim() || guardarCategoriasMut.isPending}
+                className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40"
+              >
+                {guardarCategoriasMut.isPending ? "Creando…" : "Crear"}
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-muted">
+              Las palabras clave sirven para reconocer sola la categoría de un producto por su nombre.
+            </p>
+            {errorCat && <p className="mt-1 text-[11px] text-danger">{errorCat}</p>}
+          </div>
+        )}
+
+        {!sel && (
+          <p className="py-10 text-center text-sm text-muted">
+            {q
+              ? `Ninguna categoría, plantilla ni etiqueta coincide con «${buscar.trim()}».`
+              : "Todavía no hay categorías. Crea la primera con «+ Categoría»."}
+          </p>
+        )}
+
+        {sel && (
+          <section className="rounded-xl border border-border bg-surface-panel p-3 sm:p-4">
+            {editandoCat === sel.categoria.id ? (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={editNombre}
+                  onChange={(e) => setEditNombre(e.target.value)}
+                  placeholder="Nombre de la categoría"
+                  className="min-w-[10rem] flex-1 rounded border border-border bg-surface px-2 py-1 text-sm"
+                />
+                <input
+                  value={editClaves}
+                  onChange={(e) => setEditClaves(e.target.value)}
+                  placeholder="Palabras clave, separadas por comas"
+                  className="min-w-[14rem] flex-[2] rounded border border-border bg-surface px-2 py-1 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => guardarEdicion(sel.categoria.id)}
+                  disabled={!editNombre.trim() || guardarCategoriasMut.isPending}
+                  className="rounded bg-accent px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-40"
+                >
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditandoCat(null)}
+                  className="rounded border border-border px-2.5 py-1 text-xs text-ink-secondary hover:bg-surface-hover"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h2 className="min-w-0 flex-1 truncate text-base font-bold text-ink" title={sel.categoria.etiqueta}>
+                  {sel.categoria.etiqueta}
+                </h2>
+                {confirmando === `cat:${sel.categoria.id}` ? (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="text-[11px] text-danger">
+                      {sel.plantillas.length + totalEtiquetasSel > 0
+                        ? `Se queda con ${sel.plantillas.length} plantilla(s) y ${totalEtiquetasSel} etiqueta(s) sin categoría.`
+                        : "¿Eliminar la categoría?"}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => onCrearPlantilla(categoria.id)}
-                      className="rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                      onClick={() => eliminarCategoria(sel.categoria.id)}
+                      disabled={borrando === `cat:${sel.categoria.id}`}
+                      className="rounded bg-danger px-2 py-1 text-[11px] font-bold text-white disabled:opacity-50"
                     >
-                      Crear plantilla
+                      {borrando === `cat:${sel.categoria.id}` ? "…" : "Sí, eliminar"}
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => onNuevaEtiqueta(principal!)}
-                        className="rounded-lg bg-accent px-2.5 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                      >
-                        Nueva etiqueta
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOtroTamano(categoria.id)}
-                        title="Otra plantilla de esta categoría, para otro tamaño de etiqueta"
-                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
-                      >
-                        + tamaño
-                      </button>
-                    </>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmando(null)}
+                      className="rounded border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => empezarEdicion(sel.categoria)}
+                      className="rounded-lg border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                    >
+                      ✎ Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmando(`cat:${sel.categoria.id}`)}
+                      className="rounded-lg border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-red-50 hover:text-red-600"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                )}
               </div>
-            </article>
-          );
-        })}
+            )}
+            {errorCat && !creandoCat && <p className="mt-1 text-[11px] text-danger">{errorCat}</p>}
+
+            {/* Una plantilla por tamaño: desde cada una se hace la etiqueta de un producto. */}
+            <h3 className="mb-1.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Plantillas por tamaño ({sel.plantillas.length})
+            </h3>
+            {sel.plantillas.length === 0 ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-border px-3 py-3">
+                <p className="min-w-0 flex-1 text-xs text-muted">
+                  Aún no hay un formulario para esta familia de productos. La plantilla sirve para toda
+                  la categoría y un tamaño de etiqueta; desde ella se hacen las de cada producto.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onCrearPlantilla(sel.categoria.id)}
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                >
+                  Crear plantilla
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {sel.plantillas.map((p) => (
+                  <div
+                    key={`${p.motor}:${p.id}`}
+                    className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2"
+                  >
+                    {p.doc && (
+                      <span className="flex shrink-0 items-center justify-center rounded bg-[#525659] p-1">
+                        <PlantillaVisualMiniatura doc={p.doc} maxAncho={56} maxAlto={40} />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-ink" title={p.formato}>
+                        {tamanoCorto(p.formato)}
+                      </p>
+                      <p className="line-clamp-2 text-[10px] leading-tight text-muted" title={p.nombre}>
+                        {p.nombre}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onAbrirPlantilla(p)}
+                      title={`Ajustar la plantilla ${p.nombre}`}
+                      className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                    >
+                      Ajustar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onNuevaEtiqueta(p)}
+                      title={`Nueva etiqueta de un producto en ${p.formato}`}
+                      className="shrink-0 rounded-lg bg-accent px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90"
+                    >
+                      + Etiqueta
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => onOtroTamano(sel.categoria.id)}
+                  title="Otra plantilla de esta categoría, para otro tamaño de etiqueta"
+                  className="rounded-lg border border-dashed border-border px-2.5 py-2 text-xs font-semibold text-ink-secondary hover:border-accent/50 hover:text-accent"
+                >
+                  + Otro tamaño
+                </button>
+              </div>
+            )}
+
+            {sel.plantillas.length > 0 && (
+              <>
+                <h3 className="mb-1.5 mt-4 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  Etiquetas (
+                  {sel.etiquetas.length < totalEtiquetasSel
+                    ? `${sel.etiquetas.length} de ${totalEtiquetasSel}`
+                    : sel.etiquetas.length}
+                  )
+                </h3>
+                {totalEtiquetasSel === 0 ? (
+                  <p className="text-xs text-muted">
+                    Todavía ninguna. Usa «+ Etiqueta» en el tamaño que necesites para hacer la primera.
+                  </p>
+                ) : (
+                  gruposPorEstado(sel.etiquetas).map((g) => (
+                  <div key={g.id} className="mb-2">
+                  <p
+                    className={`mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${
+                      g.id === "por_aprobar" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400"
+                    }`}
+                  >
+                    <MarcaEstado estado={g.id === "por_aprobar" ? "por_aprobar" : "aprobada"} compacta />
+                    {g.titulo} · {g.items.length}
+                  </p>
+                  <ul
+                    className={`grid grid-cols-1 gap-x-4 gap-y-0.5 rounded-lg border-l-4 pl-2 sm:grid-cols-2 2xl:grid-cols-3 ${
+                      g.id === "por_aprobar" ? "border-amber-400" : "border-emerald-500"
+                    }`}
+                  >
+                    {g.items.map((e) => (
+                      <li key={e.clave} className="flex min-w-0 items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onAbrirEtiqueta(e)}
+                          title={`${e.nombre}${e.detalle ? ` — ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
+                            (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
+                          }`}
+                          className="flex min-w-0 flex-1 items-center gap-1.5 rounded px-1.5 py-1 text-left hover:bg-surface-hover"
+                        >
+                          <MarcaEstado estado={e.estado} />
+                          <span className={`min-w-0 flex-1 truncate text-xs ${e.estado === "por_aprobar" ? "text-ink" : "text-ink-secondary"}`}>
+                            {e.nombre}
+                          </span>
+                          {(e.versionesPng ?? 0) > 1 && (
+                            <span className="shrink-0 rounded bg-emerald-100 px-1 text-[9px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                              ×{e.versionesPng}
+                            </span>
+                          )}
+                          {e.detalle && (
+                            <span className="max-w-[40%] shrink-0 truncate text-[10px] text-muted">
+                              {tamanoCorto(e.detalle)}
+                            </span>
+                          )}
+                        </button>
+                        {confirmando === e.clave ? (
+                          <span className="flex shrink-0 items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => eliminarEtiqueta(e)}
+                              disabled={borrando === e.clave}
+                              className="rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                            >
+                              {borrando === e.clave ? "…" : "Eliminar"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmando(null)}
+                              className="rounded border border-border px-1 py-0.5 text-[10px] text-ink-secondary hover:bg-surface-hover"
+                            >
+                              No
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmando(e.clave)}
+                            title="Eliminar etiqueta"
+                            className="shrink-0 rounded px-1 py-0.5 text-xs text-muted hover:bg-red-50 hover:text-red-600"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  </div>
+                  ))
+                )}
+              </>
+            )}
+
+            <p className="mt-4 border-t border-border pt-2 text-[10px] text-muted">
+              Las etiquetas terminadas quedan en{" "}
+              <span className="font-medium text-ink">{CARPETA_ETIQUETAS_STUDIO}</span> y se imprimen
+              desde Diseño → Imprimir.
+            </p>
+          </section>
+        )}
       </div>
+      )}
     </div>
   );
 }

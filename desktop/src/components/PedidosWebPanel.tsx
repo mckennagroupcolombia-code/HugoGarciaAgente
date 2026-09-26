@@ -1,3 +1,4 @@
+import { Ico } from "../icons/Ico";
 import { useState, useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -194,7 +195,7 @@ function ShipBadge({ status }: { status: string }) {
   const s = SHIP_LABELS[status] ?? { label: status, icon: "📦", cls: "text-gray-400" };
   return (
     <span className={`text-xs font-medium ${s.cls}`}>
-      {s.icon} {s.label}
+      <Ico e={s.icon} /> {s.label}
     </span>
   );
 }
@@ -1128,7 +1129,7 @@ export default function PedidosWebPanel() {
           onClick={() => refetch()}
           className="rounded-lg border border-border bg-surface-panel px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-hover transition"
         >
-          🔄 Actualizar
+          <Ico e="🔄" /> Actualizar
         </button>
         <button
           type="button"

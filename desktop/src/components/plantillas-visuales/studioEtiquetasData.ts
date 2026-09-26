@@ -8,6 +8,12 @@ import { api } from "../../api/client";
 
 export const CARPETA_ETIQUETAS_STUDIO = "ETIQUETAS STUDIO";
 
+/** Versiones desenfocadas de las etiquetas (casilla "Desenfoque" de la ficha).
+ *  Carpeta hermana de ETIQUETAS STUDIO a propósito: Diseño → Imprimir solo
+ *  lista aquella, así estas nunca se confunden con la de impresión. Se ven en
+ *  Studio → «Etiquetas para publicaciones». */
+export const CARPETA_PUBLICACIONES_DIGITALES = "PUBLICACIONES DIGITALES";
+
 export interface EtiquetaStudioPng {
   id: string | null;
   nombre: string;
@@ -34,22 +40,39 @@ export const QK_ETIQUETAS_STUDIO = [
 ] as const;
 
 export async function fetchEtiquetasStudio(): Promise<EtiquetaStudioPng[]> {
+  // `recursivo=1`: los PNG aprobados se guardan en ETIQUETAS STUDIO/<Categoría>/.
+  // Sin él la lista solo traía la raíz y ninguna etiqueta aparecía como aprobada.
   const res = await api.get<{ recursos: EtiquetaStudioPng[] }>(
-    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}`,
+    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_ETIQUETAS_STUDIO)}&recursivo=1`,
+  );
+  return res.recursos ?? [];
+}
+
+export const QK_ETIQUETAS_PUBLICACIONES = [
+  "etiquetas-recursos-png",
+  CARPETA_PUBLICACIONES_DIGITALES,
+  "lista",
+] as const;
+
+export async function fetchEtiquetasPublicaciones(): Promise<EtiquetaStudioPng[]> {
+  const res = await api.get<{ recursos: EtiquetaStudioPng[] }>(
+    `/api/etiquetas/recursos-png?carpeta=${encodeURIComponent(CARPETA_PUBLICACIONES_DIGITALES)}&recursivo=1`,
   );
   return res.recursos ?? [];
 }
 
 /** Categoría de una etiqueta por su ruta: solo las que viven en una subcarpeta
  *  `ETIQUETAS STUDIO/<Categoría>/…`, que son las generadas desde una plantilla.
- *  Las 90 sueltas en la raíz son el catálogo viejo y devuelven null a propósito. */
+ *  Las 90 sueltas en la raíz son el catálogo viejo y devuelven null a propósito.
+ *  `raiz` permite usar la misma regla con PUBLICACIONES DIGITALES/<Categoría>/. */
 export function categoriaDeRutaEtiqueta(
   nombre: string,
   cats: { id: string; etiqueta: string }[],
+  raiz: string = CARPETA_ETIQUETAS_STUDIO,
 ): string | null {
   const partes = (nombre || "").replace(/\\/g, "/").split("/");
   if (partes.length < 3) return null;
-  if (partes[0].trim().toUpperCase() !== CARPETA_ETIQUETAS_STUDIO) return null;
+  if (partes[0].trim().toUpperCase() !== raiz.toUpperCase()) return null;
   const carpeta = partes[1].trim().toLowerCase();
   const cat = cats.find(
     (c) => c.etiqueta.trim().toLowerCase() === carpeta || c.id === carpeta,
@@ -64,4 +87,26 @@ export function useEtiquetasStudio() {
     staleTime: 15_000,
     gcTime: 60 * 60 * 1000,
   });
+}
+
+export function useEtiquetasPublicaciones() {
+  return useQuery({
+    queryKey: QK_ETIQUETAS_PUBLICACIONES,
+    queryFn: fetchEtiquetasPublicaciones,
+    staleTime: 15_000,
+    gcTime: 60 * 60 * 1000,
+  });
+}
+
+/** Texto comparable para el buscador de Studio: sin tildes ni mayúsculas, para
+ *  que «mani» encuentre «MANÍ 500g». */
+export function normalizarBusqueda(s: string): string {
+  return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+/** ¿`texto` contiene todas las palabras de la búsqueda (ya normalizada)? */
+export function coincideBusqueda(texto: string, q: string): boolean {
+  if (!q) return true;
+  const t = normalizarBusqueda(texto);
+  return q.split(/\s+/).every((palabra) => t.includes(palabra));
 }

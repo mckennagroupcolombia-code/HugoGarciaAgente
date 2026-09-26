@@ -53,15 +53,15 @@
       "alto_pulg": 2.008,
       "unidades_por_rollo": 540,
       "rollos": 2.0,
-      "etiquetas_sueltas": 226,
+      "etiquetas_sueltas": 148,
       "minimo_rollos": 1.0,
       "minimo": 1.0,
       "formato_etiqueta": "100 g",
       "notas": "",
       "cantidad": 2.0,
       "unidad": "rollos",
-      "total_etiquetas": 1306,
-      "updated_at": "2026-09-08T12:29:45"
+      "total_etiquetas": 1228,
+      "updated_at": "2026-09-19T09:06:18"
     },
     {
       "id": "79e33a0235d5",
@@ -94,16 +94,16 @@
       "ancho_pulg": 4.016,
       "alto_pulg": 1.496,
       "unidades_por_rollo": 750,
-      "rollos": 5.0,
-      "etiquetas_sueltas": 20,
+      "rollos": 4.0,
+      "etiquetas_sueltas": 640,
       "minimo_rollos": 0.5,
       "minimo": 0.5,
       "formato_etiqueta": "30 mL",
       "notas": "",
-      "cantidad": 5.0,
+      "cantidad": 4.0,
       "unidad": "rollos",
-      "total_etiquetas": 3770,
-      "updated_at": "2026-09-07T11:56:27"
+      "total_etiquetas": 3640,
+      "updated_at": "2026-09-16T10:10:02"
     },
     {
       "id": "2f09c6c04d72",
@@ -137,15 +137,15 @@
       "alto_pulg": 1.614,
       "unidades_por_rollo": 690,
       "rollos": 9.0,
-      "etiquetas_sueltas": 64,
+      "etiquetas_sueltas": 32,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "5 g",
       "notas": "",
       "cantidad": 9.0,
       "unidad": "rollos",
-      "total_etiquetas": 6274,
-      "updated_at": "2026-09-08T12:35:41"
+      "total_etiquetas": 6242,
+      "updated_at": "2026-09-23T14:34:12"
     },
     {
       "id": "2299337d5a1e",
@@ -179,15 +179,15 @@
       "alto_pulg": 2.598,
       "unidades_por_rollo": 410,
       "rollos": 8.0,
-      "etiquetas_sueltas": 388,
+      "etiquetas_sueltas": 209,
       "minimo_rollos": 0.0,
       "minimo": 0.0,
       "formato_etiqueta": "250 / 500 g",
       "notas": "",
       "cantidad": 8.0,
       "unidad": "rollos",
-      "total_etiquetas": 3668,
-      "updated_at": "2026-09-01T11:18:32"
+      "total_etiquetas": 3489,
+      "updated_at": "2026-09-23T14:32:09"
     },
     {
       "id": "1c1159488549",

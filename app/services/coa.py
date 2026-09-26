@@ -136,13 +136,7 @@ def aplicar_datos_a_docx(doc_path: Path, datos: dict) -> None:
     _celda(t5, 3, 1, lote.get("fecha_analisis", ""))
     _celda(t5, 3, 3, lote.get("fecha_emision", ""))
 
-    fabricante = (lote.get("fabricante") or "").strip()
-    if fabricante:
-        fila_fab = t5.rows[4] if len(t5.rows) > 4 else t5.add_row()
-        if len(fila_fab.cells) > 0:
-            fila_fab.cells[0].text = "FABRICANTE ORIGINAL"
-        if len(fila_fab.cells) > 1:
-            fila_fab.cells[1].text = fabricante
+    # El fabricante no se imprime en el COA: hacia afuera solo país de origen.
 
     # Tabla 7 — parámetros de análisis
     t7 = tablas[7]

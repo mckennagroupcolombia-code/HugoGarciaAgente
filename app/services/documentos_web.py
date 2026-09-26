@@ -25,6 +25,10 @@ from app.services.ficha_tecnica import (
     _contexto_coa,
     _contexto_html,
     _contexto_sds,
+    limpiar_contextos_documento,
+    mover_composicion_al_coa,
+    preparar_sds_documento,
+    sds_con_recomendaciones_ft,
     _sds_diligenciado,
 )
 
@@ -156,14 +160,15 @@ def _contexto_publico(datos: dict) -> dict | None:
     if not coa or not _coa_diligenciado(coa):
         return None
     coa = _con_firma_default(coa)
-    sds = _contexto_sds(datos.get("_sds") or {})
-    if not sds or not _sds_diligenciado(sds):
+    sds = _contexto_sds(sds_con_recomendaciones_ft(datos.get("_sds") or {}, ft))
+    # La web nunca contó las recomendaciones de la FT para publicar una SDS.
+    if not sds or not _sds_diligenciado(sds, contar_recomendaciones_ft=False):
         return None
-
-    recs_ft = list(ft.get("recomendaciones") or [])
     ft["recomendaciones"] = []
-    if recs_ft and not (sds.get("recomendaciones") or []):
-        sds["recomendaciones"] = recs_ft
+
+    mover_composicion_al_coa(ft, coa, sds)
+    preparar_sds_documento(ft, coa, sds)
+    limpiar_contextos_documento(ft, coa, sds)
 
     if coa.get("formula"):
         coa["formula_html"] = _formula_html(coa["formula"])
@@ -308,11 +313,43 @@ def generar_pdf_seccion_web(doc: dict, seccion: str) -> bytes:
     return buf.getvalue()
 
 
+def _refs_materia_prima_de_combo(ref: str) -> set[str]:
+    """Códigos de inventario que descuenta un combo de venta (`C-…`).
+
+    La ficha técnica describe la MATERIA PRIMA (producto de inventario, p. ej.
+    `ACECORCEDmL`), no el combo que se publica (`C-ACEESECORCED5mL`), así que el
+    `referencia` del documento nunca es igual al SKU de la tienda. Este es el
+    puente. Lee la copia local del catálogo de Alegra; si no está, no estorba."""
+    ref = (ref or "").strip()
+    if not ref:
+        return set()
+    try:
+        from app.services import alegra_catalogo_db as ac
+
+        item = ac.obtener_item(ref) or {}
+        return {
+            str(c.get("codigo") or c.get("reference") or "").strip().upper()
+            for c in (item.get("componentes") or [])
+            if (c.get("codigo") or c.get("reference"))
+        }
+    except Exception:
+        return set()
+
+
 def buscar_documento_completo_web(nombre: str, ref: str = "") -> dict | None:
     """Mejor documento completo de la biblioteca para un producto de la tienda."""
     docs = _cargar_indice()
     if not docs:
         return None
+    # 1) Por SKU: combo → materia prima → documento. Es exacto y no depende de que
+    #    el nombre del combo esté bien escrito («ESENCIALCORTEZA», «ACETE» rompían
+    #    el cruce por nombre).
+    refs_mp = _refs_materia_prima_de_combo(ref) | ({ref.strip().upper()} if ref else set())
+    if refs_mp:
+        for doc in docs:
+            ref_doc = (doc.get("referencia") or "").strip().upper()
+            if ref_doc and ref_doc in refs_mp:
+                return doc
     nombre_norm = nombre_base_producto_web(nombre)
     palabras_prod = _palabras_clave(nombre)
     ref_u = (ref or "").upper().replace("-", "")

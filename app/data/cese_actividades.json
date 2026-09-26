@@ -1,0 +1,180 @@
+{
+  "activa": true,
+  "desde": "2026-09-25T01:18:40",
+  "mensaje_whatsapp": "Hola, gracias por escribir a McKenna Group. Tendremos un mantenimiento para seguir mejorando tu experiencia; mientras tanto no estamos recibiendo pedidos nuevos. Te avisaremos por este medio cuando retomemos. ¡Gracias por tu paciencia!",
+  "numeros_internos": [
+    "573182432463@c.us",
+    "573102686203@c.us",
+    "49752917975092@lid",
+    "573125114145@c.us",
+    "250306399101061@lid",
+    "573016146900@c.us",
+    "573132314757@c.us",
+    "573015071122@c.us",
+    "64287187959997@lid",
+    "573202955282@c.us",
+    "236373592264913@lid",
+    "573006446679@c.us",
+    "231146768060528@lid",
+    "573185061041@c.us",
+    "573132376883@c.us",
+    "573124131450@c.us",
+    "96748500422748@lid",
+    "573052963042@c.us",
+    "70407466017017@lid",
+    "573002349424@c.us",
+    "28986767859889@lid",
+    "573045320217@c.us",
+    "573196048401@c.us",
+    "206978919972873@lid",
+    "573114701287@c.us"
+  ],
+  "clientes_habilitados": [
+    {
+      "canal": "web",
+      "pedido": "MCKG-BA99C314DF",
+      "cliente": "Winer SAS",
+      "estado": "shipped",
+      "jids": [
+        "573102686203@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-43209FCB19",
+      "cliente": "Elizabeth Patiño",
+      "estado": "shipped",
+      "jids": [
+        "49752917975092@lid",
+        "573125114145@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-55E67969A1",
+      "cliente": "Ana Jazmin Ruiz Arriero",
+      "estado": "shipped",
+      "jids": [
+        "250306399101061@lid",
+        "573016146900@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-AC9E5A56A9",
+      "cliente": "Martha Patiño",
+      "estado": "shipped",
+      "jids": [
+        "573132314757@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-66771BE62E",
+      "cliente": "DIDIER ROBINSON JARAMILLO URIBE",
+      "estado": "shipped",
+      "jids": [
+        "573015071122@c.us",
+        "64287187959997@lid"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-4354265540",
+      "cliente": "Ana Ledesma",
+      "estado": "shipped",
+      "jids": [
+        "573202955282@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-FC8F181651",
+      "cliente": "Jesús David Correa Garay",
+      "estado": "shipped",
+      "jids": [
+        "236373592264913@lid",
+        "573006446679@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-DF8F24F61F",
+      "cliente": "Paula Liliana Villarraga Baracaldo",
+      "estado": "shipped",
+      "jids": [
+        "231146768060528@lid",
+        "573185061041@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-681000041E",
+      "cliente": "ana gomez",
+      "estado": "shipped",
+      "jids": [
+        "573132376883@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-9CC3B09B95",
+      "cliente": "Mareía Helena Blanco O.",
+      "estado": "preparing",
+      "jids": [
+        "573124131450@c.us",
+        "96748500422748@lid"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-9D9B52201E",
+      "cliente": "Jorge Ortiz",
+      "estado": "shipped",
+      "jids": [
+        "573052963042@c.us",
+        "70407466017017@lid"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-92F45D01DE",
+      "cliente": "Hada Luz Andrade Angel",
+      "estado": "preparing",
+      "jids": [
+        "573002349424@c.us"
+      ]
+    },
+    {
+      "canal": "web",
+      "pedido": "MCKG-D7A40CED6A",
+      "cliente": "Sebastian Paternostro",
+      "estado": "preparing",
+      "jids": [
+        "28986767859889@lid",
+        "573045320217@c.us"
+      ]
+    },
+    {
+      "canal": "whatsapp",
+      "pedido": "COT-20260918-001",
+      "cliente": "EQUISURE S.A.S",
+      "estado": "facturada",
+      "jids": [
+        "573196048401@c.us"
+      ]
+    },
+    {
+      "canal": "whatsapp",
+      "pedido": "COT-20260919-001",
+      "cliente": "Sofía Agudelo",
+      "estado": "facturada",
+      "jids": [
+        "206978919972873@lid",
+        "573114701287@c.us"
+      ]
+    }
+  ],
+  "_nota_habilitados": "Clientes con pedido sin entregar al iniciar el cese: pueden escribir y recibir mensajes normalmente. Sus JID están en numeros_internos (lista que leen /whatsapp y el puente).",
+  "hasta": "2026-09-24T22:21:30"
+}

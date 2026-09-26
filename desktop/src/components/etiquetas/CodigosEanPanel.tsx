@@ -1,4 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAppStore } from "../../stores/app";
 import { calcCheck, generarEAN13 } from "../../lib/ean13";
 import {
   BIMESTRE_LABEL,
@@ -12,9 +14,13 @@ import {
   useEliminarCodigoEan,
   useImportarCombosEanSiigo,
   useSincronizarBarcodesEanSiigo,
+  useEnlacesEanAlegra,
+  useCargarEanEnAlegra,
+  type EnlaceEanAlegra,
   type CodigoEan,
 } from "../../lib/etiquetasCodigosEan";
 import { Banner, Button, Card, IconButton, Modal, Spinner } from "./ui";
+import { FotosProductoEanModal, MiniaturaFotoEan } from "./FotosProductoEan";
 
 const CrearProductosSiigoPanel = lazy(() => import("../CrearProductosSiigoPanel"));
 
@@ -32,6 +38,12 @@ const SKU_PREFIJO = "C-";
 
 function sinPrefijoSku(sku: string): string {
   return sku.replace(/^c-\s*/i, "");
+}
+
+/** SKU tal como se guarda: con el prefijo de combo o exactamente lo escrito. */
+function skuFinal(usarPrefijo: boolean, sku: string): string {
+  const base = sku.trim();
+  return usarPrefijo ? SKU_PREFIJO + sinPrefijoSku(base) : base;
 }
 
 /** Quita tildes para buscar «karite» ≈ «karité». */
@@ -53,20 +65,36 @@ function coincideCodigoEan(c: CodigoEan, q: string): boolean {
   return t.split(/\s+/).filter(Boolean).every((palabra) => blob.includes(palabra));
 }
 
-export function CodigosEanPanel() {
+export function CodigosEanPanel({ buscarInicial = "" }: {
+  /** Abre la lista ya filtrada (p. ej. el SKU de un combo que ya tiene código, desde el taller). */
+  buscarInicial?: string;
+} = {}) {
   const { data: codigos, isLoading, error } = useCodigosEan();
   const crear = useCrearCodigoEan();
   const eliminar = useEliminarCodigoEan();
   const importarSiigo = useImportarCombosEanSiigo();
   const syncBarcodeSiigo = useSincronizarBarcodesEanSiigo();
+  const enlacesAlegra = useEnlacesEanAlegra();
+  const cargarAlegra = useCargarEanEnAlegra();
+  const actualizarCodigo = useActualizarCodigoEan();
+  const qc = useQueryClient();
+  const enlacePorId = new Map((enlacesAlegra.data?.enlaces ?? []).map((e) => [e.id, e]));
+  const cargaAlegra = enlacesAlegra.data?.ultima;
+  const sinEnlace = (enlacesAlegra.data?.enlaces ?? []).filter((e) => e.estado !== "enlazado");
 
   const [filaEditandoId, setFilaEditandoId] = useState<string | null>(null);
   const [filaSeleccionadaId, setFilaSeleccionadaId] = useState<string | null>(null);
+  /** Código cuyas fotos se están administrando (emergente). */
+  const [fotosDe, setFotosDe] = useState<CodigoEan | null>(null);
   const [crearSiigoAbierto, setCrearSiigoAbierto] = useState(false);
-  const [accionSiigo, setAccionSiigo] = useState<"crear" | "duplicar">("crear");
+  const [accionSiigo, setAccionSiigo] = useState<"crear" | "duplicar" | "ajustar">("crear");
   const [siigoInicial, setSiigoInicial] = useState<{ codigo: string; nombre: string } | null>(null);
-  const [busquedaLista, setBusquedaLista] = useState("");
+  /** Código EAN al que se asocia el combo que se crea o duplica en la ventana de Alegra. */
+  const [filaCombo, setFilaCombo] = useState<CodigoEan | null>(null);
+  const [busquedaLista, setBusquedaLista] = useState(buscarInicial);
   const [sku, setSku] = useState("");
+  /** El prefijo «C-» es el de los combos: se puede apagar para SKU que no lo llevan. */
+  const [usarPrefijo, setUsarPrefijo] = useState(true);
   const [nombreProducto, setNombreProducto] = useState("");
   const [numeroProducto, setNumeroProducto] = useState("");
   const [presentacion, setPresentacion] = useState("000");
@@ -110,12 +138,26 @@ export function CodigosEanPanel() {
     }
   }, [codigos, siguienteNumero, numeroProducto]);
 
+  // Llega desde Inventario → Combos con el combo ya elegido: se escribe en el formulario
+  // y el número y la presentación se proponen solos (los dos efectos de alrededor).
+  const eanPrefill = useAppStore((s) => s.eanPrefill);
+  const setEanPrefill = useAppStore((s) => s.setEanPrefill);
+  useEffect(() => {
+    if (!eanPrefill) return;
+    presentacionManual.current = false;
+    const traePrefijo = eanPrefill.sku.trim().toUpperCase().startsWith(SKU_PREFIJO);
+    setUsarPrefijo(traePrefijo);
+    setSku(traePrefijo ? sinPrefijoSku(eanPrefill.sku) : eanPrefill.sku.trim());
+    setNombreProducto(eanPrefill.nombre);
+    setEanPrefill(null);
+  }, [eanPrefill, setEanPrefill]);
+
   // Sugerir presentación (kg→001, 50→050, 100→100…) al escribir SKU/nombre.
   useEffect(() => {
     if (presentacionManual.current) return;
-    const sugerida = sugerirPresentacionEan(SKU_PREFIJO + sinPrefijoSku(sku), nombreProducto);
+    const sugerida = sugerirPresentacionEan(skuFinal(usarPrefijo, sku), nombreProducto);
     setPresentacion(sugerida);
-  }, [sku, nombreProducto]);
+  }, [sku, usarPrefijo, nombreProducto]);
 
   const numeroValido = /^\d+$/.test(numeroProducto) && Number(numeroProducto) >= 1 && Number(numeroProducto) <= 900;
   const numeroDuplicado = useMemo(
@@ -157,7 +199,15 @@ export function CodigosEanPanel() {
 
   function onSkuChange(valor: string) {
     presentacionManual.current = false;
-    setSku(sinPrefijoSku(valor));
+    setSku(usarPrefijo ? sinPrefijoSku(valor) : valor);
+  }
+
+  function alternarPrefijo() {
+    presentacionManual.current = false;
+    const siguiente = !usarPrefijo;
+    setUsarPrefijo(siguiente);
+    // Al encenderlo se quita un «C-» que el usuario hubiera escrito a mano (no se duplica).
+    if (siguiente) setSku((s) => sinPrefijoSku(s));
   }
 
   function onNombreChange(valor: string) {
@@ -168,31 +218,85 @@ export function CodigosEanPanel() {
   function onProductoSiigoCreado(info: { codigo: string; nombre: string }) {
     setCrearSiigoAbierto(false);
     setSiigoInicial(null);
+    const fila = filaCombo;
+    setFilaCombo(null);
+    if (fila) {
+      // Asociar: si el combo quedó con otro SKU, la fila del EAN pasa a llevar ese SKU;
+      // luego se vuelve a verificar la columna «Alegra» (el catálogo local ya lo tiene).
+      // Un producto (sin «C-») es el producto base del combo, nunca el SKU del EAN.
+      const refrescar = () => void qc.invalidateQueries({ queryKey: ["etiquetas-codigos-ean-alegra"] });
+      const esCombo = info.codigo.trim().toUpperCase().startsWith("C-");
+      if (esCombo && info.codigo.trim() !== fila.sku.trim()) {
+        actualizarCodigo.mutate(
+          {
+            id: fila.id,
+            datos: {
+              sku: info.codigo.trim(),
+              nombre_producto: fila.nombre_producto || info.nombre,
+              numero_producto: fila.numero_producto,
+              presentacion: fila.presentacion,
+              anio: fila.anio,
+              mes: fila.bimestre * 2 + 1,
+            },
+          },
+          { onSettled: refrescar },
+        );
+      } else {
+        refrescar();
+      }
+      return;
+    }
     if (info.codigo.toUpperCase().startsWith("C-")) {
       onSkuChange(info.codigo);
       onNombreChange(info.nombre);
     }
   }
 
-  function abrirCrearSiigo(accion: "crear" | "duplicar" = "crear") {
-    if (!seleccionado) return;
+  /** «Crear producto combo» sin fila elegida: con el SKU y el nombre del formulario de
+   *  arriba (o vacío, en modo combo); al crearlo, el SKU queda en el formulario. */
+  function abrirCrearCombo() {
+    if (seleccionado) {
+      abrirCrearSiigo("crear", seleccionado);
+      return;
+    }
+    const escrito = sku.trim() ? skuFinal(usarPrefijo, sku) : "";
+    setAccionSiigo("crear");
+    setFilaCombo(null);
+    setSiigoInicial({ codigo: escrito.toUpperCase().startsWith("C-") ? escrito : "C-", nombre: nombreProducto.trim() });
+    setCrearSiigoAbierto(true);
+  }
+
+  function abrirCrearSiigo(accion: "crear" | "duplicar" = "crear", fila: CodigoEan | null = seleccionado) {
+    if (!fila) return;
     setAccionSiigo(accion);
+    setFilaCombo(fila);
     setSiigoInicial({
-      codigo: seleccionado.sku,
-      nombre: seleccionado.nombre_producto || "",
+      codigo: fila.sku,
+      nombre: fila.nombre_producto || "",
     });
     setCrearSiigoAbierto(true);
   }
 
   function cerrarCrearSiigo() {
+    // Tras revisar o ajustar un combo, la columna «Alegra» se vuelve a verificar.
+    if (filaCombo) void qc.invalidateQueries({ queryKey: ["etiquetas-codigos-ean-alegra"] });
     setCrearSiigoAbierto(false);
     setSiigoInicial(null);
+    setFilaCombo(null);
+  }
+
+  /** Abre el combo existente de la fila (el de Alegra, aunque el SKU difiera en grafía) con sus componentes. */
+  function revisarCombo(fila: CodigoEan, e: EnlaceEanAlegra) {
+    setAccionSiigo("ajustar");
+    setFilaCombo(fila);
+    setSiigoInicial({ codigo: e.combo || fila.sku, nombre: e.combo_nombre || fila.nombre_producto || "" });
+    setCrearSiigoAbierto(true);
   }
 
   function guardar() {
     if (!puedeGuardar) return;
     const datos = {
-      sku: SKU_PREFIJO + sinPrefijoSku(sku.trim()),
+      sku: skuFinal(usarPrefijo, sku),
       nombre_producto: nombreProducto.trim(),
       numero_producto: Number(numeroProducto),
       presentacion,
@@ -223,16 +327,19 @@ export function CodigosEanPanel() {
     importarSiigo.mutate();
   }
 
+  // Antes este botón llamaba a la subida de Siigo (el sistema anterior) aunque dijera
+  // Alegra: en Alegra el campo seguía vacío. Ahora escribe en el campo adicional
+  // «Código de barras» de cada combo; los códigos nuevos o corregidos ya se suben solos.
   function subirBarcodesSiigo() {
     if (
       !window.confirm(
-        "¿Subir los EAN de la planilla al campo «Código de barras» de cada combo en Alegra?\n" +
-          "Solo se llenan los que estén vacíos. Puede tardar varios minutos.",
+        "¿Cargar el EAN en el campo «Código de barras» de cada combo enlazado en Alegra?\n" +
+          "Solo se escribe ese campo. Tarda unos minutos; puedes seguir trabajando.",
       )
     ) {
       return;
     }
-    syncBarcodeSiigo.mutate({ solo_vacios: true });
+    cargarAlegra.mutate();
   }
 
   return (
@@ -247,18 +354,34 @@ export function CodigosEanPanel() {
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">SKU</label>
             <div className="flex items-center overflow-hidden rounded-lg border border-border bg-surface focus-within:border-accent">
-              <span className="shrink-0 select-none border-r border-border bg-surface-panel px-2 py-1.5 font-mono text-sm font-semibold text-muted">
+              <button
+                type="button"
+                onClick={alternarPrefijo}
+                aria-pressed={usarPrefijo}
+                title={usarPrefijo ? "Quitar el prefijo C- (SKU que no son combo)" : "Volver a poner el prefijo C-"}
+                className={`shrink-0 select-none border-r border-border px-2 py-1.5 font-mono text-sm font-semibold transition ${
+                  usarPrefijo
+                    ? "bg-surface-panel text-muted hover:text-ink"
+                    : "bg-surface text-muted/50 line-through hover:text-muted"
+                }`}
+              >
                 {SKU_PREFIJO}
-              </span>
+              </button>
               <input
                 type="text"
                 value={sku}
                 onChange={(e) => onSkuChange(e.target.value)}
-                placeholder="ACIASC250g"
+                placeholder={usarPrefijo ? "ACIASC250g" : "ACIASC250g (sin prefijo)"}
                 className="w-full min-w-0 bg-transparent px-2.5 py-1.5 text-sm text-ink outline-none"
               />
             </div>
-            <p className="mt-1 text-[10px] text-muted">Se guarda como {SKU_PREFIJO}{sku.trim() || "…"}</p>
+            <p className="mt-1 text-[10px] text-muted">
+              Se guarda como {skuFinal(usarPrefijo, sku) || "…"}
+              {" · "}
+              <button type="button" onClick={alternarPrefijo} className="underline underline-offset-2 hover:text-ink">
+                {usarPrefijo ? "sin prefijo C-" : "con prefijo C-"}
+              </button>
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">Nombre del producto</label>
@@ -389,11 +512,11 @@ export function CodigosEanPanel() {
               </Button>
               <Button
                 variant="secondary"
-                disabled={importarSiigo.isPending || syncBarcodeSiigo.isPending || guardando}
-                loading={syncBarcodeSiigo.isPending}
+                disabled={importarSiigo.isPending || cargarAlegra.isPending || cargaAlegra?.estado === "corriendo" || guardando}
+                loading={cargarAlegra.isPending || cargaAlegra?.estado === "corriendo"}
                 onClick={subirBarcodesSiigo}
               >
-                Subir EAN a Alegra (código de barras)
+                Cargar EAN en Alegra (código de barras)
               </Button>
             </div>
             {importarSiigo.isSuccess && (
@@ -409,6 +532,26 @@ export function CodigosEanPanel() {
                 {importarSiigo.error instanceof Error
                   ? importarSiigo.error.message
                   : "Error al importar combos Alegra"}
+              </Banner>
+            )}
+            {cargaAlegra?.estado === "corriendo" && (
+              <Banner tone="accent" className="text-xs">Cargando los EAN en Alegra… (unos minutos)</Banner>
+            )}
+            {cargaAlegra?.estado === "listo" && (
+              <Banner tone={cargaAlegra.errores?.length ? "warning" : "success"} className="text-xs">
+                Alegra: {cargaAlegra.cargados ?? 0} cargados · {cargaAlegra.sin_cambio ?? 0} ya lo tenían
+                {cargaAlegra.errores?.length
+                  ? ` · ${cargaAlegra.errores.length} con error: ${cargaAlegra.errores.slice(0, 3).map((e) => `${e.ref} (${e.msg})`).join("; ")}`
+                  : ""}
+              </Banner>
+            )}
+            {cargaAlegra?.estado === "error" && (
+              <Banner tone="danger" className="text-xs">No se pudo cargar en Alegra: {cargaAlegra.msg}</Banner>
+            )}
+            {sinEnlace.length > 0 && (
+              <Banner tone="warning" className="text-xs">
+                {sinEnlace.length} código{sinEnlace.length === 1 ? "" : "s"} sin combo en Alegra (columna «Alegra»): su SKU no es
+                el de ningún combo activo. Crea el combo en Alegra o corrige el SKU con el lápiz.
               </Banner>
             )}
             {syncBarcodeSiigo.isSuccess && (
@@ -443,17 +586,14 @@ export function CodigosEanPanel() {
             variant="primary"
             size="sm"
             icon="package"
-            disabled={!seleccionado}
-            onClick={() => abrirCrearSiigo("crear")}
+            onClick={abrirCrearCombo}
             title={
               seleccionado
-                ? `Crear ${seleccionado.sku} en Alegra`
-                : "Selecciona un producto del listado"
+                ? `Crear el combo ${seleccionado.sku} en Alegra`
+                : "Crear un producto combo en Alegra (usa el SKU y el nombre escritos arriba, si hay)"
             }
           >
-            {seleccionado
-              ? `Crear ${seleccionado.sku} en Alegra`
-              : "Crear en Alegra"}
+            {seleccionado ? `Crear combo ${seleccionado.sku}` : "Crear producto combo"}
           </Button>
           <Button
             variant="secondary"
@@ -499,12 +639,13 @@ export function CodigosEanPanel() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-xs">
+            <table className="w-full min-w-[780px] text-left text-xs">
               <thead className="bg-surface-panel text-[10px] uppercase text-muted">
                 <tr>
                   <th className="w-10 px-3 py-2">
                     <span className="sr-only">Seleccionar</span>
                   </th>
+                  <th className="px-3 py-2">Foto</th>
                   <th className="px-3 py-2">SKU</th>
                   <th className="px-3 py-2">Producto</th>
                   <th className="px-3 py-2">#</th>
@@ -512,6 +653,7 @@ export function CodigosEanPanel() {
                   <th className="px-3 py-2">Año</th>
                   <th className="px-3 py-2">Bimestre</th>
                   <th className="px-3 py-2">Código</th>
+                  <th className="px-3 py-2" title="¿El SKU es el de un combo activo en Alegra?">Alegra</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
@@ -546,6 +688,9 @@ export function CodigosEanPanel() {
                           className="accent-accent"
                         />
                       </td>
+                      <td className="px-3 py-1.5">
+                        <MiniaturaFotoEan codigo={c} onAbrir={() => setFotosDe(c)} />
+                      </td>
                       <td className="px-3 py-2 font-mono text-accent">{c.sku}</td>
                       <td className="max-w-[220px] truncate px-3 py-2">{c.nombre_producto || "—"}</td>
                       <td className="px-3 py-2 font-mono">{String(c.numero_producto).padStart(3, "0")}</td>
@@ -553,8 +698,23 @@ export function CodigosEanPanel() {
                       <td className="px-3 py-2 font-mono">{String(c.anio).padStart(2, "0")}</td>
                       <td className="px-3 py-2">{BIMESTRE_LABEL[c.bimestre] ?? c.bimestre}</td>
                       <td className="px-3 py-2 font-mono tracking-wide">{c.codigo}</td>
+                      <td className="px-3 py-2">
+                        <EnlaceAlegra
+                          e={enlacePorId.get(c.id)}
+                          asociando={actualizarCodigo.isPending && actualizarCodigo.variables?.id === c.id}
+                          onCrear={() => abrirCrearSiigo("crear", c)}
+                          onDuplicar={() => abrirCrearSiigo("duplicar", c)}
+                          onRevisar={(e) => revisarCombo(c, e)}
+                        />
+                      </td>
                       <td className="px-3 py-2 text-right">
                         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <IconButton
+                            icon="camera"
+                            label={`Fotos de ${c.sku}`}
+                            size="sm"
+                            onClick={() => setFotosDe(c)}
+                          />
                           <IconButton
                             icon="pencil"
                             label={`Editar código de ${c.sku}`}
@@ -593,13 +753,17 @@ export function CodigosEanPanel() {
         )}
       </Card>
 
+      {fotosDe && <FotosProductoEanModal codigo={fotosDe} onClose={() => setFotosDe(null)} />}
+
       {crearSiigoAbierto && (
         <Modal
           title={
             siigoInicial
               ? accionSiigo === "duplicar"
                 ? `Duplicar combo · ${siigoInicial.codigo}`
-                : `Crear en Alegra · ${siigoInicial.codigo}`
+                : accionSiigo === "ajustar"
+                  ? `Revisar combo · ${siigoInicial.codigo}`
+                  : `Crear en Alegra · ${siigoInicial.codigo}`
               : "Crear producto o combo en Alegra"
           }
           onClose={cerrarCrearSiigo}
@@ -634,7 +798,9 @@ function FilaEdicionEan({
 }) {
   const actualizar = useActualizarCodigoEan();
 
-  const [sku, setSku] = useState(sinPrefijoSku(codigo.sku));
+  const teniaPrefijo = (codigo.sku || "").trim().toUpperCase().startsWith(SKU_PREFIJO);
+  const [usarPrefijo, setUsarPrefijo] = useState(teniaPrefijo);
+  const [sku, setSku] = useState(teniaPrefijo ? sinPrefijoSku(codigo.sku) : (codigo.sku || "").trim());
   const [nombreProducto, setNombreProducto] = useState(codigo.nombre_producto || "");
   const [numeroProducto, setNumeroProducto] = useState(String(codigo.numero_producto));
   const [presentacion, setPresentacion] = useState(codigo.presentacion);
@@ -661,7 +827,7 @@ function FilaEdicionEan({
       {
         id: codigo.id,
         datos: {
-          sku: SKU_PREFIJO + sinPrefijoSku(sku.trim()),
+          sku: skuFinal(usarPrefijo, sku),
           nombre_producto: nombreProducto.trim(),
           numero_producto: Number(numeroProducto),
           presentacion,
@@ -685,15 +851,28 @@ function FilaEdicionEan({
     <>
       <tr className="bg-surface-panel">
         <td className="px-3 py-2" />
+        <td className="px-3 py-2" />
         <td className="px-3 py-2">
           <div className="flex items-center overflow-hidden rounded border border-border bg-surface focus-within:border-accent">
-            <span className="shrink-0 select-none border-r border-border bg-surface-panel px-1 py-1 font-mono text-xs font-semibold text-muted">
+            <button
+              type="button"
+              onClick={() => {
+                const siguiente = !usarPrefijo;
+                setUsarPrefijo(siguiente);
+                if (siguiente) setSku((s) => sinPrefijoSku(s));
+              }}
+              aria-pressed={usarPrefijo}
+              title={usarPrefijo ? "Quitar el prefijo C-" : "Volver a poner el prefijo C-"}
+              className={`shrink-0 select-none border-r border-border px-1 py-1 font-mono text-xs font-semibold transition ${
+                usarPrefijo ? "bg-surface-panel text-muted hover:text-ink" : "bg-surface text-muted/50 line-through hover:text-muted"
+              }`}
+            >
               {SKU_PREFIJO}
-            </span>
+            </button>
             <input
               type="text"
               value={sku}
-              onChange={(e) => setSku(sinPrefijoSku(e.target.value))}
+              onChange={(e) => setSku(usarPrefijo ? sinPrefijoSku(e.target.value) : e.target.value)}
               onKeyDown={onTeclas}
               autoFocus
               className="w-full min-w-[90px] bg-transparent px-1.5 py-1 font-mono text-xs text-ink outline-none"
@@ -775,7 +954,7 @@ function FilaEdicionEan({
       </tr>
       {(numeroDuplicado || (numeroProducto && !numeroValido) || actualizar.isError) && (
         <tr className="bg-surface-panel">
-          <td colSpan={9} className="px-3 pb-2 pt-0">
+          <td colSpan={10} className="px-3 pb-2 pt-0">
             <p className="text-[10px] text-danger">
               {actualizar.isError
                 ? actualizar.error instanceof Error
@@ -789,5 +968,73 @@ function FilaEdicionEan({
         </tr>
       )}
     </>
+  );
+}
+
+/** Estado del SKU de un código frente a los combos de Alegra. */
+function EnlaceAlegra({
+  e,
+  asociando = false,
+  onCrear,
+  onDuplicar,
+  onRevisar,
+}: {
+  e?: EnlaceEanAlegra;
+  asociando?: boolean;
+  /** Solo en «sin combo»: abre la ventana de Alegra para crear o duplicar el combo de esta fila. */
+  onCrear?: () => void;
+  onDuplicar?: () => void;
+  /** Con combo en Alegra (✓ o ≈): abre el combo con sus componentes para revisarlo y ajustarlo. */
+  onRevisar?: (e: EnlaceEanAlegra) => void;
+}) {
+  if (!e || asociando) return <span className="text-[11px] text-muted">…</span>;
+  const estilo: Record<EnlaceEanAlegra["estado"], [string, string, string]> = {
+    enlazado: ["✓ combo", "text-emerald-700 dark:text-emerald-300", `Combo de Alegra: ${e.combo_nombre}`],
+    aproximado: ["≈ revisar", "text-amber-700 dark:text-amber-300", `En Alegra es «${e.combo}»: corrige el SKU con el lápiz`],
+    producto: ["producto simple", "text-amber-700 dark:text-amber-300", "En Alegra existe como producto, no como combo (kit)"],
+    sin_combo: ["sin combo", "text-red-600", "Ningún combo activo de Alegra tiene este SKU: créalo o corrige el SKU"],
+  };
+  const [txt, cls, title] = estilo[e.estado];
+  const etiqueta = (
+    <span className={`whitespace-nowrap text-[11px] font-semibold ${cls}`} title={title}>
+      {txt}
+    </span>
+  );
+  const btn =
+    "mck-btn-no-fx rounded border border-border px-1.5 py-0.5 text-[10px] font-semibold text-ink hover:border-accent hover:text-accent";
+  if ((e.estado === "enlazado" || e.estado === "aproximado") && onRevisar) {
+    return (
+      <div className="flex flex-col items-start gap-1" onClick={(ev) => ev.stopPropagation()}>
+        {etiqueta}
+        <button
+          type="button"
+          className={btn}
+          onClick={() => onRevisar(e)}
+          title={`Ver los componentes de ${e.combo} en Alegra y ajustarlos`}
+        >
+          Revisar
+        </button>
+      </div>
+    );
+  }
+  // «producto simple»: el SKU existe en Alegra como producto, no como combo; también
+  // se ofrece crear (o duplicar) el combo.
+  if ((e.estado !== "sin_combo" && e.estado !== "producto") || (!onCrear && !onDuplicar)) return etiqueta;
+  return (
+    <div className="flex flex-col items-start gap-1" onClick={(ev) => ev.stopPropagation()}>
+      {etiqueta}
+      <div className="flex gap-1">
+        {onCrear && (
+          <button type="button" className={btn} onClick={onCrear} title={`Crear el combo ${e.sku} en Alegra y asociarlo`}>
+            Crear
+          </button>
+        )}
+        {onDuplicar && (
+          <button type="button" className={btn} onClick={onDuplicar} title={`Duplicar un combo existente como ${e.sku} y asociarlo`}>
+            Duplicar
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

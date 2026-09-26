@@ -208,7 +208,7 @@ export const CAMPOS_TEXTO_FICHA_MP: {
   { id: "almacenamiento", label: "Almacenamiento", boldDefault: false },
   { id: "origen", label: "Origen", boldDefault: false },
   { id: "apariencia", label: "Apariencia", boldDefault: false },
-  { id: "olor", label: "Olor", boldDefault: false },
+  { id: "olor", label: "Aroma", boldDefault: false },
   { id: "composicion", label: "Composición", boldDefault: false },
   { id: "grado", label: "Grado", boldDefault: false },
   { id: "ghs", label: "GHS", boldDefault: true },

@@ -1,3 +1,4 @@
+import { Ico } from "../../icons/Ico";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
@@ -29,6 +30,7 @@ import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
+import StudioPublicacionesPanel from "./StudioPublicacionesPanel";
 import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
 import { useAppStore, type StudioSubvista } from "../../stores/app";
 import {
@@ -37,9 +39,10 @@ import {
   CATEGORIAS_ETIQUETA,
 } from "../../lib/categoriasEtiqueta";
 import { categoriaProductoDe } from "../../lib/plantillasVisuales";
-import StudioCategoriasPanel from "./StudioCategoriasPanel";
+import StudioCategoriasPanel, { siguienteEtiquetaPorAprobar, useResumenCategorias } from "./StudioCategoriasPanel";
 import StudioEtiquetasPanel from "./StudioEtiquetasPanel";
 import NuevaPlantillaCategoriaPanel from "./NuevaPlantillaCategoriaPanel";
+import { celebrarAprobacion } from "../../lib/celebracionAprobado";
 
 interface RecursoPngBiblioteca {
   id: string | null;
@@ -346,7 +349,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
             carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
           }`}
         >
-          📁 Raíz
+          <Ico e="📁" /> Raíz
         </button>
         {segmentosRuta.map((seg, i) => {
           const rel = segmentosRuta.slice(0, i + 1).join("/");
@@ -446,7 +449,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                   disabled={carpetaActual === ""}
                   className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
                 >
-                  📁 Raíz
+                  <Ico e="📁" /> Raíz
                 </button>
                 {(carpetasTodasData?.carpetas ?? [])
                   .filter((c) => c !== carpetaActual)
@@ -458,7 +461,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                       className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
                       title={c}
                     >
-                      📁 {c}
+                      <Ico e="📁" /> {c}
                     </button>
                   ))}
               </div>
@@ -494,7 +497,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
             : "Carpeta vacía. Sube una imagen o crea una subcarpeta."}
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
           {subcarpetas.map((nombreCarpeta) => {
             const rel = carpetaActual ? `${carpetaActual}/${nombreCarpeta}` : nombreCarpeta;
             const enHoverDrop = carpetaHoverDrop === rel;
@@ -541,7 +544,7 @@ function BibliotecaEtiquetasSection({ filtroExterno = "" }: { filtroExterno?: st
                 >
                   ✎
                 </button>
-                <span className="text-3xl">📁</span>
+                <span className="text-3xl"><Ico e="📁" /></span>
                 <span className="w-full truncate text-[10px] text-ink">{nombreCarpeta}</span>
               </div>
             );
@@ -658,10 +661,19 @@ type Vista =
 // ya existían son el catálogo viejo: se consultan e imprimen desde
 // Diseño → Imprimir (agrupados por categoría) y desde "Catálogo antiguo", pero
 // no se mezclan con las plantillas nuevas.
+/** Qué busca la barra del encabezado en cada pestaña de Studio. */
+const PLACEHOLDER_BUSCAR: Record<string, string> = {
+  categorias: "Buscar categoría, plantilla o etiqueta…",
+  etiquetas: "Buscar etiqueta…",
+  disenos: "Buscar plantillas e imágenes en todas las carpetas…",
+  recursos: "Buscar logo o imagen en esta carpeta…",
+  publicaciones: "Buscar etiqueta para publicaciones…",
+};
+
 const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
   { id: "categorias", label: "Categorías" },
-  { id: "disenos", label: "Catálogo antiguo" },
   { id: "recursos", label: "Recursos" },
+  { id: "publicaciones", label: "Etiquetas para publicaciones" },
 ];
 
 export default function PlantillasVisualesPanel({
@@ -713,6 +725,11 @@ export default function PlantillasVisualesPanel({
   const [entradaFormulario, setEntradaFormulario] = useState<EntradaFormularioEtiqueta | null>(null);
   const subvista = useAppStore((s) => s.studioSubvista);
   const setSubvista = useAppStore((s) => s.setStudioSubvista);
+  // «Catálogo antiguo» ya no tiene pestaña. La subvista se guarda entre sesiones:
+  // quien la dejó abierta caería en una pantalla sin pestaña marcada y sin salida.
+  useEffect(() => {
+    if (subvista === "disenos") setSubvista("categorias");
+  }, [subvista, setSubvista]);
   const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
   const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
   const { data: catsData } = useCategoriasEtiqueta();
@@ -723,7 +740,6 @@ export default function PlantillasVisualesPanel({
       vista === "editor"
         || vista === "diligenciar"
         || vista === "lote"
-        || vista === "formularios-etiquetas"
         || vista === "nueva-plantilla-categoria",
     );
     return () => onInmersivoChange?.(false);
@@ -818,6 +834,24 @@ export default function PlantillasVisualesPanel({
     const nombreNuevo = window.prompt("Nuevo nombre de la carpeta:", nombreActual);
     if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
     renombrarCarpetaPlantillaMut.mutate({ carpeta: rel, nombreNuevo: nombreNuevo.trim() });
+  }
+
+  const renombrarPlantillaMut = useMutation({
+    mutationFn: ({ id, nombreNuevo }: { id: string; nombreNuevo: string }) =>
+      api.post<{ ok: boolean; plantilla: PlantillaVisualDoc }>(
+        "/api/plantillas-visuales/renombrar",
+        { id, nombre_nuevo: nombreNuevo },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
+    },
+    onError: (e: Error) => setMsg(e.message || "No se pudo renombrar la plantilla"),
+  });
+
+  function renombrarPlantilla(id: string, nombreActual: string) {
+    const nombreNuevo = window.prompt("Nuevo nombre de la plantilla:", nombreActual);
+    if (!nombreNuevo || !nombreNuevo.trim() || nombreNuevo.trim() === nombreActual) return;
+    renombrarPlantillaMut.mutate({ id, nombreNuevo: nombreNuevo.trim() });
   }
 
   const moverPlantillasMut = useMutation({
@@ -1008,10 +1042,22 @@ export default function PlantillasVisualesPanel({
     });
   }, [abrirCopiaGuardada, doc, guardarMut]);
 
+  const { resumen: resumenCategorias } = useResumenCategorias();
   const abrirFormulario = useCallback((entrada: EntradaFormularioEtiqueta) => {
     setEntradaFormulario(entrada);
     setVista("formularios-etiquetas");
   }, []);
+
+  // Llegada desde el taller de combos: abrir directamente la etiqueta de ese producto
+  // (o, si aún no existe, dejar su nombre en el buscador).
+  const tallerSalto = useAppStore((st) => st.tallerSalto);
+  const consumirTallerSalto = useAppStore((st) => st.consumirTallerSalto);
+  useEffect(() => {
+    if (!tallerSalto || tallerSalto.panel !== "etiquetas") return;
+    if (tallerSalto.fichaId) abrirFormulario({ fichaId: tallerSalto.fichaId });
+    else if (tallerSalto.buscar) setBuscar(tallerSalto.buscar);
+    consumirTallerSalto();
+  }, [tallerSalto, consumirTallerSalto, abrirFormulario]);
 
   const abrirNuevo = () => {
     setDoc(null);
@@ -1154,6 +1200,7 @@ export default function PlantillasVisualesPanel({
       void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
       void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
       void qc.invalidateQueries({ queryKey: ["etiquetas-studio-catalogo"] });
+      if (esEtiqueta) celebrarAprobacion({ titulo: "¡Etiqueta aprobada!", detalle: nombreArchivo.replace(/\.\w+$/, ""), mision: "etiqueta_aprobada" });
 
       const dimMm =
         doc.formato.ancho_mm && doc.formato.alto_mm
@@ -1220,19 +1267,24 @@ export default function PlantillasVisualesPanel({
     );
   }
 
-  if (vista === "formularios-etiquetas") {
-    return (
-      <div className="fixed inset-x-0 bottom-0 top-[var(--mck-header-h,3.5rem)] z-20 flex min-h-0 flex-col bg-surface lg:static lg:inset-auto lg:z-auto lg:h-full lg:max-h-none lg:min-h-0 lg:flex-1">
-        <FormulariosEtiquetadosPanel
-          entrada={entradaFormulario}
-          onVolver={() => {
-            setEntradaFormulario(null);
-            setVista("lista");
-          }}
-        />
-      </div>
-    );
-  }
+  // El formulario de etiqueta ya no es pantalla aparte: se abre dentro de la
+  // pestaña Categorías, al lado de la lista (ver `editorEtiqueta` más abajo).
+  const editandoEtiqueta = vista === "formularios-etiquetas";
+  /** «Siguiente →» o «Terminar y aprobar»: abrir la siguiente etiqueta por aprobar
+   *  de la misma categoría (orden de la lista); si no queda ninguna, se queda ahí. */
+  const irASiguienteEtiqueta = (fichaId: string) => {
+    const sig = siguienteEtiquetaPorAprobar(resumenCategorias, fichaId);
+    if (!sig?.fichaId) {
+      setMsg("No quedan etiquetas por aprobar en esta categoría.");
+      setTimeout(() => setMsg(null), 5000);
+      return;
+    }
+    abrirFormulario({ fichaId: sig.fichaId });
+  };
+  const cerrarFormulario = () => {
+    setEntradaFormulario(null);
+    setVista("lista");
+  };
 
   if (vista === "lote" && plantillaLote) {
     return (
@@ -1332,7 +1384,7 @@ export default function PlantillasVisualesPanel({
                   </p>
                   {previewExport.desenfocado && (
                     <span className="mt-1 inline-block rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
-                      🔒 Zonas desenfocadas
+                      <Ico e="🔒" /> Zonas desenfocadas
                     </span>
                   )}
                 </div>
@@ -1435,7 +1487,7 @@ export default function PlantillasVisualesPanel({
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className={editandoEtiqueta ? "mx-auto max-w-[min(100%,1500px)]" : "mx-auto max-w-6xl"}>
       {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
           con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
           es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
@@ -1446,13 +1498,14 @@ export default function PlantillasVisualesPanel({
             key={sv.id}
             type="button"
             onClick={() => {
+              if (editandoEtiqueta) cerrarFormulario();
               setSubvista(sv.id);
               // Entrar por la pestaña es "muéstrame todo": si no se limpia, el
               // filtro que dejó una tarjeta esconde los diseños nuevos.
               setCategoriaFiltro("");
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-              subvista === sv.id
+              (editandoEtiqueta ? sv.id === "categorias" : subvista === sv.id)
                 ? "bg-accent text-white"
                 : "border border-border text-ink-secondary hover:bg-surface-hover"
             }`}
@@ -1460,10 +1513,54 @@ export default function PlantillasVisualesPanel({
             {sv.label}
           </button>
         ))}
+        {/* Un solo buscador para todo Studio: antes solo lo tenían «Catálogo
+            antiguo» y las galerías, y la portada (Categorías) no tenía ninguno. */}
+        {/* La lupa va fuera del <input>: index.css fija el padding de todos los
+            campos con !important y un ícono superpuesto tapa el texto. */}
+        <label className="ml-auto flex w-full items-center rounded-lg border border-border bg-surface pl-2.5 focus-within:border-accent/60 sm:w-72">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            className="h-3.5 w-3.5 shrink-0 text-muted"
+          >
+            <circle cx="8.5" cy="8.5" r="5.5" />
+            <path d="M13 13l4.5 4.5" />
+          </svg>
+          <input
+            type="search"
+            value={buscar}
+            onChange={(e) => {
+              // Buscar es ir a los resultados: con una etiqueta abierta, el editor los taparía.
+              if (editandoEtiqueta) cerrarFormulario();
+              setBuscar(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setBuscar("");
+            }}
+            placeholder={PLACEHOLDER_BUSCAR[subvista] ?? "Buscar…"}
+            aria-label="Buscar en Studio"
+            className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none focus:ring-0"
+          />
+        </label>
       </div>
 
-      {subvista === "categorias" && (
+      {(subvista === "categorias" || editandoEtiqueta) && (
         <StudioCategoriasPanel
+          buscar={buscar}
+          editor={
+            editandoEtiqueta ? (
+              // key: abrir otra etiqueta desde el árbol monta el editor de nuevo con ella.
+              <FormulariosEtiquetadosPanel key={JSON.stringify(entradaFormulario)} entrada={entradaFormulario} onVolver={cerrarFormulario} onSiguiente={irASiguienteEtiqueta} />
+            ) : undefined
+          }
+          onElegirCategoria={() => {
+            if (editandoEtiqueta) cerrarFormulario();
+          }}
+          etiquetaAbiertaId={editandoEtiqueta ? entradaFormulario?.fichaId ?? undefined : undefined}
           onCrearPlantilla={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onOtroTamano={(catId) => abrirFormulario({ nuevaPlantillaCategoria: catId })}
           onAbrirPlantilla={(pl) => {
@@ -1479,6 +1576,7 @@ export default function PlantillasVisualesPanel({
               return;
             }
             // PNG ya terminado: se ve e imprime desde Diseño → Imprimir.
+            if (editandoEtiqueta) cerrarFormulario();
             setSubvista("recursos");
             setMsg(`«${e.nombre}» está lista: se imprime desde Diseño → Imprimir.`);
             setTimeout(() => setMsg(null), 5000);
@@ -1494,25 +1592,28 @@ export default function PlantillasVisualesPanel({
         />
       )}
 
-      {subvista === "etiquetas" && (
+      {subvista === "etiquetas" && !editandoEtiqueta && (
         <StudioEtiquetasPanel
+          buscar={buscar}
           categoriaFiltro={categoriaFiltro}
           onCategoriaFiltroChange={setCategoriaFiltro}
           onAbrirEtiquetaGuardada={(fichaId) => abrirFormulario({ fichaId })}
         />
       )}
 
-      {subvista === "recursos" && (
+      {subvista === "publicaciones" && !editandoEtiqueta && <StudioPublicacionesPanel buscar={buscar} />}
+
+      {subvista === "recursos" && !editandoEtiqueta && (
         <div>
           <p className="mb-3 text-xs text-muted">
             Logos e imágenes sueltas que se usan dentro de los diseños. Las etiquetas
-            terminadas están en la pestaña «Etiquetas».
+            terminadas están en «Categorías», dentro de cada familia de producto.
           </p>
-          <BibliotecaEtiquetasSection />
+          <BibliotecaEtiquetasSection filtroExterno={buscarDebounced} />
         </div>
       )}
 
-      {subvista === "disenos" && (
+      {subvista === "disenos" && !editandoEtiqueta && (
       <>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {categoriaFiltro && (
@@ -1525,14 +1626,7 @@ export default function PlantillasVisualesPanel({
             {etiquetaCategoriaEn(categorias, categoriaFiltro)} ✕
           </button>
         )}
-        <div className="min-w-0 flex-1">
-          <input
-            value={buscar}
-            onChange={(e) => setBuscar(e.target.value)}
-            placeholder="Buscar plantillas e imágenes en todas las carpetas…"
-            className="w-full max-w-sm rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-          />
-        </div>
+        <div className="min-w-0 flex-1" />
         {plantillas.length > 0 && (
           <button
             type="button"
@@ -1572,7 +1666,7 @@ export default function PlantillasVisualesPanel({
                   disabled={carpetaActual === ""}
                   className="block w-full px-3 py-1.5 text-left font-semibold text-ink hover:bg-surface-hover disabled:opacity-40"
                 >
-                  📁 Raíz
+                  <Ico e="📁" /> Raíz
                 </button>
                 {(carpetasTodasData?.carpetas ?? [])
                   .filter((c) => c !== carpetaActual)
@@ -1584,7 +1678,7 @@ export default function PlantillasVisualesPanel({
                       className="block w-full truncate px-3 py-1.5 text-left text-ink hover:bg-surface-hover"
                       title={c}
                     >
-                      📁 {c}
+                      <Ico e="📁" /> {c}
                     </button>
                   ))}
               </div>
@@ -1640,7 +1734,7 @@ export default function PlantillasVisualesPanel({
             carpetaHoverDrop === "" ? "bg-accent/15 text-accent" : ""
           }`}
         >
-          📁 Raíz
+          <Ico e="📁" /> Raíz
         </button>
         {segmentosRuta.map((seg, i) => {
           const rel = segmentosRuta.slice(0, i + 1).join("/");
@@ -1773,7 +1867,7 @@ export default function PlantillasVisualesPanel({
                 >
                   ✎
                 </button>
-                <span className="text-3xl">📁</span>
+                <span className="text-3xl"><Ico e="📁" /></span>
                 <span className="w-full truncate text-xs font-medium text-ink">{nombreCarpeta}</span>
               </div>
             );
@@ -1839,7 +1933,7 @@ export default function PlantillasVisualesPanel({
                       }}
                       className="mt-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent/20"
                     >
-                      📋 Aplicar en lote
+                      <Ico e="📋" /> Aplicar en lote
                     </button>
                   )}
                   {buscarDebounced && (p.carpeta || "") !== carpetaActual && (
@@ -1852,7 +1946,7 @@ export default function PlantillasVisualesPanel({
                       }}
                       className="mt-1 inline-flex max-w-full items-center gap-1 truncate rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] text-muted transition hover:border-accent hover:text-accent"
                     >
-                      📁 {p.carpeta || "raíz"}
+                      <Ico e="📁" /> {p.carpeta || "raíz"}
                     </button>
                   )}
                 </div>
@@ -1861,6 +1955,20 @@ export default function PlantillasVisualesPanel({
                   onMouseLeave={() => setArrastreBloqueado(false)}
                   className="absolute right-2 top-2 z-10 flex gap-1 opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                 >
+                  <button
+                    type="button"
+                    title="Renombrar"
+                    draggable={false}
+                    disabled={renombrarPlantillaMut.isPending}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      renombrarPlantilla(p.id, p.nombre);
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-accent disabled:opacity-50"
+                  >
+                    {renombrarPlantillaMut.isPending ? "…" : "Renombrar"}
+                  </button>
                   <button
                     type="button"
                     title="Duplicar"

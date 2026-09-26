@@ -1,0 +1,247 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Contabilidad — de cada operación al Libro Mayor y al banco",
+    "output": "06-contabilidad.html",
+    "quality_profile": "showcase",
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "lo hace una persona"
+        },
+        "backend": {
+          "label": "lo hace la plataforma"
+        },
+        "database": {
+          "label": "queda guardado"
+        },
+        "cloud": {
+          "label": "sistema externo"
+        },
+        "security": {
+          "label": "hoy no existe o está apagado"
+        },
+        "messagebus": {
+          "label": "mensajería"
+        },
+        "external": {
+          "label": "cliente o tercero"
+        }
+      }
+    },
+    "views": [
+      {
+        "id": "registro",
+        "label": "Cómo entra al libro",
+        "focus": [
+          "operacion",
+          "autopost",
+          "asiento",
+          "espejo"
+        ],
+        "note": "Un cron agrega ventas, compras y servicios y los postea; Alegra recibe una copia."
+      },
+      {
+        "id": "cuadre",
+        "label": "Cómo se cuadra",
+        "focus": [
+          "asiento",
+          "extracto",
+          "concilia",
+          "declara"
+        ],
+        "note": "Cada línea del extracto se empareja con su asiento; lo que cuadra llega a las declaraciones."
+      }
+    ]
+  },
+  "lanes": [
+    {
+      "id": "fuentes",
+      "label": "Operaciones"
+    },
+    {
+      "id": "cron",
+      "label": "Cron"
+    },
+    {
+      "id": "libro",
+      "label": "Libro Mayor"
+    },
+    {
+      "id": "alegra",
+      "label": "Alegra"
+    },
+    {
+      "id": "banco",
+      "label": "Banco"
+    },
+    {
+      "id": "contador",
+      "label": "Contador"
+    }
+  ],
+  "phases": [
+    {
+      "id": "registrar",
+      "label": "Registrar",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "cuadrar",
+      "label": "Cuadrar",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "declarar",
+      "label": "Declarar",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "operacion",
+    "autopost",
+    "asiento",
+    "concilia",
+    "declara"
+  ],
+  "nodes": [
+    {
+      "id": "operacion",
+      "lane": "fuentes",
+      "col": 0,
+      "type": "backend",
+      "label": "Ventas, compras, pagos",
+      "sublabel": "facturas · solicitudes",
+      "width": 170
+    },
+    {
+      "id": "autopost",
+      "lane": "cron",
+      "col": 1,
+      "type": "backend",
+      "label": "Auto-posteo",
+      "sublabel": "cada 6 horas",
+      "width": 94
+    },
+    {
+      "id": "asiento",
+      "lane": "libro",
+      "col": 2,
+      "type": "database",
+      "label": "Asientos",
+      "sublabel": "partida doble · PUC real",
+      "width": 146
+    },
+    {
+      "id": "espejo",
+      "lane": "alegra",
+      "col": 3,
+      "type": "cloud",
+      "label": "Espejo contable",
+      "sublabel": "comprobantes",
+      "width": 122
+    },
+    {
+      "id": "extracto",
+      "lane": "banco",
+      "col": 3,
+      "type": "cloud",
+      "label": "Extracto bancario",
+      "sublabel": "lo carga una persona",
+      "width": 135
+    },
+    {
+      "id": "concilia",
+      "lane": "libro",
+      "col": 4,
+      "type": "database",
+      "label": "Conciliación",
+      "sublabel": "asiento ↔ línea del banco",
+      "width": 151
+    },
+    {
+      "id": "declara",
+      "lane": "contador",
+      "col": 5,
+      "type": "frontend",
+      "label": "Declaraciones",
+      "sublabel": "350 · 490 · IVA",
+      "width": 108
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-operacion-autopost",
+      "from": "operacion",
+      "to": "autopost",
+      "role": "main"
+    },
+    {
+      "id": "e-autopost-asiento",
+      "from": "autopost",
+      "to": "asiento",
+      "label": "postea",
+      "role": "main"
+    },
+    {
+      "id": "e-asiento-espejo",
+      "from": "asiento",
+      "to": "espejo",
+      "label": "copia",
+      "variant": "dashed",
+      "role": "async"
+    },
+    {
+      "id": "e-asiento-concilia",
+      "from": "asiento",
+      "to": "concilia",
+      "role": "main"
+    },
+    {
+      "id": "e-extracto-concilia",
+      "from": "extracto",
+      "to": "concilia",
+      "label": "empareja",
+      "role": "branch"
+    },
+    {
+      "id": "e-concilia-declara",
+      "from": "concilia",
+      "to": "declara",
+      "label": "cuadra",
+      "variant": "emphasis",
+      "role": "main"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet",
+      "title": "El libro propio es la fuente de verdad",
+      "items": [
+        "Alegra recibe el espejo y sirve al contador",
+        "Un 503 de Alegra: releer antes de reintentar"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Fecha de corte: 2026-09-01",
+      "items": [
+        "Lo anterior es del contador y no se toca",
+        "Ni «forzar» salta el corte"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Los pagos entran directo",
+      "items": [
+        "El asiento nace al aprobar la solicitud",
+        "No esperan al auto-posteo"
+      ]
+    }
+  ]
+}

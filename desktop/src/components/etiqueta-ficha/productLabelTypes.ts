@@ -39,17 +39,51 @@ export interface ProductLabelData {
   /** Rótulo del número de registro del cuadro técnico (sin dato = "CAS"). */
   casTitulo?: string;
   /** Cuchara medidora incluida: cantidad (vacío = no se imprime) y unidad. */
+  /** Beneficios del formato vertical 38 × 102: textos de máximo 10 palabras.
+   *  Los trae la ficha técnica (`propiedades_lista`, ver `resumirBeneficio`). */
+  beneficio1?: string;
+  beneficio2?: string;
+  beneficio3?: string;
   cucharaCantidad?: string;
   cucharaUnidad?: string;
+  /** Rótulo de la casilla: cuchara o copa (ver `TITULOS_CUCHARA`). */
+  cucharaUtensilio?: string;
   /** Formato 30 mL: grado del subtítulo "INSUMO GRADO …" (sin dato = COSMÉTICO). */
   gradoInsumo?: string;
   /** Formato 30 mL: texto de clasificación SGA (vacío = frase por defecto si
    *  el producto no es peligroso). */
   clasificacionTexto?: string;
+  /** Formato 30 mL: título del bloque de clasificación. Un producto sin
+   *  pictograma GHS puede usar ese espacio para «Modo de uso» o «Sugerencia»
+   *  (ver `TITULOS_CLASIFICACION_30ML`). Dato de plantilla. */
+  clasificacionTitulo?: string;
+  /** Formato 30 mL: orden de las seis casillas del panel izquierdo, claves
+   *  separadas por coma en orden de lectura ("origin,appearance,…"). Dato de
+   *  plantilla: cada categoría decide el suyo; sin dato, el orden de siempre. */
+  ordenCeldas?: string;
+  /** Formato 30 mL: texto de conservación de la FAMILIA. Dato de plantilla
+   *  (`storage` es dato de producto y nunca se hereda): es el ejemplo en gris
+   *  de la casilla y el texto con que nace cada etiqueta hecha con la plantilla. */
+  storageSugerido?: string;
+  /** Formato 30 mL: sin el espacio del timbre bajo la tabla Pureza/CAS; la
+   *  tabla ocupa ese alto. El timbre físico sigue teniendo su zona junto al
+   *  código de barras. Dato de plantilla. */
+  sinTimbreCentro?: boolean;
   /** Formato 69 × 51 mm (alimentos): línea de alérgenos ("Contiene: frutos
    *  secos…"). Dato de plantilla: toda etiqueta de la familia la hereda y se
    *  ajusta por producto. */
   alergenos?: string;
+  /** Etiqueta de cápsulas (66 × 22, categoría excipientes): línea bajo el
+   *  nombre («VACÍAS · PARA LLENADO»). Dato de plantilla. */
+  capsulasSubtitulo?: string;
+  /** Cápsulas: tamaño (00, 0, 1…) y color. Datos del producto. */
+  capsulasTamano?: string;
+  capsulasColor?: string;
+  /** Cápsulas: lote y vencimiento escritos en la etiqueta (vacío = raya para timbrar). */
+  lote?: string;
+  vencimiento?: string;
+  /** Cápsulas: ya se escribieron los datos iniciales (ver `parcheInicialCapsulas`). */
+  capsulasIniciada?: boolean;
 
   // ── Formato circular 53 × 53 mm (ceras y mantecas) ───────────────────────
   /** Descripción corta bajo el título curvo. */
@@ -58,6 +92,10 @@ export interface ProductLabelData {
   aplicacionesTitulo?: string;
   /** Una aplicación por renglón; cada una sale con su viñeta. */
   aplicaciones?: string;
+  /** Formato 30 mL: texto del bloque cuando su título es «Modo de uso». Lo
+   *  trae el `modo_uso` de la ficha técnica, resumido (ver
+   *  `sintetizarModoUso`); se corrige a mano en la etiqueta. */
+  modoUso?: string;
   /** Razón social sobre el arco izquierdo. Dato de plantilla. */
   empresa?: string;
   /** Registro sanitario, sobre el arco inferior izquierdo. */
@@ -77,6 +115,11 @@ export interface ProductLabelData {
   /** Ficha técnica enlazada (id de `/api/fichas/datos`) y su título. */
   fichaTecnicaId?: string;
   fichaTecnicaTitulo?: string;
+  /** Cómo venían los datos de la ficha técnica la última vez que se pasaron a
+   *  la etiqueta. Al abrirla se compara con la ficha actual y se aplica SOLO lo
+   *  que cambió allá: lo corregido en la ficha llega solo y lo ajustado a mano
+   *  en la etiqueta (sin tocar la ficha) se respeta. Ver `lib/fichaTecnicaSync`. */
+  fichaTecnicaBase?: Record<string, string>;
 
   city: string;
   phone: string;
@@ -87,6 +130,11 @@ export interface ProductLabelData {
  *  bloque inferior la usan por igual para que todas las líneas verticales
  *  de la ficha coincidan exactamente. No definir anchos independientes
  *  (2fr/1fr, %, px) en cada sección: siempre esta misma clase. */
+/** Alto de la franja de color sobre el código de barras, en unidades del
+ *  SVG del código (ver `FranjaEAN13`): se escala con él, así que no hay
+ *  que tocarlo si cambia el tamaño de la etiqueta. */
+export const ALTO_FRANJA_FICHA = 10;
+
 export const RETICULA_MAESTRA = "grid grid-cols-3";
 
 /** Naranja corporativo — acento por defecto mientras no se elija un logo. */
@@ -126,7 +174,7 @@ export const PRODUCTO_EJEMPLO: ProductLabelData = {
   origin: "Colombia",
   appearance:
     "Sólido, blanco a blanco amarillento, pálido, de textura suave y untuosa, presentándose en bloques o piezas.",
-  odor: "Olor dulce y cremoso, con un trasfondo sutil de cacao.",
+  odor: "Aroma dulce y cremoso, con un trasfondo sutil de cacao.",
   composition: "Ácido Esteárico, Ácido Oleico, Ácido Palmítico, Ácido Linoleico",
   grade: "Cosmético — Refinada",
   storage: "Guardar en lugar fresco, seco y bien cerrado.",
@@ -193,15 +241,43 @@ export const CAMPOS_PLANTILLA = [
   "casTitulo",
   "cucharaCantidad",
   "cucharaUnidad",
+  "cucharaUtensilio",
   "gradoInsumo",
+  "clasificacionTitulo",
+  "ordenCeldas",
+  "storageSugerido",
+  "sinTimbreCentro",
   "alergenos",
+  "capsulasSubtitulo",
   "aplicacionesTitulo",
   "empresa",
   "controlCalidad",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 
+/** Títulos elegibles de la casilla de composición (menú del título). Se
+ *  guarda en `compositionTitulo`, el mismo dato que usa el formato de
+ *  30 mL; si una ficha antigua trae un título que ya no está en la lista,
+ *  se ve el primero. El título es "Fórmula molecular" (no "química"), igual
+ *  que en el documento técnico — es el mismo dato. */
 export const TITULOS_COMPOSICION = ["Composición", "Fórmula molecular"] as const;
+
+export function tituloComposicion(data: ProductLabelData): string {
+  const t = data.compositionTitulo || "";
+  return (TITULOS_COMPOSICION as readonly string[]).includes(t) ? t : TITULOS_COMPOSICION[0];
+}
 export const TITULOS_CAS = ["CAS", "EINECS"] as const;
+/** Rótulos elegibles de la casilla del utensilio de medida (menú del
+ *  título), igual que `TITULOS_CAS` y `TITULOS_COMPOSICION`. Se guarda
+ *  en `cucharaUtensilio`; las fichas que no lo traen ven el primero. */
+export const TITULOS_CUCHARA = [
+  "Incluye cuchara medidora de:",
+  "Incluye copa medidora de:",
+] as const;
+
+export function tituloCuchara(data: ProductLabelData): string {
+  const t = data.cucharaUtensilio || "";
+  return (TITULOS_CUCHARA as readonly string[]).includes(t) ? t : TITULOS_CUCHARA[0];
+}
 export const UNIDADES_CUCHARA = ["g", "mL"] as const;
 
 /** Ficha vacía: sin información de producto. Los campos fijos traen el
@@ -236,6 +312,7 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   email: "info@mckennagroup.co",
   descripcionProducto: "",
   aplicaciones: "",
+  modoUso: "",
   registro: "",
 };
 
@@ -263,8 +340,13 @@ export const CAMPOS_PRODUCTO = [
   "barcodeTitle",
   "fichaTecnicaId",
   "fichaTecnicaTitulo",
+  "fichaTecnicaBase",
   "descripcionProducto",
   "aplicaciones",
+  "modoUso",
+  "beneficio1",
+  "beneficio2",
+  "beneficio3",
   "registro",
 ] as const satisfies readonly (keyof ProductLabelData)[];
 

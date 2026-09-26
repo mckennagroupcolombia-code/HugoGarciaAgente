@@ -217,7 +217,6 @@
     "C-LACCAL100g": "Países Bajos",
     "OLTKLt": "Colombia",
     "C-CIA100g": "China",
-    "C-ALBHV500g": "Estados Unidos",
     "C-AMIBCA250g": "China",
     "C-AMILARG100g": "China",
     "C-AMILCAR100g": "China",
@@ -240,7 +239,6 @@
     "H2ORS250mL": "Turquía",
     "ALMYCKG": "Colombia",
     "GLTMNSLB": "Indonesia",
-    "GMARB500g": "Egipto",
     "C-GOMGUA500g": "Pakistán",
     "C-GOMXAN500g": "China",
     "C-INU250g": "Países Bajos",
@@ -301,6 +299,7 @@
     "C-SEMCAL500g": "China",
     "C-VASPRE100mL": "China",
     "C-AZUMMET30mL": "India",
-    "C-GLU2P500mL": "Alemania"
+    "C-GLU2P500mL": "Alemania",
+    "C-ALBHUE500g": "Estados Unidos"
   }
 }

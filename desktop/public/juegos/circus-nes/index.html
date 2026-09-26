@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+	<title>Circus Charlie (NES)</title>
+	<style>
+		html, body { margin: 0; padding: 0; overflow: hidden; background: #000; width: 512px; height: 480px; }
+		html, body, canvas, button {
+			touch-action: none; -webkit-user-select: none; user-select: none;
+			-webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
+		}
+		canvas { display: block; width: 512px; height: 480px; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+		#aviso { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; color: #9ca3af; font: 12px 'Courier New', monospace; pointer-events: none; }
+		/* Controles táctiles: solo se muestran cuando hay un toque (ver emulador.js). */
+		#tactil { position: absolute; inset: 0; display: none; pointer-events: none; }
+		#tactil.visible { display: block; }
+		#tactil button {
+			position: absolute; bottom: 14px; width: 64px; height: 64px; border-radius: 50%;
+			border: 2px solid rgba(255,255,255,.55); background: rgba(255,255,255,.14); color: #fff;
+			font: bold 22px monospace; pointer-events: auto; padding: 0;
+		}
+		#tactil button:active, #tactil button.activo { background: rgba(255,255,255,.4); }
+		#izq { left: 14px; } #der { left: 92px; }
+		#tactil #a { right: 14px; width: 84px; height: 84px; bottom: 10px; font-size: 14px; }
+		#tactil #b { right: 108px; width: 56px; height: 56px; bottom: 24px; font-size: 13px; }
+		#tactil #start { right: 14px; top: 10px; bottom: auto; width: 74px; height: 30px; border-radius: 15px; font-size: 12px; }
+		#tactil #select { right: 96px; top: 10px; bottom: auto; width: 74px; height: 30px; border-radius: 15px; font-size: 12px; }
+	</style>
+</head>
+<body>
+	<canvas id="lienzo" width="256" height="240" tabindex="0"></canvas>
+	<div id="aviso">CARGANDO...</div>
+	<div id="tactil">
+		<button id="izq" type="button" aria-label="Izquierda">&#9664;</button>
+		<button id="der" type="button" aria-label="Derecha">&#9654;</button>
+		<button id="b" type="button" aria-label="B">B</button>
+		<button id="a" type="button" aria-label="A (saltar)">A · SALTAR</button>
+		<button id="select" type="button" aria-label="Select">SELECT</button>
+		<button id="start" type="button" aria-label="Start">START</button>
+	</div>
+	<script src="externalLib/jsnes.min.js"></script>
+	<script src="rom_datos.js"></script>
+	<script src="emulador.js"></script>
+</body>
+</html>

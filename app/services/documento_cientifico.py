@@ -4,6 +4,7 @@ Enriquecimiento de datos COA/SDS/TDS con PubChem, PubMed, ficha Sheets y síntes
 
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 import re
@@ -144,7 +145,7 @@ def _extraer_json(texto: str) -> dict | None:
     return None
 
 
-def _sintetizar_json(prompt: str) -> dict | None:
+def _sintetizar_json(prompt: str, contexto: str = "documentos_completar") -> dict | None:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GOOGLE_API_KEY no configurada (requerida para completar documentos)")
@@ -152,13 +153,24 @@ def _sintetizar_json(prompt: str) -> dict | None:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-pro"
+        ok, motivo = permitir_llamada(modelo, contexto=contexto)
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-pro", contents=prompt))
+            fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
             try:
                 resp = fut.result(timeout=75)
             except FutureTimeout:
                 raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto=contexto,
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         return _extraer_json(resp.text or "")
     except RuntimeError:
         raise
@@ -326,6 +338,18 @@ def completar_datos_documento(
     }
 
 
+_LIMITE_GEMINI_S: contextvars.ContextVar[int] = contextvars.ContextVar("limite_gemini_s", default=30)
+
+
+def sugerir_campo_ficha_en_segundo_plano(campo: str, nombre: str) -> dict[str, Any]:
+    """`sugerir_campo_ficha` para un job en hilo: sin corte del proxy, espera hasta 120 s."""
+    token = _LIMITE_GEMINI_S.set(120)
+    try:
+        return sugerir_campo_ficha(campo, nombre)
+    finally:
+        _LIMITE_GEMINI_S.reset(token)
+
+
 def _sintetizar_texto(prompt: str) -> str:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
@@ -334,13 +358,30 @@ def _sintetizar_texto(prompt: str) -> str:
         from google import genai
 
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+        from app.services.llm_budget import permitir_llamada, registrar_llamada, usage_gemini
+
+        modelo = "gemini-2.5-flash"
+        ok, motivo = permitir_llamada(modelo, contexto="documentos_sugerir_campo")
+        if not ok:
+            raise RuntimeError(motivo)
         client = genai.Client(api_key=api_key)
-        with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-flash", contents=prompt))
-            try:
-                resp = fut.result(timeout=30)
-            except FutureTimeout:
-                raise RuntimeError("Gemini tardó demasiado — intente de nuevo en unos segundos")
+        # 30 s en las rutas que responden en la misma petición (Cloudflare corta a ~100 s);
+        # 120 s en segundo plano (`sugerir_campo_ficha_en_segundo_plano`): con 30 s se
+        # perdían respuestas que llegaban a los 35-45 s.
+        limite = _LIMITE_GEMINI_S.get()
+        ex = ThreadPoolExecutor(max_workers=1)
+        fut = ex.submit(lambda: client.models.generate_content(model=modelo, contents=prompt))
+        try:
+            resp = fut.result(timeout=limite)
+        except FutureTimeout:
+            raise RuntimeError(f"Gemini tardó más de {limite} s — intente de nuevo en unos segundos")
+        finally:
+            ex.shutdown(wait=False)  # sin esperar al hilo colgado (el `with` sí esperaba)
+        t_in, t_out = usage_gemini(resp)
+        registrar_llamada(
+            modelo, t_in, t_out, contexto="documentos_sugerir_campo",
+            chars_prompt=len(prompt), chars_respuesta=len(resp.text or ""),
+        )
         text = (resp.text or "").strip()
         text = re.sub(r"^```[\w]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)
@@ -435,7 +476,7 @@ _CAMPOS_PERMITIDOS = {
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "alergenos", "conservacion",
     "recomendaciones", "nombre_comercial",
-    "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
+    "sds_clasificacion_ghs", "sds_pictogramas",
     "coa_einecs", "coa_grado", "coa_parametros",
 }
 
@@ -448,10 +489,39 @@ _PROMPT_BASE = (
 # lista multilínea): deben terminar siempre en punto para verse consistentes
 # en la casilla del formulario, sin importar si el valor vino de PubChem o de
 # Gemini (ninguna de las dos fuentes lo garantiza de forma confiable).
+#: La casilla Conservacion de la etiqueta es una sintesis concreta, no un
+#: parrafo: tope de 15 palabras (regla del usuario). El mismo tope vive en
+#: `desktop/src/lib/fichaTecnicaCampos.ts` (MAX_PALABRAS_CONSERVACION).
+MAX_PALABRAS_CONSERVACION = 15
+
+
+def recortar_a_palabras(texto: str, maximo: int = MAX_PALABRAS_CONSERVACION) -> str:
+    """Recorta a `maximo` palabras cortando por clausulas (comas y punto y
+    coma) para que el resultado siga siendo una instruccion completa. Solo si
+    la primera clausula ya se pasa se corta a mitad de clausula, nunca a mitad
+    de palabra."""
+    t = re.sub(r"\s+", " ", (texto or "").strip())
+    if not t or len(t.split(" ")) <= maximo:
+        return t
+    clausulas = re.split(r"(?<=[,;])\s+", t.split(". ")[0] if ". " in t else t)
+    out = ""
+    for c in clausulas:
+        cand = f"{out} {c}".strip()
+        if len(cand.split(" ")) > maximo:
+            break
+        out = cand
+    if not out:
+        out = " ".join(t.split(" ")[:maximo])
+    paren = out.rfind("(")
+    if paren > 0 and ")" not in out[paren:]:
+        out = out[:paren]
+    return out.rstrip(" ,;")
+
+
 _CAMPOS_ORACION_CORTA = {
     "descripcion", "apariencia", "olor", "sabor", "solubilidad",
     "modo_uso", "alergenos", "conservacion",
-    "sds_clasificacion_ghs", "sds_manipulacion",
+    "sds_clasificacion_ghs",
 }
 
 
@@ -756,10 +826,14 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "UNA o dos lineas. Sin markdown."
         ),
         "conservacion": (
-            f'Indica las condiciones de conservacion y almacenamiento de "{nombre}".\n'
+            f'Resume las condiciones de conservacion y almacenamiento de "{nombre}".\n'
             f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: temperatura, humedad, luz, tipo de envase y vida util si se conoce.\n"
-            "1-2 oraciones tecnicas en espanol. Sin markdown, sin listas."
+            "Va impreso en la casilla Conservacion de la etiqueta, que es muy pequena.\n"
+            f"Formato OBLIGATORIO: UNA sola oracion de MAXIMO {MAX_PALABRAS_CONSERVACION} palabras, "
+            "empezando por un verbo en infinitivo (Guardar / Almacenar / Conservar / Mantener).\n"
+            "Concreta: envase, lugar y las condiciones que importen (temperatura, humedad, luz).\n"
+            "NADA de vida util, fechas, modo de uso ni advertencias. Sin markdown, sin listas, "
+            "sin preambulo: responde solo la oracion."
         ),
         "sds_clasificacion_ghs": (
             f'Genera la clasificación GHS/CLP de "{nombre}" según el Sistema Globalmente Armonizado (SGA/GHS).\n'
@@ -774,22 +848,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Formato: una línea por elemento.\n"
             "Ejemplo:\nGHS07 - Nocivo\nH302: Nocivo en caso de ingestión\nP260: No respirar los vapores\n"
             "Sin markdown. Si no aplica pictograma, indicarlo."
-        ),
-        "sds_primeros_auxilios": (
-            f'Redacta las instrucciones de primeros auxilios para "{nombre}" en caso de exposición accidental.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Formato ESTRICTO: una línea por vía de exposición como \"Caso|Instrucción\".\n"
-            "Ejemplo:\nInhalación|Llevar al afectado a lugar ventilado; consultar médico si persiste\n"
-            "Contacto piel|Lavar con agua y jabón abundante durante 15 minutos\n"
-            "Contacto ojos|Enjuagar con agua limpia durante 15 minutos; consultar oftalmólogo\n"
-            "Ingestión|No inducir vómito; consultar médico inmediatamente\n"
-            "Sin markdown, sin encabezados."
-        ),
-        "sds_manipulacion": (
-            f'Redacta las instrucciones de manipulación segura de "{nombre}" para uso industrial/cosmético/farmacéutico.\n'
-            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Incluye: EPP recomendado, ventilación, precauciones generales, incompatibilidades a evitar.\n"
-            "2-4 oraciones técnicas en español. Sin markdown, sin listas."
         ),
         "coa_einecs": (
             f'Indica el número EINECS (European Inventory of Existing Commercial Chemical Substances) de "{nombre}".\n'
@@ -809,6 +867,10 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         raise ValueError(f"Campo no tiene prompt configurado: {campo}")
 
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    if campo == "conservacion":
+        # La casilla de la etiqueta es una sintesis: el tope de 15 palabras se
+        # impone aqui aunque el modelo devuelva un parrafo.
+        valor = recortar_a_palabras(valor)
     if campo in _CAMPOS_ORACION_CORTA:
         valor = _asegurar_punto_final(valor)
     elif campo == "aplicaciones":
