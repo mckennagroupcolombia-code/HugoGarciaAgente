@@ -1,3 +1,12 @@
+### 2026-09-26 01:45 - Mapa sin niveles: siempre todo el edificio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Simplificación de la interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Se quitaron los botones Etapas · Cotidiano · Operación · Todo. La barra del Mapa queda con **Mapa · Edificio** (y «¡Ir a lo urgente!» / «Encuadrar»).
+  - Cada quien ve siempre **todos** los paneles que puede abrir, en el tablero y en todos los pisos del edificio, con lo detenido de cada etapa.
+  - Verificado con clics reales (administración, escritorio y celular), sin errores de consola.
+- **Archivos Modificados:** `desktop/src/components/{MapaVivo.tsx,MapaEdificio.tsx}`, `desktop/dev/app.tsx`, `CLAUDE.md`.
+
 ### 2026-09-26 01:20 - Solo el Mapa: la portada de la Agenda deja de existir
 - **Autor:** Armando García
 - **Tipo de Cambio:** Cambio de navegación. Sin LLM.

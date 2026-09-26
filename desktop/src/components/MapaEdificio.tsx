@@ -287,8 +287,8 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
                 </button>
               )}
               {d.tramos.flatMap((t) => t.visibles.map((p) => estacion(d, p.panel, p.hace, t.titulo)))}
-              {notas.map((b) => (
-                <button key={b.id} type="button" className={`ed-nota ${b.severidad === "alta" ? "ed-nota-alta" : ""}`}
+              {notas.map((b, i) => (
+                <button key={`${b.id}-${i}`} type="button" className={`ed-nota ${b.severidad === "alta" ? "ed-nota-alta" : ""}`}
                         onClick={() => ir(id, b.panel as Panel)} title="Lo que está detenido ahora">
                   <b>{b.n}</b> {b.texto}
                 </button>

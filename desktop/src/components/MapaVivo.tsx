@@ -31,7 +31,7 @@ import { api } from "../api/client";
 import { PanelIcon } from "../icons";
 import { ETAPAS_APP, ORIGEN_APP, type EtapaApp, type TramoApp } from "../lib/flujoApp";
 import { etapaDeTicket } from "../lib/flujoTickets";
-import { esAdminPanel, puedeVerSeccionPanel } from "../lib/panelAccess";
+import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -60,22 +60,13 @@ async function ticketsGet<T>(ruta: string, token: string): Promise<T> {
 
 // ─── Aspecto ─────────────────────────────────────────────────────────────────
 
-const NIVELES = [
-  { n: 0, titulo: "Etapas", ayuda: "Solo la secuencia y lo detenido" },
-  { n: 1, titulo: "Cotidiano", ayuda: "Lo que se usa todos los días" },
-  { n: 2, titulo: "Operación", ayuda: "La operación completa" },
-  { n: 3, titulo: "Todo", ayuda: "Todo, con lo que hace cada panel y sus datos" },
-] as const;
-const CLAVE_NIVEL = "mck-mapa-vivo-nivel";
 const CLAVE_VISTA = "mck-mapa-vivo-vista";
+/** Siempre se muestra TODO lo que cada quien puede abrir (26-sep-2026: se quitaron los niveles
+ *  Etapas · Cotidiano · Operación · Todo). Las descripciones de cada panel van en el título al pasar. */
+const NIVEL = 2;
 /** «mapa» (el tablero) o «edificio» (el diorama: cada etapa es un piso). */
 const CLAVE_MODO = "mck-mapa-vivo-modo";
 
-/** A partir de qué nivel aparece un panel (solo para administración: ve 61 paneles). */
-function nivelDe(p: Panel): number {
-  const t = PANEL_INFO[p]?.tier;
-  return t === "core" ? 1 : t === "advanced" ? 3 : 2;
-}
 function leer(clave: string): string | null {
   try { return localStorage.getItem(clave); } catch { return null; }
 }
@@ -203,11 +194,11 @@ function CartaEtapa({ id, data }: NodeProps) {
             ))}
           </div>
         )}
-        {d.participa && d.nivel >= 3 && (d.bloqueos?.items.length ?? 0) > 0 && (
+        {d.participa && (d.bloqueos?.items.length ?? 0) > 0 && (
           <div className="mv-detenido">
             <p className="mv-tramo-t">Detenido ahora</p>
-            {d.bloqueos!.items.slice(0, 3).map((b) => (
-              <button key={b.id} type="button" className="mv-bloqueo nodrag nopan" onClick={() => abrir(b.panel as Panel, id)}>
+            {d.bloqueos!.items.slice(0, 3).map((b, i) => (
+              <button key={`${b.id}-${i}`} type="button" className="mv-bloqueo nodrag nopan" onClick={() => abrir(b.panel as Panel, id)}>
                 <b>{b.n}</b> {b.texto}
               </button>
             ))}
@@ -282,12 +273,6 @@ function Mapa() {
   // En el celular la secuencia va de arriba abajo: se lee con el pulgar.
   const vertical = ancho < 700;
 
-  const esAdmin = Boolean(user && esAdminPanel(user));
-  const [nivel, setNivel] = useState(() => {
-    const v = Number(leer(CLAVE_NIVEL));
-    return Number.isInteger(v) && v >= 0 && v <= 3 && leer(CLAVE_NIVEL) !== null ? v : 1;
-  });
-  const cambiarNivel = (n: number) => { setNivel(n); guardar(CLAVE_NIVEL, String(n)); };
   const [modo, setModo] = useState<"mapa" | "edificio">(() => (leer(CLAVE_MODO) === "edificio" ? "edificio" : "mapa"));
   const cambiarModo = (m: "mapa" | "edificio") => { setModo(m); guardar(CLAVE_MODO, m); };
 
@@ -345,16 +330,13 @@ function Mapa() {
       const tramos = etapa.tramos
         .map((t) => ({
           ...t,
-          // Administración ve 61 paneles: el nivel los dosifica. Los demás ven todos los
-          // suyos siempre (ya son pocos, y esconderlos dejaría etapas vacías sin explicación).
-          // Un panel URGENTE se muestra aunque el nivel de detalle lo esconda: lo urgente no se esconde.
-          visibles: t.pasos.filter((p) => puedeVerSeccionPanel(user, p.panel)
-            && (!esAdmin || nivelDe(p.panel) <= Math.max(nivel, 1) || Boolean(urgentes.get(etapa.id)?.[p.panel]))),
+          // Todos los paneles que esta persona puede abrir (la misma regla del menú).
+          visibles: t.pasos.filter((p) => puedeVerSeccionPanel(user, p.panel)),
         }))
         .filter((t) => t.visibles.length > 0);
       const participa = etapa.tramos.some((t) => t.pasos.some((p) => puedeVerSeccionPanel(user, p.panel)));
       return {
-        etapa, tramos, participa, nivel,
+        etapa, tramos, participa, nivel: NIVEL,
         bloqueos: bloq.data?.por_etapa?.[etapa.id],
         mias: porEtapa.get(etapa.id) ?? 0,
         urgentes: urgentes.get(etapa.id) ?? {},
@@ -362,7 +344,7 @@ function Mapa() {
         ancha: etapa.tipo === "transversal" && !vertical,
       };
     });
-  }, [user, tareas.data, bloq.data, nivel, esAdmin, vertical]);
+  }, [user, tareas.data, bloq.data, vertical]);
 
   // Medidas reales (llegan como cambios «dimensions»). Sirven para acomodar la fila de
   // abajo y la columna del celular, y HAY que devolverlas en `measured`: React Flow v12
@@ -505,12 +487,6 @@ function Mapa() {
                   className={`mv-nivel ${modo === "mapa" ? "mv-nivel-on" : ""}`} title="El tablero: la secuencia del negocio">Mapa</button>
           <button type="button" aria-pressed={modo === "edificio"} onClick={() => cambiarModo("edificio")}
                   className={`mv-nivel ${modo === "edificio" ? "mv-nivel-on" : ""}`} title="El diorama: cada departamento es un piso">Edificio</button>
-        </div>
-        <div className="flex shrink-0 gap-1" role="group" aria-label="Nivel de detalle">
-          {NIVELES.filter((n) => esAdmin || n.n !== 2).map((n) => (
-            <button key={n.n} type="button" title={n.ayuda} aria-pressed={nivel === n.n} onClick={() => cambiarNivel(n.n)}
-                    className={`mv-nivel ${nivel === n.n ? "mv-nivel-on" : ""}`}>{n.titulo}</button>
-          ))}
         </div>
         {totalUrgente > 0 && (
           <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}

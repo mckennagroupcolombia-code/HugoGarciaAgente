@@ -69,7 +69,7 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   if (ruta === "/api/tickets/recordatorios") return json([]);
   // Urgencias como las entrega el servidor YA filtradas por persona (acceso_paneles.py).
   if (ruta === "/api/mapa-sistema/urgencias") {
-    const it = (etapa: string, n: number, texto: string, panel: string, severidad = "alta") => ({ etapa, id: `${etapa}-${panel}`, n, texto, panel, severidad });
+    const it = (etapa: string, n: number, texto: string, panel: string, severidad = "alta") => ({ etapa, id: `${etapa}-${panel}-${severidad}`, n, texto, panel, severidad });
     const grupo = (...xs: ReturnType<typeof it>[]) => ({
       alta: xs.filter((x) => x.severidad === "alta").reduce((a, x) => a + x.n, 0),
       media: xs.filter((x) => x.severidad === "media").reduce((a, x) => a + x.n, 0), items: xs });
