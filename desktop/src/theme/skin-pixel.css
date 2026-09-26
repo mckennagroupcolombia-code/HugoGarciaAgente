@@ -1,6 +1,8 @@
 /*
  * Piel «Pixel» (25-sep-2026): toda la app como un videojuego, con el lenguaje del Mapa
- * y de Colaboradores. Es la piel base de todo el equipo (ESTILO_BASE_V = 3); cada quien
+ * y de Colaboradores. Desde el 26-sep-2026 su FORMA (esquinas, bordes, sombras de bloque,
+ * botones, pestañas, pisos) es la base de TODOS los temas; la paleta sigue siendo solo suya.
+ * Es la piel base de todo el equipo (ESTILO_BASE_V = 3); cada quien
  * puede volver a otra en Temas.
  *
  * Cómo está hecha: sin tocar los 61 paneles. Se redefinen los tokens del tema (--mck-*,
@@ -77,6 +79,13 @@ html[data-mck-skin="pixel"].dark {
   --mck-cuadricula: 29 38 72;
 }
 
+/* ─── Los demás temas ─────────────────────────────────────────────────────────
+   Todos llevan la FORMA pixel (el resto de esta hoja va con html[data-mck-skin]); cada uno
+   conserva sus colores, su fondo y su letra. Solo la paleta PICO-8, el papel cuadriculado y
+   sus arreglos de contraste son exclusivos de Pixel. Aquí, el color de la sombra de bloque. */
+html[data-mck-skin]:not([data-mck-skin="pixel"]) { --mck-sombra: 0 0 0; }
+html[data-mck-skin="matrix"] { --mck-sombra: 0 90 25; }
+
 /* ─── Fondo: papel cuadriculado ──────────────────────────────────────────── */
 html[data-mck-skin="pixel"] body {
   background:
@@ -85,7 +94,7 @@ html[data-mck-skin="pixel"] body {
     rgb(var(--mck-surface));
 }
 /* El título lleva delante un bloque de color con sombra dura (la letra no cambia). */
-html[data-mck-skin="pixel"] .mck-title::before {
+html[data-mck-skin] .mck-title::before {
   content: "";
   display: inline-block;
   width: 10px;
@@ -106,91 +115,126 @@ html[data-mck-skin="pixel"].dark :is(.text-accent, .hover\:text-accent:hover):no
 html[data-mck-skin="pixel"].dark :is(.bg-danger, .bg-accent-rose).text-white { color: #000; }
 
 /* Ámbar con letra blanca no se lee (2:1, ya pasaba en el diseño original): letra negra. */
-html[data-mck-skin="pixel"] :is(.bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-orange-400, .bg-orange-500,
+html[data-mck-skin] :is(.bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-orange-400, .bg-orange-500,
   .bg-yellow-400, .bg-yellow-500, .bg-accent-sun).text-white { color: #000; }
 
 /* ─── Forma: esquinas rectas, bordes y sombras de bloque ───────────────────── */
 /* Los círculos (avatares, puntos, interruptores) siguen siendo círculos. */
-html[data-mck-skin="pixel"] [class*="rounded"]:not(.rounded-full) { border-radius: 0 !important; }
+html[data-mck-skin] [class*="rounded"]:not(.rounded-full) { border-radius: 0 !important; }
 /* …pero una «pastilla» (rounded-full CON relleno horizontal: chips, filtros, contadores) es un
    bloque: ~390 quedaban redondas entre cajas cuadradas. Un círculo de verdad no lleva px-*. */
-html[data-mck-skin="pixel"] .rounded-full[class*="px-"] { border-radius: 0 !important; }
+html[data-mck-skin] .rounded-full[class*="px-"] { border-radius: 0 !important; }
 
 /* Los colores escritos a mano en los paneles (bg-white, text-emerald-400…) se traducen en
    skin-pixel-paleta.css, que GENERA desktop/scripts/pixel/paleta_pixel.py. Las etiquetas
    imprimibles no se ven afectadas: sus dibujos no usan esas clases (revisado 25-sep-2026). */
 
 /* Tarjetas y paneles: borde de 2 px y sombra dura. */
-html[data-mck-skin="pixel"] :is(.rounded-xl, .rounded-2xl, .rounded-3xl).border {
+html[data-mck-skin] :is(.rounded-xl, .rounded-2xl, .rounded-3xl).border {
   border-width: 2px;
   box-shadow: 3px 3px 0 rgb(var(--mck-sombra));
 }
 /* Las sombras de Tailwind se vuelven bloques (por --tw-shadow: los anillos de foco siguen). */
-html[data-mck-skin="pixel"] :is(.shadow-sm, .shadow) { --tw-shadow: 2px 2px 0 rgb(var(--mck-sombra)); }
-html[data-mck-skin="pixel"] :is(.shadow-md, .shadow-lg) { --tw-shadow: 4px 4px 0 rgb(var(--mck-sombra)); }
-html[data-mck-skin="pixel"] :is(.shadow-xl, .shadow-2xl) { --tw-shadow: 6px 6px 0 rgb(var(--mck-sombra)); }
+html[data-mck-skin] :is(.shadow-sm, .shadow) { --tw-shadow: 2px 2px 0 rgb(var(--mck-sombra)); }
+html[data-mck-skin] :is(.shadow-md, .shadow-lg) { --tw-shadow: 4px 4px 0 rgb(var(--mck-sombra)); }
+html[data-mck-skin] :is(.shadow-xl, .shadow-2xl) { --tw-shadow: 6px 6px 0 rgb(var(--mck-sombra)); }
 
 /* Botón principal: bloque con sombra que se hunde al tocarlo. */
-html[data-mck-skin="pixel"] :is(button, a, label).bg-accent {
+html[data-mck-skin] :is(button, a, label).bg-accent {
   border: 2px solid rgb(var(--mck-sombra));
   box-shadow: 3px 3px 0 rgb(var(--mck-sombra));
 }
-html[data-mck-skin="pixel"] :is(button, a, label).bg-accent:active:not(:disabled) {
+html[data-mck-skin] :is(button, a, label).bg-accent:active:not(:disabled) {
   transform: translate(3px, 3px);
   box-shadow: none;
 }
-html[data-mck-skin="pixel"] button.border:active:not(:disabled) { transform: translate(1px, 1px); }
+html[data-mck-skin] button.border:active:not(:disabled) { transform: translate(1px, 1px); }
 
 /* Campos: bloque blanco con borde de 2 px; el foco, cursor amarillo. */
-html[data-mck-skin="pixel"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
+html[data-mck-skin] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea) {
   border-width: 2px;
   border-color: rgb(var(--mck-border));
 }
-html[data-mck-skin="pixel"] :is(input, select, textarea, button, a):focus-visible {
+html[data-mck-skin] :is(input, select, textarea, button, a):focus-visible {
   outline: 3px solid #FFEC27;
   outline-offset: 1px;
   box-shadow: 0 0 0 5px rgb(var(--mck-sombra));
 }
-html[data-mck-skin="pixel"] ::selection { background: #FFEC27; color: #000; }
+html[data-mck-skin] ::selection { background: #FFEC27; color: #000; }
 
 /* ─── Cabezote, navegación y pestañas ─────────────────────────────────────── */
+html[data-mck-skin] .mck-header-glass { border-bottom: 3px solid rgb(var(--mck-sombra)); }
 html[data-mck-skin="pixel"] .mck-header-glass {
   background: rgb(var(--mck-surface-panel));
   backdrop-filter: none;
-  border-bottom: 3px solid rgb(var(--mck-sombra));
 }
-html[data-mck-skin="pixel"] .mck-flujo-nodo {
+html[data-mck-skin] .mck-flujo-nodo {
   border: 2px solid rgb(var(--mck-sombra)) !important;
   box-shadow: 2px 2px 0 rgb(var(--mck-sombra));
 }
-html[data-mck-skin="pixel"] .mck-flujo-nodo:is([aria-current="page"], [aria-expanded="true"]) {
+html[data-mck-skin] .mck-flujo-nodo:is([aria-current="page"], [aria-expanded="true"]) {
   background: rgb(var(--mck-accent));
   color: #FFF1E8;
 }
-html[data-mck-skin="pixel"] .mck-flujo-nodo:active { transform: translate(2px, 2px); box-shadow: none; }
+html[data-mck-skin] .mck-flujo-nodo:active { transform: translate(2px, 2px); box-shadow: none; }
 
-html[data-mck-skin="pixel"] .mck-hub-tab {
+html[data-mck-skin] .mck-hub-tab {
   border: 2px solid rgb(var(--mck-sombra));
   box-shadow: 2px 2px 0 rgb(var(--mck-sombra));
 }
-html[data-mck-skin="pixel"] .mck-hub-tab.is-active {
+html[data-mck-skin] .mck-hub-tab.is-active {
   background: rgb(var(--mck-accent));
   color: #FFF1E8;
 }
 
-html[data-mck-skin="pixel"] .mck-barra-movil { border-top: 3px solid rgb(var(--mck-sombra)); }
+html[data-mck-skin] .mck-barra-movil { border-top: 3px solid rgb(var(--mck-sombra)); }
 
 /* Barras de desplazamiento cuadradas, como en una consola. */
-html[data-mck-skin="pixel"] ::-webkit-scrollbar { width: 12px; height: 12px; }
-html[data-mck-skin="pixel"] ::-webkit-scrollbar-track { background: rgb(var(--mck-surface)); }
-html[data-mck-skin="pixel"] ::-webkit-scrollbar-thumb {
+html[data-mck-skin] ::-webkit-scrollbar { width: 12px; height: 12px; }
+html[data-mck-skin] ::-webkit-scrollbar-track { background: rgb(var(--mck-surface)); }
+html[data-mck-skin] ::-webkit-scrollbar-thumb {
   background: rgb(var(--mck-ink-muted));
   border: 2px solid rgb(var(--mck-surface));
   border-radius: 0;
 }
 
 /* Tablas: encabezado como la barra de un menú de juego. */
-html[data-mck-skin="pixel"] thead th {
+html[data-mck-skin] thead th {
   background: rgb(var(--mck-surface-hover));
   border-bottom: 2px solid rgb(var(--mck-sombra));
+}
+
+/* ─── Cada módulo es un piso del Edificio (MapaEdificio.tsx) ──────────────────
+   Layout.tsx pone en <main> el piso del módulo abierto (data-piso) y su color (--mck-piso):
+   la placa «P5» en la miga, la losa de color bajo el cabezote, la pared con rayas del piso
+   y el encabezado de las tablas teñido. Se entra con puertas de ascensor. */
+html[data-mck-skin] .mck-piso-placa {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  background: #000;
+  color: #FFEC27;
+  box-shadow: 2px 0 0 var(--mck-piso), -2px 0 0 var(--mck-piso), 0 2px 0 var(--mck-piso), 0 -2px 0 var(--mck-piso);
+  letter-spacing: 0.02em;
+}
+html[data-mck-skin] main[data-piso] .mck-header-glass {
+  border-bottom: 8px solid var(--mck-piso);
+  box-shadow: 0 3px 0 rgb(var(--mck-sombra));
+}
+html[data-mck-skin] main[data-piso] .mck-title::before { background: var(--mck-piso); }
+html[data-mck-skin] main[data-piso] {
+  background: repeating-linear-gradient(90deg, transparent 0 22px, color-mix(in srgb, var(--mck-piso) 7%, transparent) 22px 24px);
+}
+html[data-mck-skin] main[data-piso] thead th {
+  background: color-mix(in srgb, var(--mck-piso) 20%, rgb(var(--mck-surface-panel)));
+}
+/* Botones con borde: bloques con sombra que se hunden (los redondos —íconos, chips— no). */
+html[data-mck-skin] main button.border:not(.rounded-full):not(:disabled) { box-shadow: 2px 2px 0 rgb(var(--mck-sombra)); }
+html[data-mck-skin] main button.border:not(.rounded-full):active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+/* Entrar a un módulo: se abren las puertas del ascensor. Sin `forwards`: al terminar no queda
+   ningún recorte (un menú desplegable que sobresale no se corta). */
+html[data-mck-skin] .mck-animate-enter { animation: mck-puertas-ascensor 0.3s steps(6) backwards; }
+@keyframes mck-puertas-ascensor { from { clip-path: inset(0 50% 0 50%); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: reduce) {
+  html[data-mck-skin] .mck-animate-enter { animation: none; }
 }

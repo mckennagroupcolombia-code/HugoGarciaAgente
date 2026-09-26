@@ -59,7 +59,7 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
     ...usuario, api_token: "banco-api",
     ...(q.get("piel") || q.get("modo")
       ? { preferencias_ui: { panel: { skin: q.get("piel") ?? "pixel", mode: q.get("modo") ?? "light",
-                                      fontSans: "Montserrat" }, estilo_v: 99 } }
+                                      fontSans: "Montserrat" }, estilo_v: Number(q.get("estilo_v") ?? 99) } }
       : {}),
   });
   if (ruta === "/api/tickets/" || ruta === "/api/tickets") return json([
@@ -80,6 +80,14 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
       contar: grupo(it("contar", 117, "movimientos del banco sin clasificar", "libro-mayor")),
     } : despachos, sin_senal: [], generado: "" });
   }
+  // «Mi ficha» (MiRendimiento) con cifras de EJEMPLO.
+  if (ruta === "/api/tickets/rendimiento") return json({
+    usuario: { id: usuario.id, nombre: usuario.nombre, username: usuario.username },
+    periodo: { desde: "2026-08-27", hasta: "2026-09-26", dias: 30 }, horas_mes: 96.5, horas_mes_anterior: 88,
+    variacion_pct: 9.7, dias_activos: 19, jornada_referencia: 159,
+    funciones: [{ id: "empaque", funcion: "Empacar pedidos", implica: "Armar y cerrar cajas", nivel: 1, veces: 142, horas: 14.2, promedio_min: 6, fuente: "panel" }],
+    tipos: [{ nivel: 1, nombre: "Operativo", horas: 60, porcentaje: 62 }], nota: "Datos de ejemplo del banco de pruebas.",
+  });
   if (ruta === "/api/status") return json({ status: "activo", servicios: {} });
   // Pedidos Web con datos de EJEMPLO (inventados): sin ellos el panel solo muestra su estado vacío.
   if (ruta === "/api/pedidos/web") {

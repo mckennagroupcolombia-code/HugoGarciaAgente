@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { HorasEnFicha } from "./MiQuincena";
 
 /**
@@ -94,6 +95,30 @@ export default function MiRendimiento({ token }: { token: string }) {
         )}
       </div>
       {abierta && <FichaGrande token={token} inicial={d} onCerrar={() => setAbierta(false)} />}
+    </>
+  );
+}
+
+/**
+ * Acceso compacto a la ficha — va en la carta de Inicio del Mapa: «Mi ficha · N h este mes» y,
+ * al tocarlo, la MISMA ficha grande de la Agenda. Se monta con portal en <body>: el lienzo del
+ * Mapa lleva transform, y un `position: fixed` dentro de él se ubicaría respecto del lienzo.
+ */
+export function BotonMiFicha({ token, className }: { token: string; className?: string }) {
+  const [d, setD] = useState<Rendimiento | null>(null);
+  const [abierta, setAbierta] = useState(false);
+  const [fallo, setFallo] = useState(false);
+  useEffect(() => {
+    traer(token).then(setD).catch(() => setFallo(true));
+  }, [token]);
+  if (fallo) return null;
+  return (
+    <>
+      <button type="button" className={className} disabled={!d} onClick={() => d && setAbierta(true)}
+              title="Lo que hiciste este mes, cuántas veces y cuánto tiempo">
+        Mi ficha{d ? ` · ${Math.round(d.horas_mes)} h este mes` : "…"}
+      </button>
+      {abierta && d && createPortal(<FichaGrande token={token} inicial={d} onCerrar={() => setAbierta(false)} />, document.body)}
     </>
   );
 }

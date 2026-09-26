@@ -12,6 +12,9 @@ export interface UserUiPreferences {
 }
 
 /**
+ * v4 (26-sep-2026): se vuelve a llevar a todos a «Pixel». Tras la v3, Armando quedó en «Sakura» y
+ * Cynthia en «Barbie»: veían el Mapa en pixel (lo es siempre) y los módulos por dentro en otra piel,
+ * y parecía que la traducción de colores no se aplicaba. Quien prefiera otra la elige en Temas.
  * v3 (25-sep-2026): «Pixel» con la LETRA DE SIEMPRE (Montserrat): la v2 traía también una
  * fuente pixel y se leía peor. Subir a 3 le devuelve la letra a quien ya adoptó la v2.
  * v2 (25-sep-2026): el estilo base pasó a «Pixel» (la app como un videojuego, el lenguaje
@@ -24,7 +27,7 @@ export interface UserUiPreferences {
  * tamaños, el zoom y sus temas guardados (siguen en Temas → Mis temas).
  * Subir el número solo si se quiere volver a llevar a todos a un estilo base nuevo.
  */
-export const ESTILO_BASE_V = 3;
+export const ESTILO_BASE_V = 4;
 
 let migracionPendiente = false;
 

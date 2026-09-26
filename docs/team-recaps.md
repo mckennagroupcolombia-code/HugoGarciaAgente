@@ -1,3 +1,14 @@
+### 2026-09-26 00:35 - El Edificio McKenna: la app como diorama, y cada módulo es su piso
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + rediseño visual. Sin LLM.
+- **Qué se implementó:**
+  - **Se retiró «Tu día»**: como franja se veía mal, en el celular no era responsive y en escritorio no aportaba. En su lugar, la carta de **Inicio** trae **«Mi ficha»** (las horas del mes y la ficha grande) justo bajo Mi agenda.
+  - **Vista «Edificio»** (botón Mapa · Edificio arriba del mapa): toda la aplicación como un edificio en corte, en pixel art. Cada departamento es un piso — Abastecer (P1, muelle de carga con camión) · Preparar (cinta con frascos) · Publicar (estudio con flash) · Vender (tienda con monedas) · Entregar (despacho, sale el camión) · Facturar (impresora) · Contar (gráfica viva) · Dirigir (último piso, vista a la ciudad) · Inicio en la recepción · Sistema en el sótano (servidores parpadeando). Cada panel es una estación en la pared; el ascensor sube al piso y lo abre.
+  - Lo que se mueve dice algo real: **sirena** donde hay urgencias, **notas pegadas** con lo detenido, **tu muñeco «TÚ»** en los pisos donde tienes solicitudes y **luces apagadas** donde no participas.
+  - **Cada módulo, por dentro, es su piso**: placa «P5» en el cabezote, la losa del color de su etapa, pared con rayas, tablas teñidas, botones de bloque y puertas de ascensor al entrar. Y la piel pixel se vuelve a aplicar una vez a todos (Armando tenía «sakura» y Cynthia «barbie» guardadas: por eso sus módulos seguían con el estilo anterior).
+  - Verificado con clics y toques reales (escritorio y celular; perfil administración y despachos) y contraste: 0 textos ilegibles en el edificio y en Pedidos/Libro Mayor, claro y oscuro.
+- **Archivos Modificados:** `desktop/src/components/{MapaEdificio.tsx,mapa-edificio.css,mapaComun.tsx,MapaVivo.tsx,mapa-vivo.css,MiRendimiento.tsx,Layout.tsx,nav/SolicitudesEnProcesoFab.tsx}` (borrado `TuDia.tsx`), `desktop/src/theme/skin-pixel.css`, `desktop/src/lib/userThemeSync.ts`, `desktop/dev/app.tsx`, `CLAUDE.md`.
+
 ### 2026-09-26 01:30 - Mapa + Agenda en una sola pantalla: «Tu día»
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

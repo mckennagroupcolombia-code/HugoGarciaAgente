@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import SystemAlertsBanner from "./SystemAlertsBanner";
 import TeamActivityBanner from "./TeamActivityBanner";
 import ContabilidadNavTabs from "./ContabilidadNavTabs";
@@ -8,6 +8,7 @@ import DisenoNavTabs from "./nav/DisenoNavTabs";
 import DocsNavTabs from "./nav/DocsNavTabs";
 import InicioNavTabs from "./nav/InicioNavTabs";
 import { ORIGEN_APP, ubicacionDe } from "../lib/flujoApp";
+import { COLOR, COLOR_DEF, placaDePiso } from "./mapaComun";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
 import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
@@ -67,6 +68,12 @@ export default function Layout({
   const enFamiliaAgenda = enOrigen || panel === "colaboradores" || panel === "juegos" || panel === "chat-equipo";
   const puedeVerMapa = Boolean(user && puedeVerSeccionPanel(user, "mapa-vivo"));
   const ubicacion = ubicacionDe(panel);
+  // El piso del Edificio donde queda este módulo (la piel pixel lo dibuja: placa, losa y color).
+  const piso = enOrigen
+    ? { id: "inicio", placa: "PB", fondo: "#FFEC27", tinta: "#000" }
+    : ubicacion
+      ? { id: ubicacion.etapa.id, placa: placaDePiso(ubicacion.etapa.id), ...(COLOR[ubicacion.etapa.id] ?? COLOR_DEF) }
+      : null;
   const advanced = modoAvanzadoEfectivo(user, advancedToggle);
   const isCentroMando = panel === "hugo" || panel === "tickets";
   // El inbox de "Mensajes" es un chat de dos paneles (como Home) que necesita
@@ -109,7 +116,8 @@ export default function Layout({
   return (
     <div className="mck-app-shell flex h-dvh max-w-[100vw] overflow-hidden bg-surface">
       <SolicitudesEnProcesoFab />
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent" data-piso={piso?.id}
+            style={piso ? ({ "--mck-piso": piso.fondo, "--mck-piso-tinta": piso.tinta } as CSSProperties) : undefined}>
         {/* En Docs técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
         {tallerRetorno && panel !== (tallerRetorno.origen ?? "combos") && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
           <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
@@ -175,6 +183,7 @@ export default function Layout({
                 <>
                   <div className="min-w-0">
                     <p className="mck-flujo-miga truncate font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
+                      {piso?.placa && <span className="mck-piso-placa hidden" title="El piso de este módulo en el Edificio">{piso.placa}</span>}
                       {enOrigen
                         ? "Inicio · tu día"
                         : ubicacion

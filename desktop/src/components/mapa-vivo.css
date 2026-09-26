@@ -100,6 +100,9 @@
 }
 .mapa-vivo .mv-btn:active { transform: translate(3px, 3px); box-shadow: none; }
 .mapa-vivo .mv-guia { background: #FFA300; color: #000; }
+/* «Mi ficha» (MiRendimiento): bajo Mi agenda, en amarillo para distinguirla. */
+.mapa-vivo .mv-ficha { background: #FFEC27; color: #000; }
+.mapa-vivo .mv-ficha:disabled { opacity: 0.6; cursor: default; }
 
 .mapa-vivo .mv-detenido { margin-top: 8px; padding-top: 6px; border-top: 2px dashed #000; }
 .mapa-vivo .mv-bloqueo {
@@ -202,106 +205,3 @@
   .mapa-vivo .mv-panel.mv-urgente,
   .mapa-vivo .px-hud .mv-ir-urgente { animation: none; }
 }
-
-/* ─── «Tu día»: la Agenda dentro del Mapa (TuDia.tsx) ─── */
-.mapa-vivo .td-panel {
-  display: flex;
-  width: 340px;
-  flex-shrink: 0;
-  flex-direction: column;
-  min-height: 0;
-  background: #FFF1E8;
-  border: 4px solid #000;
-  box-shadow: 4px 4px 0 #000;
-}
-/* Celular: hoja que sube desde abajo, sobre el lienzo. */
-.mapa-vivo .td-panel-movil {
-  position: absolute;
-  inset: auto 0 0 0;
-  z-index: 10;
-  width: auto;
-  max-height: 72%;
-  border-width: 4px 0 0 0;
-  box-shadow: 0 -4px 0 #000;
-}
-.mapa-vivo .td-cab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background: #1D2B53;
-  color: #FFF1E8;
-  border-bottom: 3px solid #000;
-}
-.mapa-vivo .td-titulo { font-size: 14px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; color: #FFEC27; }
-.mapa-vivo .td-fecha { font-size: 11px; color: #C2C3C7; text-transform: capitalize; }
-.mapa-vivo .td-cerrar { padding: 2px 8px; border: 2px solid #FFF1E8; color: #FFF1E8; font-weight: 900; }
-.mapa-vivo .td-cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 12px; color: #000; }
-.mapa-vivo .td-seccion {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5F574F;
-}
-.mapa-vivo .td-seccion b { color: #000; }
-.mapa-vivo .td-urg { margin-left: auto; padding: 1px 5px; background: #C8003E; color: #FFF1E8; border: 2px solid #000; font-size: 10px; }
-.mapa-vivo .td-vacio { font-size: 12px; color: #665C53; }
-.mapa-vivo .td-item {
-  display: flex;
-  align-items: stretch;
-  background: #fff;
-  border: 2px solid #000;
-  box-shadow: 2px 2px 0 #000;
-}
-.mapa-vivo .td-item-urgente { border-color: #C8003E; box-shadow: 2px 2px 0 #C8003E; background: #FFE3EA; }
-.mapa-vivo .td-fila { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 3px; padding: 5px 7px; text-align: left; }
-.mapa-vivo .td-fila:hover:not(:disabled) { background: #FFEC27; }
-.mapa-vivo .td-etapa { padding: 1px 4px; border: 1px solid #000; font-size: 9px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-.mapa-vivo .td-texto { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13px; font-weight: 600; line-height: 1.25; }
-.mapa-vivo .td-abrir { flex-shrink: 0; padding: 0 8px; border-left: 2px solid #000; background: #1D2B53; color: #FFF1E8; font-size: 11px; font-weight: 800; text-transform: uppercase; }
-.mapa-vivo .td-abrir:active, .mapa-vivo .td-agenda:active { transform: translate(2px, 2px); }
-.mapa-vivo .td-linea { display: block; width: 100%; padding: 3px 0; border-bottom: 1px dashed #D9C1AB; text-align: left; font-size: 13px; }
-.mapa-vivo .td-linea:hover { color: #0B5CA8; }
-.mapa-vivo .td-mas { font-size: 12px; font-weight: 700; color: #0B5CA8; }
-.mapa-vivo .td-agenda {
-  padding: 8px 10px;
-  background: #1D2B53;
-  color: #FFF1E8;
-  border: 3px solid #000;
-  box-shadow: 3px 3px 0 #000;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-/* Plegada: un riel a la derecha (escritorio) o una pestaña abajo (celular). */
-.mapa-vivo .td-plegado {
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  width: 44px;
-  padding: 10px 0;
-  background: #1D2B53;
-  color: #FFF1E8;
-  border: 4px solid #000;
-  box-shadow: 4px 4px 0 #000;
-  font-weight: 900;
-}
-.mapa-vivo .td-plegado-t { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #FFEC27; }
-.mapa-vivo .td-plegado-caja { display: flex; flex-shrink: 0; }
-.mapa-vivo .td-plegado-caja-movil { position: absolute; bottom: 10px; left: 50%; z-index: 10; transform: translateX(-50%); }
-.mapa-vivo .td-plegado-movil { width: auto; flex-direction: row; padding: 8px 14px; }
-.mapa-vivo .td-plegado-movil .td-plegado-t { writing-mode: horizontal-tb; transform: none; }
-.mapa-vivo .td-cuenta { min-width: 22px; padding: 1px 5px; background: #FFEC27; color: #000; border: 2px solid #000; font-size: 11px; text-align: center; }
-.mapa-vivo .td-cuenta-urgente { background: #C8003E; color: #FFF1E8; }
-
-/* La carta que «Tu día» señala: destello amarillo en tres tiempos. */
-.mapa-vivo .mv-carta.mv-destello { outline: 6px solid #FFEC27; outline-offset: 4px; animation: mv-destello 0.4s steps(1, end) 6; }
-@keyframes mv-destello { 50% { outline-color: #1D2B53; } }
-@media (prefers-reduced-motion: reduce) { .mapa-vivo .mv-carta.mv-destello { animation: none; } }
