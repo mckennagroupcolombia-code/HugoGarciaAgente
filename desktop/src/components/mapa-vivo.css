@@ -47,7 +47,7 @@
   line-height: 1;
 }
 .mapa-vivo .mv-tuyas { background: #FFEC27; color: #000; }
-.mapa-vivo .mv-alta { background: #FF004D; color: #FFF1E8; animation: mv-latido-rojo 0.9s steps(1, end) infinite; }
+.mapa-vivo .mv-alta { background: #C8003E; color: #FFF1E8; animation: mv-latido-rojo 0.9s steps(1, end) infinite; }
 .mapa-vivo .mv-media { background: #FFA300; color: #000; }
 @keyframes mv-latido-rojo { 50% { background: #7E2553; } }
 
@@ -125,6 +125,7 @@
 @keyframes mv-marcha { to { stroke-dashoffset: -16; } }
 
 .mapa-vivo .mv-etq {
+  color: #000;
   position: absolute;
   pointer-events: none;
   padding: 4px 6px;
@@ -148,7 +149,8 @@
   line-height: 1;
   text-transform: uppercase;
 }
-.mapa-vivo .mv-nivel-on { background: #FFEC27; color: #000; border-color: #FFEC27 !important; }
+/* Le gana a `.colab-pixel .px-hud button` (letra crema): sobre amarillo, la letra va negra. */
+.mapa-vivo .px-hud .mv-nivel-on { background: #FFEC27; color: #000; border-color: #FFEC27 !important; }
 
 .mapa-vivo .mv-aviso {
   position: absolute;

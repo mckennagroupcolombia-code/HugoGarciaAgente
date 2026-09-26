@@ -5,6 +5,8 @@ import App from "./App";
 import "./index.css";
 // Después de index.css: la piel pixel (la base de todos) manda sobre las reglas base.
 import "./theme/skin-pixel.css";
+// Traducción de los ~750 colores escritos a mano en los paneles (generada: desktop/scripts/pixel).
+import "./theme/skin-pixel-paleta.css";
 import { initFantasyPress } from "./lib/fantasyPress";
 import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 

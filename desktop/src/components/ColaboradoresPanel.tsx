@@ -447,7 +447,7 @@ function ProductoNodo({ d, selected }: { d: NodoVista; selected?: boolean }) {
         })}
       </div>
       {r && r.min != null && r.max != null && (
-        <div className="px-cab" style={{ background: "#FF004D", borderBottom: 0, borderTop: "3px solid #000" }}>
+        <div className="px-cab" style={{ background: "#C8003E", borderBottom: 0, borderTop: "3px solid #000" }}>
           <Sprite s="bandera" px={2} colores={{ r: "#FFEC27" }} />
           Rivales {r.min === r.max ? plataCorta({ monto: r.min, moneda: r.moneda ?? "COP" })
                    : `${plataCorta({ monto: r.min, moneda: r.moneda ?? "COP" })}–${plataCorta({ monto: r.max, moneda: r.moneda ?? "COP" })}`}

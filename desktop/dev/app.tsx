@@ -66,6 +66,26 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
   if (ruta === "/api/tickets/recordatorios") return json([]);
   if (ruta === "/api/mapa-sistema/bloqueos") return json({ por_etapa: {}, sin_senal: [], generado: "" });
   if (ruta === "/api/status") return json({ status: "activo", servicios: {} });
+  // Pedidos Web con datos de EJEMPLO (inventados): sin ellos el panel solo muestra su estado vacío.
+  if (ruta === "/api/pedidos/web") {
+    const p = (id: number, nombre: string, status: string, envio: string, total: number, factura?: string, err?: string) => ({
+      id, reference: `MCKG-2026-${1000 + id}`, buyer_name: nombre, buyer_email: `cliente${id}@ejemplo.co`,
+      buyer_phone: "3001234567", buyer_city: "Bogotá", buyer_dept: "Cundinamarca", buyer_address: "Calle 1 # 2-3",
+      items: [{ name: "Ácido hialurónico 50 g", quantity: 2, unit_price: total / 2, sku: "C-AHIA50g" }],
+      total, shipping_cost: 12000, status, shipping_status: envio, created_at: `2026-09-2${id % 5} 10:3${id}:00`,
+      payment_method: "pse", payment_type: "bank_transfer",
+      ...(factura ? { siigo_invoice_number: factura, siigo_invoice_status: "ok" } : {}),
+      ...(err ? { siigo_invoice_status: "error", siigo_invoice_error: err } : {}),
+    });
+    return json({ orders: [
+      p(1, "Laura Gómez", "approved", "preparing", 84000),
+      p(2, "Carlos Ruiz", "approved", "shipped", 126500, "FE-1234"),
+      p(3, "Ana Torres", "approved", "delivered", 45900, "FE-1235"),
+      p(4, "Pedro Díaz", "pending", "preparing", 230000),
+      p(5, "Marta León", "approved", "preparing", 99000, undefined, "NIT inválido en Alegra"),
+      p(6, "Jorge Peña", "rejected", "preparing", 51000),
+    ], total: 6, page: 1, per_page: 50 });
+  }
   // Lo demás: «servicio no disponible». Es lo más honesto para un banco sin servidor: los
   // paneles saben mostrar su estado sin datos ante un error, mientras que una respuesta
   // inventada ([] o {}) con la forma equivocada los tumba por razones del banco.
@@ -79,6 +99,7 @@ void import("react-dom/client").then(async ({ createRoot }) => {
   ]);
   await import("../src/index.css");
   await import("../src/theme/skin-pixel.css");
+  await import("../src/theme/skin-pixel-paleta.css");
   const qc = new QueryClient({ defaultOptions: { queries: { retry: 0, refetchOnWindowFocus: false } } });
   createRoot(document.getElementById("root")!).render(
     <StrictMode><QueryClientProvider client={qc}><App /></QueryClientProvider></StrictMode>,

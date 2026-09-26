@@ -94,7 +94,11 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
               : skin === "pixel" && (config.accentRgb === "12 96 105" || config.accentRgb === "8 145 178")
                 ? "29 43 83"
                 : config.accentRgb;
-  const accent = dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
+  // Pixel oscuro: el aclarado automático del navy daba 96 123 200, que no sirve ni de fondo de
+  // botón con letra blanca (4,07) ni de texto sobre el panel (3,39). Azul profundo para fondos;
+  // el TEXTO de acento se pinta aparte en theme/skin-pixel.css.
+  const pixelOscuroPorDefecto = skin === "pixel" && dark && baseAccent === "29 43 83";
+  const accent = pixelOscuroPorDefecto ? "11 92 168" : dark || skin === "matrix" ? liftAccentForDark(baseAccent) : baseAccent;
   root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
     "--mck-accent-hover",

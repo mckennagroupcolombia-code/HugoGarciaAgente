@@ -28,17 +28,19 @@ html[data-mck-skin="pixel"]:not(.dark) {
   --mck-border-strong: 0 0 0;
   --mck-muted: 95 87 79;
   --mck-title: 0 0 0;
-  --mck-accent-sun: 200 110 0;
-  --mck-accent-sun-deep: 171 82 54;
-  --mck-accent-leaf: 0 135 81;
-  --mck-accent-leaf-deep: 0 100 60;
-  --mck-accent-sky: 16 120 200;
+  /* Estos tokens también se usan como TEXTO: van en el tono que se lee sobre el papel
+     (≥ 4,5:1; medido el 25-sep-2026: con 0 135 81 o 220 0 70 quedaban en 3,9–4,4). */
+  --mck-accent-sun: 143 69 0;
+  --mck-accent-sun-deep: 122 62 0;
+  --mck-accent-leaf: 0 107 63;
+  --mck-accent-leaf-deep: 0 77 46;
+  --mck-accent-sky: 11 92 168;
   --mck-accent-sky-deep: 29 43 83;
-  --mck-accent-rose: 220 0 70;
+  --mck-accent-rose: 176 0 53;
   --mck-accent-plum: 126 37 83;
-  --mck-success: 0 135 81;
-  --mck-danger: 220 0 70;
-  --mck-warning: 200 110 0;
+  --mck-success: 0 107 63;
+  --mck-danger: 176 0 53;
+  --mck-warning: 143 69 0;
   --mck-sombra: 0 0 0;
   --mck-shadow-paper: 3px 3px 0 rgb(0 0 0);
   --mck-shadow-paper-sm: 2px 2px 0 rgb(0 0 0);
@@ -66,7 +68,7 @@ html[data-mck-skin="pixel"].dark {
   --mck-accent-rose: 255 119 168;
   --mck-accent-plum: 255 119 168;
   --mck-success: 0 228 54;
-  --mck-danger: 255 0 77;
+  --mck-danger: 255 107 139;
   --mck-warning: 255 163 0;
   --mck-sombra: 0 0 0;
   --mck-shadow-paper: 3px 3px 0 rgb(0 0 0);
@@ -94,9 +96,28 @@ html[data-mck-skin="pixel"] .mck-title::before {
   vertical-align: 1px;
 }
 
+/* En oscuro, el acento es fondo de botón (azul profundo, letra blanca) y NO sirve como texto
+   sobre el panel: el texto de acento va en el azul brillante de la paleta (5,5:1). */
+html[data-mck-skin="pixel"].dark :is(.text-accent, .hover\:text-accent:hover) { color: #29ADFF; }
+
+/* En oscuro, «peligro» y «rosa» se aclararon para leerse como TEXTO; como fondo con letra
+   blanca ya no alcanzan (2,7:1): sobre ellos, letra negra. */
+html[data-mck-skin="pixel"].dark :is(.bg-danger, .bg-accent-rose).text-white { color: #000; }
+
+/* Ámbar con letra blanca no se lee (2:1, ya pasaba en el diseño original): letra negra. */
+html[data-mck-skin="pixel"] :is(.bg-amber-400, .bg-amber-500, .bg-amber-600, .bg-orange-400, .bg-orange-500,
+  .bg-yellow-400, .bg-yellow-500, .bg-accent-sun).text-white { color: #000; }
+
 /* ─── Forma: esquinas rectas, bordes y sombras de bloque ───────────────────── */
 /* Los círculos (avatares, puntos, interruptores) siguen siendo círculos. */
 html[data-mck-skin="pixel"] [class*="rounded"]:not(.rounded-full) { border-radius: 0 !important; }
+/* …pero una «pastilla» (rounded-full CON relleno horizontal: chips, filtros, contadores) es un
+   bloque: ~390 quedaban redondas entre cajas cuadradas. Un círculo de verdad no lleva px-*. */
+html[data-mck-skin="pixel"] .rounded-full[class*="px-"] { border-radius: 0 !important; }
+
+/* Los colores escritos a mano en los paneles (bg-white, text-emerald-400…) se traducen en
+   skin-pixel-paleta.css, que GENERA desktop/scripts/pixel/paleta_pixel.py. Las etiquetas
+   imprimibles no se ven afectadas: sus dibujos no usan esas clases (revisado 25-sep-2026). */
 
 /* Tarjetas y paneles: borde de 2 px y sombra dura. */
 html[data-mck-skin="pixel"] :is(.rounded-xl, .rounded-2xl, .rounded-3xl).border {

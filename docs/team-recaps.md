@@ -1,3 +1,13 @@
+### 2026-09-25 23:40 - Piel pixel dentro de todos los paneles (los colores escritos a mano)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de interfaz. Sin LLM.
+- **Qué se implementó:**
+  - Al abrir un panel (p. ej. Pedidos Web) se mezclaban dos estilos: los paneles usan ~750 clases de color propias que la piel no alcanzaba, y algunas pensadas para fondo oscuro se veían lavadas sobre el crema. `desktop/scripts/pixel/paleta_pixel.py` las traduce a la paleta pixel (seis familias, claro y oscuro) y genera `theme/skin-pixel-paleta.css`; las pastillas redondas pasan a bloques.
+  - Contraste corregido en tokens de la piel, encabezados del mapa y acento en oscuro (fondo de botón y texto de acento separados).
+  - Medido con el navegador real (contraste de cada texto visible, 12 paneles): **0 de 448 ilegibles en claro y en oscuro** (la piel anterior tenía 80).
+  - `tests/test_piel_pixel.py`: falla si aparece un color sin traducir, si un texto o token queda bajo 4,5:1, o si un dibujo de etiqueta imprimible usa clases que la piel cambia.
+- **Archivos Modificados:** `desktop/scripts/pixel/paleta_pixel.py`, `desktop/src/theme/{skin-pixel.css,skin-pixel-paleta.css,applyTheme.ts}`, `main.tsx`, `components/{MapaVivo.tsx,mapa-vivo.css,ColaboradoresPanel.tsx,colaboradores/pixel.css}`, `desktop/dev/app.tsx`, `tests/test_piel_pixel.py`, `CLAUDE.md`.
+
 ### 2026-09-25 22:50 - Mapa vivo: pantalla de inicio, se navega solo desde él (sin menú de arriba)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + Corrección. Sin LLM.

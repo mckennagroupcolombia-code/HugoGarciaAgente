@@ -1004,7 +1004,16 @@ app como un videojuego, el lenguaje del Mapa y de Colaboradores. `theme/skin-pix
 DESPUÉS de `index.css`, sin `@layer`) no toca los 61 paneles: redefine los tokens `--mck-*` (PICO-8, claro y oscuro) y
 viste lo común — esquinas rectas (salvo `.rounded-full`), tarjetas `rounded-xl/2xl.border` con borde de 2 px y sombra
 dura, sombras de Tailwind vía `--tw-shadow` (los anillos de foco siguen), botón `.bg-accent` que se hunde, foco
-amarillo, cabezote, pestañas y encabezados de tabla. **Las letras NO son pixel** (decisión del usuario, legibilidad):
+amarillo, cabezote, pestañas y encabezados de tabla. **Colores escritos a mano:** los paneles usan ~750 clases de color
+propias (`bg-white`, `text-emerald-400`, `bg-red-500/15`…) que no pasan por los tokens; sin traducir, un panel mezclaba dos
+estilos (Pedidos Web, pensado para fondo oscuro, se veía lavado). `desktop/scripts/pixel/paleta_pixel.py` las lleva a seis
+familias pixel (papel: texto, pálido, suave, fuerte, hondo, borde; claro y oscuro) y GENERA `theme/skin-pixel-paleta.css`
+(no editar a mano; `--escribir`). Las «pastillas» (`rounded-full` con `px-*`) pasan a bloque. `tests/test_piel_pixel.py`
+falla si hay una clase nueva sin traducir, si un texto traducido o un token usado como texto baja de 4,5:1, o si un
+dibujo de etiqueta imprimible usa clases que la piel cambia. Auditoría con el navegador real (contraste de cada texto
+visible contra su fondo compuesto, 12 paneles): 0 de 448 ilegibles en claro y en oscuro; la piel «flujo» tenía 80.
+En oscuro el acento es fondo de botón (`11 92 168`) y el TEXTO de acento se pinta aparte (`#29ADFF`): ningún tono sirve
+para las dos cosas. **Las letras NO son pixel** (decisión del usuario, legibilidad):
 la piel no toca fuentes ni tamaños de texto y todo se lee en Montserrat, también en el Mapa y en Colaboradores (sus
 rótulos «de juego» son Montserrat en negrita y mayúsculas). Se probaron Pixelify Sans (la «C» se cerraba en «O» a
 11–13 px) y DotGothic16 (legible; queda como opción en Temas → Fuente); la v2 de `ESTILO_BASE_V` traía DotGothic16 y
