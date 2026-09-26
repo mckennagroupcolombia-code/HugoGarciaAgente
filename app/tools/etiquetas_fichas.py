@@ -183,6 +183,13 @@ def _con_recipiente(ficha_id: str, data: dict) -> dict:
 def _guardar_ficha_bajo_candado(body: dict, ficha_id: str, nombre: str, data: dict) -> dict:
     todos = _load_all()
     existente = next((f for f in todos if f.get("id") == ficha_id), None)
+    # La plantilla de una categoría solo se guarda como plantilla. Un producto que llega con su
+    # id (el 26-sep «UVAS PASAS FLAME 250g» borró así la de Semillas & Frutos Secos) se guarda
+    # como etiqueta nueva que sale de ella; quien guarda recibe el id nuevo en la respuesta.
+    if existente and existente.get("es_plantilla_categoria") and not body.get("es_plantilla_categoria"):
+        body = {**body, "plantilla_id": body.get("plantilla_id") or ficha_id}
+        ficha_id = uuid.uuid4().hex[:12]
+        existente = None
     # Una plantilla de categoría no es de ningún combo (su código de barras es de muestra).
     if not (body.get("es_plantilla_categoria") or (existente or {}).get("es_plantilla_categoria")):
         data = _con_recipiente(ficha_id, data)

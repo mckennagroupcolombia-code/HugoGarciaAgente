@@ -4193,3 +4193,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Pendiente (igual que antes): productos sin documento propio siguen tomando uno parecido (MENTOL CRISTAL → celulosa microcristalina, ACEITE DE COCO → manzanilla).
   - **Verificado:** comparación completa regla vieja vs nueva sobre los 289 productos; reinicio de `agente-pro`.
 - **Archivos Modificados:** `app/services/documentos_catalogo.py`, `docs/team-recaps.md`
+
+### 2026-09-26 - Studio: la plantilla de una categoría ya no se puede pisar al guardar un producto
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + restauración de datos
+- **Qué se implementó:**
+  - **Problema:** a las 00:30 del 26-sep la etiqueta «UVAS PASAS FLAME 250g» se guardó con el id de la plantilla de Semillas & Frutos Secos (`3315aef8818d`) y sin `es_plantilla_categoria`: `guardar_ficha` reemplazó el registro y la categoría se quedó sin plantilla. Las 38 etiquetas de la categoría no se tocaron.
+  - **Solución:** `_guardar_ficha_bajo_candado` (`app/tools/etiquetas_fichas.py`): si el id es de una plantilla de categoría y el guardado no viene marcado como plantilla, se crea una etiqueta nueva con `plantilla_id` = la plantilla; el editor toma el id nuevo de la respuesta.
+  - **Restauración:** «UVAS PASAS FLAME 250g» pasó al id `e74c8452d208` (con sus PNG aprobados en `etiquetas_png_aprobados.json`); la plantilla volvió desde `etiquetas_fichas.json.tmp84192` (última edición 20-sep). Respaldos en `/tmp/*.antes_restaurar_semillas.json`.
+  - **Verificado:** la plantilla figura con `es_plantilla_categoria`; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/tools/etiquetas_fichas.py`, `docs/team-recaps.md` (datos: `app/data/etiquetas_fichas.json`, `app/data/etiquetas_png_aprobados.json`)
