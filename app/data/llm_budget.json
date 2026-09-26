@@ -1,12 +1,12 @@
 {
  "fecha": "2026-09-26",
- "gasto_usd": 0.009552,
- "llamadas": 3,
+ "gasto_usd": 0.011213,
+ "llamadas": 4,
  "por_modelo": {
-  "gemini-2.5-flash": 0.009552
+  "gemini-2.5-flash": 0.011213
  },
  "por_contexto": {
-  "documentos_sugerir_campo": 0.009552
+  "documentos_sugerir_campo": 0.011213
  },
  "alerta_enviada": false,
  "historial": [

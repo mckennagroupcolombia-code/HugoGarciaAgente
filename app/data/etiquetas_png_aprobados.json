@@ -220,6 +220,227 @@
         "aprobado_at": "2026-09-26T02:00:21",
         "por": "@cynthia"
       }
+    },
+    "8a9847ecad5a": {
+      "barcode": "7702632502640",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SEMILLA_DE_QUINUA_ROJA_250g.png",
+        "aprobado_at": "2026-09-26T02:03:03",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_DE_QUINUA_ROJA_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:03:04",
+        "por": "@cynthia"
+      }
+    },
+    "475c74c14a17": {
+      "barcode": "7702645002649",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SEMILLA_DE_QUINUA_ROJA_500g.png",
+        "aprobado_at": "2026-09-26T02:03:19",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_DE_QUINUA_ROJA_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:03:20",
+        "por": "@cynthia"
+      }
+    },
+    "de42e3dff8e4": {
+      "barcode": "7702752502643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/MARANON_TOSTADO_250g.png",
+        "aprobado_at": "2026-09-26T02:04:40",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/MARANON_TOSTADO_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:04:41",
+        "por": "@cynthia"
+      }
+    },
+    "df469ddcdf53": {
+      "barcode": "7702765002642",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/MARANON_TOSTADO_500g.png",
+        "aprobado_at": "2026-09-26T02:05:07",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/MARANON_TOSTADO_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:05:08",
+        "por": "@cynthia"
+      }
+    },
+    "ca40b35d0d2f": {
+      "barcode": "7702592502643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/NUEZ_DEL_NOGAL_250g.png",
+        "aprobado_at": "2026-09-26T02:05:25",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/NUEZ_DEL_NOGAL_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:05:26",
+        "por": "@cynthia"
+      }
+    },
+    "da49daa64626": {
+      "barcode": "7702605002641",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/NUEZ_DEL_NOGAL_500g.png",
+        "aprobado_at": "2026-09-26T02:05:43",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/NUEZ_DEL_NOGAL_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:05:44",
+        "por": "@cynthia"
+      }
+    },
+    "339e3eb4bad3": {
+      "barcode": "7702732502649",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_CON_AJO_Y_CHILI_250g.png",
+        "aprobado_at": "2026-09-26T02:07:12",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_CON_AJO_Y_CHILI_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:07:12",
+        "por": "@cynthia"
+      }
+    },
+    "4d9fd92cc2f7": {
+      "barcode": "7702745002648",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_CON_AJO_Y_CHILI_500g.png",
+        "aprobado_at": "2026-09-26T02:07:44",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_CON_AJO_Y_CHILI_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:07:44",
+        "por": "@cynthia"
+      }
+    },
+    "0f550ff38831": {
+      "barcode": "7702772502647",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_MARINA_AHUMADA_250g.png",
+        "aprobado_at": "2026-09-26T02:08:22",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_MARINA_AHUMADA_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:08:22",
+        "por": "@cynthia"
+      }
+    },
+    "2d8883425fad": {
+      "barcode": "7702785002646",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_MARINA_AHUMADA_500g.png",
+        "aprobado_at": "2026-09-26T02:08:50",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_MARINA_AHUMADA_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:08:51",
+        "por": "@cynthia"
+      }
+    },
+    "467a046a8a18": {
+      "barcode": "7702612502646",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/PSYLLIUM_EN_ESCAMAS_250g.png",
+        "aprobado_at": "2026-09-26T02:09:13",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/PSYLLIUM_EN_ESCAMAS_250g_digital.png",
+        "aprobado_at": "2026-09-26T02:09:13",
+        "por": "@cynthia"
+      }
+    },
+    "02db160588ce": {
+      "barcode": "7702625002645",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/PSYLLIUM_EN_ESCAMAS_500g.png",
+        "aprobado_at": "2026-09-26T02:09:39",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/PSYLLIUM_EN_ESCAMAS_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:09:39",
+        "por": "@cynthia"
+      }
+    },
+    "ffd1585c8005": {
+      "barcode": "7700910012638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ALULOSA_Kg.png",
+        "aprobado_at": "2026-09-26T02:13:15",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ALULOSA_Kg_digital.png",
+        "aprobado_at": "2026-09-26T02:13:16",
+        "por": "@cynthia"
+      }
+    },
+    "089c8838eb82": {
+      "barcode": "7700905002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ALULOSA_500g.png",
+        "aprobado_at": "2026-09-26T02:14:55",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ALULOSA_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:14:56",
+        "por": "@cynthia"
+      }
+    },
+    "ebaf75ad8da2": {
+      "barcode": "7701575002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/FRUCTOSA_500g.png",
+        "aprobado_at": "2026-09-26T02:17:28",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/FRUCTOSA_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:17:29",
+        "por": "@cynthia"
+      }
+    },
+    "4f05b5e2bd76": {
+      "barcode": "7701665002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/GLUTAMATO_MONOSODICO_500g.png",
+        "aprobado_at": "2026-09-26T02:19:18",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/GLUTAMATO_MONOSODICO_500g_digital.png",
+        "aprobado_at": "2026-09-26T02:19:19",
+        "por": "@cynthia"
+      }
+    },
+    "921a403baba3": {
+      "barcode": "7701670012630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/GLUTAMATO_MONOSODICO_Kg.png",
+        "aprobado_at": "2026-09-26T02:21:59",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/GLUTAMATO_MONOSODICO_Kg_digital.png",
+        "aprobado_at": "2026-09-26T02:21:59",
+        "por": "@cynthia"
+      }
     }
   }
 }

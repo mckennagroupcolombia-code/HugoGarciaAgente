@@ -13,6 +13,7 @@ import InboxConversaciones from "./tickets/InboxConversaciones";
 import { salirDelPanel } from "../hooks/usePanelSession";
 import { IllustrationIcon } from "../icons/IllustrationIcon";
 import { PanelIcon } from "../icons/PanelIcon";
+import { sonidoDePanel } from "../lib/sonidosJuego";
 import { Icon, type UiIconName } from "../icons";
 import UserAvatar from "./UserAvatar";
 import ThemeModeToggle from "./ThemeModeToggle";
@@ -367,16 +368,18 @@ interface QuickAction {
   sub: string;
   endpoint: string;
   method: "POST" | "GET";
+  /** Sonido del apartado al que pertenece (lib/sonidosJuego). */
+  sonido: string;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { icon: "lightning", label: "Sync facturas hoy",   sub: "Últimas 24 horas",   endpoint: "/api/sync/hoy",   method: "POST", tone: "sun" },
-  { icon: "chartBar",  label: "Reporte de stock",    sub: "Envía por WhatsApp", endpoint: "/api/sync/stock", method: "POST", tone: "sky" },
-  { icon: "robot",     label: "Aprendizaje IA",      sub: "Q&A MeLi",           endpoint: "/api/sync/aprendizaje", method: "POST", tone: "plum" },
+  { icon: "lightning", label: "Sync facturas hoy",   sub: "Últimas 24 horas",   endpoint: "/api/sync/hoy",   method: "POST", tone: "sun", sonido: "facturar" },
+  { icon: "chartBar",  label: "Reporte de stock",    sub: "Envía por WhatsApp", endpoint: "/api/sync/stock", method: "POST", tone: "sky", sonido: "abastecer" },
+  { icon: "robot",     label: "Aprendizaje IA",      sub: "Q&A MeLi",           endpoint: "/api/sync/aprendizaje", method: "POST", tone: "plum", sonido: "sistema" },
   // Ya no registra: desde el 18-sep-2026 la compra se contabiliza antes de
   // pagarla, en Solicitudes de pago → Productos. Lo que sigue haciendo es bajar
   // los XML, que alimentan el perfil tributario de cada proveedor.
-  { icon: "envelope",  label: "Bajar XML de facturas",  sub: "Solo descarga · el registro va en Solicitudes de pago", endpoint: "/api/sync/gmail", method: "POST", tone: "rose" },
+  { icon: "envelope",  label: "Bajar XML de facturas",  sub: "Solo descarga · el registro va en Solicitudes de pago", endpoint: "/api/sync/gmail", method: "POST", tone: "rose", sonido: "facturar" },
 ];
 
 function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user: TicketsUser | null; onNavigateTo: (p: Panel) => void }) {
@@ -432,6 +435,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
         <button
           type="button"
           onClick={() => onNavigateTo("preventa")}
+          data-sonido={sonidoDePanel("preventa")}
           className="mb-4 flex w-full items-center gap-3 rounded-lg border border-accent/40 bg-accent/5 px-3.5 py-3 text-left"
         >
           <IllustrationIcon name="question" size={28} tone="sun" />
@@ -451,6 +455,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
               key={i}
               type="button"
               onClick={() => { if (res !== "loading") void fire(i, a); }}
+              data-sonido={a.sonido}
               disabled={res === "loading"}
               className="mck-press flex w-full items-center gap-3 rounded-lg border border-border bg-surface-panel px-3.5 py-3 text-left hover:border-accent/40"
             >
@@ -492,6 +497,7 @@ function AccionesTab({ apiToken, user, onNavigateTo }: { apiToken: string; user:
                 key={item.panel}
                 type="button"
                 onClick={() => onNavigateTo(item.panel)}
+                data-sonido={sonidoDePanel(item.panel)}
                 className="mck-flujo-nodo flex items-center gap-2 rounded-lg border border-border bg-surface-panel px-2.5 py-2.5 text-left text-[13px] font-semibold text-ink hover:border-accent/40"
               >
                 <PanelIcon panel={item.panel} size={24} />

@@ -6229,6 +6229,27 @@
         }
       ],
       "updated_at": "2026-09-26T04:43:00+00:00"
+    },
+    "SALROSAJOCHIG": {
+      "ref": "SALROSAJOCHIG",
+      "nombre": "SAL GRUESA ORIGINAL CHILE AJO HOJUELAS, GRANO GRUESO 2-5 MM",
+      "lotes": [
+        {
+          "lote_numero": "AASW/GTDC/04",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "Pakistán",
+          "fecha_fabricacion": "31/Mayo/2026",
+          "fecha_vencimiento": "31/Mayo/2028",
+          "fecha_recepcion": "2026-09-26",
+          "codigo_verificacion": "ACKTD7",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-26T07:06:43+00:00"
+        }
+      ],
+      "updated_at": "2026-09-26T07:06:43+00:00"
     }
   }
 }
