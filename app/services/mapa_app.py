@@ -189,3 +189,26 @@ def bloqueos(refrescar: bool = False) -> dict:
     with _lock:
         _memo.update(t=time.time(), data=data)
     return data
+
+
+def urgencias_para(usuario: dict | None) -> dict:
+    """Lo detenido que ESTA persona puede atender: solo lo de los paneles que puede abrir.
+
+    Misma forma que `bloqueos()` (el Mapa no cambia de contrato) y mismo caché. El filtro
+    lo hace el servidor (`acceso_paneles.puede_ver_panel`), no el navegador: las cifras de
+    un área no le llegan a quien no la ve. `sin_senal` solo va a administración.
+    """
+    from app.services.acceso_paneles import _es_admin, puede_ver_panel
+
+    todo = bloqueos()
+    por_etapa: dict[str, dict] = {}
+    for etapa, e in (todo.get("por_etapa") or {}).items():
+        for b in e.get("items") or []:
+            if not puede_ver_panel(usuario, b["panel"]):
+                continue
+            destino = por_etapa.setdefault(etapa, {"alta": 0, "media": 0, "items": []})
+            destino[b["severidad"]] += b["n"]
+            destino["items"].append(b)
+    return {"por_etapa": por_etapa,
+            "sin_senal": todo.get("sin_senal") if usuario and _es_admin(usuario) else [],
+            "generado": todo.get("generado")}

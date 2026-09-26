@@ -42,7 +42,9 @@ import { Sprite, type SpriteId } from "./colaboradores/pixel";
 
 type Bloqueo = { etapa: string; id: string; n: number; texto: string; panel: string; severidad: "alta" | "media" };
 type Bloqueos = { por_etapa: Record<string, { alta: number; media: number; items: Bloqueo[] }> };
-type Ticket = { id: number; titulo?: string | null; categoria?: string | null; asignado_a?: number | null };
+type Ticket = { id: number; titulo?: string | null; categoria?: string | null; asignado_a?: number | null; prioridad?: string | null };
+/** Lo que titila en un panel: cuántas cosas urgentes y por qué (para el título al pasar). */
+type Urgencia = { n: number; porque: string[] };
 type Recordatorio = { proxima_fecha?: string | null };
 
 /** Lo mismo que carga la Agenda (TicketsPanel.cargar), con el token de la persona. */
@@ -101,10 +103,12 @@ type DatosEtapa = {
   nivel: number;
   bloqueos?: { alta: number; media: number; items: Bloqueo[] };
   mias: number;
+  /** Paneles de esta etapa que titilan: lo detenido grave + tus solicitudes urgentes. */
+  urgentes: Record<string, Urgencia>;
   guia: boolean;
   ancha: boolean;
 };
-type DatosOrigen = { nombre: string; pedidas: number; recordatorios: number; puede: boolean };
+type DatosOrigen = { nombre: string; pedidas: number; urgentes: number; recordatorios: number; puede: boolean };
 
 /** Abrir un panel desde una carta (la cámara se acerca y luego abre). */
 const AbrirCtx = createContext<(p: Panel, nodoId: string) => void>(() => {});
@@ -158,6 +162,9 @@ function CartaOrigen({ id, data }: NodeProps) {
       <div className="space-y-1 p-2">
         <p className="mv-nombre">{d.nombre}</p>
         <p className="mv-linea"><Sprite s="urna" px={2} /> {d.pedidas} te pidieron</p>
+        {d.urgentes > 0 && (
+          <p className="mv-linea mv-linea-urgente"><Sprite s="alerta" px={2} /> {d.urgentes} urgente{d.urgentes === 1 ? "" : "s"}</p>
+        )}
         <p className="mv-linea"><Sprite s="reloj" px={2} /> {d.recordatorios} recordatorios hoy</p>
         {d.puede && (
           <button type="button" className="mv-btn nodrag nopan w-full" data-panel={ORIGEN_APP.panel}
@@ -191,8 +198,13 @@ function CartaEtapa({ id, data }: NodeProps) {
   const c = COLOR[d.etapa.id] ?? COLOR_DEF;
   const alta = d.bloqueos?.alta ?? 0;
   const media = d.bloqueos?.media ?? 0;
+  const hayUrgente = Object.keys(d.urgentes).length > 0;
+  // En «Etapas» no se listan paneles… salvo los urgentes: lo urgente siempre se ve.
+  const tramos = d.nivel > 0 ? d.tramos
+    : d.tramos.map((t) => ({ ...t, visibles: t.visibles.filter((p) => d.urgentes[p.panel]) })).filter((t) => t.visibles.length);
   return (
-    <div className={`mv-carta ${d.participa ? "" : "mv-apagada"} ${d.mias > 0 ? "mv-camino" : ""} ${d.ancha ? "mv-ancha" : ""}`}>
+    <div className={`mv-carta ${d.participa ? "" : "mv-apagada"} ${d.mias > 0 ? "mv-camino" : ""} ${hayUrgente ? "mv-hay-urgente" : ""} ${d.ancha ? "mv-ancha" : ""}`}
+         data-urgente={hayUrgente ? "1" : undefined}>
       <Manijas entra={d.entra} sale={d.sale} />
       <div className="mv-cab" style={{ background: c.fondo, color: c.tinta }}>
         <Sprite s={c.s} px={2} />
@@ -210,23 +222,28 @@ function CartaEtapa({ id, data }: NodeProps) {
             ▶ {d.etapa.guia.titulo}
           </button>
         )}
-        {d.participa && d.nivel > 0 && (
+        {d.participa && tramos.length > 0 && (
           <div className={d.ancha ? "mv-tramos-anchos" : "space-y-2"}>
-            {d.tramos.map((t, i) => (
+            {tramos.map((t, i) => (
               <div key={t.titulo} className="mv-tramo">
                 <p className="mv-tramo-t">{i + 1} · {t.titulo}</p>
                 {d.nivel >= 3 && t.datos.length > 0 && <p className="mv-datos">{t.datos.join(" · ")}</p>}
                 <div className="mt-1 space-y-1">
-                  {t.visibles.map((p) => (
-                    <button key={p.panel} type="button" className="mv-panel nodrag nopan" data-panel={p.panel} onClick={() => abrir(p.panel, id)}
-                            title={p.hace}>
-                      <PanelIcon panel={p.panel} size={18} bubble={false} />
-                      <span className="min-w-0 flex-1 text-left">
-                        <span className="block truncate">{PANEL_INFO[p.panel]?.label ?? p.panel}</span>
-                        {d.nivel >= 3 && <span className="mv-hace">{p.hace}</span>}
-                      </span>
-                    </button>
-                  ))}
+                  {t.visibles.map((p) => {
+                    const u = d.urgentes[p.panel];
+                    return (
+                      <button key={p.panel} type="button" className={`mv-panel nodrag nopan ${u ? "mv-urgente" : ""}`}
+                              data-panel={p.panel} onClick={() => abrir(p.panel, id)}
+                              title={u ? `Urgente — ${u.porque.join(" · ")}` : p.hace}>
+                        <PanelIcon panel={p.panel} size={18} bubble={false} />
+                        <span className="min-w-0 flex-1 text-left">
+                          <span className="block truncate">{PANEL_INFO[p.panel]?.label ?? p.panel}</span>
+                          {d.nivel >= 3 && <span className="mv-hace">{p.hace}</span>}
+                        </span>
+                        {u && <span className="mv-urg-n" aria-label={`${u.n} urgentes`}>! {u.n}</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -312,11 +329,12 @@ function Mapa() {
   });
   const cambiarNivel = (n: number) => { setNivel(n); guardar(CLAVE_NIVEL, String(n)); };
 
-  const verBloqueos = Boolean(user && puedeVerSeccionPanel(user, "mapa-sistema"));
+  // Lo detenido que ESTA persona puede atender: el servidor lo filtra por los paneles que
+  // puede abrir (app/services/acceso_paneles.py), así que la ve todo el equipo interno.
   const bloq = useQuery({
-    queryKey: ["mapa-app-bloqueos"],        // la misma que pide el cabezote (FlujoNav): una sola llamada
-    queryFn: () => api.get<Bloqueos>("/api/mapa-sistema/bloqueos"),
-    enabled: verBloqueos,
+    queryKey: ["mapa-vivo-urgencias", user?.id],
+    queryFn: () => api.get<Bloqueos>("/api/mapa-sistema/urgencias"),
+    enabled: Boolean(user),
     refetchInterval: 60_000,
     retry: false,
   });
@@ -344,17 +362,32 @@ function Mapa() {
   const cartas = useMemo(() => {
     if (!user) return [];
     const porEtapa = new Map<string, number>();
+    // Qué titila: lo detenido grave (severidad alta) y tus solicitudes de prioridad alta/urgente,
+    // cada cosa en el panel donde se resuelve.
+    const urgentes = new Map<string, Record<string, Urgencia>>();
+    const marcar = (etapa: string, panel: string, n: number, porque: string) => {
+      const e = urgentes.get(etapa) ?? {};
+      const u = e[panel] ?? { n: 0, porque: [] };
+      e[panel] = { n: u.n + n, porque: [...u.porque, porque] };
+      urgentes.set(etapa, e);
+    };
     for (const t of tareas.data?.mias ?? []) {
       const u = etapaDeTicket(t);
-      if (u) porEtapa.set(u.etapa.id, (porEtapa.get(u.etapa.id) ?? 0) + 1);
+      if (!u) continue;
+      porEtapa.set(u.etapa.id, (porEtapa.get(u.etapa.id) ?? 0) + 1);
+      if (t.prioridad === "urgente" || t.prioridad === "alta") marcar(u.etapa.id, u.panel, 1, `Solicitud ${t.prioridad}: ${t.titulo ?? ""}`);
     }
+    for (const [etapa, e] of Object.entries(bloq.data?.por_etapa ?? {}))
+      for (const b of e.items) if (b.severidad === "alta") marcar(etapa, b.panel, b.n, `${b.n} ${b.texto}`);
     return ETAPAS_APP.map((etapa): DatosEtapa => {
       const tramos = etapa.tramos
         .map((t) => ({
           ...t,
           // Administración ve 61 paneles: el nivel los dosifica. Los demás ven todos los
           // suyos siempre (ya son pocos, y esconderlos dejaría etapas vacías sin explicación).
-          visibles: t.pasos.filter((p) => puedeVerSeccionPanel(user, p.panel) && (!esAdmin || nivelDe(p.panel) <= Math.max(nivel, 1))),
+          // Un panel URGENTE se muestra aunque el nivel de detalle lo esconda: lo urgente no se esconde.
+          visibles: t.pasos.filter((p) => puedeVerSeccionPanel(user, p.panel)
+            && (!esAdmin || nivelDe(p.panel) <= Math.max(nivel, 1) || Boolean(urgentes.get(etapa.id)?.[p.panel]))),
         }))
         .filter((t) => t.visibles.length > 0);
       const participa = etapa.tramos.some((t) => t.pasos.some((p) => puedeVerSeccionPanel(user, p.panel)));
@@ -362,6 +395,7 @@ function Mapa() {
         etapa, tramos, participa, nivel,
         bloqueos: bloq.data?.por_etapa?.[etapa.id],
         mias: porEtapa.get(etapa.id) ?? 0,
+        urgentes: urgentes.get(etapa.id) ?? {},
         guia: Boolean(etapa.guia && puedeVerSeccionPanel(user, etapa.guia.abre)),
         ancha: etapa.tipo === "transversal" && !vertical,
       };
@@ -389,6 +423,7 @@ function Mapa() {
     const origen: DatosOrigen = {
       nombre: user?.nombre?.split(" ")[0] ?? "",
       pedidas: tareas.data?.mias.length ?? 0,
+      urgentes: (tareas.data?.mias ?? []).filter((t) => t.prioridad === "urgente" || t.prioridad === "alta").length,
       recordatorios: tareas.data?.recordatorios ?? 0,
       puede: Boolean(user && puedeVerSeccionPanel(user, ORIGEN_APP.panel)),
     };
@@ -483,6 +518,12 @@ function Mapa() {
 
   if (!user) return null;
   const participa = cartas.filter((c) => c.participa).length;
+  // Cuánto titila en total y en qué cartas, para «¡Ir a lo urgente!».
+  const conUrgente = cartas.filter((c) => Object.keys(c.urgentes).length > 0);
+  const totalUrgente = conUrgente.reduce((s, c) => s + Object.values(c.urgentes).reduce((a, u) => a + u.n, 0), 0);
+  const irALoUrgente = () => void rf.fitView({
+    nodes: conUrgente.map((c) => ({ id: c.etapa.id })), padding: 0.15, maxZoom: 1.2, duration: 400,
+  });
 
   return (
     <div ref={contenedor} className="colab-pixel mapa-vivo flex min-h-0 flex-1 flex-col gap-2">
@@ -498,6 +539,12 @@ function Mapa() {
                     className={`mv-nivel ${nivel === n.n ? "mv-nivel-on" : ""}`}>{n.titulo}</button>
           ))}
         </div>
+        {totalUrgente > 0 && (
+          <button type="button" className="mv-nivel mv-ir-urgente" onClick={irALoUrgente}
+                  title="Llevar la cámara a lo que necesita atención ya">
+            ¡Ir a lo urgente! ({totalUrgente})
+          </button>
+        )}
         <button type="button" className="mv-nivel" title="Ver todo el mapa"
                 onClick={() => void rf.fitView({ padding: 0.08, duration: 300 })}>Encuadrar</button>
       </div>

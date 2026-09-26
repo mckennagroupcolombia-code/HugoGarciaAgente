@@ -956,7 +956,7 @@ fila de 8 no se leía nada. Celular (<700 px): columna que arranca arriba a tama
 detenidos de `/api/mapa-sistema/bloqueos` (misma queryKey que FlujoNav) y solicitudes asignadas a la persona ubicadas por
 `etapaDeTicket` → la etapa con algo suyo late en amarillo («tu camino»). Tocar un panel acerca la cámara y lo abre; se
 vuelve con **«◇ Mapa»** del cabezote (antes «◇ Todo el flujo», que abría Mapa del sistema solo a administración).
-`App.tsx` pone el mapa **una vez por carga de página** (`INICIO_EN_MAPA`); un `?panel=…` manda sobre él. ⚠️ React Flow
+`App.tsx` pone el mapa **una vez por carga de página** (`INICIO_EN_MAPA`); un `?panel=…` manda sobre él. **Lo urgente titila** (25-sep-2026): `GET /api/mapa-sistema/urgencias` lo ve TODO el equipo interno, filtrado **en el servidor** por los paneles que cada quien puede abrir (`mapa_app.urgencias_para` + `app/services/acceso_paneles.py`, réplica de `panelAccess.ts` para los paneles a los que apunta alguna fuente; `tests/test_acceso_paneles.py` exige una regla decidida para cada uno). La persona sale del token PERSONAL (`X-Tickets-Token`): `CHAT_API_TOKEN` solo lo recibe administración. Titila el APARTADO (lo detenido de severidad alta + las solicitudes propias `alta`/`urgente`), no la carta, que solo lleva marco rojo; un panel urgente se muestra aunque el nivel lo esconda; «¡Ir a lo urgente!» encuadra esas cartas. ⚠️ React Flow
 v12 toma las medidas de un nodo controlado de `node.measured`: el mapa las devuelve desde `onNodesChange` o las flechas no
 se dibujan. ⚠️ Un panel de lienzo (altura completa) va en **DOS** listas: `Layout.tsx` (rama de hubs) **y**
 `ui/PanelTransition.tsx` (`fillHeight`); con solo la primera, el lienzo colapsa a altura 0 dentro de la app (pasó con el

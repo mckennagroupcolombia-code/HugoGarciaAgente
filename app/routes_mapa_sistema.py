@@ -167,6 +167,35 @@ def register_mapa_sistema_routes(app):
 
         return jsonify(mapa_app.bloqueos(refrescar=request.args.get("refrescar") == "1"))
 
+    @_dual(app, "/api/mapa-sistema/urgencias", methods=["GET"])
+    def mapa_sistema_urgencias():
+        """Lo detenido que ESTA persona puede atender (el Mapa lo hace titilar).
+
+        A diferencia de /bloqueos (administración), la ve todo el equipo interno, pero
+        filtrada en el servidor por los paneles que cada quien puede abrir
+        (`mapa_app.urgencias_para`). La persona sale del token PERSONAL (X-Tickets-Token o
+        el Bearer de sesión): CHAT_API_TOKEN solo lo recibe administración y, sin persona,
+        es un script de administración.
+        """
+        from app.api_auth import bearer_token_from_request, chat_api_token_matches_request
+        from app.services import mapa_app
+        from app.services.tickets_db import aplicar_privilegios_admin_cynthia, get_usuario_by_token
+
+        usuario = None
+        for tok in ((request.headers.get("X-Tickets-Token") or "").strip(), bearer_token_from_request()):
+            if tok:
+                try:
+                    usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(tok))
+                except Exception:
+                    usuario = None
+                if usuario:
+                    break
+        if not usuario:
+            if chat_api_token_matches_request():
+                return jsonify(mapa_app.bloqueos())
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify(mapa_app.urgencias_para(usuario))
+
     @_dual(app, "/api/mapa-sistema/productos", methods=["GET"])
     @_auth
     def mapa_sistema_productos():

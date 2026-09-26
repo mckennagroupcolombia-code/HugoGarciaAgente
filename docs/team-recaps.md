@@ -1,3 +1,12 @@
+### 2026-09-26 00:30 - Mapa: lo urgente titila, y cada quien ve lo suyo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - En el Mapa **titila el apartado que necesita atención ya**: lo detenido de severidad alta (pedidos sin despachar, agotados, movimientos sin clasificar…) y las solicitudes propias de prioridad alta/urgente, cada cosa en el panel donde se resuelve, con su número y el porqué al pasar el ratón. La carta de la etapa lleva marco rojo fijo; un panel urgente aparece aunque el nivel de detalle lo esconda; botón **«¡Ir a lo urgente! (N)»** que encuadra esas cartas.
+  - **Cada quien ve lo suyo:** ruta nueva `GET /api/mapa-sistema/urgencias`, filtrada en el servidor por los paneles que la persona puede abrir (`app/services/acceso_paneles.py`, réplica de las reglas del menú; lo contable sensible no se hereda de facturación). Antes solo administración veía lo detenido. Con los permisos reales: despachos ve inventario y pedidos, contabilidad su parte, contador y colaborador externo nada.
+  - Verificado: clics reales (20/20 ratón, 5/5 dedo) sobre los botones que titilan, contraste 0 ilegibles en claro y oscuro, y la cámara de «¡Ir a lo urgente!» deja las cartas urgentes completas a la vista.
+- **Archivos Modificados:** `app/services/{acceso_paneles.py,mapa_app.py}`, `app/routes_mapa_sistema.py`, `desktop/src/components/{MapaVivo.tsx,mapa-vivo.css}`, `desktop/dev/app.tsx`, `tests/test_acceso_paneles.py`, `CLAUDE.md`.
+
 ### 2026-09-25 23:40 - Piel pixel dentro de todos los paneles (los colores escritos a mano)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de interfaz. Sin LLM.

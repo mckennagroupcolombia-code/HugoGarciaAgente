@@ -113,6 +113,39 @@
 }
 .mapa-vivo .mv-bloqueo:hover { color: #FF004D; }
 
+/* ─── Lo urgente ───
+   Titila el APARTADO (el panel donde se resuelve), no la carta entera: administración tendría
+   casi todas las etapas en alerta y el mapa entero parpadeando no señala nada. La carta solo
+   lleva un marco rojo fijo. Los dos tiempos del parpadeo se leen (texto oscuro sobre rosado,
+   crema sobre rojo). */
+/* Gana a «tu camino» (amarillo): si hay algo urgente, el marco es rojo. «TÚ n» sigue en la cabecera. */
+.mapa-vivo .mv-carta.mv-hay-urgente { outline: 4px solid #C8003E; outline-offset: 3px; animation: none; }
+.mapa-vivo .mv-panel.mv-urgente {
+  background: #FFE3EA;
+  border-color: #C8003E;
+  box-shadow: 2px 2px 0 #C8003E;
+  animation: mv-urgente 0.9s steps(1, end) infinite;
+}
+@keyframes mv-urgente { 50% { background: #C8003E; color: #FFF1E8; } }
+.mapa-vivo .mv-urg-n {
+  flex-shrink: 0;
+  padding: 1px 4px;
+  background: #C8003E;
+  color: #FFF1E8;
+  border: 2px solid #000;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+.mapa-vivo .mv-linea-urgente { color: #B00035; font-weight: 700; }
+.mapa-vivo .px-hud .mv-ir-urgente {
+  background: #C8003E;
+  color: #FFF1E8;
+  border-color: #FFF1E8 !important;
+  animation: mv-latido-borde 0.9s steps(1, end) infinite;
+}
+@keyframes mv-latido-borde { 50% { border-color: #FFEC27 !important; } }
+
 /* Flechas: hormigas en marcha (se mueven en saltos, como un juego de 8 bits). */
 .mapa-vivo .mv-flecha {
   stroke: #000;
@@ -165,5 +198,7 @@
 @media (prefers-reduced-motion: reduce) {
   .mapa-vivo .mv-camino,
   .mapa-vivo .mv-alta,
-  .mapa-vivo .mv-flecha { animation: none; }
+  .mapa-vivo .mv-flecha,
+  .mapa-vivo .mv-panel.mv-urgente,
+  .mapa-vivo .px-hud .mv-ir-urgente { animation: none; }
 }

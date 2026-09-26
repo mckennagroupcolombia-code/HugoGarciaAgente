@@ -62,9 +62,24 @@ window.fetch = async (entrada: RequestInfo | URL, init?: RequestInit) => {
                                       fontSans: "Montserrat" }, estilo_v: 99 } }
       : {}),
   });
-  if (ruta === "/api/tickets/" || ruta === "/api/tickets") return json([{ id: 1, titulo: "Facturar pedido web 250", asignado_a: usuario.id }]);
+  if (ruta === "/api/tickets/" || ruta === "/api/tickets") return json([
+    { id: 1, titulo: "Facturar pedido web 250", asignado_a: usuario.id, prioridad: "urgente" },
+    { id: 2, titulo: "Empacar pedido de Laura", asignado_a: usuario.id, prioridad: "media" },
+  ]);
   if (ruta === "/api/tickets/recordatorios") return json([]);
-  if (ruta === "/api/mapa-sistema/bloqueos") return json({ por_etapa: {}, sin_senal: [], generado: "" });
+  // Urgencias como las entrega el servidor YA filtradas por persona (acceso_paneles.py).
+  if (ruta === "/api/mapa-sistema/urgencias") {
+    const it = (etapa: string, n: number, texto: string, panel: string, severidad = "alta") => ({ etapa, id: `${etapa}-${panel}`, n, texto, panel, severidad });
+    const grupo = (...xs: ReturnType<typeof it>[]) => ({
+      alta: xs.filter((x) => x.severidad === "alta").reduce((a, x) => a + x.n, 0),
+      media: xs.filter((x) => x.severidad === "media").reduce((a, x) => a + x.n, 0), items: xs });
+    const despachos = { entregar: grupo(it("entregar", 3, "pedidos web pagados que siguen sin despachar", "pedidos")) };
+    return json({ por_etapa: usuario.rol && (usuario.rol as { nivel: number }).nivel >= 3 ? {
+      ...despachos,
+      preparar: grupo(it("preparar", 124, "publicaciones agotadas", "control-inventario"), it("preparar", 39, "con stock crítico", "control-inventario", "media")),
+      contar: grupo(it("contar", 117, "movimientos del banco sin clasificar", "libro-mayor")),
+    } : despachos, sin_senal: [], generado: "" });
+  }
   if (ruta === "/api/status") return json({ status: "activo", servicios: {} });
   // Pedidos Web con datos de EJEMPLO (inventados): sin ellos el panel solo muestra su estado vacío.
   if (ruta === "/api/pedidos/web") {
