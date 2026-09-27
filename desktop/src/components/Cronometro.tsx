@@ -239,22 +239,18 @@ export function useTicketCronometro(ticketId: number, token: string, opts?: { au
     return () => clearInterval(iv);
   }, [tick]);
 
+  // Ocultar la pantalla NO pausa (27-sep-2026). Antes, bloquear el celular o salir del panel
+  // mandaba «pausar» al servidor y el tiempo con el celular en el bolsillo se perdía: jerry y
+  // vitor tenían registrada menos de la mitad del tiempo real en 3 de cada 4 tareas. El servidor
+  // cuenta desde la hora de inicio, así que sigue corriendo solo; al volver basta con releerlo
+  // (sin reanudar: si la persona pausó con el botón, sigue en pausa). Solo el botón pausa.
   useEffect(() => {
     const onVis = () => {
-      if (document.hidden) {
-        void pausar();
-      } else {
-        void syncDesdeServidor(true);
-      }
+      if (!document.hidden) void syncDesdeServidor(false);
     };
     document.addEventListener("visibilitychange", onVis);
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      if (corridaIdRef.current && inicioRef.current != null) {
-        void ticketsFetch(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" }).catch(() => {});
-      }
-    };
-  }, [pausar, syncDesdeServidor, token]);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [syncDesdeServidor]);
 
   return {
     segundos,

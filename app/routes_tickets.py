@@ -1527,6 +1527,12 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
 
+    @app.route("/api/tickets/corridas/en-curso", methods=["GET"])
+    @_auth
+    def tickets_corridas_en_curso():
+        from app.services.ticket_timing import corridas_en_curso_usuario
+        return jsonify(corridas_en_curso_usuario(request.tickets_usuario["id"])), 200
+
     @app.route("/api/tickets/corridas/<int:corrida_id>", methods=["GET"])
     @_auth
     def tickets_get_corrida_ticket(corrida_id):

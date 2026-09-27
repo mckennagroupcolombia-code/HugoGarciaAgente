@@ -14,6 +14,7 @@ import EquipoConectadoBar from "./nav/EquipoConectadoBar";
 import UserMenuButton from "./nav/UserMenuButton";
 import AccesosRapidos from "./nav/AccesosRapidos";
 import CampanaNotificaciones from "./chat_equipo/CampanaNotificaciones";
+import TareaEnCurso from "./TareaEnCurso";
 import ThemeModeToggle from "./ThemeModeToggle";
 import PantallaControles from "./nav/PantallaControles";
 import { TemasHeaderButton } from "./TemasSidebarButton";
@@ -257,9 +258,11 @@ export default function Layout({
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
               )}
+              {barraMovil && <TareaEnCurso compacto />}
               {barraMovil && <CampanaNotificaciones />}
               {!barraMovil && (
                 <>
+                  <TareaEnCurso />
                   <AccesosRapidos />
                   <CampanaNotificaciones />
                   <div className="mck-cabezote-vista">

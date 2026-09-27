@@ -1,3 +1,13 @@
+### 2026-09-27 17:30 - Cronómetro de tareas: ya no se congela y se ve en todas las pantallas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + mejora. Sin LLM.
+- **Qué se implementó:**
+  - Bloquear el celular, cambiar de app, «Salir» o «‹» **ya no pausan** la actividad: solo el botón ⏸. Antes el tiempo con el celular en el bolsillo se perdía (jerry y vitor tenían registrada menos de la mitad del tiempo real en 3 de cada 4 tareas).
+  - **Reloj en el cabezote** de todas las pantallas (también Mapa y celular) con la tarea en curso, pausar/reanudar e «Ir a mis acciones». En pausa dice «en pausa» en vez de desaparecer.
+  - Vuelve el **aviso de voz** «Pilas, veci: tiene una tarea en proceso» cada 15 min en cualquier pantalla (solo sonaba dentro de Acciones, que ya casi no se abre). Silencio 22:00–7:00, se apaga desde el reloj; en la APK suena con la pantalla apagada.
+  - Ya no nacen dos cronómetros para la misma tarea; se cerraron 75 cronómetros huérfanos (tareas cerradas) sin sumar tiempo.
+- **Archivos Modificados:** `desktop/src/components/{Cronometro.tsx,Layout.tsx,TicketsPanel.tsx,TareaEnCurso.tsx}`, `desktop/src/lib/avisoTareaEnCurso.ts` (nuevo), `app/services/ticket_timing.py`, `app/routes_tickets.py`, `scripts/cerrar_cronometros_huerfanos.py` (nuevo), `tests/test_cronometro_en_curso.py` (nuevo), `CLAUDE.md`.
+
 ### 2026-09-27 17:15 - Espacio de producto: fotos y mockups con Ctrl+V, y lo que falta titila en rojo
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

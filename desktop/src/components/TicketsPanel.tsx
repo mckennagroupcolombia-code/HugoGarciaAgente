@@ -37,6 +37,7 @@ import PagosClientes from "./PagosClientes";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs, segundosDesdeCorrida } from "./Cronometro";
+import { esHorarioSilencio, marcarAvisoTarea, msDesdeUltimoAviso, playAlarmAudio, playBlobBuffer, unlockAudioContext, warmAlarmCache } from "../lib/avisoTareaEnCurso";
 import UserAvatar from "./UserAvatar";
 import { useActividadEquipo } from "../hooks/useActividadEquipo";
 import { useGitLog } from "../hooks/useGitLog";
@@ -12073,26 +12074,6 @@ const PRIORIDAD_COLOR: Record<string, string> = {
   baja: "bg-gray-300 text-gray-700",
 };
 
-/**
- * AudioContext desbloqueado por gesto del usuario.
- * En Android Chrome, el AudioContext debe crearse/resumirse durante un toque
- * para que pueda reproducir audio posterior sin gesto (como las alarmas a los 5 min).
- */
-let _unlockedCtx: AudioContext | null = null;
-
-function unlockAudioContext() {
-  if (_unlockedCtx && _unlockedCtx.state !== "closed") return;
-  try {
-    _unlockedCtx = new AudioContext();
-    // Reproducir buffer vacío de 1 muestra para desbloquear el contexto
-    const buf = _unlockedCtx.createBuffer(1, 1, 22050);
-    const src = _unlockedCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(_unlockedCtx.destination);
-    src.start(0);
-  } catch { _unlockedCtx = null; }
-}
-
 /** Reproduce un recordatorio de voz corto. Primero intenta el TTS del servidor;
  *  si no responde en 1.5 s, usa SpeechSynthesis del navegador (funciona offline/Android).
  *  El AudioContext debe estar desbloqueado previamente por gesto del usuario. */
@@ -12104,24 +12085,6 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 // parseUtcTs importado desde ./Cronometro
-
-// ── Caché de audio de alarma ──────────────────────────────────────────────────
-// El audio TTS se genera una sola vez y se reutiliza en todas las alarmas del día.
-// Evita latencia de ~5 s de Voicebox en cada disparo.
-let _alarmCache: { buffer: ArrayBuffer; type: string } | null = null;
-let _alarmCacheExpiry = 0;
-
-async function _playBlobBuffer(buffer: ArrayBuffer, type: string): Promise<void> {
-  const blob = new Blob([buffer], { type });
-  const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
-  audio.volume = 1;
-  return new Promise((resolve, reject) => {
-    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("playback error")); };
-    audio.play().catch(reject);
-  });
-}
 
 const HUGO_VOICEBOX_PROFILE = "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23";
 
@@ -12159,7 +12122,7 @@ async function hablarHugoTts(apiToken: string, texto: string): Promise<boolean> 
       }
       const buffer = await res.arrayBuffer();
       const type = ct.includes("mpeg") ? "audio/mpeg" : "audio/wav";
-      await _playBlobBuffer(buffer, type);
+      await playBlobBuffer(buffer, type);
       return true;
     } catch {
       if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); }
@@ -12175,82 +12138,6 @@ async function playRecordatorioAlerta(apiToken: string, count: number): Promise<
     ? "Hola, veci. Tiene un recordatorio pendiente para hoy."
     : `Hola, veci. Tiene ${count} recordatorios pendientes para hoy.`;
   await hablarHugoTts(apiToken, texto);
-}
-
-/** Genera y cachea el audio de alarma. Llámalo al activar la alarma para pre-calentar. */
-async function warmAlarmCache(apiToken: string): Promise<boolean> {
-  if (_alarmCache && Date.now() < _alarmCacheExpiry) return true;
-  try {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 12_000);
-    const res = await fetch("/api/voz/sintetizar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
-      body: JSON.stringify({
-        texto: "Pilas, veci: tiene una tarea en proceso.",
-        motor: "voicebox",
-        voicebox_engine: "qwen3-0.6b",
-        voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
-        language: "Spanish",
-      }),
-      signal: ctrl.signal,
-    });
-    clearTimeout(tid);
-    if (!res.ok) return false;
-    const buffer = await res.arrayBuffer();
-    const type = res.headers.get("content-type") || "audio/wav";
-    _alarmCache = { buffer, type };
-    _alarmCacheExpiry = Date.now() + 12 * 60 * 60 * 1000; // caché 12 horas
-    return true;
-  } catch { return false; }
-}
-
-/** Devuelve true si la hora local cae en horario de descanso (22:00–07:00). */
-function esHorarioSilencio(): boolean {
-  const hora = new Date().getHours();
-  return hora >= 22 || hora < 7;
-}
-
-async function playAlarmAudio(apiToken?: string) {
-  // Intento 1: audio cacheado (generado previamente, sin latencia)
-  if (_alarmCache && Date.now() < _alarmCacheExpiry) {
-    try { await _playBlobBuffer(_alarmCache.buffer, _alarmCache.type); return; } catch {}
-  }
-
-  // Intento 2: generar TTS y cachear (primera vez o caché expirada)
-  if (apiToken) {
-    try {
-      if (await warmAlarmCache(apiToken) && _alarmCache) {
-        await _playBlobBuffer(_alarmCache.buffer, _alarmCache.type);
-        return;
-      }
-    } catch {}
-  }
-
-  // Intento 3: SpeechSynthesis del navegador (sin servidor, Android Chrome lo soporta)
-  if ("speechSynthesis" in window) {
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance("Pilas, veci: tiene una tarea en proceso.");
-    utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
-    window.speechSynthesis.speak(utt);
-    return;
-  }
-
-  // Fallback: chime Web Audio API
-  try {
-    const ctx = _unlockedCtx ?? new AudioContext();
-    const now = ctx.currentTime;
-    [[0, 880], [0.32, 1100], [0.64, 660]].forEach(([delay, freq]) => {
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.type = "sine"; osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, now + delay);
-      gain.gain.linearRampToValueAtTime(0.3, now + delay + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(now + delay); osc.stop(now + delay + 0.42);
-    });
-    setTimeout(() => ctx.close().catch(() => {}), 2500);
-  } catch { /* AudioContext no disponible */ }
 }
 
 async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<void> {
@@ -12275,7 +12162,7 @@ async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<vo
       if (!res.ok) throw new Error("tts error");
       const buffer = await res.arrayBuffer();
       const type = res.headers.get("content-type") || "audio/wav";
-      await _playBlobBuffer(buffer, type);
+      await playBlobBuffer(buffer, type);
       return;
     } catch { /* fallback */ }
   }
@@ -22647,20 +22534,26 @@ function RepetirAccionWizard({
         <button
           type="button"
           onClick={async () => {
-            if (!confirm("¿Cancelar? La acción iniciada seguirá en tu tablero como borrador.")) return;
-            if (ticketId && corridaIdRef.current) {
-              try { await cronometro.pausar(); } catch { /* */ }
-            }
+            // Salir no pausa: el cronómetro sigue y el reloj del cabezote la muestra. Solo ⏸ pausa.
+            if (!confirm("¿Salir? La acción sigue en curso y el cronómetro sigue contando. La retomas desde el reloj de arriba o con «Continuar donde quedé».")) return;
             onCancel();
           }}
           className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
         >
           ← Salir
         </button>
-        {cronometro.activo && (
+        {activeTicketId > 0 && (
+          /* El reloj no desaparece al pausarse: dice «en pausa» y ofrece reanudar. */
           <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/8 px-3 py-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            {cronometro.activo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
             <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
+            {cronometro.activo ? (
+              <button type="button" onClick={() => void cronometro.pausar()} title="Pausar cronómetro"
+                className="text-xs font-bold text-accent">⏸</button>
+            ) : cronometro.listo && (
+              <button type="button" onClick={() => void cronometro.syncDesdeServidor(true)} title="Reanudar cronómetro"
+                className="text-[11px] font-bold text-accent">en pausa · ▶</button>
+            )}
           </div>
         )}
         {fase === "paso" && totalItems > 0 && (
@@ -25485,7 +25378,6 @@ function AccionesView({
   const solicitudesRef = useRef<Ticket[]>([]);
   const tokenRef     = useRef(chatApiToken ?? token);
   const ticketsTokenRef = useRef(token);
-  const ultimaAlarmaRef = useRef(Date.now());
   const prevHayEnProcesoRef = useRef<boolean | null>(null);
   const alarmaSincronizadaRef = useRef(false);
   useEffect(() => { alarmaRef.current = alarmaActiva; }, [alarmaActiva]);
@@ -25675,7 +25567,7 @@ function AccionesView({
     if (!forzar && (!alarmaRef.current || (!hayTarea && !solPendiente))) return;
     // Silencio nocturno 22:00–07:00 — solo el botón "Probar" puede saltarlo
     if (!forzar && esHorarioSilencio()) return;
-    ultimaAlarmaRef.current = Date.now();
+    marcarAvisoTarea();
     if (!document.hidden) {
       if (solPendiente && !hayTarea) {
         const nombre = solPendiente.creado_por_nombre ?? solPendiente.creado_por_info?.nombre ?? "un compañero";
@@ -25699,13 +25591,13 @@ function AccionesView({
   useEffect(() => {
     const check = () => {
       const ms = minRef.current * 60 * 1000;
-      if (Date.now() - ultimaAlarmaRef.current >= ms) void dispararAlarma();
+      if (msDesdeUltimoAviso() >= ms) void dispararAlarma();
     };
     const iv = setInterval(check, 10_000);
     // Al abrir la app reiniciamos el contador para no disparar la alarma inmediatamente.
     // El usuario verá la alerta en el próximo intervalo normal, no al instante de entrar.
     const onVisible = () => {
-      if (!document.hidden) ultimaAlarmaRef.current = Date.now();
+      if (!document.hidden) marcarAvisoTarea();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVisible); };
@@ -25716,7 +25608,7 @@ function AccionesView({
     if (!alarmaActiva) { setCountdown(0); return; }
     const iv = setInterval(() => {
       const ms = minRef.current * 60 * 1000;
-      const restante = Math.max(0, Math.ceil((ms - (Date.now() - ultimaAlarmaRef.current)) / 1000));
+      const restante = Math.max(0, Math.ceil((ms - msDesdeUltimoAviso()) / 1000));
       setCountdown(restante);
     }, 1000);
     return () => clearInterval(iv);
@@ -27627,8 +27519,8 @@ function EjecucionAccionChat({
     finally { setTerminando(false); }
   }
 
-  async function guardarYVolver() {
-    await pausar();
+  // Volver no pausa: la acción sigue contando y el reloj del cabezote la muestra. Solo ⏸ pausa.
+  function guardarYVolver() {
     localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: accion.id, titulo: accion.titulo }));
     onVolver();
   }
