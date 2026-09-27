@@ -2890,3 +2890,21 @@ html[data-mck-skin="barbie"].dark textarea:focus {
   font-weight: 700;
   letter-spacing: -0.01em;
 }
+
+/* Lo que le falta a un producto titila en rojo (Espacio de producto): encendido/apagado con
+   steps(), como el resto de la piel pixel. El rojo es el de PICO-8, no --mck-danger (que es
+   pálido a propósito para no gritar en los estados normales). */
+@keyframes mck-titila-rojo {
+  0%, 100% { background-color: #ff004d; box-shadow: 0 0 0 3px rgb(255 0 77 / 0.45); }
+  50% { background-color: rgb(255 0 77 / 0.25); box-shadow: 0 0 0 0 rgb(255 0 77 / 0); }
+}
+@keyframes mck-titila-rojo-borde {
+  0%, 100% { outline-color: #ff004d; }
+  50% { outline-color: rgb(255 0 77 / 0.15); }
+}
+.mck-titila-rojo { animation: mck-titila-rojo 1s steps(2, jump-none) infinite; }
+.mck-titila-rojo-borde { outline: 2px solid #ff004d; outline-offset: 2px; animation: mck-titila-rojo-borde 1s steps(2, jump-none) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .mck-titila-rojo { animation: none; background-color: #ff004d; box-shadow: 0 0 0 3px rgb(255 0 77 / 0.45); }
+  .mck-titila-rojo-borde { animation: none; }
+}

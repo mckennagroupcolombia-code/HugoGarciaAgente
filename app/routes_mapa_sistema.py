@@ -159,6 +159,62 @@ def register_mapa_sistema_routes(app):
             refrescar=request.args.get("refrescar") == "1",
         ))
 
+    def _quien() -> str:
+        from app.api_auth import bearer_token_from_request
+        from app.services.tickets_db import get_usuario_by_token
+
+        for tok in ((request.headers.get("X-Tickets-Token") or "").strip(), bearer_token_from_request()):
+            if tok:
+                try:
+                    u = get_usuario_by_token(tok)
+                except Exception:
+                    u = None
+                if u:
+                    return str(u.get("username") or u.get("nombre") or "")
+        return ""
+
+    @_dual(app, "/api/mapa-sistema/fotos-producto", methods=["GET"])
+    @_auth
+    def mapa_sistema_fotos_resumen():
+        """{SKU: {meli, web}}: cuántas fotos/mockups tiene cada producto por canal."""
+        from app.services import fotos_producto as F
+
+        return jsonify({"resumen": F.resumen()})
+
+    @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>", methods=["GET", "POST", "DELETE"])
+    @_auth
+    def mapa_sistema_fotos_producto(ref: str):
+        """Fotos y mockups de un producto: listar, guardar lo pegado (multipart: canal,
+        archivo) o retirar una (?canal=&archivo=, va a una papelera)."""
+        from app.services import fotos_producto as F
+
+        try:
+            if request.method == "GET":
+                return jsonify(F.listar(ref))
+            if request.method == "POST":
+                archivo = request.files.get("archivo")
+                if not archivo:
+                    return jsonify({"error": "Falta la imagen"}), 400
+                fila = F.guardar(ref, request.form.get("canal") or "", archivo.read(), por=_quien())
+                return jsonify({"ok": True, "foto": fila})
+            F.retirar(ref, request.args.get("canal") or "", request.args.get("archivo") or "")
+            return jsonify({"ok": True})
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+
+    @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>/archivo", methods=["GET"])
+    @_auth
+    def mapa_sistema_fotos_producto_archivo(ref: str):
+        from app.services import fotos_producto as F
+
+        try:
+            ruta = F.ruta_archivo(ref, request.args.get("canal") or "", request.args.get("archivo") or "")
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        if not ruta:
+            return jsonify({"error": "No existe"}), 404
+        return send_file(ruta, conditional=True, download_name=ruta.name)
+
     @_dual(app, "/api/mapa-sistema/bloqueos", methods=["GET"])
     @_auth
     def mapa_sistema_bloqueos():

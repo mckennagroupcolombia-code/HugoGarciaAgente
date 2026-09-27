@@ -1,3 +1,13 @@
+### 2026-09-27 17:15 - Espacio de producto: fotos y mockups con Ctrl+V, y lo que falta titila en rojo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Pestaña nueva **«Fotos y mockups»** en Diseño → Por producto: dos columnas (Mercado Libre · Página web). Se copia la imagen en el programa donde se hizo (Ctrl+C), se toca la columna y se pega con **Ctrl+V**; también se puede arrastrar el archivo o usar «Pegar desde el portapapeles» en el celular.
+  - Se guardan como los PNG aprobados de las etiquetas: misma biblioteca, carpeta `FOTOS PRODUCTO/<canal>`, con registro por SKU (`app/data/fotos_producto.json`). Muestra el tamaño y avisa si una foto de MeLi mide menos de 500 px. «Quitar» manda a una papelera. Guardar no publica nada.
+  - **Lo que le falta a un producto titila en rojo**: en la lista (ahora con 5 puntos: documento · etiqueta · EAN · PNG aprobados · fotos), en las pestañas y en la columna de fotos vacía. Ámbar = a medias, verde = completo. Con «reducir movimiento» el rojo queda fijo.
+  - Banco de pruebas `desktop/dev/espacio.html` (sin backend) para probar el pegado.
+- **Archivos Modificados:** `app/services/fotos_producto.py` (nuevo), `app/routes_mapa_sistema.py`, `tests/test_fotos_producto.py` (nuevo), `desktop/src/components/EspacioProductoPanel.tsx`, `desktop/src/index.css`, `desktop/dev/espacio.{html,tsx}` (nuevos), `CLAUDE.md`.
+
 ### 2026-09-27 16:00 - Facturación MeLi: lo vendido en el mes se factura en el mes
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección. Sin LLM.

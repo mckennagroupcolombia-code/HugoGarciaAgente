@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { api, fetchAuthBlobUrl } from "../api/client";
 import { useAppStore } from "../stores/app";
 import type { Combo, Eslabon, Respuesta } from "./combos/comun";
 import { cargarPatchDesdeFichaTecnica } from "../lib/fichaTecnicaAplicar";
@@ -25,11 +25,44 @@ const CodigosEanPanel = lazy(() =>
   import("./etiquetas/CodigosEanPanel").then((m) => ({ default: m.CodigosEanPanel })),
 );
 
-type Pestana = "ficha" | "etiqueta" | "ean" | "png";
+type Pestana = "ficha" | "etiqueta" | "ean" | "png" | "fotos";
+type Estado = Eslabon["estado"];
 const CLAVE_REF = "mck-espacio-producto-ref";
 const CLAVE_PESTANA = "mck-espacio-producto-pestana";
 
 type Recurso = { nombre: string; subido_at?: string; thumb_b64?: string; thumb_mime?: string };
+type Canal = "meli" | "web";
+type Foto = { archivo: string; subido_at: string; por?: string; ancho?: number; alto?: number; miniatura?: string };
+type ResumenFotos = Record<string, Partial<Record<Canal, number>>>;
+const CANALES: { id: Canal; titulo: string }[] = [
+  { id: "meli", titulo: "Mercado Libre" },
+  { id: "web", titulo: "Página web" },
+];
+
+/** PNG de «Terminar y aprobar»: los dos (impresión y digital), uno o ninguno. */
+function estadoPng(c: Combo): Estado {
+  const e = c.eslabones.etiqueta;
+  const n = Number(Boolean(e?.png)) + Number(Boolean(e?.png_digital));
+  return n === 2 ? "ok" : n === 1 ? "aviso" : "falta";
+}
+
+/** Fotos y mockups: con foto en los dos canales, en uno o en ninguno. */
+function estadoFotos(ref: string, resumen: ResumenFotos | undefined): Estado {
+  const r = resumen?.[ref.toUpperCase()] ?? {};
+  const n = Number((r.meli ?? 0) > 0) + Number((r.web ?? 0) > 0);
+  return n === 2 ? "ok" : n === 1 ? "aviso" : "falta";
+}
+
+/** Punto de estado. Lo que falta titila en rojo: es lo que hay que ir a resolver. */
+function Punto({ estado, titulo, grande }: { estado: Estado; titulo?: string; grande?: boolean }) {
+  const tam = grande ? "h-2.5 w-2.5" : "h-2 w-2";
+  return (
+    <span
+      title={titulo}
+      className={`${tam} shrink-0 rounded-full ${estado === "falta" ? "mck-titila-rojo" : PUNTO[estado]}`}
+    />
+  );
+}
 
 function leer(clave: string): string {
   try {
@@ -79,6 +112,13 @@ export default function EspacioProductoPanel() {
     retry: false,
   });
   const combos = useMemo(() => combosQ.data?.combos ?? [], [combosQ.data]);
+  const fotosQ = useQuery({
+    queryKey: ["fotos-producto-resumen"],
+    queryFn: () => api.get<{ resumen: ResumenFotos }>("/api/mapa-sistema/fotos-producto"),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const resumenFotos = fotosQ.data?.resumen;
 
   const [ref, setRef] = useState(() => leer(CLAVE_REF));
   const [pestana, setPestana] = useState<Pestana>(() => (leer(CLAVE_PESTANA) as Pestana) || "ficha");
@@ -161,18 +201,24 @@ export default function EspacioProductoPanel() {
                   <span className="font-mono text-[11px] text-muted">{c.ref}</span>
                 </span>
                 {(["documento", "etiqueta", "ean"] as const).map((k) => (
-                  <span
+                  <Punto
                     key={k}
-                    title={`${c.eslabones[k]?.titulo ?? k}: ${c.eslabones[k]?.detalle ?? ""}`}
-                    className={`h-2.5 w-2.5 shrink-0 rounded-full ${PUNTO[c.eslabones[k]?.estado ?? "falta"]}`}
+                    grande
+                    estado={c.eslabones[k]?.estado ?? "falta"}
+                    titulo={`${c.eslabones[k]?.titulo ?? k}: ${c.eslabones[k]?.detalle ?? ""}`}
                   />
                 ))}
+                <Punto grande estado={estadoPng(c)} titulo="PNG aprobados (impresión y digital)" />
+                {resumenFotos && <Punto grande estado={estadoFotos(c.ref, resumenFotos)} titulo="Fotos y mockups (Mercado Libre y web)" />}
               </button>
             </li>
           ))}
           {visibles.length === 0 && <li className="px-3 py-4 text-sm text-muted">Ningún producto coincide.</li>}
         </ul>
-        <p className="text-[11px] text-muted">Puntos: documento técnico · etiqueta · código EAN (verde completo, ámbar a medias, rojo falta).</p>
+        <p className="text-[11px] text-muted">
+          Puntos: documento técnico · etiqueta · código EAN · PNG aprobados · fotos y mockups (verde completo, ámbar a
+          medias; lo que falta titila en rojo).
+        </p>
         {combo && (
           <button type="button" onClick={() => setEligiendo(false)} className="text-[12px] text-accent hover:underline">
             ← Volver a {combo.nombre}
@@ -185,11 +231,17 @@ export default function EspacioProductoPanel() {
   const doc = combo.eslabones.documento;
   const eti = combo.eslabones.etiqueta;
   const ean = combo.eslabones.ean;
-  const PESTANAS: { id: Pestana; titulo: string; e?: Eslabon }[] = [
-    { id: "ficha", titulo: "Ficha técnica", e: doc },
-    { id: "etiqueta", titulo: "Etiqueta", e: eti },
-    { id: "ean", titulo: "Código EAN", e: ean },
-    { id: "png", titulo: "PNG aprobados" },
+  const PESTANAS: { id: Pestana; titulo: string; estado?: Estado; detalle?: string }[] = [
+    { id: "ficha", titulo: "Ficha técnica", estado: doc?.estado ?? "falta", detalle: doc?.detalle },
+    { id: "etiqueta", titulo: "Etiqueta", estado: eti?.estado ?? "falta", detalle: eti?.detalle },
+    { id: "ean", titulo: "Código EAN", estado: ean?.estado ?? "falta", detalle: ean?.detalle },
+    { id: "png", titulo: "PNG aprobados", estado: estadoPng(combo), detalle: "Impresión y digital de «Terminar y aprobar»" },
+    {
+      id: "fotos",
+      titulo: "Fotos y mockups",
+      estado: resumenFotos ? estadoFotos(combo.ref, resumenFotos) : undefined,
+      detalle: "Una foto o mockup por canal: Mercado Libre y página web",
+    },
   ];
 
   return (
@@ -214,12 +266,12 @@ export default function EspacioProductoPanel() {
               role="tab"
               aria-selected={pestana === p.id}
               onClick={() => irA(p.id)}
-              title={p.e ? `${p.e.titulo}: ${p.e.detalle}` : undefined}
+              title={p.detalle ? `${p.titulo}: ${p.detalle}` : undefined}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                 pestana === p.id ? "bg-accent text-white" : "text-ink hover:bg-surface-hover"
               }`}
             >
-              {p.e && <span className={`h-2 w-2 rounded-full ${PUNTO[p.e.estado]}`} />}
+              {p.estado && <Punto estado={p.estado} />}
               {p.titulo}
             </button>
           ))}
@@ -255,6 +307,7 @@ export default function EspacioProductoPanel() {
             </div>
           )}
           {pestana === "png" && <PngAprobados combo={combo} />}
+          {pestana === "fotos" && <FotosProducto combo={combo} />}
         </Suspense>
       </div>
     </div>
@@ -313,7 +366,7 @@ function PngAprobados({ combo }: { combo: Combo }) {
             <h2 className="text-sm font-bold text-ink">{g.titulo}</h2>
             <p className="mb-2 text-[11px] text-muted">{g.sub}</p>
             {g.lista.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border p-4 text-[12px] text-muted">
+              <p className="mck-titila-rojo-borde rounded-lg border border-dashed border-border p-4 text-[12px] text-muted">
                 Ninguno aprobado. Se aprueban en la pestaña Etiqueta con «Terminar y aprobar».
               </p>
             ) : (
@@ -348,6 +401,244 @@ function PngAprobados({ combo }: { combo: Combo }) {
         <button type="button" onClick={() => setAmpliada(null)} className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 p-6" aria-label="Cerrar">
           <img src={ampliada} alt="" className="max-h-full max-w-full rounded bg-white" />
         </button>
+      )}
+    </div>
+  );
+}
+
+function imagenesDelPortapapeles(dt: DataTransfer | null): File[] {
+  if (!dt) return [];
+  const out: File[] = [];
+  for (const it of Array.from(dt.items ?? [])) {
+    if (it.kind === "file" && it.type.startsWith("image/")) {
+      const f = it.getAsFile();
+      if (f) out.push(f);
+    }
+  }
+  if (!out.length) for (const f of Array.from(dt.files ?? [])) if (f.type.startsWith("image/")) out.push(f);
+  return out;
+}
+
+/** Fotos y mockups hechos por fuera (estudio, Canva, Photoshop), por canal de venta.
+ *  Se guardan como los PNG aprobados de las etiquetas —misma biblioteca, carpeta
+ *  FOTOS PRODUCTO/<canal>— y se agregan solo con Ctrl+C en el programa y Ctrl+V aquí:
+ *  lo pegado va a la columna seleccionada. Guardar no publica nada en MeLi ni en la web. */
+function FotosProducto({ combo }: { combo: Combo }) {
+  const qc = useQueryClient();
+  const ruta = `/api/mapa-sistema/fotos-producto/${encodeURIComponent(combo.ref)}`;
+  const q = useQuery({
+    queryKey: ["fotos-producto", combo.ref],
+    queryFn: () => api.get<{ canales: Record<Canal, Foto[]> }>(ruta),
+    staleTime: 15_000,
+  });
+  const [destino, setDestino] = useState<Canal>("meli");
+  const [subiendo, setSubiendo] = useState(0);
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [ampliada, setAmpliada] = useState<{ url: string; nombre: string } | null>(null);
+  useEffect(() => setAviso(null), [combo.ref]);
+
+  const subir = useCallback(
+    async (files: File[], canal: Canal) => {
+      if (!files.length) return;
+      setAviso(null);
+      setSubiendo((n) => n + files.length);
+      let ok = 0;
+      const errores: string[] = [];
+      for (const f of files) {
+        const form = new FormData();
+        form.append("canal", canal);
+        form.append("archivo", f, f.name || "pegado.png");
+        try {
+          await api.upload(ruta, form, { timeoutMs: 60_000 });
+          ok += 1;
+        } catch (e) {
+          errores.push((e as Error).message || "No se pudo guardar");
+        } finally {
+          setSubiendo((n) => n - 1);
+        }
+      }
+      void qc.invalidateQueries({ queryKey: ["fotos-producto", combo.ref] });
+      void qc.invalidateQueries({ queryKey: ["fotos-producto-resumen"] });
+      const titulo = CANALES.find((c) => c.id === canal)?.titulo;
+      setAviso(
+        errores.length
+          ? { ok: false, texto: `${ok ? `${ok} guardada(s); ` : ""}${errores[0]}` }
+          : { ok: true, texto: `${ok === 1 ? "Imagen guardada" : `${ok} imágenes guardadas`} en ${titulo}.` },
+      );
+    },
+    [combo.ref, qc, ruta],
+  );
+
+  useEffect(() => {
+    const alPegar = (ev: ClipboardEvent) => {
+      const files = imagenesDelPortapapeles(ev.clipboardData);
+      if (!files.length) return;
+      ev.preventDefault();
+      void subir(files, destino);
+    };
+    window.addEventListener("paste", alPegar);
+    return () => window.removeEventListener("paste", alPegar);
+  }, [subir, destino]);
+
+  // Para celular o si el teclado no está a mano: el mismo pegado, leyendo el portapapeles.
+  const pegarConBoton = async (canal: Canal) => {
+    setDestino(canal);
+    try {
+      const items = await navigator.clipboard.read();
+      const files: File[] = [];
+      for (const it of items) {
+        const tipo = it.types.find((t) => t.startsWith("image/"));
+        if (tipo) files.push(new File([await it.getType(tipo)], `pegado.${tipo.split("/")[1]}`, { type: tipo }));
+      }
+      if (!files.length) setAviso({ ok: false, texto: "En el portapapeles no hay ninguna imagen. Cópiala primero (Ctrl+C)." });
+      else void subir(files, canal);
+    } catch {
+      setAviso({ ok: false, texto: "El navegador no dejó leer el portapapeles: selecciona la columna y pega con Ctrl+V." });
+    }
+  };
+
+  const ampliar = async (canal: Canal, f: Foto) => {
+    const url = await fetchAuthBlobUrl(`${ruta}/archivo?canal=${canal}&archivo=${encodeURIComponent(f.archivo)}`);
+    if (url) setAmpliada({ url, nombre: f.archivo });
+    else setAviso({ ok: false, texto: "No se pudo abrir la imagen." });
+  };
+  const cerrar = () => {
+    if (ampliada) URL.revokeObjectURL(ampliada.url);
+    setAmpliada(null);
+  };
+  const quitar = async (canal: Canal, f: Foto) => {
+    if (!window.confirm("¿Quitar esta imagen del producto? Queda guardada en una papelera.")) return;
+    try {
+      await api.delete(`${ruta}?canal=${canal}&archivo=${encodeURIComponent(f.archivo)}`);
+      void qc.invalidateQueries({ queryKey: ["fotos-producto", combo.ref] });
+      void qc.invalidateQueries({ queryKey: ["fotos-producto-resumen"] });
+    } catch (e) {
+      setAviso({ ok: false, texto: (e as Error).message || "No se pudo quitar" });
+    }
+  };
+
+  if (q.isLoading) return <p className="p-6 text-sm text-muted">Buscando fotos…</p>;
+  if (q.isError) return <p className="p-6 text-sm text-red-600">{(q.error as Error)?.message || "No se pudieron leer las fotos."}</p>;
+  const canales = q.data?.canales ?? { meli: [], web: [] };
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <p className="mb-3 text-[12.5px] text-muted">
+        Copia la foto o el mockup en el programa donde lo hiciste (<kbd className="font-mono">Ctrl+C</kbd>), toca la
+        columna del canal y pégalo aquí con <kbd className="font-mono">Ctrl+V</kbd>. Guardarla no la publica en Mercado
+        Libre ni en la web.
+      </p>
+      {(subiendo > 0 || aviso) && (
+        <p
+          role="status"
+          className={`mb-3 rounded-lg px-3 py-2 text-[12px] font-semibold ${
+            subiendo > 0 ? "bg-surface-panel text-ink" : aviso?.ok ? "bg-emerald-500/15 text-emerald-600" : "bg-red-500/15 text-red-600"
+          }`}
+        >
+          {subiendo > 0 ? `Guardando ${subiendo} imagen(es)…` : aviso?.texto}
+        </p>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
+        {CANALES.map((c) => {
+          const lista = canales[c.id] ?? [];
+          const activo = destino === c.id;
+          return (
+            <section
+              key={c.id}
+              onClick={() => setDestino(c.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDestino(c.id);
+                void subir(imagenesDelPortapapeles(e.dataTransfer), c.id);
+              }}
+              className={`cursor-pointer rounded-xl border-2 p-3 ${activo ? "border-accent bg-accent/5" : "border-border bg-surface-panel"} ${
+                lista.length === 0 ? "mck-titila-rojo-borde" : ""
+              }`}
+            >
+              <header className="mb-2 flex items-center gap-2">
+                <Punto estado={lista.length ? "ok" : "falta"} />
+                <h2 className="text-sm font-bold text-ink">{c.titulo}</h2>
+                <span className="text-[11px] text-muted">{lista.length} imagen(es)</span>
+                <span className={`ml-auto text-[11px] font-semibold ${activo ? "text-accent" : "text-muted"}`}>
+                  {activo ? "Ctrl+V pega aquí" : "Toca para pegar aquí"}
+                </span>
+              </header>
+              {lista.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border p-6 text-center text-[12px] text-muted">
+                  Sin fotos ni mockups para {c.titulo}.
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void pegarConBoton(c.id);
+                    }}
+                    className="mt-2 block w-full text-[12px] font-semibold text-accent hover:underline"
+                  >
+                    Pegar desde el portapapeles
+                  </button>
+                </div>
+              ) : (
+                <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {lista.map((f, i) => {
+                    const chica = c.id === "meli" && f.ancho && f.alto && Math.min(f.ancho, f.alto) < 500;
+                    return (
+                      <li key={f.archivo} className="rounded-lg border border-border bg-surface p-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void ampliar(c.id, f);
+                          }}
+                          className="block w-full"
+                          title="Ver en grande"
+                        >
+                          {f.miniatura ? (
+                            <img src={`data:image/jpeg;base64,${f.miniatura}`} alt="" className="aspect-square w-full rounded bg-white object-contain" />
+                          ) : (
+                            <span className="block aspect-square w-full rounded bg-surface-hover" />
+                          )}
+                        </button>
+                        <p className="mt-1 truncate text-[10.5px] text-muted" title={f.archivo}>
+                          {i === 0 ? "La más reciente · " : ""}
+                          {f.ancho && f.alto ? `${f.ancho}×${f.alto}` : ""}
+                        </p>
+                        <p className="truncate text-[10.5px] text-muted">
+                          {new Date(f.subido_at).toLocaleDateString("es-CO")}
+                          {f.por ? ` · ${f.por}` : ""}
+                        </p>
+                        {chica && <p className="text-[10.5px] font-semibold text-amber-600">MeLi pide mínimo 500 px</p>}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void quitar(c.id, f);
+                          }}
+                          className="mt-0.5 text-[10.5px] text-red-600 hover:underline"
+                        >
+                          Quitar
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+          );
+        })}
+      </div>
+      {ampliada && (
+        <div className="fixed inset-0 z-[600] flex flex-col items-center justify-center gap-3 bg-black/70 p-6" onClick={cerrar}>
+          <img src={ampliada.url} alt="" className="max-h-[85vh] max-w-full rounded bg-white" />
+          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+            <a href={ampliada.url} download={ampliada.nombre} className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white">
+              Descargar
+            </a>
+            <button type="button" onClick={cerrar} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-ink">
+              Cerrar
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

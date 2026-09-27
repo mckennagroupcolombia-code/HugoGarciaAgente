@@ -1187,6 +1187,18 @@ o `combos` / `mapa-sistema` (el backend lo acepta en `_PERMISOS` de `routes_mapa
 Diseño y Docs siguen para el trabajo en lote. Los PNG se reconocen por el nombre del archivo
 (nace del título del código de barras): si la etiqueta tiene otro título, no aparecen.
 
+**Fotos y mockups (27-sep-2026):** quinta pestaña. Lo que el equipo arma por fuera (foto de estudio,
+mockup) se copia con Ctrl+C y se pega con **Ctrl+V** en la columna del canal (Mercado Libre · Página
+web); también se puede arrastrar el archivo o usar «Pegar desde el portapapeles» en el celular.
+Se guarda como los PNG aprobados: misma biblioteca, carpeta `Recursos PNG/FOTOS PRODUCTO/<canal>/`,
+con registro por SKU en `app/data/fotos_producto.json` (no depende del nombre del archivo).
+`app/services/fotos_producto.py` + `/api/mapa-sistema/fotos-producto[/<ref>[/archivo]]` (permiso del
+Espacio de producto); «Quitar» mueve a `.papelera_fotos_producto/`, fuera de Recursos PNG. Guardar
+**no publica** en MeLi ni en la web. **Lo que falta titila en rojo** (`.mck-titila-rojo` /
+`.mck-titila-rojo-borde` en `index.css`, steps() como la piel pixel, quieto con reduced-motion): en
+la lista, las pestañas y las columnas vacías. Puntos: documento · etiqueta · EAN · PNG · fotos.
+Banco: `desktop/dev/espacio.html[?ref=C-FALTA500g]` (fetch interceptado, fotos en memoria).
+
 ### X. Códigos EAN ↔ combos de Alegra (23-sep-2026)
 
 Cada código EAN (Diseño → Códigos EAN) se registra con el SKU de venta del combo (`C-…`).
