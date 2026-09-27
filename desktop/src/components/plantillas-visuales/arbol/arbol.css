@@ -1,0 +1,26 @@
+/* Studio → Árbol del producto. Colores solo por tokens (la piel pixel los redefine). */
+
+/* Fondo de damero bajo los PNG: deja ver dónde termina la etiqueta. */
+.mck-arbol-damero {
+  background-color: rgb(var(--mck-surface-input));
+  background-image:
+    linear-gradient(45deg, rgb(var(--mck-border) / 0.35) 25%, transparent 25%, transparent 75%, rgb(var(--mck-border) / 0.35) 75%),
+    linear-gradient(45deg, rgb(var(--mck-border) / 0.35) 25%, transparent 25%, transparent 75%, rgb(var(--mck-border) / 0.35) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+/* Lienzo del cladograma: cuadrícula de puntos, como el Mapa y Colaboradores. */
+.mck-arbol-lienzo {
+  background-color: rgb(var(--mck-surface-panel));
+  background-image: radial-gradient(rgb(var(--mck-border) / 0.7) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Las ramas: un trazo del color del texto, grueso como el borde de la piel. */
+.mck-arbol-rama { background: rgb(var(--mck-ink) / 0.75); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mck-arbol-hoja { transition: transform 120ms steps(2), box-shadow 120ms steps(2); }
+  .mck-arbol-hoja:hover { transform: translate(-1px, -1px); }
+}

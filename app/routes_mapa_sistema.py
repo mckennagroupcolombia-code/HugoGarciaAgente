@@ -123,6 +123,32 @@ def _auth_etiquetas(f):
     return wrapper
 
 
+def _auth_studio(f):
+    """Como `_auth`, pero también abre a quien tiene el Studio visual (`puede_ver_etiquetas_avanzado`):
+    el Árbol del producto vive en Studio e incrusta el taller, que lee /combos."""
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        from app.api_auth import bearer_token_from_request, chat_api_token_matches_request
+        from app.services.tickets_db import (aplicar_privilegios_admin_cynthia, get_usuario_by_token,
+                                             puede_ver_etiquetas_avanzado)
+
+        if chat_api_token_matches_request():
+            return f(*args, **kwargs)
+        usuario = None
+        try:
+            tok = (request.headers.get("X-Tickets-Token") or "").strip() or bearer_token_from_request()
+            usuario = aplicar_privilegios_admin_cynthia(get_usuario_by_token(tok)) if tok else None
+        except Exception:
+            usuario = None
+        if not usuario:
+            return jsonify({"error": "No autorizado"}), 401
+        if not (_usuario_puede(usuario) or puede_ver_etiquetas_avanzado(usuario)):
+            return jsonify({"error": "El árbol del producto requiere el Studio visual o el taller de combos"}), 403
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 def _dual(app, rule: str, **opts):
     def deco(f):
         app.add_url_rule(rule, endpoint=f.__name__, view_func=f, **opts)
@@ -151,13 +177,21 @@ def register_mapa_sistema_routes(app):
         return jsonify(M.mapa_sistema(refrescar=request.args.get("refrescar") == "1"))
 
     @_dual(app, "/api/mapa-sistema/combos", methods=["GET"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_combos():
         return jsonify(M.anatomia_combos(
             buscar=request.args.get("q") or "",
             filtro=request.args.get("filtro") or "",
             refrescar=request.args.get("refrescar") == "1",
         ))
+
+    @_dual(app, "/api/mapa-sistema/arbol-producto", methods=["GET"])
+    @_auth_studio
+    def mapa_sistema_arbol_producto():
+        """Studio → Árbol del producto: categoría → familia → presentación → piezas."""
+        from app.services import arbol_producto
+
+        return jsonify(arbol_producto.arbol(refrescar=request.args.get("refrescar") == "1"))
 
     def _quien() -> str:
         from app.api_auth import bearer_token_from_request
@@ -320,9 +354,15 @@ def register_mapa_sistema_routes(app):
         return jsonify(M.recipientes())
 
     @_dual(app, "/api/mapa-sistema/invalidar", methods=["POST"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_invalidar():
         M.invalidar()
+        try:  # Canales del producto (y el Árbol del producto) leen los eslabones del taller.
+            from app.services import canales_producto
+
+            canales_producto.invalidar()
+        except Exception:
+            pass
         return jsonify({"ok": True})
 
     @_dual(app, "/api/mapa-sistema/documentos/propuestas-sku", methods=["GET"])

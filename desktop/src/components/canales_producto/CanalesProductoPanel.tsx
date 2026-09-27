@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { api } from "../../api/client";
+import { useAppStore } from "../../stores/app";
 import ListaSkus from "./ListaSkus";
 import TableroCanales from "./TableroCanales";
 import VistaCategorias from "./VistaCategorias";
@@ -61,6 +62,12 @@ export default function CanalesProductoPanel() {
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("problemas");
   const [sku, setSku] = useState<string | null>(() => {
+    // Llegada desde otro panel (p. ej. Studio → Árbol del producto) con un SKU concreto.
+    const salto = useAppStore.getState().tallerSalto;
+    if (salto?.panel === "canales-producto" && salto.sku) {
+      useAppStore.setState({ tallerSalto: null });
+      return salto.sku;
+    }
     try {
       return sessionStorage.getItem(CLAVE_SKU);
     } catch {

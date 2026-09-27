@@ -1304,6 +1304,21 @@ por QR/Llave solo 11 tenían factura en Alegra; tras la migración (2-sep) solo 
 suspendido desde el 4-sep. Los pedidos web se cobran por Mercado Pago y el auto-posteo los lleva a 1110: pendiente
 pasarlos a 130505 como las ventas MeLi.
 
+### AD. Studio → Árbol del producto (27-sep-2026)
+
+Diseño → Studio visual abre en **«Árbol del producto»** (`plantillas-visuales/arbol/`, `app/services/arbol_producto.py`,
+`GET /api/mapa-sistema/arbol-producto`): categoría (la `linea` de la web) → familia (materia prima, con su documento
+técnico como raíz) → presentación (combo C-…) → seis hojas: etiquetas · EAN · receta · factura · MeLi · web. **No calcula
+nada propio**: junta `mapa_producto.anatomia_combos` (taller) y `canales_producto.tabla_maestra` (Canales), así los tres
+no pueden contar distinto. A la derecha, el **par de etiquetas** lado a lado (web nítida de ETIQUETAS STUDIO + MeLi
+desenfocada de PUBLICACIONES DIGITALES) con copiar/descargar, y «Para la foto de producto» (las dos en grande +
+indicación para ChatGPT/Gemini; mockups en Blender). Tocar una hoja abre el **taller de combos incrustado**
+(`MisionCombos incrustado refInicial piezaInicial`, sin lista) en esa pieza; «Factura» salta a Canales del producto
+(que ahora acepta `tallerSalto` con `sku`). «Editar etiqueta» abre el editor del Studio dentro del árbol. La pestaña
+«Etiquetas para publicaciones» se retiró (su archivo también) y «Categorías» pasó a «Plantillas por categoría».
+Permiso: `_auth_studio` = el de mapa-sistema/combos **o** `puede_ver_etiquetas_avanzado` (también en `/combos` e
+`/invalidar`, que ahora invalida también Canales). Sin LLM, sin llamadas vivas.
+
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 
 La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,

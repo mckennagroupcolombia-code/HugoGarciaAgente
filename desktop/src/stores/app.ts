@@ -83,9 +83,9 @@ export type EtiquetasTab = "imprimir" | "inventario" | "studio" | "codigos_ean";
 /** Pestañas de Docs técnicos: viven en el cabezote (como Contabilidad). */
 export type DocsTab = "ft" | "coa" | "sds" | "completo" | "biblioteca" | "revision";
 
-/** Sub-pestaña dentro de Studio visual. La portada es "categorias": la unidad de
- *  trabajo es la categoría de producto, no la biblioteca de imágenes. */
-export type StudioSubvista = "categorias" | "etiquetas" | "disenos" | "recursos" | "publicaciones";
+/** Sub-pestaña dentro de Studio visual. La portada es "arbol" (Árbol del producto:
+ *  categoría → familia → presentación, con el par de etiquetas y sus canales). */
+export type StudioSubvista = "arbol" | "categorias" | "etiquetas" | "disenos" | "recursos" | "publicaciones";
 
 export type MobileHubTab = "home" | "chat" | "mensajes" | "acciones" | "yo";
 
@@ -388,7 +388,7 @@ export const useAppStore = create<AppState>()(
         });
         queueMicrotask(() => notifyNavChange());
       },
-      studioSubvista: "categorias",
+      studioSubvista: "arbol",
       setStudioSubvista: (studioSubvista) => {
         if (get().studioSubvista === studioSubvista) return;
         set({ studioSubvista });

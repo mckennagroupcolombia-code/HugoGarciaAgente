@@ -974,7 +974,17 @@ function ListaCombos({ combos, total, actual, q, setQ, filtro, setFiltro, conteo
   );
 }
 
-export default function MisionCombos({ datos }: { datos: Respuesta }) {
+export default function MisionCombos({ datos, refInicial, piezaInicial, incrustado, onCambiarRef }: {
+  datos: Respuesta;
+  /** Incrustado (Studio → Árbol del producto): abre en este combo… */
+  refInicial?: string;
+  /** …y con esta pieza ya abierta en su emergente. */
+  piezaInicial?: string;
+  /** Sin lista de combos ni «Anterior/Siguiente»: el árbol elige el combo. */
+  incrustado?: boolean;
+  /** Se cambió de presentación desde la tira de hermanas. */
+  onCambiarRef?: (ref: string) => void;
+}) {
   const qc = useQueryClient();
   const setPanel = useAppStore((s) => s.setPanel);
   const porRef = useMemo(() => new Map(datos.combos.map((c) => [c.ref, c])), [datos.combos]);
@@ -983,6 +993,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
   const [filtro, setFiltro] = useState("pendientes");
   const orden = (a: Combo, b: Combo) => (completo(a) ? 1 : 0) - (completo(b) ? 1 : 0) || pendientes(a) - pendientes(b) || a.faltas - b.faltas || a.nombre.localeCompare(b.nombre, "es", { numeric: true });
   const [ref, setRef] = useState<string | null>(() => {
+    if (refInicial && porRef.has(refInicial)) return refInicial;
     // Llegada desde otro panel (p. ej. Canales del producto) con un combo concreto.
     const salto = useAppStore.getState().tallerSalto;
     if (salto?.panel === "combos" && salto.sku && porRef.has(salto.sku)) {
@@ -1011,6 +1022,10 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
   const c = ref ? porRef.get(ref) ?? null : null;
   const pos = ref ? cola.indexOf(ref) : -1;
   useEffect(() => {
+    if (incrustado) {
+      if (ref) onCambiarRef?.(ref);
+      return;
+    }
     try {
       if (ref) sessionStorage.setItem(CLAVE_REF, ref);
     } catch {
@@ -1043,6 +1058,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
     setSel(pedida ?? guia ?? "receta");
     setRecien(null);
     setPiezaAbierta(Boolean(pedida && pedida !== "publicacion"));
+    if (pedida === "publicacion") setPubAbierta(true);
     piezaPedida.current = null;
   }, [ref]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1099,7 +1115,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
     setRef(cola[i]);
   };
 
-  const piezaPedida = useRef<string | null>(null);
+  const piezaPedida = useRef<string | null>(piezaInicial ?? null);
   const elegir = (r: string, pieza?: string) => {
     setPremio(false);
     if (pieza === "publicacion") setPubAbierta(true);
@@ -1118,8 +1134,8 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
       // Con un emergente abierto (editor de etiqueta, documento, kit) las teclas son suyas:
       // una flecha cambiaría de combo por debajo y cerraría lo que se está editando.
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      if (ev.key === "ArrowRight") mover(1);
-      else if (ev.key === "ArrowLeft") mover(-1);
+      if (ev.key === "ArrowRight" && !incrustado) mover(1);
+      else if (ev.key === "ArrowLeft" && !incrustado) mover(-1);
       else if (/^[1-6]$/.test(ev.key)) tocarPieza(ORDEN_GUIA[Number(ev.key) - 1]);
       else if (ev.key.toLowerCase() === "f") tocarPieza("fotos");
       else return;
@@ -1129,7 +1145,7 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
     return () => window.removeEventListener("keydown", tecla);
   });
 
-  const sinCombo = useQuery({ queryKey: ["mision-sin-combo"], queryFn: () => api.get<{ filas: FilaProducto[] }>("/api/mapa-sistema/productos"), staleTime: 300_000, retry: false });
+  const sinCombo = useQuery({ queryKey: ["mision-sin-combo"], queryFn: () => api.get<{ filas: FilaProducto[] }>("/api/mapa-sistema/productos"), staleTime: 300_000, retry: false, enabled: !incrustado });
   const huerfanos = (sinCombo.data?.filas ?? []).filter((f) => f.combo === "falta");
 
   // Las otras presentaciones del mismo producto (misma materia prima): cada una es su combo,
@@ -1170,25 +1186,25 @@ export default function MisionCombos({ datos }: { datos: Respuesta }) {
       {!c ? (
         <div className="rounded-xl border border-accent-leaf/50 bg-accent-leaf/10 p-6 text-center text-sm text-ink"><Ico e="🏆" /> No queda ningún combo incompleto. El catálogo está al día.</div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-1 lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]">
-          <ListaCombos combos={listaCombos} total={datos.total} actual={ref} q={q} setQ={setQ} filtro={filtro} setFiltro={setFiltro} conteos={{ ...conteos, huerfanos: huerfanos.length }} onElegir={elegir}
-            huerfanos={huerfanos} onCrearCombo={(r) => setVentana({ tipo: "crear", ref: r, nombre: huerfanos.find((h) => h.ref === r)?.nombre ?? r })} />
+        <div className={incrustado ? "grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] gap-2" : "grid min-h-0 flex-1 gap-2 lg:grid-cols-1 lg:grid-rows-[auto_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] xl:grid-rows-[minmax(0,1fr)]"}>
+          {!incrustado && <ListaCombos combos={listaCombos} total={datos.total} actual={ref} q={q} setQ={setQ} filtro={filtro} setFiltro={setFiltro} conteos={{ ...conteos, huerfanos: huerfanos.length }} onElegir={elegir}
+            huerfanos={huerfanos} onCrearCombo={(r) => setVentana({ tipo: "crear", ref: r, nombre: huerfanos.find((h) => h.ref === r)?.nombre ?? r })} />}
           <div className="flex min-h-0 min-w-0 flex-col rounded-xl border border-border bg-surface-panel p-3">
             {/* Caso actual */}
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted">
-                  {`Caso ${pos + 1} de ${cola.length}`} · {FILTROS_LISTA.find((f) => f.id === filtro)?.nombre.toLowerCase()} · {c.linea || "sin línea en la web"}
+                  {incrustado ? `Taller de combos · ${c.linea || "sin línea en la web"}` : <>{`Caso ${pos + 1} de ${cola.length}`} · {FILTROS_LISTA.find((f) => f.id === filtro)?.nombre.toLowerCase()} · {c.linea || "sin línea en la web"}</>}
                 </p>
                 <h3 className="flex min-w-0 items-baseline gap-2 text-base font-bold text-ink">
                   <span className="truncate">{c.nombre}</span>
                   <code className="shrink-0 text-[11px] font-normal text-ink-secondary">{c.ref}</code>
                 </h3>
               </div>
-              <div className="flex shrink-0 gap-1.5">
+              {!incrustado && <div className="flex shrink-0 gap-1.5">
                 <button className={BTN_SEC} onClick={() => mover(-1)}>← Anterior</button>
                 <button className={completo(c) ? BTN : BTN_SEC} onClick={() => mover(1)}>{completo(c) ? "Siguiente combo →" : "Saltar →"}</button>
-              </div>
+              </div>}
             </div>
 
             {premio || completo(c) ? (

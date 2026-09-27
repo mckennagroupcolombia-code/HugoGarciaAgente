@@ -1,3 +1,13 @@
+### 2026-09-27 17:35 - Studio: «Árbol del producto» (categorías + etiquetas para publicaciones + taller + canales)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Diseño → Studio visual abre en **«Árbol del producto»**: categoría → familia (materia prima con su documento técnico) → presentación (combo C-…) → seis hojas (etiquetas · EAN · receta · factura · MeLi · web) en verde/ámbar/rojo, con el estilo del taller.
+  - A la derecha, **el par de etiquetas lado a lado**: página web (nítida) y Mercado Libre (desenfocada), cada una con «Copiar imagen» y «Descargar»; «Para la foto de producto» las muestra en grande, descarga las dos (Blender) y trae una indicación para ChatGPT/Gemini. Debajo, «¿Se puede vender y facturar?» (Alegra, receta, factura, EAN, documento, MeLi, web, foto).
+  - Tocar una hoja abre el **taller de combos incrustado** en ese combo y esa pieza; «Factura» salta a Canales del producto ya en el SKU; «Editar etiqueta» abre el editor del Studio dentro del árbol.
+  - Se retiró la pestaña «Etiquetas para publicaciones»; «Categorías» pasó a «Plantillas por categoría». El árbol no calcula nada propio: une el taller (`anatomia_combos`) y Canales (`tabla_maestra`).
+- **Archivos Modificados:** `app/services/arbol_producto.py` (nuevo), `app/routes_mapa_sistema.py`, `tests/test_arbol_producto.py` (nuevo), `desktop/src/components/plantillas-visuales/arbol/*` (nuevo), `desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx`, `desktop/src/components/plantillas-visuales/StudioPublicacionesPanel.tsx` (eliminado), `desktop/src/components/combos/MisionCombos.tsx`, `desktop/src/components/canales_producto/CanalesProductoPanel.tsx`, `desktop/src/stores/app.ts`, `CLAUDE.md`.
+
 ### 2026-09-27 17:30 - Cronómetro de tareas: ya no se congela y se ve en todas las pantallas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + mejora. Sin LLM.

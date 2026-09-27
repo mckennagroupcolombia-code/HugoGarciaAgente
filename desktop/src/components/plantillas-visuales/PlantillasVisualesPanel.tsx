@@ -30,7 +30,7 @@ import FichaMpDiligenciarPanel from "./FichaMpDiligenciarPanel";
 import AplicarLotePanel from "./AplicarLotePanel";
 import ScanCapturaLayoutPanel from "./ScanCapturaLayoutPanel";
 import DesenfoquePlantillaModal from "./DesenfoquePlantillaModal";
-import StudioPublicacionesPanel from "./StudioPublicacionesPanel";
+import ArbolProductoPanel from "./arbol/ArbolProductoPanel";
 import { esPlantillaFichaMp, esPlantillaFormularioEtiqueta } from "../../lib/plantillaFichaTecnicaMp";
 import { useAppStore, type StudioSubvista } from "../../stores/app";
 import {
@@ -663,6 +663,7 @@ type Vista =
 // no se mezclan con las plantillas nuevas.
 /** Qué busca la barra del encabezado en cada pestaña de Studio. */
 const PLACEHOLDER_BUSCAR: Record<string, string> = {
+  arbol: "Buscar producto, SKU o código de barras…",
   categorias: "Buscar categoría, plantilla o etiqueta…",
   etiquetas: "Buscar etiqueta…",
   disenos: "Buscar plantillas e imágenes en todas las carpetas…",
@@ -671,9 +672,11 @@ const PLACEHOLDER_BUSCAR: Record<string, string> = {
 };
 
 const SUBVISTAS: { id: StudioSubvista; label: string }[] = [
-  { id: "categorias", label: "Categorías" },
+  // «Etiquetas para publicaciones» quedó dentro del árbol: cada presentación muestra su par
+  // (web nítida + MeLi desenfocada) al lado de sus canales.
+  { id: "arbol", label: "Árbol del producto" },
+  { id: "categorias", label: "Plantillas por categoría" },
   { id: "recursos", label: "Recursos" },
-  { id: "publicaciones", label: "Etiquetas para publicaciones" },
 ];
 
 export default function PlantillasVisualesPanel({
@@ -729,7 +732,19 @@ export default function PlantillasVisualesPanel({
   // quien la dejó abierta caería en una pantalla sin pestaña marcada y sin salida.
   useEffect(() => {
     if (subvista === "disenos") setSubvista("categorias");
+    // «Etiquetas para publicaciones» ya no es pestaña: vive en el Árbol del producto.
+    if (subvista === "publicaciones") setSubvista("arbol");
   }, [subvista, setSubvista]);
+  // El Árbol del producto es la nueva portada: quien tenía «Categorías» guardada llega a él una vez.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("mck-studio-arbol-v1")) return;
+      localStorage.setItem("mck-studio-arbol-v1", "1");
+    } catch {
+      return;
+    }
+    if (subvista === "categorias") setSubvista("arbol");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const categoriaFiltro = useAppStore((s) => s.studioCategoriaFiltro);
   const setCategoriaFiltro = useAppStore((s) => s.setStudioCategoriaFiltro);
   const { data: catsData } = useCategoriasEtiqueta();
@@ -1487,7 +1502,7 @@ export default function PlantillasVisualesPanel({
   }
 
   return (
-    <div className={editandoEtiqueta ? "mx-auto max-w-[min(100%,1500px)]" : "mx-auto max-w-6xl"}>
+    <div className={subvista === "arbol" ? "mx-auto max-w-[min(100%,1760px)]" : editandoEtiqueta ? "mx-auto max-w-[min(100%,1500px)]" : "mx-auto max-w-6xl"}>
       {/* Studio se organiza por categoría de producto. Antes esta pantalla abría
           con la biblioteca de imágenes (logos arriba, etiquetas debajo), que no
           es la unidad de trabajo de nadie: ahora esa biblioteca es "Recursos". */}
@@ -1505,7 +1520,7 @@ export default function PlantillasVisualesPanel({
               setCategoriaFiltro("");
             }}
             className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-              (editandoEtiqueta ? sv.id === "categorias" : subvista === sv.id)
+              (editandoEtiqueta && subvista !== "arbol" ? sv.id === "categorias" : subvista === sv.id)
                 ? "bg-accent text-white"
                 : "border border-border text-ink-secondary hover:bg-surface-hover"
             }`}
@@ -1548,7 +1563,19 @@ export default function PlantillasVisualesPanel({
         </label>
       </div>
 
-      {(subvista === "categorias" || editandoEtiqueta) && (
+      {subvista === "arbol" && (
+        <ArbolProductoPanel
+          buscar={buscar}
+          onEditarEtiqueta={(fichaId) => abrirFormulario({ fichaId })}
+          editor={
+            editandoEtiqueta ? (
+              <FormulariosEtiquetadosPanel key={JSON.stringify(entradaFormulario)} entrada={entradaFormulario} onVolver={cerrarFormulario} onSiguiente={irASiguienteEtiqueta} />
+            ) : undefined
+          }
+        />
+      )}
+
+      {(subvista === "categorias" || (editandoEtiqueta && subvista !== "arbol")) && (
         <StudioCategoriasPanel
           buscar={buscar}
           editor={
@@ -1601,7 +1628,6 @@ export default function PlantillasVisualesPanel({
         />
       )}
 
-      {subvista === "publicaciones" && !editandoEtiqueta && <StudioPublicacionesPanel buscar={buscar} />}
 
       {subvista === "recursos" && !editandoEtiqueta && (
         <div>
