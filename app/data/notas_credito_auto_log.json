@@ -841,6 +841,14 @@
       "factura": "FV-2-69688",
       "proveedor": "Siigo",
       "actualizado_en": "2026-09-22T07:24:38"
+    },
+    "2000018409709682": {
+      "estado": "ya_tenia_nc",
+      "factura": "FE374",
+      "nc": "2",
+      "subida_meli": true,
+      "proveedor": "Alegra",
+      "actualizado_en": "2026-09-26T07:21:33"
     }
   }
 }

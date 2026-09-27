@@ -130,6 +130,17 @@ def _conn() -> sqlite3.Connection:
     # movimiento del extracto al asiento, y el caso sale de la cola «Por facturar».
     if "cobro_extracto_id" not in cols:
         c.execute("ALTER TABLE ventas_directas ADD COLUMN cobro_extracto_id INTEGER NOT NULL DEFAULT 0")
+    # Cobros que el operador resolvió sin emitir aquí (ya facturados en Siigo antes
+    # de la migración, o que no son una venta): salen de la cola y queda el rastro.
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS cobros_resueltos (
+            cobro_extracto_id INTEGER PRIMARY KEY,
+            tipo TEXT NOT NULL,
+            nota TEXT NOT NULL DEFAULT '',
+            usuario TEXT NOT NULL DEFAULT '',
+            creado TEXT NOT NULL
+        )"""
+    )
     return c
 
 
@@ -416,10 +427,55 @@ def eliminar_soporte(venta_id: int) -> bool:
 # --------------------------------------------------------------------------- cola «Por facturar»
 
 
+def _facturas_del_libro(desde: str, hasta: str) -> list[dict]:
+    """Facturas de venta que el libro ya conoce (Siigo hasta el 2-sep, Alegra desde
+    entonces, incluidas las que el operador emite a mano en la interfaz de Alegra) y
+    que NO están amarradas a una línea del banco. Solo lectura sobre `contabilidad.db`."""
+    import app.services.contabilidad_core as cc
+
+    with cc._conn() as con:
+        vinculados = {r[0] for r in con.execute("SELECT movimiento_id FROM extracto_vinculos")}
+        filas = con.execute(
+            "SELECT id, fecha, plantilla_datos_json FROM cc_movimientos"
+            " WHERE tipo_origen = 'auto_siigo_venta' AND fecha BETWEEN ? AND ?",
+            (desde, hasta),
+        ).fetchall()
+    with _conn() as c:
+        ventas = {str(r["factura_numero"]): dict(r) for r in c.execute(
+            "SELECT id, numero, factura_numero, cliente, lineas, total, cobro_extracto_id FROM ventas_directas"
+            " WHERE estado='facturada' AND COALESCE(factura_numero,'') <> ''")}
+    out = []
+    for r in filas:
+        if f"cc:{r['id']}" in vinculados:
+            continue
+        try:
+            p = json.loads(r["plantilla_datos_json"] or "{}")
+        except ValueError:
+            continue
+        num = str(p.get("referencia") or "")
+        vd = ventas.get(num)
+        cli = json.loads(vd["cliente"]) if vd and vd.get("cliente") else {}
+        lineas = json.loads(vd["lineas"]) if vd and vd.get("lineas") else []
+        out.append({
+            "movimiento_id": f"cc:{r['id']}", "numero": num, "fecha": r["fecha"],
+            "monto": float(p.get("monto") or 0), "identificacion": str(p.get("contraparte") or ""),
+            "cliente": cli.get("nombre") or "", "venta_id": vd["id"] if vd else None,
+            "lineas": [{"nombre": l.get("nombre") or l.get("codigo"), "cantidad": l.get("cantidad"),
+                        "precio": l.get("precio_unitario")} for l in lineas],
+        })
+    return out
+
+
 def casos_por_facturar(desde: str = "", hasta: str = "") -> dict:
     """Cola «Por facturar» (Fase 3): cobros del banco (Llave/QR/Nequi) sin factura,
     cada uno con el cliente y lo cotizado que da el chat, para facturar caso por
-    caso. Reusa `wa_busqueda.cobros_sin_factura` (solo lectura, sin LLM)."""
+    caso. Reusa `wa_busqueda.cobros_sin_factura` (solo lectura, sin LLM).
+
+    Antes de pedir que se facture, cada cobro se cruza con las facturas que el libro
+    ya tiene sin amarrar al banco (mismo valor, ±1 peso, hasta 30 días antes o después):
+    el 25-sep-2026 el operador emitió a mano ~20 facturas por el wizard sin enlazar el
+    cobro, y la cola las seguía mostrando como «sin factura». Esas van como
+    `facturas_candidatas` y el caso pasa a `con_factura`: se vincula, no se refactura."""
     from app.services.wa_busqueda import cobros_sin_factura
 
     data = cobros_sin_factura(desde, hasta)
@@ -427,13 +483,35 @@ def casos_por_facturar(desde: str = "", hasta: str = "") -> dict:
         preparadas = {int(r["cobro_extracto_id"]): dict(r) for r in c.execute(
             "SELECT id, numero, estado, cobro_extracto_id FROM ventas_directas"
             " WHERE cobro_extracto_id > 0 AND estado <> 'anulada'")}
+    with _conn() as c:
+        resueltos = {int(r[0]) for r in c.execute("SELECT cobro_extracto_id FROM cobros_resueltos")}
+    cobros = [f for f in data.get("cobros", []) if int(f["linea"]["id"]) not in resueltos]
+    libro: list[dict] = []
+    if cobros:
+        fechas = sorted(f["linea"]["fecha"] for f in cobros)
+        d0 = (datetime.strptime(fechas[0], "%Y-%m-%d") - timedelta(days=30)).strftime("%Y-%m-%d")
+        d1 = (datetime.strptime(fechas[-1], "%Y-%m-%d") + timedelta(days=30)).strftime("%Y-%m-%d")
+        try:
+            libro = _facturas_del_libro(d0, d1)
+        except Exception:  # noqa: BLE001 — sin el cruce la cola sigue sirviendo
+            libro = []
     casos = []
-    for f in data.get("cobros", []):
+    for f in cobros:
         chat = (f.get("chats") or [{}])[0] or {}
         en_libro = (chat.get("en_libro") or [{}])[0] or {}
+        monto = float(f["linea"]["monto"])
+        f0 = datetime.strptime(f["linea"]["fecha"], "%Y-%m-%d")
+        candidatas = []
+        for fa in libro:
+            dias = (datetime.strptime(fa["fecha"], "%Y-%m-%d") - f0).days
+            if abs(fa["monto"] - monto) <= 1 and -30 <= dias <= 30:
+                candidatas.append({**fa, "dias": dias})
+        candidatas.sort(key=lambda x: abs(x["dias"]))
         casos.append({
             "cobro": f["linea"],
             "estado": f["estado"],
+            "estado_factura": "con_factura" if candidatas else "sin_factura",
+            "facturas_candidatas": candidatas[:4],
             "cliente_sugerido": {
                 "nombre": en_libro.get("nombre") or chat.get("display") or "",
                 "identificacion": en_libro.get("identificacion") or (chat.get("documentos") or [""])[0] or "",
@@ -446,7 +524,55 @@ def casos_por_facturar(desde: str = "", hasta: str = "") -> dict:
             "n_chats": len(f.get("chats") or []),
             "preparada": preparadas.get(int(f["linea"]["id"])),
         })
-    return {"desde": data.get("desde"), "hasta": data.get("hasta"), "casos": casos, "n": len(casos)}
+    return {"desde": data.get("desde"), "hasta": data.get("hasta"), "casos": casos, "n": len(casos),
+            "con_factura": sum(1 for c in casos if c["estado_factura"] == "con_factura")}
+
+
+def resolver_cobro(cobro_id: int, tipo: str, nota: str, usuario: str = "") -> dict:
+    """Saca un cobro de la cola sin emitir factura aquí.
+
+    `siigo`: ya se facturó en Siigo (antes del 4-sep-2026); la nota lleva el número.
+    `no_aplica`: no es una venta (devolución, préstamo, error) y la nota dice por qué."""
+    tipo = (tipo or "").strip()
+    nota = (nota or "").strip()
+    if tipo not in ("siigo", "no_aplica"):
+        return {"ok": False, "error": "Tipo de resolución inválido."}
+    if len(nota) < 3:
+        return {"ok": False, "error": "Escribe el número de la factura de Siigo." if tipo == "siigo" else "Escribe por qué no aplica."}
+    with _lock, _conn() as c:
+        c.execute("INSERT OR REPLACE INTO cobros_resueltos (cobro_extracto_id, tipo, nota, usuario, creado) VALUES (?,?,?,?,?)",
+                  (int(cobro_id), tipo, nota[:300], usuario, _ahora()))
+    return {"ok": True}
+
+
+def vincular_cobro_a_factura(cobro_id: int, movimiento_id: str, usuario: str = "") -> dict:
+    """Amarra un cobro del banco a la factura que ya existe (su asiento en el libro).
+
+    No emite nada: solo `extracto_bancario.vincular`. Se niega si el asiento ya está
+    amarrado a otra línea (vincular() lo soltaría en silencio) o si el valor no cuadra."""
+    from app.services import extracto_bancario as eb
+    import app.services.contabilidad_core as cc
+
+    mid = str(movimiento_id or "").strip()
+    if not mid.startswith("cc:"):
+        return {"ok": False, "error": "Movimiento inválido."}
+    with cc._conn() as con:
+        ya = con.execute("SELECT extracto_mov_id FROM extracto_vinculos WHERE movimiento_id=?", (mid,)).fetchone()
+        mov = con.execute("SELECT plantilla_datos_json FROM cc_movimientos WHERE id=?", (int(mid[3:]),)).fetchone()
+        linea = con.execute("SELECT monto FROM extracto_movimientos WHERE id=?", (int(cobro_id),)).fetchone()
+    if not mov or not linea:
+        return {"ok": False, "error": "No se encontró el cobro o la factura."}
+    if ya and int(ya[0]) != int(cobro_id):
+        return {"ok": False, "error": "Esa factura ya está amarrada a otra línea del banco."}
+    p = json.loads(mov[0] or "{}")
+    if abs(float(p.get("monto") or 0) - float(linea[0])) > 1:
+        return {"ok": False, "error": "El valor de la factura no coincide con el del cobro."}
+    numero = str(p.get("referencia") or "")
+    eb.vincular(int(cobro_id), mid, notas=f"Factura {numero} ↔ cobro (Por facturar{', ' + usuario if usuario else ''})")
+    with _lock, _conn() as c:
+        c.execute("UPDATE ventas_directas SET cobro_extracto_id=? WHERE factura_numero=? AND cobro_extracto_id=0",
+                  (int(cobro_id), numero))
+    return {"ok": True, "numero": numero}
 
 
 # --------------------------------------------------------------------------- Alegra
@@ -1083,17 +1209,72 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
     except Exception as e:  # noqa: BLE001 — el libro no puede tumbar una factura ya emitida
         avisos.append(f"No se pudo causar en el Libro Mayor ({e}); el cron la posteará.")
         _actualizar(venta_id, avisos=(obtener(venta_id) or {}).get("avisos", []) + [avisos[-1]])
-    try:
-        from app.utils import enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
-
-        enviar_whatsapp_reporte(
-            f"🧾 *Venta directa facturada* {numero} — {cli['nombre']} — ${calc['total']:,.0f} COP ({ref})"
-            + (f"\n⚠️ {' · '.join(avisos)}" if avisos else ""),
-            numero_destino=jid_grupo_facturacion_ventas_wa(),
-        )
-    except Exception:
-        pass
+    _avisar_grupo_factura(obtener(venta_id) or venta, numero, res.get("pdf_path"), avisos, enviado)
     return {"ok": True, "venta": obtener(venta_id), "avisos": avisos, "enviado_whatsapp": enviado}
+
+
+def _avisar_grupo_factura(venta: dict, numero: str, pdf_path: str | None, avisos: list[str], enviado_cliente: bool) -> None:
+    """El grupo de facturación recibe el resumen (cliente, productos, total) y el PDF
+    y el soporte de pago: es el rastro que dejaba `crear_factura_completa_siigo` y
+    que se perdió con la migración a Alegra (solo quedaba una línea de texto)."""
+    try:
+        from app.utils import enviar_whatsapp_archivo, enviar_whatsapp_reporte, jid_grupo_facturacion_ventas_wa
+
+        grupo = jid_grupo_facturacion_ventas_wa()
+        cli = venta.get("cliente") or {}
+        lineas = venta.get("lineas") or []
+        detalle = "\n".join(
+            f"• {int(l.get('cantidad') or 0)}× {l.get('nombre') or l.get('codigo')}" for l in lineas[:15]
+        )
+        cierre = "✅ Copia enviada al cliente." if enviado_cliente else "📵 El cliente NO recibió copia por WhatsApp."
+        enviar_whatsapp_reporte(
+            f"🧾 *Venta directa facturada* {numero} — {cli.get('nombre') or ''} "
+            f"({cli.get('identificacion') or 'sin cédula'}) — ${float(venta.get('total') or 0):,.0f} COP ({venta.get('numero')})"
+            + (f"\n{detalle}" if detalle else "") + f"\n{cierre}"
+            + (f"\n⚠️ {' · '.join(a for a in avisos if isinstance(a, str))}" if avisos else ""),
+            numero_destino=grupo,
+        )
+        if pdf_path:
+            enviar_whatsapp_archivo(pdf_path, f"Factura Electrónica {numero}", f"Factura_{numero}.pdf", numero_destino=grupo)
+        soporte = ruta_soporte(venta["id"]) if venta.get("soporte_path") and venta.get("id") else None
+        if soporte:
+            enviar_whatsapp_archivo(soporte[0], "Soporte de pago del cliente", numero_destino=grupo)
+    except Exception:  # noqa: BLE001 — el aviso al grupo nunca tumba una factura emitida
+        pass
+
+
+def reenviar_factura(venta_id: int) -> dict:
+    """Reenvía por WhatsApp la factura ya emitida (PDF de Alegra) al cliente y al grupo.
+
+    Para las facturas cuyo PDF «no llegó» (ruta relativa que el puente no
+    encontraba, cese de actividades, puente sincronizando)."""
+    from app.services.alegra import descargar_factura_pdf_alegra
+    from app.utils import enviar_whatsapp_archivo
+    import base64
+
+    venta = obtener(venta_id)
+    if not venta or venta["estado"] != "facturada" or not venta.get("factura_id"):
+        return {"ok": False, "error": "La venta no está facturada."}
+    jid, err = _destino_whatsapp(venta["telefono"], True)
+    if err:
+        return {"ok": False, "error": err}
+    if not jid:
+        return {"ok": False, "error": "La venta no tiene WhatsApp del cliente: agrégalo primero."}
+    b64 = descargar_factura_pdf_alegra(str(venta["factura_id"]))
+    if not b64:
+        return {"ok": False, "error": "Alegra aún no entrega el PDF de esa factura."}
+    numero = str(venta.get("factura_numero") or venta["factura_id"])
+    os.makedirs("facturas_descargadas", exist_ok=True)
+    ruta = os.path.abspath(os.path.join("facturas_descargadas", f"Factura_{numero}.pdf"))
+    with open(ruta, "wb") as f:
+        f.write(base64.b64decode(b64))
+    cli = venta.get("cliente") or {}
+    caption = f"🧾 *Factura electrónica {numero}*\n👤 {cli.get('nombre') or ''}\n💵 Total: *${float(venta['total']):,.0f} COP*"
+    ok = bool(enviar_whatsapp_archivo(ruta, caption, numero_destino=jid))
+    if not ok:
+        return {"ok": False, "error": "El puente de WhatsApp no la envió (¿cese de actividades activo o WhatsApp sincronizando?)."}
+    _actualizar(venta_id, enviado_whatsapp=1)
+    return {"ok": True, "venta": obtener(venta_id)}
 
 
 def _registrar_en_meli(meli: dict, res: dict) -> list[str]:

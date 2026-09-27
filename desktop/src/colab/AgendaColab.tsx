@@ -8,7 +8,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../api/client";
-import type { TicketsUser } from "./stubs/ticketsAuth";
+import { useTicketsAuth, type TicketsUser } from "./stubs/ticketsAuth";
 
 type Ticket = {
   id: number;
@@ -24,6 +24,8 @@ type Ticket = {
   creado_en: string;
   actualizado_en?: string | null;
 };
+
+type Adjunto = { id: number; nombre_archivo: string; nombre_original: string; mime?: string | null; creado_en: string };
 
 type Comentario = { id: number; texto: string; creado_en: string; usuario_id: number; autor_nombre?: string | null };
 
@@ -52,6 +54,15 @@ function Detalle({ t, yo, onVolver }: { t: Ticket; yo: TicketsUser; onVolver: ()
     queryFn: () => api.get(`/api/tickets/${t.id}/comentarios`),
     refetchInterval: 10_000,
   });
+
+  const token = useTicketsAuth((st) => st.token) ?? "";
+  const adj = useQuery<Adjunto[]>({
+    queryKey: ["colab-adjuntos", t.id],
+    queryFn: () => api.get(`/api/tickets/${t.id}/adjuntos`),
+    refetchInterval: 10_000,
+  });
+  const urlAdjunto = (a: Adjunto) => `/api/tickets/uploads/${encodeURIComponent(a.nombre_archivo)}?token=${encodeURIComponent(token)}`;
+  const esImagen = (a: Adjunto) => !!a.mime?.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(a.nombre_original);
 
   async function comentar() {
     if (!texto.trim()) return;
@@ -106,6 +117,25 @@ function Detalle({ t, yo, onVolver }: { t: Ticket; yo: TicketsUser; onVolver: ()
         ))}
         {!q.isLoading && !(q.data ?? []).length && <p className="text-sm text-muted">Sin mensajes todavía.</p>}
       </div>
+
+      {!!(adj.data ?? []).length && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-bold text-muted">Adjuntos</p>
+          <div className="flex flex-wrap gap-2">
+            {(adj.data ?? []).map((a) =>
+              esImagen(a) ? (
+                <a key={a.id} href={urlAdjunto(a)} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-border">
+                  <img src={urlAdjunto(a)} alt={a.nombre_original} className="max-h-72 max-w-full object-contain" />
+                </a>
+              ) : (
+                <a key={a.id} href={urlAdjunto(a)} target="_blank" rel="noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm underline">
+                  {a.nombre_original}
+                </a>
+              ),
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <textarea

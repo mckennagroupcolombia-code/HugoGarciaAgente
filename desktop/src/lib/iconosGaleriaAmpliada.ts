@@ -1057,4 +1057,182 @@ export const ICONOS_GALERIA_AMPLIADA: IconoQuimicoCircular[] = [
       <circle cx="50" cy="50" r="4" fill="#ffffff" stroke="none"/>
     </svg>`,
   },
+  // --- SABOR (etiquetas de grado alimentos: la casilla «Sabor» reemplaza a «Grado») ---
+  {
+    id: "sabor_lengua",
+    nombre: "Lengua / Sabor",
+    categoria: "sabor",
+    tags: ["sabor", "gusto", "lengua", "boca", "paladar", "degustar"],
+    // Sonrisa y la lengua con su surco central.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M24 36 Q50 48 76 36" stroke-width="4.5"/>
+      <path d="M35 42 V58 Q35 76 50 76 Q65 76 65 58 V42" stroke-width="4.5"/>
+      <path d="M50 48 V64" stroke-width="3.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_dulce_cubo",
+    nombre: "Dulce / Terrón de azúcar",
+    categoria: "sabor",
+    tags: ["sabor", "dulce", "azucar", "terron", "cubo", "endulzante", "edulcorante"],
+    // Terrón en perspectiva, la cara superior rellena.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 24 L76 37 L50 50 L24 37 Z" fill="currentColor" stroke-width="4"/>
+      <path d="M24 37 V63 L50 76 L76 63 V37" stroke-width="4.5"/>
+      <path d="M50 50 V76" stroke-width="4"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_muy_dulce",
+    nombre: "Muy dulce / Edulcorante intenso",
+    categoria: "sabor",
+    tags: ["sabor", "muy dulce", "dulce", "edulcorante", "intenso", "sucralosa", "stevia", "azucar"],
+    // Terrón más chico y dos destellos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M42 36 L62 46 L42 56 L22 46 Z" fill="currentColor" stroke-width="4"/>
+      <path d="M22 46 V66 L42 76 L62 66 V46" stroke-width="4"/>
+      <path d="M42 56 V76" stroke-width="3.5"/>
+      <path d="M70 22 V38 M62 30 H78" stroke-width="3.5"/>
+      <path d="M76 46 V54 M72 50 H80" stroke-width="3"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_salado_salero",
+    nombre: "Salado / Salero",
+    categoria: "sabor",
+    tags: ["sabor", "salado", "sal", "salero", "sodio", "mineral"],
+    // Salero con tapa perforada y granos que caen.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M38 44 Q38 34 50 34 Q62 34 62 44 L65 76 H35 Z" stroke-width="4.5"/>
+      <path d="M38 46 H62" stroke-width="3.5"/>
+      <circle cx="45" cy="40" r="1.8" fill="currentColor" stroke="none"/>
+      <circle cx="50" cy="38.5" r="1.8" fill="currentColor" stroke="none"/>
+      <circle cx="55" cy="40" r="1.8" fill="currentColor" stroke="none"/>
+      <rect x="40" y="20" width="4" height="4" fill="currentColor" stroke="none"/>
+      <rect x="53" y="17" width="4" height="4" fill="currentColor" stroke="none"/>
+      <rect x="47" y="25" width="3.5" height="3.5" fill="currentColor" stroke="none"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_acido_limon",
+    nombre: "Ácido / Cítrico",
+    categoria: "sabor",
+    tags: ["sabor", "acido", "agrio", "citrico", "limon", "acidulante"],
+    // Rodaja de limón con sus gajos.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="50" cy="50" r="27" stroke-width="4.5"/>
+      <circle cx="50" cy="50" r="20" stroke-width="3"/>
+      <path d="M50 30 V70 M30 50 H70 M36 36 L64 64 M64 36 L36 64" stroke-width="3"/>
+      <circle cx="50" cy="50" r="3" fill="currentColor" stroke="none"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_amargo_cafe",
+    nombre: "Amargo / Grano de café",
+    categoria: "sabor",
+    tags: ["sabor", "amargo", "cafe", "grano", "tostado", "cafeina"],
+    // Grano de café relleno con su surco en blanco.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <ellipse cx="50" cy="50" rx="20" ry="28" transform="rotate(35 50 50)" fill="currentColor" stroke-width="4"/>
+      <path d="M40 30 Q56 42 46 52 Q36 62 60 70" stroke="#ffffff" stroke-width="4"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_umami_caldo",
+    nombre: "Umami / Sabroso",
+    categoria: "sabor",
+    tags: ["sabor", "umami", "sabroso", "caldo", "glutamato", "potenciador", "salado"],
+    // Tazón humeante.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M22 50 H78 Q76 74 50 74 Q24 74 22 50 Z" stroke-width="4.5"/>
+      <path d="M40 80 H60" stroke-width="4"/>
+      <path d="M38 42 Q34 36 38 30 Q42 24 38 20" stroke-width="3.5"/>
+      <path d="M50 42 Q46 36 50 30 Q54 24 50 20" stroke-width="3.5"/>
+      <path d="M62 42 Q58 36 62 30 Q66 24 62 20" stroke-width="3.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_neutro",
+    nombre: "Neutro / Insípido",
+    categoria: "sabor",
+    tags: ["sabor", "neutro", "insipido", "sin sabor", "suave", "imperceptible"],
+    // Gota con una raya horizontal: sin sabor apreciable.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 20 Q70 44 70 58 A20 20 0 0 1 30 58 Q30 44 50 20 Z" stroke-width="4.5"/>
+      <path d="M39 58 H61" stroke-width="4.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_frutal_cerezas",
+    nombre: "Frutal / Cerezas",
+    categoria: "sabor",
+    tags: ["sabor", "frutal", "fruta", "cereza", "dulce", "saborizante"],
+    // Dos cerezas rellenas con sus tallos y una hoja.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <circle cx="36" cy="64" r="11" fill="currentColor" stroke="none"/>
+      <circle cx="63" cy="66" r="11" fill="currentColor" stroke="none"/>
+      <path d="M36 53 Q42 34 54 24 M63 55 Q60 38 54 24" stroke-width="3.5"/>
+      <path d="M54 24 Q66 18 74 26 Q64 32 54 24 Z" fill="currentColor" stroke-width="3"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_mentolado",
+    nombre: "Mentolado / Refrescante",
+    categoria: "sabor",
+    tags: ["sabor", "menta", "mentolado", "refrescante", "frio", "hierbabuena", "mentol"],
+    // Hoja de menta y un copo pequeño.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M26 74 Q24 42 56 30 Q60 62 26 74 Z" stroke-width="4.5"/>
+      <path d="M26 74 L48 44" stroke-width="3.5"/>
+      <path d="M68 50 V74 M58 56 L78 68 M78 56 L58 68" stroke-width="3.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_picante_aji",
+    nombre: "Picante / Ají",
+    categoria: "sabor",
+    tags: ["sabor", "picante", "aji", "chile", "pimienta", "especia", "caliente"],
+    // Ají curvo relleno con su tallo.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M62 34 Q76 40 70 56 Q60 76 26 78 Q48 66 52 44 Q54 34 62 34 Z" fill="currentColor" stroke-width="3.5"/>
+      <path d="M62 34 Q62 26 70 22" stroke-width="4"/>
+      <path d="M56 36 Q64 30 72 36" stroke-width="3.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_cacao_chocolate",
+    nombre: "Cacao / Chocolate",
+    categoria: "sabor",
+    tags: ["sabor", "cacao", "chocolate", "tableta", "amargo", "dulce"],
+    // Tableta de chocolate con su cuadrícula y la esquina mordida.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M30 24 H70 V66 Q64 64 62 70 Q58 76 52 74 V78 H30 Z" stroke-width="4.5"/>
+      <path d="M30 42 H70 M30 60 H56 M50 24 V74" stroke-width="3.5"/>
+    </svg>`,
+  },
+  {
+    id: "sabor_nuez",
+    nombre: "Nuez / Frutos secos",
+    categoria: "sabor",
+    tags: ["sabor", "nuez", "frutos secos", "almendra", "tostado", "semilla", "avellana"],
+    // Almendra con su surco.
+    svg: `${SVG_ABRE}
+      ${CIRCULO_EXT}
+      <path d="M50 20 Q74 40 70 62 Q66 78 50 78 Q34 78 30 62 Q26 40 50 20 Z" stroke-width="4.5"/>
+      <path d="M50 30 Q42 50 50 70" stroke-width="3.5"/>
+      <path d="M40 44 Q44 46 45 50 M40 60 Q44 60 46 63" stroke-width="3"/>
+    </svg>`,
+  },
 ];

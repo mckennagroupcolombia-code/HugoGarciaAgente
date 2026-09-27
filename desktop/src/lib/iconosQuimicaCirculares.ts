@@ -24,7 +24,7 @@ import { ICONOS_GALERIA_AMPLIADA } from "./iconosGaleriaAmpliada";
 export interface IconoQuimicoCircular {
   id: string;
   nombre: string;
-  categoria: "origen" | "aroma" | "apariencia" | "composicion" | "calidad" | "conservacion" | "seguridad";
+  categoria: "origen" | "aroma" | "apariencia" | "composicion" | "calidad" | "conservacion" | "seguridad" | "sabor";
   tags: string[];
   /** SVG markup con viewBox 0 0 100 100 y círculos/líneas limpios */
   svg: string;
@@ -76,6 +76,7 @@ export const CATEGORIAS_ICONOS_QUIMICA = [
   { id: "apariencia", label: "👁️ Apariencia" },
   { id: "composicion", label: "⚛️ Composición" },
   { id: "calidad", label: "🏅 Calidad" },
+  { id: "sabor", label: "👅 Sabor" },
   { id: "conservacion", label: "📦 Conservación" },
   { id: "seguridad", label: "⚠️ Seguridad" },
 ] as const;
@@ -89,6 +90,7 @@ export const CATEGORIA_ICONO_POR_CAMPO: Record<string, IconoQuimicoCircular["cat
   appearance: "apariencia",
   composition: "composicion",
   grade: "calidad",
+  sabor: "sabor",
   storage: "conservacion",
   alergenos: "seguridad",
 };

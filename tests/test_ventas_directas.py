@@ -338,3 +338,66 @@ def test_comision_whatsapp_por_mes_y_vendedor(monkeypatch):
     assert V.comisiones_mes("2026-08")["vendedores"] == []
     with pytest.raises(ValueError):
         V.comisiones_mes("sep-2026")
+
+
+# ── Taller «Por facturar»: cobros que ya tienen factura, resolución y copia por WhatsApp ──
+
+
+def _cobro(id_, fecha, monto):
+    return {"linea": {"id": id_, "fecha": fecha, "monto": monto, "descripcion": "PAGO LLAVE X", "banco_nombre": "X"},
+            "chats": [], "estado": "sin_rastro"}
+
+
+def test_cobro_con_factura_existente_se_marca_y_no_se_refactura(monkeypatch):
+    import app.services.wa_busqueda as wb
+
+    monkeypatch.setattr(wb, "cobros_sin_factura", lambda d="", h="": {
+        "desde": "2026-09-01", "hasta": "2026-09-26",
+        "cobros": [_cobro(1, "2026-09-14", 60000), _cobro(2, "2026-09-14", 99999), _cobro(3, "2026-09-01", 50000)],
+    })
+    monkeypatch.setattr(V, "_facturas_del_libro", lambda d, h: [
+        {"movimiento_id": "cc:10", "numero": "FE795", "fecha": "2026-09-25", "monto": 60000.0, "identificacion": "222222222",
+         "cliente": "CF", "venta_id": None, "lineas": []},
+        # mismo valor pero 40 días después del cobro: no es de esta venta
+        {"movimiento_id": "cc:11", "numero": "FE900", "fecha": "2026-10-11", "monto": 50000.0, "identificacion": "",
+         "cliente": "", "venta_id": None, "lineas": []},
+    ])
+    r = V.casos_por_facturar()
+    por_id = {c["cobro"]["id"]: c for c in r["casos"]}
+    assert por_id[1]["estado_factura"] == "con_factura"
+    assert por_id[1]["facturas_candidatas"][0]["numero"] == "FE795"
+    assert por_id[2]["estado_factura"] == "sin_factura"
+    assert por_id[3]["estado_factura"] == "sin_factura"
+    assert r["con_factura"] == 1
+
+
+def test_resolver_cobro_lo_saca_de_la_cola_y_pide_nota(monkeypatch):
+    import app.services.wa_busqueda as wb
+
+    monkeypatch.setattr(wb, "cobros_sin_factura", lambda d="", h="": {"desde": "a", "hasta": "b", "cobros": [_cobro(7, "2026-09-02", 1000)]})
+    monkeypatch.setattr(V, "_facturas_del_libro", lambda d, h: [])
+    assert not V.resolver_cobro(7, "siigo", "")["ok"]
+    assert not V.resolver_cobro(7, "otro", "algo largo")["ok"]
+    assert V.resolver_cobro(7, "siigo", "FV-2-12345", usuario="jerry")["ok"]
+    assert V.casos_por_facturar()["n"] == 0
+
+
+def test_vincular_rechaza_movimiento_que_no_es_del_libro():
+    assert not V.vincular_cobro_a_factura(1, "auto:abc")["ok"]
+
+
+def test_whatsapp_archivo_manda_ruta_absoluta(monkeypatch):
+    """El puente corre desde bot-mckenna/: una ruta relativa daba 400 y la factura no llegaba."""
+    import os
+
+    from app import utils
+
+    vistos = {}
+
+    class _R:
+        status_code = 200
+        text = ""
+
+    monkeypatch.setattr(utils.requests, "post", lambda url, json=None, timeout=None: vistos.update(json) or _R())
+    assert utils.enviar_whatsapp_archivo("facturas_descargadas/Factura_FE1.pdf", "x", numero_destino="573001234567@c.us")
+    assert os.path.isabs(vistos["filePath"]) and vistos["filePath"].endswith("facturas_descargadas/Factura_FE1.pdf")

@@ -394,12 +394,12 @@
       "barcode": "7700905002637",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ALULOSA_500g.png",
-        "aprobado_at": "2026-09-26T02:14:55",
+        "aprobado_at": "2026-09-26T15:38:20",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ALULOSA_500g_digital.png",
-        "aprobado_at": "2026-09-26T02:14:56",
+        "aprobado_at": "2026-09-26T15:38:20",
         "por": "@cynthia"
       }
     },
@@ -407,12 +407,12 @@
       "barcode": "7701575002637",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/FRUCTOSA_500g.png",
-        "aprobado_at": "2026-09-26T02:17:28",
+        "aprobado_at": "2026-09-26T15:38:47",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/FRUCTOSA_500g_digital.png",
-        "aprobado_at": "2026-09-26T02:17:29",
+        "aprobado_at": "2026-09-26T15:38:47",
         "por": "@cynthia"
       }
     },
@@ -420,12 +420,12 @@
       "barcode": "7701665002639",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/GLUTAMATO_MONOSODICO_500g.png",
-        "aprobado_at": "2026-09-26T02:19:18",
+        "aprobado_at": "2026-09-26T15:39:41",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/GLUTAMATO_MONOSODICO_500g_digital.png",
-        "aprobado_at": "2026-09-26T02:19:19",
+        "aprobado_at": "2026-09-26T15:39:41",
         "por": "@cynthia"
       }
     },
@@ -439,6 +439,617 @@
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/GLUTAMATO_MONOSODICO_Kg_digital.png",
         "aprobado_at": "2026-09-26T02:21:59",
+        "por": "@cynthia"
+      }
+    },
+    "145d7aac2ce3": {
+      "barcode": "7701031002638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/CAFEINA_100g.png",
+        "aprobado_at": "2026-09-26T03:27:39",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/CAFEINA_100g_digital.png",
+        "aprobado_at": "2026-09-26T03:27:39",
+        "por": "@cynthia"
+      }
+    },
+    "d3f150df1a5a": {
+      "barcode": "7700722502631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ACIDO_CITRICO_250g.png",
+        "aprobado_at": "2026-09-26T15:37:43",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ACIDO_CITRICO_250g_digital.png",
+        "aprobado_at": "2026-09-26T15:37:43",
+        "por": "@cynthia"
+      }
+    },
+    "8a0e0a4f0c3a": {
+      "barcode": "7700735002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ACIDO_CITRICO_500g.png",
+        "aprobado_at": "2026-09-26T03:41:58",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ACIDO_CITRICO_500g_digital.png",
+        "aprobado_at": "2026-09-26T03:41:58",
+        "por": "@cynthia"
+      }
+    },
+    "123a97eb5927": {
+      "barcode": "7701951002633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/MENTOL_CRISTAL_100g.png",
+        "aprobado_at": "2026-09-26T03:44:44",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/MENTOL_CRISTAL_100g_digital.png",
+        "aprobado_at": "2026-09-26T03:44:45",
+        "por": "@cynthia"
+      }
+    },
+    "fe9d850673de": {
+      "barcode": "7700362502633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_DE_RICINO_250mL.png",
+        "aprobado_at": "2026-09-26T15:26:06",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_DE_RICINO_250mL_digital.png",
+        "aprobado_at": "2026-09-26T15:26:06",
+        "por": "@cynthia"
+      }
+    },
+    "84693ef3d324": {
+      "barcode": "7702511002643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/SUCRALOSA_100g.png",
+        "aprobado_at": "2026-09-26T15:41:16",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/SUCRALOSA_100g_digital.png",
+        "aprobado_at": "2026-09-26T15:41:16",
+        "por": "@cynthia"
+      }
+    },
+    "2738e1a2153c": {
+      "barcode": "7700801002632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/ACIDO_MALICO_100g.png",
+        "aprobado_at": "2026-09-26T15:43:58",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/ACIDO_MALICO_100g_digital.png",
+        "aprobado_at": "2026-09-26T15:43:58",
+        "por": "@cynthia"
+      }
+    },
+    "b1369825e2ef": {
+      "barcode": "7701405002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_500g.png",
+        "aprobado_at": "2026-09-26T15:45:26",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_500g_digital.png",
+        "aprobado_at": "2026-09-26T15:45:27",
+        "por": "@cynthia"
+      }
+    },
+    "467dd491c53f": {
+      "barcode": "7702612502646",
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/PSYLLIUM_EN_ESCAMAS_250g_digital.png",
+        "aprobado_at": "2026-09-26T15:58:36",
+        "por": "@cynthia"
+      },
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/PSYLLIUM_EN_ESCAMAS_250g.png",
+        "aprobado_at": "2026-09-26T15:58:36",
+        "por": "@cynthia"
+      }
+    },
+    "5674bd218ae8": {
+      "barcode": "7702445002641",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/ALBUMINA_DE_HUEVO_500g.png",
+        "aprobado_at": "2026-09-26T15:59:05",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/ALBUMINA_DE_HUEVO_500g_digital.png",
+        "aprobado_at": "2026-09-26T15:59:05",
+        "por": "@cynthia"
+      }
+    },
+    "5cfc829247f9": {
+      "barcode": "7700922502639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/AMINOACIDO_BCAA_250g.png",
+        "aprobado_at": "2026-09-26T16:01:20",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/AMINOACIDO_BCAA_250g_digital.png",
+        "aprobado_at": "2026-09-26T16:01:20",
+        "por": "@cynthia"
+      }
+    },
+    "ab1ab2584cb9": {
+      "barcode": "7702142502642",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/GLICINA_250g.png",
+        "aprobado_at": "2026-09-26T16:02:41",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/GLICINA_250g_digital.png",
+        "aprobado_at": "2026-09-26T16:02:41",
+        "por": "@cynthia"
+      }
+    },
+    "f159adb087d7": {
+      "barcode": "7702480012643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_1000g.png",
+        "aprobado_at": "2026-09-26T16:05:30",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_1000g_digital.png",
+        "aprobado_at": "2026-09-26T16:05:31",
+        "por": "@cynthia"
+      }
+    },
+    "fe2c3bacd8d9": {
+      "barcode": "7700250012633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/PROTEINA_DE_SUERO_DE_LECHE_Kg.png",
+        "aprobado_at": "2026-09-26T16:13:00",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/PROTEINA_DE_SUERO_DE_LECHE_Kg_digital.png",
+        "aprobado_at": "2026-09-26T16:13:01",
+        "por": "@cynthia"
+      }
+    },
+    "c790d8c22a07": {
+      "barcode": "7701392502631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_250g.png",
+        "aprobado_at": "2026-09-26T16:21:25",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_250g_digital.png",
+        "aprobado_at": "2026-09-26T16:21:26",
+        "por": "@cynthia"
+      }
+    },
+    "796e72943870": {
+      "barcode": "7701595002631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/GELATINA_SIN_SABOR_500g.png",
+        "aprobado_at": "2026-09-26T16:24:31",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/GELATINA_SIN_SABOR_500g_digital.png",
+        "aprobado_at": "2026-09-26T16:24:31",
+        "por": "@cynthia"
+      }
+    },
+    "a7f76e0ea3a2": {
+      "barcode": "7702315002641",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/GLICINA_500g.png",
+        "aprobado_at": "2026-09-26T16:27:58",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/GLICINA_500g_digital.png",
+        "aprobado_at": "2026-09-26T16:27:59",
+        "por": "@cynthia"
+      }
+    },
+    "163a24e7f51d": {
+      "barcode": "7702192502630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/TAURINA_250g.png",
+        "aprobado_at": "2026-09-26T16:37:07",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/TAURINA_250g_digital.png",
+        "aprobado_at": "2026-09-26T16:37:07",
+        "por": "@cynthia"
+      }
+    },
+    "1259a9e921d3": {
+      "barcode": "7701375002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/COLAGENO_POLVO_HIDROLIZADO_500g.png",
+        "aprobado_at": "2026-09-26T16:42:31",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/COLAGENO_POLVO_HIDROLIZADO_500g_digital.png",
+        "aprobado_at": "2026-09-26T16:42:32",
+        "por": "@cynthia"
+      }
+    },
+    "e3769ccb4b1a": {
+      "barcode": "7701381002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_100g.png",
+        "aprobado_at": "2026-09-26T16:43:33",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/CREATINA_MONOHIDRATO_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:43:35",
+        "por": "@cynthia"
+      }
+    },
+    "ffa03234c81c": {
+      "barcode": "7702180012639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/SUERO_LECHE_DULCE_Kg.png",
+        "aprobado_at": "2026-09-26T16:44:26",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/SUERO_LECHE_DULCE_Kg_digital.png",
+        "aprobado_at": "2026-09-26T16:44:27",
+        "por": "@cynthia"
+      }
+    },
+    "ad6918aa33f9": {
+      "barcode": "7700931002632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/AMINOACIDO_L_ARGININA_100g.png",
+        "aprobado_at": "2026-09-26T16:46:59",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/AMINOACIDO_L_ARGININA_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:46:59",
+        "por": "@cynthia"
+      }
+    },
+    "88c3f24fe34b": {
+      "barcode": "7700941002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/AMINOACIDO_L_CARNITINA_100g.png",
+        "aprobado_at": "2026-09-26T16:53:25",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/AMINOACIDO_L_CARNITINA_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:53:26",
+        "por": "@cynthia"
+      }
+    },
+    "7c1fbf6b6755": {
+      "barcode": "7701641002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/GLUTAMINA_100g.png",
+        "aprobado_at": "2026-09-26T16:49:06",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/GLUTAMINA_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:49:06",
+        "por": "@cynthia"
+      }
+    },
+    "754481147b48": {
+      "barcode": "7702501002646",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/L_PROLINA_100g.png",
+        "aprobado_at": "2026-09-26T16:49:53",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/L_PROLINA_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:49:53",
+        "por": "@cynthia"
+      }
+    },
+    "b07bbed360be": {
+      "barcode": "7700791002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/L_TEANINA_100g.png",
+        "aprobado_at": "2026-09-26T16:50:45",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/L_TEANINA_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:50:46",
+        "por": "@cynthia"
+      }
+    },
+    "9a693a751ccc": {
+      "barcode": "7700951002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/AMIOACIDO_L_TRIPTOFANO_100g.png",
+        "aprobado_at": "2026-09-26T16:52:29",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/AMIOACIDO_L_TRIPTOFANO_100g_digital.png",
+        "aprobado_at": "2026-09-26T16:52:30",
+        "por": "@cynthia"
+      }
+    },
+    "1a1a4fadca73": {
+      "barcode": "7702252502631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/UREA_250g.png",
+        "aprobado_at": "2026-09-26T17:12:51",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/UREA_250g_digital.png",
+        "aprobado_at": "2026-09-26T17:12:52",
+        "por": "@cynthia"
+      }
+    },
+    "eef418c8f08a": {
+      "barcode": "7702265002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/UREA_500g.png",
+        "aprobado_at": "2026-09-26T17:14:31",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/UREA_500g_digital.png",
+        "aprobado_at": "2026-09-26T17:14:32",
+        "por": "@cynthia"
+      }
+    },
+    "75a8d41e8ce2": {
+      "barcode": "7701040102633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Activos Cosméticos/ALFA_ARBUTINA_10g.png",
+        "aprobado_at": "2026-09-26T17:17:34",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Activos Cosméticos/ALFA_ARBUTINA_10g_digital.png",
+        "aprobado_at": "2026-09-26T17:17:35",
+        "por": "@cynthia"
+      }
+    },
+    "2226f4f07bb4": {
+      "barcode": "7701075002632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Arcillas/CAOLIN_ARCILLA_500g.png",
+        "aprobado_at": "2026-09-26T17:28:43",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Arcillas/CAOLIN_ARCILLA_500g_digital.png",
+        "aprobado_at": "2026-09-26T17:28:43",
+        "por": "@cynthia"
+      }
+    },
+    "af3b21b18afa": {
+      "barcode": "7701080012633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Arcillas/CAOLIN_ARCILLA_Kg.png",
+        "aprobado_at": "2026-09-26T17:29:14",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Arcillas/CAOLIN_ARCILLA_Kg_digital.png",
+        "aprobado_at": "2026-09-26T17:29:16",
+        "por": "@cynthia"
+      }
+    },
+    "8327c282cf88": {
+      "barcode": "7702458002645",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Arcillas/CARBON_ACTIVADO_800g.png",
+        "aprobado_at": "2026-09-26T17:32:01",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Arcillas/CARBON_ACTIVADO_800g_digital.png",
+        "aprobado_at": "2026-09-26T17:32:01",
+        "por": "@cynthia"
+      }
+    },
+    "3adb76b3ddd3": {
+      "barcode": "7701435002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Arcillas/DIOXIDO_TITANIO_500g.png",
+        "aprobado_at": "2026-09-26T17:44:56",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Arcillas/DIOXIDO_TITANIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T17:44:57",
+        "por": "@cynthia"
+      }
+    },
+    "449dd6feacf9": {
+      "barcode": "7701095002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CARBONATO_CALCIO_500g.png",
+        "aprobado_at": "2026-09-26T22:37:11",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CARBONATO_CALCIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T22:37:11",
+        "por": "@cynthia"
+      }
+    },
+    "ea974b954ede": {
+      "barcode": "7701252502634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_POTASIO_250g.png",
+        "aprobado_at": "2026-09-26T20:10:25",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_POTASIO_250g_digital.png",
+        "aprobado_at": "2026-09-26T20:10:25",
+        "por": "@cynthia"
+      }
+    },
+    "ae16bbe5460d": {
+      "barcode": "7701290012638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_POTASIO_Kg.png",
+        "aprobado_at": "2026-09-26T21:54:37",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_POTASIO_Kg_digital.png",
+        "aprobado_at": "2026-09-26T21:54:38",
+        "por": "@cynthia"
+      }
+    },
+    "07c950df9200": {
+      "barcode": "7700995002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/BICARBONATO_SODIO_500g.png",
+        "aprobado_at": "2026-09-26T21:03:57",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/BICARBONATO_SODIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T21:03:57",
+        "por": "@cynthia"
+      }
+    },
+    "1a506175ae84": {
+      "barcode": "7701055002638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CAFEINA_500g.png",
+        "aprobado_at": "2026-09-26T21:32:58",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CAFEINA_500g_digital.png",
+        "aprobado_at": "2026-09-26T21:32:59",
+        "por": "@cynthia"
+      }
+    },
+    "d21bb9166715": {
+      "barcode": "7700265002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_DE_MAGNESIO_500g.png",
+        "aprobado_at": "2026-09-26T21:44:38",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_DE_MAGNESIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T21:44:39",
+        "por": "@cynthia"
+      }
+    },
+    "4bd725277b56": {
+      "barcode": "7701232502630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_MAGNESIO_250g.png",
+        "aprobado_at": "2026-09-26T21:45:52",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_MAGNESIO_250g_digital.png",
+        "aprobado_at": "2026-09-26T21:45:53",
+        "por": "@cynthia"
+      }
+    },
+    "f6119d55156f": {
+      "barcode": "7701240012633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_MAGNESIO_Kg.png",
+        "aprobado_at": "2026-09-26T21:49:01",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_MAGNESIO_Kg_digital.png",
+        "aprobado_at": "2026-09-26T21:49:02",
+        "por": "@cynthia"
+      }
+    },
+    "3e14811042fb": {
+      "barcode": "7701275002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CITRATO_POTASIO_500g.png",
+        "aprobado_at": "2026-09-26T21:52:55",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CITRATO_POTASIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T21:52:56",
+        "por": "@cynthia"
+      }
+    },
+    "5c1b49caccab": {
+      "barcode": "7702465002645",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CARBONATO_DE_MAGNESIO_500g.png",
+        "aprobado_at": "2026-09-26T22:33:02",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CARBONATO_DE_MAGNESIO_500g_digital.png",
+        "aprobado_at": "2026-09-26T22:33:02",
+        "por": "@cynthia"
+      }
+    },
+    "eb116d25585e": {
+      "barcode": "7701972502631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Arcillas/OXIDO_ZINC_250g.png",
+        "aprobado_at": "2026-09-26T22:40:00",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Arcillas/OXIDO_ZINC_250g_digital.png",
+        "aprobado_at": "2026-09-26T22:40:00",
+        "por": "@cynthia"
+      }
+    },
+    "3f8c0499f188": {
+      "barcode": "7701845002633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/LECITINA_SOYA_500g.png",
+        "aprobado_at": "2026-09-26T22:41:57",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/LECITINA_SOYA_500g_digital.png",
+        "aprobado_at": "2026-09-26T22:41:57",
+        "por": "@cynthia"
+      }
+    },
+    "167618f6c07f": {
+      "barcode": "7702542502648",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_20_250mL.png",
+        "aprobado_at": "2026-09-26T22:57:20",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_20_250mL_digital.png",
+        "aprobado_at": "2026-09-26T22:57:21",
         "por": "@cynthia"
       }
     }

@@ -95,12 +95,14 @@ import LabelPreview from "../etiqueta-30ml/LabelPreview";
 import Marco30ml from "../etiqueta-30ml/Marco30ml";
 import { ANCHO_30ML, esFormato30ml, esPeligrosoGhs, reticula30ml } from "../etiqueta-30ml/etiqueta30mlTypes";
 import EtiquetaSimple from "../etiqueta-simple/EtiquetaSimple";
+import EtiquetaAditivos from "../etiqueta-aditivos/EtiquetaAditivos";
 import {
   parcheOrtografia,
   revisarOrtografiaEtiqueta,
   type CampoOrtografia,
 } from "../../lib/ortografiaEtiqueta";
 import { ANCHO_SIMPLE, esFormatoSimple, reticulaSimple } from "../etiqueta-simple/etiquetaSimpleTypes";
+import { esEtiquetaAditivos, reticulaAditivos } from "../etiqueta-aditivos/etiquetaAditivosTypes";
 import Etiqueta5ml from "../etiqueta-5ml/Etiqueta5ml";
 import { ANCHO_5ML, esFormato5ml, reticula5ml } from "../etiqueta-5ml/etiqueta5mlTypes";
 import EtiquetaCapsulas from "../etiqueta-capsulas/EtiquetaCapsulas";
@@ -1172,6 +1174,95 @@ function ProductLabelFormInner({
   const [detalleOrto, setDetalleOrto] = useState(false);
   /** Menú «Más» de la barra de herramientas (acciones ocasionales). */
   const [menuMas, setMenuMas] = useState(false);
+
+  // ── «Guardar plantilla»: el diseño de esta etiqueta, con el nombre que se escriba ──
+  // Una categoría tiene UNA plantilla por tamaño (Studio → Categorías genera con
+  // ella), así que nunca se crea una segunda: desde una etiqueta de producto se
+  // reemplaza el diseño de la plantilla de su categoría y tamaño (o se crea si no
+  // hay); desde la propia plantilla, se guarda y se renombra. Los datos del
+  // producto no viajan a la plantilla (`sinDatosDeProducto`).
+  const [guardarPlantillaAbierto, setGuardarPlantillaAbierto] = useState(false);
+  const [nombrePlantillaNueva, setNombrePlantillaNueva] = useState("");
+  const plantillaMismoFormato = esPlantillaEnEdicion
+    ? undefined
+    : (fichasTodas ?? []).find(
+        (f) =>
+          f.es_plantilla_categoria &&
+          f.categoria === categoria &&
+          nombreTipoEtiquetaCanonico(f.tipo_nombre) === nombreTipoEtiquetaCanonico(tipoNombre),
+      );
+  const abrirGuardarPlantilla = () => {
+    setNombrePlantillaNueva(
+      (esPlantillaEnEdicion ? nombreFicha : plantillaMismoFormato?.nombre) ||
+        nombrePlantillaCategoria(categorias, categoria, tipo ? etiquetaTamanoFormato(tipo.nombre, tipo.ancho_mm, tipo.alto_mm) : tipoNombre),
+    );
+    setGuardarPlantillaAbierto(true);
+  };
+  const guardarPlantilla = () => {
+    const nombre = nombrePlantillaNueva.trim();
+    if (!nombre || !categoria) return;
+    const avisar = (ok: boolean, texto: string) => setPlantillaMsg({ ok, texto });
+    if (esPlantillaEnEdicion) {
+      // Es la propia plantilla: el nombre nuevo lo guarda el autoguardado si el
+      // alta va en camino (dos altas a la vez la duplicarían).
+      setNombreFicha(nombre);
+      setGuardarPlantillaAbierto(false);
+      const idActual = fichaIdRef.current;
+      if (!idActual && creandoRef.current) {
+        avisar(true, `Plantilla «${nombre}» guardada.`);
+        return;
+      }
+      if (!idActual) creandoRef.current = true;
+      guardarFichaMutation.mutate(
+        {
+          id: idActual ?? undefined,
+          nombre,
+          data,
+          tipo_nombre: tipoNombre || undefined,
+          categoria,
+          es_plantilla_categoria: true,
+          attribute_icons: attributeIcons,
+          text_styles: estilos,
+        },
+        {
+          onSuccess: (res) => {
+            fichaIdRef.current = res.ficha.id;
+            setFichaId(res.ficha.id);
+            avisar(true, `Plantilla «${nombre}» guardada.`);
+          },
+          onError: (err) => avisar(false, err instanceof Error ? err.message : "No se pudo guardar la plantilla"),
+          onSettled: () => {
+            creandoRef.current = false;
+          },
+        },
+      );
+      return;
+    }
+    guardarFichaMutation.mutate(
+      {
+        id: plantillaMismoFormato?.id,
+        nombre,
+        data: sinDatosDeProducto(data),
+        tipo_nombre: tipoNombre || undefined,
+        categoria,
+        es_plantilla_categoria: true,
+        attribute_icons: attributeIcons,
+        text_styles: estilos,
+      },
+      {
+        onSuccess: () => {
+          setGuardarPlantillaAbierto(false);
+          avisar(
+            true,
+            plantillaMismoFormato
+              ? `Plantilla «${nombre}» actualizada con este diseño. Esta etiqueta no cambió.`
+              : `Plantilla «${nombre}» creada con este diseño. Esta etiqueta no cambió.`,
+          );
+        },
+        onError: (err) => avisar(false, err instanceof Error ? err.message : "No se pudo guardar la plantilla"),
+      },
+    );
+  };
   /** Ficha técnica enlazada abierta en un emergente para corregirla. */
   const [fichaTecnicaAbierta, setFichaTecnicaAbierta] = useState(false);
   /** Foto de la ficha tomada al abrir el emergente, por si la etiqueta aún no
@@ -1286,6 +1377,11 @@ function ProductLabelFormInner({
    *  de gelatina) en vez de los tres de Aceites Esenciales. */
   const esCapsulas = esEtiquetaCapsulas(es5ml, categoria);
   const retCapsulas = useMemo(() => reticulaCapsulas(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
+  /** 69 × 51 de la categoría «Aditivos alimentarios»: la ficha técnica en dos
+   *  paneles (producto 60 % · marca e información técnica 40 %) en vez de la
+   *  etiqueta simple de Semillas. */
+  const esAditivos = esEtiquetaAditivos(esSimple, categoria);
+  const retAditivos = useMemo(() => reticulaAditivos(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retCircular = useMemo(() => reticulaCircular(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const retVertical = useMemo(() => reticulaVertical(tipo?.ancho_mm, tipo?.alto_mm), [tipo?.ancho_mm, tipo?.alto_mm]);
   const clasificacionContradice =
@@ -1601,6 +1697,8 @@ function ProductLabelFormInner({
                 onUnidadChange={(v) => onChange({ cucharaUnidad: v })}
                 onTituloChange={(v) => onChange({ cucharaUtensilio: v })}
                 editMode={editMode}
+                deshabilitada={Boolean(data.sinCuchara)}
+                onDeshabilitadaChange={(v) => onChange({ sinCuchara: v })}
               />
             </div>
           </div>
@@ -1707,6 +1805,8 @@ function ProductLabelFormInner({
       ? "Cápsulas: dos paneles, marca con el nombre y la presentación a la izquierda; composición, color, conservación, lote, código de barras y pie a la derecha."
     : es5ml
       ? "Los tres paneles del 30 mL en dos filas: matriz técnica de 2×2, marca con el nombre y el contenido neto, y pictograma GHS + Pureza/CAS sobre el código de barras."
+      : esAditivos
+        ? "Aditivos: dos paneles, el producto con su matriz de 2×3 y el contenido neto a la izquierda; logo, clasificación, información técnica, Pureza/CAS, cuchara y código de barras a la derecha."
       : esSimple
         ? "Diagramación simple de dos columnas. En edición, lo gris es un ejemplo de referencia y no se imprime."
         : esVertical
@@ -1760,6 +1860,22 @@ function ProductLabelFormInner({
           ref={fichaRef}
           data={data}
           reticula={ret5ml}
+          editMode={editMode}
+          guias={showGrid && editMode}
+          onChange={onChange}
+          onElegirCodigo={(c) => void onElegirCodigo(c)}
+          attributeIcons={attributeIcons}
+          onIconChange={onIconChange}
+        />
+      </Marco30ml>
+    );
+  } else if (esAditivos) {
+    lienzo = (
+      <Marco30ml reticula={retAditivos}>
+        <EtiquetaAditivos
+          ref={fichaRef}
+          data={data}
+          reticula={retAditivos}
           editMode={editMode}
           guias={showGrid && editMode}
           onChange={onChange}
@@ -2178,6 +2294,74 @@ function ProductLabelFormInner({
                     ← Lista de etiquetas guardadas
                   </button>
                 </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => (guardarPlantillaAbierto ? setGuardarPlantillaAbierto(false) : abrirGuardarPlantilla())}
+              disabled={!categoria || guardarFichaMutation.isPending}
+              aria-expanded={guardarPlantillaAbierto}
+              title={
+                !categoria
+                  ? "Elige primero la categoría (menú «Más»)"
+                  : "Guarda el diseño de esta etiqueta como plantilla de su categoría y tamaño, con el nombre que escribas"
+              }
+              className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-surface-hover disabled:opacity-50"
+            >
+              Guardar plantilla
+            </button>
+            {guardarPlantillaAbierto && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setGuardarPlantillaAbierto(false)} aria-hidden="true" />
+                <form
+                  className="absolute right-0 top-full z-40 mt-1 w-80 rounded-xl border border-border bg-surface-panel p-3 shadow-xl"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    guardarPlantilla();
+                  }}
+                >
+                  <label className="block text-[12px] font-semibold text-ink" htmlFor="nombre-plantilla-nueva">
+                    Nombre de la plantilla
+                  </label>
+                  <span className="mt-1 block">
+                    <input
+                      id="nombre-plantilla-nueva"
+                      autoFocus
+                      value={nombrePlantillaNueva}
+                      onChange={(e) => setNombrePlantillaNueva(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setGuardarPlantillaAbierto(false);
+                      }}
+                      className="mck-field-lg w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-[13px] text-ink"
+                    />
+                  </span>
+                  <p className="mt-1.5 text-[11px] leading-snug text-muted">
+                    {esPlantillaEnEdicion
+                      ? "Se guarda esta plantilla con ese nombre."
+                      : plantillaMismoFormato
+                        ? `Reemplaza el diseño de la plantilla «${plantillaMismoFormato.nombre}» (${nombreCategoria(categoria)}, este tamaño). Los datos del producto no pasan a la plantilla.`
+                        : `Crea la plantilla de «${nombreCategoria(categoria)}» para este tamaño. Los datos del producto no pasan a la plantilla.`}
+                  </p>
+                  <div className="mt-2 flex justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setGuardarPlantillaAbierto(false)}
+                      className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface-hover"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={!nombrePlantillaNueva.trim() || guardarFichaMutation.isPending}
+                      className="rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      {guardarFichaMutation.isPending ? "Guardando…" : "Guardar"}
+                    </button>
+                  </div>
+                </form>
               </>
             )}
           </div>

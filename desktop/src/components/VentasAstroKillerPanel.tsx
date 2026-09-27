@@ -791,18 +791,36 @@ const ESPERA_TRAS_CORTE_MS = 120_000;
 function useCandadoFacturar(dataUpdatedAt: number) {
   const [marcas, setMarcas] = useState<Record<string, { hasta: number | null }>>({});
   const [, setTic] = useState(0);
+  // Bloqueo DURABLE del servidor: sobrevive a F5, a otra pestaña y a otra persona.
+  const qb = useQuery<{ bloqueos: Record<string, { estado: string; mensaje: string; hasta: number }> }>({
+    queryKey: ["facturar-bloqueos"],
+    queryFn: () => api.get("/api/facturacion/ventas-unificadas/facturar-ahora/bloqueos"),
+    refetchInterval: 8_000,
+  });
+  const servidor = qb.data?.bloqueos ?? {};
   const bloquear = (id: string) => setMarcas((p) => ({ ...p, [id]: { hasta: null } }));
   const terminar = (id: string, cortada: boolean) => {
     setMarcas((p) => ({ ...p, [id]: { hasta: Date.now() + (cortada ? ESPERA_TRAS_CORTE_MS : 0) } }));
     if (cortada) window.setTimeout(() => setTic((t) => t + 1), ESPERA_TRAS_CORTE_MS + 500);
+    void qb.refetch();
   };
   const estado = (id: string): "libre" | "enviando" | "esperando" => {
     const m = marcas[id];
-    if (!m) return "libre";
-    if (m.hasta === null) return "enviando";
-    return dataUpdatedAt > m.hasta ? "libre" : "esperando";
+    if (m) {
+      if (m.hasta === null) return "enviando";
+      if (dataUpdatedAt <= m.hasta) return "esperando";
+    }
+    const b = servidor[id];
+    if (b && b.hasta * 1000 > Date.now()) return b.estado === "corriendo" ? "enviando" : "esperando";
+    return "libre";
   };
-  return { bloquear, terminar, estado };
+  /** Hora hasta la que está bloqueada y qué pasó la última vez (del servidor). */
+  const detalle = (id: string): { hasta: string; mensaje: string } | null => {
+    const b = servidor[id];
+    if (!b || b.hasta * 1000 <= Date.now()) return null;
+    return { hasta: new Date(b.hasta * 1000).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }), mensaje: b.mensaje };
+  };
+  return { bloquear, terminar, estado, detalle };
 }
 
 function esCorte(e: unknown): boolean {
@@ -810,9 +828,9 @@ function esCorte(e: unknown): boolean {
   return /tardó demasiado|se cortó|timeout|Failed to fetch|NetworkError|HTML|conexión/i.test(msg);
 }
 
-function etiquetaFacturar(estado: "libre" | "enviando" | "esperando", texto: string): string {
-  if (estado === "enviando") return "Facturando…";
-  if (estado === "esperando") return "Actualiza la ventana para reintentar";
+function etiquetaFacturar(estado: "libre" | "enviando" | "esperando", texto: string, hasta?: string): string {
+  if (estado === "enviando") return "🔒 Facturando…";
+  if (estado === "esperando") return hasta ? `🔒 Bloqueada hasta las ${hasta}` : "🔒 Bloqueada: actualiza para reintentar";
   return texto;
 }
 
@@ -974,6 +992,107 @@ function AnularSobrantes({ venta, onListo }: { venta: VentaUnificada; onListo: (
 
 /** Bandeja de resolución: cada caso con su «por qué» y el botón que lo resuelve,
  * sin salir de la aplicación. Reemplaza revisar venta por venta en la lista. */
+interface PreviaFactura {
+  ok: boolean;
+  listo?: boolean;
+  error?: string;
+  bloqueos?: string[];
+  pack_id?: string;
+  ordenes?: string[];
+  cliente?: { nombre: string; identificacion: string; tipo_documento: string; direccion: string; email: string; telefono: string; consumidor_final: boolean };
+  lineas?: { codigo: string; nombre: string; cantidad: number; precio_unitario: number; subtotal: number }[];
+  total?: number;
+  total_pagado_meli?: number;
+}
+
+/** Lo que el carrito compró, siempre a la vista en la bandeja «Sin facturar»: producto,
+ *  cantidad y valor. Antes solo había un botón y una línea de SKU cortada. */
+function ProductosDeLaVenta({ venta }: { venta: VentaUnificada }) {
+  const items = venta.venta_original?.items ?? [];
+  if (!items.length) return <p className="text-[11px] text-muted">No se pudo leer el detalle de la venta en MeLi.</p>;
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border/60 bg-surface">
+      <p className="border-b border-border/60 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-muted">
+        Lo que compró{venta.cliente?.nombre ? ` · ${venta.cliente.nombre}` : ""}{venta.cliente?.identificacion ? ` · ${venta.cliente.identificacion}` : ""}
+      </p>
+      <TablaItems items={items} columnaValor="precio_unitario" />
+    </div>
+  );
+}
+
+/** «Revisar y facturar»: trae del backend lo que SE EMITIRÁ (mismas líneas, mismo cliente,
+ *  mismo total que usa el botón) y pide confirmar. No emite hasta que se confirma. */
+function PreviaAntesDeFacturar({ orderId, ocupado, onConfirmar, onCerrar }: {
+  orderId: string; ocupado: boolean; onConfirmar: () => void; onCerrar: () => void;
+}) {
+  const [data, setData] = useState<PreviaFactura | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api.get<PreviaFactura>(`/api/facturacion/ventas-unificadas/previa/${orderId}`)
+      .then((r) => vivo && setData(r))
+      .catch((e) => vivo && setError((e as Error).message));
+    return () => { vivo = false; };
+  }, [orderId]);
+  const dif = data?.total != null && data.total_pagado_meli ? Math.round(data.total - data.total_pagado_meli) : 0;
+  return (
+    <div className="mt-1 rounded-lg border-2 border-emerald-500/50 bg-emerald-500/5 p-2.5 text-xs">
+      <div className="mb-1 flex items-center justify-between">
+        <p className="font-bold text-ink">Así se va a facturar</p>
+        <button type="button" onClick={onCerrar} className="text-muted underline">cerrar</button>
+      </div>
+      {!data && !error && <p className="text-muted">Verificando productos en Alegra y datos del comprador…</p>}
+      {error && <p className="text-danger">{error}</p>}
+      {data && !data.ok && <p className="text-danger">{data.error}</p>}
+      {data?.ok && (
+        <div className="space-y-2">
+          <p className="text-ink-secondary">
+            <span className="font-semibold text-ink">{data.cliente?.nombre || "Sin nombre"}</span>
+            {data.cliente?.identificacion ? ` · ${data.cliente.tipo_documento || "Doc"} ${data.cliente.identificacion}` : ""}
+            {data.cliente?.consumidor_final && <span className="ml-1 rounded bg-amber-500/20 px-1.5 text-amber-700">sin cédula → Consumidor Final</span>}
+            {data.cliente?.email ? ` · ${data.cliente.email}` : ""}
+          </p>
+          <div className="overflow-x-auto rounded border border-border/60 bg-surface">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wide text-muted">
+                  <th className="px-2 py-1">SKU (Alegra)</th><th className="px-1 py-1">Producto</th>
+                  <th className="px-1 py-1 text-right">Cant</th><th className="px-1 py-1 text-right">Precio</th><th className="px-2 py-1 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {(data.lineas ?? []).map((l, i) => (
+                  <tr key={i}>
+                    <td className="px-2 py-1 font-mono text-[11px]">{l.codigo}</td>
+                    <td className="px-1 py-1 text-ink-secondary">{l.nombre}</td>
+                    <td className="px-1 py-1 text-right">{l.cantidad}</td>
+                    <td className="px-1 py-1 text-right">{pesos(l.precio_unitario)}</td>
+                    <td className="px-2 py-1 text-right font-semibold">{pesos(l.subtotal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-ink">
+            Total a facturar <span className="font-bold">{pesos(data.total)}</span>
+            {data.total_pagado_meli ? <span className="text-muted"> · pagado en MeLi {pesos(data.total_pagado_meli)}</span> : null}
+            {(data.ordenes?.length ?? 1) > 1 ? <span className="text-muted"> · carrito de {data.ordenes?.length} órdenes, una sola factura</span> : null}
+          </p>
+          {dif !== 0 && <p className="text-amber-700">⚠️ El total difiere del pagado en {pesos(Math.abs(dif))} (envío, descuentos o reembolsos): revísalo antes de emitir.</p>}
+          {(data.bloqueos ?? []).map((b, i) => <p key={i} className="font-semibold text-danger">⛔ {b}</p>)}
+          <div className="flex gap-2 pt-1">
+            <button type="button" disabled={!data.listo || ocupado} onClick={onConfirmar}
+              className="rounded-lg bg-emerald-600 px-3 py-1 font-bold text-white disabled:opacity-40">
+              {ocupado ? "🔒 Facturando…" : ico("🧾 Facturar (una sola vez)")}
+            </button>
+            {!data.listo && <span className="self-center text-muted">No se puede emitir hasta resolver lo de arriba.</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BandejaResolucion() {
   const qc = useQueryClient();
   const q = useQuery<VentasResp>({
@@ -988,6 +1107,7 @@ function BandejaResolucion() {
   const [lote, setLote] = useState<{ total: number; hechas: number; corriendo: boolean; cancelar: boolean } | null>(null);
   const [resultados, setResultados] = useState<Record<string, { ok: boolean; texto: string }>>({});
   const [subiendo, setSubiendo] = useState<string | null>(null);
+  const [previaDe, setPreviaDe] = useState<string | null>(null);
   const candado = useCandadoFacturar(q.dataUpdatedAt);
   const cancelarRef = useState({ v: false })[0];
 
@@ -1127,22 +1247,37 @@ function BandejaResolucion() {
                     <span className="text-muted">· {vigentes.map((f) => f.numero).join(", ")}{v.factura_legado ? ` + ${v.factura_legado.factura_numero} (Siigo)` : ""}</span>
                   )}
                 </div>
-                <p className="truncate text-[11px] text-muted">
-                  {(v.venta_original?.items ?? []).map((i) => `${i.sku} ×${i.cantidad}`).join(" · ")}
-                </p>
+                {tipo === "sin_facturar" ? (
+                  <ProductosDeLaVenta venta={v} />
+                ) : (
+                  <p className="truncate text-[11px] text-muted">
+                    {(v.venta_original?.items ?? []).map((i) => `${i.sku} ×${i.cantidad}`).join(" · ")}
+                  </p>
+                )}
+                {tipo === "sin_facturar" && previaDe === v.order_id && (
+                  <PreviaAntesDeFacturar
+                    orderId={v.order_id}
+                    ocupado={candado.estado(v.order_id) !== "libre"}
+                    onCerrar={() => setPreviaDe(null)}
+                    onConfirmar={() => void facturarUna(v.order_id).then((ok) => { if (ok) setPreviaDe(null); refrescar(); })}
+                  />
+                )}
                 {v.cruce?.resumen && tipo !== "sin_facturar" && <p className="text-[11px] text-ink">{v.cruce.resumen}</p>}
                 <PorQue venta={v} onListo={refrescar} />
                 {res && <p className={`text-[11px] ${res.ok ? "text-emerald-600" : "text-danger"}`}>{res.texto}</p>}
+                {!res && candado.detalle(v.order_id) && (
+                  <p className="text-[11px] text-muted">🔒 {candado.detalle(v.order_id)?.mensaje} — no se puede volver a emitir hasta las {candado.detalle(v.order_id)?.hasta}.</p>
+                )}
               </div>
               <div className="flex flex-wrap items-start justify-end gap-2">
                 {(tipo === "doble" || (tipo === "cancelada_nc" && vigentes.length > 0)) && (
                   <AnularSobrantes venta={v} onListo={refrescar} />
                 )}
                 {tipo === "sin_facturar" && !lote?.corriendo && (
-                  <button type="button" onClick={() => void facturarUna(v.order_id).then(refrescar)}
+                  <button type="button" onClick={() => setPreviaDe(previaDe === v.order_id ? null : v.order_id)}
                     disabled={candado.estado(v.order_id) !== "libre"}
                     className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-[11px] font-bold text-emerald-600 hover:bg-emerald-500/25 disabled:opacity-40">
-                    {candado.estado(v.order_id) === "libre" ? ico("🧾 Facturar") : etiquetaFacturar(candado.estado(v.order_id), "")}
+                    {candado.estado(v.order_id) === "libre" ? ico("🔍 Revisar") : etiquetaFacturar(candado.estado(v.order_id), "", candado.detalle(v.order_id)?.hasta)}
                   </button>
                 )}
                 {tipo === "subir_meli" && (
@@ -1784,7 +1919,7 @@ export default function VentasAstroKillerPanel() {
                             title={`Emite UNA factura electrónica en Alegra con todos los productos del carrito (${venta.venta_original?.items.length ?? "?"}) por ${pesos(venta.total ?? venta.venta_original?.total_pagado)}`}
                           >
                             {candado.estado(venta.order_id) !== "libre"
-                              ? etiquetaFacturar(candado.estado(venta.order_id), "")
+                              ? etiquetaFacturar(candado.estado(venta.order_id), "", candado.detalle(venta.order_id)?.hasta)
                               : `🧾 Facturar ahora${(venta.ordenes_del_pack ?? 1) > 1 ? ` (${venta.ordenes_del_pack} productos, una factura)` : ""}`}
                           </button>
                           {facturarMsg[venta.order_id] && (

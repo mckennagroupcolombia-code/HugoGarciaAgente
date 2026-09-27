@@ -965,3 +965,75 @@ def facturar_orden_meli_manual(order_id: str) -> dict:
             os.environ.pop("MELI_AUTOFACTURA_ENTREGA_ACTIVO", None)
         else:
             os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = activo_previo
+
+
+def previa_factura_pack_meli(order_id: str) -> dict:
+    """Vista previa de «Facturar ahora»: lo que SE EMITIRÍA, sin emitir nada.
+
+    Corre las mismas verificaciones y arma las mismas líneas y el mismo comprador
+    que `_facturar_pack_meli_manual_sin_candado`, para que quien factura vea los
+    productos, las cantidades, el precio, el cliente y el total antes de pulsar el
+    botón — como se veía antes de que la bandeja lo dejara en un solo botón.
+    Solo lee (MeLi y el catálogo de Alegra)."""
+    order_id = str(order_id or "").strip()
+    if not order_id:
+        return {"ok": False, "error": "order_id requerido."}
+    orden = consultar_orden_meli_completa(order_id)
+    if not orden:
+        return {"ok": False, "error": "No se pudo obtener la orden de MeLi."}
+
+    pack_id = str(orden.get("pack_id") or order_id).strip()
+    pack = consultar_pack_meli(pack_id) if pack_id != order_id else None
+    order_ids = [str(o.get("id")) for o in (pack or {}).get("orders") or [] if o.get("id")]
+    if order_id not in order_ids:
+        order_ids.append(order_id)
+
+    bloqueos: list[str] = []
+    shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
+    shipment = consultar_envio_meli(shipping_id) if shipping_id else None
+    if shipping_id and (shipment or {}).get("status") != "delivered":
+        bloqueos.append(f"El envío está en estado {(shipment or {}).get('status') or 'desconocido'!r}, aún no 'delivered'.")
+    for oid in order_ids:
+        previo = _estado_existente_orden(oid)
+        if previo and previo.get("estado") in _ESTADOS_TERMINALES:
+            bloqueos.append(f"La orden {oid} ya está {previo.get('estado')!r} ({previo.get('siigo_invoice_number') or 'sin número'}).")
+    if meli_pack_tiene_documento_fiscal(pack_id):
+        bloqueos.append(f"El pack {pack_id} ya tiene un documento fiscal cargado en MeLi.")
+
+    lineas: list[dict] = []
+    pagado = 0.0
+    for oid in order_ids:
+        orden_h = orden if oid == order_id else consultar_orden_meli_completa(oid)
+        if not orden_h:
+            bloqueos.append(f"No se pudo leer la orden {oid} del carrito.")
+            continue
+        pagado += float(orden_h.get("paid_amount") or orden_h.get("total_amount") or 0)
+        lineas_h, err = _construir_lineas_factura_desde_orden_meli(orden_h)
+        if err:
+            bloqueos.append(f"Orden {oid}: {err}")
+            continue
+        lineas.extend(lineas_h)
+
+    comprador = _extraer_datos_comprador(order_id, shipment or {})
+    consumidor = not "".join(ch for ch in str(comprador.get("identificacion") or "") if ch.isdigit())
+    total = sum(l["cantidad"] * l["precio_unitario"] for l in lineas)
+    return {
+        "ok": True,
+        "listo": not bloqueos and bool(lineas),
+        "bloqueos": bloqueos,
+        "pack_id": pack_id,
+        "ordenes": order_ids,
+        "cliente": {
+            "nombre": comprador.get("nombre_cliente") or "",
+            "identificacion": comprador.get("identificacion") or "",
+            "tipo_documento": comprador.get("tipo_documento") or "",
+            "direccion": comprador.get("direccion_envio") or "",
+            "email": comprador.get("email") or "",
+            "telefono": comprador.get("telefono") or "",
+            "consumidor_final": consumidor,
+        },
+        "lineas": [{**l, "subtotal": round(l["cantidad"] * l["precio_unitario"], 2)} for l in lineas],
+        "total": round(total, 2),
+        "total_pagado_meli": round(pagado, 2),
+        "medio_pago": medio_pago_meli_desde_orden(orden),
+    }

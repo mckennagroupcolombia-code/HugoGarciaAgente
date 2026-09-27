@@ -370,7 +370,13 @@ let PANEL_DEL_ENLACE: string | null =
   typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("panel") : null;
 // El mapa es lo primero que ve cada persona al ENTRAR (decisión 25-sep-2026). Una vez por
 // carga de la página: navegar dentro de la app ya no la devuelve al mapa.
-let INICIO_EN_MAPA = true;
+// Un F5 NO cuenta como entrar: la pestaña ya pasó por el mapa (marca en sessionStorage) y el
+// panel donde estaba se conserva. Una pestaña nueva sí abre en el mapa.
+const MARCA_ENTRO_AL_MAPA = "mck-entro-al-mapa";
+function yaEntroEnEstaPestana(): boolean {
+  try { return window.sessionStorage.getItem(MARCA_ENTRO_AL_MAPA) === "1"; } catch { return false; }
+}
+let INICIO_EN_MAPA = typeof window === "undefined" ? true : !yaEntroEnEstaPestana();
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   // "perfil" no es una sección con permiso: es la ficha del propio usuario.
@@ -572,6 +578,7 @@ export default function App() {
   useEffect(() => {
     if (!user || !hasHydrated || !INICIO_EN_MAPA) return;
     INICIO_EN_MAPA = false;
+    try { window.sessionStorage.setItem(MARCA_ENTRO_AL_MAPA, "1"); } catch { /* sin storage: solo pierde la marca */ }
     if (PANEL_DEL_ENLACE || !puedeVerPanel(user, "mapa-vivo")) return;
     setPanel("mapa-vivo");
     if (isMobile) {

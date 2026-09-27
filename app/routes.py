@@ -3969,6 +3969,24 @@ def register_routes(app):
             return None
         if path == "/api/tickets/" and metodo in ("GET", "POST"):
             return None                     # listar (sin vista de equipo) / crear (solo con el anfitrión)
+        if metodo in ("GET", "HEAD") and path.startswith("/api/tickets/uploads/"):
+            # Un adjunto se sirve solo si pertenece a un ticket entre él y el anfitrión.
+            try:
+                from app.services import tickets_db as _tdb
+
+                with _tdb._conn() as db:
+                    a = db.execute(
+                        "SELECT t.creado_por, t.asignado_a FROM ticket_adjuntos a "
+                        "JOIN tickets t ON t.id = a.ticket_id WHERE a.nombre_archivo=?",
+                        (path.rsplit("/", 1)[-1],),
+                    ).fetchone()
+            except Exception:
+                a = None
+            uid = int(usuario["id"])
+            if a and uid in (int(a["creado_por"] or 0), int(a["asignado_a"] or 0)) \
+                    and {int(a["creado_por"] or 0), int(a["asignado_a"] or 0)} <= {uid, anfitrion_id(), 0}:
+                return None
+            return jsonify({"error": "Ese archivo no es de un ticket entre tú y Armando."}), 403
         m = _re.fullmatch(r"/api/tickets/(\d+)(/.*)?", path)
         if m:
             sub_ruta = (m.group(2) or "").strip("/")
@@ -7645,6 +7663,31 @@ def register_routes(app):
     _trabajos_facturar: dict[str, dict] = {}
     _trabajos_facturar_lock = threading.Lock()
 
+    # Bloqueo DURABLE del botón «Facturar»: sobrevive a F5, reinicios del agente y a
+    # otras pestañas/personas. Tras un clic la venta queda bloqueada 10 min (lo que
+    # tarda emitir + el margen de Cloudflare); si terminó bien, 24 h; si el resultado
+    # prueba que NO se emitió nada (ya facturada, no cuadra, sin SKU) solo 2 min.
+    _BLOQUEOS_ARCHIVO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "facturar_ahora_bloqueos.json")
+    _BLOQUEO_TRAS_CLIC_S, _BLOQUEO_TRAS_OK_S, _BLOQUEO_TRAS_NADA_S = 600, 86400, 120
+
+    def _leer_bloqueos() -> dict:
+        try:
+            with open(_BLOQUEOS_ARCHIVO, encoding="utf-8") as f:
+                datos = json.load(f)
+        except (OSError, ValueError):
+            return {}
+        ahora = time.time()
+        return {k: v for k, v in datos.items() if isinstance(v, dict) and float(v.get("hasta") or 0) > ahora}
+
+    def _guardar_bloqueo(order_id: str, **campos) -> None:
+        with _trabajos_facturar_lock:
+            datos = _leer_bloqueos()
+            datos[order_id] = {**datos.get(order_id, {}), **campos}
+            tmp = _BLOQUEOS_ARCHIVO + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(datos, f, ensure_ascii=False)
+            os.replace(tmp, _BLOQUEOS_ARCHIVO)
+
     def _correr_facturacion(order_id: str) -> None:
         from app.services.facturacion_ventas_unificado import (
             anotar_filas,
@@ -7660,6 +7703,15 @@ def register_routes(app):
         with _trabajos_facturar_lock:
             _trabajos_facturar[order_id].update(estado="terminado", resultado=resultado,
                                                 terminado_en=_dt.now().isoformat(timespec="seconds"))
+        texto = str(resultado.get("mensaje") or resultado.get("error") or "")
+        if resultado.get("ok"):
+            espera = _BLOQUEO_TRAS_OK_S
+        elif resultado.get("ya_facturada") or resultado.get("no_cuadra") or "No se emitió" in texto or "no se emitió" in texto:
+            espera = _BLOQUEO_TRAS_NADA_S
+        else:
+            espera = _BLOQUEO_TRAS_CLIC_S  # no se sabe si salió: se deja el margen completo
+        _guardar_bloqueo(order_id, estado="ok" if resultado.get("ok") else "error", mensaje=texto[:400],
+                         hasta=time.time() + espera)
         if resultado.get("ok"):
             # Sin esto la venta seguía «sin facturar» en el listado (la foto era de antes).
             try:
@@ -7689,10 +7741,41 @@ def register_routes(app):
             previo = _trabajos_facturar.get(order_id)
             if previo and previo["estado"] == "corriendo":
                 return jsonify({"ok": True, "en_curso": True, "desde": previo["desde"], "ya_estaba": True}), 202
+            bloqueo = _leer_bloqueos().get(order_id)
+            if bloqueo:
+                hasta = _dt.fromtimestamp(float(bloqueo["hasta"])).strftime("%H:%M")
+                return jsonify({
+                    "ok": False, "bloqueado": True, "hasta": bloqueo["hasta"],
+                    "error": f"Este botón ya se pulsó para esta venta y queda bloqueado hasta las {hasta} "
+                             f"({bloqueo.get('mensaje') or 'facturación en curso'}). No se emitió nada nuevo.",
+                }), 409
             _trabajos_facturar[order_id] = {"estado": "corriendo", "desde": _dt.now().isoformat(timespec="seconds")}
+        _guardar_bloqueo(order_id, estado="corriendo", mensaje="facturación en curso", hasta=time.time() + _BLOQUEO_TRAS_CLIC_S)
         threading.Thread(target=_correr_facturacion, args=(order_id,), daemon=True,
                          name=f"facturar-{order_id}").start()
         return jsonify({"ok": True, "en_curso": True, "desde": _trabajos_facturar[order_id]["desde"]}), 202
+
+    @app.route("/api/facturacion/ventas-unificadas/facturar-ahora/bloqueos", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora/bloqueos", methods=["GET"])
+    def api_facturacion_ventas_bloqueos():
+        """Ventas cuyo botón «Facturar» está bloqueado ahora: {order_id: {estado, mensaje, hasta}}."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify({"bloqueos": _leer_bloqueos()})
+
+    @app.route("/api/facturacion/ventas-unificadas/previa/<order_id>", methods=["GET"])
+    @app.route("/app/api/facturacion/ventas-unificadas/previa/<order_id>", methods=["GET"])
+    def api_facturacion_ventas_previa(order_id):
+        """Qué emitiría «Facturar ahora» (cliente, productos, precios, total y
+        bloqueos) SIN emitir: para verificarlo a ojo antes de pulsar el botón."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.meli_autofactura_entrega import previa_factura_pack_meli
+
+            return jsonify(previa_factura_pack_meli(order_id))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)[:300]}), 500
 
     @app.route("/api/facturacion/ventas-unificadas/facturar-ahora/estado/<order_id>", methods=["GET"])
     @app.route("/app/api/facturacion/ventas-unificadas/facturar-ahora/estado/<order_id>", methods=["GET"])

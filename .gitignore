@@ -288,3 +288,4 @@ app/data/pagos_clientes.db
 app/data/insumos.db
 app/data/insumos.db-*
 fotos_insumos/
+app/data/facturar_ahora_bloqueos.json

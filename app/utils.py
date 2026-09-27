@@ -671,6 +671,12 @@ def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: 
     destino = _normalizar_destino_wa(
         numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
     )
+    # El puente Node corre con `WorkingDirectory=bot-mckenna/` y comprueba el
+    # archivo con `fs.existsSync(filePath)`: una ruta relativa como
+    # `facturas_descargadas/Factura_FE709.pdf` se busca ahí y da 400 «Archivo no
+    # encontrado». Así se perdieron las copias de factura al cliente y al grupo
+    # tras la migración a Alegra (sep-2026): siempre se manda la ruta absoluta.
+    file_path = os.path.abspath(file_path) if file_path else file_path
     payload = {
         "numero": destino,
         "mensaje": texto_mensaje,

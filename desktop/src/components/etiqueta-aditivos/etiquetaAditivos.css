@@ -1,0 +1,415 @@
+/*
+ * Etiqueta 69 × 51 mm de Aditivos alimentarios — dos paneles (60 % · 40 %)
+ * separados por una línea del acento y la franja de contacto a todo el ancho.
+ *
+ * Hereda la base de `.es-etiqueta` (fondo, Montserrat, casillas editables en
+ * el sitio de etiqueta30ml.css) y redefine la retícula. Todo es CSS Grid con
+ * pistas minmax(0, …): el contenido no mueve las líneas.
+ *
+ *   izquierdo   cabeza (nombre + banda) · matriz 2 × 3 · contenido neto
+ *   derecho     logo + lema · clasificación · inf. técnica · Pureza/CAS ·
+ *               cuchara · código de barras (se lleva el alto que sobre)
+ *   franja      ubicación │ NIT │ correo
+ */
+
+.ead-etiqueta {
+  grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);
+  grid-template-rows: minmax(0, 1fr) var(--ead-franja);
+}
+
+.ead-panel {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+.ead-panel > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ── Panel izquierdo ─────────────────────────────────────────────────────── */
+
+.ead-panel-izq {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) var(--ead-neto);
+  padding-right: 12px;
+}
+
+.ead-cabeza {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto var(--ead-barra);
+  row-gap: var(--ead-cabeza-sep, 5px);
+  padding: 0 0 8px;
+}
+
+.ead-lupa {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.ead-nombre-caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 24px;
+}
+.ead-nombre {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  margin: 0;
+  letter-spacing: 0.01em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--acento);
+  overflow-wrap: break-word;
+}
+
+.ead-banda {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: var(--acento);
+  color: #ffffff;
+}
+.ead-banda-texto {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+}
+.ead-banda .e30-ejemplo {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Matriz 2 × 3: filas iguales; las líneas son bordes de las celdas. */
+.ead-matriz {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  border-top: var(--ead-linea) solid var(--acento);
+  border-bottom: var(--ead-linea) solid var(--acento);
+}
+.ead-matriz > * {
+  min-width: 0;
+  min-height: 0;
+}
+.ead-matriz .e30-celda {
+  gap: 2px;
+  padding: 6px 10px;
+}
+.ead-matriz .e30-celda-icono {
+  width: 34px;
+  height: 34px;
+}
+.ead-matriz .e30-celda-titulo {
+  color: var(--acento);
+}
+.ead-matriz .e30-celda-valor {
+  color: #111111;
+  font-size: 18px;
+}
+
+.ead-neto-fila {
+  display: grid;
+  grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
+  column-gap: 10px;
+  align-items: stretch;
+  padding-top: 4px;
+  min-height: 0;
+}
+.ead-timbre {
+  min-width: 0;
+  min-height: 0;
+  margin: 2px 0;
+  border: var(--ead-linea) solid var(--acento);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.ead-neto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.ead-neto-titulo {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--acento);
+  text-align: center;
+}
+.ead-neto-valor {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #111111;
+  text-align: center;
+}
+
+/* ── Panel derecho ───────────────────────────────────────────────────────── */
+
+.ead-panel-der {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--ead-logo) var(--ead-clasif) repeat(var(--ead-medios, 3), auto) minmax(0, 1fr);
+  justify-items: center;
+  row-gap: 7px;
+  padding-left: 12px;
+  border-left: var(--ead-linea) solid var(--acento);
+}
+.ead-panel-der > * {
+  width: 100%;
+}
+
+.ead-logo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 0 7px;
+  border-bottom: var(--ead-linea) solid var(--acento);
+}
+.ead-logo-caja {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 78%;
+  height: auto;
+}
+.ead-lema {
+  font-size: 16px;
+}
+
+.ead-clasif {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ead-ghs-boton {
+  height: 100%;
+}
+.ead-clasif .e30-ghs-pictograma {
+  width: auto;
+  height: 100%;
+  max-height: 100%;
+}
+.ead-clasif .e30-ghs-pictogramas {
+  height: 100%;
+}
+
+.ead-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+.ead-info-titulo {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--acento);
+}
+.ead-info-docs {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111111;
+}
+.ead-info-disp {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+}
+.ead-web {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 92%;
+  height: 30px;
+  margin-top: 3px;
+  padding: 0 8px;
+  background: var(--acento);
+  color: #ffffff;
+}
+.ead-web-texto {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.ead-tabla {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  width: 92%;
+  border: var(--ead-linea) solid var(--acento);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ead-tabla-fila {
+  display: contents;
+}
+.ead-tabla-titulo,
+.ead-tabla-valor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 30px;
+  padding: 2px 10px;
+  font-size: 16px;
+}
+.ead-tabla-titulo {
+  font-weight: 800;
+  color: #111111;
+  border-right: var(--ead-linea) solid var(--acento);
+}
+.ead-tabla-valor {
+  font-weight: 600;
+  color: #111111;
+}
+.ead-tabla-fila + .ead-tabla-fila > * {
+  border-top: var(--ead-linea) solid var(--acento);
+}
+
+.ead-cuchara {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 92%;
+  padding: 4px 8px 5px;
+  border: var(--ead-linea) solid var(--acento);
+  border-radius: 4px;
+  text-align: center;
+}
+.ead-cuchara-titulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111111;
+}
+.ead-cuchara-medida {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+}
+.ead-cuchara-cantidad {
+  display: inline-flex;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--acento);
+}
+.e30-editando .ead-cuchara-cantidad {
+  min-width: 2ch;
+}
+.ead-cuchara-cantidad .e30-campo-wrap,
+.ead-cuchara-cantidad > * {
+  width: auto;
+}
+.ead-cuchara-cantidad .e30-campo {
+  width: auto;
+  min-width: 2ch;
+  field-sizing: content;
+}
+.ead-cuchara-unidad {
+  position: relative;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--acento);
+}
+.ead-cuchara-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  opacity: 0;
+}
+.e30-editando .ead-cuchara-unidad {
+  padding: 0 2px;
+  border: 1px dashed var(--acento-50);
+  border-radius: 2px;
+}
+.ead-cuchara-aprox {
+  font-weight: 600;
+  line-height: 1;
+  color: #111111;
+  font-size: 22px;
+}
+
+.ead-barras {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
+}
+.ead-barras .e30-barras {
+  width: 100%;
+  padding: 4px 0 7px;
+}
+.ead-barras .e30-barras-boton {
+  width: 86%;
+}
+
+/* ── Franja: el ancho sigue al texto para que el correo quepa entero ─────── */
+
+.ead-etiqueta .e30-franja {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 0.95fr) minmax(0, 1.3fr) !important;
+}
+.ead-etiqueta .e30-franja-icono svg {
+  width: 30px;
+  height: 30px;
+}
+
+/* ── Guías de la retícula (solo en edición) ──────────────────────────────── */
+
+.ead-guias .ead-panel > * {
+  outline: 1px dashed rgba(220, 38, 38, 0.45);
+  outline-offset: -1px;
+}
+
+/* Interruptores de la cuchara / copa: solo existen en edición. */
+.ead-cuchara-quitar {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1.5px solid var(--acento);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--acento);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+.ead-cuchara-activar {
+  width: 92%;
+  padding: 3px 8px;
+  border: 1px dashed var(--acento-50);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--acento);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}

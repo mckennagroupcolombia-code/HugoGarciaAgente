@@ -243,6 +243,33 @@ def register_ventas_directas_routes(app):
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 500
 
+    @_dual(app, "/api/ventas-directas/por-facturar/vincular", methods=["POST"])
+    @_auth
+    def vd_por_facturar_vincular():
+        """Amarra un cobro del banco a una factura que ya existe (no emite nada)."""
+        data = request.get_json(silent=True) or {}
+        try:
+            r = V.vincular_cobro_a_factura(int(data.get("cobro_id") or 0), str(data.get("movimiento_id") or ""),
+                                           usuario=g.ventas_directas_usuario)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 400
+        return jsonify(r), (200 if r.get("ok") else 400)
+
+    @_dual(app, "/api/ventas-directas/por-facturar/resolver", methods=["POST"])
+    @_auth
+    def vd_por_facturar_resolver():
+        data = request.get_json(silent=True) or {}
+        r = V.resolver_cobro(int(data.get("cobro_id") or 0), str(data.get("tipo") or ""), str(data.get("nota") or ""),
+                             usuario=g.ventas_directas_usuario)
+        return jsonify(r), (200 if r.get("ok") else 400)
+
+    @_dual(app, "/api/ventas-directas/<int:venta_id>/reenviar", methods=["POST"])
+    @_auth
+    def vd_reenviar(venta_id: int):
+        """Reenvía por WhatsApp la factura ya emitida (PDF de Alegra) al cliente."""
+        r = V.reenviar_factura(venta_id)
+        return jsonify(r), (200 if r.get("ok") else 400)
+
     @_dual(app, "/api/ventas-directas/<int:venta_id>/pdf", methods=["GET"])
     @_auth
     def vd_pdf(venta_id: int):

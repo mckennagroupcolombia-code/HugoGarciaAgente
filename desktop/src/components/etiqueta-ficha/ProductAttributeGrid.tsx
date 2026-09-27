@@ -2,9 +2,9 @@ import { useState, type ReactNode } from "react";
 import ProductAttribute from "./ProductAttribute";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import { ICONOS_QUIMICA_CIRCULARES, quitarCirculoExterior } from "../../lib/iconosQuimicaCirculares";
-import { TITULOS_COMPOSICION, tituloComposicion, type ProductLabelData } from "./productLabelTypes";
+import { TITULOS_COMPOSICION, TITULOS_GRADO, tituloComposicion, tituloGrado, type ProductLabelData } from "./productLabelTypes";
 
-export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "storage";
+export type AttributeKey = "origin" | "appearance" | "odor" | "composition" | "grade" | "sabor" | "storage";
 
 /** Claves de los íconos guardados en `attribute_icons`: las seis celdas de la
  *  ficha y la línea de alérgenos de la etiqueta de 69 × 51 mm. */
@@ -20,6 +20,7 @@ const ICONO_GALERIA_POR_DEFECTO: Record<AttributeKey, string> = {
   odor: "aroma_ondas_gota",
   composition: "composicion_molecula_enlazada",
   grade: "calidad_escudo_sello",
+  sabor: "sabor_lengua",
   storage: "conservacion_envase_sellado",
 };
 
@@ -62,6 +63,9 @@ export default function ProductAttributeGrid({
   onIconChange: (campo: AttributeKey, svgDataUrl: string) => void;
 }) {
   const [campoAbierto, setCampoAbierto] = useState<AttributeKey | null>(null);
+  // Grado alimentos: la casilla de Grado muestra el sabor (menú del título).
+  const tituloCeldaGrado = tituloGrado(data);
+  const conSabor = tituloCeldaGrado === TITULOS_GRADO[1];
 
   const celdas: { icon: ReactNode; title: string; campo: AttributeKey }[] = (
     [
@@ -69,7 +73,7 @@ export default function ProductAttributeGrid({
       ["Apariencia", "appearance"],
       ["Aroma", "odor"],
       [tituloComposicion(data), "composition"],
-      ["Grado", "grade"],
+      [tituloCeldaGrado, conSabor ? "sabor" : "grade"],
       ["Conservación", "storage"],
     ] as [string, AttributeKey][]
   ).map(([title, campo]) => ({
@@ -113,17 +117,23 @@ export default function ProductAttributeGrid({
                   icon={c.icon}
                   iconSrc={attributeIcons[c.campo]}
                   title={c.title}
-                  value={data[c.campo]}
+                  value={data[c.campo] ?? ""}
                   onChange={(v) => onChange({ [c.campo]: v })}
                   editMode={editMode}
                   onEditarIcono={() => setCampoAbierto(c.campo)}
-                  styleKey={c.campo}
+                  // Grado y Sabor comparten tamaños de letra: es la misma casilla.
+                  styleKey={c.campo === "sabor" ? "grade" : c.campo}
                   {...(c.campo === "composition"
                     ? {
                         tituloOpciones: TITULOS_COMPOSICION,
                         onTituloChange: (v: string) => onChange({ compositionTitulo: v }),
                       }
-                    : {})}
+                    : c.campo === "grade" || c.campo === "sabor"
+                      ? {
+                          tituloOpciones: TITULOS_GRADO,
+                          onTituloChange: (v: string) => onChange({ gradeTitulo: v }),
+                        }
+                      : {})}
                 />
               </div>
             ))}

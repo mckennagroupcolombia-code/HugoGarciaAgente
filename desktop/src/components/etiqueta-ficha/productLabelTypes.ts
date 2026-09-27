@@ -26,6 +26,12 @@ export interface ProductLabelData {
   composition: string;
   grade: string;
   storage: string;
+  /** Sabor (lo trae la ficha técnica, `caracteristicas_fisicas.sabor`). En las
+   *  materias primas de grado alimentos la casilla de Grado pasa a ser Sabor. */
+  sabor?: string;
+  /** Título de la casilla Grado/Sabor (ver `TITULOS_GRADO`). Dato de plantilla;
+   *  sin dato, Sabor si el producto es de grado alimentos. */
+  gradeTitulo?: string;
 
   ghs: string;
   /** Data URL del pictograma GHS elegido en la galería (vacío = sin
@@ -46,6 +52,8 @@ export interface ProductLabelData {
   beneficio3?: string;
   cucharaCantidad?: string;
   cucharaUnidad?: string;
+  /** Etiqueta de aditivos: sin recuadro de cuchara / copa (no se imprime). */
+  sinCuchara?: boolean;
   /** Rótulo de la casilla: cuchara o copa (ver `TITULOS_CUCHARA`). */
   cucharaUtensilio?: string;
   /** Formato 30 mL: grado del subtítulo "INSUMO GRADO …" (sin dato = COSMÉTICO). */
@@ -206,6 +214,7 @@ export const EJEMPLO_ETIQUETA = {
   classification: "MATERIA PRIMA GRADO COSMÉTICO",
   composition: "C₁₆H₃₄O",
   grade: "Cosmético",
+  sabor: "Muy dulce",
   storage: "Lugar fresco y seco",
   origin: "Malasia",
   appearance: "Escamas blancas",
@@ -239,8 +248,10 @@ export const CAMPOS_PLANTILLA = [
   "ghsDesplazamiento",
   "compositionTitulo",
   "casTitulo",
+  "gradeTitulo",
   "cucharaCantidad",
   "cucharaUnidad",
+  "sinCuchara",
   "cucharaUtensilio",
   "gradoInsumo",
   "clasificacionTitulo",
@@ -266,6 +277,24 @@ export function tituloComposicion(data: ProductLabelData): string {
   return (TITULOS_COMPOSICION as readonly string[]).includes(t) ? t : TITULOS_COMPOSICION[0];
 }
 export const TITULOS_CAS = ["CAS", "EINECS"] as const;
+
+/** Títulos elegibles de la casilla de grado (menú del título). En grado
+ *  alimentos la banda ya dice el grado («MATERIA PRIMA GRADO ALIMENTOS»), así
+ *  que la casilla muestra el sabor. Se guarda en `gradeTitulo`. */
+export const TITULOS_GRADO = ["Grado", "Sabor"] as const;
+
+/** ¿Materia prima de grado alimentos? Lo dicen la banda o el grado. */
+export function esGradoAlimentos(data: ProductLabelData): boolean {
+  return /aliment/i.test(`${data.classification || ""} ${data.grade || ""}`);
+}
+
+/** «Grado» o «Sabor». Manda lo elegido en el menú; sin elección, Sabor en
+ *  grado alimentos. `alimentos` lo fija un formato que ya sabe que lo es. */
+export function tituloGrado(data: ProductLabelData, alimentos = esGradoAlimentos(data)): string {
+  const t = data.gradeTitulo || "";
+  if ((TITULOS_GRADO as readonly string[]).includes(t)) return t;
+  return alimentos ? TITULOS_GRADO[1] : TITULOS_GRADO[0];
+}
 /** Rótulos elegibles de la casilla del utensilio de medida (menú del
  *  título), igual que `TITULOS_CAS` y `TITULOS_COMPOSICION`. Se guarda
  *  en `cucharaUtensilio`; las fichas que no lo traen ven el primero. */
@@ -297,6 +326,7 @@ export const PRODUCTO_VACIO: ProductLabelData = {
   composition: "",
   grade: "",
   storage: "",
+  sabor: "",
   ghs: "NO GHS",
   ghsIconSvg: "",
   clasificacionTexto: "",
@@ -332,6 +362,7 @@ export const CAMPOS_PRODUCTO = [
   "composition",
   "grade",
   "storage",
+  "sabor",
   "netContent",
   "ghs",
   "ghsIconSvg",

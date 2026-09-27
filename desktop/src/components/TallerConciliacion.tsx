@@ -175,6 +175,8 @@ interface AsientoVista {
 }
 type CompraAbierta = { tipo: "productos" | "servicios" };
 
+interface ResultadoCarga { nombre: string; error?: string; leidas?: number; nuevas?: number; repetidas?: number; mejoradas?: number; desde?: string; hasta?: string }
+
 interface LineaBanco {
   id: number;
   extracto_id: number;
@@ -1320,6 +1322,7 @@ export default function TallerConciliacion() {
   const [incluirSiigo, setIncluirSiigo] = useState(true);
   const [guiaAbierta, setGuiaAbierta] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [carga, setCarga] = useState<ResultadoCarga[] | null>(null);
   const [subiendo, setSubiendo] = useState(false);
   const [dropActivo, setDropActivo] = useState(false);
   const [huerfanosAbierto, setHuerfanosAbierto] = useState(false);
@@ -1542,7 +1545,7 @@ export default function TallerConciliacion() {
     if (!archivos.length) return;
     setSubiendo(true);
     setMsg(null);
-    const partes: string[] = [];
+    const res: ResultadoCarga[] = [];
     try {
       for (const file of archivos) {
         const fd = new FormData();
@@ -1552,12 +1555,18 @@ export default function TallerConciliacion() {
           const r = await api.upload<{ error?: string; extracto?: { id: number; lineas_count: number; lineas_leidas?: number; lineas_repetidas?: number; lineas_mejoradas?: number; periodo_desde: string; periodo_hasta: string } }>("/api/contabilidad/extractos", fd, { timeoutMs: 180_000 });
           if (r.error) throw new Error(r.error);
           const e = r.extracto!;
-          partes.push(`«${file.name}»: ${e.lineas_count} movimientos nuevos` + (e.lineas_repetidas ? `, ${e.lineas_repetidas} que ya estaban` : "") + (e.lineas_mejoradas ? ` (${e.lineas_mejoradas} con mejor descripción)` : "") + ` · ${e.periodo_desde} → ${e.periodo_hasta}`);
+          const nuevas = e.lineas_count ?? 0;
+          const repetidas = e.lineas_repetidas ?? 0;
+          res.push({ nombre: file.name, leidas: e.lineas_leidas ?? nuevas + repetidas, nuevas, repetidas, mejoradas: e.lineas_mejoradas ?? 0, desde: e.periodo_desde, hasta: e.periodo_hasta });
+          // Si el archivo cae fuera del rango que se está mirando, sus líneas no se verían.
+          if (e.periodo_desde && e.periodo_desde < desde) setDesde(e.periodo_desde);
+          if (e.periodo_hasta && e.periodo_hasta > hasta) setHasta(e.periodo_hasta);
         } catch (err) {
-          partes.push(`«${file.name}»: ${(err as Error).message}`);
+          res.push({ nombre: file.name, error: (err as Error).message });
         }
       }
-      setMsg(partes.join(" · "));
+      setCarga(res);
+      setMsg(null);
       await refrescar();
     } finally {
       setSubiendo(false);
@@ -1627,7 +1636,8 @@ export default function TallerConciliacion() {
         <label className="flex items-center gap-1 text-muted">Hasta <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className={campoFecha} /></label>
         <button className={BTN_SEC} onClick={() => { setDesde(inicioDeMes()); setHasta(hoy()); }} title="Lo mismo que se pide en Sucursal Negocios: del 1 del mes hasta hoy">Este mes hasta hoy</button>
         <input ref={fileRef} type="file" accept=".csv,.xlsx,.xlsm,.txt,.tsv,.pdf,.zip" multiple className="hidden" onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) void subir(f); }} />
-        <button className={BTN} disabled={subiendo} onClick={() => fileRef.current?.click()}><Ico e="📥" /> {subiendo ? "Cargando…" : "Traer movimientos"}</button>
+        <button className={BTN} disabled={subiendo} onClick={() => fileRef.current?.click()}><Ico e="📥" /> {subiendo ? "Leyendo el archivo…" : "Cargar archivo del banco"}</button>
+        <span className="text-[11px] text-muted">CSV, Excel o PDF de Bancolombia · o suéltalo en esta ventana</span>
         <button className={`${BTN_SEC} ${guiaAbierta ? "border-accent text-accent" : ""}`} onClick={() => setGuiaAbierta((v) => !v)} aria-expanded={guiaAbierta}><Ico e="❓" /> ¿Cómo los bajo?</button>
         <button className={BTN_SEC} disabled={refrescarLibroMut.isPending || !tableroQ.data?.libro_listo} onClick={() => refrescarLibroMut.mutate()} title="Vuelve a pedir los asientos a Alegra y MeLi (el taller los guarda 5 min)"><Ico e="🔄" /> {refrescarLibroMut.isPending ? "Pidiendo…" : "Actualizar libro"}</button>
         <span className="flex-1" />
@@ -1636,6 +1646,25 @@ export default function TallerConciliacion() {
         {msg && <span className="basis-full text-[11.5px] text-ink">{msg}</span>}
         {(tableroQ.data?.avisos?.length ?? 0) > 0 && <span className="basis-full text-[11px] text-accent-sun">{tableroQ.data!.avisos.join(" · ")}</span>}
       </div>
+      {subiendo && (
+        <div className="flex shrink-0 items-center gap-2 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-[12.5px] text-ink">
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-accent" /> Leyendo el archivo y buscando movimientos nuevos…
+        </div>
+      )}
+      {!subiendo && carga && carga.map((c, i) => (
+        <div key={i} className={`flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border px-3 py-2 text-[12.5px] text-ink ${c.error ? "border-accent-rose/60 bg-accent-rose/10" : c.nuevas ? "border-accent-leaf/50 bg-accent-leaf/10" : "border-accent-sun/60 bg-accent-sun/10"}`}>
+          {c.error ? (
+            <span><b>✗ No se pudo leer «{c.nombre}»:</b> {c.error}</span>
+          ) : (
+            <>
+              <span><b>{c.nuevas ? "✓" : "•"} «{c.nombre}»</b> — se leyeron <b>{c.leidas}</b> movimientos del {c.desde} al {c.hasta}.</span>
+              <span><b className="tabular-nums">{c.nuevas}</b> nuevos{c.repetidas ? <> · <b className="tabular-nums">{c.repetidas}</b> ya estaban cargados</> : null}{c.mejoradas ? <> · {c.mejoradas} con mejor descripción</> : null}</span>
+              {!c.nuevas && <span className="text-muted">No había nada nuevo: este archivo ya estaba cargado.</span>}
+            </>
+          )}
+          <button className="ml-auto text-muted hover:text-ink" onClick={() => setCarga(null)} aria-label="Cerrar">✕</button>
+        </div>
+      ))}
       {guiaAbierta && <div className="shrink-0"><GuiaDescarga onCerrar={() => setGuiaAbierta(false)} /></div>}
 
       {tableroQ.data && !tableroQ.data.libro_listo && (

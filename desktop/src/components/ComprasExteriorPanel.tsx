@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useEmisoresCuentaCobro } from "../hooks/useEmisoresCuentaCobro";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -634,6 +635,9 @@ function ProductoSkuAsociar({
   const [buscando, setBuscando] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const listaRef = useRef<HTMLUListElement>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; width: number; top?: number; bottom?: number; maxH: number } | null>(null);
   const timerRef = useRef<number | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -647,11 +651,38 @@ function ProductoSkuAsociar({
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setAbierto(false);
+      const t = e.target as Node;
+      if (!wrapRef.current?.contains(t) && !listaRef.current?.contains(t)) setAbierto(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
+
+  // La lista sale por portal (position: fixed) para que el overflow de la tabla no la recorte.
+  useLayoutEffect(() => {
+    if (!abierto) return;
+    const calc = () => {
+      const el = inputWrapRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const abajo = window.innerHeight - r.bottom - 8;
+      const arriba = r.top - 8;
+      const width = Math.max(r.width, 280);
+      const left = Math.min(r.left, Math.max(8, window.innerWidth - width - 8));
+      if (abajo < 160 && arriba > abajo) {
+        setPos({ left, width, bottom: window.innerHeight - r.top + 4, maxH: Math.min(288, arriba) });
+      } else {
+        setPos({ left, width, top: r.bottom + 4, maxH: Math.min(288, Math.max(abajo, 120)) });
+      }
+    };
+    calc();
+    window.addEventListener("scroll", calc, true);
+    window.addEventListener("resize", calc);
+    return () => {
+      window.removeEventListener("scroll", calc, true);
+      window.removeEventListener("resize", calc);
+    };
+  }, [abierto, items.length, buscando]);
 
   const asociar = (it: CatalogoItem) => {
     onChangeRef.current({ sku: it.codigo, nombre: it.nombre });
@@ -732,7 +763,7 @@ function ProductoSkuAsociar({
 
   return (
     <div ref={wrapRef} className="relative min-w-[14rem]">
-      <div className="flex gap-1">
+      <div ref={inputWrapRef} className="flex gap-1">
         <input
           value={q}
           onChange={(e) => buscar(e.target.value)}
@@ -783,8 +814,11 @@ function ProductoSkuAsociar({
       {errorBusqueda && (
         <p className="mt-0.5 text-[9px] text-danger">{errorBusqueda}</p>
       )}
-      {abierto && (
-        <ul className="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
+      {abierto && pos && createPortal(
+        <ul
+          ref={listaRef}
+          style={{ position: "fixed", left: pos.left, width: pos.width, top: pos.top, bottom: pos.bottom, maxHeight: pos.maxH }}
+          className="z-[9999] overflow-auto rounded-lg border border-border bg-surface-panel shadow-paper-lg">
           {buscando && (
             <li className="px-2 py-1.5 text-[10px] text-muted">Buscando…</li>
           )}
@@ -806,7 +840,8 @@ function ProductoSkuAsociar({
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
     </div>
   );

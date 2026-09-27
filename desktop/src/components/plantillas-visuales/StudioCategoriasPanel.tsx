@@ -98,12 +98,9 @@ function claveDePng(nombre: string): string {
   );
 }
 
-/** Por aprobar primero (es lo que queda por hacer), luego las aprobadas. */
-const ORDEN_ESTADO: Record<EstadoEtiqueta, number> = { por_aprobar: 0, aprobada: 1, solo_png: 2 };
+/** Orden alfabético puro (A–Z, números en orden natural), sin importar el estado. */
 function ordenarEtiquetas(lista: EtiquetaDeCategoria[]): EtiquetaDeCategoria[] {
-  return [...lista].sort(
-    (a, b) => ORDEN_ESTADO[a.estado] - ORDEN_ESTADO[b.estado] || a.nombre.localeCompare(b.nombre, "es"),
-  );
+  return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { numeric: true, sensitivity: "base" }));
 }
 
 export interface ResumenCategoria {

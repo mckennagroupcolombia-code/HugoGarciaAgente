@@ -25,6 +25,7 @@ const MAPA_A_PRODUCT_LABEL: Partial<Record<string, keyof ProductLabelData>> = {
   origen: "origin",
   apariencia: "appearance",
   olor: "odor",
+  sabor: "sabor",
   composicion: "composition",
   grado: "grade",
   almacenamiento: "storage",

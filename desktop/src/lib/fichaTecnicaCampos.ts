@@ -155,6 +155,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     cf.olor,
     valorEnFilas(datos.propiedades, "aroma", "olor", "odour", "odor"),
   );
+  const saborRaw = pick(cf.sabor, valorEnFilas(datos.propiedades, "sabor", "taste", "flavor", "flavour"));
   // En el formulario FT+COA+SDS la composición se diligencia en el COA
   // (`_coa.composicion`, desde 21-sep-2026); los documentos anteriores la tienen
   // en la SDS (`_sds.composicion`). La de la FT suele quedar vacía.
@@ -246,6 +247,7 @@ export function camposDesdeFichaTecnica(datos: Record<string, unknown>): Record<
     origen: origenRaw || FICHA_SIN_DATO,
     apariencia: aparienciaRaw || FICHA_SIN_DATO,
     olor: olorRaw || FICHA_SIN_DATO,
+    sabor: saborRaw || FICHA_SIN_DATO,
     composicion: composicionRaw || FICHA_SIN_DATO,
     formulaMolecular: formulaRaw || FICHA_SIN_DATO,
     grado,

@@ -15,6 +15,8 @@ export default function CucharaMedidora({
   onUnidadChange,
   onTituloChange,
   editMode,
+  deshabilitada = false,
+  onDeshabilitadaChange,
 }: {
   cantidad: string;
   unidad: string;
@@ -23,6 +25,9 @@ export default function CucharaMedidora({
   onUnidadChange: (v: string) => void;
   onTituloChange?: (v: string) => void;
   editMode: boolean;
+  /** Casilla apagada en esta etiqueta: no se imprime; en edición queda el botón para volver a ponerla. */
+  deshabilitada?: boolean;
+  onDeshabilitadaChange?: (v: boolean) => void;
 }) {
   const rotulo =
     titulo && (TITULOS_CUCHARA as readonly string[]).includes(titulo)
@@ -35,10 +40,34 @@ export default function CucharaMedidora({
   const { estilos } = useTextStyleCtx();
   const tamanoUnidad = estilos.cucharaCantidad?.fontSize ?? 17;
 
+  if (deshabilitada) {
+    if (!editMode || !onDeshabilitadaChange) return null;
+    return (
+      <button
+        type="button"
+        title="Volver a mostrar la cuchara o copa"
+        onClick={() => onDeshabilitadaChange(false)}
+        className="w-full rounded-[4px] border border-dashed border-[color:var(--acento-50)] px-3 py-1.5 text-[14px] font-bold text-[color:var(--acento)]"
+      >
+        + Cuchara o copa
+      </button>
+    );
+  }
   if (!editMode && !cantidad.trim()) return null;
 
   return (
-    <div className="w-full overflow-hidden rounded-[4px] border-[1.5px] border-[color:var(--acento)] text-center">
+    <div className="relative w-full overflow-hidden rounded-[4px] border-[1.5px] border-[color:var(--acento)] text-center">
+      {editMode && onDeshabilitadaChange && (
+        <button
+          type="button"
+          title="Quitar la cuchara o copa de esta etiqueta"
+          onClick={() => onDeshabilitadaChange(true)}
+          style={{ fontSize: 22, lineHeight: "22px" }}
+          className="mck-btn-no-fx absolute right-1.5 top-1 z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] border-[color:var(--acento)] bg-white p-0 font-bold text-[color:var(--acento)]"
+        >
+          ×
+        </button>
+      )}
       <div className="flex min-h-[34px] items-center justify-center px-3">
         <EditableLabel
           texto={rotulo}

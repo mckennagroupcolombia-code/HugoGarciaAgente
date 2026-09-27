@@ -1920,7 +1920,7 @@
     },
     "C-CITPOT500G": {
       "ref": "C-CITPOT500G",
-      "nombre": "CITRATO DE POTASIO",
+      "nombre": "Citrato de Potasio",
       "lotes": [
         {
           "lote_numero": "TAC659",
@@ -1933,15 +1933,29 @@
           "codigo_verificacion": "HW3V62",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "25121001",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-27",
+          "codigo_verificacion": "V4B3HZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-27T01:07:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-27T01:07:56+00:00"
     },
     "C-CITPOT250G": {
       "ref": "C-CITPOT250G",
-      "nombre": "CITRATO DE POTASIO",
+      "nombre": "Citrato de Potasio",
       "lotes": [
         {
           "lote_numero": "TAC659",
@@ -1954,11 +1968,25 @@
           "codigo_verificacion": "HW3V62",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:41+00:00"
+        },
+        {
+          "lote_numero": "25121001",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-27",
+          "codigo_verificacion": "V4B3HZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-27T01:07:56+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:41+00:00"
+      "updated_at": "2026-09-27T01:07:56+00:00"
     },
     "C-CITZIN500G": {
       "ref": "C-CITZIN500G",
@@ -3782,10 +3810,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T19:02:49+00:00"
+          "registrado_en": "2026-09-26T21:11:17+00:00"
         }
       ],
-      "updated_at": "2026-09-22T19:02:49+00:00"
+      "updated_at": "2026-09-26T21:11:17+00:00"
     },
     "C-MANKAR125G": {
       "ref": "C-MANKAR125G",
@@ -4048,10 +4076,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:31:28+00:00"
+          "registrado_en": "2026-09-26T21:04:15+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:31:28+00:00"
+      "updated_at": "2026-09-26T21:04:15+00:00"
     },
     "C-CREMON500G": {
       "ref": "C-CREMON500G",
@@ -4083,10 +4111,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:31:28+00:00"
+          "registrado_en": "2026-09-26T21:04:15+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:31:28+00:00"
+      "updated_at": "2026-09-26T21:04:15+00:00"
     },
     "C-CREMON250G": {
       "ref": "C-CREMON250G",
@@ -4118,10 +4146,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:31:28+00:00"
+          "registrado_en": "2026-09-26T21:04:15+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:31:28+00:00"
+      "updated_at": "2026-09-26T21:04:15+00:00"
     },
     "C-ELAHID30ML": {
       "ref": "C-ELAHID30ML",
@@ -5014,10 +5042,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-08-24T19:31:28+00:00"
+          "registrado_en": "2026-09-26T21:04:15+00:00"
         }
       ],
-      "updated_at": "2026-08-24T19:31:28+00:00"
+      "updated_at": "2026-09-26T21:04:15+00:00"
     },
     "C-SORPOLKG": {
       "ref": "C-SORPOLKG",
@@ -5266,10 +5294,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-15T04:45:41+00:00"
+          "registrado_en": "2026-09-26T21:26:54+00:00"
         }
       ],
-      "updated_at": "2026-09-15T04:45:41+00:00"
+      "updated_at": "2026-09-26T21:26:54+00:00"
     },
     "C-GLI500G": {
       "ref": "C-GLI500G",
@@ -5287,10 +5315,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-15T04:45:41+00:00"
+          "registrado_en": "2026-09-26T21:26:54+00:00"
         }
       ],
-      "updated_at": "2026-09-15T04:45:41+00:00"
+      "updated_at": "2026-09-26T21:26:54+00:00"
     },
     "C-ACEESECAN5ML": {
       "ref": "C-ACEESECAN5ML",
@@ -5543,7 +5571,7 @@
       "lotes": [
         {
           "lote_numero": "250312",
-          "estado": "nuevo",
+          "estado": "sin_cambios",
           "fabricante": "",
           "pais_origen": "España",
           "fecha_fabricacion": "11-12/10/2025",
@@ -5553,10 +5581,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-22T16:11:04+00:00"
+          "registrado_en": "2026-09-26T21:54:35+00:00"
         }
       ],
-      "updated_at": "2026-09-22T16:11:04+00:00"
+      "updated_at": "2026-09-26T21:54:35+00:00"
     },
     "LECSOYG": {
       "ref": "LECSOYG",
@@ -5616,10 +5644,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T22:03:31+00:00"
+          "registrado_en": "2026-09-26T21:41:45+00:00"
         }
       ],
-      "updated_at": "2026-09-25T22:03:31+00:00"
+      "updated_at": "2026-09-26T21:41:45+00:00"
     },
     "GELSINSABG": {
       "ref": "GELSINSABG",
@@ -5868,10 +5896,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T19:43:31+00:00"
+          "registrado_en": "2026-09-26T20:56:34+00:00"
         }
       ],
-      "updated_at": "2026-09-25T19:43:31+00:00"
+      "updated_at": "2026-09-26T20:56:34+00:00"
     },
     "C-PSYESC500G": {
       "ref": "C-PSYESC500G",
@@ -5889,10 +5917,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T19:43:31+00:00"
+          "registrado_en": "2026-09-26T20:56:34+00:00"
         }
       ],
-      "updated_at": "2026-09-25T19:43:31+00:00"
+      "updated_at": "2026-09-26T20:56:34+00:00"
     },
     "PSYESCG": {
       "ref": "PSYESCG",
@@ -6250,6 +6278,90 @@
         }
       ],
       "updated_at": "2026-09-26T07:06:43+00:00"
+    },
+    "C-SUC100G": {
+      "ref": "C-SUC100G",
+      "nombre": "SUCRALOSA",
+      "lotes": [
+        {
+          "lote_numero": "202512055",
+          "estado": "nuevo",
+          "fabricante": "Anhui Jinhe Industrial Co., Ltd.",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-26",
+          "codigo_verificacion": "T6GUDS",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-26T20:29:04+00:00"
+        }
+      ],
+      "updated_at": "2026-09-26T20:29:04+00:00"
+    },
+    "AMIBCAG": {
+      "ref": "AMIBCAG",
+      "nombre": "AMINOÁCIDO BCAA INSTANT (M)",
+      "lotes": [
+        {
+          "lote_numero": "211SBCFM250722022",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-26",
+          "codigo_verificacion": "LXQCXW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-26T21:00:42+00:00"
+        }
+      ],
+      "updated_at": "2026-09-26T21:00:42+00:00"
+    },
+    "C-LTRI100G": {
+      "ref": "C-LTRI100G",
+      "nombre": "L-TRIPTÓFANO",
+      "lotes": [
+        {
+          "lote_numero": "25100402",
+          "estado": "sin_cambios",
+          "fabricante": "Smart Chemical",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-26",
+          "codigo_verificacion": "Q7PSKR",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-26T21:51:43+00:00"
+        }
+      ],
+      "updated_at": "2026-09-26T21:51:43+00:00"
+    },
+    "C-CITPOTKG": {
+      "ref": "C-CITPOTKG",
+      "nombre": "Citrato de Potasio",
+      "lotes": [
+        {
+          "lote_numero": "25121001",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-27",
+          "codigo_verificacion": "V4B3HZ",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-27T01:07:56+00:00"
+        }
+      ],
+      "updated_at": "2026-09-27T01:07:56+00:00"
     }
   }
 }
