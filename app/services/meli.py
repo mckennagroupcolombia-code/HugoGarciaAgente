@@ -229,7 +229,12 @@ def consultar_orden_meli_completa(order_id: str, *, token: str | None = None) ->
         )
     except requests.RequestException:
         return None
-    if res.status_code != 200:
+    # MeLi a veces responde 206 (Partial Content) con el JSON completo y
+    # usable — no es un error, es que algún sub-recurso interno de MeLi
+    # tardó en resolverse. Tratarlo como fallo dejaba una orden real
+    # "ilegible" para siempre (ver Pack 2000015100474637, 27-sep-2026:
+    # bloqueó la factura de una venta ya entregada durante 9 días).
+    if res.status_code not in (200, 206):
         return None
     try:
         return res.json()
