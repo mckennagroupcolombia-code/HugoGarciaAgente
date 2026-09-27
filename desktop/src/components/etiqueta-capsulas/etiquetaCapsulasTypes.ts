@@ -42,8 +42,8 @@ export interface ReticulaCapsulas {
   interior: number;
   /** Panel principal: cabecera de marca · identificación · presentación. */
   principal: [number, number, number];
-  /** Panel auxiliar: composición/color · conservación · lote · código · pie. */
-  auxiliar: [number, number, number, number, number];
+  /** Panel auxiliar: color · conservación · en blanco · código · pie. */
+  auxiliar: [number, number, number, number];
 }
 
 /** Reparte `total` px según `pesos` (%) en enteros que suman exacto. */
@@ -72,7 +72,7 @@ export function reticulaCapsulas(anchoMm?: number, altoMm?: number): ReticulaCap
     linea: 2,
     interior,
     principal: repartir(interior, [43, 39, 18]) as ReticulaCapsulas["principal"],
-    auxiliar: repartir(interior, [20, 20, 13, 31, 16]) as ReticulaCapsulas["auxiliar"],
+    auxiliar: repartir(interior, [20, 20, 44, 16]) as ReticulaCapsulas["auxiliar"],
   };
 }
 

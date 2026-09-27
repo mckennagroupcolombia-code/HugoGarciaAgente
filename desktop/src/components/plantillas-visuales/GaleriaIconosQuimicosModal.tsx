@@ -189,8 +189,10 @@ export default function GaleriaIconosQuimicosModal({
                     className="group flex flex-col items-center rounded-xl border border-border bg-surface p-2.5 text-center transition hover:border-accent hover:bg-accent/5 hover:shadow-md"
                   >
                     <div
-                      className="flex h-16 w-16 items-center justify-center transition group-hover:scale-110"
-                      style={{ color: colorPersonalizado }}
+                      className="flex h-16 w-16 items-center justify-center rounded-lg border border-black/15 transition group-hover:scale-110"
+                      // Papel claro fijo: la etiqueta se imprime sobre blanco y la tinta por
+                      // defecto es casi negra; con el fondo del tema oscuro no se distinguía.
+                      style={{ color: colorPersonalizado, backgroundColor: "#FFFDF7" }}
                       dangerouslySetInnerHTML={{ __html: svgPreview }}
                     />
                     <span className="mt-1.5 line-clamp-2 w-full text-[10px] font-medium leading-tight text-muted group-hover:text-ink">

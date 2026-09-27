@@ -25,6 +25,7 @@ export default function BarcodeBlock({
   className = "relative flex flex-col items-center justify-center gap-1.5 px-4 py-2.5",
   claseBoton = "",
   claseImagen = "h-auto w-full max-w-[280px]",
+  centrarBarras = false,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -39,14 +40,17 @@ export default function BarcodeBlock({
   className?: string;
   claseBoton?: string;
   claseImagen?: string;
+  /** Las barras en el centro exacto de la imagen (ver OpcionesEAN13 en lib/ean13). */
+  centrarBarras?: boolean;
 }) {
   const ean = useMemo(
     () =>
       generarEAN13(
         value,
         franja ? { colores: COLORES_FRANJA_BARRAS, alto: franja.alto, separacion: franja.separacion } : undefined,
+        { centrado: centrarBarras },
       ),
-    [value, franja?.alto, franja?.separacion, franja],
+    [value, franja?.alto, franja?.separacion, franja, centrarBarras],
   );
 
   const { data: codigos } = useCodigosEan();

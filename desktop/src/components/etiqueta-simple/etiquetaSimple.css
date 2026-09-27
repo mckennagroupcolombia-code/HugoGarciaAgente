@@ -355,6 +355,11 @@
   text-transform: uppercase;
   color: var(--acento);
 }
+/* En edición es un <input> de bloque y 100 % de ancho: con solo el `max-width`
+   quedaba pegado a la izquierda de su contenedor (15 px corrido). */
+.es-info .es-info-docs {
+  margin-inline: auto;
+}
 .es-info-docs {
   max-width: 92%;
   font-size: 16px;

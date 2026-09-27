@@ -12,12 +12,15 @@ export default function BarcodeSection({
   onChange,
   onElegirCodigo,
   franja,
+  centrarBarras,
 }: {
   value: string;
   editMode: boolean;
   onChange: (v: string) => void;
   onElegirCodigo?: (codigo: CodigoEan) => void;
   franja?: FranjaBarras;
+  /** Barras centradas en su caja (etiqueta simple 69 × 51). */
+  centrarBarras?: boolean;
 }) {
   return (
     <BarcodeBlock
@@ -26,6 +29,7 @@ export default function BarcodeSection({
       onElegirCodigo={onElegirCodigo}
       editMode={editMode}
       franja={franja}
+      centrarBarras={centrarBarras}
       className="e30-barras"
       claseBoton="e30-barras-boton mck-btn-no-fx"
       claseImagen="e30-barras-img"

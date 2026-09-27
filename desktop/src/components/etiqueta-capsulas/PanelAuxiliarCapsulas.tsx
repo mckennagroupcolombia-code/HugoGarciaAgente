@@ -9,16 +9,18 @@ import CampoEtiqueta from "../etiqueta-30ml/CampoEtiqueta";
 import { ALTO_FRANJA_5ML } from "../etiqueta-5ml/etiqueta5mlTypes";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import { generarEAN13 } from "../../lib/ean13";
-import { CasillaConIcono, CasillaDato } from "./CasillasCapsulas";
+import { CasillaConIcono } from "./CasillasCapsulas";
 import { EJEMPLO_CAPSULAS, ICONOS_CAPSULAS, TAM_CAPSULAS } from "./etiquetaCapsulasTypes";
 
 /** Casillas con ícono: la clave con la que se guarda su ícono en
  *  `attribute_icons`. El color de la cápsula usa la de «apariencia». */
 type CampoIcono = "composition" | "appearance" | "storage";
 
-/** Panel auxiliar (derecha), cinco franjas: Composición | Color (20 %) ·
- *  Conservación (20 %) · Lote | Vencimiento (13 %) · código de barras (31 %)
- *  · pie corporativo (16 %). */
+/** Panel auxiliar (derecha), cuatro franjas: Color (20 %) · Conservación
+ *  (20 %) · timbre en blanco + código de barras (44 %) · pie corporativo
+ *  (16 %). Composición, Lote y Vencimiento se quitaron el 2026-09-27
+ *  (pedido del usuario); el espacio que dejaron Lote y Vencimiento se unió
+ *  a la franja del código de barras, con el timbre a la izquierda. */
 export default function PanelAuxiliarCapsulas({
   data,
   editMode,
@@ -44,37 +46,22 @@ export default function PanelAuxiliarCapsulas({
 
   return (
     <section className="ecap-panel ecap-panel-auxiliar" aria-label="Datos del producto">
-      <div className="ecap-par e30-linea-inf">
-        <CasillaConIcono
-          campo="composition"
-          titulo="COMPOSICIÓN"
-          valor={data.composition || ""}
-          ejemplo={EJEMPLO_CAPSULAS.composition}
-          iconoElegido={attributeIcons.composition}
-          iconoPorDefecto={ICONOS_CAPSULAS.composition}
-          editMode={editMode}
-          tam={TAM_CAPSULAS.valorCasilla}
-          maxLineas={2}
-          multilinea
-          lineas="e30-linea-der"
-          onChange={cambio("composition")}
-          onEditarIcono={editarIcono("composition")}
-        />
-        <CasillaConIcono
-          campo="capsulasColor"
-          titulo="COLOR"
-          valor={data.capsulasColor || ""}
-          ejemplo={EJEMPLO_CAPSULAS.capsulasColor}
-          iconoElegido={attributeIcons.appearance}
-          iconoPorDefecto={ICONOS_CAPSULAS.appearance}
-          editMode={editMode}
-          tam={TAM_CAPSULAS.valorCasilla}
-          maxLineas={2}
-          multilinea
-          onChange={cambio("capsulasColor")}
-          onEditarIcono={editarIcono("appearance")}
-        />
-      </div>
+      {/* Composición se quitó el 2026-09-27 (pedido del usuario): Color pasa a ocupar toda la fila. */}
+      <CasillaConIcono
+        campo="capsulasColor"
+        titulo="COLOR"
+        valor={data.capsulasColor || ""}
+        ejemplo={EJEMPLO_CAPSULAS.capsulasColor}
+        iconoElegido={attributeIcons.appearance}
+        iconoPorDefecto={ICONOS_CAPSULAS.appearance}
+        editMode={editMode}
+        tam={TAM_CAPSULAS.valorCasilla}
+        maxLineas={2}
+        multilinea
+        lineas="e30-linea-inf"
+        onChange={cambio("capsulasColor")}
+        onEditarIcono={editarIcono("appearance")}
+      />
 
       <CasillaConIcono
         campo="storage"
@@ -92,48 +79,31 @@ export default function PanelAuxiliarCapsulas({
         onEditarIcono={editarIcono("storage")}
       />
 
-      <div className="ecap-par e30-linea-inf">
-        <CasillaDato
-          campo="lote"
-          titulo="LOTE:"
-          valor={data.lote || ""}
-          ejemplo={EJEMPLO_CAPSULAS.lote}
-          editMode={editMode}
-          tam={TAM_CAPSULAS.lote}
-          enLinea
-          lineas="e30-linea-der"
-          onChange={cambio("lote")}
-        />
-        <CasillaDato
-          campo="vencimiento"
-          titulo="VENCIMIENTO:"
-          valor={data.vencimiento || ""}
-          ejemplo={EJEMPLO_CAPSULAS.vencimiento}
-          editMode={editMode}
-          tam={TAM_CAPSULAS.lote}
-          enLinea
-          onChange={cambio("vencimiento")}
-        />
-      </div>
-
-      {codigoValido || editable ? (
-        <BarcodeSection
-          value={data.barcode}
-          editMode={editable}
-          onChange={(v) => onChange?.({ barcode: v })}
-          onElegirCodigo={onElegirCodigo}
-          franja={{ alto: ALTO_FRANJA_5ML }}
-        />
-      ) : (
-        <div className="ecap-barras-vacio">
-          <span className="ecap-franja-colores" aria-hidden="true">
-            {COLORES_FRANJA_BARRAS.map((c) => (
-              <span key={c} style={{ background: c }} />
-            ))}
-          </span>
-          <span className="ecap-barras-rotulo">CÓDIGO DE BARRAS</span>
+      {/* Timbre + código de barras (2026-09-27, pedido del usuario): el timbre es el
+          espacio en blanco que dejaron Lote y Vencimiento, unido a esta franja. */}
+      <div className="ecap-fila-barras">
+        <div className="ecap-timbre" aria-hidden="true">
+          TIMBRE
         </div>
-      )}
+        {codigoValido || editable ? (
+          <BarcodeSection
+            value={data.barcode}
+            editMode={editable}
+            onChange={(v) => onChange?.({ barcode: v })}
+            onElegirCodigo={onElegirCodigo}
+            franja={{ alto: ALTO_FRANJA_5ML }}
+          />
+        ) : (
+          <div className="ecap-barras-vacio">
+            <span className="ecap-franja-colores" aria-hidden="true">
+              {COLORES_FRANJA_BARRAS.map((c) => (
+                <span key={c} style={{ background: c }} />
+              ))}
+            </span>
+            <span className="ecap-barras-rotulo">CÓDIGO DE BARRAS</span>
+          </div>
+        )}
+      </div>
 
       <div className="ecap-pie">
         {[

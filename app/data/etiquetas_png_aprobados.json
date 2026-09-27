@@ -1052,6 +1052,357 @@
         "aprobado_at": "2026-09-26T22:57:21",
         "por": "@cynthia"
       }
+    },
+    "aa82caf50afc": {
+      "barcode": "7702005002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_20_500mL.png",
+        "aprobado_at": "2026-09-26T23:00:26",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_20_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:00:28",
+        "por": "@cynthia"
+      }
+    },
+    "90f297276950": {
+      "barcode": "7702015002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_80P_500mL.png",
+        "aprobado_at": "2026-09-26T23:01:41",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/POLISORBATO_TWEEN_80P_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:01:42",
+        "por": "@cynthia"
+      }
+    },
+    "2d8ccfa05aa3": {
+      "barcode": "7701695002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/GOMA_XANTANA_500g.png",
+        "aprobado_at": "2026-09-26T23:04:29",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/GOMA_XANTANA_500g_digital.png",
+        "aprobado_at": "2026-09-26T23:04:30",
+        "por": "@cynthia"
+      }
+    },
+    "7fa0cda0d732": {
+      "barcode": "7701742502632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Harinas/INULINA_250g.png",
+        "aprobado_at": "2026-09-26T23:09:35",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Harinas/INULINA_250g_digital.png",
+        "aprobado_at": "2026-09-26T23:09:35",
+        "por": "@cynthia"
+      }
+    },
+    "1c5338ee1f14": {
+      "barcode": "7701755002631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Harinas/INULINA_500g.png",
+        "aprobado_at": "2026-09-26T23:10:39",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Harinas/INULINA_500g_digital.png",
+        "aprobado_at": "2026-09-26T23:10:39",
+        "por": "@cynthia"
+      }
+    },
+    "5b3e3a6ada26": {
+      "barcode": "7701855002630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Harinas/MALTODEXTRINA_500g.png",
+        "aprobado_at": "2026-09-26T23:12:35",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Harinas/MALTODEXTRINA_500g_digital.png",
+        "aprobado_at": "2026-09-26T23:12:36",
+        "por": "@cynthia"
+      }
+    },
+    "f569dae221dd": {
+      "barcode": "7701420012637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Harinas/DEXTROSA_Kg.png",
+        "aprobado_at": "2026-09-26T23:14:19",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Harinas/DEXTROSA_Kg_digital.png",
+        "aprobado_at": "2026-09-26T23:14:19",
+        "por": "@cynthia"
+      }
+    },
+    "168a3f933cfa": {
+      "barcode": "7700230012639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Harinas/INULINA.png",
+        "aprobado_at": "2026-09-26T23:15:45",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Harinas/INULINA_digital.png",
+        "aprobado_at": "2026-09-26T23:15:45",
+        "por": "@cynthia"
+      }
+    },
+    "a8983784ba61": {
+      "barcode": "7701620012635",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_Lt.png",
+        "aprobado_at": "2026-09-26T23:18:13",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_Lt_digital.png",
+        "aprobado_at": "2026-09-26T23:18:13",
+        "por": "@cynthia"
+      }
+    },
+    "039ca9410dcb": {
+      "barcode": "7700192502636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/AGUA_DESTILADA_250mL.png",
+        "aprobado_at": "2026-09-26T23:21:04",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/AGUA_DESTILADA_250mL_digital.png",
+        "aprobado_at": "2026-09-26T23:21:04",
+        "por": "@cynthia"
+      }
+    },
+    "643bf1456804": {
+      "barcode": "7701612502632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_250gmL.png",
+        "aprobado_at": "2026-09-26T23:27:04",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_250gmL_digital.png",
+        "aprobado_at": "2026-09-26T23:27:08",
+        "por": "@cynthia"
+      }
+    },
+    "735de375ac5d": {
+      "barcode": "7701605002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_500mL.png",
+        "aprobado_at": "2026-09-26T23:26:37",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:26:38",
+        "por": "@cynthia"
+      }
+    },
+    "0861b4133631": {
+      "barcode": "7700215002631",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/DPG_500mL.png",
+        "aprobado_at": "2026-09-26T23:29:35",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/DPG_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:29:36",
+        "por": "@cynthia"
+      }
+    },
+    "f836006c821f": {
+      "barcode": "7701605002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_500mL.png",
+        "aprobado_at": "2026-09-26T23:32:04",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:32:05",
+        "por": "@cynthia"
+      }
+    },
+    "3651e0229dc7": {
+      "barcode": "7702115002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/SORBITOL_LIQUIDO_500mL.png",
+        "aprobado_at": "2026-09-26T23:35:08",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/SORBITOL_LIQUIDO_500mL_digital.png",
+        "aprobado_at": "2026-09-26T23:35:08",
+        "por": "@cynthia"
+      }
+    },
+    "de3111179c5d": {
+      "barcode": "7702120012637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/SORBITOL_POLVO_Kg.png",
+        "aprobado_at": "2026-09-26T23:38:49",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/SORBITOL_POLVO_Kg_digital.png",
+        "aprobado_at": "2026-09-26T23:38:51",
+        "por": "@cynthia"
+      }
+    },
+    "f29614cc7229": {
+      "barcode": "7701561002634",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Extractos Frutales & Hierbas/FLORES_SECAS_LAVANDA_100g.png",
+        "aprobado_at": "2026-09-27T00:09:33",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Extractos Frutales & Hierbas/FLORES_SECAS_LAVANDA_100g_digital.png",
+        "aprobado_at": "2026-09-27T00:09:34",
+        "por": "@cynthia"
+      }
+    },
+    "d8c2dabcbb6f": {
+      "barcode": "7701551002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aditivos alimentarios/EXTRACTO_TE_VERDE_MATCHA_100g.png",
+        "aprobado_at": "2026-09-27T01:27:21",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aditivos alimentarios/EXTRACTO_TE_VERDE_MATCHA_100g_digital.png",
+        "aprobado_at": "2026-09-27T01:27:21",
+        "por": "@cynthia"
+      }
+    },
+    "3a6f9de24049": {
+      "barcode": "7701545002636",
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Extractos Frutales & Hierbas/EXTRACTO_MALTA_500g_digital.png",
+        "aprobado_at": "2026-09-27T01:30:30",
+        "por": "@cynthia"
+      },
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Extractos Frutales & Hierbas/EXTRACTO_MALTA_500g.png",
+        "aprobado_at": "2026-09-27T01:30:30",
+        "por": "@cynthia"
+      }
+    },
+    "ae0ea6bdd9b6": {
+      "barcode": "7701415002636",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Sales minerales/CREMOR_TARTARO_500g.png",
+        "aprobado_at": "2026-09-27T01:34:44",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Sales minerales/CREMOR_TARTARO_500g_digital.png",
+        "aprobado_at": "2026-09-27T01:34:45",
+        "por": "@cynthia"
+      }
+    },
+    "0e93e2164458": {
+      "barcode": "7702305002637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Vitaminas & Enzimas/VITAMINA_C_ACIDO_ASCORBICO_500g.png",
+        "aprobado_at": "2026-09-27T01:50:07",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Vitaminas & Enzimas/VITAMINA_C_ACIDO_ASCORBICO_500g_digital.png",
+        "aprobado_at": "2026-09-27T01:50:08",
+        "por": "@cynthia"
+      }
+    },
+    "aa482e1f6093": {
+      "barcode": "7702292502639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Vitaminas & Enzimas/VITAMINA_C_ACIDO_ASCORBICO_250g.png",
+        "aprobado_at": "2026-09-27T01:51:56",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Vitaminas & Enzimas/VITAMINA_C_ACIDO_ASCORBICO_250g_digital.png",
+        "aprobado_at": "2026-09-27T01:51:57",
+        "por": "@cynthia"
+      }
+    },
+    "51c01dd8aae2": {
+      "barcode": "7702215002635",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Tensoactivos/TEGO_BETAINA_COCO_500mL.png",
+        "aprobado_at": "2026-09-27T01:53:54",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Tensoactivos/TEGO_BETAINA_COCO_500mL_digital.png",
+        "aprobado_at": "2026-09-27T01:53:55",
+        "por": "@cynthia"
+      }
+    },
+    "0d73b6822353": {
+      "barcode": "7701345002638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Tensoactivos/COCOAMIDA_500mL.png",
+        "aprobado_at": "2026-09-27T01:55:51",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Tensoactivos/COCOAMIDA_500mL_digital.png",
+        "aprobado_at": "2026-09-27T01:55:51",
+        "por": "@cynthia"
+      }
+    },
+    "2b1743c2a783": {
+      "barcode": "7701062502633",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Tensoactivos/SCI_250g.png",
+        "aprobado_at": "2026-09-27T01:57:47",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Tensoactivos/SCI_250g_digital.png",
+        "aprobado_at": "2026-09-27T01:57:48",
+        "por": "@cynthia"
+      }
+    },
+    "1e60ac62f6a0": {
+      "barcode": "7701115002639",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Tensoactivos/SCI_500g.png",
+        "aprobado_at": "2026-09-27T01:58:38",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Tensoactivos/SCI_500g_digital.png",
+        "aprobado_at": "2026-09-27T01:58:38",
+        "por": "@cynthia"
+      }
+    },
+    "5b6961444618": {
+      "barcode": "7702240012630",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Tensoactivos/SCI_Kg.png",
+        "aprobado_at": "2026-09-27T02:00:10",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Tensoactivos/SCI_Kg_digital.png",
+        "aprobado_at": "2026-09-27T02:00:11",
+        "por": "@cynthia"
+      }
     }
   }
 }

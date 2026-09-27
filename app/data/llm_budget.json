@@ -1,22 +1,14 @@
 {
- "fecha": "2026-09-26",
- "gasto_usd": 0.731432,
- "llamadas": 57,
+ "fecha": "2026-09-27",
+ "gasto_usd": 0.033238,
+ "llamadas": 2,
  "por_modelo": {
-  "gemini-2.5-flash": 0.209512,
-  "claude-sonnet-5": 0.058412,
-  "gemini-2.5-pro": 0.463507
+  "gemini-2.5-flash": 0.005027,
+  "gemini-2.5-pro": 0.028211
  },
  "por_contexto": {
-  "documentos_sugerir_campo": 0.145148,
-  "wa_ventas_v2": 0.01066,
-  "cliente_chat": 0.008068,
-  "documentos_sugerir_sds": 0.463507,
-  "auditor_canales": 0.039684,
-  "ft_scan_tablas": 0.021404,
-  "ft_scan_estructurar": 0.030108,
-  "coa_scan_tablas": 0.005461,
-  "coa_scan_estructurar": 0.007392
+  "documentos_sugerir_campo": 0.005027,
+  "documentos_sugerir_sds": 0.028211
  },
  "alerta_enviada": false,
  "historial": [
@@ -784,6 +776,27 @@
     "ft_scan_tablas": 0.046441,
     "ft_scan_estructurar": 0.05838,
     "documentos_sugerir_sds": 0.538407
+   }
+  },
+  {
+   "fecha": "2026-09-26",
+   "gasto_usd": 0.7414,
+   "llamadas": 60,
+   "por_modelo": {
+    "gemini-2.5-flash": 0.219481,
+    "claude-sonnet-5": 0.058412,
+    "gemini-2.5-pro": 0.463507
+   },
+   "por_contexto": {
+    "documentos_sugerir_campo": 0.155117,
+    "wa_ventas_v2": 0.01066,
+    "cliente_chat": 0.008068,
+    "documentos_sugerir_sds": 0.463507,
+    "auditor_canales": 0.039684,
+    "ft_scan_tablas": 0.021404,
+    "ft_scan_estructurar": 0.030108,
+    "coa_scan_tablas": 0.005461,
+    "coa_scan_estructurar": 0.007392
    }
   }
  ]

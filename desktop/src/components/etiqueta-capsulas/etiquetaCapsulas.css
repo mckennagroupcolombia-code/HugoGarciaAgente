@@ -243,7 +243,29 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-/* ── Código de barras ────────────────────────────────────────────────────── */
+/* ── Timbre + código de barras ───────────────────────────────────────────── */
+
+/* El timbre (espacio en blanco para timbrar a mano) a la izquierda, el
+   código de barras a la derecha, con más ancho porque lo necesita. */
+.ecap-fila-barras {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  align-items: stretch;
+}
+
+.ecap-timbre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0 6px 8px;
+  border: 1.5px dashed #b8b8b8;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
 
 .ecap-etiqueta .e30-barras {
   padding: 6px 0 4px;

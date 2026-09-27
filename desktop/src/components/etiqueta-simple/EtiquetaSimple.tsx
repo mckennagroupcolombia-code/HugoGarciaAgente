@@ -274,6 +274,7 @@ const EtiquetaSimple = forwardRef<HTMLDivElement, Props>(function EtiquetaSimple
             value={data.barcode}
             editMode={editable}
             franja={{ alto: ALTO_FRANJA_SIMPLE }}
+            centrarBarras
             onChange={(v) => onChange?.({ barcode: v })}
             onElegirCodigo={onElegirCodigo}
           />

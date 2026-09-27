@@ -49,7 +49,15 @@ export interface FranjaEAN13 {
   separacion?: number;
 }
 
-export function generarEAN13(input: string, franja?: FranjaEAN13): EAN13Result | null {
+export interface OpcionesEAN13 {
+  /** Margen derecho igual al izquierdo (11 módulos, no 7): las barras quedan en
+   *  el centro exacto de la imagen. La zona muda estándar es asimétrica porque
+   *  el primer dígito se imprime en la de la izquierda; una etiqueta que centra
+   *  el código en su columna necesita este equilibrio o lo ve corrido. */
+  centrado?: boolean;
+}
+
+export function generarEAN13(input: string, franja?: FranjaEAN13, opciones?: OpcionesEAN13): EAN13Result | null {
   const raw = input.replace(/\D/g, "");
   if (raw.length < 12 || raw.length > 13) return null;
 
@@ -59,7 +67,7 @@ export function generarEAN13(input: string, franja?: FranjaEAN13): EAN13Result |
   // Layout constants (all in px) — mw=3 gives 339×112px for good print resolution
   const mw = 3;       // module width
   const qzL = 11;     // quiet zone left modules
-  const qzR = 7;      // quiet zone right modules
+  const qzR = opciones?.centrado ? qzL : 7;      // quiet zone right modules
   const dataH = 80;   // data bar height
   const gExt = 12;    // guard bar extra height below data bars
   const textH = 20;   // text row height
