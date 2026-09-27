@@ -1,3 +1,13 @@
+### 2026-09-27 16:00 - Facturación MeLi: lo vendido en el mes se factura en el mes
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección. Sin LLM.
+- **Qué se implementó:**
+  - **Regla de cierre de mes** (`en_ventana_cierre_mes`): en los últimos días del mes (`FACTURACION_CIERRE_MES_DIAS`, en el `.env` quedó en 4) y siempre que una venta de un mes ya cerrado siga sin factura, «Facturar ahora» ya no espera el margen de 48h ni la entrega confirmada de MeLi: basta con que el pedido esté despachado (`shipped`). Lo no despachado sigue bloqueado. El disparo automático por webhook no cambió.
+  - Estado nuevo **«🔴 Cierre de mes: facturar ya»** (`sin_facturar_cierre_mes`) en Facturación → Ventas: cuenta como pendiente, se puede facturar y se revalida como los demás.
+  - Alias de venta `CRCRNLB → C-CERCAR500g` (la cera carnauba que no facturaba).
+  - Resultado: septiembre quedó con las 793 ventas MeLi no canceladas facturadas (FE899–FE903 emitidas en esta sesión). La bolsa ziploc 15x21 se destrabó con el ajuste de inventario N.º 1 en Alegra (+2.900, costo 0: el valor ya había entrado con el comprobante 156).
+- **Archivos Modificados:** `app/services/conciliacion_meli.py`, `app/services/facturacion_ventas_unificado.py`, `app/services/facturacion_ventas_cache.py`, `app/tools/meli_autofactura_entrega.py`, `app/tools/revision_facturacion.py`, `desktop/src/components/VentasAstroKillerPanel.tsx`, `app/data/alegra_sku_alias_venta.json`, `.env.example`, `docs/agentic/modules/facturacion-meli-alegra.md`.
+
 ### 2026-09-26 07:40 - El Edificio del Mapa cuenta la operación real de McKenna
 - **Autor:** Armando García
 - **Tipo de Cambio:** Mejora visual con datos reales. Sin LLM.

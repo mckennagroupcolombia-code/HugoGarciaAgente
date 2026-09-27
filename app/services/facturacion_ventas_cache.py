@@ -283,6 +283,7 @@ def revisiones_map() -> dict[str, dict]:
 # no cambian solas y no vale la pena volver a consultarlas.
 ESTADOS_QUE_ENVEJECEN = (
     "sin_facturar",
+    "sin_facturar_cierre_mes",
     "facturada_parcial",
     "facturada_pendiente_subir_meli",
     "cancelada_pendiente_nc",
@@ -290,7 +291,13 @@ ESTADOS_QUE_ENVEJECEN = (
     "en_margen_entrega",
     "cancelada_en_margen",
 )
-_ACCIONABLES = ("sin_facturar", "facturada_parcial", "facturada_pendiente_subir_meli", "cancelada_pendiente_nc")
+_ACCIONABLES = (
+    "sin_facturar",
+    "sin_facturar_cierre_mes",
+    "facturada_parcial",
+    "facturada_pendiente_subir_meli",
+    "cancelada_pendiente_nc",
+)
 
 
 def filas_para_revalidar(*, max_filas: int = 60, edad_minima_min: int = 20) -> list[str]:

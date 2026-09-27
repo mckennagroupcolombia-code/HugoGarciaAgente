@@ -232,6 +232,35 @@ impuestos).
   manda un WhatsApp solo con casos **nuevos** sin revisar ni intervención (tabla `avisos_revision`).
   El endpoint `generar-ticket-revision` sigue vivo por compatibilidad, sin uso en el panel.
 
+## 13. Cierre de mes: lo vendido en el mes se factura en el mes (27-sep-2026)
+
+**Por qué.** Revisión de fin de septiembre: 21 ventas MeLi del mes seguían sin factura
+(11 `sin_facturar`, 5 `en_margen_entrega`, 5 `en_transito` — las 21 ya estaban `shipped` como
+mínimo, ninguna sin despachar). El flujo H de CLAUDE.md (facturar al entregar, margen de 48h)
+es correcto el resto del mes, pero deja ventas de septiembre colgando para facturarse en
+octubre si nadie interviene a mano — y el IVA/la renta del período tienen que cuadrar con lo
+realmente vendido ESE mes, pedido explícito del usuario ("esto no aplica para cierre de mes").
+
+**Regla implementada.** `app/services/conciliacion_meli.py::en_ventana_cierre_mes(fecha_venta)`:
+activa en los últimos `FACTURACION_CIERRE_MES_DIAS` (default 3) días del mes de la venta, y
+sin límite de tiempo después si el mes ya cerró y la venta sigue sin facturar (la "cola" no
+vence sola). Dentro de esa ventana:
+- Una venta entregada dentro del margen de 48h deja de esperar: pasa a facturable de una vez.
+- Una venta ya **despachada** (`shipped`) también se puede facturar, sin esperar la confirmación
+  `delivered` de MeLi — esto SÍ es una excepción real a la barrera dura que exige `delivered`
+  antes de emitir (`app/tools/meli_autofactura_entrega.py::_bloqueo_por_envio`).
+- Una venta que todavía NO se despachó (pending/handling/ready_to_ship) sigue bloqueada aunque
+  sea cierre de mes: facturar algo que puede cancelarse antes de salir de bodega es justo el
+  riesgo que el margen evita el resto del año — decisión explícita del usuario al alcance de
+  esta regla (se le preguntó y prefirió NO forzar lo no despachado).
+
+**Estado nuevo:** `sin_facturar_cierre_mes` (badge 🔴 en el panel, en `NEEDS_REVIEW` y
+`FACTURABLE` de `VentasAstroKillerPanel.tsx`, con motivo propio en
+`problema_de_venta()`/`ETIQUETA_PROBLEMA`). Reemplaza a `en_transito`/`en_margen_entrega`
+únicamente dentro de la ventana de cierre — el disparo automático por webhook
+(`procesar_entrega_meli_para_factura`, gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO`) NO cambió:
+sigue exigiendo `delivered` siempre, la excepción es solo para el botón manual "Facturar ahora".
+
 Tests: `tests/test_facturacion_revision_por_venta.py`.
 
 ## 11. Doble emisión Alegra↔Alegra, reembolsos y bandeja de resolución (21-sep-2026, tarde)

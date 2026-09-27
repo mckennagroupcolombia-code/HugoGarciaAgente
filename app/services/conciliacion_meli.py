@@ -12,6 +12,7 @@ crédito confiable?" era revisar Siigo y MeLi a mano, pack por pack.
 """
 from __future__ import annotations
 
+import calendar
 import json
 import os
 import re
@@ -125,6 +126,59 @@ def _margen_horas_default() -> float:
         return float(os.getenv("NOTAS_CREDITO_MARGEN_HORAS", "48") or "48")
     except ValueError:
         return 48.0
+
+
+def _dias_cierre_mes_default() -> int:
+    try:
+        return int(os.getenv("FACTURACION_CIERRE_MES_DIAS", "3") or "3")
+    except ValueError:
+        return 3
+
+
+def _parsear_fecha_venta(fecha_txt: str | None) -> datetime | None:
+    if not fecha_txt:
+        return None
+    try:
+        return datetime.fromisoformat(str(fecha_txt).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def en_ventana_cierre_mes(fecha_venta_txt: str | None, *, ahora: datetime | None = None) -> bool:
+    """True si una venta de MeLi debe facturarse YA por cierre de mes, sin
+    esperar el margen de 48h post-entrega ni la confirmación 'delivered' de
+    MeLi (basta con 'shipped').
+
+    Regla de negocio (27-sep-2026, pedido explícito del usuario): lo vendido
+    en un mes se factura en ESE mes para que el IVA/la renta del período
+    cuadren con lo realmente vendido — el flujo H (facturar al entregar, para
+    minimizar notas crédito por devoluciones) sigue siendo el default el
+    resto del mes, pero no puede dejar ventas de septiembre colgando para
+    facturarse en octubre.
+
+    Ventana: los últimos `FACTURACION_CIERRE_MES_DIAS` (default 3) días del
+    mes de la venta, y TODO el tiempo después si el mes de la venta ya quedó
+    atrás y sigue sin facturar (la "cola" de cierre no tiene fecha límite:
+    se queda activa hasta que la venta se resuelve, sin importar cuántos
+    días lleve el mes siguiente corriendo)."""
+    fecha_venta = _parsear_fecha_venta(fecha_venta_txt)
+    if not fecha_venta:
+        return False
+    ahora = ahora or datetime.now()
+    if fecha_venta.tzinfo and not ahora.tzinfo:
+        ahora = ahora.replace(tzinfo=fecha_venta.tzinfo)
+    elif ahora.tzinfo and not fecha_venta.tzinfo:
+        fecha_venta = fecha_venta.replace(tzinfo=ahora.tzinfo)
+
+    mes_venta = (fecha_venta.year, fecha_venta.month)
+    mes_actual = (ahora.year, ahora.month)
+    if mes_venta < mes_actual:
+        return True
+    if mes_venta > mes_actual:
+        return False
+
+    ultimo_dia = calendar.monthrange(ahora.year, ahora.month)[1]
+    return ahora.day > ultimo_dia - _dias_cierre_mes_default()
 
 
 def _fecha_cancelacion(orden: dict) -> datetime | None:

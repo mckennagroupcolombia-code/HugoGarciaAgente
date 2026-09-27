@@ -62,6 +62,29 @@ def _autofactura_activa() -> bool:
     return (os.getenv("MELI_AUTOFACTURA_ENTREGA_ACTIVO", "0") or "0").strip() == "1"
 
 
+def _bloqueo_por_envio(shipment: dict | None, orden: dict) -> str | None:
+    """Motivo para NO facturar por el estado del envío, o None si puede seguir.
+
+    Normalmente exige 'delivered' (Flujo H de CLAUDE.md: facturar al
+    entregarse, no al vender, para minimizar notas crédito por devoluciones).
+    Excepción de cierre de mes (27-sep-2026, pedido explícito del usuario):
+    lo vendido en un mes se factura en ese mes — en los últimos días del mes
+    de la venta (o después, si el mes ya cerró y sigue sin facturar) basta
+    con que el pedido ya haya salido ('shipped'); uno que ni siquiera se
+    despachó sigue bloqueado aunque sea cierre de mes, porque todavía puede
+    cancelarse antes de salir de bodega."""
+    estado_envio = (shipment or {}).get("status")
+    if estado_envio == "delivered":
+        return None
+    if estado_envio == "shipped":
+        from app.services.conciliacion_meli import en_ventana_cierre_mes
+
+        fecha_venta = orden.get("date_closed") or orden.get("date_created")
+        if en_ventana_cierre_mes(fecha_venta):
+            return None
+    return f"El envío está en estado {estado_envio or 'desconocido'!r}, aún no 'delivered'."
+
+
 def _leer_estado_entregas() -> dict:
     try:
         with open(ESTADO_PATH, "r", encoding="utf-8") as f:
@@ -810,11 +833,10 @@ def _facturar_pack_meli_manual_sin_candado(order_id: str) -> dict:
     # El envío es del pack completo, así que basta con el de la orden abierta.
     shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
     shipment = consultar_envio_meli(shipping_id) if shipping_id else None
-    if shipping_id and (shipment or {}).get("status") != "delivered":
-        return {
-            "ok": False,
-            "error": f"El envío está en estado {(shipment or {}).get('status') or 'desconocido'!r}, aún no 'delivered'.",
-        }
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            return {"ok": False, "error": bloqueo_envio}
 
     # Barrera 1: ninguna orden del carrito puede estar ya facturada.
     for oid in order_ids:
@@ -946,9 +968,10 @@ def facturar_orden_meli_manual(order_id: str) -> dict:
 
     shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
     shipment = consultar_envio_meli(shipping_id) if shipping_id else None
-    if shipping_id and (shipment or {}).get("status") != "delivered":
-        estado_envio = (shipment or {}).get("status") or "desconocido"
-        return {"ok": False, "error": f"El envío está en estado {estado_envio!r}, aún no 'delivered'."}
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            return {"ok": False, "error": bloqueo_envio}
 
     activo_previo = os.environ.get("MELI_AUTOFACTURA_ENTREGA_ACTIVO")
     os.environ["MELI_AUTOFACTURA_ENTREGA_ACTIVO"] = "1"
@@ -991,8 +1014,10 @@ def previa_factura_pack_meli(order_id: str) -> dict:
     bloqueos: list[str] = []
     shipping_id = str((orden.get("shipping") or {}).get("id") or "").strip()
     shipment = consultar_envio_meli(shipping_id) if shipping_id else None
-    if shipping_id and (shipment or {}).get("status") != "delivered":
-        bloqueos.append(f"El envío está en estado {(shipment or {}).get('status') or 'desconocido'!r}, aún no 'delivered'.")
+    if shipping_id:
+        bloqueo_envio = _bloqueo_por_envio(shipment, orden)
+        if bloqueo_envio:
+            bloqueos.append(bloqueo_envio)
     for oid in order_ids:
         previo = _estado_existente_orden(oid)
         if previo and previo.get("estado") in _ESTADOS_TERMINALES:

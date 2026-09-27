@@ -200,6 +200,7 @@ const ESTADO_BADGE: Record<string, { label: string; cls: string }> = {
   en_transito: { label: "🚚 En tránsito — se factura al entregar", cls: "bg-surface text-muted" },
   en_margen_entrega: { label: "⏳ Sin facturar: esperando margen de 48h", cls: "bg-sky-500/15 text-sky-500" },
   sin_facturar: { label: "🔴 Sin facturar", cls: "bg-danger/15 text-danger" },
+  sin_facturar_cierre_mes: { label: "🔴 Cierre de mes: facturar ya", cls: "bg-danger/15 text-danger" },
   cancelada_sin_factura: { label: "➖ Cancelada, sin factura", cls: "bg-surface text-muted" },
   cancelada_resuelta: { label: "✅ NC resuelta", cls: "bg-emerald-500/15 text-emerald-500" },
   cancelada_nc_sin_subir_meli: { label: "⚠️ NC sin subir a MeLi", cls: "bg-amber-500/15 text-amber-500" },
@@ -211,13 +212,15 @@ const NEEDS_REVIEW = new Set([
   "facturada_pendiente_subir_meli",
   "facturada_parcial",
   "sin_facturar",
+  "sin_facturar_cierre_mes",
   "cancelada_pendiente_nc",
 ]);
 
 /** Estados en los que tiene sentido ofrecer "Facturar ahora": la venta está
  * entregada y sin factura. `en_margen_entrega` entra acá a propósito — ver la
- * nota en el botón. */
-const FACTURABLE = new Set(["sin_facturar", "en_margen_entrega"]);
+ * nota en el botón. `sin_facturar_cierre_mes` también: por cierre de mes se
+ * factura aunque solo esté `shipped` (ver backend, `en_ventana_cierre_mes`). */
+const FACTURABLE = new Set(["sin_facturar", "en_margen_entrega", "sin_facturar_cierre_mes"]);
 
 function nombreIntegracionLegado(integracion: string | null) {
   if (integracion === "astroselling") return "Astroselling (Siigo)";
@@ -1898,6 +1901,11 @@ export default function VentasAstroKillerPanel() {
                           <span className="font-semibold text-danger">
                             Sin factura y ya pasó el margen de 48h desde la entrega: hay que facturarla.
                           </span>
+                        ) : venta.estado_facturacion === "sin_facturar_cierre_mes" ? (
+                          <span className="font-semibold text-danger">
+                            Se cierra el mes: hay que facturarla ya (no se espera la entrega confirmada ni
+                            el margen de 48h) para que quede contabilizada en el mes en que se vendió.
+                          </span>
                         ) : (
                           <>Sin factura.</>
                         )}
@@ -1907,8 +1915,10 @@ export default function VentasAstroKillerPanel() {
                           turno a la autofactura automática, que hoy está apagada
                           (MELI_AUTOFACTURA_ENTREGA_ACTIVO=0). Con el margen, el
                           operador no podía facturar nada durante los dos primeros
-                          días. El backend igual valida que el envío esté
-                          'delivered' antes de emitir. */}
+                          días. El backend valida que el envío esté 'delivered'
+                          antes de emitir — salvo en `sin_facturar_cierre_mes`,
+                          donde por cierre de mes también deja facturar con el
+                          envío apenas 'shipped' (ver `en_ventana_cierre_mes`). */}
                       {venta.es_meli && FACTURABLE.has(venta.estado_facturacion) && (
                         <div className="mt-1.5">
                           <button

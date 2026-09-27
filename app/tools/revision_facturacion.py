@@ -353,6 +353,7 @@ ETIQUETA_PROBLEMA = {
     "facturacion_parcial": "factura incompleta",
     "facturada_pendiente_subir_meli": "factura sin subir a MeLi",
     "sin_facturar": "sin facturar",
+    "sin_facturar_cierre_mes": "sin facturar — cierre de mes",
     "cancelada_pendiente_nc": "cancelada sin nota crédito",
     "error_al_facturar": "error al facturar",
     "otro": "revisar facturación",

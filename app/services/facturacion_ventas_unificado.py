@@ -56,6 +56,7 @@ from app.services.conciliacion_meli import (
     _fecha_cancelacion,
     _leer_estado_notas_credito,
     _margen_horas_default,
+    en_ventana_cierre_mes,
     leer_indice_facturacion_meli,
 )
 from app.services.meli import (
@@ -321,6 +322,38 @@ def _fecha_entrega_envio(envio: dict | None) -> str | None:
     return (envio.get("status_history") or {}).get("date_delivered") or envio.get("last_updated") or None
 
 
+def _estado_por_envio_y_cierre_mes(
+    fila: dict, envio: dict | None, estado_envio: str | None, margen_horas: float,
+) -> str:
+    """Clasifica una venta SIN factura según su envío, con la excepción de
+    cierre de mes (27-sep-2026, pedido explícito del usuario): lo vendido en
+    un mes se factura en ese mes, así que en los últimos días del mes (o
+    después, si el mes ya cerró y la venta sigue colgando — ver
+    `en_ventana_cierre_mes`) deja de esperarse la entrega confirmada y el
+    margen de 48h. Solo exige que el paquete ya haya salido (`shipped` o
+    `delivered`): una orden que ni siquiera se despachó sigue "en_transito"
+    aunque sea fin de mes — facturar algo que todavía puede cancelarse antes
+    de salir de bodega es el riesgo que el margen de 48h evita para el resto
+    del año."""
+    cierre_mes = en_ventana_cierre_mes(fila.get("fecha"))
+    if estado_envio == "delivered":
+        fecha_entrega_txt = _fecha_entrega_envio(envio)
+        en_margen = True
+        if fecha_entrega_txt:
+            try:
+                fe = datetime.fromisoformat(str(fecha_entrega_txt).replace("Z", "+00:00"))
+                ahora = datetime.now(fe.tzinfo) if fe.tzinfo else datetime.now()
+                en_margen = (ahora - fe) < timedelta(hours=margen_horas)
+            except ValueError:
+                en_margen = False
+        if not en_margen:
+            return "sin_facturar"
+        return "sin_facturar_cierre_mes" if cierre_mes else "en_margen_entrega"
+    if estado_envio == "shipped" and cierre_mes:
+        return "sin_facturar_cierre_mes"
+    return "en_transito"
+
+
 def _marcar_duplicado_alegra(fila: dict) -> None:
     """Doble factura DENTRO de Alegra: dos o más facturas vigentes del mismo pack
     que, sumadas, facturan más unidades de las vendidas. Antes solo se detectaba
@@ -371,6 +404,11 @@ def problema_de_venta(v: dict) -> tuple[str | None, str | None]:
         return estado, "Factura existe en Alegra pero MeLi no tiene el documento fiscal."
     if estado == "sin_facturar":
         return estado, "Entregada hace más del margen y sin factura en Alegra ni en el índice legado."
+    if estado == "sin_facturar_cierre_mes":
+        return estado, (
+            "Vendida este mes y se cierra el período: hay que facturarla ya (sin esperar el "
+            "margen de 48h ni la confirmación de entrega de MeLi) para que quede en el mes que se vendió."
+        )
     if estado == "cancelada_pendiente_nc":
         return estado, "Cancelada, facturada, y sin nota crédito pasado el margen de 48h."
     return None, None
@@ -1033,19 +1071,7 @@ def listar_ventas_meli_unificado(
         envio = consultar_envio_meli(str(shipping_id), token=token_meli) if shipping_id else None
         estado_envio = (envio or {}).get("status")
         fila["shipping_status"] = estado_envio
-        if estado_envio != "delivered":
-            fila["estado_facturacion"] = "en_transito"
-            return
-        fecha_entrega_txt = _fecha_entrega_envio(envio)
-        en_margen = True
-        if fecha_entrega_txt:
-            try:
-                fe = datetime.fromisoformat(str(fecha_entrega_txt).replace("Z", "+00:00"))
-                ahora = datetime.now(fe.tzinfo) if fe.tzinfo else datetime.now()
-                en_margen = (ahora - fe) < timedelta(hours=margen_horas)
-            except ValueError:
-                en_margen = False
-        fila["estado_facturacion"] = "en_margen_entrega" if en_margen else "sin_facturar"
+        fila["estado_facturacion"] = _estado_por_envio_y_cierre_mes(fila, envio, estado_envio, margen_horas)
 
     if filas_meli:
         with ThreadPoolExecutor(max_workers=10) as pool:
@@ -1423,23 +1449,9 @@ def consultar_venta_individual(identificador: str) -> dict | None:
     envio = consultar_envio_meli(str(shipping_id), token=token_meli) if shipping_id else None
     estado_envio = (envio or {}).get("status")
     fila["shipping_status"] = estado_envio
-    if estado_envio != "delivered":
-        fila["estado_facturacion"] = "en_transito"
-        # Antes no se guardaba: la fila vieja del histórico (p. ej. un
-        # "sin facturar" calculado con otra orden del pack) seguía alertando.
-        _guardar_en_cache([fila])
-        return fila
-
-    margen_horas = _margen_horas_default()
-    fecha_entrega_txt = _fecha_entrega_envio(envio)
-    en_margen = True
-    if fecha_entrega_txt:
-        try:
-            fe = datetime.fromisoformat(str(fecha_entrega_txt).replace("Z", "+00:00"))
-            ahora = datetime.now(fe.tzinfo) if fe.tzinfo else datetime.now()
-            en_margen = (ahora - fe) < timedelta(hours=margen_horas)
-        except ValueError:
-            en_margen = False
-    fila["estado_facturacion"] = "en_margen_entrega" if en_margen else "sin_facturar"
+    fila["estado_facturacion"] = _estado_por_envio_y_cierre_mes(fila, envio, estado_envio, _margen_horas_default())
+    # Antes no se guardaba en el caso "en_transito": la fila vieja del
+    # histórico (p. ej. un "sin facturar" calculado con otra orden del pack)
+    # seguía alertando.
     _guardar_en_cache([fila])
     return fila
