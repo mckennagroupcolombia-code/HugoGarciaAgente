@@ -1319,6 +1319,27 @@ indicación para ChatGPT/Gemini; mockups en Blender). Tocar una hoja abre el **t
 Permiso: `_auth_studio` = el de mapa-sistema/combos **o** `puede_ver_etiquetas_avanzado` (también en `/combos` e
 `/invalidar`, que ahora invalida también Canales). Sin LLM, sin llamadas vivas.
 
+### AE. Ubicación de bultos — «¿Dónde está?» (27-sep-2026)
+
+Problema: al operario le piden «empacar quinua roja 500 g» y no encuentra el bulto; la foto de la llegada
+quedó suelta en un grupo de WhatsApp, sin producto ni lugar. Abastecer → Recepción de mercancía → pestaña
+**«Dónde está cada bulto»** (`components/bultos/`, `app/services/ubicacion_bultos.py`, `app/routes_bultos.py`,
+`/api/bultos/*`; enlace directo `/app?panel=recepcion-mercancia&vista=bultos`). Sin LLM, sin Alegra en vivo.
+- **Bulto** = foto (obligatoria) + producto de inventario (SKU canónico, copia local de Alegra; combos no) +
+  sede y ubicación (texto libre con autocompletado de lo ya usado) + cantidad/lote/nota opcionales. Mover y
+  «Se acabó» dejan rastro en `bulto_movimientos`; al ubicar avisa en el canal interno «Inventario».
+- **«Por identificar»**: fotos de `canal_mensajes` (lo del chat del equipo y de los grupos WA enlazados) y de
+  `recepcion_fotos` de los últimos 45 días que nadie ha asociado; «Es un bulto: ubicarlo» o «No es un bulto».
+  Sugiere productos por el texto que acompañó la foto. En cada renglón de una recepción: «Ubicar el bulto».
+- **En la solicitud** (`DondeEsta.tsx` en `TicketDetailView`, `SolicitudCard` y `AccionCardOperativa`):
+  `POST /api/bultos/en-texto` empareja título+descripción con los bultos en bodega (`puntaje_nombre`: el SKU
+  escrito gana; si no, una palabra propia del producto —no genérica como aceite/polvo/roja— de ≥6 letras, o
+  dos palabras; tolera tipeo, «PSYLLUM» → PSYLLIUM). Sin coincidencia no dibuja nada.
+- Consultar lo ve todo el equipo interno (no contador ni colaborador externo); registrar/mover/bandeja piden
+  los permisos de Recepción. Base `app/data/bultos.db`, fotos reducidas en `fotos_bultos/` (ambas gitignored).
+- ⚠️ Al crearlo (27-sep) el puente **no registraba ningún mensaje humano** de MCKG SEDE SUR ni de MCKG PEDIDOS /
+  COMPRAS en 10 días (Postventa sí): la bandeja solo se llena si esas fotos llegan. La vía principal es la cámara.
+
 ### V. Iconografía minimalista de todo /app (21-sep-2026)
 
 La interfaz ya no usa emojis como iconos: usa el **set lineal McKenna** (`desktop/src/icons/`, trazo uniforme, 24×24,

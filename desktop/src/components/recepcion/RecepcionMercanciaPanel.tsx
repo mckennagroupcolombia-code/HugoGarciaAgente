@@ -4,6 +4,8 @@ import { api } from "../../api/client";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import FotoInsumo from "../insumos/FotoInsumo";
 import InsumosVista from "../insumos/InsumosVista";
+import BultosVista from "../bultos/BultosVista";
+import { FormularioBulto } from "../bultos/bultosComun";
 
 /**
  * Recepción de mercancía — lo que llega a bodega, con fotos y conteo contra lo esperado.
@@ -144,6 +146,8 @@ function Nueva({ onCreada, onCancelar }: { onCreada: (r: Recepcion) => void; onC
 
 function FilaItem({ r, it, onCambio }: { r: Recepcion; it: Item; onCambio: () => void }) {
   const [cant, setCant] = useState(it.cantidad_recibida != null ? String(it.cantidad_recibida) : "");
+  const [ubicando, setUbicando] = useState(false);
+  const [ubicado, setUbicado] = useState("");
   const abierta = r.estado === "abierta";
   const guardar = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.patch(`/api/recepciones/${r.id}/items/${it.id}`, body),
@@ -181,6 +185,20 @@ function FilaItem({ r, it, onCambio }: { r: Recepcion; it: Item; onCambio: () =>
         <p className="mt-1 text-[12px] text-ink">Llegó: {it.cantidad_recibida ?? "—"} {it.unidad}</p>
       )}
       {it.observacion && <p className="mt-1 text-[11.5px] italic text-ink-secondary">{it.observacion}</p>}
+      {it.sku && r.estado !== "anulada" && !ubicando && (
+        <button type="button" onClick={() => setUbicando(true)}
+          className="mt-1.5 rounded-md border border-accent/60 px-2.5 py-1 text-[12px] font-bold text-accent">
+          {ubicado ? `Ubicado: ${ubicado} · ubicar otro bulto` : "Ubicar el bulto (foto + dónde quedó)"}
+        </button>
+      )}
+      {ubicando && (
+        <div className="mt-2">
+          <FormularioBulto recepcionId={r.id}
+            productoInicial={{ sku: it.sku, nombre: it.descripcion, unidad: it.unidad }}
+            onCancelar={() => setUbicando(false)}
+            onListo={(b) => { setUbicando(false); setUbicado(`${b.sede} · ${b.ubicacion}`); }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -289,18 +307,21 @@ function Detalle({ id, onCerrar }: { id: number; onCerrar: () => void }) {
 }
 
 export default function RecepcionMercanciaPanel() {
-  const [vista, setVista] = useState<"llegadas" | "insumos">("llegadas");
+  const [vista, setVista] = useState<"llegadas" | "bultos" | "insumos">(() => {
+    // «Dónde está cada bulto» se abre directo con /app?panel=recepcion-mercancia&vista=bultos
+    try { return new URLSearchParams(window.location.search).get("vista") === "bultos" ? "bultos" : "llegadas"; } catch { return "llegadas"; }
+  });
   return (
     <div className="mx-auto w-full max-w-[1300px] space-y-3">
       <div className="flex gap-1.5">
-        {([["llegadas", "Llegadas"], ["insumos", "Insumos: fotos y contador"]] as const).map(([id, txt]) => (
+        {([["llegadas", "Llegadas"], ["bultos", "Dónde está cada bulto"], ["insumos", "Insumos: fotos y contador"]] as const).map(([id, txt]) => (
           <button key={id} type="button" onClick={() => setVista(id)}
             className={`rounded-full border px-3 py-1.5 text-[12.5px] font-bold ${vista === id ? "border-accent bg-accent/10 text-accent" : "border-border text-ink"}`}>
             {txt}
           </button>
         ))}
       </div>
-      {vista === "insumos" ? <InsumosVista /> : <Llegadas />}
+      {vista === "insumos" ? <InsumosVista /> : vista === "bultos" ? <BultosVista /> : <Llegadas />}
     </div>
   );
 }

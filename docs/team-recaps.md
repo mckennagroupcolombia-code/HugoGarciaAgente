@@ -1,3 +1,14 @@
+### 2026-09-27 18:45 - Ubicación de bultos: «¿Dónde está?» en cada solicitud
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Recepción de mercancía → pestaña **«Dónde está cada bulto»**: cada bulto con foto (obligatoria), producto del catálogo de inventario, sede y ubicación (autocompleta lo ya usado), cantidad/lote/nota. Buscar por producto, SKU o lugar; «Mover» y «Se acabó» dejan historial y avisan en el canal «Inventario».
+  - **Fotos por identificar**: las fotos del chat del equipo, de los grupos WhatsApp enlazados y de las recepciones que nadie asoció; «Es un bulto: ubicarlo» o «No es un bulto», con producto sugerido por el texto.
+  - En cada renglón de una recepción: «Ubicar el bulto».
+  - **En la solicitud** aparece «¿Dónde está?» con foto y lugar del producto mencionado (tolera errores de tipeo: «PSYLLUM» → Psyllium). Lo ve todo el equipo interno; registrar pide permisos de Recepción.
+  - Hallazgo: el puente no registra mensajes humanos de MCKG SEDE SUR ni MCKG PEDIDOS / COMPRAS desde hace 10 días; por eso la vía principal es la cámara del panel.
+- **Archivos Modificados:** `app/services/ubicacion_bultos.py` (nuevo), `app/routes_bultos.py` (nuevo), `agente_pro.py`, `tests/test_ubicacion_bultos.py` (nuevo), `desktop/src/components/bultos/*` (nuevo), `desktop/src/components/recepcion/RecepcionMercanciaPanel.tsx`, `desktop/src/components/TicketsPanel.tsx`, `.gitignore`, `CLAUDE.md`.
+
 ### 2026-09-27 17:35 - Studio: «Árbol del producto» (categorías + etiquetas para publicaciones + taller + canales)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

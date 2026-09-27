@@ -153,6 +153,12 @@ def create_app():
         print(f"⚠️ Insumos: {e}")
 
     try:
+        from app.routes_bultos import register_bultos_routes
+        register_bultos_routes(app)
+    except Exception as e:
+        print(f"⚠️ Ubicación de bultos: {e}")
+
+    try:
         from app.routes_canales_producto import register_canales_producto_routes
         register_canales_producto_routes(app)
     except Exception as e:

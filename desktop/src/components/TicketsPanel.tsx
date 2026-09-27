@@ -87,6 +87,7 @@ import {
 import { api } from "../api/client";
 import { esAdminVistaEquipo } from "../lib/adminAccess";
 import InboxConversaciones from "./tickets/InboxConversaciones";
+import DondeEsta from "./bultos/DondeEsta";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -5833,6 +5834,7 @@ export function TicketDetailView({
         {ticket.descripcion && (
           <p className="whitespace-pre-wrap text-sm text-ink border-t border-border pt-3">{ticket.descripcion}</p>
         )}
+        <DondeEsta texto={`${ticket.titulo}\n${ticket.descripcion ?? ""}`} />
         {ticket.soporte_archivo && (
           <a href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
             target="_blank" rel="noreferrer"
@@ -12451,6 +12453,7 @@ function AccionCardOperativa({
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
             <p className="mt-0.5 text-xs text-muted line-clamp-2">{ticket.descripcion}</p>
           )}
+          {!resuelta && <div className="mt-1.5"><DondeEsta compacto texto={`${ticket.titulo}\n${ticket.descripcion ?? ""}`} /></div>}
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
           {ticket.prioridad ?? "media"}
@@ -14936,6 +14939,7 @@ function SolicitudCard({
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
             <p className="text-sm leading-relaxed text-muted/80 whitespace-pre-wrap">{ticket.descripcion}</p>
           )}
+          <DondeEsta texto={`${ticket.titulo}\n${ticket.descripcion ?? ""}`} />
           {/* De quién → para quién */}
           <div className="flex items-center gap-2 text-xs lg:text-sm text-muted flex-wrap">
             <span className="inline-flex items-center gap-1.5 font-medium text-ink/70">
