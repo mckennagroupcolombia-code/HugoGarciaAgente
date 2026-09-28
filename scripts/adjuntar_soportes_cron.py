@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Cron diario: adjunta a cada asiento del Libro Mayor sin soporte la factura (PDF, o
-XML si no hay PDF) que ya está descargada en facturas_descargadas/. Ver
-app/services/contabilidad_documentos.py.
+Cron diario: baja de Alegra los PDF de facturas (FE…) y notas crédito (NC…) propias
+que falten en facturas_descargadas/, y adjunta a cada asiento del Libro Mayor sin
+soporte su factura (PDF, o XML si no hay PDF). Ver app/services/contabilidad_documentos.py.
 
 Por qué: el contador abre el soporte desde la columna «Soporte» de los CSV del
 Libro Mayor. El auto-posteo crea asientos cada 6 horas y ninguno nace con su
@@ -10,7 +10,7 @@ factura adjunta; sin esto, la columna vuelve a quedar vacía para todo lo nuevo.
 
 Corre a las 00:40, después del auto-posteo de las 00:10 y antes del backup de
 las 02:00. Solo enlaza archivos (hardlink), nunca pisa un soporte subido a mano
-y no toca nada anterior a CONTABILIDAD_FECHA_CORTE. Sin LLM ni APIs externas.
+y no toca nada anterior a CONTABILIDAD_FECHA_CORTE. Sin LLM; en Alegra solo lee.
 
 La frecuencia real la gobierna app/services/cron_scheduler.py (Sistemas →
 Tareas Programadas, job "adjuntar_soportes") — el crontab solo dispara el chequeo.
@@ -62,8 +62,17 @@ def main() -> int:
         print("⏭  Soportes del Libro Mayor: aún no toca según la frecuencia configurada.")
         return 0
 
-    from app.services.contabilidad_documentos import adjuntar_soportes
+    from app.services.contabilidad_documentos import adjuntar_soportes, descargar_soportes_faltantes
 
+    # Primero se bajan de Alegra las facturas/notas propias que el libro nombra y no
+    # están en disco (el flujo de facturación no siempre deja el PDF); luego se adjunta.
+    try:
+        d = descargar_soportes_faltantes(aplicar=not args.simular)
+        print(f"   ⬇️  Alegra: {len(d['bajados'])} PDF {'por bajar' if args.simular else 'bajados'}, "
+              f"{len(d['fallos'])} con error {[f['documento'] for f in d['fallos']][:10]}, "
+              f"{len(d['no_alegra'])} fuera de Alegra {d['no_alegra'][:10]}")
+    except Exception as e:  # noqa: BLE001 — sin Alegra igual se adjunta lo que ya hay
+        print(f"   ⚠️  No se pudo consultar Alegra: {e}")
     r = adjuntar_soportes(aplicar=not args.simular)
     marca = datetime.now().isoformat(timespec="seconds")
     if not args.simular:

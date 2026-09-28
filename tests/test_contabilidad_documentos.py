@@ -124,3 +124,63 @@ def test_el_contador_lo_abre_con_su_sesion(cliente):
 def test_quien_no_ve_contabilidad_no_lo_abre(cliente):
     cliente.set_cookie(spa_sesion.COOKIE, "s-ventas", path="/app")
     assert cliente.get(URL).status_code == 403
+
+
+# ─── 28-sep-2026: bajar de Alegra los PDF que faltan ───────────────────────
+
+def test_la_anulacion_usa_la_nota_credito_no_el_expediente():
+    d = cd.documento_de_asiento({"referencia": "ra:RA-2026-0030",
+                                 "plantilla_datos_json": '{"expediente": "RA-2026-0030", "nc": "NC145"}'})
+    assert d["documento"] == "NC145"
+
+
+def test_la_nota_credito_se_encuentra_en_disco(tmp_path, monkeypatch):
+    monkeypatch.setattr(cd, "_FACTURAS_DIR", tmp_path)
+    (tmp_path / "NotaCredito_NC145.pdf").write_bytes(b"%PDF")
+    assert cd.soporte_para("", "NC145").name == "NotaCredito_NC145.pdf"
+
+
+class _Resp:
+    def __init__(self, status=200, datos=None, contenido=b""):
+        self.status_code, self._d, self.content = status, datos, contenido
+
+    def json(self):
+        return self._d
+
+
+def _alegra_falso(monkeypatch, respuestas):
+    import requests
+
+    from app.services import alegra
+
+    monkeypatch.setattr(alegra, "_alegra_headers", lambda: {})
+    llamadas = []
+
+    def get(url, **kw):
+        llamadas.append(url)
+        return respuestas(url, kw)
+
+    monkeypatch.setattr(requests, "get", get)
+    return llamadas
+
+
+def test_no_guarda_el_pdf_si_el_id_es_otro_documento(monkeypatch):
+    _alegra_falso(monkeypatch, lambda url, kw: _Resp(datos={
+        "numberTemplate": {"prefix": "FE", "number": "311"}, "pdf": "https://cdn/x.pdf"}))
+    pdf, motivo = cd._pdf_alegra("invoices", 310, "FE")
+    assert pdf is None and "FE311" in motivo
+
+
+def test_la_nota_credito_se_busca_por_numero_no_por_id(monkeypatch):
+    def respuestas(url, kw):
+        if url.endswith("/credit-notes"):
+            return _Resp(datos=[{"id": "119", "numberTemplate": {"prefix": "NC", "number": "2"}},
+                                {"id": "118", "numberTemplate": {"prefix": "NC", "number": "145"}}])
+        if url.endswith("/credit-notes/118"):
+            return _Resp(datos={"numberTemplate": {"prefix": "NC", "number": "145"}, "pdf": "https://cdn/nc.pdf"})
+        return _Resp(contenido=b"%PDF-1.4 nc")
+
+    llamadas = _alegra_falso(monkeypatch, respuestas)
+    pdf, _ = cd._pdf_alegra("credit-notes", 145, "NC")
+    assert pdf.startswith(b"%PDF") and any(u.endswith("/credit-notes/118") for u in llamadas)
+    assert not any(u.endswith("/credit-notes/145") for u in llamadas)

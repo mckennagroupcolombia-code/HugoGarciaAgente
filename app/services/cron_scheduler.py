@@ -151,7 +151,7 @@ JOBS: dict[str, dict[str, str]] = {
     },
     "adjuntar_soportes": {
         "nombre": "Soportes del Libro Mayor (facturas adjuntas)",
-        "descripcion": "Adjunta a cada asiento sin soporte la factura PDF/XML ya descargada en facturas_descargadas/ (compras por NIT + número leídos del XML de la DIAN; ventas por su FE), para que el contador la abra desde la columna «Soporte» de los CSV. Solo enlaza archivos, nunca pisa un soporte subido a mano ni toca lo anterior al corte; sin IA. ADJUNTAR_SOPORTES_CRON_ACTIVO=0 lo apaga.",
+        "descripcion": "Baja de Alegra los PDF de facturas y notas crédito propias que falten, y adjunta a cada asiento sin soporte la factura PDF/XML de facturas_descargadas/ (compras por NIT + número leídos del XML de la DIAN; ventas por su FE), para que el contador la abra desde la columna «Soporte» de los CSV. Solo enlaza archivos, nunca pisa un soporte subido a mano ni toca lo anterior al corte; sin IA. ADJUNTAR_SOPORTES_CRON_ACTIVO=0 lo apaga.",
         "script": "scripts/adjuntar_soportes_cron.py",
     },
     "revision_facturacion": {

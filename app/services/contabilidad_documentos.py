@@ -135,6 +135,10 @@ def documento_de_asiento(
     fuente = datos.get("fuente") or ""
     extra = datos.get("extra") or {}
 
+    # Anulación: el documento ante la DIAN es la nota crédito (NC145), no el
+    # expediente interno (RA-2026-0030) que va en la referencia.
+    if datos.get("nc"):
+        documento = str(datos["nc"])
     if not documento:
         if fuente in ("meli_venta", "web_venta"):
             clave = str(extra.get("order_id") or datos.get("referencia") or "")
@@ -261,9 +265,123 @@ def soporte_para(nit: str, documento: str) -> Path | None:
         directo = _FACTURAS_DIR / f"{nit}_{documento}.pdf"
         if directo.is_file():
             return directo
-    # Facturas de venta propias: facturas_descargadas/Factura_FE887.pdf
-    propia = _FACTURAS_DIR / f"Factura_{documento}.pdf"
-    return propia if propia.is_file() else None
+    # Documentos propios: facturas_descargadas/Factura_FE887.pdf, NotaCredito_NC145.pdf
+    for nombre in (f"Factura_{documento}.pdf", f"NotaCredito_{documento}.pdf"):
+        propia = _FACTURAS_DIR / nombre
+        if propia.is_file():
+            return propia
+    return None
+
+
+def _pedidos_sin_archivo(desde: str | None = None) -> list[dict[str, str]]:
+    import app.services.contabilidad_core as cc
+
+    desde = desde or os.getenv("CONTABILIDAD_FECHA_CORTE", "2026-09-01")
+    with cc._conn() as con:
+        movs = [dict(r) for r in con.execute(
+            """SELECT m.id, m.concepto, m.referencia, m.plantilla_datos_json,
+                      t.identificacion AS tercero_identificacion
+                 FROM cc_movimientos m LEFT JOIN cc_terceros t ON t.id = m.tercero_id
+                WHERE m.estado <> 'anulado' AND COALESCE(m.soporte_path,'') = '' AND m.fecha >= ?""",
+            (desde,))]
+    sols = solicitudes_por_id()
+    faltan: dict[str, str] = {}
+    for m in movs:
+        d = documento_de_asiento(m, solicitudes=sols)
+        for doc in filter(None, (x.strip() for x in d["documento"].split(","))):
+            if not soporte_para(d["nit"], doc):
+                faltan.setdefault(doc, d["nit"])
+    return [{"documento": k, "nit": v} for k, v in sorted(faltan.items())]
+
+
+def _pdf_alegra(recurso: str, numero: int, prefijo: str) -> tuple[bytes | None, str]:
+    """PDF de una factura/nota de Alegra, comprobando que el documento sea ESE número.
+
+    En Alegra el id suele coincidir con el consecutivo (FE310 → /invoices/310), pero no
+    se asume: si el documento que vuelve trae otro número, no se guarda nada — un
+    soporte equivocado pegado a un asiento es peor que ninguno.
+    """
+    import requests
+
+    from app.services.alegra import _ALEGRA_BASE, _alegra_headers
+
+    ident = numero
+    if recurso == "credit-notes":
+        # En notas crédito el id NO sigue al consecutivo (NC145 es el id 118): se busca.
+        ident = _id_nota_credito(prefijo, numero)
+        if not ident:
+            return None, "no aparece entre las notas crédito de Alegra"
+    r = requests.get(f"{_ALEGRA_BASE}/{recurso}/{ident}", headers=_alegra_headers(),
+                     params={"fields": "pdf"}, timeout=20)
+    if r.status_code != 200:
+        return None, f"Alegra respondió {r.status_code}"
+    j = r.json() or {}
+    nt = j.get("numberTemplate") or {}
+    visto = f"{nt.get('prefix') or ''}{nt.get('number') or ''}"
+    if visto.upper() != f"{prefijo}{numero}".upper():
+        return None, f"el id {numero} es {visto or 'otro documento'}"
+    if not j.get("pdf"):
+        return None, "sin PDF en Alegra"
+    pdf = requests.get(j["pdf"], timeout=30)
+    if pdf.status_code != 200 or not pdf.content.startswith(b"%PDF"):
+        return None, "no se pudo bajar el PDF"
+    return pdf.content, ""
+
+
+def _id_nota_credito(prefijo: str, numero: int, paginas: int = 10) -> str | None:
+    import requests
+
+    from app.services.alegra import _ALEGRA_BASE, _alegra_headers
+
+    for i in range(paginas):
+        r = requests.get(f"{_ALEGRA_BASE}/credit-notes", headers=_alegra_headers(), timeout=20,
+                         params={"start": i * 30, "limit": 30, "order_field": "id", "order_direction": "DESC"})
+        lote = r.json() if r.status_code == 200 else []
+        for nc in lote or []:
+            nt = nc.get("numberTemplate") or {}
+            if (nt.get("prefix") or "").upper() == prefijo and str(nt.get("number")) == str(numero):
+                return str(nc["id"])
+        if len(lote or []) < 30:
+            return None
+    return None
+
+
+def descargar_soportes_faltantes(desde: str | None = None, *, aplicar: bool = False) -> dict:
+    """Baja de Alegra los PDF de facturas (FE…) y notas crédito (NC…) propias que el
+    libro nombra pero no están en `facturas_descargadas/`. Luego hay que correr
+    `adjuntar_soportes(aplicar=True)` (o esperar al cron de las 00:40).
+
+    Las facturas de Siigo (FV-…) anteriores a la migración no se bajan acá: Siigo ya no
+    es el sistema de facturación y su id no está en el libro — quedan listadas aparte.
+    """
+    import time
+
+    faltan = _pedidos_sin_archivo(desde)
+    bajados, fallos, otros = [], [], []
+    for f in faltan:
+        doc = f["documento"]
+        m = re.fullmatch(r"(FE|NC)(\d+)", doc, re.IGNORECASE)
+        if not m:
+            otros.append(doc)
+            continue
+        if not aplicar:
+            bajados.append(doc)
+            continue
+        prefijo, numero = m.group(1).upper(), int(m.group(2))
+        recurso, nombre = (("invoices", f"Factura_{doc}.pdf") if prefijo == "FE"
+                           else ("credit-notes", f"NotaCredito_{doc}.pdf"))
+        try:
+            pdf, motivo = _pdf_alegra(recurso, numero, prefijo)
+        except Exception as e:  # noqa: BLE001 — uno que falle no frena el lote
+            pdf, motivo = None, str(e)
+        if pdf:
+            (_FACTURAS_DIR / nombre).write_bytes(pdf)
+            bajados.append(doc)
+        else:
+            fallos.append({"documento": doc, "motivo": motivo})
+        time.sleep(0.4)   # Alegra limita por minuto; son decenas, no miles
+    return {"aplicado": aplicar, "faltaban": len(faltan), "bajados": bajados,
+            "fallos": fallos, "no_alegra": otros}
 
 
 def adjuntar_soportes(desde: str | None = None, hasta: str | None = None, *, aplicar: bool = False) -> dict:

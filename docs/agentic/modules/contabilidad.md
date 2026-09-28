@@ -449,3 +449,9 @@ el corte). Quedan ~750 sin documento: sobre todo ventas MeLi aún sin facturar (
 entregar) — que el CSV lo muestre vacío también es información para el contador.
 Cron `scripts/adjuntar_soportes_cron.py` (00:40, job `adjuntar_soportes` en Tareas Programadas;
 `ADJUNTAR_SOPORTES_CRON_ACTIVO=0` lo apaga) adjunta cada noche lo que dejó el auto-posteo de las 00:10.
+`descargar_soportes_faltantes()` (también en ese cron) baja de Alegra los PDF de FE/NC propios que el libro
+nombra y no están en disco, **comprobando el número** del documento devuelto (en notas crédito el id no
+sigue al consecutivo: NC145 = id 118, se busca). Las FV-2 de Siigo no: sus credenciales de API ya no
+sirven tras la migración (401). ⚠️ `tests/test_ventas_directas.py` escribía en el `contabilidad.db` real
+(`causar_venta_directa` al facturar con Alegra falso): asientos 5762-5764 anulados el 28-sep. Toda prueba
+que llame `ventas_directas.facturar` debe aislar `contabilidad_core._DB_PATH`.

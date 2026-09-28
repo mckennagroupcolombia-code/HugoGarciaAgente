@@ -17,6 +17,14 @@ PRODUCTOS = {
 @pytest.fixture(autouse=True)
 def _aislado(tmp_path, monkeypatch):
     monkeypatch.setattr(V, "_DB", str(tmp_path / "vd.db"))
+    # `facturar()` causa la venta en el Libro Mayor al instante. Sin esto, cada
+    # corrida escribía en el contabilidad.db REAL: el 22-sep-2026 dejó tres
+    # «Venta Alegra» falsas (FE999, FE5, FE1 por $58.640, asientos 5762-5764)
+    # que inflaban 4135 y Bancos en $175.920 hasta que se anularon el 28-sep.
+    import app.services.contabilidad_core as cc
+
+    monkeypatch.setattr(cc, "_DB_PATH", str(tmp_path / "contabilidad.db"))
+    monkeypatch.setattr(cc, "_initialized", False)
     monkeypatch.setattr(V, "_producto_alegra", lambda c: PRODUCTOS.get(c))
     monkeypatch.setattr(V, "_cerrar_pedido_origen", lambda v: None)
 

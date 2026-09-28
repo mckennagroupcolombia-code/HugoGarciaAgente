@@ -1,3 +1,14 @@
+### 2026-09-28 00:15 - Soportes que faltaban: 59 PDF bajados de Alegra + 3 ventas falsas de pruebas anuladas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + mejora. Sin LLM.
+- **Qué se implementó:**
+  - De los asientos con número de factura pero sin archivo, se bajaron de Alegra 58 facturas FE y la nota crédito NC145, y quedaron adjuntas. Antes de guardar se comprueba que el documento devuelto sea ese número; en notas crédito el id no sigue al consecutivo (NC145 es el id 118) y se busca.
+  - El cron de las 00:40 ahora también baja lo que falte de Alegra antes de adjuntar.
+  - La anulación de una venta usa como documento la nota crédito (NC145), no el expediente interno (RA-2026-0030).
+  - **Hallazgo:** los asientos 5762-5764 («Venta Alegra» FE999, FE5 y FE1 por $58.640 del 22-sep) eran datos de `tests/test_ventas_directas.py` escritos en el Libro Mayor real: inflaban ingresos (4135) y Bancos en $175.920. FE999 no existe en Alegra; FE5 y FE1 son otras ventas. Se anularon con el motivo en el concepto (no habían pasado a Alegra) y la prueba ya aísla la base contable.
+  - Pendiente: 4 facturas de Siigo de antes de la migración (FV-2-71408, 71409, 71413, 71423) no se pueden bajar por API (credenciales de Siigo ya no sirven); hay que descargarlas a mano de Siigo y subirlas como soporte.
+- **Archivos Modificados:** `app/services/contabilidad_documentos.py`, `scripts/adjuntar_soportes_cron.py`, `app/services/cron_scheduler.py`, `tests/test_contabilidad_documentos.py`, `tests/test_ventas_directas.py`, `docs/agentic/modules/contabilidad.md`.
+
 ### 2026-09-28 00:10 - Psyllium en escamas 250 g y 500 g publicado en MeLi y en la web
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (publicación de producto) + corrección en la tienda. Sin LLM.
