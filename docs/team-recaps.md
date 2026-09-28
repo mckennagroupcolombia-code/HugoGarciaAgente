@@ -4472,3 +4472,12 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - «Limpiar PDF cuentas» pasa al pie del historial como mantenimiento; se quita «Seguir después» del modal de verificar (la X hace lo mismo).
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/ComprasExteriorPanel.tsx`, `docs/team-recaps.md`
+
+### 2026-09-28 - Etiqueta circular: tamaño de los textos curvos
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de edición
+- **Qué se implementó:**
+  - En la etiqueta redonda de Ceras y mantecas (Circular 53) los textos sobre arco —nombre, aviso de control de calidad, registro, razón social y ciudad— ahora tienen Tamaño y Fuente en su casilla (la que se abre al hacer clic), con «Restablecer». Se guardan en `text_styles` (`ec_productName`, `ec_controlCalidad`, `ec_registro`, `ec_empresa`, `ec_city`) como las casillas rectas.
+  - El tamaño elegido es el máximo: si no cabe en su arco se encoge solo, igual que antes; el mínimo baja con él para poder achicarlo.
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `docs/team-recaps.md`

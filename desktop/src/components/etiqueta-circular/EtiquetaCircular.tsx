@@ -18,6 +18,7 @@ import BarcodeSection from "../etiqueta-30ml/BarcodeSection";
 import { IconoCelda } from "../etiqueta-30ml/TechnicalCell";
 import { textoContenidoNeto } from "../etiqueta-30ml/etiqueta30mlTypes";
 import { useVersionFuentes } from "../etiqueta-30ml/useAjusteTexto";
+import { FUENTES_DISPONIBLES, useTextStyleCtx } from "../etiqueta-ficha/TextStyleContext";
 import GaleriaIconosQuimicosModal from "../plantillas-visuales/GaleriaIconosQuimicosModal";
 import type { CodigoEan } from "../../lib/etiquetasCodigosEan";
 import {
@@ -132,6 +133,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.productName}
           tam={tam.titulo}
           rotulo="Nombre del producto"
+          styleKey="ec_productName"
           clase="ec-curvo ec-curvo-titulo"
           pintura={{ fill: acento, peso: 700, espaciado: "0.012em", mayusculas: true }}
           editable={editable}
@@ -145,6 +147,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.controlCalidad}
           tam={tam.control}
           rotulo="Aviso de control de calidad"
+          styleKey="ec_controlCalidad"
           clase="ec-curvo ec-curvo-gris"
           pintura={{ fill: "#1a1a1a", peso: 500, espaciado: "0.01em" }}
           editable={editable}
@@ -159,6 +162,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.registro}
           tam={tam.registro}
           rotulo="Número de registro"
+          styleKey="ec_registro"
           clase="ec-curvo"
           pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
@@ -172,6 +176,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_CIRCULAR.empresa}
           tam={tam.empresa}
           rotulo="Razón social"
+          styleKey="ec_empresa"
           clase="ec-curvo"
           pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
@@ -185,6 +190,7 @@ const EtiquetaCircular = forwardRef<HTMLDivElement, Props>(function EtiquetaCirc
           ejemplo={EJEMPLO_ETIQUETA.city}
           tam={tam.empresa}
           rotulo="Ciudad y país"
+          styleKey="ec_city"
           clase="ec-curvo"
           pintura={{ fill: acento, peso: 600, espaciado: "0.02em" }}
           editable={editable}
@@ -417,6 +423,7 @@ function TextoCurvo({
   ejemplo,
   tam,
   rotulo,
+  styleKey,
   clase,
   pintura,
   editable,
@@ -431,6 +438,8 @@ function TextoCurvo({
   tam: readonly [number, number];
   /** Nombre del dato, para el encabezado del popover. */
   rotulo: string;
+  /** Clave de su tamaño/fuente en `text_styles`, como las casillas rectas. */
+  styleKey: string;
   clase: string;
   pintura: PinturaCurva;
   editable: boolean;
@@ -442,6 +451,13 @@ function TextoCurvo({
   const [abierto, setAbierto] = useState(false);
   const [desborda, setDesborda] = useState(false);
   const versionFuentes = useVersionFuentes();
+  // Tamaño elegido = máximo, como en `CampoEtiqueta`: si no cabe en el arco
+  // se encoge igual que antes. El mínimo baja con él para poder achicarlo.
+  const { estilos } = useTextStyleCtx();
+  const override = estilos[styleKey];
+  const max = override?.fontSize ?? tam[0];
+  const min = Math.min(tam[1], max);
+  const fuente = override?.fontFamily || FUENTE_SVG;
 
   const vacio = !valor.trim();
   const crudo = vacio ? (editMode ? ejemplo : "") : valor;
@@ -455,15 +471,15 @@ function TextoCurvo({
       setDesborda(false);
       return;
     }
-    let f = tam[0];
+    let f = max;
     el.style.fontSize = `${f}px`;
     const cabe = () => el.getComputedTextLength() <= largoArco;
-    while (f > tam[1] && !cabe()) {
-      f = Math.max(tam[1], f - 0.5);
+    while (f > min && !cabe()) {
+      f = Math.max(min, f - 0.5);
       el.style.fontSize = `${f}px`;
     }
     setDesborda(!cabe());
-  }, [visible, tam, largoArco, versionFuentes]);
+  }, [visible, max, min, fuente, largoArco, versionFuentes]);
 
   return (
     <>
@@ -471,12 +487,15 @@ function TextoCurvo({
         ref={textoRef}
         className={`${clase}${vacio ? " ec-curvo-ejemplo" : ""}`}
         fill={pintura.fill}
-        fontFamily={FUENTE_SVG}
+        fontFamily={fuente}
         fontWeight={pintura.peso}
         letterSpacing={pintura.espaciado}
         dominantBaseline="central"
         onClick={editable ? () => setAbierto((v) => !v) : undefined}
-        style={desborda && editMode && !vacio ? { fill: "#d33" } : undefined}
+        style={{
+          fontFamily: fuente,
+          ...(desborda && editMode && !vacio ? { fill: "#d33" } : {}),
+        }}
       >
         <title>
           {desborda && !vacio ? `${rotulo}: no cabe completo en su arco, acórtalo` : rotulo}
@@ -491,6 +510,8 @@ function TextoCurvo({
           abierto={abierto}
           onCerrar={() => setAbierto(false)}
           rotulo={rotulo}
+          styleKey={styleKey}
+          tamano={max}
           valor={valor}
           ejemplo={ejemplo}
           multilinea={multilinea}
@@ -508,6 +529,8 @@ function CasillaCurva({
   abierto,
   onCerrar,
   rotulo,
+  styleKey,
+  tamano,
   valor,
   ejemplo,
   multilinea,
@@ -518,12 +541,16 @@ function CasillaCurva({
   abierto: boolean;
   onCerrar: () => void;
   rotulo: string;
+  styleKey: string;
+  tamano: number;
   valor: string;
   ejemplo: string;
   multilinea: boolean;
   desborda: boolean;
   onChange?: (v: string) => void;
 }) {
+  const { estilos, setEstilo } = useTextStyleCtx();
+  const override = estilos[styleKey];
   return (
     <PopoverFlotante anchorRef={anchorRef} abierto={abierto} onCerrar={onCerrar} alinear="centro" ancho={320}>
       <div className="mb-1.5 flex items-center justify-between">
@@ -551,10 +578,47 @@ function CasillaCurva({
           className="mck-field-lg w-full rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-xs"
         />
       )}
+      <div className="mt-2 flex items-center gap-2 text-xs text-ink">
+        <label className="flex items-center gap-1">
+          <span className="text-muted">Tamaño</span>
+          <input
+            type="number"
+            min={6}
+            max={160}
+            step={0.5}
+            value={Math.round(tamano * 2) / 2}
+            onChange={(e) => setEstilo(styleKey, { fontSize: Number(e.target.value) || undefined })}
+            className="mck-field-lg w-16 rounded border border-border bg-surface-input px-1 py-0.5 text-xs"
+          />
+        </label>
+        <label className="flex items-center gap-1">
+          <span className="text-muted">Fuente</span>
+          <select
+            value={override?.fontFamily ?? ""}
+            onChange={(e) => setEstilo(styleKey, { fontFamily: e.target.value || undefined })}
+            className="rounded border border-border bg-surface-input px-1 py-0.5 text-xs"
+          >
+            {FUENTES_DISPONIBLES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {override?.fontSize !== undefined && (
+          <button
+            type="button"
+            onClick={() => setEstilo(styleKey, { fontSize: undefined })}
+            className="text-muted underline hover:text-ink"
+          >
+            Restablecer
+          </button>
+        )}
+      </div>
       <p className={`mt-1 text-[11px] ${desborda ? "text-red-600" : "text-muted"}`}>
         {desborda
-          ? "No cabe completo en su arco ni al tamaño mínimo: acórtalo."
-          : "Va sobre el arco; el tamaño se ajusta solo para que quepa."}
+          ? "No cabe completo en su arco ni al tamaño mínimo: acórtalo o baja el tamaño."
+          : "Va sobre el arco; si el tamaño elegido no cabe, se encoge solo hasta que quepa."}
       </p>
     </PopoverFlotante>
   );
