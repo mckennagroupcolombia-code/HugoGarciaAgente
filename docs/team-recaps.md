@@ -1,3 +1,25 @@
+### 2026-09-27 23:55 - Libro Mayor para el contador: NIT, factura y soporte en cada asiento + cron nocturno
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - Los CSV del **extracto por cuenta** y del **Libro Diario** traen columnas **NIT**, **Documento** (número de factura) y **Soporte** (enlace al PDF). Es la llave con la que el contador cruza contra el listado de facturas de la DIAN. El NIT va por línea: en una compra, el gasto lleva el del proveedor y la cuenta por pagar el de quien se le debe.
+  - El número se deduce de lo ya registrado (referencia de la compra, factura de la venta MeLi/web desde el caché de facturación con su CUFE, referencia Siigo, factura de la solicitud de pago, «factura X» del concepto); no se guarda nada nuevo.
+  - 724 asientos quedaron con su factura adjunta (de 30 a 754 desde el corte). Las compras se ligan por NIT + número leídos del XML de la DIAN. Se enlazan sin copiar (hardlink) y nunca se pisa un soporte subido a mano.
+  - El enlace «Soporte» se abre desde Excel con la sesión del panel en el navegador (solo contador o permiso Libro Mayor; sin sesión, 401).
+  - Cron `adjuntar_soportes_cron.py` a las 00:40 (Tareas Programadas → «Soportes del Libro Mayor»; `ADJUNTAR_SOPORTES_CRON_ACTIVO=0` lo apaga). Se agregó solo esa línea al crontab: correr `instalar_cron_mcKenna.sh` completo instalaría también el resumen de horas por WhatsApp de los viernes.
+  - Pendiente: ~750 asientos sin número (sobre todo ventas MeLi aún sin facturar) y 66 con número pero sin PDF descargado. La tabla del panel todavía no muestra las columnas nuevas (el dato ya viene en el JSON).
+- **Archivos Modificados:** `app/services/contabilidad_documentos.py` (nuevo), `app/services/contabilidad_mayor.py`, `app/routes.py`, `app/services/cron_scheduler.py`, `scripts/adjuntar_soportes_cron.py` (nuevo), `scripts/instalar_cron_mcKenna.sh`, `.env.example`, `tests/test_contabilidad_documentos.py`, `docs/agentic/modules/contabilidad.md`.
+
+### 2026-09-27 20:30 - Compra de uniformes pagada por Jenniffer: causación, reintegro y el saldo pendiente sin documento soporte
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + registro contable. Sin LLM.
+- **Qué se implementó:**
+  - Factura FECC1129 de UNIFORMES Y BORDADOS H Y F SAS ($160.000 + IVA $30.400 = $190.400, a nombre de McKenna) que Jenniffer pagó en efectivo. Asiento 5975: Débito 519595 + 240810 / Crédito 2335 a nombre de Jenniffer; espejo en Alegra AC-166. Sin retención (base < 10 UVT = $523.740). Registrado como elementos de protección, no «dotación» (ella trabaja por prestación de servicios).
+  - Reintegro a Jenniffer: solicitud #52 por «Saldo pendiente» ($190.400 exactos, sin retención, ICA ni documento soporte). Se rechazó la #31, que le habría pagado la factura otra vez al proveedor.
+  - Contexto para el contador en el concepto del asiento, en la ficha del proveedor y en el historial de los dos terceros.
+  - Corrección: al aprobar un «Saldo pendiente», el sistema armaba un documento soporte a nombre del beneficiario (y ese borrador dejaba el giro sin espejo en Alegra). Ahora esa categoría no lleva documento soporte.
+- **Archivos Modificados:** `app/services/doc_soporte_pagos.py`, `tests/test_doc_soporte_pagos.py`, `docs/agentic/modules/pagos-solicitudes.md`.
+
 ### 2026-09-27 21:45 - Preventa MeLi: reintento si Sheets cae, regenerar borrador y sin dosis de suplemento
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Con LLM (2 borradores + 2 pruebas de la pregunta 158, ~US$0,03).
