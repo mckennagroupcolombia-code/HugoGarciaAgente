@@ -360,7 +360,8 @@ def _construir() -> dict:
             if estado == "ok" and not por_sku:
                 estado = "aviso"
             esl["documento"] = _eslabon(estado, "Documento técnico", detalle,
-                                        archivo=doc["archivo"], doc_titulo=doc["titulo"], por_sku=por_sku)
+                                        archivo=doc["archivo"], doc_titulo=doc["titulo"], por_sku=por_sku,
+                                        pdf_nombre=doc.get("pdf_nombre"))
         else:
             esl["documento"] = _eslabon("falta", "Documento técnico", "No hay ficha, COA ni SDS para su materia prima.")
 

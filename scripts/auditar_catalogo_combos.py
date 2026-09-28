@@ -160,6 +160,14 @@ def documentos_por_titulo() -> list[dict]:
     return out
 
 
+def _nombre_pdf_completo(ft, titulo: str) -> str:
+    """Mismo nombre que arma `generar_pdf_completo` (routes.py) para el PDF final:
+    'FT {titulo}.docx' → quitar 'FT ' → anteponer 'FT COA SDS '."""
+    nombre = ft.nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
+    nombre = re.sub(r"^FT\s+", "", nombre, flags=re.I)
+    return f"FT COA SDS {nombre}"
+
+
 def _entrada_documento(ft, y) -> dict | None:
     try:
         d = ft.cargar_datos_desde_archivo(y)
@@ -168,6 +176,13 @@ def _entrada_documento(ft, y) -> dict | None:
     titulo = (d.get("titulo") or d.get("nombre_producto") or "").strip()
     if not titulo:
         return None
+    # El PDF ya generado (si existe) para «ver el documento aprobado» en vez de reabrir el
+    # formulario: mismo nombre que escribe generar_pdf_completo, comprobado en disco.
+    pdf_nombre: str | None = None
+    if d.get("_tipo") == "completo":
+        candidato = _nombre_pdf_completo(ft, titulo)
+        if (ft.COMPLETO_PDF_DIR / candidato).is_file():
+            pdf_nombre = candidato
     if y.name.startswith("vacio_") or d.get("_estado") == "vacio":
         estado = "vacía"
     elif d.get("_borrador"):
@@ -191,6 +206,7 @@ def _entrada_documento(ft, y) -> dict | None:
     # dos códigos): `referencia` es la principal —la que se imprime— y estas la acompañan.
     equiv = d.get("referencias_equivalentes") or []
     return {"archivo": y.name, "titulo": titulo, "toks": _toks(titulo), "estado": estado,
+            "pdf_nombre": pdf_nombre,
             "referencia": (d.get("referencia") or "").strip(),
             "equivalentes": [str(x).strip() for x in equiv if str(x).strip()] if isinstance(equiv, list) else []}
 
