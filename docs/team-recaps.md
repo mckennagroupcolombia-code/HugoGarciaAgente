@@ -4443,3 +4443,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Accesos rápidos (Ctrl+K) la seguía ofreciendo en «lo que más usas» y «recientes» (historial del servidor): ahora solo muestra paneles que están en el menú.
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/lib/navStructure.ts`, `desktop/src/lib/permisosCatalogo.ts`, `desktop/src/lib/hubNav.ts`, `desktop/src/stores/app.ts`, `desktop/src/lib/flujoApp.ts`, `desktop/src/lib/flujoTickets.ts`, `desktop/src/components/nav/AccesosRapidos.tsx`, `docs/team-recaps.md`
+
+### 2026-09-28 - Compras exterior en tres pestañas
+- **Autor:** Armando García
+- **Tipo de Cambio:** Reorganización de pantalla (sin cambios de cálculo)
+- **Qué se implementó:**
+  - `ComprasExteriorPanel.tsx` deja la pantalla larga de dos columnas y pasa a tres pestañas: **Nueva compra** (pegar/adjuntar, verificar y borradores), **Historial** y **Por pagar** (adeudado por cuentas de cobro, todos los meses). Pegar una imagen, retomar un borrador o editar una compra llevan a «Nueva compra»; confirmar costos lleva al Historial.
+  - Un solo «Actualizar» junto a las pestañas; errores y avisos arriba, visibles en las tres.
+  - Fila de compra: tocarla o «Abrir» abre la revisión; «⋯» despliega líneas, Editar, PDF merc./flete y Eliminar. Antes eran 5–6 botones por fila y la miniatura y «Ver cobro» hacían lo mismo.
+  - Envío: a la vista «Aprobar flete» o «PDF flete» y «Editar envío»; en «⋯», actualizar costos unitarios, color del PDF, regenerar y desenlazar (el selector de color ya no sale dos veces).
+  - «Limpiar PDF cuentas» pasa al pie del historial como mantenimiento; se quita «Seguir después» del modal de verificar (la X hace lo mismo).
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/components/ComprasExteriorPanel.tsx`, `docs/team-recaps.md`
