@@ -1,3 +1,12 @@
+### 2026-09-27 21:10 - Solicitudes de pago: el reintegro a socio ya no cobra ReteICA ni emite documento soporte
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - «Reintegro a socio» heredaba el ICA 9,66‰ de la ficha de Cynthia (el de sus honorarios): a un reintegro de $2.000.000 le descontaba $19.320. Ahora sigue la misma regla que «Saldo por pagar»: gira una deuda ya causada, sin retención ni ICA, y no le cambia la ficha a la socia.
+  - Al aprobarlo tampoco se prepara un documento soporte por el giro (la mercancía ya tiene el suyo desde la compra); antes habría salido como «servicio» de la socia.
+  - Aplicado: solicitud #53, reintegro a Cynthia Ruiz $2.000.000 → asiento 5977 (Débito 2355 / Crédito 1110) y comprobante AC-168 en Alegra. Falta confirmar el giro con el comprobante del banco.
+- **Archivos Modificados:** `app/services/pagos_wizard.py`, `app/services/doc_soporte_pagos.py`, `docs/team-recaps.md`.
+
 ### 2026-09-27 19:05 - Posventa MeLi: el respaldo por pedidos vuelve a funcionar
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.

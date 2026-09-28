@@ -749,6 +749,13 @@ def _asegurar_cuenta_anticipos() -> int:
                                 "cuenta_padre_id": padre})["id"])
 
 
+# Categorías que solo giran una deuda ya causada: el gasto, la retención y el ICA
+# nacieron al causarla. El reintegro a socio entró aquí el 27-sep-2026: heredaba el
+# ICA 9,66‰ de la ficha de Cynthia (pactado para sus honorarios) y le descontaba
+# $19.320 de un reintegro de $2M.
+_GIRAN_DEUDA_CAUSADA = ("saldo_por_pagar", "reintegro_socio")
+
+
 def previsualizar(payload: dict) -> dict:
     """Arma el asiento que se crearía, **sin guardarlo**.
 
@@ -897,9 +904,10 @@ def previsualizar(payload: dict) -> dict:
     # solicita, no se adivina acá) y el **GMF 4x1000**, que no se le descuenta a
     # nadie: lo cobra el banco y es gasto de McKenna.
     modo = str(payload.get("retencion_modo") or "").strip().lower()
-    if categoria == "saldo_por_pagar":
+    if categoria in _GIRAN_DEUDA_CAUSADA:
         # El gasto y la retención se causaron cuando se reconoció el salario o
-        # el servicio. Retener otra vez sería cobrarle dos veces a la persona.
+        # el servicio (o, en el reintegro a un socio, al registrar su compra).
+        # Retener otra vez sería cobrarle dos veces a la persona.
         modo = "ninguna"
     if not modo:
         modo = "mckenna" if payload.get("valor_es_neto") else ("ninguna" if payload.get("sin_retencion") else "beneficiario")
@@ -1031,7 +1039,7 @@ def previsualizar(payload: dict) -> dict:
     # La única excepción es girar un saldo pendiente: ahí el gasto y sus
     # impuestos se causaron cuando se reconoció el servicio, y volver a
     # calcularlos sería cobrarlos dos veces.
-    causa_impuestos = categoria != "saldo_por_pagar"
+    causa_impuestos = categoria not in _GIRAN_DEUDA_CAUSADA
     aplica_renta = modo != "ninguna" and bool(concepto_ret) and causa_impuestos
     aplica_ica = t_ica > 0 and causa_impuestos
     if aplica_renta or aplica_ica:
@@ -1432,7 +1440,7 @@ def _recordar_perfil_tributario(payload: dict, prev: dict) -> None:
     import app.services.contabilidad_core as cc
 
     tercero_id = int(payload.get("tercero_id") or 0)
-    if not tercero_id or prev.get("categoria") in ("cuota_prestamo", "saldo_por_pagar"):
+    if not tercero_id or prev.get("categoria") in ("cuota_prestamo", *_GIRAN_DEUDA_CAUSADA):
         return
     tercero = cc.obtener_tercero(tercero_id)
     if not tercero or int(tercero.get("regimen_simple") or 0):

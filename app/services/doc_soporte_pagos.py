@@ -148,6 +148,19 @@ def emitir_por_solicitud(solicitud_id: int, *, forzar: bool = False) -> dict:
     if sol.get("categoria") == "cuota_prestamo":
         return {"status": "no_aplica",
                 "message": "Cuota de préstamo: el documento soporte de los intereses lo emite Préstamos."}
+    # Un saldo por pagar solo gira una deuda ya causada (2335/2355): el gasto y su
+    # soporte nacieron al causarla. Emitirlo aquí soportaría dos veces el mismo gasto
+    # —o, en un reintegro de gastos, soportaría como «servicio» de la persona lo que
+    # es una factura de otro proveedor—, y el borrador además dejaba el giro sin espejo.
+    if sol.get("categoria") == "saldo_por_pagar":
+        return {"status": "no_aplica",
+                "message": "Saldo por pagar: gira una deuda ya causada; no lleva documento soporte."}
+    # El reintegro a un socio gira 2355: la mercancía que vendió ya tiene su documento
+    # soporte desde la compra (`compras_socios.py`). Emitir otro por el giro la
+    # soportaría dos veces, y como «servicio» de la socia.
+    if sol.get("categoria") == "reintegro_socio":
+        return {"status": "no_aplica",
+                "message": "Reintegro a socio: el documento soporte nació con la compra; no lleva otro."}
 
     with cc._conn() as con:
         ya = con.execute("SELECT * FROM cc_doc_soporte WHERE solicitud_id=?", (int(solicitud_id),)).fetchone()
@@ -222,7 +235,7 @@ def vista_previa(sol: dict) -> dict | None:
     """
     import app.services.contabilidad_core as cc
 
-    if not sol or sol.get("categoria") == "cuota_prestamo" or sol.get("es_plantilla"):
+    if not sol or sol.get("categoria") in ("cuota_prestamo", "saldo_por_pagar", "reintegro_socio") or sol.get("es_plantilla"):
         return None
     tercero = cc.obtener_tercero(int(sol["tercero_id"])) if sol.get("tercero_id") else None
     hay, _ = requiere(tercero)
