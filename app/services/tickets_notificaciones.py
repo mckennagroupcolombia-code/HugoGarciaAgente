@@ -292,7 +292,7 @@ def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
             return
         resolvio = _primer_nombre(_nombre_usuario(db, resolvio_uid))
         titulo = _titulo_corto(t.get("titulo") or "una tarea", 60)
-        texto = f"{resolvio} terminó {titulo} y pide tu aprobación."
+        texto = f"{resolvio} entregó {titulo}. Revísala y dale «Finalizar» para archivarla."
         _programar(creador, texto)
 
 

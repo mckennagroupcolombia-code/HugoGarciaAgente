@@ -1,3 +1,12 @@
+### 2026-09-28 12:30 - Hilo de solicitudes usable en el celular + quien pide la finaliza
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + mejora. Sin LLM.
+- **Qué se implementó:**
+  - Celular (< 1024 px): «Lo que te piden» arranca plegado a una línea, casillas del wizard en una fila baja, bloque fijo de arriba ≤ 34 dvh, conversación con alto mínimo (30 dvh), botón grande más bajo y cuadro de escribir más alto que crece con el texto y respeta el borde inferior. Antes el botón verde y las casillas se comían la pantalla y el cuadro de escribir quedaba cortado (TKT-2026-1544).
+  - Entregar ≠ finalizar: cuando quien la hace entrega una solicitud que pidió otra persona, queda «Por finalizar» (`esperando_aprobacion`) y le llega aviso al solicitante; él la ve en «Por hacer» con ✓ Finalizar (se archiva), ↺ Falta algo o Rechazarla. Se restauró `_requiere_finalizar_el_solicitante` (existió hasta el 20-ago) con sus excepciones: autoasignadas, creadas por el bot o por inactivos, intervenciones, compras/etiquetas con lista y cierres por proceso (pagos). `tests/test_solicitud_aprobacion_cierre.py` vuelve a pasar.
+  - Pendiente: cerrar por WhatsApp Sede Sur deja la solicitud «Por finalizar» pero la respuesta sigue diciendo «resuelto».
+- **Archivos Modificados:** `app/services/tickets_db.py`, `app/services/tickets_notificaciones.py`, `desktop/src/components/tickets/HiloConversacion.tsx`, `InboxConversaciones.tsx`, `hiloPixel.css`, `ticketsFormat.ts`.
+
 ### 2026-09-28 02:30 - Quinua roja, chía, amapola y sales rosadas publicadas en MeLi y web; precio del maní
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad (publicación de productos). Sin LLM.

@@ -134,7 +134,11 @@ export default function HiloConversacion({
   const [enviandoInter, setEnviandoInter] = useState(false);
   const [errorInter, setErrorInter] = useState("");
   // Wizard: la tarjeta de lo pedido, el visor de fotos, «lo leí» y la cámara de evidencia.
-  const [verPedido, setVerPedido] = useState(true);
+  // En el celular el pedido arranca plegado a una línea (se abre al tocarlo): desplegado, más
+  // las casillas y el botón grande, dejaba el chat y el cuadro de escribir sin espacio.
+  const [verPedido, setVerPedido] = useState(() => {
+    try { return !window.matchMedia("(max-width: 1023px)").matches; } catch { return true; }
+  });
   const [visor, setVisor] = useState<number | null>(null);
   const [leido, setLeido] = useState(() => {
     try { return localStorage.getItem(`mck_hilo_leido_${ticketId}`) === "1"; } catch { return false; }
@@ -239,6 +243,11 @@ export default function HiloConversacion({
   // pendiente. Sin esta lista aquí, el hilo mostraba ese error sin dónde marcar.
   const esCompra = esSolicitudCompraDelegada(ticket);
   const companeros = equipo.filter((u) => u.id !== user.id);
+  // Entregar ≠ finalizar: si la pidió otra persona, al entregarla le llega a ella para que la
+  // finalice y así se archive (criterio de `_requiere_finalizar_el_solicitante` en tickets_db.py).
+  const entregaAlSolicitante = !esAccion && ticket.creado_por != null && !esCreadoPorMi && !ticket.ticket_padre_id
+    && !["compra", "etiqueta"].includes((ticket.subtipo ?? "").trim());
+  const solicitanteNombre = ticket.creado_por_nombre ?? "quien la pidió";
 
   async function enviarMensaje() {
     const texto = draft.trim();
@@ -247,6 +256,7 @@ export default function HiloConversacion({
       await enviar.mutateAsync({ ticketId, texto, archivos });
       setDraft("");
       setArchivos([]);
+      if (draftRef.current) draftRef.current.style.height = "";
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "No se pudo enviar el mensaje");
       setTimeout(() => setMsg(""), 3500);
@@ -281,7 +291,9 @@ export default function HiloConversacion({
   function marcarResuelto() {
     abrirDialogo({
       titulo: "¿Entregar esta tarea?",
-      detalle: ticket!.titulo,
+      detalle: entregaAlSolicitante
+        ? `${ticket!.titulo}\n\nLe llega a ${solicitanteNombre} para que la revise y la finalice.`
+        : ticket!.titulo,
       okLabel: "★ Sí, entregar",
       tono: "ok",
       onConfirmar: () => cambiar({ estado: "resuelto" }),
@@ -303,9 +315,9 @@ export default function HiloConversacion({
   }
   function aprobar() {
     abrirDialogo({
-      titulo: "¿Aprobar y cerrar?",
-      detalle: ticket!.titulo,
-      okLabel: "Aprobar y cerrar",
+      titulo: "¿Finalizar la solicitud?",
+      detalle: `${ticket!.titulo}\n\nQueda archivada en el historial de hechas.`,
+      okLabel: "✓ Finalizar",
       tono: "ok",
       onConfirmar: () => cambiar({ estado: "resuelto" }),
     });
@@ -466,9 +478,17 @@ export default function HiloConversacion({
     if (resuelta || bloqueada) return null;
     if (esCreadoPorMi && ticket!.estado === "esperando_aprobacion") {
       return (
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" onClick={aprobar} className="hp-boton verde">✓ Aprobar</button>
-          <button type="button" onClick={rechazar} className="hp-boton rosa">✕ Rechazar</button>
+        <div className="space-y-2">
+          <p className="text-center text-[15px] font-bold text-ink">
+            {ticket!.asignado_a_nombre ?? "Quien la hizo"} la entregó. Revísala y finalízala para archivarla.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={aprobar} className="hp-boton verde">✓ Finalizar</button>
+            <button type="button" onClick={pedirCambios} className="hp-boton blanco">↺ Falta algo</button>
+          </div>
+          <button type="button" onClick={rechazar} className="w-full text-center text-[14px] font-semibold text-ink-muted underline underline-offset-2">
+            Rechazarla
+          </button>
         </div>
       );
     }
@@ -481,7 +501,13 @@ export default function HiloConversacion({
         </button>
       );
     }
-    if (ticket!.estado === "esperando_aprobacion") return null;
+    if (ticket!.estado === "esperando_aprobacion") {
+      return (
+        <p className="text-center text-[15px] font-bold text-ink">
+          ★ Entregada. Falta que {solicitanteNombre} la finalice.
+        </p>
+      );
+    }
     if (esCompra) {
       return <p className="text-center text-[15px] font-bold text-ink">Marca cada producto de la lista de arriba: al terminar se entrega sola.</p>;
     }
@@ -506,7 +532,9 @@ export default function HiloConversacion({
       );
     }
     return puedeEntregar ? (
-      <button type="button" onClick={marcarResuelto} className="hp-boton verde w-full">★ Entregar · +25 monedas</button>
+      <button type="button" onClick={marcarResuelto} className="hp-boton verde w-full">
+        ★ {entregaAlSolicitante ? `Entregar a ${solicitanteNombre.split(" ")[0]}` : "Entregar"} · +25
+      </button>
     ) : null;
   }
   const jugada = siguienteJugada();
@@ -538,7 +566,7 @@ export default function HiloConversacion({
 
       {/* Lo pedido y las casillas quedan FIJOS arriba: el chat baja solo al último mensaje y
           antes se llevaba la solicitud fuera de la vista («¿qué era lo que me pidieron?»). */}
-      <div className="max-h-[48vh] shrink-0 space-y-2 overflow-y-auto border-b-2 border-ink/15 px-3 pt-3 pb-2.5">
+      <div className="hp-fijo max-h-[34dvh] shrink-0 space-y-2 overflow-y-auto border-b-2 border-ink/15 px-3 pt-2 pb-2 lg:max-h-[48vh] lg:pt-3 lg:pb-2.5">
         {/* ── Lo que te piden: siempre arriba, completo, con sus fotos ── */}
         <section className="hp-pedido">
           <button type="button" onClick={() => setVerPedido((v) => !v)} className="hp-pedido-cinta w-full text-left">
@@ -583,7 +611,7 @@ export default function HiloConversacion({
         </section>
 
         {/* ── Wizard: cuatro casillas y la barra ── */}
-        <section className="hp-caja space-y-2 p-2.5">
+        <section className="hp-caja space-y-1.5 p-1.5 lg:space-y-2 lg:p-2.5">
           <div className="hp-pasos">
             {nombresPasos.map((nombre, i) => {
               const hecho = i < etapa;
@@ -602,7 +630,7 @@ export default function HiloConversacion({
 
       </div>
 
-      <div className="min-w-0 flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-3 pt-3 pb-2 space-y-3">
+      <div className="min-w-0 flex-1 min-h-[30dvh] overflow-x-hidden overflow-y-auto px-3 pt-3 pb-2 space-y-3 lg:min-h-0">
         {esAccion && !resuelta && !bloqueada && esAsignado && (
           <CorridaCronometroBlock
             segundos={cronometro.segundos}
@@ -791,7 +819,7 @@ export default function HiloConversacion({
       {msg && <p className="px-4 py-1 text-[14px] font-bold text-accent-rose">{msg}</p>}
 
       {/* ── Siguiente jugada: un solo botón grande según la casilla ── */}
-      {jugada && <div className="border-t-2 border-ink bg-surface-panel px-3 py-2.5">{jugada}</div>}
+      {jugada && <div className="hp-jugada border-t-2 border-ink bg-surface-panel px-3 py-2 lg:py-2.5">{jugada}</div>}
       <input
         ref={camRef} type="file" accept="image/*" capture="environment" multiple hidden
         onChange={(e) => {
@@ -802,7 +830,7 @@ export default function HiloConversacion({
       />
 
       {puedeEscribir ? (
-        <div className="border-t-2 border-ink p-2.5">
+        <div className="border-t-2 border-ink p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:p-2.5">
           {archivos.length > 0 && (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {archivos.map((f, i) => (
@@ -833,7 +861,13 @@ export default function HiloConversacion({
             <textarea
               ref={draftRef}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                // Crece con el texto (hasta ~6 líneas) para leer lo que se escribe.
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+              }}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviarMensaje(); } }}
               onPaste={(e) => {
                 const item = Array.from(e.clipboardData.items).find((it) => it.type.startsWith("image/"));
@@ -846,7 +880,7 @@ export default function HiloConversacion({
               }}
               placeholder="Escribe aquí…"
               rows={1}
-              className="hp-campo min-h-[48px] flex-1 resize-none px-3 py-2.5"
+              className="hp-campo min-h-[52px] min-w-0 flex-1 resize-none px-3 py-3"
             />
             <button
               type="button"
@@ -886,7 +920,7 @@ export default function HiloConversacion({
             className="hp-pedido w-full max-w-sm space-y-3 p-4"
           >
             <p className="text-[18px] font-extrabold text-ink">{dialogo.titulo}</p>
-            {dialogo.detalle && <p className="text-[15px] leading-snug text-ink-muted">{dialogo.detalle}</p>}
+            {dialogo.detalle && <p className="whitespace-pre-line text-[15px] leading-snug text-ink-muted">{dialogo.detalle}</p>}
             {dialogo.campo && (
               <textarea
                 autoFocus

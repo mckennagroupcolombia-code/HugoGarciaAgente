@@ -3938,6 +3938,38 @@ def _items_lista_sin_resolver(db, ticket_id: int) -> int:
     ).fetchone()["n"]
 
 
+def _requiere_finalizar_el_solicitante(db, t: dict, uid: int) -> bool:
+    """Una solicitud delegada la finaliza (y archiva) quien la pidió, no quien la hizo.
+
+    Quien la hace la entrega y queda en `esperando_aprobacion`; el solicitante la finaliza
+    o la devuelve. Existió hasta el 20-ago-2026, se quitó y volvió el 28-sep-2026 a pedido
+    del equipo. Quedan por fuera:
+
+    - Creadas por la cuenta de servicio del bot o por un usuario inactivo: nadie podría
+      finalizarlas y quedarían abiertas para siempre.
+    - Intervenciones y compras derivadas de otro ticket (`ticket_padre_id`): al cerrarse
+      desbloquean al padre, esperar la aprobación detendría el trabajo.
+    - Compras y etiquetas delegadas: su checklist ya queda completo al entregarse.
+    """
+    if t.get("tipo") != "solicitud":
+        return False
+    if t.get("estado") == "esperando_aprobacion":
+        return False
+    if t.get("asignado_a") != uid:
+        return False
+    if t.get("ticket_padre_id"):
+        return False
+    if (t.get("subtipo") or "").strip() in ("compra", "etiqueta"):
+        return False
+    creador = t.get("creado_por")
+    if not creador or creador == uid:
+        return False
+    row = db.execute("SELECT username, activo FROM usuarios WHERE id=?", (creador,)).fetchone()
+    if not row or not row["activo"]:
+        return False
+    return row["username"] != _USERNAME_BOT_SEDE_SUR
+
+
 def cambiar_estado(
     ticket_id: int,
     nuevo_estado: str,
@@ -4008,6 +4040,15 @@ def cambiar_estado(
                         (ticket_id,),
                     ).fetchone()["n"]
                     return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
+        # Entregar ≠ finalizar (28-sep-2026): quien pidió la solicitud es quien la da por
+        # finalizada. Va después de las validaciones de «resuelto» (pasos, compras) para que
+        # no se entregue a medias.
+        if (
+            nuevo_estado == "resuelto"
+            and not cierre_por_proceso
+            and _requiere_finalizar_el_solicitante(db, t, uid)
+        ):
+            nuevo_estado = "esperando_aprobacion"
         # (Sin gate de "una acción a la vez": ver crear_ticket(). Varias acciones y
         # varias solicitudes pueden estar en_proceso simultáneamente para el mismo
         # usuario; cada una acumula su tiempo en su propia corrida.)
@@ -4137,9 +4178,8 @@ def cambiar_estado(
             except Exception:
                 pass
         elif nuevo_estado == "esperando_aprobacion":
-            # Ruta que ya queda para uso manual/legado (ej. /pedir-revision explícito,
-            # o un ticket que un admin mueva a mano) — el auto-ruteo al marcar "listo"
-            # se quitó: ahora resolver siempre deja la solicitud en "resuelto" directo.
+            # Entrega de quien la hizo (ver `_requiere_finalizar_el_solicitante`) o paso manual/legado:
+            # se le avisa a quien la pidió para que la finalice.
             try:
                 from app.services.tickets_notificaciones import notificar_revision_solicitada
                 from app.observability import spawn_thread

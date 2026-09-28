@@ -280,3 +280,28 @@
 @media (prefers-reduced-motion: reduce) {
   .hp-paso.actual, .hp-paso.recien { animation: none; }
 }
+
+/* ─── Celular (28-sep-2026): el chat y el cuadro de escribir mandan ────────
+ * Antes las casillas, el botón grande y el pedido desplegado se comían la pantalla y el
+ * cuadro de escribir quedaba cortado abajo. En pantallas angostas todo eso se compacta. */
+@media (max-width: 1023px) {
+  .hp-fijo .hp-pedido-titulo { font-size: 17px; }
+  .hp-fijo .hp-pedido-texto { font-size: 16px; }
+  .hp-fijo .hp-foto { width: 56px; height: 56px; }
+  .hp-pasos { gap: 4px; }
+  .hp-paso {
+    flex-direction: row;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px 2px;
+    font-size: 12px;
+  }
+  .hp-paso-num { width: 18px; height: 18px; font-size: 11px; border-width: 1.5px; }
+  .hp-barra { height: 8px; }
+  .hp-jugada .hp-boton { min-height: 44px; padding: 8px 12px; font-size: 16px; box-shadow: 3px 3px 0 #000; }
+  .hp-burbuja { font-size: 17px; }
+}
+@media (max-width: 340px) {
+  /* Muy angosto: solo el número/✓, el nombre del paso se lee en la barra. */
+  .hp-paso > span:last-child { display: none; }
+}

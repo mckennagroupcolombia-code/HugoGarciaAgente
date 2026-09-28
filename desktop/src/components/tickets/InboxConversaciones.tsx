@@ -33,8 +33,10 @@ function guardar(clave: string, valor: string) {
   try { localStorage.setItem(clave, valor); } catch { /* sin almacenamiento */ }
 }
 
-function montonDe(c: Conversacion): Monton {
+/** Entregada por quien la hizo: a quien la pidió le toca finalizarla, así que es suya «por hacer». */
+function montonDe(c: Conversacion, uid: number): Monton {
   if (c.estado === "pendiente") return "por_hacer";
+  if (c.estado === "esperando_aprobacion" && uidEq(c.creado_por, uid)) return "por_hacer";
   if (c.estado === "en_proceso" || c.estado === "esperando_aprobacion") return "en_curso";
   return "hechas";
 }
@@ -204,7 +206,7 @@ export default function InboxConversaciones({
 
   const cuenta = useMemo(() => {
     const r = { por_hacer: 0, en_curso: 0, hechas: 0 };
-    for (const c of filtradas) r[montonDe(c)] += 1;
+    for (const c of filtradas) r[montonDe(c, user.id)] += 1;
     return r;
   }, [filtradas]);
 
@@ -241,9 +243,9 @@ export default function InboxConversaciones({
     if ((a.no_leidos > 0) !== (b.no_leidos > 0)) return a.no_leidos > 0 ? -1 : 1;
     return b.ultima_actividad.localeCompare(a.ultima_actividad);
   });
-  const porHacer = ordenar(filtradas.filter((c) => montonDe(c) === "por_hacer"));
-  const enCurso = ordenar(filtradas.filter((c) => montonDe(c) === "en_curso"));
-  const hechas = filtradas.filter((c) => montonDe(c) === "hechas");
+  const porHacer = ordenar(filtradas.filter((c) => montonDe(c, user.id) === "por_hacer"));
+  const enCurso = ordenar(filtradas.filter((c) => montonDe(c, user.id) === "en_curso"));
+  const hechas = filtradas.filter((c) => montonDe(c, user.id) === "hechas");
 
   const secciones: { clave: Monton; label: string; items: Conversacion[] }[] = [
     { clave: "en_curso", label: "En curso", items: enCurso },
