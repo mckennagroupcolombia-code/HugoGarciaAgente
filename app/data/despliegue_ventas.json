@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-09-27T20:27:04",
+ "actualizado": "2026-09-27T23:35:21",
  "actualizado_por": "mckg",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -2180,6 +2180,24 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO866417408"
+   ]
+  },
+  "C-PSYESC250G": {
+   "nombre": "PSYLLIUM EN ESCAMAS 250g",
+   "titulo_meli": "Psyllium En Escamas Puro 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240278527"
+   ]
+  },
+  "C-PSYESC500G": {
+   "nombre": "PSYLLIUM EN ESCAMAS 500g",
+   "titulo_meli": "Psyllium En Escamas Puro 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240505045"
    ]
   }
  },

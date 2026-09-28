@@ -2217,6 +2217,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "cranberry" in n
         or "coco deshidratado" in n
         or "semilla" in n
+        or "psyllium" in n
         or "amaranto" in n
         or "quinua" in n
         or "quinoa" in n
@@ -2324,7 +2325,6 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "prolina" in n
         or "albumina" in n
         or "glicina" in n
-        or "psyllium" in n
     ):
         return "Suplementarios"
     if (
@@ -4718,6 +4718,14 @@ def producto(slug):
     # Familia: aplicar presentación seleccionada (?pres=slug-combo)
     selected = None
     if p.get("is_family") and p.get("combos"):
+        # Cada botón de presentación con la misma prioridad que la galería principal
+        # (override del panel → foto web local del SKU → MeLi): sin esto, al elegir
+        # otra presentación se veía la foto de MeLi, que lleva la etiqueta desenfocada.
+        p = dict(p)
+        p["combos"] = [
+            {**c, "photos": f, "photo": f[0]} if (f := _fotos_de_producto(c)) else c
+            for c in p["combos"]
+        ]
         pres = (request.args.get("pres") or "").strip().lower()
         if pres:
             selected = next(

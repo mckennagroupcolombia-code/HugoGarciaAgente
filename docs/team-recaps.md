@@ -1,3 +1,14 @@
+### 2026-09-28 00:10 - Psyllium en escamas 250 g y 500 g publicado en MeLi y en la web
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (publicación de producto) + corrección en la tienda. Sin LLM.
+- **Qué se implementó:**
+  - MeLi: `C-PSYESC250g` → MCO2240278527 ($31.000, envío a cargo del comprador) y `C-PSYESC500g` → MCO2240505045 ($57.000, envío gratis). Premium, 20 u., categoría Semillas (MCO389309, no suplementos), GTIN y descripción de materia prima (Res. 2674/2013 Art. 37-3). Se cerraron las 4 versiones previas (títulos sin peso o con «Materia Prima»).
+  - Decisión de envío con datos reales de sep-2026 (821 envíos): por debajo de $60.000 el envío gratis nos cuesta ~$1.150 más que cobrárselo al comprador (que pagaría ~$15.800); el IVA no cambia porque la factura nunca incluye el envío. Cruce de las 841 facturas MeLi de septiembre en Alegra: 836 cuadran con lo pagado, 3 con IVA duplicado ya anuladas con NC.
+  - Alegra: precio de lista General de los dos kits $0 → $31.000 / $57.000 (con IVA, como el resto); la tienda oculta los combos sin precio. Receta intacta.
+  - Web: ficha «Psyllium en Escamas» con las dos presentaciones ($27.900 / $51.300 = MeLi −10 %), fotos web nítidas, en «Frutos secos y semillas». SKUs agregados al despliegue gradual.
+  - Tienda: los botones de presentación ahora usan la misma prioridad de fotos que la galería (override → foto web local → MeLi); antes al cambiar de presentación salía la foto de MeLi con la etiqueta desenfocada. Aplica a todas las familias.
+- **Archivos Modificados:** `PAGINA_WEB/site/website.py`, `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json` (fotos en `IMAGENES_PRODUCTOS_CATALOGO/`, fuera de git).
+
 ### 2026-09-27 23:55 - Libro Mayor para el contador: NIT, factura y soporte en cada asiento + cron nocturno
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
