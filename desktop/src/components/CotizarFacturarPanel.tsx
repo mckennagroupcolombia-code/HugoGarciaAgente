@@ -2149,7 +2149,9 @@ function PasoProductos({
   const q = useDebounced(busqueda.trim(), 220);
   const despliegue = useDespliegue();
   const limitado = restringir && !!despliegue?.activo;
-  const desplegado = (codigo: string) => !limitado || !!despliegue?.skus.has(codigo.toUpperCase());
+  // Los envíos (WEB-ENVIO-*) son productos de servicio, no combos: siempre se pueden agregar.
+  const desplegado = (codigo: string) =>
+    !limitado || codigo.toUpperCase().startsWith("WEB-ENVIO-") || !!despliegue?.skus.has(codigo.toUpperCase());
   const resultados = limitado ? resultadosAlegra.filter((p) => desplegado(p.codigo)) : resultadosAlegra;
   const fuera = restringir ? (calc?.fuera_despliegue ?? []) : [];
 

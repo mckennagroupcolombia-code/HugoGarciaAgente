@@ -25,7 +25,7 @@ la copia local). 271 de 280 publicaciones reactivadas; 7 quedan pausadas (SKU in
 `meli_pausa_global.json` → `no_reactivadas`) y 2 no volvieron por stock 0. Mientras el despliegue esté activo:
 `meli.meli_item_reactivable()` impide que la sincronización de stock reactive algo fuera de la lista; la web filtra el
 catálogo como vista (`_catalogo_desplegado` / `_vista_despliegue` en website.py, cache.json no cambia); Cotizar/Facturar
-rechaza SKUs fuera de la lista **y las líneas genéricas VENTA-VARIO-*** (`ventas_directas.fuera_de_despliegue`; la venta
+rechaza SKUs fuera de la lista **y las líneas genéricas VENTA-VARIO-*** (los envíos `WEB-ENVIO-*` siempre pasan: son servicio, no combo) (`ventas_directas.fuera_de_despliegue`; la venta
 MeLi con RUT no se frena); el Árbol del producto marca «A la venta · MeLi + web». Al enlazar más SKUs: `--ampliar`.
 `tests/conftest.py` aísla el archivo real (autouse).
 

@@ -1,3 +1,11 @@
+### 2026-09-28 13:40 - Despliegue gradual de ventas tras el cese + envíos permitidos en Cotizar/Facturar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad + corrección. Sin LLM.
+- **Qué se implementó:**
+  - 27-sep: se levantó el cese de actividades con despliegue gradual (`scripts/desplegar_ventas_facturables.py`, `app/services/despliegue_ventas.py`). Solo volvió lo que hoy se factura en Alegra: 271 de 280 publicaciones MeLi reactivadas, 7 siguen pausadas (SKU inexistente en Alegra) y 2 sin stock. La web muestra solo esos SKUs, el Árbol del producto marca «A la venta · MeLi + web» y Cotizar/Facturar solo cotiza la lista. Aviso con la lista al grupo Sincronizacion_Inventario. (El código entró en el auto-commit nocturno del 27-sep.)
+  - 28-sep: los productos de envío (`WEB-ENVIO-*`, incluido el de valor variable) no son combos y el despliegue los bloqueaba en la búsqueda, la cotización y la factura. Ahora siempre se pueden agregar.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_despliegue_ventas.py`, `docs/agentic/modules/operacion-equipo.md`, `docs/team-recaps.md`.
+
 ### 2026-09-28 13:20 - CSV del Libro Mayor: montos legibles en Excel en español
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.

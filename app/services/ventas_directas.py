@@ -165,11 +165,19 @@ def _producto_alegra(codigo: str) -> dict | None:
         return None
 
 
+def es_envio(codigo: str) -> bool:
+    """Productos de envío de Alegra (WEB-ENVIO-<monto> y el genérico de valor variable):
+    son servicio, no combo, y siempre se pueden agregar a una venta."""
+    base = _codigo_base(codigo).upper()
+    return base.startswith("WEB-ENVIO-") or base == ENVIO_SKU_GENERICO.upper()
+
+
 def fuera_de_despliegue(lineas: list[dict]) -> list[str]:
     """Productos que no se pueden vender mientras dura el despliegue gradual tras el
     cese (app/services/despliegue_ventas.py): solo SKUs que hoy se facturan y
     volvieron a publicarse. Las líneas genéricas (VENTA-VARIO-*) tampoco pasan: con
-    ellas se vendería cualquier cosa por fuera de la lista. Vacío = todo en regla."""
+    ellas se vendería cualquier cosa por fuera de la lista. Los envíos (WEB-ENVIO-*) siempre
+    pasan. Vacío = todo en regla."""
     from app.services import despliegue_ventas
 
     if not despliegue_ventas.activo():
@@ -177,6 +185,8 @@ def fuera_de_despliegue(lineas: list[dict]) -> list[str]:
     fuera = []
     for ln in lineas or []:
         codigo = _codigo_base(ln.get("codigo") or "")
+        if codigo and es_envio(codigo):
+            continue
         if not codigo or es_generico_venta(codigo) or not despliegue_ventas.sku_habilitado(codigo):
             fuera.append(str(ln.get("nombre") or codigo or "producto sin código"))
     return fuera

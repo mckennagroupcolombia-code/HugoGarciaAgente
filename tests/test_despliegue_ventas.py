@@ -62,3 +62,7 @@ def test_meli_no_reactiva_fuera_de_despliegue(despliegue, monkeypatch):
     monkeypatch.setattr(meli, "pausa_global_meli_activa", lambda: False)
     assert meli.meli_item_reactivable("mco1")
     assert not meli.meli_item_reactivable("MCO2")
+
+
+def test_envios_siempre_pasan(despliegue):
+    assert V.fuera_de_despliegue(_lineas("WEB-ENVIO-15000", "web-envio-var", "C-OTRO100G")) == ["C-OTRO100G"]
