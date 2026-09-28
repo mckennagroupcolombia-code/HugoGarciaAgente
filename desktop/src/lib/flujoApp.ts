@@ -144,7 +144,6 @@ export const ETAPAS_APP: EtapaApp[] = [
       {
         titulo: "Ponerlo en vitrina", datos: ["publicación MCO…", "precio web y MeLi", "fotos", "origen de la materia"],
         pasos: [
-          { panel: "publicaciones", hace: "La ficha en MercadoLibre y en la tienda web" },
           { panel: "canales-producto", hace: "Cada SKU en todos los canales: qué falta y qué no factura" },
           { panel: "vitrina-web", hace: "Banners y origen de las materias primas" },
         ],
