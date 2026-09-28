@@ -1,3 +1,11 @@
+### 2026-09-27 19:05 - Posventa MeLi: el respaldo por pedidos vuelve a funcionar
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - El respaldo que busca mensajes de posventa entre los pedidos recientes (por si MeLi no avisa al webhook) fallaba cada 5 minutos: pedía 80 y 60 pedidos y MeLi solo acepta hasta 51 (`limit.maximum_exceeded`). Ahora nunca pide más de 51, igual que `routes.py`.
+  - Contexto: el «No hay mensaje postventa pendiente con código 719» del grupo no era por el cese de actividades; el pendiente era el 729.
+- **Archivos Modificados:** `app/monitor.py`, `app/meli_postventa_huecos.py`.
+
 ### 2026-09-27 18:45 - Ubicación de bultos: «¿Dónde está?» en cada solicitud
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

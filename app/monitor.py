@@ -74,7 +74,8 @@ def _monitor_postventa_meli_polling():
     from app.utils import obtener_seller_id_meli, refrescar_token_meli
 
     intervalo = int(os.getenv("POSTVENTA_POLL_INTERVALO_SEG", "300"))
-    limite = int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "80"))
+    # MeLi rechaza orders/search con limit > 51 (HTTP 400 limit.maximum_exceeded).
+    limite = min(51, int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "51")))
     time.sleep(45)
     while True:
         try:
