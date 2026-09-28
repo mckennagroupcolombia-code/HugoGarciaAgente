@@ -1,5 +1,5 @@
 /**
- * Etiqueta 38 × 102 mm vertical. Siete bloques apilados cuyas alturas salen
+ * Etiqueta 38 × 102 mm vertical. Seis bloques apilados cuyas alturas salen
  * de la retícula (mm exactos convertidos a px de diseño), así que la suma es
  * siempre el alto de la etiqueta: nada se estira ni se recorta. Dentro de
  * cada bloque el texto se encoge para caber (`CampoEtiqueta`), que la
@@ -34,40 +34,6 @@ import "./etiquetaVertical.css";
 /* ── Íconos que no existen en la galería, dibujados aquí ───────────────── */
 const TRAZO = { fill: "none", stroke: "currentColor", strokeWidth: 5, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
-function IconoGota({ size = 26 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-      <path d="M32 7c9 11 15 19 15 27a15 15 0 0 1-30 0c0-8 6-16 15-27Z" {...TRAZO} />
-    </svg>
-  );
-}
-
-function IconoCopoNieve({ size = 26 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-      <g {...TRAZO}>
-        <path d="M32 6v52M10 19l44 26M54 19L10 45" />
-        <path d="M32 15l-6-5m6 5 6-5M32 49l-6 5m6-5 6 5" />
-        <path d="M17 26l-8-1m8 1-1-8M47 38l8 1m-8-1 1 8" />
-        <path d="M17 38l-1 8m1-8-8 1M47 26l1-8m-1 8 8-1" />
-      </g>
-    </svg>
-  );
-}
-
-function IconoRostroHoja({ size = 26 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-      <g {...TRAZO}>
-        <path d="M45 13a24 24 0 1 0 7 17" />
-        <path d="M24 28h.02M38 28h.02" />
-        <path d="M24 40a11 11 0 0 0 14 0" />
-        <path d="M55 8c1 9-3 15-11 16 0-9 4-14 11-16Z" />
-      </g>
-    </svg>
-  );
-}
-
 function IconoUbicacionPie({ size = 17 }: { size?: number }) {
   return (
     <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
@@ -90,8 +56,6 @@ function IconoGlobo({ size = 17 }: { size?: number }) {
   );
 }
 
-const ICONOS_BENEFICIO = [IconoGota, IconoCopoNieve, IconoRostroHoja] as const;
-
 interface Props {
   data: ProductLabelData;
   reticula: ReticulaVertical;
@@ -109,7 +73,6 @@ const TAM = {
   grado: [22, 15] as const,
   titulo: [19, 14] as const,
   valor: [31, 22] as const,
-  beneficio: [29, 20] as const,
   netoTitulo: [18, 13] as const,
   netoValor: [42, 26] as const,
   lema: [15, 11] as const,
@@ -249,47 +212,11 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
         {casilla("storage", "Conservación")}
       </div>
 
-      {/* 4. Beneficios */}
-      <div className="ev-bloque ev-beneficios" style={{ height: bloques.beneficios }}>
-        <EditableLabel
-          texto="Beneficios"
-          editMode={editMode}
-          styleKey="ev-beneficios-titulo"
-          defaultFontSize={TAM.titulo[0]}
-          className="ev-beneficios-titulo"
-          as="div"
-        />
-        <div className="ev-beneficios-cols">
-          {([1, 2] as const).map((n) => {
-            const Icono = ICONOS_BENEFICIO[n - 1];
-            const campo = `beneficio${n}` as "beneficio1" | "beneficio2";
-            return (
-              <div key={n} className="ev-beneficio" style={{ borderLeftWidth: linea }}>
-                <span className="ev-icono" style={{ width: ladoIcono, height: ladoIcono }}>
-                  <Icono size={ladoIcono} />
-                </span>
-                <CampoEtiqueta
-                  valor={data[campo] || ""}
-                  onChange={cambio(campo)}
-                  editMode={editMode}
-                  styleKey={`ev-${campo}`}
-                  tam={TAM.beneficio}
-                  maxLineas={3}
-                  multilinea
-                  ejemplo={EJEMPLO_VERTICAL[campo]}
-                  className="ev-beneficio-texto"
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 5. Franja libre: el contenido neto pasó al costado derecho del
+      {/* 4. Franja libre: el contenido neto pasó al costado derecho del
           bloque de marca y este espacio se deja en blanco a propósito. */}
       <div className="ev-bloque ev-neto" style={{ height: bloques.neto }} />
 
-      {/* 6. Logo, lema y código de barras — el código SIEMPRE debajo */}
+      {/* 5. Logo, lema y código de barras — el código SIEMPRE debajo */}
       <div className="ev-bloque ev-marca" style={{ height: bloques.marca }}>
         <div className="ev-marca-cuerpo">
           <div
@@ -354,7 +281,7 @@ const EtiquetaVertical = forwardRef<HTMLDivElement, Props>(function EtiquetaVert
         </div>
       </div>
 
-      {/* 7. Pie de contacto */}
+      {/* 6. Pie de contacto */}
       <div className="ev-bloque ev-pie" style={{ height: bloques.pie }}>
         <div className="ev-pie-linea">
           <IconoUbicacionPie />

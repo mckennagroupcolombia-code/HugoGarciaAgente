@@ -645,6 +645,49 @@ export default function CrearProductosSiigoPanel({
     copiarRecetaCombo(item.codigo, { destinoCodigo, destinoNombre });
   }
 
+  /** Desde resultados de búsqueda: copia nombre, unidad, precio e IVA de un producto
+   *  (no combo) a uno nuevo con código `…-COPIA`. No toca el original. */
+  function duplicarProductoDesdeHallazgo(item: BusquedaItem) {
+    const origen = item.codigo.trim();
+    if (origen.length < 2) return;
+    const destinoCodigo = sugerirCodigoCopia(origen);
+    setResultado(null);
+    setCatalogoAbierto(false);
+    setOrigenCombo(null);
+    setErrorReceta(null);
+    setAjustandoCombo(false);
+    setAvisoMovimientosCombo(null);
+    setModo("producto");
+    setCodigo(destinoCodigo);
+    setNombre(sugerirNombreCopia(item.nombre));
+    setPrecioCosto("");
+    setPrecioVenta("");
+    setCheck(null);
+    setCargandoReceta(true);
+    void api
+      .get<DetalleComboSiigo>(`/api/siigo/productos/detalle?codigo=${encodeURIComponent(origen)}`)
+      .then((data) => {
+        if (!data.ok) {
+          setErrorReceta(data.error || `No se pudo leer ${origen} en Alegra`);
+          return;
+        }
+        if (data.nombre) setNombre(sugerirNombreCopia(data.nombre));
+        if (Number(data.precio_lista || 0) > 0) setPrecioVenta(String(Math.round(Number(data.precio_lista))));
+        if (typeof data.iva === "boolean") setIva(data.iva);
+      })
+      .catch((err: Error) => setErrorReceta(err.message || "Error al leer el producto"))
+      .finally(() => setCargandoReceta(false));
+    // La unidad solo la trae la verificación de código; se lee del original.
+    void api
+      .post<CodigoCheck>("/api/facturas/codigo/check", { codigo: origen })
+      .then((data) => {
+        const u = data.siigo_producto?.unidad;
+        if (u) setUnidad(mapUnidadSiigo(u));
+      })
+      .catch(() => {});
+    verificarCodigo.mutate(destinoCodigo);
+  }
+
   /** Carga el combo existente para editar componentes (solo si no tiene movimientos). */
   function ajustarDesdeHallazgo(item: BusquedaItem) {
     const origen = item.codigo.trim();
@@ -1044,12 +1087,16 @@ export default function CrearProductosSiigoPanel({
                       >
                         <Icon name="pencil" size={12} weight="bold" />
                       </button>
-                      {combo && (
+                      {(combo || !duplicarCombo) && (
                         <button
                           type="button"
                           className="m-1.5 shrink-0 self-center rounded-md border border-accent/60 bg-accent/15 px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent/25"
-                          title="Copiar componentes, cantidades y precio a un combo nuevo"
-                          onClick={() => duplicarDesdeHallazgo(s)}
+                          title={
+                            combo
+                              ? "Copiar componentes, cantidades y precio a un combo nuevo"
+                              : "Copiar nombre, unidad, precio e IVA a un producto nuevo"
+                          }
+                          onClick={() => (combo ? duplicarDesdeHallazgo(s) : duplicarProductoDesdeHallazgo(s))}
                         >
                           Duplicar
                         </button>
@@ -1131,7 +1178,9 @@ export default function CrearProductosSiigoPanel({
             <p className="text-xs text-muted">
               {ajustandoCombo
                 ? "Cargando composición del combo en Alegra…"
-                : "Leyendo receta del combo origen en Alegra…"}
+                : modo === "producto"
+                  ? "Leyendo el producto original en Alegra…"
+                  : "Leyendo receta del combo origen en Alegra…"}
             </p>
           )}
           {errorReceta && (

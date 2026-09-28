@@ -3292,6 +3292,39 @@
       "bimestre": 4,
       "codigo": "7702950502643",
       "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "24f2872efe65",
+      "sku": "C-ACEESEGER5mL",
+      "nombre_producto": "ACEITE ESENCIAL GERANIO 5mL",
+      "numero_producto": 296,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702960052640",
+      "creado_at": "2026-09-27T23:44:06"
+    },
+    {
+      "id": "e86b147fdd2f",
+      "sku": "C-ACEESEMAR5mL",
+      "nombre_producto": "ACEITE ESENCIAL MARACUYA 5mL",
+      "numero_producto": 297,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702970052647",
+      "creado_at": "2026-09-27T23:56:55"
+    },
+    {
+      "id": "9bc5a80eea81",
+      "sku": "C-ACEESEZAN5mL",
+      "nombre_producto": "ACEITE ESENCIAL ZANAHORIA 5mL",
+      "numero_producto": 298,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702980052644",
+      "creado_at": "2026-09-28T00:21:20"
     }
   ]
 }

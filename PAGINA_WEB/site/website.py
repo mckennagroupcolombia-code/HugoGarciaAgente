@@ -4690,6 +4690,124 @@ def _fotos_de_producto(p: dict) -> list[str]:
     return [foto] if foto else []
 
 
+# ── SEO de la ficha de producto ─────────────────────────────────────────────
+# Título, meta descripción y schema.org/Product se arman aquí (no en Jinja) para
+# que el JSON-LD salga con escape correcto. Un producto puntual puede afinar su
+# título/descripción en data/seo_productos.json ({slug: {title, description}});
+# "{precio}" dentro del texto se reemplaza por el precio vigente.
+# Sin gtin a propósito: los EAN de etiquetas son internos (770 + consecutivo
+# propio, no asignados por GS1) y Google Merchant los marca como GTIN inválido.
+SEO_PRODUCTOS_FILE = Path(__file__).parent / "data/seo_productos.json"
+
+
+def _seo_override(slug: str) -> dict:
+    try:
+        raw = json.loads(SEO_PRODUCTOS_FILE.read_text(encoding="utf-8"))
+        ov = raw.get(slug) or {}
+        return ov if isinstance(ov, dict) else {}
+    except Exception:
+        return {}
+
+
+def _url_absoluta(u: str) -> str:
+    u = (u or "").strip()
+    if not u or u.startswith(("http://", "https://")):
+        return u
+    return f"{SITE_URL}/{u.lstrip('/')}"
+
+
+def _producto_seo(p: dict, fotos: list[str]) -> dict:
+    """title, description, canonical y jsonld (lista) de /producto/<slug>."""
+    slug = p.get("slug") or ""
+    nombre = p.get("name") or ""
+    canonical = f"{SITE_URL}/producto/{slug}"
+    precio_num = p.get("precio_num") or 0
+    if p.get("is_family"):
+        combos = [c for c in p.get("combos") or [] if c.get("precio_num")]
+        precios = [float(c["precio_num"]) for c in combos]
+        precio_min = min(precios) if precios else float(precio_num or 0)
+    else:
+        combos, precios, precio_min = [], [], float(precio_num or 0)
+    precio_txt = _fmt_precio(precio_min) if precio_min else ""
+
+    if p.get("is_family"):
+        desc = f"{nombre} en {p.get('n_presentaciones') or len(combos)} presentaciones"
+        desc += f" desde {precio_txt}." if precio_txt else "."
+    elif p.get("is_combo"):
+        desc = f"Compra {nombre} (Ref: {p.get('ref', '')})"
+        desc += f" a {precio_txt}." if precio_txt else "."
+    else:
+        desc = f"Ficha y referencias de {nombre}."
+    desc += " Materia prima con ficha técnica y COA por lote. Despacho a todo Colombia."
+    title = f"{nombre} — Comprar en Colombia | McKenna Group"
+
+    ov = _seo_override(slug)
+    if ov.get("title"):
+        title = str(ov["title"]).replace("{precio}", precio_txt)
+    if ov.get("description"):
+        desc = str(ov["description"]).replace("{precio}", precio_txt)
+
+    cat = p.get("cat") or ""
+    migas = [("Inicio", f"{SITE_URL}/"), ("Catálogo", f"{SITE_URL}/catalogo")]
+    if cat:
+        migas.append((cat, f"{SITE_URL}/catalogo?cat={requests.utils.quote(cat)}"))
+    migas.append((nombre, canonical))
+    jsonld: list[dict] = [{
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {"@type": "ListItem", "position": i, "name": n, "item": u}
+            for i, (n, u) in enumerate(migas, start=1)
+        ],
+    }]
+
+    # Google exige offers (o reseñas) en un Product: sin precio no se declara.
+    if precio_min:
+        disponibilidad = (
+            "https://schema.org/InStock" if p.get("buyable", True)
+            else "https://schema.org/OutOfStock"
+        )
+        vendedor = {"@type": "Organization", "name": "McKenna Group S.A.S."}
+        if p.get("is_family") and len(precios) > 1:
+            offers = {
+                "@type": "AggregateOffer",
+                "priceCurrency": "COP",
+                "lowPrice": round(min(precios)),
+                "highPrice": round(max(precios)),
+                "offerCount": len(precios),
+                "availability": disponibilidad,
+                "url": canonical,
+                "seller": vendedor,
+            }
+        else:
+            offers = {
+                "@type": "Offer",
+                "priceCurrency": "COP",
+                "price": round(precio_min),
+                "availability": disponibilidad,
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": canonical,
+                "seller": vendedor,
+            }
+        producto_ld = {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": nombre,
+            "description": (p.get("desc") or "").strip() or desc,
+            "sku": p.get("ref") or p.get("rep_sku") or "",
+            "brand": {"@type": "Brand", "name": "McKenna Group"},
+            "category": cat,
+            "url": canonical,
+            "offers": offers,
+        }
+        imagenes = [_url_absoluta(f) for f in fotos if f][:6]
+        if imagenes:
+            producto_ld["image"] = imagenes
+        jsonld.append(producto_ld)
+
+    return {"title": title, "description": desc, "canonical": canonical, "jsonld": jsonld}
+
+
 @app.route("/producto/<slug>")
 def producto(slug):
     p = find_product(slug)
@@ -4785,7 +4903,8 @@ def producto(slug):
         relacionados=relacionados,
         wa=wa_link(p),
         doc_completo=doc_completo,
-        contenido=contenido)
+        contenido=contenido,
+        seo=_producto_seo(p, fotos))
 
 
 # ── Cotizar: oferta cotizable de la red de proveedores (sin stock) ─────────

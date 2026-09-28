@@ -13,8 +13,8 @@
 
   <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);border-radius:12px;">
     <div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--green-dark);">Sesión</div>
-      <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:4px;">{{ email }}</div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--green-dark);">Sesión</div>
+      <div style="font-size:15px;font-weight:500;color:var(--text);margin-top:4px;">{{ email }}</div>
     </div>
     <form method="post" action="{{ url_for('cuenta_salir') }}" style="margin:0;">
       <input type="hidden" name="csrf_token" value="{{ logout_csrf }}">
@@ -24,7 +24,7 @@
 
   {% if admin_panel_enabled and admin_orders_session_ok %}
   <div style="margin-bottom:24px;padding:14px 18px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
-    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green-dark);">Administración</div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--green-dark);">Administración</div>
     <a href="{{ url_for('admin_pedidos_lista') }}" class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block;">Panel de pedidos (todos los clientes)</a>
   </div>
   {% endif %}
@@ -53,10 +53,10 @@
              class="btn btn-outline btn-sm" style="margin-top:12px;display:inline-block;">Ver seguimiento</a>
           {% endif %}
         </div>
-        <div style="font-size:1.1rem;font-weight:800;color:var(--green);margin:0 12px;">
+        <div style="font-size:1.1rem;font-weight:700;color:var(--green);margin:0 12px;">
           ${{ "{:,.0f}".format(o['total']).replace(",", ".") }} COP
         </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+        <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
                     color:{% if o['status']=='approved' %}var(--green){% elif o['status']=='declined' %}#e53e3e{% else %}var(--text-muted){% endif %};">
           {% if o['status'] == 'approved' %}✓ Aprobado
           {% elif o['status'] == 'declined' %}✗ Rechazado

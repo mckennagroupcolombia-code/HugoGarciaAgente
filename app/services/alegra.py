@@ -169,6 +169,15 @@ def listar_centros_costo_alegra() -> tuple[list | None, str | None]:
     return centros, None
 
 
+def _solo_referencia_exacta(items, codigo: str) -> list:
+    """Alegra filtra `?reference=` por «contiene»: pedir C-MANTOSPAR devuelve
+    C-MANTOSPAR250g y C-MANTOSPAR500g. Quedarse con `[0]` renombraba, ajustaba o
+    facturaba otro producto; aquí solo pasa el que tiene ese código exacto
+    (sin distinguir mayúsculas)."""
+    c = (codigo or "").strip().lower()
+    return [it for it in (items or []) if isinstance(it, dict)
+            and str(it.get("reference") or "").strip().lower() == c]
+
 def buscar_producto_alegra_por_referencia(sku: str):
     """Busca un producto en Alegra por su `reference` (equivalente al `code` de Siigo).
     Retorna {"id":..., "name":..., "price": float} o None si no existe."""
@@ -180,11 +189,11 @@ def buscar_producto_alegra_por_referencia(sku: str):
     headers = _alegra_headers()
     res = requests.get(
         f"{_ALEGRA_BASE}/items", headers=headers,
-        params={"reference": sku, "limit": 5}, timeout=15,
+        params={"reference": sku, "limit": 30}, timeout=15,
     )
     if res.status_code != 200:
         return None
-    resultados = res.json() or []
+    resultados = _solo_referencia_exacta(res.json(), sku)
     if not resultados:
         return None
     # Preferir el ítem ACTIVO. Alegra acepta ítems inactivos en una factura
@@ -291,14 +300,14 @@ def _liberar_reference_alegra_para_recrear(
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"liberado": False, "motivo": f"red: {e}"}
     if res.status_code != 200:
         return {"liberado": False, "motivo": f"GET {res.status_code}"}
-    hallados = res.json() or []
+    hallados = _solo_referencia_exacta(res.json(), codigo)
     if not hallados:
         return {"liberado": False, "motivo": "libre"}
 
@@ -328,10 +337,10 @@ def _liberar_reference_alegra_para_recrear(
         chk = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": cand, "limit": 1},
+            params={"reference": cand, "limit": 30},
             timeout=12,
         )
-        if chk.status_code == 200 and not (chk.json() or []):
+        if chk.status_code == 200 and not _solo_referencia_exacta(chk.json(), cand):
             legacy = cand
             break
 
@@ -1535,12 +1544,12 @@ def actualizar_precio_alegra_producto(code: str, nuevo_precio: float) -> dict:
         return {"ok": False, "msg": str(e)}
 
     try:
-        res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": code, "limit": 5}, timeout=15)
+        res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": code, "limit": 30}, timeout=15)
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), code)
     if not productos:
         return {"ok": False, "msg": f"Producto {code} no existe en Alegra"}
 
@@ -1556,6 +1565,18 @@ def actualizar_precio_alegra_producto(code: str, nuevo_precio: float) -> dict:
         return {"ok": False, "msg": f"Alegra PUT error {res2.status_code}: {res2.text[:200]}"}
     return {"ok": True, "msg": f"Precio de {code} actualizado a {nuevo_precio}"}
 
+
+def _espejo_local(reference: str, **campos) -> None:
+    """Lleva a la copia local del catálogo (`alegra_catalogo_db`) lo que se acaba
+    de guardar en Alegra. Sin esto el buscador del panel, que lee esa copia,
+    seguía mostrando el nombre viejo hasta la sincronización de las 7 AM y
+    parecía que el cambio no se había guardado."""
+    try:
+        from app.services.alegra_catalogo_db import actualizar_campos_locales
+
+        actualizar_campos_locales(reference, **campos)
+    except Exception as e:
+        print(f"[alegra] espejo local {reference}: {e}")
 
 def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
     """Actualiza el `name` de un producto/kit Alegra por su `reference`.
@@ -1579,14 +1600,14 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo)
     if not productos:
         return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra"}
 
@@ -1596,6 +1617,7 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         return {"ok": False, "msg": f"Producto {codigo} sin id en Alegra"}
     nombre_actual = str(item.get("name") or "")
     if nombre_actual == nombre_ok:
+        _espejo_local(codigo, name=nombre_ok)
         return {
             "ok": True,
             "msg": "Sin cambios",
@@ -1616,6 +1638,7 @@ def actualizar_nombre_alegra_producto(codigo: str, nuevo_nombre: str) -> dict:
         return {"ok": False, "msg": f"Alegra PUT error {res2.status_code}: {res2.text[:200]}"}
 
     _producto_cache.pop(codigo, None)
+    _espejo_local(codigo, name=nombre_ok)
     return {
         "ok": True,
         "msg": f"Nombre de {codigo} actualizado",
@@ -1657,14 +1680,14 @@ def actualizar_referencia_alegra_producto(codigo_actual: str, nuevo_codigo: str)
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo_actual, "limit": 5},
+            params={"reference": codigo_actual, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo_actual)
     if not productos:
         return {"ok": False, "error": f"Producto {codigo_actual} no existe en Alegra"}
 
@@ -1689,12 +1712,12 @@ def actualizar_referencia_alegra_producto(codigo_actual: str, nuevo_codigo: str)
         res_dup = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": nuevo_limpio, "limit": 1},
+            params={"reference": nuevo_limpio, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red verificando SKU nuevo: {e}"}
-    if res_dup.status_code == 200 and (res_dup.json() or []):
+    if res_dup.status_code == 200 and _solo_referencia_exacta(res_dup.json(), nuevo_limpio):
         return {"ok": False, "error": f"El SKU {nuevo_limpio} ya existe en Alegra"}
 
     try:
@@ -1755,14 +1778,14 @@ def eliminar_producto_alegra(codigo: str, *, inactivar_si_bloqueado: bool = True
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo, "limit": 5},
+            params={"reference": codigo, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "msg": f"Error de red obteniendo producto: {e}"}
     if res.status_code != 200:
         return {"ok": False, "msg": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo)
     if not productos:
         return {"ok": False, "msg": f"Producto {codigo} no existe en Alegra", "no_encontrado": True}
 
@@ -1938,14 +1961,14 @@ def actualizar_combo_alegra(
         res = requests.get(
             f"{_ALEGRA_BASE}/items",
             headers=headers,
-            params={"reference": codigo_limpio, "limit": 5},
+            params={"reference": codigo_limpio, "limit": 30},
             timeout=15,
         )
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red obteniendo combo: {e}"}
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}: {res.text[:200]}"}
-    productos = res.json() or []
+    productos = _solo_referencia_exacta(res.json(), codigo_limpio)
     if not productos:
         return {"ok": False, "error": f"Combo {codigo_limpio} no existe en Alegra"}
 
@@ -2031,6 +2054,12 @@ def actualizar_combo_alegra(
     _producto_cache.pop(codigo_limpio, None)
     _combos_alegra_cache = []
     _combos_alegra_cache_ts = 0.0
+    _espejo_local(
+        codigo_limpio,
+        name=payload.get("name"),
+        precio_lista=payload.get("price"),
+        componentes=comps_out,
+    )
 
     nombre_final = payload.get("name") or (item.get("name") or "")
     return {
@@ -2605,10 +2634,10 @@ def detalle_producto_alegra(codigo: str) -> dict:
     except RuntimeError as e:
         return {"ok": False, "error": str(e)}
 
-    res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": codigo_limpio, "limit": 5}, timeout=15)
+    res = requests.get(f"{_ALEGRA_BASE}/items", headers=headers, params={"reference": codigo_limpio, "limit": 30}, timeout=15)
     if res.status_code != 200:
         return {"ok": False, "error": f"Alegra GET error {res.status_code}"}
-    resultados = res.json() or []
+    resultados = _solo_referencia_exacta(res.json(), codigo_limpio)
     if not resultados:
         return {"ok": False, "error": f"No se encontró {codigo_limpio} en Alegra"}
     prod = resultados[0]
@@ -2841,16 +2870,16 @@ def crear_combo_en_alegra(
     existente = requests.get(
         f"{_ALEGRA_BASE}/items",
         headers=headers,
-        params={"reference": codigo_limpio},
+        params={"reference": codigo_limpio, "limit": 30},
         timeout=15,
     )
     liberacion = None
-    if existente.status_code == 200 and existente.json():
+    if existente.status_code == 200 and _solo_referencia_exacta(existente.json(), codigo_limpio):
         liberacion = _liberar_reference_alegra_para_recrear(
             codigo_limpio, headers=headers, tipo_deseado="kit",
         )
         if not liberacion.get("liberado"):
-            ex = existente.json()[0]
+            ex = _solo_referencia_exacta(existente.json(), codigo_limpio)[0]
             return {
                 "ok": False,
                 "error": (

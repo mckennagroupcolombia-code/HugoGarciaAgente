@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-09-27T23:35:21",
+ "actualizado": "2026-09-28T01:55:09",
  "actualizado_por": "mckg",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -2198,6 +2198,78 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO2240505045"
+   ]
+  },
+  "C-SEMQUIROJ250G": {
+   "nombre": "SEMILLA DE QUINUA ROJA 250g",
+   "titulo_meli": "Quinua Roja En Grano 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240813549"
+   ]
+  },
+  "C-SEMQUIROJ500G": {
+   "nombre": "SEMILLA DE QUINUA ROJA 500g",
+   "titulo_meli": "Quinua Roja En Grano 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4485106964"
+   ]
+  },
+  "C-SEMCHI250G": {
+   "nombre": "SEMILLA DE CHIA 250g",
+   "titulo_meli": "Semilla De Chia 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4485107370"
+   ]
+  },
+  "C-SEMCHI500G": {
+   "nombre": "SEMILLA DE CHIA 500g",
+   "titulo_meli": "Semilla De Chia 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240545797"
+   ]
+  },
+  "C-SEMAMA250G": {
+   "nombre": "SEMILLA DE AMAPOLA 250g",
+   "titulo_meli": "Semilla De Amapola 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240546869"
+   ]
+  },
+  "C-SEMAMA500G": {
+   "nombre": "SEMILLA DE AMAPOLA 500g",
+   "titulo_meli": "Semilla De Amapola 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240815141"
+   ]
+  },
+  "C-SALROSHIMFIN250G": {
+   "nombre": "SAL ROSADA DEL HIMALAYA GRANO FINO 250g",
+   "titulo_meli": "Sal Rosada Del Himalaya Grano Fino 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4485109500"
+   ]
+  },
+  "C-SALROSHIMFIN500G": {
+   "nombre": "SAL ROSADA DEL HIMALAYA GRANO FINO 500g",
+   "titulo_meli": "Sal Rosada Del Himalaya Grano Fino 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240509229"
    ]
   }
  },

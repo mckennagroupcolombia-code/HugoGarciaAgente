@@ -702,5 +702,37 @@
   "C-PSYESC500g": {
     "meli_item_id": "MCO2240505045",
     "updated_at": "2026-09-27T23:35:21.913967"
+  },
+  "C-SEMQUIROJ250g": {
+    "meli_item_id": "MCO2240813549",
+    "updated_at": "2026-09-28T00:23:14.706806"
+  },
+  "C-SEMQUIROJ500g": {
+    "meli_item_id": "MCO4485106964",
+    "updated_at": "2026-09-28T00:23:18.942830"
+  },
+  "C-SEMCHI250g": {
+    "meli_item_id": "MCO4485107370",
+    "updated_at": "2026-09-28T00:54:28.533989"
+  },
+  "C-SEMCHI500g": {
+    "meli_item_id": "MCO2240545797",
+    "updated_at": "2026-09-28T00:54:32.637407"
+  },
+  "C-SEMAMA250g": {
+    "meli_item_id": "MCO2240546869",
+    "updated_at": "2026-09-28T01:19:17.525364"
+  },
+  "C-SEMAMA500g": {
+    "meli_item_id": "MCO2240815141",
+    "updated_at": "2026-09-28T01:19:21.624742"
+  },
+  "C-SALROSHIMFIN250g": {
+    "meli_item_id": "MCO4485109500",
+    "updated_at": "2026-09-28T01:55:05.440037"
+  },
+  "C-SALROSHIMFIN500g": {
+    "meli_item_id": "MCO2240509229",
+    "updated_at": "2026-09-28T01:55:09.570966"
   }
 }

@@ -324,7 +324,7 @@
     },
     "C-ACEESEALB5ML": {
       "ref": "C-ACEESEALB5ML",
-      "nombre": "ACEITE ESENCIAL ALBAHACA",
+      "nombre": "ACEITE ESENCIAL",
       "lotes": [
         {
           "lote_numero": "WLL794",
@@ -337,11 +337,25 @@
           "codigo_verificacion": "4E3PVN",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "022526-2550",
+          "estado": "nuevo",
+          "fabricante": "Sulu Organics / The Sulu, DUNDEE, IL 60118",
+          "pais_origen": "",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "02/2029",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "VA3XAW",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T06:08:54+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-28T06:08:54+00:00"
     },
     "C-ACEESEEUC5ML": {
       "ref": "C-ACEESEEUC5ML",

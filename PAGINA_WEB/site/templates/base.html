@@ -45,7 +45,7 @@ fbq('track','PageView');
    (sin JS, reduced-motion, previews) todo el contenido queda visible. */
 (function(){try{if('IntersectionObserver' in window&&!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)){document.documentElement.classList.add('js-reveal');}}catch(e){}})();
 </script>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260914i">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260928b">
 {% if TEMA_ACTIVO == 'pureza' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tema-pureza.css') }}?v=20260809g">
 {% endif %}
@@ -90,10 +90,9 @@ fbq('track','PageView');
     --pz-destacado:     {{ TW.colores.destacado | default('#b9862f') }};
   }
   {% endif %}
-  /* Tipografía del sitio: Regular. Sin bold, semibold ni cursiva. */
+  /* Tipografía del sitio: sin cursiva. Pesos: 400 texto, 500–600 etiquetas/botones, 600–700 títulos. */
   body,
   body *:not(.ph):not([class^="ph-"]) {
-    font-weight: 400 !important;
     font-style: normal !important;
   }
 </style>
@@ -461,7 +460,7 @@ fbq('track','PageView');
 
     <!-- Marca -->
     <div class="footer-brand">
-      <div style="color:#fff;font-size:1.1rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:20px;">
+      <div style="color:#fff;font-size:1.1rem;font-weight:700;letter-spacing:-0.5px;margin-bottom:20px;">
         McKenna Group
         <span style="display:block;font-weight:400;font-size:0.6rem;letter-spacing:2.5px;color:rgba(255,255,255,0.8);text-transform:uppercase;">S.A.S.</span>
       </div>

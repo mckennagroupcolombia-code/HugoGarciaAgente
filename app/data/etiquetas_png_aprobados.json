@@ -1923,6 +1923,58 @@
         "aprobado_at": "2026-09-27T22:58:04",
         "por": "@cynthia"
       }
+    },
+    "249e6d103cfb": {
+      "barcode": "7702960052640",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites Esenciales/ACEITE_ESENCIAL_GERANIO_5mL.png",
+        "aprobado_at": "2026-09-27T23:52:30",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites Esenciales/ACEITE_ESENCIAL_GERANIO_5mL_digital.png",
+        "aprobado_at": "2026-09-27T23:52:30",
+        "por": "@cynthia"
+      }
+    },
+    "358412bf9f6b": {
+      "barcode": "7702960052640",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites Esenciales/ACEITE_ESENCIAL_GERANIO_5mL.png",
+        "aprobado_at": "2026-09-28T00:07:30",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites Esenciales/ACEITE_ESENCIAL_GERANIO_5mL_digital.png",
+        "aprobado_at": "2026-09-28T00:07:31",
+        "por": "@cynthia"
+      }
+    },
+    "5ef56199ddc5": {
+      "barcode": "7701945002649",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SEMILLA_DE_CHIA_500g.png",
+        "aprobado_at": "2026-09-28T00:35:11",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_DE_CHIA_500g_digital.png",
+        "aprobado_at": "2026-09-28T00:35:11",
+        "por": "@cynthia"
+      }
+    },
+    "733eec2da4af": {
+      "barcode": "7701822502644",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SEMILLA_DE_CHIA_250g.png",
+        "aprobado_at": "2026-09-28T00:35:44",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_DE_CHIA_250g_digital.png",
+        "aprobado_at": "2026-09-28T00:35:44",
+        "por": "@cynthia"
+      }
     }
   }
 }

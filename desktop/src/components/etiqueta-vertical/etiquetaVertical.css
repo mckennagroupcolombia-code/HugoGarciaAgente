@@ -121,51 +121,7 @@
   text-align: center;
 }
 
-/* ── 4. Beneficios ───────────────────────────────────────────────────── */
-.ev-beneficios { padding: 4px 0 5px; }
-/* El título va centrado a lo ancho de la etiqueta también en edición: ahí
-   `EditableLabel` lo envuelve en un <div> que, estirado por la columna flex,
-   dejaba el botón pegado a la izquierda. */
-.ev-beneficios > :first-child { align-self: center; }
-.ev-beneficios-titulo {
-  margin-bottom: 3px;
-  color: var(--acento);
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-align: center;
-  text-transform: uppercase;
-}
-.ev-beneficios-cols {
-  display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-.ev-beneficio {
-  display: flex;
-  flex: 1 1 0;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 3px;
-  padding: 0 3px;
-  text-align: center;
-}
-/* Línea vertical corta entre columnas, no de bloque a bloque. */
-.ev-beneficio + .ev-beneficio {
-  border-left: var(--ev-linea) solid var(--acento);
-}
-.ev-beneficio-texto {
-  width: 100%;
-  color: #111111;
-  text-align: center;
-  font-size: 29px;          /* ~9,9 pt — +80 % */
-  font-weight: 500;
-  line-height: 1.15;
-}
-
-/* ── 5. Contenido neto ───────────────────────────────────────────────── */
+/* ── 4. Contenido neto ───────────────────────────────────────────────── */
 /* El bloque `.ev-neto` queda vacío (franja libre); título y valor van
    girados en `.ev-neto-lateral`, dentro del bloque de marca. */
 .ev-neto-lateral {
@@ -203,7 +159,7 @@
   white-space: nowrap;
 }
 
-/* ── 6. Logo, lema, franja y código de barras ────────────────────────── */
+/* ── 5. Logo, lema, franja y código de barras ────────────────────────── */
 .ev-marca { flex-direction: row; align-items: stretch; }
 .ev-marca-cuerpo {
   display: flex;
@@ -276,7 +232,7 @@
 .ev-codigo img,
 .ev-codigo svg { display: block; max-width: 100%; height: auto; }
 
-/* ── 7. Pie de contacto ──────────────────────────────────────────────── */
+/* ── 6. Pie de contacto ──────────────────────────────────────────────── */
 .ev-pie {
   align-items: center;
   justify-content: center;

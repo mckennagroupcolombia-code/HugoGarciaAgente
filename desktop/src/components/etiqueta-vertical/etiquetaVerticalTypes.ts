@@ -1,6 +1,6 @@
 /**
  * Formato 38 × 102 mm vertical ("38x102"): etiqueta alta y estrecha
- * para frascos de Aceites & Grasas. Siete bloques apilados cuyas alturas en
+ * para frascos de Aceites & Grasas. Seis bloques apilados cuyas alturas en
  * milímetros suman exactamente el alto de la etiqueta, así que no hay
  * sobrante ni recorte: la retícula los reparte en píxeles a escala fija.
  * Mismo objeto de datos que las demás etiquetas.
@@ -26,12 +26,13 @@ export function esFormatoVertical(
  *  para rasterizar a 300 DPI sin interpolar de más. */
 export const PX_POR_MM = 12;
 
-/** Altura de cada bloque en milímetros. Suman el alto de la etiqueta. */
+/** Altura de cada bloque en milímetros. Suman el alto de la etiqueta. Los
+ *  16 mm del bloque de beneficios (quitado el 2026-09-27) pasaron a las dos
+ *  filas de datos. */
 export const BLOQUES_MM = {
   cabecera: 11,
-  filaUno: 16,
-  filaDos: 18.5,
-  beneficios: 16,
+  filaUno: 24,
+  filaDos: 26.5,
   neto: 9,
   marca: 21.5,
   pie: 10,
@@ -90,7 +91,7 @@ export const AZUL_VERTICAL = "#087CE0";
 
 /** Ícono por defecto de cada casilla, de la galería de íconos químicos (los
  *  mismos que usan los demás formatos, para que se vean de la misma familia).
- *  Los tres de beneficios no existen en la galería y se dibujan aparte. */
+ */
 export const ICONOS_VERTICAL = {
   appearance: "apariencia_ojo",
   odor: "aroma_ondas_gota",
@@ -106,9 +107,6 @@ export const EJEMPLO_VERTICAL = {
   odor: "Floral característico",
   composition: "Agua destilada de rosas y conservante.",
   storage: "Lugar fresco, seco y protegido de la luz.",
-  beneficio1: "Hidratación leve",
-  beneficio2: "Sensación refrescante",
-  beneficio3: "Cuidado de la piel",
   netContent: "250 mL",
   city: "Bogotá · Colombia",
   website: "www.mckennagroup.co",
