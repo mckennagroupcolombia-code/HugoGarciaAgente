@@ -49,3 +49,10 @@ Facturar marca la venta `facturando` **antes** de llamar a Alegra (un segundo cl
 duplicada no emite otra factura) y la devuelve a su estado si Alegra falla. Un pedido IA facturado
 se cierra en `ventas_wa`. Los endpoints viejos `/api/facturacion/cotizar` y `/facturar-directo`
 siguen vivos (el segundo ahora sí pasa `medio_pago`), pero el panel ya no los usa.
+
+**Soporte de pago con Ctrl+V (28-sep-2026):** hasta ese día ninguna de las 35 facturas tenía soporte:
+el Ctrl+V se descartaba en silencio si el cursor estaba en «Notas» (viene prellenado desde «Por
+facturar») y el recuadro desaparecía al emitir. Ahora una imagen pegada en el paso 3 siempre va al
+soporte, el aviso «Falta el soporte» aparece al pedir la confirmación DIAN, y con la factura ya emitida
+se puede adjuntar **una vez** (llega al grupo de facturación con el número de factura); después no se
+reemplaza ni se borra (`guardar_soporte` / `eliminar_soporte`).

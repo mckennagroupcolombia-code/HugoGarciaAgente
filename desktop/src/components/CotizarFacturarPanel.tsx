@@ -562,7 +562,7 @@ export default function CotizarFacturarPanel() {
   async function subirSoporte(file: File) {
     setOcupado("soporte");
     setError(null);
-    const v = await guardar();
+    const v = soloLectura && venta ? venta : await guardar();
     if (!v) return setOcupado(null);
     try {
       const fd = new FormData();
@@ -598,12 +598,14 @@ export default function CotizarFacturarPanel() {
   }
 
   // Pegar imagen (Ctrl+V) en el paso de facturar → soporte de pago, como en
-  // Solicitudes de pago. Solo cuando no se está escribiendo en un campo.
+  // Solicitudes de pago. Funciona aunque el cursor esté en «Notas» (una imagen no
+  // se pega en un campo de texto: antes se descartaba en silencio) y también con la
+  // factura ya emitida, mientras la venta aún no tenga soporte (28-sep-2026).
+  const puedeAdjuntarSoporte =
+    !soloLectura || (venta?.estado === "facturada" && !venta.soporte_path);
   useEffect(() => {
-    if (paso !== 3 || soloLectura) return;
+    if (paso !== 3 || !puedeAdjuntarSoporte) return;
     const onPaste = (ev: ClipboardEvent) => {
-      const activo = document.activeElement;
-      if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
       const file = imagenDesdePortapapeles(ev.clipboardData);
       if (!file) return;
       ev.preventDefault();
@@ -612,7 +614,7 @@ export default function CotizarFacturarPanel() {
     window.addEventListener("paste", onPaste, true);
     return () => window.removeEventListener("paste", onPaste, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paso, soloLectura, ventaId]);
+  }, [paso, soloLectura, puedeAdjuntarSoporte, ventaId]);
 
   async function verPdfEnviado() {
     if (!ventaId) return;
@@ -903,6 +905,7 @@ export default function CotizarFacturarPanel() {
               onAtras={() => setPaso(2)}
               avisos={avisos}
               soporteNombre={venta?.soporte_path ? venta?.soporte_nombre || "soporte" : ""}
+              puedeAdjuntarSoporte={puedeAdjuntarSoporte}
               onSubirSoporte={(f) => void subirSoporte(f)}
               onQuitarSoporte={() => void quitarSoporte()}
               onVerSoporte={() => void verSoporte()}
@@ -1571,6 +1574,7 @@ function PasoEnviar({
   onAtras,
   avisos,
   soporteNombre,
+  puedeAdjuntarSoporte,
   onSubirSoporte,
   onQuitarSoporte,
   onVerSoporte,
@@ -1596,6 +1600,7 @@ function PasoEnviar({
   onAtras: () => void;
   avisos: string[];
   soporteNombre: string;
+  puedeAdjuntarSoporte: boolean;
   onSubirSoporte: (f: File) => void;
   onQuitarSoporte: () => void;
   onVerSoporte: () => void;
@@ -1625,9 +1630,14 @@ function PasoEnviar({
           </p>
         )}
 
-        {/* Soporte de pago del cliente (pantallazo/comprobante) — pegar o elegir. */}
-        {!soloLectura && (
-          <div className="mt-3 rounded-lg border border-border/60 bg-surface px-3 py-2.5 text-xs">
+        {/* Soporte de pago del cliente (pantallazo/comprobante) — pegar o elegir.
+            Con la factura emitida sigue visible: se ve el que quedó o se adjunta si faltó. */}
+        {(puedeAdjuntarSoporte || soporteNombre) && (
+          <div
+            className={`mt-3 rounded-lg border px-3 py-2.5 text-xs ${
+              !soporteNombre && confirmarFactura ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20" : "border-border/60 bg-surface"
+            }`}
+          >
             <p className="mb-1.5 flex items-center gap-1.5 font-semibold text-ink">
               <Ico e="🧾" /> Soporte de pago <span className="font-normal text-muted">· pega el pantallazo (Ctrl+V) o elígelo</span>
             </p>
@@ -1640,9 +1650,11 @@ function PasoEnviar({
                 >
                   <Ico e="📎" /> {soporteNombre} · ver
                 </button>
-                <button type="button" onClick={onQuitarSoporte} className="text-muted underline hover:text-danger">
-                  quitar
-                </button>
+                {!soloLectura && (
+                  <button type="button" onClick={onQuitarSoporte} className="text-muted underline hover:text-danger">
+                    quitar
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
@@ -1742,6 +1754,11 @@ function PasoEnviar({
                   <button type="button" onClick={onCancelarFactura} className="text-xs text-muted underline">
                     Cancelar
                   </button>
+                )}
+                {confirmarFactura && !soporteNombre && (
+                  <p className="w-full text-xs text-amber-700 dark:text-amber-400">
+                    <Ico e="🧾" /> Falta el soporte de pago: pégalo ahora con Ctrl+V antes de confirmar.
+                  </p>
                 )}
               </div>
             </>

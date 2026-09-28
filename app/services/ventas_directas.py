@@ -432,12 +432,29 @@ def guardar_soporte(venta_id: int, contenido: bytes, nombre: str, mime: str) -> 
         raise ValueError("La venta no existe.")
     if not contenido:
         raise ValueError("El archivo llegó vacío.")
+    ya_facturada = venta.get("estado") == "facturada"
+    if ya_facturada and (venta.get("soporte_path") or "").strip():
+        raise ValueError("La factura ya tiene su soporte de pago; no se reemplaza después de emitida.")
+    if venta.get("estado") in ("anulada", "facturando"):
+        raise ValueError("La venta está anulada o se está facturando: no admite soporte ahora.")
     os.makedirs(_SOPORTES_DIR, exist_ok=True)
     ext = os.path.splitext(nombre or "")[1].lower() or _EXT_POR_MIME.get((mime or "").lower(), "")
     fname = f"venta{int(venta_id)}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
     with open(os.path.join(_SOPORTES_DIR, fname), "wb") as f:
         f.write(contenido)
     _actualizar(venta_id, soporte_path=fname, soporte_nombre=(nombre or fname)[:200], soporte_mime=(mime or "")[:100])
+    if ya_facturada:
+        # El aviso al grupo de facturación salió sin soporte al emitir: se completa el rastro.
+        try:
+            from app.utils import enviar_whatsapp_archivo, jid_grupo_facturacion_ventas_wa
+
+            enviar_whatsapp_archivo(
+                os.path.join(_SOPORTES_DIR, fname),
+                f"Soporte de pago del cliente — factura {venta.get('factura_numero') or ''}".strip(),
+                numero_destino=jid_grupo_facturacion_ventas_wa(),
+            )
+        except Exception:  # noqa: BLE001 — el soporte ya quedó guardado en la venta
+            pass
     return obtener(venta_id)
 
 
@@ -456,6 +473,8 @@ def eliminar_soporte(venta_id: int) -> bool:
     venta = obtener(venta_id)
     if not venta or not (venta.get("soporte_path") or "").strip():
         return False
+    if venta.get("estado") == "facturada":
+        return False  # el soporte de una factura emitida es su rastro: no se borra
     p = os.path.join(_SOPORTES_DIR, venta["soporte_path"])
     try:
         if os.path.isfile(p):

@@ -1,3 +1,12 @@
+### 2026-09-28 17:00 - Cotizar/Facturar: soporte de pago con Ctrl+V que no se pierde
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Hasta hoy ninguna de las 35 facturas de Cotizar/Facturar tenía soporte de pago: el Ctrl+V se descartaba en silencio si el cursor estaba en «Notas» (viene prellenado desde «Por facturar») y el recuadro desaparecía al emitir la factura.
+  - Ahora una imagen pegada en el paso 3 siempre va al soporte, aunque el cursor esté en un campo de texto. Al pedir la confirmación DIAN aparece el aviso «Falta el soporte de pago».
+  - Con la factura ya emitida el recuadro sigue visible: se ve el soporte que quedó o se adjunta **una vez** si faltó (llega al grupo de facturación con el número de factura). Después no se reemplaza ni se borra.
+- **Archivos Modificados:** `app/services/ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `docs/agentic/modules/ventas-directas.md`, `docs/team-recaps.md`.
+
 ### 2026-09-28 16:50 - Facturas de Cotizar/Facturar: PDF por WhatsApp y teléfono con dos números
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.
