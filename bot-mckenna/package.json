@@ -5,7 +5,8 @@
   "description": "Puente WhatsApp (whatsapp-web.js) → agente Flask :8081 · API :3000",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "postinstall": "node scripts/patch-wwebjs-media-id.js"
   },
   "license": "UNLICENSED",
   "dependencies": {
