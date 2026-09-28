@@ -32,6 +32,8 @@ function normalizar(s: string): string {
  * primer resultado. Solo ofrece paneles que el usuario puede ver (misma regla
  * que el menú, `puedeVerSeccionPanel`): un atajo que rebota es peor que ninguno.
  */
+const EN_MENU = new Set<string>(NAV_PANEL_ORDER);
+
 export default function AccesosRapidos() {
   const [abierto, setAbierto] = useState(false);
   const [q, setQ] = useState("");
@@ -48,8 +50,10 @@ export default function AccesosRapidos() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Solo lo que está en el menú: el historial del servidor recuerda paneles que ya
+  // salieron de él (p. ej. «Publicaciones», 28-sep-2026) y los seguía ofreciendo.
   const visible = (p: string): p is Panel =>
-    Boolean(PANEL_INFO[p]) && puedeVerSeccionPanel(user, p);
+    Boolean(PANEL_INFO[p]) && (EN_MENU.has(p) || p === "hugo") && puedeVerSeccionPanel(user, p);
 
   const frecuentes = useMemo(
     () => (atajosQ.data?.frecuentes ?? []).map((f) => f.panel).filter(visible).slice(0, MAX_FRECUENTES),

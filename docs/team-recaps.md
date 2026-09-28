@@ -4440,5 +4440,6 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - El panel sigue existiendo para el paso Publicación del taller de combos: `navSectionForPanel("publicaciones")` lo sigue ubicando en su sección.
   - El permiso `publicaciones` (que abre Canales y Vitrina) pasa a `EXTRAS` para no perder su casilla.
   - Quien la tenía abierta volvía a ella al refrescar (el panel se guarda): al cargar, `publicaciones` pasa a `canales-producto`. El paso del mapa (`flujoApp`) y la regla de tickets (`flujoTickets`) ya no llevan a ella.
+  - Accesos rápidos (Ctrl+K) la seguía ofreciendo en «lo que más usas» y «recientes» (historial del servidor): ahora solo muestra paneles que están en el menú.
   - **Verificado:** `npm run build`.
-- **Archivos Modificados:** `desktop/src/lib/navStructure.ts`, `desktop/src/lib/permisosCatalogo.ts`, `desktop/src/lib/hubNav.ts`, `desktop/src/stores/app.ts`, `desktop/src/lib/flujoApp.ts`, `desktop/src/lib/flujoTickets.ts`, `docs/team-recaps.md`
+- **Archivos Modificados:** `desktop/src/lib/navStructure.ts`, `desktop/src/lib/permisosCatalogo.ts`, `desktop/src/lib/hubNav.ts`, `desktop/src/stores/app.ts`, `desktop/src/lib/flujoApp.ts`, `desktop/src/lib/flujoTickets.ts`, `desktop/src/components/nav/AccesosRapidos.tsx`, `docs/team-recaps.md`
