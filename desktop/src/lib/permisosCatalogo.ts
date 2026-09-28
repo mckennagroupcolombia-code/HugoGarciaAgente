@@ -111,6 +111,13 @@ const EXTRAS: Partial<Record<NavCategory, PermisoDef[]>> = {
       nota: "acción dentro de Agenda, no un panel",
     },
   ],
+  publicaciones: [
+    {
+      id: "publicaciones",
+      label: "Publicaciones",
+      nota: "abre Canales del producto, Vitrina web y el paso Publicación del taller de combos",
+    },
+  ],
   contabilidad: [
     { id: "impuestos", label: "Pagos de impuestos" },
     { id: "servicios", label: "Servicios" },

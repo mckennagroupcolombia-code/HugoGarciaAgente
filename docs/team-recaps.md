@@ -4431,3 +4431,13 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Respeta el mismo interruptor de sonido del Mapa.
   - **Verificado:** `npm run build`; prueba en Chrome headless de `sonidoPara`/`sonidoDePanel`.
 - **Archivos Modificados:** `desktop/src/lib/sonidosJuego.ts`, `desktop/src/components/nav/AccesosRapidos.tsx`, `desktop/src/components/MobileHub.tsx` (este último queda sin commit: tiene cambios en curso de otra sesión), `docs/team-recaps.md`
+
+### 2026-09-28 - Fuera del menú la pestaña «Publicaciones»
+- **Autor:** Armando García
+- **Tipo de Cambio:** Limpieza de navegación
+- **Qué se implementó:**
+  - La pestaña «Publicaciones» (Catálogo, Galería, Catálogo cliente, Verificar precios, Competencia, Republicar MeLi, Crear desde cero) no se usaba: salió de `NAV_SECTIONS`. La sección queda con Canales del producto y Vitrina web.
+  - El panel sigue existiendo para el paso Publicación del taller de combos: `navSectionForPanel("publicaciones")` lo sigue ubicando en su sección.
+  - El permiso `publicaciones` (que abre Canales y Vitrina) pasa a `EXTRAS` para no perder su casilla.
+  - **Verificado:** `npm run build`.
+- **Archivos Modificados:** `desktop/src/lib/navStructure.ts`, `desktop/src/lib/permisosCatalogo.ts`, `desktop/src/lib/hubNav.ts`, `docs/team-recaps.md`

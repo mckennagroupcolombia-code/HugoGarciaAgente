@@ -137,8 +137,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
     id: "publicaciones",
     label: "Publicaciones",
     hub: true,
+    // La pestaña «Publicaciones» (Catálogo, Galería, Republicar MeLi, Crear desde cero…)
+    // salió del menú el 28-sep-2026: no se usaba. El panel sigue vivo para el paso
+    // Publicación del taller de combos, que salta a él (ver navSectionForPanel).
     items: [
-      { panel: "publicaciones", tier: "standard" },
       { panel: "canales-producto", tier: "standard" },
       { panel: "vitrina-web", tier: "standard" },
     ],
@@ -218,6 +220,7 @@ export function esSeccionHub(sectionId: NavCategory | null): boolean {
 
 export function navSectionForPanel(panel: Panel): NavCategory | null {
   if (panel === "etiquetas-config") return "diseno";
+  if (panel === "publicaciones") return "publicaciones";
   for (const section of NAV_SECTIONS) {
     if (section.items.some((i) => i.panel === panel)) return section.id;
   }
