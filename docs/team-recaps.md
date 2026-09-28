@@ -1,3 +1,13 @@
+### 2026-09-28 17:40 - Facturas duplicadas en Alegra cuando la DIAN rechaza (RED CHOCOLATE SAS, TKT-2026-1566)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Causa: el correo del cliente venía con un espacio («facturacion @redchocolate.net»). La DIAN rechazaba la factura, pero **Alegra la dejaba creada** (con número y pago) y el panel lo tomaba como «no se creó»: cada reintento sacó otra. RED CHOCOLATE acumuló 8 facturas de $48.800 (FE711–716 el 25-sep, FE908 y FE910 hoy), ninguna timbrada, que inflaban ventas y Bancos en Alegra en $390.400.
+  - Resuelto en Alegra: se corrigió el contacto (correo y persona jurídica; estaba como persona natural «RED» / «CHOCOLATE SAS»), se timbró **FE910** ante la DIAN (aceptada), se le envió al cliente por WhatsApp y quedó causada en el Libro Mayor (asiento #6003). FE711–716 y FE908 quedaron **anuladas** junto con sus pagos.
+  - Para que no vuelva a pasar: el correo se limpia y valida antes de llamar a Alegra; si Alegra deja una factura creada pese al error, la venta queda ligada a ella y el panel muestra «Timbrar FE…», que timbra **esa misma** (nunca crea otra). Los contactos con NIT de empresa (9 dígitos, empieza por 8/9) se crean como persona jurídica.
+  - Barrido de septiembre (910 facturas, 119 notas crédito): RED CHOCOLATE era el único duplicado vivo. Los dobles de MeLi del 18 y 21-sep y los de la primera semana ya tienen nota crédito; las repeticiones restantes son órdenes distintas del mismo producto.
+- **Archivos Modificados:** `app/services/alegra.py`, `app/services/ventas_directas.py`, `desktop/src/components/CotizarFacturarPanel.tsx`, `tests/test_ventas_directas.py`, `docs/agentic/modules/ventas-directas.md`, `docs/team-recaps.md`.
+
 ### 2026-09-28 17:00 - Cotizar/Facturar: soporte de pago con Ctrl+V que no se pierde
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.

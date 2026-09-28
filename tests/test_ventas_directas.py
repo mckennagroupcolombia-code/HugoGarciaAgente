@@ -151,6 +151,92 @@ def test_fallo_de_alegra_devuelve_la_venta_a_su_estado(monkeypatch):
     assert V.obtener(v["id"])["estado"] == "borrador"
 
 
+def test_factura_creada_pero_rechazada_por_dian_no_se_emite_otra(monkeypatch):
+    """RED CHOCOLATE SAS (28-sep-2026): la DIAN rechazó el correo, Alegra dejó la
+    factura creada y cada reintento sacó otra (FE711-716, FE908, FE910)."""
+    import app.services.alegra as A
+
+    llamadas = []
+
+    def fake_factura(**kw):
+        llamadas.append(kw)
+        return {"ok": False, "error": "Error al crear factura en Alegra: correo inválido", "creada_sin_timbrar": True,
+                "invoice_id": "910", "number": "FE910", "url": "https://app.alegra.com/invoice/view/id/910"}
+
+    timbradas = []
+
+    def fake_timbrar(fid, **kw):
+        timbradas.append(fid)
+        return {"ok": True, "invoice_id": fid, "number": "FE910", "cufe": "c", "url": "u", "pdf_path": None}
+
+    monkeypatch.setattr(A, "crear_factura_venta_alegra", fake_factura)
+    monkeypatch.setattr(A, "timbrar_factura_existente_alegra", fake_timbrar)
+    monkeypatch.setattr(A, "_resolver_o_crear_contacto_alegra", lambda **kw: ("573", ""))
+    monkeypatch.setattr("app.utils.enviar_whatsapp_reporte", lambda *a, **k: True)
+    v = _venta()
+    r = V.facturar(v["id"], enviar_whatsapp=False)
+    assert not r["ok"] and "FE910" in r["error"]
+    guardada = V.obtener(v["id"])
+    assert guardada["estado"] == "borrador" and guardada["factura_id"] == "910"
+    assert not V.anular(v["id"])["ok"]
+    # Reintentar = timbrar ESA factura, no crear otra.
+    r2 = V.facturar(v["id"], enviar_whatsapp=False)
+    assert r2["ok"], r2
+    assert len(llamadas) == 1 and timbradas == ["910"]
+    assert r2["venta"]["estado"] == "facturada" and r2["venta"]["factura_numero"] == "FE910"
+
+
+def test_alegra_devuelve_la_factura_que_quedo_creada(monkeypatch):
+    import requests
+
+    import app.services.alegra as A
+
+    class Resp:
+        status_code = 400
+        text = "{}"
+
+        def json(self):
+            return {"error": {"message": "No cumple:<ul><li>El formato del correo es inválido.</li></ul>", "code": 3051},
+                    "invoice": {"id": "910", "numberTemplate": {"fullNumber": "FE910"}}}
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: Resp())
+    monkeypatch.setattr(A, "_alegra_headers", lambda: {})
+    monkeypatch.setattr(A, "_resolver_o_crear_contacto_alegra", lambda **kw: ("573", ""))
+    monkeypatch.setattr(A, "resolver_producto_venta_alegra", lambda c: {"id": "1", "tax_ids": [], "tax_rate_total": 0})
+    r = A.crear_factura_venta_alegra(nombre_cliente="RED CHOCOLATE SAS", identificacion="900614242", direccion_envio="",
+                                     productos=[{"codigo": "X", "nombre": "X", "cantidad": 1, "precio_unitario": 1000}],
+                                     total=1000, email="facturacion@redchocolate.net")
+    assert not r["ok"] and r["creada_sin_timbrar"] and r["invoice_id"] == "910" and r["number"] == "FE910"
+    assert "<li>" not in r["error"] and "FE910" in r["error"]
+
+
+def test_nit_de_empresa_es_persona_juridica():
+    import app.services.alegra as A
+
+    assert A._tipo_persona_contacto("NIT", "900614242", "RED CHOCOLATE SAS") == {"kindOfPerson": "LEGAL_ENTITY"}
+    assert A._tipo_persona_contacto("CC", "1032410986", "Carlos Santos")["kindOfPerson"] == "PERSON_ENTITY"
+
+
+def test_correo_con_espacio_se_corrige_y_uno_invalido_no_llega_a_alegra(monkeypatch):
+    import requests
+
+    import app.services.alegra as A
+
+    assert A.normalizar_email_factura("facturacion @redchocolate.net") == ("facturacion@redchocolate.net", None)
+    assert A.normalizar_email_factura("") == ("", None)
+    assert A.normalizar_email_factura("facturacion@redchocolate")[1]
+
+    def no_post(*a, **k):
+        raise AssertionError("no debe llamar a Alegra con un correo inválido")
+
+    monkeypatch.setattr(requests, "post", no_post)
+    monkeypatch.setattr(A, "_alegra_headers", lambda: {})
+    r = A.crear_factura_venta_alegra(nombre_cliente="X SAS", identificacion="900614242", direccion_envio="",
+                                     productos=[{"codigo": "X", "nombre": "X", "cantidad": 1, "precio_unitario": 1000}],
+                                     total=1000, email="ventas@@x")
+    assert not r["ok"] and "correo" in r["error"]
+
+
 def test_desde_pedido_ia_usa_el_chat_como_destino():
     datos = V.venta_desde_pedido_ia({
         "id": 12, "jid": "730000000000@lid",

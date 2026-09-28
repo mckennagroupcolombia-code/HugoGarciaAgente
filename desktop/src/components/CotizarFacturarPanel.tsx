@@ -1705,7 +1705,38 @@ function PasoEnviar({
           <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
             <Icon name="receipt" size={16} /> Facturar <span className="text-xs font-normal text-muted">· el cliente ya pagó</span>
           </p>
-          {venta?.estado === "facturada" ? (
+          {venta && venta.estado !== "facturada" && venta.factura_numero ? (
+            /* Alegra creó la factura pero la DIAN la rechazó: el botón timbra ESA factura
+               (no crea otra); cada reintento dejaba una nueva (RED CHOCOLATE SAS, 8 facturas). */
+            <div className="space-y-1 rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+              <p className="font-semibold">
+                <Ico e="⚠️" /> Factura {venta.factura_numero} creada en Alegra sin timbrar
+              </p>
+              <p>
+                La DIAN la rechazó (mira el aviso de abajo). No se emite otra: corrige el dato del cliente (paso 1) y
+                timbra esa misma factura.
+              </p>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  disabled={ocupado !== null}
+                  onClick={onFacturar}
+                  className="rounded-paper border-2 border-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-40 dark:text-amber-200"
+                >
+                  {ocupado === "facturar"
+                    ? "Timbrando…"
+                    : confirmarFactura
+                      ? `Confirmar timbrado de ${venta.factura_numero}`
+                      : `Timbrar ${venta.factura_numero} ante la DIAN`}
+                </button>
+                {venta.factura_url && (
+                  <a href={venta.factura_url} target="_blank" rel="noreferrer" className="underline">
+                    Abrir en Alegra
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : venta?.estado === "facturada" ? (
             <div className="space-y-1 text-sm">
               <p className="font-semibold text-green-700 dark:text-green-400">✓ Factura {venta.factura_numero} emitida</p>
               <p className="text-xs text-muted">
@@ -1780,7 +1811,7 @@ function PasoEnviar({
         <button type="button" className={btn} onClick={onAtras}>
           ← Productos
         </button>
-        {venta && venta.estado !== "facturada" && venta.estado !== "anulada" && venta.estado !== "facturando" && (
+        {venta && venta.estado !== "facturada" && venta.estado !== "anulada" && venta.estado !== "facturando" && !venta.factura_numero && (
           <button type="button" className="text-xs text-muted underline hover:text-red-600" onClick={onAnular}>
             Anular esta venta
           </button>

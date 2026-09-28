@@ -56,3 +56,16 @@ facturar») y el recuadro desaparecía al emitir. Ahora una imagen pegada en el 
 soporte, el aviso «Falta el soporte» aparece al pedir la confirmación DIAN, y con la factura ya emitida
 se puede adjuntar **una vez** (llega al grupo de facturación con el número de factura); después no se
 reemplaza ni se borra (`guardar_soporte` / `eliminar_soporte`).
+
+**Factura creada aunque la DIAN la rechace (28-sep-2026, RED CHOCOLATE SAS):** con un error de validación
+DIAN (code 3051, p. ej. correo «facturacion @redchocolate.net») Alegra responde 400 **pero la factura ya
+quedó creada**, con número y pago registrado, y la trae en `invoice`. El panel lo tomaba como «no se
+creó», devolvía la venta a borrador y cada reintento sacaba otra: 8 facturas (FE711-716, FE908, FE910)
+por $48.800 cada una, sin timbrar. Ahora `crear_factura_venta_alegra` normaliza/valida el correo antes
+de llamar (`normalizar_email_factura`) y en un 400 devuelve `creada_sin_timbrar` + `invoice_id`;
+`facturar()` liga esa factura a la venta (no se puede anular) y el panel muestra «creada en Alegra sin
+timbrar» con el botón **«Timbrar FE…»**: volver a facturar corrige el contacto y timbra ESA factura
+(`timbrar_factura_existente_alegra`, `POST /invoices/stamp {"ids":[…]}`), nunca crea otra. Resolución del
+caso: FE910 timbrada, FE711-716 y FE908 anuladas junto con sus pagos (TKT-2026-1566). Además los
+contactos con NIT de empresa (9 dígitos, empieza por 8/9) se crean como `LEGAL_ENTITY`
+(`_tipo_persona_contacto`); antes todos salían persona natural («RED» / «CHOCOLATE SAS»).

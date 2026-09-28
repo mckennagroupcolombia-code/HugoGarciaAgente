@@ -411,6 +411,9 @@ def anular(venta_id: int) -> dict:
         return {"ok": False, "error": "La venta no existe."}
     if venta["estado"] == "facturada":
         return {"ok": False, "error": "Ya tiene factura electrónica: se anula con nota crédito, no desde aquí."}
+    if venta.get("factura_id"):
+        return {"ok": False, "error": f"Tiene la factura {venta.get('factura_numero')} creada en Alegra sin timbrar: "
+                                      "resuélvela en Alegra (timbrarla o anularla) antes de anular la venta."}
     _actualizar(venta_id, estado="anulada")
     return {"ok": True}
 
@@ -1127,13 +1130,16 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
 
 def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_whatsapp: bool = True) -> dict:
     """Factura electrónica real en Alegra (DIAN) a partir de la venta guardada."""
-    from app.services.alegra import crear_factura_venta_alegra
+    from app.services.alegra import crear_factura_venta_alegra, timbrar_factura_existente_alegra
 
     venta = obtener(venta_id)
     if not venta:
         return {"ok": False, "error": "La venta no existe."}
-    if venta["estado"] == "facturada" or venta.get("factura_id"):
+    if venta["estado"] == "facturada":
         return {"ok": False, "error": f"Esta venta ya tiene la factura {venta.get('factura_numero')}."}
+    # Factura que Alegra dejó creada sin timbrar (la DIAN la rechazó): facturar de
+    # nuevo = corregir el contacto y timbrar ESA, nunca crear otra.
+    pendiente = str(venta.get("factura_id") or "").strip()
     if venta["estado"] == "anulada":
         return {"ok": False, "error": "La venta está anulada."}
     err_despliegue = _error_despliegue(venta)
@@ -1196,33 +1202,58 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
     else:
         observaciones, orden_compra = f"Venta directa WhatsApp — {ref}.", ref
     try:
-        res = crear_factura_venta_alegra(
-            nombre_cliente=cli["nombre"],
-            identificacion=ident,
-            tipo_documento=tipo_doc,
-            direccion_envio=cli.get("direccion") or "",
-            productos=_lineas_para_documento(calc),
-            total=calc["total"],
-            email=cli.get("correo") or "",
-            telefono=venta["telefono"] if jid else "",
-            observaciones=observaciones,
-            purchase_order=orden_compra,
-            medio_pago=medio,
-            descargar_pdf=True,
-            enviar_dian=True,
-            enviar_correo=False,
-        )
+        if pendiente:
+            from app.services.alegra import _contacto_cache, _resolver_o_crear_contacto_alegra, normalizar_email_factura
+
+            correo, err_correo = normalizar_email_factura(cli.get("correo") or "")
+            if err_correo:
+                res = {"ok": False, "error": err_correo, "creada_sin_timbrar": True, "invoice_id": pendiente}
+            else:
+                _contacto_cache.clear()
+                _resolver_o_crear_contacto_alegra(
+                    nombre=cli["nombre"], identificacion=ident, email=correo,
+                    telefono=venta["telefono"] if jid else "", direccion=cli.get("direccion") or "",
+                    tipo_documento=tipo_doc,
+                )
+                res = timbrar_factura_existente_alegra(pendiente)
+        else:
+            res = crear_factura_venta_alegra(
+                nombre_cliente=cli["nombre"],
+                identificacion=ident,
+                tipo_documento=tipo_doc,
+                direccion_envio=cli.get("direccion") or "",
+                productos=_lineas_para_documento(calc),
+                total=calc["total"],
+                email=cli.get("correo") or "",
+                telefono=venta["telefono"] if jid else "",
+                observaciones=observaciones,
+                purchase_order=orden_compra,
+                medio_pago=medio,
+                descargar_pdf=True,
+                enviar_dian=True,
+                enviar_correo=False,
+            )
     except Exception as e:
         res = {"ok": False, "error": f"Error inesperado: {e}"}
 
     if not res.get("ok"):
-        # Sin factura creada: queda en su estado anterior (borrador/cotizada) CON el
-        # motivo guardado, para corregir y reintentar sin perder los datos del cliente.
-        motivo = res.get("error") or "Alegra no emitió la factura."
+        # Queda en su estado anterior (borrador/cotizada) CON el motivo guardado,
+        # para corregir y reintentar sin perder los datos del cliente.
+        motivo = (res.get("error") or "Alegra no emitió la factura.")[:600]
         previos = [a for a in (venta.get("avisos") or []) if isinstance(a, str)]
+        extra: dict = {}
+        if res.get("creada_sin_timbrar") and res.get("invoice_id"):
+            # Alegra la creó aunque la DIAN la rechazó: queda ligada a la venta
+            # para que un reintento no emita otra (RED CHOCOLATE SAS, 8 facturas).
+            numero_creada = str(res.get("number") or res.get("invoice_id"))
+            motivo = (f"Alegra creó la factura {numero_creada} pero la DIAN la rechazó "
+                      f"({motivo.split(' — OJO')[0]}). No se emite otra: corrige el dato del "
+                      f"cliente y vuelve a Facturar, que timbra esa misma.")
+            extra = {"factura_id": str(res["invoice_id"]), "factura_numero": numero_creada,
+                     "factura_url": res.get("url") or ""}
         aviso = f"[{_ahora()[:16]}] No se pudo facturar: {motivo}"
         _actualizar(venta_id, estado=venta["estado"],
-                    avisos=json.dumps(([aviso] + previos)[:10], ensure_ascii=False))
+                    avisos=json.dumps(([aviso] + previos)[:10], ensure_ascii=False), **extra)
         return {"ok": False, "error": motivo}
 
     numero = str(res.get("number") or res.get("invoice_id") or "")

@@ -398,6 +398,24 @@ def _precio_base_con_impuesto(precio_final: float, tax_rate_total: float) -> flo
     return float(base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
+def normalizar_email_factura(email: str) -> tuple[str, str | None]:
+    """Correo del cliente listo para la DIAN: sin espacios y en minúsculas.
+
+    Devuelve (correo, error). Un correo vacío es válido (la factura sale sin él).
+    Nació de RED CHOCOLATE SAS (28-sep-2026): el cliente escribió
+    «facturacion @redchocolate.net» por WhatsApp, la DIAN lo rechazó y cada
+    reintento dejó una factura creada en Alegra (FE711-716, FE908, FE910).
+    """
+    import re
+
+    e = re.sub(r"\s+", "", str(email or "")).strip(".,;").lower()
+    if not e:
+        return "", None
+    if not re.fullmatch(r"[a-z0-9._%+\-]+@[a-z0-9\-]+(\.[a-z0-9\-]+)*\.[a-z]{2,}", e):
+        return e, f"El correo del cliente «{email}» no es válido: corrígelo antes de facturar."
+    return e, None
+
+
 def _nombre_object_persona(nombre: str) -> dict:
     """Alegra exige `nameObject` (firstName/lastName) para kindOfPerson
     PERSON_ENTITY — `name` solo no basta (confirmado en vivo 2026-09-04:
@@ -409,6 +427,18 @@ def _nombre_object_persona(nombre: str) -> dict:
     if len(partes) == 1:
         return {"firstName": partes[0]}
     return {"firstName": partes[0], "lastName": partes[1]}
+
+
+def _tipo_persona_contacto(id_type: str, identificacion: str, nombre: str) -> dict:
+    """kindOfPerson (+ nameObject si es persona natural) para /contacts.
+
+    Un NIT de 9 dígitos que empieza por 8 o 9 es de persona jurídica (800…, 830…,
+    860…, 890…, 900…, 901…); los de personas naturales son su cédula. Antes todo
+    contacto salía PERSON_ENTITY: RED CHOCOLATE SAS quedó con nombre «RED» y
+    apellido «CHOCOLATE SAS» (28-sep-2026)."""
+    if id_type == "NIT" and len(identificacion) == 9 and identificacion[:1] in ("8", "9"):
+        return {"kindOfPerson": "LEGAL_ENTITY"}
+    return {"kindOfPerson": "PERSON_ENTITY", "nameObject": _nombre_object_persona(nombre)}
 
 
 def _resolver_o_crear_contacto_alegra(
@@ -493,12 +523,11 @@ def _resolver_o_crear_contacto_alegra(
             # aunque no cambien — no es un PATCH parcial real (confirmado en vivo).
             update_payload: dict = {
                 "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
-                "nameObject": _nombre_object_persona(nombre),
                 "identificationObject": {
                     "type": id_type,
                     "number": identificacion,
                 },
-                "kindOfPerson": "PERSON_ENTITY",
+                **_tipo_persona_contacto(id_type, identificacion, nombre),
                 "regime": "SIMPLIFIED_REGIME",
             }
             if email:
@@ -529,12 +558,11 @@ def _resolver_o_crear_contacto_alegra(
 
     payload = {
         "name": nombre or NOMBRE_CONSUMIDOR_FINAL_MELI,
-        "nameObject": _nombre_object_persona(nombre),
         "identificationObject": {
             "type": id_type,
             "number": identificacion,
         },
-        "kindOfPerson": "PERSON_ENTITY",
+        **_tipo_persona_contacto(id_type, identificacion, nombre),
         "regime": "SIMPLIFIED_REGIME",
     }
     if email:
@@ -680,6 +708,18 @@ def crear_factura_venta_alegra(
     if not nombre_cliente or not identificacion_digits:
         return {"ok": False, "error": "Faltan nombre o identificación del cliente."}
 
+    # Antes de tocar Alegra: un correo mal escrito hace que la DIAN rechace la
+    # factura DESPUÉS de que Alegra ya la creó (ver normalizar_email_factura).
+    email, error_email = normalizar_email_factura(email)
+    if error_email:
+        return {"ok": False, "error": error_email}
+    if email:
+        # El contacto puede estar en caché con el correo viejo: se vuelve a
+        # consultar para que el PUT le deje el correo corregido.
+        _contacto_cache.pop(identificacion_digits, None)
+        if len(identificacion_digits) == 10:
+            _contacto_cache.pop(identificacion_digits[:-1], None)
+
     contacto_id, error_contacto = _resolver_o_crear_contacto_alegra(
         nombre=nombre_cliente, identificacion=identificacion_digits,
         email=email, telefono=telefono, direccion=direccion_envio,
@@ -799,61 +839,125 @@ def crear_factura_venta_alegra(
     try:
         res = requests.post(f"{_ALEGRA_BASE}/invoices", headers=headers, json=payload, timeout=20)
         if res.status_code not in (200, 201):
-            return {
+            # OJO: cuando la DIAN rechaza (ej. code 3051, correo inválido) Alegra
+            # responde 400 pero la factura YA QUEDÓ CREADA (con su número y el
+            # pago registrado), y la trae en `invoice`. Si el llamador lo toma
+            # como «no se creó» y reintenta, sale otra: RED CHOCOLATE SAS acumuló
+            # 8 así (FE711-716, FE908, FE910). Se devuelve el id para que nadie
+            # emita otra encima.
+            creada: dict = {}
+            mensaje = ""
+            try:
+                cuerpo = res.json() or {}
+                creada = cuerpo.get("invoice") or {}
+                import re
+
+                mensaje = re.sub(r"<[^>]+>", " ", str((cuerpo.get("error") or {}).get("message") or ""))
+                mensaje = re.sub(r"\s+", " ", mensaje).strip()
+            except ValueError:
+                pass
+            out = {
                 "ok": False,
                 "status_code": res.status_code,
-                "error": f"Error al crear factura en Alegra: {res.text[:1000]}",
+                "error": f"Error al crear factura en Alegra: {mensaje or res.text[:1000]}",
                 "payload": payload,
             }
+            if creada.get("id"):
+                numero_creada = (creada.get("numberTemplate") or {}).get("fullNumber") or creada.get("number")
+                out["error"] += (f" — OJO: Alegra dejó creada la factura {numero_creada} (id {creada.get('id')}) "
+                                 "sin timbrar; no reintentar sin revisarla o saldrá otra.")
+                out.update({
+                    "creada_sin_timbrar": True,
+                    "invoice_id": creada.get("id"),
+                    "number": numero_creada,
+                    "url": f"https://app.alegra.com/invoice/view/id/{creada.get('id')}",
+                })
+            return out
 
-        factura = res.json()
-        factura_id = factura.get("id")
-        factura_numero = factura.get("numberTemplate", {}).get("fullNumber") or factura.get("number")
-
-        stamp = factura.get("stamp") or {}
-        # OJO: el stamp de Alegra trae `legalStatus`, no `status` — leyendo la clave
-        # equivocada toda factura reportaba "closed" y las notificaciones de la DIAN
-        # (ej. FAZ09) quedaban invisibles para el panel y los reportes de WhatsApp.
-        estado = (stamp.get("legalStatus") or stamp.get("status") or factura.get("status") or "").strip()
-        cufe = stamp.get("cufe") or stamp.get("uuid") or ""
-
-        pdf_path = None
-        pdf_b64 = None
-        if descargar_pdf and factura_id:
-            pdf_b64 = descargar_factura_pdf_alegra(str(factura_id))
-            if pdf_b64:
-                pdf_dir = "facturas_descargadas"
-                os.makedirs(pdf_dir, exist_ok=True)
-                pdf_path = os.path.join(pdf_dir, f"Factura_{factura_numero or factura_id}.pdf")
-                try:
-                    with open(pdf_path, "wb") as f:
-                        f.write(base64.b64decode(pdf_b64))
-                except Exception as e:
-                    print(f"⚠️ No se pudo guardar PDF Alegra {factura_id}: {e}")
-                    pdf_path = None
-
-        return {
-            "ok": True,
-            "invoice_id": factura_id,
-            "number": factura_numero,
-            "status": estado,
-            "cufe": cufe,
-            "stamp": stamp,
-            # Notificaciones DIAN: la factura es válida pero trae observaciones
-            # (ej. FAZ09 por ítems sin código UNSPSC). No es un error de emisión.
-            "avisos_dian": list(stamp.get("warnings") or []),
-            "url": f"https://app.alegra.com/invoice/view/id/{factura_id}" if factura_id else "",
-            "pdf_path": pdf_path,
-            # Base64 crudo (mismo que queda en pdf_path) — para call-sites que necesitan
-            # subirlo a otro sistema (ej. subir_factura_meli) sin releer el archivo local.
-            "pdf_base64": pdf_b64,
-            "data": factura,
-            "payload": payload,
-        }
+        return _resultado_factura_alegra(res.json(), descargar_pdf=descargar_pdf, payload=payload)
     except requests.RequestException as e:
         return {"ok": False, "error": f"Error de red con Alegra: {e}"}
     except Exception as e:
         return {"ok": False, "error": f"Error crítico creando factura Alegra: {e}"}
+
+
+def _resultado_factura_alegra(factura: dict, *, descargar_pdf: bool = True, payload: dict | None = None) -> dict:
+    """Forma común del resultado de una factura ya creada en Alegra (PDF incluido):
+    la usan `crear_factura_venta_alegra` y `timbrar_factura_existente_alegra`."""
+    factura_id = factura.get("id")
+    factura_numero = factura.get("numberTemplate", {}).get("fullNumber") or factura.get("number")
+
+    stamp = factura.get("stamp") or {}
+    # OJO: el stamp de Alegra trae `legalStatus`, no `status` — leyendo la clave
+    # equivocada toda factura reportaba "closed" y las notificaciones de la DIAN
+    # (ej. FAZ09) quedaban invisibles para el panel y los reportes de WhatsApp.
+    estado = (stamp.get("legalStatus") or stamp.get("status") or factura.get("status") or "").strip()
+    cufe = stamp.get("cufe") or stamp.get("uuid") or ""
+
+    pdf_path = None
+    pdf_b64 = None
+    if descargar_pdf and factura_id:
+        pdf_b64 = descargar_factura_pdf_alegra(str(factura_id))
+        if pdf_b64:
+            pdf_dir = "facturas_descargadas"
+            os.makedirs(pdf_dir, exist_ok=True)
+            pdf_path = os.path.join(pdf_dir, f"Factura_{factura_numero or factura_id}.pdf")
+            try:
+                with open(pdf_path, "wb") as f:
+                    f.write(base64.b64decode(pdf_b64))
+            except Exception as e:
+                print(f"⚠️ No se pudo guardar PDF Alegra {factura_id}: {e}")
+                pdf_path = None
+
+    return {
+        "ok": True,
+        "invoice_id": factura_id,
+        "number": factura_numero,
+        "status": estado,
+        "cufe": cufe,
+        "stamp": stamp,
+        # Notificaciones DIAN: la factura es válida pero trae observaciones
+        # (ej. FAZ09 por ítems sin código UNSPSC). No es un error de emisión.
+        "avisos_dian": list(stamp.get("warnings") or []),
+        "url": f"https://app.alegra.com/invoice/view/id/{factura_id}" if factura_id else "",
+        "pdf_path": pdf_path,
+        # Base64 crudo (mismo que queda en pdf_path) — para call-sites que necesitan
+        # subirlo a otro sistema (ej. subir_factura_meli) sin releer el archivo local.
+        "pdf_base64": pdf_b64,
+        "data": factura,
+        "payload": payload,
+    }
+
+
+def timbrar_factura_existente_alegra(factura_id: str, *, descargar_pdf: bool = True) -> dict:
+    """Timbra ante la DIAN una factura que Alegra dejó creada sin timbrar (la DIAN
+    la rechazó al crearla, p. ej. por el correo del cliente). Se corrige el dato y
+    se timbra ESA factura: emitir otra deja un duplicado (RED CHOCOLATE SAS, 28-sep-2026).
+    Si ya estaba timbrada, solo devuelve su resultado. Mismo shape que crear_factura_venta_alegra."""
+    try:
+        headers = _alegra_headers()
+    except RuntimeError as e:
+        return {"ok": False, "error": str(e)}
+    url = f"{_ALEGRA_BASE}/invoices/{factura_id}"
+    try:
+        factura = requests.get(url, headers=headers, timeout=30).json() or {}
+        if factura.get("status") == "void":
+            return {"ok": False, "error": f"La factura {factura_id} está anulada en Alegra."}
+        if not (factura.get("stamp") or {}).get("cufe"):
+            res = requests.post(f"{_ALEGRA_BASE}/invoices/stamp", headers=headers,
+                                json={"ids": [int(factura_id)]}, timeout=90)
+            fila = ((res.json() or {}).get("data") or [{}])[0] if res.status_code == 200 else {}
+            if not fila.get("success"):
+                import re
+
+                detalle = re.sub(r"<[^>]+>", " ", str(fila.get("message") or res.text[:600]))
+                detalle = re.sub(r"\s+", " ", detalle).strip()
+                return {"ok": False, "error": f"La DIAN volvió a rechazar la factura: {detalle}",
+                        "creada_sin_timbrar": True, "invoice_id": factura_id}
+            factura = requests.get(url, headers=headers, timeout=30).json() or {}
+    except (requests.RequestException, ValueError) as e:
+        return {"ok": False, "error": f"Error de red con Alegra: {e}", "creada_sin_timbrar": True, "invoice_id": factura_id}
+    return _resultado_factura_alegra(factura, descargar_pdf=descargar_pdf)
 
 
 def _resolver_template_nota_credito_alegra(headers: dict) -> str | None:
