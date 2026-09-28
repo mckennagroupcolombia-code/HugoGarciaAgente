@@ -26,6 +26,9 @@ export type Eslabon = {
   tamano?: string;
   plantilla_id?: string;
   doc_titulo?: string;
+  /** Nombre del PDF ya generado para este documento (biblioteca), si existe. Con esto el botón
+   *  muestra el documento aprobado en vez de reabrir el formulario. */
+  pdf_nombre?: string | null;
   /** El combo se marcó como «no requiere documento técnico»: la pieza cuenta como completa. */
   no_requiere?: { motivo?: string; por?: string; fecha?: string };
   accion?: Accion;

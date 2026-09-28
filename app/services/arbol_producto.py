@@ -260,6 +260,7 @@ def arbol(refrescar: bool = False) -> dict:
                 "detalle": doc.get("detalle") or "",
                 "archivo": doc.get("archivo") or "",
                 "titulo": doc.get("doc_titulo") or "",
+                "pdf_nombre": doc.get("pdf_nombre") or "",
             },
             "presentaciones": [],
         })
@@ -269,7 +270,8 @@ def arbol(refrescar: bool = False) -> dict:
         rango = {"ok": 0, "aviso": 1, "falta": 2}
         if rango.get(doc.get("estado") or "falta", 2) < rango.get(fam["documento"]["estado"], 2):
             fam["documento"] = {"estado": doc.get("estado"), "detalle": doc.get("detalle") or "",
-                                "archivo": doc.get("archivo") or "", "titulo": doc.get("doc_titulo") or ""}
+                                "archivo": doc.get("archivo") or "", "titulo": doc.get("doc_titulo") or "",
+                                "pdf_nombre": doc.get("pdf_nombre") or ""}
         fam["presentaciones"].append(pres)
 
     salida = []

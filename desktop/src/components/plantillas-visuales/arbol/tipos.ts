@@ -54,7 +54,8 @@ export type Familia = {
   clave: string;
   mp_sku: string;
   nombre: string;
-  documento: { estado: Estado; detalle: string; archivo: string; titulo: string };
+  /** `pdf_nombre`: el PDF completo ya generado (aprobado), si existe; el botón lo abre directo. */
+  documento: { estado: Estado; detalle: string; archivo: string; titulo: string; pdf_nombre?: string };
   presentaciones: Presentacion[];
   completas: number;
   total: number;

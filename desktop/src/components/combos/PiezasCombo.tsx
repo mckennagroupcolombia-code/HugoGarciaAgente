@@ -2,7 +2,7 @@ import { Ico } from "../../icons/Ico";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, lazy, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../../api/client";
+import { api, fetchAuthBlobUrl } from "../../api/client";
 import { useAppStore } from "../../stores/app";
 import { usePanelTheme } from "../../stores/panelTheme";
 import AsignarEan from "./AsignarEan";
@@ -399,11 +399,28 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
+  const [abriendoPdf, setAbriendoPdf] = useState(false);
   useEffect(() => {
     setElegir(false);
     setError(null);
     setMotivo("");
   }, [c.ref]);
+
+  /** Ya generado: el botón muestra el PDF aprobado en vez de reabrir el formulario. */
+  const verDocumentoAprobado = async () => {
+    if (!e.pdf_nombre) return;
+    setAbriendoPdf(true);
+    setError(null);
+    try {
+      const url = await fetchAuthBlobUrl(`/api/fichas/biblioteca/descargar?archivo=${encodeURIComponent(e.pdf_nombre)}&inline=1`);
+      if (!url) throw new Error("No se pudo abrir el PDF");
+      window.open(url, "_blank", "noopener");
+    } catch (err) {
+      setError((err as Error)?.message || "No se pudo abrir el PDF");
+    } finally {
+      setAbriendoPdf(false);
+    }
+  };
 
   const marcarNoRequiere = async (valor: boolean) => {
     setOcupado(true);
@@ -451,12 +468,27 @@ function InspectorDocumento({ c, alResolver }: { c: Combo; alResolver: () => Pro
     <div className="space-y-2.5">
       {e.doc_titulo && <p className="text-[12px] font-bold text-ink"><Ico e="📄" /> {e.doc_titulo}</p>}
       <p className="text-[11.5px] text-muted">{e.detalle}</p>
-      {/* Un solo botón: revisar, completar y dar el visto bueno se hace en el editor de Docs técnicos
-          (en una ventana sobre el taller). Generar el documento final marca revisadas todas las
-          presentaciones que lo heredan. */}
-      <button className={BTN} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}>
-        {e.estado === "falta" ? "Redactar el documento…" : e.estado === "ok" ? "Abrir el documento…" : "Revisar, completar y dar el visto bueno…"}
-      </button>
+      {e.estado === "ok" && e.pdf_nombre ? (
+        // Ya está aprobado y generado: el botón muestra el PDF, no reabre el formulario.
+        <div className="flex flex-wrap items-center gap-2">
+          <button className={BTN} disabled={abriendoPdf} onClick={verDocumentoAprobado}>
+            {abriendoPdf ? "Abriendo…" : "Ver documento aprobado"}
+          </button>
+          <button
+            className="text-[11.5px] text-muted underline decoration-dotted hover:text-ink"
+            onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}
+          >
+            Editar de todas formas
+          </button>
+        </div>
+      ) : (
+        // Un solo botón: revisar, completar y dar el visto bueno se hace en el editor de Docs técnicos
+        // (en una ventana sobre el taller). Generar el documento final marca revisadas todas las
+        // presentaciones que lo heredan.
+        <button className={BTN} onClick={() => salto.docs(e.doc_titulo || mps[0]?.nombre.split(" ").slice(0, 2).join(" ") || c.nombre)}>
+          {e.estado === "falta" ? "Redactar el documento…" : e.estado === "ok" ? "Abrir el documento…" : "Revisar, completar y dar el visto bueno…"}
+        </button>
+      )}
 
       {!c.componentes.some((x) => x.casilla === "materia_prima") && e.estado !== "ok" && (
         <p className="rounded-md border border-accent-sun/60 bg-accent-sun/10 p-2 text-[11px] text-ink">

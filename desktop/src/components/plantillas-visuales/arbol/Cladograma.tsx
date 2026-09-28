@@ -44,14 +44,17 @@ function Segmentos({ p }: { p: Presentacion }) {
   );
 }
 
-export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, onDocumento }: {
+export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, onDocumento, onEditarDocumento }: {
   familia: Familia;
   categoria: string;
   sel: string | null;
   onElegir: (ref: string) => void;
   onPieza: (ref: string, clave: ClavePieza) => void;
-  /** El documento es de la materia prima (la raíz): se resuelve desde ella. */
+  /** El documento es de la materia prima (la raíz): se resuelve desde ella. Si ya hay PDF
+   *  aprobado, lo abre; si no, abre el formulario. */
   onDocumento: () => void;
+  /** Reabrir el formulario aunque ya haya PDF aprobado. */
+  onEditarDocumento: () => void;
 }) {
   const doc = familia.documento;
   const n = familia.presentaciones.length;
@@ -63,12 +66,20 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
         <div className="flex flex-col gap-2 p-2.5">
           <span className="text-[14px] font-extrabold leading-tight">{familia.nombre}</span>
           {familia.mp_sku && <code className="text-[11px] text-ink-secondary">{familia.mp_sku}</code>}
-          <button type="button" onClick={onDocumento} title="Revisar, unir o editar el documento técnico"
+          <button type="button" onClick={onDocumento}
+            title={doc.pdf_nombre ? "Ver el PDF aprobado (FT · COA · SDS)" : "Revisar, unir o editar el documento técnico"}
             className={`ap-hoja flex flex-col items-start gap-0.5 p-2 text-left ${CAJA[doc.estado]}`}>
             <span className="flex items-center gap-1.5 text-[11.5px] font-extrabold"><Sprite s="doc" px={2} />Documento técnico</span>
             <span className="text-[11px] text-ink-secondary">{doc.detalle || (doc.estado === "falta" ? "Sin documento" : "")}</span>
+            {doc.pdf_nombre && <span className="text-[10.5px] font-bold">Ver PDF aprobado ↗</span>}
             {n > 1 && <span className="ap-t">lo heredan las {n}</span>}
           </button>
+          {doc.pdf_nombre && (
+            <button type="button" onClick={onEditarDocumento}
+              className="-mt-1 self-start text-[10.5px] text-ink-secondary underline decoration-dotted hover:text-ink">
+              Revisar o editar
+            </button>
+          )}
           <span className="ap-t">{categoria}</span>
         </div>
       </div>

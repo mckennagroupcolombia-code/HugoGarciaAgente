@@ -15,7 +15,7 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../../api/client";
+import { api, fetchAuthBlobUrl } from "../../../api/client";
 import { useAppStore } from "../../../stores/app";
 import { CrearComboVentana, ResolverPieza } from "../../combos/PiezasCombo";
 import { Sprite } from "../../colaboradores/pixel";
@@ -169,6 +169,17 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
     staleTime: 30_000,
   });
   const abrirPieza = (ref: string, pieza: string) => setResolver((r) => ({ ref, pieza, n: (r?.n ?? 0) + 1 }));
+  /** Documento técnico ya generado: el botón muestra el PDF aprobado, no el formulario. La
+   *  pestaña se abre antes del fetch (dentro del clic) para que el navegador no la bloquee. */
+  const verPdfAprobado = async (archivo: string) => {
+    const w = window.open("", "_blank");
+    const url = await fetchAuthBlobUrl(`/api/fichas/biblioteca/descargar?archivo=${encodeURIComponent(archivo)}&inline=1`);
+    if (url && w) w.location.href = url;
+    else {
+      w?.close();
+      window.alert("No se pudo abrir el PDF aprobado.");
+    }
+  };
   const [crearCombo, setCrearCombo] = useState<SinCombo | null>(null);
 
   const saltarDesdeTaller = useAppStore((s) => s.saltarDesdeTaller);
@@ -235,7 +246,12 @@ export default function ArbolProductoPanel({ buscar, editor, onEditarEtiqueta }:
               const p = familia.presentaciones.find((x) => x.ref === ref);
               if (p) tocarPieza(p, clave);
             }}
-            onDocumento={() => familia.presentaciones[0] && abrirPieza(pres?.ref ?? familia.presentaciones[0].ref, "documento")}
+            onDocumento={() => {
+              const pdf = familia.documento.pdf_nombre;
+              if (pdf) return verPdfAprobado(pdf);
+              if (familia.presentaciones[0]) abrirPieza(pres?.ref ?? familia.presentaciones[0].ref, "documento");
+            }}
+            onEditarDocumento={() => familia.presentaciones[0] && abrirPieza(pres?.ref ?? familia.presentaciones[0].ref, "documento")}
           />
         ) : categoria ? (
           <CladogramaCategoria
