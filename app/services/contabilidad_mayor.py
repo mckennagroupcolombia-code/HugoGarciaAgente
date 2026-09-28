@@ -659,6 +659,14 @@ def _docs_fila(docs, f: dict[str, Any], sols: dict) -> dict[str, Any]:
     }
 
 
+def _num_csv(v: Any) -> str:
+    """Monto para un CSV que se abre en Excel en español (Colombia): coma decimal y
+    sin separador de miles. Con `160000.0` ese Excel toma el punto como separador de
+    miles (1.600.000) o deja la celda como texto y no suma."""
+    v = round(float(v or 0), 2)
+    return str(int(v)) if v == int(v) else f"{v:.2f}".replace(".", ",")
+
+
 def extracto_csv(extracto: dict[str, Any]) -> str:
     """El extracto en CSV, para abrirlo en Excel o mandárselo al contador."""
     import csv
@@ -680,7 +688,7 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
         ["Fecha", "Asiento", "Concepto", "Tercero", "NIT", "Documento", "Referencia", "Contrapartida",
          "Débito", "Crédito", "Saldo", "Soporte"]
     )
-    w.writerow(["", "", "Saldo inicial", "", "", "", "", "", "", "", extracto["saldo_inicial"], ""])
+    w.writerow(["", "", "Saldo inicial", "", "", "", "", "", "", "", _num_csv(extracto["saldo_inicial"]), ""])
     for m in extracto["movimientos"]:
         w.writerow(
             [
@@ -692,15 +700,15 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
                 m.get("documento", ""),
                 m["referencia"],
                 " / ".join(f"{c['codigo']}" for c in m["contrapartida"]),
-                m["debito"],
-                m["credito"],
-                m["saldo"],
+                _num_csv(m["debito"]),
+                _num_csv(m["credito"]),
+                _num_csv(m["saldo"]),
                 m.get("soporte_url", ""),
             ]
         )
     w.writerow([])
-    w.writerow(["", "", "Totales", "", "", "", "", "", extracto["total_debito"], extracto["total_credito"],
-                extracto["saldo_final"], ""])
+    w.writerow(["", "", "Totales", "", "", "", "", "", _num_csv(extracto["total_debito"]), _num_csv(extracto["total_credito"]),
+                _num_csv(extracto["saldo_final"]), ""])
     return buf.getvalue()
 
 
@@ -850,10 +858,10 @@ def libro_diario_csv(diario: dict[str, Any]) -> str:
                 l.get("tercero_nombre") or (a["tercero"] or {}).get("nombre") or "",
                 nit or "",
                 l.get("descripcion") or "",
-                l["debito"] or "", l["credito"] or "",
+                _num_csv(l["debito"]) if l["debito"] else "", _num_csv(l["credito"]) if l["credito"] else "",
                 a.get("soporte_url", "") if i == 0 else "",
             ])
     w.writerow([])
     w.writerow(["", "", "TOTALES", "", "", "", "", "", "", "",
-                diario["total_debito"], diario["total_credito"], ""])
+                _num_csv(diario["total_debito"]), _num_csv(diario["total_credito"]), ""])
     return buf.getvalue()

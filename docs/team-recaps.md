@@ -1,3 +1,11 @@
+### 2026-09-28 13:20 - CSV del Libro Mayor: montos legibles en Excel en español
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Los CSV del extracto y del diario escribían los montos como `160000.0`. Un Excel configurado para Colombia toma el punto como separador de miles (1.600.000) o deja la celda como texto y no suma. Ahora salen sin separador de miles y con coma decimal (`2342978`, `2342978,50`).
+  - Salió al armar la vista «Así ve el contador el Libro Mayor» (artefacto privado con filas reales del diario).
+- **Archivos Modificados:** `app/services/contabilidad_mayor.py`, `docs/team-recaps.md`.
+
 ### 2026-09-28 12:30 - Hilo de solicitudes usable en el celular + quien pide la finaliza
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + mejora. Sin LLM.
