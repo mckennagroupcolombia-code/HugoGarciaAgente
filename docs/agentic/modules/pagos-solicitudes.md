@@ -573,3 +573,58 @@ Caso que lo motivó: #47 (COMERCIALIZADORA INTERNACIONAL, bolsas 15x21 ziploc) s
 cotización cotejada y hubo que rechazarla y anular el asiento 5856 (espejo Alegra 152).
 Los borradores de Inter Rapidísimo recuperados del correo el 18-sep (#20, 24, 26, 29, 30, 33) están
 en «productos» con cuenta 523550: son fletes y van por «Servicios».
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### O. Solicitudes de pago con asiento automático
+
+**Detalle completo, historia y casos: `docs/agentic/modules/pagos-solicitudes.md`** (leerla antes
+de tocar `pagos_wizard.py`, `pagos_proveedor.py`, `doc_soporte_pagos.py`, `impuestos_por_cuenta.py`
+o retenciones).
+
+```
+/app → Contabilidad → Solicitudes de pago   (PagosWizardPanel.tsx, app/services/pagos_wizard.py)
+  borrador → pendiente → aprobada (nace el asiento + espejo Alegra) → en_banco → pagada (con comprobante)
+```
+
+Reglas que no se rompen:
+- **Lo que se deja como paso manual posterior, no se hace**: el asiento nace al **aprobar**; el
+  documento soporte se emite al aprobar; el pago en Alegra se registra al confirmar el giro.
+- **La cuenta del PUC decide el impuesto** (`impuestos_por_cuenta.py`), no un botón; el perfil
+  tributario vive en el **tercero** (`cc_terceros`: `retefuente_exento`, `regimen_simple`,
+  `ica_por_mil`, `retencion_asume_mckenna`, `emite_doc_soporte`). El wizard **informa** los
+  impuestos, no los pregunta; «Ajustar» solo para gross-up / ICA de otro municipio / GMF.
+- **Renta e ICA son independientes**; solo Régimen SIMPLE (Art. 911/907 E.T.) apaga los dos.
+- **Gross-up solo si está pactado** en la ficha (`retencion_asume_mckenna`), validado en backend.
+- **Tres personas, dos tokens**: quien aprueba prepara en el banco; el otro admin confirma con la
+  captura. `montar_en_banco()` / `confirmar_pago()` lo exigen en backend. `aprobar()` no
+  contabiliza dos veces: la guarda es tener `movimiento_id`.
+- **Compras**: se contabilizan con la cotización, renglón por renglón a 1435, **IVA a 240810**
+  (nunca a inventario), IVA del documento (el del catálogo Alegra no sirve) y `total_documento`
+  debe cuadrar para aprobar. Combos (`C-…`) fuera del picker.
+- **Una compra se solicita como copia fiel de la cotización/proforma** (24-sep-2026,
+  `pagos_proveedor.validar_compra`, en crear · enviar · aprobar): todos los renglones, cada uno un
+  producto **activo en Alegra** (no combo, no renglón sin SKU) y `total_documento` obligatorio y
+  cuadrado al peso. Se acabaron `productos_opcionales` y «Agregar … sin referencia»: lo que no está
+  en el catálogo se crea antes en «Crear en Alegra». Un borrador puede guardarse a medias.
+- **Documento soporte** (plantilla 10 DSMG, `PAGOS_DOC_SOPORTE_ACTIVO`): solo a personas naturales
+  no obligadas a facturar; cuenta vía `alegra_espejo.cuenta_alegra()`; ReteICA dentro del documento.
+  Con documento soporte el asiento **no se espeja** (duplicaba el gasto en Alegra). Nace BORRADOR al
+  aprobar y se transmite con el botón **«Emitir a la DIAN»** (Administración); todo al peso; nunca PUT a /bills.
+  ⚠️ **Un PUT a Alegra reemplaza, no es parcial** (reenviar el documento entero); el documento
+  congela una foto del proveedor; personas naturales van como **NIT con DV**, no CC.
+- ⛔ **Fecha de corte contable** `CONTABILIDAD_FECHA_CORTE` (default **2026-09-01**): lo anterior es
+  del contador. `espejar_movimiento()` devuelve `bloqueado_por_corte` (`forzar` NO lo salta) y
+  `auto_postear_periodo()` recorta el rango.
+- ⛔ **Registro de facturas de compra APAGADO** (`FACTURAS_COMPRA_REGISTRO_ACTIVO=1` lo reactiva);
+  la **descarga de XML sigue viva** porque alimenta `perfil_tributario_dian.py` (O-15/O-47), que
+  **propone, nunca aplica**.
+- Mensajería (Fidel Rocha): **523550 + retefuente 1 % + ReteICA 4,14 ‰**; desmarcado de SIMPLE,
+  falta su RUT.
+- Otros módulos del mismo ciclo: `terceros_historial.py` (append-only), `contabilidad_mayor.libro_diario()`,
+  `pagos_impuestos.py` (recibos del contador → 2365/2367/2368…, no es gasto),
+  `puc_colombia.DESCRIPCIONES` (guía de las 79 cuentas; test exige que ninguna quede sin guía).

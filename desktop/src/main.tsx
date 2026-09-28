@@ -16,6 +16,27 @@ import "./theme/mapa-temas.css";
 import { initFantasyPress } from "./lib/fantasyPress";
 import { escucharMonedasDelServidor } from "./lib/celebracionAprobado";
 
+// Un panel se carga en pedazos (lazy). Si al abrirlo su JS/CSS no llega —la cookie
+// del panel venció a las 8 h (el servidor responde 403) o se recompiló dist/ y esta
+// pestaña pide hashes viejos— se recarga la página una vez: vuelve al ingreso o toma
+// el build nuevo, en vez de quedarse en «Error inesperado». Guarda de 30 s contra bucles.
+const esFalloDeCarga = (msg: string) =>
+  /preload CSS|dynamically imported module|Importing a module script failed|error loading dynamically/i.test(msg);
+function recargarPorFalloDeCarga(): boolean {
+  try {
+    const ultima = Number(sessionStorage.getItem("mck-recarga-bundle") || 0);
+    if (Date.now() - ultima < 30_000) return false;
+    sessionStorage.setItem("mck-recarga-bundle", String(Date.now()));
+  } catch {
+    /* sin sessionStorage: recargar igual */
+  }
+  window.location.reload();
+  return true;
+}
+window.addEventListener("vite:preloadError", (e) => {
+  if (recargarPorFalloDeCarga()) e.preventDefault();
+});
+
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   constructor(props: { children: ReactNode }) {
     super(props);
@@ -26,6 +47,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("[McKenna] App crash:", error, info.componentStack);
+    if (esFalloDeCarga(error?.message || "")) recargarPorFalloDeCarga();
   }
   render() {
     if (this.state.error) {

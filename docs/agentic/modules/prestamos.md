@@ -484,3 +484,21 @@ de captación masiva si esto escala a muchos terceros. Ficha completa, cronolog�
 decisiones abiertas: `docs/agentic/modules/prestamos.md`.
 
 ---
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### M. Préstamos de terceros (captación con particulares)
+
+**Detalle completo: `docs/agentic/modules/prestamos.md`.** Panel Contabilidad → Préstamos
+(`PrestamosCronogramaPanel.tsx`, `app/services/prestamos.py`); cron
+`scripts/prestamos_recordatorio_cron.py` (día 5 ticket de pagos a despachos, día 3 ticket de
+retenciones del mes anterior). Condiciones vigentes: 25% E.A., 24 cuotas, capital 30/70, retención
+7% a cargo del prestamista contra **236535**. Documento soporte solo por los **intereses** y solo a
+persona natural no obligada a facturar (`PRESTAMOS_DOC_SOPORTE_ACTIVO=0`, sombra). Identidad
+fiscal solo en `app/services/empresa.py`; dígito del calendario DIAN = **6** (no el DV 3).
+
+---

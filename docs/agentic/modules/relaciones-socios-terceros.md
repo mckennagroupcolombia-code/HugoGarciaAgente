@@ -339,3 +339,91 @@ cero manuales. No existe ningún `compra_socio_amazon`, `pago_socio` ni
 
 **Saldos tras el reproceso:** McKenna le debe $4.322.355 a Cynthia y $3.708.366 a
 Armando; hay $96.251 de retención por declarar del período 2026-08.
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### N. Socios, familiares y terceros — quién es quién
+
+Cuatro relaciones distintas alrededor de McKenna, con tratamiento contable distinto:
+
+| Relación | Qué hace | Cuenta |
+|---|---|---|
+| **Socios** (Armando, Cynthia) | Compran en Amazon con **tarjeta personal**, traen a título personal y le venden a la empresa, que reintegra | **2380** |
+| **Socios** | Cuota de manejo 5% por conseguir la mercancía | 2380 contra costo |
+| **Familiares por servicios** | Prestación de servicios | 5135 (retención de **servicios**, no el 7% financiero) |
+| **Familiares prestamistas** | Solo consignaron dinero a la cuenta de la empresa | **2295** (Flujo M) |
+
+El mecanismo de los socios existe porque los productos son pequeños y el volumen
+residual no justifica una importación formal. **Clave para la conciliación:** el
+banco de McKenna NO se mueve cuando el socio compra (esa plata sale de su tarjeta);
+se mueve **al reintegrarle**. Esa es la línea que aparece en el extracto.
+
+**Asiento (corregido sep-2026, `contabilidad_autopost._lineas_compra_socio`):**
+`Débito 1435 (mercancía + flete + cuota) / Crédito 2365 (retención si aplica) /
+Crédito 2380 (neto al socio)`. **No toca Bancos** — el banco se mueve al reintegrar.
+
+⚠️ **Límite aduanero:** esa mercancía no entró por importación ordinaria, así que **no
+hay IVA descontable ni aranceles deducibles** (Art. 485 E.T.) y el documento soporte
+**no sanea** el estatus aduanero. Ver la ficha antes de proponer nada al respecto.
+
+**Reintegro al socio:** `compras_socios.registrar_reintegro()` — `Débito 2380 / Crédito 1110`.
+Es **la única línea de esta operación que aparece en el extracto** y la que se concilia; devuelve
+`cc:<id>` para `extracto_bancario.vincular()`. Panel: Préstamos → «Cómo funciona».
+
+**Retención:** `app/services/retenciones.py` (tarifas, cuantías mínimas, UVT por año —
+UVT 2026 = $52.374, Res. DIAN 000238/2025). Compras: mínimo **10 UVT desde 2026**
+(27 UVT hasta 2025; `retenciones.MINIMO_UVT_DESDE`). Explicación viva en /app → Préstamos → «Cómo funciona».
+Ficha completa: `docs/agentic/modules/relaciones-socios-terceros.md`.
+
+### Q. Socios dentro de la contabilidad + Declarador (expediente fiscal personal)
+
+```
+/app → Contabilidad → Libro Mayor  (LibroMayorPanel.tsx, reorganizado sep-2026; orden cambiado 17-sep)
+  ├─ Ámbito EMPRESA — abre en el libro, no en la conciliación:
+  │    1 Libro Mayor  PUC con saldos (MayorCuentasPanel: resumen por clase, árbol con terceros
+  │                   desplegables, vista «Por tercero», extracto) · balance · asientos · cuentas T · informes
+  │    2 Registrar    acciones rápidas (ingreso, egreso, compra/pago socio, proveedor, aporte) + asiento manual
+  │    3 Conciliar banco  wizard de 4 pasos (cargar extracto → emparejar → clasificar → verificar)
+  │    4 Configurar   plan de cuentas · terceros · créditos adquiridos
+  │    (claves localStorage `-v2` para que nadie siga aterrizando en Conciliar)
+  └─ Ámbito SOCIOS (= sección Contabilidad → Socios; SociosPanel.tsx) — wizard de 7 pasos por socio:
+       1 Empecemos: cuestionario interactivo de 5 preguntas (cripto, declaró antes, desde qué año,
+         otras plataformas, préstamos con familia) + cédula. No pide nada más; lo ya cargado se deduce
+       2 Plan de carga: qué documentos pide ESE caso, cómo conseguirlos, cuántos tiene vs. el socio de
+         referencia («así lo hizo Armando», solo conteos), carga por renglón/año, «no aplica»,
+         y botón para crear la carpeta del socio en el Declarador con la estructura de Armando
+       3 Extractos personales (tercero_id en extractos_bancarios; cobertura por mes con huecos)
+       4 Cuenta con McKenna (CuentaSocioPanel embebido)
+       5 Cruces socio ↔ empresa (banco personal vs banco/libro de McKenna, ±1 COP, ±3 días)
+       6 Activos digitales — Declarador: años gravables (F210 declarado vs efecto cripto FIFO),
+         documentos por categoría, pendientes con clave estable, agente con herramientas
+       7 Cierre: resumen copiable para el contador
+
+       7 Cierre: **expediente para el contador** — línea de tiempo año por año (qué se
+         declaró · qué pasó · qué cuesta corregir · soportes con su ruta) y **descarga en PDF**
+         (`GET /api/socios/<id>/informe.pdf`, `app/tools/declarador_pdf.py`). La carpeta del
+         socio se normaliza con `organizar_carpeta()`: subcarpetas numeradas
+         (`01_Declaraciones_Renta_F210/`, `05_Certificados_Tributarios_Banco/2024/`…),
+         nombres legibles (`F210_2021.pdf`, `Tarjeta_8017_2025-04.xlsx`) y `LEEME.md`;
+         nunca toca `Calculos/` ni `Para_Contador/`.
+
+app/services/declarador.py     tablas dl_* en contabilidad.db; importar_carpeta() lee SOLO
+                               /home/mckg/Declarador/<Nombre>/ (DECLARADOR_DIR; Calculos/ y
+                               Para_Contador/ de Armando están enlazados dentro de Armando/); agente
+                               Claude tool-use con llm_budget (contexto «declarador»)
+app/routes_declarador.py       /api/socios/* — cada socio ve SOLO su expediente; solo la cuenta
+                               `admin` real (o CHAT_API_TOKEN crudo) ve todos
+```
+
+**Por qué existe:** la conciliación de criptoactivos de Armando (Binance 2020-2025, F210 2020-2024,
+exógena, extractos) se hizo en agosto de 2026 con un agente de terminal en `/home/mckg/Declarador`
+y quedó en markdown y CSV. La contabilidad del socio está pegada a la de la empresa (reintegros
+de compras con tarjeta personal, préstamos, cuota de manejo), así que ahora vive **dentro** del
+Libro Mayor: el socio carga sus extractos aquí (más datos para cruzar) y la declaración se sigue
+construyendo en el panel. **El banco personal de un socio nunca entra a la conciliación de la
+empresa** (`_filtro_titular` en `extracto_bancario.py`); solo se cruza con ella en el paso 4.
+Ficha: `docs/agentic/modules/contabilidad.md` → «Socios dentro de la contabilidad».

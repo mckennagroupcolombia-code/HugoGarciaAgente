@@ -210,3 +210,16 @@ comercial para un proyecto conjunto, a mano y desde el celular.
   envía = `portador` o el responsable de la caja de origen; quien recibe = el responsable de la de destino
   (si no hay, o es la misma persona en otro piso, un trabajador gris del piso). El avance de relevo y el
   aviso `onPaso` corren en el temporizador, no en el render. Hueco del ascensor `.eb-ascensor` también en celular.
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### Colaboradores (diagramas compartidos, 21-sep-2026)
+Armando + colaborador externo (Sebastián) editan diagramas de flujo desde el celular (React Flow),
+versionados, con exportación Archify. Perfil `colaborador_externo` = lista blanca: solo Colaboradores y
+Agenda con Armando. **Recibe otra aplicación** (`desktop/dist-colab/`, build `vite.colab.config.ts`, compilado por
+`npm run build`) y tiene su propia APK (`android-colab/`); los `.map` del panel no se entregan a nadie. **Un solo estilo: el edificio (26-sep-2026).** Se retiraron el tablero de flechas (React Flow), la vista clásica, «Rectas» y la exportación a Archify. El proyecto ES un edificio pixel (`colaboradores/EdificioColab.tsx`): pisos y habitaciones configurables («🏗 Construir», `operacion.edificio`); cada caja es un bloque libre colocado en una habitación (`habitacion`, `icono`, `avatar` responsable; la plantilla solo precarga campos, «Libre» incluida) que se construye al llenarse (obra: `colaboradores/obra.ts` = `colaboradores.etapa_obra`, hay test); las flechas son **entregas** que se ven como **relevos** (`components/relevos/CapaRelevos.tsx`, compartida con el Mapa): en el mismo piso quien envía la entrega en la mano a quien recibe; a otro piso la mete al ascensor, la cabina viaja con la caja adentro y quien recibe la saca en su piso; uno tras otro, en el orden del proceso; el bucle comprar → craftear → publicar → vender vive en los bloques de producto y el reparto son **partidas con nombre** (`operacion.reparto.reglas`, base costo o venta, % y para quién; el resto a la bóveda, nombrable); el ente tiene **campos libres** (no hay «margen» fijo). Estado de la operación solo por `accion_operacion`; **simulación** (no toca inventario ni contabilidad). La lista de proyectos es una calle de edificios. Detalle: `docs/agentic/modules/colaboradores.md`. Perfil `contador` (William) = consulta del Libro Mayor + comentarios en historial de
+terceros. **Detalle: `docs/agentic/modules/colaboradores.md`.**

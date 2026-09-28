@@ -356,3 +356,111 @@ puntual ya no baja toda la base de Alegra dentro de la petición: usa una base d
 facturas y 30 NC más recientes, y la renueva en segundo plano; `calentar_base_alegra()` la prepara al
 arrancar y cada 30 min (agente_pro.py), y `_facturas_alegra_cacheadas` es de una sola descarga a la vez.
 🔄 sobre 2000018361505814: 90 s → 42 s. «Subir PDF» y «Anular» actualizan la fila en segundo plano.
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### F. Sincronización de Facturas MeLi ↔ Siigo
+
+```
+sincronizar_inteligente():
+  ├─ Busca órdenes MeLi pagadas sin documento fiscal
+  ├─ Busca facturas Siigo del mismo período
+  ├─ Cruza por Pack ID (en observations/purchase_order de Siigo)
+  └─ Por cada match:
+       ├─ descargar_factura_pdf_siigo(factura_id) → base64
+       └─ subir_factura_meli(pack_id, pdf_b64) → POST /packs/{id}/fiscal_documents
+
+sincronizar_facturas_recientes(dias=1):
+  ├─ obtener_facturas_siigo_paginadas(fecha_desde)
+  └─ Para cada factura con Pack ID → upload a MeLi
+```
+
+Este flujo asume que la factura **ya existe en Siigo** (creada manualmente) y solo la cruza/sube a MeLi. Para creación automática desde cero ver Flujo G.
+
+### G. Autofactura MeLi al entregarse el pedido
+
+```
+MeLi → POST /notifications (puerto 8080)
+  └─ topic: "shipments"
+  └─ hilo: procesar_entrega_meli_para_factura(shipping_id)   # app/tools/meli_autofactura_entrega.py
+       ├─ GET /shipments/{id} → si status != "delivered", ignora
+       ├─ order_id desde el shipment; dedup por order_id en app/data/meli_facturas_entrega.json
+       ├─ GET /orders/{order_id} → arma líneas (SKU vía seller_custom_field + buscar_producto_alegra_por_referencia)
+       ├─ Comprador: GET /orders/{order_id}/billing_info (consultar_billing_info_meli) → nombre/razón
+       │    social, doc_type/doc_number REALES si el comprador los cargó en MeLi (confirmado en vivo
+       │    2026-09-04 contra MCO — `orders/{id}.buyer` y `shipments/{id}.receiver_address` NO los
+       │    traen, pero este endpoint sí; es lo que resolvía Astroselling). Solo cae a "Consumidor
+       │    Final" con NIT genérico (SIIGO_MELI_NIT_CONSUMIDOR_FINAL, default 222222222222) si
+       │    billing_info da 404/403 o viene sin doc_number/nombre usable.
+       └─ crear_factura_venta_alegra(...) → reporta éxito/error a GRUPO_FACTURACION_VENTAS_WA
+```
+
+**Gateado por `MELI_AUTOFACTURA_ENTREGA_ACTIVO`** (default `0` = modo sombra): mientras esté en 0,
+calcula y registra en `app/data/meli_facturas_entrega.json` qué se habría facturado (sin llamar a
+Siigo/DIAN). Cambiar a `1` solo tras confirmar con tráfico real que el tópico `shipments` llega al
+webhook — precedente: en abril/2026 se asumió que `questions`/`orders_v2`/`messages` ya estaban
+suscritos en la app de MeLi y no era cierto, dejando preventa/posventa rotas en silencio semanas.
+Requiere habilitar el tópico `shipments` en developers.mercadolibre.com para la app.
+
+**Estado desde el 2026-09-09: apagado (`=0`) a propósito.** Estuvo en `1` del 4 al 9 de sep y produjo
+(a) packs multi-producto facturados a medias — el webhook corría con código anterior al fix
+multi-orden porque nunca se reinició — y (b) 41 packs facturados dos veces, porque astroselling
+seguía facturando en Siigo al comprar mientras Alegra facturaba al entregar. Hoy se factura **a mano
+con el botón "Facturar ahora"** de Facturación → Ventas, que emite **una sola factura por carrito**
+(`facturar_pack_meli_manual`) y aborta si el pack ya tiene factura o documento fiscal en MeLi. Antes
+de volver a encender el automático: cerrar la regularización y sanear el catálogo. Ficha completa,
+cronología y decisiones abiertas: `docs/agentic/modules/facturacion-meli-alegra.md`.
+
+### H. Facturación al momento de ENTREGA (política general, no solo MeLi) + nota crédito
+
+Principio de negocio (reemplaza "facturar al vender"): facturar en el momento de la **entrega**
+reduce cuántas facturas terminan necesitando nota crédito por arrepentimiento del cliente entre
+la compra y la entrega. MeLi ya lo hace vía Flujo G (evento `shipments`/`delivered`). Pedidos web
+lo hace por comando explícito porque **no existe señal automática de entrega para web** (el
+tracking de Interrapidísimo solo llega hasta `shipping_status=shipped`):
+
+```
+Grupo GRUPO_PEDIDOS_WEB_WA → "entregado 250" (o "entregado MCKG-…")
+  └─ app/routes.py → wp.registrar_entrega_y_facturar(ref)   # app/tools/web_pedidos.py
+       ├─ UPDATE orders SET shipping_status='delivered', delivered_at=...
+       └─ emitir_factura_siigo_pedido_web(ref, force=True)   # mismo dedup que "facturar"
+```
+
+`facturar <ref>` sigue existiendo como override manual (casos donde el cliente necesita la
+factura antes de la entrega, p. ej. clientes corporativos) — pero el flujo estándar para venta
+al detal es esperar a `entregado`.
+
+**Nota crédito — ticket al operador para casos puntuales (web / reclamos), cron automático para
+cancelaciones MeLi "normales":** cuando `anular_pedido_web()` detecta que el pedido ya tenía
+factura Siigo emitida, en vez de solo advertir en el texto de WhatsApp, crea un ticket en el
+Centro de Mando vía `app/tools/notas_credito.py::crear_ticket_nota_credito()` (categoría
+`contabilidad`, prioridad alta, asignado al aliado configurado para
+`TAREA_RECLAMO_MELI_ANULAR_FACTURA` en `tickets_db`). Es la generalización del patrón que ya
+existía solo para reclamos de MeLi (`app/meli_reclamos.py::crear_accion_anular_factura_por_reclamo`).
+
+Para el caso más frecuente — una orden MeLi se cancela (sin ser reclamo) después de que la
+factura ya se emitió automáticamente vía la integración externa (astroselling.com) — el ticket
+manual dejó de trabajarse silenciosamente 6 semanas (26-jun a 10-ago-2026, 44 casos, $2.1M COP)
+sin que nadie lo notara. Por eso existe **`scripts/emitir_notas_credito_cron.py`** (diario,
+frecuencia real vía Sistemas → Tareas Programadas): cruza órdenes MeLi canceladas
+(`app/services/meli.py::listar_ordenes_canceladas_meli`) contra facturas Siigo por Pack ID
+(mismo cruce por `observations`/`purchase_order` que Flujo F) y emite automáticamente la nota
+crédito (`app/services/siigo.py::crear_nota_credito_siigo`, `reason=2` "anulación de factura
+electrónica") si aún no existe una. Solo procesa cancelaciones con más de
+`NOTAS_CREDITO_MARGEN_HORAS` (default 48h) de antigüedad, y vuelve a chequear
+(`buscar_nota_credito_existente_siigo`) justo antes de cada emisión — la corrida manual del
+10-ago-2026 generó **4 notas crédito duplicadas** exactamente por no tener ese segundo chequeo,
+mientras contabilidad resolvía esos mismos casos a mano en paralelo. Reporta por WhatsApp a
+`GRUPO_FACTURACION_VENTAS_WA` solo cuando emite algo o encuentra un error real (no cuando el
+caso ya estaba resuelto por otra vía — eso es el camino normal, no una anomalía). Apagar con
+`NOTAS_CREDITO_CRON_ACTIVO=0` sin tocar el crontab.
+
+**Pendiente (paso separado, no implementado aún):** aplicar el mismo principio de "facturar al
+entregar" a ventas por WhatsApp — hoy `crear_factura_completa_siigo` lo dispara Claude vía
+tool-use en cuanto se confirma el pago (`ok <3dígitos>`), no al entregar. Cambiarlo requiere
+tocar el prompt/herramientas de `app/core.py`, que afecta el comportamiento del agente en *toda*
+conversación de WhatsApp — se trata aparte, con su propia revisión.

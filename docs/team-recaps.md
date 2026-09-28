@@ -6,6 +6,14 @@
   - Contexto: el «No hay mensaje postventa pendiente con código 719» del grupo no era por el cese de actividades; el pendiente era el 729.
 - **Archivos Modificados:** `app/monitor.py`, `app/meli_postventa_huecos.py`.
 
+### 2026-09-27 19:15 - CLAUDE.md comprimido + la app se recupera sola si vence la sesión
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección + documentación. Sin LLM.
+- **Qué se implementó:**
+  - «Unable to preload CSS for /app/assets/EtiquetasPanel-…css» dejaba la app en «Error inesperado»: la cookie `mck_panel` vence a las 8 h y, con la app abierta, cargar un panel nuevo recibía 403. `main.tsx` ahora recarga la página una vez (`vite:preloadError` y en el ErrorBoundary; guarda de 30 s): vuelve al ingreso o toma el build nuevo.
+  - CLAUDE.md pasó de 160 KB a 31 KB: cada flujo queda en 2-5 líneas con sus trampas y enlace; el texto completo se movió tal cual a fichas en `docs/agentic/` (verificado: ninguna línea perdida). Fichas nuevas: ESTRUCTURA, ENDPOINTS, proveedores, agente-ventas-v2, ventas-directas, logistica-despachos, producto-cadena, operacion-equipo, rrhh-horas, contenido-catalogo.
+- **Archivos Modificados:** `desktop/src/main.tsx`, `CLAUDE.md`, `docs/agentic/INDEX.md`, `docs/agentic/ENDPOINTS.md` (nuevo), `docs/agentic/ESTRUCTURA.md` (nuevo), `docs/agentic/modules/*.md`, `docs/team-recaps.md`.
+
 ### 2026-09-27 18:45 - Ubicación de bultos: «¿Dónde está?» en cada solicitud
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.

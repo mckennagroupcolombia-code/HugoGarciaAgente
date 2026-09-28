@@ -404,3 +404,33 @@ compartido entre paneles) sustenta operaciones sin factura fiscal, p.ej. compras
   `extracto_bancario.vincular()` adjunta el PDF del recibo al asiento que lo cita (`adjuntar_soporte_recibo`).
 - **4x1000 e intereses se causan solos** al cargar el extracto de la empresa (`causar_automaticos`, 530595 GMF y
   421005 intereses); `EXTRACTO_CAUSAR_AUTOMATICO=0` lo apaga.
+
+---
+
+## Traído de CLAUDE.md (27-sep-2026)
+
+> Texto movido tal cual al comprimir CLAUDE.md; allí queda un resumen con enlace aquí.
+
+### J. Contabilidad unificada (Libro Mayor propio, auto-posteo, préstamos, conciliación)
+
+**Detalle completo: `docs/agentic/modules/contabilidad.md`** (sección «Flujo J completo»).
+
+```
+contabilidad_core.py      partida doble propia: PUC, terceros, asientos, balance, plantillas
+puc_colombia.py           PUC real (Dec. 2650) + ALIAS de códigos viejos; migrar() registra alias aplicados
+contabilidad_ledger.py    armar_libro() (solo lectura) + factura_ya_contada() contra doble conteo
+contabilidad_autopost.py  auto_postear_periodo() → asientos (cron 6h + backfill)
+contabilidad_mayor.py     árbol del PUC, extracto por cuenta (PDF/CSV), libro diario
+iva_ventas.py             IVA de ventas → 240805 desde facturas Alegra (resta notas crédito)
+alegra_puc.py / alegra_espejo.py   puente por código con Alegra; espejo y anulación de comprobantes
+meli_facturacion.py       factura mensual MeLi (5 req/min); ⚠️ no usar meli_ads para contabilizar
+extracto_bancario.py / extracto_clasificador.py   conciliación y propuestas para líneas sin vínculo
+conciliacion_contador.py  350/490 del contador vs 2365 → hallazgos + TKT (sin LLM)
+```
+
+Trampas conocidas: saldo en Mercado Pago = **`130505`** (cuenta por cobrar, `CUENTA_MERCADOPAGO`; la venta MeLi
+se causa en 4135 y el retiro al banco es traslado Debe 1110 / Haber 130505, nunca ingreso); `2367`=IVA retenido, `2380`=acreedores varios, rendimientos = `236535` (no
+236515); `529505` cambió de significado (orden de migración importa). Un backfill necesita subir
+`CONTABILIDAD_LEDGER_BUDGET_S` (período a medias queda cuadrado y parece completo). Ante un **503
+de Alegra, releer antes de reintentar** (POST que sí se ejecutó). IVA de ventas nunca como
+total/1,19 (hay excluidos, Art. 424).
