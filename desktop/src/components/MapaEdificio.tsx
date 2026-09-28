@@ -23,7 +23,7 @@
  */
 import "./mapa-edificio.css";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { PanelIcon } from "../icons";
+import { Icon, PanelIcon } from "../icons";
 import { ORIGEN_APP } from "../lib/flujoApp";
 import { PANEL_INFO } from "../lib/panelInfo";
 import type { Panel } from "../stores/app";
@@ -374,6 +374,16 @@ export default function MapaEdificio({ cartas, origen, vertical, onAbrir }: {
               {origen.puede && inicio.verMensajes && (
                 <button type="button" className="ed-estacion" data-panel={ORIGEN_APP.panel} data-vista="mensajes" onClick={() => inicio.vistaAgenda("mensajes")}>
                   <PanelIcon panel="tickets" size={18} bubble={false} /> Mensajes
+                </button>
+              )}
+              {origen.puede && (
+                <button type="button" className="ed-estacion" data-panel={ORIGEN_APP.panel} data-vista="recordatorios" onClick={() => inicio.irAcciones("agenda")}>
+                  <Icon name="bell" size={18} weight="bold" /> Recordatorios
+                </button>
+              )}
+              {origen.puede && (
+                <button type="button" className="ed-estacion" data-panel={ORIGEN_APP.panel} data-vista="notas" onClick={() => inicio.irAcciones("notas")}>
+                  <Icon name="note" size={18} weight="bold" /> Notas
                 </button>
               )}
               {inicio.espacios.map((p) => (

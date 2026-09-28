@@ -149,6 +149,11 @@ JOBS: dict[str, dict[str, str]] = {
         "descripcion": "Postea al libro mayor propio (Contabilidad → Libro Mayor) las ventas MeLi/web/Siigo, compras, compras al exterior, servicios, impuestos y cuotas de créditos que ya agrega el libro operativo (Contabilidad → Ingresos y Egresos), para que el balance de comprobación refleje todo el negocio. Ventana móvil de los últimos días (default 10); reprocesar no duplica.",
         "script": "scripts/contabilidad_autopost_cron.py",
     },
+    "adjuntar_soportes": {
+        "nombre": "Soportes del Libro Mayor (facturas adjuntas)",
+        "descripcion": "Adjunta a cada asiento sin soporte la factura PDF/XML ya descargada en facturas_descargadas/ (compras por NIT + número leídos del XML de la DIAN; ventas por su FE), para que el contador la abra desde la columna «Soporte» de los CSV. Solo enlaza archivos, nunca pisa un soporte subido a mano ni toca lo anterior al corte; sin IA. ADJUNTAR_SOPORTES_CRON_ACTIVO=0 lo apaga.",
+        "script": "scripts/adjuntar_soportes_cron.py",
+    },
     "revision_facturacion": {
         "nombre": "Revisión autónoma de facturación MeLi",
         "descripcion": "Detecta ventas MeLi con problema de facturación (posible duplicado, factura sin subir a MeLi, sin facturar vencida, cancelada sin nota crédito), crea/actualiza el ticket-checklist del día en el Centro de Mando y deja una sugerencia corta de IA (nunca ejecuta nada solo) como comentario en cada caso nuevo. Avisa por WhatsApp solo si hay casos nuevos.",

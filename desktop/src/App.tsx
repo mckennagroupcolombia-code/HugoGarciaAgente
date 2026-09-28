@@ -30,8 +30,6 @@ const ColaboradoresPanel = lazy(() => import("./components/ColaboradoresPanel"))
 const MapaVivo = lazy(() => import("./components/MapaVivo"));
 const JuegosPanel = lazy(() => import("./components/JuegosPanel"));
 const ArquitecturaPanel = lazy(() => import("./components/ArquitecturaPanel"));
-const CombosPanel = lazy(() => import("./components/CombosPanel"));
-const EspacioProductoPanel = lazy(() => import("./components/EspacioProductoPanel"));
 const ContabilidadPanel = lazy(() => import("./components/ContabilidadPanel"));
 const NegocioPanel = lazy(() => import("./components/NegocioPanel"));
 const FacturacionPanel = lazy(() => import("./components/FacturacionPanel"));
@@ -174,10 +172,6 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <JuegosPanel />;
     case "arquitectura":
       return <ArquitecturaPanel />;
-    case "combos":
-      return <CombosPanel />;
-    case "producto":
-      return <EspacioProductoPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -593,7 +587,8 @@ export default function App() {
     if (!user || !hasHydrated || !PANEL_DEL_ENLACE) return;
     const destino = PANEL_DEL_ENLACE as Panel;
     PANEL_DEL_ENLACE = null;
-    if (destino in PANEL_INFO && puedeVerPanel(user, destino)) setPanel(destino);
+    if (destino === "combos") setPanel(destino); // alias: abre el Árbol del producto
+    else if (destino in PANEL_INFO && puedeVerPanel(user, destino)) setPanel(destino);
   }, [user, hasHydrated, setPanel]);
 
   // Si el panel guardado no es visible para este usuario, ir al primero

@@ -488,7 +488,7 @@ export default function MapaSistemaPanel() {
                 <h4 className="text-xs font-bold text-ink">
                   {tramo.titulo}: {tramo.falta + tramo.aviso} de {tramo.total} no pasan limpio
                 </h4>
-                <button onClick={() => setPanel("combos")} className="text-[11px] text-accent hover:underline">
+                <button onClick={() => useAppStore.getState().abrirArbolProducto()} className="text-[11px] text-accent hover:underline">
                   Ver cada combo con sus piezas →
                 </button>
               </div>

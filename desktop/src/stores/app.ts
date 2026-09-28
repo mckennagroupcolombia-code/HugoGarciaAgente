@@ -30,7 +30,6 @@ export type Panel =
   | "juegos"
   | "arquitectura"
   | "combos"
-  | "producto"
   | "publicaciones"
   | "canales-producto"
   | "chat-equipo"
@@ -181,7 +180,7 @@ export interface TallerRetorno {
   pieza?: { clave: string; titulo: string; estado: "ok" | "aviso" | "falta"; detalle: string; meli_id?: string; precio?: number };
   /** Precio de lista del combo (Alegra, con IVA) para lo que se cree desde el destino. */
   precioLista?: number;
-  /** Panel al que devuelve «← Seguir con…»; sin él, el taller de combos. */
+  /** Panel al que devuelve «← Seguir con…»; sin él, el Árbol del producto (Diseño de producto → Studio). */
   origen?: Panel;
 }
 
@@ -275,6 +274,11 @@ interface AppState {
   saltarDesdeTaller: (retorno: TallerRetorno, salto: { panel: Panel; fichaId?: string; buscar?: string; sku?: string }) => void;
   consumirTallerSalto: () => void;
   volverAlTaller: () => void;
+  /** Combo que el Árbol del producto debe abrir al montarse (lo consume y lo limpia). */
+  arbolRef: string | null;
+  /** Abre Diseño de producto → Studio → Árbol del producto, opcionalmente en un combo. Reemplaza al
+   *  antiguo panel «Taller de combos» (el id `combos` sigue existiendo solo como alias hacia aquí). */
+  abrirArbolProducto: (ref?: string | null) => void;
   setEanPrefill: (p: { sku: string; nombre: string } | null) => void;
   etiquetasSolicitudActiva: EtiquetasSolicitudActiva | null;
   setEtiquetasSolicitudActiva: (s: EtiquetasSolicitudActiva | null) => void;
@@ -327,6 +331,14 @@ export const useAppStore = create<AppState>()(
       },
       setMobileTab: (mobileTab) => set({ mobileTab }),
       setPanel: (panel) => {
+        // «combos» (el antiguo Taller de combos) ya no es un panel: es el Árbol del producto.
+        if (panel === "combos") {
+          const salto = get().tallerSalto;
+          const ref = salto?.panel === "combos" ? salto.sku ?? salto.buscar ?? null : null;
+          if (salto?.panel === "combos") set({ tallerSalto: null });
+          get().abrirArbolProducto(ref);
+          return;
+        }
         const next = normalizePanel(panel);
         const cur = get();
         if (cur.panel === next && !cur.sidebarOpen) return;
@@ -422,9 +434,16 @@ export const useAppStore = create<AppState>()(
       },
       consumirTallerSalto: () => set({ tallerSalto: null }),
       volverAlTaller: () => {
-        const destino = get().tallerRetorno?.origen ?? "combos";
+        const retorno = get().tallerRetorno;
+        const destino = retorno?.origen ?? "etiquetas";
         set({ tallerRetorno: null, tallerSalto: null });
-        get().setPanel(destino);
+        if (destino === "etiquetas" || destino === "combos") get().abrirArbolProducto(retorno?.ref);
+        else get().setPanel(destino);
+      },
+      arbolRef: null,
+      abrirArbolProducto: (ref) => {
+        set({ arbolRef: ref ?? null, etiquetasTab: "studio", studioSubvista: "arbol" });
+        get().setPanel("etiquetas");
       },
       etiquetasSolicitudActiva: null,
       setEtiquetasSolicitudActiva: (etiquetasSolicitudActiva) => set({ etiquetasSolicitudActiva }),
@@ -447,6 +466,11 @@ export const useAppStore = create<AppState>()(
         if (s.panel === CONTABILIDAD_PANEL_OCULTO) s.panel = "facturacion";
         if (s.panel === "sync" || s.panel === "facturas") s.panel = "facturacion";
         if (s.panel === "sitioweb") s.panel = "etiquetas";
+        if (s.panel === "combos") {
+          s.panel = "etiquetas";
+          s.etiquetasTab = "studio";
+          s.studioSubvista = "arbol";
+        }
         if (version < 2) {
           if (!s.centroMandoView) s.centroMandoView = "home";
           if (!s.mobileTab) s.mobileTab = "home";
@@ -457,7 +481,7 @@ export const useAppStore = create<AppState>()(
         }
         return s as unknown as AppState;
       },
-      version: 4,
+      version: 5,
       onRehydrateStorage: () => (state) => {
         const hash = readNavHash();
         if (hash?.panel && state) {

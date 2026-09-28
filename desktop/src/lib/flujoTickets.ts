@@ -23,7 +23,7 @@ const REGLAS: Regla[] = [
   { si: /factur/, etapa: "facturar", panel: "facturacion" },
   { si: /etiqueta|\bean\b|codigo de barras/, etapa: "preparar", panel: "etiquetas" },
   { si: /ficha tecnica|\bcoa\b|\bsds\b|\btds\b|documento tecnico/, etapa: "preparar", panel: "fichas" },
-  { si: /\bskus?\b|combo|receta/, etapa: "preparar", panel: "combos" },
+  { si: /\bskus?\b|combo|receta/, etapa: "preparar", panel: "etiquetas" },
   { si: /stock|inventario|agotad|conteo/, etapa: "preparar", panel: "control-inventario" },
   { si: /publicidad|\bads\b|\bacos\b/, etapa: "publicar", panel: "publicidad" },
   { si: /publicacion|publicar|vitrina|banner/, etapa: "publicar", panel: "publicaciones" },

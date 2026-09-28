@@ -1,26 +1,264 @@
-/* Studio → Árbol del producto. Colores solo por tokens (la piel pixel los redefine). */
+/*
+ * Árbol del producto (Diseño de producto → Studio): el mismo lenguaje pixel del Mapa de McKenna.
+ *
+ * Va dentro de la isla clara `.colab-pixel` (colaboradores/pixel.css: los tokens de Tailwind en su
+ * tono claro, como el Mapa) y pinta SOLO con las variables `--ed-*` del Mapa. Su valor por defecto es
+ * la paleta de consola (PICO-8) del tema Pixel, y cada tema de «Temas» las redefine en
+ * theme/mapa-temas.css: así el árbol cambia de gama con el tema igual que el Mapa y el Edificio.
+ * Las letras son las de la app (Montserrat), no pixel: legibilidad.
+ */
 
-/* Fondo de damero bajo los PNG: deja ver dónde termina la etiqueta. */
-.mck-arbol-damero {
-  background-color: rgb(var(--mck-surface-input));
+/* ─── Cartas ─── */
+.arbol-pixel .ap-carta {
+  color: var(--ed-negro, #000);
+  background: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  box-shadow: 5px 5px 0 var(--ed-negro, #000);
+}
+.arbol-pixel .ap-cab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 3px solid var(--ed-negro, #000);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+.arbol-pixel .ap-cab-navy { background: var(--ed-navy, #1D2B53); color: var(--ed-crema, #FFF1E8); }
+.arbol-pixel .ap-cab-amarilla { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); }
+.arbol-pixel .ap-t {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--ed-gris-osc, #5F574F);
+}
+
+/* ─── HUD: la barra del árbol, como el marcador del Mapa ─── */
+.arbol-pixel .ap-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: var(--ed-navy, #1D2B53);
+  color: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  box-shadow: 3px 3px 0 var(--ed-negro, #000);
+}
+.arbol-pixel .ap-hud-titulo {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ed-amarillo, #FFEC27);
+}
+.arbol-pixel .ap-hud-dato { font-size: 11px; font-weight: 700; color: var(--ed-gris, #C2C3C7); }
+.arbol-pixel .ap-nivel {
+  padding: 4px 7px;
+  border: 2px solid var(--ed-crema, #FFF1E8);
+  color: var(--ed-crema, #FFF1E8);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.arbol-pixel .ap-nivel:disabled { opacity: 0.45; }
+.arbol-pixel .ap-nivel-on { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); border-color: var(--ed-amarillo, #FFEC27); }
+
+/* ─── Botones de juego: sombra dura que se hunde ─── */
+.arbol-pixel .ap-btn {
+  padding: 6px 8px;
+  background: var(--ed-navy, #1D2B53);
+  color: var(--ed-crema, #FFF1E8);
+  border: 3px solid var(--ed-negro, #000);
+  box-shadow: 3px 3px 0 var(--ed-negro, #000);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.arbol-pixel .ap-btn-sec { background: #fff; color: var(--ed-negro, #000); }
+.arbol-pixel .ap-btn-amarillo { background: var(--ed-amarillo, #FFEC27); color: var(--ed-negro, #000); }
+.arbol-pixel .ap-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.arbol-pixel .ap-btn:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: none; }
+.arbol-pixel .ap-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ─── La lista de categorías ─── */
+.arbol-pixel .ap-cat,
+.arbol-pixel .ap-fam {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  color: var(--ed-negro, #000);
+}
+.arbol-pixel .ap-cat { padding: 6px 10px; font-size: 12.5px; font-weight: 700; }
+.arbol-pixel .ap-fam { padding: 4px 8px; font-size: 12px; font-weight: 600; }
+.arbol-pixel .ap-cat:hover,
+.arbol-pixel .ap-fam:hover { background: color-mix(in srgb, var(--ed-amarillo, #FFEC27) 40%, var(--ed-crema, #FFF1E8)); }
+.arbol-pixel .ap-cat-on { background: var(--ed-navy, #1D2B53); color: var(--ed-crema, #FFF1E8); }
+.arbol-pixel .ap-cat-on:hover { background: var(--ed-navy, #1D2B53); }
+.arbol-pixel .ap-cat-on .ap-cuenta { color: var(--ed-gris, #C2C3C7); }
+.arbol-pixel .ap-fam-on,
+.arbol-pixel .ap-fam-on:hover { background: var(--ed-amarillo, #FFEC27); font-weight: 800; }
+.arbol-pixel .ap-cuenta { font-size: 11px; font-variant-numeric: tabular-nums; color: var(--ed-gris-osc, #5F574F); }
+.arbol-pixel .ap-rama-lista { margin: 2px 0 6px 20px; border-left: 3px dotted var(--ed-negro, #000); }
+.arbol-pixel .ap-sin-combo { border-top: 3px dashed var(--ed-negro, #000); }
+.arbol-pixel .ap-sin-combo.ap-cat-on { background: var(--ed-rojo-osc, #C8003E); color: var(--ed-crema, #FFF1E8); }
+
+/* Barra de avance en bloques. */
+.arbol-pixel .ap-barra {
+  display: flex;
+  width: 40px;
+  height: 8px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 2px solid var(--ed-negro, #000);
+}
+.arbol-pixel .ap-barra > span { background: var(--ed-verde, #00E436); }
+
+/* ─── El cladograma ─── */
+.arbol-pixel .ap-lienzo {
+  background-color: var(--ed-crema, #FFF1E8);
   background-image:
-    linear-gradient(45deg, rgb(var(--mck-border) / 0.35) 25%, transparent 25%, transparent 75%, rgb(var(--mck-border) / 0.35) 75%),
-    linear-gradient(45deg, rgb(var(--mck-border) / 0.35) 25%, transparent 25%, transparent 75%, rgb(var(--mck-border) / 0.35) 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 8px 8px;
+    linear-gradient(to right, color-mix(in srgb, var(--ed-gris, #C2C3C7) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--ed-gris, #C2C3C7) 55%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.arbol-pixel .ap-rama { background: var(--ed-negro, #000); }
+/* La rama de la presentación elegida: hormigas en marcha, como las flechas del Mapa (8 bits). */
+.arbol-pixel .ap-rama-viva {
+  background: repeating-linear-gradient(90deg, var(--ed-negro, #000) 0 8px, var(--ed-amarillo, #FFEC27) 8px 12px);
+  background-size: 12px 100%;
+  animation: ap-marcha 0.8s steps(4, end) infinite;
+}
+@keyframes ap-marcha { to { background-position: 12px 0; } }
+
+/* Nodos: botones de juego. */
+.arbol-pixel .ap-nodo {
+  color: var(--ed-negro, #000);
+  background: #fff;
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 3px 3px 0 var(--ed-negro, #000);
+}
+.arbol-pixel .ap-nodo:hover { background: var(--ed-amarillo, #FFEC27); }
+.arbol-pixel .ap-nodo:active { transform: translate(3px, 3px); box-shadow: none; }
+/* Seleccionado: cursor amarillo que parpadea en dos tiempos (el .px-sel de Colaboradores). */
+.arbol-pixel .ap-nodo-sel {
+  background: var(--ed-amarillo, #FFEC27);
+  outline: 3px solid var(--ed-negro, #000);
+  outline-offset: 3px;
+  animation: ap-parpadeo 0.8s steps(1, end) infinite;
+}
+@keyframes ap-parpadeo { 50% { outline-color: var(--ed-amarillo, #FFEC27); } }
+
+.arbol-pixel .ap-raiz-cat { background: var(--ed-navy, #1D2B53); color: var(--ed-crema, #FFF1E8); }
+.arbol-pixel .ap-raiz-cat .ap-t { color: var(--ed-amarillo, #FFEC27); }
+
+/* Las hojas (piezas) y los bloques de estado. */
+.arbol-pixel .ap-hoja {
+  color: var(--ed-negro, #000);
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 2px 2px 0 var(--ed-negro, #000);
+}
+.arbol-pixel .ap-hoja:active { transform: translate(2px, 2px); box-shadow: none; }
+.arbol-pixel .ap-ok { background: #fff; border-color: var(--ed-negro, #000); }
+/* Los fondos de estado se mezclan con el papel del tema: en un tema oscuro (Matrix) --ed-durazno es oscuro
+   y la letra negra no se leía; el papel (--ed-crema) es claro en todos. */
+.arbol-pixel .ap-aviso { background: color-mix(in srgb, var(--ed-naranja, #FFA300) 30%, var(--ed-crema, #FFF1E8)); border-color: var(--ed-negro, #000); }
+.arbol-pixel .ap-falta {
+  background: color-mix(in srgb, var(--ed-rojo-osc, #C8003E) 16%, var(--ed-crema, #FFF1E8));
+  border-color: var(--ed-rojo-osc, #C8003E);
+  box-shadow: 2px 2px 0 var(--ed-rojo-osc, #C8003E);
+}
+.arbol-pixel .ap-hoja:hover { background: var(--ed-amarillo, #FFEC27); }
+.arbol-pixel .ap-p { flex-shrink: 0; border: 2px solid var(--ed-negro, #000); }
+.arbol-pixel .ap-p-ok { background: var(--ed-verde, #00E436); }
+.arbol-pixel .ap-p-aviso { background: var(--ed-naranja, #FFA300); }
+.arbol-pixel .ap-p-falta { background: var(--ed-rojo-osc, #C8003E); }
+.arbol-pixel .ap-piezas { border: 2px dashed var(--ed-negro, #000); background: color-mix(in srgb, #fff 55%, transparent); }
+
+/* La foto de la vitrina en cada presentación: late en naranja si no muestra la etiqueta vigente. */
+.arbol-pixel .ap-foto {
+  display: flex;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--ed-negro, #000);
+}
+.arbol-pixel .ap-foto img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+.arbol-pixel .ap-foto-pendiente {
+  outline: 3px solid var(--ed-naranja, #FFA300);
+  animation: ap-foto-late 1s steps(1, end) infinite;
+}
+@keyframes ap-foto-late { 50% { outline-color: var(--ed-negro, #000); } }
+
+/* ─── Columna derecha ─── */
+.arbol-pixel .ap-damero {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, var(--ed-gris, #C2C3C7) 25%, transparent 25%, transparent 75%, var(--ed-gris, #C2C3C7) 75%),
+    linear-gradient(45deg, var(--ed-gris, #C2C3C7) 25%, transparent 25%, transparent 75%, var(--ed-gris, #C2C3C7) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 6px 6px;
+  border: 2px solid var(--ed-negro, #000);
+}
+.arbol-pixel .ap-fotos {
+  color: var(--ed-negro, #000);
+  background: #fff;
+  border: 2px dashed var(--ed-negro, #000);
+}
+.arbol-pixel .ap-fotos-activo {
+  border-style: solid;
+  background: color-mix(in srgb, var(--ed-amarillo, #FFEC27) 30%, #fff);
+  outline: 3px solid var(--ed-amarillo, #FFEC27);
+  outline-offset: 2px;
+  animation: ap-parpadeo 0.8s steps(1, end) infinite;
+}
+.arbol-pixel .ap-fotos-falta { border-color: var(--ed-rojo-osc, #C8003E); }
+.arbol-pixel .ap-fila {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  text-align: left;
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 2px 2px 0 var(--ed-negro, #000);
+}
+.arbol-pixel button.ap-fila:hover { background: var(--ed-amarillo, #FFEC27); }
+.arbol-pixel button.ap-fila:active { transform: translate(2px, 2px); box-shadow: none; }
+.arbol-pixel .ap-ir { flex-shrink: 0; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--ed-navy, #1D2B53); }
+.arbol-pixel .ap-mensaje {
+  padding: 5px 8px;
+  background: var(--ed-amarillo, #FFEC27);
+  color: var(--ed-negro, #000);
+  border: 2px solid var(--ed-negro, #000);
+  box-shadow: 2px 2px 0 var(--ed-negro, #000);
+  font-size: 12px;
+  font-weight: 700;
+}
+.arbol-pixel .ap-nota {
+  padding: 4px 7px;
+  font-size: 11.5px;
+  border: 2px solid var(--ed-negro, #000);
 }
 
-/* Lienzo del cladograma: cuadrícula de puntos, como el Mapa y Colaboradores. */
-.mck-arbol-lienzo {
-  background-color: rgb(var(--mck-surface-panel));
-  background-image: radial-gradient(rgb(var(--mck-border) / 0.7) 1px, transparent 1px);
-  background-size: 16px 16px;
-}
-
-/* Las ramas: un trazo del color del texto, grueso como el borde de la piel. */
-.mck-arbol-rama { background: rgb(var(--mck-ink) / 0.75); }
-
-@media (prefers-reduced-motion: no-preference) {
-  .mck-arbol-hoja { transition: transform 120ms steps(2), box-shadow 120ms steps(2); }
-  .mck-arbol-hoja:hover { transform: translate(-1px, -1px); }
+@media (prefers-reduced-motion: reduce) {
+  .arbol-pixel .ap-rama-viva,
+  .arbol-pixel .ap-nodo-sel,
+  .arbol-pixel .ap-foto-pendiente,
+  .arbol-pixel .ap-fotos-activo { animation: none; }
 }

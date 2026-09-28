@@ -165,6 +165,36 @@ def _producto_alegra(codigo: str) -> dict | None:
         return None
 
 
+def fuera_de_despliegue(lineas: list[dict]) -> list[str]:
+    """Productos que no se pueden vender mientras dura el despliegue gradual tras el
+    cese (app/services/despliegue_ventas.py): solo SKUs que hoy se facturan y
+    volvieron a publicarse. Las líneas genéricas (VENTA-VARIO-*) tampoco pasan: con
+    ellas se vendería cualquier cosa por fuera de la lista. Vacío = todo en regla."""
+    from app.services import despliegue_ventas
+
+    if not despliegue_ventas.activo():
+        return []
+    fuera = []
+    for ln in lineas or []:
+        codigo = _codigo_base(ln.get("codigo") or "")
+        if not codigo or es_generico_venta(codigo) or not despliegue_ventas.sku_habilitado(codigo):
+            fuera.append(str(ln.get("nombre") or codigo or "producto sin código"))
+    return fuera
+
+
+def _error_despliegue(venta: dict) -> str | None:
+    # La venta MeLi con RUT factura algo que el cliente ya compró: no se frena.
+    if venta.get("origen") == "meli":
+        return None
+    fuera = fuera_de_despliegue(venta.get("lineas") or [])
+    if not fuera:
+        return None
+    return (
+        "Por ahora solo se venden los productos que ya volvieron a publicarse (listos para facturar). "
+        "Quita: " + ", ".join(fuera)
+    )
+
+
 def calcular(lineas: list[dict], envio: float = 0, *, resolver=None) -> dict:
     """Totales de una venta con el IVA de CADA producto según Alegra.
 
@@ -227,6 +257,7 @@ def calcular(lineas: list[dict], envio: float = 0, *, resolver=None) -> dict:
         "total": _redondear(total),
         "errores": errores,
         "sin_alegra": [ln["codigo"] or ln["nombre"] for ln in salida if not ln["existe_en_alegra"]],
+        "fuera_despliegue": fuera_de_despliegue(salida),
     }
 
 
@@ -350,6 +381,7 @@ def guardar(datos: dict, *, usuario: str = "", venta_id: int | None = None) -> d
     venta = obtener(vid)
     venta["errores"] = calc["errores"]
     venta["sin_alegra"] = calc["sin_alegra"]
+    venta["fuera_despliegue"] = [] if origen == "meli" else calc["fuera_despliegue"]
     return venta
 
 
@@ -1013,6 +1045,9 @@ def cotizar(venta_id: int, *, enviar_whatsapp: bool = True, registrar_en_alegra:
         return {"ok": False, "error": f"La venta está {venta['estado']}."}
     if not venta["lineas"]:
         return {"ok": False, "error": "La cotización no tiene productos."}
+    err = _error_despliegue(venta)
+    if err:
+        return {"ok": False, "error": err}
     jid, err = _destino_whatsapp(venta["telefono"], enviar_whatsapp)
     if err:
         return {"ok": False, "error": err}
@@ -1072,6 +1107,9 @@ def facturar(venta_id: int, *, usuario: str = "", medio_pago: str = "", enviar_w
         return {"ok": False, "error": f"Esta venta ya tiene la factura {venta.get('factura_numero')}."}
     if venta["estado"] == "anulada":
         return {"ok": False, "error": "La venta está anulada."}
+    err_despliegue = _error_despliegue(venta)
+    if err_despliegue:
+        return {"ok": False, "error": err_despliegue}
     # Cliente sin cédula (típico en ventas WhatsApp de clientes viejos que no la
     # dan): se factura a Consumidor Final en vez de bloquear. El contacto en Alegra
     # es compartido (NIT 222222222222). Ventas MeLi con RUT no caen aquí: llegan con

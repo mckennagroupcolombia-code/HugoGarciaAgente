@@ -49,7 +49,9 @@ function ToolBtn({
 }
 
 /**
- * Iconos de herramientas Contabilidad (cabezote, a la izquierda de Temas).
+ * Iconos de herramientas (cabezote, a la izquierda de Temas): Contabilidad y también
+ * Diseño de producto, porque crear el combo en Alegra y consultar su factura son parte
+ * de armar un producto, no solo de contabilidad (ver Layout.tsx).
  * Ventanas flotantes: arrastrables, redimensionables, posición recordada.
  * `ModalHerramientasRentabilidad` es una calculadora flotante independiente
  * de en qué hub vive la pestaña Rentabilidad (hoy: hub Negocio, ver

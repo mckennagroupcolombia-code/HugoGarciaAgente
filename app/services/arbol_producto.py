@@ -21,7 +21,9 @@ from typing import Any
 SIN_CATEGORIA = "Sin categoría en la web"
 
 # Las seis piezas de una presentación, en el orden en que se leen en el árbol.
-PIEZAS = ("etiquetas", "ean", "receta", "factura", "meli", "web")
+PIEZAS = ("etiquetas", "fotos", "ean", "receta", "factura", "meli", "web")
+
+CANALES_FOTO = (("web", "web"), ("meli", "MeLi"))
 
 
 def _u(s: Any) -> str:
@@ -61,6 +63,34 @@ def _carpeta(ruta: str) -> str:
     """«ETIQUETAS STUDIO/Conservantes/X.png» → «Conservantes»."""
     partes = [p for p in (ruta or "").replace("\\", "/").split("/") if p]
     return partes[1] if len(partes) >= 3 else ""
+
+
+def _fotos(c: dict, esl: dict, fotos: dict | None) -> dict:
+    """Sin foto de producto con la etiqueta vigente no se publica bien: la pieza se completa
+    con una foto por canal (web y MeLi) posterior a la aprobación de la etiqueta. Las fotos se
+    pegan en el Árbol o en Espacio de producto (`fotos_producto`)."""
+    aprobado = ((esl.get("etiqueta") or {}).get("aprobado_at") or "")[:19]
+    por_canal: dict[str, dict] = {}
+    faltan: list[str] = []
+    viejas: list[str] = []
+    for canal, nombre in CANALES_FOTO:
+        d = (fotos or {}).get(canal) or {"n": 0, "ultima": ""}
+        vieja = bool(d["n"] and aprobado and (d.get("ultima") or "")[:19] < aprobado)
+        por_canal[canal] = {"n": d["n"], "ultima": d.get("ultima") or "", "desactualizada": vieja}
+        if not d["n"]:
+            faltan.append(nombre)
+        elif vieja:
+            viejas.append(nombre)
+    extra = {"canales": por_canal, "foto_estado": c.get("foto_estado") or ""}
+    if not faltan and not viejas:
+        return _pieza("ok", "Web y MeLi con la etiqueta vigente", **extra)
+    if len(faltan) == len(CANALES_FOTO) and c.get("foto_estado") == "ok":
+        return _pieza("ok", "La vitrina ya muestra la etiqueta vigente", **extra)
+    if len(faltan) == len(CANALES_FOTO):
+        return _pieza("falta", c.get("foto_motivo") or "Sin fotos de producto.", **extra)
+    partes = [f"falta la de {n}" for n in faltan] + [f"la de {n} es anterior a la etiqueta" for n in viejas]
+    texto = "; ".join(partes)
+    return _pieza("aviso", texto[:1].upper() + texto[1:] + ".", **extra)
 
 
 def _receta(esl: dict) -> dict:
@@ -128,6 +158,22 @@ def _alegra(fila: dict | None) -> dict:
     return _pieza("falta", "No existe en Alegra.")
 
 
+def _desplegado(ref: str) -> dict | None:
+    """Despliegue gradual tras el cese: None si no hay despliegue; si lo hay, dice si
+    esta presentación volvió a la venta (MeLi + web) porque se factura."""
+    try:
+        from app.services import despliegue_ventas
+
+        if not despliegue_ventas.activo():
+            return None
+        info = despliegue_ventas.info_sku(ref)
+    except Exception:
+        return None
+    if not info:
+        return {"activo": False}
+    return {"activo": True, "meli_ids": info.get("meli_ids") or [], "desde": info.get("desde")}
+
+
 def _tam_orden(p: dict) -> tuple:
     """Ordena 50 g < 100 g < 250 g < 1 kg por la cantidad del nombre."""
     txt = f"{p.get('presentacion') or ''} {p.get('nombre') or ''}".upper()
@@ -163,12 +209,21 @@ def arbol(refrescar: bool = False) -> dict:
         filas = {}
         sin_senal.append({"fuente": "Canales del producto", "error": str(exc)[:160]})
 
+    try:
+        from app.services import fotos_producto
+
+        fotos_sku = fotos_producto.por_sku()
+    except Exception as exc:
+        fotos_sku = {}
+        sin_senal.append({"fuente": "Fotos de producto", "error": str(exc)[:160]})
+
     categorias: dict[str, dict[str, dict]] = {}
     for c in datos.get("combos") or []:
         esl = c.get("eslabones") or {}
         fila = filas.get(_u(c.get("ref")))
         piezas = {
             "etiquetas": _etiquetas(esl),
+            "fotos": _fotos(c, esl, fotos_sku.get(_u(c.get("ref")))),
             "ean": _pieza((esl.get("ean") or {}).get("estado") or "falta",
                           (esl.get("ean") or {}).get("detalle") or "",
                           codigo=(esl.get("ean") or {}).get("codigo") or ""),
@@ -188,6 +243,7 @@ def arbol(refrescar: bool = False) -> dict:
             "foto_estado": c.get("foto_estado") or "",
             "foto_motivo": c.get("foto_motivo") or "",
             "alegra": _alegra(fila),
+            "desplegado": _desplegado(c.get("ref")),
             "clasificacion": (fila or {}).get("clasificacion") or "",
             "piezas": piezas,
             "listas": sum(1 for p in piezas.values() if p["estado"] == "ok"),
@@ -223,6 +279,7 @@ def arbol(refrescar: bool = False) -> dict:
             f["presentaciones"].sort(key=_tam_orden)
             f["completas"] = sum(1 for p in f["presentaciones"] if p["listas"] == len(PIEZAS))
             f["total"] = len(f["presentaciones"])
+            f["desplegadas"] = sum(1 for p in f["presentaciones"] if (p.get("desplegado") or {}).get("activo"))
             # Otras carpetas donde quedaron los PNG de esta familia (p. ej. «Aditivos alimentarios»).
             f["carpetas_png"] = sorted({p["piezas"]["etiquetas"].get("categoria_png") for p in f["presentaciones"]} - {""})
             fams.append(f)
@@ -239,6 +296,7 @@ def arbol(refrescar: bool = False) -> dict:
         "piezas": list(PIEZAS),
         "total": sum(c["total"] for c in salida),
         "completas": sum(c["completas"] for c in salida),
+        "desplegadas": sum(f["desplegadas"] for c in salida for f in c["familias"]),
         "sin_senal": sin_senal,
         "generado": datos.get("generado"),
     }

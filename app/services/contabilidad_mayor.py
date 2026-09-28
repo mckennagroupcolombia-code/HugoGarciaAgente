@@ -522,8 +522,9 @@ def extracto_cuenta(
                    ml.descripcion, ml.cuenta_id,
                    pc.codigo AS cuenta_codigo, pc.nombre AS cuenta_nombre,
                    m.fecha, m.concepto, m.referencia, m.tipo_origen, m.estado,
+                   m.plantilla_datos_json, m.soporte_nombre,
                    COALESCE(ml.tercero_id, m.tercero_id) AS tercero_id,
-                   t.nombre AS tercero_nombre
+                   t.nombre AS tercero_nombre, t.identificacion AS tercero_identificacion
               FROM cc_movimiento_lineas ml
               JOIN cc_movimientos m ON m.id = ml.movimiento_id
               JOIN cc_plan_cuentas pc ON pc.id = ml.cuenta_id
@@ -559,6 +560,9 @@ def extracto_cuenta(
     por_tercero: dict[Any, dict[str, Any]] = {}
     movimientos: list[dict[str, Any]] = []
 
+    from app.services import contabilidad_documentos as _docs
+
+    _sols = _docs.solicitudes_por_id() if filas else {}
     for f in filas:
         debito = f["debito"] or 0.0
         credito = f["credito"] or 0.0
@@ -604,6 +608,7 @@ def extracto_cuenta(
                 "descripcion": f["descripcion"],
                 "tercero_id": f["tercero_id"],
                 "tercero_nombre": f["tercero_nombre"] or "",
+                **_docs_fila(_docs, f, _sols),
                 "cuenta_codigo": f["cuenta_codigo"],
                 "cuenta_nombre": f["cuenta_nombre"],
                 "debito": round(debito, 2),
@@ -643,6 +648,17 @@ def extracto_cuenta(
     }
 
 
+def _docs_fila(docs, f: dict[str, Any], sols: dict) -> dict[str, Any]:
+    """NIT, documento y soporte de la fila: la llave con la que el contador cruza
+    contra la DIAN (ver `contabilidad_documentos`)."""
+    d = docs.documento_de_asiento(f, solicitudes=sols)
+    return {
+        "nit": d["nit"], "documento": d["documento"], "cufe": d["cufe"],
+        "soporte_nombre": f.get("soporte_nombre") or "",
+        "soporte_url": docs.url_soporte(f["movimiento_id"]) if f.get("soporte_nombre") else "",
+    }
+
+
 def extracto_csv(extracto: dict[str, Any]) -> str:
     """El extracto en CSV, para abrirlo en Excel o mandárselo al contador."""
     import csv
@@ -661,9 +677,10 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
         w.writerow(["Impuestos", cuenta["nota_tributaria"]])
     w.writerow([])
     w.writerow(
-        ["Fecha", "Asiento", "Concepto", "Tercero", "Referencia", "Contrapartida", "Débito", "Crédito", "Saldo"]
+        ["Fecha", "Asiento", "Concepto", "Tercero", "NIT", "Documento", "Referencia", "Contrapartida",
+         "Débito", "Crédito", "Saldo", "Soporte"]
     )
-    w.writerow(["", "", "Saldo inicial", "", "", "", "", "", extracto["saldo_inicial"]])
+    w.writerow(["", "", "Saldo inicial", "", "", "", "", "", "", "", extracto["saldo_inicial"], ""])
     for m in extracto["movimientos"]:
         w.writerow(
             [
@@ -671,15 +688,19 @@ def extracto_csv(extracto: dict[str, Any]) -> str:
                 m["movimiento_id"],
                 m["concepto"],
                 m["tercero_nombre"],
+                m.get("nit", ""),
+                m.get("documento", ""),
                 m["referencia"],
                 " / ".join(f"{c['codigo']}" for c in m["contrapartida"]),
                 m["debito"],
                 m["credito"],
                 m["saldo"],
+                m.get("soporte_url", ""),
             ]
         )
     w.writerow([])
-    w.writerow(["", "", "Totales", "", "", "", extracto["total_debito"], extracto["total_credito"], extracto["saldo_final"]])
+    w.writerow(["", "", "Totales", "", "", "", "", "", extracto["total_debito"], extracto["total_credito"],
+                extracto["saldo_final"], ""])
     return buf.getvalue()
 
 
@@ -752,7 +773,7 @@ def libro_diario(
                 f"""SELECT ml.movimiento_id, ml.debito, ml.credito, ml.descripcion, ml.orden,
                            pc.codigo AS cuenta_codigo, pc.nombre AS cuenta_nombre,
                            pc.tipo AS cuenta_tipo, pc.naturaleza AS cuenta_naturaleza,
-                           t.nombre AS tercero_nombre
+                           t.nombre AS tercero_nombre, t.identificacion AS tercero_identificacion
                       FROM cc_movimiento_lineas ml
                       JOIN cc_plan_cuentas pc ON pc.id = ml.cuenta_id
                       LEFT JOIN cc_terceros t ON t.id = ml.tercero_id
@@ -767,10 +788,17 @@ def libro_diario(
                   JOIN cc_movimientos m ON m.id = ml.movimiento_id{filtro}""", params
         ).fetchone()
 
+    from app.services import contabilidad_documentos as _docs
+
+    _sols = _docs.solicitudes_por_id() if movs else {}
     asientos = []
     for m in movs:
         ls = lineas_por_mov.get(m["id"], [])
+        doc = _docs.documento_de_asiento(m, solicitudes=_sols)
         asientos.append({
+            "nit": doc["nit"], "documento": doc["documento"], "cufe": doc["cufe"],
+            "soporte_nombre": m.get("soporte_nombre") or "",
+            "soporte_url": _docs.url_soporte(m["id"]) if m.get("soporte_nombre") else "",
             "id": m["id"], "fecha": m["fecha"], "concepto": m["concepto"],
             "referencia": m["referencia"], "tipo_origen": m["tipo_origen"],
             "estado": m["estado"],
@@ -805,19 +833,27 @@ def libro_diario_csv(diario: dict[str, Any]) -> str:
     w.writerow(["Libro Diario"])
     w.writerow(["Desde", diario.get("desde") or "inicio", "Hasta", diario.get("hasta") or "hoy"])
     w.writerow([])
-    w.writerow(["Fecha", "Asiento", "Concepto", "Referencia", "Cuenta", "Nombre de la cuenta",
-                "Tercero", "Detalle", "Débito", "Crédito"])
+    w.writerow(["Fecha", "Asiento", "Concepto", "Documento", "Referencia", "Cuenta", "Nombre de la cuenta",
+                "Tercero", "NIT", "Detalle", "Débito", "Crédito", "Soporte"])
     for a in diario["asientos"]:
         for i, l in enumerate(a["lineas"]):
+            # El NIT va por línea: en una compra el gasto es del proveedor y la
+            # cuenta por pagar puede ser de otra persona (el reintegro de FECC1129).
+            nit = l.get("tercero_identificacion") or (
+                (a["tercero"] or {}).get("identificacion") if not l.get("tercero_nombre") else ""
+            ) or a.get("nit", "")
             w.writerow([
                 a["fecha"] if i == 0 else "", a["id"] if i == 0 else "",
-                a["concepto"] if i == 0 else "", a["referencia"] if i == 0 else "",
+                a["concepto"] if i == 0 else "", a.get("documento", "") if i == 0 else "",
+                a["referencia"] if i == 0 else "",
                 l["cuenta_codigo"], l["cuenta_nombre"],
                 l.get("tercero_nombre") or (a["tercero"] or {}).get("nombre") or "",
+                nit or "",
                 l.get("descripcion") or "",
                 l["debito"] or "", l["credito"] or "",
+                a.get("soporte_url", "") if i == 0 else "",
             ])
     w.writerow([])
-    w.writerow(["", "", "TOTALES", "", "", "", "", "",
-                diario["total_debito"], diario["total_credito"]])
+    w.writerow(["", "", "TOTALES", "", "", "", "", "", "", "",
+                diario["total_debito"], diario["total_credito"], ""])
     return buf.getvalue()

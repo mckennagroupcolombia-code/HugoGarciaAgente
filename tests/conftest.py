@@ -106,3 +106,14 @@ def _sin_documentos_fiscales_reales_en_tests(monkeypatch):
         return original(self, method, url, *args, **kwargs)
 
     monkeypatch.setattr(requests.sessions.Session, "request", _request)
+
+
+@pytest.fixture(autouse=True)
+def _sin_despliegue_real_en_tests(monkeypatch, tmp_path):
+    """El despliegue gradual tras el cese (app/data/despliegue_ventas.json) restringe la
+    tienda, Cotizar/Facturar y la reactivación MeLi. Los tests no deben depender de la
+    lista real de producción: arrancan sin despliegue (archivo inexistente)."""
+    from app.services import despliegue_ventas
+
+    monkeypatch.setattr(despliegue_ventas, "ARCHIVO", tmp_path / "despliegue_ventas.json")
+    despliegue_ventas._memo.update({"mtime": None, "data": {}})

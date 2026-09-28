@@ -6496,7 +6496,7 @@ function NivelesTintaImpresora({
             onClick={onExpand}
             className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] font-medium text-muted hover:bg-surface-hover hover:text-ink"
           >
-            Inventario
+            Papel y tinta ›
           </button>
         )}
       </div>
@@ -6836,7 +6836,7 @@ function FormularioPapelInventario({
   );
 }
 
-function TabInventarioPapelTinta() {
+function TabInventarioPapelTinta({ onVolver }: { onVolver?: () => void }) {
   const qc = useQueryClient();
   const { data: tiposData } = useTiposEtiqueta();
   const nombresFormatos = useMemo(
@@ -6914,6 +6914,15 @@ function TabInventarioPapelTinta() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 mck-animate-enter">
+      {onVolver && (
+        <button
+          type="button"
+          onClick={onVolver}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface-input px-2.5 py-1.5 text-[12px] font-semibold text-ink hover:border-accent/60 hover:bg-surface-hover"
+        >
+          <span aria-hidden="true">←</span> Volver a Imprimir
+        </button>
+      )}
       <div className="flex items-center gap-3">
         <IllustrationIcon name="package" size={36} tone="leaf" className="mck-illus-icon--hoverable shrink-0" />
         <div>
@@ -7202,7 +7211,8 @@ export default function EtiquetasPanel() {
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
     const user = useTicketsAuth.getState().user;
-    if (esTabEtiquetasSoloCynthia(t) && !puedeVerEtiquetasAvanzado(user)) return "imprimir";
+    // Sin usuario cargado todavía no se sabe si tiene el Studio: no se expulsa (lo decide el efecto).
+    if (user && esTabEtiquetasSoloCynthia(t) && !puedeVerEtiquetasAvanzado(user)) return "imprimir";
     return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
       ? t
       : "imprimir";
@@ -7214,7 +7224,7 @@ export default function EtiquetasPanel() {
   const [studioInmersivo, setStudioInmersivoLocal] = useState(false);
 
   // Al entrar a Diseño se piden de una vez las etiquetas de todas las pestañas,
-  // para que Imprimir / Studio visual / Papel y tinta / EAN ya estén cargadas
+  // para que Imprimir (con papel y tinta) / Studio visual / EAN ya estén cargadas
   // cuando el operador cambie de pestaña (ver lib/etiquetasPrefetch.ts).
   useEffect(() => {
     precargarDiseno(qcPrecarga, ticketsUser);
@@ -7228,7 +7238,7 @@ export default function EtiquetasPanel() {
   useEffect(() => () => setStudioInmersivoStore(false), [setStudioInmersivoStore]);
 
   useEffect(() => {
-    if (esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
+    if (ticketsUser && esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
       setTabLocal("imprimir");
       setStoreTab("imprimir");
       return;
@@ -7239,7 +7249,7 @@ export default function EtiquetasPanel() {
     }
     setTabLocal("imprimir");
     setStoreTab("imprimir");
-  }, [storeTab, setStoreTab, verAvanzado]);
+  }, [storeTab, setStoreTab, verAvanzado, ticketsUser]);
 
   useEffect(() => {
     if (!handoff) return;
@@ -7290,7 +7300,7 @@ export default function EtiquetasPanel() {
       {tab === "studio" && verAvanzado && (
         <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />
       )}
-      {tab === "inventario" && verAvanzado && <TabInventarioPapelTinta />}
+      {tab === "inventario" && verAvanzado && <TabInventarioPapelTinta onVolver={() => setTab("imprimir")} />}
       {tab === "codigos_ean" && verAvanzado && <CodigosEanPanel />}
     </div>
   );

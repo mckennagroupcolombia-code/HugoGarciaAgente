@@ -81,6 +81,8 @@ crontab -l 2>/dev/null | awk -v b="$MARK_B" -v e="$MARK_E" '
   echo "*/30 * * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/reintentar_avisos_pedidos_web_cron.py >>${LOG} 2>&1"
   echo "# Auto-posteo contable: postea ventas/compras/servicios/créditos del libro operativo al libro de partida doble propio (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "10 */6 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/contabilidad_autopost_cron.py >>${LOG} 2>&1"
+  echo "# Soportes del Libro Mayor: adjunta la factura ya descargada a cada asiento nuevo (después del auto-posteo de las 00:10; frecuencia real vía Sistemas → Tareas Programadas)"
+  echo "40 0 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/adjuntar_soportes_cron.py >>${LOG} 2>&1"
   echo "# Revisión autónoma de facturación MeLi: ticket-checklist diario + sugerencia de IA por caso nuevo (frecuencia real vía Sistemas → Tareas Programadas)"
   echo "30 7 * * * cd ${REPO} && ${PYTHON} ${REPO}/scripts/revision_facturacion_cron.py >>${LOG} 2>&1"
   echo "# Resumen semanal de horas a cada persona por WhatsApp (viernes; solo envía con RESUMEN_HORAS_WA_ACTIVO=1)"

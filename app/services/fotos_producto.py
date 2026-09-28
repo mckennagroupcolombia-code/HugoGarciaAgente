@@ -97,6 +97,20 @@ def resumen() -> dict[str, dict[str, int]]:
     return out
 
 
+def por_sku() -> dict[str, dict[str, dict]]:
+    """{SKU: {"meli": {"n", "ultima"}, "web": {...}}} — cuántas fotos vivas y la fecha de la más
+    reciente, para decir si la foto es anterior a la etiqueta aprobada (Árbol del producto)."""
+    out: dict[str, dict[str, dict]] = {}
+    for ref, canales in _leer().items():
+        fila = {}
+        for c in CANALES:
+            vivas = _vivas(canales.get(c) or [], c)
+            fila[c] = {"n": len(vivas), "ultima": max((f.get("subido_at") or "" for f in vivas), default="")}
+        if any(v["n"] for v in fila.values()):
+            out[ref] = fila
+    return out
+
+
 def _miniatura(ruta: Path) -> str:
     try:
         mt = ruta.stat().st_mtime

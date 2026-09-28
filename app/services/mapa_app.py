@@ -53,9 +53,9 @@ def _producto() -> list[dict]:
     out = []
     if m["se_venden_incompletos"]:
         out.append(_b("preparar", "se_venden_incompletos", m["se_venden_incompletos"],
-                      "productos que se venden sin etiqueta o sin documento listo", "combos"))
+                      "productos que se venden sin etiqueta o sin documento listo", "etiquetas"))
     if m["sin_combo"]:
-        out.append(_b("preparar", "sin_combo", m["sin_combo"], "productos comprados sin ninguna presentación de venta", "combos"))
+        out.append(_b("preparar", "sin_combo", m["sin_combo"], "productos comprados sin ninguna presentación de venta", "etiquetas"))
     listos = sum(1 for f in m["filas"] if f["ean"] == "ok" and f["etiqueta"] == "ok" and "falta" in (f["meli"], f["web"]))
     if listos:
         out.append(_b("publicar", "listos_sin_publicar", listos, "productos con código y etiqueta que no están en MeLi o en la web", "publicaciones", "media"))

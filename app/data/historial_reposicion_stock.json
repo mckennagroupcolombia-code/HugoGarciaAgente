@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "actualizado_en": "2026-09-26T06:13:16",
+  "actualizado_en": "2026-09-27T06:16:59",
   "ultimo_stock": {
     "MCO560569172": 10,
     "MCO573366687": 13,
@@ -80,7 +80,7 @@
     "MCO2829965506": 0,
     "MCO1347147843": 11,
     "MCO1672206565": 13,
-    "MCO2924070024": 0,
+    "MCO2924070024": 9,
     "MCO3106445348": 9,
     "MCO1591252977": 7,
     "MCO3123285366": 8,
@@ -162,10 +162,6 @@
     },
     "MCO2829965506": {
       "nombre": "Ácido Hialurónico 30ml Bajo Pes Todo Tipo De Piel Día/noche",
-      "agotado_en": "2026-09-25T06:05:43"
-    },
-    "MCO2924070024": {
-      "nombre": "Agua Destilada  250 Ml",
       "agotado_en": "2026-09-25T06:05:43"
     }
   },
@@ -491,6 +487,13 @@
       "agotado_en": "2026-09-20T05:45:26",
       "repuesto_en": "2026-09-25T06:05:43",
       "dias": 5.01
+    },
+    {
+      "meli_id": "MCO2924070024",
+      "nombre": "Agua Destilada  250 Ml",
+      "agotado_en": "2026-09-25T06:05:43",
+      "repuesto_en": "2026-09-27T06:16:59",
+      "dias": 2.01
     }
   ]
 }

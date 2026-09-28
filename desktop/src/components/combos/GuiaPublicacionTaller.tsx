@@ -97,7 +97,7 @@ export default function GuiaPublicacionTaller({
   return (
     <section className="shrink-0 rounded-xl border border-accent/50 bg-surface-panel p-3 shadow-paper-sm" aria-label="Guía para publicar este combo">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p className="font-mono text-[10.5px] font-bold uppercase tracking-wide text-muted">Desde el taller · publicación</p>
+        <p className="font-mono text-[10.5px] font-bold uppercase tracking-wide text-muted">Desde el Árbol del producto · publicación</p>
         <p className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
           {retorno.nombre} <code className="font-normal text-muted">{retorno.ref}</code>
         </p>

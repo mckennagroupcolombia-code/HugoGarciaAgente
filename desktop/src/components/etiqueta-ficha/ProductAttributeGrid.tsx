@@ -24,7 +24,7 @@ const ICONO_GALERIA_POR_DEFECTO: Record<AttributeKey, string> = {
   storage: "conservacion_envase_sellado",
 };
 
-const TAMANO_ICONO = 58;
+const TAMANO_ICONO = 64;
 
 function IconoGaleriaInline({ id, size = TAMANO_ICONO }: { id: string; size?: number }) {
   const icono = ICONOS_QUIMICA_CIRCULARES.find((i) => i.id === id);

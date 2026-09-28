@@ -3839,6 +3839,12 @@ def register_routes(app):
         exigido = _permisos_exigidos_para(request.path or "")
         if exigido is None:
             return None
+        # El soporte de un asiento se abre desde el enlace del CSV, en Excel: sin
+        # Authorization, solo con la cookie del panel. La ruta valida esa sesión y
+        # que sea de quien ve la contabilidad (api_cc_movimientos_comprobante_ver).
+        if (request.method == "GET" and not _api_token_valido()
+                and re.fullmatch(r"(/app)?/api/contabilidad/cc/movimientos/\d+/comprobante", request.path or "")):
+            return None
         claves, etiqueta = exigido
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -11593,8 +11599,18 @@ def register_routes(app):
     @app.route("/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["GET"])
     @app.route("/app/api/contabilidad/cc/movimientos/<int:movimiento_id>/comprobante", methods=["GET"])
     def api_cc_movimientos_comprobante_ver(movimiento_id: int):
+        # El enlace «Soporte» de los CSV del Libro Mayor se abre desde Excel, sin
+        # cabecera Authorization: vale la sesión del panel en el navegador, pero solo
+        # de quien ve la contabilidad (contador o permiso Libro Mayor).
         if not _api_token_valido():
-            return jsonify({"error": "No autorizado"}), 401
+            from app import spa_sesion
+            from app.services.acceso_paneles import puede_ver_panel
+
+            u = spa_sesion.usuario_de_cookie()
+            if not u:
+                return make_response(spa_sesion.pagina_ingreso()), 401
+            if not (_es_perfil_contador(u) or puede_ver_panel(u, "libro-mayor")):
+                return jsonify({"error": "No autorizado"}), 403
         from flask import send_file
 
         try:

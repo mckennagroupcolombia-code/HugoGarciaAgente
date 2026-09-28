@@ -286,13 +286,13 @@ def _saltos(fila: dict) -> list[dict]:
         out.append({"panel": "stock", "motivo": "Relación de códigos MeLi ↔ Alegra", "buscar": sku})
         out.append({"panel": "publicaciones", "motivo": "Cómo se ve en la web y en MeLi", "buscar": sku})
     if cls == "incompleto" and fila.get("es_kit"):
-        out.append({"panel": "combos", "motivo": "Completar las piezas en el taller de combos", "buscar": sku})
+        out.append({"panel": "combos", "motivo": "Completar las piezas en el Árbol del producto", "buscar": sku})
     if cls == "incompleto" and not fila.get("es_kit"):
         out.append({"panel": "catalogo-alegra", "motivo": "Armar su combo de venta en el catálogo Alegra", "buscar": sku})
     if cls == "suelto":
         out.append({"panel": "publicaciones", "motivo": "Publicarlo en los canales", "buscar": sku})
     if can["ean"]["estado"] in ("falta", "aviso") and fila.get("es_kit") and not any(s["panel"] == "combos" for s in out):
-        out.append({"panel": "combos", "motivo": "Código de barras (pieza EAN del taller)", "buscar": sku})
+        out.append({"panel": "combos", "motivo": "Código de barras (pieza EAN del Árbol del producto)", "buscar": sku})
     return out
 
 

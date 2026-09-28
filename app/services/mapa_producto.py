@@ -99,6 +99,16 @@ def _leer_json(ruta: Path, defecto):
         return defecto
 
 
+def _categoria_web(ref: str, nombre: str) -> str:
+    """Categoría con la regla de la tienda (website._combo_category_from_siigo), para combos
+    que la web aún no lista. Una sola regla: si se copiara aquí, las dos divergirían."""
+    try:
+        from PAGINA_WEB.site import website
+        return website._combo_category_from_siigo(ref, nombre)
+    except Exception:
+        return ""
+
+
 def _etiquetas_ligeras() -> list[dict]:
     """Las etiquetas sin su `logoUrl` (184 KB de data-URI cada una: el archivo pesa
     42 MB y casi todo es el mismo logo repetido). Se cachea por mtime."""
@@ -190,9 +200,14 @@ def _estado_foto(w: dict | None, etq: dict | None) -> tuple[str, str, str]:
     return "ok", fecha, ""
 
 
-def _casilla(nombre: str, es_mp: bool) -> str:
+def _casilla(nombre: str, es_mp: bool, es_bolsa_por_codigo: bool = False) -> str:
     if es_mp:
         return "materia_prima"
+    # Bolsas cuyo NOMBRE en Alegra está mal puesto (ver `_EMPAQUE_PREFIJO_CODIGO` en
+    # auditar_catalogo_combos.py): el código ya las descartó de materia prima; aquí les toca
+    # su casilla real por el mismo código, no por el nombre.
+    if es_bolsa_por_codigo:
+        return "bolsa"
     primera = (_norm(nombre).split() or [""])[0]
     for casilla, palabras in _CASILLAS:
         if primera in palabras:
@@ -272,14 +287,16 @@ def _construir() -> dict:
             # nada parece empaque y las diez piezas del kit salían como «materia prima» (con lo
             # que el combo no podía unir su documento). El nombre está en el catálogo, por código.
             cn = c.get("nombre") or (cat.get(c.get("codigo") or "") or {}).get("name") or ""
-            es_mp = not A.es_empaque(cn) and A._primera(cn) not in A._NO_MATERIA
+            codigo_c = c.get("codigo") or ""
+            bolsa_por_codigo = A._prefijo_alfa(codigo_c) in A._EMPAQUE_PREFIJO_CODIGO
+            es_mp = not (A.es_empaque(cn, codigo_c)) and A._primera(cn) not in A._NO_MATERIA
             en_cat = cat.get(c.get("codigo") or "") or {}
             existencias = (stock_ref.get((c.get("codigo") or "").lower()) or {}).get("stock_siigo")
             comps.append({
                 "codigo": c.get("codigo") or "",
                 "nombre": cn,
                 "cantidad": float(c.get("cantidad") or 0),
-                "casilla": _casilla(cn, es_mp),
+                "casilla": _casilla(cn, es_mp, bolsa_por_codigo),
                 "existe": bool(c.get("codigo")) and c.get("codigo") in cat,
                 "costo": float(en_cat.get("unit_cost") or 0),
                 "existencias": existencias if isinstance(existencias, (int, float)) else None,
@@ -454,7 +471,10 @@ def _construir() -> dict:
             # Solo con UNA materia prima: un kit de varias no es «otra presentación» de ninguna.
             "familia": (mp[0]["codigo"] if len(mp) == 1 else "") or (w or {}).get("family_slug") or "",
             "presentacion": (w or {}).get("presentacion_label") or "",
-            "linea": (w or {}).get("_linea") or "",
+            # La categoría es la del producto, esté o no publicado: si la web aún no lo lista,
+            # se le aplica la MISMA regla con la que la web lo clasificará al publicarlo.
+            "linea": (w or {}).get("_linea") or _categoria_web(ref, nombre),
+            "linea_publicada": bool((w or {}).get("_linea")),
             "componentes": comps,
             "recipiente": _recipiente(comps),
             "eslabones": esl,

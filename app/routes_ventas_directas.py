@@ -108,6 +108,21 @@ def register_ventas_directas_routes(app):
         data = request.get_json(silent=True) or {}
         return jsonify(V.calcular(data.get("lineas") or [], data.get("envio") or 0))
 
+    @_dual(app, "/api/ventas-directas/despliegue", methods=["GET"])
+    @_auth
+    def vd_despliegue():
+        """SKUs que se pueden cotizar durante el despliegue gradual tras el cese."""
+        from app.services import despliegue_ventas as D
+
+        data = D.estado()
+        if not data.get("activo"):
+            return jsonify({"activo": False, "skus": []})
+        return jsonify({
+            "activo": True,
+            "desde": data.get("desde"),
+            "skus": [{"sku": k, "nombre": v.get("nombre") or k} for k, v in sorted((data.get("skus") or {}).items())],
+        })
+
     @_dual(app, "/api/ventas-directas/precio", methods=["GET"])
     @_auth
     def vd_precio():

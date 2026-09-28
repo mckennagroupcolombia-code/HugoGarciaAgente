@@ -1,0 +1,2230 @@
+{
+ "activo": true,
+ "desde": "2026-09-27T20:27:04",
+ "actualizado": "2026-09-27T20:27:04",
+ "actualizado_por": "mckg",
+ "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
+ "skus": {
+  "GTRVDR10ML12UN": {
+   "nombre": "GOTERO VIDRIO 10 mL AZUL - VERDE - AMBAR X 12 UNIDADES",
+   "titulo_meli": "Gotero Vidrio 10 Ml  Azul - Verde - Ambar  X 12 Unidades",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO562642847"
+   ]
+  },
+  "C-MANCACREFKG": {
+   "nombre": "MANTECA CACAO REFINADA KG",
+   "titulo_meli": "Manteca De Cacao 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO566619744"
+   ]
+  },
+  "C-MANCACREF500G": {
+   "nombre": "MANTECA DE CACAO REFINADA 500g",
+   "titulo_meli": "Manteca De Cacao 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO566619739"
+   ]
+  },
+  "C-MANKARBLA500G": {
+   "nombre": "MANTECA KARITE BLANCA 500g",
+   "titulo_meli": "Manteca Karite 500 Gr + Envío",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO566618436"
+   ]
+  },
+  "C-MANKARAMAKG": {
+   "nombre": "MANTECA KARITE AMARILLA KG",
+   "titulo_meli": "Manteca De Karité Orgánica Amarilla Sin Refinar 1000 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO572518622"
+   ]
+  },
+  "C-MANKARAMA250G": {
+   "nombre": "MANTECA KARITE AMARILLA 250g",
+   "titulo_meli": "Manteca De Karité Orgánica Amarilla Sin Refinar 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO572516617"
+   ]
+  },
+  "C-CEBCOR150G": {
+   "nombre": "CEBO DE CORDERO 125g",
+   "titulo_meli": "Sebo De Cordero Orgánico 150 G",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO574694976"
+   ]
+  },
+  "C-MANKARAMA500G": {
+   "nombre": "MANTECA KARITE AMARILLA 500g",
+   "titulo_meli": "Manteca Karite 100% Orgánica Amarilla 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO576064483"
+   ]
+  },
+  "C-SULHIE500G": {
+   "nombre": "SULFATO HIERRO 500g",
+   "titulo_meli": "Sulfato De Hierro Heptahidratado /sulfato Ferroso 500 Gr Ferroso",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581507481"
+   ]
+  },
+  "C-DPG500ML": {
+   "nombre": "DIPROPILENGLICOL500mL",
+   "titulo_meli": "Dipropilengicol Usp Dpg 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581504092"
+   ]
+  },
+  "C-DIOTIT500G": {
+   "nombre": "DIOXIDO TITANIO 500g",
+   "titulo_meli": "Dióxido De Titanio 500 Gr  Sin Sabor",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581503445"
+   ]
+  },
+  "C-COCPROBET500ML": {
+   "nombre": "COCOAMIDA 500mL",
+   "titulo_meli": "Cocoamida Propilbetaina 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581502209"
+   ]
+  },
+  "C-ACISAL500G": {
+   "nombre": "ACIDO SALICILICO 500g",
+   "titulo_meli": "Ácido Salicílico Usp 500 Gr Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581496163"
+   ]
+  },
+  "C-ALCCETKG": {
+   "nombre": "ALCOHOL CETILICO KG",
+   "titulo_meli": "Alcohol Cetílico 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581495164"
+   ]
+  },
+  "C-ALCCET500G": {
+   "nombre": "ALCOHOL CETILICO 500g",
+   "titulo_meli": "Alcohol Cetílico 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581495025"
+   ]
+  },
+  "C-ACEGIR500ML": {
+   "nombre": "ACEITE GIRASOL 500mL",
+   "titulo_meli": "Aceite De Girasol Puro Prensado En Frió Orgánico",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO581494276"
+   ]
+  },
+  "C-CERABEREFAMA500G": {
+   "nombre": "CERA ABEJAS REFINADA AMARILLA 500g",
+   "titulo_meli": "Cera De Abejas Amarilla Refinada X 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO590695436"
+   ]
+  },
+  "C-ACENEE60ML": {
+   "nombre": "ACEITE NEEM 60mL",
+   "titulo_meli": "Aceite De Neem  60 Ml Puro Prensado En Frío",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO577630387",
+    "MCO1335735933"
+   ]
+  },
+  "C-GOMXAN500G": {
+   "nombre": "GOMA XANTANA 500g",
+   "titulo_meli": "Goma Xanthan Certificada 500gr  Goma Xanthan",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO592969350"
+   ]
+  },
+  "C-ACDLAC85P30ML": {
+   "nombre": "ACIDO LACTICO 85% 30mL",
+   "titulo_meli": "Ácido Láctico Al 85% 30 Ml Certificado Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO587471185"
+   ]
+  },
+  "C-SHA70550ML": {
+   "nombre": "SHAROMIX 705 50mL",
+   "titulo_meli": "Sharomix 705 Conservante Natural Cosmético 50 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO592968863"
+   ]
+  },
+  "C-TEGBET500ML": {
+   "nombre": "TEGO BETAINA COCO 500mL",
+   "titulo_meli": "Betaina De Coco  500ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO595871338",
+    "MCO3106445348"
+   ]
+  },
+  "GTRVDR50ML": {
+   "nombre": "ENVASE DE VIDRIO AMBAR 50 mL",
+   "titulo_meli": "Envase De Vidrio Ambar Con Gotero 50 Ml - Ml A $56 Ámbar",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO636735099"
+   ]
+  },
+  "C-CITPOT500G": {
+   "nombre": "CITRATO POTASIO 500g",
+   "titulo_meli": "Citrato De Potasio 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO616763443",
+    "MCO2854712994"
+   ]
+  },
+  "C-URE250G": {
+   "nombre": "UREA 250g",
+   "titulo_meli": "Urea Cosmética 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO820157855"
+   ]
+  },
+  "C-ESPCCRCRV22CM": {
+   "nombre": "ESPATULA DE LABORATORIO 22CMS",
+   "titulo_meli": "Espátula Laboratorio Acero Inóxidable",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO833595832"
+   ]
+  },
+  "C-VASPRE25ML": {
+   "nombre": "VASO DE PRECIPITADO 25mL",
+   "titulo_meli": "Beaker De Vidrio 25 Ml Laboratorio Vaso De Precipitado",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO833400305"
+   ]
+  },
+  "C-REVVID6MM": {
+   "nombre": "REVOLVEDOR VIDRIO 20 X 6 MM",
+   "titulo_meli": "Revolvedor De Vidrio 30 Cm X 6 Mm Laboratorio",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO833393509"
+   ]
+  },
+  "AGTMGNPLN": {
+   "nombre": "AGITADOR MAGNÉTICO CON PLANCHA CALEFACTORA",
+   "titulo_meli": "Agitador Magnético Con Plancha Calefactora Laboratorio",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO833223216"
+   ]
+  },
+  "C-VITC30P30ML": {
+   "nombre": "VITAMINA C 30% 30mL",
+   "titulo_meli": "Vitamina C Solución 30% 30 Ml   Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO615593853",
+    "MCO1347147843"
+   ]
+  },
+  "C-GOTPLA3ML10UN": {
+   "nombre": "GOTERO PLASTICO 3 mL 10 UN",
+   "titulo_meli": "Gotero Plastico 3ml - Pipeta Pasteur 10 Unidades",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO587060091"
+   ]
+  },
+  "C-URE500G": {
+   "nombre": "UREA 500g",
+   "titulo_meli": "Urea Cosmética 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO577075253"
+   ]
+  },
+  "C-DPAN50ML": {
+   "nombre": "D PANTENOL 50 mL",
+   "titulo_meli": "D-pantenol Vitamina B5 75%",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO585538997"
+   ]
+  },
+  "C-MANKARBLAKG": {
+   "nombre": "MANTECA KARITE BLANCA KG",
+   "titulo_meli": "Manteca Karite 1 Kg + Envío",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO566618455"
+   ]
+  },
+  "C-TEGBETLT": {
+   "nombre": "TEGO BETAINA COCO 1000mL",
+   "titulo_meli": "Betaina De Coco  1000ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO595871453"
+   ]
+  },
+  "C-CERABENAT500G": {
+   "nombre": "CERA DE ABEJAS NATURAL 500g",
+   "titulo_meli": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO592231288"
+   ]
+  },
+  "C-FRBSGL120ML": {
+   "nombre": "FRAGANCIA BASE GLICERIA 120mL",
+   "titulo_meli": "Fragancias Para Base De Glicerina Para Hacer Jabón 120 Ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO576054003",
+    "MCO847832213",
+    "MCO3141408788"
+   ]
+  },
+  "C-ARCVRT250G": {
+   "nombre": "ARCILLA VERDE",
+   "titulo_meli": "Arcilla Verde 250 Gr Todo Tipo De Piel",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO616771341"
+   ]
+  },
+  "C-TENSCI250G": {
+   "nombre": "TENSOACTIVO SCI 250g",
+   "titulo_meli": "Tensoactivo Sci 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO605848736"
+   ]
+  },
+  "C-VITCACIASC250G": {
+   "nombre": "VITAMINA C ACIDO ASCORBICO 250g",
+   "titulo_meli": "Vitamina C Ácido Ascórbico 250g N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO845901602"
+   ]
+  },
+  "C-KITREPCOS1": {
+   "nombre": "KIT REPARADOR COSMETICO 1",
+   "titulo_meli": "Kit Reparador # 1 Activos Cosméticos Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO615815939"
+   ]
+  },
+  "C-KITREPCOS2": {
+   "nombre": "KIT REPARADOR COSMETICO 2",
+   "titulo_meli": "Kit Reparador #2 Cosmético Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO851988655"
+   ]
+  },
+  "C-TEGBET250ML": {
+   "nombre": "TEGO BETAINA 250mL",
+   "titulo_meli": "Betaina De Coco  250ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO595871388"
+   ]
+  },
+  "C-CERABEREFBLAKG": {
+   "nombre": "CERA ABEJAS REFINADA KG",
+   "titulo_meli": "Cera De Abejas Blanca 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO616768565"
+   ]
+  },
+  "C-MAL500G": {
+   "nombre": "MALTODEXTRINA 500g",
+   "titulo_meli": "Maltodextrina Alimentos 500 Gr Dulce",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO648703323",
+    "MCO2863490568"
+   ]
+  },
+  "C-CAF100G": {
+   "nombre": "CAFEINA 100g",
+   "titulo_meli": "Cafeina Anhidra 100gr Cafeína",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO862291253"
+   ]
+  },
+  "C-CREMON250G": {
+   "nombre": "CREATINA MONOHIDRATO 250g",
+   "titulo_meli": "Creatina Monohidrato 250gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO862397411"
+   ]
+  },
+  "C-NIA100G": {
+   "nombre": "NIACINAMIDA 100g",
+   "titulo_meli": "Niacinamida (vitamina B3) 100gr Neutro",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO880824875"
+   ]
+  },
+  "C-CREMON100G": {
+   "nombre": "CREATINA MONOHIDRATO 100g",
+   "titulo_meli": "Creatina Monohidrato 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO862333529"
+   ]
+  },
+  "C-KITREPCOS3": {
+   "nombre": "KIT REPARADOR COSMETICO 3",
+   "titulo_meli": "Kit Reparador #3 Cosmético  Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO887872750"
+   ]
+  },
+  "KTBKRPRB": {
+   "nombre": "KIT BEAKERS Y PROBETAS BORO 3.3",
+   "titulo_meli": "Kit Beakers & Probetas Boro 3.3",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO888492103",
+    "MCO1319828203"
+   ]
+  },
+  "KTBKRLAB": {
+   "nombre": "KIT VASOS LABORATORIO BEAKERS",
+   "titulo_meli": "Kit Vasos Laboratorio Beakers",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO888480723"
+   ]
+  },
+  "C-ALCCET250G": {
+   "nombre": "ALCOHOL CETILICO 250g",
+   "titulo_meli": "Alcohol Cetílico  250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO891097460"
+   ]
+  },
+  "C-MANTKARAMA125G": {
+   "nombre": "MANTECA KARITE AMARILLA 125g",
+   "titulo_meli": "Manteca De Karité Orgánica Amarilla Sin - G A $191",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO890848439",
+    "MCO572516333"
+   ]
+  },
+  "C-DPAN85P120ML": {
+   "nombre": "D PANTENOL 85% 120 mL",
+   "titulo_meli": "D-pantenol Vitamina B5 75%",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO893531765"
+   ]
+  },
+  "C-SHA705500ML": {
+   "nombre": "SHAROMIX 705 500mL",
+   "titulo_meli": "Sharomix 705 Conservante 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO894908184"
+   ]
+  },
+  "C-CERCAR250G": {
+   "nombre": "CERA CARNAUBA 250g",
+   "titulo_meli": "Cera Carnauba   250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO837454367"
+   ]
+  },
+  "C-CITPOT250G": {
+   "nombre": "CITRATO POTASIO 250g",
+   "titulo_meli": "Citrato De Potasio 250gr Citrato",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO899130581",
+    "MCO1572732833"
+   ]
+  },
+  "C-INUKG": {
+   "nombre": "INULINA KG",
+   "titulo_meli": "Inulina Polvo 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO991723745"
+   ]
+  },
+  "C-INU500G": {
+   "nombre": "INULINA 500g",
+   "titulo_meli": "Inulina Prebiótico 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO991717213",
+    "MCO1582274449"
+   ]
+  },
+  "C-INU250G": {
+   "nombre": "INULINA 250g",
+   "titulo_meli": "Inulina Prebiótico Polvo",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO982532236"
+   ]
+  },
+  "TSSCC500ML": {
+   "nombre": "TENSOACITVO COCO 500mL",
+   "titulo_meli": "Tensoactivo De Coco Shampoo Orgánico Tensosil 500 Ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO598889225"
+   ]
+  },
+  "C-VASPRE100ML": {
+   "nombre": "VASO DE PRECIPITADO 100mL",
+   "titulo_meli": "Beaker De Vidrio 100 Ml Laboratorio Vaso De Precipitado",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO840615604"
+   ]
+  },
+  "BRCESC3PZS": {
+   "nombre": "BROCA ESCALONADA 3 PZS",
+   "titulo_meli": "Broca Escalonada Juego 3 Pc Titanio",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO615706004"
+   ]
+  },
+  "C-SOR500ML": {
+   "nombre": "SORBITOL 500mL",
+   "titulo_meli": "Sorbitol 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO908318006",
+    "MCO1235520034"
+   ]
+  },
+  "C-ACISAL100G": {
+   "nombre": "ACISAL100g",
+   "titulo_meli": "Ácido Salicílico 100gr Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO908853183"
+   ]
+  },
+  "C-CITCAL500G": {
+   "nombre": "CITRATO CALCIO 500g",
+   "titulo_meli": "Citrato De Calcio 500gr Ningún",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO901663592"
+   ]
+  },
+  "DSCABRMTT36PZS": {
+   "nombre": "DISCO ABRASIVO CORTE 36 PZS",
+   "titulo_meli": "Mototool Kit De Disco Corte  Abrasivo X 36 Pcs N/a",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO656257472"
+   ]
+  },
+  "C-CAF500G": {
+   "nombre": "CAFEINA 500g",
+   "titulo_meli": "Cafeina Anhidra 500 Gr  Cafeína",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO610805503"
+   ]
+  },
+  "C-GUSSED30ML": {
+   "nombre": "GUSANO DE SEDA 30 mL",
+   "titulo_meli": "Extracto Gusano De Seda 30 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO607698764"
+   ]
+  },
+  "EMBPT30ML": {
+   "nombre": "EMBRIÓN DE PATO 30 mL",
+   "titulo_meli": "Embrión De Pato 30 Ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO607692469"
+   ]
+  },
+  "C-LECSOY500G": {
+   "nombre": "LECITINA SOYA 500g",
+   "titulo_meli": "Lecitina De Soya Polvo 500gr Lecitina",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO896116153"
+   ]
+  },
+  "C-GLIVEGLT": {
+   "nombre": "GLICERINA VEGETAL 1000mL",
+   "titulo_meli": "Glicerina Vegetal Usp Lt",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO969136433"
+   ]
+  },
+  "C-GLU100G": {
+   "nombre": "GLUTAMINA 100g",
+   "titulo_meli": "L Glutamina 100 Gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO876339306"
+   ]
+  },
+  "C-MENCRI100G": {
+   "nombre": "MENTOL CRISTAL 100g",
+   "titulo_meli": "Mentol Cristal  100gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1146475504"
+   ]
+  },
+  "C-FLOSECLAV100G": {
+   "nombre": "FLORES SECAS LAVANDA 100g",
+   "titulo_meli": "Flores Secas Lavanda 100 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1125190810",
+    "MCO2004400418"
+   ]
+  },
+  "C-LPRO100G": {
+   "nombre": "L PROLINA 100g",
+   "titulo_meli": "L Prolina Aminoácido 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1050326587"
+   ]
+  },
+  "C-LACCAL250G": {
+   "nombre": "LACTATO CALCIO 250g",
+   "titulo_meli": "Lactato De Calcio Polvo 250gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1049818506"
+   ]
+  },
+  "C-GLU2P500ML": {
+   "nombre": "GLUTARALDEHIDO 2% 500mL",
+   "titulo_meli": "Glutaraldehido 2% 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO908856272"
+   ]
+  },
+  "C-AMILCAR100G": {
+   "nombre": "AMINOACIDO L CARNITINA 100g",
+   "titulo_meli": "L Carnitina  100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO876313152"
+   ]
+  },
+  "C-FRU500G": {
+   "nombre": "FRUCTOSA 500g",
+   "titulo_meli": "Fructosa  Pura 500gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1235506437"
+   ]
+  },
+  "C-SORPOT100G": {
+   "nombre": "SORBATO POTASIO 100g",
+   "titulo_meli": "Sorbato De Potasio 100gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO918784392"
+   ]
+  },
+  "C-LTRI100G": {
+   "nombre": "L TRIPTOFANO 100g",
+   "titulo_meli": "L Triptofano 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO952731685"
+   ]
+  },
+  "C-TENSCI100G": {
+   "nombre": "TENSOACTIVO SCI 100g",
+   "titulo_meli": "Tensioactivo Sci",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO605845399"
+   ]
+  },
+  "C-ACICIT250G": {
+   "nombre": "ACIDO CITRICO 250g",
+   "titulo_meli": "Acido Cítrico 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO891097860"
+   ]
+  },
+  "C-BENSOD500G": {
+   "nombre": "BENZOATO DE SODIO 500g",
+   "titulo_meli": "Benzoato De Sodio 500gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO848321516"
+   ]
+  },
+  "C-ELAHID30ML": {
+   "nombre": "ELASTINA HIDROLIZADA 30mL",
+   "titulo_meli": "Elastina 30 Ml Activo Cosmético",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO615815832"
+   ]
+  },
+  "C-ACEARGAN50ML": {
+   "nombre": "ACEITE ARGAN 50 mL",
+   "titulo_meli": "Aceite De Argán 50 Ml 100% Puro",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO594012281"
+   ]
+  },
+  "C-COLHID30ML": {
+   "nombre": "COLAGENO HIDROLIZADO 30mL",
+   "titulo_meli": "Colágeno Hidrolizado Cosmético Mixta",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO835404031"
+   ]
+  },
+  "C-RET5P30ML": {
+   "nombre": "RETINOL 5% 30 mL",
+   "titulo_meli": "Retinol 5% 30 Ml Noche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO971453450"
+   ]
+  },
+  "C-ACIGLI50P30ML": {
+   "nombre": "ACIDO GLICOLICO 50% 30mL",
+   "titulo_meli": "Ácido Glicólico 50%  30 Ml Todas",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO859831102"
+   ]
+  },
+  "C-ACISORKG": {
+   "nombre": "ALULOSA KG (COPIA)",
+   "titulo_meli": "Ácido Sórbico 1 Kg  N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO848335906"
+   ]
+  },
+  "C-TAU250G": {
+   "nombre": "TAURINA 250g",
+   "titulo_meli": "Taurina Polvo Pura 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1238594208"
+   ]
+  },
+  "C-VITCACIASC500G": {
+   "nombre": "VITAMINA C ACIDO ASCORBICO 500g",
+   "titulo_meli": "Acido Ascórbico X 500 Gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO851423221"
+   ]
+  },
+  "C-BTMS250G": {
+   "nombre": "BTMS 50 250g",
+   "titulo_meli": "Btms 50 Emulsionante 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO595871200"
+   ]
+  },
+  "C-ALA250G": {
+   "nombre": "ALANTOINA 250g",
+   "titulo_meli": "Alantoína En Polvo 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO851538777",
+    "MCO1354834051"
+   ]
+  },
+  "C-VASPRE10ML": {
+   "nombre": "VASO DE PRECIPITADO 10mL",
+   "titulo_meli": "Vaso De Precipitado En Vidrio Graduado Beaker X 10ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1171713653"
+   ]
+  },
+  "C-PAP100G": {
+   "nombre": "PAPAINA 100g",
+   "titulo_meli": "Papaína Enzima Polvo 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1102402049"
+   ]
+  },
+  "C-LHIS100G": {
+   "nombre": "L HISTIDINA 100g",
+   "titulo_meli": "L Histidina Aminoácido 100gr  N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1050313694"
+   ]
+  },
+  "C-PROAISSOY500G": {
+   "nombre": "PROTEINA AISLADA SOYA 500g",
+   "titulo_meli": "Proteína Aislada De Soya 500gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1050274777"
+   ]
+  },
+  "C-BCAA500G": {
+   "nombre": "AMINOACIDO BCAA 500g",
+   "titulo_meli": "Bcaa Aminoácidos 500gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1050151269"
+   ]
+  },
+  "C-LACCAL100G": {
+   "nombre": "LACTATO CALCIO 100g",
+   "titulo_meli": "Lactato De Calcio 100gr  N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1049533041"
+   ]
+  },
+  "C-LTEA100G": {
+   "nombre": "L TEANINA 100g",
+   "titulo_meli": "L Teanina 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1050487497"
+   ]
+  },
+  "C-SUC100G": {
+   "nombre": "SUCRALOSA 100g",
+   "titulo_meli": "Sucralosa 100gr Dulce",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO862277266"
+   ]
+  },
+  "PERR": {
+   "nombre": "PERILLA DE PALANCA DE CAMBIOS MANUAL UNIVERSAL",
+   "titulo_meli": "Perilla De Palanca De Cambios Manual Universal",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO821527986"
+   ]
+  },
+  "C-ERI500G": {
+   "nombre": "ERITRITOL 500g",
+   "titulo_meli": "Eritritol  Puro 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1248443403"
+   ]
+  },
+  "C-GOMXANKG": {
+   "nombre": "GOMA XANTANA KG",
+   "titulo_meli": "Goma Xanthan Certificada Kg Goma Xanthan",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1255107965"
+   ]
+  },
+  "C-EXTTEMATVER100G": {
+   "nombre": "EXTRACTO TE MATCHA 100g",
+   "titulo_meli": "Té Matcha  Polvo 100 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1262314547"
+   ]
+  },
+  "C-ACDSAL20P30ML": {
+   "nombre": "ACIDO SALICILICO 20% 30 mL",
+   "titulo_meli": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1262287931"
+   ]
+  },
+  "OILBMBVC": {
+   "nombre": "ACEITE PARA BOMBA DE VACIO PREMIUM",
+   "titulo_meli": "Aceite Para Bomba De Vacío Premium",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1266002627"
+   ]
+  },
+  "CCHMZCPLS30UN": {
+   "nombre": "CUCHARA COLORES",
+   "titulo_meli": "Cuchara Mezcladora Plástico 30 Un",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1267744403"
+   ]
+  },
+  "KTLJMTT51PZS": {
+   "nombre": "KIT LIJAS MOTOTOOL 51 PZS",
+   "titulo_meli": "Kit Lijas Tubo Mototool  51 Piezas N/a",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1267759075"
+   ]
+  },
+  "C-ACIMAL100G": {
+   "nombre": "ACIDO MALICO 100g",
+   "titulo_meli": "Acido Málico 100 Gramos",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO918703993"
+   ]
+  },
+  "C-AMILARG100G": {
+   "nombre": "AMINOACIDO L ARGININA 100g",
+   "titulo_meli": "L Arginina Base 100gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO876313054"
+   ]
+  },
+  "C-GELSINSAB500G": {
+   "nombre": "GELATINA SIN SABOR 500g",
+   "titulo_meli": "Gelatina Sin Sabor 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1276565211"
+   ]
+  },
+  "C-ACEESEMEN5ML": {
+   "nombre": "ACEITE ESENCIAL MENTA 5 mL",
+   "titulo_meli": "Aceite Esencial De Menta",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1394642716",
+    "MCO3152504668"
+   ]
+  },
+  "C-ACEESEJEN5ML": {
+   "nombre": "ACEITE ESENCIAL JENGIBRE 5mL",
+   "titulo_meli": "Aceite Esencial De Jengibre",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1394253550",
+    "MCO3124400002"
+   ]
+  },
+  "C-ACEESEJAZ5ML": {
+   "nombre": "ACEITE ESENCIAL JAZMIN 5mL",
+   "titulo_meli": "Aceite Esencial De Jazmin",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1394253472",
+    "MCO1672206565"
+   ]
+  },
+  "C-ACEESENMAN5ML": {
+   "nombre": "ACEITE ESENCIAL MANDARINA 5mL",
+   "titulo_meli": "Aceite Esencial De Mandarina",
+   "tipo": "kit",
+   "alias_destino": "C-ACEESNMAN5mL",
+   "meli_ids": [
+    "MCO1393840298",
+    "MCO3124326468"
+   ]
+  },
+  "C-ACEESEHIEBUE5ML": {
+   "nombre": "ACEITE ESENCIAL HIERBA BUENA 5mL",
+   "titulo_meli": "Aceite Esencial Hierba Buena",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278712229",
+    "MCO3152503164"
+   ]
+  },
+  "C-ACEESETOM5ML": {
+   "nombre": "ACEITE ESENCIAL TOMILLO 5mL",
+   "titulo_meli": "Aceite Esencial De Tomillo",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278702873",
+    "MCO1672180737"
+   ]
+  },
+  "C-ACEESECAN5ML": {
+   "nombre": "ACEITE ESENCIAL CANELA 5mL",
+   "titulo_meli": "Aceite Esencial De Canela",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278700391",
+    "MCO1672155703"
+   ]
+  },
+  "C-ACETEATRE5ML": {
+   "nombre": "ACEITE ARBOL DE TE 5 mL",
+   "titulo_meli": "Aceite Esencial De Árbol De Té",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278699815",
+    "MCO3141419058"
+   ]
+  },
+  "C-ACEESECLA5ML": {
+   "nombre": "ACEITE ESENCIAL CLAVO 5 mL",
+   "titulo_meli": "Aceite Esencial De Clavos",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278689211",
+    "MCO1732025061"
+   ]
+  },
+  "C-ACEESEYLA5ML": {
+   "nombre": "ACEITE ESENCIAL YLANG YLANG 5 mL",
+   "titulo_meli": "Aceite Esencial De Ylang Ylang",
+   "tipo": "kit",
+   "alias_destino": "C-ACEESEYLAYLA5mL",
+   "meli_ids": [
+    "MCO1278679199",
+    "MCO1671238305"
+   ]
+  },
+  "C-ACEESEROM5ML": {
+   "nombre": "ACETE ESENCIAL ROMERO 5mL",
+   "titulo_meli": "Aceite Esencial De Romero",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278678363",
+    "MCO3152478202"
+   ]
+  },
+  "C-ACEESEPIN5ML": {
+   "nombre": "ACEITE ESENCIAL PINO 5 mL",
+   "titulo_meli": "Aceite Esencial De Pino",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278678259",
+    "MCO3152026634"
+   ]
+  },
+  "C-ACEESECORCED5ML": {
+   "nombre": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+   "titulo_meli": "Aceite Esencial  Corteza Cedro",
+   "tipo": "kit",
+   "alias_destino": "C-ACEESECORTCED5mL",
+   "meli_ids": [
+    "MCO1278664637",
+    "MCO1671238271"
+   ]
+  },
+  "C-ACEESEBER5ML": {
+   "nombre": "ACEITE ESENCIAL BERGAMOTA 5 mL",
+   "titulo_meli": "Aceite Esencial De Bergamota",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278663695",
+    "MCO3123285366"
+   ]
+  },
+  "C-ACEESEMAN5ML": {
+   "nombre": "ACEITE ESENCIAL MANZANILLA 5mL",
+   "titulo_meli": "Aceite Esencial De Manzanilla",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278643483",
+    "MCO1671943297"
+   ]
+  },
+  "C-ACEESEALB5ML": {
+   "nombre": "ACEITE ESENCIAL ALBAHACA 5mL",
+   "titulo_meli": "Aceite Esencial De Albahaca",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278641307",
+    "MCO1672170251"
+   ]
+  },
+  "C-ACEESENAR5ML": {
+   "nombre": "ACEITE ESENCIAL NARANJA 5mL",
+   "titulo_meli": "Aceite Esencial De Naranja",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278616147",
+    "MCO1672279583"
+   ]
+  },
+  "C-EXTMAL500G": {
+   "nombre": "EXTRACTO DE MALTA POLVO 500 GR",
+   "titulo_meli": "Extracto De Malta Polvo 500 Gr",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1518232374"
+   ]
+  },
+  "C-CERCARKG": {
+   "nombre": "CERA CARNAUBA KG",
+   "titulo_meli": "Cera Carnauba Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1610626412"
+   ]
+  },
+  "C-CERCAR500G": {
+   "nombre": "CERA CARNAUBA 500g",
+   "titulo_meli": "Cera Carnauba   500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1298425191"
+   ]
+  },
+  "C-DEXKG": {
+   "nombre": "DEXTROSA KG",
+   "titulo_meli": "Dextrosa Monohidratada  Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1298007835"
+   ]
+  },
+  "C-VITCACIASC100G": {
+   "nombre": "VITAMINA C ACIDO ASCORBICO 100g",
+   "titulo_meli": "Vitamina C Acido Ascórbico 100g N-a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO891105315"
+   ]
+  },
+  "C-ALA100G": {
+   "nombre": "ALANTOINA 100g",
+   "titulo_meli": "Alantoína En Polvo 100gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1377417818"
+   ]
+  },
+  "C-GLUMONKG": {
+   "nombre": "GLUTAMATO MONOSODICO KG",
+   "titulo_meli": "Glutamato Monosódico Sal Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1626151692"
+   ]
+  },
+  "C-GLIVEG250ML": {
+   "nombre": "GLICERINA VEGETAL 250g/ML",
+   "titulo_meli": "Glicerina Vegetal Usp 250 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1636912880"
+   ]
+  },
+  "C-CITZIN500G": {
+   "nombre": "CITRATO ZINC 500g",
+   "titulo_meli": "Citrato De Zinc 500gr N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1702310176"
+   ]
+  },
+  "DSCVDR": {
+   "nombre": "DISCO CORTE DE VIDRIO",
+   "titulo_meli": "Disco De Corte De Diamante Para Mármol, Vidrio, Porcelanato Verde",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1326787067"
+   ]
+  },
+  "C-BTMS50125G": {
+   "nombre": "BTMS 50 125g",
+   "titulo_meli": "Btms 50 Emulsionante 125 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1330892037"
+   ]
+  },
+  "C-ACIHIAALTPES85P30ML": {
+   "nombre": "ACIDO HIALURONICO ALTO PESO MOLECULAR 30mL",
+   "titulo_meli": "Ácido Hialurónico Solución 85% Todas",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1336703989"
+   ]
+  },
+  "C-POLTWE20P250ML": {
+   "nombre": "POLISORBATO TWEEN 20 250mL",
+   "titulo_meli": "Polisorbato Tween 20 Usp 250ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1910972470"
+   ]
+  },
+  "C-POLTWE20P500ML": {
+   "nombre": "POLISORBATO TWEEN 20 500mL",
+   "titulo_meli": "Polisorbato Tween 20 Usp 500ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1910946156"
+   ]
+  },
+  "C-CERABEREFBLA500G": {
+   "nombre": "CERA ABEJAS BLANCA REFINADA 500g",
+   "titulo_meli": "Cera De Abejas  Blanca 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1912833896"
+   ]
+  },
+  "C-SORPOT500G": {
+   "nombre": "SORBATO POTASIO 500g",
+   "titulo_meli": "Sorbato De Potasio 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1341882693"
+   ]
+  },
+  "C-SORPOT250G": {
+   "nombre": "SORBATO POTASIO 250g",
+   "titulo_meli": "Sorbato De Potasio 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1341843191"
+   ]
+  },
+  "C-CERLAN500G": {
+   "nombre": "CERA LANETTE 500g",
+   "titulo_meli": "Cera Lanette 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1338895385"
+   ]
+  },
+  "C-ACICITR500G": {
+   "nombre": "ACIDO CITRICO 500g",
+   "titulo_meli": "Ácido Cítrico  Usp 500 Gr  N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO953116239"
+   ]
+  },
+  "C-ACEESEEUC5ML": {
+   "nombre": "ACEITE ESENCIAL EUCALIPTO 5 mL",
+   "titulo_meli": "Aceite Esencial  De Eucalipto",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278677373",
+    "MCO1671163355"
+   ]
+  },
+  "FLNPVC1P": {
+   "nombre": "FLANCHE PVC 1\"",
+   "titulo_meli": "Flanche  Pvc  1  Rosca Larga",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO962644422"
+   ]
+  },
+  "GTRVDR100ML": {
+   "nombre": "GOTERO VIDRIO 100 mL",
+   "titulo_meli": "Envase De Vidrio 100 Ml Ámbar",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1938755122"
+   ]
+  },
+  "C-CIA100G": {
+   "nombre": "CIANOCOBALAMINA 100g",
+   "titulo_meli": "Vitamina B12 Cianocobalamina  Sin Sabor",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1349248285"
+   ]
+  },
+  "ACLCTGLC30ML": {
+   "nombre": "ÁCIDO LÁCTICO + ÁCIDO GLICÓLICO 30 mL",
+   "titulo_meli": "Ácido Láctico + Glicólico 30 Ml Todo Tipo De Piel",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2040973292"
+   ]
+  },
+  "C-ALU250G": {
+   "nombre": "ALULOSA 250g",
+   "titulo_meli": "Alulosa Endulzante 250 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1929031180"
+   ]
+  },
+  "C-POLTWE80P500ML": {
+   "nombre": "POLISORBATO TWEEN 80P 500mL",
+   "titulo_meli": "Polisorbato Tween 80 500ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1380582329"
+   ]
+  },
+  "C-CREMON500G": {
+   "nombre": "CREATINA MONOHIDRATO 500g",
+   "titulo_meli": "Creatina Monohidrato 500g N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2158622860"
+   ]
+  },
+  "ADAOBDII": {
+   "nombre": "CABLE ADAPTADOR OBD2 DE 14 A PINES 16 COMPATIBLE NISSAN",
+   "titulo_meli": "Cable Adaptador Obd2 De 14 A Pines 16 Compatible Nissan",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2177904440"
+   ]
+  },
+  "ENVPLAAIRPAC10UN": {
+   "nombre": "ENVASE PLÁSTICO ARÁNDANOS Y FRUTAS AIRPACK 4LB PACK X 10 UND",
+   "titulo_meli": "Envase Plástico Arándanos Y Frutas Airpack 4lb Pack X 10 Und",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2180014382"
+   ]
+  },
+  "SOMONISEMA1.6": {
+   "nombre": "SOPORTES DE MOTOR NISSAN SENTRA MANUAL 95-98 1.6",
+   "titulo_meli": "Soportes De Motor Nissan Sentra Manual 95-98 1.6",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1394363083"
+   ]
+  },
+  "AS-84": {
+   "nombre": "EMPAQUE PLÁSTICO AIRBASKET DARNEL LIBRA X 25 UND",
+   "titulo_meli": "Empaque Plástico Airbasket  Darnel  Libra X 25  Und",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2268688672"
+   ]
+  },
+  "COLPERSIL": {
+   "nombre": "COLLAR PERRO SILICONA",
+   "titulo_meli": "Collar En Silicona Para Perro Raza Pequeña Y Gato",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2340642192"
+   ]
+  },
+  "C-ALUKG": {
+   "nombre": "ALULOSA KG",
+   "titulo_meli": "Alulosa Endulzante 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1929427414"
+   ]
+  },
+  "C-GOMGUA500G": {
+   "nombre": "GOMA GUAR 500g",
+   "titulo_meli": "Goma Guar 500 Gr Goma Guar",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO616763099",
+    "MCO1578762435"
+   ]
+  },
+  "C-VAS400G": {
+   "nombre": "VASELINA 400g",
+   "titulo_meli": "Vaselina Pura  X 400 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1278511487"
+   ]
+  },
+  "C-ACETEATRE30ML": {
+   "nombre": "ACEITE ARBOL TE 30mL",
+   "titulo_meli": "Aceite Esencial Árbol De Té 30ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1338939263"
+   ]
+  },
+  "OWOFANBLACK": {
+   "nombre": "GRIFERÍA FLEXIBLE COCINA INDUSTRIAL MONOMANDO",
+   "titulo_meli": "Grifería Flexible Cocina Industrial Monomando  Negro Mate",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1418637889"
+   ]
+  },
+  "ERLMYR50ML": {
+   "nombre": "ERLEN MEYER MATRAZ 50mL",
+   "titulo_meli": "Erlenmeyer  Matraz Cónico Boro Siilicato 3.3  50 Ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1421628391"
+   ]
+  },
+  "ALMLIJMKT123MM": {
+   "nombre": "ALMOHADILLA LIJADORA MAKITA 120MM",
+   "titulo_meli": "Almohadilla Repuesto Lijadora Makita D 123mm",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1440446877"
+   ]
+  },
+  "C-MANNATTOS500G": {
+   "nombre": "MANI NATURAL TOSTADO 500g",
+   "titulo_meli": "Maní Tostado Natural 500 G",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1447344989"
+   ]
+  },
+  "C-ACIDIH10G": {
+   "nombre": "DIHIDROXIACETONA 10g",
+   "titulo_meli": "Dihidroxiacetona Bronceador Usp",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1469778015"
+   ]
+  },
+  "PLVSLCPH": {
+   "nombre": "SOBRES DE SOLUCIÓN PARA CALIBRACIÓN DE PH X 6 UN",
+   "titulo_meli": "Sobres Solución Calibración Ph Polvo Prueba Test Phmetro",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1486579375"
+   ]
+  },
+  "KTEXTART18PZS": {
+   "nombre": "REPUESTOS EXTRUSOR COMPATIBLE ARTILLERY SIDEWINDER GENIUS",
+   "titulo_meli": "Repuestos Extrusor Compatible Artillery Sidewinder Genius",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1518382397"
+   ]
+  },
+  "AS-44": {
+   "nombre": "COLLAR DE PERRO EN CUERO RAZA MEDIANA",
+   "titulo_meli": "Collar De Perro En Cuero  Raza Mediana",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1535056853"
+   ]
+  },
+  "KITFRSCPDX4": {
+   "nombre": "FRESA COPIADORA RECTA X 4 TAMAÑOS",
+   "titulo_meli": "Fresa Copiadora Recta  X 4 Tamaños",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1543956713"
+   ]
+  },
+  "C-CARACTPEL800G": {
+   "nombre": "CARBON ACTIVADO BITULUMINOSO 800g",
+   "titulo_meli": "Carbón Activado Pellets Filtro Olores 800g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1551166807"
+   ]
+  },
+  "ALPL12X8X14": {
+   "nombre": "PLACA DE ALUMINIA 12 X 8X1.4P",
+   "titulo_meli": "Lámina De Aluminio 304.8 Mm X 203.2 Mm Espesor 6.35 Mm No Aplica",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1552004869"
+   ]
+  },
+  "DISLIJ2000": {
+   "nombre": "DISCO LIJA GRANO 2000",
+   "titulo_meli": "Disco Lija Grano 2000 2000",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1563435549"
+   ]
+  },
+  "C-SHA705250ML": {
+   "nombre": "SHAROMIX 705 250 mL",
+   "titulo_meli": "Sharomix 705 Conservante 250 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1591252977"
+   ]
+  },
+  "C-ACIAZE10G": {
+   "nombre": "ACIDO AZELAICO 10g",
+   "titulo_meli": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1609304141"
+   ]
+  },
+  "C-ACIMAN5G": {
+   "nombre": "ACIDO MANDELICO 5g",
+   "titulo_meli": "Ácido Mándelico 5g Mixta Noche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1615494147"
+   ]
+  },
+  "C-ACERIC250ML": {
+   "nombre": "ACEITE DE RICINO 250mL",
+   "titulo_meli": "Aceite Ricino Castor Puro 250ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1636834856"
+   ]
+  },
+  "INJGER5UN": {
+   "nombre": "INJERTO DE GERMINACION 5 UNI",
+   "titulo_meli": "Injerto Germinacion Enraizante Clonador De Raices Bola X5 Un",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1765424925"
+   ]
+  },
+  "KITPULTAL9V": {
+   "nombre": "KIT PULIDO TALADRO 9V",
+   "titulo_meli": "Kit Pulido Taladro 9v",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1765489343"
+   ]
+  },
+  "C-ALFARB10G": {
+   "nombre": "ALFA ARBUTINA 10g",
+   "titulo_meli": "Alfa Arbutina Polvo 10g Todo Tipo De Piel Día/noche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1817885111"
+   ]
+  },
+  "C-ALU500G": {
+   "nombre": "ALULOSA 500g",
+   "titulo_meli": "Alulosa Endulzante 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1929044032",
+    "MCO3105735890"
+   ]
+  },
+  "C-ALGSODLACCAL50G": {
+   "nombre": "ALGINATO SODIO LACTATO CALCIO 50g",
+   "titulo_meli": "Alginato De Sodio + Lactato De Calcio 50g C/u",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2059169393"
+   ]
+  },
+  "C-AGUDESSOBRPH": {
+   "nombre": "AGUA DESTILADA 250mL + SOBRES CALIBRACION PH",
+   "titulo_meli": "Agua Destilada 250ml + Sobres Ph Kit  Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2068301233"
+   ]
+  },
+  "C-CREMON1000G": {
+   "nombre": "CREATINA MONOHIDRATO 1000g",
+   "titulo_meli": "Creatina Monohidrato 1000g N/a",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2130155125"
+   ]
+  },
+  "C-CAPGELVAC0TRA1000UN": {
+   "nombre": "CAPSULAS GELATINA VACIAS 0 TRANSPARENTES 1000 UN",
+   "titulo_meli": "Cápsulas De Gelatina Vacías Transparentes X 1000 Und Talla 0 Transparente",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2153718551"
+   ]
+  },
+  "C-CAPVACGEL0AZUBLA1000UN": {
+   "nombre": "CAPSULAS VACIAS GELATINA 0 AZUL BLANCO 1000 UN",
+   "titulo_meli": "Cápsulas De Gelatina Vacías Blanco Y Azul X 1000 Und Talla 0 Blanco Y Azul",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2153718557"
+   ]
+  },
+  "C-CAPVACGEL00TRA1000UN": {
+   "nombre": "CAPSULAS VACIAS GELATINA 00 TRANSPARENTES 1000 UN",
+   "titulo_meli": "Cápsulas Gelatina Vacías Transparentes X1000 Und Talla 00 Transparente",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2153719165"
+   ]
+  },
+  "ERLMYR250ML": {
+   "nombre": "ERLEN MEYER MATRAZ 250mL",
+   "titulo_meli": "Erlenmeyer Matraz Cónico  Boro Siilicato 3.3  250 Ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2362581444"
+   ]
+  },
+  "C-MANKARBLA125G": {
+   "nombre": "MANTECA KARITE BLANCA 125g",
+   "titulo_meli": "Manteca De Karite Blanca X 125gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2445430648"
+   ]
+  },
+  "C-VAS900G": {
+   "nombre": "VASELINA 900g",
+   "titulo_meli": "Vaselina Pura X 900 G",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2519770564"
+   ]
+  },
+  "C-VERMAL30ML": {
+   "nombre": "VERDE MALAQUITA 30mL",
+   "titulo_meli": "Verde Malaquita 30ml",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2604821524"
+   ]
+  },
+  "TDS/EH/PH/TEMP": {
+   "nombre": "MEDIDOR DE PH 4 EN 1",
+   "titulo_meli": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2623998486"
+   ]
+  },
+  "FRSCRBTNGX10UN": {
+   "nombre": "FRESA CARBONO TUNGSTENO 1/8 X 10 UN",
+   "titulo_meli": "Fresas De  Carburo De Tungsteno Bimetal 1/8  Mototool",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2750487394"
+   ]
+  },
+  "EXTELC5MTS": {
+   "nombre": "EXTENSIÓN ELÉCTRICA PROFESIONAL CERTIFICADA RETIE 5 MTS",
+   "titulo_meli": "Extensión Eléctrica Profesional Certificada Retie  5 Mts",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2766883252"
+   ]
+  },
+  "CPLPRF100UN": {
+   "nombre": "CEPILLO PROFILAXIS 100UN",
+   "titulo_meli": "Cepillos Para Profilaxis Odontología",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2805763888"
+   ]
+  },
+  "C-KITACIHIA30ML": {
+   "nombre": "KIT HIDRATANTE ÁCIDO HIALURÓNICO",
+   "titulo_meli": "Kit Hidratante Ácido Hialurónico",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2829978702"
+   ]
+  },
+  "C-ACDKOJDPAL30ML": {
+   "nombre": "ACIDO KOJICO D PALMITATO 30mL",
+   "titulo_meli": "Ácido Kojico Dpalmitato 5% 30ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2876880906"
+   ]
+  },
+  "C-DHA10G": {
+   "nombre": "AUTOBRONCEADOR POLVO DHA 10g",
+   "titulo_meli": "Autobronceador Polvo Dha 10g",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2944713394"
+   ]
+  },
+  "C-ALBHUE500G": {
+   "nombre": "ALBUMINA DE HUEVO 500g",
+   "titulo_meli": "Albumina De Huevo 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3022724080"
+   ]
+  },
+  "C-AZUMMET30ML": {
+   "nombre": "AZUL METILENO 30mL",
+   "titulo_meli": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3141492374"
+   ]
+  },
+  "C-ACENEE500ML": {
+   "nombre": "ACEITE NEEM 500mL",
+   "titulo_meli": "Aceite De Neem 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3226490166",
+    "MCO883017727"
+   ]
+  },
+  "OLTKLT": {
+   "nombre": "BASE OLEATO POTASIO LITRO",
+   "titulo_meli": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+   "tipo": "product",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3793586824"
+   ]
+  },
+  "C-COLHID500G": {
+   "nombre": "COLAGENO POLVO HIDROLIZADO 500g",
+   "titulo_meli": "Colageno Hidrolizado 500g Neutro",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO3902022608"
+   ]
+  },
+  "C-CITMAG500G": {
+   "nombre": "CITRATO MAGNESIO 500g",
+   "titulo_meli": "Citrato De Magnesio En Polvo Puro 500g  Materia Prima Sin Sabor",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4074246724"
+   ]
+  },
+  "C-CITMAGKG": {
+   "nombre": "CITRATO MAGNESIO KG",
+   "titulo_meli": "Citrato De Magnesio 1000 Gramos Polvo Puro 1 Kilo Sin S Sin Sabor",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4083547534"
+   ]
+  },
+  "C-CITMAG250G": {
+   "nombre": "CITRATO MAGNESIO 250g",
+   "titulo_meli": "Citrato De Magnesio Puro 250 G Sin Sabor",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4083548736"
+   ]
+  },
+  "C-NUEBRA250G": {
+   "nombre": "NUEZ PARTIDA 250g",
+   "titulo_meli": "Nuez Del Brasil Partida 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4158346500"
+   ]
+  },
+  "C-NUEBRA500G": {
+   "nombre": "NUEZ PARTIDA 500g",
+   "titulo_meli": "Nuez Del Brasil Partida 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4158447792"
+   ]
+  },
+  "C-ALMNAT500G": {
+   "nombre": "ALMENDRA NATURAL 500g",
+   "titulo_meli": "Almendra Natural 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4158454446"
+   ]
+  },
+  "C-ALMNAT250G": {
+   "nombre": "ALMENDRA NATURAL 250g",
+   "titulo_meli": "Almendra Natural 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4158479154"
+   ]
+  },
+  "C-SEMCAL250G": {
+   "nombre": "SEMILLA DE CALABAZA 250g",
+   "titulo_meli": "Semilla De Calabaza 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4160718746"
+   ]
+  },
+  "C-SEMCAL500G": {
+   "nombre": "SEMILLAS DE CALABAZA 500g",
+   "titulo_meli": "Semilla De Calabaza 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4160901374"
+   ]
+  },
+  "C-ARADES250G": {
+   "nombre": "ARANDANOS DESHIDRATADOS 250g",
+   "titulo_meli": "Arándanos Deshidratados 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4160912078"
+   ]
+  },
+  "C-PISTOS500G": {
+   "nombre": "PISTACHOS TOSTADOS 500g",
+   "titulo_meli": "Pistachos Tostados 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4162681806"
+   ]
+  },
+  "C-COCDESHIL250G": {
+   "nombre": "COCO DESHIDRATADO HILOS 250g",
+   "titulo_meli": "Coco Deshidratado Natural 250g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4354281272"
+   ]
+  },
+  "C-COCDESHIL500G": {
+   "nombre": "COCO DESHIDRATADO HILOS 500g",
+   "titulo_meli": "Coco Deshidratado Natural 500g",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4354293808"
+   ]
+  },
+  "C-CAPGELVAC0VERBLA1000UN": {
+   "nombre": "CAPSULAS GELATINA VACIAS 0 VERDE BLANCO 1000 UN",
+   "titulo_meli": "Cápsulas Gelatina Vacías Blanco Y Verde X1000 Und Talla 0 Blanco Y Verde",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4364337028"
+   ]
+  },
+  "C-BICSOD500G": {
+   "nombre": "BICARBONATO DE SODIO 500g",
+   "titulo_meli": "Bicarbonato De Sodio  500 Gramos",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO557974228"
+   ]
+  },
+  "C-CERABREFKG": {
+   "nombre": "CERA ABEJAS REFINADA AMARILLA KG",
+   "titulo_meli": "Cera De Abejas Amarilla Refinada X 1 Kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO560569172"
+   ]
+  },
+  "C-ACERIC500ML": {
+   "nombre": "ACEITE RICINO 500mL",
+   "titulo_meli": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO577035616"
+   ]
+  },
+  "C-VITE30ML": {
+   "nombre": "VITAMINA E 30mL",
+   "titulo_meli": "Vitamina E 30 Ml Certificada No Se Identifica En La Información Suministrada",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO587476373"
+   ]
+  },
+  "C-GRADIG": {
+   "nombre": "GRAMERA BALANZA DIGITAL",
+   "titulo_meli": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO591391033"
+   ]
+  },
+  "C-GLICVEG500ML": {
+   "nombre": "GLICERINA VEGETAL 500mL",
+   "titulo_meli": "Glicerina Natural Vegetal Usp 500 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO595161900"
+   ]
+  },
+  "C-ACIKOJ5P30ML": {
+   "nombre": "ACIDO KOJICO 5% 30mL",
+   "titulo_meli": "Acido Kojico  Todo Tipo De Piel Día/noche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO600359078"
+   ]
+  },
+  "C-LAN40G": {
+   "nombre": "LANOLINA 40g",
+   "titulo_meli": "Lanolina Pura  Anti Grietas 40 Gramos",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO600431364"
+   ]
+  },
+  "C-ACERIC10ML": {
+   "nombre": "ACEITE RICINO 10mL",
+   "titulo_meli": "Aceite De Ricino 10 Ml",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO602225162"
+   ]
+  },
+  "C-TENSCI500G": {
+   "nombre": "TENSOACTIVO SCI 500g",
+   "titulo_meli": "Sci Tensoactivo 500 Gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO605852450"
+   ]
+  },
+  "C-EXTALOVER30ML": {
+   "nombre": "EXTRACTO ALOE VERA 30mL",
+   "titulo_meli": "Extracto De Aloe Vera 30 Ml 92% Todo Tipo De Piel",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO627419803"
+   ]
+  },
+  "C-ACEJOJ30ML": {
+   "nombre": "ACEITE DE JOJOBA 30mL",
+   "titulo_meli": "Aceite De Jojoba",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO657561094"
+   ]
+  },
+  "C-PARKG": {
+   "nombre": "PARAFINA KG",
+   "titulo_meli": "Parafina China 1kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO865282647"
+   ]
+  },
+  "C-TENSCIKG": {
+   "nombre": "TENSO ACTIVO SCI KG",
+   "titulo_meli": "Sci Tensoactivo 1kg",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO866417408"
+   ]
+  }
+ },
+ "excluidas": [
+  {
+   "meli_id": "MCO616771917",
+   "sku": "C-ARCAMA250G",
+   "titulo": "Arcilla Amarilla 250 Gr Todo Tipo De Piel",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO980071251",
+   "sku": "C-ACISAL50G",
+   "titulo": "Ácido Salicílico 50gr Todo Tipo De Piel",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO1839132084",
+   "sku": "C-LISO100G",
+   "titulo": "L Isoleucina 100gr - G A $239 N/a",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO1929017874",
+   "sku": "C-ACISAL50G",
+   "titulo": "Ácido Salicílico 50gr",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO611941575",
+   "sku": "ALCPRFLT",
+   "titulo": "Alcohol Perfumería Dulce",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO2695677492",
+   "sku": "OILMNRLT",
+   "titulo": "Aceite Mineral 1000 Ml",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  },
+  {
+   "meli_id": "MCO3044906620",
+   "sku": "C-FRACOS250ML",
+   "titulo": "Fragancia Cosmética X 250 Ml",
+   "motivo": "el SKU no existe en Alegra ni tiene alias"
+  }
+ ]
+}

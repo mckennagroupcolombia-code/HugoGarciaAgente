@@ -434,3 +434,18 @@ se causa en 4135 y el retiro al banco es traslado Debe 1110 / Haber 130505, nunc
 `CONTABILIDAD_LEDGER_BUDGET_S` (período a medias queda cuadrado y parece completo). Ante un **503
 de Alegra, releer antes de reintentar** (POST que sí se ejecutó). IVA de ventas nunca como
 total/1,19 (hay excluidos, Art. 424).
+
+**NIT, documento y soporte por asiento (27-sep-2026).** El contador cruza el libro contra la DIAN
+con **NIT + número de factura + valor**, y eso no estaba en columna propia. `contabilidad_documentos.py`
+lo deduce de lo ya registrado (referencia `compra:NIT:NUM`, venta MeLi/web → `facturacion_ventas_cache.db`,
+Siigo/compras del correo → su referencia, solicitud → su factura, «factura X» en el concepto) y los CSV
+del **extracto** y del **diario** traen ahora `NIT`, `Documento` y `Soporte` (NIT por **línea** en el
+diario). El enlace `Soporte` apunta a `/app/api/contabilidad/cc/movimientos/<id>/comprobante`, que acepta
+la **cookie del panel** (solo contador o permiso Libro Mayor) para abrirse desde Excel; base en
+`PANEL_URL_PUBLICA`. `adjuntar_soportes(aplicar=True)` enlaza (hardlink) el PDF/XML de
+`facturas_descargadas/` al asiento sin soporte — el índice de compras se arma leyendo NIT emisor +
+número **del XML**, no del nombre del archivo. Primera corrida: 724 asientos (30 → 754 con soporte desde
+el corte). Quedan ~750 sin documento: sobre todo ventas MeLi aún sin facturar (política: facturar al
+entregar) — que el CSV lo muestre vacío también es información para el contador.
+Cron `scripts/adjuntar_soportes_cron.py` (00:40, job `adjuntar_soportes` en Tareas Programadas;
+`ADJUNTAR_SOPORTES_CRON_ACTIVO=0` lo apaga) adjunta cada noche lo que dejó el auto-posteo de las 00:10.

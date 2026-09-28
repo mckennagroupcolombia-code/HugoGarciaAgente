@@ -25,9 +25,12 @@ export type Pieza = {
   pausada_por_cese?: boolean;
   // web
   cat?: string;
+  // fotos: una por canal, posterior a la etiqueta aprobada
+  canales?: Partial<Record<"web" | "meli", { n: number; ultima: string; desactualizada: boolean }>>;
+  foto_estado?: string;
 };
 
-export type ClavePieza = "etiquetas" | "ean" | "receta" | "factura" | "meli" | "web";
+export type ClavePieza = "etiquetas" | "fotos" | "ean" | "receta" | "factura" | "meli" | "web";
 
 export type Presentacion = {
   ref: string;
@@ -39,6 +42,9 @@ export type Presentacion = {
   foto_estado: string;
   foto_motivo: string;
   alegra: Pieza;
+  /** Despliegue gradual tras el cese: null si no hay despliegue; activo = volvió a la venta
+   *  en MeLi y la web porque su SKU se factura (app/services/despliegue_ventas.py). */
+  desplegado?: { activo: boolean; meli_ids?: string[]; desde?: string } | null;
   clasificacion: string;
   piezas: Record<ClavePieza, Pieza>;
   listas: number;
@@ -52,6 +58,7 @@ export type Familia = {
   presentaciones: Presentacion[];
   completas: number;
   total: number;
+  desplegadas?: number;
   carpetas_png: string[];
 };
 
@@ -62,12 +69,14 @@ export type RespuestaArbol = {
   piezas: ClavePieza[];
   total: number;
   completas: number;
+  desplegadas?: number;
   sin_senal: { fuente: string; error: string }[];
   generado: string;
 };
 
 export const PIEZAS: { clave: ClavePieza; nombre: string }[] = [
   { clave: "etiquetas", nombre: "Etiquetas" },
+  { clave: "fotos", nombre: "Fotos" },
   { clave: "ean", nombre: "EAN" },
   { clave: "receta", nombre: "Receta" },
   { clave: "factura", nombre: "Factura" },
@@ -76,8 +85,8 @@ export const PIEZAS: { clave: ClavePieza; nombre: string }[] = [
 ];
 export const TOTAL_PIEZAS = PIEZAS.length;
 
-/** Qué pieza del taller resuelve cada hoja del árbol. «factura» no es del taller:
- *  se revisa en Canales del producto. */
+/** Qué pieza del taller resuelve cada hoja del árbol. «factura» no es del taller (se revisa en
+ *  Canales del producto) y «fotos» se pega en la columna derecha, bajo su etiqueta. */
 export function piezaTaller(p: Presentacion, clave: ClavePieza): string | null {
   if (clave === "etiquetas") return "etiqueta";
   if (clave === "ean") return "ean";
@@ -86,15 +95,16 @@ export function piezaTaller(p: Presentacion, clave: ClavePieza): string | null {
   return null;
 }
 
+/** Clases del estilo pixel (arbol.css): bloque de estado y caja de una pieza. */
 export const PUNTO: Record<Estado, string> = {
-  ok: "bg-accent-leaf",
-  aviso: "bg-accent-sun",
-  falta: "bg-accent-rose",
+  ok: "ap-p ap-p-ok",
+  aviso: "ap-p ap-p-aviso",
+  falta: "ap-p ap-p-falta",
 };
 export const CAJA: Record<Estado, string> = {
-  ok: "border-accent-leaf/60 bg-accent-leaf/10",
-  aviso: "border-accent-sun/70 bg-accent-sun/15",
-  falta: "border-accent-rose/60 bg-accent-rose/10",
+  ok: "ap-ok",
+  aviso: "ap-aviso",
+  falta: "ap-falta",
 };
 
 export function peorEstado(estados: Estado[]): Estado {

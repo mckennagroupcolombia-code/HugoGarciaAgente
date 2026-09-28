@@ -11,6 +11,9 @@
  * la piel pixel, las pestañas dentro de los módulos (un blip). El menú rápido (Ctrl+K y la pestaña
  * «Rápido» del celular) marca cada botón con `data-sonido`: suena como el apartado al que lleva.
  * Se silencia con el botón del Mapa y queda recordado en este navegador.
+ *
+ * Cada toque transpone la nota un poco al azar (`jitterActual`, ±6%): la misma sección no suena
+ * clavada igual siempre (aburría), pero las notas de UN mismo toque quedan afinadas entre sí.
  */
 import type { Panel } from "../stores/app";
 import { ubicacionDe } from "./flujoApp";
@@ -19,6 +22,9 @@ const CLAVE = "mck-sonidos";
 const VOLUMEN = 0.07;
 let ctx: AudioContext | null = null;
 let ruido: AudioBuffer | null = null;
+/** Transposición del toque actual (±6%): todas las notas de un mismo toque la comparten (quedan
+ *  afinadas entre sí), pero el próximo toque a la misma sección suena un poco distinto. */
+let jitterActual = 1;
 
 export function sonidosActivos(): boolean {
   try {
@@ -50,8 +56,8 @@ function nota(c: AudioContext, t: number, f: number, dur: number, tipo: Onda = "
   const o = c.createOscillator();
   const g = c.createGain();
   o.type = tipo;
-  o.frequency.setValueAtTime(f, t);
-  if (hasta) o.frequency.exponentialRampToValueAtTime(hasta, t + dur);
+  o.frequency.setValueAtTime(f * jitterActual, t);
+  if (hasta) o.frequency.exponentialRampToValueAtTime(hasta * jitterActual, t + dur);
   const v = VOLUMEN * vol;
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(v, t + 0.006);
@@ -73,7 +79,7 @@ function golpe(c: AudioContext, t: number, dur: number, vol = 1, filtro = 3000) 
   s.buffer = ruido;
   const f = c.createBiquadFilter();
   f.type = "bandpass";
-  f.frequency.value = filtro;
+  f.frequency.value = filtro * jitterActual;
   const g = c.createGain();
   g.gain.setValueAtTime(VOLUMEN * 1.6 * vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -130,6 +136,7 @@ export function tocarSonido(nombre: string) {
   if (!c) return;
   try {
     if (c.state !== "running") void c.resume();
+    jitterActual = 0.94 + Math.random() * 0.12;
     hacer(c, c.currentTime + 0.01);
   } catch {
     /* sin audio: el toque sigue funcionando */

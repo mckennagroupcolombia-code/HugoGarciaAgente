@@ -5896,10 +5896,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-26T20:56:34+00:00"
+          "registrado_en": "2026-09-27T21:19:54+00:00"
         }
       ],
-      "updated_at": "2026-09-26T20:56:34+00:00"
+      "updated_at": "2026-09-27T21:19:54+00:00"
     },
     "C-PSYESC500G": {
       "ref": "C-PSYESC500G",
@@ -5917,10 +5917,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-26T20:56:34+00:00"
+          "registrado_en": "2026-09-27T21:19:54+00:00"
         }
       ],
-      "updated_at": "2026-09-26T20:56:34+00:00"
+      "updated_at": "2026-09-27T21:19:54+00:00"
     },
     "PSYESCG": {
       "ref": "PSYESCG",
@@ -6362,6 +6362,27 @@
         }
       ],
       "updated_at": "2026-09-27T01:07:56+00:00"
+    },
+    "ALBSECG": {
+      "ref": "ALBSECG",
+      "nombre": "Albaricoque Deshidratado",
+      "lotes": [
+        {
+          "lote_numero": "4049033-ARC",
+          "estado": "sin_cambios",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA",
+          "pais_origen": "Irán",
+          "fecha_fabricacion": "2026-01-06",
+          "fecha_vencimiento": "2028-01-06",
+          "fecha_recepcion": "2026-09-27",
+          "codigo_verificacion": "CBH7VM",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-27T23:21:20+00:00"
+        }
+      ],
+      "updated_at": "2026-09-27T23:21:20+00:00"
     }
   }
 }

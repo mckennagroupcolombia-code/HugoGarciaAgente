@@ -63,6 +63,8 @@ interface Calculo {
   total: number;
   errores: string[];
   sin_alegra: string[];
+  /** Productos fuera del despliegue gradual tras el cese (no se cotizan ni facturan). */
+  fuera_despliegue?: string[];
 }
 
 interface Cliente {
@@ -273,6 +275,34 @@ function leerNit(crudo: string): { base: string; dv: number | null; escrito: num
   return { base: d, dv: digitoVerificacion(d), escrito: null, ok: null };
 }
 
+// Despliegue gradual tras el cese (27-sep-2026): mientras esté activo solo se
+// cotizan los SKUs que ya volvieron a publicarse porque se facturan en Alegra.
+// El backend lo exige igual (ventas_directas.fuera_de_despliegue); esto solo
+// evita ofrecer en el buscador lo que después sería rechazado.
+interface Despliegue {
+  activo: boolean;
+  skus: Set<string>;
+}
+let despliegueCache: Promise<Despliegue> | null = null;
+function useDespliegue(): Despliegue | null {
+  const [d, setD] = useState<Despliegue | null>(null);
+  useEffect(() => {
+    despliegueCache ??= api
+      .get<{ activo: boolean; skus: { sku: string }[] }>("/api/ventas-directas/despliegue")
+      .then((r) => ({ activo: !!r.activo, skus: new Set((r.skus ?? []).map((x) => x.sku.toUpperCase())) }))
+      .catch(() => {
+        despliegueCache = null;
+        return { activo: false, skus: new Set<string>() };
+      });
+    let vivo = true;
+    void despliegueCache.then((x) => vivo && setD(x));
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  return d;
+}
+
 function useDebounced<T>(valor: T, ms: number): T {
   const [v, setV] = useState(valor);
   useEffect(() => {
@@ -464,8 +494,10 @@ export default function CotizarFacturarPanel() {
   const productosOk = lineas.length > 0 && lineas.every((l) => l.cantidad > 0 && l.precio_unitario >= 0);
   // Se puede facturar sin cédula: el backend usa Consumidor Final (NIT 222222222222).
   // Solo se exige el nombre; un NIT mal escrito lo rechaza el backend (DV).
+  // La venta MeLi con RUT factura algo ya vendido: el despliegue no la frena.
+  const fueraDespliegue = origen === "meli" ? [] : (calc?.fuera_despliegue ?? []);
   const puedeFacturar =
-    clienteOk && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length);
+    clienteOk && productosOk && !(calc?.sin_alegra.length) && !(calc?.errores.length) && fueraDespliegue.length === 0;
   const pasoHabilitado = (id: number) => id === 1 || (id === 2 && clienteOk) || (id === 3 && clienteOk && productosOk);
   const enlaceVigente = enlace && enlace.ident === soloDigitos(leerNit(cliente.identificacion).base || cliente.identificacion) ? enlace : null;
 
@@ -831,6 +863,7 @@ export default function CotizarFacturarPanel() {
                 onEnvio={setEnvio}
                 pendientes={pendientes}
                 onPendientes={setPendientes}
+                restringir={origen !== "meli"}
                 onAtras={() => setPaso(1)}
                 onSiguiente={() => void irAPaso(3)}
                 habilitado={productosOk}
@@ -858,7 +891,8 @@ export default function CotizarFacturarPanel() {
               onMedioPago={setMedioPago}
               soloLectura={soloLectura}
               ocupado={ocupado}
-              puedeCotizar={clienteOk && productosOk}
+              puedeCotizar={clienteOk && productosOk && fueraDespliegue.length === 0}
+              fueraDespliegue={fueraDespliegue}
               puedeFacturar={puedeFacturar}
               confirmarFactura={confirmarFactura}
               onCancelarFactura={() => setConfirmarFactura(false)}
@@ -1526,6 +1560,7 @@ function PasoEnviar({
   soloLectura,
   ocupado,
   puedeCotizar,
+  fueraDespliegue,
   puedeFacturar,
   confirmarFactura,
   onCancelarFactura,
@@ -1550,6 +1585,7 @@ function PasoEnviar({
   soloLectura: boolean;
   ocupado: string | null;
   puedeCotizar: boolean;
+  fueraDespliegue: string[];
   puedeFacturar: boolean;
   confirmarFactura: boolean;
   onCancelarFactura: () => void;
@@ -1578,6 +1614,11 @@ function PasoEnviar({
             className={input}
           />
         </Campo>
+        {fueraDespliegue.length > 0 && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+            <Ico e="⚠️" /> Por ahora solo se venden los productos que ya volvieron a publicarse. Quita: {fueraDespliegue.join(", ")}.
+          </p>
+        )}
         {calc && calc.sin_alegra.length > 0 && (
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
             <Ico e="⚠️" /> No existen en Alegra: {calc.sin_alegra.join(", ")}. Se puede cotizar (solo PDF), pero no facturar.
@@ -2087,9 +2128,11 @@ function PasoProductos({
   ocupado,
   pendientes,
   onPendientes,
+  restringir,
 }: {
   pendientes: ProductoExtraido[];
   onPendientes: (p: ProductoExtraido[]) => void;
+  restringir: boolean;
   lineas: Linea[];
   calc: Calculo | null;
   envio: number;
@@ -2102,8 +2145,13 @@ function PasoProductos({
   ocupado: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
-  const [resultados, setResultados] = useState<ProductoResultado[]>([]);
+  const [resultadosAlegra, setResultados] = useState<ProductoResultado[]>([]);
   const q = useDebounced(busqueda.trim(), 220);
+  const despliegue = useDespliegue();
+  const limitado = restringir && !!despliegue?.activo;
+  const desplegado = (codigo: string) => !limitado || !!despliegue?.skus.has(codigo.toUpperCase());
+  const resultados = limitado ? resultadosAlegra.filter((p) => desplegado(p.codigo)) : resultadosAlegra;
+  const fuera = restringir ? (calc?.fuera_despliegue ?? []) : [];
 
   useEffect(() => {
     if (!q) return setResultados([]);
@@ -2160,8 +2208,15 @@ function PasoProductos({
                   <span className="font-mono text-ink">{p.codigo}</span> <span className="text-ink-secondary">— {p.nombre}</span>
                 </button>
               ))}
+              {limitado && (
+                <p className="border-t border-border/60 px-3 py-2 text-xs text-muted">
+                  {resultados.length === 0 ? "No está entre los productos listos para vender." : "Solo aparecen los productos listos para vender."}{" "}
+                  Por ahora se venden solo los que ya volvieron a publicarse (se pueden facturar).
+                </p>
+              )}
               {/* No está en Alegra o le falta el SKU (clientes viejos, migración SIIGO→Alegra):
                   facturar contra un genérico con el IVA correcto, conservando el nombre. */}
+              {!limitado && (
               <div className="border-t border-border/60 bg-surface/60 px-3 py-2 text-xs">
                 <p className="mb-1 text-muted">
                   {resultados.length === 0 ? "No está en Alegra." : "¿No es ninguno?"} Facturar «{busqueda}» sin SKU:
@@ -2177,6 +2232,7 @@ function PasoProductos({
                   </button>
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -2193,7 +2249,9 @@ function PasoProductos({
                   descartar
                 </button>
               </p>
-              {p.candidatos.length === 0 ? (
+              {limitado && p.candidatos.filter((c) => desplegado(c.codigo)).length === 0 ? (
+                <p className="mt-1 text-muted">No está entre los productos listos para vender todavía.</p>
+              ) : p.candidatos.length === 0 ? (
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   <span className="text-muted">Sin SKU en Alegra — facturar sin SKU:</span>
                   <button type="button"
@@ -2209,7 +2267,7 @@ function PasoProductos({
                 </div>
               ) : (
                 <div className="mt-1 flex flex-wrap gap-1">
-                  {p.candidatos.map((c) => (
+                  {p.candidatos.filter((c) => desplegado(c.codigo)).map((c) => (
                     <button
                       key={c.codigo}
                       type="button"
@@ -2227,6 +2285,12 @@ function PasoProductos({
             </div>
           ))}
         </div>
+      )}
+
+      {fuera.length > 0 && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          <Ico e="⚠️" /> Todavía no se pueden vender (no han vuelto a publicarse): {fuera.join(", ")}. Quítalos para cotizar o facturar.
+        </p>
       )}
 
       {lineas.length === 0 ? (

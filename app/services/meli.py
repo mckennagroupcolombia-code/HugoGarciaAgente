@@ -754,6 +754,21 @@ def pausa_global_meli_activa() -> bool:
         return False
 
 
+def meli_item_reactivable(item_id: str) -> bool:
+    """False si una sincronización automática NO debe reactivar esta publicación:
+    pausa global en curso, o despliegue gradual (app/services/despliegue_ventas.py)
+    activo y el ítem fuera de la lista de lo que hoy se puede facturar."""
+    if pausa_global_meli_activa():
+        return False
+    try:
+        from app.services.despliegue_ventas import meli_ids_habilitados
+
+        permitidos = meli_ids_habilitados()
+    except Exception:
+        permitidos = None
+    return permitidos is None or str(item_id or "").strip().upper() in permitidos
+
+
 def _reactivar_item_meli_si_pausada(
     item_id: str,
     headers: dict,
@@ -769,8 +784,8 @@ def _reactivar_item_meli_si_pausada(
     """
     if int(nuevo_stock) <= 0:
         return ""
-    if pausa_global_meli_activa():
-        return " · sigue pausada (pausa global MeLi)"
+    if not meli_item_reactivable(item_id):
+        return " · sigue pausada (pausa global o fuera del despliegue)"
 
     import time
 
@@ -1017,14 +1032,14 @@ def _actualizar_stock_meli_item(item_id: str, nuevo_stock: int, headers: dict) -
                 headers={**headers, "Content-Type": "application/json"},
                 json=(
                     {"available_quantity": nuevo_stock}
-                    if pausa_global_meli_activa()
+                    if not meli_item_reactivable(item_id)
                     else {"available_quantity": nuevo_stock, "status": "active"}
                 ),
                 timeout=20,
             )
             if res_combo is not None and res_combo.status_code in (200, 201):
-                if pausa_global_meli_activa():
-                    return f"✅ {item_id} → {nuevo_stock} uds · sigue pausada (pausa global MeLi)"
+                if not meli_item_reactivable(item_id):
+                    return f"✅ {item_id} → {nuevo_stock} uds · sigue pausada (pausa global o fuera del despliegue)"
                 return f"✅ {item_id} → {nuevo_stock} uds · reactivada"
             return (
                 f"❌ {item_id}: pausada y no se pudo actualizar/reactivar "

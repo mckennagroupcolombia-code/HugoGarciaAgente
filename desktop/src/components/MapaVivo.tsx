@@ -28,7 +28,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
-import { PanelIcon } from "../icons";
+import { Icon, PanelIcon } from "../icons";
 import { ETAPAS_APP, ORIGEN_APP, type EtapaApp, type TramoApp } from "../lib/flujoApp";
 import { etapaDeTicket } from "../lib/flujoTickets";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
@@ -101,7 +101,7 @@ function Manijas({ entra, sale }: Lados) {
 function CartaOrigen({ id, data }: NodeProps) {
   const d = data as DatosOrigen & Lados;
   const abrir = useContext(AbrirCtx);
-  const { token, verMensajes, vistaAgenda, espacios } = useInicio((p) => abrir(p, id));
+  const { token, verMensajes, vistaAgenda, irAcciones, espacios } = useInicio((p) => abrir(p, id));
   return (
     <div className="mv-carta mv-origen" data-etapa="inicio">
       <Manijas entra={d.entra} sale={d.sale} />
@@ -124,6 +124,20 @@ function CartaOrigen({ id, data }: NodeProps) {
                     onClick={() => vistaAgenda("mensajes")} title="Solicitudes y acciones, como un chat">
               <PanelIcon panel="tickets" size={18} bubble={false} />
               <span className="min-w-0 flex-1 truncate text-left">Mensajes</span>
+            </button>
+          )}
+          {d.puede && (
+            <button type="button" className="mv-panel nodrag nopan" data-panel={ORIGEN_APP.panel} data-vista="recordatorios"
+                    onClick={() => irAcciones("agenda")} title="Tus recordatorios programados">
+              <Icon name="bell" size={18} weight="bold" />
+              <span className="min-w-0 flex-1 truncate text-left">Recordatorios</span>
+            </button>
+          )}
+          {d.puede && (
+            <button type="button" className="mv-panel nodrag nopan" data-panel={ORIGEN_APP.panel} data-vista="notas"
+                    onClick={() => irAcciones("notas")} title="Tus pensamientos e ideas personales">
+              <Icon name="note" size={18} weight="bold" />
+              <span className="min-w-0 flex-1 truncate text-left">Notas</span>
             </button>
           )}
           {espacios.map((p) => (

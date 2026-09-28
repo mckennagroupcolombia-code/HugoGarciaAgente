@@ -70,6 +70,7 @@ export default function TareaEnCurso({ compacto = false }: { compacto?: boolean 
   const [voz, setVoz] = useState(leerVoz);
   const [, setTick] = useState(0);
   const [ocupado, setOcupado] = useState<number | null>(null);
+  const [confirmarFin, setConfirmarFin] = useState<number | null>(null);
 
   const q = useQuery({
     queryKey: ["tareas-en-curso", token],
@@ -147,9 +148,10 @@ export default function TareaEnCurso({ compacto = false }: { compacto?: boolean 
     return () => clearInterval(iv);
   }, [apiToken, token]);
 
-  const accion = useCallback(async (c: EnCurso, que: "pausar" | "reanudar") => {
+  const accion = useCallback(async (c: EnCurso, que: "pausar" | "reanudar" | "finalizar") => {
     if (!token) return;
     setOcupado(c.corrida_id);
+    setConfirmarFin(null);
     try {
       await tickets(`/corridas/${c.corrida_id}/${que}`, token, "POST");
       if (que === "reanudar") marcarAvisoTarea();
@@ -204,7 +206,7 @@ export default function TareaEnCurso({ compacto = false }: { compacto?: boolean 
             className="absolute right-0 top-10 z-[70] w-[min(92vw,360px)] overflow-hidden rounded-2xl border border-border bg-surface shadow-paper-lg">
             <p className="px-3 pt-2.5 text-[12.5px] font-bold text-ink">Tus tareas con cronómetro</p>
             <p className="px-3 pb-2 text-[11px] text-muted">
-              Sigue contando aunque bloquees el celular o cambies de pantalla. Solo ⏸ lo pausa.
+              Sigue contando aunque bloquees el celular o cambies de pantalla. Solo ⏸ lo pausa y ✓ lo termina.
             </p>
             <ul className="max-h-[50vh] divide-y divide-border overflow-y-auto border-t border-border">
               {lista.map((c) => (
@@ -215,6 +217,26 @@ export default function TareaEnCurso({ compacto = false }: { compacto?: boolean 
                       {fmtTiempo(segundosDe(c))} · {c.estado === "activa" ? "en curso" : "en pausa"}
                     </p>
                   </div>
+                  {confirmarFin === c.corrida_id ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={ocupado === c.corrida_id}
+                        onClick={() => void accion(c, "finalizar")}
+                        title="Detiene el cronómetro y guarda el tiempo en la bitácora. La tarea sigue abierta."
+                        className="shrink-0 rounded-lg border border-emerald-500 bg-emerald-500 px-2.5 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
+                      >
+                        ✓ Sí, finalizar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmarFin(null)}
+                        className="shrink-0 rounded-lg border border-border px-2 py-1.5 text-[12px] font-bold text-muted"
+                      >
+                        No
+                      </button>
+                    </>
+                  ) : (<>
                   <button
                     type="button"
                     disabled={ocupado === c.corrida_id}
@@ -225,6 +247,16 @@ export default function TareaEnCurso({ compacto = false }: { compacto?: boolean 
                   >
                     {c.estado === "activa" ? "⏸ Pausar" : "▶ Reanudar"}
                   </button>
+                  <button
+                    type="button"
+                    disabled={ocupado === c.corrida_id}
+                    onClick={() => setConfirmarFin(c.corrida_id)}
+                    title="Finalizar el cronómetro de esta tarea"
+                    className="shrink-0 rounded-lg border border-emerald-500 px-2.5 py-1.5 text-[12px] font-bold text-emerald-700 disabled:opacity-50 dark:text-emerald-300"
+                  >
+                    ✓ Fin
+                  </button>
+                  </>)}
                 </li>
               ))}
             </ul>

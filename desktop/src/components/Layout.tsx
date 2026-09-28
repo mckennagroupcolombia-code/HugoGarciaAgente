@@ -119,13 +119,13 @@ export default function Layout({
       <SolicitudesEnProcesoFab />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent" data-piso={piso?.id}
             style={piso ? ({ "--mck-piso": piso.fondo, "--mck-piso-tinta": piso.tinta } as CSSProperties) : undefined}>
-        {/* En Docs técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
-        {tallerRetorno && panel !== (tallerRetorno.origen ?? "combos") && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
+        {/* En Documentos técnicos y en la guía de Publicaciones el regreso va en su tarjeta: flotando tapaba la barra de acciones. */}
+        {tallerRetorno && panel !== (tallerRetorno.origen ?? "etiquetas") && panel !== "fichas" && !(panel === "publicaciones" && tallerRetorno.pieza?.clave === "publicacion") && (
           <div className="fixed bottom-4 left-1/2 z-[60] max-w-[92vw] -translate-x-1/2">
             <button
               type="button"
               onClick={volverAlTaller}
-              title={tallerRetorno.origen === "canales-producto" ? "Volver a Canales del producto" : "Volver al taller de combos para seguir completando este producto"}
+              title={tallerRetorno.origen === "canales-producto" ? "Volver a Canales del producto" : "Volver al Árbol del producto para seguir completando este combo"}
               className="mck-flujo-nodo mck-mision-pulso flex max-w-full items-center gap-2 rounded-full border-2 border-white/70 bg-accent px-4 py-2 text-[13px] font-bold text-white shadow-paper-lg hover:opacity-90"
             >
               <span aria-hidden="true">←</span>
@@ -253,7 +253,7 @@ export default function Layout({
 
             {/* Controles fijos a la derecha: no pelean con pestañas en pantallas angostas */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-              {sectionId === "contabilidad" && (
+              {(sectionId === "contabilidad" || sectionId === "diseno") && (
                 <ContabilidadHerramientas
                   puedeCrearSiigo={Boolean(puedeVerModuloContabilidad(user, "productos-siigo"))}
                 />
@@ -279,15 +279,15 @@ export default function Layout({
           {/* Sin menú de arriba (25-sep-2026): toda la navegación sale del Mapa, donde cada etapa
               despliega sus paneles; «◇ Mapa» (arriba a la izquierda) vuelve a él desde cualquier
               lado. Lo que sigue aquí son vistas DENTRO de un panel, no navegación entre paneles:
-              las de la Agenda (Mi día · Mensajes · Equipo…) y las pestañas de Diseño y Docs. */}
+              las de la Agenda (Mi día · Mensajes · Equipo…) y las pestañas de Diseño (con Documentos técnicos). */}
           {navFlujo && enFamiliaAgenda && (
             <div className="mck-flujo-vistas flex min-w-0 items-center gap-1.5">
               <InicioNavTabs soloVistas />
             </div>
           )}
-          {navFlujo && (sectionId === "diseno" || sectionId === "docs") && (
+          {navFlujo && sectionId === "diseno" && (
             <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
-              {sectionId === "diseno" ? <DisenoNavTabs /> : <DocsNavTabs />}
+              <DisenoNavTabs />
             </div>
           )}
 
@@ -300,11 +300,15 @@ export default function Layout({
                 <ContabilidadNavTabs />
               ) : sectionId === "diseno" ? (
                 <DisenoNavTabs />
-              ) : sectionId === "docs" ? (
-                <DocsNavTabs />
               ) : (
                 <HubNavTabs sectionId={sectionId} />
               )}
+            </div>
+          )}
+          {/* Documentos técnicos vive dentro de Diseño: sus tres pasos van debajo de las pestañas. */}
+          {panel === "fichas" && (navFlujo || showHubTabs) && (
+            <div className="mck-submenu min-w-0 w-full rounded-xl px-1 py-0.5">
+              <DocsNavTabs />
             </div>
           )}
         </header>

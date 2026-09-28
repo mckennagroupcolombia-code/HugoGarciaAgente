@@ -1,5 +1,5 @@
 {
-  "activa": true,
+  "activa": false,
   "desde": "2026-09-25T01:18:40",
   "mensaje_whatsapp": "Hola, gracias por escribir a McKenna Group. Tendremos un mantenimiento para seguir mejorando tu experiencia; mientras tanto no estamos recibiendo pedidos nuevos. Te avisaremos por este medio cuando retomemos. ¡Gracias por tu paciencia!",
   "numeros_internos": [
@@ -176,5 +176,5 @@
     }
   ],
   "_nota_habilitados": "Clientes con pedido sin entregar al iniciar el cese: pueden escribir y recibir mensajes normalmente. Sus JID están en numeros_internos (lista que leen /whatsapp y el puente).",
-  "hasta": "2026-09-24T22:21:30"
+  "hasta": "2026-09-27T20:27:06"
 }

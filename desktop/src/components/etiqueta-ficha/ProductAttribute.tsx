@@ -67,18 +67,18 @@ export default function ProductAttribute({
         disabled={!editMode}
         onClick={onEditarIcono}
         title={editMode ? "Cambiar ícono" : undefined}
-        className={`mb-[3px] flex h-16 w-16 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[color:var(--acento)] transition-transform duration-150 ${
+        className={`mb-[3px] flex h-[70px] w-[70px] items-center justify-center rounded-md border-0 bg-transparent p-0 text-[color:var(--acento)] transition-transform duration-150 ${
           editMode ? "cursor-pointer hover:scale-[1.06] hover:bg-[color:var(--acento-08)]" : "cursor-default"
         }`}
       >
         {svgInline ? (
           <span
             aria-hidden="true"
-            className="block h-[58px] w-[58px] [&>svg]:h-full [&>svg]:w-full"
+            className="block h-[64px] w-[64px] [&>svg]:h-full [&>svg]:w-full"
             dangerouslySetInnerHTML={{ __html: svgInline }}
           />
         ) : iconSrc ? (
-          <img src={iconSrc} alt="" className="h-[58px] w-[58px] object-contain" />
+          <img src={iconSrc} alt="" className="h-[64px] w-[64px] object-contain" />
         ) : (
           icon
         )}

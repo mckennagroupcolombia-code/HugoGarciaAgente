@@ -1925,8 +1925,10 @@ function ProductLabelFormInner({
           data={data}
           reticula={retCircular}
           editMode={editMode}
+          attributeIcons={attributeIcons}
           guias={showGrid && editMode}
           onChange={onChange}
+          onIconChange={onIconChange}
           onElegirCodigo={(c) => void onElegirCodigo(c)}
         />
       </Marco30ml>

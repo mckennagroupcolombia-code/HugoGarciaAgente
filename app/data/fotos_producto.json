@@ -1,0 +1,26 @@
+{
+ "productos": {
+  "C-PSYESC250G": {
+   "web": [
+    {
+     "archivo": "C-PSYESC250G_20260927-222106_2d40.png",
+     "subido_at": "2026-09-27T22:21:06",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2562256
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-PSYESC250G_20260927-222714_7668.png",
+     "subido_at": "2026-09-27T22:27:14",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2532625
+    }
+   ]
+  }
+ }
+}

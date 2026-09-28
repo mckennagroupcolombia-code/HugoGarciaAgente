@@ -176,14 +176,20 @@ function capaCentral(centro: HTMLElement, rel: (r: DOMRect) => Caja): string[] {
     );
   }
 
-  // Viñetas de la lista.
-  for (const v of Array.from(centro.querySelectorAll<HTMLElement>(".ec-item-vineta"))) {
-    const c = rel(v.getBoundingClientRect());
-    if (c.w <= 0) continue;
+  // Líneas finas del bloque central (separadores y cruz de la rejilla): mismo
+  // trato que la franja de colores, un rectángulo con el color ya resuelto.
+  for (const l of Array.from(centro.querySelectorAll<HTMLElement>(".ec-separador"))) {
+    const c = rel(l.getBoundingClientRect());
+    if (c.w <= 0 || c.h <= 0) continue;
     piezas.push(
-      `<circle cx="${redondear(c.x + c.w / 2)}" cy="${redondear(c.y + c.h / 2)}" r="${redondear(c.w / 2)}"`
-      + ` fill="${getComputedStyle(v).backgroundColor}"/>`,
+      `<rect x="${redondear(c.x)}" y="${redondear(c.y)}" width="${redondear(c.w)}" height="${redondear(c.h)}" fill="${getComputedStyle(l).backgroundColor}"/>`,
     );
+  }
+
+  // Íconos de las casillas.
+  for (const icono of Array.from(centro.querySelectorAll<HTMLElement>(".ec-casilla-icono .e30-svg"))) {
+    const pieza = iconoVectorial(icono, rel(icono.getBoundingClientRect()));
+    if (pieza) piezas.push(pieza);
   }
 
   // Código de barras: el generador del repo ya devuelve un SVG de barras y
@@ -195,7 +201,7 @@ function capaCentral(centro: HTMLElement, rel: (r: DOMRect) => Caja): string[] {
     if (incrustado) piezas.push(incrustado);
   }
 
-  const img = centro.querySelector("img:not(.ec-logo-img)");
+  const img = centro.querySelector("img:not(.ec-logo-img):not(.e30-svg)");
   if (img instanceof HTMLImageElement) {
     const anidado = barrasAnidadas(img, rel(img.getBoundingClientRect()));
     if (anidado) piezas.push(anidado);
@@ -232,6 +238,32 @@ function imagenIncrustada(img: HTMLImageElement, c: Caja): string | null {
     `<image x="${redondear(c.x)}" y="${redondear(c.y)}" width="${redondear(c.w)}" height="${redondear(c.h)}"`
     + ` preserveAspectRatio="xMidYMid meet" href="${href}"/>`
   );
+}
+
+/** Ícono de casilla: el `<svg>` en línea se anida en su caja con el color y el
+ *  grosor de trazo ya resueltos (en pantalla los pone el CSS: `currentColor` y
+ *  `.e30-svg > svg *`). Un ícono subido como imagen va incrustado. */
+function iconoVectorial(icono: HTMLElement, c: Caja): string | null {
+  if (c.w <= 0 || c.h <= 0) return null;
+  if (icono instanceof HTMLImageElement) return imagenIncrustada(icono, c);
+  const svg = icono.querySelector("svg");
+  if (!svg) return null;
+  const clon = svg.cloneNode(true) as SVGSVGElement;
+  const origen = svg.querySelectorAll("*");
+  const copia = clon.querySelectorAll("*");
+  for (let i = 0; i < origen.length && i < copia.length; i++) {
+    const trazo = getComputedStyle(origen[i]).strokeWidth;
+    if (trazo) copia[i].setAttribute("stroke-width", trazo.replace(/px$/, ""));
+  }
+  clon.removeAttribute("class");
+  clon.removeAttribute("style");
+  clon.setAttribute("x", String(redondear(c.x)));
+  clon.setAttribute("y", String(redondear(c.y)));
+  clon.setAttribute("width", String(redondear(c.w)));
+  clon.setAttribute("height", String(redondear(c.h)));
+  clon.setAttribute("color", getComputedStyle(icono).color);
+  clon.setAttribute("overflow", "visible");
+  return new XMLSerializer().serializeToString(clon);
 }
 
 function barrasAnidadas(img: HTMLImageElement, c: Caja): string | null {
@@ -320,11 +352,15 @@ function textoDeParrafo(p: HTMLElement, rel: (r: DOMRect) => Caja): string[] {
 
   if (renglones.length === 0) renglones.push({ texto: texto.trim(), caja: rel(p.getBoundingClientRect()) });
 
+  // `text-transform` no es propiedad SVG: lo que se ve en mayúsculas se
+  // escribe en mayúsculas (si no, sale en minúsculas y más angosto).
+  const mayusculas = css.textTransform === "uppercase";
+
   // Cada renglón se ancla por su centro: así da igual cómo esté alineado el
   // párrafo (centrado, a la izquierda), el renglón cae donde está.
   return renglones.map(({ texto: t, caja: c }) =>
     `<text x="${redondear(c.x + c.w / 2)}" y="${redondear(c.y + c.h / 2)}" text-anchor="middle"`
-    + ` dominant-baseline="central"${atributos}>${escaparXml(t)}</text>`,
+    + ` dominant-baseline="central"${atributos}>${escaparXml(mayusculas ? t.toLocaleUpperCase("es") : t)}</text>`,
   );
 }
 

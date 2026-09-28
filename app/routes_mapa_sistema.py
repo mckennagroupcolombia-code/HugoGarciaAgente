@@ -208,7 +208,7 @@ def register_mapa_sistema_routes(app):
         return ""
 
     @_dual(app, "/api/mapa-sistema/fotos-producto", methods=["GET"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_fotos_resumen():
         """{SKU: {meli, web}}: cuántas fotos/mockups tiene cada producto por canal."""
         from app.services import fotos_producto as F
@@ -216,7 +216,7 @@ def register_mapa_sistema_routes(app):
         return jsonify({"resumen": F.resumen()})
 
     @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>", methods=["GET", "POST", "DELETE"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_fotos_producto(ref: str):
         """Fotos y mockups de un producto: listar, guardar lo pegado (multipart: canal,
         archivo) o retirar una (?canal=&archivo=, va a una papelera)."""
@@ -237,7 +237,7 @@ def register_mapa_sistema_routes(app):
             return jsonify({"error": str(exc)}), 400
 
     @_dual(app, "/api/mapa-sistema/fotos-producto/<ref>/archivo", methods=["GET"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_fotos_producto_archivo(ref: str):
         from app.services import fotos_producto as F
 
@@ -312,7 +312,7 @@ def register_mapa_sistema_routes(app):
         return jsonify({"funciones": rendimiento.quien_hace()})
 
     @_dual(app, "/api/mapa-sistema/productos", methods=["GET"])
-    @_auth
+    @_auth_studio
     def mapa_sistema_productos():
         """La cadena vista desde lo que se compró: una fila por producto adquirido."""
         return jsonify(M.matriz_productos(refrescar=request.args.get("refrescar") == "1"))

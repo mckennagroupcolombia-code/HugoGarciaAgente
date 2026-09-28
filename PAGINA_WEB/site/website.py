@@ -218,7 +218,7 @@ CATEGORY_MAP = [
       "prfn"],                                                     "Ceras y Mantecas"),
     (["alcctl","btms","btncc","crlnt","ccmd","tsscc","tsci",
       "pls20","polisb","polsorb","cocamid"],                       "Emulsionantes y Surfactantes"),
-    (["alnt","frbsgl","glc","hyal","niac","dprp",
+    (["alnt","frbsgl","glc","hyal","niac","dprp","dpg",
       "srb500","urcsm"],                                           "Humectantes"),
     (["arc"],                                                      "Arcillas"),
     (["bcarna","ctrca","ctmg","ctrmg","clrmg","ctrzn","salmg",
@@ -226,8 +226,11 @@ CATEGORY_MAP = [
     (["oltk","lctca","gmxtn","gmxnt","brxlben","slfcul"],          "Minerales"),
     (["dpnt","vtmb","vtmc","vtma","vtmd","vtme"],                  "Vitaminas"),
     (["bcaa","clgnhd","crtnmnh","els","gltssnbr","prtasl",
-      "gelat","albhv","larg","lglt","lisl","lprl",
+      "gelat","albhv","albhue","larg","lglt","lisl","lprl",
       "ltrp","trn250"],                                            "Suplementarios"),
+    (["almnat","arades","cocdeshil","mannattos","nuebra",
+      "pistos","semcal"],                                          "Frutos secos y semillas"),
+    (["salmar","salros"],                                          "Especias, sales y condimentos"),
     (["cfn","extalvr","extgsn","extmlt","extemtc","mltdxtr",
       "mltdxlb","algna","cmcph","cmclb","coloid","extmat",
       "gmsn","actnalb","agag","almyc","cpsvcglt","dxdtlb",
@@ -281,6 +284,8 @@ CAT_A_LINEA: dict[str, str] = {
     "Excipientes": "Alimentario",
     "Edulcorantes": "Alimentario",
     "Saborizantes": "Alimentario",
+    "Frutos secos y semillas": "Alimentario",
+    "Especias, sales y condimentos": "Alimentario",
     "Minerales": "Industria",
     "Conservantes": "Industria",
     "Antisépticos": "Industria",
@@ -2193,6 +2198,38 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
     sku_base = re.sub(r"[^A-Za-z0-9]", "", sku_base)
     nombre_clean = _finalize_catalog_name(nombre or "")
     n = _normalizar_match_producto(nombre_clean)
+    # Frutos secos, semillas y frutas deshidratadas: no tenían categoría propia y caían en
+    # «Otros» (almendra, maní, nuez, chía, dátiles, uvas pasas…). Un aceite o extracto DE
+    # semilla (aceite de semilla de uva) sigue siendo aceite: por eso el guardia del inicio.
+    if not n.startswith(("aceite", "extracto", "manteca", "cera ")) and (
+        "almendra" in n
+        or ("nuez" in n and "moscada" not in n)
+        or "nueces" in n
+        or "maranon" in n
+        or "pistacho" in n
+        or "avellana" in n
+        or "macadamia" in n
+        or n.startswith("mani ")
+        or "cacahuate" in n
+        or "pecan" in n
+        or "ajonjoli" in n
+        or "arandano" in n
+        or "cranberry" in n
+        or "coco deshidratado" in n
+        or "semilla" in n
+        or "amaranto" in n
+        or "quinua" in n
+        or "quinoa" in n
+        or "datil" in n
+        or "albaricoque" in n
+        or "goji" in n
+        or "uvas pasas" in n
+        or "uva pasa" in n
+    ):
+        return "Frutos secos y semillas"
+    # Sal de cocina y condimentos: no son «Sales Minerales» (citratos, cloruros de uso técnico).
+    if n.startswith(("sal marina", "sal rosada", "sal de mar")) or "himalaya" in n:
+        return "Especias, sales y condimentos"
     if "aceite esencial" in n or n.startswith("aceite arbol") or "esencial" in n:
         return "Aceites Esenciales"
     if "bomba de vacio" in n or "bomba de vacío" in n:
@@ -2222,7 +2259,16 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         return "Minerales"
     if "colorante" in n:
         return "Saborizantes"
-    if "gotero" in n or "beaker" in n or "revolvedor" in n or "envase de vidrio" in n:
+    if (
+        "gotero" in n
+        or "beaker" in n
+        or "revolvedor" in n
+        or "envase de vidrio" in n
+        or "vaso de precipitado" in n
+        or "espatula" in n
+        or "balanza" in n
+        or "gramera" in n
+    ):
         return "Equipos y Materiales"
     if n.startswith("aceite ") or n.startswith("acete ") or " sebo " in f" {n} " or n.startswith("sebo "):
         return "Aceites"
@@ -2261,6 +2307,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "alantoina" in n
         or n.startswith("urea")
         or "sorbitol" in n
+        or "dipropilenglicol" in n
     ):
         return "Humectantes"
     if "arcilla" in n or "caolin" in n or "dioxido titanio" in n or "oxido zinc" in n:
@@ -2275,6 +2322,9 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "taurina" in n
         or "glutamina" in n
         or "prolina" in n
+        or "albumina" in n
+        or "glicina" in n
+        or "psyllium" in n
     ):
         return "Suplementarios"
     if (
@@ -2282,6 +2332,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "sorbato" in n
         or "glutaraldehido" in n
         or "sharomix" in n
+        or "metabisulfito" in n
     ):
         return "Conservantes"
     if (
@@ -2303,6 +2354,8 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "embrion pato" in n
         or "elastina" in n
         or "gusano seda" in n
+        or "gusano de seda" in n
+        or "carbon activado" in n
         or "extracto" in n
         or "flores secas" in n
     ):
@@ -2313,8 +2366,12 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
         or "inulina" in n
         or "glutamato" in n
         or "agua destilada" in n
+        or ("alginato" in n and "calcio" not in n)  # alginato + calcio = kit de esferificación
+        or "celulosa microcristalina" in n
     ):
         return "Excipientes"
+    if n.startswith("vaselina"):
+        return "Aceites"
     if n.startswith("vitamina ") or "cianocobalamina" in n:
         return "Vitaminas"
     if "sabor " in n:
@@ -2327,6 +2384,7 @@ def _combo_category_from_siigo(code: str, nombre: str) -> str:
     by_stem = {
         "ACDASC": "Ácidos",
         "ACDKJC": "Ácidos",
+        "ACISAL": "Ácidos",
         "ACDASCTMG": "Sales Minerales",
         "ACIDESTEARICO": "Ácidos",
         "ACDLACTICO": "Ácidos",
@@ -2904,7 +2962,73 @@ def _rebuild_product_index(data: list, combo_flat: list) -> None:
 
 def get_catalog(force=False) -> list:
     with _catalog_lock:
-        return _get_catalog_locked(force)
+        data = _get_catalog_locked(force)
+    return _catalogo_desplegado(data)
+
+
+# ── Despliegue gradual tras el cese (27-sep-2026, app/services/despliegue_ventas.py) ──
+# Mientras el despliegue esté activo la tienda solo muestra y vende los SKUs que hoy se
+# facturan en Alegra. Se aplica como vista sobre el catálogo en memoria (cache.json no
+# cambia): ampliar la lista se ve en la siguiente petición, sin reconstruir nada.
+_despliegue_memo: dict = {"clave": None, "data": None}
+
+
+def _skus_desplegados() -> set | None:
+    try:
+        from app.services.despliegue_ventas import skus_habilitados
+
+        return skus_habilitados()
+    except Exception as exc:
+        log.warning("Despliegue de ventas ilegible (%s): la tienda se muestra completa", exc)
+        return None
+
+
+def _vista_despliegue(p: dict | None, permitidos: set | None = None) -> dict | None:
+    """El producto tal como debe verse con el despliegue activo, o None si queda oculto.
+    Una familia conserva solo sus presentaciones desplegadas."""
+    if not p:
+        return p
+    if permitidos is None:
+        permitidos = _skus_desplegados()
+    if permitidos is None:
+        return p
+    if not p.get("is_family"):
+        return p if str(p.get("ref") or "").strip().upper() in permitidos else None
+    combos = [c for c in p.get("combos") or [] if str(c.get("ref") or "").strip().upper() in permitidos]
+    if not combos:
+        return None
+    if len(combos) == len(p.get("combos") or []):
+        return p
+    q = dict(p)
+    q["combos"] = combos
+    q["n_presentaciones"] = len(combos)
+    if str(q.get("rep_sku") or "").strip().upper() not in permitidos:
+        rep = min(combos, key=lambda c: float(c.get("precio_num") or 0) or float("inf"))
+        for k in ("ref", "precio_meli", "precio_num", "lista_num", "ahorro", "ahorro_num", "stock", "photo", "photos", "meli_id"):
+            if k in rep:
+                q[k] = rep[k]
+        q["rep_sku"] = rep.get("ref")
+        q["precio"] = ("Desde " if len(combos) > 1 else "") + str(rep.get("precio") or "")
+    elif len(combos) == 1:
+        q["precio"] = str(combos[0].get("precio") or q.get("precio") or "")
+    q["buyable"] = any(c.get("buyable", True) for c in combos)
+    return q
+
+
+def _catalogo_desplegado(data: list) -> list:
+    permitidos = _skus_desplegados()
+    if permitidos is None or not data:
+        return data
+    clave = (id(data), frozenset(permitidos))
+    if _despliegue_memo["clave"] == clave and _despliegue_memo.get("src") is data:
+        return _despliegue_memo["data"]
+    out = []
+    for s in data:
+        prods = [v for v in (_vista_despliegue(p, permitidos) for p in s.get("products") or []) if v]
+        if prods:
+            out.append({**s, "products": prods})
+    _despliegue_memo.update({"clave": clave, "data": out, "src": data})
+    return out
 
 
 def _get_catalog_locked(force=False) -> list:
@@ -3006,10 +3130,10 @@ def find_product(slug_or_sku: str) -> dict | None:
     sl = slug_or_sku.strip().lower()
     p = _product_index.get(sl)
     if p:
-        return p
+        return _vista_despliegue(p)
     for c in _combo_products:
         if c["ref"].lower() == sl:
-            return c
+            return _vista_despliegue(c)
     for x in get_all_products():
         if x["ref"].lower() == sl:
             return x
@@ -4580,14 +4704,14 @@ def producto(slug):
         and fam_slug
         and fam_slug != p.get("slug")
     ):
-        fam = _product_index.get(str(fam_slug).lower())
+        fam = _vista_despliegue(_product_index.get(str(fam_slug).lower()))
         if fam and fam.get("is_family") and len(fam.get("combos") or []) > 1:
             return redirect(
                 url_for("producto", slug=fam["slug"], pres=canon_pres),
                 code=302,
             )
     if p.get("is_combo") and canon_pres and canon_pres != p.get("slug"):
-        dest = _product_index.get(str(canon_pres).lower())
+        dest = _vista_despliegue(_product_index.get(str(canon_pres).lower()))
         if dest and dest.get("slug") != p.get("slug"):
             return redirect(url_for("producto", slug=dest["slug"]), code=302)
 

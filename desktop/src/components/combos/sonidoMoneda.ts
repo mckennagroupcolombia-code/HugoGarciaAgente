@@ -2,6 +2,10 @@
  * La «vida extra» al completar un combo: el arpegio ascendente de seis notas de los 8 bits
  * (mi6 sol6 mi7 do7 re7 sol7) en onda cuadrada. Sintetizado con Web Audio: no se carga ni se
  * distribuye ningún audio ajeno. Se puede silenciar (queda recordado en este navegador).
+ *
+ * Cada vez que suena se transpone un poco al azar (±6%, `jitter`): las notas de un mismo sonido
+ * quedan afinadas entre sí, pero la próxima vez no suena clavado igual (con solo una melodía fija,
+ * repetirla siempre igual aburre).
  */
 const CLAVE = "mck-mision-sonido";
 let ctx: AudioContext | null = null;
@@ -52,7 +56,7 @@ if (typeof window !== "undefined") {
 const VIDA = [1318.51, 1567.98, 2637.02, 2093.0, 2349.32, 3135.96];
 const PASO = 0.13;
 
-function tocar(c: AudioContext) {
+function tocar(c: AudioContext, jitter: number) {
   const t0 = c.currentTime + 0.005;
   const osc = c.createOscillator();
   const gan = c.createGain();
@@ -60,7 +64,7 @@ function tocar(c: AudioContext) {
   gan.gain.setValueAtTime(0.0001, t0);
   VIDA.forEach((f, n) => {
     const t = t0 + n * PASO;
-    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.setValueAtTime(f * jitter, t);
     // Cada nota se ataca de nuevo, como en la consola: un pequeño bache de volumen entre notas.
     gan.gain.setValueAtTime(0.0001, t);
     gan.gain.exponentialRampToValueAtTime(0.12, t + 0.006);
@@ -79,9 +83,11 @@ export function sonarMoneda(forzar = false) {
   try {
     const c = contexto();
     if (!c) return;
+    // ±6%: la vida extra no suena clavada igual cada vez que se completa un combo.
+    const jitter = 0.94 + Math.random() * 0.12;
     // Dormido, su reloj no avanza: se agenda cuando despierte para no perder el inicio.
-    if (c.state === "running") tocar(c);
-    else void c.resume().then(() => tocar(c));
+    if (c.state === "running") tocar(c, jitter);
+    else void c.resume().then(() => tocar(c, jitter));
   } catch {
     /* sin audio: el premio sigue viéndose */
   }
@@ -93,14 +99,14 @@ export function sonarMoneda(forzar = false) {
  */
 type Nota = readonly [number, number];
 
-function tocarNotas(c: AudioContext, notas: readonly Nota[], t0: number, tipo: OscillatorType, vol: number) {
+function tocarNotas(c: AudioContext, notas: readonly Nota[], t0: number, tipo: OscillatorType, vol: number, jitter: number) {
   let t = t0;
   for (const [f, d] of notas) {
     if (f > 0) {
       const osc = c.createOscillator();
       const gan = c.createGain();
       osc.type = tipo;
-      osc.frequency.setValueAtTime(f, t);
+      osc.frequency.setValueAtTime(f * jitter, t);
       gan.gain.setValueAtTime(0.0001, t);
       gan.gain.exponentialRampToValueAtTime(vol, t + 0.006);
       gan.gain.setValueAtTime(vol, t + Math.max(0.01, d * 0.6));
@@ -124,12 +130,15 @@ const FANFARRIA: readonly Nota[] = [
 ];
 const BAJO: readonly Nota[] = [[130.81, 0.36], [196.0, 0.34], [0, 0.13], [174.61, 0.2], [261.63, 0.62]];
 
-function sonar(tocarCon: (c: AudioContext, t0: number) => void) {
+function sonar(tocarCon: (c: AudioContext, t0: number, jitter: number) => void) {
   if (!sonidoActivo()) return;
   try {
     const c = contexto();
     if (!c) return;
-    const ir = () => tocarCon(c, c.currentTime + 0.005);
+    // ±6%, compartido entre todas las notas de este sonar: la moneda y la fanfarria de UNA
+    // aprobación quedan afinadas entre sí, pero la próxima aprobación transpone distinto.
+    const jitter = 0.94 + Math.random() * 0.12;
+    const ir = () => tocarCon(c, c.currentTime + 0.005, jitter);
     if (c.state === "running") ir();
     else void c.resume().then(ir);
   } catch {
@@ -139,14 +148,14 @@ function sonar(tocarCon: (c: AudioContext, t0: number) => void) {
 
 /** Una revisión marcada (un paso): la moneda. */
 export function sonarRevisado() {
-  sonar((c, t0) => tocarNotas(c, MONEDA, t0, "square", 0.1));
+  sonar((c, t0, jitter) => tocarNotas(c, MONEDA, t0, "square", 0.1, jitter));
 }
 
 /** Una aprobación final (ficha técnica, etiqueta): moneda y fanfarria de nivel superado. */
 export function sonarAprobado() {
-  sonar((c, t0) => {
-    const t1 = tocarNotas(c, MONEDA, t0, "square", 0.1);
-    tocarNotas(c, FANFARRIA, t1 - 0.12, "square", 0.08);
-    tocarNotas(c, BAJO, t1 - 0.12, "triangle", 0.16);
+  sonar((c, t0, jitter) => {
+    const t1 = tocarNotas(c, MONEDA, t0, "square", 0.1, jitter);
+    tocarNotas(c, FANFARRIA, t1 - 0.12, "square", 0.08, jitter);
+    tocarNotas(c, BAJO, t1 - 0.12, "triangle", 0.16, jitter);
   });
 }

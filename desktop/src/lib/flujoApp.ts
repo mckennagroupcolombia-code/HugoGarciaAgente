@@ -102,7 +102,7 @@ export const ETAPAS_APP: EtapaApp[] = [
     entrega: "producto listo",
     tipo: "linea",
     diagramas: ["02-flujo-producto", "cadena-producto"],
-    guia: { titulo: "Taller de combos", hace: "Completar, combo por combo, las piezas que faltan", abre: "combos" },
+    guia: { titulo: "Árbol del producto", hace: "Completar, combo por combo, las piezas que faltan (Diseño de producto)", abre: "combos" },
     tramos: [
       {
         titulo: "Dar de alta", datos: ["SKU base (g · mL · un)", "combo C-… (kit)", "precio de lista"],
@@ -121,16 +121,14 @@ export const ETAPAS_APP: EtapaApp[] = [
       {
         titulo: "Armar el combo", datos: ["receta: materia prima + empaque + etiqueta", "cantidad de la presentación", "costo y margen"],
         pasos: [
-          { panel: "combos", hace: "La receta de cada combo y lo que le falta" },
           { panel: "costos-productos", hace: "Costo unitario y margen por SKU" },
         ],
       },
       {
         titulo: "Respaldarlo", datos: ["documento TDS · COA · SDS (referencia = SKU base)", "EAN-13 (nace del SKU de venta)", "tamaño de etiqueta: cantidad · categoría · polvo o líquido"],
         pasos: [
-          { panel: "producto", hace: "Ficha técnica, etiqueta, EAN y PNG de una presentación, en un solo lugar" },
           { panel: "fichas", hace: "Ficha técnica, COA y SDS" },
-          { panel: "etiquetas", hace: "Código EAN, diseño e impresión de etiquetas" },
+          { panel: "etiquetas", hace: "Árbol del producto: cada combo con sus piezas, etiquetas y fotos; impresión y EAN" },
           { panel: "etiquetas-config", hace: "Formatos y campos de las etiquetas" },
         ],
       },

@@ -235,32 +235,6 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "standard",
     category: "inventario",
   },
-  producto: {
-    emoji: "🏷️",
-    label: "Espacio de producto",
-    description:
-      "Una presentación de venta con todo lo que la respalda en un solo lugar: su ficha técnica (TDS · COA · SDS), su etiqueta, su código EAN y los PNG aprobados. Se elige el producto una vez; cada pestaña es el apartado de siempre ya abierto en él.",
-    tips: [
-      "Los puntos de cada pestaña dicen si esa pieza está completa (verde), a medias (ámbar) o falta (rojo).",
-      "Si corriges la ficha técnica y pasas a la etiqueta, la barra de estado ofrece traer lo corregido.",
-      "Diseño y Docs técnicos siguen existiendo para el trabajo en lote (varias etiquetas, la biblioteca de PDF).",
-    ],
-    tier: "core",
-    category: "diseno",
-  },
-  combos: {
-    emoji: "🧩",
-    label: "Combos",
-    description:
-      "La fotografía de cada producto de venta con todo lo que lo compone: la receta que descuenta de inventario (materia prima, bolsa, envase, etiqueta, cuchara…) y lo que lo respalda (documento técnico, código EAN, diseño de etiqueta y publicación).",
-    tips: [
-      "Una ranura vacía es algo que falta: el texto dice por qué y qué la destraba.",
-      "Si la receta descuenta una cantidad distinta a la presentación (500 g que descuentan 5001), aparece como aviso.",
-      "La etiqueta se muestra cuando ya se exportó a PNG desde Diseño → Imprimir con el mismo nombre del combo.",
-    ],
-    tier: "standard",
-    category: "inventario",
-  },
   empaque: {
     emoji: "📷",
     label: "Empaque",
@@ -304,8 +278,8 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   },
   etiquetas: {
     emoji: "🏷️",
-    label: "Diseño",
-    description: "Diseño e impresión de etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio visual.",
+    label: "Diseño de producto",
+    description: "Diseño del producto de venta: árbol por categoría con cada combo y sus piezas (receta, documento, EAN, etiqueta, fotos, publicación), impresión y códigos EAN.",
     tips: [
       "Selecciona el producto, el lote y la fecha de vencimiento antes de imprimir.",
       "El formato más usado es la etiqueta de 50×30mm para frascos pequeños.",
@@ -316,7 +290,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   },
   fichas: {
     emoji: "📄",
-    label: "Docs técnicos",
+    label: "Documentos técnicos",
     description: "Fichas técnicas e información científica de ingredientes. Útil para responder preguntas técnicas de clientes y formuladores.",
     tips: [
       "Las fichas están vinculadas a las publicaciones de MercadoLibre — Hugo las usa para responder preguntas.",
@@ -324,7 +298,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
       "En Biblioteca, «Cargar en página web» publica solo documentos completos (FT + COA + SDS) en las fichas de producto de la tienda.",
     ],
     tier: "standard",
-    category: "docs",
+    category: "diseno",
   },
 
   // ── Publicaciones (botón individual en el menú) ───────────────────────────────

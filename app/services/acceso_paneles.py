@@ -37,7 +37,8 @@ REGLAS: dict[str, Callable[[Permisos], bool]] = {
     "postventa": lambda p: bool(p.get("postventa") or p.get("preventa")),
     "ventas-email": lambda p: bool(p.get("ventas-email") or p.get("preventa")),
     "vitrina-web": lambda p: bool(p.get("vitrina-web") or p.get("publicaciones")),
-    "producto": lambda p: bool(p.get("producto") or p.get("combos") or p.get("mapa-sistema")),
+    # panelAccess.ts: Diseño de producto (etiquetas) lo abre todo el equipo interno.
+    "etiquetas": lambda p: True,
     "guias-envio": lambda p: bool(p.get("guias-envio") or p.get("pedidos") or p.get("empaque")),
     "entregas-flex": lambda p: bool(p.get("entregas-flex") or p.get("pedidos") or p.get("empaque")
                                     or p.get("guias-envio")),

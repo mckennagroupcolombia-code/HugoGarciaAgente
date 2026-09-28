@@ -12,7 +12,6 @@ export type NavCategory =
   | "atencion"
   | "canales"
   | "diseno"
-  | "docs"
   | "contabilidad"
   | "negocio"
   | "inventario"
@@ -82,18 +81,14 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
   },
   {
     id: "diseno",
-    label: "Diseño",
+    label: "Diseño de producto",
     hub: true,
+    // Los documentos técnicos (FT · COA · SDS) viven aquí desde el 27-sep-2026: son una
+    // pieza más del producto, como la etiqueta y el EAN. Antes eran la sección «Docs técnicos».
     items: [
-      { panel: "producto", tier: "core" },
       { panel: "etiquetas", tier: "core" },
+      { panel: "fichas", tier: "standard" },
     ],
-  },
-  {
-    id: "docs",
-    label: "Docs técnicos",
-    hub: true,
-    items: [{ panel: "fichas", tier: "standard" }],
   },
   {
     id: "contabilidad",
@@ -134,12 +129,11 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "control-inventario", tier: "core" },
       { panel: "recepcion-mercancia", tier: "core" },
       { panel: "stock", tier: "standard" },
-      { panel: "combos", tier: "standard" },
       { panel: "mapa-sistema", tier: "standard" },
     ],
   },
   {
-    // Individual (como Diseño / Docs): no agrupado en "Tienda y taller".
+    // Individual (como Diseño): no agrupado en "Tienda y taller".
     id: "publicaciones",
     label: "Publicaciones",
     hub: true,
@@ -201,8 +195,7 @@ export const NAV_CATEGORY_LABEL: Record<NavCategory, string> = {
   inicio: "Agenda",
   atencion: "Atención",
   canales: "Canales",
-  diseno: "Diseño",
-  docs: "Docs técnicos",
+  diseno: "Diseño de producto",
   contabilidad: "Contabilidad",
   negocio: "Negocio",
   inventario: "Inventario",

@@ -90,9 +90,24 @@
 
 /* ── Capa HTML: bloque central ───────────────────────────────────────────── */
 
+/* La capa cubre todo el círculo y queda ENCIMA del SVG: sin esto se tragaba
+   los clics de los textos curvos (razón social, ciudad, registro, aviso), que
+   no se podían editar. Solo sus bloques reciben clics. */
 .ec-centro {
   position: absolute;
   inset: 0;
+  pointer-events: none;
+}
+.ec-centro > :not(.ec-separador) {
+  pointer-events: auto;
+}
+
+/* Líneas finas del bloque central (separadores y cruz de la rejilla): la
+   posición y el tamaño llegan por `style` desde la retícula. */
+.ec-separador {
+  position: absolute;
+  background: var(--acento);
+  pointer-events: none;
 }
 
 /* Cada banda es tan ancha como quepa a su altura dentro del círculo naranja
@@ -126,104 +141,72 @@
   font-size: 14px;
 }
 
-.ec-descripcion {
-  width: 100%;
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.26;
-  color: #111111;
-}
+/* ── Rejilla 2 × 2 de casillas con ícono ─────────────────────────────────── */
 
-.ec-aplicaciones-titulo {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333333;
-}
-
-.ec-lista {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
+.ec-rejilla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   align-items: stretch;
-  gap: 3px;
-}
-
-/* Texto centrado con la viñeta al comienzo, como en la referencia.
- *
- * La viñeta y el texto son UNA pareja centrada, no una columna de viñetas más
- * una columna de texto: con dos columnas fijas, un renglón corto se centraba
- * en su columna y dejaba la viñeta suelta al margen, lejos de su texto. Aquí
- * la casilla mide lo que mide su texto (`flex: 0 1 auto`), así que en un
- * renglón corto la viñeta viaja pegada a él y la pareja entera queda al
- * centro; en un texto largo la casilla crece hasta el ancho de la banda y la
- * viñeta se queda donde tiene que estar, al principio del primer renglón. */
-.ec-item {
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-  justify-content: center;
-  column-gap: calc(var(--ec-vineta) * 1.2);
-}
-.ec-item-vineta {
-  margin-top: 0.42em;
-  flex: 0 0 auto;
-  width: var(--ec-vineta);
-  height: var(--ec-vineta);
-  border-radius: 50%;
-  background: #111111;
-}
-.ec-item-texto,
-.ec-item-caja :where(.e30-campo) {
+  justify-items: stretch;
   text-align: center;
 }
-/* En edición la casilla es un <textarea>: si midiera lo que su texto, escribir
-   sería imposible (la caja se encogería con cada borrado). Ocupa la banda. */
-.ec-editando .ec-item-caja {
-  flex: 1 1 auto;
-}
 
-.ec-item-texto {
+/* Ícono, título y valor apilados como una sola unidad centrada en su
+   columna, igual que las casillas de la ficha 76 × 66. */
+.ec-casilla {
+  display: flex;
   min-width: 0;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.22;
-  color: #111111;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 10px;
+}
+/* Más aire del lado de afuera, donde el círculo se estrecha. */
+.ec-casilla:nth-child(odd) {
+  padding-left: 16px;
+}
+.ec-casilla:nth-child(even) {
+  padding-right: 16px;
 }
 
-/* Quitar una aplicación: solo en edición, fuera del flujo del texto. */
-.ec-item-quitar {
-  position: absolute;
-  right: -20px;
-  border: 0;
-  background: transparent;
-  color: #b4b4b4;
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-}
-.ec-item-quitar:hover {
-  color: #d33;
-}
-.ec-item-caja {
-  position: relative;
-  min-width: 0;
+.ec-casilla-icono.e30-celda-icono {
+  width: var(--ec-icono);
+  height: var(--ec-icono);
+  margin: 0;
 }
 
-.ec-anadir {
-  margin-top: 2px;
-  align-self: center;
-  border: 1px dashed var(--acento-50);
-  border-radius: 5px;
-  background: transparent;
-  padding: 1px 8px;
+.ec-casilla-texto {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.ec-casilla-titulo {
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--acento);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
 }
-.ec-anadir:hover {
-  border-color: var(--acento);
-  background: var(--acento-suave);
+
+.ec-casilla-valor,
+.ec-casilla-texto :where(.e30-campo) {
+  width: 100%;
+  text-align: center;
+}
+.ec-casilla-valor {
+  font-size: 16.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: #111111;
 }
 
 /* ── Código de barras y peso ─────────────────────────────────────────────── */

@@ -628,3 +628,11 @@ Reglas que no se rompen:
 - Otros módulos del mismo ciclo: `terceros_historial.py` (append-only), `contabilidad_mayor.libro_diario()`,
   `pagos_impuestos.py` (recibos del contador → 2365/2367/2368…, no es gasto),
   `puc_colombia.DESCRIPCIONES` (guía de las 79 cuentas; test exige que ninguna quede sin guía).
+
+**Reintegro de un gasto que pagó un colaborador (27-sep-2026).** Caso: Jenniffer pagó en efectivo la
+factura FECC1129 (uniformes antifluido, $190.400) emitida **a nombre de McKenna**. El gasto y el IVA
+son de la empresa: asiento directo en el Libro Mayor (Débito 519595 + 240810 con el proveedor · Crédito
+**2335 con la colaboradora**; nunca 2380, que es alias de 2355 socios), espejo a Alegra, y el giro sale
+como **«Saldo pendiente»** (`saldo_por_pagar`): sin retención, sin ICA y **sin documento soporte**
+(`doc_soporte_pagos` ya excluye esa categoría; antes armaba un DS a nombre de ella y además dejaba el
+giro sin espejo). Por prestación de servicios, registrarlo como «elementos de protección», no «dotación».

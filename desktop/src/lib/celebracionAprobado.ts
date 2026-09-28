@@ -155,8 +155,9 @@ export function celebrarAprobacion(opc: {
   if (tipo === "grande") {
     const barbie = document.documentElement.dataset.mckSkin === "barbie";
     for (let i = 0; i < 40; i++) {
-      const izq = `${(i * 37 + 5) % 100}%`;
-      const retardo = `${(i % 10) * 80}ms`;
+      // Al azar (no `i` fijo): la misma aprobación no cae siempre en las mismas 40 posiciones.
+      const izq = `${Math.round(Math.random() * 100)}%`;
+      const retardo = `${Math.round(Math.random() * 800)}ms`;
       if (barbie) {
         const p = el("span", "mck-apr-estrella", i % 3 ? "✦" : "★");
         Object.assign(p.style, { left: izq, animationDelay: retardo, fontSize: `${12 + (i % 4) * 6}px`, color: COLORES_BARBIE[i % 5] });
@@ -337,16 +338,17 @@ export function celebrarTareaCumplida(id: number): boolean {
   const lluvia = barbie ? 90 : 50;
   for (let i = 0; i < lluvia; i++) {
     const rosa = barbie && i % 7 === 3;
-    const p = estrella(16 + ((i * 7) % 5) * 7, rosa);
-    Object.assign(p.style, { left: `${(i * 37 + 3) % 100}%` });
-    p.style.setProperty("--ret", `${(i % 15) * 70}ms`);
-    p.style.setProperty("--dur", `${2.3 + ((i * 13) % 10) / 8}s`);
-    p.style.setProperty("--dx", `${((i * 29) % 80) - 40}px`);
-    p.style.setProperty("--giro", `${i % 2 ? 420 : -360}deg`);
+    // Tamaño, caída y giro al azar (no por `i`): la misma tarea no cae siempre igual.
+    const p = estrella(16 + Math.round(Math.random() * 4) * 7, rosa);
+    Object.assign(p.style, { left: `${Math.round(Math.random() * 100)}%` });
+    p.style.setProperty("--ret", `${Math.round(Math.random() * 1000)}ms`);
+    p.style.setProperty("--dur", `${(2.3 + Math.random() * 1.25).toFixed(2)}s`);
+    p.style.setProperty("--dx", `${Math.round(Math.random() * 80) - 40}px`);
+    p.style.setProperty("--giro", `${Math.random() < 0.5 ? 420 : -360}deg`);
     capa.appendChild(p);
     if (!barbie && i % 2) {
       const c = el("span", "mck-apr-confeti");
-      Object.assign(c.style, { left: `${(i * 53 + 11) % 100}%`, animationDelay: `${(i % 10) * 90}ms`, background: COLORES[i % COLORES.length] });
+      Object.assign(c.style, { left: `${Math.round(Math.random() * 100)}%`, animationDelay: `${Math.round(Math.random() * 900)}ms`, background: COLORES[i % COLORES.length] });
       capa.appendChild(c);
     }
   }
@@ -355,11 +357,13 @@ export function celebrarTareaCumplida(id: number): boolean {
   const rayos = barbie ? 24 : 16;
   for (let i = 0; i < rayos; i++) {
     const ang = (i / rayos) * Math.PI * 2;
-    const dist = 140 + (i % 3) * 60;
-    const p = estrella(22 + (i % 3) * 10, barbie && i % 6 === 5);
+    // La distancia y el tamaño varían al azar sobre el reparto parejo de ángulos (si el ángulo
+    // también fuera al azar, los rayos se amontonarían en vez de estallar parejo).
+    const dist = 140 + Math.random() * 180;
+    const p = estrella(22 + Math.round(Math.random() * 3) * 10, barbie && i % 6 === 5);
     p.style.setProperty("--x", `${Math.cos(ang) * dist}px`);
     p.style.setProperty("--y", `${Math.sin(ang) * dist}px`);
-    p.style.setProperty("--ret", `${(i % 4) * 40}ms`);
+    p.style.setProperty("--ret", `${Math.round(Math.random() * 160)}ms`);
     estallido.appendChild(p);
   }
   capa.appendChild(estallido);

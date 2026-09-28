@@ -51,6 +51,19 @@ _EMPAQUE_INICIO = {
 _NO_MATERIA = {"OPERATIVOS", "ENVIO", "DOMICILIO", "FLETE", "SERVICIO", "GENERICO"}
 _STOP = {"DE", "DEL", "LA", "EL", "EN", "Y", "G", "GR", "ML", "KG", "LT", "UN", "X", "MG", "L", "CON", "SIN"}
 
+# Prefijos de CÓDIGO que son empaque aunque el nombre en Alegra esté mal puesto: pasó con
+# `BOLTRA500gZIP` (bolsa ziploc transparente, hermana de BOLTRA10X17ZIP/BOLTRA13X21ZIP/…),
+# renombrada por error «SEMILLA GIRASOL g» y que por eso se colaba como materia prima —
+# primero uniendo el documento técnico del girasol a otros combos de 500 g (2026-09-25),
+# luego apareciendo como segunda materia prima en NUEZ PECAN 500g (2026-09-27). El código no
+# se edita por accidente como el nombre, así que es la señal confiable.
+_EMPAQUE_PREFIJO_CODIGO = ("BOLTRA",)
+
+
+def _prefijo_alfa(codigo: str) -> str:
+    m = re.match(r"[A-Z]+", (codigo or "").upper())
+    return m.group(0) if m else ""
+
 
 def _norm(s: str) -> str:
     s = unicodedata.normalize("NFD", (s or "").upper())
@@ -75,13 +88,15 @@ def _primera(nombre: str) -> str:
     return p[0] if p else ""
 
 
-def es_empaque(nombre: str) -> bool:
+def es_empaque(nombre: str, codigo: str = "") -> bool:
+    if _prefijo_alfa(codigo) in _EMPAQUE_PREFIJO_CODIGO:
+        return True
     return _primera(nombre) in _EMPAQUE_INICIO
 
 
 def es_materia_prima(ref: str, nombre: str) -> bool:
     """A granel: no es empaque ni servicio y su código o nombre termina en unidad de masa/volumen."""
-    if es_empaque(nombre) or _primera(nombre) in _NO_MATERIA or ref.upper().startswith(("WEB-", "OPR")):
+    if es_empaque(nombre, ref) or _primera(nombre) in _NO_MATERIA or ref.upper().startswith(("WEB-", "OPR")):
         return False
     return bool(re.search(r"(g|mL|ml|Kg|KG|Lt|L)$", ref)) or bool(re.search(r"\b(G|ML|KG|LT)$", _norm(nombre)))
 
@@ -237,7 +252,7 @@ def auditar() -> dict:
         if not comps:
             add("A. Combo sin componentes — al venderse no descuenta inventario ni tiene costo", f"`{r}` {nombre}")
             continue
-        mp = [c for c in comps if not es_empaque(c.get("nombre") or "") and _primera(c.get("nombre") or "") not in _NO_MATERIA]
+        mp = [c for c in comps if not es_empaque(c.get("nombre") or "", c.get("codigo") or "") and _primera(c.get("nombre") or "") not in _NO_MATERIA]
         for c in comps:
             if c.get("codigo") and c["codigo"] not in cat:
                 add("F. Componente que ya no existe como producto activo", f"`{r}` → `{c['codigo']}` {c.get('nombre')}")
@@ -264,7 +279,7 @@ def auditar() -> dict:
             add("G. El nombre del combo es su propio código", f"`{r}` {nombre}")
 
     for r, v in sorted(prods.items()):
-        if r.upper().startswith("C-") and not es_empaque(v.get("name") or ""):
+        if r.upper().startswith("C-") and not es_empaque(v.get("name") or "", r):
             add("I. SKU de venta `C-…` creado como producto simple y no como combo — se vende sin descontar materia prima ni empaque",
                 f"`{r}` {v.get('name')}")
 

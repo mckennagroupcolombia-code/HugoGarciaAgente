@@ -674,7 +674,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "whatsapp",   label: "Agente WA" },
   { id: "webchat",    label: "Chat web" },
   { id: "etiquetas",  label: "Diseño (etiquetas)" },
-  { id: "fichas",     label: "Docs técnicos" },
+  { id: "fichas",     label: "Diseño (documentos técnicos)" },
   { id: "stock",      label: "Stock (en Contabilidad)" },
   { id: "control-inventario", label: "Inventario" },
   { id: "publicaciones", label: "Publicaciones" },

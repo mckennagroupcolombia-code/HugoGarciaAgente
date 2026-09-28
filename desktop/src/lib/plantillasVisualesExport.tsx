@@ -643,11 +643,29 @@ export async function renderPlantillaToCanvasDom(
   let fontEmbedCSS = "";
   if (hayArco) {
     try {
+      // Una muestra por cada combinación de tipografía/peso realmente usada en
+      // textos en arco (antes solo se incrustaba Montserrat 400: si un texto en
+      // arco usaba otra variante o "System UI", el PNG exportado caía a la
+      // fuente por defecto del navegador aunque en el editor se viera bien).
+      const combos = new Map<string, { fontFamily: string; fontWeight: number }>();
+      for (const el of doc.elementos) {
+        if (el.type !== "text" || el.visible === false || el.forma === "circulo" || (el.arco ?? 0) === 0) {
+          continue;
+        }
+        const fontWeight = pesoFontWeightCss(el.fontWeight);
+        combos.set(`${el.fontFamily}__${fontWeight}`, { fontFamily: el.fontFamily, fontWeight });
+      }
       const probe = document.createElement("div");
       probe.setAttribute("aria-hidden", "true");
-      probe.style.cssText =
-        'position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;font-family:"Montserrat",system-ui,sans-serif;font-weight:400;font-size:16px;';
-      probe.textContent = "Ag";
+      probe.style.cssText = "position:fixed;left:0;top:0;opacity:0;pointer-events:none;z-index:-1;";
+      // Incluye acentos/eñe: los títulos en arco los llevan (p. ej. "KARITÉ").
+      const MUESTRA = "AÁÉÍÓÚÑÜ abcdefghijklmnopqrstuvwxyzñáéíóúü0123456789";
+      for (const { fontFamily, fontWeight } of combos.values()) {
+        const span = document.createElement("span");
+        span.style.cssText = `display:block;font-family:${fontFamily};font-weight:${fontWeight};font-size:16px;`;
+        span.textContent = MUESTRA;
+        probe.appendChild(span);
+      }
       document.body.appendChild(probe);
       if (document.fonts) await document.fonts.ready;
       fontEmbedCSS = await getFontEmbedCSS(probe);

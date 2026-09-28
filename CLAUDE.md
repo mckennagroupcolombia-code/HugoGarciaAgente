@@ -237,7 +237,9 @@ es el **Árbol del producto** (Studio); `combos` es solo alias. `fijar_sku_docum
 `guardar_ficha` reemplaza la ficha entera (toda edición parcial pasa por `actualizar_campos_ficha`).
 
 **Operación del equipo** (`operacion-equipo.md`: cese Y, chat del equipo AA, insumos AB, buscador de chats AC,
-bultos AE). Cese global: `python3 scripts/cese_actividades.py --activar|--desactivar|--estado`.
+bultos AE, solicitudes como misión AF). Cese global: `python3 scripts/cese_actividades.py --activar|--desactivar|--estado`.
+⚠️ Desde el 27-sep el cese se levantó con **despliegue gradual** (`despliegue_ventas.json`): MeLi, web y Cotizar/Facturar
+solo venden SKUs que se facturan; ampliar con `scripts/desplegar_ventas_facturables.py --ampliar`.
 
 **RRHH y horas** (`rrhh-horas.md`). ⚠️ **Nunca** poner horario de entrada/salida (convierte honorarios en contrato
 laboral). Tiempos solo cronometrados (≥5 muestras) o huella real, nunca estimados a mano. Salarios fuera de git.
@@ -427,7 +429,7 @@ viven en el repo (nivel 2) mientras que los PNG derivados para imprimir viven fu
 | Agente de ventas v2 (P) | `docs/agentic/modules/agente-ventas-v2.md` |
 | Ventas directas (R) | `docs/agentic/modules/ventas-directas.md` |
 | Mapa, combos, EAN, canales, árbol del producto (U, W, X, Z, AD) | `docs/agentic/modules/producto-cadena.md` |
-| Cese, chat del equipo, insumos, buscador, bultos (Y, AA, AB, AC, AE) | `docs/agentic/modules/operacion-equipo.md` |
+| Cese, chat del equipo, insumos, buscador, bultos, solicitudes-misión (Y, AA, AB, AC, AE, AF) | `docs/agentic/modules/operacion-equipo.md` |
 | Rendimiento, mapa de funciones, control de horas | `docs/agentic/modules/rrhh-horas.md` |
 | Colaboradores | `docs/agentic/modules/colaboradores.md` |
 | Panel React, iconografía, grabar pantalla (V, S) | `docs/agentic/modules/desktop-panel.md` |

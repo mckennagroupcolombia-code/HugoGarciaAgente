@@ -6,7 +6,7 @@
 import type { EtapaApp, TramoApp } from "../lib/flujoApp";
 import { ETAPAS_APP, ORIGEN_APP } from "../lib/flujoApp";
 import { puedeVerSeccionPanel } from "../lib/panelAccess";
-import { useAppStore, type Panel } from "../stores/app";
+import { useAppStore, type AccionesBootTab, type Panel } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import type { SpriteId } from "./colaboradores/pixel";
 import { puedeVerTabInicio } from "./nav/InicioNavTabs";
@@ -69,8 +69,16 @@ export function useInicio(abrir: (p: Panel) => void) {
     setCentroMandoView(vista);
     abrir(ORIGEN_APP.panel);
   };
+  // Recordatorios y Notas vivían en la portada de la Agenda (ya no es una pantalla): se
+  // llega directo a su pestaña dentro de Acciones, igual que el resto de accesos rápidos.
+  const irAcciones = (tab: AccionesBootTab) => {
+    setAccionesBootTab(tab);
+    setTicketsBootView("acciones");
+    setCentroMandoView("acciones");
+    abrir(ORIGEN_APP.panel);
+  };
   const espacios = DENTRO_DE_LA_AGENDA.filter((p) => user && puedeVerSeccionPanel(user, p));
-  return { user, token, verMensajes, vistaAgenda, espacios };
+  return { user, token, verMensajes, vistaAgenda, irAcciones, espacios };
 }
 
 // ─── Los pisos del Edificio ─────────────────────────────────────────────────────────────

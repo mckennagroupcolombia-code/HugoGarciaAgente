@@ -1031,7 +1031,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                   Ficha técnica de la biblioteca de docs técnicos
                 </span>
                 <span className="mt-0.5 block text-[10px] leading-relaxed text-muted">
-                  Usa el documento ya generado en Docs técnicos. La IA filtra claims de salud automáticamente.
+                  Usa el documento ya generado en Diseño de producto → Documentos técnicos. La IA filtra claims de salud automáticamente.
                 </span>
               </span>
             </label>
@@ -1070,7 +1070,7 @@ function ItemWorkspace({ item, onDone }: { item: ItemPausado; onDone: () => void
                 )}
                 {!hayCoincidenciaExacta && fichasBiblioteca.length > 0 && (
                   <p className="text-[10px] text-muted">
-                    No hay coincidencia automática con «{productoNombre}». Elige la ficha manualmente o genérala en Docs técnicos.
+                    No hay coincidencia automática con «{productoNombre}». Elige la ficha manualmente o genérala en Diseño de producto → Documentos técnicos.
                   </p>
                 )}
                 {fichaTecnica && (

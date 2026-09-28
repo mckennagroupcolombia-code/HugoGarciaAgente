@@ -6,7 +6,9 @@
  * la categoría: tiene su plantilla, sus diseños de partida y las etiquetas ya
  * hechas con ella.
  */
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
+import { codificarRutaRecursoPng } from "../etiquetas/RecursoPngViewer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -49,6 +51,9 @@ export interface PlantillaDeCategoria {
   formato: string;
   /** Solo en las de lienzo. */
   doc?: PlantillaVisualDoc;
+  /** Solo en las de ficha (se dibujan solo dentro del editor): la etiqueta
+   *  aprobada más reciente hecha con ella, o del mismo tamaño en la categoría. */
+  ejemplo?: { nombre: string; png: EtiquetaStudioPng; propia: boolean };
 }
 
 /** Dónde está una etiqueta en su camino a la impresora:
@@ -204,17 +209,30 @@ export function useResumenCategorias() {
         versionesPng: 1,
       });
     }
+    const fichaPorId = new Map(fichasEtiqueta.map((f) => [f.id, f]));
+    const aprobadasConFicha = [...etiquetasPorCategoria.values()]
+      .flat()
+      .filter((e) => e.png && e.fichaId)
+      .sort((a, b) => (b.png?.subido_at || "").localeCompare(a.png?.subido_at || ""));
     // Etiquetas del formulario marcadas como plantilla de su categoría.
     const fichasPlantilla = new Map<string, PlantillaDeCategoria[]>();
     for (const f of Array.isArray(fichas) ? fichas : []) {
       if (!f.es_plantilla_categoria) continue;
       const cat = f.categoria || detectarCategoriaEn(categorias, f.nombre);
       const lista = fichasPlantilla.get(cat) ?? [];
+      const propia = aprobadasConFicha.find((e) => fichaPorId.get(e.fichaId!)?.plantilla_id === f.id);
+      const pariente =
+        propia ??
+        aprobadasConFicha.find((e) => {
+          const fe = fichaPorId.get(e.fichaId!);
+          return fe?.categoria === cat && fe.tipo_nombre === f.tipo_nombre;
+        });
       lista.push({
         motor: "ficha",
         id: f.id,
         nombre: f.nombre,
         formato: etiquetaTamanoTipoNombre(f.tipo_nombre, tiposEt) || "Sin tamaño",
+        ejemplo: pariente?.png ? { nombre: pariente.nombre, png: pariente.png, propia: Boolean(propia) } : undefined,
       });
       fichasPlantilla.set(cat, lista);
     }
@@ -322,6 +340,234 @@ function gruposPorEstado(lista: EtiquetaDeCategoria[]) {
     { id: "por_aprobar", titulo: "Por aprobar", items: lista.filter((e) => e.estado === "por_aprobar") },
     { id: "aprobadas", titulo: "Aprobadas", items: lista.filter((e) => e.estado !== "por_aprobar") },
   ].filter((g) => g.items.length > 0);
+}
+
+/** PNG aprobado en grande. Los que están en la carpeta pero no en el índice
+ *  llegan sin `thumb_b64`: para esos se trae el archivo completo. */
+function ImagenPngAprobado({ png, alt, className }: { png: EtiquetaStudioPng; alt: string; className?: string }) {
+  const miniatura = png.thumb_b64 ? `data:${png.thumb_mime || "image/png"};base64,${png.thumb_b64}` : null;
+  const [src, setSrc] = useState<string | null>(miniatura);
+  const [fallo, setFallo] = useState(false);
+  useEffect(() => {
+    let vivo = true;
+    setFallo(false);
+    void resolverUrlImagenCanvas(`/api/etiquetas/recursos-png/archivo/${codificarRutaRecursoPng(png.nombre)}`)
+      .then((url) => {
+        if (vivo) setSrc(url);
+      })
+      .catch(() => {
+        if (vivo && !miniatura) setFallo(true);
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [png.nombre, miniatura]);
+  if (src) return <img src={src} alt={alt} className={className} />;
+  return (
+    <p className="px-4 py-8 text-center text-xs text-white/70">
+      {fallo ? "No se pudo cargar la imagen." : "Cargando…"}
+    </p>
+  );
+}
+
+/** Se clickea una etiqueta del árbol o del detalle: antes se entraba directo al
+ *  editor (o, sin ficha, a Diseño → Imprimir). Ahora se ve primero su PNG
+ *  aprobado en grande, para confirmar cuál es sin abrir nada todavía. */
+function EtiquetaVistaPreviaModal({
+  etiqueta,
+  onCerrar,
+  onConfirmar,
+  onDuplicado,
+}: {
+  etiqueta: EtiquetaDeCategoria;
+  onCerrar: () => void;
+  onConfirmar: () => void;
+  /** La copia ya guardada: se abre en el editor. */
+  onDuplicado: (copia: EtiquetaDeCategoria) => void;
+}) {
+  const qc = useQueryClient();
+  // El nombre de una etiqueta siempre lo escribe el operador (guardar_ficha lo exige).
+  const [nombreCopia, setNombreCopia] = useState<string | null>(null);
+  const duplicarMut = useMutation({
+    mutationFn: async (nombre: string) => {
+      const { ficha } = await api.get<{ ficha: Record<string, unknown> }>(`/api/etiquetas/fichas/${etiqueta.fichaId}`);
+      // Sin id → guardar_ficha crea una nueva; la copia nunca es la plantilla de la categoría
+      // y no hereda PNG aprobados (esos van por id), así que queda «por aprobar».
+      const { id: _id, creado: _c, actualizado: _a, es_plantilla_categoria: _p, ...resto } = ficha;
+      return api.post<{ ficha: { id: string; nombre: string } }>("/api/etiquetas/fichas", { ...resto, nombre });
+    },
+    onSuccess: ({ ficha }) => {
+      void qc.invalidateQueries({ queryKey: ["etiquetas-fichas"] });
+      onDuplicado({ clave: `ficha:${ficha.id}`, nombre: ficha.nombre, detalle: etiqueta.detalle, estado: "por_aprobar", fichaId: ficha.id });
+    },
+  });
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-ink/60 p-3" onClick={onCerrar}>
+      <div
+        className="flex max-h-[92vh] w-full max-w-md flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-surface-panel p-3 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-bold text-ink" title={etiqueta.nombre}>
+              {etiqueta.nombre}
+            </h3>
+            <p className="flex items-center gap-1.5 text-[11px] text-muted">
+              <MarcaEstado estado={etiqueta.estado} compacta />
+              {TEXTO_ESTADO_ETIQUETA[etiqueta.estado]}
+              {etiqueta.detalle ? ` · ${tamanoCorto(etiqueta.detalle)}` : ""}
+              {(etiqueta.versionesPng ?? 0) > 1 ? ` · ${etiqueta.versionesPng} versiones del PNG` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted hover:text-ink"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center rounded-lg bg-[#525659] p-3">
+          {etiqueta.png ? (
+            <ImagenPngAprobado png={etiqueta.png} alt={etiqueta.nombre} className="max-h-[60vh] max-w-full object-contain" />
+          ) : (
+            <p className="px-4 py-8 text-center text-xs text-white/70">
+              Todavía no tiene PNG aprobado: no hay vista previa gráfica.
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onConfirmar}
+          className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+        >
+          {etiqueta.fichaId ? "Editar esta etiqueta" : "Ir a Diseño → Imprimir"}
+        </button>
+        {etiqueta.fichaId &&
+          (nombreCopia === null ? (
+            <button
+              type="button"
+              onClick={() => setNombreCopia(`${etiqueta.nombre} (copia)`)}
+              title="Crear otra etiqueta igual a esta, con otro nombre"
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
+            >
+              Duplicar etiqueta
+            </button>
+          ) : (
+            <form
+              className="flex flex-col gap-1.5 rounded-lg border border-border p-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (nombreCopia.trim()) duplicarMut.mutate(nombreCopia.trim());
+              }}
+            >
+              <span className="text-[11px] text-muted">Nombre de la copia</span>
+              <div className="flex gap-1.5">
+                <input
+                  autoFocus
+                  value={nombreCopia}
+                  onChange={(e) => setNombreCopia(e.target.value)}
+                  className="min-w-0 flex-1 rounded border border-border bg-surface px-2 py-1 text-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={!nombreCopia.trim() || duplicarMut.isPending}
+                  className="shrink-0 rounded bg-accent px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+                >
+                  {duplicarMut.isPending ? "Duplicando…" : "Crear copia"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNombreCopia(null)}
+                  className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                >
+                  Cancelar
+                </button>
+              </div>
+              {duplicarMut.isError && (
+                <span className="text-[11px] text-danger">{(duplicarMut.error as Error).message || "No se pudo duplicar"}</span>
+              )}
+            </form>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+/** Vista previa de una plantilla antes de ajustarla o de hacer una etiqueta con ella. */
+function PlantillaVistaPreviaModal({
+  plantilla,
+  onCerrar,
+  onAjustar,
+  onNuevaEtiqueta,
+}: {
+  plantilla: PlantillaDeCategoria;
+  onCerrar: () => void;
+  onAjustar: () => void;
+  onNuevaEtiqueta: () => void;
+}) {
+  const ej = plantilla.ejemplo;
+  return (
+    <div className="fixed inset-0 z-[800] flex items-center justify-center bg-ink/60 p-3" onClick={onCerrar}>
+      <div
+        className="flex max-h-[92vh] w-full max-w-xl flex-col gap-3 overflow-y-auto rounded-xl border border-border bg-surface-panel p-3 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-bold text-ink" title={plantilla.nombre}>
+              {plantilla.nombre}
+            </h3>
+            <p className="text-[11px] text-muted">Plantilla · {tamanoCorto(plantilla.formato)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="shrink-0 rounded border border-border px-2 py-1 text-xs text-muted hover:text-ink"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <div className="flex min-h-[10rem] items-center justify-center rounded-lg bg-[#525659] p-3">
+          {plantilla.doc ? (
+            <PlantillaVisualMiniatura doc={plantilla.doc} maxAncho={520} maxAlto={420} />
+          ) : ej ? (
+            <ImagenPngAprobado png={ej.png} alt={ej.nombre} className="max-h-[60vh] max-w-full object-contain" />
+          ) : (
+            <p className="px-4 py-8 text-center text-xs text-white/70">
+              Aún no hay ninguna etiqueta aprobada de este tamaño para mostrarla. Se ve completa al ajustarla.
+            </p>
+          )}
+        </div>
+        {!plantilla.doc && ej && (
+          <p className="-mt-1 text-[11px] text-muted">
+            {ej.propia ? "Etiqueta hecha con esta plantilla" : "Etiqueta del mismo tamaño en la categoría"}:{" "}
+            <span className="font-medium text-ink">{ej.nombre}</span>
+          </p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onAjustar}
+            className="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-ink-secondary hover:bg-surface-hover"
+          >
+            Ajustar plantilla
+          </button>
+          <button
+            type="button"
+            onClick={onNuevaEtiqueta}
+            className="flex-1 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+          >
+            + Etiqueta con esta plantilla
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** Siguiente trabajo tras aprobar `fichaId`: la próxima etiqueta «por aprobar»
@@ -432,6 +678,10 @@ export default function StudioCategoriasPanel({
     }
     onAbrirEtiqueta(e);
   };
+  /** Etiqueta pendiente de vista previa: se clickeó pero aún no se confirmó
+   *  abrirla. `catId` solo lo trae el árbol lateral (cambia de categoría al abrir). */
+  const [previa, setPrevia] = useState<{ etiqueta: EtiquetaDeCategoria; catId?: string } | null>(null);
+  const [previaPlantilla, setPreviaPlantilla] = useState<PlantillaDeCategoria | null>(null);
   const { ref: raiz, alto } = useAltoDisponible<HTMLDivElement>(Boolean(editor));
   const [creandoCat, setCreandoCat] = useState(false);
   const [nombreCat, setNombreCat] = useState("");
@@ -482,6 +732,29 @@ export default function StudioCategoriasPanel({
     setBorrando(e.clave);
     if (e.fichaId) eliminarFichaMut.mutate(e.fichaId);
     else if (e.png) eliminarPngMut.mutate(e.png.nombre);
+  }
+
+  /** Borra UNA plantilla (un tamaño). Las etiquetas hechas con ella se quedan:
+   *  solo pierden el enlace a la plantilla. */
+  const eliminarPlantillaMut = useMutation({
+    mutationFn: (p: PlantillaDeCategoria) =>
+      api.delete<{ ok: boolean }>(
+        p.motor === "ficha"
+          ? `/api/etiquetas/fichas/${encodeURIComponent(p.id)}`
+          : `/api/plantillas-visuales/${encodeURIComponent(p.id)}`,
+      ),
+    onError: (e) => setErrorCat(`No se pudo eliminar la plantilla: ${e instanceof Error ? e.message : String(e)}`),
+    onSettled: (_r, _e, p) => {
+      setBorrando(null);
+      setConfirmando(null);
+      void qc.invalidateQueries({ queryKey: p.motor === "ficha" ? ["etiquetas-fichas"] : ["plantillas-visuales"] });
+    },
+  });
+
+  function eliminarPlantilla(p: PlantillaDeCategoria) {
+    setErrorCat(null);
+    setBorrando(`pl:${p.motor}:${p.id}`);
+    eliminarPlantillaMut.mutate(p);
   }
 
   function empezarEdicion(cat: CategoriaEtiqueta) {
@@ -713,7 +986,7 @@ export default function StudioCategoriasPanel({
                                   type="button"
                                   onClick={() => {
                                     // Ya está abierta: volver a tocarla no la recarga.
-                                    if (!esta) abrirDesdeArbol(r.categoria.id, e);
+                                    if (!esta) setPrevia({ etiqueta: e, catId: r.categoria.id });
                                   }}
                                   aria-current={esta ? "true" : undefined}
                                   title={`${e.nombre}${e.detalle ? ` · ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
@@ -931,35 +1204,84 @@ export default function StudioCategoriasPanel({
                     key={`${p.motor}:${p.id}`}
                     className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface px-2.5 py-2"
                   >
-                    {p.doc && (
-                      <span className="flex shrink-0 items-center justify-center rounded bg-[#525659] p-1">
-                        <PlantillaVisualMiniatura doc={p.doc} maxAncho={56} maxAlto={40} />
+                    <button
+                      type="button"
+                      onClick={() => setPreviaPlantilla(p)}
+                      title={`Vista previa de la plantilla ${p.nombre}`}
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded text-left hover:opacity-80"
+                    >
+                      {p.doc ? (
+                        <span className="flex shrink-0 items-center justify-center rounded bg-[#525659] p-1">
+                          <PlantillaVisualMiniatura doc={p.doc} maxAncho={56} maxAlto={40} />
+                        </span>
+                      ) : p.ejemplo?.png.thumb_b64 ? (
+                        <span className="flex shrink-0 items-center justify-center rounded bg-[#525659] p-1">
+                          <img
+                            src={`data:${p.ejemplo.png.thumb_mime || "image/png"};base64,${p.ejemplo.png.thumb_b64}`}
+                            alt=""
+                            style={{ maxWidth: 56, maxHeight: 40 }}
+                            className="object-contain"
+                          />
+                        </span>
+                      ) : null}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-xs font-semibold text-ink" title={p.formato}>
+                          {tamanoCorto(p.formato)}
+                        </span>
+                        <span className="line-clamp-2 text-[10px] leading-tight text-muted" title={p.nombre}>
+                          {p.nombre}
+                        </span>
                       </span>
+                    </button>
+                    {confirmando === `pl:${p.motor}:${p.id}` ? (
+                      <span className="flex shrink-0 items-center gap-1">
+                        <span className="text-[10px] text-muted" title="Las etiquetas hechas con ella se conservan">
+                          ¿Eliminar?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => eliminarPlantilla(p)}
+                          disabled={borrando === `pl:${p.motor}:${p.id}`}
+                          className="rounded bg-danger px-1.5 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                        >
+                          {borrando === `pl:${p.motor}:${p.id}` ? "…" : "Sí"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmando(null)}
+                          className="rounded border border-border px-1 py-0.5 text-[10px] text-ink-secondary hover:bg-surface-hover"
+                        >
+                          No
+                        </button>
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onAbrirPlantilla(p)}
+                          title={`Ajustar la plantilla ${p.nombre}`}
+                          className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
+                        >
+                          Ajustar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onNuevaEtiqueta(p)}
+                          title={`Nueva etiqueta de un producto en ${p.formato}`}
+                          className="shrink-0 rounded-lg bg-accent px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90"
+                        >
+                          + Etiqueta
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmando(`pl:${p.motor}:${p.id}`)}
+                          title={`Eliminar la plantilla ${p.nombre} (las etiquetas hechas con ella se conservan)`}
+                          className="shrink-0 rounded px-1 py-0.5 text-xs text-muted hover:bg-red-50 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </>
                     )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-ink" title={p.formato}>
-                        {tamanoCorto(p.formato)}
-                      </p>
-                      <p className="line-clamp-2 text-[10px] leading-tight text-muted" title={p.nombre}>
-                        {p.nombre}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onAbrirPlantilla(p)}
-                      title={`Ajustar la plantilla ${p.nombre}`}
-                      className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover"
-                    >
-                      Ajustar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onNuevaEtiqueta(p)}
-                      title={`Nueva etiqueta de un producto en ${p.formato}`}
-                      className="shrink-0 rounded-lg bg-accent px-2 py-1 text-[11px] font-semibold text-white hover:opacity-90"
-                    >
-                      + Etiqueta
-                    </button>
                   </div>
                 ))}
                 <button
@@ -1006,7 +1328,7 @@ export default function StudioCategoriasPanel({
                       <li key={e.clave} className="flex min-w-0 items-center gap-1">
                         <button
                           type="button"
-                          onClick={() => onAbrirEtiqueta(e)}
+                          onClick={() => setPrevia({ etiqueta: e })}
                           title={`${e.nombre}${e.detalle ? ` — ${e.detalle}` : ""} · ${TEXTO_ESTADO_ETIQUETA[e.estado]}${
                             (e.versionesPng ?? 0) > 1 ? ` (${e.versionesPng} versiones del PNG)` : ""
                           }`}
@@ -1072,6 +1394,38 @@ export default function StudioCategoriasPanel({
           </section>
         )}
       </div>
+      )}
+      {previa && (
+        <EtiquetaVistaPreviaModal
+          etiqueta={previa.etiqueta}
+          onCerrar={() => setPrevia(null)}
+          onConfirmar={() => {
+            const { etiqueta, catId } = previa;
+            setPrevia(null);
+            if (catId) abrirDesdeArbol(catId, etiqueta);
+            else onAbrirEtiqueta(etiqueta);
+          }}
+          onDuplicado={(copia) => {
+            const { catId } = previa;
+            setPrevia(null);
+            if (catId) abrirDesdeArbol(catId, copia);
+            else onAbrirEtiqueta(copia);
+          }}
+        />
+      )}
+      {previaPlantilla && (
+        <PlantillaVistaPreviaModal
+          plantilla={previaPlantilla}
+          onCerrar={() => setPreviaPlantilla(null)}
+          onAjustar={() => {
+            setPreviaPlantilla(null);
+            onAbrirPlantilla(previaPlantilla);
+          }}
+          onNuevaEtiqueta={() => {
+            setPreviaPlantilla(null);
+            onNuevaEtiqueta(previaPlantilla);
+          }}
+        />
       )}
     </div>
   );

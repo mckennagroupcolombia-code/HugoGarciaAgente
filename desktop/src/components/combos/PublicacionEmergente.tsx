@@ -174,7 +174,7 @@ export default function PublicacionEmergente({ sku: skuCombo, nombre, precioList
                 <ol className="list-decimal space-y-2 pl-5 text-[13px] text-ink">
                   <li>Revisa si el producto <b>ya está en MeLi con otro SKU</b> (otra presentación o un SKU viejo). Si está, corrige su SKU a <code>{sku}</code>.</li>
                   <li>Si no existe, <b>crea la publicación</b>: el formulario abre con el nombre, el SKU, la presentación{precioLista ? " y el precio" : ""} ya escritos.</li>
-                  <li>Con la publicación en MeLi, <b>actualiza la vitrina</b>: la tienda la toma y la pieza del taller se enciende.</li>
+                  <li>Con la publicación en MeLi, <b>actualiza la vitrina</b>: la tienda la toma y la pieza del árbol se enciende.</li>
                 </ol>
                 <div className="flex flex-wrap gap-2">
                   <button className={BTN_SEC} onClick={() => setVista({ tipo: "buscar" })}>1 · Buscar «{base}»</button>

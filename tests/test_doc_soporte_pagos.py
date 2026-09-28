@@ -226,6 +226,19 @@ def test_una_cuota_de_prestamo_no_lleva_documento_por_la_cuota_entera(libro, mon
     assert "Préstamos" in r["message"]
 
 
+def test_un_saldo_por_pagar_no_lleva_documento_soporte(libro, monkeypatch):
+    """27-sep-2026: el reintegro a Jenniffer de la factura FECC1129 (de otro proveedor)
+    le armaba un documento soporte como si ella hubiera vendido uniformes."""
+    from app.services import pagos_wizard as pw
+
+    monkeypatch.setattr(pw, "obtener", lambda sid: {
+        "id": sid, "fecha": "2026-09-27", "movimiento_id": 9, "tercero_id": 1,
+        "categoria": "saldo_por_pagar", "monto": 190_400, "retencion": 0, "concepto": "Reintegro",
+    })
+    assert libro.emitir_por_solicitud(1)["status"] == "no_aplica"
+    assert libro.vista_previa(pw.obtener(1)) is None
+
+
 def test_el_sello_de_la_dian_solo_se_pide_si_se_pide():
     from app.services.alegra import crear_documento_soporte_alegra
 

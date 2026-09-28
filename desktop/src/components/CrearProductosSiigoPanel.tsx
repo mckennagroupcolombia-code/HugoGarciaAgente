@@ -144,6 +144,7 @@ export default function CrearProductosSiigoPanel({
   onCreado,
   inicial = null,
   accion = "crear",
+  origenSugerido,
 }: {
   compact?: boolean;
   onCreado?: (info: { codigo: string; nombre: string }) => void;
@@ -152,6 +153,9 @@ export default function CrearProductosSiigoPanel({
   /** duplicar: fuerza combo y pide un combo origen para copiar la receta.
    *  ajustar: abre el combo `inicial.codigo` ya existente con sus componentes para editarlos. */
   accion?: "crear" | "duplicar" | "ajustar";
+  /** duplicar: código del combo origen ya elegido (p. ej. desde una búsqueda previa), en vez
+   *  de adivinarlo con `sugerirConsultaOrigen` a partir del código destino. */
+  origenSugerido?: string;
 }) {
   const modoCompacto = compact;
   const duplicarCombo = accion === "duplicar";
@@ -190,7 +194,7 @@ export default function CrearProductosSiigoPanel({
   const [lineaActiva, setLineaActiva] = useState<string | null>(null);
 
   const [catalogoQ, setCatalogoQ] = useState(
-    duplicarCombo ? sugerirConsultaOrigen(codigoInicial) : codigoInicial,
+    duplicarCombo ? (origenSugerido?.trim() || sugerirConsultaOrigen(codigoInicial)) : codigoInicial,
   );
   const [catalogoItems, setCatalogoItems] = useState<BusquedaItem[]>([]);
   const [catalogoBuscando, setCatalogoBuscando] = useState(false);

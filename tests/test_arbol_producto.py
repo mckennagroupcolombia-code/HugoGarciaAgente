@@ -1,6 +1,6 @@
 """Studio → Árbol del producto: une el taller de combos con Canales del producto."""
 
-from app.services import arbol_producto, canales_producto, mapa_producto
+from app.services import arbol_producto, canales_producto, fotos_producto, mapa_producto
 
 
 def _combo(ref, nombre, familia, linea="Conservantes", etiqueta=None, pres=""):
@@ -47,6 +47,7 @@ def test_arbol_agrupa_por_categoria_y_familia(monkeypatch):
         _fila("C-SORPOTKg", meli="falta", web=False), _fila("C-SORPOT250g"), _fila("C-SORPOT100g", facturable="no"),
     ]})
 
+    monkeypatch.setattr(fotos_producto, "por_sku", lambda: {})
     d = arbol_producto.arbol()
     assert [c["nombre"] for c in d["categorias"]] == ["Conservantes"]
     fam = d["categorias"][0]["familias"][0]
@@ -54,7 +55,7 @@ def test_arbol_agrupa_por_categoria_y_familia(monkeypatch):
     # Ordenadas por tamaño: 100 g < 250 g < 1 kg.
     assert [p["ref"] for p in fam["presentaciones"]] == ["C-SORPOT100g", "C-SORPOT250g", "C-SORPOTKg"]
     p100, p250, pkg = fam["presentaciones"]
-    assert p250["listas"] == 6 and fam["completas"] == 1
+    assert p250["listas"] == 7 and fam["completas"] == 1
     # Sin la variante desenfocada, el par está a medias; y el SKU que Alegra no factura, falta.
     assert p100["piezas"]["etiquetas"]["estado"] == "aviso"
     assert p100["piezas"]["factura"]["estado"] == "falta"
@@ -70,8 +71,27 @@ def test_arbol_sigue_sin_canales(monkeypatch):
         raise RuntimeError("sin caché")
 
     monkeypatch.setattr(canales_producto, "tabla_maestra", roto)
+    monkeypatch.setattr(fotos_producto, "por_sku", lambda: {})
     d = arbol_producto.arbol()
     assert d["sin_senal"] and d["sin_senal"][0]["fuente"] == "Canales del producto"
     fam = d["categorias"][0]["familias"][0]
     assert fam["clave"] == "solo:C-X1"
     assert fam["presentaciones"][0]["piezas"]["factura"]["estado"] == "aviso"
+
+
+def test_fotos_cuentan_como_pieza_y_se_comparan_con_la_etiqueta():
+    esl = {"etiqueta": {"aprobado_at": "2026-09-27T10:00:00"}}
+    viejo = {"foto_estado": "anterior_a_etiqueta", "foto_motivo": "La foto es de 2023-09."}
+    # Sin fotos pegadas y con la vitrina vieja: falta, con el motivo del taller.
+    p = arbol_producto._fotos(viejo, esl, None)
+    assert p["estado"] == "falta" and "2023-09" in p["detalle"]
+    # Una por canal, posteriores a la etiqueta: lista.
+    al_dia = {"web": {"n": 1, "ultima": "2026-09-27T11:00:00"}, "meli": {"n": 2, "ultima": "2026-09-27T12:00:00"}}
+    assert arbol_producto._fotos(viejo, esl, al_dia)["estado"] == "ok"
+    # La de MeLi es de antes de aprobar la etiqueta: a revisar.
+    vieja_meli = {"web": {"n": 1, "ultima": "2026-09-27T11:00:00"}, "meli": {"n": 1, "ultima": "2026-09-20T09:00:00"}}
+    p = arbol_producto._fotos(viejo, esl, vieja_meli)
+    assert p["estado"] == "aviso" and p["canales"]["meli"]["desactualizada"]
+    # Solo web: a revisar, dice qué falta.
+    solo_web = {"web": {"n": 1, "ultima": "2026-09-27T11:00:00"}, "meli": {"n": 0, "ultima": ""}}
+    assert "MeLi" in arbol_producto._fotos(viejo, esl, solo_web)["detalle"]

@@ -18,6 +18,17 @@ Un comando pausa todos los canales de venta (reestructuración, control de inven
   `numeros_internos` → ningún envío del panel (asesor desde /app, confirmaciones de pago) llega al cliente.
   ⚠️ Lo que alguien escriba **desde el teléfono** no se puede frenar por software.
 
+**Levantado el 27-sep-2026 con despliegue gradual** (`scripts/desplegar_ventas_facturables.py --simular |
+--aplicar | --ampliar | --notificar`, `app/services/despliegue_ventas.py`, estado en `app/data/despliegue_ventas.json`):
+solo vuelve lo que **hoy se factura** (SKU activo en Alegra o con alias, regla de `canales_producto._facturable` contra
+la copia local). 271 de 280 publicaciones reactivadas; 7 quedan pausadas (SKU inexistente en Alegra, lista en
+`meli_pausa_global.json` → `no_reactivadas`) y 2 no volvieron por stock 0. Mientras el despliegue esté activo:
+`meli.meli_item_reactivable()` impide que la sincronización de stock reactive algo fuera de la lista; la web filtra el
+catálogo como vista (`_catalogo_desplegado` / `_vista_despliegue` en website.py, cache.json no cambia); Cotizar/Facturar
+rechaza SKUs fuera de la lista **y las líneas genéricas VENTA-VARIO-*** (`ventas_directas.fuera_de_despliegue`; la venta
+MeLi con RUT no se frena); el Árbol del producto marca «A la venta · MeLi + web». Al enlazar más SKUs: `--ampliar`.
+`tests/conftest.py` aísla el archivo real (autouse).
+
 ### AA. Chat del equipo, campana y recepción de mercancía (24-sep-2026)
 
 Llevar la operación de los grupos de WhatsApp al panel — **redirigir, no bloquear** (lo del teléfono no se frena):
@@ -92,3 +103,19 @@ quedó suelta en un grupo de WhatsApp, sin producto ni lugar. Abastecer → Rece
   los permisos de Recepción. Base `app/data/bultos.db`, fotos reducidas en `fotos_bultos/` (ambas gitignored).
 - ⚠️ Al crearlo (27-sep) el puente **no registraba ningún mensaje humano** de MCKG SEDE SUR ni de MCKG PEDIDOS /
   COMPRAS en 10 días (Postventa sí): la bandeja solo se llena si esas fotos llegan. La vía principal es la cámara.
+
+### AF. Solicitudes y acciones como misión (27-sep-2026, pedido de Stella)
+
+- **Hilo** (`desktop/src/components/tickets/HiloConversacion.tsx`): la tarjeta **«Lo que te piden»** (título
+  completo, descripción, fotos de quien la pidió) y las **cuatro casillas** Leer → Empezar → Evidencia → Entregar van
+  **fijas arriba**, fuera del scroll del chat. Antes el título salía truncado («Empacar …») y la descripción se
+  ocultaba cuando era igual al título: no había dónde leer lo pedido. Un solo botón grande abajo da la siguiente
+  jugada («▶ Lo leí · Empezar», «📷 Foto de cómo quedó» con la cámara, «★ Entregar»). Sonido de moneda al empezar
+  (`sonarRevisado`); la evidencia y la entrega ya las paga/celebra el servidor (`logros_hook.py` → `X-Mck-Monedas`,
+  `celebrarTareaCumplida`), no se duplica aquí.
+- **Fotos**: visor propio (`VisorFotos.tsx`). `target="_blank"` no abre nada en la APK / modo instalado.
+- **Bandeja** (`InboxConversaciones.tsx`): «Seguir con la que estabas» (clave `mck_hilo_actual`, la escribe el hilo),
+  contadores Por hacer · En curso · Hechas que filtran (como el Mapa), «✚ Pedir algo» / «✚ Nueva tarea» en un toque,
+  filtros Me toca · Pedí yo · Todo · Por persona, solicitudes y acciones juntas, y el **historial de hechas plegado**.
+- Estilo en `tickets/hiloPixel.css` (forma pixel, letra Montserrat grande: 16–19 px). Banco sin backend:
+  `/app/dev/solicitudes.html?abrir=1650[&estado=pendiente]`.

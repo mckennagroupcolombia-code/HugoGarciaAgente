@@ -209,12 +209,17 @@
   text-align: left;
 }
 
-/* Ícono a la izquierda, texto a la derecha (Composición, Color, Conservación). */
+/* Ícono a la izquierda, texto a la derecha (Color, Conservación). */
 .ecap-casilla {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 3px 10px 3px 8px;
+}
+/* Título y valor centrados dentro de su columna (pedido del usuario, 2026-09-27). */
+.ecap-casilla .ecap-titulo,
+.ecap-casilla .ecap-valor {
+  text-align: center;
 }
 .ecap-etiqueta .ecap-icono {
   flex: none;

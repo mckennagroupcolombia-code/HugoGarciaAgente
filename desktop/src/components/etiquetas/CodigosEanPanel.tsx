@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { api } from "../../api/client";
 import { useAppStore } from "../../stores/app";
 import { calcCheck, generarEAN13 } from "../../lib/ean13";
 import {
@@ -55,6 +56,20 @@ function normBusqueda(s: string): string {
     .trim();
 }
 
+/** Resultado de `/api/siigo/productos/buscar` (código y nombre en Alegra). */
+interface BusquedaComboAlegra {
+  codigo: string;
+  nombre: string;
+  type?: string;
+}
+
+function esComboAlegra(item: BusquedaComboAlegra): boolean {
+  const t = (item.type || "").toLowerCase();
+  if (t === "combo" || t === "kit") return true;
+  if (t === "product") return false;
+  return item.codigo.toUpperCase().startsWith("C-");
+}
+
 function coincideCodigoEan(c: CodigoEan, q: string): boolean {
   const t = normBusqueda(q);
   if (!t) return true;
@@ -92,6 +107,14 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
   /** Código EAN al que se asocia el combo que se crea o duplica en la ventana de Alegra. */
   const [filaCombo, setFilaCombo] = useState<CodigoEan | null>(null);
   const [busquedaLista, setBusquedaLista] = useState(buscarInicial);
+  // Buscar combo de Alegra por unas letras del nombre o código, para no escribir el SKU a mano.
+  const [comboQ, setComboQ] = useState("");
+  const [comboItems, setComboItems] = useState<BusquedaComboAlegra[]>([]);
+  /** Código del combo elegido como origen para «Duplicar» desde este buscador. */
+  const [origenDuplicar, setOrigenDuplicar] = useState<string | null>(null);
+  const [comboBuscando, setComboBuscando] = useState(false);
+  const [comboAbierto, setComboAbierto] = useState(false);
+  const comboRef = useRef<HTMLDivElement | null>(null);
   const [sku, setSku] = useState("");
   /** El prefijo «C-» es el de los combos: se puede apagar para SKU que no lo llevan. */
   const [usarPrefijo, setUsarPrefijo] = useState(true);
@@ -158,6 +181,74 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
     const sugerida = sugerirPresentacionEan(skuFinal(usarPrefijo, sku), nombreProducto);
     setPresentacion(sugerida);
   }, [sku, usarPrefijo, nombreProducto]);
+
+  // Buscar combos de Alegra a medida que se escriben letras (debounce), solo combos (no productos simples).
+  useEffect(() => {
+    const q = comboQ.trim();
+    if (q.length < 2) {
+      setComboItems([]);
+      setComboBuscando(false);
+      return;
+    }
+    let cancelado = false;
+    setComboBuscando(true);
+    const t = window.setTimeout(() => {
+      void api
+        .get<{ items: BusquedaComboAlegra[] }>(
+          `/api/siigo/productos/buscar?q=${encodeURIComponent(q)}&limit=40&excluir_combos=0`,
+        )
+        .then((data) => {
+          if (!cancelado) setComboItems((data.items ?? []).filter(esComboAlegra));
+        })
+        .catch(() => {
+          if (!cancelado) setComboItems([]);
+        })
+        .finally(() => {
+          if (!cancelado) setComboBuscando(false);
+        });
+    }, 220);
+    return () => {
+      cancelado = true;
+      window.clearTimeout(t);
+    };
+  }, [comboQ]);
+
+  // Cerrar el desplegable de combos al hacer clic fuera.
+  useEffect(() => {
+    if (!comboAbierto) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!comboRef.current?.contains(e.target as Node)) setComboAbierto(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [comboAbierto]);
+
+  /** Elegir un combo de Alegra de la búsqueda: llena SKU y nombre del formulario de arriba. */
+  function elegirComboAlegra(item: BusquedaComboAlegra) {
+    const esCombo = item.codigo.trim().toUpperCase().startsWith("C-");
+    presentacionManual.current = false;
+    setUsarPrefijo(esCombo);
+    setSku(esCombo ? sinPrefijoSku(item.codigo) : item.codigo.trim());
+    setNombreProducto(item.nombre || "");
+    setComboQ("");
+    setComboItems([]);
+    setComboAbierto(false);
+  }
+
+  /** «Duplicar» un combo hallado en la búsqueda: abre la ventana de Alegra en modo
+   *  duplicar, con este combo como origen sugerido y el SKU/nombre ya escritos arriba
+   *  (si hay) como el nuevo combo destino. */
+  function duplicarComboAlegra(item: BusquedaComboAlegra) {
+    const destino = sku.trim() ? skuFinal(usarPrefijo, sku) : "";
+    setAccionSiigo("duplicar");
+    setFilaCombo(null);
+    setSiigoInicial({ codigo: destino.toUpperCase().startsWith("C-") ? destino : "C-", nombre: nombreProducto.trim() });
+    setOrigenDuplicar(item.codigo);
+    setComboQ("");
+    setComboItems([]);
+    setComboAbierto(false);
+    setCrearSiigoAbierto(true);
+  }
 
   const numeroValido = /^\d+$/.test(numeroProducto) && Number(numeroProducto) >= 1 && Number(numeroProducto) <= 900;
   const numeroDuplicado = useMemo(
@@ -280,6 +371,7 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
   function cerrarCrearSiigo() {
     // Tras revisar o ajustar un combo, la columna «Alegra» se vuelve a verificar.
     if (filaCombo) void qc.invalidateQueries({ queryKey: ["etiquetas-codigos-ean-alegra"] });
+    setOrigenDuplicar(null);
     setCrearSiigoAbierto(false);
     setSiigoInicial(null);
     setFilaCombo(null);
@@ -349,6 +441,52 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
         <p className="text-xs text-muted">
           Estructura fija: 770 (país) + número de producto (001-900) + presentación (3 díg.) + año (2 díg.) + bimestre (1 díg.) + verificador.
         </p>
+
+        <div ref={comboRef} className="relative">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-muted">
+            Vincular con un combo de Alegra
+          </label>
+          <input
+            type="text"
+            value={comboQ}
+            onChange={(e) => {
+              setComboQ(e.target.value);
+              setComboAbierto(true);
+            }}
+            onFocus={() => setComboAbierto(true)}
+            placeholder="Escribe unas letras del nombre o código del combo…"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-ink outline-none focus:border-accent"
+          />
+          {comboAbierto && comboQ.trim().length >= 2 && (
+            <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-border bg-surface-panel shadow-lg">
+              {comboBuscando && <li className="px-3 py-2 text-[12px] text-muted">Buscando…</li>}
+              {!comboBuscando && comboItems.length === 0 && (
+                <li className="px-3 py-2 text-[12px] text-muted">Ningún combo coincide.</li>
+              )}
+              {comboItems.map((item) => (
+                <li key={item.codigo} className="flex items-stretch gap-1">
+                  <button
+                    type="button"
+                    onClick={() => elegirComboAlegra(item)}
+                    title="Usar este combo (llena SKU y nombre arriba)"
+                    className="block min-w-0 flex-1 px-3 py-1.5 text-left text-[12px] hover:bg-accent/10"
+                  >
+                    <span className="font-mono text-accent">{item.codigo}</span>{" "}
+                    <span className="text-ink">{item.nombre}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => duplicarComboAlegra(item)}
+                    title="Copiar componentes, cantidades y precio de este combo a uno nuevo"
+                    className="m-1 shrink-0 rounded-md border border-accent/60 bg-accent/15 px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent/25"
+                  >
+                    Duplicar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div>
@@ -772,10 +910,11 @@ export function CodigosEanPanel({ buscarInicial = "" }: {
           <div className="p-4">
             <Suspense fallback={<p className="py-8 text-center text-sm text-muted">Cargando…</p>}>
               <CrearProductosSiigoPanel
-                key={`${accionSiigo}|${siigoInicial?.codigo || "nuevo"}|${siigoInicial?.nombre || ""}`}
+                key={`${accionSiigo}|${siigoInicial?.codigo || "nuevo"}|${siigoInicial?.nombre || ""}|${origenDuplicar || ""}`}
                 compact
                 inicial={siigoInicial}
                 accion={accionSiigo}
+                origenSugerido={origenDuplicar || undefined}
                 onCreado={onProductoSiigoCreado}
               />
             </Suspense>

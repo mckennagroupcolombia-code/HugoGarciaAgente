@@ -346,6 +346,17 @@
       "actualizado_at": "2026-09-19T19:00:57"
     },
     {
+      "id": "fc27c7e818ad",
+      "sku": "C-ACEESEPIN5mL",
+      "nombre_producto": "ACEITE ESENCIAL PINO 5 mL",
+      "numero_producto": 31,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7700310052647",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
       "id": "65e9f08fcd45",
       "sku": "C-VAS400g",
       "nombre_producto": "VASELINA 400g",
@@ -355,6 +366,28 @@
       "bimestre": 3,
       "codigo": "7700324002638",
       "creado_at": "2026-07-14T00:14:52"
+    },
+    {
+      "id": "eb9e5b1fe94e",
+      "sku": "C-ACEESNMEN5mL",
+      "nombre_producto": "ACEITE ESENCIAL MENTA 5mL",
+      "numero_producto": 33,
+      "presentacion": "005",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7700330052641",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "08821d7d0fec",
+      "sku": "C-ACISAL50gBAD",
+      "nombre_producto": "ACIDO SALICILICO 50g",
+      "numero_producto": 34,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7700340502648",
+      "creado_at": "2026-09-27T17:59:42"
     },
     {
       "id": "526f60c94a95",
@@ -1050,6 +1083,17 @@
       "creado_at": "2026-07-14T15:35:25"
     },
     {
+      "id": "3afd7a6d5c15",
+      "sku": "C-ACISORKG",
+      "nombre_producto": "ALULOSA KG (COPIA)",
+      "numero_producto": 97,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7700970012647",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
       "id": "852913224b22",
       "sku": "C-BENSOD500g",
       "nombre_producto": "BENZOATO DE SODIO 500g",
@@ -1242,6 +1286,17 @@
       "bimestre": 3,
       "codigo": "7701140012634",
       "creado_at": "2026-08-21T15:52:32"
+    },
+    {
+      "id": "b8f033e07bca",
+      "sku": "C-ALA250g",
+      "nombre_producto": "ALANTOINA 250g",
+      "numero_producto": 115,
+      "presentacion": "250",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7701152502642",
+      "creado_at": "2026-09-27T17:59:42"
     },
     {
       "id": "494b716e5ec5",
@@ -2555,6 +2610,17 @@
       "actualizado_at": "2026-09-17T00:00:49"
     },
     {
+      "id": "acccb94ac3da",
+      "sku": "C-ALGSODCLOCAL50g",
+      "nombre_producto": "ALGINATO DE SODIO + CLORURO DE CALCIO 50g",
+      "numero_producto": 234,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702340502642",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
       "id": "0b8aca630e0e",
       "sku": "C-MANTOSPAR500g",
       "nombre_producto": "MANI TOSTADO PARTIDO  500g",
@@ -2786,6 +2852,17 @@
       "bimestre": 4,
       "codigo": "7702555002647",
       "creado_at": "2026-09-20T02:19:14"
+    },
+    {
+      "id": "8813c95f1d6e",
+      "sku": "C-BCAA500g",
+      "nombre_producto": "AMINOACIDO BCAA 500g",
+      "numero_producto": 256,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702565002644",
+      "creado_at": "2026-09-27T17:59:42"
     },
     {
       "id": "c3a23a847879",
@@ -3028,6 +3105,193 @@
       "bimestre": 4,
       "codigo": "7702785002646",
       "creado_at": "2026-09-24T11:42:52"
+    },
+    {
+      "id": "ea803c6a4f5b",
+      "sku": "C-CAFE100g",
+      "nombre_producto": "CAFEINA 100g",
+      "numero_producto": 279,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702791002647",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "b740053a3d70",
+      "sku": "C-CERABREFKg",
+      "nombre_producto": "CERA ABEJAS REFINADA AMARILLA KG",
+      "numero_producto": 280,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702800012643",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "9a3a65a71226",
+      "sku": "C-ERI500g",
+      "nombre_producto": "ERITRITOL 500g",
+      "numero_producto": 281,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702815002646",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "15783e5edac1",
+      "sku": "C-ESPCCRCRV22CM",
+      "nombre_producto": "ESPATULA DE LABORATORIO 22CMS",
+      "numero_producto": 282,
+      "presentacion": "000",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702820002648",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "30a4d75e51e9",
+      "sku": "C-GOTPLA3mL10Un",
+      "nombre_producto": "GOTERO PLASTICO 3 mL 10 UN",
+      "numero_producto": 283,
+      "presentacion": "003",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702830032642",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "97641fae54e1",
+      "sku": "C-LHIS100g",
+      "nombre_producto": "L HISTIDINA 100g",
+      "numero_producto": 284,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702841002641",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "25931a7f8b59",
+      "sku": "C-LTRI100g",
+      "nombre_producto": "L TRIPTOFANO 100g",
+      "numero_producto": 285,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702851002648",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "340e7c9cbf2b",
+      "sku": "C-METBIS500g",
+      "nombre_producto": "METABISULFITO DE SODIO 500g",
+      "numero_producto": 286,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702865002641",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "2bb42cde174b",
+      "sku": "C-PROAISSOY1000g",
+      "nombre_producto": "PROTEINA AISLADA SOYA 1000g",
+      "numero_producto": 287,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702870012642",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "22ee38248491",
+      "sku": "C-PROAISSOYKg",
+      "nombre_producto": "PROTEINA DE SOYA KG",
+      "numero_producto": 288,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702880012649",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "7c2dfb6d668b",
+      "sku": "C-PROCONSUE80PKg",
+      "nombre_producto": "PROTEINA CONCENTRADA SUERO LECHE 80P KG",
+      "numero_producto": 289,
+      "presentacion": "001",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702890012646",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "32ef5bdacc30",
+      "sku": "C-SULHIE500g",
+      "nombre_producto": "SULFATO HIERRO 500g",
+      "numero_producto": 290,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702905002648",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "e48644c861f6",
+      "sku": "C-VAS900g",
+      "nombre_producto": "VASELINA 900g",
+      "numero_producto": 291,
+      "presentacion": "900",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702919002641",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "2ee12372a499",
+      "sku": "C-VASPRE100mL",
+      "nombre_producto": "VASO DE PRECIPITADO 100mL",
+      "numero_producto": 292,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702921002646",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "3324cbc18ed9",
+      "sku": "C-VASPRE10mL",
+      "nombre_producto": "VASO DE PRECIPITADO 10mL",
+      "numero_producto": 293,
+      "presentacion": "010",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702930102641",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "d157ec2e87ed",
+      "sku": "C-VASPRE25mL",
+      "nombre_producto": "VASO DE PRECIPITADO 25mL",
+      "numero_producto": 294,
+      "presentacion": "025",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702940252640",
+      "creado_at": "2026-09-27T17:59:42"
+    },
+    {
+      "id": "a9b2cc12f540",
+      "sku": "C-VASPRE50mL",
+      "nombre_producto": "VASO DE PRECIPITADO 50mL",
+      "numero_producto": 295,
+      "presentacion": "050",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702950502643",
+      "creado_at": "2026-09-27T17:59:42"
     }
   ]
 }
