@@ -1,3 +1,11 @@
+### 2026-09-28 16:50 - Facturas de Cotizar/Facturar: PDF por WhatsApp y teléfono con dos números
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - Puente WhatsApp: desde WhatsApp Web 2.3000.10477+ (17-sep) ningún archivo salía (`Data passed to getter must include an id property`), así que las facturas emitidas desde el 22-sep no le llegaron al cliente. Parche `bot-mckenna/scripts/patch-wwebjs-media-id.js` en `postinstall` (borra `message.__x_id`); aplicado y probado con un PDF a las 16:06. Quedan ~31 facturas con teléfono válido pendientes de reenviar («Reenviar» en el panel), sin hacerlo aún porque algunas se mandaron a mano.
+  - Jenniffer no podía facturar la COT-20260928-001: el teléfono venía como «3173033440-3204642331» y se rechazaba por «Teléfono inválido». Ahora, si el campo trae dos números (separados por `-`, `/`, `,`, `;`, «y», «o»), se usa el primero válido; un número con guiones o espacios sigue leyéndose entero.
+- **Archivos Modificados:** `bot-mckenna/package.json`, `bot-mckenna/scripts/patch-wwebjs-media-id.js`, `app/tools/facturacion_directa.py`, `tests/test_ventas_directas.py`, `docs/team-recaps.md`.
+
 ### 2026-09-28 14:10 - Varias fotos al crear una solicitud
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.

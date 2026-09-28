@@ -184,6 +184,19 @@ def test_sin_whatsapp_se_factura_igual(monkeypatch):
     assert "Teléfono inválido" in V.facturar(v["id"])["error"]
 
 
+def test_dos_telefonos_en_el_campo_usa_el_primero():
+    """COT-20260928-001: «3173033440-3204642331» bloqueaba la factura por «Teléfono inválido»."""
+    esperado = "573173033440@c.us"
+    for tel in ("3173033440-3204642331", "3173033440 / 3204642331", "317 303 3440 y 320 464 2331",
+                "3173033440, 3204642331", "300123-3173033440"):
+        assert V._destino_whatsapp(tel, True) == (esperado, None), tel
+    # Un solo número con separadores sigue siendo ese número, no un trozo.
+    assert V._destino_whatsapp("317-303-3440", True) == (esperado, None)
+    assert V._destino_whatsapp("318746 2545", True) == ("573187462545@c.us", None)
+    # Ninguno válido: se sigue deteniendo.
+    assert "Teléfono inválido" in V._destino_whatsapp("300123-45 / 3201", True)[1]
+
+
 def test_venta_meli_queda_ligada_al_pack(monkeypatch):
     import app.services.alegra as A
 
@@ -409,3 +422,25 @@ def test_whatsapp_archivo_manda_ruta_absoluta(monkeypatch):
     monkeypatch.setattr(utils.requests, "post", lambda url, json=None, timeout=None: vistos.update(json) or _R())
     assert utils.enviar_whatsapp_archivo("facturas_descargadas/Factura_FE1.pdf", "x", numero_destino="573001234567@c.us")
     assert os.path.isabs(vistos["filePath"]) and vistos["filePath"].endswith("facturas_descargadas/Factura_FE1.pdf")
+
+
+def test_soporte_despues_de_facturar_se_adjunta_una_vez(monkeypatch, tmp_path):
+    """28-sep-2026: el soporte se puede pegar tras emitir la factura (llega al grupo),
+    pero no se reemplaza ni se borra: es el rastro de la factura."""
+    import app.services.alegra as A
+
+    monkeypatch.setattr(V, "_SOPORTES_DIR", str(tmp_path / "soportes"))
+    monkeypatch.setattr(A, "crear_factura_venta_alegra",
+                        lambda **kw: {"ok": True, "invoice_id": 1, "number": "FE1", "cufe": "", "url": "", "pdf_path": None})
+    monkeypatch.setattr("app.utils.enviar_whatsapp_reporte", lambda *a, **k: True)
+    enviados = []
+    monkeypatch.setattr("app.utils.enviar_whatsapp_archivo", lambda ruta, texto="", *a, **k: enviados.append(texto) or True)
+    v = _venta()
+    assert V.facturar(v["id"], medio_pago="CREDIT_TRANSFER", enviar_whatsapp=False)["ok"]
+
+    r = V.guardar_soporte(v["id"], b"png", "pegado.png", "image/png")
+    assert r["soporte_path"] and enviados == ["Soporte de pago del cliente — factura FE1"]
+    with pytest.raises(ValueError):
+        V.guardar_soporte(v["id"], b"otro", "otro.png", "image/png")
+    assert not V.eliminar_soporte(v["id"])
+    assert V.obtener(v["id"])["soporte_path"] == r["soporte_path"]
