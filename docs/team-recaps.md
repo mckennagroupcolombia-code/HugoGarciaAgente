@@ -1,3 +1,12 @@
+### 2026-09-28 14:10 - Varias fotos al crear una solicitud
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Sin LLM.
+- **Qué se implementó:**
+  - El wizard «Nueva solicitud» guardaba un solo adjunto: cada foto nueva (o Ctrl+V) reemplazaba la anterior (lo reportó Stella). Ahora acumula varias fotos/archivos, con una lista debajo y «Quitar» por cada uno; no repite el mismo archivo.
+  - Pedidos de compras/etiquetas: se pueden subir o pegar varios pantallazos; cada uno pasa por la extracción y suma ítems a la misma lista.
+  - Al crear, cada adjunto se sube por separado a cada ticket (el endpoint `/api/tickets/<id>/adjuntos` recibe uno por petición). Backend sin cambios.
+- **Archivos Modificados:** `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`.
+
 ### 2026-09-28 13:40 - Despliegue gradual de ventas tras el cese + envíos permitidos en Cotizar/Facturar
 - **Autor:** Armando García
 - **Tipo de Cambio:** Nueva funcionalidad + corrección. Sin LLM.

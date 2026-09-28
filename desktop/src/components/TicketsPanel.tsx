@@ -19304,6 +19304,28 @@ function esBootEtiquetas(tituloInicial: string, descripcionInicial: string): boo
   return descripcionInicial.trim().length > 0 && /•|producto|presentaci/i.test(descripcionInicial);
 }
 
+/** Adjuntos elegidos en el wizard de solicitud, cada uno con su «Quitar». */
+function ListaAdjuntosSolicitud({ adjuntos, onQuitar }: { adjuntos: File[]; onQuitar: (idx: number) => void }) {
+  if (!adjuntos.length) return null;
+  return (
+    <ul className="space-y-1 rounded-2xl border-2 border-border bg-surface px-4 py-2">
+      {adjuntos.map((f, idx) => (
+        <li key={`${f.name}-${f.size}-${idx}`} className="flex items-center gap-2 text-sm">
+          <span className="shrink-0"><Ico e="📎" /></span>
+          <span className="min-w-0 flex-1 truncate font-semibold text-ink">{f.name}</span>
+          <button
+            type="button"
+            onClick={() => onQuitar(idx)}
+            className="shrink-0 text-xs text-danger hover:underline"
+          >
+            Quitar
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function NuevaSolicitudWizard({
   token,
   user,
@@ -19356,7 +19378,7 @@ function NuevaSolicitudWizard({
   const [asignados, setAsignados] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [adjuntoFile, setAdjuntoFile] = useState<File | null>(null);
+  const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrMsg, setOcrMsg] = useState("");
   const comprasZoneRef = useRef<HTMLDivElement>(null);
@@ -19404,7 +19426,7 @@ function NuevaSolicitudWizard({
     }
     setVariante(v);
     setProtocoloId(null);
-    setAdjuntoFile(null);
+    setAdjuntos([]);
     setOcrMsg("");
     setOcrLoading(false);
     ocrAbortRef.current += 1;
@@ -19458,13 +19480,26 @@ function NuevaSolicitudWizard({
       void recibirAdjuntoLista(file);
       return;
     }
-    setAdjuntoFile(normalizarImagenPegada(file));
+    agregarAdjuntos([normalizarImagenPegada(file)]);
+  }
+
+  function agregarAdjuntos(files: File[]) {
+    if (!files.length) return;
+    setAdjuntos((prev) => {
+      const clave = (f: File) => `${f.name}|${f.size}|${f.lastModified}`;
+      const vistos = new Set(prev.map(clave));
+      return [...prev, ...files.filter((f) => !vistos.has(clave(f)))];
+    });
+  }
+
+  function quitarAdjunto(idx: number) {
+    setAdjuntos((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function recibirAdjuntoLista(file: File) {
     const modoOcr: "compra" | "etiqueta" = variante === "etiqueta" ? "etiqueta" : "compra";
     const norm = normalizarImagenPegada(file);
-    setAdjuntoFile(norm);
+    agregarAdjuntos([norm]);
     setOcrMsg("");
     const esImagen =
       norm.type.startsWith("image/")
@@ -19591,15 +19626,18 @@ function NuevaSolicitudWizard({
           }),
         ));
       }
-      if (adjuntoFile) {
+      if (adjuntos.length) {
+        // Uno a uno por ticket: el endpoint recibe un archivo por petición.
         await Promise.all(tickets.map(async (t) => {
-          const fd = new FormData();
-          fd.append("archivo", adjuntoFile);
-          await fetch(`/api/tickets/${t.id}/adjuntos`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: fd,
-          });
+          for (const archivo of adjuntos) {
+            const fd = new FormData();
+            fd.append("archivo", archivo);
+            await fetch(`/api/tickets/${t.id}/adjuntos`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: fd,
+            });
+          }
         }));
       }
       onCreated(variante === "etiqueta" ? { subtipo: "etiqueta" } : variante === "compra" ? { subtipo: "compra" } : undefined);
@@ -19786,28 +19824,28 @@ function NuevaSolicitudWizard({
             </div>
             <ProseHint />
             {variante !== "etiqueta" && (
-            <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
-              ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
-              <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
-              <span className="text-sm font-semibold text-muted truncate">
-                {adjuntoFile ? adjuntoFile.name : "Adjuntar foto o archivo (opcional) — Ctrl+V"}
-              </span>
-              {adjuntoFile && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); setAdjuntoFile(null); }}
-                  className="ml-auto text-xs text-danger hover:underline shrink-0"
-                >
-                  Quitar
-                </button>
-              )}
-              <input
-                type="file"
-                accept="image/*,.pdf,application/pdf,.doc,.docx,.xls,.xlsx"
-                className="sr-only"
-                onChange={(e) => setAdjuntoFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
+                ${adjuntos.length ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
+                <span className="text-xl">{adjuntos.length ? "📎" : "📷"}</span>
+                <span className="text-sm font-semibold text-muted truncate">
+                  {adjuntos.length
+                    ? `${adjuntos.length} adjunto(s) — agregar más (Ctrl+V)`
+                    : "Adjuntar fotos o archivos (opcional) — Ctrl+V"}
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,.pdf,application/pdf,.doc,.docx,.xls,.xlsx"
+                  className="sr-only"
+                  onChange={(e) => {
+                    agregarAdjuntos(Array.from(e.target.files ?? []));
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              <ListaAdjuntosSolicitud adjuntos={adjuntos} onQuitar={quitarAdjunto} />
+            </div>
             )}
           </div>
           <button
@@ -19857,50 +19895,47 @@ function NuevaSolicitudWizard({
               <label className={`flex flex-col gap-2 rounded-2xl border-2 cursor-pointer px-4 py-4 transition
                 ${ocrLoading
                   ? "border-accent/50 bg-accent/5"
-                  : adjuntoFile
+                  : adjuntos.length
                     ? "border-accent bg-accent/8"
                     : "border-dashed border-border hover:border-accent/60"}`}>
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">{ocrLoading ? "⏳" : adjuntoFile ? "📎" : "📷"}</span>
+                  <span className="text-xl">{ocrLoading ? "⏳" : adjuntos.length ? "📎" : "📷"}</span>
                   <span className="min-w-0 flex-1 text-sm font-semibold text-muted">
                     {ocrLoading
                       ? (variante === "etiqueta"
                         ? "Extrayendo etiquetas del pantallazo…"
                         : "Extrayendo productos del pantallazo…")
-                      : adjuntoFile
-                        ? adjuntoFile.name
+                      : adjuntos.length
+                        ? `${adjuntos.length} adjunto(s) — pega o sube otro pantallazo`
                         : (variante === "etiqueta"
                           ? "Pegar (Ctrl+V) o subir foto/pantallazo — la IA arma el pedido"
                           : "Pegar (Ctrl+V) o subir foto/pantallazo — la IA arma la lista")}
                   </span>
-                  {adjuntoFile && !ocrLoading && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        ocrAbortRef.current += 1;
-                        setAdjuntoFile(null);
-                        setOcrMsg("");
-                        setOcrLoading(false);
-                      }}
-                      className="text-xs text-danger hover:underline shrink-0"
-                    >
-                      Quitar
-                    </button>
-                  )}
                 </div>
                 <input
                   type="file"
+                  multiple
                   accept="image/*,.pdf,application/pdf"
                   className="sr-only"
                   disabled={ocrLoading}
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void recibirAdjuntoLista(f);
+                    const files = Array.from(e.target.files ?? []);
                     e.target.value = "";
+                    void (async () => {
+                      for (const f of files) await recibirAdjuntoLista(f);
+                    })();
                   }}
                 />
               </label>
+              <ListaAdjuntosSolicitud
+                adjuntos={adjuntos}
+                onQuitar={(idx) => {
+                  ocrAbortRef.current += 1;
+                  setOcrLoading(false);
+                  setOcrMsg("");
+                  quitarAdjunto(idx);
+                }}
+              />
               {ocrMsg && (
                 <p className={`text-xs font-semibold ${ocrMsg.startsWith("Se extrajeron") ? "text-accent" : "text-danger"}`}>
                   {ocrMsg}
