@@ -2,6 +2,7 @@
 import os
 import unicodedata
 import gspread
+import requests
 
 # TODO: La ruta a las credenciales debería venir de una configuración central
 # en lugar de ser importada directamente desde otro módulo.
@@ -125,14 +126,32 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
             print(f"❌ [G-SHEETS] Credenciales no encontradas en {CREDS_PATH}")
             return None
 
-        gc = gspread.service_account(filename=CREDS_PATH)
-        workbook = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            sheet = workbook.worksheet("BASE DE DATOS MCKENNA GROUP S.A.S")
-        except gspread.exceptions.WorksheetNotFound:
-            sheet = workbook.sheet1
+        # Un 503/429 pasajero de Sheets no es «sin ficha»: sin reintento la preventa
+        # delegaba al grupo sin borrador IA aunque la ficha existiera (27-sep, lecitina).
+        import time
 
-        all_values = sheet.get_all_values()
+        all_values = None
+        for intento in range(3):
+            try:
+                gc = gspread.service_account(filename=CREDS_PATH)
+                workbook = gc.open_by_key(SPREADSHEET_ID)
+                try:
+                    sheet = workbook.worksheet("BASE DE DATOS MCKENNA GROUP S.A.S")
+                except gspread.exceptions.WorksheetNotFound:
+                    sheet = workbook.sheet1
+                all_values = sheet.get_all_values()
+                break
+            except gspread.exceptions.APIError as e:
+                codigo = getattr(getattr(e, "response", None), "status_code", 0) or 0
+                if intento == 2 or not (codigo == 429 or codigo >= 500):
+                    raise
+                print(f"⚠️ [G-SHEETS] {codigo} leyendo fichas (intento {intento + 1}/3), reintentando…")
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if intento == 2:
+                    raise
+                print(f"⚠️ [G-SHEETS] Error de red leyendo fichas (intento {intento + 1}/3): {e}")
+            time.sleep(2 * (intento + 1))
+
         if not all_values:
             return None
 

@@ -1,3 +1,13 @@
+### 2026-09-27 21:45 - Preventa MeLi: reintento si Sheets cae, regenerar borrador y sin dosis de suplemento
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección. Con LLM (2 borradores + 2 pruebas de la pregunta 158, ~US$0,03).
+- **Qué se implementó:**
+  - La pregunta 158 (lecitina) llegó sin borrador IA: Google Sheets dio 503 justo al leer la ficha y eso se tomaba como «sin ficha». Claude nunca se llamó (sí estaba activo). Ahora la lectura de fichas reintenta 3 veces ante 429/5xx/red.
+  - `regenerar_borrador_pendiente(question_id)` genera el borrador de una pregunta que quedó en cola sin él (Sheets caído, ficha enlazada después) y lo manda al grupo para `ok <3dig>`.
+  - Regla 6b del prompt: materia prima, no suplemento. Nada de dosis, gramos/día ni beneficios para la salud aunque la ficha los traiga; responde con la función tecnológica (emulsionante, espesante…).
+  - Pendiente: la ficha de la lecitina en el Sheet (col. I) trae «como suplemento dietético 1 a 2.5 g/día» y beneficios de salud; hay que limpiarla. La respuesta ya publicada en MeLi para la 158 quedó orientada a suplemento.
+- **Archivos Modificados:** `app/services/google_services.py`, `app/services/meli_preventa.py`, `docs/team-recaps.md`.
+
 ### 2026-09-27 21:10 - Solicitudes de pago: el reintegro a socio ya no cobra ReteICA ni emite documento soporte
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.
@@ -33,6 +43,14 @@
   - **En la solicitud** aparece «¿Dónde está?» con foto y lugar del producto mencionado (tolera errores de tipeo: «PSYLLUM» → Psyllium). Lo ve todo el equipo interno; registrar pide permisos de Recepción.
   - Hallazgo: el puente no registra mensajes humanos de MCKG SEDE SUR ni MCKG PEDIDOS / COMPRAS desde hace 10 días; por eso la vía principal es la cámara del panel.
 - **Archivos Modificados:** `app/services/ubicacion_bultos.py` (nuevo), `app/routes_bultos.py` (nuevo), `agente_pro.py`, `tests/test_ubicacion_bultos.py` (nuevo), `desktop/src/components/bultos/*` (nuevo), `desktop/src/components/recepcion/RecepcionMercanciaPanel.tsx`, `desktop/src/components/TicketsPanel.tsx`, `.gitignore`, `CLAUDE.md`.
+
+### 2026-09-27 18:00 - Studio → Categorías: duplicar una etiqueta
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad. Sin LLM.
+- **Qué se implementó:**
+  - En la vista previa de una etiqueta (se abre al tocarla en el detalle, en el árbol o en los resultados del buscador) hay **«Duplicar etiqueta»**: pide el nombre de la copia (sugiere «NOMBRE (copia)»), la guarda como etiqueta nueva y la abre en el editor.
+  - La copia nunca es plantilla de la categoría y no hereda PNG aprobados (van por id): queda «por aprobar». Solo aparece en etiquetas del editor (con ficha), no en PNG sueltos.
+- **Archivos Modificados:** `desktop/src/components/plantillas-visuales/StudioCategoriasPanel.tsx`.
 
 ### 2026-09-27 17:35 - Studio: «Árbol del producto» (categorías + etiquetas para publicaciones + taller + canales)
 - **Autor:** Armando García
