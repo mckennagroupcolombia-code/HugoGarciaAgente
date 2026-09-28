@@ -1,3 +1,20 @@
+### 2026-09-28 02:30 - Quinua roja, chía, amapola y sales rosadas publicadas en MeLi y web; precio del maní
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva funcionalidad (publicación de productos). Sin LLM.
+- **Qué se implementó:**
+  - MeLi (Premium, 20 u., envío a cargo del comprador, descripción de materia prima sin claims de salud):
+    - Quinua roja: C-SEMQUIROJ250g → MCO2240813549 ($8.000) · C-SEMQUIROJ500g → MCO4485106964 ($16.500). Semillas.
+    - Chía: C-SEMCHI250g → MCO4485107370 ($8.500) · C-SEMCHI500g → MCO2240545797 ($16.000). Semillas; TDS/COA «bajo solicitud» (sin documento cargado).
+    - Amapola: C-SEMAMA250g → MCO2240546869 ($19.500) · C-SEMAMA500g → MCO2240815141 ($39.500). Semillas; aclara uso alimentario, no siembra.
+    - Sal rosada Himalaya fina: C-SALROSHIMFIN250g → MCO4485109500 ($8.000) · 500g → MCO2240509229 ($12.000). Categoría Sal.
+    - Sal rosada Himalaya gruesa: C-SALROSHIMGRU250g → MCO2240817125 ($8.000) · 500g → MCO2240817127 ($12.000). Categoría Sal.
+  - Alegra: precio de lista igualado al de MeLi en los 10 kits (la tienda oculta combos sin precio). Recetas intactas.
+  - Web: los 10 SKUs en el despliegue gradual, ligados a su publicación y con foto web nítida; fichas con selector 250 g / 500 g (MeLi −10 %).
+  - Maní natural tostado 500 g (MCO1447344989): $8.500 → $9.500 en MeLi y Alegra; se sacó de 3 ofertas DEAL que lo dejaban en $7.650/$7.395 y se puso descuento propio a $8.415 (11,4 %, máximo que MeLi acepta hoy) del 28-sep al 12-oct.
+  - TKT-2026-1532 a Armando con los 75 combos que siguen sin publicar.
+  - Pendientes para el contador: los kits de sal están con IVA 19 % y el saco sin IVA (la sal de consumo humano estaría excluida, art. 424 E.T.).
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json` (quinua, chía, amapola y sal fina entraron en el auto-commit de las 02:00; fotos en `IMAGENES_PRODUCTOS_CATALOGO/`, fuera de git).
+
 ### 2026-09-28 00:15 - Soportes que faltaban: 59 PDF bajados de Alegra + 3 ventas falsas de pruebas anuladas
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección + mejora. Sin LLM.

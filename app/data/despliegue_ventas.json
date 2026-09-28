@@ -1,7 +1,7 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-09-28T01:55:09",
+ "actualizado": "2026-09-28T02:25:12",
  "actualizado_por": "mckg",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
@@ -2270,6 +2270,24 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO2240509229"
+   ]
+  },
+  "C-SALROSHIMGRU250G": {
+   "nombre": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 250g",
+   "titulo_meli": "Sal Rosada Del Himalaya Grano Grueso 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240817125"
+   ]
+  },
+  "C-SALROSHIMGRU500G": {
+   "nombre": "SAL ROSADA DEL HIMALAYA GRANO GRUESO 500g",
+   "titulo_meli": "Sal Rosada Del Himalaya Grano Grueso 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2240817127"
    ]
   }
  },
