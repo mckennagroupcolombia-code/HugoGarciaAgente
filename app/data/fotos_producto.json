@@ -230,6 +230,170 @@
      "alto": 1254,
      "bytes": 2137180
     }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SALROSHIMGRU250G_20260928-021552_afd4.png",
+     "subido_at": "2026-09-28T02:15:52",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2325302
+    }
+   ]
+  },
+  "C-SALROSHIMGRU500G": {
+   "web": [
+    {
+     "archivo": "C-SALROSHIMGRU500G_20260928-022122_bc9d.png",
+     "subido_at": "2026-09-28T02:21:22",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2339030
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-SALROSHIMGRU500G_20260928-022319_c0ee.png",
+     "subido_at": "2026-09-28T02:23:19",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2312524
+    }
+   ]
+  },
+  "C-PROCONSUE80PKG": {
+   "web": [
+    {
+     "archivo": "C-PROCONSUE80PKG_20260928-123516_2ed3.png",
+     "subido_at": "2026-09-28T12:35:16",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2110123
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-PROCONSUE80PKG_20260928-124615_13f4.png",
+     "subido_at": "2026-09-28T12:46:15",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 1929358
+    }
+   ]
+  },
+  "C-MANTOSPAR250G": {
+   "web": [
+    {
+     "archivo": "C-MANTOSPAR250G_20260928-130818_b2fa.png",
+     "subido_at": "2026-09-28T13:08:18",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2263665
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-MANTOSPAR250G_20260928-131813_1ed6.png",
+     "subido_at": "2026-09-28T13:18:13",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2468344
+    }
+   ]
+  },
+  "C-MANTOSPAR500G": {
+   "web": [
+    {
+     "archivo": "C-MANTOSPAR500G_20260928-132831_e1ce.png",
+     "subido_at": "2026-09-28T13:28:31",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2635587
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-MANTOSPAR500G_20260928-133045_3350.png",
+     "subido_at": "2026-09-28T13:30:45",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2590239
+    }
+   ]
+  },
+  "C-AJONEG250G": {
+   "web": [
+    {
+     "archivo": "C-AJONEG250G_20260928-135218_1868.png",
+     "subido_at": "2026-09-28T13:52:18",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2105973
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-AJONEG250G_20260928-135512_d00c.png",
+     "subido_at": "2026-09-28T13:55:12",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2376429
+    }
+   ]
+  },
+  "C-AJONEG500G": {
+   "web": [
+    {
+     "archivo": "C-AJONEG500G_20260928-135858_d240.png",
+     "subido_at": "2026-09-28T13:58:58",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2547787
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-AJONEG500G_20260928-140441_48f7.png",
+     "subido_at": "2026-09-28T14:04:41",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2506437
+    }
+   ]
+  },
+  "C-ALGSOD500G": {
+   "web": [
+    {
+     "archivo": "C-ALGSOD500G_20260928-231551_b437.png",
+     "subido_at": "2026-09-28T23:15:51",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2059436
+    }
+   ],
+   "meli": [
+    {
+     "archivo": "C-ALGSOD500G_20260928-232439_a61a.png",
+     "subido_at": "2026-09-28T23:24:39",
+     "por": "armando",
+     "ancho": 1254,
+     "alto": 1254,
+     "bytes": 2037704
+    }
    ]
   }
  }

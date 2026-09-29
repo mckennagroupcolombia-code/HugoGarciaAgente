@@ -114,7 +114,7 @@ export default function MapaAppFlujo({
       base.sistema = {
         alta: caidos.length,
         media: 0,
-        items: caidos.map(([k]) => ({ etapa: "sistema", id: `caido-${k}`, n: 1, texto: `conexión con ${k} caída`, panel: k === "mercadolibre" ? "meli-oauth" : k === "google" ? "gmail-oauth" : "telemetria", severidad: "alta" as const })),
+        items: caidos.map(([k]) => ({ etapa: "sistema", id: `caido-${k}`, n: 1, texto: `conexión con ${k} caída`, panel: "conexiones", severidad: "alta" as const })),
       };
     }
     return base;

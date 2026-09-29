@@ -82,8 +82,11 @@
     "updated_at": "2026-06-12T01:08:40.258449"
   },
   "C-PROCONSUE80PKg": {
-    "meli_item_id": "1179039063",
-    "updated_at": "2026-06-12T01:08:56.650651"
+    "meli_item_id": "MCO1179039063",
+    "updated_at": "2026-09-28T12:54:46.771087",
+    "imagenes_web": [
+      "C-PROCONSUE80PKg_3.png"
+    ]
   },
   "C-AMILTRI100g": {
     "meli_item_id": "MCO1179039063",
@@ -742,5 +745,25 @@
   "C-SALROSHIMGRU500g": {
     "meli_item_id": "MCO2240817127",
     "updated_at": "2026-09-28T02:25:12.517353"
+  },
+  "C-MANTOSPAR250g": {
+    "meli_item_id": "MCO2242383895",
+    "updated_at": "2026-09-28T13:35:14.550177"
+  },
+  "C-MANTOSPAR500g": {
+    "meli_item_id": "MCO2242409683",
+    "updated_at": "2026-09-28T13:35:18.989418"
+  },
+  "C-AJONEG250g": {
+    "meli_item_id": "MCO2242423745",
+    "updated_at": "2026-09-28T14:07:28.065664"
+  },
+  "C-AJONEG500g": {
+    "meli_item_id": "MCO2242410747",
+    "updated_at": "2026-09-28T14:07:32.544120"
+  },
+  "C-ALGSOD500g": {
+    "meli_item_id": "MCO4488258886",
+    "updated_at": "2026-09-28T23:53:48.724760"
   }
 }

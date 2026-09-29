@@ -7,6 +7,7 @@ la biblioteca marca como Ficha Técnica completa).
 
 from __future__ import annotations
 
+import copy
 import os
 import re
 import io
@@ -34,6 +35,24 @@ from app.services.ficha_tecnica import (
 
 _TTL_SEC = int(os.getenv("DOCS_WEB_TTL_SEC", "60"))
 _CACHE: dict[str, Any] = {"ts": 0.0, "docs": None, "epoch": None, "omitidos": []}
+# Por archivo: (mtime, tamaño) → datos leídos. Al vencer el TTL solo se relee lo que cambió;
+# antes se releían las ~315 fichas cada 60 s y el siguiente clic a un producto esperaba ~14 s.
+_POR_ARCHIVO: dict[str, tuple[tuple[float, int], dict]] = {}
+
+
+def _datos_archivo(path: Path) -> dict:
+    try:
+        st = path.stat()
+        firma = (st.st_mtime, st.st_size)
+    except OSError:
+        return {}
+    previo = _POR_ARCHIVO.get(str(path))
+    if previo and previo[0] == firma:
+        # Copia: _contexto_publico arma y edita contextos derivados de estos datos.
+        return copy.deepcopy(previo[1])
+    datos = cargar_datos_desde_archivo(path) or {}
+    _POR_ARCHIVO[str(path)] = (firma, datos)
+    return copy.deepcopy(datos)
 _EPOCH_FILE = DATOS_DIR / ".docs_web_epoch"
 
 
@@ -211,7 +230,7 @@ def _cargar_indice(*, forzar: bool = False) -> list[dict]:
         ]
         for path in archivos:
             try:
-                datos = cargar_datos_desde_archivo(path) or {}
+                datos = _datos_archivo(path)
             except Exception:
                 continue
             ctx = _contexto_publico(datos)

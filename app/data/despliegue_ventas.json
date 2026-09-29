@@ -1,8 +1,8 @@
 {
  "activo": true,
  "desde": "2026-09-27T20:27:04",
- "actualizado": "2026-09-28T02:25:12",
- "actualizado_por": "mckg",
+ "actualizado": "2026-09-28T23:53:48",
+ "actualizado_por": "armando",
  "criterio": "Publicaciones activas antes del cese cuyo SKU se factura hoy en Alegra (código propio activo o alias).",
  "skus": {
   "GTRVDR10ML12UN": {
@@ -2288,6 +2288,60 @@
    "alias_destino": "",
    "meli_ids": [
     "MCO2240817127"
+   ]
+  },
+  "C-PROCONSUE80PKG": {
+   "nombre": "PROTEINA CONCENTRADA SUERO LECHE 80P KG",
+   "titulo_meli": "Proteína 80% Suero De Leche",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO1179039063"
+   ]
+  },
+  "C-MANTOSPAR250G": {
+   "nombre": "MANI TOSTADO PARTIDO 250g",
+   "titulo_meli": "Mani Tostado Partido 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2242383895"
+   ]
+  },
+  "C-MANTOSPAR500G": {
+   "nombre": "MANI TOSTADO PARTIDO 500g",
+   "titulo_meli": "Mani Tostado Partido 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2242409683"
+   ]
+  },
+  "C-AJONEG250G": {
+   "nombre": "SEMILLAS DE SESAMO AJONJOLI NEGRO 250g",
+   "titulo_meli": "Semillas De Sésamo Negro (Ajonjolí Negro) 250gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2242423745"
+   ]
+  },
+  "C-AJONEG500G": {
+   "nombre": "SEMILLAS DE SESAMO AJONJOLI NEGRO 500g",
+   "titulo_meli": "Semillas De Sésamo Negro (Ajonjolí Negro) 500gr",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO2242410747"
+   ]
+  },
+  "C-ALGSOD500G": {
+   "nombre": "ALGINATO DE SODIO 500g",
+   "titulo_meli": "Alginato De Sodio En Polvo Puro 500g - Materia Prima",
+   "tipo": "kit",
+   "alias_destino": "",
+   "meli_ids": [
+    "MCO4488258886"
    ]
   }
  },

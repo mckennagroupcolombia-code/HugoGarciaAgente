@@ -1,0 +1,1182 @@
+{
+ "C-ACDHIABAJPES85P30ML": {
+  "familia": "FOR-ACIHIABAJPESmL",
+  "nombre": "ÁCIDO HIALURÓNICO BAJO PESO"
+ },
+ "C-ACDKOJDPAL30ML": {
+  "familia": "c-acdkojdpal30ml",
+  "nombre": "ÁCIDO KÓJICO D PALMITATO"
+ },
+ "C-ACDLAC85P30ML": {
+  "familia": "FOR-ACILAC85PmL",
+  "nombre": "ÁCIDO LÁCTICO"
+ },
+ "C-ACDSAL20P30ML": {
+  "familia": "FOR-ACISALmL",
+  "nombre": "ÁCIDO SALICÍLICO"
+ },
+ "C-ACEARGAN50ML": {
+  "familia": "ACEARGmL",
+  "nombre": "ACEITE ARGAN"
+ },
+ "C-ACECOC250ML": {
+  "familia": "ACECOCmL",
+  "nombre": "ACEITE DE PALMA DE COCO TRIGLICÉRIDOS DE CADENA MEDIA (MCT)"
+ },
+ "C-ACECOC500ML": {
+  "familia": "ACECOCmL",
+  "nombre": "ACEITE DE PALMA DE COCO TRIGLICÉRIDOS DE CADENA MEDIA (MCT)"
+ },
+ "C-ACEESEALB5ML": {
+  "familia": "ACEESEALBmL",
+  "nombre": "ACEITE ESENCIAL ALBAHACA"
+ },
+ "C-ACEESEBER5ML": {
+  "familia": "ACEESEBERmL",
+  "nombre": "ACEITE ESENCIAL BERGAMOTA"
+ },
+ "C-ACEESECAN5ML": {
+  "familia": "ACEESECANmL",
+  "nombre": "ACEITE ESENCIAL CANELA"
+ },
+ "C-ACEESECLA5ML": {
+  "familia": "ACEESECLAmL",
+  "nombre": "ACEITE ESENCIAL CLAVOS"
+ },
+ "C-ACEESECORTCED5ML": {
+  "familia": "ACEESECORCEDmL",
+  "nombre": "ACEITE ESENCIAL CORTEZA DE CEDRO"
+ },
+ "C-ACEESEEUC5ML": {
+  "familia": "ACEESEEUCmL",
+  "nombre": "ACEITE ESENCIAL EUCALIPTO"
+ },
+ "C-ACEESEGER5ML": {
+  "familia": "ACEESEGERmL",
+  "nombre": "ACEITE ESENCIAL DE GERANIO"
+ },
+ "C-ACEESEHIEBUE5ML": {
+  "familia": "ACEESEHIRBUEmL",
+  "nombre": "ACEITE ESENCIAL HIERBA BUENA"
+ },
+ "C-ACEESEJAZ5ML": {
+  "familia": "ACEESEJAZmL",
+  "nombre": "ACEITE ESENCIAL JAZMÍN"
+ },
+ "C-ACEESEJEN5ML": {
+  "familia": "ACEESEJENmL",
+  "nombre": "ACEITE ESENCIAL JENGIBRE"
+ },
+ "C-ACEESELAV5ML": {
+  "familia": "ACEESELAVmL",
+  "nombre": "ACEITE ESENCIAL DE LAVANDA"
+ },
+ "C-ACEESELIM5ML": {
+  "familia": "ACEESELIMmL",
+  "nombre": "ACEITE ESENCIAL DE LIMÓN"
+ },
+ "C-ACEESEMAN5ML": {
+  "familia": "ACEESEMANZmL",
+  "nombre": "ACEITE ESENCIAL MANZANILLA"
+ },
+ "C-ACEESEMAR5ML": {
+  "familia": "ACEESEMARmL",
+  "nombre": "ACEITE ESENCIAL MARACUYA"
+ },
+ "C-ACEESEMEN5ML": {
+  "familia": "ACEESEMENTmL",
+  "nombre": "ACEITE ESENCIAL MENTA"
+ },
+ "C-ACEESENAR5ML": {
+  "familia": "ACEESENARmL",
+  "nombre": "ACEITE ESENCIAL NARANJA"
+ },
+ "C-ACEESEPIN5ML": {
+  "familia": "ACEESEPINmL",
+  "nombre": "ACEITE ESENCIAL PINO"
+ },
+ "C-ACEESEROM5ML": {
+  "familia": "ACEESEROMmL",
+  "nombre": "ACEITE ESENCIAL ROMERO"
+ },
+ "C-ACEESETOM5ML": {
+  "familia": "ACEESETOMmL",
+  "nombre": "ACEITE ESENCIAL TOMILLO"
+ },
+ "C-ACEESEYLAYLA5ML": {
+  "familia": "ACEESEYLAmL",
+  "nombre": "ACEITE ESENCIAL DE YLANG YLANG"
+ },
+ "C-ACEESEZAN5ML": {
+  "familia": "ACEESEZANmL",
+  "nombre": "ACEITE ESENCIAL DE ZANAHORIA - PURO CERTIFICADO ORGÁNICO"
+ },
+ "C-ACEESNMAN5ML": {
+  "familia": "ACEESEMANmL",
+  "nombre": "ACEITE ESENCIAL MANDARINA"
+ },
+ "C-ACEESNMEN5ML": {
+  "familia": "ACEESEMENTmL",
+  "nombre": "ACEITE ESENCIAL MENTA"
+ },
+ "C-ACEESNPIN5ML": {
+  "familia": "ACEESNPINmL",
+  "nombre": "ACEITE ESENCIAL PINO"
+ },
+ "C-ACEGIR500ML": {
+  "familia": "ACEGIRg",
+  "nombre": "ACEITE DE GIRASOL REFINADO"
+ },
+ "C-ACEJOJ30ML": {
+  "familia": "ACEJOJGOLg",
+  "nombre": "ACEITE DE JOJOBA"
+ },
+ "C-ACELIN250ML": {
+  "familia": "ACELINmL",
+  "nombre": "ACEITE DE LINAZA"
+ },
+ "C-ACENEE120ML": {
+  "familia": "ACENEEmL",
+  "nombre": "ACEITE DE NEEM"
+ },
+ "C-ACENEE250ML": {
+  "familia": "ACENEEmL",
+  "nombre": "ACEITE DE NEEM"
+ },
+ "C-ACENEE500ML": {
+  "familia": "ACENEEmL",
+  "nombre": "ACEITE DE NEEM"
+ },
+ "C-ACENEE60ML": {
+  "familia": "ACENEEmL",
+  "nombre": "ACEITE DE NEEM"
+ },
+ "C-ACERIC10ML": {
+  "familia": "ACERICg",
+  "nombre": "ACEITE DE RICINO"
+ },
+ "C-ACERIC250ML": {
+  "familia": "ACERICg",
+  "nombre": "ACEITE DE RICINO"
+ },
+ "C-ACERIC500ML": {
+  "familia": "ACERICg",
+  "nombre": "ACEITE DE RICINO"
+ },
+ "C-ACETEATRE30ML": {
+  "familia": "ACETEATREg",
+  "nombre": "ACEITE ESENCIAL ÁRBOL DE TÉ"
+ },
+ "C-ACETEATRE5ML": {
+  "familia": "ACETEATREg",
+  "nombre": "ACEITE ESENCIAL ÁRBOL DE TÉ"
+ },
+ "C-ACIAZE10G": {
+  "familia": "ACIAZEg",
+  "nombre": "ACIDO AZELAICO"
+ },
+ "C-ACICIT250G": {
+  "familia": "ACICITg",
+  "nombre": "ÁCIDO CÍTRICO ANHIDRO MALLA 30 A 100"
+ },
+ "C-ACICITR500G": {
+  "familia": "ACICITg",
+  "nombre": "ÁCIDO CÍTRICO ANHIDRO MALLA 30 A 100"
+ },
+ "C-ACIDIH10G": {
+  "familia": "DHIg",
+  "nombre": "DIHIDROXIACETONA"
+ },
+ "C-ACIGLI50P30ML": {
+  "familia": "FOR-ACIGLI50PmL",
+  "nombre": "ÁCIDO GLICÓLICO"
+ },
+ "C-ACIHIAALTPES85P30ML": {
+  "familia": "FOR-ACIHIAALTPESmL",
+  "nombre": "ÁCIDO HIALURÓNICO ALTO PESO"
+ },
+ "C-ACIKOJ5P30ML": {
+  "familia": "FOR-ACIKOJmL",
+  "nombre": "ÁCIDO KÓJICO"
+ },
+ "C-ACIMAL100G": {
+  "familia": "ACIMALg",
+  "nombre": "ÁCIDO MÁLICO"
+ },
+ "C-ACIMAN5G": {
+  "familia": "ACIMANg",
+  "nombre": "ÁCIDO MANDÉLICO"
+ },
+ "C-ACISAL100G": {
+  "familia": "ACISALg",
+  "nombre": "ÁCIDO SALICÍLICO"
+ },
+ "C-ACISAL500G": {
+  "familia": "ACISALg",
+  "nombre": "ÁCIDO SALICÍLICO"
+ },
+ "C-ACISAL50GBAD": {
+  "familia": "ACISALg",
+  "nombre": "ÁCIDO SALICÍLICO"
+ },
+ "C-ACISORKG": {
+  "familia": "ACISORg",
+  "nombre": "ALULOSA"
+ },
+ "C-ACITRA10G": {
+  "familia": "ACITRAg",
+  "nombre": "ÁCIDO TRANEXÁMICO"
+ },
+ "C-AGAAGA100G": {
+  "familia": "AGAAGA",
+  "nombre": "AGAR AGAR"
+ },
+ "C-AGUDES250ML": {
+  "familia": "AGUDESmL",
+  "nombre": "AGUA DESTILADA"
+ },
+ "C-AGUDESSOBRPH": {
+  "familia": "AGUDESmL",
+  "nombre": "AGUA DESTILADA"
+ },
+ "C-AGUROS250ML": {
+  "familia": "AGUROSmL",
+  "nombre": "AGUA DE ROSAS"
+ },
+ "C-AJONEG250G": {
+  "familia": "AJONEGSACg",
+  "nombre": "SEMILLAS DE SÉSAMO NEGRO (AJONJOLÍ NEGRO)"
+ },
+ "C-AJONEG500G": {
+  "familia": "AJONEGSACg",
+  "nombre": "SEMILLAS DE SÉSAMO NEGRO (AJONJOLÍ NEGRO)"
+ },
+ "C-ALA100G": {
+  "familia": "ALAg",
+  "nombre": "ALANTOÍNA"
+ },
+ "C-ALA250G": {
+  "familia": "ALAg",
+  "nombre": "ALANTOÍNA"
+ },
+ "C-ALBHUE500G": {
+  "familia": "ALBHUEg",
+  "nombre": "ALBUMINA DE HUEVO"
+ },
+ "C-ALBSEC250G": {
+  "familia": "ALBSECg",
+  "nombre": "ALBARICOQUE DESHIDRATADO"
+ },
+ "C-ALBSEC500G": {
+  "familia": "ALBSECg",
+  "nombre": "ALBARICOQUE DESHIDRATADO"
+ },
+ "C-ALCCET250G": {
+  "familia": "ALCCETg",
+  "nombre": "ALCOHOL CETÍLICO"
+ },
+ "C-ALCCET500G": {
+  "familia": "ALCCETg",
+  "nombre": "ALCOHOL CETÍLICO"
+ },
+ "C-ALCCETKG": {
+  "familia": "ALCCETg",
+  "nombre": "ALCOHOL CETÍLICO"
+ },
+ "C-ALFARB10G": {
+  "familia": "ALFARBg",
+  "nombre": "ALFA ARBUTINA"
+ },
+ "C-ALGSOD100G": {
+  "familia": "ALGSODg",
+  "nombre": "ALGINATO DE SODIO"
+ },
+ "C-ALGSOD500G": {
+  "familia": "ALGSODg",
+  "nombre": "ALGINATO DE SODIO"
+ },
+ "C-ALGSOD50G": {
+  "familia": "ALGSODg",
+  "nombre": "ALGINATO DE SODIO"
+ },
+ "C-ALGSODCLOCAL50G": {
+  "familia": "c-algsodclocal50g",
+  "nombre": "ALGINATO DE SODIO"
+ },
+ "C-ALGSODLACCAL50G": {
+  "familia": "c-algsodlaccal50g",
+  "nombre": "ALGINATO DE SODIO"
+ },
+ "C-ALMNAT250G": {
+  "familia": "ALMNATg",
+  "nombre": "ALMENDRA NATURAL SIN CASCARA"
+ },
+ "C-ALMNAT500G": {
+  "familia": "ALMNATg",
+  "nombre": "ALMENDRA NATURAL SIN CASCARA"
+ },
+ "C-ALU250G": {
+  "familia": "ALUALLg",
+  "nombre": "ALULOSA"
+ },
+ "C-ALU500G": {
+  "familia": "ALUALLg",
+  "nombre": "ALULOSA"
+ },
+ "C-ALUKG": {
+  "familia": "ALUALLg",
+  "nombre": "ALULOSA"
+ },
+ "C-AMASEL250G": {
+  "familia": "AMASELg",
+  "nombre": "SEMILLA DE AMARANTO"
+ },
+ "C-AMASEL500G": {
+  "familia": "AMASELg",
+  "nombre": "SEMILLA DE AMARANTO"
+ },
+ "C-AMIBCA250G": {
+  "familia": "AMIBCAg",
+  "nombre": "AMINOÁCIDO BCAA INSTANT (M)"
+ },
+ "C-AMILARG100G": {
+  "familia": "AMILARGBASg",
+  "nombre": "L-ARGININA BASE"
+ },
+ "C-AMILCAR100G": {
+  "familia": "AMITEAg",
+  "nombre": "L TEANINA"
+ },
+ "C-AMILTRI100G": {
+  "familia": "AMILTRIg",
+  "nombre": "L-TRIPTÓFANO"
+ },
+ "C-ARADES250G": {
+  "familia": "ARADESg",
+  "nombre": "ARANDANOS DESHIDRATADOS"
+ },
+ "C-ARADES500G": {
+  "familia": "ARADESg",
+  "nombre": "ARANDANOS DESHIDRATADOS"
+ },
+ "C-AZUMMET30ML": {
+  "familia": "FOR-AZUMETmL",
+  "nombre": "AZUL DE METILENO"
+ },
+ "C-BAYGOJ250G": {
+  "familia": "BAYGOJBERg",
+  "nombre": "BAYAS DE GOJI"
+ },
+ "C-BAYGOJ500G": {
+  "familia": "BAYGOJBERg",
+  "nombre": "BAYAS DE GOJI"
+ },
+ "C-BCAA500G": {
+  "familia": "AMIBCAg",
+  "nombre": "AMINOÁCIDO BCAA INSTANT (M)"
+ },
+ "C-BENSOD500G": {
+  "familia": "BENSODg",
+  "nombre": "BENZOATO DE SODIO"
+ },
+ "C-BICSOD500G": {
+  "familia": "BICSODg",
+  "nombre": "BICARBONATO DE SODIO"
+ },
+ "C-BTMS250G": {
+  "familia": "BTM50g",
+  "nombre": "BTMS 50"
+ },
+ "C-BTMS500G": {
+  "familia": "BTM50g",
+  "nombre": "BTMS 50"
+ },
+ "C-BTMS50125G": {
+  "familia": "BTM50g",
+  "nombre": "BTMS 50"
+ },
+ "C-CAF100G": {
+  "familia": "CAFANHCHIg",
+  "nombre": "CAFEÍNA"
+ },
+ "C-CAF500G": {
+  "familia": "CAFANHCHIg",
+  "nombre": "CAFEÍNA"
+ },
+ "C-CAFE100G": {
+  "familia": "CAFANHCHIg",
+  "nombre": "CAFEÍNA"
+ },
+ "C-CAOARC500G": {
+  "familia": "CAOARCg",
+  "nombre": "ARCILLA BLANCA - CAOLÍN"
+ },
+ "C-CAOCARCKG": {
+  "familia": "CAOARCg",
+  "nombre": "ARCILLA BLANCA - CAOLÍN"
+ },
+ "C-CAPGELVAC0TRA1000UN": {
+  "familia": "CAPGELVAC0TRA",
+  "nombre": "CÁPSULAS DE GELATINA VACÍAS"
+ },
+ "C-CAPGELVAC0VERBLA1000UN": {
+  "familia": "CAPGELVAC0VERBLA",
+  "nombre": "CÁPSULAS DE GELATINA VACÍAS"
+ },
+ "C-CAPVACGEL00TRA1000UN": {
+  "familia": "CAPGELVAC00TRA",
+  "nombre": "CÁPSULAS DE GELATINA VACÍAS"
+ },
+ "C-CAPVACGEL0AZUBLA1000UN": {
+  "familia": "CAPGELVAC0AZUBLA",
+  "nombre": "CÁPSULAS DE GELATINA VACÍAS"
+ },
+ "C-CARACTPEL800G": {
+  "familia": "CARACTBITPELg",
+  "nombre": "CARBÓN ACTIVADO PELLETS"
+ },
+ "C-CARCAL500G": {
+  "familia": "CARCALg",
+  "nombre": "CARBONATO DE CALCIO"
+ },
+ "C-CARMAG500G": {
+  "familia": "CARMAGg",
+  "nombre": "CARBONATO DE MAGNESIO"
+ },
+ "C-CELMIC101500G": {
+  "familia": "CELMIC101g",
+  "nombre": "CELULOSA MICROCRISTALINA 102"
+ },
+ "C-CELMIC102500G": {
+  "familia": "CELMIC102g",
+  "nombre": "CELULOSA MICROCRISTALINA 102"
+ },
+ "C-CERABENAT500G": {
+  "familia": "CERANBENATg",
+  "nombre": "CERA DE ABEJAS NATURAL"
+ },
+ "C-CERABEREFAMA500G": {
+  "familia": "CERABEREFAMAg",
+  "nombre": "CERA ABEJAS REFINADA AMARILLA"
+ },
+ "C-CERABEREFAMAKG": {
+  "familia": "CERABEREFAMAg",
+  "nombre": "CERA ABEJAS REFINADA AMARILLA"
+ },
+ "C-CERABEREFBLA500G": {
+  "familia": "CERABEREFBLAg",
+  "nombre": "CERA DE ABEJAS REFINADA BLANCA"
+ },
+ "C-CERABEREFBLAKG": {
+  "familia": "CERABEREFBLAg",
+  "nombre": "CERA DE ABEJAS REFINADA BLANCA"
+ },
+ "C-CERABREFKG": {
+  "familia": "CERABEREFAMAg",
+  "nombre": "CERA ABEJAS REFINADA AMARILLA"
+ },
+ "C-CERCAR250G": {
+  "familia": "CERCARg",
+  "nombre": "CERA CARNAUBA"
+ },
+ "C-CERCAR500G": {
+  "familia": "CERCARg",
+  "nombre": "CERA CARNAUBA"
+ },
+ "C-CERCARKG": {
+  "familia": "CERCARg",
+  "nombre": "CERA CARNAUBA"
+ },
+ "C-CERLAN500G": {
+  "familia": "ALCCETESTg",
+  "nombre": "CERA LANETTE (ALCOHOL CETOESTEARÍLICO)"
+ },
+ "C-CIA100G": {
+  "familia": "C-CIAg",
+  "nombre": "CIANOCOBALAMINA"
+ },
+ "C-CITCAL500G": {
+  "familia": "CITCALg",
+  "nombre": "CITRATO DE CALCIO"
+ },
+ "C-CITMAG250G": {
+  "familia": "CITMAGFCCg",
+  "nombre": "CITRATO DE MAGNESIO"
+ },
+ "C-CITMAG500G": {
+  "familia": "CITMAGFCCg",
+  "nombre": "CITRATO DE MAGNESIO"
+ },
+ "C-CITMAGKG": {
+  "familia": "CITMAGFCCg",
+  "nombre": "CITRATO DE MAGNESIO"
+ },
+ "C-CITPOT250G": {
+  "familia": "CITPOTPOTg",
+  "nombre": "CITRATO DE POTASIO"
+ },
+ "C-CITPOT500G": {
+  "familia": "CITPOTPOTg",
+  "nombre": "CITRATO DE POTASIO"
+ },
+ "C-CITPOTKG": {
+  "familia": "CITPOTPOTg",
+  "nombre": "CITRATO DE POTASIO"
+ },
+ "C-CITZIN500G": {
+  "familia": "CITZINg",
+  "nombre": "CITRATO DE ZINC"
+ },
+ "C-CLOCAL100G": {
+  "familia": "CLOCALg",
+  "nombre": "CLORURO DE CALCIO"
+ },
+ "C-CLOCAL500G": {
+  "familia": "CLOCALg",
+  "nombre": "CLORURO DE CALCIO"
+ },
+ "C-CLOCAL50G": {
+  "familia": "CLOCALg",
+  "nombre": "CLORURO DE CALCIO"
+ },
+ "C-CLOMAGHEXKG": {
+  "familia": "CLOMAGHEXg",
+  "nombre": "CLORURO DE MAGNESIO"
+ },
+ "C-COCDESHIL250G": {
+  "familia": "COCDESHILg",
+  "nombre": "COCO DESHIDRATADO EN HILOS"
+ },
+ "C-COCDESHIL500G": {
+  "familia": "COCDESHILg",
+  "nombre": "COCO DESHIDRATADO EN HILOS"
+ },
+ "C-COCDESHILKG": {
+  "familia": "COCDESHILg",
+  "nombre": "COCO DESHIDRATADO EN HILOS"
+ },
+ "C-COCPROBET500ML": {
+  "familia": "COCDEAg",
+  "nombre": "COCOAMIDA DEA"
+ },
+ "C-COLHID30ML": {
+  "familia": "COLHIDmL",
+  "nombre": "COLÁGENO HIDROLIZADO"
+ },
+ "C-COLHID500G": {
+  "familia": "COLHIDg",
+  "nombre": "COLÁGENO HIDROLIZADO"
+ },
+ "C-CREMON1000G": {
+  "familia": "AMICREMONg",
+  "nombre": "CREATINA MONOHIDRATO"
+ },
+ "C-CREMON100G": {
+  "familia": "AMICREMONg",
+  "nombre": "CREATINA MONOHIDRATO"
+ },
+ "C-CREMON250G": {
+  "familia": "AMICREMONg",
+  "nombre": "CREATINA MONOHIDRATO"
+ },
+ "C-CREMON500G": {
+  "familia": "AMICREMONg",
+  "nombre": "CREATINA MONOHIDRATO"
+ },
+ "C-CRETAR500G": {
+  "familia": "CRETARg",
+  "nombre": "CREMOR TÁRTARO"
+ },
+ "C-DATSAY250G": {
+  "familia": "DATSAYg",
+  "nombre": "DÁTILES  SIN HUESO"
+ },
+ "C-DATSAY500G": {
+  "familia": "DATSAYg",
+  "nombre": "DÁTILES  SIN HUESO"
+ },
+ "C-DEXKG": {
+  "familia": "DEXMONg",
+  "nombre": "DEXTROSA"
+ },
+ "C-DIOTIT500G": {
+  "familia": "DIOTITg",
+  "nombre": "DIOXIDO DE TITANIO"
+ },
+ "C-DPAN50ML": {
+  "familia": "DPANg",
+  "nombre": "D PANTENOL"
+ },
+ "C-DPAN85P120ML": {
+  "familia": "DPANg",
+  "nombre": "D PANTENOL"
+ },
+ "C-DPG500ML": {
+  "familia": "DIPg",
+  "nombre": "DIPROPILENGLICOL DPG"
+ },
+ "C-ELAHID30ML": {
+  "familia": "ELAHIDg",
+  "nombre": "ELASTINA"
+ },
+ "C-EMBPAT30ML": {
+  "familia": "EMBPATmL",
+  "nombre": "EMBRION DE PATO"
+ },
+ "C-ERI500G": {
+  "familia": "ERIg",
+  "nombre": "ERITRITOL CRISTAL"
+ },
+ "C-ESPCCRCRV22CM": {
+  "familia": "ESP15cms",
+  "nombre": "ESPATULA 15 CMS"
+ },
+ "C-EXTALOVER30ML": {
+  "familia": "EXTALOVERg",
+  "nombre": "ALOE VERA"
+ },
+ "C-EXTRAMAL500G": {
+  "familia": "EXTMALg",
+  "nombre": "EXTRACTO DE MALTA"
+ },
+ "C-EXTTEMATVER100G": {
+  "familia": "EXTTEMATVERg",
+  "nombre": "EXTRACTO DE TÉ VERDE MATCHA EN POLVO"
+ },
+ "C-FLOSECLAV100G": {
+  "familia": "FLOSECLAVg",
+  "nombre": "FLORES DE LAVANDA SECAS"
+ },
+ "C-FRU500G": {
+  "familia": "FRUg",
+  "nombre": "FRUCTOSA"
+ },
+ "C-GELSILCRI250G": {
+  "familia": "GELSILg",
+  "nombre": "GEL SILICA"
+ },
+ "C-GELSINSAB500G": {
+  "familia": "GELSINSABg",
+  "nombre": "GELATINA SIN SABOR BLOOM 280"
+ },
+ "C-GLI250G": {
+  "familia": "LGLCIg",
+  "nombre": "GLICINA"
+ },
+ "C-GLI500G": {
+  "familia": "LGLCIg",
+  "nombre": "GLICINA"
+ },
+ "C-GLICVEG500ML": {
+  "familia": "GLIVEGg",
+  "nombre": "GLICERINA VEGETAL"
+ },
+ "C-GLIVEG250ML": {
+  "familia": "GLIVEGg",
+  "nombre": "GLICERINA VEGETAL"
+ },
+ "C-GLIVEGLT": {
+  "familia": "glicerina-vegetal",
+  "nombre": "GLICERINA VEGETAL"
+ },
+ "C-GLU100G": {
+  "familia": "AMILGLUg",
+  "nombre": "L-GLUTAMINA"
+ },
+ "C-GLU2P500ML": {
+  "familia": "FOR-GLUTAR2PmL",
+  "nombre": "GLUTARALDEHÍDO 2 %"
+ },
+ "C-GLUMON500G": {
+  "familia": "GLUMONMALg",
+  "nombre": "GLUTAMATO MONOSÓDICO"
+ },
+ "C-GLUMONKG": {
+  "familia": "GLUMONMALg",
+  "nombre": "GLUTAMATO MONOSÓDICO"
+ },
+ "C-GOMGUA500G": {
+  "familia": "GOMGUAg",
+  "nombre": "GOMA GUAR"
+ },
+ "C-GOMXAN500G": {
+  "familia": "GOMXANg",
+  "nombre": "GOMA XANTANA"
+ },
+ "C-GOMXANKG": {
+  "familia": "GOMXANg",
+  "nombre": "GOMA XANTANA"
+ },
+ "C-GRADIG": {
+  "familia": "c-gradig",
+  "nombre": "GRAMERA BALANZA DIGITAL"
+ },
+ "C-GUSSED30ML": {
+  "familia": "GUSSEDmL",
+  "nombre": "GUSANO DE SEDA"
+ },
+ "C-HARPAN00KG": {
+  "familia": "HARTRIQUIUn",
+  "nombre": "HARINA DE PANADERIA 00"
+ },
+ "C-INU250G": {
+  "familia": "INU90Pg",
+  "nombre": "INULINA"
+ },
+ "C-INU500G": {
+  "familia": "INU90Pg",
+  "nombre": "INULINA"
+ },
+ "C-INUKG": {
+  "familia": "INU90Pg",
+  "nombre": "INULINA"
+ },
+ "C-KITREPCOS1": {
+  "familia": "c-kitrepcos1",
+  "nombre": "ELASTINA"
+ },
+ "C-KITREPCOS2": {
+  "familia": "c-kitrepcos2",
+  "nombre": "ELASTINA"
+ },
+ "C-KITREPCOS3": {
+  "familia": "c-kitrepcos3",
+  "nombre": "ELASTINA"
+ },
+ "C-LACCAL100G": {
+  "familia": "LACCALg",
+  "nombre": "LACTATO DE CALCIO"
+ },
+ "C-LACCAL250G": {
+  "familia": "LACCALg",
+  "nombre": "LACTATO DE CALCIO"
+ },
+ "C-LACCAL50G": {
+  "familia": "LACCALg",
+  "nombre": "LACTATO DE CALCIO"
+ },
+ "C-LAN250G": {
+  "familia": "LANg",
+  "nombre": "LANOLINA ANHIDRA"
+ },
+ "C-LAN40G": {
+  "familia": "LANg",
+  "nombre": "LANOLINA ANHIDRA"
+ },
+ "C-LECSOY500G": {
+  "familia": "LECSOYg",
+  "nombre": "LECITINA DE SOYA EN POLVO"
+ },
+ "C-LHIS100G": {
+  "familia": "L-AMIHISg",
+  "nombre": "L-HISTIDINA"
+ },
+ "C-LPRO100G": {
+  "familia": "L-AMIPROg",
+  "nombre": "L- PROLINA"
+ },
+ "C-LTEA100G": {
+  "familia": "AMITEAg",
+  "nombre": "L TEANINA"
+ },
+ "C-LTRI100G": {
+  "familia": "AMILTRIg",
+  "nombre": "L-TRIPTÓFANO"
+ },
+ "C-MAL500G": {
+  "familia": "MALM15MALg",
+  "nombre": "MALTODEXTRINA"
+ },
+ "C-MANCACNAT500G": {
+  "familia": "MANCACg",
+  "nombre": "MANTECA DE CACAO NATURAL"
+ },
+ "C-MANCACREF500G": {
+  "familia": "MANCACREFg",
+  "nombre": "MANTECA DE CACAO REFINADA"
+ },
+ "C-MANCACREFKG": {
+  "familia": "MANCACREFg",
+  "nombre": "MANTECA DE CACAO REFINADA"
+ },
+ "C-MANKARAMA250G": {
+  "familia": "MANKARAMAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARAMA500G": {
+  "familia": "MANKARAMAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARAMAKG": {
+  "familia": "manteca-karite-amarilla",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARBLA125G": {
+  "familia": "MANKARBLAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARBLA500G": {
+  "familia": "MANKARBLAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANKARBLAKG": {
+  "familia": "manteca-karite-blanca",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANNATTOS250G": {
+  "familia": "MANTOSNATg",
+  "nombre": "MANÍ NATURAL TOSTADO"
+ },
+ "C-MANNATTOS500G": {
+  "familia": "MANTOSNATg",
+  "nombre": "MANÍ NATURAL TOSTADO"
+ },
+ "C-MANTKARAMA125G": {
+  "familia": "MANKARAMAg",
+  "nombre": "MANTECA KARITÉ"
+ },
+ "C-MANTOSPAR250G": {
+  "familia": "MANTOSPARg",
+  "nombre": "MANI TOSTADO PARTIDO"
+ },
+ "C-MANTOSPAR500G": {
+  "familia": "MANTOSPARg",
+  "nombre": "MANI TOSTADO PARTIDO"
+ },
+ "C-MARTOS250G": {
+  "familia": "MARTOSg",
+  "nombre": "MARAÑÓN ENTERO TOSTADO"
+ },
+ "C-MARTOS500G": {
+  "familia": "MARTOSg",
+  "nombre": "MARAÑÓN ENTERO TOSTADO"
+ },
+ "C-MENCRI100G": {
+  "familia": "MENCRIg",
+  "nombre": "MENTOL"
+ },
+ "C-METBIS500G": {
+  "familia": "METSODg",
+  "nombre": "METABISULFITO DE SODIO"
+ },
+ "C-NIA100G": {
+  "familia": "NIAg",
+  "nombre": "NIACINAMIDA"
+ },
+ "C-NUEBRA250G": {
+  "familia": "NUEBRAPARg",
+  "nombre": "NUEZ DEL BRASIL PARTIDA"
+ },
+ "C-NUEBRA500G": {
+  "familia": "NUEBRAPARg",
+  "nombre": "NUEZ DEL BRASIL PARTIDA"
+ },
+ "C-NUENOG250G": {
+  "familia": "NUENOGg",
+  "nombre": "NUEZ DEL NOGAL"
+ },
+ "C-NUENOG500G": {
+  "familia": "NUENOGg",
+  "nombre": "NUEZ DEL NOGAL"
+ },
+ "C-NUEPEC250G": {
+  "familia": "NUEPECg",
+  "nombre": "NUEZ PECAN"
+ },
+ "C-NUEPEC500G": {
+  "familia": "NUEPECg",
+  "nombre": "NUEZ PECAN"
+ },
+ "C-OXIZIN250G": {
+  "familia": "OXIZINg",
+  "nombre": "OXIDO DE ZINC"
+ },
+ "C-PAP100G": {
+  "familia": "PAPg",
+  "nombre": "PAPAÍNA"
+ },
+ "C-PARKG": {
+  "familia": "PARg",
+  "nombre": "PARAFINA"
+ },
+ "C-PISTOS250G": {
+  "familia": "PISTOSSALg",
+  "nombre": "PISTACHOS TOSTADOS"
+ },
+ "C-PISTOS500G": {
+  "familia": "PISTOSSALg",
+  "nombre": "PISTACHOS TOSTADOS"
+ },
+ "C-PISTOSKG": {
+  "familia": "PISTOSSALg",
+  "nombre": "PISTACHOS TOSTADOS"
+ },
+ "C-POLTWE20P250ML": {
+  "familia": "POLTWE20Pg",
+  "nombre": "POLISORBATO 20"
+ },
+ "C-POLTWE20P500ML": {
+  "familia": "POLTWE20Pg",
+  "nombre": "POLISORBATO 20"
+ },
+ "C-POLTWE80P500ML": {
+  "familia": "POLTWE80g",
+  "nombre": "POLISORBATO 20"
+ },
+ "C-PROAISSOY1000G": {
+  "familia": "PROAISSOYg",
+  "nombre": "PROTEÍNA AISLADA DE SOYA"
+ },
+ "C-PROAISSOY500G": {
+  "familia": "PROAISSOYg",
+  "nombre": "PROTEÍNA AISLADA DE SOYA"
+ },
+ "C-PROAISSOYKG": {
+  "familia": "PROAISSOYg",
+  "nombre": "PROTEÍNA AISLADA DE SOYA"
+ },
+ "C-PROCONSUE80PKG": {
+  "familia": "PROCONSUEg",
+  "nombre": "PROTEINA CONCENTRADA DE SUERO DE LECHE"
+ },
+ "C-PSYESC250G": {
+  "familia": "PSYESCg",
+  "nombre": "PSYLLIUM"
+ },
+ "C-PSYESC500G": {
+  "familia": "PSYESCg",
+  "nombre": "PSYLLIUM"
+ },
+ "C-RET5P30ML": {
+  "familia": "FOR-RET5PmL",
+  "nombre": "RETINOL 5 %"
+ },
+ "C-SABCARAHU100G": {
+  "familia": "SABCARAHUg",
+  "nombre": "SABOR CARNE AHUMADA"
+ },
+ "C-SALMARAHU250G": {
+  "familia": "SALMARAHUg",
+  "nombre": "SAL AHUMADA GRUESA ORIGINAL GRANO GRUESO 2-5 MM"
+ },
+ "C-SALMARAHU500G": {
+  "familia": "SALMARAHUg",
+  "nombre": "SAL AHUMADA GRUESA ORIGINAL GRANO GRUESO 2-5 MM"
+ },
+ "C-SALROSAJOCHI250G": {
+  "familia": "SALROSAJOCHIg",
+  "nombre": "SAL GRUESA ORIGINAL CHILE AJO HOJUELAS, GRANO GRUESO 2-5 MM"
+ },
+ "C-SALROSAJOCHI500G": {
+  "familia": "SALROSAJOCHIg",
+  "nombre": "SAL GRUESA ORIGINAL CHILE AJO HOJUELAS, GRANO GRUESO 2-5 MM"
+ },
+ "C-SALROSHIMFIN250G": {
+  "familia": "SALROSHIMFINg",
+  "nombre": "SAL ROSADA DEL HIMALAYA GRANO FINO 20-50"
+ },
+ "C-SALROSHIMFIN500G": {
+  "familia": "SALROSHIMFINg",
+  "nombre": "SAL ROSADA DEL HIMALAYA GRANO FINO 20-50"
+ },
+ "C-SALROSHIMGRU250G": {
+  "familia": "SALROSHIMGRUg",
+  "nombre": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM"
+ },
+ "C-SALROSHIMGRU500G": {
+  "familia": "SALROSHIMGRUg",
+  "nombre": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM"
+ },
+ "C-SEBCOR150G": {
+  "familia": "CEBCORg",
+  "nombre": "SEBO DE CORDERO"
+ },
+ "C-SEMAMA250G": {
+  "familia": "SEMAMAg",
+  "nombre": "SEMILLA DE AMAPOLA"
+ },
+ "C-SEMAMA500G": {
+  "familia": "SEMAMAg",
+  "nombre": "SEMILLA DE AMAPOLA"
+ },
+ "C-SEMCAL250G": {
+  "familia": "SEMCALGRAg",
+  "nombre": "SEMILLAS DE CALABAZA"
+ },
+ "C-SEMCAL500G": {
+  "familia": "SEMCALGRAg",
+  "nombre": "SEMILLAS DE CALABAZA"
+ },
+ "C-SEMCHI250G": {
+  "familia": "SEMCHIg",
+  "nombre": "SEMILLLA DE CHÍA"
+ },
+ "C-SEMCHI500G": {
+  "familia": "SEMCHIg",
+  "nombre": "SEMILLLA DE CHÍA"
+ },
+ "C-SEMGIR250G": {
+  "familia": "SEMGIRg",
+  "nombre": "SEMILLAS DE GIRASOL"
+ },
+ "C-SEMGIR500G": {
+  "familia": "SEMGIRg",
+  "nombre": "SEMILLAS DE GIRASOL"
+ },
+ "C-SEMQUIROJ250G": {
+  "familia": "SEMQUIROJg",
+  "nombre": "QUINUA ROJA"
+ },
+ "C-SEMQUIROJ500G": {
+  "familia": "SEMQUIROJg",
+  "nombre": "QUINUA ROJA"
+ },
+ "C-SEMSESAJO250G": {
+  "familia": "SEMSESAJOg",
+  "nombre": "SEMILLA DE SESAMO AJONJOLI NATURAL g"
+ },
+ "C-SEMSESAJO500G": {
+  "familia": "SEMSESAJOg",
+  "nombre": "SEMILLA DE SESAMO AJONJOLI NATURAL g"
+ },
+ "C-SHA705250ML": {
+  "familia": "SHA705mL",
+  "nombre": "SHAROMIX 705"
+ },
+ "C-SHA705500ML": {
+  "familia": "SHA705mL",
+  "nombre": "SHAROMIX 705"
+ },
+ "C-SHA70550ML": {
+  "familia": "SHA705mL",
+  "nombre": "SHAROMIX 705"
+ },
+ "C-SOR500ML": {
+  "familia": "SORmL",
+  "nombre": "SORBITOL POLVO"
+ },
+ "C-SORPOLKG": {
+  "familia": "SORPOLg",
+  "nombre": "SORBITOL POLVO"
+ },
+ "C-SORPOT100G": {
+  "familia": "SORPOTg",
+  "nombre": "SORBATO DE POTASIO"
+ },
+ "C-SORPOT250G": {
+  "familia": "SORPOTg",
+  "nombre": "SORBATO DE POTASIO"
+ },
+ "C-SORPOT500G": {
+  "familia": "SORPOTg",
+  "nombre": "SORBATO DE POTASIO"
+ },
+ "C-SORPOTKG": {
+  "familia": "SORPOTg",
+  "nombre": "SORBATO DE POTASIO"
+ },
+ "C-SUC100G": {
+  "familia": "SUCg",
+  "nombre": "SUCRALOSA"
+ },
+ "C-SULHIE500G": {
+  "familia": "SULHIEg",
+  "nombre": "SULFATO DE HIERRO HEPTAHIDRATADO g"
+ },
+ "C-SURLECDULKG": {
+  "familia": "c-surlecdulkg",
+  "nombre": "SUERO DE LECHE"
+ },
+ "C-TAU250G": {
+  "familia": "TAUg",
+  "nombre": "TAURINA"
+ },
+ "C-TEGBET250ML": {
+  "familia": "TEGBETg",
+  "nombre": "TEGO BETAÍNA DE COCO"
+ },
+ "C-TEGBET500ML": {
+  "familia": "TEGBETg",
+  "nombre": "TEGO BETAÍNA DE COCO"
+ },
+ "C-TEGBETLT": {
+  "familia": "c-tegbetlt",
+  "nombre": "TEGO BETAÍNA DE COCO"
+ },
+ "C-TENSCI100G": {
+  "familia": "TENSCIg",
+  "nombre": "SCI"
+ },
+ "C-TENSCI250G": {
+  "familia": "TENSCIg",
+  "nombre": "SCI"
+ },
+ "C-TENSCI500G": {
+  "familia": "TENSCIg",
+  "nombre": "SCI"
+ },
+ "C-TENSCIKG": {
+  "familia": "TENSCIg",
+  "nombre": "SCI"
+ },
+ "C-URE250G": {
+  "familia": "UREg",
+  "nombre": "UREA"
+ },
+ "C-URE500G": {
+  "familia": "UREg",
+  "nombre": "UREA"
+ },
+ "C-UVAPASFLA250G": {
+  "familia": "UVAPASFLAg",
+  "nombre": "UVAS PASAS FLAME"
+ },
+ "C-UVAPASFLA500G": {
+  "familia": "UVAPASFLAg",
+  "nombre": "UVAS PASAS FLAME"
+ },
+ "C-VAS400G": {
+  "familia": "VASBLAUSPg",
+  "nombre": "VASELINA BLANCA"
+ },
+ "C-VAS900G": {
+  "familia": "vaselina",
+  "nombre": "VASELINA BLANCA"
+ },
+ "C-VASPRE100ML": {
+  "familia": "BKR100mL",
+  "nombre": "BEAKER DE VIDRIO 100mL LABORATORIO VASO DE PRECIPITADO"
+ },
+ "C-VASPRE10ML": {
+  "familia": "BKR10ML",
+  "nombre": "VASO DE PRECIPITADO BEAKER 10mL"
+ },
+ "C-VASPRE25ML": {
+  "familia": "BKR25ML",
+  "nombre": "BEAKER DE VIDRIO 25mL LABORATORIO VASO DE PRECIPITADO"
+ },
+ "C-VASPRE50ML": {
+  "familia": "BKR50mL",
+  "nombre": "BEAKER DE VIDRIO 50mL LABORATORIO VASO DE PRECIPITADO"
+ },
+ "C-VITC30P30ML": {
+  "familia": "FOR-VITC20PmL",
+  "nombre": "VITAMINA E"
+ },
+ "C-VITCACIASC100G": {
+  "familia": "VITCACIASCg",
+  "nombre": "ÁCIDO ASCÓRBICO"
+ },
+ "C-VITCACIASC250G": {
+  "familia": "VITCACIASCg",
+  "nombre": "ÁCIDO ASCÓRBICO"
+ },
+ "C-VITCACIASC500G": {
+  "familia": "VITCACIASCg",
+  "nombre": "ÁCIDO ASCÓRBICO"
+ },
+ "C-VITE30ML": {
+  "familia": "VITETOC99Pg",
+  "nombre": "VITAMINA E"
+ }
+}

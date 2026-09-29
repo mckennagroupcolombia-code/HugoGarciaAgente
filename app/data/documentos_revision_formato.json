@@ -32,8 +32,8 @@
   "C-ACEESELIM5mL": {
     "revisado": true,
     "revisado_por": "@cynthia",
-    "revisado_en": "2026-09-22T00:19:51.910223+00:00",
-    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL LIMON.pdf)"
+    "revisado_en": "2026-09-28T17:55:32.690504+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL DE LIMON.pdf)"
   },
   "C-ACEESETOM5mL": {
     "revisado": true,
@@ -50,8 +50,8 @@
   "C-ACEESEYLAYLA5mL": {
     "revisado": true,
     "revisado_por": "@cynthia",
-    "revisado_en": "2026-09-22T00:27:05.291756+00:00",
-    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE DE YLANG YLANG.pdf)"
+    "revisado_en": "2026-09-28T17:56:30.434251+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL DE YLANG YLANG.pdf)"
   },
   "C-ACEESNPIN5mL": {
     "revisado": true,
@@ -940,5 +940,11 @@
     "revisado_por": "@cynthia",
     "revisado_en": "2026-09-26T04:43:16.253299+00:00",
     "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS SAL AHUMADA GRUESA ORIGINAL GRANO GRUESO 2 5 MM.pdf)"
+  },
+  "C-ACEESEGER5mL": {
+    "revisado": true,
+    "revisado_por": "@cynthia",
+    "revisado_en": "2026-09-28T17:54:52.166262+00:00",
+    "notas": "Visto bueno al generar el documento desde el taller de combos (FT COA SDS ACEITE ESENCIAL DE GERANIO.pdf)"
   }
 }

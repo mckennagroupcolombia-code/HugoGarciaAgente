@@ -277,15 +277,15 @@
       "actualizado_at": "2026-09-24T12:44:07"
     },
     {
-      "id": "ec1b2114a46c",
-      "sku": "C-PROSUELECKg",
-      "nombre_producto": "PROTEINA DE SUERO DE LECHE Kg",
+      "id": "4f7c7c13b91d",
+      "sku": "C-SEMSESAJO250g",
+      "nombre_producto": "SEMILLAS DE SESAMO AJONJOLI NATURAL 250g",
       "numero_producto": 25,
-      "presentacion": "001",
+      "presentacion": "250",
       "anio": 26,
-      "bimestre": 3,
-      "codigo": "7700250012633",
-      "creado_at": "2026-07-13T13:13:31"
+      "bimestre": 4,
+      "codigo": "7700252502644",
+      "creado_at": "2026-09-28T13:44:53"
     },
     {
       "id": "7d05d59f38cb",
@@ -3325,6 +3325,40 @@
       "bimestre": 4,
       "codigo": "7702980052644",
       "creado_at": "2026-09-28T00:21:20"
+    },
+    {
+      "id": "4a4371eb5770",
+      "sku": "C-SEMSESAJO500g",
+      "nombre_producto": "SEMILLAS DE SESAMO AJONJOLI NATURAL 500g",
+      "numero_producto": 299,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7702995002641",
+      "creado_at": "2026-09-28T13:45:25",
+      "actualizado_at": "2026-09-28T14:17:55"
+    },
+    {
+      "id": "bac62bdafe66",
+      "sku": "C-ALGSOD500g",
+      "nombre_producto": "ALGINATO DE SODIO 500g",
+      "numero_producto": 300,
+      "presentacion": "500",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703005002644",
+      "creado_at": "2026-09-28T16:43:39"
+    },
+    {
+      "id": "a32f424d6bd9",
+      "sku": "C-AGAAGA100g",
+      "nombre_producto": "AGAR AGAR 100g",
+      "numero_producto": 301,
+      "presentacion": "100",
+      "anio": 26,
+      "bimestre": 4,
+      "codigo": "7703011002645",
+      "creado_at": "2026-09-28T23:17:58"
     }
   ]
 }

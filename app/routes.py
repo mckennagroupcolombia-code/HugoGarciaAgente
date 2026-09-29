@@ -80,6 +80,20 @@ def diagnosticar_sufijo_preventa(sufijo: str):
         return {"matches": [], "count": 0}
 
 
+def _preventa_ya_respondida_por_sufijo(sufijo: str) -> dict | None:
+    """La pregunta respondida más reciente cuyo question_id termina en `sufijo`."""
+    try:
+        with open(PENDIENTES_PATH) as f:
+            data = json.load(f)
+        hechas = [
+            p for p in data.get("preguntas", [])
+            if p.get("respondida") and str(p.get("question_id", "")).endswith(sufijo)
+        ]
+        return max(hechas, key=lambda p: str(p.get("timestamp") or "")) if hechas else None
+    except Exception:
+        return None
+
+
 def _intentar_ok_preventa(texto: str) -> bool:
     """
     Procesa 'ok {sufijo}' cuando hay pregunta preventa pendiente con ese sufijo.
@@ -2747,10 +2761,22 @@ def register_routes(app):
                                 "`resp preventa <question_id>: tu respuesta`."
                             )
                         elif diag["count"] == 0:
-                            msg_error = (
-                                "⚠️ No pude resolver ese código corto como preventa pendiente.\n"
-                                "Usa `resp preventa <question_id>: ...` o verifica el código activo en la alerta."
-                            )
+                            ya = _preventa_ya_respondida_por_sufijo(target_num)
+                            if ya:
+                                # MeLi admite una sola respuesta por pregunta: si el
+                                # monitor ya publicó el borrador IA, la del equipo no
+                                # entra. Decirlo en vez del error genérico (28-sep).
+                                msg_error = (
+                                    f"ℹ️ La pregunta *{ya.get('question_id')}* "
+                                    f"({(ya.get('titulo_producto') or '')[:60]}) ya estaba respondida"
+                                    f" — {ya.get('nota') or 'marcada como respondida'}.\n"
+                                    "MercadoLibre solo admite una respuesta por pregunta, así que esta no se publicó."
+                                )
+                            else:
+                                msg_error = (
+                                    "⚠️ No pude resolver ese código corto como preventa pendiente.\n"
+                                    "Usa `resp preventa <question_id>: ...` o verifica el código activo en la alerta."
+                                )
                         else:
                             # Si hay 1 match y llegó aquí, hubo problema de formato.
                             msg_error = (
@@ -10351,8 +10377,9 @@ def register_routes(app):
     @app.route("/api/mensajeria/lotes", methods=["POST"])
     @app.route("/app/api/mensajeria/lotes", methods=["POST"])
     def api_mensajeria_lotes_create():
-        """Agrupa días pendientes en un lote y (por defecto) abre el ticket de
-        aprobación, el mismo trámite que antes se hacía a mano."""
+        """Agrupa días pendientes en un lote. El ticket suelto de aprobación solo
+        se abre si se pide (`solicitar_aprobacion`); el camino normal es pasar el
+        lote a Solicitudes de pago."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json(silent=True) or {}
@@ -10371,7 +10398,9 @@ def register_routes(app):
                 created_by=uid,
             )
             ticket = None
-            if data.get("solicitar_aprobacion", True):
+            # Default False (28-sep-2026): el lote sigue por Solicitudes de pago, que
+            # abre su propio ticket; el ticket suelto duplicaba el trámite.
+            if data.get("solicitar_aprobacion", False):
                 try:
                     ticket = solicitar_aprobacion(lote["id"], creado_por=uid)
                     lote = ticket.get("lote") or lote
@@ -20686,16 +20715,29 @@ def register_routes(app):
                     if venc_y_pct is None
                     else max(0.0, min(100.0, float(venc_y_pct)))
                 )
-                # Misma convención que campos_texto y el overlay CSS (top % + tamaño pt)
                 c.setFont(fn, lote_font)
-                if lote:
+                if lote_pos == "bloque":
+                    # Igual que el lienzo de Imprimir (BloqueLoteExpPreview): LOTE y EXP
+                    # son un solo bloque centrado en (x %, y %), cada línea centrada,
+                    # interlineado 1,35 y línea base como la pone CSS con Montserrat
+                    # (ascendente 0,968 · descendente 0,251).
+                    lineas_bloque = [t for t in (lote, vencimiento) if t]
+                    lh = lote_font * 1.35
                     xp = w_pt * x_lote_pct / 100.0
-                    yp = h_pt * (1.0 - y_lote_pct / 100.0) - lote_font
-                    c.drawString(xp, yp, lote)
-                if vencimiento:
-                    xp = w_pt * x_venc_pct / 100.0
-                    yp = h_pt * (1.0 - y_venc_pct / 100.0) - lote_font
-                    c.drawString(xp, yp, vencimiento)
+                    y_top = h_pt * (1.0 - y_lote_pct / 100.0) + lh * len(lineas_bloque) / 2.0
+                    base = lote_font * ((1.35 - 0.968 - 0.251) / 2.0 + 0.968)
+                    for i, texto in enumerate(lineas_bloque):
+                        c.drawCentredString(xp, y_top - i * lh - base, texto)
+                else:
+                    # Convención de campos_texto: esquina superior izquierda en %.
+                    if lote:
+                        xp = w_pt * x_lote_pct / 100.0
+                        yp = h_pt * (1.0 - y_lote_pct / 100.0) - lote_font
+                        c.drawString(xp, yp, lote)
+                    if vencimiento:
+                        xp = w_pt * x_venc_pct / 100.0
+                        yp = h_pt * (1.0 - y_venc_pct / 100.0) - lote_font
+                        c.drawString(xp, yp, vencimiento)
 
             c.save()
             buf.seek(0)
@@ -21006,7 +21048,7 @@ def register_routes(app):
             if overlay_lote or campos_texto or lineas or imagenes or rectangulos:
                 lote_font_val = max(3, min(40, lote_font))
                 tmp_pdf = _pdf_con_campos_texto(
-                    ruta_pdf, campos_texto, lote, vencimiento, "custom", lote_font_val,
+                    ruta_pdf, campos_texto, lote, vencimiento, "bloque", lote_font_val,
                     lote_x_pct=lote_x_pct, lote_y_pct=lote_y_pct,
                     venc_x_pct=venc_x_pct, venc_y_pct=venc_y_pct,
                     lineas=lineas, imagenes=imagenes,
@@ -22925,6 +22967,17 @@ def register_routes(app):
 
     def _require_cynthia_etiquetas():
         return _require_studio_visual()
+
+    def _require_papel_tinta():
+        """Como _require_studio_visual, pero también deja pasar a quien solo tiene Papel y tinta."""
+        denied = _require_studio_visual()
+        if not denied:
+            return None
+        from app.services.tickets_db import puede_ver_papel_tinta
+
+        if _api_token_valido() and puede_ver_papel_tinta(_panel_tickets_usuario()):
+            return None
+        return denied
 
     @app.route("/api/plantillas-visuales", methods=["GET", "POST"])
     @app.route("/app/api/plantillas-visuales", methods=["GET", "POST"])
@@ -25448,7 +25501,7 @@ REGLAS:
     @app.route("/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
     @app.route("/app/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
     def api_etiquetas_inventario_consumibles():
-        denied = _require_cynthia_etiquetas()
+        denied = _require_papel_tinta()
         if denied:
             return denied
         if request.method == "GET":
@@ -25506,7 +25559,7 @@ REGLAS:
     @app.route("/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
     @app.route("/app/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
     def api_etiquetas_inventario_item(item_id: str):
-        denied = _require_cynthia_etiquetas()
+        denied = _require_papel_tinta()
         if denied:
             return denied
         item_id = (item_id or "").strip()

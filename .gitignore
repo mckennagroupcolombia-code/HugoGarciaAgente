@@ -294,3 +294,6 @@ app/data/facturar_ahora_bloqueos.json
 app/data/bultos.db
 app/data/bultos.db-*
 fotos_bultos/
+
+# Detalle de corridas de scripts operativos (ej. descuento_propio_meli.py)
+logs/

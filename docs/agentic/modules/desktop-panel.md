@@ -180,3 +180,13 @@ Browser → http://localhost:8081/app → Flask sirve desktop/dist/index.html
 ```
 
 ---
+
+### Sistemas → Conexiones (28-sep-2026)
+
+`ConexionesPanel.tsx` + `app/services/conexiones.py` + `app/routes_conexiones.py` (`GET /api/conexiones[?forzar=1&id=…]`,
+solo admin). Nació porque el token de Gmail venció el 26-sep y nadie sabía dónde mirar. Cada integración se prueba contra
+su API real (caché 60 s; Claude/Gemini listan modelos → sin costo) y trae «qué se cae» + pasos guiados. Reconexión: QR de
+WhatsApp (mismos `/api/bot/bridge/status` y `/api/supervisor/bridge/status`), `GmailOAuthPanel`/`MeliOAuthPanel`
+incrustados (`embebido`), o guía para llaves de API. `meli-oauth` y `gmail-oauth` salieron del menú (siguen como panel
+para enlaces viejos). **Se ve arriba de Ajustes y Sistema** (solo admin): Sistemas solo sale en modo avanzado y el
+equipo no lo encontraba ahí. Gmail avisa 2 días antes del vencimiento de 7 días mientras `GMAIL_OAUTH_MODO_PRUEBA` ≠ 0.

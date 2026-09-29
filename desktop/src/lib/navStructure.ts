@@ -169,8 +169,10 @@ export const NAV_SECTIONS: readonly (NavSection & { items: readonly NavItemDef[]
       { panel: "voz", tier: "advanced" },
       { panel: "control-versiones", tier: "advanced" },
       { panel: "telemetria", tier: "advanced" },
-      { panel: "meli-oauth", tier: "advanced" },
-      { panel: "gmail-oauth", tier: "advanced" },
+      // «Conexión MercadoLibre» y «Conexión Gmail» viven dentro de Conexiones desde el
+      // 28-sep-2026 (junto con WhatsApp, Alegra, Google, IA…); sus paneles siguen
+      // existiendo para enlaces viejos, pero ya no ocupan dos entradas del menú.
+      { panel: "conexiones", tier: "advanced" },
       { panel: "tareas-programadas", tier: "advanced" },
     ],
   },

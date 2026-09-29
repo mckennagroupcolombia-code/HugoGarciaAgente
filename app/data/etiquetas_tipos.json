@@ -61,6 +61,11 @@
       "alto_mm": 54.0
     },
     {
+      "nombre": "66×76 mm",
+      "ancho_mm": 66.0,
+      "alto_mm": 76.0
+    },
+    {
       "nombre": "CIRCLE",
       "ancho_mm": 53.9,
       "alto_mm": 53.9

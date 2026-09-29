@@ -472,6 +472,14 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M9 21h6" />
     </>
   ),
+  conexiones: (
+    <>
+      <path d="M9 7V3" />
+      <path d="M15 7V3" />
+      <path d="M6 7h12v4a6 6 0 0 1-12 0V7Z" />
+      <path d="M12 17v4" />
+    </>
+  ),
   "gmail-oauth": (
     <>
       <rect x="3" y="5" width="18" height="14" rx="2" />

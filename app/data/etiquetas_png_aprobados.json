@@ -498,12 +498,12 @@
       "barcode": "7700362502633",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_DE_RICINO_250mL.png",
-        "aprobado_at": "2026-09-26T15:26:06",
+        "aprobado_at": "2026-09-28T11:33:01",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_DE_RICINO_250mL_digital.png",
-        "aprobado_at": "2026-09-26T15:26:06",
+        "aprobado_at": "2026-09-28T11:33:01",
         "por": "@cynthia"
       }
     },
@@ -612,15 +612,15 @@
       }
     },
     "fe2c3bacd8d9": {
-      "barcode": "7700250012633",
+      "barcode": "7702890012646",
       "impresion": {
-        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/PROTEINA_DE_SUERO_DE_LECHE_Kg.png",
-        "aprobado_at": "2026-09-26T16:13:00",
+        "nombre": "ETIQUETAS STUDIO/Aminoácidos & Proteínas/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG.png",
+        "aprobado_at": "2026-09-28T12:02:51",
         "por": "@cynthia"
       },
       "digital": {
-        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/PROTEINA_DE_SUERO_DE_LECHE_Kg_digital.png",
-        "aprobado_at": "2026-09-26T16:13:01",
+        "nombre": "PUBLICACIONES DIGITALES/Aminoácidos & Proteínas/PROTEINA_CONCENTRADA_SUERO_LECHE_80P_KG_digital.png",
+        "aprobado_at": "2026-09-28T12:02:52",
         "por": "@cynthia"
       }
     },
@@ -1161,12 +1161,12 @@
       "barcode": "7701620012635",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_Lt.png",
-        "aprobado_at": "2026-09-26T23:18:13",
+        "aprobado_at": "2026-09-28T11:34:28",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_Lt_digital.png",
-        "aprobado_at": "2026-09-26T23:18:13",
+        "aprobado_at": "2026-09-28T11:34:29",
         "por": "@cynthia"
       }
     },
@@ -1226,12 +1226,12 @@
       "barcode": "7701605002637",
       "impresion": {
         "nombre": "ETIQUETAS STUDIO/Solventes/GLICERINA_VEGETAL_500mL.png",
-        "aprobado_at": "2026-09-26T23:32:04",
+        "aprobado_at": "2026-09-28T11:33:23",
         "por": "@cynthia"
       },
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Solventes/GLICERINA_VEGETAL_500mL_digital.png",
-        "aprobado_at": "2026-09-26T23:32:05",
+        "aprobado_at": "2026-09-28T11:33:24",
         "por": "@cynthia"
       }
     },
@@ -1973,6 +1973,110 @@
       "digital": {
         "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SEMILLA_DE_CHIA_250g_digital.png",
         "aprobado_at": "2026-09-28T00:35:44",
+        "por": "@cynthia"
+      }
+    },
+    "c3f7c6526655": {
+      "barcode": "7701725002647",
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g_digital.png",
+        "aprobado_at": "2026-09-28T02:41:01",
+        "por": "@cynthia"
+      },
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_500g.png",
+        "aprobado_at": "2026-09-28T02:41:01",
+        "por": "@cynthia"
+      }
+    },
+    "2a5ed477246c": {
+      "barcode": "7701522502647",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g.png",
+        "aprobado_at": "2026-09-28T02:40:01",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_250g_digital.png",
+        "aprobado_at": "2026-09-28T02:40:01",
+        "por": "@cynthia"
+      }
+    },
+    "95c7cde14acc": {
+      "barcode": "7701585002641",
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g_digital.png",
+        "aprobado_at": "2026-09-28T02:40:18",
+        "por": "@cynthia"
+      },
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANO_FINO_500g.png",
+        "aprobado_at": "2026-09-28T02:40:18",
+        "por": "@cynthia"
+      }
+    },
+    "b581c4521cbc": {
+      "barcode": "7701632502643",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g.png",
+        "aprobado_at": "2026-09-28T02:40:34",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Semillas & Frutos Secos/SAL_ROSADA_DEL_HIMALAYA_GRANULOS_2-5_MM_250g_digital.png",
+        "aprobado_at": "2026-09-28T02:40:34",
+        "por": "@cynthia"
+      }
+    },
+    "2b4f790055ae": {
+      "barcode": "7700324002638",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Mantecas & Ceras/VASELINA_400g.png",
+        "aprobado_at": "2026-09-28T11:28:18",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Mantecas & Ceras/VASELINA_400g_digital.png",
+        "aprobado_at": "2026-09-28T11:28:18",
+        "por": "@cynthia"
+      }
+    },
+    "e0131f9ae7f1": {
+      "barcode": "7700375002632",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_DE_RICINO_500mL.png",
+        "aprobado_at": "2026-09-28T11:32:10",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_DE_RICINO_500mL_digital.png",
+        "aprobado_at": "2026-09-28T11:32:11",
+        "por": "@cynthia"
+      }
+    },
+    "8237ca3536da": {
+      "barcode": "7700382502637",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Aceites & Grasas/ACEITE_DE_LINAZA_250mL.png",
+        "aprobado_at": "2026-09-28T11:59:25",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Aceites & Grasas/ACEITE_DE_LINAZA_250mL_digital.png",
+        "aprobado_at": "2026-09-28T11:59:26",
+        "por": "@cynthia"
+      }
+    },
+    "2d9ac224a4ba": {
+      "barcode": "7703005002644",
+      "impresion": {
+        "nombre": "ETIQUETAS STUDIO/Gelificantes & Espesantes & Emulsificantes/ALGINATO_DE_SODIO_500g.png",
+        "aprobado_at": "2026-09-28T16:45:29",
+        "por": "@cynthia"
+      },
+      "digital": {
+        "nombre": "PUBLICACIONES DIGITALES/Gelificantes & Espesantes & Emulsificantes/ALGINATO_DE_SODIO_500g_digital.png",
+        "aprobado_at": "2026-09-28T16:45:29",
         "por": "@cynthia"
       }
     }

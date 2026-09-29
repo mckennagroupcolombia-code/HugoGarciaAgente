@@ -39,6 +39,8 @@ def main() -> int:
         r = rab.reenviar_pendientes(simular=a.simular)
     except Exception as exc:  # token vencido, red, etc.: una línea en el log, sin traceback cada 5 min
         print(f"reenvio_alertas_banco: ERROR {type(exc).__name__}: {exc}")
+        if type(exc).__name__ == "GmailAuthError" and not a.simular:
+            rab.avisar_token_caido(str(exc))
         return 1
     if a.simular or r.get("enviados") or r.get("whatsapp") or r.get("fallidos"):
         print(f"reenvio_alertas_banco: enviados={r['enviados']} omitidos={r['omitidos']} whatsapp={r.get('whatsapp', 0)} fallidos_wa={r.get('fallidos', 0)} "

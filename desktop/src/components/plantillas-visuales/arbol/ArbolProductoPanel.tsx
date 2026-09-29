@@ -22,6 +22,7 @@ import { Sprite } from "../../colaboradores/pixel";
 import "../../colaboradores/pixel.css";
 import type { Respuesta } from "../../combos/comun";
 import { CladogramaCategoria, CladogramaFamilia } from "./Cladograma";
+import { CopiarSku } from "./CopiarSku";
 import { VarianteEtiqueta } from "./ParEtiquetas";
 import { FotosCanal, imagenesDe, useFotosProducto, type Canal } from "./FotosCanal";
 import {
@@ -362,7 +363,10 @@ function ListaSinCombo({ filas, onCrear }: { filas: SinCombo[]; onCrear: (f: Sin
           <Sprite s="alerta" px={2} />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] font-extrabold" title={f.nombre}>{f.nombre}</span>
-            <code className="text-[10.5px] text-ink-secondary">{f.ref}</code>
+            <span className="flex items-center gap-1">
+              <code className="text-[10.5px] text-ink-secondary">{f.ref}</code>
+              <CopiarSku sku={f.ref} />
+            </span>
           </span>
           <button type="button" className="ap-btn" onClick={() => onCrear(f)}>Crear su combo</button>
         </li>
@@ -381,6 +385,8 @@ function ListaArbol({ categorias, total, completas, sel, abiertasTodas, sinCombo
   onCategoria: (nombre: string) => void;
   onFamilia: (cat: string, f: Familia) => void;
 }) {
+  // La categoría elegida se abre sola; volver a tocarla la recoge (y otra vez la abre).
+  const [recogida, setRecogida] = useState<string | null>(null);
   return (
     <nav aria-label="Categorías" className="ap-carta flex max-h-[45vh] min-h-0 flex-col overflow-hidden lg:max-h-none">
       <div className="ap-cab ap-cab-navy shrink-0">
@@ -389,11 +395,20 @@ function ListaArbol({ categorias, total, completas, sel, abiertasTodas, sinCombo
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
         {categorias.map((c) => {
-          const abierta = abiertasTodas || c.nombre === sel.cat;
+          const abierta = abiertasTodas || (c.nombre === sel.cat && recogida !== c.nombre);
           const pct = c.total ? Math.round((c.completas / c.total) * 100) : 0;
           return (
             <div key={c.nombre}>
-              <button type="button" onClick={() => onCategoria(c.nombre)} aria-expanded={abierta}
+              <button type="button" aria-expanded={abierta}
+                onClick={() => {
+                  if (c.nombre === sel.cat) {
+                    setRecogida(abierta ? c.nombre : null);
+                    if (abierta) return;
+                  } else {
+                    setRecogida(null);
+                  }
+                  onCategoria(c.nombre);
+                }}
                 className={`ap-cat ${c.nombre === sel.cat ? "ap-cat-on" : ""}`}>
                 <span className="w-3 text-[9px]">{abierta ? "▼" : "▶"}</span>
                 <span className="min-w-0 flex-1 truncate">{c.nombre}</span>
@@ -491,6 +506,7 @@ function DetallePresentacion({ p, familia, categoria, destino, setDestino, onAvi
         <div className="ap-cab ap-cab-navy">
           <span className="min-w-0 flex-1 truncate" title={p.nombre}>{p.nombre}</span>
           <code className="shrink-0 normal-case">{p.ref}</code>
+          <CopiarSku sku={p.ref} />
         </div>
         <div className="flex flex-col gap-2 p-2.5">
         <p className="ap-t">

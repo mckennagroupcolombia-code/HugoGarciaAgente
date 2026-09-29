@@ -225,6 +225,36 @@ def enviar_whatsapp(texto: str, numero: str) -> bool:
     return bool(enviar_whatsapp_reporte(texto, numero_destino=_destino_wa(numero)))
 
 
+AVISO_TOKEN_CADA_S = 24 * 3600
+
+
+def avisar_token_caido(error: str) -> bool:
+    """Avisa al grupo de sistemas que el token de Gmail cayó (máx. uno cada 24 h).
+
+    28-sep-2026: el token venció el 26-sep y la asesora dejó de recibir las copias
+    durante dos días sin que nadie se enterara: el error solo quedaba en log_cron.txt.
+    """
+    estado = _cargar_estado()
+    ahora = int(time.time())
+    if ahora - int(estado.get("aviso_token_ts", 0)) < AVISO_TOKEN_CADA_S:
+        return False
+    try:
+        from app.utils import enviar_whatsapp_reporte, jid_grupo_alertas_sistemas_wa
+
+        enviar_whatsapp_reporte(
+            "⚠️ *Gmail sin acceso* — la copia de abonos Bancolombia a "
+            f"{destino()} está detenida.\n{error[:300]}\n"
+            "Arreglo: en el servidor, `source venv/bin/activate && python3 scripts/reautorizar_gmail.py`.",
+            numero_destino=jid_grupo_alertas_sistemas_wa(),
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"reenvio_alertas_banco: no se pudo avisar del token: {e}")
+        return False
+    estado["aviso_token_ts"] = ahora
+    _guardar_estado(estado)
+    return True
+
+
 def reenviar_pendientes(simular: bool = False, max_por_corrida: int = 30) -> dict[str, Any]:
     from app.tools.sincronizar_facturas_de_compra_siigo import get_gmail_service
 

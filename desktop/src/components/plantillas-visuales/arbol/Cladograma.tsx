@@ -10,6 +10,7 @@
  * tronco, así el árbol se acomoda solo a cualquier número de presentaciones.
  */
 import { Sprite, type SpriteId } from "../../colaboradores/pixel";
+import { CopiarSku } from "./CopiarSku";
 import { CAJA, PIEZAS, PUNTO, TOTAL_PIEZAS, estadoFamilia, type Categoria, type ClavePieza, type Familia, type Presentacion } from "./tipos";
 
 /** El sprite de cada pieza (colaboradores/pixel.tsx). */
@@ -65,11 +66,17 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
         <div className="ap-cab ap-cab-navy"><Sprite s="cofre" px={2} />Materia prima</div>
         <div className="flex flex-col gap-2 p-2.5">
           <span className="text-[14px] font-extrabold leading-tight">{familia.nombre}</span>
-          {familia.mp_sku && <code className="text-[11px] text-ink-secondary">{familia.mp_sku}</code>}
+          {familia.mp_sku && (
+            <span className="flex items-center gap-1">
+              <code className="text-[11px] text-ink-secondary">{familia.mp_sku}</code>
+              <CopiarSku sku={familia.mp_sku} />
+            </span>
+          )}
           <button type="button" onClick={onDocumento}
             title={doc.pdf_nombre ? "Ver el PDF aprobado (FT · COA · SDS)" : "Revisar, unir o editar el documento técnico"}
-            className={`ap-hoja flex flex-col items-start gap-0.5 p-2 text-left ${CAJA[doc.estado]}`}>
+            className={`ap-hoja flex flex-col items-start gap-0.5 p-2 text-left ${doc.pdf_nombre ? "ap-aprobado" : CAJA[doc.estado]}`}>
             <span className="flex items-center gap-1.5 text-[11.5px] font-extrabold"><Sprite s="doc" px={2} />Documento técnico</span>
+            {doc.pdf_nombre && <span className="ap-sello-ok px-1.5 py-0.5 text-[10px] font-extrabold uppercase">✓ Aprobado</span>}
             <span className="text-[11px] text-ink-secondary">{doc.detalle || (doc.estado === "falta" ? "Sin documento" : "")}</span>
             {doc.pdf_nombre && <span className="text-[10.5px] font-bold">Ver PDF aprobado ↗</span>}
             {n > 1 && <span className="ap-t">lo heredan las {n}</span>}
@@ -107,7 +114,10 @@ export function CladogramaFamilia({ familia, categoria, sel, onElegir, onPieza, 
                   </span>
                   <span className="flex min-w-0 flex-col items-start gap-1">
                     <span className="text-[17px] font-extrabold leading-none">{p.corto}</span>
-                    <code className="max-w-full truncate text-[10px] text-ink-secondary">{p.ref}</code>
+                    <span className="flex max-w-full items-center gap-1">
+                      <code className="min-w-0 truncate text-[10px] text-ink-secondary">{p.ref}</code>
+                      <CopiarSku sku={p.ref} />
+                    </span>
                     <ALaVenta p={p} />
                     <Segmentos p={p} />
                   </span>

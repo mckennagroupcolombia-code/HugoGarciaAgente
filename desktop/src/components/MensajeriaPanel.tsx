@@ -178,7 +178,8 @@ export default function MensajeriaPanel() {
       setMsg(
         r.ticket?.numero
           ? `Lote #${r.lote?.id} creado y enviado a aprobación (ticket ${r.ticket.numero})`
-          : `Lote #${r.lote?.id} creado` + (r.ticket?.error ? ` — sin ticket: ${r.ticket.error}` : ""),
+          : `Lote #${r.lote?.id} creado — elige a quién se le paga y pásalo a Solicitudes de pago`
+            + (r.ticket?.error ? ` — sin ticket: ${r.ticket.error}` : ""),
       );
       refrescar();
     },
@@ -415,12 +416,15 @@ export default function MensajeriaPanel() {
                 loteMut.mutate({
                   envio_ids: seleccion,
                   transportadora,
-                  solicitar_aprobacion: true,
+                  // Sin ticket suelto: el lote sigue por Solicitudes de pago, que ya
+                  // abre su propio ticket. Con los dos, el pago quedaba en dos TKT y
+                  // el viejo había que cerrarlo a mano (TKT-2026-1564, 28-sep).
+                  solicitar_aprobacion: false,
                 });
               }}
               className="rounded-lg bg-accent px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
             >
-              {loteMut.isPending ? "Enviando…" : "Solicitar aprobación de pago"}
+              {loteMut.isPending ? "Enviando…" : "Agrupar en un lote para pagar"}
             </button>
           </div>
         </div>

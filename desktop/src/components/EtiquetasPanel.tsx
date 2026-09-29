@@ -1,7 +1,7 @@
 import { ico } from "../icons/icoTexto";
 import { Ico } from "../icons/Ico";
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode, type RefObject } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl, ticketsSessionHeaders } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -73,7 +73,7 @@ import { codificarRutaRecursoPng } from "./etiquetas/RecursoPngViewer";
 import { resolverUrlImagenCanvas } from "../lib/plantillasVisualesImagen";
 import { AjusteOffsetImpresion } from "./etiquetas/AjusteOffsetImpresion";
 import { useCodigosEan, type CodigoEan } from "../lib/etiquetasCodigosEan";
-import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, esTabEtiquetasSoloCynthia } from "../lib/studioVisualAccess";
+import { puedeVerTabEtiquetas, puedeVerEtiquetasAvanzado, puedeVerPapelTinta } from "../lib/studioVisualAccess";
 import { precargarDiseno, ETIQUETAS_GC_TIME } from "../lib/etiquetasPrefetch";
 import { registerNestedBackHandler } from "../lib/appBackNavigation";
 
@@ -2246,7 +2246,7 @@ function BloqueLoteExpPreview({
   const lineaLote = loteText?.trim() || undefined;
   const lineaExp = vencText?.trim() || undefined;
   const visible = Boolean(lineaLote || lineaExp);
-  const fontMostrar = Math.max(fontPx * 1.35, 16);
+  const fontMostrar = fontPx;
 
   const mover = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!stageRef.current) return;
@@ -2332,6 +2332,7 @@ function VistaPreviaConLote({
   vencXPct: _vencXPct,
   vencYPct: _vencYPct,
   onVencPositionChange,
+  paginaMm,
   imgClassName = "block max-w-full max-h-full w-auto h-auto rounded-lg shadow transition-opacity duration-200",
   containerClassName = "flex items-center justify-center w-full h-full min-h-[8rem]",
 }: {
@@ -2349,6 +2350,9 @@ function VistaPreviaConLote({
   vencXPct: number;
   vencYPct: number;
   onVencPositionChange?: (x: number, y: number) => void;
+  /** Medida física [ancho, alto] de la página impresa. Sin ella se asume la
+   *  imagen renderizada a PREVIEW_DPI (vista previa de PDF). */
+  paginaMm?: [number, number];
   imgClassName?: string;
   containerClassName?: string;
 }) {
@@ -2386,10 +2390,19 @@ function VistaPreviaConLote({
   }, [syncImgMetrics, imagen, srcUrl]);
 
   const imgSrc = srcUrl ?? (imagen ? `data:${mime};base64,${imagen}` : undefined);
-  const fontPx =
-    imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
-      ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
-      : Math.max(TAMANO_TEXTO_PT_MIN, loteFont);
+  // px de pantalla por punto de impresión: el PDF dibuja el lote en pt sobre la
+  // página de la etiqueta, así que la vista previa escala con la misma medida.
+  let pxPorPt = 1;
+  if (paginaMm && paginaMm[0] > 0 && paginaMm[1] > 0 && imgMetrics.displayW > 0 && imgMetrics.displayH > 0) {
+    const ptPorMm = 72 / 25.4;
+    pxPorPt = Math.min(
+      imgMetrics.displayW / (paginaMm[0] * ptPorMm),
+      imgMetrics.displayH / (paginaMm[1] * ptPorMm),
+    );
+  } else if (imgMetrics.naturalH > 0 && imgMetrics.displayH > 0) {
+    pxPorPt = (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH);
+  }
+  const fontPx = loteFont * pxPorPt;
 
   const moverBloque = onLotePositionChange || onVencPositionChange
     ? (x: number, y: number) => {
@@ -2454,6 +2467,7 @@ function VistaPreviaPngConLote({
   vencXPct,
   vencYPct,
   onVencPositionChange,
+  paginaMm,
   imgClassName = PREVIEW_IMG_ETIQUETA_PNG,
   containerClassName = PREVIEW_CONTAINER_ETIQUETA_PNG,
 }: {
@@ -2467,6 +2481,7 @@ function VistaPreviaPngConLote({
   vencXPct: number;
   vencYPct: number;
   onVencPositionChange?: (x: number, y: number) => void;
+  paginaMm?: [number, number];
   imgClassName?: string;
   containerClassName?: string;
 }) {
@@ -2507,6 +2522,7 @@ function VistaPreviaPngConLote({
       vencXPct={vencXPct}
       vencYPct={vencYPct}
       onVencPositionChange={onVencPositionChange}
+      paginaMm={paginaMm}
       imgClassName={imgClassName}
       containerClassName={containerClassName}
     />
@@ -5361,7 +5377,7 @@ function TabImprimir({
   const imprimirMut = useMutation({
     mutationFn: (payload: ImpresionEtiquetaPayload) =>
       api.post<PrintResult>("/api/etiquetas/imprimir", payload, { timeoutMs: 90_000 }),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       const err = errorDesdePrintResult(data);
       setErrorImpresion(err);
@@ -5374,7 +5390,10 @@ function TabImprimir({
       ]);
       refetchImpresora();
       void refetchSolicitudesImprimir();
-      if (!err) qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+      if (!err) {
+        qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+        leerTintaTrasImprimir(qc, Number(variables.cantidad) || 1);
+      }
     },
     onError: (err) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -5789,6 +5808,7 @@ function TabImprimir({
             onInstalarClick={() => abrirInstalador("windows10pro")}
             extra={botonCargarDelOrdenador}
           />
+          <NivelesTintaImpresora compact onExpand={onIrInventarioTinta} />
           <div className="flex min-h-0 flex-1 flex-col">
             <EtiquetasStudioCatalogo
               onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
@@ -6021,6 +6041,7 @@ function TabImprimir({
                   loteYPct={loteYPct}
                   vencXPct={vencXPct}
                   vencYPct={vencYPct}
+                  paginaMm={[formato.anchoMm, formato.altoMm]}
                   imgClassName={PREVIEW_IMG_ETIQUETA_PNG}
                   containerClassName={PREVIEW_CONTAINER_ETIQUETA_PNG}
                   onLotePositionChange={(x, y) => {
@@ -6282,6 +6303,25 @@ async function fetchNivelesTintaUsb(): Promise<NivelesTintaResp> {
   return api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta?refresh=1", { timeoutMs: 25_000 });
 }
 
+let timerTintaTrasImprimir: ReturnType<typeof setTimeout> | undefined;
+
+/** Tras imprimir, vuelve a leer tinta y caja de mantenimiento cuando la Epson ya
+ *  terminó el trabajo (~15 s + 1 s por etiqueta, máx. 90 s). Otra impresión
+ *  seguida reinicia la espera: se lee una sola vez al final. Módulo, no estado,
+ *  para que la lectura ocurra aunque se cambie de pestaña. */
+function leerTintaTrasImprimir(qc: QueryClient, cantidad: number) {
+  if (timerTintaTrasImprimir) clearTimeout(timerTintaTrasImprimir);
+  const esperaMs = Math.min(90_000, 15_000 + Math.max(1, cantidad) * 1_000);
+  timerTintaTrasImprimir = setTimeout(() => {
+    timerTintaTrasImprimir = undefined;
+    fetchNivelesTintaUsb()
+      .then((fresh) => qc.setQueryData(["etiquetas-niveles-tinta"], fresh))
+      .catch(() => {
+        /* sin USB: queda el último nivel guardado; «↻ Actualizar» muestra el error */
+      });
+  }, esperaMs);
+}
+
 function nivelTintaBarraClase(pct: number | null | undefined): string {
   if (pct == null) return "bg-muted/40";
   if (pct <= 15) return "bg-danger";
@@ -6490,6 +6530,17 @@ function NivelesTintaImpresora({
             );
           })}
         </div>
+        <button
+          type="button"
+          onClick={() => void leerImpresora()}
+          disabled={leyendoUsb}
+          title={errorUsb ?? `Lee de nuevo tinta y caja de mantenimiento en la Epson${consultado ? ` (última lectura ${consultado})` : ""}`}
+          className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-medium hover:bg-surface-hover disabled:opacity-50 ${
+            errorUsb ? "border-danger/60 text-danger" : "border-border text-muted hover:text-ink"
+          }`}
+        >
+          {leyendoUsb ? "Leyendo…" : "↻ Actualizar"}
+        </button>
         {onExpand && (
           <button
             type="button"
@@ -7208,11 +7259,12 @@ export default function EtiquetasPanel() {
   const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
   const ticketsUser = useTicketsAuth((s) => s.user);
   const verAvanzado = puedeVerEtiquetasAvanzado(ticketsUser);
+  const verPapelTinta = puedeVerPapelTinta(ticketsUser);
   const [tab, setTabLocal] = useState<EtiquetasTab>(() => {
     const t = useAppStore.getState().etiquetasTab;
     const user = useTicketsAuth.getState().user;
     // Sin usuario cargado todavía no se sabe si tiene el Studio: no se expulsa (lo decide el efecto).
-    if (user && esTabEtiquetasSoloCynthia(t) && !puedeVerEtiquetasAvanzado(user)) return "imprimir";
+    if (user && !puedeVerTabEtiquetas(user, t)) return "imprimir";
     return t === "imprimir" || t === "inventario" || t === "studio" || t === "codigos_ean"
       ? t
       : "imprimir";
@@ -7238,7 +7290,7 @@ export default function EtiquetasPanel() {
   useEffect(() => () => setStudioInmersivoStore(false), [setStudioInmersivoStore]);
 
   useEffect(() => {
-    if (ticketsUser && esTabEtiquetasSoloCynthia(storeTab) && !verAvanzado) {
+    if (ticketsUser && !puedeVerTabEtiquetas(ticketsUser, storeTab)) {
       setTabLocal("imprimir");
       setStoreTab("imprimir");
       return;
@@ -7249,7 +7301,7 @@ export default function EtiquetasPanel() {
     }
     setTabLocal("imprimir");
     setStoreTab("imprimir");
-  }, [storeTab, setStoreTab, verAvanzado, ticketsUser]);
+  }, [storeTab, setStoreTab, ticketsUser]);
 
   useEffect(() => {
     if (!handoff) return;
@@ -7294,13 +7346,13 @@ export default function EtiquetasPanel() {
           solicitudInicial={solicitudInicial}
           onPrecargarConsumido={() => setPrecargarImpresion(null)}
           onSolicitudInicialConsumida={() => setSolicitudInicial(null)}
-          onIrInventarioTinta={verAvanzado ? () => setTab("inventario") : undefined}
+          onIrInventarioTinta={verPapelTinta ? () => setTab("inventario") : undefined}
         />
       )}
       {tab === "studio" && verAvanzado && (
         <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />
       )}
-      {tab === "inventario" && verAvanzado && <TabInventarioPapelTinta onVolver={() => setTab("imprimir")} />}
+      {tab === "inventario" && verPapelTinta && <TabInventarioPapelTinta onVolver={() => setTab("imprimir")} />}
       {tab === "codigos_ean" && verAvanzado && <CodigosEanPanel />}
     </div>
   );

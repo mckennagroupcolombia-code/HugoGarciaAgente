@@ -1,7 +1,7 @@
 {
   "notas_credito_auto": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-27T07:21:23"
+    "ultima_ejecucion": "2026-09-28T07:21:25"
   },
   "auditoria_scripts": {
     "intervalo_horas": 168,
@@ -21,11 +21,11 @@
   },
   "resumen_actividad_sede_sur": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-27T18:00:01"
+    "ultima_ejecucion": "2026-09-28T18:00:01"
   },
   "publicidad_recomendaciones": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-21T08:16:56"
+    "ultima_ejecucion": "2026-09-28T08:17:25"
   },
   "informe_reposicion_mensual": {
     "intervalo_horas": 168,
@@ -33,43 +33,43 @@
   },
   "archivar_gasto_ads": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-21T08:22:13"
+    "ultima_ejecucion": "2026-09-28T08:21:51"
   },
   "resumen_costos_llm": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-21T07:45:01"
+    "ultima_ejecucion": "2026-09-28T07:45:01"
   },
   "recordatorio_inventario": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-21T08:36:07"
+    "ultima_ejecucion": "2026-09-28T08:31:03"
   },
   "reconciliar_precios_meli": {
     "intervalo_horas": 12,
-    "ultima_ejecucion": "2026-09-27T07:00:12"
+    "ultima_ejecucion": "2026-09-28T07:06:24"
   },
   "cobertura_meli": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-27T06:50:05"
+    "ultima_ejecucion": "2026-09-28T06:50:14"
   },
   "competencia_precios": {
     "intervalo_horas": 168,
-    "ultima_ejecucion": "2026-09-21T09:00:01"
+    "ultima_ejecucion": "2026-09-28T09:00:01"
   },
   "recordatorio_pago_contador": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-27T09:01:42"
+    "ultima_ejecucion": "2026-09-28T09:07:15"
   },
   "recordatorio_pago_nomina": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-27T09:05:01"
+    "ultima_ejecucion": "2026-09-28T09:05:02"
   },
   "reintentar_avisos_pedidos_web": {
     "intervalo_horas": 1,
-    "ultima_ejecucion": "2026-09-28T01:30:01"
+    "ultima_ejecucion": "2026-09-28T23:30:01"
   },
   "contabilidad_autopost": {
     "intervalo_horas": 6,
-    "ultima_ejecucion": "2026-09-28T00:10:32"
+    "ultima_ejecucion": "2026-09-29T00:10:32"
   },
   "revision_facturacion": {
     "intervalo_horas": 24,
@@ -81,15 +81,15 @@
   },
   "recuperacion_compra": {
     "intervalo_horas": 1.0,
-    "ultima_ejecucion": "2026-09-28T02:10:01"
+    "ultima_ejecucion": "2026-09-29T00:10:01"
   },
   "precios_trm": {
     "intervalo_horas": 24,
-    "ultima_ejecucion": "2026-09-27T08:40:02"
+    "ultima_ejecucion": "2026-09-28T08:40:02"
   },
   "entregas_flex": {
     "intervalo_horas": 24.0,
-    "ultima_ejecucion": "2026-09-27T23:15:09"
+    "ultima_ejecucion": "2026-09-28T23:15:06"
   },
   "adjuntar_soportes": {
     "intervalo_horas": 168,

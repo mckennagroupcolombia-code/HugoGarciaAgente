@@ -27,7 +27,8 @@ function PasoTitulo({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-export default function GmailOAuthPanel() {
+/** `embebido`: dentro de Sistemas → Conexiones, sin título propio. */
+export default function GmailOAuthPanel({ embebido = false }: { embebido?: boolean } = {}) {
   const qc = useQueryClient();
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
@@ -56,8 +57,8 @@ export default function GmailOAuthPanel() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div>
+    <div className={embebido ? "space-y-4" : "mx-auto max-w-3xl space-y-4"}>
+      <div className={embebido ? "hidden" : undefined}>
         <h2 className="text-base font-bold text-ink">Conexión Gmail (OAuth)</h2>
         <p className="mt-1 text-xs text-muted">
           Reactiva el acceso a mckenna.group.colombia@gmail.com cuando el token expira o se

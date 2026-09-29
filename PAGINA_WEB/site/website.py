@@ -96,7 +96,7 @@ SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 EXTRA_SIIGO_WEB_FILE = Path(__file__).parent / "data/catalogo_extra_siigo.json"
 PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 15      # v15 = tienda solo con publicaciones MeLi (activas o pausadas)
+CATALOG_CACHE_VERSION = 17      # v17 = familias y nombres del Árbol del producto, orden alfabético (v15: solo publicaciones MeLi)
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -1812,16 +1812,29 @@ def _dedupe_by_presentation(items: list[dict]) -> tuple[list[dict], dict[str, di
     return ordered, alias_to_kept
 
 
+_SIGLAS_CATALOGO = {"BCAA", "USP", "EDTA", "MSM", "PEG", "DHA", "EPA", "HPMC", "CMC", "SLS", "SLES", "AHA", "BHA", "PH", "EP", "NF"}
+
+
 def _title_catalog_es(nombre: str) -> str:
     small = {"de", "del", "la", "el", "los", "las", "y", "en", "con", "para", "o", "a"}
     parts = (nombre or "").strip().split()
     out = []
+
+    def _cap(w: str) -> str:
+        # «L-ARGININA» → «L-Arginina», «(M)» → «(M)», siglas («BCAA») intactas.
+        if w.strip("()").upper() in _SIGLAS_CATALOGO:
+            return w.upper().replace("PH", "pH")
+        return "-".join(
+            (t[:1].upper() + t[1:].lower()) if not t.startswith("(") else "(" + t[1:2].upper() + t[2:].lower()
+            for t in w.split("-")
+        )
+
     for i, w in enumerate(parts):
         low = w.lower()
         if i > 0 and low in small:
             out.append(low)
         else:
-            out.append(low[:1].upper() + low[1:] if low else w)
+            out.append(_cap(w) if w else w)
     return " ".join(out)
 
 
@@ -2001,12 +2014,132 @@ def _mark_combo_family_meta(combo: dict, *, family_slug: str, has_siblings: bool
     combo["canonical_pres_slug"] = canonical_slug
 
 
+# Familias del Árbol del producto (Studio): materia prima + título del documento técnico.
+# Lo escribe app/services/arbol_producto.py cada vez que se calcula el árbol; si no existe,
+# la tienda agrupa por nombre como antes.
+FAMILIAS_ARBOL_FILE = Path(__file__).parent / "data/familias_arbol.json"
+
+
+def _familias_arbol() -> dict[str, dict]:
+    try:
+        raw = json.loads(FAMILIAS_ARBOL_FILE.read_text(encoding="utf-8"))
+        return raw if isinstance(raw, dict) else {}
+    except Exception:
+        return {}
+
+
+def _orden_alfabetico(txt: str) -> str:
+    """Orden de diccionario: «Ácido ascórbico» va con las «A», no después de la «Z»."""
+    t = unicodedata.normalize("NFD", txt or "")
+    return "".join(c for c in t if unicodedata.category(c) != "Mn").lower()
+
+
+def _con_concentracion(nombre: str, combos: list[dict]) -> str:
+    """El árbol nombra la materia prima («Ácido Láctico»); si todas las presentaciones
+    dicen la misma concentración («85%»), la tarjeta la conserva: al comprador le importa."""
+    pcts = {
+        m.replace(",", ".").replace(" ", "")
+        for c in combos
+        for m in re.findall(r"\d+(?:[.,]\d+)?\s*%", c.get("name") or "")
+    }
+    if len(pcts) == 1:
+        pct = pcts.pop()
+        if pct not in (nombre or "").replace(" ", ""):
+            return f"{nombre} {pct}"
+    return nombre
+
+
+_COLORES_VARIANTE = {"amarilla", "amarillo", "blanca", "blanco", "negra", "negro", "roja", "rojo",
+                     "rosada", "rosado", "verde", "azul", "transparente", "morada", "dorada"}
+
+
+def _unir_por_familia_arbol(
+    groups: dict[str, list[dict]],
+) -> tuple[dict[str, list[dict]], dict[str, str], set[str]]:
+    """El Árbol del producto solo UNE y RENOMBRA: junta grupos por nombre que el árbol
+    trata como la misma materia prima («ACISAL100g» con «Ácido salicílico 500g») y les pone
+    el nombre del árbol. Nunca separa lo que ya estaba junto: si un combo no está en el árbol
+    (alias sin «C-», combo nuevo) sigue con su grupo por nombre."""
+    arbol = _familias_arbol()
+    if not arbol:
+        return groups, {}, set()
+    padre = {k: k for k in groups}
+
+    def raiz(k: str) -> str:
+        while padre[k] != k:
+            padre[k] = padre[padre[k]]
+            k = padre[k]
+        return k
+
+    # Tamaños de cada grupo: si dos grupos comparten uno («L-Carnitina 100g» y «L-Teanina
+    # 100g» con la misma materia prima por un error de receta), unirlos haría que el dedupe
+    # por presentación borre uno de la tienda. En ese caso NO se unen.
+    tamanos: dict[str, set] = {
+        k: {_presentation_label(c.get("name", ""), c.get("ref", "")).lower() for c in items}
+        for k, items in groups.items()
+    }
+    dueno: dict[str, str] = {}
+    familias_de: dict[str, set] = defaultdict(set)
+    for key, items in groups.items():
+        for c in items:
+            fa = arbol.get((c.get("ref") or "").strip().upper()) or {}
+            if not fa.get("familia"):
+                continue
+            fam = (c.get("cat") or "", fa["familia"])
+            if fam not in dueno:
+                dueno[fam] = key
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+                continue
+            a, b = raiz(key), raiz(dueno[fam])
+            if a == b:
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+            elif tamanos[a] & tamanos[b]:
+                log.warning("Árbol: no se une %s con %s (mismo tamaño %s; ¿receta cruzada?)",
+                            c.get("ref"), dueno[fam], sorted(tamanos[a] & tamanos[b]))
+            else:
+                padre[a] = b
+                tamanos[b] |= tamanos[a]
+                familias_de[key].add((fam, fa.get("nombre") or ""))
+
+    unidos: dict[str, list[dict]] = defaultdict(list)
+    fams_unidas: dict[str, set] = defaultdict(set)
+    n_grupos: Counter = Counter()
+    for key, items in groups.items():
+        r = raiz(key)
+        unidos[r].extend(items)
+        fams_unidas[r] |= familias_de.get(key, set())
+        n_grupos[r] += 1
+
+    nombres: dict[str, str] = {}
+    for r, fams in fams_unidas.items():
+        if len({f for f, _ in fams}) != 1:
+            continue  # varias materias primas o ninguna: se queda el nombre de la web
+        nombre = next(iter(fams))[1]
+        if not nombre:
+            continue
+        nombre = _title_catalog_es(nombre)
+        # La variante de color vive en el nombre del combo, no siempre en el del árbol.
+        colores = {
+            w for c in unidos[r] for w in _presentation_family_key(c.get("name", "")).split()
+            if w in _COLORES_VARIANTE
+        }
+        faltan = sorted(w for w in colores if w not in _orden_alfabetico(nombre).split())
+        if len(colores) == 1 and faltan:
+            nombre = f"{nombre} {faltan[0].capitalize()}"
+        nombres[r] = nombre
+    fusionados = {r for r, n in n_grupos.items() if n > 1}
+    return dict(unidos), nombres, fusionados
+
+
 def _agrupar_combos_por_presentacion(
     combo_flat: list[dict], used_slugs: set[str]
 ) -> list[dict]:
     """
     Agrupa combos SIIGO con el mismo título (distinto tamaño) en una ficha.
     Combos únicos quedan como tarjeta is_combo individual.
+
+    Después el Árbol del producto une los grupos de una misma materia prima y les pone su
+    nombre (_unir_por_familia_arbol): así la web y el árbol se leen igual.
     """
     groups: dict[str, list[dict]] = defaultdict(list)
     for c in combo_flat:
@@ -2014,6 +2147,7 @@ def _agrupar_combos_por_presentacion(
         if not key or len(key) < 3:
             key = f"sku:{(c.get('ref') or '').lower()}"
         groups[key].append(c)
+    groups, nombre_grupo, fusionados = _unir_por_familia_arbol(groups)
 
     cards: list[dict] = []
     for key, items in groups.items():
@@ -2025,6 +2159,19 @@ def _agrupar_combos_por_presentacion(
         unique, alias_to_kept = _dedupe_by_presentation(unique_refs)
         if len(unique) >= 2:
             card = _build_family_card(unique, used_slugs)
+            if key in nombre_grupo:
+                card["name"] = _con_concentracion(nombre_grupo[key], unique)
+                if key in fusionados:
+                    # Ficha nueva (el árbol juntó nombres distintos, p. ej. «ACISAL100g» +
+                    # «Ácido salicílico 500g»): URL legible desde el nombre del árbol en vez
+                    # de la del código («acisal»); si la de siempre ya dice más
+                    # («tensoactivo-sci» frente a «sci») se queda la de siempre.
+                    legible = _slug_from_key(_orden_alfabetico(card["name"]))
+                    if len(legible) > len(card["slug"]) and legible not in used_slugs:
+                        used_slugs.add(legible)
+                        card["slug"] = card["family_slug"] = legible
+                        for c in unique:
+                            c["family_slug"] = legible
             for orig in unique_refs:
                 kept = alias_to_kept.get((orig.get("ref") or "").upper()) or unique[0]
                 _mark_combo_family_meta(
@@ -2047,6 +2194,12 @@ def _agrupar_combos_por_presentacion(
                     has_siblings=False,
                     canonical_slug=only.get("slug", ""),
                 )
+            if key in nombre_grupo:
+                # Copia: el combo original conserva su nombre (cache.json y el cruce con MeLi
+                # dependen de él); la tarjeta muestra «Ácido Azelaico 10g» como el árbol.
+                etiqueta = only.get("presentacion_label") or ""
+                nombre = _con_concentracion(nombre_grupo[key], [only])
+                only = {**only, "name": f"{nombre} {etiqueta}".strip()}
             cards.append(only)
     return cards
 
@@ -2800,24 +2953,16 @@ def _catalog_sections_from_combos(combo_flat: list[dict]) -> list[dict]:
     for card in catalog_cards:
         families_by_cat[card.get("cat") or "Otros"].append(card)
 
-    orden = [cat for _, cat in CATEGORY_MAP] + ["Saborizantes", "Otros"]
-    seen_ord, orden_final = set(), []
-    for c in orden:
-        if c not in seen_ord:
-            seen_ord.add(c)
-            orden_final.append(c)
-
+    # Mismo orden que el Árbol del producto: categorías y fichas alfabéticas (sin que la
+    # tilde mande «Ácidos» al final); «Otros» siempre de último.
     result = []
-    for cat in orden_final:
-        if cat in families_by_cat and families_by_cat[cat]:
-            prods = sorted(families_by_cat[cat], key=lambda p: p["name"].lower())
-            result.append({"name": cat, "color": color_categoria(cat), "products": prods})
-    for cat, prods in families_by_cat.items():
-        if cat not in seen_ord and prods:
+    for cat in sorted(families_by_cat, key=lambda c: (c == "Otros", _orden_alfabetico(c))):
+        prods = families_by_cat[cat]
+        if prods:
             result.append({
                 "name": cat,
                 "color": color_categoria(cat),
-                "products": sorted(prods, key=lambda p: p["name"].lower()),
+                "products": sorted(prods, key=lambda p: _orden_alfabetico(p["name"])),
             })
 
     total_f = sum(len(s["products"]) for s in result)
@@ -4808,10 +4953,26 @@ def _producto_seo(p: dict, fotos: list[str]) -> dict:
     return {"title": title, "description": desc, "canonical": canonical, "jsonld": jsonld}
 
 
+def _slug_familia_antigua(slug: str) -> str | None:
+    """Fichas cuyo slug salía de agrupar por nombre («aceite-ricino», «vaselina») y que
+    desde el 28-sep agrupan por la familia del Árbol del producto: el enlace viejo (Google,
+    blog, WhatsApp) lleva a la ficha nueva en vez de dar 404."""
+    sl = (slug or "").strip().lower()
+    for c in _combo_products:
+        if _slug_from_key(_presentation_family_key(c.get("name", ""))) == sl:
+            destino = c.get("family_slug") or c.get("slug")
+            if destino and destino.lower() != sl:
+                return destino
+    return None
+
+
 @app.route("/producto/<slug>")
 def producto(slug):
     p = find_product(slug)
     if not p:
+        destino = _slug_familia_antigua(slug)
+        if destino and find_product(destino):
+            return redirect(url_for("producto", slug=destino), code=301)
         abort(404)
 
     # Combo hermano o alias SKU → ficha de familia / presentación canónica
@@ -5721,6 +5882,52 @@ def checkout():
     )
 
 
+@app.route("/registro-bono", methods=["POST"])
+def registro_bono():
+    """Ventana «Regístrate» (templates/_popup_bono.html): guarda el registro con la
+    autorización de datos y devuelve el código de primera compra."""
+    from app.tools import cupones_web
+
+    body = request.get_json(silent=True) or {}
+    if not body.get("acepta"):
+        return jsonify({"ok": False, "error": "Necesitamos tu autorización de datos para enviarte el bono."})
+    cupon, motivo = cupones_web.registrar(
+        body.get("nombre", ""), body.get("email", ""), body.get("celular", ""),
+        origen=str(body.get("origen") or ""),
+    )
+    if not cupon:
+        return jsonify({"ok": False, "error": motivo})
+    if cupon["nuevo"]:
+        threading.Thread(
+            target=cupones_web.enviar_correo_bono,
+            args=(body.get("nombre", ""), body.get("email", "").strip().lower()),
+            daemon=True,
+        ).start()
+    return jsonify({"ok": True, "codigo": cupon["codigo"], "pct": cupon["pct"]})
+
+
+@app.route("/checkout/cupon", methods=["POST"])
+def checkout_cupon():
+    """Valida un código de descuento contra el carrito de la sesión (casilla del checkout).
+    Solo informa: el descuento real se vuelve a calcular en /checkout/pagar."""
+    from app.tools import cupones_web
+
+    cart = session.get("cart", {})
+    body = request.get_json(silent=True) or {}
+    cupon, motivo = cupones_web.validar(
+        body.get("codigo", ""),
+        email=body.get("email", ""),
+        cedula=body.get("cedula", ""),
+        celular=body.get("celular", ""),
+    )
+    if not cupon or not cart:
+        return jsonify({"ok": False, "error": motivo or "Tu carrito está vacío."})
+    _, descuento = cupones_web.aplicar(cart, cupon)
+    return jsonify({"ok": True, "codigo": cupon["codigo"], "pct": cupon["pct"],
+                    "texto": cupon.get("texto", ""), "descuento": descuento,
+                    "subtotal": cart_total(cart) - descuento})
+
+
 @app.route("/checkout/pagar", methods=["POST"])
 def checkout_pagar():
     """Recibe el formulario de datos del comprador, crea preferencia MP y redirige."""
@@ -5760,6 +5967,20 @@ def checkout_pagar():
             return redirect(url_for("checkout"))
         buyer_email = logged_email
     buyer_phone   = request.form.get("buyer_phone", "").strip()
+    # Código de descuento: se valida de nuevo aquí (la casilla del checkout solo avisa).
+    cupon_info = None
+    codigo_cupon = request.form.get("cupon", "").strip()
+    if codigo_cupon:
+        from app.tools import cupones_web
+
+        cupon, motivo = cupones_web.validar(codigo_cupon, email=buyer_email, cedula=buyer_cedula, celular=buyer_phone)
+        if not cupon:
+            flash(f"Código {cupones_web.normalizar_codigo(codigo_cupon)}: {motivo}", "error")
+            return redirect(url_for("checkout"))
+        cart, descuento = cupones_web.aplicar(cart, cupon)
+        cupon_info = {"codigo": cupon["codigo"], "pct": cupon["pct"], "descuento": descuento,
+                      "subtotal_lista": subtotal}
+        subtotal = cart_total(cart)
     buyer_city    = request.form.get("buyer_city", "").strip()
     buyer_dept    = request.form.get("buyer_dept", "").strip()
     buyer_addr    = request.form.get("buyer_address", "").strip()
@@ -5807,6 +6028,7 @@ def checkout_pagar():
                  "address": buyer_addr,
                  "notes": buyer_notes,
                  "shipping": shipping_cost,
+                 **({"cupon": cupon_info} if cupon_info else {}),
                  "billing": {"name": bill_name, "nit": bill_nit, "city": bill_city,
                               "address": bill_addr, "email": bill_email},
              }, ensure_ascii=False),

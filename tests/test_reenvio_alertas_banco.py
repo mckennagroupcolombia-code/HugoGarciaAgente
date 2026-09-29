@@ -39,3 +39,14 @@ def test_destino_por_defecto_es_la_asesora(monkeypatch):
     assert rab.destino_wa() == "573182432463"
     monkeypatch.setenv("REENVIO_BANCO_WA", "+57 300 111 2233@c.us")
     assert rab.destino_wa() == "573001112233"
+
+
+def test_aviso_de_token_caido_una_vez_al_dia(monkeypatch, tmp_path):
+    from app.tools import reenvio_alertas_banco as rab
+
+    monkeypatch.setattr(rab, "ESTADO_PATH", tmp_path / "estado.json")
+    avisos = []
+    monkeypatch.setattr("app.utils.enviar_whatsapp_reporte", lambda texto, numero_destino=None: avisos.append(texto) or True)
+    assert rab.avisar_token_caido("invalid_grant")
+    assert not rab.avisar_token_caido("invalid_grant")
+    assert len(avisos) == 1 and "reautorizar_gmail" in avisos[0]

@@ -180,6 +180,19 @@
   box-shadow: 2px 2px 0 var(--ed-rojo-osc, #C8003E);
 }
 .arbol-pixel .ap-hoja:hover { background: var(--ed-amarillo, #FFEC27); }
+/* Documento técnico aprobado (PDF final generado): la casilla de la materia prima va en verde. */
+.arbol-pixel .ap-aprobado {
+  background: color-mix(in srgb, var(--ed-verde, #00E436) 28%, var(--ed-crema, #FFF1E8));
+  border-color: var(--ed-verde-osc, #008751);
+  box-shadow: 2px 2px 0 var(--ed-verde-osc, #008751);
+}
+.arbol-pixel .ap-aprobado:hover { background: color-mix(in srgb, var(--ed-verde, #00E436) 45%, var(--ed-crema, #FFF1E8)); }
+.arbol-pixel .ap-sello-ok {
+  background: var(--ed-verde-osc, #008751);
+  color: #fff;
+  border: 2px solid var(--ed-negro, #000);
+  letter-spacing: .04em;
+}
 .arbol-pixel .ap-p { flex-shrink: 0; border: 2px solid var(--ed-negro, #000); }
 .arbol-pixel .ap-p-ok { background: var(--ed-verde, #00E436); }
 .arbol-pixel .ap-p-aviso { background: var(--ed-naranja, #FFA300); }

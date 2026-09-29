@@ -1,5 +1,5 @@
 import { Ico } from "../icons/Ico";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
@@ -9,6 +9,7 @@ import { api } from "../api/client";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import AppearancePanel from "./AppearancePanel";
 import { flushSaveUserUiPreferences } from "../lib/userThemeSync";
+const ConexionesPanel = lazy(() => import("./ConexionesPanel"));
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,16 @@ export default function Settings() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <h2 className="text-lg font-semibold text-ink">Ajustes y Sistema</h2>
+
+      {/* ── Conexiones (28-sep-2026): el equipo busca las reautorizaciones aquí, no en
+          Sistemas (que solo sale en modo avanzado). Solo admin, como su API. ── */}
+      {isAdmin && (
+        <section className="rounded-xl border border-border bg-surface-panel p-5">
+          <Suspense fallback={<p className="text-xs text-muted">Cargando conexiones…</p>}>
+            <ConexionesPanel embebido />
+          </Suspense>
+        </section>
+      )}
 
       <AppearancePanel />
 

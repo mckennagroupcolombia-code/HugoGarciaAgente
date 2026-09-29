@@ -368,3 +368,31 @@ pantallas aparte. **No calcula nada propio**: junta `mapa_producto.anatomia_comb
   fondos de estado se mezclan con `--ed-crema` (en un tema oscuro como Matrix `--ed-durazno` es oscuro). Los emergentes
   son portales: fuera de la isla, siguen la piel normal. Estado: `PUNTO`/`CAJA` de `arbol/tipos.ts` son clases `ap-*`.
 - ⚠️ Lo que en este archivo (Flujo U y otros) dice «taller de combos» es historia: hoy es el Árbol del producto.
+
+### La tienda web se lee como el árbol (28-sep-2026)
+
+- **Familias y nombres**: `arbol_producto.arbol()` deja `PAGINA_WEB/site/data/familias_arbol.json` ({ref: familia,
+  nombre}) cada vez que se calcula (a mano: `python3 -m app.services.arbol_producto --familias-web`). La web
+  (`website._unir_por_familia_arbol`) agrupa primero por nombre como siempre y luego el árbol **solo une y renombra**:
+  nunca separa (un alias sin «C-» fuera del árbol sigue con su grupo) y **no une si choca un tamaño** — así se descubrió
+  que la receta de C-AMILCAR100g (L-Carnitina) apunta a la materia prima de L-Teanina; unirlas borraba la carnitina en
+  el dedupe. El combo original conserva su nombre (cache.json y el cruce MeLi dependen de él); la tarjeta muestra el del
+  árbol + concentración única («85%») + color («Amarilla»). Categorías y fichas en orden alfabético sin tildes
+  («Ácidos» con las A), «Otros» al final. Sin el JSON la web agrupa como antes. `CATALOG_CACHE_VERSION` 17.
+- **URLs**: una familia nueva por fusión toma URL legible del nombre del árbol si es más larga que la del código
+  (`acisal` → `acido-salicilico`, pero `tensoactivo-sci` se queda); las viejas por nombre dan 301
+  (`_slug_familia_antigua`: `aceite-ricino` → `aceite-de-ricino`).
+- ⚠️ Un error de datos del árbol (receta cruzada, nombre con errata como «Semillla de Chía») ahora se ve en la web:
+  corregirlo en el árbol, no con parches en `website.py`.
+- **SEO de la ficha** (`website._producto_seo`): schema.org `Product` (Offer o AggregateOffer, sin `gtin`: los EAN de
+  etiquetas son internos 770+consecutivo, no GS1) + `BreadcrumbList`, canónico sin `?pres=`, título «… — Comprar en
+  Colombia». Ajuste por producto en `PAGINA_WEB/site/data/seo_productos.json` ({slug: {title, description}},
+  `{precio}` = precio vigente).
+- **Rutas de origen** (mapa «Del origen a tu fórmula»): `scripts/sincronizar_origen_materias.py` llena
+  `overrides_sku` de `origen_materias.json` desde documento técnico → proveedor por SKU → proveedor por nombre
+  (Colombia solo si no hay otro país) y agrega coordenadas de países nuevos. Nunca pisa un override existente (lista
+  los que discrepan). Vista previa por defecto, `--aplicar` para escribir. 28-sep: 138 productos que caían al default
+  de su línea (alimentario = Estados Unidos) + Sri Lanka, Túnez, Vietnam.
+- **Clic a producto «no abría»** (28-sep): `documentos_web._cargar_indice` releía las ~315 fichas YAML cada 60 s
+  (`DOCS_WEB_TTL_SEC`) con el lector en Python: el siguiente clic esperaba ~14 s. Ahora libyaml (`CSafeLoader`, mismo
+  resultado) y caché por archivo (mtime+tamaño, copia profunda por uso): ~1 s en frío, ~0,7 s al vencer el TTL.

@@ -310,10 +310,9 @@ export const ETAPAS_APP: EtapaApp[] = [
         ],
       },
       {
-        titulo: "Mantener las conexiones", datos: ["token MeLi", "token Gmail", "frecuencia de cada tarea"],
+        titulo: "Mantener las conexiones", datos: ["WhatsApp, MeLi, Gmail, Alegra, IA…", "frecuencia de cada tarea"],
         pasos: [
-          { panel: "meli-oauth", hace: "Reconectar MercadoLibre" },
-          { panel: "gmail-oauth", hace: "Reconectar Gmail" },
+          { panel: "conexiones", hace: "Ver qué está conectado y reconectar lo caído" },
           { panel: "tareas-programadas", hace: "Cada cuánto corre cada tarea automática" },
         ],
       },

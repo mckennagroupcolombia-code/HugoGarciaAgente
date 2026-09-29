@@ -48,6 +48,10 @@
           <span>IVA</span>
           <span style="color:var(--green);">Exento / Incluido</span>
         </div>
+        <div class="checkout-total-row" id="row-cupon" style="display:none;">
+          <span>Descuento <strong id="label-cupon-codigo"></strong></span>
+          <span id="label-cupon" style="color:var(--green-dark);font-weight:600;"></span>
+        </div>
         <div class="checkout-total-row" id="row-envio" style="display:none;">
           <span>Envío Interrapidísimo</span>
           <span id="label-envio" style="color:var(--green-dark);font-weight:600;"></span>
@@ -60,6 +64,20 @@
           <span>Total</span>
           <span id="label-total">${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
         </div>
+      </div>
+
+      <div style="margin-top:16px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
+        <p style="font-size:11px;color:var(--green-dark);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 8px;">
+          <i class="ph ph-ticket"></i> ¿Tienes un código de descuento?
+        </p>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="cupon-codigo" class="form-input" placeholder="BIENVENIDO10"
+                 autocomplete="off" style="flex:1;min-width:0;text-transform:uppercase;">
+          <button type="button" class="btn btn-primary" id="btn-cupon">Aplicar</button>
+        </div>
+        <p style="font-size:12px;margin:8px 0 0;line-height:1.6;color:var(--text-soft);" id="cupon-info">
+          ¿Te registraste en la web? Escribe aquí tu código de bienvenida (10 % en tu primera compra).
+        </p>
       </div>
 
       <div style="margin-top:16px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
@@ -87,6 +105,7 @@
 
         <input type="hidden" name="ref" value="{{ ref }}">
         <input type="hidden" name="shipping_cost" id="input-shipping" value="0">
+        <input type="hidden" name="cupon" id="input-cupon" value="">
         <!-- ciudad y depto se duplican como hidden para que lleguen al backend desde los selects -->
         <input type="hidden" name="buyer_city" id="h-buyer-city">
         <input type="hidden" name="buyer_dept" id="h-buyer-dept">
@@ -291,7 +310,8 @@
 //  TARIFAS INTERRAPIDÍSIMO 2026 — cotizadas por el servidor
 //  (/checkout/cotizar-envio: zona + peso real del carrito)
 // ══════════════════════════════════════════════════════════
-const subtotal = {{ total }};
+const subtotalLista = {{ total }};
+let subtotal = subtotalLista;
 const envioGratisDirecto = {{ 'true' if envio_gratis_directo else 'false' }};
 let shippingCost = 0;
 let selectedDepto = "";
@@ -381,12 +401,10 @@ function updateShipping(ciudad, depto){
       if (reqId !== shippingReqId || !cot.ok) throw new Error(cot.error || 'cotización inválida');
       shippingCost = cot.costo;
       inputShip.value = shippingCost;
-      const total = subtotal + shippingCost;
       if (rowGratis) rowGratis.style.display = 'none';
       rowEnvio.style.display = '';
       labelEnvio.textContent = fmtCOP(shippingCost);
-      labelTotal.textContent = fmtCOP(total) + ' COP';
-      btnTotal.textContent   = fmtCOP(total);
+      refrescarTotales();
       const diaTxt = cot.dias === 1 ? '1 día hábil' : cot.dias + ' días hábiles';
       const dest = ciudad ? `<strong>${ciudad}</strong>` : `<strong>${depto}</strong>`;
       const pesoTxt = cot.peso_kg === 1 ? 'hasta 1 kg' : `${cot.peso_kg} kg`;
@@ -398,6 +416,69 @@ function updateShipping(ciudad, depto){
       info.textContent = 'No pudimos estimar el envío en línea; se calculará y confirmará al procesar el pedido.';
     });
 }
+
+// ── Código de descuento ───────────────────────────────────
+function refrescarTotales(){
+  const total = subtotal + shippingCost;
+  document.getElementById('label-total').textContent = fmtCOP(total) + ' COP';
+  document.getElementById('btn-total').textContent   = fmtCOP(total);
+}
+
+function quitarCupon(msg){
+  subtotal = subtotalLista;
+  document.getElementById('input-cupon').value = '';
+  document.getElementById('row-cupon').style.display = 'none';
+  if (msg != null) document.getElementById('cupon-info').innerHTML = msg;
+  refrescarTotales();
+}
+
+function aplicarCupon(){
+  const info = document.getElementById('cupon-info');
+  const codigo = document.getElementById('cupon-codigo').value.trim();
+  if (!codigo) { quitarCupon(''); return; }
+  const email = (document.getElementById('buyer_email') || {}).value || '';
+  if (!email.trim()) {
+    info.innerHTML = '<span style="color:#b3261e">Escribe primero tu correo, cédula y celular para validar el código.</span>';
+    return;
+  }
+  info.textContent = 'Validando código…';
+  fetch('/checkout/cupon', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      codigo: codigo, email: email,
+      cedula: (document.getElementById('buyer_cedula') || {}).value || '',
+      celular: (document.getElementById('buyer_phone') || {}).value || ''
+    })
+  }).then(r => r.json()).then(res => {
+    if (!res.ok) { quitarCupon('<span style="color:#b3261e">' + res.error + '</span>'); return; }
+    subtotal = res.subtotal;
+    document.getElementById('input-cupon').value = res.codigo;
+    document.getElementById('label-cupon-codigo').textContent = res.codigo;
+    document.getElementById('label-cupon').textContent = '−' + fmtCOP(res.descuento);
+    document.getElementById('row-cupon').style.display = '';
+    info.innerHTML = '<strong style="color:var(--green-dark)">¡Listo!</strong> ' + res.pct + ' % de descuento en los productos (' + fmtCOP(res.descuento) + ').';
+    refrescarTotales();
+  }).catch(() => quitarCupon('No pudimos validar el código. Intenta de nuevo.'));
+}
+
+document.getElementById('btn-cupon').addEventListener('click', aplicarCupon);
+// Código y correo guardados por la ventana «Regístrate» (_popup_bono.html).
+try {
+  const cod = localStorage.getItem('mck_bono_codigo'), mail = localStorage.getItem('mck_bono_email');
+  const inCod = document.getElementById('cupon-codigo'), inMail = document.getElementById('buyer_email');
+  if (cod && !inCod.value) inCod.value = cod;
+  if (mail && inMail && !inMail.value && !inMail.readOnly) inMail.value = mail;
+} catch (e) {}
+document.getElementById('cupon-codigo').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); aplicarCupon(); }
+});
+// Si cambian correo, cédula o celular con el código aplicado, se vuelve a validar.
+['buyer_email', 'buyer_cedula', 'buyer_phone'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', () => {
+    if (document.getElementById('input-cupon').value) aplicarCupon();
+  });
+});
 
 // ── Facturación ───────────────────────────────────────────
 window.onBillDeptoChange = function(depto){

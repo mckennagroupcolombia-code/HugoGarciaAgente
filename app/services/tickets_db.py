@@ -5899,6 +5899,23 @@ def puede_ver_etiquetas_avanzado(usuario: dict | None) -> bool:
     return email in _ETIQUETAS_AVANZADO_EMAILS
 
 
+# Solo Papel y tinta (inventario de consumibles), sin Studio visual ni EAN.
+# 10 = Jenniffer Garcia (28-sep-2026).
+_PAPEL_TINTA_USER_IDS = frozenset({10})
+
+
+def puede_ver_papel_tinta(usuario: dict | None) -> bool:
+    """Acceso a Papel y tinta: los de etiquetas avanzadas más _PAPEL_TINTA_USER_IDS."""
+    if puede_ver_etiquetas_avanzado(usuario):
+        return True
+    if not usuario:
+        return False
+    try:
+        return int(usuario.get("id") or 0) in _PAPEL_TINTA_USER_IDS
+    except (TypeError, ValueError):
+        return False
+
+
 def es_admin_efectivo(usuario: dict | None) -> bool:
     """Admin real (nivel >= 3) o Cynthia con privilegios de administrador en el panel."""
     if not usuario:

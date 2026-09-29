@@ -73,6 +73,7 @@ export type Panel =
   | "telemetria"
   | "meli-oauth"
   | "gmail-oauth"
+  | "conexiones"
   | "tareas-programadas"
   | "settings"
   | "perfil";

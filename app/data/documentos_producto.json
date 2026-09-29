@@ -2,7 +2,7 @@
   "productos": {
     "C-ACEARGAN50ML": {
       "ref": "C-ACEARGAN50ML",
-      "nombre": "Aceite Argan",
+      "nombre": "ACEITE ARGAN",
       "lotes": [
         {
           "lote_numero": "GTN957",
@@ -15,11 +15,25 @@
           "codigo_verificacion": "59E7SC",
           "ft_webViewLink": "",
           "coa_webViewLink": "",
-          "vigente": true,
+          "vigente": false,
           "registrado_en": "2026-07-19T06:35:40+00:00"
+        },
+        {
+          "lote_numero": "08062026",
+          "estado": "actualizado",
+          "fabricante": "",
+          "pais_origen": "Marruecos",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "2SDYRA",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T15:59:38+00:00"
         }
       ],
-      "updated_at": "2026-07-19T06:35:40+00:00"
+      "updated_at": "2026-09-28T15:59:38+00:00"
     },
     "C-ACEGIR500ML": {
       "ref": "C-ACEGIR500ML",
@@ -562,10 +576,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-24T01:53:49+00:00"
+          "registrado_en": "2026-09-28T17:55:29+00:00"
         }
       ],
-      "updated_at": "2026-09-24T01:53:49+00:00"
+      "updated_at": "2026-09-28T17:55:29+00:00"
     },
     "C-ACEESEMANZ5ML": {
       "ref": "C-ACEESEMANZ5ML",
@@ -4510,10 +4524,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T22:14:24+00:00"
+          "registrado_en": "2026-09-28T21:44:25+00:00"
         }
       ],
-      "updated_at": "2026-09-25T22:14:24+00:00"
+      "updated_at": "2026-09-28T21:44:25+00:00"
     },
     "C-ALGSOD100G": {
       "ref": "C-ALGSOD100G",
@@ -4545,10 +4559,10 @@
           "ft_webViewLink": "",
           "coa_webViewLink": "",
           "vigente": true,
-          "registrado_en": "2026-09-25T22:14:24+00:00"
+          "registrado_en": "2026-09-28T21:44:25+00:00"
         }
       ],
-      "updated_at": "2026-09-25T22:14:24+00:00"
+      "updated_at": "2026-09-28T21:44:25+00:00"
     },
     "BICSOD500G": {
       "ref": "BICSOD500G",
@@ -6397,6 +6411,111 @@
         }
       ],
       "updated_at": "2026-09-27T23:21:20+00:00"
+    },
+    "C-COCDESHILKG": {
+      "ref": "C-COCDESHILKG",
+      "nombre": "Coco deshidratado grasa completa hilo largo",
+      "lotes": [
+        {
+          "lote_numero": "EV25029-HILOS",
+          "estado": "nuevo",
+          "fabricante": "",
+          "pais_origen": "Vietnam",
+          "fecha_fabricacion": "2026-01-01",
+          "fecha_vencimiento": "2028-01-01",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "87LEJH",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T14:42:45+00:00"
+        }
+      ],
+      "updated_at": "2026-09-28T14:42:45+00:00"
+    },
+    "C-SALROSHIMGRU250G": {
+      "ref": "C-SALROSHIMGRU250G",
+      "nombre": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM",
+      "lotes": [
+        {
+          "lote_numero": "C001-2508",
+          "estado": "nuevo",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA SAS",
+          "pais_origen": "Pakistan",
+          "fecha_fabricacion": "2025-12-12",
+          "fecha_vencimiento": "2028-12-11",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "2NBYB8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T14:56:15+00:00"
+        }
+      ],
+      "updated_at": "2026-09-28T14:56:15+00:00"
+    },
+    "C-SALROSHIMGRU500G": {
+      "ref": "C-SALROSHIMGRU500G",
+      "nombre": "SAL ROSADA DEL HIMALAYA GRANULOS 2-5 MM",
+      "lotes": [
+        {
+          "lote_numero": "C001-2508",
+          "estado": "nuevo",
+          "fabricante": "GLOBAL TRADING DE COLOMBIA SAS",
+          "pais_origen": "Pakistan",
+          "fecha_fabricacion": "2025-12-12",
+          "fecha_vencimiento": "2028-12-11",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "ZG87BV",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T16:11:05+00:00"
+        }
+      ],
+      "updated_at": "2026-09-28T16:11:05+00:00"
+    },
+    "C-ACEESEYLAYLA5ML": {
+      "ref": "C-ACEESEYLAYLA5ML",
+      "nombre": "ACEITE DE YLANG YLANG",
+      "lotes": [
+        {
+          "lote_numero": "20052026",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "USA",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "3TU6R8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T17:56:27+00:00"
+        }
+      ],
+      "updated_at": "2026-09-28T17:56:27+00:00"
+    },
+    "C-ALGSOD500G": {
+      "ref": "C-ALGSOD500G",
+      "nombre": "ALGINATO DE SODIO",
+      "lotes": [
+        {
+          "lote_numero": "020226",
+          "estado": "sin_cambios",
+          "fabricante": "",
+          "pais_origen": "China",
+          "fecha_fabricacion": "",
+          "fecha_vencimiento": "",
+          "fecha_recepcion": "2026-09-28",
+          "codigo_verificacion": "9CFYT8",
+          "ft_webViewLink": "",
+          "coa_webViewLink": "",
+          "vigente": true,
+          "registrado_en": "2026-09-28T21:44:25+00:00"
+        }
+      ],
+      "updated_at": "2026-09-28T21:44:25+00:00"
     }
   }
 }

@@ -6167,6 +6167,42 @@
         }
       ],
       "alertas_enviadas": []
+    },
+    {
+      "id": "42143f67-30d",
+      "item_id": "MCO4488258886",
+      "sku": "C-ALGSOD500g",
+      "nombre": "Alginato de Sodio",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4488258886-alginato-de-sodio-en-polvo-puro-500g-materia-prima-_JM",
+      "item_origen_id": "",
+      "origen": "desde_cero",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "precio": 200000.0,
+      "presentacion": "500g",
+      "perfil": "materia_prima_alimentaria",
+      "creado_en": "2026-09-28T23:53:27",
+      "ultima_revision": "2026-09-28T23:53:29",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 0,
+      "seguimiento_activo": true,
+      "notas": "Creada desde cero (panel Publicaciones)",
+      "historial": [
+        {
+          "fecha": "2026-09-28T23:53:29",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4488258886-alginato-de-sodio-en-polvo-puro-500g-materia-prima-_JM",
+          "señales": []
+        }
+      ],
+      "alertas_enviadas": []
     }
   ],
   "ultima_revision_global": "2026-09-22T08:31:08"

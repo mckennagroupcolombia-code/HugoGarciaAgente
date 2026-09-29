@@ -2425,16 +2425,87 @@ def confirmar_pago(
     # aprobación» para siempre y alguien lo vuelve a pagar.
     _avisar_al_origen(obtener(sid))
 
+    final = obtener(sid)
+    adjuntado = _adjuntar_comprobante_ticket(s.get("ticket_id"), por, final)
     _comentar_ticket(
         s.get("ticket_id"), por,
         f"✅ Pago #{sid} girado y confirmado con el segundo token — {_fmt(s['girado'])}"
         + (f" (ref. {referencia})" if referencia else "")
-        + ". Comprobante adjunto en la solicitud; ciclo cerrado.",
+        + (". Comprobante adjunto aquí en el ticket; ciclo cerrado." if adjuntado
+           else ". Comprobante adjunto en la solicitud; ciclo cerrado."),
     )
     _resolver_ticket(s.get("ticket_id"), por)
+    numero = _numero_ticket(s.get("ticket_id"))
     _avisar_solicitante(s.get("ticket_id"), por, "terminado",
-                        f"Pago girado por {_fmt(s['girado'])}; el comprobante está en la solicitud.")
-    return obtener(sid)
+                        f"Pago girado por {_fmt(s['girado'])}; el comprobante quedó adjunto en "
+                        + (f"el {numero}." if numero else "la solicitud."))
+    return final
+
+
+def _numero_ticket(ticket_id) -> str:
+    if not ticket_id:
+        return ""
+    try:
+        from app.services import tickets_db as _tdb
+
+        with _tdb._conn() as db:
+            r = db.execute("SELECT numero FROM tickets WHERE id=?", (int(ticket_id),)).fetchone()
+        return str(r["numero"]) if r else ""
+    except Exception:
+        return ""
+
+
+def _carpeta_adjuntos_tickets(_tdb) -> str:
+    """`uploads/tickets` — salvo que la base de tickets no sea la de producción
+    (tests que solo parchean `DB_PATH`): entonces junto a esa base, para no
+    dejar archivos sueltos en la carpeta real sin fila que los reclame."""
+    prod = os.path.abspath(os.path.join(os.path.dirname(_tdb.__file__), "..", "data", "tickets.db"))
+    if os.path.abspath(_tdb.DB_PATH) != prod:
+        base = os.path.dirname(os.path.abspath(_tdb.DB_PATH))
+        if os.path.abspath(_tdb.UPLOADS_DIR).startswith(base):
+            return _tdb.UPLOADS_DIR
+        return os.path.join(base, "uploads_tickets")
+    return _tdb.UPLOADS_DIR
+
+
+def _adjuntar_comprobante_ticket(ticket_id, usuario_id, s: dict) -> bool:
+    """Copia el comprobante del banco a los adjuntos del ticket.
+
+    Hasta el 28-sep solo quedaba en la solicitud de pago y en el asiento: quien
+    pidió el pago recibía «el comprobante está en la solicitud», abría el TKT y no
+    lo veía, y tenía que volver a pedirlo (TKT-2026-1564/1565). Best-effort.
+    """
+    archivo = str(s.get("comprobante_archivo") or "")
+    if not ticket_id or not archivo:
+        return False
+    try:
+        import shutil
+        import uuid
+        from pathlib import Path as _P
+
+        from app.services import tickets_db as _tdb
+
+        origen = _P(__file__).resolve().parents[2] / archivo
+        if not origen.is_file():
+            return False
+        nombre = str(s.get("comprobante_nombre") or origen.name)
+        if any(a.get("nombre_original") == nombre for a in _tdb.listar_adjuntos(int(ticket_id))):
+            return True
+        uid = usuario_id or _usuario_id(_tdb.DB_PATH, "admin")
+        if not uid:
+            return False
+        ext = origen.suffix.lower() or ".pdf"
+        destino = f"{uuid.uuid4().hex}{ext}"
+        carpeta = _carpeta_adjuntos_tickets(_tdb)
+        os.makedirs(carpeta, exist_ok=True)
+        shutil.copyfile(origen, os.path.join(carpeta, destino))
+        mime = {".pdf": "application/pdf", ".png": "image/png", ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg", ".webp": "image/webp"}.get(ext, "application/octet-stream")
+        _tdb.registrar_adjunto(int(ticket_id), destino, nombre, mime, int(uid))
+        return True
+    except Exception as e:
+        print(f"⚠️ No se pudo adjuntar el comprobante al ticket {ticket_id}: {e}", flush=True)
+        return False
 
 
 def _resolver_ticket(ticket_id, usuario_id) -> None:
@@ -2492,6 +2563,22 @@ def _avisar_al_origen(s: dict) -> None:
             if ruta.exists() and not lote.get("soporte_path"):
                 mime = "application/pdf" if ruta.suffix.lower() == ".pdf" else "application/octet-stream"
                 mp.guardar_comprobante(lote_id, ruta.read_bytes(), s.get("comprobante_nombre") or ruta.name, mime)
+        # Si el lote además tenía el ticket suelto de aprobación («Aprobar pago
+        # Interrapidísimo»), también se cierra con el comprobante: si no, alguien
+        # tiene que iniciarlo, entregarlo y volver a subir el soporte a mano, y el
+        # solicitante lo pide otra vez (TKT-2026-1564, 28-sep).
+        viejo = lote.get("ticket_id")
+        if viejo and int(viejo) != int(s.get("ticket_id") or 0):
+            por = s.get("pagado_por")
+            _adjuntar_comprobante_ticket(viejo, por, s)
+            numero = _numero_ticket(s.get("ticket_id"))
+            _comentar_ticket(
+                viejo, por,
+                f"✅ Pagado por Solicitudes de pago #{s['id']}"
+                + (f" ({numero})" if numero else "")
+                + ". Comprobante adjunto; este ticket se cierra solo.",
+            )
+            _resolver_ticket(viejo, por)
     except Exception as e:
         print(f"⚠️ Solicitud {s.get('id')}: no se pudo cerrar el lote de mensajería: {e}", flush=True)
 

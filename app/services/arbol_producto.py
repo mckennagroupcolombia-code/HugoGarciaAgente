@@ -15,7 +15,10 @@ La categoría es la `linea` del combo, la misma regla de la web
 
 from __future__ import annotations
 
+import json
 import re
+import unicodedata
+from pathlib import Path
 from typing import Any
 
 SIN_CATEGORIA = "Sin categoría en la web"
@@ -196,6 +199,36 @@ def _etiqueta_corta(c: dict) -> str:
     return m.group(1).replace("KG", "Kg").replace("GR", "g").replace("G", "g").replace("ML", "mL").strip() if m else c.get("ref") or ""
 
 
+def _orden_alfa(txt: str) -> str:
+    """«Ácidos» entre «Aceites» y «Antisépticos», no después de la Z."""
+    return unicodedata.normalize("NFKD", txt or "").encode("ascii", "ignore").decode().lower()
+
+
+# La tienda web agrupa y nombra sus tarjetas igual que el árbol (familia = materia prima,
+# nombre = título del documento técnico). La web no puede calcular el árbol en cada visita
+# (~8 s), así que el árbol deja aquí una copia liviana cada vez que se calcula; sin este
+# archivo la web vuelve a su agrupación por nombre. Regenerar a mano:
+#   python3 -m app.services.arbol_producto --familias-web
+FAMILIAS_WEB_FILE = Path(__file__).resolve().parents[2] / "PAGINA_WEB" / "site" / "data" / "familias_arbol.json"
+
+
+def _guardar_familias_web(categorias: list[dict]) -> None:
+    por_ref: dict[str, dict] = {}
+    for c in categorias:
+        for f in c["familias"]:
+            if str(f["clave"]).startswith("solo:"):
+                continue
+            for p in f["presentaciones"]:
+                if p.get("ref"):
+                    por_ref[_u(p["ref"])] = {"familia": f["clave"], "nombre": f["nombre"]}
+    try:
+        tmp = FAMILIAS_WEB_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(por_ref, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+        tmp.replace(FAMILIAS_WEB_FILE)
+    except OSError:
+        pass  # la web sigue con la copia anterior
+
+
 def arbol(refrescar: bool = False) -> dict:
     from app.services import canales_producto, mapa_producto
 
@@ -292,7 +325,8 @@ def arbol(refrescar: bool = False) -> dict:
             "total": sum(f["total"] for f in fams),
             "completas": sum(f["completas"] for f in fams),
         })
-    salida.sort(key=lambda c: (c["nombre"] == SIN_CATEGORIA, c["nombre"]))
+    salida.sort(key=lambda c: (c["nombre"] == SIN_CATEGORIA, _orden_alfa(c["nombre"])))
+    _guardar_familias_web(salida)
     return {
         "categorias": salida,
         "piezas": list(PIEZAS),
@@ -302,3 +336,11 @@ def arbol(refrescar: bool = False) -> dict:
         "sin_senal": sin_senal,
         "generado": datos.get("generado"),
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--familias-web" in sys.argv:
+        r = arbol(refrescar="--refrescar" in sys.argv)
+        print(f"familias_arbol.json: {sum(len(c['familias']) for c in r['categorias'])} familias en {len(r['categorias'])} categorías")

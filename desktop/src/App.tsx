@@ -40,6 +40,7 @@ const ControlVersionesPanel = lazy(() => import("./components/ControlVersionesPa
 const TelemetriaPanel = lazy(() => import("./components/TelemetriaPanel"));
 const MeliOAuthPanel = lazy(() => import("./components/MeliOAuthPanel"));
 const GmailOAuthPanel = lazy(() => import("./components/GmailOAuthPanel"));
+const ConexionesPanel = lazy(() => import("./components/ConexionesPanel"));
 const TareasProgramadasPanel = lazy(() => import("./components/TareasProgramadasPanel"));
 const EtiquetasPanel = lazy(() => import("./components/EtiquetasPanel"));
 const ConfigurarProductosPanel = lazy(() =>
@@ -121,6 +122,8 @@ function PanelRouterInner({ impuesto }: { impuesto?: Panel } = {}) {
       return <MeliOAuthPanel />;
     case "gmail-oauth":
       return <GmailOAuthPanel />;
+    case "conexiones":
+      return <ConexionesPanel />;
     case "tareas-programadas":
       return <TareasProgramadasPanel />;
     case "preventa":

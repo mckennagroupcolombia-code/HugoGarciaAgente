@@ -709,6 +709,18 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "sistemas",
   },
+  conexiones: {
+    emoji: "🔌",
+    label: "Conexiones",
+    description: "Todas las integraciones en un solo sitio (WhatsApp, MercadoLibre, Gmail, Google, Alegra, Mercado Pago, correo, IA, túnel): cuál está conectada, qué se cae si falla y el paso a paso para reconectarla.",
+    tips: [
+      "Cada conexión se prueba de verdad contra su servicio (no solo si existe el archivo de credenciales). Las pruebas de Claude y Gemini solo listan modelos: no gastan tokens.",
+      "Lo desconectado sale primero y abierto. MercadoLibre, Gmail y WhatsApp se reconectan desde aquí mismo; las llaves de API traen la guía de dónde sacarlas.",
+      "Gmail vence cada 7 días mientras la app de Google Cloud siga en modo prueba: la tarjeta avisa 2 días antes.",
+    ],
+    tier: "advanced",
+    category: "sistemas",
+  },
   "gmail-oauth": {
     emoji: "📧",
     label: "Conexión Gmail",
