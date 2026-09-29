@@ -4598,3 +4598,14 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - El tamaño elegido es el máximo: si no cabe en su arco se encoge solo, igual que antes; el mínimo baja con él para poder achicarlo.
   - **Verificado:** `npm run build`.
 - **Archivos Modificados:** `desktop/src/components/etiqueta-circular/EtiquetaCircular.tsx`, `docs/team-recaps.md`
+
+### 2026-09-29 - Imprimir: cada PNG con el tamaño de su plantilla del Studio
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección
+- **Qué se implementó:**
+  - **Problema:** en Diseño → Imprimir los PNG no salían del tamaño de su etiqueta del Studio. El formato se adivinaba por el nombre (…_250g → 76×66) o por la proporción de la imagen, que confunde 69×51 con 102×76 y 76×66 con 50×42. Además, el 28-sep «Terminar y aprobar» subió los dos PNG a la vez y un hilo leyó el índice `etiquetas_recursos_png.json` a medio escribir: quedó con 24 entradas y las demás etiquetas perdieron sus medidas.
+  - **Solución:** `_formatos_png_aprobados` (`app/tools/etiquetas_studio.py`) toma el formato de la etiqueta que generó el PNG: primero por el registro de aprobados (`etiqueta_id` → `tipo_nombre`), y si no, por el nombre de archivo (`_clave_archivo`, copias `_N` incluidas). Solo después se adivina; lo inferido por nombre se descarta si la proporción no encaja, y se agrega la inferencia por proporción para imágenes de 600–900 dpi.
+  - Índice PNG con candado (`_png_index_lock`), escritura atómica (`os.replace`) y tope de 5000 en vez de 300 (`app/routes.py`).
+  - Resultado: 153/153 aprobados con el tamaño de su plantilla (antes 41 mal: Semillas 250/500 g en 102×76, varios Kg/500 mL en 50×42); de los 59 sin aprobar, 55 enlazados por nombre. Quedan sin enlace `DATILES_SAYED_*` (la etiqueta se llama «SAYER»), `MANI_TOSTADO_PARTIDO_3` y cápsulas 1000 Un.
+  - **Verificado:** comparación de los 212 PNG de ETIQUETAS STUDIO contra el formato de su ficha; reinicio de `agente-pro`.
+- **Archivos Modificados:** `app/tools/etiquetas_studio.py`, `app/routes.py`, `docs/team-recaps.md`

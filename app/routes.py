@@ -23725,6 +23725,10 @@ REGLAS:
     _ETIQUETAS_PNG_INDEX_PATH = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_recursos_png.json",
     )
+    # Aprobar sube a la vez el PNG de impresión y el digital (dos hilos). Sin candado ni
+    # escritura atómica, un hilo leía el JSON a medio escribir, lo tomaba por vacío y al
+    # guardar borraba el formato (mm) de todas las demás etiquetas (pasó el 28-sep).
+    _png_index_lock = threading.RLock()
     _PNG_RECURSOS_MAX_BYTES = 8 * 1024 * 1024
 
     def _carpeta_png_recursos_etiquetas():
@@ -23816,8 +23820,13 @@ REGLAS:
 
     def _save_png_recursos_etiquetas(items: list) -> None:
         os.makedirs(os.path.dirname(_ETIQUETAS_PNG_INDEX_PATH), exist_ok=True)
-        with open(_ETIQUETAS_PNG_INDEX_PATH, "w", encoding="utf-8") as f:
-            json.dump({"recursos": items[:300]}, f, ensure_ascii=False, indent=2)
+        tmp = f"{_ETIQUETAS_PNG_INDEX_PATH}.{os.getpid()}.{threading.get_ident()}.tmp"
+        with _png_index_lock:
+            with open(tmp, "w", encoding="utf-8") as f:
+                # Tope amplio: Imprimir saca de aquí el formato de cada PNG, y con 300
+                # las etiquetas más viejas perdían sus medidas.
+                json.dump({"recursos": items[:5000]}, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, _ETIQUETAS_PNG_INDEX_PATH)
 
     def _thumb_png_b64(ruta: str, max_px: int = 72) -> tuple[str, str] | tuple[None, None]:
         """Devuelve (base64, mimetype) de una miniatura, o (None, None) si falla."""
@@ -23897,6 +23906,15 @@ REGLAS:
             return {}
 
     def _registrar_png_recurso(
+        nombre: str,
+        ruta_completa: str,
+        bytes_size: int,
+        meta: dict | None = None,
+    ) -> dict:
+        with _png_index_lock:
+            return _registrar_png_recurso_sin_lock(nombre, ruta_completa, bytes_size, meta)
+
+    def _registrar_png_recurso_sin_lock(
         nombre: str,
         ruta_completa: str,
         bytes_size: int,
@@ -24029,11 +24047,12 @@ REGLAS:
                 continue
         if retirados:
             quitar = {os.path.join(base_png, r) for r in retirados}
-            items = [
-                it for it in _load_png_recursos_etiquetas()
-                if os.path.realpath(it.get("ruta_completa") or "") not in quitar
-            ]
-            _save_png_recursos_etiquetas(items)
+            with _png_index_lock:
+                items = [
+                    it for it in _load_png_recursos_etiquetas()
+                    if os.path.realpath(it.get("ruta_completa") or "") not in quitar
+                ]
+                _save_png_recursos_etiquetas(items)
         return retirados
 
     def _leer_etiquetas_aprobadas() -> dict:
