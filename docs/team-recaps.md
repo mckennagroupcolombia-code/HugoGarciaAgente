@@ -4643,3 +4643,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Usa los hooks de `useConversaciones` (timeline, adjuntos, enviar, visto); no toca el backend.
   - **Verificado:** `npm run build`; capturas en Chrome headless (lista, chat, chat grande y celular a 390 px) en un arnés temporal con datos simulados, ya retirado.
 - **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`
+
+### 2026-09-29 - Burbuja de chat: iniciar conversación con alguien del equipo
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora (mensajería del equipo)
+- **Qué se implementó:**
+  - La burbuja pasa de «En proceso» a **Chats**: trae también las solicitudes por hacer (pendientes), no solo en proceso / por finalizar, y está siempre visible (antes se ocultaba si no había nada en proceso).
+  - **«＋ Nuevo chat»**: ¿con quién? (buscador del equipo, marca cuántas abiertas hay con cada persona) → ¿sobre qué es? + mensaje opcional → «Iniciar chat con …». Crea la solicitud asignada a esa persona (`POST /api/tickets/`, tipo solicitud, categoría logistica; le llega el WhatsApp como desde el asistente), publica el mensaje como primer comentario y abre su chat en la misma burbuja.
+  - Si ya hay chats abiertos con esa persona, los ofrece primero («Seguir ›») para no duplicar solicitudes.
+  - Filtros «Todas» / «Sin leer (n)»; sin chats, la lista invita a escribirle a alguien.
+  - Sin cambios en el backend.
+  - **Verificado:** `npm run build`; capturas en Chrome headless con datos simulados (lista, elegir persona, aviso de chat abierto y creación completa que abre el chat nuevo), en un arnés temporal ya retirado.
+- **Archivos Modificados:** `desktop/src/components/nav/SolicitudesEnProcesoFab.tsx`, `docs/team-recaps.md`

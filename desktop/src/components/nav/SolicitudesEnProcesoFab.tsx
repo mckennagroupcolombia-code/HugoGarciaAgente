@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
 import { useAppStore } from "../../stores/app";
 import { useTicketsAuth } from "../../stores/ticketsAuth";
 import {
-  useConversaciones, useTimeline, useAdjuntosConversacion, useMarcarVisto,
+  useConversaciones, useTimeline, useAdjuntosConversacion, useMarcarVisto, useUsuariosEquipo,
   useEnviarMensajeConversacion, type Conversacion, type Adjunto, type TimelineEvento,
 } from "../../hooks/useConversaciones";
+import { api } from "../../api/client";
 import {
   ESTADO_LABEL, ESTADO_PILL_CLASS, getDateLabel, horaDe, iniciales, tiempoRelativo, uidEq,
 } from "../tickets/ticketsFormat";
@@ -13,13 +15,15 @@ import { ticketsUploadUrl } from "../../lib/profilePhoto";
 import { Icon } from "../../icons";
 
 /**
- * Burbuja flotante global (portal a body, mismo patrón que CrearSiigoFab): mientras el
- * usuario navega por otros paneles, recuerda sus solicitudes/acciones "en proceso" o
- * "esperando aprobación" (mismo agrupado que la pestaña Mensajes del Centro de Mando).
- * Funciona como un chat: la lista muestra el último mensaje de cada una y al tocarla se
- * conversa ahí mismo (leer, escribir, adjuntar fotos); «⤢» la agranda. Para pasos,
- * cronómetro y cierre está «Abrir completo». Se oculta dentro del propio Centro de Mando
- * (panel "hugo"/"tickets"), donde el inbox ya está a la vista.
+ * Burbuja de chat global (portal a body, mismo patrón que CrearSiigoFab): mensajería
+ * instantánea del equipo sobre las solicitudes. La lista trae las abiertas de cada quien
+ * (por hacer, en proceso, por finalizar) con su último mensaje; al tocar una se conversa
+ * ahí mismo (leer, escribir, adjuntar fotos) y «⤢» la agranda. «＋ Nuevo chat» elige a
+ * alguien del equipo y el asunto: crea la solicitud para esa persona (le llega el aviso por
+ * WhatsApp, igual que desde el asistente) y abre su chat; si ya hay una abierta con ella,
+ * la ofrece primero para no duplicar. Para pasos, cronómetro y cierre está «Abrir completo».
+ * Se oculta dentro del propio Centro de Mando (panel "hugo"/"tickets"), donde el inbox ya
+ * está a la vista.
  */
 
 const CLAVE_GRANDE = "mck_fab_chat_grande";
@@ -47,6 +51,10 @@ function leerGrande(): boolean {
 export default function SolicitudesEnProcesoFab() {
   const [abierta, setAbierta] = useState(false);
   const [chatId, setChatId] = useState<number | null>(null);
+  const [nuevo, setNuevo] = useState(false);
+  const [soloSinLeer, setSoloSinLeer] = useState(false);
+  // La solicitud recién creada tarda un refresco en llegar a la lista: mientras, se usa esta.
+  const [recien, setRecien] = useState<Conversacion | null>(null);
   const [grande, setGrande] = useState(leerGrande);
 
   const panel = useAppStore((s) => s.panel);
@@ -57,21 +65,30 @@ export default function SolicitudesEnProcesoFab() {
 
   const { data: conversaciones = [] } = useConversaciones("todas", "mias");
   const enProceso = conversaciones
-    .filter((c) => c.estado === "en_proceso" || c.estado === "esperando_aprobacion")
+    .filter((c) => c.estado === "pendiente" || c.estado === "en_proceso" || c.estado === "esperando_aprobacion")
     .sort((a, b) => b.ultima_actividad.localeCompare(a.ultima_actividad));
   const noLeidos = enProceso.reduce((n, c) => n + (c.no_leidos || 0), 0);
-  const chat = chatId != null ? enProceso.find((c) => c.id === chatId) ?? null : null;
+  const visibles = soloSinLeer ? enProceso.filter((c) => c.no_leidos > 0) : enProceso;
+  const chat = chatId != null
+    ? enProceso.find((c) => c.id === chatId) ?? (recien?.id === chatId ? recien : null)
+    : null;
 
   useEffect(() => {
     if (!abierta) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (chatId != null) setChatId(null);
+      else if (nuevo) setNuevo(false);
       else setAbierta(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [abierta, chatId]);
+  }, [abierta, chatId, nuevo]);
+
+  function abrirChat(c: Conversacion) {
+    setNuevo(false);
+    setChatId(c.id);
+  }
 
   // Si la conversación abierta se cerró (resuelta) sale de la lista: volver a la lista.
   useEffect(() => {
@@ -89,12 +106,12 @@ export default function SolicitudesEnProcesoFab() {
     });
   }
 
-  // Nunca se muestra dentro del propio Centro de Mando, sin sesión, o sin nada pendiente.
+  // Siempre visible (sirve para empezar un chat), salvo sin sesión o dentro del Centro de Mando.
   const enCentroMando = panel === "hugo" || panel === "tickets";
   useEffect(() => {
     if (enCentroMando) setAbierta(false);
   }, [enCentroMando]);
-  if (!user || enCentroMando || enProceso.length === 0) return null;
+  if (!user || enCentroMando) return null;
   if (typeof document === "undefined") return null;
 
   function irA(c?: Conversacion) {
@@ -117,7 +134,7 @@ export default function SolicitudesEnProcesoFab() {
               : "h-[min(70vh,32rem)] w-[min(calc(100vw-1.5rem),22rem)]"
           }`}
           role="dialog"
-          aria-label="Chat de solicitudes en proceso"
+          aria-label="Chat del equipo"
         >
           <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-accent/10 px-2 py-1.5">
             {chat ? (
@@ -141,11 +158,26 @@ export default function SolicitudesEnProcesoFab() {
                   </p>
                 </div>
               </>
+            ) : nuevo ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setNuevo(false)}
+                  className="rounded-lg px-1.5 py-0.5 text-lg font-black leading-none text-accent hover:bg-surface-hover"
+                  title="Volver a la lista"
+                  aria-label="Volver a la lista"
+                >
+                  ‹
+                </button>
+                <span className="min-w-0 flex-1 truncate text-[12px] font-extrabold uppercase tracking-wide text-accent">
+                  Nuevo chat
+                </span>
+              </>
             ) : (
               <div className="flex min-w-0 flex-1 items-center gap-1.5 px-1 text-accent">
                 <Icon name="chat" size={15} weight="bold" />
                 <span className="text-[11px] font-extrabold uppercase tracking-wide">
-                  En proceso ({enProceso.length})
+                  Chats ({enProceso.length})
                 </span>
               </div>
             )}
@@ -170,16 +202,60 @@ export default function SolicitudesEnProcesoFab() {
 
           {chat ? (
             <ChatHilo key={chat.id} conversacion={chat} onAbrirCompleto={() => irA(chat)} />
+          ) : nuevo ? (
+            <NuevoChat
+              abiertas={enProceso}
+              onAbrir={abrirChat}
+              onCreada={(c) => { setRecien(c); abrirChat(c); }}
+            />
           ) : (
             <>
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-border/40 px-2.5 py-2">
+                <button
+                  type="button"
+                  onClick={() => setNuevo(true)}
+                  className="flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-[12px] font-bold text-white hover:brightness-110"
+                >
+                  <Icon name="plus" size={13} weight="bold" /> Nuevo chat
+                </button>
+                <div className="flex-1" />
+                {(["todas", "sin_leer"] as const).map((f) => {
+                  const activo = (f === "sin_leer") === soloSinLeer;
+                  return (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setSoloSinLeer(f === "sin_leer")}
+                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                        activo ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:text-ink"
+                      }`}
+                    >
+                      {f === "todas" ? "Todas" : `Sin leer${noLeidos > 0 ? ` (${noLeidos})` : ""}`}
+                    </button>
+                  );
+                })}
+              </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
-                {enProceso.map((c) => {
+                {visibles.length === 0 && (
+                  <div className="space-y-2 px-4 py-10 text-center">
+                    <p className="text-[13px] text-muted">
+                      {soloSinLeer ? "Estás al día: no hay mensajes sin leer." : "No tienes chats abiertos."}
+                    </p>
+                    {!soloSinLeer && (
+                      <button type="button" onClick={() => setNuevo(true)}
+                        className="text-[12px] font-bold text-accent hover:underline">
+                        Escríbele a alguien del equipo →
+                      </button>
+                    )}
+                  </div>
+                )}
+                {visibles.map((c) => {
                   const mio = uidEq(c.ultimo_usuario_id, user.id);
                   return (
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => setChatId(c.id)}
+                      onClick={() => abrirChat(c)}
                       className="flex w-full items-start gap-2.5 border-b border-border/40 px-3 py-2.5 text-left transition hover:bg-surface-hover"
                     >
                       <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
@@ -233,20 +309,22 @@ export default function SolicitudesEnProcesoFab() {
             ? "border-accent bg-accent text-white"
             : "border-accent/70 bg-surface-panel text-accent hover:border-accent hover:bg-accent hover:text-white"
         }`}
-        title={noLeidos > 0 ? `${noLeidos} mensaje(s) sin leer` : "Chat de solicitudes en proceso"}
-        aria-label={abierta ? "Cerrar chat de solicitudes" : "Abrir chat de solicitudes en proceso"}
+        title={noLeidos > 0 ? `${noLeidos} mensaje(s) sin leer` : "Chat del equipo"}
+        aria-label={abierta ? "Cerrar chat del equipo" : "Abrir chat del equipo"}
         aria-expanded={abierta}
       >
-        <span
-          className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm ${
-            noLeidos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
-          }`}
-        >
-          {(() => {
-            const n = noLeidos > 0 ? noLeidos : enProceso.length;
-            return n > 99 ? "99+" : n;
-          })()}
-        </span>
+        {(noLeidos > 0 || enProceso.length > 0) && (
+          <span
+            className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-black text-white shadow-sm ${
+              noLeidos > 0 ? "bg-emerald-500 animate-pulse" : "bg-accent"
+            }`}
+          >
+            {(() => {
+              const n = noLeidos > 0 ? noLeidos : enProceso.length;
+              return n > 99 ? "99+" : n;
+            })()}
+          </span>
+        )}
         <Icon name="chat" size={24} weight={abierta ? "bold" : "regular"} />
       </button>
     </div>,
@@ -431,5 +509,196 @@ function ChatHilo({ conversacion, onAbrirCompleto }: { conversacion: Conversacio
         </div>
       </div>
     </>
+  );
+}
+
+/** «Nuevo chat»: con quién y sobre qué. Crea una solicitud para esa persona y abre su chat. */
+function NuevoChat({
+  abiertas, onAbrir, onCreada,
+}: {
+  abiertas: Conversacion[];
+  onAbrir: (c: Conversacion) => void;
+  onCreada: (c: Conversacion) => void;
+}) {
+  const user = useTicketsAuth((s) => s.user);
+  const qc = useQueryClient();
+  const { data: equipo = [], isLoading } = useUsuariosEquipo();
+  const [busqueda, setBusqueda] = useState("");
+  const [personaId, setPersonaId] = useState<number | null>(null);
+  const [asunto, setAsunto] = useState("");
+  const [mensaje, setMensaje] = useState("");
+  const [creando, setCreando] = useState(false);
+  const [error, setError] = useState("");
+
+  const personas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return equipo
+      .filter((u) => u.activo !== 0 && !uidEq(u.id, user?.id))
+      .filter((u) => !q || u.nombre.toLowerCase().includes(q) || (u.username ?? "").toLowerCase().includes(q))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [equipo, busqueda, user?.id]);
+  const persona = personaId != null ? equipo.find((u) => u.id === personaId) ?? null : null;
+  const conElla = persona ? abiertas.filter((c) => uidEq(c.contraparte_id, persona.id)) : [];
+
+  async function iniciar() {
+    if (!persona || !asunto.trim() || creando || !user) return;
+    setCreando(true);
+    setError("");
+    try {
+      const t = await api.post<{ id: number; numero?: string }>("/api/tickets/", {
+        titulo: asunto.trim(),
+        descripcion: "",
+        categoria: "logistica",
+        prioridad: "media",
+        asignado_a: persona.id,
+        tipo: "solicitud",
+      });
+      if (mensaje.trim()) {
+        await api.post(`/api/tickets/${t.id}/comentarios`, { texto: mensaje.trim() });
+      }
+      qc.invalidateQueries({ queryKey: ["tickets-conversaciones"] });
+      const ahora = new Date().toISOString().slice(0, 19).replace("T", " ");
+      onCreada({
+        id: t.id, numero: t.numero ?? "", titulo: asunto.trim(), tipo: "solicitud", subtipo: null,
+        estado: "pendiente", prioridad: "media", creado_por: user.id, asignado_a: persona.id,
+        creado_en: ahora, actualizado_en: ahora, creado_por_nombre: user.nombre ?? null,
+        asignado_a_nombre: persona.nombre, adjuntos_total: 0, ultimo_texto: mensaje.trim() || null,
+        ultimo_en: null, ultimo_usuario_id: user.id, ultimo_autor: user.nombre ?? null, no_leidos: 0,
+        contraparte_id: persona.id, contraparte_nombre: persona.nombre, ultima_actividad: ahora,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo crear el chat");
+      setCreando(false);
+    }
+  }
+
+  const campo = "w-full rounded-xl border-2 border-border bg-surface-panel px-2.5 py-1.5 text-[13px] text-ink placeholder:text-muted focus:border-accent focus:outline-none";
+
+  if (!persona) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="shrink-0 space-y-1.5 px-3 pt-3 pb-2">
+          <p className="text-[12px] font-bold text-ink">¿Con quién quieres hablar?</p>
+          <input
+            autoFocus
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar en el equipo…"
+            className={campo}
+          />
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {isLoading && <p className="py-6 text-center text-xs text-muted">Cargando equipo…</p>}
+          {!isLoading && personas.length === 0 && (
+            <p className="py-6 text-center text-xs text-muted">Nadie coincide con «{busqueda.trim()}».</p>
+          )}
+          {personas.map((u) => {
+            const abiertasCon = abiertas.filter((c) => uidEq(c.contraparte_id, u.id)).length;
+            return (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setPersonaId(u.id)}
+                className="flex w-full items-center gap-2.5 border-b border-border/40 px-3 py-2 text-left transition hover:bg-surface-hover"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[11px] font-black text-accent">
+                  {iniciales(u.nombre)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-semibold text-ink">{u.nombre}</span>
+                  {u.rol?.nombre && <span className="block truncate text-[10px] text-muted">{u.rol.nombre}</span>}
+                </span>
+                {abiertasCon > 0 && (
+                  <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                    {abiertasCon} abierta{abiertasCon !== 1 ? "s" : ""}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[12px] font-black text-accent">
+            {iniciales(persona.nombre)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-bold text-ink">{persona.nombre}</p>
+            <button type="button" onClick={() => setPersonaId(null)} className="text-[11px] font-semibold text-accent hover:underline">
+              Cambiar persona
+            </button>
+          </div>
+        </div>
+
+        {conElla.length > 0 && (
+          <div className="space-y-1.5 rounded-xl border border-accent/30 bg-accent/5 p-2.5">
+            <p className="text-[11px] font-bold text-ink">
+              Ya tienes {conElla.length === 1 ? "un chat abierto" : `${conElla.length} chats abiertos`} con {persona.nombre.split(" ")[0]}:
+            </p>
+            {conElla.slice(0, 4).map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onAbrir(c)}
+                className="flex w-full items-center gap-1.5 rounded-lg border border-border bg-surface-panel px-2.5 py-1.5 text-left hover:border-accent"
+              >
+                <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-ink">{c.titulo}</span>
+                <span className="shrink-0 text-[11px] font-bold text-accent">Seguir ›</span>
+              </button>
+            ))}
+            <p className="text-[10px] text-muted">O empieza uno nuevo sobre otro tema:</p>
+          </div>
+        )}
+
+        <label className="block space-y-1">
+          <span className="text-[12px] font-bold text-ink">¿Sobre qué es? <span className="font-normal text-muted">(la solicitud)</span></span>
+          <input
+            autoFocus
+            value={asunto}
+            onChange={(e) => setAsunto(e.target.value)}
+            maxLength={140}
+            placeholder="Ej.: Etiquetar el lote de neem de hoy"
+            className={campo}
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-[12px] font-bold text-ink">Mensaje <span className="font-normal text-muted">(opcional)</span></span>
+          <textarea
+            value={mensaje}
+            onChange={(e) => setMensaje(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void iniciar();
+              }
+            }}
+            rows={3}
+            maxLength={2000}
+            placeholder="Escribe lo que necesitas…"
+            className={`${campo} resize-none`}
+          />
+        </label>
+        {error && <p className="text-[11px] text-red-500">{error}</p>}
+      </div>
+      <div className="shrink-0 space-y-1 border-t border-border/60 bg-surface px-3 py-2">
+        <button
+          type="button"
+          disabled={!asunto.trim() || creando}
+          onClick={() => void iniciar()}
+          className="quest-btn-primary w-full py-2 text-[13px] font-bold disabled:opacity-40"
+        >
+          {creando ? "Creando…" : `Iniciar chat con ${persona.nombre.split(" ")[0]}`}
+        </button>
+        <p className="text-center text-[10px] text-muted">
+          Queda como solicitud para {persona.nombre.split(" ")[0]} y le llega el aviso por WhatsApp.
+        </p>
+      </div>
+    </div>
   );
 }
