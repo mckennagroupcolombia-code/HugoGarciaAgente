@@ -117,6 +117,12 @@ acné, arrugas, colágeno, exfoliante, antienvejecimiento
 `{Ingrediente} En Polvo Puro {presentación} — Materia Prima`
 - ✅ Citrato De Magnesio En Polvo Puro 250g — Materia Prima
 - ❌ Sal De Magnesio Citrato 500g
+- «— Materia Prima» es regla de la casa para lo que MeLi puede confundir con suplemento (minerales,
+  aminoácidos). En insumos sin ese riesgo (espesantes, gelificantes) vale más una palabra de búsqueda:
+  `Alginato De Sodio En Polvo Puro 500g - Cocina Molecular` (MCO4488258886, 29-sep-2026).
+- ⚠️ User Products: el `family_name` **no se edita por API** ni sin ventas (`PUT /items` → «family name is
+  invalid»; `title` → «cannot modify the title if the item has a family_name»; `/user-products/{id}` → 404).
+  Desde la pantalla de MeLi (Modificar) sí se pudo. Elegir bien el nombre antes de crear.
 
 ## Descripción MeLi (estructura)
 1. NOMBRE — MATERIA PRIMA ALIMENTARIA + neto

@@ -1,3 +1,13 @@
+### 2026-09-29 00:20 - Alginato de sodio 500g publicado en MeLi y web + reparación de git tras el corte de las 23:00
+- **Autor:** Armando García
+- **Tipo de Cambio:** Nueva publicación + mejora técnica. Sin LLM (la descripción se redactó a mano: `generar_contenido_compliance` devolvió JSON cortado).
+- **Qué se implementó:**
+  - **C-ALGSOD500g** publicado en MeLi como **MCO4488258886** a **$200.000** (10 u, multi-bodega, EAN 7703005002644 en GTIN, foto de `fotos_producto`), categoría heredada de MCO2059169393. Precio decidido tras revisar la venta de Jenniffer del 28-sep: 2 libras de alginato a $380.000 (lista $400.000). En la web sale a $180.000 (MeLi −10 %). Agregado a mano a `despliegue_ventas.json` (`--ampliar` solo mira lo que pausó el cese, un SKU nuevo nunca entra solo) y a `publicaciones_overrides.json`.
+  - Título final «Alginato De Sodio En Polvo Puro 500g - Cocina Molecular»: en User Products el `family_name` **no se edita por API** aunque no haya ventas; se cambió desde la pantalla de MeLi. Anotado en la ficha.
+  - **Git:** la máquina se reinició a las 23:01 durante el auto-commit de las 23:00 y dejó 87 objetos vacíos (HEAD ilegible, commit nunca subido). Se respaldó `.git`, se apartaron los objetos vacíos, la rama volvió a `b081be7` (último commit sano, ya contiene `origin`) y se quitó el commit-graph viejo; `git fsck` limpio. El contenido estaba intacto en disco y quedó en el commit «rehecho»; se pierde solo la división en commits de lo hecho entre las 17:40 y las 23:00.
+  - Pendiente: `generar_contenido_compliance` llama a Claude sin `llm_budget` y con `max_tokens=2048` (corta el JSON).
+- **Archivos Modificados:** `app/data/despliegue_ventas.json`, `app/data/publicaciones_overrides.json` (en el commit rehecho), `docs/agentic/modules/meli-materia-prima.md`, `docs/team-recaps.md`.
+
 ### 2026-09-28 17:40 - Facturas duplicadas en Alegra cuando la DIAN rechaza (RED CHOCOLATE SAS, TKT-2026-1566)
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección. Sin LLM.
