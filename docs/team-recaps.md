@@ -1,3 +1,14 @@
+### 2026-09-29 06:10 - Hoja 1 y overrides de publicaciones depurados (35 filas reales agregadas, IDs con prefijo MCO)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de datos. Sin LLM.
+- **Qué se implementó:**
+  - Se revisó por qué faltaban publicaciones en el Sheet. **Corrección de un diagnóstico mío:** primero concluí que 50 SKU estaban enlazados a publicaciones de otros productos («títulos desplazados»); era un error de mi script (el multiget de MeLi deduplica IDs repetidos y `zip` desalineaba los resultados). Verificado ID por ID, 35 de 39 enlaces son correctos por `SELLER_SKU`; ningún cliente recibió un enlace equivocado ni hubo escrituras de precio/stock sobre IDs erróneos (los 416 ajustes TRM siguen sin aplicarse jamás).
+  - Causa real del conteo inflado: 17 IDs de la tanda del 12-jun estaban guardados sin `MCO`. Los 17 quedaron con prefijo en `publicaciones_overrides.json` (antes, correrlos por `aplicar_overrides_a_cache` habría dejado `meli_id` numérico en la tienda).
+  - Hoja 1: +19 filas con SKU confirmado por MeLi (aceites esenciales, alantoína, arcillas, mantecas, cera carnauba, láminas, discos, envases…), 364 filas en total; encabezado y filas previas intactos. Se excluyeron 16: 4 SKU con 2.ª publicación activa, 2 cerradas/borradas y 10 con SKU alterno/sin SKU.
+  - Overrides: 5 claves quitadas por redundantes/erróneas, cada una sin otros datos y con otra clave correcta al mismo ID (`C-ACEESEARBTE`, `C-MANNCACNAT500g`, `ACEESENLIM5mL`, `C-DIOTIT500`, `C-ELAHID30m` — esta apuntaba a la betaína).
+  - Pendiente decidir uno por uno: typos que colisionan con otra clave (`C-ACEESEYLAYLA5mL`, `C-ACIKOJDPAL30mL`, `ALNT250`, `C-JABPOTLt`, `C-COCPROBET500m`, `C-EMBPAT30mL`, `FOR-GLUTAR2PmL`).
+- **Archivos Modificados:** `app/data/publicaciones_overrides.json`, `docs/agentic/modules/sync-stock.md`, `docs/team-recaps.md`. Cambios en el Google Sheet (respaldos previos en el scratchpad de la sesión).
+
 ### 2026-09-29 05:20 - Hoja 1 del Sheet de productos: 17 publicaciones nuevas agregadas y alta automática
 - **Autor:** Armando García
 - **Tipo de Cambio:** Corrección de datos + mejora. Sin LLM.

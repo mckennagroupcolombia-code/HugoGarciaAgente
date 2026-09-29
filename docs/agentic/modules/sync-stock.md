@@ -117,5 +117,18 @@ fila el bot de preventa no encuentra la ficha (col. I) ni el barrido de stock ve
   `SHEET_PRODUCTOS_AUTOFILA=0` lo apaga.
 - ⚠️ **Nunca usar `append_row(table_range="A1")`**: el 29-sep sobrescribió el ENCABEZADO de la hoja (se
   restauró desde el respaldo). Se escribe en una fila calculada (`len(get_all_values())+1`) con `batch_update`.
-- Pendiente: 50 publicaciones antiguas siguen fuera del Sheet (17 de las 67 eran las recientes, ya agregadas), y
-  6 IDs de MeLi están repetidos en la hoja (32 filas) desde antes.
+- **Estado tras la depuración del 29-sep:** de 168 publicaciones registradas en `publicaciones_overrides.json`,
+  las 35 que faltaban en el Sheet eran reales (las cifras «67» y «50» de un primer conteo estaban infladas porque
+  17 IDs de la tanda de junio estaban guardados **sin el prefijo `MCO`** y no coincidían con la col. A). Se agregaron
+  17 (psyllium, semillas, sales, maní, ajo negro, alginato) + 19 (aceites esenciales, alantoína, arcillas, mantecas…);
+  todos los IDs de overrides llevan `MCO`; se quitaron 5 claves redundantes/erróneas (`C-ACEESEARBTE`,
+  `C-MANNCACNAT500g`, `ACEESENLIM5mL`, `C-DIOTIT500`, `C-ELAHID30m` — esta última apuntaba a la publicación de betaína).
+  Se borraron también 4 filas duplicadas del Sheet (karité, sebo, cera, neem).
+- **Siguen fuera del Sheet a propósito:** 4 SKU con una 2.ª publicación activa (`C-ACENEE60mL`, `C-COCDESHIL250g/500g`,
+  `C-MAL500g`; el stock por SKU actualiza ambas), 2 cerradas/borradas en MeLi (limón 5 mL) y 8 con SKU de MeLi distinto o
+  sin SKU (typos en overrides o artículos que no son materia prima: collares, envase de vidrio) — decidir uno por uno.
+- ⚠️ **Trampa al auditar con MeLi:** `GET /items?ids=a,b,c` **deduplica los IDs repetidos** y devuelve menos resultados; hacer
+  `zip(ids, resultados)` desalinea todo lo que sigue (un diagnóstico de «títulos desplazados» salió de ahí y era falso).
+  Pedir cada ID por separado o indexar por `body.id`. Y normalizar siempre `MCO` antes de comparar con la col. A del Sheet.
+- Las 22 filas de «Esencias hidrosolubles 120 mL» (`MCO573366687`) NO son duplicados: son las 22 variaciones de una misma
+  publicación (una fila por aroma).
