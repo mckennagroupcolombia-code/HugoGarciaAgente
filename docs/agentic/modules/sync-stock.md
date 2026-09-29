@@ -101,3 +101,21 @@ que el PUT simple siempre funciona en cuentas nuevas o reconfiguradas.
 (su `available_quantity` se puede leer vía `buscar_producto_siigo_por_sku` como referencia, pero nunca se escribe).
 
 ---
+
+## Hoja 1 del Sheet al día con las publicaciones (desde 2026-09-29)
+
+`app/services/sheet_productos.py::asegurar_fila` agrega la fila de una publicación de MeLi a la Hoja 1
+(A=ID MeLi, B=SKU, C=presentación, D=nombre, E=precio, F=stock, G=vacía, H=link; I/J = TDS, no se tocan).
+Antes nadie agregaba filas: 67 de 168 publicaciones registradas estaban fuera (tandas desde junio) y sin
+fila el bot de preventa no encuentra la ficha (col. I) ni el barrido de stock ve el ítem.
+- **Cuándo corre** (en segundo plano, nunca rompe la publicación): al crear una publicación
+  (`meli_compliance.crear_publicacion_meli`), al asignar un `meli_item_id` a un SKU
+  (`publicaciones.actualizar_publicacion`) y al escribir el SKU de un ID que no está en la hoja
+  (`relacion_codigos_meli_siigo._actualizar_sku_en_sheets_por_meli_id`).
+- **Idempotente:** no duplica por ID (col. A) ni por SKU; si hay fila con el SKU pero sin ID, la completa.
+  Lo que no se pasa se lee en vivo de MeLi (título, precio, stock, permalink, `SELLER_SKU`).
+  `SHEET_PRODUCTOS_AUTOFILA=0` lo apaga.
+- ⚠️ **Nunca usar `append_row(table_range="A1")`**: el 29-sep sobrescribió el ENCABEZADO de la hoja (se
+  restauró desde el respaldo). Se escribe en una fila calculada (`len(get_all_values())+1`) con `batch_update`.
+- Pendiente: 50 publicaciones antiguas siguen fuera del Sheet (17 de las 67 eran las recientes, ya agregadas), y
+  6 IDs de MeLi están repetidos en la hoja (32 filas) desde antes.

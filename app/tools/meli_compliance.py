@@ -1987,6 +1987,19 @@ def crear_publicacion_meli(
                         item_live = obtener_item_meli(item_id)
                         status = (item_live or {}).get("status", status)
 
+            if item_id:
+                # La Hoja 1 del Sheet alimenta preventa (ficha, col. I) y el barrido de stock:
+                # toda publicación nueva debe tener su fila (best-effort, en segundo plano).
+                from app.services.sheet_productos import asegurar_fila_en_segundo_plano
+
+                asegurar_fila_en_segundo_plano(
+                    item_id,
+                    sku,
+                    titulo=str(data.get("title") or titulo or ""),
+                    precio=data.get("price") if data.get("price") is not None else precio,
+                    stock=stock,
+                    permalink=data.get("permalink", ""),
+                )
             return {
                 "ok": True,
                 "item_id": item_id,

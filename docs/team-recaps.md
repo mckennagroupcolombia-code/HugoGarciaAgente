@@ -1,3 +1,14 @@
+### 2026-09-29 05:20 - Hoja 1 del Sheet de productos: 17 publicaciones nuevas agregadas y alta automática
+- **Autor:** Armando García
+- **Tipo de Cambio:** Corrección de datos + mejora. Sin LLM.
+- **Qué se implementó:**
+  - Revisión: 17 de las 18 publicaciones de las últimas 48 h (psyllium, quinua roja, chía, amapola, sal rosada fina/gruesa, maní tostado, sésamo negro y alginato 500 g) **no estaban en la Hoja 1**. Nada del código agregaba filas: 67 de 168 publicaciones registradas estaban fuera desde junio.
+  - Las 17 se agregaron con datos vivos de MeLi (ID, SKU, presentación, nombre, precio, stock y link). Idempotencia verificada en el Sheet real (segunda corrida: 0 escrituras).
+  - `app/services/sheet_productos.py::asegurar_fila`: cada publicación nueva agrega su fila sola (crear publicación, asignar ID a un SKU, escribir el SKU de un ID ausente); no duplica por ID ni por SKU; nunca rompe la publicación. `SHEET_PRODUCTOS_AUTOFILA=0` lo apaga.
+  - ⚠️ **Incidente durante el relleno:** el primer `append_row(table_range="A1")` sobrescribió la fila de encabezados con el Psyllium 250 g. Se restauró desde el respaldo tomado antes (encabezado idéntico, 331 filas previas intactas) y el código pasó a escribir en una fila calculada explícitamente, con prueba de que nunca toca el encabezado.
+  - Pendiente: 50 publicaciones antiguas siguen fuera del Sheet (opción no pedida) y hay 6 IDs de MeLi repetidos en la hoja desde antes (32 filas).
+- **Archivos Modificados:** `app/services/sheet_productos.py` (nuevo), `app/tools/meli_compliance.py`, `app/services/publicaciones.py`, `app/tools/relacion_codigos_meli_siigo.py`, `tests/test_sheet_productos.py`, `.env.example`, `docs/agentic/modules/sync-stock.md`, `docs/team-recaps.md`.
+
 ### 2026-09-29 04:40 - Agente de ventas v2 activo en WhatsApp: turnos con el asesor, playbook del equipo, base de clientes y copiloto
 - **Autor:** Armando García
 - **Tipo de Cambio:** Activación + mejora. LLM en producción (mismo gasto que la sombra, ~US$0,3/día); verificación con 5 llamadas reales (~US$0,25).

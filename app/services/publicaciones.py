@@ -975,6 +975,11 @@ def actualizar_publicacion(sku: str, campos: dict) -> dict:
     elif sku in overrides:
         del overrides[sku]
     _save_overrides(overrides)
+    if campos.get("meli_item_id") and ov.get("meli_item_id"):
+        # Un ID de MeLi asignado a un SKU debe existir en la Hoja 1 (idempotente, en segundo plano).
+        from app.services.sheet_productos import asegurar_fila_en_segundo_plano
+
+        asegurar_fila_en_segundo_plano(ov["meli_item_id"], sku)
     return {"ok": True, "sku": sku, "override": ov}
 
 
