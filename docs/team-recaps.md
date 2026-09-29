@@ -4609,3 +4609,15 @@ Protocolo completo en `docs/agentic/TEAM_WORKFLOW.md`. En resumen: **anteponer**
   - Resultado: 153/153 aprobados con el tamaño de su plantilla (antes 41 mal: Semillas 250/500 g en 102×76, varios Kg/500 mL en 50×42); de los 59 sin aprobar, 55 enlazados por nombre. Quedan sin enlace `DATILES_SAYED_*` (la etiqueta se llama «SAYER»), `MANI_TOSTADO_PARTIDO_3` y cápsulas 1000 Un.
   - **Verificado:** comparación de los 212 PNG de ETIQUETAS STUDIO contra el formato de su ficha; reinicio de `agente-pro`.
 - **Archivos Modificados:** `app/tools/etiquetas_studio.py`, `app/routes.py`, `docs/team-recaps.md`
+
+### 2026-09-29 - Solicitudes: detalle más claro (pasos arriba, un «⋯» por paso)
+- **Autor:** Armando García
+- **Tipo de Cambio:** Mejora de interfaz
+- **Qué se implementó:**
+  - En el detalle de una solicitud asignada, los pasos se escondían en «+ Opciones», debajo del chat. Ahora, si la solicitud tiene pasos, aparecen abiertos **arriba del chat** con «Pasos · 1 de 4» y la barra de progreso al comienzo. Sin pasos no ocupan lugar; las de procedimiento siguen con su asistente.
+  - Cada paso queda en una sola línea: casilla, número y texto. Editar, Adjuntar foto, Pedir ayuda y Quitar pasan a un «⋯» con sus nombres escritos (antes eran 4 íconos sueltos y un recuadro «Ctrl+V — pegar pantallazo» en cada paso). Ctrl+V sigue funcionando en el paso señalado.
+  - «+ Agregar paso» con texto en vez de un «+» suelto.
+  - Pie: «Listo» es el botón principal y dice cuántos pasos faltan («Listo — faltan 3 pasos»); Adjuntos, Pasos y Compras siempre visibles, sin el menú «+ Opciones»; «Guardar como procedimiento» va al final.
+  - En el chat, «Pedir intervención» pasa a «Preguntar a {nombre}» (le llega un WhatsApp y la solicitud queda en pausa); se quitó el párrafo fijo que lo explicaba, ahora está en la ayuda del botón.
+  - **Verificado:** `npm run build`; captura en Chrome headless con un arnés temporal (ya retirado) y datos simulados, con y sin el «⋯» abierto.
+- **Archivos Modificados:** `desktop/src/components/TicketsPanel.tsx`, `docs/team-recaps.md`

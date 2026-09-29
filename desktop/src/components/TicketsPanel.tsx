@@ -13726,9 +13726,9 @@ function SolicitudCard({
   const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
   const [pasoPasteId, setPasoPasteId] = useState<number | null>(null);
   const pasosChecklistRef = useRef<HTMLDivElement>(null);
+  const [pasoMenuId, setPasoMenuId] = useState<number | null>(null);
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-  const [showExtrasMenu, setShowExtrasMenu] = useState(false);
   // Presencia — quién está en línea ahora mismo (solo se pollea en modo ampliado)
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
@@ -13911,12 +13911,13 @@ function SolicitudCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adjuntos, ticket.id]);
 
-  // Cargar pasos al iniciar (en proceso o supervisión). En detalleAmpliado no los mostramos
-  // automáticamente: el usuario los abre desde "+ Opciones" para no saturar la vista de chat.
+  // Cargar pasos al iniciar (en proceso o supervisión). En el detalle se muestran si hay
+  // pasos (van arriba del chat); sin pasos no ocupan lugar. Los de procedimiento se hacen
+  // en su asistente («Ejecutar procedimiento»).
   useEffect(() => {
     if (ticket.estado === "en_proceso" || supervision) {
       void cargarPasos();
-      if (ticket.estado === "en_proceso" && !detalleAmpliado) setShowPasos(true);
+      if (ticket.estado === "en_proceso" && (!detalleAmpliado || ((ticket.pasos_total ?? 0) > 0 && !(onRegistrarEjecucion && ticket.protocolo_id)))) setShowPasos(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.id, ticket.estado, supervision]);
@@ -14883,6 +14884,271 @@ function SolicitudCard({
     && !/^\s*📎\s*(imagen|archivo)\s+adjunt[oa]/i.test(c.texto),
   );
 
+  // Checklist de pasos — con edición, agregar paso y ayuda por paso (en «⋯»).
+  const bloquePasos = showPasos && (
+      <div
+        ref={pasosChecklistRef}
+        className={`rounded-xl border border-border bg-surface-hover p-3 space-y-2 ${detalleAmpliado ? "shrink-0 max-h-[45vh] overflow-y-auto" : ""}`}
+        onPaste={(e) => {
+          if (!esAsignado || supervision || resuelta) return;
+          const targetId = pasoPasteId ?? pasos.find((p) => !pasoEstaCompletado(p))?.id ?? pasos[0]?.id;
+          if (!targetId) return;
+          manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(targetId, file));
+        }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold text-ink">
+            Pasos
+            {pasosTotal > 0 && (
+              <span className={`rounded-full px-2 py-0.5 text-xs tabular-nums ${pasosCompletados === pasosTotal ? "bg-accent text-white" : "bg-accent/10 text-accent"}`}>
+                {pasosCompletados} de {pasosTotal}
+              </span>
+            )}
+            <InfoTooltip text="Marca cada paso al terminarlo. En «⋯» de cada paso: editar, adjuntar una foto o pedir ayuda a otra persona. Ctrl+V pega un pantallazo en el paso que tengas señalado." />
+          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            {puedeVincularProtocolo && protocolos.length > 0 && (
+              <button type="button"
+                onClick={() => setShowVincularProtocolo((v) => !v)}
+                className="text-[11px] text-accent hover:underline">
+                {showVincularProtocolo ? "Cancelar" : "Enlazar procedimiento"}
+              </button>
+            )}
+            <button type="button" title="Ocultar pasos" onClick={() => setShowPasos(false)} className="text-muted hover:text-ink text-xs">▲</button>
+          </div>
+        </div>
+        {ticket.protocolo_titulo && (
+          <p className="text-[11px] text-accent"><Ico e="📋" /> {ticket.protocolo_titulo}</p>
+        )}
+        {pasosTotal > 0 && (
+          <div className="h-1.5 rounded-full bg-border overflow-hidden">
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(pasosCompletados / pasosTotal) * 100}%` }} />
+          </div>
+        )}
+        {vincularProtocoloMsg && <p className="text-xs text-accent">{vincularProtocoloMsg}</p>}
+        {showVincularProtocolo && puedeVincularProtocolo && (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-2.5 space-y-2">
+            <p className="text-[11px] font-semibold text-ink">Enlazar procedimiento estándar</p>
+            <select
+              className="quest-input w-full text-xs"
+              value={protocoloVincularId}
+              onChange={(e) => setProtocoloVincularId(e.target.value ? Number(e.target.value) : "")}
+            >
+              <option value="">Selecciona un procedimiento…</option>
+              {protocolos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.titulo}{p.categoria ? ` (${p.categoria})` : ""} — {p.pasos.length} paso{p.pasos.length !== 1 ? "s" : ""}
+                </option>
+              ))}
+            </select>
+            {(ticket.pasos_total ?? 0) > 0 && (
+              <label className="flex items-center gap-2 text-[11px] text-muted cursor-pointer">
+                <input type="checkbox" checked={reemplazarPasosProtocolo}
+                  onChange={(e) => setReemplazarPasosProtocolo(e.target.checked)}
+                  className="rounded border-border accent-accent" />
+                Reemplazar pasos actuales por los del procedimiento
+              </label>
+            )}
+            <button type="button"
+              disabled={vinculandoProtocolo || !protocoloVincularId}
+              onClick={() => void vincularProtocolo()}
+              className="quest-btn-primary px-3 py-1 text-xs">
+              {vinculandoProtocolo ? "Vinculando…" : "Vincular"}
+            </button>
+          </div>
+        )}
+        {loadingPasos && <p className="text-xs text-muted">Cargando pasos…</p>}
+        {!loadingPasos && pasos.length === 0 && (
+          <p className="text-xs text-muted italic">Todavía no hay pasos.</p>
+        )}
+        <div className="space-y-1">
+          {pasos.map((p) => (
+            <div
+              key={p.id}
+              className={`rounded-lg border px-2 py-1.5 transition-colors ${
+                pasoPasteId === p.id ? "border-accent/50 bg-accent/5" : p.completado ? "border-transparent opacity-60" : "border-border/50 hover:bg-surface"
+              }`}
+              onMouseEnter={() => setPasoPasteId(p.id)}
+              onFocusCapture={() => setPasoPasteId(p.id)}
+              onPaste={(e) => {
+                if (!esAsignado || supervision || resuelta) return;
+                if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
+                  e.stopPropagation();
+                }
+              }}
+            >
+              {editandoPasoId === p.id ? (
+                /* Modo edición inline */
+                <div className="space-y-1.5">
+                  <ProseInput autoFocus className="quest-input w-full text-xs" value={editPasoDesc}
+                    onChange={(e) => setEditPasoDesc(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && void guardarEditPaso(p)} />
+                  <ProseTextarea className="quest-input w-full text-xs resize-none" placeholder="Notas (opcional)" rows={2} value={editPasoNotas}
+                    onChange={(e) => setEditPasoNotas(e.target.value)} />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => void guardarEditPaso(p)}
+                      className="text-xs text-accent hover:underline">Guardar</button>
+                    <button type="button" onClick={() => setEditandoPasoId(null)}
+                      className="text-xs text-muted hover:text-ink">Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-start gap-2">
+                    <input type="checkbox"
+                      checked={pasoEstaCompletado(p)}
+                      onChange={() => esAsignado && !supervision && !p.intervencion_pendiente_numero && void togglePaso(p)}
+                      disabled={!esAsignado || supervision || !!p.intervencion_pendiente_numero}
+                      className="mt-0.5 h-5 w-5 rounded border-border accent-accent shrink-0 cursor-pointer disabled:cursor-not-allowed" />
+                    <div className="min-w-0 flex-1">
+                      <span className={`${detalleAmpliado ? "text-sm" : "text-xs"} ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}`}>
+                        <span className="text-muted mr-1">{p.orden}.</span>{p.descripcion}
+                      </span>
+                      {pasoEstaCompletado(p) && p.completado_por_nombre && (
+                        <p className="text-[10px] text-muted">
+                          ✓ {p.completado_por_nombre}
+                          {p.duracion_segundos ? ` · ⏱ ${fmtTiempo(p.duracion_segundos)}` : ""}
+                        </p>
+                      )}
+                    </div>
+                    {esAsignado && !supervision && !resuelta && (
+                      <button type="button" title="Más acciones del paso"
+                        aria-expanded={pasoMenuId === p.id}
+                        onClick={() => setPasoMenuId((id) => (id === p.id ? null : p.id))}
+                        className={`shrink-0 rounded-lg border px-2 py-0.5 text-base font-black leading-none transition-colors ${
+                          pasoMenuId === p.id ? "border-accent bg-accent/15 text-accent" : "border-border/60 text-ink/70 hover:border-accent hover:text-accent"
+                        }`}>
+                        {subiendoAdjPaso === p.id
+                          ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                          : "⋯"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Acciones del paso: ocultas hasta tocar «⋯» para que la lista se lea limpia */}
+                  {pasoMenuId === p.id && esAsignado && !supervision && !resuelta && (
+                    <div className="ml-7 flex flex-wrap gap-1.5">
+                      {!pasoEstaCompletado(p) && !p.intervencion_pendiente_numero && (
+                        <button type="button" onClick={() => { setPasoMenuId(null); iniciarEditPaso(p); }}
+                          className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent">
+                          <Ico e="✏️" /> Editar
+                        </button>
+                      )}
+                      <label title="Elegir archivo, o señalar el paso y pegar con Ctrl+V"
+                        className="cursor-pointer rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent">
+                        <Ico e="📷" /> Adjuntar foto
+                        <input
+                          type="file"
+                          accept="image/*,.pdf,application/pdf,.doc,.docx"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void subirAdjuntoPaso(p.id, f);
+                            e.target.value = "";
+                            setPasoMenuId(null);
+                          }}
+                        />
+                      </label>
+                      {!pasoEstaCompletado(p) && !p.intervencion_pendiente_numero
+                        && ticket.estado === "en_proceso" && !ticket.bloqueado_por && (
+                        <button type="button" onClick={() => { setPasoMenuId(null); abrirIntervencionDesdePaso(p); }}
+                          className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:border-accent hover:text-accent">
+                          <Ico e="🛑" /> Pedir ayuda
+                        </button>
+                      )}
+                      {!pasoEstaCompletado(p) && !p.intervencion_pendiente_numero && (
+                        <button type="button" onClick={() => { setPasoMenuId(null); void eliminarPasoInline(p.id); }}
+                          className="rounded-lg border border-border px-2 py-1 text-[11px] font-semibold text-muted hover:border-red-400 hover:text-red-500">
+                          <Icon name="trash" size={11} /> Quitar
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {/* Intervención pendiente en este paso */}
+                  {p.intervencion_pendiente_numero && (
+                    <div className="ml-7 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px]">
+                      <span className="font-semibold text-accent">
+                        <Ico e="🛑" /> Esperando intervención {p.intervencion_pendiente_numero}
+                      </span>
+                      {p.intervencion_asignado_nombre && (
+                        <span className="text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
+                      )}
+                    </div>
+                  )}
+                  {/* Respuesta de la intervención resuelta */}
+                  {p.respuesta_intervencion && !p.intervencion_pendiente_numero && (
+                    <div className="ml-7 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px] space-y-0.5">
+                      <p className="font-semibold text-accent">✅ Intervención resuelta</p>
+                      <p className="text-accent/80  whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
+                    </div>
+                  )}
+                  {/* Notas del paso (si no son respuesta de intervención) */}
+                  {p.notas && !p.respuesta_intervencion && (
+                    <p className="ml-7 text-[10px] text-muted">{p.notas}</p>
+                  )}
+                  {/* Imágenes/archivos vinculados a este paso */}
+                  {(() => {
+                    const pasoAdjs = adjuntosPorPaso.get(p.id) ?? [];
+                    if (pasoAdjs.length === 0) return null;
+                    return (
+                      <div className="ml-7 flex flex-wrap gap-1.5 pt-0.5">
+                        {pasoAdjs.map((a) => {
+                          const esImagen = (a.mime?.startsWith("image/"))
+                            || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+                          const url = ticketsUploadUrl(a.nombre_archivo, token);
+                          return (
+                            <div key={a.id} className="relative group">
+                              {esImagen ? (
+                                <button type="button" onClick={() => setLightboxUrl(url)} className="block" title={a.nombre_original}>
+                                  <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
+                                </button>
+                              ) : (
+                                <a href={url} target="_blank" rel="noreferrer"
+                                  className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-lg"
+                                  title={a.nombre_original}>📄</a>
+                              )}
+                              {(nivel >= 2 || ticket.creado_por === user.id) && (
+                                <button type="button" disabled={eliminandoAdj === a.id}
+                                  onClick={() => void eliminarAdjunto(a.id)}
+                                  className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow">
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Agregar paso inline */}
+        {esAsignado && !supervision && !resuelta && (
+          showAddPaso ? (
+            <div className="flex gap-2 pt-1">
+              <ProseInput autoFocus className="quest-input flex-1 text-xs" placeholder="Descripción del nuevo paso…"
+                value={nuevoPasoDesc} onChange={(e) => setNuevoPasoDesc(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void agregarPasoInline()} />
+              <button type="button" disabled={agregandoPaso || !nuevoPasoDesc.trim()} onClick={() => void agregarPasoInline()}
+                className="shrink-0 quest-btn-primary px-2 py-1 text-xs">
+                {agregandoPaso ? "…" : "Agregar"}
+              </button>
+              <button type="button" onClick={() => { setShowAddPaso(false); setNuevoPasoDesc(""); }}
+                className="shrink-0 text-muted hover:text-ink text-xs px-1">✕</button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => setShowAddPaso(true)}
+              className="flex items-center gap-1 pt-0.5 text-xs font-bold text-accent hover:opacity-80">
+              <Icon name="plus" size={13} weight="bold" /> Agregar paso
+            </button>
+          )
+        )}
+      </div>
+  );
+
   return (
     <div
       className={`flex flex-col transition-opacity ${detalleAmpliado ? "gap-4 min-h-0" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}
@@ -15339,6 +15605,9 @@ function SolicitudCard({
         </div>
       )}
 
+      {/* En el detalle los pasos van antes del chat: son lo que hay que hacer. */}
+      {detalleAmpliado && bloquePasos}
+
       {/* Conversación — chat unificado */}
       {(showChat || detalleAmpliado) && puedeVerChat && (
         <div
@@ -15536,11 +15805,11 @@ function SolicitudCard({
                 {puedePreguntarSolicitante && (
                   <button
                     type="button"
-                    title={`Pedir una aclaración a ${ticket.creado_por_nombre ?? "quien pidió la solicitud"} — la solicitud queda en pausa hasta que responda`}
+                    title={`Le llega un WhatsApp a ${ticket.creado_por_nombre ?? "quien pidió la solicitud"} y la solicitud queda en pausa hasta que responda. Un mensaje normal solo queda en el hilo.`}
                     onClick={abrirPreguntaSolicitante}
                     className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
                   >
-                    <Ico e="🙋" /> Pedir intervención
+                    <Ico e="🙋" /> Preguntar a {(ticket.creado_por_nombre ?? "quien la pidió").split(" ")[0]}
                   </button>
                 )}
                 <div className="flex-1" />
@@ -15553,14 +15822,6 @@ function SolicitudCard({
                   {enviandoChat ? "…" : "Enviar"}
                 </button>
               </div>
-              {puedePreguntarSolicitante && (
-                <p className="text-[10px] text-muted">
-                  Un mensaje queda como reporte en el hilo. Si necesitas que{" "}
-                  {ticket.creado_por_nombre ?? "quien la pidió"} te aclare algo para poder
-                  continuar, usa <strong>Pedir intervención</strong>: le llega un WhatsApp y la
-                  solicitud queda en pausa hasta que responda.
-                </p>
-              )}
             </div>
           ) : (
             <div className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5">
@@ -15654,298 +15915,7 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Checklist de pasos — con edición inline, agregar paso y botón de intervención por paso */}
-      {showPasos && (
-        <div
-          ref={pasosChecklistRef}
-          className="rounded-xl border border-border bg-surface-hover p-3 space-y-1.5"
-          onPaste={(e) => {
-            if (!esAsignado || supervision || resuelta) return;
-            const targetId = pasoPasteId ?? pasos.find((p) => !pasoEstaCompletado(p))?.id ?? pasos[0]?.id;
-            if (!targetId) return;
-            manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(targetId, file));
-          }}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-ink flex items-center gap-1">
-              Protocolo de pasos
-              <InfoTooltip text="Manual de operación: marca cada paso al completarlo. Puedes editar o agregar pasos en cualquier momento. Si un paso necesita que otro usuario haga algo, usa el botón 🛑 para pedir intervención en ese paso específico." />
-              {pasosTotal > 0 && <span className="text-muted font-normal">({pasosCompletados}/{pasosTotal})</span>}
-              {esAsignado && !supervision && !resuelta && (
-                <span className="text-[10px] font-normal text-muted">· Ctrl+V en un paso</span>
-              )}
-              {ticket.protocolo_titulo && (
-                <span className="text-[10px] font-normal text-accent bg-accent/10 rounded-full px-2 py-0.5">
-                  <Ico e="📋" /> {ticket.protocolo_titulo}
-                </span>
-              )}
-            </span>
-            <div className="flex items-center gap-2">
-              {puedeVincularProtocolo && protocolos.length > 0 && (
-                <button type="button"
-                  onClick={() => setShowVincularProtocolo((v) => !v)}
-                  className="text-[10px] text-accent hover:underline">
-                  {showVincularProtocolo ? "Cancelar" : "Enlazar procedimiento"}
-                </button>
-              )}
-              <button type="button" onClick={() => setShowPasos(false)} className="text-muted hover:text-ink text-xs">▲</button>
-            </div>
-          </div>
-          {vincularProtocoloMsg && <p className="text-xs text-accent">{vincularProtocoloMsg}</p>}
-          {showVincularProtocolo && puedeVincularProtocolo && (
-            <div className="rounded-lg border border-accent/30 bg-accent/5 p-2.5 space-y-2">
-              <p className="text-[11px] font-semibold text-ink">Enlazar procedimiento estándar</p>
-              <select
-                className="quest-input w-full text-xs"
-                value={protocoloVincularId}
-                onChange={(e) => setProtocoloVincularId(e.target.value ? Number(e.target.value) : "")}
-              >
-                <option value="">Selecciona un procedimiento…</option>
-                {protocolos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.titulo}{p.categoria ? ` (${p.categoria})` : ""} — {p.pasos.length} paso{p.pasos.length !== 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
-              {(ticket.pasos_total ?? 0) > 0 && (
-                <label className="flex items-center gap-2 text-[11px] text-muted cursor-pointer">
-                  <input type="checkbox" checked={reemplazarPasosProtocolo}
-                    onChange={(e) => setReemplazarPasosProtocolo(e.target.checked)}
-                    className="rounded border-border accent-accent" />
-                  Reemplazar pasos actuales por los del procedimiento
-                </label>
-              )}
-              <button type="button"
-                disabled={vinculandoProtocolo || !protocoloVincularId}
-                onClick={() => void vincularProtocolo()}
-                className="quest-btn-primary px-3 py-1 text-xs">
-                {vinculandoProtocolo ? "Vinculando…" : "Vincular"}
-              </button>
-            </div>
-          )}
-          {loadingPasos && <p className="text-xs text-muted">Cargando pasos…</p>}
-          {!loadingPasos && pasos.length === 0 && (
-            <p className="text-xs text-muted italic">Sin pasos definidos. Agrega el primero abajo.</p>
-          )}
-          <div className="space-y-1">
-            {pasos.map((p) => (
-              <div
-                key={p.id}
-                className={`rounded-lg border px-2 py-1.5 transition-colors ${
-                  pasoPasteId === p.id ? "border-accent/50 bg-accent/5" : p.completado ? "border-transparent opacity-60" : "border-border/50 hover:bg-surface"
-                }`}
-                onMouseEnter={() => setPasoPasteId(p.id)}
-                onFocusCapture={() => setPasoPasteId(p.id)}
-                onPaste={(e) => {
-                  if (!esAsignado || supervision || resuelta) return;
-                  if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
-                    e.stopPropagation();
-                  }
-                }}
-              >
-                {editandoPasoId === p.id ? (
-                  /* Modo edición inline */
-                  <div className="space-y-1.5">
-                    <ProseInput autoFocus className="quest-input w-full text-xs" value={editPasoDesc}
-                      onChange={(e) => setEditPasoDesc(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && void guardarEditPaso(p)} />
-                    <ProseTextarea className="quest-input w-full text-xs resize-none" placeholder="Notas (opcional)" rows={2} value={editPasoNotas}
-                      onChange={(e) => setEditPasoNotas(e.target.value)} />
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => void guardarEditPaso(p)}
-                        className="text-xs text-accent hover:underline">Guardar</button>
-                      <button type="button" onClick={() => setEditandoPasoId(null)}
-                        className="text-xs text-muted hover:text-ink">Cancelar</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-start gap-2">
-                      <input type="checkbox"
-                        checked={pasoEstaCompletado(p)}
-                        onChange={() => esAsignado && !supervision && !p.intervencion_pendiente_numero && void togglePaso(p)}
-                        disabled={!esAsignado || supervision || !!p.intervencion_pendiente_numero}
-                        className="mt-0.5 h-4 w-4 rounded border-border accent-accent shrink-0 cursor-pointer disabled:cursor-not-allowed" />
-                      <div className="min-w-0 flex-1">
-                        <span className={`text-xs ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}`}>
-                          <span className="text-muted mr-1">{p.orden}.</span>{p.descripcion}
-                        </span>
-                        {pasoEstaCompletado(p) && p.completado_por_nombre && (
-                          <p className="text-[10px] text-muted">
-                            ✓ {p.completado_por_nombre}
-                            {p.duracion_segundos ? ` · ⏱ ${fmtTiempo(p.duracion_segundos)}` : ""}
-                          </p>
-                        )}
-                      </div>
-                      {/* Acciones del paso */}
-                      {esAsignado && !supervision && !pasoEstaCompletado(p) && !p.intervencion_pendiente_numero && (
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button type="button" title="Editar paso" onClick={() => iniciarEditPaso(p)}
-                            className="text-muted hover:text-accent transition-colors p-0.5">
-                            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </button>
-                          {ticket.estado === "en_proceso" && !ticket.bloqueado_por && (
-                            <button type="button" title="Necesito ayuda en este paso"
-                              onClick={() => abrirIntervencionDesdePaso(p)}
-                              className="text-muted hover:text-accent/50 transition-colors p-0.5 text-[10px]">
-                              <Ico e="🛑" />
-                            </button>
-                          )}
-                          <button type="button" title="Eliminar paso" onClick={() => void eliminarPasoInline(p.id)}
-                            className="text-muted hover:text-red-500 transition-colors p-0.5">
-                            <Icon name="trash" size={11} />
-                          </button>
-                        </div>
-                      )}
-                      {/* Adjuntar archivo al paso — visible para el ejecutor en cualquier estado */}
-                      {esAsignado && !supervision && (
-                        <label title="Adjuntar archivo o Ctrl+V en este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
-                          {subiendoAdjPaso === p.id
-                            ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                            : <span className="text-[11px]"><Ico e="📎" /></span>
-                          }
-                          <input
-                            type="file"
-                            accept="image/*,.pdf,application/pdf,.doc,.docx"
-                            className="sr-only"
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) void subirAdjuntoPaso(p.id, f);
-                              e.target.value = "";
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    {/* Intervención pendiente en este paso */}
-                    {p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px]">
-                        <span className="font-semibold text-accent">
-                          <Ico e="🛑" /> Esperando intervención {p.intervencion_pendiente_numero}
-                        </span>
-                        {p.intervencion_asignado_nombre && (
-                          <span className="text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
-                        )}
-                      </div>
-                    )}
-                    {/* Respuesta de la intervención resuelta */}
-                    {p.respuesta_intervencion && !p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60  px-2.5 py-1.5 text-[11px] space-y-0.5">
-                        <p className="font-semibold text-accent">✅ Intervención resuelta</p>
-                        <p className="text-accent/80  whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
-                      </div>
-                    )}
-                    {/* Notas del paso (si no son respuesta de intervención) */}
-                    {p.notas && !p.respuesta_intervencion && (
-                      <p className="ml-6 text-[10px] text-muted">{p.notas}</p>
-                    )}
-                    {/* Imágenes/archivos vinculados a este paso */}
-                    {(() => {
-                      const pasoAdjs = adjuntosPorPaso.get(p.id) ?? [];
-                      if (pasoAdjs.length === 0) return null;
-                      return (
-                        <div className="ml-6 flex flex-wrap gap-1.5 pt-0.5">
-                          {pasoAdjs.map((a) => {
-                            const esImagen = (a.mime?.startsWith("image/"))
-                              || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
-                            const url = ticketsUploadUrl(a.nombre_archivo, token);
-                            return (
-                              <div key={a.id} className="relative group">
-                                {esImagen ? (
-                                  <button type="button" onClick={() => setLightboxUrl(url)} className="block" title={a.nombre_original}>
-                                    <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
-                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold transition-opacity pointer-events-none"><Ico e="🔍" /></span>
-                                  </button>
-                                ) : (
-                                  <a href={url} target="_blank" rel="noreferrer"
-                                    className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-lg"
-                                    title={a.nombre_original}>📄</a>
-                                )}
-                                {(nivel >= 2 || ticket.creado_por === user.id) && (
-                                  <button type="button" disabled={eliminandoAdj === a.id}
-                                    onClick={() => void eliminarAdjunto(a.id)}
-                                    className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow">
-                                    ✕
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                    {/* Zona de pegado explícita por paso — click o foco + Ctrl+V */}
-                    {esAsignado && !supervision && !pasoEstaCompletado(p) && !resuelta && (
-                      <label
-                        tabIndex={0}
-                        onFocus={() => setPasoPasteId(p.id)}
-                        onPaste={(e) => {
-                          if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
-                            e.stopPropagation();
-                          }
-                        }}
-                        className={`ml-6 mt-1 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold cursor-pointer select-none outline-none transition-colors
-                          ${subiendoAdjPaso === p.id
-                            ? "border-accent/50 text-accent"
-                            : "border-dashed border-border/50 text-muted/60 hover:border-accent/50 hover:text-accent/80 focus:border-accent focus:bg-accent/5 focus:text-accent"
-                          }`}
-                        title="Haz click aquí y presiona Ctrl+V para pegar un pantallazo en este paso"
-                      >
-                        {subiendoAdjPaso === p.id ? (
-                          <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
-                        ) : (
-                          <><span><Ico e="📷" /></span> Ctrl+V — pegar pantallazo</>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) void subirAdjuntoPaso(p.id, f);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          {/* Barra de progreso */}
-          {pasosTotal > 0 && (
-            <div className="h-1 rounded-full bg-border overflow-hidden">
-              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(pasosCompletados / pasosTotal) * 100}%` }} />
-            </div>
-          )}
-          {/* Agregar paso inline */}
-          {esAsignado && !supervision && (
-            showAddPaso ? (
-              <div className="flex gap-2 pt-1">
-                <ProseInput autoFocus className="quest-input flex-1 text-xs" placeholder="Descripción del nuevo paso…"
-                  value={nuevoPasoDesc} onChange={(e) => setNuevoPasoDesc(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && void agregarPasoInline()} />
-                <button type="button" disabled={agregandoPaso || !nuevoPasoDesc.trim()} onClick={() => void agregarPasoInline()}
-                  className="shrink-0 quest-btn-primary px-2 py-1 text-xs">
-                  {agregandoPaso ? "…" : "Agregar"}
-                </button>
-                <button type="button" onClick={() => { setShowAddPaso(false); setNuevoPasoDesc(""); }}
-                  className="shrink-0 text-muted hover:text-ink text-xs px-1">✕</button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => setShowAddPaso(true)}
-                title="Agregar paso" aria-label="Agregar paso"
-                className="flex items-center justify-center pt-0.5 text-accent hover:opacity-80">
-                <Icon name="plus" size={14} weight="bold" />
-              </button>
-            )
-          )}
-        </div>
-      )}
+      {!detalleAmpliado && bloquePasos}
 
       {/* Modal: Pedir intervención */}
       {showIntervencion && (
@@ -16116,40 +16086,6 @@ function SolicitudCard({
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           {protocoloMsg && <p className="text-xs font-semibold text-accent">{protocoloMsg}</p>}
 
-          {/* Procedimiento — un solo control compacto (antes: checkbox + botón separado, confuso) */}
-          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-hover px-2.5 py-1.5">
-            <button
-              type="button"
-              onClick={() => setGuardarComoProcedimiento((v) => !v)}
-              className="flex min-w-0 flex-1 items-center gap-2 text-left"
-              title="Al marcar lista o pedir revisión, queda guardado en Procedimientos"
-            >
-              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 text-[10px] font-black transition ${
-                guardarComoProcedimiento ? "border-accent bg-accent text-white" : "border-border"
-              }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
-              <span className="truncate text-xs font-semibold text-ink">Guardar como procedimiento al cerrar</span>
-            </button>
-            {guardarComoProcedimiento && (
-              <div className="flex shrink-0 gap-1 rounded-lg border border-accent/20 bg-surface-panel p-0.5">
-                <button type="button" onClick={() => setAlcanceProcedimiento("personal")}
-                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "personal" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
-                >🔒 Solo yo</button>
-                <button type="button" onClick={() => setAlcanceProcedimiento("global")}
-                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "global" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
-                >🌐 Equipo</button>
-              </div>
-            )}
-            <button
-              type="button"
-              disabled={generandoProcedimiento || busy || !!ticket.bloqueado_por}
-              onClick={() => void generarProcedimientoAhora()}
-              title={ticket.bloqueado_por ? "Intervención pendiente" : "Guardar pasos actuales sin cerrar la solicitud"}
-              className="shrink-0 text-[11px] font-bold text-accent underline-offset-2 hover:underline disabled:opacity-40"
-            >
-              {generandoProcedimiento ? "Generando…" : "Generar ahora"}
-            </button>
-          </div>
-
           {/* Solicitud con protocolo → botón único que abre el wizard + Listo secundario */}
           {onRegistrarEjecucion && ticket.protocolo_id ? (
             <div className="space-y-1.5">
@@ -16214,14 +16150,18 @@ function SolicitudCard({
                 return (
                   <button type="button" disabled={busy || noPermite} onClick={resolver}
                     title={bloqueado ? "Intervención pendiente — no disponible" : pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
-                    className={`flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                    className={`flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-sm font-extrabold min-h-[44px] transition-colors ${
                       noPermite
                         ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                        : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10"
+                        : "border-accent bg-accent text-white hover:brightness-110"
                     }`}
                   >
                     <Icon name="check" size={15} weight="bold" />
-                    {bloqueado ? "Listo 🔒" : pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                    {bloqueado
+                      ? "Listo 🔒 — esperando respuesta"
+                      : pasosFaltantes > 0
+                        ? `Listo — falta${pasosFaltantes !== 1 ? "n" : ""} ${pasosFaltantes} paso${pasosFaltantes !== 1 ? "s" : ""}`
+                        : "Listo"}
                   </button>
                 );
               })()}
@@ -16231,48 +16171,28 @@ function SolicitudCard({
           {/* Botones secundarios */}
           {detalleAmpliado ? (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setShowExtrasMenu((v) => !v)}
-                title="Adjuntos, pasos y lista de compras"
-                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${showExtrasMenu ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent hover:text-accent"}`}
-              >
-                <span className="text-sm leading-none font-black">{showExtrasMenu ? "✕" : "+"}</span>
-                Opciones
+              <button type="button"
+                onClick={() => { setShowAdjuntos((v) => !v); if (!showAdjuntos) void cargarAdjuntos(); }}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+                <Ico e="📎" /> Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
               </button>
-              {showExtrasMenu && (
-                <>
-                  <button type="button"
-                    onClick={() => { setShowAdjuntos((v) => !v); if (!showAdjuntos) void cargarAdjuntos(); }}
-                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-                    <Ico e="📎" /> Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
-                  </button>
-                  {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
-                    <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
-                      className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
-                      ☑ Ver pasos
-                    </button>
-                  )}
-                  {(ticket.pasos_total ?? 0) === 0 && !showPasos && puedeVincularProtocolo && protocolos.length > 0 && (
-                    <button type="button"
-                      onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
-                      className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
-                      <Ico e="📋" /> Enlazar
-                    </button>
-                  )}
-                  {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
-                    <button type="button" onClick={() => setShowAddPaso(true)}
-                      className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
-                      + Paso
-                    </button>
-                  )}
-                  <button type="button"
-                    onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
-                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-accent/40 text-accent" : "border-border text-muted hover:text-accent/50 hover:border-accent/40"}`}>
-                    <Ico e="🛒" /> Compras{compras.length > 0 ? ` (${compras.length})` : ""}
-                  </button>
-                </>
+              {!(onRegistrarEjecucion && ticket.protocolo_id) && (
+                <button type="button"
+                  onClick={() => {
+                    if (showPasos) { setShowPasos(false); return; }
+                    setShowPasos(true);
+                    void cargarPasos();
+                    if ((ticket.pasos_total ?? 0) === 0 && pasos.length === 0) setShowAddPaso(true);
+                  }}
+                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${showPasos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+                  ☑ {(ticket.pasos_total ?? 0) > 0 || pasos.length > 0 ? "Pasos" : "Agregar pasos"}
+                </button>
               )}
+              <button type="button"
+                onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
+                className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${showCompras ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+                <Ico e="🛒" /> Compras{compras.length > 0 ? ` (${compras.length})` : ""}
+              </button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-1.5">
@@ -16309,6 +16229,40 @@ function SolicitudCard({
               {/* Intervención solo disponible por paso — botón general eliminado */}
             </div>
           )}
+
+          {/* Procedimiento — al final: es opcional y no debe tapar «Listo» */}
+          <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-surface-hover px-2.5 py-1.5">
+            <button
+              type="button"
+              onClick={() => setGuardarComoProcedimiento((v) => !v)}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              title="Al marcar lista o pedir revisión, queda guardado en Procedimientos"
+            >
+              <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 text-[10px] font-black transition ${
+                guardarComoProcedimiento ? "border-accent bg-accent text-white" : "border-border"
+              }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
+              <span className="truncate text-xs font-semibold text-ink">Guardar como procedimiento al cerrar</span>
+            </button>
+            {guardarComoProcedimiento && (
+              <div className="flex shrink-0 gap-1 rounded-lg border border-accent/20 bg-surface-panel p-0.5">
+                <button type="button" onClick={() => setAlcanceProcedimiento("personal")}
+                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "personal" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+                >🔒 Solo yo</button>
+                <button type="button" onClick={() => setAlcanceProcedimiento("global")}
+                  className={`rounded px-2 py-1 text-[10px] font-bold transition ${alcanceProcedimiento === "global" ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+                >🌐 Equipo</button>
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={generandoProcedimiento || busy || !!ticket.bloqueado_por}
+              onClick={() => void generarProcedimientoAhora()}
+              title={ticket.bloqueado_por ? "Intervención pendiente" : "Guardar pasos actuales sin cerrar la solicitud"}
+              className="shrink-0 text-[11px] font-bold text-accent underline-offset-2 hover:underline disabled:opacity-40"
+            >
+              {generandoProcedimiento ? "Generando…" : "Generar ahora"}
+            </button>
+          </div>
         </div>
       )}
 
